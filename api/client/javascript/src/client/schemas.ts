@@ -2757,8 +2757,10 @@ export interface components {
     Annotations: {
       [key: string]: unknown
     }
-    /** @description App.
-     *     One of: stripe */
+    /**
+     * @description App.
+     *     One of: stripe
+     */
     App:
       | components['schemas']['StripeApp']
       | components['schemas']['SandboxApp']
@@ -2814,9 +2816,11 @@ export interface components {
       /** @description The items in the current page. */
       items: components['schemas']['App'][]
     }
-    /** @description App reference
+    /**
+     * @description App reference
      *
-     *     Can be used as a short reference to an app if the full app object is not needed. */
+     *     Can be used as a short reference to an app if the full app object is not needed.
+     */
     AppReference: {
       /**
        * @description The ID of the app.
@@ -2857,19 +2861,23 @@ export interface components {
        */
       readonly balanceAtStart: number
     }
-    /** @description Customer specific merged profile.
+    /**
+     * @description Customer specific merged profile.
      *
      *     This profile is calculated from the customer override and the billing profile it references or the default.
      *
-     *     Thus this does not have any kind of resource fields, only the calculated values. */
+     *     Thus this does not have any kind of resource fields, only the calculated values.
+     */
     BillingCustomerProfile: {
       /** @description The name and contact information for the supplier this billing profile represents */
       readonly supplier: components['schemas']['BillingParty']
       /** @description The billing workflow settings for this profile */
       readonly workflow: components['schemas']['BillingWorkflow']
-      /** @description The applications used by this billing profile.
+      /**
+       * @description The applications used by this billing profile.
        *
-       *     Expand settings govern if this includes the whole app object or just the ID references. */
+       *     Expand settings govern if this includes the whole app object or just the ID references.
+       */
       readonly apps: components['schemas']['BillingProfileAppsOrReference']
     }
     /** @description A percentage discount. */
@@ -2924,9 +2932,11 @@ export interface components {
       /** @description The usage discount. */
       usage?: components['schemas']['BillingDiscountUsage']
     }
-    /** @description BillingInvoiceCustomerExtendedDetails is a collection of fields that are used to extend the billing party details for invoices.
+    /**
+     * @description BillingInvoiceCustomerExtendedDetails is a collection of fields that are used to extend the billing party details for invoices.
      *
-     *     These fields contain the OpenMeter specific details for the customer, that are not strictly required for the invoice itself. */
+     *     These fields contain the OpenMeter specific details for the customer, that are not strictly required for the invoice itself.
+     */
     BillingInvoiceCustomerExtendedDetails: {
       /** @description Unique identifier for the party (if available) */
       readonly id?: string
@@ -2937,8 +2947,10 @@ export interface components {
       key?: string
       /** @description Legal name or representation of the organization. */
       name?: string
-      /** @description The entity's legal ID code used for tax purposes. They may have
-       *     other numbers, but we're only interested in those valid for tax purposes. */
+      /**
+       * @description The entity's legal ID code used for tax purposes. They may have
+       *     other numbers, but we're only interested in those valid for tax purposes.
+       */
       taxId?: components['schemas']['BillingPartyTaxIdentity']
       /** @description Regular post addresses for where information should be sent if needed. */
       addresses?: components['schemas']['Address'][]
@@ -2959,8 +2971,10 @@ export interface components {
       key?: string
       /** @description Legal name or representation of the organization. */
       name?: string
-      /** @description The entity's legal ID code used for tax purposes. They may have
-       *     other numbers, but we're only interested in those valid for tax purposes. */
+      /**
+       * @description The entity's legal ID code used for tax purposes. They may have
+       *     other numbers, but we're only interested in those valid for tax purposes.
+       */
       taxId?: components['schemas']['BillingPartyTaxIdentity']
       /** @description Regular post addresses for where information should be sent if needed. */
       addresses?: components['schemas']['Address'][]
@@ -2974,8 +2988,10 @@ export interface components {
       key?: string
       /** @description Legal name or representation of the organization. */
       name?: string
-      /** @description The entity's legal ID code used for tax purposes. They may have
-       *     other numbers, but we're only interested in those valid for tax purposes. */
+      /**
+       * @description The entity's legal ID code used for tax purposes. They may have
+       *     other numbers, but we're only interested in those valid for tax purposes.
+       */
       taxId?: components['schemas']['BillingPartyTaxIdentity']
       /** @description Regular post addresses for where information should be sent if needed. */
       addresses?: components['schemas']['Address'][]
@@ -3033,9 +3049,11 @@ export interface components {
       supplier: components['schemas']['BillingParty']
       /** @description The billing workflow settings for this profile */
       readonly workflow: components['schemas']['BillingWorkflow']
-      /** @description The applications used by this billing profile.
+      /**
+       * @description The applications used by this billing profile.
        *
-       *     Expand settings govern if this includes the whole app object or just the ID references. */
+       *     Expand settings govern if this includes the whole app object or just the ID references.
+       */
       readonly apps: components['schemas']['BillingProfileAppsOrReference']
       /** @description Is this the default profile? */
       default: boolean
@@ -3076,8 +3094,10 @@ export interface components {
        */
       payment: string
     }
-    /** @description ProfileAppsOrReference represents the union of ProfileApps and ProfileAppReferences
-     *     for a billing profile. */
+    /**
+     * @description ProfileAppsOrReference represents the union of ProfileApps and ProfileAppReferences
+     *     for a billing profile.
+     */
     BillingProfileAppsOrReference:
       | components['schemas']['BillingProfileApps']
       | components['schemas']['BillingProfileAppReferences']
@@ -3163,9 +3183,11 @@ export interface components {
       | 'customerCreatedAt'
     /** @description Customer specific workflow overrides. */
     BillingProfileCustomerOverrideWithDetails: {
-      /** @description The customer override values.
+      /**
+       * @description The customer override values.
        *
-       *     If empty the merged values are calculated based on the default profile. */
+       *     If empty the merged values are calculated based on the default profile.
+       */
       customerOverride?: components['schemas']['BillingProfileCustomerOverride']
       /**
        * @description The billing profile the customerProfile is associated with at the time of query.
@@ -3230,10 +3252,12 @@ export interface components {
       /** @description The items in the current page. */
       items: components['schemas']['BillingProfile'][]
     }
-    /** @description BillingProfileReplaceUpdate represents the input for updating a billing profile
+    /**
+     * @description BillingProfileReplaceUpdate represents the input for updating a billing profile
      *
      *     The apps field cannot be updated directly, if an app change is desired a new
-     *     profile should be created. */
+     *     profile should be created.
+     */
     BillingProfileReplaceUpdateWithWorkflow: {
       /**
        * Display name
@@ -3270,15 +3294,19 @@ export interface components {
       /** @description The tax settings for this workflow */
       tax?: components['schemas']['BillingWorkflowTaxSettings']
     }
-    /** @description The alignment for collecting the pending line items into an invoice.
+    /**
+     * @description The alignment for collecting the pending line items into an invoice.
      *
      *     Defaults to subscription, which means that we are to create a new invoice every time the
-     *     a subscription period starts (for in advance items) or ends (for in arrears items). */
+     *     a subscription period starts (for in advance items) or ends (for in arrears items).
+     */
     BillingWorkflowCollectionAlignment:
       | components['schemas']['BillingWorkflowCollectionAlignmentSubscription']
       | components['schemas']['BillingWorkflowCollectionAlignmentAnchored']
-    /** @description BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items
-     *     into an invoice. */
+    /**
+     * @description BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items
+     *     into an invoice.
+     */
     BillingWorkflowCollectionAlignmentAnchored: {
       /**
        * @description The type of alignment. (enum property replaced by openapi-typescript)
@@ -3288,8 +3316,10 @@ export interface components {
       /** @description The recurring period for the alignment. */
       recurringPeriod: components['schemas']['RecurringPeriodV2']
     }
-    /** @description BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items
-     *     into an invoice. */
+    /**
+     * @description BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items
+     *     into an invoice.
+     */
     BillingWorkflowCollectionAlignmentSubscription: {
       /**
        * @description The type of alignment. (enum property replaced by openapi-typescript)
@@ -3454,16 +3484,22 @@ export interface components {
     CreateStripeCheckoutSessionBillingAddressCollection: 'auto' | 'required'
     /** @description Configure fields for the Checkout Session to gather active consent from customers. */
     CreateStripeCheckoutSessionConsentCollection: {
-      /** @description Determines the position and visibility of the payment method reuse agreement in the UI.
-       *     When set to auto, Stripe’s defaults will be used. When set to hidden, the payment method reuse agreement text will always be hidden in the UI. */
+      /**
+       * @description Determines the position and visibility of the payment method reuse agreement in the UI.
+       *     When set to auto, Stripe’s defaults will be used. When set to hidden, the payment method reuse agreement text will always be hidden in the UI.
+       */
       paymentMethodReuseAgreement?: components['schemas']['CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement']
-      /** @description If set to auto, enables the collection of customer consent for promotional communications.
+      /**
+       * @description If set to auto, enables the collection of customer consent for promotional communications.
        *     The Checkout Session will determine whether to display an option to opt into promotional
-       *     communication from the merchant depending on the customer’s locale. Only available to US merchants. */
+       *     communication from the merchant depending on the customer’s locale. Only available to US merchants.
+       */
       promotions?: components['schemas']['CreateStripeCheckoutSessionConsentCollectionPromotions']
-      /** @description If set to required, it requires customers to check a terms of service checkbox before being able to pay.
+      /**
+       * @description If set to required, it requires customers to check a terms of service checkbox before being able to pay.
        *     There must be a valid terms of service URL set in your Stripe Dashboard settings.
-       *     https://dashboard.stripe.com/settings/public */
+       *     https://dashboard.stripe.com/settings/public
+       */
       termsOfService?: components['schemas']['CreateStripeCheckoutSessionConsentCollectionTermsOfService']
     }
     /** @description Create Stripe checkout session payment method reuse agreement. */
@@ -3491,16 +3527,22 @@ export interface components {
       | 'required'
     /** @description Controls what fields on Customer can be updated by the Checkout Session. */
     CreateStripeCheckoutSessionCustomerUpdate: {
-      /** @description Describes whether Checkout saves the billing address onto customer.address.
+      /**
+       * @description Describes whether Checkout saves the billing address onto customer.address.
        *     To always collect a full billing address, use billing_address_collection.
-       *     Defaults to never. */
+       *     Defaults to never.
+       */
       address?: components['schemas']['CreateStripeCheckoutSessionCustomerUpdateBehavior']
-      /** @description Describes whether Checkout saves the name onto customer.name.
-       *     Defaults to never. */
+      /**
+       * @description Describes whether Checkout saves the name onto customer.name.
+       *     Defaults to never.
+       */
       name?: components['schemas']['CreateStripeCheckoutSessionCustomerUpdateBehavior']
-      /** @description Describes whether Checkout saves shipping information onto customer.shipping.
+      /**
+       * @description Describes whether Checkout saves shipping information onto customer.shipping.
        *     To collect shipping information, use shipping_address_collection.
-       *     Defaults to never. */
+       *     Defaults to never.
+       */
       shipping?: components['schemas']['CreateStripeCheckoutSessionCustomerUpdateBehavior']
     }
     /**
@@ -3549,26 +3591,34 @@ export interface components {
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       appId?: string
-      /** @description Provide a customer ID or key to use an existing OpenMeter customer.
-       *     or provide a customer object to create a new customer. */
+      /**
+       * @description Provide a customer ID or key to use an existing OpenMeter customer.
+       *     or provide a customer object to create a new customer.
+       */
       customer:
         | components['schemas']['CustomerId']
         | components['schemas']['CustomerKey']
         | components['schemas']['CustomerCreate']
-      /** @description Stripe customer ID.
+      /**
+       * @description Stripe customer ID.
        *     If not provided OpenMeter creates a new Stripe customer or
-       *     uses the OpenMeter customer's default Stripe customer ID. */
+       *     uses the OpenMeter customer's default Stripe customer ID.
+       */
       stripeCustomerId?: string
       /** @description Options passed to Stripe when creating the checkout session. */
       options: components['schemas']['CreateStripeCheckoutSessionRequestOptions']
     }
-    /** @description Create Stripe checkout session options
-     *     See https://docs.stripe.com/api/checkout/sessions/create */
+    /**
+     * @description Create Stripe checkout session options
+     *     See https://docs.stripe.com/api/checkout/sessions/create
+     */
     CreateStripeCheckoutSessionRequestOptions: {
       /** @description Specify whether Checkout should collect the customer’s billing address. Defaults to auto. */
       billingAddressCollection?: components['schemas']['CreateStripeCheckoutSessionBillingAddressCollection']
-      /** @description If set, Checkout displays a back button and customers will be directed to this URL if they decide to cancel payment and return to your website.
-       *     This parameter is not allowed if ui_mode is embedded. */
+      /**
+       * @description If set, Checkout displays a back button and customers will be directed to this URL if they decide to cancel payment and return to your website.
+       *     This parameter is not allowed if ui_mode is embedded.
+       */
       cancelURL?: string
       /** @description A unique string to reference the Checkout Session. This can be a customer ID, a cart ID, or similar, and can be used to reconcile the session with your internal systems. */
       clientReferenceID?: string
@@ -3587,28 +3637,36 @@ export interface components {
        */
       expiresAt?: number
       locale?: string
-      /** @description Set of key-value pairs that you can attach to an object.
+      /**
+       * @description Set of key-value pairs that you can attach to an object.
        *     This can be useful for storing additional information about the object in a structured format.
        *     Individual keys can be unset by posting an empty value to them.
-       *     All keys can be unset by posting an empty value to metadata. */
+       *     All keys can be unset by posting an empty value to metadata.
+       */
       metadata?: {
         [key: string]: string
       }
-      /** @description The URL to redirect your customer back to after they authenticate or cancel their payment on the payment method’s app or site.
-       *     This parameter is required if ui_mode is embedded and redirect-based payment methods are enabled on the session. */
+      /**
+       * @description The URL to redirect your customer back to after they authenticate or cancel their payment on the payment method’s app or site.
+       *     This parameter is required if ui_mode is embedded and redirect-based payment methods are enabled on the session.
+       */
       returnURL?: string
-      /** @description The URL to which Stripe should send customers when payment or setup is complete.
+      /**
+       * @description The URL to which Stripe should send customers when payment or setup is complete.
        *     This parameter is not allowed if ui_mode is embedded.
        *     If you’d like to use information from the successful Checkout Session on your page, read the guide on customizing your success page:
-       *     https://docs.stripe.com/payments/checkout/custom-success-page */
+       *     https://docs.stripe.com/payments/checkout/custom-success-page
+       */
       successURL?: string
       /** @description The UI mode of the Session. Defaults to hosted. */
       uiMode?: components['schemas']['CheckoutSessionUIMode']
       /** @description A list of the types of payment methods (e.g., card) this Checkout Session can accept. */
       paymentMethodTypes?: string[]
-      /** @description This parameter applies to ui_mode: embedded. Defaults to always.
+      /**
+       * @description This parameter applies to ui_mode: embedded. Defaults to always.
        *     Learn more about the redirect behavior of embedded sessions at
-       *     https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form */
+       *     https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form
+       */
       redirectOnCompletion?: components['schemas']['CreateStripeCheckoutSessionRedirectOnCompletion']
       /** @description Controls tax ID collection during checkout. */
       taxIdCollection?: components['schemas']['CreateCheckoutSessionTaxIdCollection']
@@ -3626,11 +3684,15 @@ export interface components {
       sessionId: string
       /** @description The checkout session setup intent ID. */
       setupIntentId: string
-      /** @description The client secret of the checkout session.
-       *     This can be used to initialize Stripe.js for your client-side implementation. */
+      /**
+       * @description The client secret of the checkout session.
+       *     This can be used to initialize Stripe.js for your client-side implementation.
+       */
       clientSecret?: string
-      /** @description A unique string to reference the Checkout Session.
-       *     This can be a customer ID, a cart ID, or similar, and can be used to reconcile the session with your internal systems. */
+      /**
+       * @description A unique string to reference the Checkout Session.
+       *     This can be a customer ID, a cart ID, or similar, and can be used to reconcile the session with your internal systems.
+       */
       clientReferenceId?: string
       /** @description Customer's email address provided to Stripe. */
       customerEmail?: string
@@ -3656,8 +3718,10 @@ export interface components {
       status?: string
       /** @description URL to show the checkout session. */
       url?: string
-      /** @description Mode
-       *     Always `setup` for now. */
+      /**
+       * @description Mode
+       *     Always `setup` for now.
+       */
       mode: components['schemas']['StripeCheckoutSessionMode']
       /** @description Cancel URL. */
       cancelURL?: string
@@ -3735,10 +3799,12 @@ export interface components {
      * @example USD
      */
     CurrencyCode: string
-    /** @description Custom Invoicing app can be used for interface with any invoicing or payment system.
+    /**
+     * @description Custom Invoicing app can be used for interface with any invoicing or payment system.
      *
      *     This app provides ways to manipulate invoices and payments, however the integration
-     *     must rely on Notifications API to get notified about invoice changes. */
+     *     must rely on Notifications API to get notified about invoice changes.
+     */
     CustomInvoicingApp: {
       /**
        * ID
@@ -3791,13 +3857,17 @@ export interface components {
        * @enum {string}
        */
       type: 'custom_invoicing'
-      /** @description Enable draft.sync hook.
+      /**
+       * @description Enable draft.sync hook.
        *
-       *     If the hook is not enabled, the invoice will be progressed to the next state automatically. */
+       *     If the hook is not enabled, the invoice will be progressed to the next state automatically.
+       */
       enableDraftSyncHook: boolean
-      /** @description Enable issuing.sync hook.
+      /**
+       * @description Enable issuing.sync hook.
        *
-       *     If the hook is not enabled, the invoice will be progressed to the next state automatically. */
+       *     If the hook is not enabled, the invoice will be progressed to the next state automatically.
+       */
       enableIssuingSyncHook: boolean
     }
     /** @description Resource update operation model. */
@@ -3822,13 +3892,17 @@ export interface components {
        * @enum {string}
        */
       type: 'custom_invoicing'
-      /** @description Enable draft.sync hook.
+      /**
+       * @description Enable draft.sync hook.
        *
-       *     If the hook is not enabled, the invoice will be progressed to the next state automatically. */
+       *     If the hook is not enabled, the invoice will be progressed to the next state automatically.
+       */
       enableDraftSyncHook: boolean
-      /** @description Enable issuing.sync hook.
+      /**
+       * @description Enable issuing.sync hook.
        *
-       *     If the hook is not enabled, the invoice will be progressed to the next state automatically. */
+       *     If the hook is not enabled, the invoice will be progressed to the next state automatically.
+       */
       enableIssuingSyncHook: boolean
     }
     /** @description Custom Invoicing Customer App Data. */
@@ -3871,9 +3945,11 @@ export interface components {
       /** @description If set the invoice's payment external ID will be set to this value. */
       externalId?: string
     }
-    /** @description Information to finalize the invoice.
+    /**
+     * @description Information to finalize the invoice.
      *
-     *     If invoicing.invoiceNumber is not set, then a new invoice number will be generated (INV- prefix). */
+     *     If invoicing.invoiceNumber is not set, then a new invoice number will be generated (INV- prefix).
+     */
     CustomInvoicingFinalizedRequest: {
       /** @description The result of the synchronization. */
       invoicing?: components['schemas']['CustomInvoicingFinalizedInvoicingRequest']
@@ -3911,23 +3987,29 @@ export interface components {
       | 'payment_overdue'
       | 'action_required'
       | 'void'
-    /** @description Information to synchronize the invoice.
+    /**
+     * @description Information to synchronize the invoice.
      *
-     *     Can be used to store external app's IDs on the invoice or lines. */
+     *     Can be used to store external app's IDs on the invoice or lines.
+     */
     CustomInvoicingSyncResult: {
       /** @description If set the invoice's number will be set to this value. */
       invoiceNumber?: components['schemas']['InvoiceNumber']
       /** @description If set the invoice's invoicing external ID will be set to this value. */
       externalId?: string
-      /** @description If set the invoice's line external IDs will be set to this value.
+      /**
+       * @description If set the invoice's line external IDs will be set to this value.
        *
        *     This can be used to reference the external system's entities in the
-       *     invoice. */
+       *     invoice.
+       */
       lineExternalIds?: components['schemas']['CustomInvoicingLineExternalIdMapping'][]
-      /** @description If set the invoice's line discount external IDs will be set to this value.
+      /**
+       * @description If set the invoice's line discount external IDs will be set to this value.
        *
        *     This can be used to reference the external system's entities in the
-       *     invoice. */
+       *     invoice.
+       */
       lineDiscountExternalIds?: components['schemas']['CustomInvoicingLineDiscountExternalIdMapping'][]
     }
     /** @description Custom invoicing tax config. */
@@ -3940,9 +4022,11 @@ export interface components {
        */
       code: string
     }
-    /** @description Update payment status request.
+    /**
+     * @description Update payment status request.
      *
-     *     Can be used to manipulate invoice's payment status (when custominvoicing app is being used). */
+     *     Can be used to manipulate invoice's payment status (when custominvoicing app is being used).
+     */
     CustomInvoicingUpdatePaymentStatusRequest: {
       /** @description The trigger to be executed on the invoice. */
       trigger: components['schemas']['CustomInvoicingPaymentTrigger']
@@ -3999,8 +4083,10 @@ export interface components {
     }
     /** @description Change a custom subscription. */
     CustomSubscriptionChange: {
-      /** @description Timing configuration for the change, when the change should take effect.
-       *     For changing a subscription, the accepted values depend on the subscription configuration. */
+      /**
+       * @description Timing configuration for the change, when the change should take effect.
+       *     For changing a subscription, the accepted values depend on the subscription configuration.
+       */
       timing: components['schemas']['SubscriptionTiming']
       /**
        * Format: date-time
@@ -4146,22 +4232,28 @@ export interface components {
     }
     /** @description CustomerAccess describes what features the customer has access to. */
     CustomerAccess: {
-      /** @description Map of entitlements the customer has access to.
-       *     The key is the feature key, the value is the entitlement value + the entitlement ID. */
+      /**
+       * @description Map of entitlements the customer has access to.
+       *     The key is the feature key, the value is the entitlement value + the entitlement ID.
+       */
       readonly entitlements: {
         [key: string]: components['schemas']['EntitlementValue']
       }
     }
-    /** @description CustomerAppData
+    /**
+     * @description CustomerAppData
      *     Stores the app specific data for the customer.
-     *     One of: stripe, sandbox, custom_invoicing */
+     *     One of: stripe, sandbox, custom_invoicing
+     */
     CustomerAppData:
       | components['schemas']['StripeCustomerAppData']
       | components['schemas']['SandboxCustomerAppData']
       | components['schemas']['CustomInvoicingCustomerAppData']
-    /** @description CustomerAppData
+    /**
+     * @description CustomerAppData
      *     Stores the app specific data for the customer.
-     *     One of: stripe, sandbox, custom_invoicing */
+     *     One of: stripe, sandbox, custom_invoicing
+     */
     CustomerAppDataCreateOrUpdateItem:
       | components['schemas']['StripeCustomerAppDataCreateOrUpdateItem']
       | components['schemas']['SandboxCustomerAppData']
@@ -4331,9 +4423,11 @@ export interface components {
      * @enum {string}
      */
     CustomerSubscriptionOrderBy: 'activeFrom' | 'activeTo'
-    /** @description Mapping to attribute metered usage to the customer.
+    /**
+     * @description Mapping to attribute metered usage to the customer.
      *     One customer can have zero or more subjects,
-     *     but one subject can only belong to one customer. */
+     *     but one subject can only belong to one customer.
+     */
     CustomerUsageAttribution: {
       /**
        * SubjectKeys
@@ -4408,11 +4502,13 @@ export interface components {
        */
       correlationId?: string
     }
-    /** @description Usage discount.
+    /**
+     * @description Usage discount.
      *
      *     Usage discount means that the first N items are free. From billing perspective
      *     this means that any usage on a specific feature is considered 0 until this discount
-     *     is exhausted. */
+     *     is exhausted.
+     */
     DiscountUsage: {
       /**
        * Usage
@@ -5238,8 +5334,10 @@ export interface components {
        */
       preserveOverageAtReset?: boolean
     }
-    /** @description Metered entitlements are useful for many different use cases, from setting up usage based access to implementing complex credit systems.
-     *     Access is determined based on feature usage using a balance calculation (the "usage allowance" provided by the issued grants is "burnt down" by the usage). */
+    /**
+     * @description Metered entitlements are useful for many different use cases, from setting up usage based access to implementing complex credit systems.
+     *     Access is determined based on feature usage using a balance calculation (the "usage allowance" provided by the issued grants is "burnt down" by the usage).
+     */
     EntitlementMeteredV2: {
       /**
        * @description discriminator enum property added by openapi-typescript
@@ -5664,8 +5762,10 @@ export interface components {
      * @enum {string}
      */
     EntitlementType: 'metered' | 'boolean' | 'static'
-    /** @description Entitlement templates are used to define the entitlements of a plan.
-     *     Features are omitted from the entitlement template, as they are defined in the rate card. */
+    /**
+     * @description Entitlement templates are used to define the entitlements of a plan.
+     *     Features are omitted from the entitlement template, as they are defined in the rate card.
+     */
     EntitlementV2:
       | components['schemas']['EntitlementMeteredV2']
       | components['schemas']['EntitlementStaticV2']
@@ -5811,8 +5911,10 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       time?: Date | null
-      /** @description The event payload.
-       *     Optional, if present it must be a JSON object. */
+      /**
+       * @description The event payload.
+       *     Optional, if present it must be a JSON object.
+       */
       data?: {
         [key: string]: unknown
       } | null
@@ -5856,8 +5958,10 @@ export interface components {
        */
       count: number
     }
-    /** @description Represents a feature that can be enabled or disabled for a plan.
-     *     Used both for product catalog and entitlements. */
+    /**
+     * @description Represents a feature that can be enabled or disabled for a plan.
+     *     Used both for product catalog and entitlements.
+     */
     Feature: {
       /**
        * Creation Time
@@ -5949,8 +6053,10 @@ export interface components {
        */
       readonly id: string
     }
-    /** @description Represents a feature that can be enabled or disabled for a plan.
-     *     Used both for product catalog and entitlements. */
+    /**
+     * @description Represents a feature that can be enabled or disabled for a plan.
+     *     Used both for product catalog and entitlements.
+     */
     FeatureCreateInputs: {
       /**
        * The unique key of the feature
@@ -6143,9 +6249,11 @@ export interface components {
     ForbiddenProblemResponse: components['schemas']['UnexpectedProblemResponse']
     /** @description The server, while acting as a gateway or proxy, did not receive a timely response from an upstream server it needed to access in order to complete the request. */
     GatewayTimeoutProblemResponse: components['schemas']['UnexpectedProblemResponse']
-    /** @description A segment of the grant burn down history.
+    /**
+     * @description A segment of the grant burn down history.
      *
-     *     A given segment represents the usage of a grant between events that changed either the grant burn down priority order or the usag period. */
+     *     A given segment represents the usage of a grant between events that changed either the grant burn down priority order or the usag period.
+     */
     GrantBurnDownHistorySegment: {
       /** @description The period of the segment. */
       period: components['schemas']['Period']
@@ -6262,8 +6370,10 @@ export interface components {
        */
       readonly id: string
     }
-    /** @description The body of the events request.
-     *     Either a single event or a batch of events. */
+    /**
+     * @description The body of the events request.
+     *     Either a single event or a batch of events.
+     */
     IngestEventsBody:
       | components['schemas']['Event']
       | components['schemas']['Event'][]
@@ -6358,38 +6468,46 @@ export interface components {
        * @example 2024-01-01T01:01:01.001Z
        */
       readonly deletedAt?: Date
-      /** @description Type of the invoice.
+      /**
+       * @description Type of the invoice.
        *
        *     The type of invoice determines the purpose of the invoice and how it should be handled.
        *
        *     Supported types:
        *     - standard: A regular commercial invoice document between a supplier and customer.
-       *     - credit_note: Reflects a refund either partial or complete of the preceding document. A credit note effectively *extends* the previous document. */
+       *     - credit_note: Reflects a refund either partial or complete of the preceding document. A credit note effectively *extends* the previous document.
+       */
       readonly type: components['schemas']['InvoiceType']
       /** @description The taxable entity supplying the goods or services. */
       supplier: components['schemas']['BillingParty']
       /** @description Legal entity receiving the goods or services. */
       customer: components['schemas']['BillingInvoiceCustomerExtendedDetails']
-      /** @description Number specifies the human readable key used to reference this Invoice.
+      /**
+       * @description Number specifies the human readable key used to reference this Invoice.
        *
        *     The invoice number can change in the draft phases, as we are allocating temporary draft
        *     invoice numbers, but it's final as soon as the invoice gets finalized (issued state).
        *
        *     Please note that the number is (depending on the upstream settings) either unique for the
        *     whole organization or unique for the customer, or in multi (stripe) account setups unique for the
-       *     account. */
+       *     account.
+       */
       readonly number: components['schemas']['InvoiceNumber']
-      /** @description Currency for all invoice line items.
+      /**
+       * @description Currency for all invoice line items.
        *
-       *     Multi currency invoices are not supported yet. */
+       *     Multi currency invoices are not supported yet.
+       */
       currency: components['schemas']['CurrencyCode']
       /** @description Key information regarding previous invoices and potentially details as to why they were corrected. */
       readonly preceding?: components['schemas']['InvoiceDocumentRef'][]
       /** @description Summary of all the invoice totals, including taxes (calculated). */
       readonly totals: components['schemas']['InvoiceTotals']
-      /** @description The status of the invoice.
+      /**
+       * @description The status of the invoice.
        *
-       *     This field only conatins a simplified status, for more detailed information use the statusDetails field. */
+       *     This field only conatins a simplified status, for more detailed information use the statusDetails field.
+       */
       readonly status: components['schemas']['InvoiceStatus']
       /** @description The details of the current invoice status. */
       readonly statusDetails: components['schemas']['InvoiceStatusDetails']
@@ -6447,10 +6565,12 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       readonly sentToCustomerAt?: Date
-      /** @description The workflow associated with the invoice.
+      /**
+       * @description The workflow associated with the invoice.
        *
        *     It is always a snapshot of the workflow settings at the time of invoice creation. The
-       *     field is optional as it should be explicitly requested with expand options. */
+       *     field is optional as it should be explicitly requested with expand options.
+       */
       workflow: components['schemas']['InvoiceWorkflowSettings']
       /** @description List of invoice lines representing each of the items sold to the customer. */
       lines?: components['schemas']['InvoiceLine'][]
@@ -6470,17 +6590,23 @@ export interface components {
       /** @description The external ID of the invoice in the payment app if available. */
       readonly payment?: string
     }
-    /** @description InvoiceAvailableActionInvoiceDetails represents the details of the invoice action for
-     *     non-gathering invoices. */
+    /**
+     * @description InvoiceAvailableActionInvoiceDetails represents the details of the invoice action for
+     *     non-gathering invoices.
+     */
     InvoiceAvailableActionDetails: {
-      /** @description The state the invoice will reach if the action is activated and
+      /**
+       * @description The state the invoice will reach if the action is activated and
        *     all intermediate steps are successful.
        *
-       *     For example advancing a draft_created invoice will result in a draft_manual_approval_needed invoice. */
+       *     For example advancing a draft_created invoice will result in a draft_manual_approval_needed invoice.
+       */
       readonly resultingState: string
     }
-    /** @description InvoiceAvailableActionInvoiceDetails represents the details of the invoice action for
-     *     gathering invoices. */
+    /**
+     * @description InvoiceAvailableActionInvoiceDetails represents the details of the invoice action for
+     *     gathering invoices.
+     */
     InvoiceAvailableActionInvoiceDetails: Record<string, never>
     /** @description InvoiceAvailableActions represents the actions that can be performed on the invoice. */
     InvoiceAvailableActions: {
@@ -6544,15 +6670,19 @@ export interface components {
       id: string
       /** @description managedBy specifies if the line is manually added via the api or managed by OpenMeter. */
       readonly managedBy: components['schemas']['InvoiceLineManagedBy']
-      /** @description Status of the line.
+      /**
+       * @description Status of the line.
        *
        *     External calls always create valid lines, other line types are managed by the
-       *     billing engine of OpenMeter. */
+       *     billing engine of OpenMeter.
+       */
       readonly status: components['schemas']['InvoiceLineStatus']
-      /** @description Discounts detailes applied to this line.
+      /**
+       * @description Discounts detailes applied to this line.
        *
        *     New discounts can be added via the invoice's discounts API, to facilitate
-       *     discounts that are affecting multiple lines. */
+       *     discounts that are affecting multiple lines.
+       */
       readonly discounts?: components['schemas']['InvoiceLineDiscounts']
       /** @description The invoice this item belongs to. */
       invoice?: components['schemas']['InvoiceReference']
@@ -6567,9 +6697,11 @@ export interface components {
       taxConfig?: components['schemas']['TaxConfig']
       /** @description Totals for this line. */
       readonly totals: components['schemas']['InvoiceTotals']
-      /** @description Period of the line item applies to for revenue recognition pruposes.
+      /**
+       * @description Period of the line item applies to for revenue recognition pruposes.
        *
-       *     Billing always treats periods as start being inclusive and end being exclusive. */
+       *     Billing always treats periods as start being inclusive and end being exclusive.
+       */
       period: components['schemas']['Period']
       /** @description External IDs of the invoice in other apps such as Stripe. */
       readonly externalIds?: components['schemas']['InvoiceLineAppExternalIds']
@@ -6637,9 +6769,11 @@ export interface components {
        *     }
        */
       price: components['schemas']['FlatPriceWithPaymentTerm'] | null
-      /** @description Quantity of the item being sold.
+      /**
+       * @description Quantity of the item being sold.
        *
-       *     Default: 1 */
+       *     Default: 1
+       */
       quantity?: components['schemas']['Numeric']
       /** @description The discounts that are applied to the line. */
       discounts?: components['schemas']['BillingDiscounts']
@@ -6716,15 +6850,19 @@ export interface components {
       id: string
       /** @description managedBy specifies if the line is manually added via the api or managed by OpenMeter. */
       readonly managedBy: components['schemas']['InvoiceLineManagedBy']
-      /** @description Status of the line.
+      /**
+       * @description Status of the line.
        *
        *     External calls always create valid lines, other line types are managed by the
-       *     billing engine of OpenMeter. */
+       *     billing engine of OpenMeter.
+       */
       readonly status: components['schemas']['InvoiceLineStatus']
-      /** @description Discounts detailes applied to this line.
+      /**
+       * @description Discounts detailes applied to this line.
        *
        *     New discounts can be added via the invoice's discounts API, to facilitate
-       *     discounts that are affecting multiple lines. */
+       *     discounts that are affecting multiple lines.
+       */
       readonly discounts?: components['schemas']['InvoiceLineDiscounts']
       /** @description The invoice this item belongs to. */
       invoice?: components['schemas']['InvoiceReference']
@@ -6739,9 +6877,11 @@ export interface components {
       taxConfig?: components['schemas']['TaxConfig']
       /** @description Totals for this line. */
       readonly totals: components['schemas']['InvoiceTotals']
-      /** @description Period of the line item applies to for revenue recognition pruposes.
+      /**
+       * @description Period of the line item applies to for revenue recognition pruposes.
        *
-       *     Billing always treats periods as start being inclusive and end being exclusive. */
+       *     Billing always treats periods as start being inclusive and end being exclusive.
+       */
       period: components['schemas']['Period']
       /**
        * Format: date-time
@@ -6771,25 +6911,33 @@ export interface components {
       featureKey?: string
       /** @description The lines detailing the item or service sold. */
       readonly children?: components['schemas']['InvoiceDetailedLine'][]
-      /** @description The rate card that is used for this line.
+      /**
+       * @description The rate card that is used for this line.
        *
-       *     The rate card captures the intent of the price and discounts for the usage-based item. */
+       *     The rate card captures the intent of the price and discounts for the usage-based item.
+       */
       rateCard?: components['schemas']['InvoiceUsageBasedRateCard']
-      /** @description The quantity of the item being sold.
+      /**
+       * @description The quantity of the item being sold.
        *
-       *     Any usage discounts applied previously are deducted from this quantity. */
+       *     Any usage discounts applied previously are deducted from this quantity.
+       */
       readonly quantity?: components['schemas']['Numeric']
       /** @description The quantity of the item that has been metered for the period before any discounts were applied. */
       readonly meteredQuantity?: components['schemas']['Numeric']
-      /** @description The quantity of the item used before this line's period.
+      /**
+       * @description The quantity of the item used before this line's period.
        *
        *     It is non-zero in case of progressive billing, when this shows how much of the usage was already billed.
        *
-       *     Any usage discounts applied previously are deducted from this quantity. */
+       *     Any usage discounts applied previously are deducted from this quantity.
+       */
       readonly preLinePeriodQuantity?: components['schemas']['Numeric']
-      /** @description The metered quantity of the item used in before this line's period without any discounts applied.
+      /**
+       * @description The metered quantity of the item used in before this line's period without any discounts applied.
        *
-       *     It is non-zero in case of progressive billing, when this shows how much of the usage was already billed. */
+       *     It is non-zero in case of progressive billing, when this shows how much of the usage was already billed.
+       */
       readonly meteredPreLinePeriodQuantity?: components['schemas']['Numeric']
     }
     /** @description InvoiceLineAmountDiscount represents an amount deducted from the line, and will be applied before taxes. */
@@ -6841,13 +6989,17 @@ export interface components {
     }
     /** @description InvoiceLineDiscounts represents the discounts applied to the invoice line by type. */
     InvoiceLineDiscounts: {
-      /** @description Amount based discounts applied to the line.
+      /**
+       * @description Amount based discounts applied to the line.
        *
-       *     Amount based discounts are deduced from the total price of the line. */
+       *     Amount based discounts are deduced from the total price of the line.
+       */
       amount?: components['schemas']['InvoiceLineAmountDiscount'][]
-      /** @description Usage based discounts applied to the line.
+      /**
+       * @description Usage based discounts applied to the line.
        *
-       *     Usage based discounts are deduced from the usage of the line before price calculations are applied. */
+       *     Usage based discounts are deduced from the usage of the line before price calculations are applied.
+       */
       usage?: components['schemas']['InvoiceLineUsageDiscount'][]
     }
     /**
@@ -6855,9 +7007,11 @@ export interface components {
      * @enum {string}
      */
     InvoiceLineManagedBy: 'subscription' | 'system' | 'manual'
-    /** @description InvoiceLineReplaceUpdate represents the update model for an UBP invoice line.
+    /**
+     * @description InvoiceLineReplaceUpdate represents the update model for an UBP invoice line.
      *
-     *     This type makes ID optional to allow for creating new lines as part of the update. */
+     *     This type makes ID optional to allow for creating new lines as part of the update.
+     */
     InvoiceLineReplaceUpdate: {
       /**
        * Display name
@@ -6879,9 +7033,11 @@ export interface components {
        * @description Tax config specify the tax configuration for this line.
        */
       taxConfig?: components['schemas']['TaxConfig']
-      /** @description Period of the line item applies to for revenue recognition pruposes.
+      /**
+       * @description Period of the line item applies to for revenue recognition pruposes.
        *
-       *     Billing always treats periods as start being inclusive and end being exclusive. */
+       *     Billing always treats periods as start being inclusive and end being exclusive.
+       */
       period: components['schemas']['Period']
       /**
        * Format: date-time
@@ -6899,9 +7055,11 @@ export interface components {
        * @description The feature that the usage is based on.
        */
       featureKey?: string
-      /** @description The rate card that is used for this line.
+      /**
+       * @description The rate card that is used for this line.
        *
-       *     The rate card captures the intent of the price and discounts for the usage-based item. */
+       *     The rate card captures the intent of the price and discounts for the usage-based item.
+       */
       rateCard?: components['schemas']['InvoiceUsageBasedRateCard']
       /**
        * @description The ID of the line.
@@ -6922,7 +7080,8 @@ export interface components {
       readonly phase: components['schemas']['IDResource']
       /** @description The item this line is related to. */
       readonly item: components['schemas']['IDResource']
-      /** @description The billing period of the subscription. In case the subscription item's billing period is different
+      /**
+       * @description The billing period of the subscription. In case the subscription item's billing period is different
        *     from the subscription's billing period, this field will contain the billing period of the subscription itself.
        *
        *     For example, in case of:
@@ -6930,7 +7089,8 @@ export interface components {
        *     - A subscription item billed daily
        *
        *     An example line would have the period of 2025-01-02 to 2025-01-03 as the item is billed daily, but the subscription's billing period
-       *     will be 2025-01-01 to 2025-01-31. */
+       *     will be 2025-01-01 to 2025-01-31.
+       */
       readonly billingPeriod: components['schemas']['Period']
     }
     /**
@@ -6945,18 +7105,22 @@ export interface components {
     InvoiceLineTaxItem: {
       /** @description Tax provider configuration. */
       readonly config?: components['schemas']['TaxConfig']
-      /** @description Percent defines the percentage set manually or determined from
+      /**
+       * @description Percent defines the percentage set manually or determined from
        *     the rate key (calculated if rate present). A nil percent implies that
-       *     this tax combo is **exempt** from tax.") */
+       *     this tax combo is **exempt** from tax.")
+       */
       readonly percent?: components['schemas']['Percentage']
       /** @description Some countries require an additional surcharge (calculated if rate present). */
       readonly surcharge?: components['schemas']['Numeric']
       /** @description Is the tax item inclusive or exclusive of the base amount. */
       readonly behavior?: components['schemas']['InvoiceLineTaxBehavior']
     }
-    /** @description InvoiceLineUsageDiscount represents an usage-based discount applied to the line.
+    /**
+     * @description InvoiceLineUsageDiscount represents an usage-based discount applied to the line.
      *
-     *     The deduction is done before the pricing algorithm is applied. */
+     *     The deduction is done before the pricing algorithm is applied.
+     */
     InvoiceLineUsageDiscount: {
       /**
        * Creation Time
@@ -7071,9 +7235,11 @@ export interface components {
        * @description Tax config specify the tax configuration for this line.
        */
       taxConfig?: components['schemas']['TaxConfig']
-      /** @description Period of the line item applies to for revenue recognition pruposes.
+      /**
+       * @description Period of the line item applies to for revenue recognition pruposes.
        *
-       *     Billing always treats periods as start being inclusive and end being exclusive. */
+       *     Billing always treats periods as start being inclusive and end being exclusive.
+       */
       period: components['schemas']['Period']
       /**
        * Format: date-time
@@ -7091,9 +7257,11 @@ export interface components {
        * @description The feature that the usage is based on.
        */
       featureKey?: string
-      /** @description The rate card that is used for this line.
+      /**
+       * @description The rate card that is used for this line.
        *
-       *     The rate card captures the intent of the price and discounts for the usage-based item. */
+       *     The rate card captures the intent of the price and discounts for the usage-based item.
+       */
       rateCard?: components['schemas']['InvoiceUsageBasedRateCard']
     }
     /** @description InvoicePendingLineCreate represents the create model for a pending invoice line. */
@@ -7114,18 +7282,22 @@ export interface components {
     }
     /** @description InvoicePendingLinesActionFiltersInput specifies which lines to include in the invoice. */
     InvoicePendingLinesActionFiltersInput: {
-      /** @description The pending line items to include in the invoice, if not provided:
+      /**
+       * @description The pending line items to include in the invoice, if not provided:
        *     - all line items that have invoice_at < asOf will be included
        *     - [progressive billing only] all usage based line items will be included up to asOf, new
        *     usage-based line items will be staged for the rest of the billing cycle
        *
-       *     All lineIDs present in the list, must exists and must be invoicable as of asOf, or the action will fail. */
+       *     All lineIDs present in the list, must exists and must be invoicable as of asOf, or the action will fail.
+       */
       lineIds?: string[]
     }
-    /** @description BillingInvoiceActionInput is the input for creating an invoice.
+    /**
+     * @description BillingInvoiceActionInput is the input for creating an invoice.
      *
      *     Invoice creation is always based on already pending line items created by the billingCreateLineByCustomer
-     *     operation. Empty invoices are not allowed. */
+     *     operation. Empty invoices are not allowed.
+     */
     InvoicePendingLinesActionInput: {
       /** @description Filters to apply when creating the invoice. */
       filters?: components['schemas']['InvoicePendingLinesActionFiltersInput']
@@ -7142,10 +7314,12 @@ export interface components {
        * @example 01G65Z755AFWAKHE12NY0CQ9FH
        */
       customerId: string
-      /** @description Override the progressive billing setting of the customer.
+      /**
+       * @description Override the progressive billing setting of the customer.
        *
        *     Can be used to disable/enable progressive billing in case the business logic
-       *     requires it, if not provided the billing profile's progressive billing setting will be used. */
+       *     requires it, if not provided the billing profile's progressive billing setting will be used.
+       */
       progressiveBillingOverride?: boolean
     }
     /** @description Reference to an invoice. */
@@ -7183,9 +7357,11 @@ export interface components {
     InvoiceSimulationInput: {
       /** @description The number of the invoice. */
       number?: components['schemas']['InvoiceNumber']
-      /** @description Currency for all invoice line items.
+      /**
+       * @description Currency for all invoice line items.
        *
-       *     Multi currency invoices are not supported yet. */
+       *     Multi currency invoices are not supported yet.
+       */
       currency: components['schemas']['CurrencyCode']
       /** @description Lines to be included in the generated invoice. */
       lines: components['schemas']['InvoiceSimulationLine'][]
@@ -7212,9 +7388,11 @@ export interface components {
        * @description Tax config specify the tax configuration for this line.
        */
       taxConfig?: components['schemas']['TaxConfig']
-      /** @description Period of the line item applies to for revenue recognition pruposes.
+      /**
+       * @description Period of the line item applies to for revenue recognition pruposes.
        *
-       *     Billing always treats periods as start being inclusive and end being exclusive. */
+       *     Billing always treats periods as start being inclusive and end being exclusive.
+       */
       period: components['schemas']['Period']
       /**
        * Format: date-time
@@ -7232,9 +7410,11 @@ export interface components {
        * @description The feature that the usage is based on.
        */
       featureKey?: string
-      /** @description The rate card that is used for this line.
+      /**
+       * @description The rate card that is used for this line.
        *
-       *     The rate card captures the intent of the price and discounts for the usage-based item. */
+       *     The rate card captures the intent of the price and discounts for the usage-based item.
+       */
       rateCard?: components['schemas']['InvoiceUsageBasedRateCard']
       /** @description The quantity of the item being sold. */
       quantity: components['schemas']['Numeric']
@@ -7262,10 +7442,12 @@ export interface components {
       | 'paid'
       | 'uncollectible'
       | 'voided'
-    /** @description InvoiceStatusDetails represents the details of the invoice status.
+    /**
+     * @description InvoiceStatusDetails represents the details of the invoice status.
      *
      *     API users are encouraged to rely on the immutable/failed/avaliableActions fields to determine
-     *     the next steps of the invoice instead of the extendedStatus field. */
+     *     the next steps of the invoice instead of the extendedStatus field.
+     */
     InvoiceStatusDetails: {
       /** @description Is the invoice editable? */
       readonly immutable: boolean
@@ -7313,8 +7495,10 @@ export interface components {
        *     When undefined, the tax config of the feature or the default tax config of the plan is used.
        */
       taxConfig?: components['schemas']['TaxConfig']
-      /** @description The price of the rate card.
-       *     When null, the feature or service is free. */
+      /**
+       * @description The price of the rate card.
+       *     When null, the feature or service is free.
+       */
       price: components['schemas']['RateCardUsageBasedPrice'] | null
       /** @description The discounts that are applied to the line. */
       discounts?: components['schemas']['BillingDiscounts']
@@ -7344,17 +7528,21 @@ export interface components {
       /** @description Default tax configuration to apply to the invoices. */
       defaultTaxConfig?: components['schemas']['TaxConfig']
     }
-    /** @description InvoiceWorkflowReplaceUpdate represents the update model for an invoice workflow.
+    /**
+     * @description InvoiceWorkflowReplaceUpdate represents the update model for an invoice workflow.
      *
-     *     Fields that are immutable a re removed from the model. This is based on InvoiceWorkflowSettings. */
+     *     Fields that are immutable a re removed from the model. This is based on InvoiceWorkflowSettings.
+     */
     InvoiceWorkflowReplaceUpdate: {
       /** @description The workflow used for this invoice. */
       workflow: components['schemas']['InvoiceWorkflowSettingsReplaceUpdate']
     }
-    /** @description InvoiceWorkflowSettings represents the workflow settings used by the invoice.
+    /**
+     * @description InvoiceWorkflowSettings represents the workflow settings used by the invoice.
      *
      *     This is a clone of the billing profile's workflow settings at the time of invoice creation
-     *     with customer overrides considered. */
+     *     with customer overrides considered.
+     */
     InvoiceWorkflowSettings: {
       /** @description The apps that will be used to orchestrate the invoice's workflow. */
       readonly apps?: components['schemas']['BillingProfileAppsOrReference']
@@ -7369,10 +7557,12 @@ export interface components {
       /** @description The workflow details used by this invoice. */
       workflow: components['schemas']['BillingWorkflow']
     }
-    /** @description Mutable workflow settings for an invoice.
+    /**
+     * @description Mutable workflow settings for an invoice.
      *
      *     Other fields on the invoice's workflow are not mutable, they serve as a history of the invoice's workflow
-     *     at creation time. */
+     *     at creation time.
+     */
     InvoiceWorkflowSettingsReplaceUpdate: {
       /** @description The invoicing settings for this workflow */
       invoicing: components['schemas']['InvoiceWorkflowInvoicingSettingsReplaceUpdate']
@@ -7405,9 +7595,11 @@ export interface components {
       | components['schemas']['FeaturePaginatedResponse']
     /** @description Marketplace install request payload. */
     MarketplaceInstallRequestPayload: {
-      /** @description Name of the application to install.
+      /**
+       * @description Name of the application to install.
        *
-       *     If name is not provided defaults to the marketplace listing's name. */
+       *     If name is not provided defaults to the marketplace listing's name.
+       */
       name?: string
       /**
        * @description If true, a billing profile will be created for the app.
@@ -7466,9 +7658,11 @@ export interface components {
       description: string
       /** @description The app's capabilities. */
       capabilities: components['schemas']['AppCapability'][]
-      /** @description Install methods.
+      /**
+       * @description Install methods.
        *
-       *     List of methods to install the app. */
+       *     List of methods to install the app.
+       */
       installMethods: components['schemas']['InstallMethod'][]
     }
     /** @description Paginated response */
@@ -7852,11 +8046,15 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       to?: Date
-      /** @description The window size that the usage is aggregated.
-       *     If not specified, the usage is aggregated over the entire period. */
+      /**
+       * @description The window size that the usage is aggregated.
+       *     If not specified, the usage is aggregated over the entire period.
+       */
       windowSize?: components['schemas']['WindowSize']
-      /** @description The usage data.
-       *     If no data is available, an empty array is returned. */
+      /**
+       * @description The usage data.
+       *     If no data is available, an empty array is returned.
+       */
       data: components['schemas']['MeterQueryRow'][]
     }
     /**
@@ -7890,8 +8088,10 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       windowEnd: Date
-      /** @description The subject the value is aggregated over.
-       *     If not specified, the value is aggregated over all subjects. */
+      /**
+       * @description The subject the value is aggregated over.
+       *     If not specified, the value is aggregated over all subjects.
+       */
       subject: string | null
       /** @description The customer ID the value is aggregated over. */
       customerId?: string
@@ -9429,8 +9629,10 @@ export interface components {
     PlanStatus: 'draft' | 'active' | 'archived' | 'scheduled'
     /** @description Change subscription based on plan. */
     PlanSubscriptionChange: {
-      /** @description Timing configuration for the change, when the change should take effect.
-       *     For changing a subscription, the accepted values depend on the subscription configuration. */
+      /**
+       * @description Timing configuration for the change, when the change should take effect.
+       *     For changing a subscription, the accepted values depend on the subscription configuration.
+       */
       timing: components['schemas']['SubscriptionTiming']
       /** @description What alignment settings the subscription should have. */
       alignment?: components['schemas']['Alignment']
@@ -9438,8 +9640,10 @@ export interface components {
       metadata?: components['schemas']['Metadata']
       /** @description The plan reference to change to. */
       plan: components['schemas']['PlanReferenceInput']
-      /** @description The key of the phase to start the subscription in.
-       *     If not provided, the subscription will start in the first phase of the plan. */
+      /**
+       * @description The key of the phase to start the subscription in.
+       *     If not provided, the subscription will start in the first phase of the plan.
+       */
       startingPhase?: string
       /** @description The name of the Subscription. If not provided the plan name is used. */
       name?: string
@@ -9463,8 +9667,10 @@ export interface components {
       metadata?: components['schemas']['Metadata']
       /** @description The plan reference to change to. */
       plan: components['schemas']['PlanReferenceInput']
-      /** @description The key of the phase to start the subscription in.
-       *     If not provided, the subscription will start in the first phase of the plan. */
+      /**
+       * @description The key of the phase to start the subscription in.
+       *     If not provided, the subscription will start in the first phase of the plan.
+       */
       startingPhase?: string
       /** @description The name of the Subscription. If not provided the plan name is used. */
       name?: string
@@ -9490,10 +9696,12 @@ export interface components {
        */
       billingAnchor?: Date
     }
-    /** @description A consumer portal token.
+    /**
+     * @description A consumer portal token.
      *
      *     Validator doesn't obey required for readOnly properties
-     *     See: https://github.com/stoplightio/spectral/issues/1274 */
+     *     See: https://github.com/stoplightio/spectral/issues/1274
+     */
     PortalToken: {
       /**
        * @description ULID (Universally Unique Lexicographically Sortable Identifier).
@@ -9536,8 +9744,10 @@ export interface components {
      * @enum {string}
      */
     PricePaymentTerm: 'in_advance' | 'in_arrears'
-    /** @description A price tier.
-     *     At least one price component is required in each tier. */
+    /**
+     * @description A price tier.
+     *     At least one price component is required in each tier.
+     */
     PriceTier: {
       /**
        * Up to quantity
@@ -9614,8 +9824,10 @@ export interface components {
        */
       type: 'boolean'
     }
-    /** @description Entitlement templates are used to define the entitlements of a plan.
-     *     Features are omitted from the entitlement template, as they are defined in the rate card. */
+    /**
+     * @description Entitlement templates are used to define the entitlements of a plan.
+     *     Features are omitted from the entitlement template, as they are defined in the rate card.
+     */
     RateCardEntitlement:
       | components['schemas']['RateCardMeteredEntitlement']
       | components['schemas']['RateCardStaticEntitlement']
@@ -9652,8 +9864,10 @@ export interface components {
        * @description The feature the customer is entitled to use.
        */
       featureKey?: string
-      /** @description The entitlement of the rate card.
-       *     Only available when featureKey is set. */
+      /**
+       * @description The entitlement of the rate card.
+       *     Only available when featureKey is set.
+       */
       entitlementTemplate?: components['schemas']['RateCardEntitlement']
       /**
        * Tax config
@@ -9779,8 +9993,10 @@ export interface components {
        * @description The feature the customer is entitled to use.
        */
       featureKey?: string
-      /** @description The entitlement of the rate card.
-       *     Only available when featureKey is set. */
+      /**
+       * @description The entitlement of the rate card.
+       *     Only available when featureKey is set.
+       */
       entitlementTemplate?: components['schemas']['RateCardEntitlement']
       /**
        * Tax config
@@ -9794,8 +10010,10 @@ export interface components {
        * @description The billing cadence of the rate card.
        */
       billingCadence: string
-      /** @description The price of the rate card.
-       *     When null, the feature or service is free. */
+      /**
+       * @description The price of the rate card.
+       *     When null, the feature or service is free.
+       */
       price: components['schemas']['RateCardUsageBasedPrice'] | null
       /**
        * Discounts
@@ -9899,19 +10117,25 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       effectiveAt?: Date
-      /** @description Determines whether the usage period anchor is retained or reset to the effectiveAt time.
+      /**
+       * @description Determines whether the usage period anchor is retained or reset to the effectiveAt time.
        *     - If true, the usage period anchor is retained.
-       *     - If false, the usage period anchor is reset to the effectiveAt time. */
+       *     - If false, the usage period anchor is reset to the effectiveAt time.
+       */
       retainAnchor?: boolean
-      /** @description Determines whether the overage is preserved or forgiven, overriding the entitlement's default behavior.
+      /**
+       * @description Determines whether the overage is preserved or forgiven, overriding the entitlement's default behavior.
        *     - If true, the overage is preserved.
-       *     - If false, the overage is forgiven. */
+       *     - If false, the overage is forgiven.
+       */
       preserveOverage?: boolean
     }
-    /** @description Sandbox app can be used for testing OpenMeter features.
+    /**
+     * @description Sandbox app can be used for testing OpenMeter features.
      *
      *     The app is not creating anything in external systems, thus it is safe to use for
-     *     verifying OpenMeter features. */
+     *     verifying OpenMeter features.
+     */
     SandboxApp: {
       /**
        * ID
@@ -10012,8 +10236,10 @@ export interface components {
      * @enum {string}
      */
     SortOrder: 'ASC' | 'DESC'
-    /** @description The Stripe API key input.
-     *     Used to authenticate with the Stripe API. */
+    /**
+     * @description The Stripe API key input.
+     *     Used to authenticate with the Stripe API.
+     */
     StripeAPIKeyInput: {
       secretAPIKey: string
     }
@@ -10116,8 +10342,10 @@ export interface components {
       readonly stripeAccountId: string
       /** @description Livemode, true if the app is in production mode. */
       readonly livemode: boolean
-      /** @description The masked API key.
-       *     Only shows the first 8 and last 3 characters. */
+      /**
+       * @description The masked API key.
+       *     Only shows the first 8 and last 3 characters.
+       */
       readonly maskedAPIKey: string
     }
     /** @description Resource update operation model. */
@@ -10212,23 +10440,31 @@ export interface components {
       /** @description The Stripe default payment method ID. */
       stripeDefaultPaymentMethodId?: string
     }
-    /** @description Stripe customer portal session.
+    /**
+     * @description Stripe customer portal session.
      *
-     *     See: https://docs.stripe.com/api/customer_portal/sessions/object */
+     *     See: https://docs.stripe.com/api/customer_portal/sessions/object
+     */
     StripeCustomerPortalSession: {
-      /** @description The ID of the customer portal session.
+      /**
+       * @description The ID of the customer portal session.
        *
-       *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-id */
+       *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-id
+       */
       id: string
       /** @description The ID of the stripe customer. */
       stripeCustomerId: string
-      /** @description Configuration used to customize the customer portal.
+      /**
+       * @description Configuration used to customize the customer portal.
        *
-       *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-configuration */
+       *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-configuration
+       */
       configurationId: string
-      /** @description Livemode.
+      /**
+       * @description Livemode.
        *
-       *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-livemode */
+       *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-livemode
+       */
       livemode: boolean
       /**
        * Format: date-time
@@ -10238,19 +10474,25 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       createdAt: Date
-      /** @description Return URL.
+      /**
+       * @description Return URL.
        *
-       *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-return_url */
+       *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-return_url
+       */
       returnUrl: string
-      /** @description Status.
+      /**
+       * @description Status.
        *       /**
        *     The IETF language tag of the locale customer portal is displayed in.
        *
-       *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-locale */
+       *     See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-locale
+       */
       locale: string
-      /** @description /**
+      /**
+       * @description /**
        *     The ID of the customer.The URL to redirect the customer to after they have completed
-       *     their requested actions. */
+       *     their requested actions.
+       */
       url: string
     }
     /** @description The tax config for Stripe. */
@@ -10847,8 +11089,10 @@ export interface components {
        */
       next: components['schemas']['SubscriptionExpanded']
     }
-    /** @description The request could not be completed due to a conflict with the current state of the target resource.
-     *     Variants with ErrorExtensions specific to subscriptions. */
+    /**
+     * @description The request could not be completed due to a conflict with the current state of the target resource.
+     *     Variants with ErrorExtensions specific to subscriptions.
+     */
     SubscriptionConflictErrorResponse: {
       /**
        * Format: uri
@@ -10888,8 +11132,10 @@ export interface components {
       | components['schemas']['CustomSubscriptionCreate']
     /** @description Subscription edit input. */
     SubscriptionEdit: {
-      /** @description Batch processing commands for manipulating running subscriptions.
-       *     The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`. */
+      /**
+       * @description Batch processing commands for manipulating running subscriptions.
+       *     The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
+       */
       customizations: components['schemas']['SubscriptionEditOperation'][]
       /** @description Whether the billing period should be restarted.Timing configuration to allow for the changes to take effect at different times. */
       timing?: components['schemas']['SubscriptionTiming']
@@ -11069,7 +11315,8 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       activeTo?: Date
-      /** @description The identifier of the RateCard.
+      /**
+       * @description The identifier of the RateCard.
        *     SubscriptionItem/RateCard can be identified, it has a reference:
        *
        *     1. If a Feature is associated with the SubscriptionItem, it is identified by the Feature
@@ -11078,7 +11325,8 @@ export interface components {
        *
        *     2. If a Feature is not associated with the SubscriptionItem, it is referenced by the Price
        *
-       *     We say "referenced by the Price" regardless of how a price itself is referenced, it colloquially makes sense to say "paying the same price for the same thing". In practice this should be derived from what's printed on the invoice line-item. */
+       *     We say "referenced by the Price" regardless of how a price itself is referenced, it colloquially makes sense to say "paying the same price for the same thing". In practice this should be derived from what's printed on the invoice line-item.
+       */
       key: string
       /** @description The feature's key (if present). */
       featureKey?: string
@@ -11234,11 +11482,13 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       activeTo?: Date
-      /** @description The items of the phase. The structure is flattened to better conform to the Plan API.
+      /**
+       * @description The items of the phase. The structure is flattened to better conform to the Plan API.
        *     The timelines are flattened according to the following rules:
        *     - for the current phase, the `items` contains only the active item for each key
        *     - for past phases, the `items` contains only the last item for each key
-       *     - for future phases, the `items` contains only the first version of the item for each key */
+       *     - for future phases, the `items` contains only the first version of the item for each key
+       */
       items: components['schemas']['SubscriptionItem'][]
       /** @description Includes all versions of the items on each key, including all edits, scheduled changes, etc... */
       itemTimelines: {
@@ -11250,8 +11500,10 @@ export interface components {
      * @enum {string}
      */
     SubscriptionStatus: 'active' | 'inactive' | 'canceled' | 'scheduled'
-    /** @description Subscription edit timing defined when the changes should take effect.
-     *     If the provided configuration is not supported by the subscription, an error will be returned. */
+    /**
+     * @description Subscription edit timing defined when the changes should take effect.
+     *     If the provided configuration is not supported by the subscription, an error will be returned.
+     */
     SubscriptionTiming: components['schemas']['SubscriptionTimingEnum'] | Date
     /**
      * @description Subscription edit timing.
@@ -11330,8 +11582,10 @@ export interface components {
     ULIDOrExternalKey: string
     /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
     UnauthorizedProblemResponse: components['schemas']['UnexpectedProblemResponse']
-    /** @description A Problem Details object (RFC 7807).
-     *     Additional properties specific to the problem type may be present. */
+    /**
+     * @description A Problem Details object (RFC 7807).
+     *     Additional properties specific to the problem type may be present.
+     */
     UnexpectedProblemResponse: {
       /**
        * Format: uri
@@ -11430,9 +11684,11 @@ export interface components {
       /** @description Additional attributes. */
       readonly attributes?: components['schemas']['Annotations']
     }
-    /** @description ValidationIssue captures any validation issues related to the invoice.
+    /**
+     * @description ValidationIssue captures any validation issues related to the invoice.
      *
-     *     Issues with severity "critical" will prevent the invoice from being issued. */
+     *     Issues with severity "critical" will prevent the invoice from being issued.
+     */
     ValidationIssue: {
       /**
        * Creation Time
@@ -11500,9 +11756,11 @@ export interface components {
       action: components['schemas']['VoidInvoiceActionCreate']
       /** @description The reason for voiding the invoice. */
       reason: string
-      /** @description Per line item overrides for the action.
+      /**
+       * @description Per line item overrides for the action.
        *
-       *     If not specified, the `action` will be applied to all line items. */
+       *     If not specified, the `action` will be applied to all line items.
+       */
       overrides?:
         | components['schemas']['VoidInvoiceActionLineOverride'][]
         | null
@@ -11572,10 +11830,12 @@ export interface components {
     WindowSize: 'MINUTE' | 'HOUR' | 'DAY' | 'MONTH'
     /** @description The windowed balance history. */
     WindowedBalanceHistory: {
-      /** @description The windowed balance history.
+      /**
+       * @description The windowed balance history.
        *     - It only returns rows for windows where there was usage.
        *     - The windows are inclusive at their start and exclusive at their end.
-       *     - The last window may be smaller than the window size and is inclusive at both ends. */
+       *     - The last window may be smaller than the window size and is inclusive at both ends.
+       */
       windowedHistory: components['schemas']['BalanceHistoryWindow'][]
       /** @description Grant burndown history. */
       burndownHistory: components['schemas']['GrantBurnDownHistorySegment'][]
@@ -11605,11 +11865,13 @@ export interface components {
     'BillingProfileListCustomerOverridesParams.customersWithoutPinnedProfile': boolean
     /** @description Expand the response with additional details. */
     'BillingProfileListCustomerOverridesParams.expand': components['schemas']['BillingProfileCustomerOverrideExpand'][]
-    /** @description Include customers without customer overrides.
+    /**
+     * @description Include customers without customer overrides.
      *
      *     If set to false only the customers specifically associated with a billing profile will be returned.
      *
-     *     If set to true, in case of the default billing profile, all customers will be returned. */
+     *     If set to true, in case of the default billing profile, all customers will be returned.
+     */
     'BillingProfileListCustomerOverridesParams.includeAllCustomers': boolean
     /** @description The order direction. */
     'BillingProfileOrderByOrdering.order': components['schemas']['SortOrder']
@@ -11639,11 +11901,15 @@ export interface components {
     'GrantOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
     'GrantOrderByOrdering.orderBy': components['schemas']['GrantOrderBy']
-    /** @description Filter by invoice created time.
-     *     Inclusive. */
+    /**
+     * @description Filter by invoice created time.
+     *     Inclusive.
+     */
     'InvoiceListParams.createdAfter': Date | string
-    /** @description Filter by invoice created time.
-     *     Inclusive. */
+    /**
+     * @description Filter by invoice created time.
+     *     Inclusive.
+     */
     'InvoiceListParams.createdBefore': Date | string
     /** @description Filter by customer ID */
     'InvoiceListParams.customers': string[]
@@ -11653,17 +11919,25 @@ export interface components {
     'InvoiceListParams.extendedStatuses': string[]
     /** @description Include deleted invoices */
     'InvoiceListParams.includeDeleted': boolean
-    /** @description Filter by invoice issued time.
-     *     Inclusive. */
+    /**
+     * @description Filter by invoice issued time.
+     *     Inclusive.
+     */
     'InvoiceListParams.issuedAfter': Date | string
-    /** @description Filter by invoice issued time.
-     *     Inclusive. */
+    /**
+     * @description Filter by invoice issued time.
+     *     Inclusive.
+     */
     'InvoiceListParams.issuedBefore': Date | string
-    /** @description Filter by period start time.
-     *     Inclusive. */
+    /**
+     * @description Filter by period start time.
+     *     Inclusive.
+     */
     'InvoiceListParams.periodStartAfter': Date | string
-    /** @description Filter by period start time.
-     *     Inclusive. */
+    /**
+     * @description Filter by period start time.
+     *     Inclusive.
+     */
     'InvoiceListParams.periodStartBefore': Date | string
     /** @description Filter by the invoice status. */
     'InvoiceListParams.statuses': components['schemas']['InvoiceStatus'][]
@@ -11671,13 +11945,17 @@ export interface components {
     'InvoiceOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
     'InvoiceOrderByOrdering.orderBy': components['schemas']['InvoiceOrderBy']
-    /** @description Number of items to return.
+    /**
+     * @description Number of items to return.
      *
-     *     Default is 100. */
+     *     Default is 100.
+     */
     'LimitOffset.limit': number
-    /** @description Number of items to skip.
+    /**
+     * @description Number of items to skip.
      *
-     *     Default is 0. */
+     *     Default is 0.
+     */
     'LimitOffset.offset': number
     /** @description The type of the app to install. */
     'MarketplaceApiKeyInstallRequest.type': components['schemas']['AppType']
@@ -11689,15 +11967,21 @@ export interface components {
     'MeterOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
     'MeterOrderByOrdering.orderBy': components['schemas']['MeterOrderBy']
-    /** @description Optional advanced meter group by filters.
-     *     You can use this to filter for values of the meter groupBy fields. */
+    /**
+     * @description Optional advanced meter group by filters.
+     *     You can use this to filter for values of the meter groupBy fields.
+     */
     'MeterQuery.advancedMeterGroupByFilters': string
-    /** @description Client ID
-     *     Useful to track progress of a query. */
+    /**
+     * @description Client ID
+     *     Useful to track progress of a query.
+     */
     'MeterQuery.clientId': string
-    /** @description Filtering by multiple customers.
+    /**
+     * @description Filtering by multiple customers.
      *
-     *     For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2 */
+     *     For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2
+     */
     'MeterQuery.filterCustomerId': string[]
     /**
      * @deprecated
@@ -11710,35 +11994,47 @@ export interface components {
     'MeterQuery.filterGroupBy': {
       [key: string]: string
     }
-    /** @description Start date-time in RFC 3339 format.
+    /**
+     * @description Start date-time in RFC 3339 format.
      *
      *     Inclusive.
      *
-     *     For example: ?from=2025-01-01T00%3A00%3A00.000Z */
+     *     For example: ?from=2025-01-01T00%3A00%3A00.000Z
+     */
     'MeterQuery.from': Date | string
-    /** @description If not specified a single aggregate will be returned for each subject and time window.
+    /**
+     * @description If not specified a single aggregate will be returned for each subject and time window.
      *     `subject` is a reserved group by value.
      *
-     *     For example: ?groupBy=subject&groupBy=model */
+     *     For example: ?groupBy=subject&groupBy=model
+     */
     'MeterQuery.groupBy': string[]
-    /** @description Filtering by multiple subjects.
+    /**
+     * @description Filtering by multiple subjects.
      *
-     *     For example: ?subject=subject-1&subject=subject-2 */
+     *     For example: ?subject=subject-1&subject=subject-2
+     */
     'MeterQuery.subject': string[]
-    /** @description End date-time in RFC 3339 format.
+    /**
+     * @description End date-time in RFC 3339 format.
      *
      *     Inclusive.
      *
-     *     For example: ?to=2025-02-01T00%3A00%3A00.000Z */
+     *     For example: ?to=2025-02-01T00%3A00%3A00.000Z
+     */
     'MeterQuery.to': Date | string
-    /** @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
+    /**
+     * @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
      *
-     *     For example: ?windowSize=DAY */
+     *     For example: ?windowSize=DAY
+     */
     'MeterQuery.windowSize': components['schemas']['WindowSize']
-    /** @description The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+    /**
+     * @description The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
      *     If not specified, the UTC timezone will be used.
      *
-     *     For example: ?windowTimeZone=UTC */
+     *     For example: ?windowTimeZone=UTC
+     */
     'MeterQuery.windowTimeZone': string
     /** @description The order direction. */
     'NotificationChannelOrderByOrdering.order': components['schemas']['SortOrder']
@@ -11752,32 +12048,46 @@ export interface components {
     'NotificationRuleOrderByOrdering.order': components['schemas']['SortOrder']
     /** @description The order by field. */
     'NotificationRuleOrderByOrdering.orderBy': components['schemas']['NotificationRuleOrderBy']
-    /** @description Error code.
-     *     Required with the error response. */
+    /**
+     * @description Error code.
+     *     Required with the error response.
+     */
     'OAuth2AuthorizationCodeGrantErrorParams.error': components['schemas']['OAuth2AuthorizationCodeGrantErrorType']
-    /** @description Optional human-readable text providing additional information,
-     *     used to assist the client developer in understanding the error that occurred. */
+    /**
+     * @description Optional human-readable text providing additional information,
+     *     used to assist the client developer in understanding the error that occurred.
+     */
     'OAuth2AuthorizationCodeGrantErrorParams.error_description': string
-    /** @description Optional uri identifying a human-readable web page with
+    /**
+     * @description Optional uri identifying a human-readable web page with
      *     information about the error, used to provide the client
-     *     developer with additional information about the error */
+     *     developer with additional information about the error
+     */
     'OAuth2AuthorizationCodeGrantErrorParams.error_uri': string
-    /** @description Authorization code which the client will later exchange for an access token.
-     *     Required with the success response. */
+    /**
+     * @description Authorization code which the client will later exchange for an access token.
+     *     Required with the success response.
+     */
     'OAuth2AuthorizationCodeGrantSuccessParams.code': string
-    /** @description Required if the "state" parameter was present in the client authorization request.
+    /**
+     * @description Required if the "state" parameter was present in the client authorization request.
      *     The exact value received from the client:
      *
      *     Unique, randomly generated, opaque, and non-guessable string that is sent
-     *     when starting an authentication request and validated when processing the response. */
+     *     when starting an authentication request and validated when processing the response.
+     */
     'OAuth2AuthorizationCodeGrantSuccessParams.state': string
-    /** @description Page index.
+    /**
+     * @description Page index.
      *
-     *     Default is 1. */
+     *     Default is 1.
+     */
     'Pagination.page': number
-    /** @description The maximum number of items per page.
+    /**
+     * @description The maximum number of items per page.
      *
-     *     Default is 100. */
+     *     Default is 100.
+     */
     'Pagination.pageSize': number
     /** @description The order direction. */
     'PlanAddonOrderByOrdering.order': components['schemas']['SortOrder']
@@ -11795,19 +12105,27 @@ export interface components {
     'queryCustomerList.expand': components['schemas']['CustomerExpand'][]
     /** @description Include deleted customers. */
     'queryCustomerList.includeDeleted': boolean
-    /** @description Filter customers by key.
-     *     Case-insensitive partial match. */
+    /**
+     * @description Filter customers by key.
+     *     Case-insensitive partial match.
+     */
     'queryCustomerList.key': string
-    /** @description Filter customers by name.
-     *     Case-insensitive partial match. */
+    /**
+     * @description Filter customers by name.
+     *     Case-insensitive partial match.
+     */
     'queryCustomerList.name': string
     /** @description Filter customers by the plan key of their susbcription. */
     'queryCustomerList.planKey': string
-    /** @description Filter customers by primary email.
-     *     Case-insensitive partial match. */
+    /**
+     * @description Filter customers by primary email.
+     *     Case-insensitive partial match.
+     */
     'queryCustomerList.primaryEmail': string
-    /** @description Filter customers by usage attribution subject.
-     *     Case-insensitive partial match. */
+    /**
+     * @description Filter customers by usage attribution subject.
+     *     Case-insensitive partial match.
+     */
     'queryCustomerList.subject': string
     /** @description Include deleted meters. */
     'queryMeterList.includeDeleted': boolean
@@ -12597,9 +12915,11 @@ export interface operations {
   listAddons: {
     parameters: {
       query?: {
-        /** @description Include deleted add-ons in response.
+        /**
+         * @description Include deleted add-ons in response.
          *
-         *     Usage: `?includeDeleted=true` */
+         *     Usage: `?includeDeleted=true`
+         */
         includeDeleted?: boolean
         /** @description Filter by addon.id attribute */
         id?: string[]
@@ -12609,22 +12929,28 @@ export interface operations {
         keyVersion?: {
           [key: string]: number[]
         }
-        /** @description Only return add-ons with the given status.
+        /**
+         * @description Only return add-ons with the given status.
          *
          *     Usage:
          *     - `?status=active`: return only the currently active add-ons
          *     - `?status=draft`: return only the draft add-ons
-         *     - `?status=archived`: return only the archived add-ons */
+         *     - `?status=archived`: return only the archived add-ons
+         */
         status?: components['schemas']['AddonStatus'][]
         /** @description Filter by addon.currency attribute */
         currency?: components['schemas']['CurrencyCode'][]
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
         /** @description The order direction. */
         order?: components['parameters']['AddonOrderByOrdering.order']
@@ -12801,9 +13127,11 @@ export interface operations {
   getAddon: {
     parameters: {
       query?: {
-        /** @description Include latest version of the add-on instead of the version in active state.
+        /**
+         * @description Include latest version of the add-on instead of the version in active state.
          *
-         *     Usage: `?includeLatest=true` */
+         *     Usage: `?includeLatest=true`
+         */
         includeLatest?: boolean
       }
       header?: never
@@ -13006,7 +13334,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -13278,13 +13606,17 @@ export interface operations {
   listApps: {
     parameters: {
       query?: {
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
       }
       header?: never
@@ -13382,7 +13714,7 @@ export interface operations {
       }
     }
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -13469,7 +13801,7 @@ export interface operations {
       }
     }
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -13556,7 +13888,7 @@ export interface operations {
       }
     }
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -13831,7 +14163,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -13927,7 +14259,7 @@ export interface operations {
       }
     }
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -14104,11 +14436,13 @@ export interface operations {
         billingProfile?: components['parameters']['BillingProfileListCustomerOverridesParams.billingProfile']
         /** @description Only return customers without pinned billing profiles. This implicitly sets includeAllCustomers to true. */
         customersWithoutPinnedProfile?: components['parameters']['BillingProfileListCustomerOverridesParams.customersWithoutPinnedProfile']
-        /** @description Include customers without customer overrides.
+        /**
+         * @description Include customers without customer overrides.
          *
          *     If set to false only the customers specifically associated with a billing profile will be returned.
          *
-         *     If set to true, in case of the default billing profile, all customers will be returned. */
+         *     If set to true, in case of the default billing profile, all customers will be returned.
+         */
         includeAllCustomers?: components['parameters']['BillingProfileListCustomerOverridesParams.includeAllCustomers']
         /** @description Filter by customer id. */
         customerId?: components['parameters']['BillingProfileListCustomerOverridesParams.customerId']
@@ -14124,13 +14458,17 @@ export interface operations {
         order?: components['parameters']['BillingProfileCustomerOverrideOrderByOrdering.order']
         /** @description The order by field. */
         orderBy?: components['parameters']['BillingProfileCustomerOverrideOrderByOrdering.orderBy']
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
       }
       header?: never
@@ -14418,7 +14756,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -14684,23 +15022,35 @@ export interface operations {
         statuses?: components['parameters']['InvoiceListParams.statuses']
         /** @description Filter by invoice extended statuses */
         extendedStatuses?: components['parameters']['InvoiceListParams.extendedStatuses']
-        /** @description Filter by invoice issued time.
-         *     Inclusive. */
+        /**
+         * @description Filter by invoice issued time.
+         *     Inclusive.
+         */
         issuedAfter?: components['parameters']['InvoiceListParams.issuedAfter']
-        /** @description Filter by invoice issued time.
-         *     Inclusive. */
+        /**
+         * @description Filter by invoice issued time.
+         *     Inclusive.
+         */
         issuedBefore?: components['parameters']['InvoiceListParams.issuedBefore']
-        /** @description Filter by period start time.
-         *     Inclusive. */
+        /**
+         * @description Filter by period start time.
+         *     Inclusive.
+         */
         periodStartAfter?: components['parameters']['InvoiceListParams.periodStartAfter']
-        /** @description Filter by period start time.
-         *     Inclusive. */
+        /**
+         * @description Filter by period start time.
+         *     Inclusive.
+         */
         periodStartBefore?: components['parameters']['InvoiceListParams.periodStartBefore']
-        /** @description Filter by invoice created time.
-         *     Inclusive. */
+        /**
+         * @description Filter by invoice created time.
+         *     Inclusive.
+         */
         createdAfter?: components['parameters']['InvoiceListParams.createdAfter']
-        /** @description Filter by invoice created time.
-         *     Inclusive. */
+        /**
+         * @description Filter by invoice created time.
+         *     Inclusive.
+         */
         createdBefore?: components['parameters']['InvoiceListParams.createdBefore']
         /** @description What parts of the list output to expand in listings */
         expand?: components['parameters']['InvoiceListParams.expand']
@@ -14708,13 +15058,17 @@ export interface operations {
         customers?: components['parameters']['InvoiceListParams.customers']
         /** @description Include deleted invoices */
         includeDeleted?: components['parameters']['InvoiceListParams.includeDeleted']
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
         /** @description The order direction. */
         order?: components['parameters']['InvoiceOrderByOrdering.order']
@@ -15094,7 +15448,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -15748,13 +16102,17 @@ export interface operations {
       query?: {
         includeArchived?: boolean
         expand?: components['schemas']['BillingProfileExpand'][]
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
         /** @description The order direction. */
         order?: components['parameters']['BillingProfileOrderByOrdering.order']
@@ -16133,7 +16491,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -16217,13 +16575,17 @@ export interface operations {
   listCustomers: {
     parameters: {
       query?: {
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
         /** @description The order direction. */
         order?: components['parameters']['CustomerOrderByOrdering.order']
@@ -16231,17 +16593,25 @@ export interface operations {
         orderBy?: components['parameters']['CustomerOrderByOrdering.orderBy']
         /** @description Include deleted customers. */
         includeDeleted?: components['parameters']['queryCustomerList.includeDeleted']
-        /** @description Filter customers by key.
-         *     Case-insensitive partial match. */
+        /**
+         * @description Filter customers by key.
+         *     Case-insensitive partial match.
+         */
         key?: components['parameters']['queryCustomerList.key']
-        /** @description Filter customers by name.
-         *     Case-insensitive partial match. */
+        /**
+         * @description Filter customers by name.
+         *     Case-insensitive partial match.
+         */
         name?: components['parameters']['queryCustomerList.name']
-        /** @description Filter customers by primary email.
-         *     Case-insensitive partial match. */
+        /**
+         * @description Filter customers by primary email.
+         *     Case-insensitive partial match.
+         */
         primaryEmail?: components['parameters']['queryCustomerList.primaryEmail']
-        /** @description Filter customers by usage attribution subject.
-         *     Case-insensitive partial match. */
+        /**
+         * @description Filter customers by usage attribution subject.
+         *     Case-insensitive partial match.
+         */
         subject?: components['parameters']['queryCustomerList.subject']
         /** @description Filter customers by the plan key of their susbcription. */
         planKey?: components['parameters']['queryCustomerList.planKey']
@@ -16621,7 +16991,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -16799,13 +17169,17 @@ export interface operations {
   listCustomerAppData: {
     parameters: {
       query?: {
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
         /** @description Filter customer data by app type. */
         type?: components['parameters']['listCustomerAppDataParams.type']
@@ -17011,7 +17385,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -17487,13 +17861,17 @@ export interface operations {
         order?: components['parameters']['CustomerSubscriptionOrderByOrdering.order']
         /** @description The order by field. */
         orderBy?: components['parameters']['CustomerSubscriptionOrderByOrdering.orderBy']
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
       }
       header?: never
@@ -17673,35 +18051,49 @@ export interface operations {
   listEntitlements: {
     parameters: {
       query?: {
-        /** @description Filtering by multiple features.
+        /**
+         * @description Filtering by multiple features.
          *
-         *     Usage: `?feature=feature-1&feature=feature-2` */
+         *     Usage: `?feature=feature-1&feature=feature-2`
+         */
         feature?: string[]
-        /** @description Filtering by multiple subjects.
+        /**
+         * @description Filtering by multiple subjects.
          *
-         *     Usage: `?subject=customer-1&subject=customer-2` */
+         *     Usage: `?subject=customer-1&subject=customer-2`
+         */
         subject?: string[]
-        /** @description Filtering by multiple entitlement types.
+        /**
+         * @description Filtering by multiple entitlement types.
          *
-         *     Usage: `?entitlementType=metered&entitlementType=boolean` */
+         *     Usage: `?entitlementType=metered&entitlementType=boolean`
+         */
         entitlementType?: components['schemas']['EntitlementType'][]
         /** @description Exclude inactive entitlements in the response (those scheduled for later or earlier) */
         excludeInactive?: boolean
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
-        /** @description Number of items to skip.
+        /**
+         * @description Number of items to skip.
          *
-         *     Default is 0. */
+         *     Default is 0.
+         */
         offset?: components['parameters']['LimitOffset.offset']
-        /** @description Number of items to return.
+        /**
+         * @description Number of items to return.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         limit?: components['parameters']['LimitOffset.limit']
         /** @description The order direction. */
         order?: components['parameters']['EntitlementOrderByOrdering.order']
@@ -17885,34 +18277,48 @@ export interface operations {
   listEvents: {
     parameters: {
       query?: {
-        /** @description Client ID
-         *     Useful to track progress of a query. */
+        /**
+         * @description Client ID
+         *     Useful to track progress of a query.
+         */
         clientId?: string
-        /** @description Start date-time in RFC 3339 format.
+        /**
+         * @description Start date-time in RFC 3339 format.
          *
-         *     Inclusive. */
+         *     Inclusive.
+         */
         ingestedAtFrom?: Date | string
-        /** @description End date-time in RFC 3339 format.
+        /**
+         * @description End date-time in RFC 3339 format.
          *
-         *     Inclusive. */
+         *     Inclusive.
+         */
         ingestedAtTo?: Date | string
-        /** @description The event ID.
+        /**
+         * @description The event ID.
          *
-         *     Accepts partial ID. */
+         *     Accepts partial ID.
+         */
         id?: string
-        /** @description The event subject.
+        /**
+         * @description The event subject.
          *
-         *     Accepts partial subject. */
+         *     Accepts partial subject.
+         */
         subject?: string
         /** @description The event customer ID. */
         customerId?: string[]
-        /** @description Start date-time in RFC 3339 format.
+        /**
+         * @description Start date-time in RFC 3339 format.
          *
-         *     Inclusive. */
+         *     Inclusive.
+         */
         from?: Date | string
-        /** @description End date-time in RFC 3339 format.
+        /**
+         * @description End date-time in RFC 3339 format.
          *
-         *     Inclusive. */
+         *     Inclusive.
+         */
         to?: Date | string
         /** @description Number of events to return. */
         limit?: number
@@ -18012,7 +18418,7 @@ export interface operations {
       }
     }
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -18091,21 +18497,29 @@ export interface operations {
         meterSlug?: string[]
         /** @description Include archived features in response. */
         includeArchived?: boolean
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
-        /** @description Number of items to skip.
+        /**
+         * @description Number of items to skip.
          *
-         *     Default is 0. */
+         *     Default is 0.
+         */
         offset?: components['parameters']['LimitOffset.offset']
-        /** @description Number of items to return.
+        /**
+         * @description Number of items to return.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         limit?: components['parameters']['LimitOffset.limit']
         /** @description The order direction. */
         order?: components['parameters']['FeatureOrderByOrdering.order']
@@ -18384,7 +18798,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -18468,31 +18882,43 @@ export interface operations {
   listGrants: {
     parameters: {
       query?: {
-        /** @description Filtering by multiple features.
+        /**
+         * @description Filtering by multiple features.
          *
-         *     Usage: `?feature=feature-1&feature=feature-2` */
+         *     Usage: `?feature=feature-1&feature=feature-2`
+         */
         feature?: string[]
-        /** @description Filtering by multiple subjects.
+        /**
+         * @description Filtering by multiple subjects.
          *
-         *     Usage: `?subject=customer-1&subject=customer-2` */
+         *     Usage: `?subject=customer-1&subject=customer-2`
+         */
         subject?: string[]
         /** @description Include deleted */
         includeDeleted?: boolean
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
-        /** @description Number of items to skip.
+        /**
+         * @description Number of items to skip.
          *
-         *     Default is 0. */
+         *     Default is 0.
+         */
         offset?: components['parameters']['LimitOffset.offset']
-        /** @description Number of items to return.
+        /**
+         * @description Number of items to return.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         limit?: components['parameters']['LimitOffset.limit']
         /** @description The order direction. */
         order?: components['parameters']['GrantOrderByOrdering.order']
@@ -18592,7 +19018,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -18862,13 +19288,17 @@ export interface operations {
   listMarketplaceListings: {
     parameters: {
       query?: {
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
       }
       header?: never
@@ -19139,9 +19569,11 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': {
-          /** @description Name of the application to install.
+          /**
+           * @description Name of the application to install.
            *
-           *     If name is not provided defaults to the marketplace listing's name. */
+           *     If name is not provided defaults to the marketplace listing's name.
+           */
           name?: string
           /**
            * @description If true, a billing profile will be created for the app.
@@ -19149,8 +19581,10 @@ export interface operations {
            * @default true
            */
           createBillingProfile?: boolean
-          /** @description The API key for the provider.
-           *     For example, the Stripe API key. */
+          /**
+           * @description The API key for the provider.
+           *     For example, the Stripe API key.
+           */
           apiKey: string
         }
       }
@@ -19318,24 +19752,34 @@ export interface operations {
   marketplaceOAuth2InstallAuthorize: {
     parameters: {
       query?: {
-        /** @description Required if the "state" parameter was present in the client authorization request.
+        /**
+         * @description Required if the "state" parameter was present in the client authorization request.
          *     The exact value received from the client:
          *
          *     Unique, randomly generated, opaque, and non-guessable string that is sent
-         *     when starting an authentication request and validated when processing the response. */
+         *     when starting an authentication request and validated when processing the response.
+         */
         state?: components['parameters']['OAuth2AuthorizationCodeGrantSuccessParams.state']
-        /** @description Authorization code which the client will later exchange for an access token.
-         *     Required with the success response. */
+        /**
+         * @description Authorization code which the client will later exchange for an access token.
+         *     Required with the success response.
+         */
         code?: components['parameters']['OAuth2AuthorizationCodeGrantSuccessParams.code']
-        /** @description Error code.
-         *     Required with the error response. */
+        /**
+         * @description Error code.
+         *     Required with the error response.
+         */
         error?: components['parameters']['OAuth2AuthorizationCodeGrantErrorParams.error']
-        /** @description Optional human-readable text providing additional information,
-         *     used to assist the client developer in understanding the error that occurred. */
+        /**
+         * @description Optional human-readable text providing additional information,
+         *     used to assist the client developer in understanding the error that occurred.
+         */
         error_description?: components['parameters']['OAuth2AuthorizationCodeGrantErrorParams.error_description']
-        /** @description Optional uri identifying a human-readable web page with
+        /**
+         * @description Optional uri identifying a human-readable web page with
          *     information about the error, used to provide the client
-         *     developer with additional information about the error */
+         *     developer with additional information about the error
+         */
         error_uri?: components['parameters']['OAuth2AuthorizationCodeGrantErrorParams.error_uri']
       }
       header?: never
@@ -19422,13 +19866,17 @@ export interface operations {
   listMeters: {
     parameters: {
       query?: {
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
         /** @description The order direction. */
         order?: components['parameters']['MeterOrderByOrdering.order']
@@ -19798,7 +20246,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -19873,17 +20321,21 @@ export interface operations {
   listMeterGroupByValues: {
     parameters: {
       query?: {
-        /** @description Start date-time in RFC 3339 format.
+        /**
+         * @description Start date-time in RFC 3339 format.
          *
          *     Inclusive. Defaults to 24 hours ago.
          *
-         *     For example: ?from=2025-01-01T00%3A00%3A00.000Z */
+         *     For example: ?from=2025-01-01T00%3A00%3A00.000Z
+         */
         from?: Date | string
-        /** @description End date-time in RFC 3339 format.
+        /**
+         * @description End date-time in RFC 3339 format.
          *
          *     Inclusive.
          *
-         *     For example: ?to=2025-02-01T00%3A00%3A00.000Z */
+         *     For example: ?to=2025-02-01T00%3A00%3A00.000Z
+         */
         to?: Date | string
       }
       header?: never
@@ -19972,37 +20424,51 @@ export interface operations {
   queryMeter: {
     parameters: {
       query?: {
-        /** @description Client ID
-         *     Useful to track progress of a query. */
+        /**
+         * @description Client ID
+         *     Useful to track progress of a query.
+         */
         clientId?: components['parameters']['MeterQuery.clientId']
-        /** @description Start date-time in RFC 3339 format.
+        /**
+         * @description Start date-time in RFC 3339 format.
          *
          *     Inclusive.
          *
-         *     For example: ?from=2025-01-01T00%3A00%3A00.000Z */
+         *     For example: ?from=2025-01-01T00%3A00%3A00.000Z
+         */
         from?: components['parameters']['MeterQuery.from']
-        /** @description End date-time in RFC 3339 format.
+        /**
+         * @description End date-time in RFC 3339 format.
          *
          *     Inclusive.
          *
-         *     For example: ?to=2025-02-01T00%3A00%3A00.000Z */
+         *     For example: ?to=2025-02-01T00%3A00%3A00.000Z
+         */
         to?: components['parameters']['MeterQuery.to']
-        /** @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
+        /**
+         * @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
          *
-         *     For example: ?windowSize=DAY */
+         *     For example: ?windowSize=DAY
+         */
         windowSize?: components['parameters']['MeterQuery.windowSize']
-        /** @description The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+        /**
+         * @description The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
          *     If not specified, the UTC timezone will be used.
          *
-         *     For example: ?windowTimeZone=UTC */
+         *     For example: ?windowTimeZone=UTC
+         */
         windowTimeZone?: components['parameters']['MeterQuery.windowTimeZone']
-        /** @description Filtering by multiple subjects.
+        /**
+         * @description Filtering by multiple subjects.
          *
-         *     For example: ?subject=subject-1&subject=subject-2 */
+         *     For example: ?subject=subject-1&subject=subject-2
+         */
         subject?: components['parameters']['MeterQuery.subject']
-        /** @description Filtering by multiple customers.
+        /**
+         * @description Filtering by multiple customers.
          *
-         *     For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2 */
+         *     For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2
+         */
         filterCustomerId?: components['parameters']['MeterQuery.filterCustomerId']
         /**
          * @deprecated
@@ -20013,13 +20479,17 @@ export interface operations {
          *     ⚠️ __Deprecated__: Use `advancedMeterGroupByFilters` instead
          */
         filterGroupBy?: components['parameters']['MeterQuery.filterGroupBy']
-        /** @description Optional advanced meter group by filters.
-         *     You can use this to filter for values of the meter groupBy fields. */
+        /**
+         * @description Optional advanced meter group by filters.
+         *     You can use this to filter for values of the meter groupBy fields.
+         */
         advancedMeterGroupByFilters?: components['parameters']['MeterQuery.advancedMeterGroupByFilters']
-        /** @description If not specified a single aggregate will be returned for each subject and time window.
+        /**
+         * @description If not specified a single aggregate will be returned for each subject and time window.
          *     `subject` is a reserved group by value.
          *
-         *     For example: ?groupBy=subject&groupBy=model */
+         *     For example: ?groupBy=subject&groupBy=model
+         */
         groupBy?: components['parameters']['MeterQuery.groupBy']
       }
       header?: never
@@ -20215,17 +20685,21 @@ export interface operations {
   listMeterSubjects: {
     parameters: {
       query?: {
-        /** @description Start date-time in RFC 3339 format.
+        /**
+         * @description Start date-time in RFC 3339 format.
          *
          *     Inclusive. Defaults to the beginning of time.
          *
-         *     For example: ?from=2025-01-01T00%3A00%3A00.000Z */
+         *     For example: ?from=2025-01-01T00%3A00%3A00.000Z
+         */
         from?: Date | string
-        /** @description End date-time in RFC 3339 format.
+        /**
+         * @description End date-time in RFC 3339 format.
          *
          *     Inclusive.
          *
-         *     For example: ?to=2025-02-01T00%3A00%3A00.000Z */
+         *     For example: ?to=2025-02-01T00%3A00%3A00.000Z
+         */
         to?: Date | string
       }
       header?: never
@@ -20313,21 +20787,29 @@ export interface operations {
   listNotificationChannels: {
     parameters: {
       query?: {
-        /** @description Include deleted notification channels in response.
+        /**
+         * @description Include deleted notification channels in response.
          *
-         *     Usage: `?includeDeleted=true` */
+         *     Usage: `?includeDeleted=true`
+         */
         includeDeleted?: boolean
-        /** @description Include disabled notification channels in response.
+        /**
+         * @description Include disabled notification channels in response.
          *
-         *     Usage: `?includeDisabled=false` */
+         *     Usage: `?includeDisabled=false`
+         */
         includeDisabled?: boolean
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
         /** @description The order direction. */
         order?: components['parameters']['NotificationChannelOrderByOrdering.order']
@@ -20704,7 +21186,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -20788,35 +21270,51 @@ export interface operations {
   listNotificationEvents: {
     parameters: {
       query?: {
-        /** @description Start date-time in RFC 3339 format.
-         *     Inclusive. */
+        /**
+         * @description Start date-time in RFC 3339 format.
+         *     Inclusive.
+         */
         from?: Date | string
-        /** @description End date-time in RFC 3339 format.
-         *     Inclusive. */
+        /**
+         * @description End date-time in RFC 3339 format.
+         *     Inclusive.
+         */
         to?: Date | string
-        /** @description Filtering by multiple feature ids or keys.
+        /**
+         * @description Filtering by multiple feature ids or keys.
          *
-         *     Usage: `?feature=feature-1&feature=feature-2` */
+         *     Usage: `?feature=feature-1&feature=feature-2`
+         */
         feature?: string[]
-        /** @description Filtering by multiple subject ids or keys.
+        /**
+         * @description Filtering by multiple subject ids or keys.
          *
-         *     Usage: `?subject=subject-1&subject=subject-2` */
+         *     Usage: `?subject=subject-1&subject=subject-2`
+         */
         subject?: string[]
-        /** @description Filtering by multiple rule ids.
+        /**
+         * @description Filtering by multiple rule ids.
          *
-         *     Usage: `?rule=01J8J2XYZ2N5WBYK09EDZFBSZM&rule=01J8J4R4VZH180KRKQ63NB2VA5` */
+         *     Usage: `?rule=01J8J2XYZ2N5WBYK09EDZFBSZM&rule=01J8J4R4VZH180KRKQ63NB2VA5`
+         */
         rule?: string[]
-        /** @description Filtering by multiple channel ids.
+        /**
+         * @description Filtering by multiple channel ids.
          *
-         *     Usage: `?channel=01J8J4RXH778XB056JS088PCYT&channel=01J8J4S1R1G9EVN62RG23A9M6J` */
+         *     Usage: `?channel=01J8J4RXH778XB056JS088PCYT&channel=01J8J4S1R1G9EVN62RG23A9M6J`
+         */
         channel?: string[]
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
         /** @description The order direction. */
         order?: components['parameters']['NotificationEventOrderByOrdering.order']
@@ -21096,29 +21594,41 @@ export interface operations {
   listNotificationRules: {
     parameters: {
       query?: {
-        /** @description Include deleted notification rules in response.
+        /**
+         * @description Include deleted notification rules in response.
          *
-         *     Usage: `?includeDeleted=true` */
+         *     Usage: `?includeDeleted=true`
+         */
         includeDeleted?: boolean
-        /** @description Include disabled notification rules in response.
+        /**
+         * @description Include disabled notification rules in response.
          *
-         *     Usage: `?includeDisabled=false` */
+         *     Usage: `?includeDisabled=false`
+         */
         includeDisabled?: boolean
-        /** @description Filtering by multiple feature ids/keys.
+        /**
+         * @description Filtering by multiple feature ids/keys.
          *
-         *     Usage: `?feature=feature-1&feature=feature-2` */
+         *     Usage: `?feature=feature-1&feature=feature-2`
+         */
         feature?: string[]
-        /** @description Filtering by multiple notifiaction channel ids.
+        /**
+         * @description Filtering by multiple notifiaction channel ids.
          *
-         *     Usage: `?channel=01ARZ3NDEKTSV4RRFFQ69G5FAV&channel=01J8J2Y5X4NNGQS32CF81W95E3` */
+         *     Usage: `?channel=01ARZ3NDEKTSV4RRFFQ69G5FAV&channel=01J8J2Y5X4NNGQS32CF81W95E3`
+         */
         channel?: string[]
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
         /** @description The order direction. */
         order?: components['parameters']['NotificationRuleOrderByOrdering.order']
@@ -21495,7 +22005,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -21673,9 +22183,11 @@ export interface operations {
   listPlans: {
     parameters: {
       query?: {
-        /** @description Include deleted plans in response.
+        /**
+         * @description Include deleted plans in response.
          *
-         *     Usage: `?includeDeleted=true` */
+         *     Usage: `?includeDeleted=true`
+         */
         includeDeleted?: boolean
         /** @description Filter by plan.id attribute */
         id?: string[]
@@ -21685,22 +22197,28 @@ export interface operations {
         keyVersion?: {
           [key: string]: number[]
         }
-        /** @description Only return plans with the given status.
+        /**
+         * @description Only return plans with the given status.
          *
          *     Usage:
          *     - `?status=active`: return only the currently active plan
          *     - `?status=draft`: return only the draft plan
-         *     - `?status=archived`: return only the archived plans */
+         *     - `?status=archived`: return only the archived plans
+         */
         status?: components['schemas']['PlanStatus'][]
         /** @description Filter by plan.currency attribute */
         currency?: components['schemas']['CurrencyCode'][]
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
         /** @description The order direction. */
         order?: components['parameters']['PlanOrderByOrdering.order']
@@ -21971,9 +22489,11 @@ export interface operations {
   getPlan: {
     parameters: {
       query?: {
-        /** @description Include latest version of the Plan instead of the version in active state.
+        /**
+         * @description Include latest version of the Plan instead of the version in active state.
          *
-         *     Usage: `?includeLatest=true` */
+         *     Usage: `?includeLatest=true`
+         */
         includeLatest?: boolean
       }
       header?: never
@@ -22176,7 +22696,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -22260,9 +22780,11 @@ export interface operations {
   listPlanAddons: {
     parameters: {
       query?: {
-        /** @description Include deleted plan add-on assignments.
+        /**
+         * @description Include deleted plan add-on assignments.
          *
-         *     Usage: `?includeDeleted=true` */
+         *     Usage: `?includeDeleted=true`
+         */
         includeDeleted?: boolean
         /** @description Filter by addon.id attribute. */
         id?: string[]
@@ -22272,13 +22794,17 @@ export interface operations {
         keyVersion?: {
           [key: string]: number[]
         }
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
         /** @description The order direction. */
         order?: components['parameters']['PlanAddonOrderByOrdering.order']
@@ -22689,7 +23215,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -22961,33 +23487,45 @@ export interface operations {
   queryPortalMeter: {
     parameters: {
       query?: {
-        /** @description Client ID
-         *     Useful to track progress of a query. */
+        /**
+         * @description Client ID
+         *     Useful to track progress of a query.
+         */
         clientId?: components['parameters']['MeterQuery.clientId']
-        /** @description Start date-time in RFC 3339 format.
+        /**
+         * @description Start date-time in RFC 3339 format.
          *
          *     Inclusive.
          *
-         *     For example: ?from=2025-01-01T00%3A00%3A00.000Z */
+         *     For example: ?from=2025-01-01T00%3A00%3A00.000Z
+         */
         from?: components['parameters']['MeterQuery.from']
-        /** @description End date-time in RFC 3339 format.
+        /**
+         * @description End date-time in RFC 3339 format.
          *
          *     Inclusive.
          *
-         *     For example: ?to=2025-02-01T00%3A00%3A00.000Z */
+         *     For example: ?to=2025-02-01T00%3A00%3A00.000Z
+         */
         to?: components['parameters']['MeterQuery.to']
-        /** @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
+        /**
+         * @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
          *
-         *     For example: ?windowSize=DAY */
+         *     For example: ?windowSize=DAY
+         */
         windowSize?: components['parameters']['MeterQuery.windowSize']
-        /** @description The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+        /**
+         * @description The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
          *     If not specified, the UTC timezone will be used.
          *
-         *     For example: ?windowTimeZone=UTC */
+         *     For example: ?windowTimeZone=UTC
+         */
         windowTimeZone?: components['parameters']['MeterQuery.windowTimeZone']
-        /** @description Filtering by multiple customers.
+        /**
+         * @description Filtering by multiple customers.
          *
-         *     For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2 */
+         *     For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2
+         */
         filterCustomerId?: components['parameters']['MeterQuery.filterCustomerId']
         /**
          * @deprecated
@@ -22998,13 +23536,17 @@ export interface operations {
          *     ⚠️ __Deprecated__: Use `advancedMeterGroupByFilters` instead
          */
         filterGroupBy?: components['parameters']['MeterQuery.filterGroupBy']
-        /** @description Optional advanced meter group by filters.
-         *     You can use this to filter for values of the meter groupBy fields. */
+        /**
+         * @description Optional advanced meter group by filters.
+         *     You can use this to filter for values of the meter groupBy fields.
+         */
         advancedMeterGroupByFilters?: components['parameters']['MeterQuery.advancedMeterGroupByFilters']
-        /** @description If not specified a single aggregate will be returned for each subject and time window.
+        /**
+         * @description If not specified a single aggregate will be returned for each subject and time window.
          *     `subject` is a reserved group by value.
          *
-         *     For example: ?groupBy=subject&groupBy=model */
+         *     For example: ?groupBy=subject&groupBy=model
+         */
         groupBy?: components['parameters']['MeterQuery.groupBy']
       }
       header?: never
@@ -23289,7 +23831,7 @@ export interface operations {
       }
     }
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -23732,7 +24274,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -24489,7 +25031,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -24575,8 +25117,10 @@ export interface operations {
       query: {
         /** @description Start of time range to query entitlement: date-time in RFC 3339 format. Defaults to the last reset. Gets truncated to the granularity of the underlying meter. */
         from?: Date | string
-        /** @description End of time range to query entitlement: date-time in RFC 3339 format. Defaults to now.
-         *     If not now then gets truncated to the granularity of the underlying meter. */
+        /**
+         * @description End of time range to query entitlement: date-time in RFC 3339 format. Defaults to now.
+         *     If not now then gets truncated to the granularity of the underlying meter.
+         */
         to?: Date | string
         /** @description Windowsize */
         windowSize: components['schemas']['WindowSize']
@@ -24691,7 +25235,7 @@ export interface operations {
       }
     }
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -24821,8 +25365,10 @@ export interface operations {
           'application/problem+json': components['schemas']['ForbiddenProblemResponse']
         }
       }
-      /** @description The request could not be completed due to a conflict with the current state of the target resource.
-       *     Variants with ErrorExtensions specific to subscriptions. */
+      /**
+       * @description The request could not be completed due to a conflict with the current state of the target resource.
+       *     Variants with ErrorExtensions specific to subscriptions.
+       */
       409: {
         headers: {
           [name: string]: unknown
@@ -24977,7 +25523,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -25020,8 +25566,10 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
-      /** @description The request could not be completed due to a conflict with the current state of the target resource.
-       *     Variants with ErrorExtensions specific to subscriptions. */
+      /**
+       * @description The request could not be completed due to a conflict with the current state of the target resource.
+       *     Variants with ErrorExtensions specific to subscriptions.
+       */
       409: {
         headers: {
           [name: string]: unknown
@@ -25128,8 +25676,10 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
-      /** @description The request could not be completed due to a conflict with the current state of the target resource.
-       *     Variants with ErrorExtensions specific to subscriptions. */
+      /**
+       * @description The request could not be completed due to a conflict with the current state of the target resource.
+       *     Variants with ErrorExtensions specific to subscriptions.
+       */
       409: {
         headers: {
           [name: string]: unknown
@@ -25634,8 +26184,10 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
-      /** @description The request could not be completed due to a conflict with the current state of the target resource.
-       *     Variants with ErrorExtensions specific to subscriptions. */
+      /**
+       * @description The request could not be completed due to a conflict with the current state of the target resource.
+       *     Variants with ErrorExtensions specific to subscriptions.
+       */
       409: {
         headers: {
           [name: string]: unknown
@@ -25742,8 +26294,10 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
-      /** @description The request could not be completed due to a conflict with the current state of the target resource.
-       *     Variants with ErrorExtensions specific to subscriptions. */
+      /**
+       * @description The request could not be completed due to a conflict with the current state of the target resource.
+       *     Variants with ErrorExtensions specific to subscriptions.
+       */
       409: {
         headers: {
           [name: string]: unknown
@@ -25808,11 +26362,15 @@ export interface operations {
            * @default immediate
            */
           timing?: components['schemas']['SubscriptionTiming']
-          /** @description The version of the plan to migrate to.
-           *     If not provided, the subscription will migrate to the latest version of the current plan. */
+          /**
+           * @description The version of the plan to migrate to.
+           *     If not provided, the subscription will migrate to the latest version of the current plan.
+           */
           targetVersion?: number
-          /** @description The key of the phase to start the subscription in.
-           *     If not provided, the subscription will start in the first phase of the plan. */
+          /**
+           * @description The key of the phase to start the subscription in.
+           *     If not provided, the subscription will start in the first phase of the plan.
+           */
           startingPhase?: string
           /**
            * Format: date-time
@@ -25869,8 +26427,10 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
-      /** @description The request could not be completed due to a conflict with the current state of the target resource.
-       *     Variants with ErrorExtensions specific to subscriptions. */
+      /**
+       * @description The request could not be completed due to a conflict with the current state of the target resource.
+       *     Variants with ErrorExtensions specific to subscriptions.
+       */
       409: {
         headers: {
           [name: string]: unknown
@@ -26067,8 +26627,10 @@ export interface operations {
           'application/problem+json': components['schemas']['NotFoundProblemResponse']
         }
       }
-      /** @description The request could not be completed due to a conflict with the current state of the target resource.
-       *     Variants with ErrorExtensions specific to subscriptions. */
+      /**
+       * @description The request could not be completed due to a conflict with the current state of the target resource.
+       *     Variants with ErrorExtensions specific to subscriptions.
+       */
       409: {
         headers: {
           [name: string]: unknown
@@ -26119,13 +26681,17 @@ export interface operations {
     parameters: {
       query?: {
         includeDeleted?: boolean
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
         /** @description The order direction. */
         order?: components['parameters']['EntitlementOrderByOrdering.order']
@@ -26419,7 +26985,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -26504,21 +27070,29 @@ export interface operations {
     parameters: {
       query?: {
         includeDeleted?: boolean
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
-        /** @description Number of items to skip.
+        /**
+         * @description Number of items to skip.
          *
-         *     Default is 0. */
+         *     Default is 0.
+         */
         offset?: components['parameters']['LimitOffset.offset']
-        /** @description Number of items to return.
+        /**
+         * @description Number of items to return.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         limit?: components['parameters']['LimitOffset.limit']
         /** @description The order direction. */
         order?: components['parameters']['GrantOrderByOrdering.order']
@@ -26712,8 +27286,10 @@ export interface operations {
       query: {
         /** @description Start of time range to query entitlement: date-time in RFC 3339 format. Defaults to the last reset. Gets truncated to the granularity of the underlying meter. */
         from?: Date | string
-        /** @description End of time range to query entitlement: date-time in RFC 3339 format. Defaults to now.
-         *     If not now then gets truncated to the granularity of the underlying meter. */
+        /**
+         * @description End of time range to query entitlement: date-time in RFC 3339 format. Defaults to now.
+         *     If not now then gets truncated to the granularity of the underlying meter.
+         */
         to?: Date | string
         /** @description Windowsize */
         windowSize: components['schemas']['WindowSize']
@@ -26936,7 +27512,7 @@ export interface operations {
       }
     }
     responses: {
-      /** @description There is no content to send for this request, but the headers may be useful.  */
+      /** @description There is no content to send for this request, but the headers may be useful. */
       204: {
         headers: {
           [name: string]: unknown
@@ -27117,39 +27693,55 @@ export interface operations {
   listEntitlementsV2: {
     parameters: {
       query?: {
-        /** @description Filtering by multiple features.
+        /**
+         * @description Filtering by multiple features.
          *
-         *     Usage: `?feature=feature-1&feature=feature-2` */
+         *     Usage: `?feature=feature-1&feature=feature-2`
+         */
         feature?: string[]
-        /** @description Filtering by multiple customers.
+        /**
+         * @description Filtering by multiple customers.
          *
-         *     Usage: `?customerKeys=customer-1&customerKeys=customer-3` */
+         *     Usage: `?customerKeys=customer-1&customerKeys=customer-3`
+         */
         customerKeys?: string[]
-        /** @description Filtering by multiple customers.
+        /**
+         * @description Filtering by multiple customers.
          *
-         *     Usage: `?customerIds=01K4WAQ0J99ZZ0MD75HXR112H8&customerIds=01K4WAQ0J99ZZ0MD75HXR112H9` */
+         *     Usage: `?customerIds=01K4WAQ0J99ZZ0MD75HXR112H8&customerIds=01K4WAQ0J99ZZ0MD75HXR112H9`
+         */
         customerIds?: string[]
-        /** @description Filtering by multiple entitlement types.
+        /**
+         * @description Filtering by multiple entitlement types.
          *
-         *     Usage: `?entitlementType=metered&entitlementType=boolean` */
+         *     Usage: `?entitlementType=metered&entitlementType=boolean`
+         */
         entitlementType?: components['schemas']['EntitlementType'][]
         /** @description Exclude inactive entitlements in the response (those scheduled for later or earlier) */
         excludeInactive?: boolean
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
-        /** @description Number of items to skip.
+        /**
+         * @description Number of items to skip.
          *
-         *     Default is 0. */
+         *     Default is 0.
+         */
         offset?: components['parameters']['LimitOffset.offset']
-        /** @description Number of items to return.
+        /**
+         * @description Number of items to return.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         limit?: components['parameters']['LimitOffset.limit']
         /** @description The order direction. */
         order?: components['parameters']['EntitlementOrderByOrdering.order']
@@ -27337,8 +27929,10 @@ export interface operations {
         cursor?: components['parameters']['CursorPagination.cursor']
         /** @description The limit of the pagination. */
         limit?: components['parameters']['CursorPagination.limit']
-        /** @description Client ID
-         *     Useful to track progress of a query. */
+        /**
+         * @description Client ID
+         *     Useful to track progress of a query.
+         */
         clientId?: string
         /** @description The filter for the events encoded as JSON string. */
         filter?: string
@@ -27426,31 +28020,43 @@ export interface operations {
   listGrantsV2: {
     parameters: {
       query?: {
-        /** @description Filtering by multiple features.
+        /**
+         * @description Filtering by multiple features.
          *
-         *     Usage: `?feature=feature-1&feature=feature-2` */
+         *     Usage: `?feature=feature-1&feature=feature-2`
+         */
         feature?: string[]
-        /** @description Filtering by multiple customers (either by ID or key).
+        /**
+         * @description Filtering by multiple customers (either by ID or key).
          *
-         *     Usage: `?customer=customer-1&customer=customer-2` */
+         *     Usage: `?customer=customer-1&customer=customer-2`
+         */
         customer?: components['schemas']['ULIDOrExternalKey'][]
         /** @description Include deleted */
         includeDeleted?: boolean
-        /** @description Page index.
+        /**
+         * @description Page index.
          *
-         *     Default is 1. */
+         *     Default is 1.
+         */
         page?: components['parameters']['Pagination.page']
-        /** @description The maximum number of items per page.
+        /**
+         * @description The maximum number of items per page.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         pageSize?: components['parameters']['Pagination.pageSize']
-        /** @description Number of items to skip.
+        /**
+         * @description Number of items to skip.
          *
-         *     Default is 0. */
+         *     Default is 0.
+         */
         offset?: components['parameters']['LimitOffset.offset']
-        /** @description Number of items to return.
+        /**
+         * @description Number of items to return.
          *
-         *     Default is 100. */
+         *     Default is 100.
+         */
         limit?: components['parameters']['LimitOffset.limit']
         /** @description The order direction. */
         order?: components['parameters']['GrantOrderByOrdering.order']
