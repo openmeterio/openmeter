@@ -31,6 +31,10 @@ type RunParams struct {
 
 func (p RunParams) TotalAvailableGrantAmount() float64 {
 	res := lo.Reduce(p.Grants, func(agg alpacadecimal.Decimal, grant grant.Grant, _ int) alpacadecimal.Decimal {
+		if !grant.ActiveAt(p.Until) {
+			return agg
+		}
+
 		return agg.Add(alpacadecimal.NewFromFloat(grant.Amount))
 	}, alpacadecimal.NewFromFloat(0))
 
