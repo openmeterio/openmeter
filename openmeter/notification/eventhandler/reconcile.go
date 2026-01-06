@@ -85,8 +85,6 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 
 			span.AddEvent("lock acquired")
 
-			var errs []error
-
 			page := pagination.Page{
 				PageSize:   50,
 				PageNumber: 1,
@@ -113,9 +111,10 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 				for _, event := range out.Items {
 					// TODO: run reconciliation in parallel (goroutines)
 					if err = h.reconcileEvent(ctx, &event); err != nil {
-						errs = append(errs,
-							fmt.Errorf("failed to reconcile notification event [namespace=%s notification.event.id=%s]: %w",
-								event.Namespace, event.ID, err),
+						h.logger.ErrorContext(ctx, "failed to reconcile notification event",
+							"namespace", event.Namespace,
+							"notification.event.id", event.ID,
+							"error", err.Error(),
 						)
 					}
 				}
@@ -127,7 +126,7 @@ func (h *Handler) Reconcile(ctx context.Context) error {
 				page.PageNumber++
 			}
 
-			return errors.Join(errs...)
+			return nil
 		})
 	}
 
