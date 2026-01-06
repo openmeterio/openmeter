@@ -43,6 +43,10 @@ func (Feature) Indexes() []ent.Index {
 				entsql.IndexWhere("archived_at IS NULL"),
 			).
 			Unique(),
+		index.Fields("namespace", "meter_slug").
+			Annotations(
+				entsql.IndexWhere("archived_at IS NULL"),
+			),
 	}
 }
 

@@ -10,7 +10,7 @@ import (
 )
 
 type BalanceWorkerRepository interface {
-	ListEntitlementsAffectedByIngestEvents(ctx context.Context, filters []IngestEventQueryFilter) ([]ListAffectedEntitlementsResponse, error)
+	ListEntitlementsAffectedByIngestEvents(ctx context.Context, filters IngestEventQueryFilter) ([]ListAffectedEntitlementsResponse, error)
 }
 
 type IngestEventQueryFilter struct {
@@ -22,14 +22,10 @@ type IngestEventQueryFilter struct {
 type ListAffectedEntitlementsResponse struct {
 	Namespace     string
 	EntitlementID string
-	CustomerID    string
-	SubjectKey    string
 	CreatedAt     time.Time
 	DeletedAt     *time.Time
 	ActiveFrom    *time.Time
 	ActiveTo      *time.Time
-	// not all entitlements have a meter associated
-	MeterSlug *string
 }
 
 // GetEntitlementActivityPeriod returns the period where the entitlement could have received events.

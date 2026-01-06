@@ -249,67 +249,63 @@ func (a *entitlementDBAdapter) DeactivateEntitlement(ctx context.Context, entitl
 
 // TODO[OM-1009]: This returns all the entitlements even the expired ones, for billing we would need to have a range for
 // the batch ingested events. Let's narrow down the list of entitlements active during that period.
-func (a *entitlementDBAdapter) ListEntitlementsAffectedByIngestEvents(ctx context.Context, eventFilters []balanceworker.IngestEventQueryFilter) ([]balanceworker.ListAffectedEntitlementsResponse, error) {
+func (a *entitlementDBAdapter) ListEntitlementsAffectedByIngestEvents(ctx context.Context, eventFilter balanceworker.IngestEventQueryFilter) ([]balanceworker.ListAffectedEntitlementsResponse, error) {
 	return entutils.TransactingRepo[[]balanceworker.ListAffectedEntitlementsResponse, *entitlementDBAdapter](
 		ctx,
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) ([]balanceworker.ListAffectedEntitlementsResponse, error) {
-			if len(eventFilters) == 0 {
-				return nil, fmt.Errorf("no eventFilters provided")
-			}
-
 			result := make([]balanceworker.ListAffectedEntitlementsResponse, 0)
 
-			now := clock.Now()
+			// Resolve event subject to customer IDs
+			customers, err := repo.db.Customer.Query().Where(
+				customerdb.Namespace(eventFilter.Namespace),
+				customerNotDeletedAt(clock.Now()),
+				customerdb.Or(
+					customerdb.Key(eventFilter.EventSubject),
+					customerdb.HasSubjectsWith(
+						customersubjectsdb.SubjectKey(eventFilter.EventSubject),
+						customersubjectsdb.DeletedAtIsNil(),
+					),
+				),
+			).All(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to query customers: %w", err)
+			}
 
-			for _, pair := range eventFilters {
-				entities, err := repo.db.Entitlement.Query().
-					Where(
-						db_entitlement.Namespace(pair.Namespace),
-						db_entitlement.HasCustomerWith(
-							customerdb.Namespace(pair.Namespace),
-							customerNotDeletedAt(now),
-							customerdb.Or(
-								customerdb.Key(pair.EventSubject),
-								customerdb.HasSubjectsWith(
-									customersubjectsdb.SubjectKey(pair.EventSubject),
-									customersubjectsdb.Or(
-										customersubjectsdb.DeletedAtIsNil(),
-										customersubjectsdb.DeletedAtGT(now),
-									),
-								),
-							),
-						),
-						db_entitlement.HasFeatureWith(db_feature.MeterSlugIn(pair.MeterSlugs...)),
-					).
-					WithFeature().
-					WithCustomer(
-						func(q *db.CustomerQuery) {
-							customeradapter.WithSubjects(q, now)
-						},
-					).
-					All(ctx)
-				if err != nil {
-					return nil, err
-				}
+			// resolve feature IDs
+			features, err := repo.db.Feature.Query().Where(
+				db_feature.Namespace(eventFilter.Namespace),
+				db_feature.MeterSlugIn(eventFilter.MeterSlugs...),
+				db_feature.ArchivedAtIsNil(),
+			).All(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to query features by meters: %w", err)
+			}
 
-				for _, e := range entities {
-					if e.Edges.Customer == nil {
-						return nil, fmt.Errorf("entitlement %s has no customer", e.ID)
-					}
+			entitlements, err := repo.db.Entitlement.Query().
+				Where(
+					db_entitlement.Namespace(eventFilter.Namespace),
+					db_entitlement.CustomerIDIn(lo.Uniq(lo.Map(customers, func(item *db.Customer, _ int) string {
+						return item.ID
+					}))...),
+					db_entitlement.FeatureIDIn(lo.Map(features, func(item *db.Feature, _ int) string {
+						return item.ID
+					})...),
+				).
+				All(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to query entitlements: %w", err)
+			}
 
-					result = append(result, balanceworker.ListAffectedEntitlementsResponse{
-						Namespace:     e.Namespace,
-						EntitlementID: e.ID,
-						SubjectKey:    pair.EventSubject,
-						CustomerID:    e.Edges.Customer.ID,
-						CreatedAt:     e.CreatedAt.UTC(),
-						DeletedAt:     convert.SafeToUTC(e.DeletedAt),
-						ActiveFrom:    convert.SafeToUTC(e.ActiveFrom),
-						ActiveTo:      convert.SafeToUTC(e.ActiveTo),
-						MeterSlug:     e.Edges.Feature.MeterSlug,
-					})
-				}
+			for _, e := range entitlements {
+				result = append(result, balanceworker.ListAffectedEntitlementsResponse{
+					Namespace:     e.Namespace,
+					EntitlementID: e.ID,
+					CreatedAt:     e.CreatedAt.UTC(),
+					DeletedAt:     convert.SafeToUTC(e.DeletedAt),
+					ActiveFrom:    convert.SafeToUTC(e.ActiveFrom),
+					ActiveTo:      convert.SafeToUTC(e.ActiveTo),
+				})
 			}
 
 			return result, nil
