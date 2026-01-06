@@ -38,7 +38,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/huandu/go-sqlbuilder v1.38.1
 	github.com/invopop/gobl v0.304.2
-	github.com/jackc/pgx/v5 v5.7.6
+	github.com/jackc/pgx/v5 v5.8.0
 	github.com/lmittmann/tint v1.1.2
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oapi-codegen/nethttp-middleware v1.1.2
@@ -69,6 +69,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/stripe/stripe-go/v80 v80.2.1
 	github.com/svix/svix-webhooks v1.83.0
+	github.com/wI2L/jsondiff v0.7.0
 	go.opentelemetry.io/contrib/bridges/otelslog v0.14.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.64.0
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.64.0
@@ -85,7 +86,6 @@ require (
 	go.opentelemetry.io/otel/trace v1.39.0
 	go.opentelemetry.io/proto/otlp v1.9.0
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b
-	golang.org/x/net v0.48.0
 	google.golang.org/grpc v1.77.0
 	google.golang.org/protobuf v1.36.11
 	k8s.io/api v0.34.3
@@ -181,7 +181,6 @@ require (
 	github.com/tmc/langchaingo v0.1.13 // indirect
 	github.com/twmb/franz-go/pkg/kadm v1.16.0 // indirect
 	github.com/twmb/franz-go/pkg/sr v1.4.0 // indirect
-	github.com/wI2L/jsondiff v0.7.0 // indirect
 	github.com/woodsbury/decimal128 v1.3.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/zclconf/go-cty-yaml v1.1.0 // indirect
@@ -196,6 +195,7 @@ require (
 	go.opentelemetry.io/contrib/detectors/gcp v1.38.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
+	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/telemetry v0.0.0-20251111182119-bc8e575c7b54 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
