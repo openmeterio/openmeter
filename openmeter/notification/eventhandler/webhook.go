@@ -502,7 +502,7 @@ func (h *Handler) getWebhookMessage(ctx context.Context, event *notification.Eve
 			Namespace: event.Namespace,
 			EventID:   event.ID,
 			Expand: webhook.ExpandParams{
-				DeliveryStatus: true,
+				DeliveryStatusByChannelID: event.Rule.ID,
 			},
 		})
 		if err != nil {

@@ -242,8 +242,8 @@ func (i SendMessageInput) Validate() error {
 type ExpandParams struct {
 	// Payload stores whether the message payload for the webhook message should be included in the response or not.
 	Payload bool
-	// DeliveryStatus stores whether the delivery status for the webhook message should be included in the response or not.
-	DeliveryStatus bool
+	// DeliveryStatusByChannelID defines whether the delivery status for the webhook message and channel should be included in the response or not.
+	DeliveryStatusByChannelID string
 }
 
 var _ models.Validator = (*GetMessageInput)(nil)

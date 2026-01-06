@@ -102,7 +102,7 @@ const (
 	ListAttemptLimit uint64 = 25
 )
 
-func (h svixHandler) getDeliveryStatus(ctx context.Context, namespace, eventID string) ([]webhook.MessageDeliveryStatus, error) {
+func (h svixHandler) getDeliveryStatus(ctx context.Context, namespace, eventID, channelID string) ([]webhook.MessageDeliveryStatus, error) {
 	fn := func(ctx context.Context) ([]webhook.MessageDeliveryStatus, error) {
 		if namespace == "" || eventID == "" {
 			return nil, fmt.Errorf("invalid params")
@@ -214,8 +214,18 @@ func (h svixHandler) getDeliveryStatus(ctx context.Context, namespace, eventID s
 						dest.Status, dest.StatusText)
 				}
 
+				if channelID != "" && !lo.Contains(dest.Channels, channelID) {
+					continue
+				}
+
 				if dest.Uid == nil {
-					return nil, fmt.Errorf("invalid webhook endpoint: uid is nil")
+					h.logger.WarnContext(ctx, "ignoring webhook endpoint with no uid set",
+						"svix.app", namespace,
+						"svix.event.id", eventID,
+						"svix.endpoint.id", dest.Id,
+					)
+
+					continue
 				}
 
 				statuses = append(statuses, webhook.MessageDeliveryStatus{
@@ -274,10 +284,10 @@ func (h svixHandler) GetMessage(ctx context.Context, params webhook.GetMessageIn
 
 		var statuses []webhook.MessageDeliveryStatus
 
-		if params.Expand.DeliveryStatus {
+		if params.Expand.DeliveryStatusByChannelID != "" {
 			span.AddEvent("fetching webhook message delivery statuses", trace.WithAttributes(spanAttrs...))
 
-			statuses, err = h.getDeliveryStatus(ctx, params.Namespace, msgOut.Id)
+			statuses, err = h.getDeliveryStatus(ctx, params.Namespace, msgOut.Id, params.Expand.DeliveryStatusByChannelID)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get message delivery statuses: %w", err)
 			}
