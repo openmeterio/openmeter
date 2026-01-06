@@ -46,6 +46,7 @@ func (Customer) Indexes() []ent.Index {
 				entsql.IndexWhere("deleted_at IS NULL"),
 			).
 			Unique(),
+		index.Fields("namespace", "key", "deleted_at"),
 		index.Fields("name"),
 		index.Fields("primary_email"),
 		// Indexes because of API OrderBy

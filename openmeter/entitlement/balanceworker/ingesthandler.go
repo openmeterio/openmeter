@@ -18,14 +18,11 @@ import (
 )
 
 func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevents.EventBatchedIngest) error {
-	affectedEntitlements, err := w.opts.Repo.ListEntitlementsAffectedByIngestEvents(ctx,
-		[]IngestEventQueryFilter{
-			{
-				Namespace:    event.Namespace.ID,
-				EventSubject: event.SubjectKey,
-				MeterSlugs:   event.MeterSlugs,
-			},
-		})
+	affectedEntitlements, err := w.opts.Repo.ListEntitlementsAffectedByIngestEvents(ctx, IngestEventQueryFilter{
+		Namespace:    event.Namespace.ID,
+		EventSubject: event.SubjectKey,
+		MeterSlugs:   event.MeterSlugs,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to list affected entitlements: %w", err)
 	}

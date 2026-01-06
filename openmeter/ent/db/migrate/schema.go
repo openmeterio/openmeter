@@ -1359,6 +1359,11 @@ var (
 				},
 			},
 			{
+				Name:    "customer_namespace_key_deleted_at",
+				Unique:  false,
+				Columns: []*schema.Column{CustomersColumns[1], CustomersColumns[16], CustomersColumns[5]},
+			},
+			{
 				Name:    "customer_name",
 				Unique:  false,
 				Columns: []*schema.Column{CustomersColumns[6]},
@@ -1566,6 +1571,14 @@ var (
 				Name:    "feature_namespace_key",
 				Unique:  true,
 				Columns: []*schema.Column{FeaturesColumns[5], FeaturesColumns[7]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "archived_at IS NULL",
+				},
+			},
+			{
+				Name:    "feature_namespace_meter_slug",
+				Unique:  false,
+				Columns: []*schema.Column{FeaturesColumns[5], FeaturesColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "archived_at IS NULL",
 				},
