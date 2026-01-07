@@ -94,7 +94,7 @@ func (n *NamespacedMeterCache) start(ctx context.Context) {
 
 			n.updateCache(updatedCache)
 
-			n.logger.Info("refetched meters", "namespaces", len(n.namespaces), "age", time.Since(lastFetch).String())
+			n.logger.DebugContext(ctx, "refetched meters", "namespaces", len(n.namespaces), "age", time.Since(lastFetch).String())
 			lastFetch = time.Now()
 		}
 	}
