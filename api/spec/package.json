@@ -5,7 +5,7 @@
   "scripts": {
     "compile": "pnpm compile:openapi && pnpm compile:v3 && pnpm compile:client",
     "compile:openapi": "tsp compile --config tspconfig.yaml ./src/cloud",
-    "compile:v3": "tsp compile --config tspconfig.v3.yaml ./src/v3",
+    "compile:v3": "tsp compile --config tspconfig.v3.yaml ./src/v3 && node ./scripts/flatten-allof-v3.mjs ./output/definitions/metering-and-billing/v3/openapi.MeteringAndBilling.yaml",
     "compile:client": "tsp compile --config tspconfig.client.yaml ./src",
     "bundle:v3": "openapi bundle output/definitions/metering-and-billing/v3/openapi.OpenMeter.yaml",
     "watch:openapi": "tsp compile --watch --config tspconfig.yaml ./src/cloud",
@@ -35,7 +35,8 @@
     "@typespec/prettier-plugin-typespec": "1.6.0",
     "@typespec/rest": "0.76.0",
     "@typespec/versioning": "0.76.0",
-    "prettier": "3.6.2"
+    "prettier": "3.6.2",
+    "yaml": "2.8.2"
   },
   "private": true,
   "packageManager": "pnpm@10.13.1+sha512.37ebf1a5c7a30d5fabe0c5df44ee8da4c965ca0c5af3dbab28c3a1681b70a256218d05c81c9c0dcf767ef6b8551eb5b960042b9ed4300c59242336377e01cfad",

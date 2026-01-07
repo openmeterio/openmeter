@@ -28,8 +28,6 @@ interface EventsOperations {
   @post
   @operationId("ingest-metering-events")
   @summary("Ingest metering events")
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   @sharedRoute
   ingestEvent(
     @header contentType: "application/cloudevents+json",
@@ -39,8 +37,6 @@ interface EventsOperations {
   @post
   @operationId("ingest-metering-events")
   @summary("")
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   @sharedRoute
   ingestEvents(
     @header contentType: "application/cloudevents-batch+json",
@@ -50,8 +46,6 @@ interface EventsOperations {
   @post
   @operationId("ingest-metering-events")
   @summary("")
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   @sharedRoute
   ingestEventsJson(
     @header contentType: "application/json",
