@@ -29,8 +29,6 @@ interface CustomersOperations {
   @post
   @operationId("create-customer")
   @summary("Create customer")
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   create(
     @body
     customer: Shared.CreateRequest<Customer>,
@@ -39,8 +37,6 @@ interface CustomersOperations {
   @get
   @operationId("get-customer")
   @summary("Get customer")
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   get(
     @path customerId: Shared.ULID,
   ): Shared.GetResponse<Customer> | Common.NotFound | Common.ErrorResponses;
@@ -48,8 +44,6 @@ interface CustomersOperations {
   @get
   @operationId("list-customers")
   @summary("List customers")
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   list(
     ...Common.PagePaginationQuery,
 
@@ -78,8 +72,6 @@ interface CustomersOperations {
   @put
   @operationId("upsert-customer")
   @summary("Upsert customer")
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   upsert(
     @path customerId: Shared.ULID,
 
@@ -94,8 +86,6 @@ interface CustomersOperations {
   @delete
   @operationId("delete-customer")
   @summary("Delete customer")
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   delete(
     @path customerId: Shared.ULID,
   ): Shared.DeleteResponse | Common.NotFound | Common.ErrorResponses;
