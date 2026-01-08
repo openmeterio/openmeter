@@ -57,8 +57,6 @@ interface SubscriptionsOperations {
   @post
   @operationId("create-subscription")
   @summary("Create subscription")
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   create(@body subscription: SubscriptionCreate):
     | Shared.CreateResponse<Subscription>
     | Common.NotFound
@@ -68,8 +66,6 @@ interface SubscriptionsOperations {
   @get
   @operationId("list-subscriptions")
   @summary("List subscriptions")
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   list(
     ...Common.PagePaginationQuery,
 
@@ -88,8 +84,6 @@ interface SubscriptionsOperations {
   @get
   @operationId("get-subscription")
   @summary("Get subscription")
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   get(
     @path subscriptionId: Shared.ULID,
   ): Shared.GetResponse<Subscription> | Common.NotFound | Common.ErrorResponses;
@@ -102,8 +96,6 @@ interface SubscriptionsOperations {
   @operationId("cancel-subscription")
   @summary("Cancel subscription")
   @route("/{subscriptionId}/cancel")
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   cancel(@path subscriptionId: Shared.ULID, @body body: SubscriptionCancel):
     | Shared.UpdateResponse<Subscription>
     | Common.NotFound
@@ -117,8 +109,6 @@ interface SubscriptionsOperations {
   @operationId("unschedule-cancelation")
   @summary("Unschedule subscription cancelation")
   @route("/{subscriptionId}/unschedule-cancelation")
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   unscheduleCancelation(@path subscriptionId: Shared.ULID):
     | Shared.UpdateResponse<Subscription>
     | Common.NotFound
@@ -132,8 +122,6 @@ interface SubscriptionsOperations {
   @post
   @operationId("change-subscription")
   @summary("Change subscription")
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
   @route("/{subscriptionId}/change")
   change(
     @path subscriptionId: Shared.ULID,

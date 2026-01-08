@@ -110,8 +110,14 @@ model SubscriptionCreate {
   };
 
   /**
-   * The billing anchor of the subscription.
-   * Defaults to now if not provided.
+   * A billing anchor is the fixed point in time that determines the subscription's recurring billing cycle.
+   * It affects when charges occur and how prorations are calculated.
+   * Common anchors:
+   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
+   * - Subscription anniversary (day customer signed up)
+   * - Custom date (customer-specified day)
+   *
+   * If not provided, the subscription will be created with the subscription's creation time as the billing anchor.
    */
   @visibility(Lifecycle.Create)
   @summary("Billing anchor")
@@ -141,7 +147,12 @@ model Subscription {
   plan_id?: Shared.ULID;
 
   /**
-   * The billing anchor of the subscription.
+   * A billing anchor is the fixed point in time that determines the subscription's recurring billing cycle.
+   * It affects when charges occur and how prorations are calculated.
+   * Common anchors:
+   * - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
+   * - Subscription anniversary (day customer signed up)
+   * - Custom date (customer-specified day)
    */
   @visibility(Lifecycle.Read)
   @summary("Billing anchor")

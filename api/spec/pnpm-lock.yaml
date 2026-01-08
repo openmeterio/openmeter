@@ -58,6 +58,9 @@ importers:
       prettier:
         specifier: 3.6.2
         version: 3.6.2
+      yaml:
+        specifier: 2.8.2
+        version: 2.8.2
 
 packages:
 
@@ -1757,6 +1760,11 @@ packages:
     engines: {node: '>= 14.6'}
     hasBin: true
 
+  yaml@2.8.2:
+    resolution: {integrity: sha512-mplynKqc1C2hTVYxd0PU2xQAc22TI1vShAYGksCCfxbn/dFwnHTNi1bvYsBTkhdUNtGIf5xNOg938rrSSYvS9A==}
+    engines: {node: '>= 14.6'}
+    hasBin: true
+
   yargs-parser@20.2.9:
     resolution: {integrity: sha512-y11nGElTIV+CT3Zv9t7VKl+Q3hTQoT9a1Qzezhhl6Rp21gJ/IVTW7Z3y9EWXhuUBC2Shnf+DX0antecpAwSP8w==}
     engines: {node: '>=10'}
@@ -2360,7 +2368,7 @@ snapshots:
       temporal-polyfill: 0.3.0
       vscode-languageserver: 9.0.1
       vscode-languageserver-textdocument: 1.0.12
-      yaml: 2.8.1
+      yaml: 2.8.2
       yargs: 18.0.0
     transitivePeerDependencies:
       - '@types/node'
@@ -2409,7 +2417,7 @@ snapshots:
       '@typespec/compiler': 1.6.0(patch_hash=0c464b79b5f6773f5a8ca092cb0df0c556ea25ae7fa6a91cd62afc070e2c25cd)(@types/node@24.10.1)
       '@typespec/http': 1.6.0(patch_hash=acfe25ef574a4092a60a38d45b3898ad4a4021f59889043f154ed68472a2c91d)(@typespec/compiler@1.6.0(patch_hash=0c464b79b5f6773f5a8ca092cb0df0c556ea25ae7fa6a91cd62afc070e2c25cd)(@types/node@24.10.1))(@typespec/streams@0.75.0(@typespec/compiler@1.6.0(patch_hash=0c464b79b5f6773f5a8ca092cb0df0c556ea25ae7fa6a91cd62afc070e2c25cd)(@types/node@24.10.1)))
       '@typespec/openapi': 1.6.0(patch_hash=f80f431dbdcb494311d14ba1d85c661933835819e14b51637b195e51b4ffd9c8)(@typespec/compiler@1.6.0(patch_hash=0c464b79b5f6773f5a8ca092cb0df0c556ea25ae7fa6a91cd62afc070e2c25cd)(@types/node@24.10.1))(@typespec/http@1.6.0(patch_hash=acfe25ef574a4092a60a38d45b3898ad4a4021f59889043f154ed68472a2c91d)(@typespec/compiler@1.6.0(patch_hash=0c464b79b5f6773f5a8ca092cb0df0c556ea25ae7fa6a91cd62afc070e2c25cd)(@types/node@24.10.1))(@typespec/streams@0.75.0(@typespec/compiler@1.6.0(patch_hash=0c464b79b5f6773f5a8ca092cb0df0c556ea25ae7fa6a91cd62afc070e2c25cd)(@types/node@24.10.1))))
-      yaml: 2.8.1
+      yaml: 2.8.2
     optionalDependencies:
       '@typespec/events': 0.76.0(@typespec/compiler@1.6.0(patch_hash=0c464b79b5f6773f5a8ca092cb0df0c556ea25ae7fa6a91cd62afc070e2c25cd)(@types/node@24.10.1))
       '@typespec/sse': 0.76.0(@typespec/compiler@1.6.0(patch_hash=0c464b79b5f6773f5a8ca092cb0df0c556ea25ae7fa6a91cd62afc070e2c25cd)(@types/node@24.10.1))(@typespec/events@0.76.0(@typespec/compiler@1.6.0(patch_hash=0c464b79b5f6773f5a8ca092cb0df0c556ea25ae7fa6a91cd62afc070e2c25cd)(@types/node@24.10.1)))(@typespec/http@1.6.0(patch_hash=acfe25ef574a4092a60a38d45b3898ad4a4021f59889043f154ed68472a2c91d)(@typespec/compiler@1.6.0(patch_hash=0c464b79b5f6773f5a8ca092cb0df0c556ea25ae7fa6a91cd62afc070e2c25cd)(@types/node@24.10.1))(@typespec/streams@0.75.0(@typespec/compiler@1.6.0(patch_hash=0c464b79b5f6773f5a8ca092cb0df0c556ea25ae7fa6a91cd62afc070e2c25cd)(@types/node@24.10.1))))(@typespec/streams@0.75.0(@typespec/compiler@1.6.0(patch_hash=0c464b79b5f6773f5a8ca092cb0df0c556ea25ae7fa6a91cd62afc070e2c25cd)(@types/node@24.10.1)))
@@ -3395,6 +3403,8 @@ snapshots:
   yaml@2.8.0: {}
 
   yaml@2.8.1: {}
+
+  yaml@2.8.2: {}
 
   yargs-parser@20.2.9: {}
 
