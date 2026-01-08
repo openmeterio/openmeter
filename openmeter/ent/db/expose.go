@@ -145,6 +145,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		Meter: NewMeterClient(config),
 
+		MeterTableEngine: NewMeterTableEngineClient(config),
+
 		NotificationChannel: NewNotificationChannelClient(config),
 
 		NotificationEvent: NewNotificationEventClient(config),

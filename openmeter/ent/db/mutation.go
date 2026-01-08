@@ -44,6 +44,7 @@ import (
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/metertableengine"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
@@ -107,6 +108,7 @@ const (
 	TypeFeature                            = "Feature"
 	TypeGrant                              = "Grant"
 	TypeMeter                              = "Meter"
+	TypeMeterTableEngine                   = "MeterTableEngine"
 	TypeNotificationChannel                = "NotificationChannel"
 	TypeNotificationEvent                  = "NotificationEvent"
 	TypeNotificationEventDeliveryStatus    = "NotificationEventDeliveryStatus"
@@ -37030,27 +37032,29 @@ func (m *GrantMutation) ResetEdge(name string) error {
 // MeterMutation represents an operation that mutates the Meter nodes in the graph.
 type MeterMutation struct {
 	config
-	op             Op
-	typ            string
-	id             *string
-	namespace      *string
-	metadata       *map[string]string
-	created_at     *time.Time
-	updated_at     *time.Time
-	deleted_at     *time.Time
-	name           *string
-	description    *string
-	key            *string
-	annotations    *models.Annotations
-	event_type     *string
-	value_property *string
-	group_by       *map[string]string
-	aggregation    *meter.MeterAggregation
-	event_from     *time.Time
-	clearedFields  map[string]struct{}
-	done           bool
-	oldValue       func(context.Context) (*Meter, error)
-	predicates     []predicate.Meter
+	op                  Op
+	typ                 string
+	id                  *string
+	namespace           *string
+	metadata            *map[string]string
+	created_at          *time.Time
+	updated_at          *time.Time
+	deleted_at          *time.Time
+	name                *string
+	description         *string
+	key                 *string
+	annotations         *models.Annotations
+	event_type          *string
+	value_property      *string
+	group_by            *map[string]string
+	aggregation         *meter.MeterAggregation
+	event_from          *time.Time
+	clearedFields       map[string]struct{}
+	table_engine        *string
+	clearedtable_engine bool
+	done                bool
+	oldValue            func(context.Context) (*Meter, error)
+	predicates          []predicate.Meter
 }
 
 var _ ent.Mutation = (*MeterMutation)(nil)
@@ -37752,6 +37756,45 @@ func (m *MeterMutation) ResetEventFrom() {
 	delete(m.clearedFields, dbmeter.FieldEventFrom)
 }
 
+// SetTableEngineID sets the "table_engine" edge to the MeterTableEngine entity by id.
+func (m *MeterMutation) SetTableEngineID(id string) {
+	m.table_engine = &id
+}
+
+// ClearTableEngine clears the "table_engine" edge to the MeterTableEngine entity.
+func (m *MeterMutation) ClearTableEngine() {
+	m.clearedtable_engine = true
+}
+
+// TableEngineCleared reports if the "table_engine" edge to the MeterTableEngine entity was cleared.
+func (m *MeterMutation) TableEngineCleared() bool {
+	return m.clearedtable_engine
+}
+
+// TableEngineID returns the "table_engine" edge ID in the mutation.
+func (m *MeterMutation) TableEngineID() (id string, exists bool) {
+	if m.table_engine != nil {
+		return *m.table_engine, true
+	}
+	return
+}
+
+// TableEngineIDs returns the "table_engine" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TableEngineID instead. It exists only for internal usage by the builders.
+func (m *MeterMutation) TableEngineIDs() (ids []string) {
+	if id := m.table_engine; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTableEngine resets all changes to the "table_engine" edge.
+func (m *MeterMutation) ResetTableEngine() {
+	m.table_engine = nil
+	m.clearedtable_engine = false
+}
+
 // Where appends a list predicates to the MeterMutation builder.
 func (m *MeterMutation) Where(ps ...predicate.Meter) {
 	m.predicates = append(m.predicates, ps...)
@@ -38151,19 +38194,28 @@ func (m *MeterMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *MeterMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.table_engine != nil {
+		edges = append(edges, dbmeter.EdgeTableEngine)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *MeterMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case dbmeter.EdgeTableEngine:
+		if id := m.table_engine; id != nil {
+			return []ent.Value{*id}
+		}
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *MeterMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
 	return edges
 }
 
@@ -38175,26 +38227,829 @@ func (m *MeterMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *MeterMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedtable_engine {
+		edges = append(edges, dbmeter.EdgeTableEngine)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *MeterMutation) EdgeCleared(name string) bool {
+	switch name {
+	case dbmeter.EdgeTableEngine:
+		return m.clearedtable_engine
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *MeterMutation) ClearEdge(name string) error {
+	switch name {
+	case dbmeter.EdgeTableEngine:
+		m.ClearTableEngine()
+		return nil
+	}
 	return fmt.Errorf("unknown Meter unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *MeterMutation) ResetEdge(name string) error {
+	switch name {
+	case dbmeter.EdgeTableEngine:
+		m.ResetTableEngine()
+		return nil
+	}
 	return fmt.Errorf("unknown Meter edge %s", name)
+}
+
+// MeterTableEngineMutation represents an operation that mutates the MeterTableEngine nodes in the graph.
+type MeterTableEngineMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *string
+	namespace     *string
+	created_at    *time.Time
+	updated_at    *time.Time
+	deleted_at    *time.Time
+	engine        *string
+	status        *meter.MeterTableEngineState
+	state         *string
+	clearedFields map[string]struct{}
+	meter         *string
+	clearedmeter  bool
+	done          bool
+	oldValue      func(context.Context) (*MeterTableEngine, error)
+	predicates    []predicate.MeterTableEngine
+}
+
+var _ ent.Mutation = (*MeterTableEngineMutation)(nil)
+
+// metertableengineOption allows management of the mutation configuration using functional options.
+type metertableengineOption func(*MeterTableEngineMutation)
+
+// newMeterTableEngineMutation creates new mutation for the MeterTableEngine entity.
+func newMeterTableEngineMutation(c config, op Op, opts ...metertableengineOption) *MeterTableEngineMutation {
+	m := &MeterTableEngineMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeMeterTableEngine,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withMeterTableEngineID sets the ID field of the mutation.
+func withMeterTableEngineID(id string) metertableengineOption {
+	return func(m *MeterTableEngineMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *MeterTableEngine
+		)
+		m.oldValue = func(ctx context.Context) (*MeterTableEngine, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().MeterTableEngine.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withMeterTableEngine sets the old MeterTableEngine of the mutation.
+func withMeterTableEngine(node *MeterTableEngine) metertableengineOption {
+	return func(m *MeterTableEngineMutation) {
+		m.oldValue = func(context.Context) (*MeterTableEngine, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m MeterTableEngineMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m MeterTableEngineMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of MeterTableEngine entities.
+func (m *MeterTableEngineMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *MeterTableEngineMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *MeterTableEngineMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().MeterTableEngine.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *MeterTableEngineMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *MeterTableEngineMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the MeterTableEngine entity.
+// If the MeterTableEngine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterTableEngineMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *MeterTableEngineMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *MeterTableEngineMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *MeterTableEngineMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the MeterTableEngine entity.
+// If the MeterTableEngine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterTableEngineMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *MeterTableEngineMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *MeterTableEngineMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *MeterTableEngineMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the MeterTableEngine entity.
+// If the MeterTableEngine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterTableEngineMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *MeterTableEngineMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *MeterTableEngineMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *MeterTableEngineMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the MeterTableEngine entity.
+// If the MeterTableEngine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterTableEngineMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *MeterTableEngineMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[metertableengine.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *MeterTableEngineMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[metertableengine.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *MeterTableEngineMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, metertableengine.FieldDeletedAt)
+}
+
+// SetMeterID sets the "meter_id" field.
+func (m *MeterTableEngineMutation) SetMeterID(s string) {
+	m.meter = &s
+}
+
+// MeterID returns the value of the "meter_id" field in the mutation.
+func (m *MeterTableEngineMutation) MeterID() (r string, exists bool) {
+	v := m.meter
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMeterID returns the old "meter_id" field's value of the MeterTableEngine entity.
+// If the MeterTableEngine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterTableEngineMutation) OldMeterID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMeterID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMeterID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMeterID: %w", err)
+	}
+	return oldValue.MeterID, nil
+}
+
+// ResetMeterID resets all changes to the "meter_id" field.
+func (m *MeterTableEngineMutation) ResetMeterID() {
+	m.meter = nil
+}
+
+// SetEngine sets the "engine" field.
+func (m *MeterTableEngineMutation) SetEngine(s string) {
+	m.engine = &s
+}
+
+// Engine returns the value of the "engine" field in the mutation.
+func (m *MeterTableEngineMutation) Engine() (r string, exists bool) {
+	v := m.engine
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEngine returns the old "engine" field's value of the MeterTableEngine entity.
+// If the MeterTableEngine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterTableEngineMutation) OldEngine(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEngine is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEngine requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEngine: %w", err)
+	}
+	return oldValue.Engine, nil
+}
+
+// ResetEngine resets all changes to the "engine" field.
+func (m *MeterTableEngineMutation) ResetEngine() {
+	m.engine = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *MeterTableEngineMutation) SetStatus(mtes meter.MeterTableEngineState) {
+	m.status = &mtes
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *MeterTableEngineMutation) Status() (r meter.MeterTableEngineState, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the MeterTableEngine entity.
+// If the MeterTableEngine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterTableEngineMutation) OldStatus(ctx context.Context) (v meter.MeterTableEngineState, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *MeterTableEngineMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetState sets the "state" field.
+func (m *MeterTableEngineMutation) SetState(s string) {
+	m.state = &s
+}
+
+// State returns the value of the "state" field in the mutation.
+func (m *MeterTableEngineMutation) State() (r string, exists bool) {
+	v := m.state
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldState returns the old "state" field's value of the MeterTableEngine entity.
+// If the MeterTableEngine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MeterTableEngineMutation) OldState(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldState is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldState requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldState: %w", err)
+	}
+	return oldValue.State, nil
+}
+
+// ResetState resets all changes to the "state" field.
+func (m *MeterTableEngineMutation) ResetState() {
+	m.state = nil
+}
+
+// ClearMeter clears the "meter" edge to the Meter entity.
+func (m *MeterTableEngineMutation) ClearMeter() {
+	m.clearedmeter = true
+	m.clearedFields[metertableengine.FieldMeterID] = struct{}{}
+}
+
+// MeterCleared reports if the "meter" edge to the Meter entity was cleared.
+func (m *MeterTableEngineMutation) MeterCleared() bool {
+	return m.clearedmeter
+}
+
+// MeterIDs returns the "meter" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// MeterID instead. It exists only for internal usage by the builders.
+func (m *MeterTableEngineMutation) MeterIDs() (ids []string) {
+	if id := m.meter; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetMeter resets all changes to the "meter" edge.
+func (m *MeterTableEngineMutation) ResetMeter() {
+	m.meter = nil
+	m.clearedmeter = false
+}
+
+// Where appends a list predicates to the MeterTableEngineMutation builder.
+func (m *MeterTableEngineMutation) Where(ps ...predicate.MeterTableEngine) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the MeterTableEngineMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *MeterTableEngineMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.MeterTableEngine, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *MeterTableEngineMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *MeterTableEngineMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (MeterTableEngine).
+func (m *MeterTableEngineMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *MeterTableEngineMutation) Fields() []string {
+	fields := make([]string, 0, 8)
+	if m.namespace != nil {
+		fields = append(fields, metertableengine.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, metertableengine.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, metertableengine.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, metertableengine.FieldDeletedAt)
+	}
+	if m.meter != nil {
+		fields = append(fields, metertableengine.FieldMeterID)
+	}
+	if m.engine != nil {
+		fields = append(fields, metertableengine.FieldEngine)
+	}
+	if m.status != nil {
+		fields = append(fields, metertableengine.FieldStatus)
+	}
+	if m.state != nil {
+		fields = append(fields, metertableengine.FieldState)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *MeterTableEngineMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case metertableengine.FieldNamespace:
+		return m.Namespace()
+	case metertableengine.FieldCreatedAt:
+		return m.CreatedAt()
+	case metertableengine.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case metertableengine.FieldDeletedAt:
+		return m.DeletedAt()
+	case metertableengine.FieldMeterID:
+		return m.MeterID()
+	case metertableengine.FieldEngine:
+		return m.Engine()
+	case metertableengine.FieldStatus:
+		return m.Status()
+	case metertableengine.FieldState:
+		return m.State()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *MeterTableEngineMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case metertableengine.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case metertableengine.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case metertableengine.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case metertableengine.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case metertableengine.FieldMeterID:
+		return m.OldMeterID(ctx)
+	case metertableengine.FieldEngine:
+		return m.OldEngine(ctx)
+	case metertableengine.FieldStatus:
+		return m.OldStatus(ctx)
+	case metertableengine.FieldState:
+		return m.OldState(ctx)
+	}
+	return nil, fmt.Errorf("unknown MeterTableEngine field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *MeterTableEngineMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case metertableengine.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case metertableengine.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case metertableengine.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case metertableengine.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case metertableengine.FieldMeterID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMeterID(v)
+		return nil
+	case metertableengine.FieldEngine:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEngine(v)
+		return nil
+	case metertableengine.FieldStatus:
+		v, ok := value.(meter.MeterTableEngineState)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case metertableengine.FieldState:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetState(v)
+		return nil
+	}
+	return fmt.Errorf("unknown MeterTableEngine field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *MeterTableEngineMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *MeterTableEngineMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *MeterTableEngineMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown MeterTableEngine numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *MeterTableEngineMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(metertableengine.FieldDeletedAt) {
+		fields = append(fields, metertableengine.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *MeterTableEngineMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *MeterTableEngineMutation) ClearField(name string) error {
+	switch name {
+	case metertableengine.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown MeterTableEngine nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *MeterTableEngineMutation) ResetField(name string) error {
+	switch name {
+	case metertableengine.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case metertableengine.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case metertableengine.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case metertableengine.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case metertableengine.FieldMeterID:
+		m.ResetMeterID()
+		return nil
+	case metertableengine.FieldEngine:
+		m.ResetEngine()
+		return nil
+	case metertableengine.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case metertableengine.FieldState:
+		m.ResetState()
+		return nil
+	}
+	return fmt.Errorf("unknown MeterTableEngine field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *MeterTableEngineMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.meter != nil {
+		edges = append(edges, metertableengine.EdgeMeter)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *MeterTableEngineMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case metertableengine.EdgeMeter:
+		if id := m.meter; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *MeterTableEngineMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *MeterTableEngineMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *MeterTableEngineMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedmeter {
+		edges = append(edges, metertableengine.EdgeMeter)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *MeterTableEngineMutation) EdgeCleared(name string) bool {
+	switch name {
+	case metertableengine.EdgeMeter:
+		return m.clearedmeter
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *MeterTableEngineMutation) ClearEdge(name string) error {
+	switch name {
+	case metertableengine.EdgeMeter:
+		m.ClearMeter()
+		return nil
+	}
+	return fmt.Errorf("unknown MeterTableEngine unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *MeterTableEngineMutation) ResetEdge(name string) error {
+	switch name {
+	case metertableengine.EdgeMeter:
+		m.ResetMeter()
+		return nil
+	}
+	return fmt.Errorf("unknown MeterTableEngine edge %s", name)
 }
 
 // NotificationChannelMutation represents an operation that mutates the NotificationChannel nodes in the graph.

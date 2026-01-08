@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/metertableengine"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -169,6 +170,25 @@ func (_c *MeterCreate) SetNillableID(v *string) *MeterCreate {
 		_c.SetID(*v)
 	}
 	return _c
+}
+
+// SetTableEngineID sets the "table_engine" edge to the MeterTableEngine entity by ID.
+func (_c *MeterCreate) SetTableEngineID(id string) *MeterCreate {
+	_c.mutation.SetTableEngineID(id)
+	return _c
+}
+
+// SetNillableTableEngineID sets the "table_engine" edge to the MeterTableEngine entity by ID if the given value is not nil.
+func (_c *MeterCreate) SetNillableTableEngineID(id *string) *MeterCreate {
+	if id != nil {
+		_c = _c.SetTableEngineID(*id)
+	}
+	return _c
+}
+
+// SetTableEngine sets the "table_engine" edge to the MeterTableEngine entity.
+func (_c *MeterCreate) SetTableEngine(v *MeterTableEngine) *MeterCreate {
+	return _c.SetTableEngineID(v.ID)
 }
 
 // Mutation returns the MeterMutation object of the builder.
@@ -354,6 +374,22 @@ func (_c *MeterCreate) createSpec() (*Meter, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.EventFrom(); ok {
 		_spec.SetField(dbmeter.FieldEventFrom, field.TypeTime, value)
 		_node.EventFrom = &value
+	}
+	if nodes := _c.mutation.TableEngineIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   dbmeter.TableEngineTable,
+			Columns: []string{dbmeter.TableEngineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(metertableengine.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/metertableengine"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -165,9 +166,34 @@ func (_u *MeterUpdate) ClearEventFrom() *MeterUpdate {
 	return _u
 }
 
+// SetTableEngineID sets the "table_engine" edge to the MeterTableEngine entity by ID.
+func (_u *MeterUpdate) SetTableEngineID(id string) *MeterUpdate {
+	_u.mutation.SetTableEngineID(id)
+	return _u
+}
+
+// SetNillableTableEngineID sets the "table_engine" edge to the MeterTableEngine entity by ID if the given value is not nil.
+func (_u *MeterUpdate) SetNillableTableEngineID(id *string) *MeterUpdate {
+	if id != nil {
+		_u = _u.SetTableEngineID(*id)
+	}
+	return _u
+}
+
+// SetTableEngine sets the "table_engine" edge to the MeterTableEngine entity.
+func (_u *MeterUpdate) SetTableEngine(v *MeterTableEngine) *MeterUpdate {
+	return _u.SetTableEngineID(v.ID)
+}
+
 // Mutation returns the MeterMutation object of the builder.
 func (_u *MeterUpdate) Mutation() *MeterMutation {
 	return _u.mutation
+}
+
+// ClearTableEngine clears the "table_engine" edge to the MeterTableEngine entity.
+func (_u *MeterUpdate) ClearTableEngine() *MeterUpdate {
+	_u.mutation.ClearTableEngine()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -262,6 +288,35 @@ func (_u *MeterUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.EventFromCleared() {
 		_spec.ClearField(dbmeter.FieldEventFrom, field.TypeTime)
+	}
+	if _u.mutation.TableEngineCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   dbmeter.TableEngineTable,
+			Columns: []string{dbmeter.TableEngineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(metertableengine.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TableEngineIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   dbmeter.TableEngineTable,
+			Columns: []string{dbmeter.TableEngineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(metertableengine.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -419,9 +474,34 @@ func (_u *MeterUpdateOne) ClearEventFrom() *MeterUpdateOne {
 	return _u
 }
 
+// SetTableEngineID sets the "table_engine" edge to the MeterTableEngine entity by ID.
+func (_u *MeterUpdateOne) SetTableEngineID(id string) *MeterUpdateOne {
+	_u.mutation.SetTableEngineID(id)
+	return _u
+}
+
+// SetNillableTableEngineID sets the "table_engine" edge to the MeterTableEngine entity by ID if the given value is not nil.
+func (_u *MeterUpdateOne) SetNillableTableEngineID(id *string) *MeterUpdateOne {
+	if id != nil {
+		_u = _u.SetTableEngineID(*id)
+	}
+	return _u
+}
+
+// SetTableEngine sets the "table_engine" edge to the MeterTableEngine entity.
+func (_u *MeterUpdateOne) SetTableEngine(v *MeterTableEngine) *MeterUpdateOne {
+	return _u.SetTableEngineID(v.ID)
+}
+
 // Mutation returns the MeterMutation object of the builder.
 func (_u *MeterUpdateOne) Mutation() *MeterMutation {
 	return _u.mutation
+}
+
+// ClearTableEngine clears the "table_engine" edge to the MeterTableEngine entity.
+func (_u *MeterUpdateOne) ClearTableEngine() *MeterUpdateOne {
+	_u.mutation.ClearTableEngine()
+	return _u
 }
 
 // Where appends a list predicates to the MeterUpdate builder.
@@ -546,6 +626,35 @@ func (_u *MeterUpdateOne) sqlSave(ctx context.Context) (_node *Meter, err error)
 	}
 	if _u.mutation.EventFromCleared() {
 		_spec.ClearField(dbmeter.FieldEventFrom, field.TypeTime)
+	}
+	if _u.mutation.TableEngineCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   dbmeter.TableEngineTable,
+			Columns: []string{dbmeter.TableEngineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(metertableengine.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TableEngineIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   dbmeter.TableEngineTable,
+			Columns: []string{dbmeter.TableEngineColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(metertableengine.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Meter{config: _u.config}
 	_spec.Assign = _node.assignValues

@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/metertableengine"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -47,8 +48,31 @@ type Meter struct {
 	// Aggregation holds the value of the "aggregation" field.
 	Aggregation meter.MeterAggregation `json:"aggregation,omitempty"`
 	// EventFrom holds the value of the "event_from" field.
-	EventFrom    *time.Time `json:"event_from,omitempty"`
+	EventFrom *time.Time `json:"event_from,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the MeterQuery when eager-loading is set.
+	Edges        MeterEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// MeterEdges holds the relations/edges for other nodes in the graph.
+type MeterEdges struct {
+	// TableEngine holds the value of the table_engine edge.
+	TableEngine *MeterTableEngine `json:"table_engine,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// TableEngineOrErr returns the TableEngine value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e MeterEdges) TableEngineOrErr() (*MeterTableEngine, error) {
+	if e.TableEngine != nil {
+		return e.TableEngine, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: metertableengine.Label}
+	}
+	return nil, &NotLoadedError{edge: "table_engine"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -188,6 +212,11 @@ func (_m *Meter) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *Meter) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QueryTableEngine queries the "table_engine" edge of the Meter entity.
+func (_m *Meter) QueryTableEngine() *MeterTableEngineQuery {
+	return NewMeterClient(_m.config).QueryTableEngine(_m)
 }
 
 // Update returns a builder for updating this Meter.

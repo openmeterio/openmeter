@@ -37,6 +37,7 @@ type RawEvent struct {
 
 type Connector interface {
 	namespace.Handler
+	TableEngineRegistry
 
 	CountEvents(ctx context.Context, namespace string, params CountEventsParams) ([]CountEventRow, error)
 	ListEvents(ctx context.Context, namespace string, params ListEventsParams) ([]RawEvent, error)

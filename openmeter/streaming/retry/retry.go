@@ -120,6 +120,10 @@ func (c *Connector) DeleteNamespace(ctx context.Context, namespace string) error
 	return c.downstreamConnector.DeleteNamespace(ctx, namespace)
 }
 
+func (c *Connector) RegisterTableEngine(tableEngine streaming.TableEngine) {
+	c.downstreamConnector.RegisterTableEngine(tableEngine)
+}
+
 func retry[T any](ctx context.Context, c *Connector, fn func() (T, error)) (T, error) {
 	var empty T
 	var err error

@@ -2,7 +2,9 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
@@ -55,5 +57,48 @@ func (Meter) Edges() []ent.Edge {
 		// Ent doesn't support foreign key constraints on non ID fields (key)
 		// https://github.com/ent/ent/issues/2549
 		// edge.To("feature", Feature.Type),
+		edge.To("table_engine", MeterTableEngine.Type).Unique(),
+	}
+}
+
+type MeterTableEngine struct {
+	ent.Schema
+}
+
+func (MeterTableEngine) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.NamespaceMixin{},
+		entutils.IDMixin{},
+		entutils.TimeMixin{},
+	}
+}
+
+func (MeterTableEngine) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("meter_id").NotEmpty().Immutable().SchemaType(map[string]string{
+			dialect.Postgres: "char(26)",
+		}),
+		field.String("engine").NotEmpty().Default("events"),
+		field.Enum("status").GoType(meter.MeterTableEngineState("")).Default(string(meter.MeterTableEngineStateInactive)),
+		field.String("state").SchemaType(map[string]string{
+			dialect.Postgres: "jsonb",
+		}),
+	}
+}
+
+func (MeterTableEngine) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("meter_id").Unique(),
+	}
+}
+
+func (MeterTableEngine) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("meter", Meter.Type).
+			Ref("table_engine").
+			Field("meter_id").
+			Required().
+			Unique().
+			Immutable(),
 	}
 }

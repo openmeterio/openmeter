@@ -170,6 +170,8 @@ type Meter struct {
 	EventFrom     *time.Time
 	ValueProperty *string
 	GroupBy       map[string]string
+
+	TableEngine *MeterTableEngine
 }
 
 func (m Meter) ValidateWith(validators ...models.ValidatorFunc[Meter]) error {
@@ -340,4 +342,26 @@ type MeterQueryRow struct {
 	Subject     *string            `json:"subject"`
 	CustomerID  *string            `json:"customerId"`
 	GroupBy     map[string]*string `json:"groupBy"`
+}
+
+// MeterTableEngine contains the underlying table engine data for the meter (if non-default engine is used)
+
+type MeterTableEngineState string
+
+const (
+	MeterTableEngineStateActive   MeterTableEngineState = "active"
+	MeterTableEngineStateInactive MeterTableEngineState = "inactive"
+)
+
+func (MeterTableEngineState) Values() []string {
+	return []string{
+		string(MeterTableEngineStateActive),
+		string(MeterTableEngineStateInactive),
+	}
+}
+
+type MeterTableEngine struct {
+	Engine string                `json:"engine"`
+	Status MeterTableEngineState `json:"status"`
+	State  string                `json:"state"`
 }

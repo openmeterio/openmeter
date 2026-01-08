@@ -228,3 +228,7 @@ func (m *MockStreamingConnector) ListSubjects(ctx context.Context, params stream
 func (m *MockStreamingConnector) ListGroupByValues(ctx context.Context, params streaming.ListGroupByValuesParams) ([]string, error) {
 	return []string{}, nil
 }
+
+func (m *MockStreamingConnector) RegisterTableEngine(tableEngine streaming.TableEngine) {
+	// No-op
+}

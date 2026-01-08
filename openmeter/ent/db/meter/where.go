@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 )
@@ -763,6 +764,29 @@ func EventFromIsNil() predicate.Meter {
 // EventFromNotNil applies the NotNil predicate on the "event_from" field.
 func EventFromNotNil() predicate.Meter {
 	return predicate.Meter(sql.FieldNotNull(FieldEventFrom))
+}
+
+// HasTableEngine applies the HasEdge predicate on the "table_engine" edge.
+func HasTableEngine() predicate.Meter {
+	return predicate.Meter(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, TableEngineTable, TableEngineColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTableEngineWith applies the HasEdge predicate on the "table_engine" edge with a given conditions (other predicates).
+func HasTableEngineWith(preds ...predicate.MeterTableEngine) predicate.Meter {
+	return predicate.Meter(func(s *sql.Selector) {
+		step := newTableEngineStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

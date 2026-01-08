@@ -2409,6 +2409,20 @@ func (u *MeterUpdateOne) SetOrClearEventFrom(value *time.Time) *MeterUpdateOne {
 	return u.SetEventFrom(*value)
 }
 
+func (u *MeterTableEngineUpdate) SetOrClearDeletedAt(value *time.Time) *MeterTableEngineUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *MeterTableEngineUpdateOne) SetOrClearDeletedAt(value *time.Time) *MeterTableEngineUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *NotificationChannelUpdate) SetOrClearDeletedAt(value *time.Time) *NotificationChannelUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -23,6 +24,8 @@ var _ streaming.Connector = (*Connector)(nil)
 // Connector implements `ingest.Connector" and `namespace.Handler interfaces.
 type Connector struct {
 	config Config
+
+	tableEngines sync.Map // key: table engine type, value: table engine
 }
 
 type Config struct {
@@ -138,6 +141,16 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 		return nil, fmt.Errorf("validate params: %w", err)
 	}
 
+	// Table engine support
+	tableEngineResult, err := c.queryMeterWithTableEngine(ctx, namespace, meter, params)
+	if err != nil {
+		return nil, fmt.Errorf("query meter with table engine: %w", err)
+	}
+
+	if tableEngineResult.canHandle {
+		return tableEngineResult.values, nil
+	}
+
 	// We sort the group by keys to ensure the order of the group by columns is deterministic
 	// It helps testing the SQL queries.
 	groupBy := append([]string(nil), params.GroupBy...)
@@ -161,7 +174,6 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 	}
 
 	// Load cached rows if any
-	var err error
 	var values []meterpkg.MeterQueryRow
 
 	// If the client ID is set, we track track the progress of the query
@@ -192,6 +204,45 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 	}
 
 	return values, nil
+}
+
+type queryMeterWithTableEngineResult struct {
+	canHandle bool
+	values    []meterpkg.MeterQueryRow
+}
+
+func (c *Connector) queryMeterWithTableEngine(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.QueryParams) (queryMeterWithTableEngineResult, error) {
+	cannotHandle := queryMeterWithTableEngineResult{}
+
+	if meter.TableEngine == nil {
+		return cannotHandle, nil
+	}
+
+	tableEngineAny, ok := c.tableEngines.Load(meter.TableEngine.Engine)
+	if !ok {
+		c.config.Logger.WarnContext(ctx, "table engine not found, falling back to default engine", "engine", meter.TableEngine.Engine)
+		return cannotHandle, nil
+	}
+
+	tableEngine, ok := tableEngineAny.(streaming.TableEngine)
+	if !ok {
+		// Should not happen so let's throw an error here
+		return cannotHandle, fmt.Errorf("table engine %s is not a valid table engine", meter.TableEngine.Engine)
+	}
+
+	if !tableEngine.IsOperational(meter) {
+		return cannotHandle, nil
+	}
+
+	res, err := tableEngine.QueryMeter(ctx, namespace, meter, params)
+	if err != nil {
+		return cannotHandle, fmt.Errorf("query meter with table engine: %w", err)
+	}
+
+	return queryMeterWithTableEngineResult{
+		canHandle: true,
+		values:    res,
+	}, nil
 }
 
 func (c *Connector) ListSubjects(ctx context.Context, params streaming.ListSubjectsParams) ([]string, error) {
@@ -663,4 +714,8 @@ func min[T constraints.Ordered](a, b T) T {
 		return a
 	}
 	return b
+}
+
+func (c *Connector) RegisterTableEngine(tableEngine streaming.TableEngine) {
+	c.tableEngines.Store(tableEngine.Type(), tableEngine)
 }

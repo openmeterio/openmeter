@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	entitlementdb "github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	featuredb "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	meterdb "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/metertableengine"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	featureadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -189,6 +191,53 @@ func (a *Adapter) ListFeaturesForMeter(ctx context.Context, namespace, key strin
 				}
 
 				return features, nil
+			})
+	})
+}
+
+func (a *Adapter) UpsertTableEngine(ctx context.Context, meter meterpkg.Meter) error {
+	return transaction.RunWithNoValue(ctx, a, func(ctx context.Context) error {
+		return entutils.TransactingRepoWithNoValue(
+			ctx,
+			a,
+			func(ctx context.Context, repo *Adapter) error {
+				err := repo.db.MeterTableEngine.Create().
+					SetNamespace(meter.Namespace).
+					SetMeterID(meter.ID).
+					SetEngine(meter.TableEngine.Engine).
+					SetStatus(meter.TableEngine.Status).
+					SetState(meter.TableEngine.State).
+					OnConflict(sql.ConflictColumns(metertableengine.FieldMeterID),
+						sql.ResolveWithNewValues(),
+						sql.ResolveWith(func(u *sql.UpdateSet) {
+							u.SetIgnore(metertableengine.FieldCreatedAt)
+						}),
+					).
+					Exec(ctx)
+				if err != nil {
+					return fmt.Errorf("failed to upsert table engine: %w", err)
+				}
+
+				return nil
+			})
+	})
+}
+
+func (a *Adapter) DeleteTableEngine(ctx context.Context, meter meterpkg.Meter) error {
+	return transaction.RunWithNoValue(ctx, a, func(ctx context.Context) error {
+		return entutils.TransactingRepoWithNoValue(
+			ctx,
+			a,
+			func(ctx context.Context, repo *Adapter) error {
+				_, err := repo.db.MeterTableEngine.Delete().
+					Where(metertableengine.MeterIDEQ(meter.ID)).
+					Where(metertableengine.NamespaceEQ(meter.Namespace)).
+					Exec(ctx)
+				if err != nil {
+					return fmt.Errorf("failed to delete table engine: %w", err)
+				}
+
+				return nil
 			})
 	})
 }

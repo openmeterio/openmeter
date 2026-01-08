@@ -47,6 +47,14 @@ func (d createEventsTable) toSQL() string {
 	return sql
 }
 
+// CreateEventsTableSQL exposes the events table DDL used by the ClickHouse connector.
+func CreateEventsTableSQL(database string, eventsTableName string) string {
+	return createEventsTable{
+		Database:        database,
+		EventsTableName: eventsTableName,
+	}.toSQL()
+}
+
 // Query Events Table
 type queryEventsTable struct {
 	Database        string

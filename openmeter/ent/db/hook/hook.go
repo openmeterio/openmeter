@@ -345,6 +345,18 @@ func (f MeterFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.MeterMutation", m)
 }
 
+// The MeterTableEngineFunc type is an adapter to allow the use of ordinary
+// function as MeterTableEngine mutator.
+type MeterTableEngineFunc func(context.Context, *db.MeterTableEngineMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f MeterTableEngineFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.MeterTableEngineMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.MeterTableEngineMutation", m)
+}
+
 // The NotificationChannelFunc type is an adapter to allow the use of ordinary
 // function as NotificationChannel mutator.
 type NotificationChannelFunc func(context.Context, *db.NotificationChannelMutation) (db.Value, error)

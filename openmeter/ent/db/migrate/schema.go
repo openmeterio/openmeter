@@ -1708,6 +1708,49 @@ var (
 			},
 		},
 	}
+	// MeterTableEnginesColumns holds the columns for the "meter_table_engines" table.
+	MeterTableEnginesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "engine", Type: field.TypeString, Default: "events"},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"active", "inactive"}, Default: "inactive"},
+		{Name: "state", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "meter_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// MeterTableEnginesTable holds the schema information for the "meter_table_engines" table.
+	MeterTableEnginesTable = &schema.Table{
+		Name:       "meter_table_engines",
+		Columns:    MeterTableEnginesColumns,
+		PrimaryKey: []*schema.Column{MeterTableEnginesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "meter_table_engines_meters_table_engine",
+				Columns:    []*schema.Column{MeterTableEnginesColumns[8]},
+				RefColumns: []*schema.Column{MetersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "metertableengine_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{MeterTableEnginesColumns[1]},
+			},
+			{
+				Name:    "metertableengine_id",
+				Unique:  true,
+				Columns: []*schema.Column{MeterTableEnginesColumns[0]},
+			},
+			{
+				Name:    "metertableengine_meter_id",
+				Unique:  true,
+				Columns: []*schema.Column{MeterTableEnginesColumns[8]},
+			},
+		},
+	}
 	// NotificationChannelsColumns holds the columns for the "notification_channels" table.
 	NotificationChannelsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -2725,6 +2768,7 @@ var (
 		FeaturesTable,
 		GrantsTable,
 		MetersTable,
+		MeterTableEnginesTable,
 		NotificationChannelsTable,
 		NotificationEventsTable,
 		NotificationEventDeliveryStatusTable,
@@ -2788,6 +2832,7 @@ func init() {
 	EntitlementsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[1].RefTable = FeaturesTable
 	GrantsTable.ForeignKeys[0].RefTable = EntitlementsTable
+	MeterTableEnginesTable.ForeignKeys[0].RefTable = MetersTable
 	NotificationEventsTable.ForeignKeys[0].RefTable = NotificationRulesTable
 	PlanAddonsTable.ForeignKeys[0].RefTable = AddonsTable
 	PlanAddonsTable.ForeignKeys[1].RefTable = PlansTable

@@ -109,3 +109,15 @@ func (a manageAdapter) DeleteMeter(ctx context.Context, input meterpkg.DeleteMet
 
 	return meterpkg.NewMeterNotFoundError(input.IDOrSlug)
 }
+
+func (a manageAdapter) UpdateTableEngine(ctx context.Context, meter meterpkg.Meter) error {
+	return models.NewGenericNotImplementedError(
+		fmt.Errorf("update table engine is not implemented in mock adapter"),
+	)
+}
+
+func (a manageAdapter) DeleteTableEngine(ctx context.Context, meter meterpkg.Meter) error {
+	return models.NewGenericNotImplementedError(
+		fmt.Errorf("delete table engine is not implemented in mock adapter"),
+	)
+}

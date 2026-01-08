@@ -6,6 +6,7 @@
     "TZ": "UTC",
     "POSTGRES_HOST": "127.0.0.1",
     "OPENMETER_ADDRESS": "http://127.0.0.1:38888",
+    "TEST_CLICKHOUSE_DSN": "clickhouse://default:default@127.0.0.1:9000/openmeter",
     // Useful when the schema is evolving during development (currently only supported
     // by billing)
     // "TEST_DISABLE_ATLAS": "true"

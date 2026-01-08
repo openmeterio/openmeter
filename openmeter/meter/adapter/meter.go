@@ -22,7 +22,7 @@ func (a *Adapter) ListMeters(ctx context.Context, params meter.ListMetersParams)
 	}
 
 	// Start database query
-	query := a.db.Meter.Query()
+	query := a.db.Meter.Query().WithTableEngine()
 
 	// Filtering
 	if !params.WithoutNamespace {
@@ -93,6 +93,7 @@ func (a *Adapter) GetMeterByIDOrSlug(ctx context.Context, input meter.GetMeterIn
 			meterdb.ID(input.IDOrSlug),
 			meterdb.And(meterdb.Key(input.IDOrSlug), meterdb.DeletedAtIsNil()),
 		)).
+		WithTableEngine().
 		First(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -114,6 +115,15 @@ func (a *Adapter) GetMeterByIDOrSlug(ctx context.Context, input meter.GetMeterIn
 func MapFromEntityFactory(entity *db.Meter) (meter.Meter, error) {
 	if entity == nil {
 		return meter.Meter{}, fmt.Errorf("entity is required")
+	}
+
+	var tableEngine *meter.MeterTableEngine
+	if entity.Edges.TableEngine != nil {
+		tableEngine = &meter.MeterTableEngine{
+			Engine: entity.Edges.TableEngine.Engine,
+			Status: entity.Edges.TableEngine.Status,
+			State:  entity.Edges.TableEngine.State,
+		}
 	}
 
 	return meter.Meter{
@@ -138,5 +148,6 @@ func MapFromEntityFactory(entity *db.Meter) (meter.Meter, error) {
 		GroupBy:       entity.GroupBy,
 		Metadata:      entity.Metadata,
 		Annotations:   entity.Annotations,
+		TableEngine:   tableEngine,
 	}, nil
 }

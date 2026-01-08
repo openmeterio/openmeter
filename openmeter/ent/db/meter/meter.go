@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 )
 
@@ -43,8 +44,17 @@ const (
 	FieldAggregation = "aggregation"
 	// FieldEventFrom holds the string denoting the event_from field in the database.
 	FieldEventFrom = "event_from"
+	// EdgeTableEngine holds the string denoting the table_engine edge name in mutations.
+	EdgeTableEngine = "table_engine"
 	// Table holds the table name of the meter in the database.
 	Table = "meters"
+	// TableEngineTable is the table that holds the table_engine relation/edge.
+	TableEngineTable = "meter_table_engines"
+	// TableEngineInverseTable is the table name for the MeterTableEngine entity.
+	// It exists in this package in order to avoid circular dependency with the "metertableengine" package.
+	TableEngineInverseTable = "meter_table_engines"
+	// TableEngineColumn is the table column denoting the table_engine relation/edge.
+	TableEngineColumn = "meter_id"
 )
 
 // Columns holds all SQL columns for meter fields.
@@ -164,4 +174,18 @@ func ByAggregation(opts ...sql.OrderTermOption) OrderOption {
 // ByEventFrom orders the results by the event_from field.
 func ByEventFrom(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEventFrom, opts...).ToFunc()
+}
+
+// ByTableEngineField orders the results by table_engine field.
+func ByTableEngineField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTableEngineStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newTableEngineStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TableEngineInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, TableEngineTable, TableEngineColumn),
+	)
 }

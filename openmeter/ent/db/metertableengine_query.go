@@ -4,7 +4,6 @@ package db
 
 import (
 	"context"
-	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -18,54 +17,54 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
-// MeterQuery is the builder for querying Meter entities.
-type MeterQuery struct {
+// MeterTableEngineQuery is the builder for querying MeterTableEngine entities.
+type MeterTableEngineQuery struct {
 	config
-	ctx             *QueryContext
-	order           []dbmeter.OrderOption
-	inters          []Interceptor
-	predicates      []predicate.Meter
-	withTableEngine *MeterTableEngineQuery
-	modifiers       []func(*sql.Selector)
+	ctx        *QueryContext
+	order      []metertableengine.OrderOption
+	inters     []Interceptor
+	predicates []predicate.MeterTableEngine
+	withMeter  *MeterQuery
+	modifiers  []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
 }
 
-// Where adds a new predicate for the MeterQuery builder.
-func (_q *MeterQuery) Where(ps ...predicate.Meter) *MeterQuery {
+// Where adds a new predicate for the MeterTableEngineQuery builder.
+func (_q *MeterTableEngineQuery) Where(ps ...predicate.MeterTableEngine) *MeterTableEngineQuery {
 	_q.predicates = append(_q.predicates, ps...)
 	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (_q *MeterQuery) Limit(limit int) *MeterQuery {
+func (_q *MeterTableEngineQuery) Limit(limit int) *MeterTableEngineQuery {
 	_q.ctx.Limit = &limit
 	return _q
 }
 
 // Offset to start from.
-func (_q *MeterQuery) Offset(offset int) *MeterQuery {
+func (_q *MeterTableEngineQuery) Offset(offset int) *MeterTableEngineQuery {
 	_q.ctx.Offset = &offset
 	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (_q *MeterQuery) Unique(unique bool) *MeterQuery {
+func (_q *MeterTableEngineQuery) Unique(unique bool) *MeterTableEngineQuery {
 	_q.ctx.Unique = &unique
 	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (_q *MeterQuery) Order(o ...dbmeter.OrderOption) *MeterQuery {
+func (_q *MeterTableEngineQuery) Order(o ...metertableengine.OrderOption) *MeterTableEngineQuery {
 	_q.order = append(_q.order, o...)
 	return _q
 }
 
-// QueryTableEngine chains the current query on the "table_engine" edge.
-func (_q *MeterQuery) QueryTableEngine() *MeterTableEngineQuery {
-	query := (&MeterTableEngineClient{config: _q.config}).Query()
+// QueryMeter chains the current query on the "meter" edge.
+func (_q *MeterTableEngineQuery) QueryMeter() *MeterQuery {
+	query := (&MeterClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -75,9 +74,9 @@ func (_q *MeterQuery) QueryTableEngine() *MeterTableEngineQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(dbmeter.Table, dbmeter.FieldID, selector),
-			sqlgraph.To(metertableengine.Table, metertableengine.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, dbmeter.TableEngineTable, dbmeter.TableEngineColumn),
+			sqlgraph.From(metertableengine.Table, metertableengine.FieldID, selector),
+			sqlgraph.To(dbmeter.Table, dbmeter.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, metertableengine.MeterTable, metertableengine.MeterColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -85,21 +84,21 @@ func (_q *MeterQuery) QueryTableEngine() *MeterTableEngineQuery {
 	return query
 }
 
-// First returns the first Meter entity from the query.
-// Returns a *NotFoundError when no Meter was found.
-func (_q *MeterQuery) First(ctx context.Context) (*Meter, error) {
+// First returns the first MeterTableEngine entity from the query.
+// Returns a *NotFoundError when no MeterTableEngine was found.
+func (_q *MeterTableEngineQuery) First(ctx context.Context) (*MeterTableEngine, error) {
 	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{dbmeter.Label}
+		return nil, &NotFoundError{metertableengine.Label}
 	}
 	return nodes[0], nil
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (_q *MeterQuery) FirstX(ctx context.Context) *Meter {
+func (_q *MeterTableEngineQuery) FirstX(ctx context.Context) *MeterTableEngine {
 	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -107,22 +106,22 @@ func (_q *MeterQuery) FirstX(ctx context.Context) *Meter {
 	return node
 }
 
-// FirstID returns the first Meter ID from the query.
-// Returns a *NotFoundError when no Meter ID was found.
-func (_q *MeterQuery) FirstID(ctx context.Context) (id string, err error) {
+// FirstID returns the first MeterTableEngine ID from the query.
+// Returns a *NotFoundError when no MeterTableEngine ID was found.
+func (_q *MeterTableEngineQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{dbmeter.Label}
+		err = &NotFoundError{metertableengine.Label}
 		return
 	}
 	return ids[0], nil
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *MeterQuery) FirstIDX(ctx context.Context) string {
+func (_q *MeterTableEngineQuery) FirstIDX(ctx context.Context) string {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -130,10 +129,10 @@ func (_q *MeterQuery) FirstIDX(ctx context.Context) string {
 	return id
 }
 
-// Only returns a single Meter entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when more than one Meter entity is found.
-// Returns a *NotFoundError when no Meter entities are found.
-func (_q *MeterQuery) Only(ctx context.Context) (*Meter, error) {
+// Only returns a single MeterTableEngine entity found by the query, ensuring it only returns one.
+// Returns a *NotSingularError when more than one MeterTableEngine entity is found.
+// Returns a *NotFoundError when no MeterTableEngine entities are found.
+func (_q *MeterTableEngineQuery) Only(ctx context.Context) (*MeterTableEngine, error) {
 	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
@@ -142,14 +141,14 @@ func (_q *MeterQuery) Only(ctx context.Context) (*Meter, error) {
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{dbmeter.Label}
+		return nil, &NotFoundError{metertableengine.Label}
 	default:
-		return nil, &NotSingularError{dbmeter.Label}
+		return nil, &NotSingularError{metertableengine.Label}
 	}
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (_q *MeterQuery) OnlyX(ctx context.Context) *Meter {
+func (_q *MeterTableEngineQuery) OnlyX(ctx context.Context) *MeterTableEngine {
 	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
@@ -157,10 +156,10 @@ func (_q *MeterQuery) OnlyX(ctx context.Context) *Meter {
 	return node
 }
 
-// OnlyID is like Only, but returns the only Meter ID in the query.
-// Returns a *NotSingularError when more than one Meter ID is found.
+// OnlyID is like Only, but returns the only MeterTableEngine ID in the query.
+// Returns a *NotSingularError when more than one MeterTableEngine ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *MeterQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *MeterTableEngineQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
@@ -169,15 +168,15 @@ func (_q *MeterQuery) OnlyID(ctx context.Context) (id string, err error) {
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{dbmeter.Label}
+		err = &NotFoundError{metertableengine.Label}
 	default:
-		err = &NotSingularError{dbmeter.Label}
+		err = &NotSingularError{metertableengine.Label}
 	}
 	return
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *MeterQuery) OnlyIDX(ctx context.Context) string {
+func (_q *MeterTableEngineQuery) OnlyIDX(ctx context.Context) string {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -185,18 +184,18 @@ func (_q *MeterQuery) OnlyIDX(ctx context.Context) string {
 	return id
 }
 
-// All executes the query and returns a list of Meters.
-func (_q *MeterQuery) All(ctx context.Context) ([]*Meter, error) {
+// All executes the query and returns a list of MeterTableEngines.
+func (_q *MeterTableEngineQuery) All(ctx context.Context) ([]*MeterTableEngine, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
-	qr := querierAll[[]*Meter, *MeterQuery]()
-	return withInterceptors[[]*Meter](ctx, _q, qr, _q.inters)
+	qr := querierAll[[]*MeterTableEngine, *MeterTableEngineQuery]()
+	return withInterceptors[[]*MeterTableEngine](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (_q *MeterQuery) AllX(ctx context.Context) []*Meter {
+func (_q *MeterTableEngineQuery) AllX(ctx context.Context) []*MeterTableEngine {
 	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
@@ -204,20 +203,20 @@ func (_q *MeterQuery) AllX(ctx context.Context) []*Meter {
 	return nodes
 }
 
-// IDs executes the query and returns a list of Meter IDs.
-func (_q *MeterQuery) IDs(ctx context.Context) (ids []string, err error) {
+// IDs executes the query and returns a list of MeterTableEngine IDs.
+func (_q *MeterTableEngineQuery) IDs(ctx context.Context) (ids []string, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
-	if err = _q.Select(dbmeter.FieldID).Scan(ctx, &ids); err != nil {
+	if err = _q.Select(metertableengine.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *MeterQuery) IDsX(ctx context.Context) []string {
+func (_q *MeterTableEngineQuery) IDsX(ctx context.Context) []string {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -226,16 +225,16 @@ func (_q *MeterQuery) IDsX(ctx context.Context) []string {
 }
 
 // Count returns the count of the given query.
-func (_q *MeterQuery) Count(ctx context.Context) (int, error) {
+func (_q *MeterTableEngineQuery) Count(ctx context.Context) (int, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, _q, querierCount[*MeterQuery](), _q.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*MeterTableEngineQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (_q *MeterQuery) CountX(ctx context.Context) int {
+func (_q *MeterTableEngineQuery) CountX(ctx context.Context) int {
 	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
@@ -244,7 +243,7 @@ func (_q *MeterQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (_q *MeterQuery) Exist(ctx context.Context) (bool, error) {
+func (_q *MeterTableEngineQuery) Exist(ctx context.Context) (bool, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
 	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
@@ -257,7 +256,7 @@ func (_q *MeterQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (_q *MeterQuery) ExistX(ctx context.Context) bool {
+func (_q *MeterTableEngineQuery) ExistX(ctx context.Context) bool {
 	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
@@ -265,33 +264,33 @@ func (_q *MeterQuery) ExistX(ctx context.Context) bool {
 	return exist
 }
 
-// Clone returns a duplicate of the MeterQuery builder, including all associated steps. It can be
+// Clone returns a duplicate of the MeterTableEngineQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (_q *MeterQuery) Clone() *MeterQuery {
+func (_q *MeterTableEngineQuery) Clone() *MeterTableEngineQuery {
 	if _q == nil {
 		return nil
 	}
-	return &MeterQuery{
-		config:          _q.config,
-		ctx:             _q.ctx.Clone(),
-		order:           append([]dbmeter.OrderOption{}, _q.order...),
-		inters:          append([]Interceptor{}, _q.inters...),
-		predicates:      append([]predicate.Meter{}, _q.predicates...),
-		withTableEngine: _q.withTableEngine.Clone(),
+	return &MeterTableEngineQuery{
+		config:     _q.config,
+		ctx:        _q.ctx.Clone(),
+		order:      append([]metertableengine.OrderOption{}, _q.order...),
+		inters:     append([]Interceptor{}, _q.inters...),
+		predicates: append([]predicate.MeterTableEngine{}, _q.predicates...),
+		withMeter:  _q.withMeter.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
 }
 
-// WithTableEngine tells the query-builder to eager-load the nodes that are connected to
-// the "table_engine" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *MeterQuery) WithTableEngine(opts ...func(*MeterTableEngineQuery)) *MeterQuery {
-	query := (&MeterTableEngineClient{config: _q.config}).Query()
+// WithMeter tells the query-builder to eager-load the nodes that are connected to
+// the "meter" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *MeterTableEngineQuery) WithMeter(opts ...func(*MeterQuery)) *MeterTableEngineQuery {
+	query := (&MeterClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withTableEngine = query
+	_q.withMeter = query
 	return _q
 }
 
@@ -305,15 +304,15 @@ func (_q *MeterQuery) WithTableEngine(opts ...func(*MeterTableEngineQuery)) *Met
 //		Count int `json:"count,omitempty"`
 //	}
 //
-//	client.Meter.Query().
-//		GroupBy(dbmeter.FieldNamespace).
+//	client.MeterTableEngine.Query().
+//		GroupBy(metertableengine.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (_q *MeterQuery) GroupBy(field string, fields ...string) *MeterGroupBy {
+func (_q *MeterTableEngineQuery) GroupBy(field string, fields ...string) *MeterTableEngineGroupBy {
 	_q.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &MeterGroupBy{build: _q}
+	grbuild := &MeterTableEngineGroupBy{build: _q}
 	grbuild.flds = &_q.ctx.Fields
-	grbuild.label = dbmeter.Label
+	grbuild.label = metertableengine.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -327,23 +326,23 @@ func (_q *MeterQuery) GroupBy(field string, fields ...string) *MeterGroupBy {
 //		Namespace string `json:"namespace,omitempty"`
 //	}
 //
-//	client.Meter.Query().
-//		Select(dbmeter.FieldNamespace).
+//	client.MeterTableEngine.Query().
+//		Select(metertableengine.FieldNamespace).
 //		Scan(ctx, &v)
-func (_q *MeterQuery) Select(fields ...string) *MeterSelect {
+func (_q *MeterTableEngineQuery) Select(fields ...string) *MeterTableEngineSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
-	sbuild := &MeterSelect{MeterQuery: _q}
-	sbuild.label = dbmeter.Label
+	sbuild := &MeterTableEngineSelect{MeterTableEngineQuery: _q}
+	sbuild.label = metertableengine.Label
 	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
-// Aggregate returns a MeterSelect configured with the given aggregations.
-func (_q *MeterQuery) Aggregate(fns ...AggregateFunc) *MeterSelect {
+// Aggregate returns a MeterTableEngineSelect configured with the given aggregations.
+func (_q *MeterTableEngineQuery) Aggregate(fns ...AggregateFunc) *MeterTableEngineSelect {
 	return _q.Select().Aggregate(fns...)
 }
 
-func (_q *MeterQuery) prepareQuery(ctx context.Context) error {
+func (_q *MeterTableEngineQuery) prepareQuery(ctx context.Context) error {
 	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
@@ -355,7 +354,7 @@ func (_q *MeterQuery) prepareQuery(ctx context.Context) error {
 		}
 	}
 	for _, f := range _q.ctx.Fields {
-		if !dbmeter.ValidColumn(f) {
+		if !metertableengine.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
@@ -369,19 +368,19 @@ func (_q *MeterQuery) prepareQuery(ctx context.Context) error {
 	return nil
 }
 
-func (_q *MeterQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Meter, error) {
+func (_q *MeterTableEngineQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*MeterTableEngine, error) {
 	var (
-		nodes       = []*Meter{}
+		nodes       = []*MeterTableEngine{}
 		_spec       = _q.querySpec()
 		loadedTypes = [1]bool{
-			_q.withTableEngine != nil,
+			_q.withMeter != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
-		return (*Meter).scanValues(nil, columns)
+		return (*MeterTableEngine).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &Meter{config: _q.config}
+		node := &MeterTableEngine{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
@@ -398,44 +397,46 @@ func (_q *MeterQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Meter,
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withTableEngine; query != nil {
-		if err := _q.loadTableEngine(ctx, query, nodes, nil,
-			func(n *Meter, e *MeterTableEngine) { n.Edges.TableEngine = e }); err != nil {
+	if query := _q.withMeter; query != nil {
+		if err := _q.loadMeter(ctx, query, nodes, nil,
+			func(n *MeterTableEngine, e *Meter) { n.Edges.Meter = e }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (_q *MeterQuery) loadTableEngine(ctx context.Context, query *MeterTableEngineQuery, nodes []*Meter, init func(*Meter), assign func(*Meter, *MeterTableEngine)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[string]*Meter)
+func (_q *MeterTableEngineQuery) loadMeter(ctx context.Context, query *MeterQuery, nodes []*MeterTableEngine, init func(*MeterTableEngine), assign func(*MeterTableEngine, *Meter)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*MeterTableEngine)
 	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
+		fk := nodes[i].MeterID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(metertableengine.FieldMeterID)
+	if len(ids) == 0 {
+		return nil
 	}
-	query.Where(predicate.MeterTableEngine(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(dbmeter.TableEngineColumn), fks...))
-	}))
+	query.Where(dbmeter.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.MeterID
-		node, ok := nodeids[fk]
+		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "meter_id" returned %v for node %v`, fk, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "meter_id" returned %v`, n.ID)
 		}
-		assign(node, n)
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }
 
-func (_q *MeterQuery) sqlCount(ctx context.Context) (int, error) {
+func (_q *MeterTableEngineQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
 	if len(_q.modifiers) > 0 {
 		_spec.Modifiers = _q.modifiers
@@ -447,8 +448,8 @@ func (_q *MeterQuery) sqlCount(ctx context.Context) (int, error) {
 	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (_q *MeterQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(dbmeter.Table, dbmeter.Columns, sqlgraph.NewFieldSpec(dbmeter.FieldID, field.TypeString))
+func (_q *MeterTableEngineQuery) querySpec() *sqlgraph.QuerySpec {
+	_spec := sqlgraph.NewQuerySpec(metertableengine.Table, metertableengine.Columns, sqlgraph.NewFieldSpec(metertableengine.FieldID, field.TypeString))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -457,11 +458,14 @@ func (_q *MeterQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, dbmeter.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, metertableengine.FieldID)
 		for i := range fields {
-			if fields[i] != dbmeter.FieldID {
+			if fields[i] != metertableengine.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withMeter != nil {
+			_spec.Node.AddColumnOnce(metertableengine.FieldMeterID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {
@@ -487,12 +491,12 @@ func (_q *MeterQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (_q *MeterQuery) sqlQuery(ctx context.Context) *sql.Selector {
+func (_q *MeterTableEngineQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(_q.driver.Dialect())
-	t1 := builder.Table(dbmeter.Table)
+	t1 := builder.Table(metertableengine.Table)
 	columns := _q.ctx.Fields
 	if len(columns) == 0 {
-		columns = dbmeter.Columns
+		columns = metertableengine.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if _q.sql != nil {
@@ -525,7 +529,7 @@ func (_q *MeterQuery) sqlQuery(ctx context.Context) *sql.Selector {
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (_q *MeterQuery) ForUpdate(opts ...sql.LockOption) *MeterQuery {
+func (_q *MeterTableEngineQuery) ForUpdate(opts ...sql.LockOption) *MeterTableEngineQuery {
 	if _q.driver.Dialect() == dialect.Postgres {
 		_q.Unique(false)
 	}
@@ -538,7 +542,7 @@ func (_q *MeterQuery) ForUpdate(opts ...sql.LockOption) *MeterQuery {
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (_q *MeterQuery) ForShare(opts ...sql.LockOption) *MeterQuery {
+func (_q *MeterTableEngineQuery) ForShare(opts ...sql.LockOption) *MeterTableEngineQuery {
 	if _q.driver.Dialect() == dialect.Postgres {
 		_q.Unique(false)
 	}
@@ -548,28 +552,28 @@ func (_q *MeterQuery) ForShare(opts ...sql.LockOption) *MeterQuery {
 	return _q
 }
 
-// MeterGroupBy is the group-by builder for Meter entities.
-type MeterGroupBy struct {
+// MeterTableEngineGroupBy is the group-by builder for MeterTableEngine entities.
+type MeterTableEngineGroupBy struct {
 	selector
-	build *MeterQuery
+	build *MeterTableEngineQuery
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (_g *MeterGroupBy) Aggregate(fns ...AggregateFunc) *MeterGroupBy {
+func (_g *MeterTableEngineGroupBy) Aggregate(fns ...AggregateFunc) *MeterTableEngineGroupBy {
 	_g.fns = append(_g.fns, fns...)
 	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_g *MeterGroupBy) Scan(ctx context.Context, v any) error {
+func (_g *MeterTableEngineGroupBy) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
 	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*MeterQuery, *MeterGroupBy](ctx, _g.build, _g, _g.build.inters, v)
+	return scanWithInterceptors[*MeterTableEngineQuery, *MeterTableEngineGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (_g *MeterGroupBy) sqlScan(ctx context.Context, root *MeterQuery, v any) error {
+func (_g *MeterTableEngineGroupBy) sqlScan(ctx context.Context, root *MeterTableEngineQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
 	aggregation := make([]string, 0, len(_g.fns))
 	for _, fn := range _g.fns {
@@ -596,28 +600,28 @@ func (_g *MeterGroupBy) sqlScan(ctx context.Context, root *MeterQuery, v any) er
 	return sql.ScanSlice(rows, v)
 }
 
-// MeterSelect is the builder for selecting fields of Meter entities.
-type MeterSelect struct {
-	*MeterQuery
+// MeterTableEngineSelect is the builder for selecting fields of MeterTableEngine entities.
+type MeterTableEngineSelect struct {
+	*MeterTableEngineQuery
 	selector
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (_s *MeterSelect) Aggregate(fns ...AggregateFunc) *MeterSelect {
+func (_s *MeterTableEngineSelect) Aggregate(fns ...AggregateFunc) *MeterTableEngineSelect {
 	_s.fns = append(_s.fns, fns...)
 	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_s *MeterSelect) Scan(ctx context.Context, v any) error {
+func (_s *MeterTableEngineSelect) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
 	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*MeterQuery, *MeterSelect](ctx, _s.MeterQuery, _s, _s.inters, v)
+	return scanWithInterceptors[*MeterTableEngineQuery, *MeterTableEngineSelect](ctx, _s.MeterTableEngineQuery, _s, _s.inters, v)
 }
 
-func (_s *MeterSelect) sqlScan(ctx context.Context, root *MeterQuery, v any) error {
+func (_s *MeterTableEngineSelect) sqlScan(ctx context.Context, root *MeterTableEngineQuery, v any) error {
 	selector := root.sqlQuery(ctx)
 	aggregation := make([]string, 0, len(_s.fns))
 	for _, fn := range _s.fns {

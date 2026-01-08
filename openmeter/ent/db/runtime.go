@@ -34,6 +34,7 @@ import (
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/metertableengine"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
@@ -1028,6 +1029,43 @@ func init() {
 	dbmeterDescID := dbmeterMixinFields0[0].Descriptor()
 	// dbmeter.DefaultID holds the default value on creation for the id field.
 	dbmeter.DefaultID = dbmeterDescID.Default.(func() string)
+	metertableengineMixin := schema.MeterTableEngine{}.Mixin()
+	metertableengineMixinFields0 := metertableengineMixin[0].Fields()
+	_ = metertableengineMixinFields0
+	metertableengineMixinFields1 := metertableengineMixin[1].Fields()
+	_ = metertableengineMixinFields1
+	metertableengineMixinFields2 := metertableengineMixin[2].Fields()
+	_ = metertableengineMixinFields2
+	metertableengineFields := schema.MeterTableEngine{}.Fields()
+	_ = metertableengineFields
+	// metertableengineDescNamespace is the schema descriptor for namespace field.
+	metertableengineDescNamespace := metertableengineMixinFields0[0].Descriptor()
+	// metertableengine.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	metertableengine.NamespaceValidator = metertableengineDescNamespace.Validators[0].(func(string) error)
+	// metertableengineDescCreatedAt is the schema descriptor for created_at field.
+	metertableengineDescCreatedAt := metertableengineMixinFields2[0].Descriptor()
+	// metertableengine.DefaultCreatedAt holds the default value on creation for the created_at field.
+	metertableengine.DefaultCreatedAt = metertableengineDescCreatedAt.Default.(func() time.Time)
+	// metertableengineDescUpdatedAt is the schema descriptor for updated_at field.
+	metertableengineDescUpdatedAt := metertableengineMixinFields2[1].Descriptor()
+	// metertableengine.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	metertableengine.DefaultUpdatedAt = metertableengineDescUpdatedAt.Default.(func() time.Time)
+	// metertableengine.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	metertableengine.UpdateDefaultUpdatedAt = metertableengineDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// metertableengineDescMeterID is the schema descriptor for meter_id field.
+	metertableengineDescMeterID := metertableengineFields[0].Descriptor()
+	// metertableengine.MeterIDValidator is a validator for the "meter_id" field. It is called by the builders before save.
+	metertableengine.MeterIDValidator = metertableengineDescMeterID.Validators[0].(func(string) error)
+	// metertableengineDescEngine is the schema descriptor for engine field.
+	metertableengineDescEngine := metertableengineFields[1].Descriptor()
+	// metertableengine.DefaultEngine holds the default value on creation for the engine field.
+	metertableengine.DefaultEngine = metertableengineDescEngine.Default.(string)
+	// metertableengine.EngineValidator is a validator for the "engine" field. It is called by the builders before save.
+	metertableengine.EngineValidator = metertableengineDescEngine.Validators[0].(func(string) error)
+	// metertableengineDescID is the schema descriptor for id field.
+	metertableengineDescID := metertableengineMixinFields1[0].Descriptor()
+	// metertableengine.DefaultID holds the default value on creation for the id field.
+	metertableengine.DefaultID = metertableengineDescID.Default.(func() string)
 	notificationchannelMixin := schema.NotificationChannel{}.Mixin()
 	notificationchannelMixinFields0 := notificationchannelMixin[0].Fields()
 	_ = notificationchannelMixinFields0

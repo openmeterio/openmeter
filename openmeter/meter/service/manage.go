@@ -233,3 +233,12 @@ func (s *ManageService) UpdateMeter(ctx context.Context, input meter.UpdateMeter
 
 	return updatedMeter, nil
 }
+
+func (s *ManageService) UpdateTableEngine(ctx context.Context, meter meter.Meter) error {
+	if meter.TableEngine == nil {
+		s.adapter.DeleteTableEngine(ctx, meter)
+		return nil
+	}
+
+	return s.adapter.UpsertTableEngine(ctx, meter)
+}

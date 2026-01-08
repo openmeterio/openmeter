@@ -26,6 +26,9 @@ type ManageService interface {
 	UpdateMeter(ctx context.Context, input UpdateMeterInput) (Meter, error)
 	DeleteMeter(ctx context.Context, input DeleteMeterInput) error
 
+	// UpdateTableEngine updates the table engine settings (only) for a given meter.
+	UpdateTableEngine(ctx context.Context, meter Meter) error
+
 	// Observer hooks
 	// Useful to coordinate with other services
 	RegisterPreUpdateMeterHook(hook PreUpdateMeterHook) error

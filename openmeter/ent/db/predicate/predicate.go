@@ -178,6 +178,9 @@ type Grant func(*sql.Selector)
 // Meter is the predicate function for dbmeter builders.
 type Meter func(*sql.Selector)
 
+// MeterTableEngine is the predicate function for metertableengine builders.
+type MeterTableEngine func(*sql.Selector)
+
 // NotificationChannel is the predicate function for notificationchannel builders.
 type NotificationChannel func(*sql.Selector)
 
