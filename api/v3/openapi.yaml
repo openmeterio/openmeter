@@ -50,8 +50,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateCustomerRequest'
-      x-internal: true
-      x-unstable: true
     get:
       operationId: list-customers
       summary: List customers
@@ -98,8 +96,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Customers
-      x-internal: true
-      x-unstable: true
   /openmeter/customers/{customerId}:
     get:
       operationId: get-customer
@@ -127,8 +123,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Customers
-      x-internal: true
-      x-unstable: true
     put:
       operationId: upsert-customer
       summary: Upsert customer
@@ -163,8 +157,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertCustomerRequest'
-      x-internal: true
-      x-unstable: true
     delete:
       operationId: delete-customer
       summary: Delete customer
@@ -187,8 +179,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Customers
-      x-internal: true
-      x-unstable: true
   /openmeter/customers/{customerId}/entitlement-access:
     get:
       operationId: list-customer-entitlement-access
@@ -216,8 +206,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Entitlements
-      x-internal: true
-      x-unstable: true
   /openmeter/events:
     post:
       operationId: ingest-metering-events
@@ -232,8 +220,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-      x-internal: true
-      x-unstable: true
       tags:
         - Metering Events
       requestBody:
@@ -280,8 +266,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateMeterRequest'
-      x-internal: true
-      x-unstable: true
     get:
       operationId: list-meters
       summary: List meters
@@ -303,8 +287,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - Meters
-      x-internal: true
-      x-unstable: true
   /openmeter/meters/{meterId}:
     get:
       operationId: get-meter
@@ -333,8 +315,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - Meters
-      x-internal: true
-      x-unstable: true
     delete:
       operationId: delete-meter
       summary: Delete meter
@@ -358,8 +338,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - Meters
-      x-internal: true
-      x-unstable: true
   /openmeter/subscriptions:
     post:
       operationId: create-subscription
@@ -389,8 +367,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingSubscriptionCreate'
-      x-internal: true
-      x-unstable: true
     get:
       operationId: list-subscriptions
       summary: List subscriptions
@@ -425,8 +401,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Subscriptions
-      x-internal: true
-      x-unstable: true
   /openmeter/subscriptions/{subscriptionId}:
     get:
       operationId: get-subscription
@@ -454,8 +428,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Subscriptions
-      x-internal: true
-      x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/cancel:
     post:
       operationId: cancel-subscription
@@ -494,8 +466,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingSubscriptionCancel'
-      x-internal: true
-      x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/change:
     post:
       operationId: change-subscription
@@ -534,8 +504,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingSubscriptionChange'
-      x-internal: true
-      x-unstable: true
   /openmeter/subscriptions/{subscriptionId}/unschedule-cancelation:
     post:
       operationId: unschedule-cancelation
@@ -566,8 +534,6 @@ paths:
           $ref: '#/components/responses/Conflict'
       tags:
         - OpenMeter Subscriptions
-      x-internal: true
-      x-unstable: true
 components:
   parameters:
     PagePaginationQuery:
@@ -793,7 +759,13 @@ components:
         billing_anchor:
           allOf:
             - $ref: '#/components/schemas/DateTime'
-          description: The billing anchor of the subscription.
+          description: |-
+            A billing anchor is the fixed point in time that determines the subscription's recurring billing cycle.
+            It affects when charges occur and how prorations are calculated.
+            Common anchors:
+            - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
+            - Subscription anniversary (day customer signed up)
+            - Custom date (customer-specified day)
           title: Billing anchor
           readOnly: true
         status:
@@ -877,8 +849,14 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: |-
-            The billing anchor of the subscription.
-            Defaults to now if not provided.
+            A billing anchor is the fixed point in time that determines the subscription's recurring billing cycle.
+            It affects when charges occur and how prorations are calculated.
+            Common anchors:
+            - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
+            - Subscription anniversary (day customer signed up)
+            - Custom date (customer-specified day)
+
+            If not provided, the subscription will be created with the subscription's creation time as the billing anchor.
           title: Billing anchor
         timing:
           allOf:
@@ -966,8 +944,14 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: |-
-            The billing anchor of the subscription.
-            Defaults to now if not provided.
+            A billing anchor is the fixed point in time that determines the subscription's recurring billing cycle.
+            It affects when charges occur and how prorations are calculated.
+            Common anchors:
+            - Calendar month (1st of each month): `2025-01-01T00:00:00Z`
+            - Subscription anniversary (day customer signed up)
+            - Custom date (customer-specified day)
+
+            If not provided, the subscription will be created with the subscription's creation time as the billing anchor.
           title: Billing anchor
       description: Subscription create request.
     BillingSubscriptionEditTiming:
