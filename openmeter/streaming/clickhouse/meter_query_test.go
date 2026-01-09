@@ -567,7 +567,7 @@ func TestQueryMeter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotSql, gotArgs, err := tt.query.toSQL()
+			gotSql, gotArgs, err := tt.query.ToSQL()
 			if err != nil {
 				t.Error(err)
 				return

@@ -1,4 +1,4 @@
-package clickhouse
+package summeterv1
 
 import (
 	_ "embed"
@@ -15,26 +15,23 @@ import (
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/pkg/filter"
+	streamingclickhouse "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // TODO: split the struct from the actual query logic so that we can reuse the QueryMeter only
 type queryMeter struct {
-	Database        string
-	EventsTableName string
-	Namespace       string
-	Meter           meterpkg.Meter
-	FilterCustomer  []streaming.Customer
-	FilterSubject   []string
-	FilterGroupBy   map[string]filter.FilterString
-	From            *time.Time
-	To              *time.Time
-	GroupBy         []string
-	WindowSize      *meterpkg.WindowSize
-	WindowTimeZone  *time.Location
-	QuerySettings   map[string]string
-	EnablePrewhere  bool
+	Database      string
+	SumTableName  string
+	Namespace     string
+	QuerySettings map[string]string
+
+	Meter meterpkg.Meter
+
+	streaming.QueryParams
+	// UseFloatValue selects the Float64 value column instead of Decimal128 for aggregation.
+	// When true, we aggregate over value_f64; otherwise we aggregate over value (Decimal128).
+	UseFloatValue bool
 }
 
 // TODO: proper naming once the previous struct is split from the actual query logic
@@ -42,6 +39,7 @@ type queryMeter struct {
 var _ streaming.QueryMeterSQL = (*queryMeter)(nil)
 
 // from returns the from time for the query.
+// TODO: make it reusable in the query engine as this is just a copy paste from there
 func (d *queryMeter) from() *time.Time {
 	// If the query from time is set, use it
 	from := d.From
@@ -74,7 +72,7 @@ func (d *queryMeter) from() *time.Time {
 // This estimate is useful for query progress tracking.
 // We only filter by columns that are in the ClickHouse table order.
 func (d *queryMeter) ToCountRowSQL() (string, []interface{}) {
-	tableName := getTableName(d.Database, d.EventsTableName)
+	tableName := getTableName(d.Database, d.SumTableName)
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
 	query.Select("count() AS total")
@@ -89,8 +87,8 @@ func (d *queryMeter) ToCountRowSQL() (string, []interface{}) {
 
 // toSQL returns the SQL query for the meter query.
 func (d *queryMeter) ToSQL() (string, []interface{}, error) {
-	tableName := getTableName(d.Database, d.EventsTableName)
-	getColumn := columnFactory(d.EventsTableName)
+	tableName := getTableName(d.Database, d.SumTableName)
+	getColumn := columnFactory(d.SumTableName)
 	timeColumn := getColumn("time")
 
 	var selectColumns, groupByColumns []string
@@ -161,39 +159,16 @@ func (d *queryMeter) ToSQL() (string, []interface{}, error) {
 		selectColumns = append(selectColumns, selectColumn)
 	}
 
-	// Select Value
-	sqlAggregation := ""
-	switch d.Meter.Aggregation {
-	case meterpkg.MeterAggregationSum:
-		sqlAggregation = "sum"
-	case meterpkg.MeterAggregationAvg:
-		sqlAggregation = "avg"
-	case meterpkg.MeterAggregationMin:
-		sqlAggregation = "min"
-	case meterpkg.MeterAggregationMax:
-		sqlAggregation = "max"
-	case meterpkg.MeterAggregationUniqueCount:
-		sqlAggregation = "uniq"
-	case meterpkg.MeterAggregationCount:
-		sqlAggregation = "count"
-	case meterpkg.MeterAggregationLatest:
-		sqlAggregation = "argMax"
-	default:
-		return "", []interface{}{}, models.NewGenericValidationError(
-			fmt.Errorf("invalid aggregation type: %s", d.Meter.Aggregation),
-		)
+	// Select aggregated value; prefer float column when requested to simplify scanning
+	valueCol := getColumn("value")
+	if d.UseFloatValue {
+		valueCol = getColumn("value_f64")
 	}
-
-	switch d.Meter.Aggregation {
-	case meterpkg.MeterAggregationCount:
-		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(*)) AS value", sqlAggregation))
-	case meterpkg.MeterAggregationUniqueCount:
-		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(JSON_VALUE(%s, '%s'))) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
-	case meterpkg.MeterAggregationLatest:
-		selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null), %s) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty), timeColumn))
-	default:
-		// JSON_VALUE returns an empty string if the JSON Path is not found. With toFloat64OrNull we convert it to NULL so the aggregation function can handle it properly.
-		selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null)) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
+	// Convert to float64 for scanning consistency when using Decimal column
+	if d.UseFloatValue {
+		selectColumns = append(selectColumns, fmt.Sprintf("SUM(%s) AS value", valueCol))
+	} else {
+		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(SUM(%s)) AS value", valueCol))
 	}
 
 	for _, groupByKey := range d.GroupBy {
@@ -212,8 +187,7 @@ func (d *queryMeter) ToSQL() (string, []interface{}, error) {
 
 		// Group by columns need to be parsed from the JSON data
 		groupByColumn := sqlbuilder.Escape(groupByKey)
-		groupByJSONPath := escapeJSONPathLiteral(d.Meter.GroupBy[groupByKey])
-		selectColumn := fmt.Sprintf("JSON_VALUE(%s, '%s') as %s", getColumn("data"), groupByJSONPath, groupByColumn)
+		selectColumn := fmt.Sprintf("%s['%s'] as %s", getColumn("group_by_filters"), groupByColumn, groupByColumn)
 
 		selectColumns = append(selectColumns, selectColumn)
 		groupByColumns = append(groupByColumns, groupByColumn)
@@ -225,29 +199,20 @@ func (d *queryMeter) ToSQL() (string, []interface{}, error) {
 
 	// Select customer id column if it's in the group by
 	if slices.Contains(d.GroupBy, "customer_id") {
-		query = SelectCustomerIdColumn(d.EventsTableName, d.FilterCustomer, query)
+		query = streamingclickhouse.SelectCustomerIdColumn(d.SumTableName, d.FilterCustomer, query)
 	}
 
 	// Where by ordered columns, going into prewhere clause
 	query = d.whereByOrderedColumns(query)
 
-	var sqlBeforeApplyingDataWheres string
-
 	// Where by columns not in the order of the event table, going into where clause
 	if len(d.FilterGroupBy) > 0 {
-		// If prewhere is enabled, we take a copy of the query to build the prewhere clause
-		if d.EnablePrewhere {
-			sqlBeforeApplyingDataWheres, _ = query.Build()
-		}
-
 		// We sort the group by s to ensure the query is deterministic
 		groupByKeys := make([]string, 0, len(d.FilterGroupBy))
 		for k := range d.FilterGroupBy {
 			groupByKeys = append(groupByKeys, k)
 		}
 		sort.Strings(groupByKeys)
-
-		dataColumn := getColumn("data")
 
 		for _, groupByKey := range groupByKeys {
 			if _, ok := d.Meter.GroupBy[groupByKey]; !ok {
@@ -256,7 +221,6 @@ func (d *queryMeter) ToSQL() (string, []interface{}, error) {
 				)
 			}
 
-			groupByJSONPath := d.Meter.GroupBy[groupByKey]
 			filterString := d.FilterGroupBy[groupByKey]
 
 			// Skip empty filters
@@ -272,7 +236,8 @@ func (d *queryMeter) ToSQL() (string, []interface{}, error) {
 			}
 
 			// Determine the column name
-			column := fmt.Sprintf("JSON_VALUE(%s, '%s')", dataColumn, escapeJSONPathLiteral(groupByJSONPath))
+			// TODO: quote the group by key
+			column := fmt.Sprintf("%s['%s']", getColumn("group_by_filters"), groupByKey)
 
 			// Subject is a special case
 			if groupByKey == "subject" {
@@ -301,22 +266,6 @@ func (d *queryMeter) ToSQL() (string, []interface{}, error) {
 	settings := []string{}
 	sql, args := query.Build()
 
-	// Move wheres to prewhere if enabled and there are non prewhere filters
-	if d.EnablePrewhere && sqlBeforeApplyingDataWheres != "" {
-		settings = append(settings, "optimize_move_to_prewhere = 1")
-		settings = append(settings, "allow_reorder_prewhere_conditions = 1")
-
-		sqlParts := strings.Split(sql, sqlBeforeApplyingDataWheres)
-		sqlAfter := sqlParts[1]
-
-		if strings.HasPrefix(sqlAfter, " AND") {
-			sqlAfter = strings.Replace(sqlAfter, "AND", "WHERE", 1)
-		}
-
-		sqlBeforeApplyingDataWheres = strings.Replace(sqlBeforeApplyingDataWheres, "WHERE", "PREWHERE", 1)
-		sql = fmt.Sprintf("%s%s", sqlBeforeApplyingDataWheres, sqlAfter)
-	}
-
 	// Add settings
 	for key, value := range d.QuerySettings {
 		settings = append(settings, fmt.Sprintf("%s = %s", key, value))
@@ -332,12 +281,14 @@ func (d *queryMeter) ToSQL() (string, []interface{}, error) {
 // whereByOrderedColumns applies the where clause to the query for columns that are ordered by the event table.
 // The event table is ordered by namespace, type, subject, time.
 func (d *queryMeter) whereByOrderedColumns(query *sqlbuilder.SelectBuilder) *sqlbuilder.SelectBuilder {
-	getColumn := columnFactory(d.EventsTableName)
+	getColumn := columnFactory(d.SumTableName)
 
 	query.Where(query.Equal(getColumn("namespace"), d.Namespace))
-	query.Where(query.Equal(getColumn("type"), d.Meter.EventType))
-	query = CustomersWhere(d.EventsTableName, d.FilterCustomer, query)
-	query = SubjectWhere(d.EventsTableName, d.FilterSubject, query)
+	// For meter sum tables we filter by meter_id; for event tables we filter by type
+	// TODO: use the table engine's id instead, and fix the tests
+	query.Where(query.Equal(getColumn("meter_id"), d.Meter.ID))
+	query = streamingclickhouse.CustomersWhere(d.SumTableName, d.FilterCustomer, query)
+	query = streamingclickhouse.SubjectWhere(d.SumTableName, d.FilterSubject, query)
 	query = d.timeWhere(query)
 
 	return query
@@ -345,7 +296,7 @@ func (d *queryMeter) whereByOrderedColumns(query *sqlbuilder.SelectBuilder) *sql
 
 // timeWhere applies the time filter to the query.
 func (d *queryMeter) timeWhere(query *sqlbuilder.SelectBuilder) *sqlbuilder.SelectBuilder {
-	getColumn := columnFactory(d.EventsTableName)
+	getColumn := columnFactory(d.SumTableName)
 	timeColumn := getColumn("time")
 
 	from := d.from()
@@ -476,4 +427,14 @@ func escapeJSONPathLiteral(s string) string {
 		}
 	}
 	return sb.String()
+}
+
+func getTableName(database string, tableName string) string {
+	return fmt.Sprintf("%s.%s", database, tableName)
+}
+
+func columnFactory(alias string) func(string) string {
+	return func(column string) string {
+		return fmt.Sprintf("%s.%s", alias, column)
+	}
 }

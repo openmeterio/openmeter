@@ -28,6 +28,7 @@ func (e Engine) CreateTableSQL() string {
 	sb.Define("subject", "String")
 	sb.Define("time", "DateTime")
 	sb.Define("value", "Decimal128(20)")
+	sb.Define("value_f64", "Float64")
 	sb.Define("group_by_filters", "Map(LowCardinality(String),String)")
 	sb.Define("stored_at", "DateTime")
 	sb.Define("store_row_id", "String")
@@ -45,6 +46,7 @@ type Record struct {
 	Subject        string
 	Time           time.Time
 	Value          alpacadecimal.Decimal
+	ValueF64       float64
 	GroupByFilters map[string]string
 	StoredAt       time.Time
 	StoreRowID     string
@@ -62,7 +64,7 @@ func (q InsertRecordsQuery) ToSQL() (string, []interface{}) {
 
 	query := sqlbuilder.ClickHouse.NewInsertBuilder()
 	query.InsertInto(tableName)
-	query.Cols("namespace", "meter_id", "subject", "time", "value", "group_by_filters", "stored_at", "store_row_id")
+	query.Cols("namespace", "meter_id", "subject", "time", "value", "value_f64", "group_by_filters", "stored_at", "store_row_id")
 
 	// Add settings
 	var settings []string
@@ -81,6 +83,7 @@ func (q InsertRecordsQuery) ToSQL() (string, []interface{}) {
 			event.Subject,
 			event.Time,
 			event.Value,
+			event.ValueF64,
 			event.GroupByFilters,
 			event.StoredAt,
 			event.StoreRowID,
@@ -203,9 +206,12 @@ func (q InsertFromEventsQuery) ToSQL() (string, []interface{}, error) {
 	// Value expression: parse decimal directly from JSON string to avoid float rounding
 	valueExpr := "CAST(toDecimal128OrNull(JSON_VALUE(data, ?), 20) AS Decimal128(20))"
 	valueArgs = append(valueArgs, *q.Meter.ValueProperty)
+	// Float expression from the same JSON path
+	valueF64Expr := "toFloat64OrNull(JSON_VALUE(data, ?))"
+	valueArgs = append(valueArgs, *q.Meter.ValueProperty)
 
 	// Insert columns
-	cols := "namespace, meter_id, subject, time, value, group_by_filters, stored_at, store_row_id"
+	cols := "namespace, meter_id, subject, time, value, value_f64, group_by_filters, stored_at, store_row_id"
 
 	// Build SELECT using sqlbuilder
 	sel := sqlbuilder.ClickHouse.NewSelectBuilder()
@@ -215,6 +221,7 @@ func (q InsertFromEventsQuery) ToSQL() (string, []interface{}, error) {
 		"subject",
 		"time",
 		valueExpr+" AS value",
+		valueF64Expr+" AS value_f64",
 		groupExpr+" AS group_by_filters",
 		"stored_at",
 		"toString(generateUUIDv4()) AS store_row_id",
@@ -238,6 +245,24 @@ func (q InsertFromEventsQuery) ToSQL() (string, []interface{}, error) {
 	finalSQL := fmt.Sprintf("INSERT INTO %s (%s) %s", tableName, cols, selectSQL)
 	return finalSQL, args, nil
 }
+
+// DeleteMeterRecordsQuery builds an ALTER TABLE ... DELETE statement to remove
+// records for a specific meter and time range.
+type DeleteMeterRecordsQuery struct {
+	Database  string
+	Namespace string
+	MeterID   string
+	Period    timeutil.ClosedPeriod
+}
+
+func (q DeleteMeterRecordsQuery) ToSQL() (string, []interface{}) {
+	tableName := fmt.Sprintf("%s.%s", q.Database, TableName)
+	sql := fmt.Sprintf("ALTER TABLE %s DELETE WHERE namespace = ? AND meter_id = ? AND stored_at >= ? AND stored_at < ?", tableName)
+	args := []interface{}{q.Namespace, q.MeterID, q.Period.From, q.Period.To}
+	return sql, args
+}
+
+// Deletion path removed; dedupe ensured by overwriting behavior outside of this code.
 
 func (e Engine) InsertFromEvents(ctx context.Context, eventsTableName string, m meter.Meter, period timeutil.ClosedPeriod) error {
 	q := InsertFromEventsQuery{

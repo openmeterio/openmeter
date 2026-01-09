@@ -141,22 +141,12 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 		return nil, fmt.Errorf("validate params: %w", err)
 	}
 
-	// Table engine support
-	tableEngineResult, err := c.queryMeterWithTableEngine(ctx, namespace, meter, params)
-	if err != nil {
-		return nil, fmt.Errorf("query meter with table engine: %w", err)
-	}
-
-	if tableEngineResult.canHandle {
-		return tableEngineResult.values, nil
-	}
-
 	// We sort the group by keys to ensure the order of the group by columns is deterministic
 	// It helps testing the SQL queries.
 	groupBy := append([]string(nil), params.GroupBy...)
 	sort.Strings(groupBy)
 
-	query := queryMeter{
+	var query streaming.QueryMeterSQL = &queryMeter{
 		Database:        c.config.Database,
 		EventsTableName: c.config.EventsTableName,
 		Namespace:       namespace,
@@ -173,17 +163,27 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 		EnablePrewhere:  c.config.EnablePrewhere,
 	}
 
+	// Table engine support
+	tableEngineResult, err := c.queryMeterWithTableEngine(ctx, namespace, meter, params)
+	if err != nil {
+		return nil, fmt.Errorf("query meter with table engine: %w", err)
+	}
+
+	if tableEngineResult.canHandle {
+		query = tableEngineResult.querySQL
+	}
+
 	// Load cached rows if any
 	var values []meterpkg.MeterQueryRow
 
 	// If the client ID is set, we track track the progress of the query
 	if params.ClientID != nil {
-		values, err = c.queryMeterWithProgress(ctx, namespace, *params.ClientID, query)
+		values, err = c.queryMeterWithProgress(ctx, namespace, *params.ClientID, meter, query)
 		if err != nil {
 			return values, fmt.Errorf("query meter with progress: %w", err)
 		}
 	} else {
-		values, err = c.queryMeter(ctx, query)
+		values, err = c.queryMeter(ctx, meter, query)
 		if err != nil {
 			return values, fmt.Errorf("query meter: %w", err)
 		}
@@ -208,7 +208,7 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 
 type queryMeterWithTableEngineResult struct {
 	canHandle bool
-	values    []meterpkg.MeterQueryRow
+	querySQL  streaming.QueryMeterSQL
 }
 
 func (c *Connector) queryMeterWithTableEngine(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.QueryParams) (queryMeterWithTableEngineResult, error) {
@@ -241,7 +241,7 @@ func (c *Connector) queryMeterWithTableEngine(ctx context.Context, namespace str
 
 	return queryMeterWithTableEngineResult{
 		canHandle: true,
-		values:    res,
+		querySQL:  res,
 	}, nil
 }
 
@@ -525,11 +525,11 @@ func (c *Connector) queryCountEvents(ctx context.Context, namespace string, para
 
 // queryMeterWithProgress queries the meter and returns the rows
 // It also tracks the progress of the query
-func (c *Connector) queryMeterWithProgress(ctx context.Context, namespace string, clientID string, query queryMeter) ([]meterpkg.MeterQueryRow, error) {
+func (c *Connector) queryMeterWithProgress(ctx context.Context, namespace string, clientID string, meter meterpkg.Meter, query streaming.QueryMeterSQL) ([]meterpkg.MeterQueryRow, error) {
 	var err error
 
 	// Build SQL query to count the total number of rows
-	countSQL, countArgs := query.toCountRowSQL()
+	countSQL, countArgs := query.ToCountRowSQL()
 
 	ctx, err = c.withProgressContext(ctx, namespace, clientID, countSQL, countArgs)
 	// Log error but don't return it
@@ -538,7 +538,7 @@ func (c *Connector) queryMeterWithProgress(ctx context.Context, namespace string
 	}
 
 	// Query the meter
-	values, err := c.queryMeter(ctx, query)
+	values, err := c.queryMeter(ctx, meter, query)
 	if err != nil {
 		return values, fmt.Errorf("query meter rows: %w", err)
 	}
@@ -547,9 +547,9 @@ func (c *Connector) queryMeterWithProgress(ctx context.Context, namespace string
 }
 
 // queryMeter queries the meter and returns the rows
-func (c *Connector) queryMeter(ctx context.Context, query queryMeter) ([]meterpkg.MeterQueryRow, error) {
+func (c *Connector) queryMeter(ctx context.Context, meter meterpkg.Meter, query streaming.QueryMeterSQL) ([]meterpkg.MeterQueryRow, error) {
 	// Build the SQL query
-	sql, args, err := query.toSQL()
+	sql, args, err := query.ToSQL()
 	if err != nil {
 		return nil, fmt.Errorf("build sql query: %w", err)
 	}
@@ -560,7 +560,7 @@ func (c *Connector) queryMeter(ctx context.Context, query queryMeter) ([]meterpk
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
-			return nil, meterpkg.NewMeterNotFoundError(query.Meter.Key)
+			return nil, meterpkg.NewMeterNotFoundError(meter.Key)
 		}
 		return nil, fmt.Errorf("clickhouse query: %w", err)
 	}
@@ -571,7 +571,7 @@ func (c *Connector) queryMeter(ctx context.Context, query queryMeter) ([]meterpk
 	c.config.Logger.Debug("clickhouse query executed", "elapsed", elapsed.String(), "sql", sql, "args", args)
 
 	// Scan the rows
-	values, err := query.scanRows(rows)
+	values, err := query.ScanRows(rows)
 	if err != nil {
 		return nil, fmt.Errorf("scan query rows: %w", err)
 	}

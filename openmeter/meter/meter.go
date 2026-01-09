@@ -349,14 +349,32 @@ type MeterQueryRow struct {
 type MeterTableEngineState string
 
 const (
-	MeterTableEngineStateActive   MeterTableEngineState = "active"
-	MeterTableEngineStateInactive MeterTableEngineState = "inactive"
+	// MeterTableEngineStateActive is the active state of the meter table engine, the engine can
+	// be used to query the meter data.
+	MeterTableEngineStateActive MeterTableEngineState = "active"
+
+	// MeterTableEngineStatePreparing is the preparing state of the meter table engine, the engine is being prepared
+	// for use. Queries will return no data until the engine is prepared.
+	MeterTableEngineStatePreparing MeterTableEngineState = "preparing"
+
+	// MeterTableEngineStateFailed is the failed state of the meter table engine, the engine cannot
+	// be used to query the meter data as either the rebuild or some consistency checks have failed.
+	MeterTableEngineStateFailed MeterTableEngineState = "failed"
+
+	// MeterTableEngineStateDeleting is the deleting state of the meter table engine, the engine's data is being cleaned up.
+	MeterTableEngineStateDeleting MeterTableEngineState = "deleting"
+
+	// MeterTableEngineStateDeleted is the deleted state of the meter table engine, the engine has been deleted.
+	MeterTableEngineStateDeleted MeterTableEngineState = "deleted"
 )
 
 func (MeterTableEngineState) Values() []string {
 	return []string{
 		string(MeterTableEngineStateActive),
-		string(MeterTableEngineStateInactive),
+		string(MeterTableEngineStatePreparing),
+		string(MeterTableEngineStateFailed),
+		string(MeterTableEngineStateDeleting),
+		string(MeterTableEngineStateDeleted),
 	}
 }
 

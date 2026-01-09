@@ -20,7 +20,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	chconn "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type EngineTestSuite struct {
@@ -265,38 +264,18 @@ func (s *EngineTestSuite) TestMaintainPopulatesMinStoredAtAndChunks() {
 	m.ManagedResource.ID = "m-state"
 	m.ManagedResource.NamespacedModel.Namespace = ns
 
-	s.T().Run("populate stream start", func(t *testing.T) {
-		steps := Counter(1)
-		err := s.Engine.Maintain(ctx, &steps, m)
-		s.Require().NoError(err)
+	// Single pass maintain
+	err := s.Engine.Maintain(ctx, m)
+	s.Require().NoError(err)
 
-		var updated1 EngineState
-		s.NoError(json.Unmarshal([]byte(m.TableEngine.State), &updated1))
-		s.Equal(frozenNow.Add(5*time.Minute).UTC().Truncate(time.Second), updated1.StreamDataAfterStoredAt)
-	})
+	var updated EngineState
+	s.NoError(json.Unmarshal([]byte(m.TableEngine.State), &updated))
+	s.Equal(frozenNow.Add(5*time.Minute).UTC().Truncate(time.Second), updated.StreamDataAfterStoredAt)
+	s.Equal(minTs, updated.Backfill.MinStoredAt)
 
-	s.T().Run("compute min stored_at and generate chunks", func(t *testing.T) {
-		steps := Counter(1)
-		err := s.Engine.Maintain(ctx, &steps, m)
-		s.Require().NoError(err)
-
-		var updated2 EngineState
-		s.NoError(json.Unmarshal([]byte(m.TableEngine.State), &updated2))
-		s.Equal(minTs, updated2.Backfill.MinStoredAt)
-
-		// Expected daily chunks: 2025-01-02, 2025-01-03, 2025-01-04, and partial on 5th up to 00:05
-		exp := []timeutil.ClosedPeriod{
-			{From: time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC), To: time.Date(2025, 1, 3, 0, 0, 0, 0, time.UTC)},
-			{From: time.Date(2025, 1, 3, 0, 0, 0, 0, time.UTC), To: time.Date(2025, 1, 4, 0, 0, 0, 0, time.UTC)},
-			{From: time.Date(2025, 1, 4, 0, 0, 0, 0, time.UTC), To: time.Date(2025, 1, 5, 0, 0, 0, 0, time.UTC)},
-			{From: time.Date(2025, 1, 5, 0, 0, 0, 0, time.UTC), To: time.Date(2025, 1, 5, 0, 5, 0, 0, time.UTC)},
-		}
-		s.Len(updated2.Backfill.ImportChunks, len(exp))
-		for i, ch := range updated2.Backfill.ImportChunks {
-			s.Equal(exp[i].From, ch.From, "chunk %d From mismatch", i)
-			s.Equal(exp[i].To, ch.To, "chunk %d To mismatch", i)
-		}
-	})
+	// In single pass, chunks should have been processed, so list is empty and Ready true
+	s.True(updated.Ready)
+	s.Len(updated.Backfill.ImportChunks, 0)
 }
 
 func (s *EngineTestSuite) createTestDatabaseWithEventsTable(ctx context.Context) (string, func()) {

@@ -40,8 +40,9 @@ type ImportChunk struct {
 type Engine struct {
 	logger *slog.Logger
 
-	database   string
-	clickhouse clickhouse.Conn
+	database     string
+	clickhouse   clickhouse.Conn
+	meterService meter.ManageService
 }
 
 func (e *Engine) IsOperational(m meter.Meter) bool {
@@ -105,6 +106,8 @@ func (e *Engine) GetRecordForMeter(ctx context.Context, meter meter.Meter, event
 		// Path not found or invalid → skip this record
 		return nil, nil
 	}
+
+	// TODO: if value is not parsable we need to add a null record or are we fine just skipping it?
 
 	var floatVal float64
 	switch v := rawValue.(type) {
@@ -183,7 +186,7 @@ func (c *Counter) HasMoreSteps() bool {
 	return *c > 0
 }
 
-func (e *Engine) Maintain(ctx context.Context, steps *Counter, meter meter.Meter) error {
+func (e *Engine) Maintain(ctx context.Context, meter meter.Meter) error {
 	// Extract state
 	var state EngineState
 	if err := json.Unmarshal([]byte(meter.TableEngine.State), &state); err != nil {
@@ -199,10 +202,6 @@ func (e *Engine) Maintain(ctx context.Context, steps *Counter, meter meter.Meter
 	// Initialize stream start if missing
 	if state.StreamDataAfterStoredAt.IsZero() {
 		state.StreamDataAfterStoredAt = clock.Now().Add(defaultStreamStartOffset).UTC().Truncate(time.Second)
-		stateBytes, _ := json.Marshal(state)
-		meter.TableEngine.State = string(stateBytes)
-		steps.Decrement()
-		return nil
 	}
 
 	// Check if the min stored
@@ -237,23 +236,35 @@ func (e *Engine) Maintain(ctx context.Context, steps *Counter, meter meter.Meter
 		startDay := time.Date(min.Year(), min.Month(), min.Day(), 0, 0, 0, 0, time.UTC)
 		endExclusive := state.StreamDataAfterStoredAt.UTC().Truncate(time.Second)
 		state.Backfill.ImportChunks = generateDailyChunks(startDay, endExclusive)
-
-		// persist the state and continue, decrease counter and exit if counter is 0
-		stateBytes, _ := json.Marshal(state)
-		meter.TableEngine.State = string(stateBytes)
-		steps.Decrement()
-		return nil
 	}
 
 	// Check if the current time is after the stream data after stored at + 5min
+	if clock.Now().After(state.StreamDataAfterStoredAt.Add(5 * time.Minute)) {
+		// Start the legacy backfill process:
+		// - take a chunk and insert the records into the meter table
+		// - delete all records from the meter storage table for the chunk to make sure we don't have any duplicates
+		// - use a select into query to query the value + the group by values from the om_events table
+		// - see map function here: https://clickhouse.com/docs/sql-reference/functions/tuple-map-functions#map
+		// If there are no more chunks, mark ready.
 
-	// if so then start the legacy backfill process by
-	// - take a chunk and insert the records into the meter table
-	// - delete all records from the meter storage table for the chunk to make sure we don't have any duplicates
-	// - use a select into query to query the value + the group by values from the om_events table
-	// - see map function here: https://clickhouse.com/docs/sql-reference/functions/tuple-map-functions#map
+		// Process all chunks in this pass
+		for len(state.Backfill.ImportChunks) > 0 {
+			chunk := state.Backfill.ImportChunks[0]
+			if err := e.InsertFromEvents(ctx, "om_events", meter, chunk.ClosedPeriod); err != nil {
+				e.logger.Error("failed to insert records from events for chunk", "error", err, "from", chunk.From, "to", chunk.To)
+				return err
+			}
+			state.Backfill.ImportChunks = state.Backfill.ImportChunks[1:]
+		}
+		// Mark ready
+		state.Ready = true
+	}
 
-	// if there are no more chunks to process and now is after the stream data after stored at + 5min set the meter to ready
+	// persist final state
+	if err := e.persistState(ctx, &meter, state); err != nil {
+		e.logger.Error("failed to persist meter table engine state", "error", err)
+		return err
+	}
 	return nil
 }
 
@@ -273,4 +284,16 @@ func generateDailyChunks(startInclusive time.Time, endExclusive time.Time) []Imp
 		cur = next
 	}
 	return chunks
+}
+
+func (e *Engine) persistState(ctx context.Context, m *meter.Meter, st EngineState) error {
+	b, err := json.Marshal(st)
+	if err != nil {
+		return fmt.Errorf("failed to marshal engine state: %w", err)
+	}
+	m.TableEngine.State = string(b)
+	if err := e.meterService.UpdateTableEngine(ctx, *m); err != nil {
+		return fmt.Errorf("failed to update table engine state: %w", err)
+	}
+	return nil
 }

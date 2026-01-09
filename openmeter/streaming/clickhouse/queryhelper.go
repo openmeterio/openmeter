@@ -12,7 +12,7 @@ import (
 const subjectToCustomerIDDictionary = "subject_to_customer_id"
 
 // selectCustomerIdColumn
-func selectCustomerIdColumn(eventsTableName string, customers []streaming.Customer, query *sqlbuilder.SelectBuilder) *sqlbuilder.SelectBuilder {
+func SelectCustomerIdColumn(eventsTableName string, customers []streaming.Customer, query *sqlbuilder.SelectBuilder) *sqlbuilder.SelectBuilder {
 	// If there are no customers, we return an empty customer id column
 	if len(customers) == 0 {
 		return query.SelectMore("'' AS customer_id")
@@ -64,7 +64,7 @@ func selectCustomerIdColumn(eventsTableName string, customers []streaming.Custom
 }
 
 // customersWhere applies the customer filter to the query.
-func customersWhere(eventsTableName string, customers []streaming.Customer, query *sqlbuilder.SelectBuilder) *sqlbuilder.SelectBuilder {
+func CustomersWhere(eventsTableName string, customers []streaming.Customer, query *sqlbuilder.SelectBuilder) *sqlbuilder.SelectBuilder {
 	// If there are no customers, we return an empty subject filter
 	if len(customers) == 0 {
 		return query
@@ -91,7 +91,7 @@ func customersWhere(eventsTableName string, customers []streaming.Customer, quer
 }
 
 // subjectWhere applies the subject filter to the query.
-func subjectWhere(
+func SubjectWhere(
 	eventsTableName string,
 	subjects []string,
 	query *sqlbuilder.SelectBuilder,

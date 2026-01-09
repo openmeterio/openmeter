@@ -27,7 +27,7 @@ func (q queryEventsTableV2) toSQL() (string, []interface{}) {
 
 	// Select customer_id column if customer filter is provided
 	if q.Params.Customers != nil {
-		query = selectCustomerIdColumn(q.EventsTableName, *q.Params.Customers, query)
+		query = SelectCustomerIdColumn(q.EventsTableName, *q.Params.Customers, query)
 	}
 
 	query.From(tableName)
@@ -57,7 +57,7 @@ func (q queryEventsTableV2) toSQL() (string, []interface{}) {
 	}
 
 	if q.Params.Customers != nil {
-		query = customersWhere(tableName, *q.Params.Customers, query)
+		query = CustomersWhere(tableName, *q.Params.Customers, query)
 	}
 
 	if q.Params.Type != nil {
@@ -136,7 +136,7 @@ func (q queryEventsTableV2) toCountRowSQL() (string, []interface{}) {
 	}
 
 	if q.Params.Customers != nil {
-		query = customersWhere(tableName, *q.Params.Customers, query)
+		query = CustomersWhere(tableName, *q.Params.Customers, query)
 	}
 
 	if q.Params.Time != nil {

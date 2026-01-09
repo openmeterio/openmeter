@@ -87,12 +87,12 @@ var (
 	DefaultID func() string
 )
 
-const DefaultStatus meter.MeterTableEngineState = "inactive"
+const DefaultStatus meter.MeterTableEngineState = "preparing"
 
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s meter.MeterTableEngineState) error {
 	switch s {
-	case "active", "inactive":
+	case "active", "preparing", "failed", "deleting", "deleted":
 		return nil
 	default:
 		return fmt.Errorf("metertableengine: invalid enum value for status field: %q", s)

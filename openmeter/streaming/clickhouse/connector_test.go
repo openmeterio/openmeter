@@ -120,7 +120,7 @@ func TestConnector_QueryMeter(t *testing.T) {
 	mockRows1.On("Close").Return(nil)
 
 	// Call the method being tested
-	results, err := connector.queryMeter(context.Background(), queryMeter)
+	results, err := connector.queryMeter(context.Background(), queryMeter.Meter, &queryMeter)
 
 	// Verify the results
 	require.NoError(t, err)
@@ -136,7 +136,7 @@ func TestConnector_QueryMeter(t *testing.T) {
 	mockRows2 := NewMockRows()
 	mockCH.On("Query", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(mockRows2, errors.New(queryErrorMsg))
 
-	_, err = connector.queryMeter(context.Background(), queryMeter)
+	_, err = connector.queryMeter(context.Background(), queryMeter.Meter, &queryMeter)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), queryErrorMsg)
 
@@ -145,7 +145,7 @@ func TestConnector_QueryMeter(t *testing.T) {
 	mockRows3 := NewMockRows()
 	mockCH.On("Query", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(mockRows3, errors.New("code: 60"))
 
-	_, err = connector.queryMeter(context.Background(), queryMeter)
+	_, err = connector.queryMeter(context.Background(), queryMeter.Meter, &queryMeter)
 	assert.Error(t, err)
 	meterErr, ok := err.(*meter.MeterNotFoundError)
 	assert.True(t, ok)
@@ -161,7 +161,7 @@ func TestConnector_QueryMeter(t *testing.T) {
 	mockRows4.On("Scan", mock.Anything).Return(errors.New(scanErrorMsg))
 	mockRows4.On("Close").Return(nil)
 
-	_, err = connector.queryMeter(context.Background(), queryMeter)
+	_, err = connector.queryMeter(context.Background(), queryMeter.Meter, &queryMeter)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), scanErrorMsg)
 

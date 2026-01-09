@@ -1716,7 +1716,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "engine", Type: field.TypeString, Default: "events"},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"active", "inactive"}, Default: "inactive"},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"active", "preparing", "failed", "deleting", "deleted"}, Default: "preparing"},
 		{Name: "state", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "meter_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}

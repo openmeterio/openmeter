@@ -26,9 +26,11 @@ type CHTestSuite struct {
 	Database   string
 }
 
-func (s *CHTestSuite) SetupTest() {
+func (s *CHTestSuite) SetupSuite() {
 	s.Assertions = require.New(s.T())
+}
 
+func (s *CHTestSuite) SetupTest() {
 	dsn := os.Getenv("TEST_CLICKHOUSE_DSN")
 	if dsn == "" {
 		s.T().Skip("TEST_CLICKHOUSE_DSN is not set; skipping integration tests")
@@ -81,6 +83,3 @@ func (s *CHTestSuite) NewEngine(database string) Engine {
 		clickhouse: s.ClickHouse,
 	}
 }
-
-
-

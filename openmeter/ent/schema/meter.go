@@ -57,6 +57,10 @@ func (Meter) Edges() []ent.Edge {
 		// Ent doesn't support foreign key constraints on non ID fields (key)
 		// https://github.com/ent/ent/issues/2549
 		// edge.To("feature", Feature.Type),
+		// TODO, FIXME:
+		//  this should not be a 1:1 relationship, we should allow multiple table engines per meter
+		//  thus we can gracefully upgrade to new versions or have hints regarding what table engine is good for
+		//  what
 		edge.To("table_engine", MeterTableEngine.Type).Unique(),
 	}
 }
@@ -79,7 +83,7 @@ func (MeterTableEngine) Fields() []ent.Field {
 			dialect.Postgres: "char(26)",
 		}),
 		field.String("engine").NotEmpty().Default("events"),
-		field.Enum("status").GoType(meter.MeterTableEngineState("")).Default(string(meter.MeterTableEngineStateInactive)),
+		field.Enum("status").GoType(meter.MeterTableEngineState("")).Default(string(meter.MeterTableEngineStatePreparing)),
 		field.String("state").SchemaType(map[string]string{
 			dialect.Postgres: "jsonb",
 		}),
