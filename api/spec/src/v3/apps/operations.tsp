@@ -18,8 +18,8 @@ namespace Apps;
 
 interface AppCatalogOperations {
   @get
-  @operationId("list-app-catalog")
-  @summary("List available apps")
+  @operationId("list-app-catalog-items")
+  @summary("List available apps in the app catalog")
   list(
     ...Common.PagePaginationQuery,
   ): Shared.PagePaginatedResponse<AppCatalogItem> | Common.ErrorResponses;

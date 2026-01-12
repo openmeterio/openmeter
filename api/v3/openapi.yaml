@@ -29,8 +29,8 @@ tags:
 paths:
   /openmeter/app-catalog:
     get:
-      operationId: list-app-catalog
-      summary: List available apps
+      operationId: list-app-catalog-items
+      summary: List available apps in the app catalog
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
       responses:

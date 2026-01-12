@@ -6,6 +6,40 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 )
 
+// Apps
+
+func (s *Server) ListAppCatalogItems(w http.ResponseWriter, r *http.Request, params api.ListAppCatalogItemsParams) {
+	s.appsHandler.ListAppCatalogItems().With(params).ServeHTTP(w, r)
+}
+
+func (s *Server) GetAppCatalogItem(w http.ResponseWriter, r *http.Request, pType api.BillingAppType) {
+	s.appsHandler.GetAppCatalogItem().With(pType).ServeHTTP(w, r)
+}
+
+func (s *Server) GetAppCatalogItemOauth2InstallUrl(w http.ResponseWriter, r *http.Request, pType api.BillingAppType) {
+	s.appsHandler.GetAppCatalogItemOauth2InstallUrl().With(pType).ServeHTTP(w, r)
+}
+
+func (s *Server) SubmitCustomInvoicingDraftSynchronized(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+	s.appsHandler.SubmitCustomInvoicingDraftSynchronized().With(invoiceId).ServeHTTP(w, r)
+}
+
+func (s *Server) SubmitCustomInvoicingIssuingSynchronized(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+	s.appsHandler.SubmitCustomInvoicingIssuingSynchronized().With(invoiceId).ServeHTTP(w, r)
+}
+
+func (s *Server) UpdateCustomInvoicingPaymentStatus(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+	s.appsHandler.UpdateCustomInvoicingPaymentStatus().With(invoiceId).ServeHTTP(w, r)
+}
+
+func (s *Server) CreateStripeCheckoutSession(w http.ResponseWriter, r *http.Request) {
+	s.appsHandler.CreateStripeCheckoutSession().ServeHTTP(w, r)
+}
+
+func (s *Server) HandleStripeWebhook(w http.ResponseWriter, r *http.Request, appId api.ULID) {
+	s.appsHandler.HandleStripeWebhook().With(appId).ServeHTTP(w, r)
+}
+
 // Meters
 func (s *Server) CreateMeter(w http.ResponseWriter, r *http.Request) {
 	s.metersHandler.CreateMeter().ServeHTTP(w, r)
