@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -641,6 +642,20 @@ func (_c *BillingInvoiceCreate) SetNillablePaymentProcessingEnteredAt(v *time.Ti
 	return _c
 }
 
+// SetSchemaLevel sets the "schema_level" field.
+func (_c *BillingInvoiceCreate) SetSchemaLevel(v int) *BillingInvoiceCreate {
+	_c.mutation.SetSchemaLevel(v)
+	return _c
+}
+
+// SetNillableSchemaLevel sets the "schema_level" field if the given value is not nil.
+func (_c *BillingInvoiceCreate) SetNillableSchemaLevel(v *int) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetSchemaLevel(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *BillingInvoiceCreate) SetID(v string) *BillingInvoiceCreate {
 	_c.mutation.SetID(v)
@@ -684,6 +699,21 @@ func (_c *BillingInvoiceCreate) AddBillingInvoiceLines(v ...*BillingInvoiceLine)
 		ids[i] = v[i].ID
 	}
 	return _c.AddBillingInvoiceLineIDs(ids...)
+}
+
+// AddBillingInvoiceDetailedLineIDs adds the "billing_invoice_detailed_lines" edge to the BillingStandardInvoiceDetailedLine entity by IDs.
+func (_c *BillingInvoiceCreate) AddBillingInvoiceDetailedLineIDs(ids ...string) *BillingInvoiceCreate {
+	_c.mutation.AddBillingInvoiceDetailedLineIDs(ids...)
+	return _c
+}
+
+// AddBillingInvoiceDetailedLines adds the "billing_invoice_detailed_lines" edges to the BillingStandardInvoiceDetailedLine entity.
+func (_c *BillingInvoiceCreate) AddBillingInvoiceDetailedLines(v ...*BillingStandardInvoiceDetailedLine) *BillingInvoiceCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddBillingInvoiceDetailedLineIDs(ids...)
 }
 
 // AddBillingInvoiceValidationIssueIDs adds the "billing_invoice_validation_issues" edge to the BillingInvoiceValidationIssue entity by IDs.
@@ -773,6 +803,10 @@ func (_c *BillingInvoiceCreate) defaults() {
 	if _, ok := _c.mutation.CollectionAt(); !ok {
 		v := billinginvoice.DefaultCollectionAt()
 		_c.mutation.SetCollectionAt(v)
+	}
+	if _, ok := _c.mutation.SchemaLevel(); !ok {
+		v := billinginvoice.DefaultSchemaLevel
+		_c.mutation.SetSchemaLevel(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := billinginvoice.DefaultID()
@@ -902,6 +936,9 @@ func (_c *BillingInvoiceCreate) check() error {
 	}
 	if _, ok := _c.mutation.PaymentAppID(); !ok {
 		return &ValidationError{Name: "payment_app_id", err: errors.New(`db: missing required field "BillingInvoice.payment_app_id"`)}
+	}
+	if _, ok := _c.mutation.SchemaLevel(); !ok {
+		return &ValidationError{Name: "schema_level", err: errors.New(`db: missing required field "BillingInvoice.schema_level"`)}
 	}
 	if len(_c.mutation.SourceBillingProfileIDs()) == 0 {
 		return &ValidationError{Name: "source_billing_profile", err: errors.New(`db: missing required edge "BillingInvoice.source_billing_profile"`)}
@@ -1157,6 +1194,10 @@ func (_c *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.CreateS
 		_spec.SetField(billinginvoice.FieldPaymentProcessingEnteredAt, field.TypeTime, value)
 		_node.PaymentProcessingEnteredAt = &value
 	}
+	if value, ok := _c.mutation.SchemaLevel(); ok {
+		_spec.SetField(billinginvoice.FieldSchemaLevel, field.TypeInt, value)
+		_node.SchemaLevel = value
+	}
 	if nodes := _c.mutation.SourceBillingProfileIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -1200,6 +1241,22 @@ func (_c *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.CreateS
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.BillingInvoiceDetailedLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   billinginvoice.BillingInvoiceDetailedLinesTable,
+			Columns: []string{billinginvoice.BillingInvoiceDetailedLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingstandardinvoicedetailedline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -2120,6 +2177,24 @@ func (u *BillingInvoiceUpsert) UpdatePaymentProcessingEnteredAt() *BillingInvoic
 // ClearPaymentProcessingEnteredAt clears the value of the "payment_processing_entered_at" field.
 func (u *BillingInvoiceUpsert) ClearPaymentProcessingEnteredAt() *BillingInvoiceUpsert {
 	u.SetNull(billinginvoice.FieldPaymentProcessingEnteredAt)
+	return u
+}
+
+// SetSchemaLevel sets the "schema_level" field.
+func (u *BillingInvoiceUpsert) SetSchemaLevel(v int) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldSchemaLevel, v)
+	return u
+}
+
+// UpdateSchemaLevel sets the "schema_level" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateSchemaLevel() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldSchemaLevel)
+	return u
+}
+
+// AddSchemaLevel adds v to the "schema_level" field.
+func (u *BillingInvoiceUpsert) AddSchemaLevel(v int) *BillingInvoiceUpsert {
+	u.Add(billinginvoice.FieldSchemaLevel, v)
 	return u
 }
 
@@ -3102,6 +3177,27 @@ func (u *BillingInvoiceUpsertOne) UpdatePaymentProcessingEnteredAt() *BillingInv
 func (u *BillingInvoiceUpsertOne) ClearPaymentProcessingEnteredAt() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearPaymentProcessingEnteredAt()
+	})
+}
+
+// SetSchemaLevel sets the "schema_level" field.
+func (u *BillingInvoiceUpsertOne) SetSchemaLevel(v int) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetSchemaLevel(v)
+	})
+}
+
+// AddSchemaLevel adds v to the "schema_level" field.
+func (u *BillingInvoiceUpsertOne) AddSchemaLevel(v int) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.AddSchemaLevel(v)
+	})
+}
+
+// UpdateSchemaLevel sets the "schema_level" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateSchemaLevel() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateSchemaLevel()
 	})
 }
 
@@ -4251,6 +4347,27 @@ func (u *BillingInvoiceUpsertBulk) UpdatePaymentProcessingEnteredAt() *BillingIn
 func (u *BillingInvoiceUpsertBulk) ClearPaymentProcessingEnteredAt() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearPaymentProcessingEnteredAt()
+	})
+}
+
+// SetSchemaLevel sets the "schema_level" field.
+func (u *BillingInvoiceUpsertBulk) SetSchemaLevel(v int) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetSchemaLevel(v)
+	})
+}
+
+// AddSchemaLevel adds v to the "schema_level" field.
+func (u *BillingInvoiceUpsertBulk) AddSchemaLevel(v int) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.AddSchemaLevel(v)
+	})
+}
+
+// UpdateSchemaLevel sets the "schema_level" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateSchemaLevel() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateSchemaLevel()
 	})
 }
 

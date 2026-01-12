@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -33,6 +34,7 @@ type BillingInvoiceQuery struct {
 	withSourceBillingProfile           *BillingProfileQuery
 	withBillingWorkflowConfig          *BillingWorkflowConfigQuery
 	withBillingInvoiceLines            *BillingInvoiceLineQuery
+	withBillingInvoiceDetailedLines    *BillingStandardInvoiceDetailedLineQuery
 	withBillingInvoiceValidationIssues *BillingInvoiceValidationIssueQuery
 	withBillingInvoiceCustomer         *CustomerQuery
 	withTaxApp                         *AppQuery
@@ -134,6 +136,28 @@ func (_q *BillingInvoiceQuery) QueryBillingInvoiceLines() *BillingInvoiceLineQue
 			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.BillingInvoiceLinesTable, billinginvoice.BillingInvoiceLinesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingInvoiceDetailedLines chains the current query on the "billing_invoice_detailed_lines" edge.
+func (_q *BillingInvoiceQuery) QueryBillingInvoiceDetailedLines() *BillingStandardInvoiceDetailedLineQuery {
+	query := (&BillingStandardInvoiceDetailedLineClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
+			sqlgraph.To(billingstandardinvoicedetailedline.Table, billingstandardinvoicedetailedline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoice.BillingInvoiceDetailedLinesTable, billinginvoice.BillingInvoiceDetailedLinesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -446,6 +470,7 @@ func (_q *BillingInvoiceQuery) Clone() *BillingInvoiceQuery {
 		withSourceBillingProfile:           _q.withSourceBillingProfile.Clone(),
 		withBillingWorkflowConfig:          _q.withBillingWorkflowConfig.Clone(),
 		withBillingInvoiceLines:            _q.withBillingInvoiceLines.Clone(),
+		withBillingInvoiceDetailedLines:    _q.withBillingInvoiceDetailedLines.Clone(),
 		withBillingInvoiceValidationIssues: _q.withBillingInvoiceValidationIssues.Clone(),
 		withBillingInvoiceCustomer:         _q.withBillingInvoiceCustomer.Clone(),
 		withTaxApp:                         _q.withTaxApp.Clone(),
@@ -487,6 +512,17 @@ func (_q *BillingInvoiceQuery) WithBillingInvoiceLines(opts ...func(*BillingInvo
 		opt(query)
 	}
 	_q.withBillingInvoiceLines = query
+	return _q
+}
+
+// WithBillingInvoiceDetailedLines tells the query-builder to eager-load the nodes that are connected to
+// the "billing_invoice_detailed_lines" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BillingInvoiceQuery) WithBillingInvoiceDetailedLines(opts ...func(*BillingStandardInvoiceDetailedLineQuery)) *BillingInvoiceQuery {
+	query := (&BillingStandardInvoiceDetailedLineClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withBillingInvoiceDetailedLines = query
 	return _q
 }
 
@@ -623,10 +659,11 @@ func (_q *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 	var (
 		nodes       = []*BillingInvoice{}
 		_spec       = _q.querySpec()
-		loadedTypes = [8]bool{
+		loadedTypes = [9]bool{
 			_q.withSourceBillingProfile != nil,
 			_q.withBillingWorkflowConfig != nil,
 			_q.withBillingInvoiceLines != nil,
+			_q.withBillingInvoiceDetailedLines != nil,
 			_q.withBillingInvoiceValidationIssues != nil,
 			_q.withBillingInvoiceCustomer != nil,
 			_q.withTaxApp != nil,
@@ -672,6 +709,15 @@ func (_q *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 			func(n *BillingInvoice) { n.Edges.BillingInvoiceLines = []*BillingInvoiceLine{} },
 			func(n *BillingInvoice, e *BillingInvoiceLine) {
 				n.Edges.BillingInvoiceLines = append(n.Edges.BillingInvoiceLines, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withBillingInvoiceDetailedLines; query != nil {
+		if err := _q.loadBillingInvoiceDetailedLines(ctx, query, nodes,
+			func(n *BillingInvoice) { n.Edges.BillingInvoiceDetailedLines = []*BillingStandardInvoiceDetailedLine{} },
+			func(n *BillingInvoice, e *BillingStandardInvoiceDetailedLine) {
+				n.Edges.BillingInvoiceDetailedLines = append(n.Edges.BillingInvoiceDetailedLines, e)
 			}); err != nil {
 			return nil, err
 		}
@@ -786,6 +832,36 @@ func (_q *BillingInvoiceQuery) loadBillingInvoiceLines(ctx context.Context, quer
 	}
 	query.Where(predicate.BillingInvoiceLine(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(billinginvoice.BillingInvoiceLinesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.InvoiceID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "invoice_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *BillingInvoiceQuery) loadBillingInvoiceDetailedLines(ctx context.Context, query *BillingStandardInvoiceDetailedLineQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *BillingStandardInvoiceDetailedLine)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*BillingInvoice)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billingstandardinvoicedetailedline.FieldInvoiceID)
+	}
+	query.Where(predicate.BillingStandardInvoiceDetailedLine(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(billinginvoice.BillingInvoiceDetailedLinesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

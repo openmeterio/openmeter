@@ -474,6 +474,8 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 			Field("parent_line_id").
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("detailed_lines_v2", BillingStandardInvoiceDetailedLine.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("line_usage_discounts", BillingInvoiceLineUsageDiscount.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("line_amount_discounts", BillingInvoiceLineDiscount.Type).
@@ -696,7 +698,7 @@ func (BillingInvoiceSplitLineGroup) Edges() []ent.Edge {
 	}
 }
 
-// TODO[later]: Rename to BillingInvoiceLineUsageDiscount
+// TODO[later]: Rename to BillingInvoiceLineAmountDiscount
 type BillingInvoiceLineDiscount struct {
 	ent.Schema
 }
@@ -834,6 +836,163 @@ func (BillingInvoiceLineUsageDiscount) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
 			Ref("line_usage_discounts").
+			Field("line_id").
+			Unique().
+			Required(),
+	}
+}
+
+type BillingStandardInvoiceDetailedLine struct {
+	ent.Schema
+}
+
+func (BillingStandardInvoiceDetailedLine) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.AnnotationsMixin{},
+		entutils.ResourceMixin{},
+		InvoiceLineBaseMixin{},
+		TotalsMixin{},
+	}
+}
+
+func (BillingStandardInvoiceDetailedLine) Fields() []ent.Field {
+	return []ent.Field{
+		field.Time("service_period_start"),
+		field.Time("service_period_end"),
+
+		field.String("invoice_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+
+		field.String("parent_line_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+
+		// Quantity is optional as for usage-based billing we can only persist this value,
+		// when the invoice is issued
+		field.Other("quantity", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
+
+		// ID of the line in the external invoicing app
+		// For example, Stripe invoice line item ID
+		field.String("invoicing_app_external_id").
+			Optional().
+			Nillable(),
+
+		// child_unique_reference_id is uniqe per parent line, can be used for upserting
+		// and identifying lines created for the same reason (e.g. tiered price tier)
+		// between different invoices.
+		field.String("child_unique_reference_id").
+			Optional().
+			Nillable(),
+
+		field.Other("per_unit_amount", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
+		field.Enum("category").
+			GoType(billing.FlatFeeCategory("")).
+			Default(string(billing.FlatFeeCategoryRegular)),
+		field.Enum("payment_term").
+			GoType(productcatalog.PaymentTermType("")).
+			Default(string(productcatalog.InAdvancePaymentTerm)),
+
+		field.Int("index").
+			Optional().
+			Nillable(),
+	}
+}
+
+func (BillingStandardInvoiceDetailedLine) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "invoice_id"),
+		index.Fields("namespace", "parent_line_id"),
+		index.Fields("namespace", "parent_line_id", "child_unique_reference_id").
+			Annotations(
+				entsql.IndexWhere("child_unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
+			).
+			StorageKey("billingstdinvdetailedline_ns_parent_child_id").
+			Unique(),
+	}
+}
+
+func (BillingStandardInvoiceDetailedLine) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("billing_invoice", BillingInvoice.Type).
+			Ref("billing_invoice_detailed_lines").
+			Field("invoice_id").
+			Unique().
+			Required(),
+		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
+			Ref("detailed_lines_v2").
+			Field("parent_line_id").
+			Unique().
+			Required(),
+		edge.To("amount_discounts", BillingStandardInvoiceDetailedLineAmountDiscount.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+	}
+}
+
+type BillingStandardInvoiceDetailedLineAmountDiscount struct {
+	ent.Schema
+}
+
+func (BillingStandardInvoiceDetailedLineAmountDiscount) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.IDMixin{},
+		entutils.NamespaceMixin{},
+		entutils.TimeMixin{},
+		BillingInvoiceLineDiscountBase{},
+	}
+}
+
+func (BillingStandardInvoiceDetailedLineAmountDiscount) Fields() []ent.Field {
+	return []ent.Field{
+		field.Other("amount", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
+
+		field.Other("rounding_amount", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}).
+			Optional().
+			Nillable(),
+
+		// TODO: Ent has issues with custom value scanners from mixins, so this is a duplicate
+		// TODO[later]: Rename to reason_details (same time as the DB table rename, as this is breaking either ways)
+		field.String("source_discount").
+			GoType(&billing.DiscountReason{}).
+			ValueScanner(BillingDiscountReasonValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable(),
+	}
+}
+
+func (BillingStandardInvoiceDetailedLineAmountDiscount) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "line_id"),
+		index.Fields("namespace", "line_id", "child_unique_reference_id").
+			Annotations(
+				entsql.IndexWhere("child_unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
+			).
+			StorageKey("billingstdinvdetailedlineamntdiscount_ns_parent_child_id").
+			Unique(),
+	}
+}
+
+func (BillingStandardInvoiceDetailedLineAmountDiscount) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("detailed_line", BillingStandardInvoiceDetailedLine.Type).
+			Ref("amount_discounts").
 			Field("line_id").
 			Unique().
 			Required(),
@@ -1004,6 +1163,9 @@ func (BillingInvoice) Fields() []ent.Field {
 		field.Time("payment_processing_entered_at").
 			Optional().
 			Nillable(),
+
+		// The schema level for writing invoice data (until invoice migrations are complete).
+		field.Int("schema_level").Default(1),
 	}
 }
 
@@ -1039,6 +1201,8 @@ func (BillingInvoice) Edges() []ent.Edge {
 			Unique().
 			Required(),
 		edge.To("billing_invoice_lines", BillingInvoiceLine.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("billing_invoice_detailed_lines", BillingStandardInvoiceDetailedLine.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("billing_invoice_validation_issues", BillingInvoiceValidationIssue.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
@@ -1177,5 +1341,29 @@ func (BillingCustomerLock) Fields() []ent.Field {
 func (BillingCustomerLock) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "customer_id").Unique(),
+	}
+}
+
+// BillingInvoiceSchemaLevel is a temporary table to track the schema level for billing invoices.
+//
+// The number included here specifies the schema level for writing invoice data.
+type BillingInvoiceWriteSchemaLevel struct {
+	ent.Schema
+}
+
+func (BillingInvoiceWriteSchemaLevel) Mixin() []ent.Mixin {
+	return []ent.Mixin{}
+}
+
+func (BillingInvoiceWriteSchemaLevel) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("id").NotEmpty().Immutable(),
+		field.Int("schema_level"),
+	}
+}
+
+func (BillingInvoiceWriteSchemaLevel) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("id").Unique(),
 	}
 }

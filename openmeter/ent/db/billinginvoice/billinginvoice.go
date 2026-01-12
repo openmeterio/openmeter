@@ -128,12 +128,16 @@ const (
 	FieldCollectionAt = "collection_at"
 	// FieldPaymentProcessingEnteredAt holds the string denoting the payment_processing_entered_at field in the database.
 	FieldPaymentProcessingEnteredAt = "payment_processing_entered_at"
+	// FieldSchemaLevel holds the string denoting the schema_level field in the database.
+	FieldSchemaLevel = "schema_level"
 	// EdgeSourceBillingProfile holds the string denoting the source_billing_profile edge name in mutations.
 	EdgeSourceBillingProfile = "source_billing_profile"
 	// EdgeBillingWorkflowConfig holds the string denoting the billing_workflow_config edge name in mutations.
 	EdgeBillingWorkflowConfig = "billing_workflow_config"
 	// EdgeBillingInvoiceLines holds the string denoting the billing_invoice_lines edge name in mutations.
 	EdgeBillingInvoiceLines = "billing_invoice_lines"
+	// EdgeBillingInvoiceDetailedLines holds the string denoting the billing_invoice_detailed_lines edge name in mutations.
+	EdgeBillingInvoiceDetailedLines = "billing_invoice_detailed_lines"
 	// EdgeBillingInvoiceValidationIssues holds the string denoting the billing_invoice_validation_issues edge name in mutations.
 	EdgeBillingInvoiceValidationIssues = "billing_invoice_validation_issues"
 	// EdgeBillingInvoiceCustomer holds the string denoting the billing_invoice_customer edge name in mutations.
@@ -167,6 +171,13 @@ const (
 	BillingInvoiceLinesInverseTable = "billing_invoice_lines"
 	// BillingInvoiceLinesColumn is the table column denoting the billing_invoice_lines relation/edge.
 	BillingInvoiceLinesColumn = "invoice_id"
+	// BillingInvoiceDetailedLinesTable is the table that holds the billing_invoice_detailed_lines relation/edge.
+	BillingInvoiceDetailedLinesTable = "billing_standard_invoice_detailed_lines"
+	// BillingInvoiceDetailedLinesInverseTable is the table name for the BillingStandardInvoiceDetailedLine entity.
+	// It exists in this package in order to avoid circular dependency with the "billingstandardinvoicedetailedline" package.
+	BillingInvoiceDetailedLinesInverseTable = "billing_standard_invoice_detailed_lines"
+	// BillingInvoiceDetailedLinesColumn is the table column denoting the billing_invoice_detailed_lines relation/edge.
+	BillingInvoiceDetailedLinesColumn = "invoice_id"
 	// BillingInvoiceValidationIssuesTable is the table that holds the billing_invoice_validation_issues relation/edge.
 	BillingInvoiceValidationIssuesTable = "billing_invoice_validation_issues"
 	// BillingInvoiceValidationIssuesInverseTable is the table name for the BillingInvoiceValidationIssue entity.
@@ -263,6 +274,7 @@ var Columns = []string{
 	FieldPeriodEnd,
 	FieldCollectionAt,
 	FieldPaymentProcessingEnteredAt,
+	FieldSchemaLevel,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -300,6 +312,8 @@ var (
 	CurrencyValidator func(string) error
 	// DefaultCollectionAt holds the default value on creation for the "collection_at" field.
 	DefaultCollectionAt func() time.Time
+	// DefaultSchemaLevel holds the default value on creation for the "schema_level" field.
+	DefaultSchemaLevel int
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -597,6 +611,11 @@ func ByPaymentProcessingEnteredAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPaymentProcessingEnteredAt, opts...).ToFunc()
 }
 
+// BySchemaLevel orders the results by the schema_level field.
+func BySchemaLevel(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSchemaLevel, opts...).ToFunc()
+}
+
 // BySourceBillingProfileField orders the results by source_billing_profile field.
 func BySourceBillingProfileField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -622,6 +641,20 @@ func ByBillingInvoiceLinesCount(opts ...sql.OrderTermOption) OrderOption {
 func ByBillingInvoiceLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByBillingInvoiceDetailedLinesCount orders the results by billing_invoice_detailed_lines count.
+func ByBillingInvoiceDetailedLinesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingInvoiceDetailedLinesStep(), opts...)
+	}
+}
+
+// ByBillingInvoiceDetailedLines orders the results by billing_invoice_detailed_lines terms.
+func ByBillingInvoiceDetailedLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceDetailedLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
@@ -685,6 +718,13 @@ func newBillingInvoiceLinesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingInvoiceLinesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceLinesTable, BillingInvoiceLinesColumn),
+	)
+}
+func newBillingInvoiceDetailedLinesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingInvoiceDetailedLinesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceDetailedLinesTable, BillingInvoiceDetailedLinesColumn),
 	)
 }
 func newBillingInvoiceValidationIssuesStep() *sqlgraph.Step {

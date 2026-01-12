@@ -126,6 +126,8 @@ type BillingInvoiceLineEdges struct {
 	ParentLine *BillingInvoiceLine `json:"parent_line,omitempty"`
 	// DetailedLines holds the value of the detailed_lines edge.
 	DetailedLines []*BillingInvoiceLine `json:"detailed_lines,omitempty"`
+	// DetailedLinesV2 holds the value of the detailed_lines_v2 edge.
+	DetailedLinesV2 []*BillingStandardInvoiceDetailedLine `json:"detailed_lines_v2,omitempty"`
 	// LineUsageDiscounts holds the value of the line_usage_discounts edge.
 	LineUsageDiscounts []*BillingInvoiceLineUsageDiscount `json:"line_usage_discounts,omitempty"`
 	// LineAmountDiscounts holds the value of the line_amount_discounts edge.
@@ -138,7 +140,7 @@ type BillingInvoiceLineEdges struct {
 	SubscriptionItem *SubscriptionItem `json:"subscription_item,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [11]bool
+	loadedTypes [12]bool
 }
 
 // BillingInvoiceOrErr returns the BillingInvoice value or an error if the edge
@@ -205,10 +207,19 @@ func (e BillingInvoiceLineEdges) DetailedLinesOrErr() ([]*BillingInvoiceLine, er
 	return nil, &NotLoadedError{edge: "detailed_lines"}
 }
 
+// DetailedLinesV2OrErr returns the DetailedLinesV2 value or an error if the edge
+// was not loaded in eager-loading.
+func (e BillingInvoiceLineEdges) DetailedLinesV2OrErr() ([]*BillingStandardInvoiceDetailedLine, error) {
+	if e.loadedTypes[6] {
+		return e.DetailedLinesV2, nil
+	}
+	return nil, &NotLoadedError{edge: "detailed_lines_v2"}
+}
+
 // LineUsageDiscountsOrErr returns the LineUsageDiscounts value or an error if the edge
 // was not loaded in eager-loading.
 func (e BillingInvoiceLineEdges) LineUsageDiscountsOrErr() ([]*BillingInvoiceLineUsageDiscount, error) {
-	if e.loadedTypes[6] {
+	if e.loadedTypes[7] {
 		return e.LineUsageDiscounts, nil
 	}
 	return nil, &NotLoadedError{edge: "line_usage_discounts"}
@@ -217,7 +228,7 @@ func (e BillingInvoiceLineEdges) LineUsageDiscountsOrErr() ([]*BillingInvoiceLin
 // LineAmountDiscountsOrErr returns the LineAmountDiscounts value or an error if the edge
 // was not loaded in eager-loading.
 func (e BillingInvoiceLineEdges) LineAmountDiscountsOrErr() ([]*BillingInvoiceLineDiscount, error) {
-	if e.loadedTypes[7] {
+	if e.loadedTypes[8] {
 		return e.LineAmountDiscounts, nil
 	}
 	return nil, &NotLoadedError{edge: "line_amount_discounts"}
@@ -228,7 +239,7 @@ func (e BillingInvoiceLineEdges) LineAmountDiscountsOrErr() ([]*BillingInvoiceLi
 func (e BillingInvoiceLineEdges) SubscriptionOrErr() (*Subscription, error) {
 	if e.Subscription != nil {
 		return e.Subscription, nil
-	} else if e.loadedTypes[8] {
+	} else if e.loadedTypes[9] {
 		return nil, &NotFoundError{label: subscription.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription"}
@@ -239,7 +250,7 @@ func (e BillingInvoiceLineEdges) SubscriptionOrErr() (*Subscription, error) {
 func (e BillingInvoiceLineEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
 	if e.SubscriptionPhase != nil {
 		return e.SubscriptionPhase, nil
-	} else if e.loadedTypes[9] {
+	} else if e.loadedTypes[10] {
 		return nil, &NotFoundError{label: subscriptionphase.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_phase"}
@@ -250,7 +261,7 @@ func (e BillingInvoiceLineEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, e
 func (e BillingInvoiceLineEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
 	if e.SubscriptionItem != nil {
 		return e.SubscriptionItem, nil
-	} else if e.loadedTypes[10] {
+	} else if e.loadedTypes[11] {
 		return nil, &NotFoundError{label: subscriptionitem.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_item"}
@@ -588,6 +599,11 @@ func (_m *BillingInvoiceLine) QueryParentLine() *BillingInvoiceLineQuery {
 // QueryDetailedLines queries the "detailed_lines" edge of the BillingInvoiceLine entity.
 func (_m *BillingInvoiceLine) QueryDetailedLines() *BillingInvoiceLineQuery {
 	return NewBillingInvoiceLineClient(_m.config).QueryDetailedLines(_m)
+}
+
+// QueryDetailedLinesV2 queries the "detailed_lines_v2" edge of the BillingInvoiceLine entity.
+func (_m *BillingInvoiceLine) QueryDetailedLinesV2() *BillingStandardInvoiceDetailedLineQuery {
+	return NewBillingInvoiceLineClient(_m.config).QueryDetailedLinesV2(_m)
 }
 
 // QueryLineUsageDiscounts queries the "line_usage_discounts" edge of the BillingInvoiceLine entity.

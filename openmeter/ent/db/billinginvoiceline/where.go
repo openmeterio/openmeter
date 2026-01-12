@@ -2116,6 +2116,29 @@ func HasDetailedLinesWith(preds ...predicate.BillingInvoiceLine) predicate.Billi
 	})
 }
 
+// HasDetailedLinesV2 applies the HasEdge predicate on the "detailed_lines_v2" edge.
+func HasDetailedLinesV2() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, DetailedLinesV2Table, DetailedLinesV2Column),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasDetailedLinesV2With applies the HasEdge predicate on the "detailed_lines_v2" edge with a given conditions (other predicates).
+func HasDetailedLinesV2With(preds ...predicate.BillingStandardInvoiceDetailedLine) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := newDetailedLinesV2Step()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasLineUsageDiscounts applies the HasEdge predicate on the "line_usage_discounts" edge.
 func HasLineUsageDiscounts() predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(func(s *sql.Selector) {

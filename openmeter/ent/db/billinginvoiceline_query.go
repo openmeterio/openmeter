@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicelineusagediscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
@@ -39,6 +40,7 @@ type BillingInvoiceLineQuery struct {
 	withUsageBasedLine      *BillingInvoiceUsageBasedLineConfigQuery
 	withParentLine          *BillingInvoiceLineQuery
 	withDetailedLines       *BillingInvoiceLineQuery
+	withDetailedLinesV2     *BillingStandardInvoiceDetailedLineQuery
 	withLineUsageDiscounts  *BillingInvoiceLineUsageDiscountQuery
 	withLineAmountDiscounts *BillingInvoiceLineDiscountQuery
 	withSubscription        *SubscriptionQuery
@@ -207,6 +209,28 @@ func (_q *BillingInvoiceLineQuery) QueryDetailedLines() *BillingInvoiceLineQuery
 			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoiceline.DetailedLinesTable, billinginvoiceline.DetailedLinesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryDetailedLinesV2 chains the current query on the "detailed_lines_v2" edge.
+func (_q *BillingInvoiceLineQuery) QueryDetailedLinesV2() *BillingStandardInvoiceDetailedLineQuery {
+	query := (&BillingStandardInvoiceDetailedLineClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
+			sqlgraph.To(billingstandardinvoicedetailedline.Table, billingstandardinvoicedetailedline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoiceline.DetailedLinesV2Table, billinginvoiceline.DetailedLinesV2Column),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -522,6 +546,7 @@ func (_q *BillingInvoiceLineQuery) Clone() *BillingInvoiceLineQuery {
 		withUsageBasedLine:      _q.withUsageBasedLine.Clone(),
 		withParentLine:          _q.withParentLine.Clone(),
 		withDetailedLines:       _q.withDetailedLines.Clone(),
+		withDetailedLinesV2:     _q.withDetailedLinesV2.Clone(),
 		withLineUsageDiscounts:  _q.withLineUsageDiscounts.Clone(),
 		withLineAmountDiscounts: _q.withLineAmountDiscounts.Clone(),
 		withSubscription:        _q.withSubscription.Clone(),
@@ -596,6 +621,17 @@ func (_q *BillingInvoiceLineQuery) WithDetailedLines(opts ...func(*BillingInvoic
 		opt(query)
 	}
 	_q.withDetailedLines = query
+	return _q
+}
+
+// WithDetailedLinesV2 tells the query-builder to eager-load the nodes that are connected to
+// the "detailed_lines_v2" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BillingInvoiceLineQuery) WithDetailedLinesV2(opts ...func(*BillingStandardInvoiceDetailedLineQuery)) *BillingInvoiceLineQuery {
+	query := (&BillingStandardInvoiceDetailedLineClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withDetailedLinesV2 = query
 	return _q
 }
 
@@ -733,13 +769,14 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 		nodes       = []*BillingInvoiceLine{}
 		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
-		loadedTypes = [11]bool{
+		loadedTypes = [12]bool{
 			_q.withBillingInvoice != nil,
 			_q.withSplitLineGroup != nil,
 			_q.withFlatFeeLine != nil,
 			_q.withUsageBasedLine != nil,
 			_q.withParentLine != nil,
 			_q.withDetailedLines != nil,
+			_q.withDetailedLinesV2 != nil,
 			_q.withLineUsageDiscounts != nil,
 			_q.withLineAmountDiscounts != nil,
 			_q.withSubscription != nil,
@@ -809,6 +846,15 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 			func(n *BillingInvoiceLine) { n.Edges.DetailedLines = []*BillingInvoiceLine{} },
 			func(n *BillingInvoiceLine, e *BillingInvoiceLine) {
 				n.Edges.DetailedLines = append(n.Edges.DetailedLines, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withDetailedLinesV2; query != nil {
+		if err := _q.loadDetailedLinesV2(ctx, query, nodes,
+			func(n *BillingInvoiceLine) { n.Edges.DetailedLinesV2 = []*BillingStandardInvoiceDetailedLine{} },
+			func(n *BillingInvoiceLine, e *BillingStandardInvoiceDetailedLine) {
+				n.Edges.DetailedLinesV2 = append(n.Edges.DetailedLinesV2, e)
 			}); err != nil {
 			return nil, err
 		}
@@ -1038,6 +1084,36 @@ func (_q *BillingInvoiceLineQuery) loadDetailedLines(ctx context.Context, query 
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "parent_line_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *BillingInvoiceLineQuery) loadDetailedLinesV2(ctx context.Context, query *BillingStandardInvoiceDetailedLineQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *BillingStandardInvoiceDetailedLine)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*BillingInvoiceLine)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billingstandardinvoicedetailedline.FieldParentLineID)
+	}
+	query.Where(predicate.BillingStandardInvoiceDetailedLine(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(billinginvoiceline.DetailedLinesV2Column), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.ParentLineID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "parent_line_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}
