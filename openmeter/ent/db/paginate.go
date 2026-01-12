@@ -1113,6 +1113,64 @@ var _ pagination.Paginator[*BillingInvoiceValidationIssue] = (*BillingInvoiceVal
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
+func (_m *BillingInvoiceWriteSchemaLevelQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingInvoiceWriteSchemaLevel], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
+
+	// Create duplicate of the query to run for
+	countQuery := _m.Clone()
+	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	pagedResponse := pagination.Result[*BillingInvoiceWriteSchemaLevel]{
+		Page: page,
+	}
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*BillingInvoiceWriteSchemaLevel, 0)
+		return pagedResponse, nil
+	}
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*BillingInvoiceWriteSchemaLevel] = (*BillingInvoiceWriteSchemaLevelQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
 func (_m *BillingProfileQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingProfile], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -1226,6 +1284,122 @@ func (_m *BillingSequenceNumbersQuery) Paginate(ctx context.Context, page pagina
 
 // type check
 var _ pagination.Paginator[*BillingSequenceNumbers] = (*BillingSequenceNumbersQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
+func (_m *BillingStandardInvoiceDetailedLineQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingStandardInvoiceDetailedLine], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
+
+	// Create duplicate of the query to run for
+	countQuery := _m.Clone()
+	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	pagedResponse := pagination.Result[*BillingStandardInvoiceDetailedLine]{
+		Page: page,
+	}
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*BillingStandardInvoiceDetailedLine, 0)
+		return pagedResponse, nil
+	}
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*BillingStandardInvoiceDetailedLine] = (*BillingStandardInvoiceDetailedLineQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
+func (_m *BillingStandardInvoiceDetailedLineAmountDiscountQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*BillingStandardInvoiceDetailedLineAmountDiscount], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
+
+	// Create duplicate of the query to run for
+	countQuery := _m.Clone()
+	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	pagedResponse := pagination.Result[*BillingStandardInvoiceDetailedLineAmountDiscount]{
+		Page: page,
+	}
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*BillingStandardInvoiceDetailedLineAmountDiscount, 0)
+		return pagedResponse, nil
+	}
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*BillingStandardInvoiceDetailedLineAmountDiscount] = (*BillingStandardInvoiceDetailedLineAmountDiscountQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.

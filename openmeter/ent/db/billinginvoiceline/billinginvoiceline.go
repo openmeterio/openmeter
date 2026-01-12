@@ -101,6 +101,8 @@ const (
 	EdgeParentLine = "parent_line"
 	// EdgeDetailedLines holds the string denoting the detailed_lines edge name in mutations.
 	EdgeDetailedLines = "detailed_lines"
+	// EdgeDetailedLinesV2 holds the string denoting the detailed_lines_v2 edge name in mutations.
+	EdgeDetailedLinesV2 = "detailed_lines_v2"
 	// EdgeLineUsageDiscounts holds the string denoting the line_usage_discounts edge name in mutations.
 	EdgeLineUsageDiscounts = "line_usage_discounts"
 	// EdgeLineAmountDiscounts holds the string denoting the line_amount_discounts edge name in mutations.
@@ -149,6 +151,13 @@ const (
 	DetailedLinesTable = "billing_invoice_lines"
 	// DetailedLinesColumn is the table column denoting the detailed_lines relation/edge.
 	DetailedLinesColumn = "parent_line_id"
+	// DetailedLinesV2Table is the table that holds the detailed_lines_v2 relation/edge.
+	DetailedLinesV2Table = "billing_standard_invoice_detailed_lines"
+	// DetailedLinesV2InverseTable is the table name for the BillingStandardInvoiceDetailedLine entity.
+	// It exists in this package in order to avoid circular dependency with the "billingstandardinvoicedetailedline" package.
+	DetailedLinesV2InverseTable = "billing_standard_invoice_detailed_lines"
+	// DetailedLinesV2Column is the table column denoting the detailed_lines_v2 relation/edge.
+	DetailedLinesV2Column = "parent_line_id"
 	// LineUsageDiscountsTable is the table that holds the line_usage_discounts relation/edge.
 	LineUsageDiscountsTable = "billing_invoice_line_usage_discounts"
 	// LineUsageDiscountsInverseTable is the table name for the BillingInvoiceLineUsageDiscount entity.
@@ -524,6 +533,20 @@ func ByDetailedLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// ByDetailedLinesV2Count orders the results by detailed_lines_v2 count.
+func ByDetailedLinesV2Count(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newDetailedLinesV2Step(), opts...)
+	}
+}
+
+// ByDetailedLinesV2 orders the results by detailed_lines_v2 terms.
+func ByDetailedLinesV2(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newDetailedLinesV2Step(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByLineUsageDiscountsCount orders the results by line_usage_discounts count.
 func ByLineUsageDiscountsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -612,6 +635,13 @@ func newDetailedLinesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(Table, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, DetailedLinesTable, DetailedLinesColumn),
+	)
+}
+func newDetailedLinesV2Step() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(DetailedLinesV2InverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, DetailedLinesV2Table, DetailedLinesV2Column),
 	)
 }
 func newLineUsageDiscountsStep() *sqlgraph.Step {

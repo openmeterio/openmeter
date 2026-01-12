@@ -52,10 +52,16 @@ type Tx struct {
 	BillingInvoiceUsageBasedLineConfig *BillingInvoiceUsageBasedLineConfigClient
 	// BillingInvoiceValidationIssue is the client for interacting with the BillingInvoiceValidationIssue builders.
 	BillingInvoiceValidationIssue *BillingInvoiceValidationIssueClient
+	// BillingInvoiceWriteSchemaLevel is the client for interacting with the BillingInvoiceWriteSchemaLevel builders.
+	BillingInvoiceWriteSchemaLevel *BillingInvoiceWriteSchemaLevelClient
 	// BillingProfile is the client for interacting with the BillingProfile builders.
 	BillingProfile *BillingProfileClient
 	// BillingSequenceNumbers is the client for interacting with the BillingSequenceNumbers builders.
 	BillingSequenceNumbers *BillingSequenceNumbersClient
+	// BillingStandardInvoiceDetailedLine is the client for interacting with the BillingStandardInvoiceDetailedLine builders.
+	BillingStandardInvoiceDetailedLine *BillingStandardInvoiceDetailedLineClient
+	// BillingStandardInvoiceDetailedLineAmountDiscount is the client for interacting with the BillingStandardInvoiceDetailedLineAmountDiscount builders.
+	BillingStandardInvoiceDetailedLineAmountDiscount *BillingStandardInvoiceDetailedLineAmountDiscountClient
 	// BillingWorkflowConfig is the client for interacting with the BillingWorkflowConfig builders.
 	BillingWorkflowConfig *BillingWorkflowConfigClient
 	// Customer is the client for interacting with the Customer builders.
@@ -252,8 +258,11 @@ func (tx *Tx) init() {
 	tx.BillingInvoiceSplitLineGroup = NewBillingInvoiceSplitLineGroupClient(tx.config)
 	tx.BillingInvoiceUsageBasedLineConfig = NewBillingInvoiceUsageBasedLineConfigClient(tx.config)
 	tx.BillingInvoiceValidationIssue = NewBillingInvoiceValidationIssueClient(tx.config)
+	tx.BillingInvoiceWriteSchemaLevel = NewBillingInvoiceWriteSchemaLevelClient(tx.config)
 	tx.BillingProfile = NewBillingProfileClient(tx.config)
 	tx.BillingSequenceNumbers = NewBillingSequenceNumbersClient(tx.config)
+	tx.BillingStandardInvoiceDetailedLine = NewBillingStandardInvoiceDetailedLineClient(tx.config)
+	tx.BillingStandardInvoiceDetailedLineAmountDiscount = NewBillingStandardInvoiceDetailedLineAmountDiscountClient(tx.config)
 	tx.BillingWorkflowConfig = NewBillingWorkflowConfigClient(tx.config)
 	tx.Customer = NewCustomerClient(tx.config)
 	tx.CustomerSubjects = NewCustomerSubjectsClient(tx.config)

@@ -237,6 +237,18 @@ func (f BillingInvoiceValidationIssueFunc) Mutate(ctx context.Context, m db.Muta
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingInvoiceValidationIssueMutation", m)
 }
 
+// The BillingInvoiceWriteSchemaLevelFunc type is an adapter to allow the use of ordinary
+// function as BillingInvoiceWriteSchemaLevel mutator.
+type BillingInvoiceWriteSchemaLevelFunc func(context.Context, *db.BillingInvoiceWriteSchemaLevelMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingInvoiceWriteSchemaLevelFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingInvoiceWriteSchemaLevelMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingInvoiceWriteSchemaLevelMutation", m)
+}
+
 // The BillingProfileFunc type is an adapter to allow the use of ordinary
 // function as BillingProfile mutator.
 type BillingProfileFunc func(context.Context, *db.BillingProfileMutation) (db.Value, error)
@@ -259,6 +271,30 @@ func (f BillingSequenceNumbersFunc) Mutate(ctx context.Context, m db.Mutation) (
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingSequenceNumbersMutation", m)
+}
+
+// The BillingStandardInvoiceDetailedLineFunc type is an adapter to allow the use of ordinary
+// function as BillingStandardInvoiceDetailedLine mutator.
+type BillingStandardInvoiceDetailedLineFunc func(context.Context, *db.BillingStandardInvoiceDetailedLineMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingStandardInvoiceDetailedLineFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingStandardInvoiceDetailedLineMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingStandardInvoiceDetailedLineMutation", m)
+}
+
+// The BillingStandardInvoiceDetailedLineAmountDiscountFunc type is an adapter to allow the use of ordinary
+// function as BillingStandardInvoiceDetailedLineAmountDiscount mutator.
+type BillingStandardInvoiceDetailedLineAmountDiscountFunc func(context.Context, *db.BillingStandardInvoiceDetailedLineAmountDiscountMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingStandardInvoiceDetailedLineAmountDiscountFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingStandardInvoiceDetailedLineAmountDiscountMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingStandardInvoiceDetailedLineAmountDiscountMutation", m)
 }
 
 // The BillingWorkflowConfigFunc type is an adapter to allow the use of ordinary

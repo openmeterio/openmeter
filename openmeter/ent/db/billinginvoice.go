@@ -138,6 +138,8 @@ type BillingInvoice struct {
 	CollectionAt time.Time `json:"collection_at,omitempty"`
 	// PaymentProcessingEnteredAt holds the value of the "payment_processing_entered_at" field.
 	PaymentProcessingEnteredAt *time.Time `json:"payment_processing_entered_at,omitempty"`
+	// SchemaLevel holds the value of the "schema_level" field.
+	SchemaLevel int `json:"schema_level,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceQuery when eager-loading is set.
 	Edges        BillingInvoiceEdges `json:"edges"`
@@ -152,6 +154,8 @@ type BillingInvoiceEdges struct {
 	BillingWorkflowConfig *BillingWorkflowConfig `json:"billing_workflow_config,omitempty"`
 	// BillingInvoiceLines holds the value of the billing_invoice_lines edge.
 	BillingInvoiceLines []*BillingInvoiceLine `json:"billing_invoice_lines,omitempty"`
+	// BillingInvoiceDetailedLines holds the value of the billing_invoice_detailed_lines edge.
+	BillingInvoiceDetailedLines []*BillingStandardInvoiceDetailedLine `json:"billing_invoice_detailed_lines,omitempty"`
 	// BillingInvoiceValidationIssues holds the value of the billing_invoice_validation_issues edge.
 	BillingInvoiceValidationIssues []*BillingInvoiceValidationIssue `json:"billing_invoice_validation_issues,omitempty"`
 	// BillingInvoiceCustomer holds the value of the billing_invoice_customer edge.
@@ -164,7 +168,7 @@ type BillingInvoiceEdges struct {
 	PaymentApp *App `json:"payment_app,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [8]bool
+	loadedTypes [9]bool
 }
 
 // SourceBillingProfileOrErr returns the SourceBillingProfile value or an error if the edge
@@ -198,10 +202,19 @@ func (e BillingInvoiceEdges) BillingInvoiceLinesOrErr() ([]*BillingInvoiceLine, 
 	return nil, &NotLoadedError{edge: "billing_invoice_lines"}
 }
 
+// BillingInvoiceDetailedLinesOrErr returns the BillingInvoiceDetailedLines value or an error if the edge
+// was not loaded in eager-loading.
+func (e BillingInvoiceEdges) BillingInvoiceDetailedLinesOrErr() ([]*BillingStandardInvoiceDetailedLine, error) {
+	if e.loadedTypes[3] {
+		return e.BillingInvoiceDetailedLines, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_invoice_detailed_lines"}
+}
+
 // BillingInvoiceValidationIssuesOrErr returns the BillingInvoiceValidationIssues value or an error if the edge
 // was not loaded in eager-loading.
 func (e BillingInvoiceEdges) BillingInvoiceValidationIssuesOrErr() ([]*BillingInvoiceValidationIssue, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[4] {
 		return e.BillingInvoiceValidationIssues, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice_validation_issues"}
@@ -212,7 +225,7 @@ func (e BillingInvoiceEdges) BillingInvoiceValidationIssuesOrErr() ([]*BillingIn
 func (e BillingInvoiceEdges) BillingInvoiceCustomerOrErr() (*Customer, error) {
 	if e.BillingInvoiceCustomer != nil {
 		return e.BillingInvoiceCustomer, nil
-	} else if e.loadedTypes[4] {
+	} else if e.loadedTypes[5] {
 		return nil, &NotFoundError{label: customer.Label}
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice_customer"}
@@ -223,7 +236,7 @@ func (e BillingInvoiceEdges) BillingInvoiceCustomerOrErr() (*Customer, error) {
 func (e BillingInvoiceEdges) TaxAppOrErr() (*App, error) {
 	if e.TaxApp != nil {
 		return e.TaxApp, nil
-	} else if e.loadedTypes[5] {
+	} else if e.loadedTypes[6] {
 		return nil, &NotFoundError{label: dbapp.Label}
 	}
 	return nil, &NotLoadedError{edge: "tax_app"}
@@ -234,7 +247,7 @@ func (e BillingInvoiceEdges) TaxAppOrErr() (*App, error) {
 func (e BillingInvoiceEdges) InvoicingAppOrErr() (*App, error) {
 	if e.InvoicingApp != nil {
 		return e.InvoicingApp, nil
-	} else if e.loadedTypes[6] {
+	} else if e.loadedTypes[7] {
 		return nil, &NotFoundError{label: dbapp.Label}
 	}
 	return nil, &NotLoadedError{edge: "invoicing_app"}
@@ -245,7 +258,7 @@ func (e BillingInvoiceEdges) InvoicingAppOrErr() (*App, error) {
 func (e BillingInvoiceEdges) PaymentAppOrErr() (*App, error) {
 	if e.PaymentApp != nil {
 		return e.PaymentApp, nil
-	} else if e.loadedTypes[7] {
+	} else if e.loadedTypes[8] {
 		return nil, &NotFoundError{label: dbapp.Label}
 	}
 	return nil, &NotLoadedError{edge: "payment_app"}
@@ -260,6 +273,8 @@ func (*BillingInvoice) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billinginvoice.FieldAmount, billinginvoice.FieldTaxesTotal, billinginvoice.FieldTaxesInclusiveTotal, billinginvoice.FieldTaxesExclusiveTotal, billinginvoice.FieldChargesTotal, billinginvoice.FieldDiscountsTotal, billinginvoice.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
+		case billinginvoice.FieldSchemaLevel:
+			values[i] = new(sql.NullInt64)
 		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldSupplierAddressCountry, billinginvoice.FieldSupplierAddressPostalCode, billinginvoice.FieldSupplierAddressState, billinginvoice.FieldSupplierAddressCity, billinginvoice.FieldSupplierAddressLine1, billinginvoice.FieldSupplierAddressLine2, billinginvoice.FieldSupplierAddressPhoneNumber, billinginvoice.FieldCustomerAddressCountry, billinginvoice.FieldCustomerAddressPostalCode, billinginvoice.FieldCustomerAddressState, billinginvoice.FieldCustomerAddressCity, billinginvoice.FieldCustomerAddressLine1, billinginvoice.FieldCustomerAddressLine2, billinginvoice.FieldCustomerAddressPhoneNumber, billinginvoice.FieldSupplierName, billinginvoice.FieldSupplierTaxCode, billinginvoice.FieldCustomerKey, billinginvoice.FieldCustomerName, billinginvoice.FieldNumber, billinginvoice.FieldType, billinginvoice.FieldDescription, billinginvoice.FieldCustomerID, billinginvoice.FieldSourceBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldWorkflowConfigID, billinginvoice.FieldTaxAppID, billinginvoice.FieldInvoicingAppID, billinginvoice.FieldPaymentAppID, billinginvoice.FieldInvoicingAppExternalID, billinginvoice.FieldPaymentAppExternalID, billinginvoice.FieldTaxAppExternalID:
 			values[i] = new(sql.NullString)
 		case billinginvoice.FieldCreatedAt, billinginvoice.FieldUpdatedAt, billinginvoice.FieldDeletedAt, billinginvoice.FieldVoidedAt, billinginvoice.FieldIssuedAt, billinginvoice.FieldSentToCustomerAt, billinginvoice.FieldDraftUntil, billinginvoice.FieldQuantitySnapshotedAt, billinginvoice.FieldDueAt, billinginvoice.FieldPeriodStart, billinginvoice.FieldPeriodEnd, billinginvoice.FieldCollectionAt, billinginvoice.FieldPaymentProcessingEnteredAt:
@@ -657,6 +672,12 @@ func (_m *BillingInvoice) assignValues(columns []string, values []any) error {
 				_m.PaymentProcessingEnteredAt = new(time.Time)
 				*_m.PaymentProcessingEnteredAt = value.Time
 			}
+		case billinginvoice.FieldSchemaLevel:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field schema_level", values[i])
+			} else if value.Valid {
+				_m.SchemaLevel = int(value.Int64)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -683,6 +704,11 @@ func (_m *BillingInvoice) QueryBillingWorkflowConfig() *BillingWorkflowConfigQue
 // QueryBillingInvoiceLines queries the "billing_invoice_lines" edge of the BillingInvoice entity.
 func (_m *BillingInvoice) QueryBillingInvoiceLines() *BillingInvoiceLineQuery {
 	return NewBillingInvoiceClient(_m.config).QueryBillingInvoiceLines(_m)
+}
+
+// QueryBillingInvoiceDetailedLines queries the "billing_invoice_detailed_lines" edge of the BillingInvoice entity.
+func (_m *BillingInvoice) QueryBillingInvoiceDetailedLines() *BillingStandardInvoiceDetailedLineQuery {
+	return NewBillingInvoiceClient(_m.config).QueryBillingInvoiceDetailedLines(_m)
 }
 
 // QueryBillingInvoiceValidationIssues queries the "billing_invoice_validation_issues" edge of the BillingInvoice entity.
@@ -960,6 +986,9 @@ func (_m *BillingInvoice) String() string {
 		builder.WriteString("payment_processing_entered_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("schema_level=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SchemaLevel))
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -140,11 +140,31 @@ func BillingInvoiceUsageBasedLineConfigOrErr(p BillingInvoiceUsageBasedLineConfi
 // BillingInvoiceValidationIssue is the predicate function for billinginvoicevalidationissue builders.
 type BillingInvoiceValidationIssue func(*sql.Selector)
 
+// BillingInvoiceWriteSchemaLevel is the predicate function for billinginvoicewriteschemalevel builders.
+type BillingInvoiceWriteSchemaLevel func(*sql.Selector)
+
 // BillingProfile is the predicate function for billingprofile builders.
 type BillingProfile func(*sql.Selector)
 
 // BillingSequenceNumbers is the predicate function for billingsequencenumbers builders.
 type BillingSequenceNumbers func(*sql.Selector)
+
+// BillingStandardInvoiceDetailedLine is the predicate function for billingstandardinvoicedetailedline builders.
+type BillingStandardInvoiceDetailedLine func(*sql.Selector)
+
+// BillingStandardInvoiceDetailedLineAmountDiscount is the predicate function for billingstandardinvoicedetailedlineamountdiscount builders.
+type BillingStandardInvoiceDetailedLineAmountDiscount func(*sql.Selector)
+
+// BillingStandardInvoiceDetailedLineAmountDiscountOrErr calls the predicate only if the error is not nit.
+func BillingStandardInvoiceDetailedLineAmountDiscountOrErr(p BillingStandardInvoiceDetailedLineAmountDiscount, err error) BillingStandardInvoiceDetailedLineAmountDiscount {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
 
 // BillingWorkflowConfig is the predicate function for billingworkflowconfig builders.
 type BillingWorkflowConfig func(*sql.Selector)
