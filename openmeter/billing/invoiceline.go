@@ -721,30 +721,37 @@ type CreatePendingInvoiceLinesResult struct {
 }
 
 type UpsertInvoiceLinesAdapterInput struct {
-	Namespace string
-	Lines     []*Line
+	Namespace    string
+	Lines        []*Line
+	SchemaLevels SchemaLevels
 }
 
 func (c UpsertInvoiceLinesAdapterInput) Validate() error {
+	var errs []error
+
+	if err := c.SchemaLevels.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("schema levels: %w", err))
+	}
+
 	if c.Namespace == "" {
-		return errors.New("namespace is required")
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
 	for i, line := range c.Lines {
 		if err := line.Validate(); err != nil {
-			return fmt.Errorf("line[%d]: %w", i, err)
+			errs = append(errs, fmt.Errorf("line[%d]: %w", i, err))
 		}
 
 		if line.Namespace == "" {
-			return fmt.Errorf("line[%d]: namespace is required", i)
+			errs = append(errs, fmt.Errorf("line[%d]: namespace is required", i))
 		}
 
 		if line.InvoiceID == "" {
-			return fmt.Errorf("line[%d]: invoice id is required", i)
+			errs = append(errs, fmt.Errorf("line[%d]: invoice id is required", i))
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 type ListInvoiceLinesAdapterInput struct {

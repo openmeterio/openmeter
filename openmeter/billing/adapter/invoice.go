@@ -471,7 +471,9 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			SetTaxesTotal(in.Totals.TaxesTotal).
 			SetTaxesExclusiveTotal(in.Totals.TaxesExclusiveTotal).
 			SetTaxesInclusiveTotal(in.Totals.TaxesInclusiveTotal).
-			SetTotal(in.Totals.Total)
+			SetTotal(in.Totals.Total).
+			// SchemaLevel
+			SetSchemaLevel(in.SchemaLevel)
 
 		if in.Period != nil {
 			updateQuery = updateQuery.
@@ -557,9 +559,18 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			// coordination is not something the adapter should deal with. The service
 			// is needed to lock and recalculate both invoices or do the necessary splits.
 
+			targetSchemaLevel, err := tx.GetInvoiceWriteSchemaLevel(ctx)
+			if err != nil {
+				return in, fmt.Errorf("getting invoice write schema level: %w", err)
+			}
+
 			lines, err := tx.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 				Namespace: in.Namespace,
 				Lines:     in.Lines.OrEmpty(),
+				SchemaLevels: billing.SchemaLevels{
+					ReadSchemaLevel:  in.SchemaLevel,
+					WriteSchemaLevel: targetSchemaLevel,
+				},
 			})
 			if err != nil {
 				return in, err
@@ -696,6 +707,8 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 
 	res := billing.Invoice{
 		InvoiceBase: base,
+
+		SchemaLevel: invoice.SchemaLevel,
 
 		Totals: billing.Totals{
 			Amount:              invoice.Amount,

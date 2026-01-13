@@ -340,6 +340,9 @@ func (i InvoiceBase) DefaultCollectionAtForStandardInvoice() time.Time {
 type Invoice struct {
 	InvoiceBase `json:",inline"`
 
+	// SchemaLevel of the invoice object itself when read from the database (please note this is not considered part of the base entity for now)
+	SchemaLevel int `json:"schemaLevel"`
+
 	// Entities external to the invoice itself
 	Lines            InvoiceLines     `json:"lines,omitempty"`
 	ValidationIssues ValidationIssues `json:"validationIssues,omitempty"`

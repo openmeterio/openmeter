@@ -110,10 +110,19 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			lines = append(lines, lineSvc)
 		}
 
+		currentSchemaLevel, err := s.adapter.GetInvoiceWriteSchemaLevel(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("getting invoice write schema level: %w", err)
+		}
+
 		// Create the invoice Lines
 		createdLines, err := s.adapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 			Namespace: input.Customer.Namespace,
 			Lines:     lines.ToEntities(),
+			SchemaLevels: billing.SchemaLevels{
+				ReadSchemaLevel:  currentSchemaLevel,
+				WriteSchemaLevel: currentSchemaLevel,
+			},
 		})
 		if err != nil {
 			return nil, fmt.Errorf("creating invoice Line: %w", err)
