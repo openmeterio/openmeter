@@ -6457,7 +6457,7 @@ class FeaturesOperations:
         creation.
         For metered features you can pass additional filters that will be applied when calculating
         feature usage, based on the meter's groupBy fields.
-        Only meters with SUM and COUNT aggregation are supported for features.
+        Meters with SUM, COUNT, UNIQUE_COUNT and LATEST aggregations are supported for features.
         Features cannot be updated later, only archived.
 
         :param feature: Required.
@@ -6478,7 +6478,7 @@ class FeaturesOperations:
         creation.
         For metered features you can pass additional filters that will be applied when calculating
         feature usage, based on the meter's groupBy fields.
-        Only meters with SUM and COUNT aggregation are supported for features.
+        Meters with SUM, COUNT, UNIQUE_COUNT and LATEST aggregations are supported for features.
         Features cannot be updated later, only archived.
 
         :param feature: Required.
@@ -6499,7 +6499,7 @@ class FeaturesOperations:
         creation.
         For metered features you can pass additional filters that will be applied when calculating
         feature usage, based on the meter's groupBy fields.
-        Only meters with SUM and COUNT aggregation are supported for features.
+        Meters with SUM, COUNT, UNIQUE_COUNT and LATEST aggregations are supported for features.
         Features cannot be updated later, only archived.
 
         :param feature: Required.
@@ -6519,7 +6519,7 @@ class FeaturesOperations:
         creation.
         For metered features you can pass additional filters that will be applied when calculating
         feature usage, based on the meter's groupBy fields.
-        Only meters with SUM and COUNT aggregation are supported for features.
+        Meters with SUM, COUNT, UNIQUE_COUNT and LATEST aggregations are supported for features.
         Features cannot be updated later, only archived.
 
         :param feature: Is one of the following types: FeatureCreateInputs, JSON, IO[bytes] Required.

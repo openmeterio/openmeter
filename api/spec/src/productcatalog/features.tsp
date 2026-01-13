@@ -38,7 +38,7 @@ model FeatureCreateInputs {
 
   // /**
   //  * The meter that the feature is associated with and and based on which usage is calculated.
-  //  * The meter selected must have SUM or COUNT aggregation.
+  //  * The meter selected must have one of the following aggregations: SUM, COUNT, UNIQUE_COUNT, LATEST
   //  */
   // @summary("Meter key")
   // @example("tokens_total")
