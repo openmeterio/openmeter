@@ -111,6 +111,79 @@ model StripeWebhookResponse {
  * in a secure, Stripe-hosted interface. This integration uses setup mode to collect
  * payment methods that can be charged later for subscription billing.
  */
+@example(
+  #{
+    customer: #{ id: "01G65Z755AFWAKHE12NY0CQ9FH" },
+    options: #{ currency: "USD", success_url: "http://example.com" },
+  },
+  #{
+    title: "With existing OpenMeter customer by id",
+    description: "Create a checkout session with existing customer.",
+  }
+)
+@example(
+  #{
+    customer: #{ key: "my-internal-id" },
+    options: #{ currency: "USD", success_url: "http://example.com" },
+  },
+  #{
+    title: "With existing OpenMeter customer by key",
+    description: "Create a checkout session with existing customer.",
+  }
+)
+@example(
+  #{
+    customer: #{ id: "01G65Z755AFWAKHE12NY0CQ9FH" },
+    stripe_customer_id: "cus_123456789",
+    options: #{ currency: "USD", success_url: "http://example.com" },
+  },
+  #{
+    title: "With existing OpenMeter and Stripe customer",
+    description: "Create a checkout session with existing openmeter and customer.",
+  }
+)
+@example(
+  #{
+    customer: #{
+      name: "ACME, Inc.",
+      key: "my-internal-id",
+      currency: "USD",
+      usage_attribution: #{ subject_keys: #["my-identifier"] },
+    },
+    options: #{ currency: "USD", success_url: "http://example.com" },
+  },
+  #{
+    title: "With customer creation",
+    description: "Create a checkout session with customer creation.",
+  }
+)
+@example(
+  #{
+    customer: #{
+      name: "ACME, Inc.",
+      key: "my-internal-id",
+      currency: "USD",
+      usage_attribution: #{ subject_keys: #["my-identifier"] },
+    },
+    options: #{
+      currency: "USD",
+      success_url: "http://example.com",
+      billing_address_collection: CreateStripeCheckoutSessionBillingAddressCollection.Required,
+      tax_id_collection: #{
+        enabled: true,
+        required: CreateCheckoutSessionTaxIdCollectionRequired.IfSupported,
+      },
+      customer_update: #{
+        name: CreateStripeCheckoutSessionCustomerUpdateBehavior.Auto,
+        address: CreateStripeCheckoutSessionCustomerUpdateBehavior.Auto,
+      },
+    },
+  },
+  #{
+    title: "With collecting address and tax ID",
+    description: "Create a checkout session with collecting address and tax ID.",
+  }
+)
 @friendlyName("BillingAppStripeCreateCheckoutSessionRequest")
 model CreateStripeCheckoutSessionRequest {
   /**
@@ -170,6 +243,7 @@ model StripeCustomerKey {
  * Customer creation data for new customers during checkout session creation.
  */
 @friendlyName("BillingAppStripeCustomerCreate")
+@withVisibility(Lifecycle.Create)
 model StripeCustomerCreate {
   ...OmitProperties<Customers.Customer, "currency">;
 
