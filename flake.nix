@@ -28,153 +28,123 @@
         };
 
         devenv.shells = {
-          default =
-            let
-              corepack031 = pkgs.corepack.overrideAttrs (_: {
-                version = "0.31.0";
-                src = pkgs.fetchurl {
-                  url = "https://registry.npmjs.org/corepack/-/corepack-0.31.0.tgz";
-                  sha256 = "sha256-fGMkPPHeJV2BKJ+LRzzsVIwaltF2DAw2ltb9M2pj6xc=";
-                };
-              });
-            in
-            {
-              languages = {
-                go = {
-                  enable = true;
-                  package = pkgs.go_1_25;
-                };
+          default = {
+            languages = {
+              go = {
+                enable = true;
+                package = pkgs.go_1_25;
+              };
 
-                python = {
+              python = {
+                enable = true;
+                package = pkgs.python314;
+                uv = {
                   enable = true;
-                  package = pkgs.python314;
-                  uv = {
-                    enable = true;
-                  };
-                };
-
-                javascript = {
-                  enable = true;
-                  package = pkgs.nodejs_22;
-                  corepack = {
-                    enable = true;
-                  };
                 };
               };
 
-              git-hooks.hooks = {
-                nixpkgs-fmt.enable = true;
-                commitizen.enable = true;
-
-                commitizen-branch = {
+              javascript = {
+                enable = true;
+                package = pkgs.nodejs_24;
+                corepack = {
                   enable = true;
-                  name = "commitizen-branch check";
-                  description = ''
-                    Check whether commit messages on the current HEAD follows committing rules.
-                  '';
-                  entry = "${pkgs.commitizen}/bin/cz check --allow-abort --rev-range origin/HEAD..HEAD";
-                  pass_filenames = false;
-                  stages = [ "manual" ];
                 };
               };
-
-              packages = with pkgs; [
-                gnumake
-                mage
-
-                # Kafka build dependencies
-                # https://github.com/confluentinc/confluent-kafka-go#librdkafka
-                # Check actual version via:
-                # $ pkg-config --modversion rdkafka++
-                # Getting sha256 hash for git ref:
-                # $ nix-shell -p nix-prefetch-git jq --run "nix hash convert sha256:\$(nix-prefetch-git --url https://github.com/confluentinc/librdkafka.git --quiet --rev v2.11.1 | jq -r '.sha256')"
-                (rdkafka.overrideAttrs (_: rec {
-                  version = "2.12.0";
-                  src = fetchFromGitHub {
-                    owner = "confluentinc";
-                    repo = "librdkafka";
-                    rev = "v${version}";
-                    sha256 = "sha256-vL1kSn9I9vcDWLXRgLI5PaEwgpowBtSS/oqQZAU6wJ0=";
-                  };
-                }))
-
-                cyrus_sasl
-                pkg-config
-                # confluent-platform
-
-                golangci-lint
-                goreleaser
-                air
-
-                curl
-                jq
-                minikube
-                kind
-                kubectl
-                helm-docs
-                kubernetes-helm
-
-                benthos
-
-                # We should use a custom light-weight derivation, see this thread https://discourse.nixos.org/t/installing-postgresql-client/948/15
-                # Multi-platform support makes this a bit more difficult
-                postgresql
-
-                # node
-                nodePackages.pnpm
-                corepack031
-                # We can consider adding a pkgs.buildNpmPackage for spectral-cli if build takes a lot of time, but for now
-                # this is a quick fix to get it working.
-                (writeShellScriptBin "spectral" ''
-                  exec ${pkgs.nodejs_22}/bin/npx -y @stoplight/spectral-cli@6.13.1 "$@"
-                '')
-
-                # python
-                poetry
-
-                atlasx
-
-                just
-                semver-tool
-
-                dagger
-
-                go-migrate
-
-                sqlc
-              ];
-
-
-              enterShell = ''
-                # Put Corepack 0.31.0 first on PATH
-                export PATH="${corepack031}/bin:$PATH"
-
-                # Disable download prompt for corepack
-                export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-              '';
-
-              env = {
-                KUBECONFIG = "${config.devenv.shells.default.env.DEVENV_STATE}/kube/config";
-                KIND_CLUSTER_NAME = "openmeter";
-
-                HELM_CACHE_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/cache";
-                HELM_CONFIG_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/config";
-                HELM_DATA_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/data";
-
-                PATH = lib.mkBefore "${
-                (pkgs.corepack.overrideAttrs (_: {
-                  version = "0.31.0";
-                  src = pkgs.fetchurl {
-                    url = "https://registry.npmjs.org/corepack/-/corepack-0.31.0.tgz";
-                    sha256 = "sha256-fGMkPPHeJV2BKJ+LRzzsVIwaltF2DAw2ltb9M2pj6xc=";
-                  };
-                }))
-              }/bin";
-              };
-
-              # https://github.com/cachix/devenv/issues/528#issuecomment-1556108767
-              containers = pkgs.lib.mkForce { };
             };
+
+            git-hooks.hooks = {
+              nixpkgs-fmt.enable = true;
+              commitizen.enable = true;
+
+              commitizen-branch = {
+                enable = true;
+                name = "commitizen-branch check";
+                description = ''
+                  Check whether commit messages on the current HEAD follows committing rules.
+                '';
+                entry = "${pkgs.commitizen}/bin/cz check --allow-abort --rev-range origin/HEAD..HEAD";
+                pass_filenames = false;
+                stages = [ "manual" ];
+              };
+            };
+
+            packages = with pkgs; [
+              gnumake
+              mage
+
+              # Kafka build dependencies
+              # https://github.com/confluentinc/confluent-kafka-go#librdkafka
+              # Check actual version via:
+              # $ pkg-config --modversion rdkafka++
+              # Getting sha256 hash for git ref:
+              # $ nix-shell -p nix-prefetch-git jq --run "nix hash convert sha256:\$(nix-prefetch-git --url https://github.com/confluentinc/librdkafka.git --quiet --rev v2.11.1 | jq -r '.sha256')"
+              (rdkafka.overrideAttrs (_: rec {
+                version = "2.12.0";
+                src = fetchFromGitHub {
+                  owner = "confluentinc";
+                  repo = "librdkafka";
+                  rev = "v${version}";
+                  sha256 = "sha256-vL1kSn9I9vcDWLXRgLI5PaEwgpowBtSS/oqQZAU6wJ0=";
+                };
+              }))
+
+              cyrus_sasl
+              pkg-config
+              # confluent-platform
+
+              golangci-lint
+              goreleaser
+              air
+
+              curl
+              jq
+              minikube
+              kind
+              kubectl
+              helm-docs
+              kubernetes-helm
+
+              benthos
+
+              # We should use a custom light-weight derivation, see this thread https://discourse.nixos.org/t/installing-postgresql-client/948/15
+              # Multi-platform support makes this a bit more difficult
+              postgresql
+
+              # node
+              corepack_24
+              # We can consider adding a pkgs.buildNpmPackage for spectral-cli if build takes a lot of time, but for now
+              # this is a quick fix to get it working.
+              (writeShellScriptBin "spectral" ''
+                exec ${pkgs.nodejs_24}/bin/npx -y @stoplight/spectral-cli@6.13.1 "$@"
+              '')
+
+              # python
+              poetry
+
+              atlasx
+
+              just
+              semver-tool
+
+              dagger
+
+              go-migrate
+
+              sqlc
+            ];
+
+            env = {
+              KUBECONFIG = "${config.devenv.shells.default.env.DEVENV_STATE}/kube/config";
+              KIND_CLUSTER_NAME = "openmeter";
+
+              HELM_CACHE_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/cache";
+              HELM_CONFIG_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/config";
+              HELM_DATA_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/data";
+            };
+
+            # https://github.com/cachix/devenv/issues/528#issuecomment-1556108767
+            containers = pkgs.lib.mkForce { };
+          };
 
           ci = devenv.shells.default;
 
