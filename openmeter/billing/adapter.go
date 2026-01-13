@@ -18,6 +18,7 @@ type Adapter interface {
 	InvoiceSplitLineGroupAdapter
 	InvoiceAdapter
 	SequenceAdapter
+	SchemaLevelAdapter
 	InvoiceAppAdapter
 	CustomerSynchronizationAdapter
 
@@ -59,6 +60,8 @@ type CustomerSynchronizationAdapter interface {
 type InvoiceLineAdapter interface {
 	UpsertInvoiceLines(ctx context.Context, input UpsertInvoiceLinesAdapterInput) ([]*Line, error)
 	ListInvoiceLines(ctx context.Context, input ListInvoiceLinesAdapterInput) ([]*Line, error)
+
+	// TODO: let's make sure we handle schema level here too
 	AssociateLinesToInvoice(ctx context.Context, input AssociateLinesToInvoiceAdapterInput) ([]*Line, error)
 	GetLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]LineOrHierarchy, error)
 }
@@ -83,6 +86,13 @@ type InvoiceSplitLineGroupAdapter interface {
 
 type SequenceAdapter interface {
 	NextSequenceNumber(ctx context.Context, input NextSequenceNumberInput) (alpacadecimal.Decimal, error)
+}
+
+type SchemaLevelAdapter interface {
+	// GetInvoiceWriteSchemaLevel returns the current write schema level for invoices.
+	GetInvoiceWriteSchemaLevel(ctx context.Context) (int, error)
+	// SetInvoiceWriteSchemaLevel sets the current write schema level for invoices.
+	SetInvoiceWriteSchemaLevel(ctx context.Context, level int) error
 }
 
 type InvoiceAppAdapter interface {
