@@ -46,17 +46,6 @@ services:
     ports:
       - "127.0.0.1:8084:8080"
 
-  wiretap:
-    extends:
-      file: docker-compose.base.yaml
-      service: wiretap
-    profiles:
-      - dev
-    ports:
-      - 127.0.0.1:19090:19090
-      - 127.0.0.1:19091:19091
-      - 127.0.0.1:19092:19092
-
   # Credit
   # docker compose --profile postgres up
   postgres:
