@@ -131,6 +131,11 @@ services:
     depends_on:
       - postgres
       - redis
+    healthcheck:
+      test: [ "CMD", "svix-server", "healthcheck", "http://localhost:8071" ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
 
 configs:
   svix_sql:
