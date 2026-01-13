@@ -119,11 +119,6 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 
 		gatheringInvoice.Lines.Append(linesToCreate...)
 
-		gatheringInvoice, err = s.adapter.UpdateInvoice(ctx, gatheringInvoice)
-		if err != nil {
-			return nil, fmt.Errorf("updating invoice: %w", err)
-		}
-
 		gatheringInvoiceID := gatheringInvoice.ID
 
 		if err := s.invoiceCalculator.CalculateGatheringInvoice(&gatheringInvoice); err != nil {
@@ -235,8 +230,8 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 	if invoice.DeletedAt != nil {
 		invoice.DeletedAt = nil
 
-		// If the invoice was deleted, but has lines, we need to delete those lines to prevent
-		// them from being associated with the deleted invoice.
+		// If the invoice was deleted, but has non-deleted lines, we need to delete those lines to prevent
+		// them from reappearing in the recreated gathering invoice.
 		if invoice.Lines.NonDeletedLineCount() > 0 {
 			invoice.Lines = invoice.Lines.Map(func(l *billing.Line) *billing.Line {
 				if l.DeletedAt == nil {
