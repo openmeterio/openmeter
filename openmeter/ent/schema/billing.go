@@ -1184,6 +1184,14 @@ func (BillingInvoice) Indexes() []ent.Index {
 					dialect.Postgres: "GIN",
 				}),
 			),
+		// We only allow one gathering invoice per customer per currency (given we
+		// maintain a lock per customer during modification this was already the case, just
+		// let's enforce it on a db level)
+		index.Fields("namespace", "customer_id", "currency").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL and status = 'gathering'"),
+			).
+			Unique(),
 	}
 }
 
