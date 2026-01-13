@@ -90,7 +90,7 @@ enum AppOAuth2AuthorizationCodeGrantErrorType {
  * of either 'code' or 'error' parameters.
  */
 #suppress "@openmeter/api-spec/repeated-prefix-grouping" "OAuth2 spec defines error_description and error_uri as separate parameters"
-@friendlyName("OAuth2AuthorizationCodeGrantParams")
+@friendlyName("BillingAppOAuth2AuthorizationCodeGrantParams")
 model AppOAuth2AuthorizationCodeGrantParams {
   ...AppOAuth2AuthorizationCodeGrantSuccessParams;
   ...AppOAuth2AuthorizationCodeGrantErrorParams;
