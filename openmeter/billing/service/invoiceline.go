@@ -5,16 +5,17 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
@@ -59,6 +60,10 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 		lineServices, err := s.lineService.FromEntities(lo.Map(input.Lines, func(l *billing.Line, _ int) *billing.Line {
 			l.Namespace = input.Customer.Namespace
 			l.Currency = input.Currency
+
+			// This is only used to ensure that we know the line IDs before the upsert so that we can return
+			// the correct lines to the caller.
+			l.ID = ulid.Make().String()
 
 			return l
 		}))
@@ -110,24 +115,11 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			lines = append(lines, lineSvc)
 		}
 
-		// Create the invoice Lines
-		createdLines, err := s.adapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-			Namespace: input.Customer.Namespace,
-			Lines:     lines.ToEntities(),
-		})
-		if err != nil {
-			return nil, fmt.Errorf("creating invoice Line: %w", err)
-		}
+		linesToCreate := lines.ToEntities()
 
-		gatheringInvoiceID := gatheringInvoice.InvoiceID()
-		// Let's reload the invoice after the lines has been assigned
-		gatheringInvoice, err = s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-			Invoice: gatheringInvoiceID,
-			Expand:  billing.InvoiceExpandAll,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("fetching invoice[%s]: %w", gatheringInvoiceID, err)
-		}
+		gatheringInvoice.Lines.Append(linesToCreate...)
+
+		gatheringInvoiceID := gatheringInvoice.ID
 
 		if err := s.invoiceCalculator.CalculateGatheringInvoice(&gatheringInvoice); err != nil {
 			return nil, fmt.Errorf("calculating invoice[%s]: %w", gatheringInvoiceID, err)
@@ -144,12 +136,12 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 		}
 
 		// Let's resolve the created lines from the final invoice
-		invoiceLinesByID, _ := slicesx.UniqueGroupBy(gatheringInvoice.Lines.OrEmpty(), func(l *billing.Line) string {
-			return l.ID
+		invoiceLinesByID := lo.SliceToMap(gatheringInvoice.Lines.OrEmpty(), func(l *billing.Line) (string, *billing.Line) {
+			return l.ID, l
 		})
 
 		finalLines := []*billing.Line{}
-		for _, line := range createdLines {
+		for _, line := range linesToCreate {
 			if line, ok := invoiceLinesByID[line.ID]; ok {
 				finalLines = append(finalLines, line)
 			}
@@ -194,6 +186,9 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 		OrderBy:          api.InvoiceOrderByCreatedAt,
 		Order:            sortx.OrderAsc,
 		IncludeDeleted:   true,
+		Expand: billing.InvoiceExpand{
+			Lines: true,
+		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("fetching gathering invoices: %w", err)
@@ -231,17 +226,20 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 		}, nil
 	}
 
-	if len(pendingInvoiceList.Items) > 1 {
-		// Note: Given that we are not using serializable transactions (which is fine), we might
-		// have multiple gathering invoices for the same customer.
-		// This is a rare case, but we should log it at least, later we can implement a call that
-		// merges these invoices (it's fine to just move the Lines to the first invoice)
-		s.logger.WarnContext(ctx, "more than one pending invoice found", "customer", customerProfile.Customer.ID, "namespace", customerProfile.Customer.Namespace, "currency", currency)
-	}
-
 	invoice := pendingInvoiceList.Items[0]
 	if invoice.DeletedAt != nil {
 		invoice.DeletedAt = nil
+
+		// If the invoice was deleted, but has non-deleted lines, we need to delete those lines to prevent
+		// them from reappearing in the recreated gathering invoice.
+		if invoice.Lines.NonDeletedLineCount() > 0 {
+			invoice.Lines = invoice.Lines.Map(func(l *billing.Line) *billing.Line {
+				if l.DeletedAt == nil {
+					l.DeletedAt = lo.ToPtr(clock.Now())
+				}
+				return l
+			})
+		}
 
 		invoiceID := invoice.ID
 
