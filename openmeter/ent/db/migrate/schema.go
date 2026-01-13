@@ -709,6 +709,14 @@ var (
 					},
 				},
 			},
+			{
+				Name:    "billinginvoice_namespace_customer_id_currency",
+				Unique:  true,
+				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[57], BillingInvoicesColumns[40]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL and status = 'gathering'",
+				},
+			},
 		},
 	}
 	// BillingInvoiceFlatFeeLineConfigsColumns holds the columns for the "billing_invoice_flat_fee_line_configs" table.
