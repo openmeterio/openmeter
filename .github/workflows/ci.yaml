@@ -335,7 +335,7 @@ jobs:
           echo "sha=${BASE_COMMIT}"
 
       - name: Lint cache
-        uses: actions/cache@v5.0.1
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         with:
           path: .devenv/golangci-lint-cache
           key: ${{ runner.os }}-openmeter-golangci-lint-cache-${{ steps.base-commit.outputs.sha }}-${{ hashFiles('flake.*', 'go.*', '.github/workflows/*.yaml') }}
