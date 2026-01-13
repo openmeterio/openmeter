@@ -41,7 +41,7 @@ enum AppCapabilityType {
 @friendlyName("BillingAppCapability")
 @example(#{
   type: AppCapabilityType.CollectPayments,
-  key: "stripe_collect_payment",
+  key: "stripe_collect_payments",
   name: "Collect Payments",
   description: "Stripe payments collects outstanding revenue with Stripe customer's default payment method.",
 })

@@ -33,7 +33,7 @@ enum AppInstallMethods {
 @example(#{
   type: AppType.Stripe,
   name: "Stripe",
-  description: "Stripe interation allows you to collect payments with Stripe.",
+  description: "Stripe integration allows you to collect payments with Stripe.",
   capabilities: #[
     #{
       type: AppCapabilityType.CalculateTax,
