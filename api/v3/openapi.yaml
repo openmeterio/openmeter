@@ -87,11 +87,11 @@ paths:
             $ref: '#/components/schemas/BillingAppType'
       responses:
         '200':
-          description: AppCatalogItem response.
+          description: AppOAuth2InstallResponse response.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BillingAppCatalogItem'
+                $ref: '#/components/schemas/BillingAppOAuth2InstallResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -883,7 +883,7 @@ components:
       description: App capability describes a function that an App can perform.
       example:
         type: collect_payments
-        key: stripe_collect_payment
+        key: stripe_collect_payments
         name: Collect Payments
         description: Stripe payments collects outstanding revenue with Stripe customer's default payment method.
     BillingAppCapabilityType:
@@ -938,7 +938,7 @@ components:
       example:
         type: stripe
         name: Stripe
-        description: Stripe interation allows you to collect payments with Stripe.
+        description: Stripe integration allows you to collect payments with Stripe.
         capabilities:
           - type: calculate_tax
             key: stripe_calculate_tax
@@ -1180,6 +1180,24 @@ components:
         - with_api_key
         - no_credentials_required
       description: Supported installation methods for an app.
+    BillingAppOAuth2InstallResponse:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: The URL to start the OAuth2 authorization code grant flow.
+          readOnly: true
+      description: |-
+        Response from the billing app installation endpoint to initiate the OAuth2 authorization flow.
+
+        This response contains the authorization URL where the user should be redirected
+        to grant permissions to the application. The URL includes all necessary OAuth2
+        parameters such as client_id, redirect_uri, scope, and state.
+      example:
+        url: https://provider.com/oauth/authorize?client_id=xxx&redirect_uri=...&state=random123
     BillingAppStripeCheckoutSessionCustomTextParams:
       type: object
       properties:
@@ -1369,6 +1387,24 @@ components:
         Checkout Sessions are used to collect payment method information from customers
         in a secure, Stripe-hosted interface. This integration uses setup mode to collect
         payment methods that can be charged later for subscription billing.
+      example:
+        customer:
+          name: ACME, Inc.
+          key: my-internal-id
+          currency: USD
+          usage_attribution:
+            subject_keys:
+              - my-identifier
+        options:
+          currency: USD
+          success_url: http://example.com
+          billing_address_collection: required
+          tax_id_collection:
+            enabled: true
+            required: if_supported
+          customer_update:
+            name: auto
+            address: auto
     BillingAppStripeCreateCheckoutSessionRequestOptions:
       type: object
       properties:
@@ -1593,15 +1629,10 @@ components:
     BillingAppStripeCustomerCreate:
       type: object
       required:
-        - id
         - name
         - key
         - currency
       properties:
-        id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          readOnly: true
         name:
           type: string
           minLength: 1
@@ -1619,21 +1650,6 @@ components:
             Maximum 1024 characters.
         labels:
           $ref: '#/components/schemas/Labels'
-        created_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: An ISO-8601 timestamp representation of entity creation date.
-          readOnly: true
-        updated_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: An ISO-8601 timestamp representation of entity last update date.
-          readOnly: true
-        deleted_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: An ISO-8601 timestamp representation of entity deletion date.
-          readOnly: true
         key:
           $ref: '#/components/schemas/ExternalResourceKey'
         usage_attribution:
