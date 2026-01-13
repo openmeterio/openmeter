@@ -38,7 +38,7 @@ interface AppCatalogOperations {
   @summary("Get OAuth2 install URL for an app catalog item")
   getOAuth2InstallURL(
     @path type: AppType,
-  ): Shared.GetResponse<AppCatalogItem> | Common.NotFound | Common.ErrorResponses;
+  ): Shared.GetResponse<AppOAuth2InstallResponse> | Common.NotFound | Common.ErrorResponses;
 }
 
 /**
