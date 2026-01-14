@@ -16,6 +16,12 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      # Message timestamp validation
+      # See:
+      # * https://cwiki.apache.org/confluence/display/KAFKA/KIP-937%3A+Improve+Message+Timestamp+Validation
+      # * https://kafka.apache.org/41/configuration/broker-configs/#brokerconfigs_log.message.timestamp.before.max.ms
+      # * https://kafka.apache.org/41/configuration/broker-configs/#brokerconfigs_log.message.timestamp.after.max.ms
+      KAFKA_LOG_MESSAGE_TIMESTAMP_AFTER_MAX_MS: 9223372036854775807
       JMX_PORT: 9997
       KAFKA_JMX_OPTS: "-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka -Dcom.sun.management.jmxremote.rmi.port=9997"
     healthcheck:
