@@ -25,6 +25,20 @@ func init() {
 		}
 		return v3BillingAppType
 	}
+	ConvertBillingAppType = func(source v3.BillingAppType) app.AppType {
+		var appAppType app.AppType
+		switch source {
+		case v3.BillingAppTypeCustomInvoicing:
+			appAppType = app.AppTypeCustomInvoicing
+		case v3.BillingAppTypeSandbox:
+			appAppType = app.AppTypeSandbox
+		case v3.BillingAppTypeStripe:
+			appAppType = app.AppTypeStripe
+		default:
+			panic(fmt.Sprintf("unexpected enum element: %v", source))
+		}
+		return appAppType
+	}
 	ConvertCapability = func(source app.CapabilityType) v3.BillingAppCapabilityType {
 		var v3BillingAppCapabilityType v3.BillingAppCapabilityType
 		switch source {

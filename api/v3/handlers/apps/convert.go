@@ -37,6 +37,11 @@ var (
 	// goverter:enum:map AppTypeSandbox BillingAppTypeSandbox
 	// goverter:enum:map AppTypeCustomInvoicing BillingAppTypeCustomInvoicing
 	ConvertAppType func(source app.AppType) api.BillingAppType
+
+	// goverter:enum:map BillingAppTypeStripe AppTypeStripe
+	// goverter:enum:map BillingAppTypeSandbox AppTypeSandbox
+	// goverter:enum:map BillingAppTypeCustomInvoicing AppTypeCustomInvoicing
+	ConvertBillingAppType func(source api.BillingAppType) app.AppType
 )
 
 func IntToFloat32(i int) float32 {
