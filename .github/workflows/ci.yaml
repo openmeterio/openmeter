@@ -42,7 +42,7 @@ jobs:
           nix flake check --impure
           nix develop --impure .#ci
       - name: Save Nix store cache
-        uses: nix-community/cache-nix-action/save@135667ec418502fa5a3598af6fb9eb733888ce6a # v6.1.3
+        uses: nix-community/cache-nix-action/save@b426b118b6dc86d6952988d396aa7c6b09776d08 # v7.0.0
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           save: "true"
@@ -76,7 +76,7 @@ jobs:
             keep-outputs = true
 
       - name: Restore Nix store
-        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a # v6.1.3
+        uses: nix-community/cache-nix-action/restore@b426b118b6dc86d6952988d396aa7c6b09776d08 # v7.0.0
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
@@ -128,7 +128,7 @@ jobs:
             keep-outputs = true
 
       - name: Restore Nix store
-        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a # v6.1.3
+        uses: nix-community/cache-nix-action/restore@b426b118b6dc86d6952988d396aa7c6b09776d08 # v7.0.0
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
@@ -194,7 +194,7 @@ jobs:
             keep-outputs = true
 
       - name: Restore Nix store
-        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a # v6.1.3
+        uses: nix-community/cache-nix-action/restore@b426b118b6dc86d6952988d396aa7c6b09776d08 # v7.0.0
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
@@ -293,7 +293,7 @@ jobs:
             keep-outputs = true
 
       - name: Restore Nix store
-        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a # v6.1.3
+        uses: nix-community/cache-nix-action/restore@b426b118b6dc86d6952988d396aa7c6b09776d08 # v7.0.0
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
@@ -451,7 +451,7 @@ jobs:
             keep-outputs = true
 
       - name: Restore Nix store
-        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a # v6.1.3
+        uses: nix-community/cache-nix-action/restore@b426b118b6dc86d6952988d396aa7c6b09776d08 # v7.0.0
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
@@ -533,7 +533,7 @@ jobs:
             keep-outputs = true
 
       - name: Restore Nix store
-        uses: nix-community/cache-nix-action/restore@135667ec418502fa5a3598af6fb9eb733888ce6a # v6.1.3
+        uses: nix-community/cache-nix-action/restore@b426b118b6dc86d6952988d396aa7c6b09776d08 # v7.0.0
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
