@@ -2,7 +2,9 @@ package meterexport
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"iter"
 	"time"
 
@@ -56,13 +58,53 @@ type TargetMeterDescriptor struct {
 
 type DataExportConfig struct {
 	// Defines in what pre-aggregated windows the synthetic data will be exported in
-	ExportWindowSize meter.WindowSize
+	ExportWindowSize meter.WindowSize `json:"exportWindowSize"`
 
 	// The time zone used when exporting the synthetic data
-	ExportWindowTimeZone *time.Location
+	ExportWindowTimeZone *time.Location `json:"exportWindowTimeZone"`
 
 	// The source meter to export data from
-	MeterID models.NamespacedID
+	MeterID models.NamespacedID `json:"meterId"`
+}
+
+// dataExportConfigJSON is the JSON representation of DataExportConfig.
+type dataExportConfigJSON struct {
+	ExportWindowSize     meter.WindowSize    `json:"exportWindowSize"`
+	ExportWindowTimeZone string              `json:"exportWindowTimeZone"`
+	MeterID              models.NamespacedID `json:"meterId"`
+}
+
+func (c DataExportConfig) MarshalJSON() ([]byte, error) {
+	tzName := ""
+	if c.ExportWindowTimeZone != nil {
+		tzName = c.ExportWindowTimeZone.String()
+	}
+
+	return json.Marshal(dataExportConfigJSON{
+		ExportWindowSize:     c.ExportWindowSize,
+		ExportWindowTimeZone: tzName,
+		MeterID:              c.MeterID,
+	})
+}
+
+func (c *DataExportConfig) UnmarshalJSON(data []byte) error {
+	var raw dataExportConfigJSON
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	c.ExportWindowSize = raw.ExportWindowSize
+	c.MeterID = raw.MeterID
+
+	if raw.ExportWindowTimeZone != "" {
+		loc, err := time.LoadLocation(raw.ExportWindowTimeZone)
+		if err != nil {
+			return fmt.Errorf("invalid timezone %q: %w", raw.ExportWindowTimeZone, err)
+		}
+		c.ExportWindowTimeZone = loc
+	}
+
+	return nil
 }
 
 func (c DataExportConfig) Validate() error {
