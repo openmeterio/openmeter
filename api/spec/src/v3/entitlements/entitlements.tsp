@@ -5,7 +5,7 @@ namespace Entitlements;
  */
 @friendlyName("BillingEntitlementType")
 enum EntitlementType {
-  metered,
-  static,
-  boolean,
+  Metered: "metered",
+  Static: "static",
+  Boolean: "boolean",
 }
