@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/metric"
 
@@ -24,7 +23,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/grouphandler"
-	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -35,11 +33,6 @@ const (
 type BatchedIngestEventHandler = func(ctx context.Context, event ingestevents.EventBatchedIngest) error
 
 type WorkerOptions struct {
-	SystemEventsTopic        string
-	IngestEventsTopic        string
-	BalanceWorkerEventsTopic string
-
-	Router   router.Options
 	EventBus eventbus.Publisher
 
 	Entitlement *registry.Entitlement
@@ -74,18 +67,6 @@ func (o *WorkerOptions) Validate() error {
 		return errors.New("logger is required")
 	}
 
-	if o.SystemEventsTopic == "" {
-		return errors.New("system events topic is required")
-	}
-
-	if o.IngestEventsTopic == "" {
-		return errors.New("ingest events topic is required")
-	}
-
-	if o.BalanceWorkerEventsTopic == "" {
-		return errors.New("balance worker events topic is required")
-	}
-
 	if o.MetricMeter == nil {
 		return errors.New("metric meter is required")
 	}
@@ -110,15 +91,9 @@ func (o *WorkerOptions) Validate() error {
 }
 
 type Worker struct {
-	opts   WorkerOptions
-	router *message.Router
-
-	filters *EntitlementFilters
-
+	opts                    WorkerOptions
+	filters                 *EntitlementFilters
 	metricRecalculationTime metric.Int64Histogram
-
-	// Handlers
-	nonPublishingHandler *grouphandler.NoPublishingHandler
 }
 
 func (w *Worker) initMetrics() error {
@@ -159,51 +134,11 @@ func New(opts WorkerOptions) (*Worker, error) {
 		return nil, fmt.Errorf("failed to init metrics: %w", err)
 	}
 
-	r, err := router.NewDefaultRouter(opts.Router)
-	if err != nil {
-		return nil, err
-	}
-
-	worker.router = r
-
-	eventHandler, err := worker.eventHandler(opts.Router.MetricMeter)
-	if err != nil {
-		return nil, err
-	}
-
-	r.AddConsumerHandler(
-		"balance_worker_system_events",
-		opts.SystemEventsTopic,
-		opts.Router.Subscriber,
-		eventHandler,
-	)
-
-	r.AddConsumerHandler(
-		"balance_worker_ingest_events",
-		opts.IngestEventsTopic,
-		opts.Router.Subscriber,
-		eventHandler,
-	)
-
-	r.AddConsumerHandler(
-		"balance_worker_balance_worker_events",
-		opts.BalanceWorkerEventsTopic,
-		opts.Router.Subscriber,
-		eventHandler,
-	)
-
 	return worker, nil
 }
 
-// AddHandler adds an additional handler to the list of batched ingest event handlers.
-// Handlers are called in the order they are added and run after the riginal balance worker handler.
-// In the case of any handler returning an error, the event will be retried so it is important that all handlers are idempotent.
-func (w *Worker) AddHandler(handler grouphandler.GroupEventHandler) {
-	w.nonPublishingHandler.AddHandler(handler)
-}
-
-func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandlerFunc, error) {
-	publishingHandler, err := grouphandler.NewNoPublishingHandler(
+func (w *Worker) eventHandler(metricMeter metric.Meter) (*grouphandler.NoPublishingHandler, error) {
+	nonPublishingHandler, err := grouphandler.NewNoPublishingHandler(
 		w.opts.EventBus.Marshaler(),
 		metricMeter,
 
@@ -344,19 +279,5 @@ func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandle
 		return nil, fmt.Errorf("failed to create publishing handler: %w", err)
 	}
 
-	w.nonPublishingHandler = publishingHandler
-
-	return publishingHandler.Handle, nil
-}
-
-func (w *Worker) Run(ctx context.Context) error {
-	return w.router.Run(ctx)
-}
-
-func (w *Worker) Close() error {
-	if err := w.router.Close(); err != nil {
-		return err
-	}
-
-	return nil
+	return nonPublishingHandler, nil
 }
