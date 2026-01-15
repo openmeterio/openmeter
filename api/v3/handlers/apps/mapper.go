@@ -1,8 +1,11 @@
 package apps
 
 import (
+	"fmt"
+
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func mapUpsertInvoiceResultFromAPI(in *api.BillingAppCustomInvoicingSyncResult) *billing.UpsertInvoiceResult {
@@ -54,4 +57,12 @@ func mapFinalizeInvoiceResultFromAPI(in api.BillingAppCustomInvoicingFinalizedRe
 		}
 	}
 	return res
+}
+
+func mapPaymentTriggerFromAPI(in api.BillingAppCustomInvoicingPaymentTrigger) (billing.InvoiceTrigger, error) {
+	if in == "" {
+		return "", models.NewGenericValidationError(fmt.Errorf("payment trigger is required"))
+	}
+
+	return fmt.Sprintf("trigger_%s", in), nil
 }
