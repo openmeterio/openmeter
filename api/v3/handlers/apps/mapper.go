@@ -34,3 +34,24 @@ func mapUpsertInvoiceResultFromAPI(in *api.BillingAppCustomInvoicingSyncResult) 
 
 	return res
 }
+
+func mapFinalizeInvoiceResultFromAPI(in api.BillingAppCustomInvoicingFinalizedRequest) *billing.FinalizeInvoiceResult {
+	res := billing.NewFinalizeInvoiceResult()
+
+	if in.Invoicing != nil {
+		if in.Invoicing.InvoiceNumber != nil {
+			res.SetInvoiceNumber(*in.Invoicing.InvoiceNumber)
+		}
+
+		if in.Invoicing.SentToCustomerAt != nil {
+			res.SetSentToCustomerAt(*in.Invoicing.SentToCustomerAt)
+		}
+	}
+
+	if in.Payment != nil {
+		if in.Payment.ExternalId != nil {
+			res.SetPaymentExternalID(*in.Payment.ExternalId)
+		}
+	}
+	return res
+}
