@@ -601,33 +601,56 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 
 func (a *adapter) GetInvoiceOwnership(ctx context.Context, in billing.GetInvoiceOwnershipAdapterInput) (billing.GetOwnershipAdapterResponse, error) {
 	if err := in.Validate(); err != nil {
-		return billing.GetOwnershipAdapterResponse{}, billing.ValidationError{
+		return nil, billing.ValidationError{
 			Err: err,
 		}
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.GetOwnershipAdapterResponse, error) {
-		dbInvoice, err := tx.db.BillingInvoice.Query().
-			Where(billinginvoice.ID(in.ID)).
-			Where(billinginvoice.Namespace(in.Namespace)).
-			First(ctx)
+		dbInvoices, err := tx.db.BillingInvoice.Query().
+			Where(
+				billinginvoice.IDIn(
+					lo.Map(
+						in.InvoiceIDs,
+						func(invoiceID billing.InvoiceID, _ int) string {
+							return invoiceID.ID
+						},
+					)...,
+				),
+			).
+			All(ctx)
 		if err != nil {
-			if db.IsNotFound(err) {
-				return billing.GetOwnershipAdapterResponse{}, billing.NotFoundError{
-					Entity: billing.EntityInvoice,
-					ID:     in.ID,
-					Err:    err,
-				}
-			}
-
-			return billing.GetOwnershipAdapterResponse{}, err
+			return nil, err
 		}
 
-		return billing.GetOwnershipAdapterResponse{
-			Namespace:  dbInvoice.Namespace,
-			InvoiceID:  dbInvoice.ID,
-			CustomerID: dbInvoice.CustomerID,
-		}, nil
+		invoiceToCustomerID := lo.SliceToMap(dbInvoices, func(dbInvoice *db.BillingInvoice) (billing.InvoiceID, customer.CustomerID) {
+			return billing.InvoiceID{
+					Namespace: dbInvoice.Namespace,
+					ID:        dbInvoice.ID,
+				}, customer.CustomerID{
+					Namespace: dbInvoice.Namespace,
+					ID:        dbInvoice.CustomerID,
+				}
+		})
+
+		// Let's validate if we got all the invoices (and most importantly look up invoices with
+		// namespaceID, to prevent looking up invoices with different than expected namespace ID)
+		var notFoundErrs []error
+		for _, invoiceID := range in.InvoiceIDs {
+			if _, found := invoiceToCustomerID[invoiceID]; !found {
+				notFoundErrs = append(notFoundErrs, billing.NotFoundError{
+					Entity: billing.EntityInvoice,
+					ID:     invoiceID.ID,
+					Err:    fmt.Errorf("invoice not found: %s", invoiceID.ID),
+				})
+			}
+		}
+
+		if len(notFoundErrs) > 0 {
+			return nil, errors.Join(notFoundErrs...)
+		}
+
+		return invoiceToCustomerID, nil
 	})
 }
 
