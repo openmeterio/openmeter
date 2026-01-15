@@ -1,9 +1,13 @@
 package server
 
 import (
+	"fmt"
+	"io"
 	"net/http"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/handlers/apps"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Apps
@@ -37,7 +41,21 @@ func (s *Server) CreateStripeCheckoutSession(w http.ResponseWriter, r *http.Requ
 }
 
 func (s *Server) HandleStripeWebhook(w http.ResponseWriter, r *http.Request, appId api.ULID) {
-	s.appsHandler.HandleStripeWebhook().With(appId).ServeHTTP(w, r)
+	const MaxBodyBytes = int64(65536)
+	r.Body = http.MaxBytesReader(w, r.Body, MaxBodyBytes)
+	payload, err := io.ReadAll(r.Body)
+	if err != nil {
+		err := fmt.Errorf("cannot read payload: %w", err)
+
+		s.ErrorHandler.HandleContext(r.Context(), err)
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w)
+		return
+	}
+
+	s.appsHandler.HandleStripeWebhook().With(apps.HandleStripeWebhookParams{
+		AppID:   appId,
+		Payload: payload,
+	}).ServeHTTP(w, r)
 }
 
 // Meters

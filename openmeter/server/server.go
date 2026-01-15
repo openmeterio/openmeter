@@ -115,6 +115,7 @@ func NewServer(config *Config) (*Server, error) {
 		PlanService:             config.RouterConfig.Plan,
 		PlanSubscriptionService: config.RouterConfig.PlanSubscriptionService,
 		SubscriptionService:     config.RouterConfig.SubscriptionService,
+		StripeService:           config.RouterConfig.AppStripe,
 		SyncService:             config.RouterConfig.AppCustomInvoicing,
 		Middlewares:             v3Middlewares,
 	})

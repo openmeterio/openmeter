@@ -5,9 +5,11 @@ package apps
 
 import (
 	"fmt"
+	api "github.com/openmeterio/openmeter/api"
 	v3 "github.com/openmeterio/openmeter/api/v3"
 	response "github.com/openmeterio/openmeter/api/v3/response"
 	app "github.com/openmeterio/openmeter/openmeter/app"
+	httpdriver "github.com/openmeterio/openmeter/openmeter/app/stripe/httpdriver"
 )
 
 func init() {
@@ -95,6 +97,20 @@ func init() {
 		v3BillingAppCatalogItem.Name = source.Listing.Name
 		v3BillingAppCatalogItem.Type = ConvertAppType(source.Listing.Type)
 		return v3BillingAppCatalogItem
+	}
+	ConvertStripeWebhookRequest = func(source HandleStripeWebhookRequest) httpdriver.AppStripeWebhookRequest {
+		var httpdriverAppStripeWebhookRequest httpdriver.AppStripeWebhookRequest
+		httpdriverAppStripeWebhookRequest.AppID = source.AppId
+		httpdriverAppStripeWebhookRequest.Event = source.Event
+		return httpdriverAppStripeWebhookRequest
+	}
+	ConvertStripeWebhookResponse = func(source api.StripeWebhookResponse) v3.BillingAppStripeWebhookResponse {
+		var v3BillingAppStripeWebhookResponse v3.BillingAppStripeWebhookResponse
+		v3BillingAppStripeWebhookResponse.AppId = source.AppId
+		v3BillingAppStripeWebhookResponse.CustomerId = source.CustomerId
+		v3BillingAppStripeWebhookResponse.Message = source.Message
+		v3BillingAppStripeWebhookResponse.NamespaceId = source.NamespaceId
+		return v3BillingAppStripeWebhookResponse
 	}
 }
 func appCapabilityToV3BillingAppCapability(source app.Capability) v3.BillingAppCapability {
