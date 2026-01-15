@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
@@ -21,17 +22,20 @@ type Handler interface {
 type handler struct {
 	resolveNamespace func(ctx context.Context) (string, error)
 	service          app.Service
+	syncService      appcustominvoicing.SyncService
 	options          []httptransport.HandlerOption
 }
 
 func New(
 	resolveNamespace func(ctx context.Context) (string, error),
 	appService app.Service,
+	syncService appcustominvoicing.SyncService,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
 		resolveNamespace: resolveNamespace,
 		service:          appService,
+		syncService:      syncService,
 		options:          options,
 	}
 }

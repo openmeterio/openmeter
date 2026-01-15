@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/oasmiddleware"
 	"github.com/openmeterio/openmeter/api/v3/render"
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
@@ -49,6 +50,7 @@ type Config struct {
 	PlanService             plan.Service
 	PlanSubscriptionService plansubscription.PlanSubscriptionService
 	SubscriptionService     subscription.Service
+	SyncService             appcustominvoicing.SyncService
 }
 
 func (c *Config) Validate() error {
@@ -96,6 +98,10 @@ func (c *Config) Validate() error {
 
 	if c.SubscriptionService == nil {
 		errs = append(errs, errors.New("subscription service is required"))
+	}
+
+	if c.SyncService == nil {
+		errs = append(errs, errors.New("sync service is required"))
 	}
 
 	return errors.Join(errs...)
@@ -146,7 +152,7 @@ func NewServer(config *Config) (*Server, error) {
 		return ns, nil
 	}
 
-	appsHandler := appshandler.New(resolveNamespace, config.AppService, httptransport.WithErrorHandler(config.ErrorHandler))
+	appsHandler := appshandler.New(resolveNamespace, config.AppService, config.SyncService, httptransport.WithErrorHandler(config.ErrorHandler))
 	eventsHandler := eventshandler.New(resolveNamespace, config.IngestService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersHandler := customershandler.New(resolveNamespace, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersEntitlementHandler := customersentitlementhandler.New(resolveNamespace, config.CustomerService, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
