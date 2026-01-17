@@ -6,6 +6,8 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 )
 
+var unimplemented = api.Unimplemented{}
+
 // Meters
 
 func (s *Server) CreateMeter(w http.ResponseWriter, r *http.Request) {
@@ -84,44 +86,14 @@ func (s *Server) ChangeSubscription(w http.ResponseWriter, r *http.Request, subs
 	s.subscriptionsHandler.ChangeSubscription().With(subscriptionId).ServeHTTP(w, r)
 }
 
-// App Catalog
+// Apps
 
-var unimplemented = api.Unimplemented{}
-
-func (s *Server) ListAppCatalogItems(w http.ResponseWriter, r *http.Request, params api.ListAppCatalogItemsParams) {
-	unimplemented.ListAppCatalogItems(w, r, params)
+func (s *Server) ListApps(w http.ResponseWriter, r *http.Request, params api.ListAppsParams) {
+	unimplemented.ListApps(w, r, params)
 }
 
-func (s *Server) GetAppCatalogItem(w http.ResponseWriter, r *http.Request, pType api.BillingAppType) {
-	unimplemented.GetAppCatalogItem(w, r, pType)
-}
-
-func (s *Server) InstallApp(w http.ResponseWriter, r *http.Request, pType api.BillingAppType) {
-	unimplemented.InstallApp(w, r, pType)
-}
-
-func (s *Server) InstallAppViaApiKey(w http.ResponseWriter, r *http.Request, pType api.BillingAppType) {
-	unimplemented.InstallAppViaApiKey(w, r, pType)
-}
-
-func (s *Server) SubmitCustomInvoicingDraftSynchronized(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
-	unimplemented.SubmitCustomInvoicingDraftSynchronized(w, r, invoiceId)
-}
-
-func (s *Server) SubmitCustomInvoicingIssuingSynchronized(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
-	unimplemented.SubmitCustomInvoicingIssuingSynchronized(w, r, invoiceId)
-}
-
-func (s *Server) UpdateCustomInvoicingPaymentStatus(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
-	unimplemented.UpdateCustomInvoicingPaymentStatus(w, r, invoiceId)
-}
-
-func (s *Server) CreateStripeCheckoutSession(w http.ResponseWriter, r *http.Request) {
-	unimplemented.CreateStripeCheckoutSession(w, r)
-}
-
-func (s *Server) HandleStripeWebhook(w http.ResponseWriter, r *http.Request, appId api.ULID) {
-	unimplemented.HandleStripeWebhook(w, r, appId)
+func (s *Server) GetApp(w http.ResponseWriter, r *http.Request, appId api.ULID) {
+	unimplemented.GetApp(w, r, appId)
 }
 
 // Billing Profiles
@@ -162,4 +134,8 @@ func (s *Server) UpdateCustomerBillingAppData(w http.ResponseWriter, r *http.Req
 
 func (s *Server) CreateCustomerStripeCheckoutSession(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
 	unimplemented.CreateCustomerStripeCheckoutSession(w, r, customerId)
+}
+
+func (s *Server) CreateCustomerStripePortalSession(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
+	unimplemented.CreateCustomerStripePortalSession(w, r, customerId)
 }

@@ -21,10 +21,10 @@ model TaxConfig {
   stripe?: TaxConfigStripe;
 
   /**
-   * Custom invoicing tax config.
+   * External invoicing tax config.
    */
-  @summary("Custom invoicing tax config")
-  custom_invoicing?: TaxConfigCustomInvoicing;
+  @summary("External invoicing tax config")
+  external_invoicing?: TaxConfigExternalInvoicing;
 }
 
 /**
@@ -60,10 +60,10 @@ model TaxConfigStripe {
 }
 
 /**
- * Custom invoicing tax config.
+ * External invoicing tax config.
  */
-@friendlyName("BillingTaxConfigCustomInvoicing")
-model TaxConfigCustomInvoicing {
+@friendlyName("BillingTaxConfigExternalInvoicing")
+model TaxConfigExternalInvoicing {
   /**
    * The tax code should be interpreted by the custom invoicing provider.
    */

@@ -144,6 +144,24 @@ interface CustomerBillingOperations {
     @path customerId: Shared.ULID,
     @body body: CustomerBillingStripeCreateCheckoutSessionRequest,
   ): Shared.CreateResponse<Apps.CreateStripeCheckoutSessionResult> | Common.NotFound | Common.ErrorResponses;
+
+  /**
+   * Create Stripe Customer Portal Session.
+   *
+   * Useful to redirect the customer to the Stripe Customer Portal to manage their payment methods,
+   * change their billing address and access their invoice history.
+   * Only returns URL if the customer billing profile is linked to a stripe app and customer.
+   */
+  @post
+  @route("/stripe/portal-sessions")
+  @operationId("create-customer-stripe-portal-session")
+  @summary("Create Stripe customer portal session")
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  createPortalSession(
+    @path customerId: Shared.ULID,
+    @body body: Apps.CreateStripeCustomerPortalSessionRequest,
+  ): Shared.CreateResponse<Apps.CreateStripeCustomerPortalSessionResult> | Common.Conflict | Common.NotFound | Common.ErrorResponses;
 }
 
 /**
@@ -156,25 +174,9 @@ interface CustomerBillingOperations {
 @friendlyName("BillingCustomerStripeCreateCheckoutSessionRequest")
 model CustomerBillingStripeCreateCheckoutSessionRequest {
   /**
-   * The Stripe app ID to use for creating the checkout session.
-   *
-   * If not provided, the default Stripe app will be used if exists.
-   */
-  app_id?: Shared.ULID;
-
-  /**
-   * Existing Stripe customer ID to use for the checkout session.
-   *
-   * If not provided, a new Stripe customer will be created, or the billing
-   * system will use the customer's existing default Stripe customer ID if available.
-   */
-  stripe_customer_id?: string;
-
-  /**
    * Options for configuring the Stripe Checkout Session.
    *
-   * These options are passed directly to Stripe's checkout session creation API.
-   * See: https://docs.stripe.com/api/checkout/sessions/create
+   * These options are passed directly to Stripe's [checkout session creation API](https://docs.stripe.com/api/checkout/sessions/create).
    */
-  options: Apps.CreateStripeCheckoutSessionRequestOptions;
+  stripe_options: Apps.CreateStripeCheckoutSessionRequestOptions;
 }

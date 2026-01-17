@@ -9,13 +9,6 @@ namespace Customers;
 #suppress "@openmeter/api-spec/repeated-prefix-grouping" "Read and write properties"
 @friendlyName("BillingCustomerData")
 model CustomerBillingData {
-  // /**
-  //  * Customer specific billing workflow overrides.
-  //  */
-  // @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  // @summary("Billing workflow override")
-  // override?: Billing.BillingWorkflow;
-
   /**
    * The billing profile for the customer.
    *

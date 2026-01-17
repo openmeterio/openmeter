@@ -38,226 +38,9 @@ model AppStripe {
 }
 
 /**
- * Stripe webhook event received from Stripe's webhook system.
- *
- * Stripe sends webhook events to notify the billing system about asynchronous events.
- */
-@friendlyName("BillingAppStripeWebhookEvent")
-model StripeWebhookEvent {
-  /**
-   * Unique identifier for the event.
-   */
-  id: string;
-
-  /**
-   * The type of event (e.g., "payment_intent.succeeded", "invoice.paid").
-   *
-   * See Stripe's documentation for the full list of event types:
-   * https://docs.stripe.com/api/events/types
-   */
-  type: string;
-
-  /**
-   * Indicates whether the event occurred in live mode or test mode.
-   */
-  livemode: boolean;
-
-  /**
-   * Unix timestamp when the event was created.
-   */
-  created: int64;
-
-  /**
-   * Object containing the event's data payload.
-   *
-   * The structure varies by event type and is validated using the
-   * Stripe SDK which handles API versioning.
-   */
-  data: {
-    object: unknown;
-  };
-}
-
-/**
- * Response returned after processing a Stripe webhook.
- */
-@friendlyName("BillingAppStripeWebhookResponse")
-model StripeWebhookResponse {
-  /**
-   * The namespace ID where the event was processed.
-   */
-  namespace_id: Shared.ULID;
-
-  /**
-   * The Stripe app ID that handled the webhook.
-   */
-  app_id: Shared.ULID;
-
-  /**
-   * The customer ID if the event was related to a specific customer.
-   */
-  customer_id?: Shared.ULID;
-
-  /**
-   * Optional message providing additional context about the webhook processing.
-   */
-  message?: string;
-}
-
-/**
- * Request to create a Stripe Checkout Session.
- *
- * Checkout Sessions are used to collect payment method information from customers
- * in a secure, Stripe-hosted interface. This integration uses setup mode to collect
- * payment methods that can be charged later for subscription billing.
- */
-@example(
-  #{
-    customer: #{ id: "01G65Z755AFWAKHE12NY0CQ9FH" },
-    options: #{ currency: "USD", success_url: "http://example.com" },
-  },
-  #{
-    title: "With existing customer by id",
-    description: "Create a checkout session with existing customer.",
-  }
-)
-@example(
-  #{
-    customer: #{ key: "my-internal-id" },
-    options: #{ currency: "USD", success_url: "http://example.com" },
-  },
-  #{
-    title: "With existing customer by key",
-    description: "Create a checkout session with existing customer.",
-  }
-)
-@example(
-  #{
-    customer: #{ id: "01G65Z755AFWAKHE12NY0CQ9FH" },
-    stripe_customer_id: "cus_123456789",
-    options: #{ currency: "USD", success_url: "http://example.com" },
-  },
-  #{
-    title: "With existing customer",
-    description: "Create a checkout session with existing customer.",
-  }
-)
-@example(
-  #{
-    customer: #{
-      name: "ACME, Inc.",
-      key: "my-internal-id",
-      currency: "USD",
-      usage_attribution: #{ subject_keys: #["my-identifier"] },
-    },
-    options: #{ currency: "USD", success_url: "http://example.com" },
-  },
-  #{
-    title: "With customer creation",
-    description: "Create a checkout session with customer creation.",
-  }
-)
-@example(
-  #{
-    customer: #{
-      name: "ACME, Inc.",
-      key: "my-internal-id",
-      currency: "USD",
-      usage_attribution: #{ subject_keys: #["my-identifier"] },
-    },
-    options: #{
-      currency: "USD",
-      success_url: "http://example.com",
-      billing_address_collection: CreateStripeCheckoutSessionBillingAddressCollection.Required,
-      tax_id_collection: #{
-        enabled: true,
-        required: CreateCheckoutSessionTaxIdCollectionRequired.IfSupported,
-      },
-      customer_update: #{
-        name: CreateStripeCheckoutSessionCustomerUpdateBehavior.Auto,
-        address: CreateStripeCheckoutSessionCustomerUpdateBehavior.Auto,
-      },
-    },
-  },
-  #{
-    title: "With collecting address and tax ID",
-    description: "Create a checkout session with collecting address and tax ID.",
-  }
-)
-@friendlyName("BillingAppStripeCreateCheckoutSessionRequest")
-model CreateStripeCheckoutSessionRequest {
-  /**
-   * The Stripe app ID to use for creating the checkout session.
-   *
-   * If not provided, the default Stripe app will be used if exists.
-   */
-  app_id?: Shared.ULID;
-
-  /**
-   * Customer identifier for creating or associating the checkout session.
-   *
-   * Can be an existing customer ID, customer key, or customer creation data.
-   */
-  customer: StripeCustomerId | StripeCustomerKey | StripeCustomerCreate;
-
-  /**
-   * Existing Stripe customer ID to use for the checkout session.
-   *
-   * If not provided, a new Stripe customer will be created, or the billing
-   * system will use the customer's existing default Stripe customer ID if available.
-   */
-  stripe_customer_id?: string;
-
-  /**
-   * Options for configuring the Stripe Checkout Session.
-   *
-   * These options are passed directly to Stripe's checkout session creation API.
-   * See: https://docs.stripe.com/api/checkout/sessions/create
-   */
-  options: CreateStripeCheckoutSessionRequestOptions;
-}
-
-/**
- * Reference to an existing customer by ID.
- */
-@friendlyName("BillingAppStripeCustomerId")
-model StripeCustomerId {
-  /**
-   * The customer's unique identifier (ULID).
-   */
-  id: Shared.ULID;
-}
-
-/**
- * Reference to an existing customer by key.
- */
-@friendlyName("BillingAppStripeCustomerKey")
-model StripeCustomerKey {
-  /**
-   * The customer's unique key.
-   */
-  key: Shared.ExternalResourceKey;
-}
-
-/**
- * Customer creation data for new customers during checkout session creation.
- */
-@friendlyName("BillingAppStripeCustomerCreate")
-@withVisibility(Lifecycle.Create)
-model StripeCustomerCreate {
-  ...OmitProperties<Customers.Customer, "currency">;
-
-  /**
-   * The customer's primary currency for billing.
-   */
-  currency: Shared.CurrencyCode;
-}
-
-/**
  * Configuration options for creating a Stripe Checkout Session.
  *
- * Based on Stripe's Checkout Session API parameters.
- * See: https://docs.stripe.com/api/checkout/sessions/create
+ * Based on Stripe's [Checkout Session API parameters](https://docs.stripe.com/api/checkout/sessions/create).
  */
 @friendlyName("BillingAppStripeCreateCheckoutSessionRequestOptions")
 model CreateStripeCheckoutSessionRequestOptions {
@@ -755,4 +538,92 @@ enum StripeCheckoutSessionMode {
    * Used for subscription billing where the payment method is charged later.
    */
   Setup: "setup",
+}
+
+/**
+ * Request to create a Stripe Customer Portal Session.
+ */
+@friendlyName("BillingAppStripeCreateCustomerPortalSessionRequest")
+model CreateStripeCustomerPortalSessionRequest {
+  /**
+   * The ID of an existing [Stripe configuration](https://docs.stripe.com/api/customer_portal/configurations) to use for this session,
+   * describing its functionality and features.
+   * If not specified, the session uses the default configuration.
+   */
+  configuration_id?: string;
+
+  /**
+   * The IETF [language tag](https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-locale) of the locale customer portal is displayed in.
+   * If blank or `auto`, the customer's preferred_locales or browser's locale is used.
+   */
+  locale?: string;
+
+  /**
+   * The [URL to redirect](https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-return_url) the customer to after they have completed
+   * their requested actions.
+   */
+  return_url?: string;
+}
+
+/**
+ * Result of creating a [Stripe Customer Portal Session](https://docs.stripe.com/api/customer_portal/sessions/object).
+ *
+ * Contains all the information needed to redirect the customer to the Stripe Customer Portal.
+ */
+@friendlyName("BillingAppStripeCreateCustomerPortalSessionResult")
+model CreateStripeCustomerPortalSessionResult {
+  /**
+   * The ID of the customer portal session.
+   *
+   * See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-id
+   */
+  id: string;
+
+  /**
+   * The ID of the stripe customer.
+   */
+  stripe_customer_id: string;
+
+  /**
+   * Configuration used to customize the customer portal.
+   *
+   * See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-configuration
+   */
+  configuration_id: string;
+
+  /**
+   * Livemode.
+   *
+   * See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-livemode
+   */
+  livemode: boolean;
+
+  /**
+   * Created at.
+   *
+   * See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-created
+   */
+  created_at: Shared.DateTime;
+
+  /**
+   * Return URL.
+   *
+   * See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-return_url
+   */
+  return_url: string;
+
+  /**
+   * Status.
+  /**
+   * The IETF language tag of the locale customer portal is displayed in.
+   *
+   * See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-locale
+   */
+  locale: string;
+
+  /**
+   * The URL to redirect the customer to after they have completed
+   * their requested actions.
+   */
+  url: string;
 }

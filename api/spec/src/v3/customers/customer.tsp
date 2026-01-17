@@ -122,3 +122,25 @@ model CustomerUsageAttribution {
 @minLength(1)
 @friendlyName("UsageAttributionSubjectKey")
 scalar UsageAttributionSubjectKey extends string;
+
+/**
+ * Customer reference.
+ */
+@friendlyName("BillingCustomerReference")
+model CustomerReference {
+  /**
+   * The ID of the customer.
+   */
+  id: Shared.ULID;
+}
+
+/**
+ * Customer reference by external key.
+ */
+@friendlyName("BillingCustomerKeyReference")
+model CustomerKeyReference {
+  /**
+   * The external key of the customer.
+   */
+  key: Shared.ExternalResourceKey;
+}

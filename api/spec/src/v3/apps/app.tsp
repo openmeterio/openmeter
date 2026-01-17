@@ -2,7 +2,7 @@ import "../shared/index.tsp";
 import "./catalog.tsp";
 import "./sandbox.tsp";
 import "./stripe.tsp";
-import "./custominvoicing.tsp";
+import "./external_invoicing.tsp";
 
 namespace Apps;
 
@@ -22,9 +22,9 @@ enum AppType {
   Stripe: "stripe",
 
   /**
-   * Custom invoicing enables interfacing with external providers via APIs and webhooks.
+   * External invoicing enables interfacing with external providers via APIs and webhooks.
    */
-  CustomInvoicing: "custom_invoicing",
+  ExternalInvoicing: "external_invoicing",
 }
 
 /**
@@ -46,7 +46,7 @@ enum AppStatus {
 }
 
 /**
- * Abstract base model for installed apps, with its own configuration and credentials.
+ * Base model for installed apps, with its own configuration and credentials.
  */
 @friendlyName("BillingAppBase")
 model AppBase<T extends AppType> {
@@ -83,8 +83,8 @@ union App {
   @summary("Sandbox")
   sandbox: AppSandbox,
 
-  @summary("Custom Invoicing")
-  custom_invoicing: AppCustomInvoicing,
+  @summary("External Invoicing")
+  external_invoicing: AppExternalInvoicing,
 }
 
 /**

@@ -73,18 +73,20 @@ interface CustomerEntitlementsEndpoints
 interface SubscriptionsEndpoints
   extends Subscriptions.SubscriptionsOperations {}
 
-@route("/openmeter/app-catalog")
-@tag(Shared.AppsTag)
-interface AppCatalogEndpoints extends Apps.AppCatalogOperations {}
+// TODO: Add app catalog endpoint when it is available
+// @route("/openmeter/app-catalog")
+// @tag(Shared.AppsTag)
+// interface AppCatalogEndpoints extends Apps.AppCatalogOperations {}
 
-@route("/openmeter/apps/custom-invoicing")
-@tag(Shared.AppsTag)
-interface AppCustomInvoicingEndpoints
-  extends Apps.AppCustomInvoicingOperations {}
+// TODO: Add custom invoicing app endpoint when it is available
+// @route("/openmeter/apps/custom-invoicing")
+// @tag(Shared.AppsTag)
+// interface AppCustomInvoicingEndpoints
+//   extends Apps.AppCustomInvoicingOperations {}
 
-@route("/openmeter/apps/stripe")
+@route("/openmeter/apps")
 @tag(Shared.AppsTag)
-interface AppStripeEndpoints extends Apps.AppStripeOperations {}
+interface AppsEndpoints extends Apps.AppsOperations {}
 
 @route("/openmeter/profiles")
 @tag(Shared.BillingTag)
