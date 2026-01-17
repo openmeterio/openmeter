@@ -11,7 +11,7 @@ model EntitlementAccessResult {
   /**
    * The type of the entitlement.
    */
-  @example(EntitlementType.static)
+  @example(EntitlementType.Static)
   @visibility(Lifecycle.Read)
   type: EntitlementType;
 

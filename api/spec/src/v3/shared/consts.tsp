@@ -17,6 +17,12 @@ const EntitlementsDescription = "Entitlements are used to control access to feat
 const SubscriptionsTag = "OpenMeter Subscriptions";
 const SubscriptionsDescription = "Subscriptions are used to track usage of your product or service. Subscriptions can be individuals or organizations that can subscribe to plans and have access to features.";
 
+const AppsTag = "OpenMeter Apps";
+const AppsDescription = "Apps enable you to extend and customize billing and usage workflows by integrating with external systems and services. Apps can automate and enhance your billing ecosystem by supporting capabilities such as synchronizing usage data with third-party platforms, calculating taxes, generating and delivering invoices, handling payment collection, and other billing-related tasks.";
+
+const BillingTag = "OpenMeter Billing";
+const BillingDescription = "Billing manages the billing profiles, and invoices for customers.";
+
 const UnstableExtension = "x-unstable";
 const InternalExtension = "x-internal";
 const PrivateExtension = "x-private";

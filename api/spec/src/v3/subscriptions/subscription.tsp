@@ -10,10 +10,10 @@ namespace Subscriptions;
  */
 @friendlyName("BillingSubscriptionStatus")
 enum SubscriptionStatus {
-  active,
-  inactive,
-  canceled,
-  scheduled,
+  Active: "active",
+  Inactive: "inactive",
+  Canceled: "canceled",
+  Scheduled: "scheduled",
 }
 
 /**
@@ -23,8 +23,8 @@ enum SubscriptionStatus {
  */
 @friendlyName("BillingSubscriptionEditTimingEnum")
 enum SubscriptionEditTimingEnum {
-  immediate: "immediate",
-  next_billing_cycle: "next_billing_cycle",
+  Immediate: "immediate",
+  NextBillingCycle: "next_billing_cycle",
 }
 
 /**
@@ -33,7 +33,7 @@ enum SubscriptionEditTimingEnum {
  */
 @oneOf
 @friendlyName("BillingSubscriptionEditTiming")
-@example(SubscriptionEditTimingEnum.immediate)
+@example(SubscriptionEditTimingEnum.Immediate)
 union SubscriptionEditTiming {
   Enum: SubscriptionEditTimingEnum,
   Custom: Shared.DateTime,

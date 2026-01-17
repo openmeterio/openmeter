@@ -20,7 +20,7 @@ model SubscriptionCancel {
   /**
    * If not provided the subscription is canceled immediately.
    */
-  timing?: SubscriptionEditTiming = SubscriptionEditTimingEnum.immediate;
+  timing?: SubscriptionEditTiming = SubscriptionEditTimingEnum.Immediate;
 }
 
 /**

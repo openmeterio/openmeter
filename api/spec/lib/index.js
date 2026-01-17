@@ -1,7 +1,11 @@
 import { defineLinter } from '@typespec/compiler'
-import { casingAIPRule, casingRule } from './rules/casing.js'
+import {
+  casingAIPErrorsRule,
+  casingAIPRule,
+  casingRule,
+} from './rules/casing.js'
 import { docDecoratorRule } from './rules/docs.js'
-import { friendlyNameRule } from './rules/friendly-name.js'
+import { friendlyNameAIPRule, friendlyNameRule } from './rules/friendly-name.js'
 import { operationSummaryRule } from './rules/operation-summary.js'
 import { operationIdKebabCaseRule } from './rules/operation-id.js'
 import { noNullableRule } from './rules/no-nullable.js'
@@ -14,8 +18,10 @@ const packageName = '@openmeter/api-spec'
 const rules = [
   casingRule,
   casingAIPRule,
+  casingAIPErrorsRule,
   docDecoratorRule,
   friendlyNameRule,
+  friendlyNameAIPRule,
   noNullableRule,
   operationSummaryRule,
   operationIdKebabCaseRule,
@@ -39,8 +45,9 @@ export const $linter = defineLinter({
     aip: {
       enable: {
         [`${packageName}/${casingAIPRule.name}`]: true,
+        [`${packageName}/${casingAIPErrorsRule.name}`]: true,
         [`${packageName}/${docDecoratorRule.name}`]: true,
-        [`${packageName}/${friendlyNameRule.name}`]: true,
+        [`${packageName}/${friendlyNameAIPRule.name}`]: true,
         [`${packageName}/${noNullableRule.name}`]: true,
         [`${packageName}/${operationSummaryRule.name}`]: true,
         [`${packageName}/${operationIdKebabCaseRule.name}`]: true,

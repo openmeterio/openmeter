@@ -1,4 +1,9 @@
 /**
+ * Exceptions for PascalCase naming convention.
+ */
+const pascalCaseExceptions = ['OAuth2', 'URL', 'API', 'UI', 'ID']
+
+/**
  * Checks whether a given value is in PascalCase
  * @param value the value to check
  * @returns true if the value is in PascalCase
@@ -8,7 +13,9 @@ export function isPascalCaseNoAcronyms(value) {
     return true
   }
 
-  return /^([A-Z][a-z0-9]+)*[A-Z]?$|^[A-Z]+$/.test(value)
+  return new RegExp(
+    `^(?:[A-Z][a-z0-9]+|${pascalCaseExceptions.join('|')})+[A-Z]?$|^[A-Z]+$`,
+  ).test(value)
 }
 
 /**
