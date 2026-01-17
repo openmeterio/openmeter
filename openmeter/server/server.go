@@ -107,6 +107,8 @@ func NewServer(config *Config) (*Server, error) {
 		BaseURL:                 "/api/v3",
 		NamespaceDecoder:        namespacedriver.StaticNamespaceDecoder(config.RouterConfig.NamespaceManager.GetDefaultNamespace()),
 		ErrorHandler:            config.RouterConfig.ErrorHandler,
+		AppService:              config.RouterConfig.App,
+		BillingService:          config.RouterConfig.Billing,
 		IngestService:           config.RouterConfig.IngestService,
 		CustomerService:         config.RouterConfig.Customer,
 		EntitlementService:      config.RouterConfig.EntitlementConnector,
@@ -114,6 +116,8 @@ func NewServer(config *Config) (*Server, error) {
 		PlanService:             config.RouterConfig.Plan,
 		PlanSubscriptionService: config.RouterConfig.PlanSubscriptionService,
 		SubscriptionService:     config.RouterConfig.SubscriptionService,
+		StripeService:           config.RouterConfig.AppStripe,
+		SyncService:             config.RouterConfig.AppCustomInvoicing,
 		Middlewares:             v3Middlewares,
 	})
 	if err != nil {

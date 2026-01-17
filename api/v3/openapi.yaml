@@ -14,6 +14,8 @@ servers:
     description: Cloud
     variables: {}
 tags:
+  - name: OpenMeter Apps
+    description: OpenMeter Apps enable you to extend and customize billing and usage workflows by integrating with external systems and services. Apps can automate and enhance your billing ecosystem by supporting capabilities such as synchronizing usage data with third-party platforms, calculating taxes, generating and delivering invoices, handling payment collection, and other billing-related tasks.
   - name: OpenMeter Entitlements
     description: Entitlements are used to control access to features for customers.
   - name: OpenMeter Subscriptions
@@ -25,6 +27,266 @@ tags:
   - name: Meters
     description: Meters specify how to aggregate events for billing and analytics purposes. Meters can be configured with multiple aggregation methods and groupings. Multiple meters can be created for the same event type, enabling flexible metering scenarios.
 paths:
+  /openmeter/app-catalog:
+    get:
+      operationId: list-app-catalog-items
+      summary: List available apps in the app catalog
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppCatalogItemPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Apps
+  /openmeter/app-catalog/{type}:
+    get:
+      operationId: get-app-catalog-item
+      summary: Get app catalog item by type
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/BillingAppType'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingAppCatalogItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Apps
+  /openmeter/app-catalog/{type}/install/oauth2:
+    get:
+      operationId: get-app-catalog-item-oauth2-install-url
+      summary: Get OAuth2 install URL for an app catalog item
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/BillingAppType'
+      responses:
+        '200':
+          description: AppOAuth2InstallResponse response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingAppOAuth2InstallResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Apps
+  /openmeter/apps/custom-invoicing/{invoiceId}/draft/synchronized:
+    post:
+      operationId: submit-custom-invoicing-draft-synchronized
+      summary: Submit draft synchronization results
+      description: |-
+        Submit draft synchronization results.
+
+        This endpoint is called by the integration after the invoice draft has been synchronized
+        with the external invoicing system. It allows setting invoice numbers, external IDs,
+        and mapping line items to external system entities.
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          description: The invoice ID.
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Apps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingAppCustomInvoicingDraftSynchronizedRequest'
+        description: The synchronization result.
+  /openmeter/apps/custom-invoicing/{invoiceId}/issuing/synchronized:
+    post:
+      operationId: submit-custom-invoicing-issuing-synchronized
+      summary: Submit issuing synchronization results
+      description: |-
+        Submit issuing synchronization results.
+
+        This endpoint is called by the integration after the invoice has been issued/finalized
+        in the external invoicing system. It allows finalizing invoice and payment details,
+        including invoice numbers and timestamps for when the invoice was sent to the customer.
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          description: The invoice ID.
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Apps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingAppCustomInvoicingFinalizedRequest'
+        description: The finalization result.
+  /openmeter/apps/custom-invoicing/{invoiceId}/payment/status:
+    post:
+      operationId: update-custom-invoicing-payment-status
+      summary: Update payment status
+      description: |-
+        Update payment status.
+
+        This endpoint allows the integration to update the payment status of an invoice
+        based on events from the external payment system. It supports various payment
+        lifecycle events such as paid, failed, overdue, and void.
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          description: The invoice ID.
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Apps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingAppCustomInvoicingUpdatePaymentStatusRequest'
+        description: The payment status update.
+  /openmeter/apps/stripe/checkout-sessions:
+    post:
+      operationId: create-stripe-checkout-session
+      summary: Create Stripe Checkout Session
+      description: |-
+        Create a Stripe Checkout Session.
+
+        Creates a Checkout Session for collecting payment method information from customers.
+        The session operates in "setup" mode, which collects payment details without charging
+        the customer immediately. The collected payment method can be used for future
+        subscription billing.
+
+        For hosted checkout sessions, redirect customers to the returned URL. For embedded
+        sessions, use the client_secret to initialize Stripe.js in your application.
+
+        See: https://docs.stripe.com/payments/checkout
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingAppStripeCreateCheckoutSessionResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Apps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingAppStripeCreateCheckoutSessionRequest'
+        description: Checkout session configuration including customer and options.
+  /openmeter/apps/stripe/{appId}/webhook:
+    post:
+      operationId: handle-stripe-webhook
+      summary: Handle Stripe webhook
+      description: |-
+        Handle Stripe webhook events.
+
+        This endpoint receives and processes webhook events from Stripe, such as
+        payment confirmations, subscription changes, and invoice updates. The endpoint
+        validates the webhook signature and processes events asynchronously.
+
+        Webhooks must be configured in your Stripe Dashboard to point to this endpoint.
+        See: https://docs.stripe.com/webhooks
+      parameters:
+        - name: appId
+          in: path
+          required: true
+          description: The Stripe app ID that should process this webhook.
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingAppStripeWebhookResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Apps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingAppStripeWebhookEvent'
+        description: The webhook event payload from Stripe.
   /openmeter/customers:
     post:
       operationId: create-customer
@@ -550,6 +812,19 @@ components:
             type: integer
       style: deepObject
   schemas:
+    AppCatalogItemPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppCatalogItem'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      description: Page paginated response.
     BillingAddress:
       type: object
       properties:
@@ -583,6 +858,911 @@ components:
           description: Phone number.
           title: Phone Number
       description: Address
+    BillingAppCapability:
+      type: object
+      required:
+        - type
+        - key
+        - name
+        - description
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppCapabilityType'
+          description: Type of the capability.
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: Key of the capability.
+        name:
+          type: string
+          description: Name of the capability.
+        description:
+          type: string
+          description: Description of the capability.
+      description: App capability describes a function that an App can perform.
+      example:
+        type: collect_payments
+        key: stripe_collect_payments
+        name: Collect Payments
+        description: Stripe payments collects outstanding revenue with Stripe customer's default payment method.
+    BillingAppCapabilityType:
+      type: string
+      enum:
+        - report_usage
+        - report_events
+        - calculate_tax
+        - invoice_customers
+        - collect_payments
+      description: |-
+        Supported capability types for an App.
+
+        Each capability defines an integration function that an App can perform.
+    BillingAppCatalogItem:
+      type: object
+      required:
+        - type
+        - name
+        - description
+        - capabilities
+        - install_methods
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppType'
+          description: Type of the app.
+          readOnly: true
+        name:
+          type: string
+          description: Name of the app.
+          readOnly: true
+        description:
+          type: string
+          description: Description of the app.
+          readOnly: true
+        capabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppCapability'
+          description: Capabilities of the app.
+          readOnly: true
+        install_methods:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppInstallMethods'
+          description: Available install methods of the app.
+          readOnly: true
+      description: |-
+        Available apps for billing integrations to connect with third-party services.
+        Apps can have various capabilities like syncing data from or to external systems, integrating with third-party services for tax calculation, delivery of invoices, collection of payments, etc.
+      example:
+        type: stripe
+        name: Stripe
+        description: Stripe integration allows you to collect payments with Stripe.
+        capabilities:
+          - type: calculate_tax
+            key: stripe_calculate_tax
+            name: Calculate Tax
+            description: Stripe Tax calculates tax portion of the invoices.
+          - type: invoice_customers
+            key: stripe_invoice_customers
+            name: Invoice Customers
+            description: Stripe invoices customers with due amount.
+          - type: collect_payments
+            key: stripe_collect_payments
+            name: Collect Payments
+            description: Stripe payments collects outstanding revenue with Stripe customer's default payment method.
+        install_methods:
+          - with_oauth2
+          - with_api_key
+    BillingAppCustomInvoicingDraftSynchronizedRequest:
+      type: object
+      properties:
+        invoicing:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppCustomInvoicingSyncResult'
+          description: |-
+            Synchronization results containing external system identifiers.
+
+            Provides mappings between invoice entities and their corresponding
+            external system entities after the draft has been validated/prepared
+            in the external system.
+      description: |-
+        Request payload for confirming draft invoice synchronization.
+
+        Called by the integration when draft synchronization is complete and the
+        invoice can progress from draft to issuing state. This is only required
+        when `enable_draft_sync_hook` is enabled on the app.
+    BillingAppCustomInvoicingFinalizedInvoicingRequest:
+      type: object
+      properties:
+        invoice_number:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceNumber'
+          description: |-
+            The final invoice number assigned by the external invoicing system.
+
+            If not provided, an invoice number will be auto-generated with
+            the "INV-" prefix. Once set at the issued state, the invoice number
+            becomes immutable.
+        sent_to_customer_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The timestamp when the invoice was delivered to the customer.
+
+            This represents when the external system sent the invoice to the customer
+            (e.g., via email, portal, or other delivery method). Used for tracking
+            invoice delivery and payment term calculations.
+      description: |-
+        Invoicing finalization details for an invoice.
+
+        Contains information about the issued invoice in the external system.
+    BillingAppCustomInvoicingFinalizedPaymentRequest:
+      type: object
+      properties:
+        external_id:
+          type: string
+          description: |-
+            The external payment system's unique identifier for this invoice's payment.
+
+            This ID links the invoice to its payment record in the external payment system
+            (e.g., Stripe payment intent ID, external payment processor transaction ID).
+            Stored as the payment external ID on the invoice.
+      description: |-
+        Payment synchronization details for an invoice.
+
+        Contains external system identifiers related to payment processing.
+    BillingAppCustomInvoicingFinalizedRequest:
+      type: object
+      properties:
+        invoicing:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppCustomInvoicingFinalizedInvoicingRequest'
+          description: |-
+            Invoicing finalization details from the external invoicing system.
+
+            Includes the final invoice number and delivery confirmation. If the invoice
+            number is not provided, one will be auto-generated with the "INV-" prefix.
+        payment:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppCustomInvoicingFinalizedPaymentRequest'
+          description: |-
+            Payment synchronization details from the external payment system.
+
+            Provides external payment system identifiers for tracking and reconciliation.
+      description: |-
+        Request payload for confirming invoice issuance synchronization.
+
+        Called by the integration when the invoice has been successfully issued in the
+        external invoicing system. This callback allows the invoice to progress from
+        the issuing to issued state. This is only required when `enable_issuing_sync_hook`
+        is enabled on the app.
+
+        The request can include both invoicing details (invoice number, delivery timestamp)
+        and payment setup details (payment processor identifiers).
+    BillingAppCustomInvoicingLineDiscountExternalIdMapping:
+      type: object
+      required:
+        - line_discount_id
+        - external_id
+      properties:
+        line_discount_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: |-
+            The line discount ID (ULID format).
+
+            This is the unique identifier for the discount in the billing system.
+        external_id:
+          type: string
+          description: |-
+            The external invoicing system's unique identifier for this discount.
+
+            This allows tracking how discounts are represented in the external system.
+      description: |-
+        Maps an invoice line discount to its external system counterpart.
+
+        Line discounts represent reductions applied to specific invoice line items.
+        This mapping allows tracking of discount entities across systems for accurate
+        financial reporting and reconciliation.
+    BillingAppCustomInvoicingLineExternalIdMapping:
+      type: object
+      required:
+        - line_id
+        - external_id
+      properties:
+        line_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: |-
+            The invoice line item ID (ULID format).
+
+            This is the unique identifier for the line item in the billing system.
+        external_id:
+          type: string
+          description: |-
+            The external invoicing system's unique identifier for this line item.
+
+            Examples: QuickBooks line item ID, Xero line item ID, or any custom system's identifier.
+            This value is stored as the invoicing external ID on the line item.
+      description: |-
+        Maps an invoice line item to its external system counterpart.
+
+        This mapping enables bidirectional references between line items across systems,
+        facilitating updates, queries, and reconciliation operations.
+    BillingAppCustomInvoicingPaymentTrigger:
+      type: string
+      enum:
+        - paid
+        - payment_failed
+        - payment_uncollectible
+        - payment_overdue
+        - action_required
+        - void
+      description: |-
+        Payment status triggers for invoice state transitions.
+
+        These triggers allow the external payment system to update the invoice's
+        payment status based on events occurring in the external system.
+        Each trigger transitions the invoice to a corresponding payment state.
+    BillingAppCustomInvoicingSyncResult:
+      type: object
+      properties:
+        invoice_number:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceNumber'
+          description: |-
+            The invoice number assigned by the external invoicing system.
+
+            If provided, this will replace the auto-generated invoice number.
+            The invoice number becomes permanent once the invoice reaches the issued state.
+        external_id:
+          type: string
+          description: |-
+            The external invoicing system's unique identifier for this invoice.
+
+            This ID is stored as the invoicing external ID on the invoice and can be used
+            to link back to the corresponding invoice in the external system (e.g., QuickBooks
+            invoice ID, Xero invoice ID).
+        line_external_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppCustomInvoicingLineExternalIdMapping'
+          description: |-
+            Mappings between invoice line item IDs and external system line item IDs.
+
+            Use this to establish a bidirectional reference between invoice line items
+            and their corresponding entities in the external invoicing system.
+            This is useful for reconciliation and when updating or querying specific line items.
+        line_discount_external_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingAppCustomInvoicingLineDiscountExternalIdMapping'
+          description: |-
+            Mappings between line discount IDs and external system discount IDs.
+
+            Use this to link line-level discounts to their corresponding entities in the
+            external system for accurate financial reconciliation and reporting.
+      description: |-
+        Invoice synchronization result containing external system identifiers.
+
+        This structure allows the integration to map invoice entities to their
+        corresponding entities in the external invoicing system. These external IDs are
+        stored with the invoice and can be used for future reconciliation, debugging,
+        and cross-system references.
+    BillingAppCustomInvoicingUpdatePaymentStatusRequest:
+      type: object
+      required:
+        - trigger
+      properties:
+        trigger:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppCustomInvoicingPaymentTrigger'
+          description: |-
+            The payment status trigger to execute.
+
+            Specifies the payment event that occurred in the external system, which will
+            transition the invoice to the corresponding payment state.
+      description: |-
+        Request to update an invoice's payment status based on external payment events.
+
+        This endpoint allows the external payment system to report payment-related events
+        back to the billing system, keeping the invoice payment status synchronized across systems.
+        Typically called in response to payment processor webhooks or polling mechanisms.
+
+        Only applicable for invoices that have reached the issued state and are managed
+        by a custom invoicing app.
+    BillingAppInstallMethods:
+      type: string
+      enum:
+        - with_oauth2
+        - with_api_key
+        - no_credentials_required
+      description: Supported installation methods for an app.
+    BillingAppOAuth2InstallResponse:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: The URL to start the OAuth2 authorization code grant flow.
+          readOnly: true
+      description: |-
+        Response from the billing app installation endpoint to initiate the OAuth2 authorization flow.
+
+        This response contains the authorization URL where the user should be redirected
+        to grant permissions to the application. The URL includes all necessary OAuth2
+        parameters such as client_id, redirect_uri, scope, and state.
+      example:
+        url: https://provider.com/oauth/authorize?client_id=xxx&redirect_uri=...&state=random123
+    BillingAppStripeCheckoutSessionCustomTextParams:
+      type: object
+      properties:
+        after_submit:
+          type: object
+          properties:
+            message:
+              type: string
+              maxLength: 1200
+              description: The custom message text (max 1200 characters).
+          description: Text displayed after the payment confirmation button.
+        shipping_address:
+          type: object
+          properties:
+            message:
+              type: string
+              maxLength: 1200
+              description: The custom message text (max 1200 characters).
+          description: Text displayed alongside shipping address collection.
+        submit:
+          type: object
+          properties:
+            message:
+              type: string
+              maxLength: 1200
+              description: The custom message text (max 1200 characters).
+          description: Text displayed alongside the payment confirmation button.
+        terms_of_service_acceptance:
+          type: object
+          properties:
+            message:
+              type: string
+              maxLength: 1200
+              description: The custom message text (max 1200 characters).
+          description: Text replacing the default terms of service agreement text.
+      description: Custom text displayed at various stages of the checkout flow.
+    BillingAppStripeCheckoutSessionMode:
+      type: string
+      enum:
+        - setup
+      description: |-
+        Stripe Checkout Session mode.
+
+        Determines the primary purpose of the checkout session.
+    BillingAppStripeCheckoutSessionUIMode:
+      type: string
+      enum:
+        - embedded
+        - hosted
+      description: Checkout Session UI mode.
+    BillingAppStripeCreateCheckoutSessionBillingAddressCollection:
+      type: string
+      enum:
+        - auto
+        - required
+      description: Controls whether Checkout collects the customer's billing address.
+    BillingAppStripeCreateCheckoutSessionConsentCollection:
+      type: object
+      properties:
+        payment_method_reuse_agreement:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreement'
+          description: Controls the visibility of payment method reuse agreement.
+        promotions:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStripeCreateCheckoutSessionConsentCollectionPromotions'
+          description: |-
+            Enables collection of promotional communication consent.
+
+            Only available to US merchants. When set to "auto", Checkout determines
+            whether to show the option based on the customer's locale.
+        terms_of_service:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfService'
+          description: |-
+            Requires customers to accept terms of service before payment.
+
+            Requires a valid terms of service URL in your Stripe Dashboard settings.
+      description: Checkout Session consent collection configuration.
+    BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreement:
+      type: object
+      properties:
+        position:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition'
+          description: Position and visibility of the payment method reuse agreement.
+      description: Payment method reuse agreement configuration.
+    BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition:
+      type: string
+      enum:
+        - auto
+        - hidden
+      description: Position of payment method reuse agreement in the UI.
+    BillingAppStripeCreateCheckoutSessionConsentCollectionPromotions:
+      type: string
+      enum:
+        - auto
+        - none
+      description: Promotional communication consent collection setting.
+    BillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfService:
+      type: string
+      enum:
+        - none
+        - required
+      description: Terms of service acceptance requirement.
+    BillingAppStripeCreateCheckoutSessionCustomerUpdate:
+      type: object
+      properties:
+        address:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior'
+          description: |-
+            Whether to save the billing address to customer.address.
+
+            Defaults to "never".
+          default: never
+        name:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior'
+          description: |-
+            Whether to save the customer name to customer.name.
+
+            Defaults to "never".
+          default: never
+        shipping:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior'
+          description: |-
+            Whether to save shipping information to customer.shipping.
+
+            Defaults to "never".
+          default: never
+      description: Controls which customer fields can be updated by the checkout session.
+    BillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior:
+      type: string
+      enum:
+        - auto
+        - never
+      description: Behavior for updating customer fields from checkout session.
+    BillingAppStripeCreateCheckoutSessionRedirectOnCompletion:
+      type: string
+      enum:
+        - always
+        - if_required
+        - never
+      description: Redirect behavior for embedded checkout sessions.
+    BillingAppStripeCreateCheckoutSessionRequest:
+      type: object
+      required:
+        - customer
+        - options
+      properties:
+        app_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: |-
+            The Stripe app ID to use for creating the checkout session.
+
+            If not provided, the default Stripe app will be used if exists.
+        customer:
+          anyOf:
+            - $ref: '#/components/schemas/BillingAppStripeCustomerId'
+            - $ref: '#/components/schemas/BillingAppStripeCustomerKey'
+            - $ref: '#/components/schemas/BillingAppStripeCustomerCreate'
+          description: |-
+            Customer identifier for creating or associating the checkout session.
+
+            Can be an existing customer ID, customer key, or customer creation data.
+        stripe_customer_id:
+          type: string
+          description: |-
+            Existing Stripe customer ID to use for the checkout session.
+
+            If not provided, a new Stripe customer will be created, or the billing
+            system will use the customer's existing default Stripe customer ID if available.
+        options:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStripeCreateCheckoutSessionRequestOptions'
+          description: |-
+            Options for configuring the Stripe Checkout Session.
+
+            These options are passed directly to Stripe's checkout session creation API.
+            See: https://docs.stripe.com/api/checkout/sessions/create
+      description: |-
+        Request to create a Stripe Checkout Session.
+
+        Checkout Sessions are used to collect payment method information from customers
+        in a secure, Stripe-hosted interface. This integration uses setup mode to collect
+        payment methods that can be charged later for subscription billing.
+      example:
+        customer:
+          name: ACME, Inc.
+          key: my-internal-id
+          currency: USD
+          usage_attribution:
+            subject_keys:
+              - my-identifier
+        options:
+          currency: USD
+          success_url: http://example.com
+          billing_address_collection: required
+          tax_id_collection:
+            enabled: true
+            required: if_supported
+          customer_update:
+            name: auto
+            address: auto
+    BillingAppStripeCreateCheckoutSessionRequestOptions:
+      type: object
+      properties:
+        billing_address_collection:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStripeCreateCheckoutSessionBillingAddressCollection'
+          description: |-
+            Whether to collect the customer's billing address.
+
+            Defaults to auto, which only collects the address when necessary for tax calculation.
+          default: auto
+        cancel_url:
+          type: string
+          description: |-
+            URL to redirect customers who cancel the checkout session.
+
+            Not allowed when ui_mode is "embedded".
+        client_reference_id:
+          type: string
+          description: |-
+            Unique reference string for reconciling sessions with internal systems.
+
+            Can be a customer ID, cart ID, or any other identifier.
+        customer_update:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStripeCreateCheckoutSessionCustomerUpdate'
+          description: Controls which customer fields can be updated by the checkout session.
+        consent_collection:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStripeCreateCheckoutSessionConsentCollection'
+          description: Configuration for collecting customer consent during checkout.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: |-
+            Three-letter ISO 4217 currency code in lowercase.
+
+            Required for payment mode sessions. Optional for setup mode sessions.
+        custom_text:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStripeCheckoutSessionCustomTextParams'
+          description: Custom text to display during checkout at various stages.
+        expires_at:
+          type: integer
+          format: int64
+          description: |-
+            Unix timestamp when the checkout session expires.
+
+            Can be 30 minutes to 24 hours from creation. Defaults to 24 hours.
+        locale:
+          type: string
+          description: |-
+            IETF language tag for the checkout UI locale.
+
+            If blank or "auto", uses the browser's locale. Example: "en", "fr", "de".
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          description: |-
+            Set of key-value pairs to attach to the checkout session.
+
+            Useful for storing additional structured information.
+        return_url:
+          type: string
+          description: |-
+            Return URL for embedded checkout sessions after payment authentication.
+
+            Required if ui_mode is "embedded" and redirect-based payment methods are enabled.
+        success_url:
+          type: string
+          description: |-
+            Success URL to redirect customers after completing payment or setup.
+
+            Not allowed when ui_mode is "embedded".
+            See: https://docs.stripe.com/payments/checkout/custom-success-page
+        ui_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStripeCheckoutSessionUIMode'
+          description: |-
+            The UI mode for the checkout session.
+
+            "hosted" displays a Stripe-hosted page. "embedded" integrates directly into your app.
+            Defaults to "hosted".
+          default: hosted
+        payment_method_types:
+          type: array
+          items:
+            type: string
+          description: |-
+            List of payment method types to enable (e.g., "card", "us_bank_account").
+
+            If not specified, Stripe enables all relevant payment methods.
+        redirect_on_completion:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStripeCreateCheckoutSessionRedirectOnCompletion'
+          description: |-
+            Redirect behavior for embedded checkout sessions.
+
+            Controls when to redirect users after completion.
+            See: https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form
+        tax_id_collection:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStripeCreateCheckoutSessionTaxIdCollection'
+          description: Configuration for collecting tax IDs during checkout.
+      description: |-
+        Configuration options for creating a Stripe Checkout Session.
+
+        Based on Stripe's Checkout Session API parameters.
+        See: https://docs.stripe.com/api/checkout/sessions/create
+    BillingAppStripeCreateCheckoutSessionResult:
+      type: object
+      required:
+        - customer_id
+        - stripe_customer_id
+        - session_id
+        - setup_intent_id
+        - created_at
+        - mode
+      properties:
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The customer ID in the billing system.
+        stripe_customer_id:
+          type: string
+          description: The Stripe customer ID.
+        session_id:
+          type: string
+          description: The Stripe checkout session ID.
+        setup_intent_id:
+          type: string
+          description: The setup intent ID created for collecting the payment method.
+        client_secret:
+          type: string
+          description: |-
+            Client secret for initializing Stripe.js on the client side.
+
+            Required for embedded checkout sessions.
+            See: https://docs.stripe.com/payments/checkout/custom-success-page
+        client_reference_id:
+          type: string
+          description: |-
+            The client reference ID provided in the request.
+
+            Useful for reconciling the session with your internal systems.
+        customer_email:
+          type: string
+          description: Customer's email address if provided to Stripe.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: Currency code for the checkout session.
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp when the checkout session was created.
+        expires_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp when the checkout session will expire.
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          description: Metadata attached to the checkout session.
+        status:
+          type: string
+          description: |-
+            The status of the checkout session.
+
+            See: https://docs.stripe.com/api/checkout/sessions/object#checkout_session_object-status
+        url:
+          type: string
+          description: URL to redirect customers to the checkout page (for hosted mode).
+        mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStripeCheckoutSessionMode'
+          description: |-
+            Mode of the checkout session.
+
+            Currently only "setup" mode is supported for collecting payment methods.
+        cancel_url:
+          type: string
+          description: The cancel URL where customers are redirected if they cancel.
+        success_url:
+          type: string
+          description: The success URL where customers are redirected after completion.
+        return_url:
+          type: string
+          description: The return URL for embedded sessions after authentication.
+      description: |-
+        Result of creating a Stripe Checkout Session.
+
+        Contains all the information needed to redirect customers to the checkout
+        or initialize an embedded checkout flow.
+    BillingAppStripeCreateCheckoutSessionTaxIdCollection:
+      type: object
+      required:
+        - enabled
+      properties:
+        enabled:
+          type: boolean
+          description: |-
+            Enable tax ID collection during checkout.
+
+            Defaults to false.
+        required:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStripeCreateCheckoutSessionTaxIdCollectionRequired'
+          description: |-
+            Whether tax ID collection is required.
+
+            Defaults to "never".
+      description: Tax ID collection configuration for checkout sessions.
+    BillingAppStripeCreateCheckoutSessionTaxIdCollectionRequired:
+      type: string
+      enum:
+        - if_supported
+        - never
+      description: Tax ID collection requirement level.
+    BillingAppStripeCustomerCreate:
+      type: object
+      required:
+        - name
+        - key
+        - currency
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        key:
+          $ref: '#/components/schemas/ExternalResourceKey'
+        usage_attribution:
+          allOf:
+            - $ref: '#/components/schemas/BillingCustomerUsageAttribution'
+          description: Mapping to attribute metered usage to the customer by the event subject.
+          title: Usage Attribution
+        primary_email:
+          type: string
+          description: The primary email address of the customer.
+          title: Primary Email
+        billing_address:
+          allOf:
+            - $ref: '#/components/schemas/BillingAddress'
+          description: |-
+            The billing address of the customer.
+            Used for tax and invoicing.
+          title: Billing Address
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The customer's primary currency for billing.
+      description: Customer creation data for new customers during checkout session creation.
+    BillingAppStripeCustomerId:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The customer's unique identifier (ULID).
+      description: Reference to an existing customer by ID.
+    BillingAppStripeCustomerKey:
+      type: object
+      required:
+        - key
+      properties:
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ExternalResourceKey'
+          description: The customer's unique key.
+      description: Reference to an existing customer by key.
+    BillingAppStripeWebhookEvent:
+      type: object
+      required:
+        - id
+        - type
+        - livemode
+        - created
+        - data
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the event.
+        type:
+          type: string
+          description: |-
+            The type of event (e.g., "payment_intent.succeeded", "invoice.paid").
+
+            See Stripe's documentation for the full list of event types:
+            https://docs.stripe.com/api/events/types
+        livemode:
+          type: boolean
+          description: Indicates whether the event occurred in live mode or test mode.
+        created:
+          type: integer
+          format: int32
+          description: Unix timestamp when the event was created.
+        data:
+          type: object
+          properties:
+            object: {}
+          required:
+            - object
+          description: |-
+            Object containing the event's data payload.
+
+            The structure varies by event type and is validated using the
+            Stripe SDK which handles API versioning.
+      description: |-
+        Stripe webhook event received from Stripe's webhook system.
+
+        Stripe sends webhook events to notify the billing system about asynchronous events.
+    BillingAppStripeWebhookResponse:
+      type: object
+      required:
+        - namespace_id
+        - app_id
+      properties:
+        namespace_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The namespace ID where the event was processed.
+        app_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The Stripe app ID that handled the webhook.
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The customer ID if the event was related to a specific customer.
+        message:
+          type: string
+          description: Optional message providing additional context about the webhook processing.
+      description: Response returned after processing a Stripe webhook.
+    BillingAppType:
+      type: string
+      enum:
+        - sandbox
+        - stripe
+        - custom_invoicing
+      description: The type of the app.
     BillingCustomer:
       type: object
       required:
@@ -713,6 +1893,18 @@ components:
         - static
         - boolean
       description: The type of the entitlement.
+    BillingInvoiceNumber:
+      type: string
+      minLength: 1
+      maxLength: 256
+      description: |-
+        InvoiceNumber is a unique identifier for the invoice, generated by the
+        invoicing app.
+
+        The uniqueness depends on a lot of factors:
+        - app setting (unique per app or unique per customer)
+        - multiple app scenarios (multiple apps generating invoices with the same prefix)
+      example: INV-2024-01-01-01
     BillingSubscription:
       type: object
       required:
@@ -1433,30 +2625,6 @@ components:
       type: string
       minLength: 1
       description: Subject key.
-    SortQuery:
-      title: SortQuery
-      type: string
-      example: created_at desc
-      description: |
-        The `asc` suffix is optional as the default sort order is ascending.
-        The `desc` suffix is used to specify a descending order.
-        Multiple sort attributes may be provided via a comma separated list.
-        JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
-    Labels:
-      title: Labels
-      type: object
-      example:
-        env: test
-      maxProperties: 50
-      description: |
-        Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types. 
-
-        Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
-      additionalProperties:
-        type: string
-        pattern: ^[a-z0-9A-Z]{1}([a-z0-9A-Z-._]*[a-z0-9A-Z]+)?$
-        minLength: 1
-        maxLength: 63
     PageMeta:
       type: object
       description: Contains pagination query parameters and the total number of objects returned.
@@ -1779,6 +2947,30 @@ components:
               example: kong:trace:1234567890
             detail:
               example: Not found
+    Labels:
+      title: Labels
+      type: object
+      example:
+        env: test
+      maxProperties: 50
+      description: |
+        Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types. 
+
+        Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+      additionalProperties:
+        type: string
+        pattern: ^[a-z0-9A-Z]{1}([a-z0-9A-Z-._]*[a-z0-9A-Z]+)?$
+        minLength: 1
+        maxLength: 63
+    SortQuery:
+      title: SortQuery
+      type: string
+      example: created_at desc
+      description: |
+        The `asc` suffix is optional as the default sort order is ascending.
+        The `desc` suffix is used to specify a descending order.
+        Multiple sort attributes may be provided via a comma separated list.
+        JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
     GoneError:
       allOf:
         - $ref: '#/components/schemas/BaseError'

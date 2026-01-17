@@ -13,6 +13,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	appshandler "github.com/openmeterio/openmeter/api/v3/handlers/apps"
 	customershandler "github.com/openmeterio/openmeter/api/v3/handlers/customers"
 	customersentitlementhandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlementaccess"
 	eventshandler "github.com/openmeterio/openmeter/api/v3/handlers/events"
@@ -20,6 +21,10 @@ import (
 	subscriptionshandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
 	"github.com/openmeterio/openmeter/api/v3/oasmiddleware"
 	"github.com/openmeterio/openmeter/api/v3/render"
+	"github.com/openmeterio/openmeter/openmeter/app"
+	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
@@ -39,6 +44,8 @@ type Config struct {
 	Middlewares      []func(http.Handler) http.Handler
 
 	// services
+	AppService              app.Service
+	BillingService          billing.Service
 	MeterService            meter.ManageService
 	IngestService           ingest.Service
 	CustomerService         customer.Service
@@ -46,6 +53,8 @@ type Config struct {
 	PlanService             plan.Service
 	PlanSubscriptionService plansubscription.PlanSubscriptionService
 	SubscriptionService     subscription.Service
+	StripeService           appstripe.Service
+	SyncService             appcustominvoicing.SyncService
 }
 
 func (c *Config) Validate() error {
@@ -61,6 +70,14 @@ func (c *Config) Validate() error {
 
 	if c.ErrorHandler == nil {
 		errs = append(errs, errors.New("error handler is required"))
+	}
+
+	if c.AppService == nil {
+		errs = append(errs, errors.New("app service is required"))
+	}
+
+	if c.BillingService == nil {
+		errs = append(errs, errors.New("billing service is required"))
 	}
 
 	if c.MeterService == nil {
@@ -91,6 +108,14 @@ func (c *Config) Validate() error {
 		errs = append(errs, errors.New("subscription service is required"))
 	}
 
+	if c.StripeService == nil {
+		errs = append(errs, errors.New("stripe service is required"))
+	}
+
+	if c.SyncService == nil {
+		errs = append(errs, errors.New("sync service is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -100,6 +125,7 @@ type Server struct {
 	swagger *openapi3.T
 
 	// handlers
+	appsHandler                 appshandler.Handler
 	eventsHandler               eventshandler.Handler
 	customersHandler            customershandler.Handler
 	customersEntitlementHandler customersentitlementhandler.Handler
@@ -138,6 +164,7 @@ func NewServer(config *Config) (*Server, error) {
 		return ns, nil
 	}
 
+	appsHandler := appshandler.New(resolveNamespace, config.AppService, config.BillingService, config.CustomerService, config.StripeService, config.SyncService, httptransport.WithErrorHandler(config.ErrorHandler))
 	eventsHandler := eventshandler.New(resolveNamespace, config.IngestService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersHandler := customershandler.New(resolveNamespace, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersEntitlementHandler := customersentitlementhandler.New(resolveNamespace, config.CustomerService, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
@@ -147,6 +174,7 @@ func NewServer(config *Config) (*Server, error) {
 	return &Server{
 		Config:                      config,
 		swagger:                     swagger,
+		appsHandler:                 appsHandler,
 		eventsHandler:               eventsHandler,
 		customersHandler:            customersHandler,
 		customersEntitlementHandler: customersEntitlementHandler,

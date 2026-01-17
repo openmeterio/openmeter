@@ -7,6 +7,7 @@ import "./events/index.tsp";
 import "./meters/index.tsp";
 import "./customers/index.tsp";
 import "./subscriptions/index.tsp";
+import "./apps/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -36,6 +37,7 @@ using TypeSpec.OpenAPI;
   Shared.EntitlementsTag,
   #{ description: Shared.EntitlementsDescription }
 )
+@tagMetadata(Shared.AppsTag, #{ description: Shared.AppsDescription })
 namespace OpenMeter;
 
 @route("/openmeter/events")
@@ -59,3 +61,16 @@ interface CustomerEntitlementsEndpoints
 @tag(Shared.SubscriptionsTag)
 interface SubscriptionsEndpoints
   extends Subscriptions.SubscriptionsOperations {}
+
+@route("/openmeter/app-catalog")
+@tag(Shared.AppsTag)
+interface AppCatalogEndpoints extends Apps.AppCatalogOperations {}
+
+@route("/openmeter/apps/custom-invoicing")
+@tag(Shared.AppsTag)
+interface AppCustomInvoicingEndpoints
+  extends Apps.AppCustomInvoicingOperations {}
+
+@route("/openmeter/apps/stripe")
+@tag(Shared.AppsTag)
+interface AppStripeEndpoints extends Apps.AppStripeOperations {}

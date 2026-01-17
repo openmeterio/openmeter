@@ -8,6 +8,7 @@ import "./meters/index.tsp";
 import "./customers/index.tsp";
 import "./entitlements/index.tsp";
 import "./subscriptions/index.tsp";
+import "./apps/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -31,6 +32,7 @@ using TypeSpec.OpenAPI;
 @tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
 @tagMetadata(Shared.EventsTag, #{ description: Shared.EventsDescription })
 @tagMetadata(Shared.CustomersTag, #{ description: Shared.CustomersDescription })
+@tagMetadata(Shared.AppsTag, #{ description: Shared.AppsDescription })
 @tagMetadata(
   Shared.SubscriptionsTag,
   #{ description: Shared.SubscriptionsDescription }
@@ -63,6 +65,19 @@ interface CustomerEntitlementsEndpoints
 @tag(Shared.SubscriptionsTag)
 interface SubscriptionsEndpoints
   extends Subscriptions.SubscriptionsOperations {}
+
+@route("/openmeter/app-catalog")
+@tag(Shared.AppsTag)
+interface AppCatalogEndpoints extends Apps.AppCatalogOperations {}
+
+@route("/openmeter/apps/custom-invoicing")
+@tag(Shared.AppsTag)
+interface AppCustomInvoicingEndpoints
+  extends Apps.AppCustomInvoicingOperations {}
+
+@route("/openmeter/apps/stripe")
+@tag(Shared.AppsTag)
+interface AppStripeEndpoints extends Apps.AppStripeOperations {}
 
 /**
  * The system account access token is meant for automations and integrations that are not directly associated with a human identity.
