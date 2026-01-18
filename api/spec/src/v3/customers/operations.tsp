@@ -160,8 +160,12 @@ interface CustomerBillingOperations {
   @extension(Shared.UnstableExtension, true)
   createPortalSession(
     @path customerId: Shared.ULID,
-    @body body: Apps.CreateStripeCustomerPortalSessionRequest,
-  ): Shared.CreateResponse<Apps.CreateStripeCustomerPortalSessionResult> | Common.Conflict | Common.NotFound | Common.ErrorResponses;
+    @body body: CustomerBillingStripeCreateCustomerPortalSessionRequest,
+  ):
+    | Shared.CreateResponse<Apps.CreateStripeCustomerPortalSessionResult>
+    | Common.Conflict
+    | Common.NotFound
+    | Common.ErrorResponses;
 }
 
 /**
@@ -179,4 +183,19 @@ model CustomerBillingStripeCreateCheckoutSessionRequest {
    * These options are passed directly to Stripe's [checkout session creation API](https://docs.stripe.com/api/checkout/sessions/create).
    */
   stripe_options: Apps.CreateStripeCheckoutSessionRequestOptions;
+}
+
+/**
+ * Request to create a Stripe Customer Portal Session for the customer.
+ *
+ * Useful to redirect the customer to the Stripe Customer Portal to manage their payment methods,
+ * change their billing address and access their invoice history.
+ * Only returns URL if the customer billing profile is linked to a stripe app and customer.
+ */
+@friendlyName("BillingCustomerStripeCreateCustomerPortalSessionRequest")
+model CustomerBillingStripeCreateCustomerPortalSessionRequest {
+  /**
+   * Options for configuring the Stripe Customer Portal Session.
+   */
+  stripe_options: Apps.CreateStripeCustomerPortalSessionOptions;
 }

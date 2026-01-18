@@ -24,7 +24,9 @@ interface AppsOperations {
   @summary("List apps")
   @extension(Shared.InternalExtension, true)
   @extension(Shared.UnstableExtension, true)
-  list(...Common.PagePaginationQuery): Shared.PagePaginatedResponse<App> | Common.ErrorResponses;
+  list(
+    ...Common.PagePaginationQuery,
+  ): Shared.PagePaginatedResponse<App> | Common.ErrorResponses;
 
   /**
    * Get an installed app.
@@ -34,5 +36,7 @@ interface AppsOperations {
   @summary("Get app")
   @extension(Shared.InternalExtension, true)
   @extension(Shared.UnstableExtension, true)
-  get(@path appId: Shared.ULID): Shared.GetResponse<App> | Common.NotFound | Common.ErrorResponses;
+  get(
+    @path appId: Shared.ULID,
+  ): Shared.GetResponse<App> | Common.NotFound | Common.ErrorResponses;
 }

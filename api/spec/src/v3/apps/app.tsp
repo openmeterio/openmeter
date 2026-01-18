@@ -17,12 +17,12 @@ enum AppType {
   Sandbox: "sandbox",
 
   /**
-   * Stripe integration.
+   * The Stripe app synchronizes invoices to Stripe Invoicing, enabling automated revenue collection with Stripe Payments and Stripe Tax.
    */
   Stripe: "stripe",
 
   /**
-   * External invoicing enables interfacing with external providers via APIs and webhooks.
+   * The external invoicing app enables synchronizing invoices with finance systems that are not natively supported, such as ERPs, in-house invoicing solutions, or local e-invoicing and payment providers.
    */
   ExternalInvoicing: "external_invoicing",
 }

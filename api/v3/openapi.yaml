@@ -420,7 +420,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BillingAppStripeCreateCustomerPortalSessionRequest'
+              $ref: '#/components/schemas/BillingCustomerStripeCreateCustomerPortalSessionRequest'
       x-unstable: true
       x-internal: true
   /openmeter/customers/{customerId}/entitlement-access:
@@ -1076,7 +1076,7 @@ components:
         external_invoicing:
           allOf:
             - $ref: '#/components/schemas/BillingAppCustomerDataExternalInvoicing'
-          description: Used if the customer has a linked custom invoicing app.
+          description: Used if the customer has a linked external invoicing app.
           title: External invoicing
       description: App customer data.
     BillingAppCustomerDataExternalInvoicing:
@@ -1085,7 +1085,7 @@ components:
         labels:
           allOf:
             - $ref: '#/components/schemas/Labels'
-          description: Labels to be used by the external invoicing provider.
+          description: Labels for this external invoicing integration on the customer.
           title: Labels
       description: External invoicing customer data.
     BillingAppCustomerDataStripe:
@@ -1104,7 +1104,7 @@ components:
         labels:
           allOf:
             - $ref: '#/components/schemas/Labels'
-          description: Labels to be used by the Stripe provider.
+          description: Labels for this Stripe integration on the customer.
           title: Labels
       description: Stripe customer data.
     BillingAppExternalInvoicing:
@@ -1196,7 +1196,7 @@ components:
       description: |-
         External Invoicing app enables integration with third-party invoicing or payment system.
 
-        The app supports a bi-directional synchronization pattern where the billing system manages
+        The app supports a bi-directional synchronization pattern where OpenMeter Billing manages
         the invoice lifecycle while the external system handles invoice presentation and payment collection.
 
         Integration workflow:
@@ -1728,7 +1728,7 @@ components:
         - if_supported
         - never
       description: Tax ID collection requirement level.
-    BillingAppStripeCreateCustomerPortalSessionRequest:
+    BillingAppStripeCreateCustomerPortalSessionOptions:
       type: object
       properties:
         configuration_id:
@@ -1797,8 +1797,6 @@ components:
         locale:
           type: string
           description: |-
-            Status.
-              /**
             The IETF language tag of the locale customer portal is displayed in.
 
             See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-locale
@@ -1922,6 +1920,21 @@ components:
         Checkout Sessions are used to collect payment method information from customers
         in a secure, Stripe-hosted interface. This integration uses setup mode to collect
         payment methods that can be charged later for subscription billing.
+    BillingCustomerStripeCreateCustomerPortalSessionRequest:
+      type: object
+      required:
+        - stripe_options
+      properties:
+        stripe_options:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppStripeCreateCustomerPortalSessionOptions'
+          description: Options for configuring the Stripe Customer Portal Session.
+      description: |-
+        Request to create a Stripe Customer Portal Session for the customer.
+
+        Useful to redirect the customer to the Stripe Customer Portal to manage their payment methods,
+        change their billing address and access their invoice history.
+        Only returns URL if the customer billing profile is linked to a stripe app and customer.
     BillingCustomerUsageAttribution:
       type: object
       required:
@@ -2429,7 +2442,7 @@ components:
         code:
           type: string
           maxLength: 64
-          description: The tax code should be interpreted by the custom invoicing provider.
+          description: The tax code should be interpreted by the external invoicing provider.
           title: Tax code
       description: External invoicing tax config.
     BillingTaxConfigStripe:
@@ -3102,7 +3115,7 @@ components:
         external_invoicing:
           allOf:
             - $ref: '#/components/schemas/BillingAppCustomerDataExternalInvoicing'
-          description: Used if the customer has a linked custom invoicing app.
+          description: Used if the customer has a linked external invoicing app.
           title: External invoicing
       description: AppCustomerData upsert request.
     UpsertBillingProfileRequest:

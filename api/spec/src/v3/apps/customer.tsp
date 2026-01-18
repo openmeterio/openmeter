@@ -15,7 +15,7 @@ model AppCustomerData {
   stripe?: Apps.AppCustomerDataStripe;
 
   /**
-   * Used if the customer has a linked custom invoicing app.
+   * Used if the customer has a linked external invoicing app.
    */
   @summary("External invoicing")
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
@@ -42,7 +42,7 @@ model AppCustomerDataStripe {
   default_payment_method_id?: string;
 
   /**
-   * Labels to be used by the Stripe provider.
+   * Labels for this Stripe integration on the customer.
    */
   @summary("Labels")
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
@@ -55,7 +55,7 @@ model AppCustomerDataStripe {
 @friendlyName("BillingAppCustomerDataExternalInvoicing")
 model AppCustomerDataExternalInvoicing {
   /**
-   * Labels to be used by the external invoicing provider.
+   * Labels for this external invoicing integration on the customer.
    */
   @summary("Labels")
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)

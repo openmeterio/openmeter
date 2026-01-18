@@ -543,8 +543,8 @@ enum StripeCheckoutSessionMode {
 /**
  * Request to create a Stripe Customer Portal Session.
  */
-@friendlyName("BillingAppStripeCreateCustomerPortalSessionRequest")
-model CreateStripeCustomerPortalSessionRequest {
+@friendlyName("BillingAppStripeCreateCustomerPortalSessionOptions")
+model CreateStripeCustomerPortalSessionOptions {
   /**
    * The ID of an existing [Stripe configuration](https://docs.stripe.com/api/customer_portal/configurations) to use for this session,
    * describing its functionality and features.
@@ -612,8 +612,6 @@ model CreateStripeCustomerPortalSessionResult {
    */
   return_url: string;
 
-  /**
-   * Status.
   /**
    * The IETF language tag of the locale customer portal is displayed in.
    *

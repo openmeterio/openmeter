@@ -65,7 +65,7 @@ model TaxConfigStripe {
 @friendlyName("BillingTaxConfigExternalInvoicing")
 model TaxConfigExternalInvoicing {
   /**
-   * The tax code should be interpreted by the custom invoicing provider.
+   * The tax code should be interpreted by the external invoicing provider.
    */
   @summary("Tax code")
   @maxLength(64)

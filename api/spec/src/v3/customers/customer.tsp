@@ -1,4 +1,5 @@
 import "../shared/index.tsp";
+import "../common/properties.tsp";
 
 namespace Customers;
 
