@@ -89,7 +89,7 @@ func (s *Server) ChangeSubscription(w http.ResponseWriter, r *http.Request, subs
 // Apps
 
 func (s *Server) ListApps(w http.ResponseWriter, r *http.Request, params api.ListAppsParams) {
-	unimplemented.ListApps(w, r, params)
+	s.appsHandler.ListApps().With(params).ServeHTTP(w, r)
 }
 
 func (s *Server) GetApp(w http.ResponseWriter, r *http.Request, appId api.ULID) {

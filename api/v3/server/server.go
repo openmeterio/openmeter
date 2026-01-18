@@ -13,6 +13,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	appshandler "github.com/openmeterio/openmeter/api/v3/handlers/apps"
 	customershandler "github.com/openmeterio/openmeter/api/v3/handlers/customers"
 	customersentitlementhandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlementaccess"
 	eventshandler "github.com/openmeterio/openmeter/api/v3/handlers/events"
@@ -20,6 +21,7 @@ import (
 	subscriptionshandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
 	"github.com/openmeterio/openmeter/api/v3/oasmiddleware"
 	"github.com/openmeterio/openmeter/api/v3/render"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
@@ -39,6 +41,7 @@ type Config struct {
 	Middlewares      []func(http.Handler) http.Handler
 
 	// services
+	AppService              app.Service
 	MeterService            meter.ManageService
 	IngestService           ingest.Service
 	CustomerService         customer.Service
@@ -61,6 +64,10 @@ func (c *Config) Validate() error {
 
 	if c.ErrorHandler == nil {
 		errs = append(errs, errors.New("error handler is required"))
+	}
+
+	if c.AppService == nil {
+		errs = append(errs, errors.New("app service is required"))
 	}
 
 	if c.MeterService == nil {
@@ -100,6 +107,7 @@ type Server struct {
 	swagger *openapi3.T
 
 	// handlers
+	appsHandler                 appshandler.Handler
 	eventsHandler               eventshandler.Handler
 	customersHandler            customershandler.Handler
 	customersEntitlementHandler customersentitlementhandler.Handler
@@ -138,6 +146,7 @@ func NewServer(config *Config) (*Server, error) {
 		return ns, nil
 	}
 
+	appsHandler := appshandler.New(resolveNamespace, config.AppService, httptransport.WithErrorHandler(config.ErrorHandler))
 	eventsHandler := eventshandler.New(resolveNamespace, config.IngestService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersHandler := customershandler.New(resolveNamespace, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersEntitlementHandler := customersentitlementhandler.New(resolveNamespace, config.CustomerService, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
@@ -147,6 +156,7 @@ func NewServer(config *Config) (*Server, error) {
 	return &Server{
 		Config:                      config,
 		swagger:                     swagger,
+		appsHandler:                 appsHandler,
 		eventsHandler:               eventsHandler,
 		customersHandler:            customersHandler,
 		customersEntitlementHandler: customersEntitlementHandler,
