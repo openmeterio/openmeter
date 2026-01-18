@@ -93,7 +93,7 @@ func (s *Server) ListApps(w http.ResponseWriter, r *http.Request, params api.Lis
 }
 
 func (s *Server) GetApp(w http.ResponseWriter, r *http.Request, appId api.ULID) {
-	unimplemented.GetApp(w, r, appId)
+	s.appsHandler.GetApp().With(appId).ServeHTTP(w, r)
 }
 
 // Billing Profiles
