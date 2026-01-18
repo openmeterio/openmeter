@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -15,7 +15,7 @@ import (
 // GetAppHandler is a handler to get an app by id
 type (
 	GetAppRequest  = app.GetAppInput
-	GetAppResponse = apiv3.BillingApp
+	GetAppResponse = api.BillingApp
 	GetAppHandler  httptransport.HandlerWithArgs[GetAppRequest, GetAppResponse, string]
 )
 
@@ -45,7 +45,7 @@ func (h *handler) GetApp() GetAppHandler {
 		commonhttp.JSONResponseEncoder[GetAppResponse],
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("getApp"),
+			httptransport.WithOperationName("get-app"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)

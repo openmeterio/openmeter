@@ -21,59 +21,93 @@ func MapAppToAPI(item app.App) (api.BillingApp, error) {
 
 	switch item.GetType() {
 	case app.AppTypeStripe:
-		stripeApp := item.(appstripeentityapp.App)
-
-		app := api.BillingApp{}
-		if err := app.FromBillingAppStripe(mapStripeAppToAPI(stripeApp.Meta)); err != nil {
-			return app, err
+		stripeApp, ok := item.(appstripeentityapp.App)
+		if !ok {
+			return api.BillingApp{}, fmt.Errorf("expected stripe app, got %T", item)
 		}
 
-		return app, nil
+		billingAppStripe, err := mapStripeAppToAPI(stripeApp.Meta)
+		if err != nil {
+			return api.BillingApp{}, fmt.Errorf("failed to map stripe app to API: %w", err)
+		}
+
+		billingApp := api.BillingApp{}
+		if err := billingApp.FromBillingAppStripe(billingAppStripe); err != nil {
+			return billingApp, err
+		}
+
+		return billingApp, nil
 	case app.AppTypeSandbox:
-		sandboxApp := item.(appsandbox.App)
-
-		app := api.BillingApp{}
-		if err := app.FromBillingAppSandbox(mapSandboxAppToAPI(sandboxApp.Meta)); err != nil {
-			return app, err
+		sandboxApp, ok := item.(appsandbox.App)
+		if !ok {
+			return api.BillingApp{}, fmt.Errorf("expected sandbox app, got %T", item)
 		}
 
-		return app, nil
+		billingAppSandbox, err := mapSandboxAppToAPI(sandboxApp.Meta)
+		if err != nil {
+			return api.BillingApp{}, fmt.Errorf("failed to map sandbox app to API: %w", err)
+		}
+
+		billingApp := api.BillingApp{}
+		if err := billingApp.FromBillingAppSandbox(billingAppSandbox); err != nil {
+			return billingApp, err
+		}
+
+		return billingApp, nil
 	case app.AppTypeCustomInvoicing:
-		customInvoicingApp := item.(appcustominvoicing.App)
-
-		app := api.BillingApp{}
-		if err := app.FromBillingAppExternalInvoicing(mapCustomInvoicingAppToAPI(customInvoicingApp.Meta)); err != nil {
-			return app, err
+		customInvoicingApp, ok := item.(appcustominvoicing.App)
+		if !ok {
+			return api.BillingApp{}, fmt.Errorf("expected custom invoicing app, got %T", item)
 		}
 
-		return app, nil
+		billingAppExternalInvoicing, err := mapCustomInvoicingAppToAPI(customInvoicingApp.Meta)
+		if err != nil {
+			return api.BillingApp{}, fmt.Errorf("failed to map custom invoicing app to API: %w", err)
+		}
+
+		billingApp := api.BillingApp{}
+		if err := billingApp.FromBillingAppExternalInvoicing(billingAppExternalInvoicing); err != nil {
+			return billingApp, err
+		}
+
+		return billingApp, nil
 	default:
 		return api.BillingApp{}, fmt.Errorf("unsupported app type: %s", item.GetType())
 	}
 }
 
-func mapSandboxAppToAPI(app appsandbox.Meta) api.BillingAppSandbox {
-	return api.BillingAppSandbox{
-		Id:         app.GetID().ID,
-		Type:       api.BillingAppSandboxTypeSandbox,
-		Name:       app.GetName(),
-		Status:     api.BillingAppStatus(app.GetStatus()),
-		Definition: ConvertMarketplaceListingToV3Api(app.GetListing()),
-		CreatedAt:  lo.ToPtr(app.CreatedAt),
-		UpdatedAt:  lo.ToPtr(app.UpdatedAt),
-		DeletedAt:  app.DeletedAt,
+func mapSandboxAppToAPI(sandboxApp appsandbox.Meta) (api.BillingAppSandbox, error) {
+	definition, err := ConvertMarketplaceListingToV3Api(sandboxApp.GetListing())
+	if err != nil {
+		return api.BillingAppSandbox{}, err
 	}
+
+	return api.BillingAppSandbox{
+		Id:         sandboxApp.GetID().ID,
+		Type:       api.BillingAppSandboxTypeSandbox,
+		Name:       sandboxApp.GetName(),
+		Status:     api.BillingAppStatus(sandboxApp.GetStatus()),
+		Definition: definition,
+		CreatedAt:  lo.ToPtr(sandboxApp.CreatedAt),
+		UpdatedAt:  lo.ToPtr(sandboxApp.UpdatedAt),
+		DeletedAt:  sandboxApp.DeletedAt,
+	}, nil
 }
 
 func mapStripeAppToAPI(
 	stripeApp appstripeentityapp.Meta,
-) api.BillingAppStripe {
+) (api.BillingAppStripe, error) {
+	definition, err := ConvertMarketplaceListingToV3Api(stripeApp.GetListing())
+	if err != nil {
+		return api.BillingAppStripe{}, err
+	}
+
 	apiStripeApp := api.BillingAppStripe{
 		Id:           stripeApp.GetID().ID,
 		Type:         api.BillingAppStripeType(stripeApp.GetType()),
 		Name:         stripeApp.Name,
 		Status:       api.BillingAppStatus(stripeApp.GetStatus()),
-		Definition:   ConvertMarketplaceListingToV3Api(stripeApp.GetListing()),
+		Definition:   definition,
 		MaskedApiKey: stripeApp.MaskedAPIKey,
 		CreatedAt:    lo.ToPtr(stripeApp.CreatedAt),
 		UpdatedAt:    lo.ToPtr(stripeApp.UpdatedAt),
@@ -88,23 +122,28 @@ func mapStripeAppToAPI(
 		apiStripeApp.Labels = ConvertMetadataToLabels(stripeApp.GetMetadata())
 	}
 
-	return apiStripeApp
+	return apiStripeApp, nil
 }
 
-func mapCustomInvoicingAppToAPI(app appcustominvoicing.Meta) api.BillingAppExternalInvoicing {
-	return api.BillingAppExternalInvoicing{
-		Id:          app.GetID().ID,
-		Type:        api.BillingAppExternalInvoicingTypeExternalInvoicing,
-		Name:        app.GetName(),
-		Status:      api.BillingAppStatus(app.GetStatus()),
-		Definition:  ConvertMarketplaceListingToV3Api(app.GetListing()),
-		Labels:      ConvertMetadataToLabels(app.GetMetadata()),
-		Description: app.GetDescription(),
-		CreatedAt:   lo.ToPtr(app.CreatedAt),
-		UpdatedAt:   lo.ToPtr(app.UpdatedAt),
-		DeletedAt:   app.DeletedAt,
-
-		EnableDraftSyncHook:   app.Configuration.EnableDraftSyncHook,
-		EnableIssuingSyncHook: app.Configuration.EnableIssuingSyncHook,
+func mapCustomInvoicingAppToAPI(customInvoicingApp appcustominvoicing.Meta) (api.BillingAppExternalInvoicing, error) {
+	definition, err := ConvertMarketplaceListingToV3Api(customInvoicingApp.GetListing())
+	if err != nil {
+		return api.BillingAppExternalInvoicing{}, err
 	}
+
+	return api.BillingAppExternalInvoicing{
+		Id:          customInvoicingApp.GetID().ID,
+		Type:        api.BillingAppExternalInvoicingTypeExternalInvoicing,
+		Name:        customInvoicingApp.GetName(),
+		Status:      api.BillingAppStatus(customInvoicingApp.GetStatus()),
+		Definition:  definition,
+		Labels:      ConvertMetadataToLabels(customInvoicingApp.GetMetadata()),
+		Description: customInvoicingApp.GetDescription(),
+		CreatedAt:   lo.ToPtr(customInvoicingApp.CreatedAt),
+		UpdatedAt:   lo.ToPtr(customInvoicingApp.UpdatedAt),
+		DeletedAt:   customInvoicingApp.DeletedAt,
+
+		EnableDraftSyncHook:   customInvoicingApp.Configuration.EnableDraftSyncHook,
+		EnableIssuingSyncHook: customInvoicingApp.Configuration.EnableIssuingSyncHook,
+	}, nil
 }

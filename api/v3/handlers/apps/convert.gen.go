@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	ConvertAppTypeToV3Api = func(source app.AppType) v3.BillingAppType {
+	ConvertAppTypeToV3Api = func(source app.AppType) (v3.BillingAppType, error) {
 		var v3BillingAppType v3.BillingAppType
 		switch source {
 		case app.AppTypeCustomInvoicing:
@@ -21,16 +21,20 @@ func init() {
 		case app.AppTypeStripe:
 			v3BillingAppType = v3.BillingAppTypeStripe
 		default:
-			panic(fmt.Sprintf("unexpected enum element: %v", source))
+			return v3BillingAppType, fmt.Errorf("unexpected enum element: %v", source)
 		}
-		return v3BillingAppType
+		return v3BillingAppType, nil
 	}
-	ConvertMarketplaceListingToV3Api = func(source app.MarketplaceListing) v3.BillingAppCatalogItem {
+	ConvertMarketplaceListingToV3Api = func(source app.MarketplaceListing) (v3.BillingAppCatalogItem, error) {
 		var v3BillingAppCatalogItem v3.BillingAppCatalogItem
 		v3BillingAppCatalogItem.Description = source.Description
 		v3BillingAppCatalogItem.Name = source.Name
-		v3BillingAppCatalogItem.Type = ConvertAppTypeToV3Api(source.Type)
-		return v3BillingAppCatalogItem
+		v3BillingAppType, err := ConvertAppTypeToV3Api(source.Type)
+		if err != nil {
+			return v3BillingAppCatalogItem, err
+		}
+		v3BillingAppCatalogItem.Type = v3BillingAppType
+		return v3BillingAppCatalogItem, nil
 	}
 	ConvertMetadataToLabels = func(source map[string]string) *v3.Labels {
 		v3Labels := mapStringStringToV3Labels(source)

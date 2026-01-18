@@ -7,9 +7,9 @@ import (
 
 	"github.com/samber/lo"
 
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
-	apiv3response "github.com/openmeterio/openmeter/api/v3/response"
+	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -19,8 +19,8 @@ import (
 // ListAppsHandler is a handler for listing apps
 type (
 	ListAppsRequest  = app.ListAppInput
-	ListAppsResponse = apiv3.AppPagePaginatedResponse
-	ListAppsParams   = apiv3.ListAppsParams
+	ListAppsResponse = api.AppPagePaginatedResponse
+	ListAppsParams   = api.ListAppsParams
 	ListAppsHandler  httptransport.HandlerWithArgs[ListAppsRequest, ListAppsResponse, ListAppsParams]
 )
 
@@ -63,17 +63,17 @@ func (h *handler) ListApps() ListAppsHandler {
 				return ListAppsResponse{}, fmt.Errorf("failed to list apps: %w", err)
 			}
 
-			items := make([]apiv3.BillingApp, 0, len(result.Items))
+			items := make([]api.BillingApp, 0, len(result.Items))
 			for _, item := range result.Items {
 				apiAppItem, err := MapAppToAPI(item)
 				if err != nil {
-					return ListAppsResponse{}, fmt.Errorf("failed to map app to apiv3: %w", err)
+					return ListAppsResponse{}, fmt.Errorf("failed to map App [%s] to BillingApp: %w", item.GetID(), err)
 				}
 
 				items = append(items, apiAppItem)
 			}
 
-			r := apiv3response.NewPagePaginationResponse(items, apiv3response.PageMetaPage{
+			r := response.NewPagePaginationResponse(items, response.PageMetaPage{
 				Size:   request.Page.PageSize,
 				Number: request.Page.PageNumber,
 				Total:  lo.ToPtr(result.TotalCount),
@@ -86,7 +86,7 @@ func (h *handler) ListApps() ListAppsHandler {
 		commonhttp.JSONResponseEncoder[ListAppsResponse],
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("listApps"),
+			httptransport.WithOperationName("list-apps"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
