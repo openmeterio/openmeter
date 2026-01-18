@@ -7622,7 +7622,7 @@ export interface components {
      * @example {
      *       "type": "stripe",
      *       "name": "Stripe",
-     *       "description": "Stripe interation allows you to collect payments with Stripe.",
+     *       "description": "Stripe integration allows you to collect payments with Stripe.",
      *       "capabilities": [
      *         {
      *           "type": "calculateTax",
@@ -10253,7 +10253,7 @@ export interface components {
      *       "listing": {
      *         "type": "stripe",
      *         "name": "Stripe",
-     *         "description": "Stripe interation allows you to collect payments with Stripe.",
+     *         "description": "Stripe integration allows you to collect payments with Stripe.",
      *         "capabilities": [
      *           {
      *             "type": "calculateTax",

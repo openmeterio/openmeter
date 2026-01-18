@@ -8,6 +8,7 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -19,6 +20,88 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/oapi-codegen/nullable"
 	"github.com/oapi-codegen/runtime"
+)
+
+// Defines values for BillingAppExternalInvoicingType.
+const (
+	BillingAppExternalInvoicingTypeExternalInvoicing BillingAppExternalInvoicingType = "external_invoicing"
+)
+
+// Defines values for BillingAppSandboxType.
+const (
+	BillingAppSandboxTypeSandbox BillingAppSandboxType = "sandbox"
+)
+
+// Defines values for BillingAppStatus.
+const (
+	BillingAppStatusReady        BillingAppStatus = "ready"
+	BillingAppStatusUnauthorized BillingAppStatus = "unauthorized"
+)
+
+// Defines values for BillingAppStripeType.
+const (
+	BillingAppStripeTypeStripe BillingAppStripeType = "stripe"
+)
+
+// Defines values for BillingAppStripeCheckoutSessionMode.
+const (
+	BillingAppStripeCheckoutSessionModeSetup BillingAppStripeCheckoutSessionMode = "setup"
+)
+
+// Defines values for BillingAppStripeCheckoutSessionUIMode.
+const (
+	BillingAppStripeCheckoutSessionUIModeEmbedded BillingAppStripeCheckoutSessionUIMode = "embedded"
+	BillingAppStripeCheckoutSessionUIModeHosted   BillingAppStripeCheckoutSessionUIMode = "hosted"
+)
+
+// Defines values for BillingAppStripeCreateCheckoutSessionBillingAddressCollection.
+const (
+	BillingAppStripeCreateCheckoutSessionBillingAddressCollectionAuto     BillingAppStripeCreateCheckoutSessionBillingAddressCollection = "auto"
+	BillingAppStripeCreateCheckoutSessionBillingAddressCollectionRequired BillingAppStripeCreateCheckoutSessionBillingAddressCollection = "required"
+)
+
+// Defines values for BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition.
+const (
+	BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPositionAuto   BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition = "auto"
+	BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPositionHidden BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition = "hidden"
+)
+
+// Defines values for BillingAppStripeCreateCheckoutSessionConsentCollectionPromotions.
+const (
+	BillingAppStripeCreateCheckoutSessionConsentCollectionPromotionsAuto BillingAppStripeCreateCheckoutSessionConsentCollectionPromotions = "auto"
+	BillingAppStripeCreateCheckoutSessionConsentCollectionPromotionsNone BillingAppStripeCreateCheckoutSessionConsentCollectionPromotions = "none"
+)
+
+// Defines values for BillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfService.
+const (
+	BillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfServiceNone     BillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfService = "none"
+	BillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfServiceRequired BillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfService = "required"
+)
+
+// Defines values for BillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior.
+const (
+	BillingAppStripeCreateCheckoutSessionCustomerUpdateBehaviorAuto  BillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior = "auto"
+	BillingAppStripeCreateCheckoutSessionCustomerUpdateBehaviorNever BillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior = "never"
+)
+
+// Defines values for BillingAppStripeCreateCheckoutSessionRedirectOnCompletion.
+const (
+	BillingAppStripeCreateCheckoutSessionRedirectOnCompletionAlways     BillingAppStripeCreateCheckoutSessionRedirectOnCompletion = "always"
+	BillingAppStripeCreateCheckoutSessionRedirectOnCompletionIfRequired BillingAppStripeCreateCheckoutSessionRedirectOnCompletion = "if_required"
+	BillingAppStripeCreateCheckoutSessionRedirectOnCompletionNever      BillingAppStripeCreateCheckoutSessionRedirectOnCompletion = "never"
+)
+
+// Defines values for BillingAppStripeCreateCheckoutSessionTaxIdCollectionRequired.
+const (
+	BillingAppStripeCreateCheckoutSessionTaxIdCollectionRequiredIfSupported BillingAppStripeCreateCheckoutSessionTaxIdCollectionRequired = "if_supported"
+	BillingAppStripeCreateCheckoutSessionTaxIdCollectionRequiredNever       BillingAppStripeCreateCheckoutSessionTaxIdCollectionRequired = "never"
+)
+
+// Defines values for BillingAppType.
+const (
+	BillingAppTypeExternalInvoicing BillingAppType = "external_invoicing"
+	BillingAppTypeSandbox           BillingAppType = "sandbox"
+	BillingAppTypeStripe            BillingAppType = "stripe"
 )
 
 // Defines values for BillingEntitlementType.
@@ -40,6 +123,32 @@ const (
 	BillingSubscriptionStatusCanceled  BillingSubscriptionStatus = "canceled"
 	BillingSubscriptionStatusInactive  BillingSubscriptionStatus = "inactive"
 	BillingSubscriptionStatusScheduled BillingSubscriptionStatus = "scheduled"
+)
+
+// Defines values for BillingTaxBehavior.
+const (
+	BillingTaxBehaviorExclusive BillingTaxBehavior = "exclusive"
+	BillingTaxBehaviorInclusive BillingTaxBehavior = "inclusive"
+)
+
+// Defines values for BillingWorkflowCollectionAlignmentAnchoredType.
+const (
+	BillingWorkflowCollectionAlignmentAnchoredTypeAnchored BillingWorkflowCollectionAlignmentAnchoredType = "anchored"
+)
+
+// Defines values for BillingWorkflowCollectionAlignmentSubscriptionType.
+const (
+	BillingWorkflowCollectionAlignmentSubscriptionTypeSubscription BillingWorkflowCollectionAlignmentSubscriptionType = "subscription"
+)
+
+// Defines values for BillingWorkflowPaymentChargeAutomaticallySettingsCollectionMethod.
+const (
+	BillingWorkflowPaymentChargeAutomaticallySettingsCollectionMethodChargeAutomatically BillingWorkflowPaymentChargeAutomaticallySettingsCollectionMethod = "charge_automatically"
+)
+
+// Defines values for BillingWorkflowPaymentSendInvoiceSettingsCollectionMethod.
+const (
+	BillingWorkflowPaymentSendInvoiceSettingsCollectionMethodSendInvoice BillingWorkflowPaymentSendInvoiceSettingsCollectionMethod = "send_invoice"
 )
 
 // Defines values for InvalidParameterChoiceItemRule.
@@ -111,6 +220,38 @@ const (
 const (
 	MeteringEventDatacontenttypeApplicationjson MeteringEventDatacontenttype = "application/json"
 )
+
+// Address Address
+type Address struct {
+	// City City.
+	City *string `json:"city,omitempty"`
+
+	// Country Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format.
+	Country *CountryCode `json:"country,omitempty"`
+
+	// Line1 First line of the address.
+	Line1 *string `json:"line1,omitempty"`
+
+	// Line2 Second line of the address.
+	Line2 *string `json:"line2,omitempty"`
+
+	// PhoneNumber Phone number.
+	PhoneNumber *string `json:"phone_number,omitempty"`
+
+	// PostalCode Postal code.
+	PostalCode *string `json:"postal_code,omitempty"`
+
+	// State State or province.
+	State *string `json:"state,omitempty"`
+}
+
+// AppPagePaginatedResponse Page paginated response.
+type AppPagePaginatedResponse struct {
+	Data []BillingApp `json:"data"`
+
+	// Meta returns the pagination information
+	Meta PaginatedMeta `json:"meta"`
+}
 
 // BadRequestError defines model for BadRequestError.
 type BadRequestError struct {
@@ -191,6 +332,539 @@ type BillingAddress struct {
 	State *string `json:"state,omitempty"`
 }
 
+// BillingApp Installed application.
+type BillingApp struct {
+	union json.RawMessage
+}
+
+// BillingAppCatalogItem Available apps for billing integrations to connect with third-party services.
+// Apps can have various capabilities like syncing data from or to external systems, integrating with third-party services for tax calculation, delivery of invoices, collection of payments, etc.
+type BillingAppCatalogItem struct {
+	// Description Description of the app.
+	Description string `json:"description"`
+
+	// Name Name of the app.
+	Name string `json:"name"`
+
+	// Type Type of the app.
+	Type BillingAppType `json:"type"`
+}
+
+// BillingAppCustomerData App customer data.
+type BillingAppCustomerData struct {
+	// ExternalInvoicing Used if the customer has a linked external invoicing app.
+	ExternalInvoicing *BillingAppCustomerDataExternalInvoicing `json:"external_invoicing,omitempty"`
+
+	// Stripe Used if the customer has a linked Stripe app.
+	Stripe *BillingAppCustomerDataStripe `json:"stripe,omitempty"`
+}
+
+// BillingAppCustomerDataExternalInvoicing External invoicing customer data.
+type BillingAppCustomerDataExternalInvoicing struct {
+	// Labels Labels for this external invoicing integration on the customer.
+	Labels *Labels `json:"labels,omitempty"`
+}
+
+// BillingAppCustomerDataStripe Stripe customer data.
+type BillingAppCustomerDataStripe struct {
+	// CustomerId The Stripe customer ID used.
+	CustomerId *string `json:"customer_id,omitempty"`
+
+	// DefaultPaymentMethodId The Stripe default payment method ID.
+	DefaultPaymentMethodId *string `json:"default_payment_method_id,omitempty"`
+
+	// Labels Labels for this Stripe integration on the customer.
+	Labels *Labels `json:"labels,omitempty"`
+}
+
+// BillingAppExternalInvoicing External Invoicing app enables integration with third-party invoicing or payment system.
+//
+// The app supports a bi-directional synchronization pattern where OpenMeter Billing manages
+// the invoice lifecycle while the external system handles invoice presentation and payment collection.
+//
+// Integration workflow:
+// 1. The billing system creates invoices and transitions them through lifecycle states (draft → issuing → issued)
+// 2. The integration receives webhook notifications about invoice state changes
+// 3. The integration calls back to provide external system IDs and metadata
+// 4. The integration reports payment events back via the payment status API
+//
+// State synchronization is controlled by hooks that pause invoice progression until the
+// external system confirms synchronization via API callbacks.
+type BillingAppExternalInvoicing struct {
+	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt *DateTime `json:"created_at,omitempty"`
+
+	// Definition The app catalog definition that this installed app is based on.
+	Definition BillingAppCatalogItem `json:"definition"`
+
+	// DeletedAt An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *DateTime `json:"deleted_at,omitempty"`
+
+	// Description Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// EnableDraftSyncHook Enable draft synchronization hook.
+	//
+	// When enabled, invoices will pause at the draft state and wait for the integration
+	// to call the draft synchronized endpoint before progressing to the issuing state.
+	// This allows the external system to validate and prepare the invoice data.
+	//
+	// When disabled, invoices automatically progress through the draft state based on
+	// the configured workflow timing.
+	EnableDraftSyncHook bool `json:"enable_draft_sync_hook"`
+
+	// EnableIssuingSyncHook Enable issuing synchronization hook.
+	//
+	// When enabled, invoices will pause at the issuing state and wait for the integration
+	// to call the issuing synchronized endpoint before progressing to the issued state.
+	// This ensures the external invoicing system has successfully created and finalized
+	// the invoice before it is marked as issued.
+	//
+	// When disabled, invoices automatically progress through the issuing state and are
+	// immediately marked as issued.
+	EnableIssuingSyncHook bool `json:"enable_issuing_sync_hook"`
+	Id                    ULID `json:"id"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// Name Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// Status Status of the app connection.
+	Status BillingAppStatus `json:"status"`
+
+	// Type The app type.
+	Type BillingAppExternalInvoicingType `json:"type"`
+
+	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+}
+
+// BillingAppExternalInvoicingType The app type.
+type BillingAppExternalInvoicingType string
+
+// BillingAppReference App reference.
+type BillingAppReference struct {
+	// Id The ID of the app.
+	Id ULID `json:"id"`
+}
+
+// BillingAppSandbox Sandbox app can be used for testing billing features.
+type BillingAppSandbox struct {
+	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt *DateTime `json:"created_at,omitempty"`
+
+	// Definition The app catalog definition that this installed app is based on.
+	Definition BillingAppCatalogItem `json:"definition"`
+
+	// DeletedAt An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *DateTime `json:"deleted_at,omitempty"`
+
+	// Description Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+	Id          ULID    `json:"id"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// Name Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// Status Status of the app connection.
+	Status BillingAppStatus `json:"status"`
+
+	// Type The app type.
+	Type BillingAppSandboxType `json:"type"`
+
+	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+}
+
+// BillingAppSandboxType The app type.
+type BillingAppSandboxType string
+
+// BillingAppStatus Connection status of an installed app.
+type BillingAppStatus string
+
+// BillingAppStripe Stripe app.
+type BillingAppStripe struct {
+	// AccountId The Stripe account ID associated with the connected Stripe account.
+	AccountId string `json:"account_id"`
+
+	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt *DateTime `json:"created_at,omitempty"`
+
+	// Definition The app catalog definition that this installed app is based on.
+	Definition BillingAppCatalogItem `json:"definition"`
+
+	// DeletedAt An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *DateTime `json:"deleted_at,omitempty"`
+
+	// Description Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+	Id          ULID    `json:"id"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// Livemode Indicates whether the app is connected to a live Stripe account.
+	Livemode bool `json:"livemode"`
+
+	// MaskedApiKey The masked Stripe API key that only exposes the first and last few characters.
+	MaskedApiKey string `json:"masked_api_key"`
+
+	// Name Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// Status Status of the app connection.
+	Status BillingAppStatus `json:"status"`
+
+	// Type The app type.
+	Type BillingAppStripeType `json:"type"`
+
+	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+}
+
+// BillingAppStripeType The app type.
+type BillingAppStripeType string
+
+// BillingAppStripeCheckoutSessionCustomTextParams Custom text displayed at various stages of the checkout flow.
+type BillingAppStripeCheckoutSessionCustomTextParams struct {
+	// AfterSubmit Text displayed after the payment confirmation button.
+	AfterSubmit *struct {
+		// Message The custom message text (max 1200 characters).
+		Message *string `json:"message,omitempty"`
+	} `json:"after_submit,omitempty"`
+
+	// ShippingAddress Text displayed alongside shipping address collection.
+	ShippingAddress *struct {
+		// Message The custom message text (max 1200 characters).
+		Message *string `json:"message,omitempty"`
+	} `json:"shipping_address,omitempty"`
+
+	// Submit Text displayed alongside the payment confirmation button.
+	Submit *struct {
+		// Message The custom message text (max 1200 characters).
+		Message *string `json:"message,omitempty"`
+	} `json:"submit,omitempty"`
+
+	// TermsOfServiceAcceptance Text replacing the default terms of service agreement text.
+	TermsOfServiceAcceptance *struct {
+		// Message The custom message text (max 1200 characters).
+		Message *string `json:"message,omitempty"`
+	} `json:"terms_of_service_acceptance,omitempty"`
+}
+
+// BillingAppStripeCheckoutSessionMode Stripe Checkout Session mode.
+//
+// Determines the primary purpose of the checkout session.
+type BillingAppStripeCheckoutSessionMode string
+
+// BillingAppStripeCheckoutSessionUIMode Checkout Session UI mode.
+type BillingAppStripeCheckoutSessionUIMode string
+
+// BillingAppStripeCreateCheckoutSessionBillingAddressCollection Controls whether Checkout collects the customer's billing address.
+type BillingAppStripeCreateCheckoutSessionBillingAddressCollection string
+
+// BillingAppStripeCreateCheckoutSessionConsentCollection Checkout Session consent collection configuration.
+type BillingAppStripeCreateCheckoutSessionConsentCollection struct {
+	// PaymentMethodReuseAgreement Controls the visibility of payment method reuse agreement.
+	PaymentMethodReuseAgreement *BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreement `json:"payment_method_reuse_agreement,omitempty"`
+
+	// Promotions Enables collection of promotional communication consent.
+	//
+	// Only available to US merchants. When set to "auto", Checkout determines
+	// whether to show the option based on the customer's locale.
+	Promotions *BillingAppStripeCreateCheckoutSessionConsentCollectionPromotions `json:"promotions,omitempty"`
+
+	// TermsOfService Requires customers to accept terms of service before payment.
+	//
+	// Requires a valid terms of service URL in your Stripe Dashboard settings.
+	TermsOfService *BillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfService `json:"terms_of_service,omitempty"`
+}
+
+// BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreement Payment method reuse agreement configuration.
+type BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreement struct {
+	// Position Position and visibility of the payment method reuse agreement.
+	Position *BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition `json:"position,omitempty"`
+}
+
+// BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition Position of payment method reuse agreement in the UI.
+type BillingAppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition string
+
+// BillingAppStripeCreateCheckoutSessionConsentCollectionPromotions Promotional communication consent collection setting.
+type BillingAppStripeCreateCheckoutSessionConsentCollectionPromotions string
+
+// BillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfService Terms of service acceptance requirement.
+type BillingAppStripeCreateCheckoutSessionConsentCollectionTermsOfService string
+
+// BillingAppStripeCreateCheckoutSessionCustomerUpdate Controls which customer fields can be updated by the checkout session.
+type BillingAppStripeCreateCheckoutSessionCustomerUpdate struct {
+	// Address Whether to save the billing address to customer.address.
+	//
+	// Defaults to "never".
+	Address *BillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior `json:"address,omitempty"`
+
+	// Name Whether to save the customer name to customer.name.
+	//
+	// Defaults to "never".
+	Name *BillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior `json:"name,omitempty"`
+
+	// Shipping Whether to save shipping information to customer.shipping.
+	//
+	// Defaults to "never".
+	Shipping *BillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior `json:"shipping,omitempty"`
+}
+
+// BillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior Behavior for updating customer fields from checkout session.
+type BillingAppStripeCreateCheckoutSessionCustomerUpdateBehavior string
+
+// BillingAppStripeCreateCheckoutSessionRedirectOnCompletion Redirect behavior for embedded checkout sessions.
+type BillingAppStripeCreateCheckoutSessionRedirectOnCompletion string
+
+// BillingAppStripeCreateCheckoutSessionRequestOptions Configuration options for creating a Stripe Checkout Session.
+//
+// Based on Stripe's [Checkout Session API parameters](https://docs.stripe.com/api/checkout/sessions/create).
+type BillingAppStripeCreateCheckoutSessionRequestOptions struct {
+	// BillingAddressCollection Whether to collect the customer's billing address.
+	//
+	// Defaults to auto, which only collects the address when necessary for tax calculation.
+	BillingAddressCollection *BillingAppStripeCreateCheckoutSessionBillingAddressCollection `json:"billing_address_collection,omitempty"`
+
+	// CancelUrl URL to redirect customers who cancel the checkout session.
+	//
+	// Not allowed when ui_mode is "embedded".
+	CancelUrl *string `json:"cancel_url,omitempty"`
+
+	// ClientReferenceId Unique reference string for reconciling sessions with internal systems.
+	//
+	// Can be a customer ID, cart ID, or any other identifier.
+	ClientReferenceId *string `json:"client_reference_id,omitempty"`
+
+	// ConsentCollection Configuration for collecting customer consent during checkout.
+	ConsentCollection *BillingAppStripeCreateCheckoutSessionConsentCollection `json:"consent_collection,omitempty"`
+
+	// Currency Three-letter ISO 4217 currency code in uppercase.
+	//
+	// Required for payment mode sessions. Optional for setup mode sessions.
+	Currency *CurrencyCode `json:"currency,omitempty"`
+
+	// CustomText Custom text to display during checkout at various stages.
+	CustomText *BillingAppStripeCheckoutSessionCustomTextParams `json:"custom_text,omitempty"`
+
+	// CustomerUpdate Controls which customer fields can be updated by the checkout session.
+	CustomerUpdate *BillingAppStripeCreateCheckoutSessionCustomerUpdate `json:"customer_update,omitempty"`
+
+	// ExpiresAt Unix timestamp when the checkout session expires.
+	//
+	// Can be 30 minutes to 24 hours from creation. Defaults to 24 hours.
+	ExpiresAt *int64 `json:"expires_at,omitempty"`
+
+	// Locale IETF language tag for the checkout UI locale.
+	//
+	// If blank or "auto", uses the browser's locale. Example: "en", "fr", "de".
+	Locale *string `json:"locale,omitempty"`
+
+	// Metadata Set of key-value pairs to attach to the checkout session.
+	//
+	// Useful for storing additional structured information.
+	Metadata *map[string]string `json:"metadata,omitempty"`
+
+	// PaymentMethodTypes List of payment method types to enable (e.g., "card", "us_bank_account").
+	//
+	// If not specified, Stripe enables all relevant payment methods.
+	PaymentMethodTypes *[]string `json:"payment_method_types,omitempty"`
+
+	// RedirectOnCompletion Redirect behavior for embedded checkout sessions.
+	//
+	// Controls when to redirect users after completion.
+	// See: https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form
+	RedirectOnCompletion *BillingAppStripeCreateCheckoutSessionRedirectOnCompletion `json:"redirect_on_completion,omitempty"`
+
+	// ReturnUrl Return URL for embedded checkout sessions after payment authentication.
+	//
+	// Required if ui_mode is "embedded" and redirect-based payment methods are enabled.
+	ReturnUrl *string `json:"return_url,omitempty"`
+
+	// SuccessUrl Success URL to redirect customers after completing payment or setup.
+	//
+	// Not allowed when ui_mode is "embedded".
+	// See: https://docs.stripe.com/payments/checkout/custom-success-page
+	SuccessUrl *string `json:"success_url,omitempty"`
+
+	// TaxIdCollection Configuration for collecting tax IDs during checkout.
+	TaxIdCollection *BillingAppStripeCreateCheckoutSessionTaxIdCollection `json:"tax_id_collection,omitempty"`
+
+	// UiMode The UI mode for the checkout session.
+	//
+	// "hosted" displays a Stripe-hosted page. "embedded" integrates directly into your app.
+	// Defaults to "hosted".
+	UiMode *BillingAppStripeCheckoutSessionUIMode `json:"ui_mode,omitempty"`
+}
+
+// BillingAppStripeCreateCheckoutSessionResult Result of creating a Stripe Checkout Session.
+//
+// Contains all the information needed to redirect customers to the checkout
+// or initialize an embedded checkout flow.
+type BillingAppStripeCreateCheckoutSessionResult struct {
+	// CancelUrl The cancel URL where customers are redirected if they cancel.
+	CancelUrl *string `json:"cancel_url,omitempty"`
+
+	// ClientReferenceId The client reference ID provided in the request.
+	//
+	// Useful for reconciling the session with your internal systems.
+	ClientReferenceId *string `json:"client_reference_id,omitempty"`
+
+	// ClientSecret Client secret for initializing Stripe.js on the client side.
+	//
+	// Required for embedded checkout sessions.
+	// See: https://docs.stripe.com/payments/checkout/custom-success-page
+	ClientSecret *string `json:"client_secret,omitempty"`
+
+	// CreatedAt Timestamp when the checkout session was created.
+	CreatedAt DateTime `json:"created_at"`
+
+	// Currency Currency code for the checkout session.
+	Currency *CurrencyCode `json:"currency,omitempty"`
+
+	// CustomerEmail Customer's email address if provided to Stripe.
+	CustomerEmail *string `json:"customer_email,omitempty"`
+
+	// CustomerId The customer ID in the billing system.
+	CustomerId ULID `json:"customer_id"`
+
+	// ExpiresAt Timestamp when the checkout session will expire.
+	ExpiresAt *DateTime `json:"expires_at,omitempty"`
+
+	// Metadata Metadata attached to the checkout session.
+	Metadata *map[string]string `json:"metadata,omitempty"`
+
+	// Mode Mode of the checkout session.
+	//
+	// Currently only "setup" mode is supported for collecting payment methods.
+	Mode BillingAppStripeCheckoutSessionMode `json:"mode"`
+
+	// ReturnUrl The return URL for embedded sessions after authentication.
+	ReturnUrl *string `json:"return_url,omitempty"`
+
+	// SessionId The Stripe checkout session ID.
+	SessionId string `json:"session_id"`
+
+	// SetupIntentId The setup intent ID created for collecting the payment method.
+	SetupIntentId string `json:"setup_intent_id"`
+
+	// Status The status of the checkout session.
+	//
+	// See: https://docs.stripe.com/api/checkout/sessions/object#checkout_session_object-status
+	Status *string `json:"status,omitempty"`
+
+	// StripeCustomerId The Stripe customer ID.
+	StripeCustomerId string `json:"stripe_customer_id"`
+
+	// SuccessUrl The success URL where customers are redirected after completion.
+	SuccessUrl *string `json:"success_url,omitempty"`
+
+	// Url URL to redirect customers to the checkout page (for hosted mode).
+	Url *string `json:"url,omitempty"`
+}
+
+// BillingAppStripeCreateCheckoutSessionTaxIdCollection Tax ID collection configuration for checkout sessions.
+type BillingAppStripeCreateCheckoutSessionTaxIdCollection struct {
+	// Enabled Enable tax ID collection during checkout.
+	//
+	// Defaults to false.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Required Whether tax ID collection is required.
+	//
+	// Defaults to "never".
+	Required *BillingAppStripeCreateCheckoutSessionTaxIdCollectionRequired `json:"required,omitempty"`
+}
+
+// BillingAppStripeCreateCheckoutSessionTaxIdCollectionRequired Tax ID collection requirement level.
+type BillingAppStripeCreateCheckoutSessionTaxIdCollectionRequired string
+
+// BillingAppStripeCreateCustomerPortalSessionOptions Request to create a Stripe Customer Portal Session.
+type BillingAppStripeCreateCustomerPortalSessionOptions struct {
+	// ConfigurationId The ID of an existing [Stripe configuration](https://docs.stripe.com/api/customer_portal/configurations) to use for this session,
+	// describing its functionality and features.
+	// If not specified, the session uses the default configuration.
+	ConfigurationId *string `json:"configuration_id,omitempty"`
+
+	// Locale The IETF [language tag](https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-locale) of the locale customer portal is displayed in.
+	// If blank or `auto`, the customer's preferred_locales or browser's locale is used.
+	Locale *string `json:"locale,omitempty"`
+
+	// ReturnUrl The [URL to redirect](https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-return_url) the customer to after they have completed
+	// their requested actions.
+	ReturnUrl *string `json:"return_url,omitempty"`
+}
+
+// BillingAppStripeCreateCustomerPortalSessionResult Result of creating a [Stripe Customer Portal Session](https://docs.stripe.com/api/customer_portal/sessions/object).
+//
+// Contains all the information needed to redirect the customer to the Stripe Customer Portal.
+type BillingAppStripeCreateCustomerPortalSessionResult struct {
+	// ConfigurationId Configuration used to customize the customer portal.
+	//
+	// See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-configuration
+	ConfigurationId string `json:"configuration_id"`
+
+	// CreatedAt Created at.
+	//
+	// See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-created
+	CreatedAt DateTime `json:"created_at"`
+
+	// Id The ID of the customer portal session.
+	//
+	// See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-id
+	Id string `json:"id"`
+
+	// Livemode Livemode.
+	//
+	// See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-livemode
+	Livemode bool `json:"livemode"`
+
+	// Locale The IETF language tag of the locale customer portal is displayed in.
+	//
+	// See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-locale
+	Locale string `json:"locale"`
+
+	// ReturnUrl Return URL.
+	//
+	// See: https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-return_url
+	ReturnUrl string `json:"return_url"`
+
+	// StripeCustomerId The ID of the stripe customer.
+	StripeCustomerId string `json:"stripe_customer_id"`
+
+	// Url The URL to redirect the customer to after they have completed
+	// their requested actions.
+	Url string `json:"url"`
+}
+
+// BillingAppType The type of the app.
+type BillingAppType string
+
 // BillingCustomer Customers can be individuals or organizations that can subscribe to plans and have access to features.
 type BillingCustomer struct {
 	// BillingAddress The billing address of the customer.
@@ -236,6 +910,39 @@ type BillingCustomer struct {
 	UsageAttribution *BillingCustomerUsageAttribution `json:"usage_attribution,omitempty"`
 }
 
+// BillingCustomerData Billing customer data.
+type BillingCustomerData struct {
+	// AppData App customer data.
+	AppData *BillingAppCustomerData `json:"app_data,omitempty"`
+
+	// BillingProfile The billing profile for the customer.
+	//
+	// If not provided, the default billing profile will be used.
+	BillingProfile *BillingProfileReference `json:"billing_profile,omitempty"`
+}
+
+// BillingCustomerStripeCreateCheckoutSessionRequest Request to create a Stripe Checkout Session for the customer.
+//
+// Checkout Sessions are used to collect payment method information from customers
+// in a secure, Stripe-hosted interface. This integration uses setup mode to collect
+// payment methods that can be charged later for subscription billing.
+type BillingCustomerStripeCreateCheckoutSessionRequest struct {
+	// StripeOptions Options for configuring the Stripe Checkout Session.
+	//
+	// These options are passed directly to Stripe's [checkout session creation API](https://docs.stripe.com/api/checkout/sessions/create).
+	StripeOptions BillingAppStripeCreateCheckoutSessionRequestOptions `json:"stripe_options"`
+}
+
+// BillingCustomerStripeCreateCustomerPortalSessionRequest Request to create a Stripe Customer Portal Session for the customer.
+//
+// Useful to redirect the customer to the Stripe Customer Portal to manage their payment methods,
+// change their billing address and access their invoice history.
+// Only returns URL if the customer billing profile is linked to a stripe app and customer.
+type BillingCustomerStripeCreateCustomerPortalSessionRequest struct {
+	// StripeOptions Options for configuring the Stripe Customer Portal Session.
+	StripeOptions BillingAppStripeCreateCustomerPortalSessionOptions `json:"stripe_options"`
+}
+
 // BillingCustomerUsageAttribution Mapping to attribute metered usage to the customer.
 // One customer can have zero or more subjects,
 // but one subject can only belong to one customer.
@@ -266,6 +973,97 @@ type BillingEntitlementAccessResult struct {
 
 // BillingEntitlementType The type of the entitlement.
 type BillingEntitlementType string
+
+// BillingParty Party represents a person or business entity.
+type BillingParty struct {
+	// Addresses Regular post addresses for where information should be sent if needed.
+	Addresses *[]Address `json:"addresses,omitempty"`
+
+	// Id Unique identifier for the party.
+	Id *string `json:"id,omitempty"`
+
+	// Key An optional unique key of the party.
+	Key *ExternalResourceKey `json:"key,omitempty"`
+
+	// Name Legal name or representation of the party.
+	Name *string `json:"name,omitempty"`
+
+	// TaxId The entity's legal identification used for tax purposes. They may have
+	// other numbers, but we're only interested in those valid for tax purposes.
+	TaxId *BillingPartyTaxIdentity `json:"tax_id,omitempty"`
+}
+
+// BillingPartyTaxIdentity Identity stores the details required to identify an entity for tax purposes in a specific country.
+type BillingPartyTaxIdentity struct {
+	// Code Normalized tax identification code shown on the original identity document.
+	Code *BillingTaxIdentificationCode `json:"code,omitempty"`
+}
+
+// BillingProfile Billing profiles contain the settings for billing and controls invoice generation.
+type BillingProfile struct {
+	// Apps The applications used by this billing profile.
+	Apps BillingProfileAppReferences `json:"apps"`
+
+	// CreatedAt An ISO-8601 timestamp representation of entity creation date.
+	CreatedAt *DateTime `json:"created_at,omitempty"`
+
+	// Default Whether this is the default profile.
+	Default bool `json:"default"`
+
+	// DeletedAt An ISO-8601 timestamp representation of entity deletion date.
+	DeletedAt *DateTime `json:"deleted_at,omitempty"`
+
+	// Description Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+	Id          ULID    `json:"id"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// Name Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// Supplier The name and contact information for the supplier this billing profile represents
+	Supplier BillingParty `json:"supplier"`
+
+	// UpdatedAt An ISO-8601 timestamp representation of entity last update date.
+	UpdatedAt *DateTime `json:"updated_at,omitempty"`
+
+	// Workflow The billing workflow settings for this profile
+	Workflow BillingWorkflow `json:"workflow"`
+}
+
+// BillingProfileAppReferences References to the applications used by a billing profile.
+type BillingProfileAppReferences struct {
+	// Invoicing The invoicing app used for this workflow.
+	Invoicing BillingAppReference `json:"invoicing"`
+
+	// Payment The payment app used for this workflow.
+	Payment BillingAppReference `json:"payment"`
+
+	// Tax The tax app used for this workflow.
+	Tax BillingAppReference `json:"tax"`
+}
+
+// BillingProfilePagePaginatedResponse Page paginated response.
+type BillingProfilePagePaginatedResponse struct {
+	Data []BillingProfile `json:"data"`
+
+	// Meta returns the pagination information
+	Meta PaginatedMeta `json:"meta"`
+}
+
+// BillingProfileReference Billing profile reference.
+type BillingProfileReference struct {
+	// Id The ID of the billing profile.
+	Id ULID `json:"id"`
+}
 
 // BillingSubscription Subscription.
 type BillingSubscription struct {
@@ -444,6 +1242,154 @@ type BillingSubscriptionEditTimingEnum string
 // BillingSubscriptionStatus Subscription status.
 type BillingSubscriptionStatus string
 
+// BillingTaxBehavior Tax behavior.
+//
+// This enum is used to specify whether tax is included in the price or excluded from the price.
+type BillingTaxBehavior string
+
+// BillingTaxConfig Set of provider specific tax configs.
+type BillingTaxConfig struct {
+	// Behavior Tax behavior.
+	//
+	// If not specified the billing profile is used to determine the tax behavior.
+	// If not specified in the billing profile, the provider's default behavior is used.
+	Behavior *BillingTaxBehavior `json:"behavior,omitempty"`
+
+	// ExternalInvoicing External invoicing tax config.
+	ExternalInvoicing *BillingTaxConfigExternalInvoicing `json:"external_invoicing,omitempty"`
+
+	// Stripe Stripe tax config.
+	Stripe *BillingTaxConfigStripe `json:"stripe,omitempty"`
+}
+
+// BillingTaxConfigExternalInvoicing External invoicing tax config.
+type BillingTaxConfigExternalInvoicing struct {
+	// Code The tax code should be interpreted by the external invoicing provider.
+	Code string `json:"code"`
+}
+
+// BillingTaxConfigStripe The tax config for Stripe.
+type BillingTaxConfigStripe struct {
+	// Code Product [tax code](https://docs.stripe.com/tax/tax-codes).
+	Code string `json:"code"`
+}
+
+// BillingTaxIdentificationCode Tax identifier code is a normalized tax code shown on the original identity document.
+type BillingTaxIdentificationCode = string
+
+// BillingWorkflow Billing workflow settings.
+type BillingWorkflow struct {
+	// Collection The collection settings for this workflow
+	Collection *BillingWorkflowCollectionSettings `json:"collection,omitempty"`
+
+	// Invoicing The invoicing settings for this workflow
+	Invoicing *BillingWorkflowInvoicingSettings `json:"invoicing,omitempty"`
+
+	// Payment The payment settings for this workflow
+	Payment *BillingWorkflowPaymentSettings `json:"payment,omitempty"`
+
+	// Tax The tax settings for this workflow
+	Tax *BillingWorkflowTaxSettings `json:"tax,omitempty"`
+}
+
+// BillingWorkflowCollectionAlignment The alignment for collecting the pending line items into an invoice.
+//
+// Defaults to subscription, which means that we are to create a new invoice every time the
+// a subscription period starts (for in advance items) or ends (for in arrears items).
+type BillingWorkflowCollectionAlignment struct {
+	union json.RawMessage
+}
+
+// BillingWorkflowCollectionAlignmentAnchored BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items
+// into an invoice.
+type BillingWorkflowCollectionAlignmentAnchored struct {
+	// RecurringPeriod The recurring period for the alignment.
+	RecurringPeriod RecurringPeriod `json:"recurring_period"`
+
+	// Type The type of alignment.
+	Type BillingWorkflowCollectionAlignmentAnchoredType `json:"type"`
+}
+
+// BillingWorkflowCollectionAlignmentAnchoredType The type of alignment.
+type BillingWorkflowCollectionAlignmentAnchoredType string
+
+// BillingWorkflowCollectionAlignmentSubscription BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items
+// into an invoice.
+type BillingWorkflowCollectionAlignmentSubscription struct {
+	// Type The type of alignment.
+	Type BillingWorkflowCollectionAlignmentSubscriptionType `json:"type"`
+}
+
+// BillingWorkflowCollectionAlignmentSubscriptionType The type of alignment.
+type BillingWorkflowCollectionAlignmentSubscriptionType string
+
+// BillingWorkflowCollectionSettings Workflow collection specifies how to collect the pending line items for an invoice.
+type BillingWorkflowCollectionSettings struct {
+	// Alignment The alignment for collecting the pending line items into an invoice.
+	Alignment *BillingWorkflowCollectionAlignment `json:"alignment,omitempty"`
+
+	// Interval This grace period can be used to delay the collection of the pending line items specified in
+	// alignment.
+	//
+	// This is useful, in case of multiple subscriptions having slightly different billing periods.
+	Interval *string `json:"interval,omitempty"`
+}
+
+// BillingWorkflowInvoicingSettings Invoice settings for a billing workflow.
+type BillingWorkflowInvoicingSettings struct {
+	// AutoAdvance Whether to automatically issue the invoice after the draftPeriod has passed.
+	AutoAdvance *bool `json:"auto_advance,omitempty"`
+
+	// DraftPeriod The period for the invoice to be kept in draft status for manual reviews.
+	DraftPeriod *string `json:"draft_period,omitempty"`
+
+	// ProgressiveBilling Should progressive billing be allowed for this workflow?
+	ProgressiveBilling *bool `json:"progressive_billing,omitempty"`
+}
+
+// BillingWorkflowPaymentChargeAutomaticallySettings Payment settings for a billing workflow when the collection method is charge automatically.
+type BillingWorkflowPaymentChargeAutomaticallySettings struct {
+	// CollectionMethod The collection method for the invoice.
+	CollectionMethod BillingWorkflowPaymentChargeAutomaticallySettingsCollectionMethod `json:"collection_method"`
+}
+
+// BillingWorkflowPaymentChargeAutomaticallySettingsCollectionMethod The collection method for the invoice.
+type BillingWorkflowPaymentChargeAutomaticallySettingsCollectionMethod string
+
+// BillingWorkflowPaymentSendInvoiceSettings Payment settings for a billing workflow when the collection method is send invoice.
+type BillingWorkflowPaymentSendInvoiceSettings struct {
+	// CollectionMethod The collection method for the invoice.
+	CollectionMethod BillingWorkflowPaymentSendInvoiceSettingsCollectionMethod `json:"collection_method"`
+
+	// DueAfter The period after which the invoice is due.
+	// With some payment solutions it's only applicable for manual collection method.
+	DueAfter *string `json:"due_after,omitempty"`
+}
+
+// BillingWorkflowPaymentSendInvoiceSettingsCollectionMethod The collection method for the invoice.
+type BillingWorkflowPaymentSendInvoiceSettingsCollectionMethod string
+
+// BillingWorkflowPaymentSettings Payment settings for a billing workflow.
+type BillingWorkflowPaymentSettings struct {
+	union json.RawMessage
+}
+
+// BillingWorkflowTaxSettings Tax settings for a billing workflow.
+type BillingWorkflowTaxSettings struct {
+	// DefaultTaxConfig Default tax configuration to apply to the invoices for line items.
+	DefaultTaxConfig *BillingTaxConfig `json:"default_tax_config,omitempty"`
+
+	// Enabled Enable automatic tax calculation when tax is supported by the app.
+	// For example, with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Enforced Enforce tax calculation when tax is supported by the app.
+	// When enabled, the billing system will not allow to create an invoice without tax calculation.
+	// Enforcement is different per apps, for example, Stripe app requires customer
+	// to have a tax location when starting a paid subscription.
+	Enforced *bool `json:"enforced,omitempty"`
+}
+
 // ConflictError defines model for ConflictError.
 type ConflictError struct {
 	Detail   interface{} `json:"detail"`
@@ -456,6 +1402,36 @@ type ConflictError struct {
 // CountryCode [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
 // Custom two-letter country codes are also supported for convenience.
 type CountryCode = string
+
+// CreateBillingProfileRequest BillingProfile create request.
+type CreateBillingProfileRequest struct {
+	// Apps The applications used by this billing profile.
+	Apps BillingProfileAppReferences `json:"apps"`
+
+	// Default Whether this is the default profile.
+	Default bool `json:"default"`
+
+	// Description Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// Name Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// Supplier The name and contact information for the supplier this billing profile represents
+	Supplier BillingParty `json:"supplier"`
+
+	// Workflow The billing workflow settings for this profile
+	Workflow BillingWorkflow `json:"workflow"`
+}
 
 // CreateCustomerRequest Customer create request.
 type CreateCustomerRequest struct {
@@ -571,6 +1547,9 @@ type GoneError struct {
 	Title    interface{} `json:"title"`
 	Type     interface{} `json:"type,omitempty"`
 }
+
+// ISO8601Duration [ISO 8601 Duration](https://docs.digi.com/resources/documentation/digidocs/90001488-13/reference/r_iso_8601_duration_format.htm) string.
+type ISO8601Duration = string
 
 // InvalidParameterChoiceItem defines model for InvalidParameterChoiceItem.
 type InvalidParameterChoiceItem struct {
@@ -788,6 +1767,15 @@ type PaginatedMeta struct {
 	Page PageMeta `json:"page"`
 }
 
+// RecurringPeriod Recurring period with an anchor and an interval.
+type RecurringPeriod struct {
+	// Anchor A date-time anchor to base the recurring period on.
+	Anchor DateTime `json:"anchor"`
+
+	// Interval The interval duration in ISO 8601 format.
+	Interval ISO8601Duration `json:"interval"`
+}
+
 // ResourceKey A key is a unique string that is used to identify a resource.
 type ResourceKey = string
 
@@ -815,6 +1803,53 @@ type UnauthorizedError struct {
 	Status   interface{} `json:"status"`
 	Title    interface{} `json:"title"`
 	Type     interface{} `json:"type,omitempty"`
+}
+
+// UpsertAppCustomerDataRequest AppCustomerData upsert request.
+type UpsertAppCustomerDataRequest struct {
+	// ExternalInvoicing Used if the customer has a linked external invoicing app.
+	ExternalInvoicing *BillingAppCustomerDataExternalInvoicing `json:"external_invoicing,omitempty"`
+
+	// Stripe Used if the customer has a linked Stripe app.
+	Stripe *BillingAppCustomerDataStripe `json:"stripe,omitempty"`
+}
+
+// UpsertBillingProfileRequest BillingProfile upsert request.
+type UpsertBillingProfileRequest struct {
+	// Default Whether this is the default profile.
+	Default bool `json:"default"`
+
+	// Description Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// Name Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// Supplier The name and contact information for the supplier this billing profile represents
+	Supplier BillingParty `json:"supplier"`
+
+	// Workflow The billing workflow settings for this profile
+	Workflow BillingWorkflow `json:"workflow"`
+}
+
+// UpsertCustomerBillingDataRequest CustomerBillingData upsert request.
+type UpsertCustomerBillingDataRequest struct {
+	// AppData App customer data.
+	AppData *BillingAppCustomerData `json:"app_data,omitempty"`
+
+	// BillingProfile The billing profile for the customer.
+	//
+	// If not provided, the default billing profile will be used.
+	BillingProfile *BillingProfileReference `json:"billing_profile,omitempty"`
 }
 
 // UpsertCustomerRequest Customer upsert request.
@@ -876,6 +1911,12 @@ type NotFound = NotFoundError
 // Unauthorized defines model for Unauthorized.
 type Unauthorized = UnauthorizedError
 
+// ListAppsParams defines parameters for ListApps.
+type ListAppsParams struct {
+	// Page Determines which page of the collection to retrieve.
+	Page *PagePaginationQuery `json:"page,omitempty"`
+}
+
 // ListCustomersParams defines parameters for ListCustomers.
 type ListCustomersParams struct {
 	// Page Determines which page of the collection to retrieve.
@@ -914,6 +1955,12 @@ type ListMetersParams struct {
 	Page *PagePaginationQuery `json:"page,omitempty"`
 }
 
+// ListBillingProfilesParams defines parameters for ListBillingProfiles.
+type ListBillingProfilesParams struct {
+	// Page Determines which page of the collection to retrieve.
+	Page *PagePaginationQuery `json:"page,omitempty"`
+}
+
 // ListSubscriptionsParams defines parameters for ListSubscriptions.
 type ListSubscriptionsParams struct {
 	// Page Determines which page of the collection to retrieve.
@@ -932,6 +1979,18 @@ type CreateCustomerJSONRequestBody = CreateCustomerRequest
 // UpsertCustomerJSONRequestBody defines body for UpsertCustomer for application/json ContentType.
 type UpsertCustomerJSONRequestBody = UpsertCustomerRequest
 
+// UpdateCustomerBillingJSONRequestBody defines body for UpdateCustomerBilling for application/json ContentType.
+type UpdateCustomerBillingJSONRequestBody = UpsertCustomerBillingDataRequest
+
+// UpdateCustomerBillingAppDataJSONRequestBody defines body for UpdateCustomerBillingAppData for application/json ContentType.
+type UpdateCustomerBillingAppDataJSONRequestBody = UpsertAppCustomerDataRequest
+
+// CreateCustomerStripeCheckoutSessionJSONRequestBody defines body for CreateCustomerStripeCheckoutSession for application/json ContentType.
+type CreateCustomerStripeCheckoutSessionJSONRequestBody = BillingCustomerStripeCreateCheckoutSessionRequest
+
+// CreateCustomerStripePortalSessionJSONRequestBody defines body for CreateCustomerStripePortalSession for application/json ContentType.
+type CreateCustomerStripePortalSessionJSONRequestBody = BillingCustomerStripeCreateCustomerPortalSessionRequest
+
 // IngestMeteringEventsApplicationCloudeventsPlusJSONRequestBody defines body for IngestMeteringEvents for application/cloudevents+json ContentType.
 type IngestMeteringEventsApplicationCloudeventsPlusJSONRequestBody = MeteringEvent
 
@@ -944,6 +2003,12 @@ type IngestMeteringEventsJSONRequestBody IngestMeteringEventsJSONBody
 // CreateMeterJSONRequestBody defines body for CreateMeter for application/json ContentType.
 type CreateMeterJSONRequestBody = CreateMeterRequest
 
+// CreateBillingProfileJSONRequestBody defines body for CreateBillingProfile for application/json ContentType.
+type CreateBillingProfileJSONRequestBody = CreateBillingProfileRequest
+
+// UpdateBillingProfileJSONRequestBody defines body for UpdateBillingProfile for application/json ContentType.
+type UpdateBillingProfileJSONRequestBody = UpsertBillingProfileRequest
+
 // CreateSubscriptionJSONRequestBody defines body for CreateSubscription for application/json ContentType.
 type CreateSubscriptionJSONRequestBody = BillingSubscriptionCreate
 
@@ -952,6 +2017,125 @@ type CancelSubscriptionJSONRequestBody = BillingSubscriptionCancel
 
 // ChangeSubscriptionJSONRequestBody defines body for ChangeSubscription for application/json ContentType.
 type ChangeSubscriptionJSONRequestBody = BillingSubscriptionChange
+
+// AsBillingAppStripe returns the union data inside the BillingApp as a BillingAppStripe
+func (t BillingApp) AsBillingAppStripe() (BillingAppStripe, error) {
+	var body BillingAppStripe
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingAppStripe overwrites any union data inside the BillingApp as the provided BillingAppStripe
+func (t *BillingApp) FromBillingAppStripe(v BillingAppStripe) error {
+	v.Type = "stripe"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingAppStripe performs a merge with any union data inside the BillingApp, using the provided BillingAppStripe
+func (t *BillingApp) MergeBillingAppStripe(v BillingAppStripe) error {
+	v.Type = "stripe"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingAppSandbox returns the union data inside the BillingApp as a BillingAppSandbox
+func (t BillingApp) AsBillingAppSandbox() (BillingAppSandbox, error) {
+	var body BillingAppSandbox
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingAppSandbox overwrites any union data inside the BillingApp as the provided BillingAppSandbox
+func (t *BillingApp) FromBillingAppSandbox(v BillingAppSandbox) error {
+	v.Type = "sandbox"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingAppSandbox performs a merge with any union data inside the BillingApp, using the provided BillingAppSandbox
+func (t *BillingApp) MergeBillingAppSandbox(v BillingAppSandbox) error {
+	v.Type = "sandbox"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingAppExternalInvoicing returns the union data inside the BillingApp as a BillingAppExternalInvoicing
+func (t BillingApp) AsBillingAppExternalInvoicing() (BillingAppExternalInvoicing, error) {
+	var body BillingAppExternalInvoicing
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingAppExternalInvoicing overwrites any union data inside the BillingApp as the provided BillingAppExternalInvoicing
+func (t *BillingApp) FromBillingAppExternalInvoicing(v BillingAppExternalInvoicing) error {
+	v.Type = "external_invoicing"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingAppExternalInvoicing performs a merge with any union data inside the BillingApp, using the provided BillingAppExternalInvoicing
+func (t *BillingApp) MergeBillingAppExternalInvoicing(v BillingAppExternalInvoicing) error {
+	v.Type = "external_invoicing"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t BillingApp) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t BillingApp) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "external_invoicing":
+		return t.AsBillingAppExternalInvoicing()
+	case "sandbox":
+		return t.AsBillingAppSandbox()
+	case "stripe":
+		return t.AsBillingAppStripe()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t BillingApp) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *BillingApp) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
 
 // AsBillingSubscriptionEditTimingEnum returns the union data inside the BillingSubscriptionEditTiming as a BillingSubscriptionEditTimingEnum
 func (t BillingSubscriptionEditTiming) AsBillingSubscriptionEditTimingEnum() (BillingSubscriptionEditTimingEnum, error) {
@@ -1011,6 +2195,184 @@ func (t BillingSubscriptionEditTiming) MarshalJSON() ([]byte, error) {
 }
 
 func (t *BillingSubscriptionEditTiming) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsBillingWorkflowCollectionAlignmentSubscription returns the union data inside the BillingWorkflowCollectionAlignment as a BillingWorkflowCollectionAlignmentSubscription
+func (t BillingWorkflowCollectionAlignment) AsBillingWorkflowCollectionAlignmentSubscription() (BillingWorkflowCollectionAlignmentSubscription, error) {
+	var body BillingWorkflowCollectionAlignmentSubscription
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingWorkflowCollectionAlignmentSubscription overwrites any union data inside the BillingWorkflowCollectionAlignment as the provided BillingWorkflowCollectionAlignmentSubscription
+func (t *BillingWorkflowCollectionAlignment) FromBillingWorkflowCollectionAlignmentSubscription(v BillingWorkflowCollectionAlignmentSubscription) error {
+	v.Type = "subscription"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingWorkflowCollectionAlignmentSubscription performs a merge with any union data inside the BillingWorkflowCollectionAlignment, using the provided BillingWorkflowCollectionAlignmentSubscription
+func (t *BillingWorkflowCollectionAlignment) MergeBillingWorkflowCollectionAlignmentSubscription(v BillingWorkflowCollectionAlignmentSubscription) error {
+	v.Type = "subscription"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingWorkflowCollectionAlignmentAnchored returns the union data inside the BillingWorkflowCollectionAlignment as a BillingWorkflowCollectionAlignmentAnchored
+func (t BillingWorkflowCollectionAlignment) AsBillingWorkflowCollectionAlignmentAnchored() (BillingWorkflowCollectionAlignmentAnchored, error) {
+	var body BillingWorkflowCollectionAlignmentAnchored
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingWorkflowCollectionAlignmentAnchored overwrites any union data inside the BillingWorkflowCollectionAlignment as the provided BillingWorkflowCollectionAlignmentAnchored
+func (t *BillingWorkflowCollectionAlignment) FromBillingWorkflowCollectionAlignmentAnchored(v BillingWorkflowCollectionAlignmentAnchored) error {
+	v.Type = "anchored"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingWorkflowCollectionAlignmentAnchored performs a merge with any union data inside the BillingWorkflowCollectionAlignment, using the provided BillingWorkflowCollectionAlignmentAnchored
+func (t *BillingWorkflowCollectionAlignment) MergeBillingWorkflowCollectionAlignmentAnchored(v BillingWorkflowCollectionAlignmentAnchored) error {
+	v.Type = "anchored"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t BillingWorkflowCollectionAlignment) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t BillingWorkflowCollectionAlignment) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "anchored":
+		return t.AsBillingWorkflowCollectionAlignmentAnchored()
+	case "subscription":
+		return t.AsBillingWorkflowCollectionAlignmentSubscription()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t BillingWorkflowCollectionAlignment) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *BillingWorkflowCollectionAlignment) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsBillingWorkflowPaymentChargeAutomaticallySettings returns the union data inside the BillingWorkflowPaymentSettings as a BillingWorkflowPaymentChargeAutomaticallySettings
+func (t BillingWorkflowPaymentSettings) AsBillingWorkflowPaymentChargeAutomaticallySettings() (BillingWorkflowPaymentChargeAutomaticallySettings, error) {
+	var body BillingWorkflowPaymentChargeAutomaticallySettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingWorkflowPaymentChargeAutomaticallySettings overwrites any union data inside the BillingWorkflowPaymentSettings as the provided BillingWorkflowPaymentChargeAutomaticallySettings
+func (t *BillingWorkflowPaymentSettings) FromBillingWorkflowPaymentChargeAutomaticallySettings(v BillingWorkflowPaymentChargeAutomaticallySettings) error {
+	v.CollectionMethod = "charge_automatically"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingWorkflowPaymentChargeAutomaticallySettings performs a merge with any union data inside the BillingWorkflowPaymentSettings, using the provided BillingWorkflowPaymentChargeAutomaticallySettings
+func (t *BillingWorkflowPaymentSettings) MergeBillingWorkflowPaymentChargeAutomaticallySettings(v BillingWorkflowPaymentChargeAutomaticallySettings) error {
+	v.CollectionMethod = "charge_automatically"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingWorkflowPaymentSendInvoiceSettings returns the union data inside the BillingWorkflowPaymentSettings as a BillingWorkflowPaymentSendInvoiceSettings
+func (t BillingWorkflowPaymentSettings) AsBillingWorkflowPaymentSendInvoiceSettings() (BillingWorkflowPaymentSendInvoiceSettings, error) {
+	var body BillingWorkflowPaymentSendInvoiceSettings
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingWorkflowPaymentSendInvoiceSettings overwrites any union data inside the BillingWorkflowPaymentSettings as the provided BillingWorkflowPaymentSendInvoiceSettings
+func (t *BillingWorkflowPaymentSettings) FromBillingWorkflowPaymentSendInvoiceSettings(v BillingWorkflowPaymentSendInvoiceSettings) error {
+	v.CollectionMethod = "send_invoice"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingWorkflowPaymentSendInvoiceSettings performs a merge with any union data inside the BillingWorkflowPaymentSettings, using the provided BillingWorkflowPaymentSendInvoiceSettings
+func (t *BillingWorkflowPaymentSettings) MergeBillingWorkflowPaymentSendInvoiceSettings(v BillingWorkflowPaymentSendInvoiceSettings) error {
+	v.CollectionMethod = "send_invoice"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t BillingWorkflowPaymentSettings) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"collection_method"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t BillingWorkflowPaymentSettings) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "charge_automatically":
+		return t.AsBillingWorkflowPaymentChargeAutomaticallySettings()
+	case "send_invoice":
+		return t.AsBillingWorkflowPaymentSendInvoiceSettings()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t BillingWorkflowPaymentSettings) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *BillingWorkflowPaymentSettings) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -1157,6 +2519,12 @@ func (t *InvalidParameters_Item) UnmarshalJSON(b []byte) error {
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// List apps
+	// (GET /openmeter/apps)
+	ListApps(w http.ResponseWriter, r *http.Request, params ListAppsParams)
+	// Get app
+	// (GET /openmeter/apps/{appId})
+	GetApp(w http.ResponseWriter, r *http.Request, appId ULID)
 	// List customers
 	// (GET /openmeter/customers)
 	ListCustomers(w http.ResponseWriter, r *http.Request, params ListCustomersParams)
@@ -1172,6 +2540,21 @@ type ServerInterface interface {
 	// Upsert customer
 	// (PUT /openmeter/customers/{customerId})
 	UpsertCustomer(w http.ResponseWriter, r *http.Request, customerId ULID)
+	// Get customer billing data
+	// (GET /openmeter/customers/{customerId}/billing)
+	GetCustomerBilling(w http.ResponseWriter, r *http.Request, customerId ULID)
+	// Update customer billing data
+	// (PUT /openmeter/customers/{customerId}/billing)
+	UpdateCustomerBilling(w http.ResponseWriter, r *http.Request, customerId ULID)
+	// Update customer billing app data
+	// (PUT /openmeter/customers/{customerId}/billing/app-data)
+	UpdateCustomerBillingAppData(w http.ResponseWriter, r *http.Request, customerId ULID)
+	// Create Stripe Checkout Session
+	// (POST /openmeter/customers/{customerId}/billing/stripe/checkout-sessions)
+	CreateCustomerStripeCheckoutSession(w http.ResponseWriter, r *http.Request, customerId ULID)
+	// Create Stripe customer portal session
+	// (POST /openmeter/customers/{customerId}/billing/stripe/portal-sessions)
+	CreateCustomerStripePortalSession(w http.ResponseWriter, r *http.Request, customerId ULID)
 	// List customer entitlement access
 	// (GET /openmeter/customers/{customerId}/entitlement-access)
 	ListCustomerEntitlementAccess(w http.ResponseWriter, r *http.Request, customerId ULID)
@@ -1190,6 +2573,21 @@ type ServerInterface interface {
 	// Get meter
 	// (GET /openmeter/meters/{meterId})
 	GetMeter(w http.ResponseWriter, r *http.Request, meterId ULID)
+	// List billing profiles
+	// (GET /openmeter/profiles)
+	ListBillingProfiles(w http.ResponseWriter, r *http.Request, params ListBillingProfilesParams)
+	// Create a new billing profile
+	// (POST /openmeter/profiles)
+	CreateBillingProfile(w http.ResponseWriter, r *http.Request)
+	// Delete a billing profile
+	// (DELETE /openmeter/profiles/{id})
+	DeleteBillingProfile(w http.ResponseWriter, r *http.Request, id ULID)
+	// Get a billing profile
+	// (GET /openmeter/profiles/{id})
+	GetBillingProfile(w http.ResponseWriter, r *http.Request, id ULID)
+	// Update a billing profile
+	// (PUT /openmeter/profiles/{id})
+	UpdateBillingProfile(w http.ResponseWriter, r *http.Request, id ULID)
 	// List subscriptions
 	// (GET /openmeter/subscriptions)
 	ListSubscriptions(w http.ResponseWriter, r *http.Request, params ListSubscriptionsParams)
@@ -1213,6 +2611,18 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// List apps
+// (GET /openmeter/apps)
+func (_ Unimplemented) ListApps(w http.ResponseWriter, r *http.Request, params ListAppsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get app
+// (GET /openmeter/apps/{appId})
+func (_ Unimplemented) GetApp(w http.ResponseWriter, r *http.Request, appId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // List customers
 // (GET /openmeter/customers)
@@ -1241,6 +2651,36 @@ func (_ Unimplemented) GetCustomer(w http.ResponseWriter, r *http.Request, custo
 // Upsert customer
 // (PUT /openmeter/customers/{customerId})
 func (_ Unimplemented) UpsertCustomer(w http.ResponseWriter, r *http.Request, customerId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get customer billing data
+// (GET /openmeter/customers/{customerId}/billing)
+func (_ Unimplemented) GetCustomerBilling(w http.ResponseWriter, r *http.Request, customerId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Update customer billing data
+// (PUT /openmeter/customers/{customerId}/billing)
+func (_ Unimplemented) UpdateCustomerBilling(w http.ResponseWriter, r *http.Request, customerId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Update customer billing app data
+// (PUT /openmeter/customers/{customerId}/billing/app-data)
+func (_ Unimplemented) UpdateCustomerBillingAppData(w http.ResponseWriter, r *http.Request, customerId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create Stripe Checkout Session
+// (POST /openmeter/customers/{customerId}/billing/stripe/checkout-sessions)
+func (_ Unimplemented) CreateCustomerStripeCheckoutSession(w http.ResponseWriter, r *http.Request, customerId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create Stripe customer portal session
+// (POST /openmeter/customers/{customerId}/billing/stripe/portal-sessions)
+func (_ Unimplemented) CreateCustomerStripePortalSession(w http.ResponseWriter, r *http.Request, customerId ULID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1277,6 +2717,36 @@ func (_ Unimplemented) DeleteMeter(w http.ResponseWriter, r *http.Request, meter
 // Get meter
 // (GET /openmeter/meters/{meterId})
 func (_ Unimplemented) GetMeter(w http.ResponseWriter, r *http.Request, meterId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List billing profiles
+// (GET /openmeter/profiles)
+func (_ Unimplemented) ListBillingProfiles(w http.ResponseWriter, r *http.Request, params ListBillingProfilesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create a new billing profile
+// (POST /openmeter/profiles)
+func (_ Unimplemented) CreateBillingProfile(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete a billing profile
+// (DELETE /openmeter/profiles/{id})
+func (_ Unimplemented) DeleteBillingProfile(w http.ResponseWriter, r *http.Request, id ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get a billing profile
+// (GET /openmeter/profiles/{id})
+func (_ Unimplemented) GetBillingProfile(w http.ResponseWriter, r *http.Request, id ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Update a billing profile
+// (PUT /openmeter/profiles/{id})
+func (_ Unimplemented) UpdateBillingProfile(w http.ResponseWriter, r *http.Request, id ULID) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1324,6 +2794,58 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// ListApps operation middleware
+func (siw *ServerInterfaceWrapper) ListApps(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListAppsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("deepObject", true, false, "page", r.URL.Query(), &params.Page)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListApps(w, r, params)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetApp operation middleware
+func (siw *ServerInterfaceWrapper) GetApp(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "appId" -------------
+	var appId ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "appId", chi.URLParam(r, "appId"), &appId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "appId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetApp(w, r, appId)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // ListCustomers operation middleware
 func (siw *ServerInterfaceWrapper) ListCustomers(w http.ResponseWriter, r *http.Request) {
@@ -1457,6 +2979,131 @@ func (siw *ServerInterfaceWrapper) UpsertCustomer(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// GetCustomerBilling operation middleware
+func (siw *ServerInterfaceWrapper) GetCustomerBilling(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "customerId" -------------
+	var customerId ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customerId", chi.URLParam(r, "customerId"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customerId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCustomerBilling(w, r, customerId)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateCustomerBilling operation middleware
+func (siw *ServerInterfaceWrapper) UpdateCustomerBilling(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "customerId" -------------
+	var customerId ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customerId", chi.URLParam(r, "customerId"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customerId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateCustomerBilling(w, r, customerId)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateCustomerBillingAppData operation middleware
+func (siw *ServerInterfaceWrapper) UpdateCustomerBillingAppData(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "customerId" -------------
+	var customerId ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customerId", chi.URLParam(r, "customerId"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customerId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateCustomerBillingAppData(w, r, customerId)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateCustomerStripeCheckoutSession operation middleware
+func (siw *ServerInterfaceWrapper) CreateCustomerStripeCheckoutSession(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "customerId" -------------
+	var customerId ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customerId", chi.URLParam(r, "customerId"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customerId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateCustomerStripeCheckoutSession(w, r, customerId)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateCustomerStripePortalSession operation middleware
+func (siw *ServerInterfaceWrapper) CreateCustomerStripePortalSession(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "customerId" -------------
+	var customerId ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "customerId", chi.URLParam(r, "customerId"), &customerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "customerId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateCustomerStripePortalSession(w, r, customerId)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListCustomerEntitlementAccess operation middleware
 func (siw *ServerInterfaceWrapper) ListCustomerEntitlementAccess(w http.ResponseWriter, r *http.Request) {
 
@@ -1578,6 +3225,122 @@ func (siw *ServerInterfaceWrapper) GetMeter(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetMeter(w, r, meterId)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListBillingProfiles operation middleware
+func (siw *ServerInterfaceWrapper) ListBillingProfiles(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListBillingProfilesParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("deepObject", true, false, "page", r.URL.Query(), &params.Page)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListBillingProfiles(w, r, params)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateBillingProfile operation middleware
+func (siw *ServerInterfaceWrapper) CreateBillingProfile(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateBillingProfile(w, r)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteBillingProfile operation middleware
+func (siw *ServerInterfaceWrapper) DeleteBillingProfile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteBillingProfile(w, r, id)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetBillingProfile operation middleware
+func (siw *ServerInterfaceWrapper) GetBillingProfile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetBillingProfile(w, r, id)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateBillingProfile operation middleware
+func (siw *ServerInterfaceWrapper) UpdateBillingProfile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id ULID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateBillingProfile(w, r, id)
 	}))
 
 	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
@@ -1850,6 +3613,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/openmeter/apps", wrapper.ListApps)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/openmeter/apps/{appId}", wrapper.GetApp)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/openmeter/customers", wrapper.ListCustomers)
 	})
 	r.Group(func(r chi.Router) {
@@ -1863,6 +3632,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/openmeter/customers/{customerId}", wrapper.UpsertCustomer)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/openmeter/customers/{customerId}/billing", wrapper.GetCustomerBilling)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/openmeter/customers/{customerId}/billing", wrapper.UpdateCustomerBilling)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/openmeter/customers/{customerId}/billing/app-data", wrapper.UpdateCustomerBillingAppData)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/openmeter/customers/{customerId}/billing/stripe/checkout-sessions", wrapper.CreateCustomerStripeCheckoutSession)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/openmeter/customers/{customerId}/billing/stripe/portal-sessions", wrapper.CreateCustomerStripePortalSession)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/openmeter/customers/{customerId}/entitlement-access", wrapper.ListCustomerEntitlementAccess)
@@ -1881,6 +3665,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/openmeter/meters/{meterId}", wrapper.GetMeter)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/openmeter/profiles", wrapper.ListBillingProfiles)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/openmeter/profiles", wrapper.CreateBillingProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/openmeter/profiles/{id}", wrapper.DeleteBillingProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/openmeter/profiles/{id}", wrapper.GetBillingProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/openmeter/profiles/{id}", wrapper.UpdateBillingProfile)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/openmeter/subscriptions", wrapper.ListSubscriptions)
@@ -1907,137 +3706,270 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+x9DXPbNtLwX8HLtzNNrpIsybITa+aZm9Rxrr7m62rnOtfKjwKRkIQzCbAAaFvN+L8/",
-	"gwVAgl+SnNhxknomM5FJYgHsLvYLi8WHIORJyhlhSgbjDwG5wkkaE/j9gosZjSLCjsxD/ewCxxn8iIjC",
-	"NA7GwX94hiKOGFdoiS8ISolIqJSUM6S4/mvORYLUkkqEQ0U5CzoBZVJhFpJgHJxzthgrgUMyHj4Z7g72",
-	"RgejJ0/2nx4cDHb3RkEnkAqrTAbjUX+3Eyiq9DiKoQXX153gNVcveMaiteN8zRWCr1r733862B8d7PeH",
-	"e6P+0+HucLi/V+p/VPRfANP9v2M4U0su6J9k/Rj8D1uH8XR39GR3tPtkf3847A/2DkaDp6VhDIphlOBd",
-	"66GkWOCEKCKAgm/xgrzFC8qwRvy/MiJWZjwyFDQFYoyD5/rzhDIi0eWShkuU4gVBfI7UkqCQxzEBsmlq",
-	"CqIEJRekB4MPxsEfALITMJzo8eiWeqzhkiRY95QKnhKhqGEoliUzIvQvtUr195QpsiAiuO4Ekv5Jmt5c",
-	"d9wjPvsvCRV8q1Yw/YiQ9I19et0JBJEpZ9L09SOOfiF/ZEQq/VfImSIMfuI0jWkICNlJBZ/FJPnhv1Jj",
-	"4oM38O8EmQfj4P/vFMtjx7yVOwXoIyG4MIgv4/RHHCHX/XUnOORsHtPw9ofiALcOJO/5uuMtmu2H4cuD",
-	"FjZvGp9rtlOTIXqI282taNo2OU8KdIJ/cEZuHb8aaGv30KMnfj4SrQ3Say1Kq99vj9G8ZduMPLFWlmqf",
-	"kWOa2mw/xVLrtmlWxKaDXZEbprmebRy/mQfj3zdJBelYpVMVfJRd4JhG07J0Xgft2LR4WzQwEu6PjApN",
-	"jt+bYJ7VZOXZdScoBlYT/Vr9RFhEiMD7TmXYTm9Vmz1DyyzBDAmCIzyLCSJXaYyNkkEyJSGd01DrC9D6",
-	"PAwzQViY6xTLMb0JO9Xv55TEEUrwCmkOw1TDBQLsEKaoWqEIK6yhLUmcAoBMEoEyFhEBE5iwyyVW6JIw",
-	"hS4FZ4seOmJhzCVBF1hQGCHoYokoQ/KPDAuCZgKH50TJHjpZ8iyO0IxMWCr4BY1IhLBEk+CEaIYPCQqx",
-	"JJMAzblAERUkVHoEGpYezLvj3kTbNBoZb1i8CsZKZCSnhFSCsoVeT4W2r+LznSSRVa+ZYFbvCkFig9Hj",
-	"52iGw3ODUDP7jutdG1dYTZhnP0yyfn839ABMaQTPSA8BwjUeJco05lkEUASJyQVmCsV8ITU6CUMYhZlU",
-	"PCECCZJyoSTCDFEpM7LlhJ3JUp3u6ZKgn05P3yLzAQp5lPMGMGIPvZNknsUIBpJiKSlb2IEaFT9hMx6t",
-	"NEbCJY0jVPCtRgxGcwHCKtLUQa8yqdCMWPQa6uqpGBNj7WQ8A8XaXPW1IJdcqI5ZEt18ScgsSbBYVXke",
-	"HSvdQDMc42rCwiVmC4JmRF0Swoq1InVD7Jp1ELkKSaqABWMe4pj+CaTtTVjOvuhOudc8aCIlkAzp973N",
-	"gCpCzLKIw663SDpO+pwV5u6RlVI1g/BHGseULZ5FkSCygePci6qAC6lqMIgPqVr1gqJb/XfQgJKQZ0wZ",
-	"i3o7FXFoGhzyiATXZ3VTDd6a5UAZ+v345A3aHezvdwdnj5ZKpXK8s3N5edmjkve4WOxQybvw3g6kq1vK",
-	"3lIl8WOE43SJu0MrIErTscO+7gQxZWRQR8ALKqRC+qVjX2wQ6IN5qV8PmvCiGw7rUE9IyFm0FdhhE9h0",
-	"yRmZFj5EGfpb/RaZtz488/y1adUElUuF46lGXQNQeAkUKcE0j4GOLXKvAdiJfoy4MOuUhSWQ8DJoWi5t",
-	"zH5opXMD/9o3EoWYacFAWUQvaJThWOr+uVhgZgWIRErrTv2hzGYayoyA3x5jpqVkZJx6HIZESv1iTrDK",
-	"BAGalRfTzIxriotVuKXlVF699ZWhpYyF7lgm90/tXHsTBlpUSzmFr2DklF1wGlK28BFtO0N5b50gFAQr",
-	"Ek2x2n7Mz7EipzRpWsfPGDo+edN9ut8fIEUTIhVOUq1DBZGEKaPT+RxZ6wZ6148irBokqB5fJrROuImg",
-	"sS3aJI19vQ6JFt+d9dh0kAKwsWNyf2iE3teisQS+umbewA8cI++xQ48gkmci1GbPhL3CVzTJEjToD0co",
-	"XGKBQ2176x4TfPWSsIVaBmP9tskEjLZHzbuXx88BLbWJnJPVJvfh6EoRwXD8ix36z8TIezwj8Ubf46X5",
-	"6tqFdWoBIyrTGK+QftuIox+tNTMAxhnu7bcjari33wkSynLENYloQbUpNSVJozdyCuYVfILgk1YZ4Ytw",
-	"2+AIYDZ0mqXRPQqFGEuFzBDaGTqTeEGmWClBZ5lj6xuJXKcp3mlIzzxA9Qm8wmkKVjhHrkeCwO8kEYKR",
-	"OP8kdxtmK2PSX2jHTGagwHwaQK+o1G3Vx41cbNFw/dlmdVibSo1fbj6T3oS9Yd7EtLYEtfgnEVxr1IQL",
-	"4mYoOxM2yxTSZod9BA04i1doRmJuuuaszJhlXWobTs/JqsWBcr0Z/a092nwyUcP4D40lQJJUrYxbxbid",
-	"bIk+0oCSkodU8z+6pGpZW0VUkWSjGKlS4sT0YEVRbvhYFP2sZ5qTFwuBV3VvwcfKGl44YgA9IUw9A8Pl",
-	"FyKzWNUR6X3oTBwBn9YpEnI2p4sGxaHJii8wjcHt06pT2380NEvZAJeaAgAAUQnY/OfJm9coxUJCKwM8",
-	"E9hXO157o5i1R6y41VAz2GnxeNIHoYdPXLwt+IAmQT7CVzwisZwEY/T7JFikqrs3CTrI/BzxSXCGrrdx",
-	"B60ZOLW6aDupU9JGjVaeBYvOyaoJDaVp5VOaJjCnJhG5xHJqCFun3K9LopZElGXWEkvP2FXFkHoT9iy+",
-	"xCuJNGig8/sZ5zHB7D2oufeG7O+rdH9OUsIiiThDMxxr39Y0thKn8r0/Q4P6FlLYvn3X/Eai32P9U92+",
-	"mR4a9EZCmInX0V9ZvTDMMueUCLTdgj5tjUOsGyvLEj0Ei3O7nQZjdng8a2By2/uJcYxaLEf/7RqniIXL",
-	"m0ST15kShS8EQJ1ImdMrEqGUU6YgukMTYpRDVGzwKaM5cnDfa4Gn/QsNzoENV2Gs+f1YITyfg1IAjaGN",
-	"uAWxAV3jG/JL7c0K60pq1RHiOMxirTpA5iUJZ3accjxhXXSIY8IirHUmU0v0aCAV2D04XJpHj8fo/bA/",
-	"3Ov2B93+4LTfH8O/397r1j6yEWaMXhAhtR33KMKrYhVLumBamaePoUt4DHYUeuS+6do4NYlQhFePm2Re",
-	"xWO0JPwqHEYzx+lH+Rv1lZXj9fi5W2CywvVtyDssmn4NPuLtOGg3dbPSGLPbopWG1UanCTshCtF56akW",
-	"H5ah0VzwBGGAsY6ob00f5Rj/jbSPv45PDIjm6dgtghtynQP5FbhxTR6Pv347VRWS43yNvvTRe6hNjga3",
-	"2e5ygjESwjcg5Go4LuszRROtHD+F3kcRVacGjEHwHINxHtAkIRE1cdDyWI/nkF+Ub3BUeQF4GOZAIpSD",
-	"iVe9tRHUEpZgH2YDlvQ32yDpQel/HUp/wiaswlqdOm9d0jjWvrMTkrlHXMFprpeBCNjgvUy1pkC0Z1a0",
-	"RvRLSlhxO5T6UOe8IZZwS4ql0CnbjkSj94iCj1WyILw/tZ+X2O1ZR4IeEGXG1RJ4q0yZ4+c5PTJJonIs",
-	"umRq3MgzbYyXNqLB80y/dDzAJJrk38fYJy1x1xjSQOaklOCxXjp+aYYOSAEgx88FbQE6lcjpZg3MLPCa",
-	"/K8A+yiaeRbVLUdUYCLexPyRd/SsMFt9pfiykUStDRo983z69osNKGjUBFqpSVWFAFDXju3fdlCdrRJa",
-	"78KqKmECXlTCjLBVqsUYmD4do+6LBy5NReFzggiYBL0Je9FuBxmE4TAkqWYZm3EVQfgLcVaXjZWQZdUU",
-	"ztWhFUA5ms5uYtL9YjOGmkw78+Zmtp3ZjFWfRKtWNxtAl5E0I3MuiEeXHmzMkas7GQIjl+ByNYpyhOeK",
-	"iPJQajQz2LEj3JZSIGXWh9achrW5gQ9G94PR/WB0PxjdD0b3g9H9YHQ/GN03Nro3GJtbWi6e1b3eeiER",
-	"VcjYrygic6qVZsXgls0W93GeQG5in2UjnkrAn8zSlAvNNDbppoxuzGyWtkOfS4Uvb+T6AVjOyKc6Ikcs",
-	"S+AwzJbm1yYUA7yt0dybsF81gvNJdWyiGtiPGpEW6x66S7Fj214bslNnXILBtg0grOAj3bhi7Xnb0T6+",
-	"691suyV90nLMooQYs2fgd45DRS9Myn3+08XQ7RnOKNO/m4ZRPnd4K2ekisNGBUP6pxf94zPFF965l8Fw",
-	"d7S3/+TpQb+8MZV/POof+Oc4mrtxyRTFW5d6D/8DVCJ7IU92Rv2DJslyBvgpMv1rhLmdxP7QOy6gHQBj",
-	"eqtL3o2JUpARVHxg07piyT1RAX4vZxeEUWLT0YtZvzupJGqW0jSHnSDFuhc9n//9/Vn3t7MPw+vvmhIp",
-	"jXPn7CPvTG5z0vr2ft5Xl2b+taRx33ua9EOC8+dIcP7ms4c3JA4bwfRKD6JVKsHbjSIJLxaCLPDNkAig",
-	"n3ktmwWSB9tkuCkO5/dc9BaQ2PtCFm5EE8K0CW7QEkXU9Pq2nENQa1Y+hI4TEkGC7FuslohcpZrXzVkl",
-	"jsiV1vbGuloInqWaUWysGXycgmkirDDM6WeykrmnnzH6R0Zg4YacSSqVSc0GvcqyhAgawltzwDjkglTw",
-	"QIqT7HYq3/XgR5PbD0OZrjk9CUN1lKUsjLMoP53pEb+snVPBk1QFGyULQJdTjZhbiYjqEUN0T1IWkoIB",
-	"nevixm/6LaUty3OaIh5HxTvr++XhwQ7CcYyWVCouaIhj+yWYLhZw1NtSP3wTegHYemplTcNB1YY1Ul0i",
-	"AKJYGFQ7Ktr2A9R+L83ZetcDzOHU/8w25wLJLOkgfLHooISCRxmhRJsUBYdK7YxiewQTcYEwMlMpjhjO",
-	"COS8mxMK7lPo9QUXdmVOwW71AXfKQzdjcsvZddJDsDVVbVsgIcejHiZdMC6q7u93PcXPCZObllW7mumU",
-	"VEFp8TdqIN++a5AOghBnzGufYTQcPGl3GPTbrrMxSx6De1h1FXz4pW8+xlt4Xmbv3RIOdxvchd0Wd8Hq",
-	"f690EYnaN/H0Zyh13+X1Aeo6WjM6BEK3ObpSPWJ7XT2Y0gkSojYWI8nH/0p/XOUbGJEF1MQduRiuO5C/",
-	"vDjc3d09KJhBcR7LHiVqDvyg6b4j5qH+6LE9Aq5g/0WRLuyU2JVJGXp3elim5bA/3HVbQoMx/Ov1+4Pf",
-	"gk5gIAXjIAfkGWR2UEiPu3tq31XJ22S314/l1D8yssXqbl+sUAmxQFCeEWGKzlcI51IZqkEwLREBIJIr",
-	"qUhSnm9/cIDJqD/vjoZ7T7tP5oO97sHoYNB9OhrOR0P8JNrH4WbZ7UoUuJ7c2CFg2oCISnWjOwuhlGok",
-	"3UYMZbc5hlLq50ZBlN22IEpRfOnOsONKON0CYgb9ZsS4Lm6Ck0G/DSfVukCHS05DcqxI0m5xz3EsSS2P",
-	"ARpKXyReA1Mfm78GrSePjAjsBGYx2s9t5jvU8inP0qrHjSfKBMHlClLBOIBFn+9uGODbgMqaKrXYgkmo",
-	"KJiE9IfSi4nC/2fblLaBtV0e7IxHq2CTseDNQYKJAGPt5ORoUgRVmpsTZYSpjyB75NpWKc+yGA7TbTh2",
-	"9g0TP0fNFPoCWmyJldtkDMMPOX94BNuGN6z77jTTjXjjE+iXmG5LjZ82VVFqIjSY8nn90MSkO2GGnnre",
-	"051SPsFX09hgDKYyNesCft+POHD43IrklN0LyU23n0ByU1lGoZhgqT4jtSnzqE3ZNKILqqzXN435JREh",
-	"lsT+naVp6W+5SmY8dl/njELZPTGKpcI2jHJiq/19Ph65A7G+RdHEX4Dgt4jtbZArt+FFv3TCdhvsrTTc",
-	"tK++XkrcuHVJrdy0tWek3rRp2dYBE7hko25hlpS44mMERs4ZnYDKqeuKyukMS7I/sr/tOXL4Q7vHU+se",
-	"Uzl1whD+0CaF+2WLklE5tYwFvy1Twu8so7bf+R8RcyNgMNVzxi9ZER7UmIFKidM8N8x8D8FPUCoqXBI5",
-	"FWRBrmDjH6ZuO3WBnikj6pKL86mtr0BjqlbTPzkj05hK1fZ1SCMxncU8PK9+YTNXhO7Xy875GOvqZR7G",
-	"bdtb8Lz0/d2qk+7HoHD3z373ACJRg+tHxZ/d3vTsb97bHx7/vTFOVeYiMzAklTZeEqIwxFX5HIIP5iyo",
-	"HwTN3PbsnMaKCJORmh8ahS0JYaKuBItwCe9DwaXMga1SInuotrnB58ioNjTo7u96GtVEbEPMIOKusFAm",
-	"pXYCTq4pAXLOGSOhMn8kRC7tYxrqH1ygSTCdBKZepLcHQthFMA6ULXWd4CufInt9r7SfoV6DMH1JpXLB",
-	"tqbiLRDTe24jeBXMa2zlm4aksaCLSfOH7aDWuGB9n8PQYd4CM4tNtY6bxBPb6tJcb3C3GiOHZxvwKEGG",
-	"yhfAYU01HvVzxFMTuofColRC5qDDZkONvzvI77UDyTtFsxU6JyuoWSRJlzJJmKSKXsDegaI4RiDIWs72",
-	"wrZqU5lWs08F1kc5hc5m7s8hbX/JL5HipgdYMi6gn+9plZm/tPUbyCwJyuUhgmF/OGqJplZGeIxO+Tlh",
-	"CDa2g+pmKtS4gU0K86tT33v0txqLHUIaQYzzH/t7vz3Z23v24tdnP/90NBi+/k//8F8HL36yOxfjwOx9",
-	"TBVXOC4q+sOQJDq1T/3j9OumVt25KvZWrr/MzfMvvaTHQ3HFh+SDh+SDLyH54LPV8PwmUhi+gjKaD1kW",
-	"X0OWRbUU6A1TLWoGQ6M83NJeKEID1uDT+MijD1P3J75Y2NCgiSTrNQxuUlNGPQzwXpMejOV8L6kO0LV2",
-	"kC7s0eqGLEzN4kZfzXkc80t3JcRhzLPoyAhrd/dIXWkVuHCGtCl4aVCm1dk4+InEMe+gSy7i6P9pA9vw",
-	"6XjQ73tx7TRTTg0Ee+GgP8cR6Q7CA9IdRfth9+nwyV433BuGu/tPdgfRbhgUcchAEnFBQ9K1fKyHmx+k",
-	"Cga9vn5mMl2DcX4kqQusD9GktckZZcP/uo0XWgyj606rfZDiVcxx1JswZ8jBAS4rcxFVnpiAuqY8T9at",
-	"RnhqlNejshcLNZsph+ZlqbqjT3IQrSB6eghqsRbyeFK6p+i/krNJANJTsw+JEL8gAi4iKR2LqTTR/OrV",
-	"HK2+bZ2iZ2BihYvLiyqFrUzKCnUHxuEz65HqieFoSYR+yXt++k0maE18bhyHMVzW9g/0LovrLVl8gxlQ",
-	"ROLX9g+ccAWH6s1VdJhZHlziNCW1A2uV9eTjp+sHQTeNzl+HH7yKZGZJ1tdF5WRiqwiysyi8AkjxKE3B",
-	"dLFpgE4o1O/uM7WA83oDUEvZFUGFLikrobb0LhU8ykIi0CPqCAEnCA25HpdHWpZHG0asbOLapxv9uZXH",
-	"58WJSSiMYI4/55xh7vkxK0Yr7l9eHKLd3d2DrbPbNq6gdgmFKdNWmZE7tkCzU1BOchmUw6VMRYluLqi5",
-	"npEtvElVEM+Tnv2rJ3lCANDHmE92FZYZvuMK8zom8y7cyRXvke2yJr/LV8rdWZ7Wa67Vvr2Y7jay2EbN",
-	"yVqlC/BulMU2asvY0sbaK9IUZM4ZJ82v6ERwoaa/GYXtFV0Ql8vN/rnVsbJ0krftts18AgWb5HtPV12Z",
-	"EnxOsFx1FRECayHaNZZ77iK5yzkLQP2PhGTCi2VQHwermoXtmsJYXUdNxmbZVK1RxSDUCFSPMJQZ7WKW",
-	"TBnTcO3pZgOZNNrG0Nhbc+XhVce/JZrXptc+g8oXH5dQW5ZM7qkt5u1vvo02b76d/fDo7+Np/sfjv33n",
-	"ZxNvyJ894UK1XGirNfR7LMP3SGbzOb3SU+IuBGlLxFgdjyQXCnER2a0BGRIWmcPjAEUD9sE4zBgtrxGj",
-	"vzBtDJjehL3KYkXTmBjg+Xk3CXcc+ve0XVAMuxFJgpEketFrzRBTqXoTlocdGLdxDdu8PgaZzbrFsbpH",
-	"ZDFG3885782wgPF9/7iyaeeFu+ED/yKqHK9NSPeOlH8JCfrlilb34blChK9+oePL4+fo0TtbNCmOV+id",
-	"WWgvyRUN+ULgdElDeKHxDXdA5KaweFzNT1+zd+Ovqn73ydnvsG390z9/fvX6bff033Aue+/aX1gw4gba",
-	"1m9OvTNtbjMyUCgITBqbiOVt6PVBs14v3/h6Q9U+aFPt71JJhNr+aHsG3z8cbf8LH21/OKD+cEC9fHKw",
-	"Uau0X53UVOYFnP5zApeWrncKQcrOeRP3E/bKy5CIeRYhbfpeEDv9hOSZSlEuS2wAxppLBZBnb49NmE2i",
-	"Fc/M5uKCSGV31TrWzzHbdwDfbXYw3ZfjZeDVmIbEmhY2KeFZisMlQUMInWQituLbHorE8BbOwdmmcufl",
-	"8eHR65Oj7rDXh0ORoAOISOSb+YmZgqcCeEqYifQDGnbgwy6fd+1sPRqXZhx4ZbGCQa/fAzWloeGUBuNg",
-	"Fx6Bzl6CCCh62snTX/TzBQEtolUDWH7HUTAOtFnYLT7TYIrU05b1UHyy45lrlDNj4WltXWEmbbEWqTj5",
-	"jck2iJRbbxN2kh8MrVq5WBCoP/meRlBJ8r2m2nv0yJrcUCjyfWGAvnfbYfdnsoO5lcZwCtemQFONjT+s",
-	"HWzZTnccbHsRfWFHg6myAnbRrloD1mspUGvwPmGn3KYN1nKmtNi1t4K7HRIvnjC2zX4/J6uz/0lW3Whm",
-	"QnlNczWfbj3b9sQzb/YRIekbZz5pSWgmBSw/7PftLWvKVdethtrHH7YczPojxCAEt/RRrjvByAysqb98",
-	"Ajs/4shZf9BksLlJ1SId9Xc3N/IOWUJUGK4YryZBQoYlXmip4MmnnDrBmb31uC5izKLserXwrKn6I49W",
-	"t0eexoJQ12XlaOMYFR4Z3Nogaie861xRqUj1NfKFQTXyCLqeMa47jTpp54P7eRxdG9shJqZgc5mBzHOf",
-	"gSpKCkSN1n+FpClAB1UG2Fb6mDSbBpkyatoxgUS6r4OYusVocwsXhK9Q30x1e+p3mg2PBVFfDkX79yIB",
-	"/gLM8g+ibsIpadbAKSa+ca/McvvqqjnIs5W6uh9mzaNM3yLPdoLRYIupmKILJQY3dLxdXbjjnQ3pFvfM",
-	"bvbfug0Nvx3Ruv1xngY+BlvWD7R8L5EpUOuu4s03RamwB3K+Ybm86XxTIx97SK+zsgnBwL4lbwpXH0Ok",
-	"Rha5N1ygGZyHcUkM8iYpeOVVYMJAXRdM6trBbCu6ISBj2vxwM54spxhqlLTA7cJcG6Bvn0RZdNNwkGv9",
-	"ssJste3xF6+X2xnc2VZKbbjmKIE0Z/pnhLAikxhOUQn9VPNLKrhmW/1crli4FJzxTMJVjV+JU2XWRxEP",
-	"zVnYrcNy1kx9ARbnxa2iaBCA5pv6+gEtkh8mv4UQ4F3qgTU5zd9sFCanTYkbylGXiuFmnHRcZJc3RmXg",
-	"7Z2GZEqlcD9zPMYmn9e5wq/A+xWHYBz1alzRJBp2PsD/tWBLUySjnW9sMMb1vNm4tJ0+hGHuJAzTygGd",
-	"ZjWgHXJLWzRboePndQoviPoSyNv/XFLgLxKG2VJW+Fe8bHA7y5/ezdah3cQqddXbfnepesticQP6p95b",
-	"1TQwvaK8a8Faagl87o2rzel134jZdAsucZWl607wSemLjbtePsA7MrPar768n92vcvpknbUa7t+Mvt24",
-	"Yv9gc4PipqAmI6/CQptZco1A3/ng/2lNwdb9mUrPm42BMvCvYJ/mRrz6FzEU7pTfdsxlYO1xwkN4L5su",
-	"gvyVxrEtkgQVuJG9TcxdQq2XEKKQGygIBIc43NRZ1tH5FWSQvgM1q7wbiKH34u7XBr8ZvvgilsbnUSWG",
-	"XvezM3Wj5WmLQjyokiZVAlS866UNNxauWdoxlwTqdGaMQZ5n+TboyCxHKERBLhFncO87F5FNoQWRUNoI",
-	"mGj2LJW+y9KFwBGRHRTxS+Z+a9hw0ae9VLFhWcOLv9CyNrS6/2VduU+/YZGfFtdioiWWSGZhSIgrnPOw",
-	"wM0CBzTe8QLPmFOeXU9Rti/4d/n3dX3uq9r6cmzp6cEGfVBy7WugYLdWTttuTWioRFw4JqtpsSwqnRBo",
-	"yu7HKd252IXAju2wdh2Nt5sOxqpLKde8JXjsqoIqXmQozL2L5kGJWZ5v2aNvyMQvmcJ+r0rg8NweyuBz",
-	"tOKZsIUcYKveHckoI8sVhqIsohc0ynAs9cdcLDCjf9rKUnkFKUuUGRx60erYpFyYgu21yTZOr0yq+vzy",
-	"VJuPmlvR+nPPq0gRqs+pXKfo42Z2VDRt2yp3J4+MdO0gCQbXCs4HMw6FeLx7rJGt4xybMlYQibVn5Ozk",
-	"qvvVLROT+REKWyS1WhrVP5Vndv0ZjleKhhKlmUi1SdlDFpQlm6vESiJTjjhxR6f9SlwJUUseGVJB1UXK",
-	"FhqS+zYpg3S359uaXRInfqHDDiIMz2CI85hc0VnsHW2SIWFYUC6r2JHB9dn1/wUAAP//bVwMLyy3AAA=",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

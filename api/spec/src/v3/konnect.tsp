@@ -8,6 +8,8 @@ import "./meters/index.tsp";
 import "./customers/index.tsp";
 import "./entitlements/index.tsp";
 import "./subscriptions/index.tsp";
+import "./apps/index.tsp";
+import "./billing/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -39,6 +41,8 @@ using TypeSpec.OpenAPI;
   Shared.EntitlementsTag,
   #{ description: Shared.EntitlementsDescription }
 )
+@tagMetadata(Shared.AppsTag, #{ description: Shared.AppsDescription })
+@tagMetadata(Shared.BillingTag, #{ description: Shared.BillingDescription })
 @useAuth(systemAccountAccessToken | personalAccessToken | konnectAccessToken)
 namespace MeteringAndBilling;
 
@@ -54,6 +58,11 @@ interface MetersEndpoints extends Meters.MetersOperations {}
 @tag(Shared.CustomersTag)
 interface CustomersEndpoints extends Customers.CustomersOperations {}
 
+@route("/openmeter/customers/{customerId}/billing")
+@tag(Shared.CustomersTag)
+interface CustomerBillingEndpoints
+  extends Customers.CustomerBillingOperations {}
+
 @route("/openmeter/customers/{customerId}/entitlement-access")
 @tag(Shared.EntitlementsTag)
 interface CustomerEntitlementsEndpoints
@@ -63,6 +72,14 @@ interface CustomerEntitlementsEndpoints
 @tag(Shared.SubscriptionsTag)
 interface SubscriptionsEndpoints
   extends Subscriptions.SubscriptionsOperations {}
+
+@route("/openmeter/apps")
+@tag(Shared.AppsTag)
+interface AppsEndpoints extends Apps.AppsOperations {}
+
+@route("/openmeter/profiles")
+@tag(Shared.BillingTag)
+interface BillingProfilesEndpoints extends Billing.BillingProfilesOperations {}
 
 /**
  * The system account access token is meant for automations and integrations that are not directly associated with a human identity.

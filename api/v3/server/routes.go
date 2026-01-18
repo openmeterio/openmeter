@@ -6,7 +6,10 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 )
 
+var unimplemented = api.Unimplemented{}
+
 // Meters
+
 func (s *Server) CreateMeter(w http.ResponseWriter, r *http.Request) {
 	s.metersHandler.CreateMeter().ServeHTTP(w, r)
 }
@@ -81,4 +84,58 @@ func (s *Server) UnscheduleCancelation(w http.ResponseWriter, r *http.Request, s
 
 func (s *Server) ChangeSubscription(w http.ResponseWriter, r *http.Request, subscriptionId api.ULID) {
 	s.subscriptionsHandler.ChangeSubscription().With(subscriptionId).ServeHTTP(w, r)
+}
+
+// Apps
+
+func (s *Server) ListApps(w http.ResponseWriter, r *http.Request, params api.ListAppsParams) {
+	unimplemented.ListApps(w, r, params)
+}
+
+func (s *Server) GetApp(w http.ResponseWriter, r *http.Request, appId api.ULID) {
+	unimplemented.GetApp(w, r, appId)
+}
+
+// Billing Profiles
+
+func (s *Server) ListBillingProfiles(w http.ResponseWriter, r *http.Request, params api.ListBillingProfilesParams) {
+	unimplemented.ListBillingProfiles(w, r, params)
+}
+
+func (s *Server) CreateBillingProfile(w http.ResponseWriter, r *http.Request) {
+	unimplemented.CreateBillingProfile(w, r)
+}
+
+func (s *Server) DeleteBillingProfile(w http.ResponseWriter, r *http.Request, id api.ULID) {
+	unimplemented.DeleteBillingProfile(w, r, id)
+}
+
+func (s *Server) GetBillingProfile(w http.ResponseWriter, r *http.Request, id api.ULID) {
+	unimplemented.GetBillingProfile(w, r, id)
+}
+
+func (s *Server) UpdateBillingProfile(w http.ResponseWriter, r *http.Request, id api.ULID) {
+	unimplemented.UpdateBillingProfile(w, r, id)
+}
+
+// Customer Billing
+
+func (s *Server) GetCustomerBilling(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
+	unimplemented.GetCustomerBilling(w, r, customerId)
+}
+
+func (s *Server) UpdateCustomerBilling(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
+	unimplemented.UpdateCustomerBilling(w, r, customerId)
+}
+
+func (s *Server) UpdateCustomerBillingAppData(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
+	unimplemented.UpdateCustomerBillingAppData(w, r, customerId)
+}
+
+func (s *Server) CreateCustomerStripeCheckoutSession(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
+	unimplemented.CreateCustomerStripeCheckoutSession(w, r, customerId)
+}
+
+func (s *Server) CreateCustomerStripePortalSession(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
+	unimplemented.CreateCustomerStripePortalSession(w, r, customerId)
 }

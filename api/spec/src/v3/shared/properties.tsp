@@ -119,3 +119,31 @@ scalar Numeric extends string;
  * Money represents a currency amount.
  */
 alias Money = Numeric;
+
+/**
+ * Tax identifier code is a normalized tax code shown on the original identity document.
+ */
+@minLength(1)
+@maxLength(32)
+@friendlyName("BillingTaxIdentificationCode")
+scalar TaxIdentificationCode extends string;
+
+/**
+ * Recurring period with an anchor and an interval.
+ */
+@friendlyName("RecurringPeriod")
+model RecurringPeriod {
+  /**
+   * A date-time anchor to base the recurring period on.
+   */
+  @summary("Anchor time")
+  @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
+  anchor: DateTime;
+
+  /**
+   * The interval duration in ISO 8601 format.
+   */
+  @summary("Interval in ISO 8601 duration format")
+  @example("P1M")
+  interval: ISO8601Duration;
+}
