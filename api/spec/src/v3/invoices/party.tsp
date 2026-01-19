@@ -51,11 +51,21 @@ model BillingParty {
   tax_id?: BillingPartyTaxIdentity;
 
   /**
-   * Regular post addresses for where information should be sent if needed.
+   * Address for where information should be sent if needed.
    */
-  @maxItems(1)
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  addresses?: Shared.Address[];
+  addresses?: BillingPartyAddresses;
+}
+
+/**
+ * A collection of addresses for the party.
+ */
+@friendlyName("BillingPartyAddresses")
+model BillingPartyAddresses {
+  /**
+   * Billing address.
+   */
+  billing_address: Shared.Address;
 }
 
 /**

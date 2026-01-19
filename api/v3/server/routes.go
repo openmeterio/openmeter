@@ -99,23 +99,23 @@ func (s *Server) GetApp(w http.ResponseWriter, r *http.Request, appId api.ULID) 
 // Billing Profiles
 
 func (s *Server) ListBillingProfiles(w http.ResponseWriter, r *http.Request, params api.ListBillingProfilesParams) {
-	unimplemented.ListBillingProfiles(w, r, params)
+	s.billingProfilesHandler.ListBillingProfiles().With(params).ServeHTTP(w, r)
 }
 
 func (s *Server) CreateBillingProfile(w http.ResponseWriter, r *http.Request) {
-	unimplemented.CreateBillingProfile(w, r)
+	s.billingProfilesHandler.CreateBillingProfile().ServeHTTP(w, r)
 }
 
 func (s *Server) DeleteBillingProfile(w http.ResponseWriter, r *http.Request, id api.ULID) {
-	unimplemented.DeleteBillingProfile(w, r, id)
+	s.billingProfilesHandler.DeleteBillingProfile().With(id).ServeHTTP(w, r)
 }
 
 func (s *Server) GetBillingProfile(w http.ResponseWriter, r *http.Request, id api.ULID) {
-	unimplemented.GetBillingProfile(w, r, id)
+	s.billingProfilesHandler.GetBillingProfile().With(id).ServeHTTP(w, r)
 }
 
 func (s *Server) UpdateBillingProfile(w http.ResponseWriter, r *http.Request, id api.ULID) {
-	unimplemented.UpdateBillingProfile(w, r, id)
+	s.billingProfilesHandler.UpdateBillingProfile().With(id).ServeHTTP(w, r)
 }
 
 // Customer Billing
