@@ -63,14 +63,9 @@ func (h *handler) ListApps() ListAppsHandler {
 				return ListAppsResponse{}, fmt.Errorf("failed to list apps: %w", err)
 			}
 
-			items := make([]api.BillingApp, 0, len(result.Items))
-			for _, item := range result.Items {
-				apiAppItem, err := MapAppToAPI(item)
-				if err != nil {
-					return ListAppsResponse{}, fmt.Errorf("failed to map App [%s] to BillingApp: %w", item.GetID(), err)
-				}
-
-				items = append(items, apiAppItem)
+			items, err := ConvertAppsToBillingApps(result.Items)
+			if err != nil {
+				return ListAppsResponse{}, fmt.Errorf("failed to convert Apps to BillingApps: %w", err)
 			}
 
 			r := response.NewPagePaginationResponse(items, response.PageMetaPage{

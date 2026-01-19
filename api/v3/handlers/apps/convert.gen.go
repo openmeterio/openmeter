@@ -25,6 +25,20 @@ func init() {
 		}
 		return v3BillingAppType, nil
 	}
+	ConvertAppsToBillingApps = func(source []app.App) ([]v3.BillingApp, error) {
+		var v3BillingAppList []v3.BillingApp
+		if source != nil {
+			v3BillingAppList = make([]v3.BillingApp, len(source))
+			for i := 0; i < len(source); i++ {
+				v3BillingApp, err := MapAppToAPI(source[i])
+				if err != nil {
+					return nil, err
+				}
+				v3BillingAppList[i] = v3BillingApp
+			}
+		}
+		return v3BillingAppList, nil
+	}
 	ConvertMarketplaceListingToV3Api = func(source app.MarketplaceListing) (v3.BillingAppCatalogItem, error) {
 		var v3BillingAppCatalogItem v3.BillingAppCatalogItem
 		v3BillingAppCatalogItem.Description = source.Description
