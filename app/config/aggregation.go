@@ -70,7 +70,8 @@ type ClickHouseAggregationConfiguration struct {
 	ConnMaxLifetime time.Duration
 	BlockBufferSize uint8
 
-	Tracing bool
+	Tracing     bool
+	PoolMetrics ClickhousePoolMetricsConfig
 
 	Retry ClickhouseQueryRetryConfig
 }
@@ -105,6 +106,10 @@ func (c ClickHouseAggregationConfiguration) Validate() error {
 
 	if err := c.Retry.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("retry: %w", err))
+	}
+
+	if err := c.PoolMetrics.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("pool metrics: %w", err))
 	}
 
 	return errors.Join(errs...)
@@ -160,6 +165,25 @@ func (c ClickhouseQueryRetryConfig) Validate() error {
 	return errors.Join(errs...)
 }
 
+type ClickhousePoolMetricsConfig struct {
+	Enabled      bool
+	PollInterval time.Duration
+}
+
+func (c ClickhousePoolMetricsConfig) Validate() error {
+	var errs []error
+
+	if !c.Enabled {
+		return nil
+	}
+
+	if c.PollInterval <= 0 {
+		errs = append(errs, errors.New("poll interval must be greater than 0"))
+	}
+
+	return errors.Join(errs...)
+}
+
 // ConfigureAggregation configures some defaults in the Viper instance.
 func ConfigureAggregation(v *viper.Viper) {
 	v.SetDefault("aggregation.eventsTableName", "om_events")
@@ -183,4 +207,8 @@ func ConfigureAggregation(v *viper.Viper) {
 	v.SetDefault("aggregation.clickhouse.retry.enabled", false)
 	v.SetDefault("aggregation.clickhouse.retry.maxTries", 3)
 	v.SetDefault("aggregation.clickhouse.retry.retryWaitDuration", "20ms")
+
+	// Pool metrics
+	v.SetDefault("aggregation.clickhouse.poolMetrics.enabled", true)
+	v.SetDefault("aggregation.clickhouse.poolMetrics.pollInterval", "5s")
 }

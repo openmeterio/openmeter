@@ -182,7 +182,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
-	v4, err := common.NewClickHouse(clickHouseAggregationConfiguration, tracer)
+	v4, cleanup8, err := common.NewClickHouse(ctx, clickHouseAggregationConfiguration, tracer, meter, logger)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -196,6 +196,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	progressManagerConfiguration := conf.ProgressManager
 	progressmanagerService, err := common.NewProgressManager(logger, progressManagerConfiguration)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -208,6 +209,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	namespaceConfiguration := conf.Namespace
 	manager, err := common.NewNamespaceManager(namespaceConfiguration)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -219,6 +221,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v4, logger, progressmanagerService, manager)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -231,6 +234,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	health := common.NewHealthChecker(logger)
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, telemetryConfig, logger)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -241,7 +245,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v5, cleanup8 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v5, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	application := Application{
 		GlobalInitializer:  globalInitializer,
 		Migrator:           migrator,
@@ -260,6 +264,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		TelemetryServer:    v5,
 	}
 	return application, func() {
+		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
