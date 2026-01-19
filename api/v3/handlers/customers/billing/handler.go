@@ -9,7 +9,7 @@ import (
 )
 
 type Handler interface {
-	CreateStripeCheckoutSession() CreateStripeCheckoutSessionHandler
+	CreateCustomerStripeCheckoutSession() CreateCustomerStripeCheckoutSessionHandler
 }
 
 type handler struct {

@@ -133,7 +133,7 @@ func (s *Server) UpdateCustomerBillingAppData(w http.ResponseWriter, r *http.Req
 }
 
 func (s *Server) CreateCustomerStripeCheckoutSession(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
-	s.customersBillingHandler.CreateStripeCheckoutSession().With(customerId).ServeHTTP(w, r)
+	s.customersBillingHandler.CreateCustomerStripeCheckoutSession().With(customerId).ServeHTTP(w, r)
 }
 
 func (s *Server) CreateCustomerStripePortalSession(w http.ResponseWriter, r *http.Request, customerId api.ULID) {

@@ -18,26 +18,26 @@ import (
 )
 
 type (
-	CreateStripeCheckoutSessionRequest  = appstripeentity.CreateCheckoutSessionInput
-	CreateStripeCheckoutSessionResponse = api.BillingAppStripeCreateCheckoutSessionResult
-	CreateStripeCheckoutSessionHandler  httptransport.HandlerWithArgs[CreateStripeCheckoutSessionRequest, CreateStripeCheckoutSessionResponse, string]
+	CreateCustomerStripeCheckoutSessionRequest  = appstripeentity.CreateCheckoutSessionInput
+	CreateCustomerStripeCheckoutSessionResponse = api.BillingAppStripeCreateCheckoutSessionResult
+	CreateCustomerStripeCheckoutSessionHandler  httptransport.HandlerWithArgs[CreateCustomerStripeCheckoutSessionRequest, CreateCustomerStripeCheckoutSessionResponse, string]
 )
 
-func (h *handler) CreateStripeCheckoutSession() CreateStripeCheckoutSessionHandler {
+func (h *handler) CreateCustomerStripeCheckoutSession() CreateCustomerStripeCheckoutSessionHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, customerIdParam string) (CreateStripeCheckoutSessionRequest, error) {
+		func(ctx context.Context, r *http.Request, customerIdParam string) (CreateCustomerStripeCheckoutSessionRequest, error) {
 			body := api.BillingCustomerStripeCreateCheckoutSessionRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
-				return CreateStripeCheckoutSessionRequest{}, err
+				return CreateCustomerStripeCheckoutSessionRequest{}, err
 			}
 
 			namespace, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return CreateStripeCheckoutSessionRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+				return CreateCustomerStripeCheckoutSessionRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
 			if customerIdParam == "" {
-				return CreateStripeCheckoutSessionRequest{}, fmt.Errorf("customer is required")
+				return CreateCustomerStripeCheckoutSessionRequest{}, fmt.Errorf("customer is required")
 			}
 
 			customerId := lo.ToPtr(customer.CustomerID{
@@ -48,16 +48,16 @@ func (h *handler) CreateStripeCheckoutSession() CreateStripeCheckoutSessionHandl
 			// Resolve app ID from request or from billing profile
 			appId, err := appstripehttpdriver.ResolveAppIDFromBillingProfile(ctx, namespace, customerId, h.billingService)
 			if err != nil {
-				return CreateStripeCheckoutSessionRequest{}, fmt.Errorf("failed to resolve app id from billing profile: %w", err)
+				return CreateCustomerStripeCheckoutSessionRequest{}, fmt.Errorf("failed to resolve app id from billing profile: %w", err)
 			}
 
 			options, err := ConvertToCreateStripeCheckoutSessionRequestOptions(body.StripeOptions)
 			if err != nil {
-				return CreateStripeCheckoutSessionRequest{}, fmt.Errorf("failed to convert customer options to CreateStripeCheckoutSessionRequestOptions: %w", err)
+				return CreateCustomerStripeCheckoutSessionRequest{}, fmt.Errorf("failed to convert customer options to CreateStripeCheckoutSessionRequestOptions: %w", err)
 			}
 
 			// Create request
-			req := CreateStripeCheckoutSessionRequest{
+			req := CreateCustomerStripeCheckoutSessionRequest{
 				Namespace:  namespace,
 				AppID:      appId,
 				CustomerID: customerId,
@@ -66,13 +66,13 @@ func (h *handler) CreateStripeCheckoutSession() CreateStripeCheckoutSessionHandl
 
 			return req, nil
 		},
-		func(ctx context.Context, request CreateStripeCheckoutSessionRequest) (CreateStripeCheckoutSessionResponse, error) {
+		func(ctx context.Context, request CreateCustomerStripeCheckoutSessionRequest) (CreateCustomerStripeCheckoutSessionResponse, error) {
 			out, err := h.stripeService.CreateCheckoutSession(ctx, request)
 			if err != nil {
-				return CreateStripeCheckoutSessionResponse{}, fmt.Errorf("failed to create app stripe checkout session: %w", err)
+				return CreateCustomerStripeCheckoutSessionResponse{}, fmt.Errorf("failed to create app stripe checkout session: %w", err)
 			}
 
-			response := CreateStripeCheckoutSessionResponse{
+			response := CreateCustomerStripeCheckoutSessionResponse{
 				CancelUrl:        out.CancelURL,
 				CustomerId:       out.CustomerID.ID,
 				Mode:             api.BillingAppStripeCheckoutSessionMode(out.Mode),
@@ -96,10 +96,10 @@ func (h *handler) CreateStripeCheckoutSession() CreateStripeCheckoutSessionHandl
 
 			return response, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[CreateStripeCheckoutSessionResponse](http.StatusCreated),
+		commonhttp.JSONResponseEncoderWithStatus[CreateCustomerStripeCheckoutSessionResponse](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("create-stripe-checkout-session"),
+			httptransport.WithOperationName("create-customer-stripe-checkout-session"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
