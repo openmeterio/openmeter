@@ -148,6 +148,10 @@ func TestComplete(t *testing.T) {
 					MaxTries:          3,
 					RetryWaitDuration: 20 * time.Millisecond,
 				},
+				PoolMetrics: ClickhousePoolMetricsConfig{
+					Enabled:      true,
+					PollInterval: 5 * time.Second,
+				},
 			},
 			EventsTableName: "om_events",
 			AsyncInsert:     false,
