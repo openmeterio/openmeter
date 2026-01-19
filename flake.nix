@@ -141,6 +141,16 @@
               HELM_DATA_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/data";
             };
 
+            enterShell = lib.optionalString pkgs.stdenv.isDarwin ''
+              # Workaround for XCBUILD.XCRUN cosmetic issue due to incompatible plists (see https://github.com/NixOS/nixpkgs/issues/376958)
+              # 1) Filter out the buggy Nix version of xcbuild/xcrun from PATH
+              export PATH=$(echo "$PATH" | tr ':' '\n' | grep -v "xcbuild" | tr '\n' ':')
+
+              # 2) Force the system to use the Apple SDK path if needed
+              unset DEVELOPER_DIR
+              # End of workaround
+            '';
+
             # https://github.com/cachix/devenv/issues/528#issuecomment-1556108767
             containers = pkgs.lib.mkForce { };
           };
