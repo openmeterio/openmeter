@@ -128,7 +128,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	entitlementsConfiguration := conf.Entitlements
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
-	v3, err := common.NewClickHouse(clickHouseAggregationConfiguration, tracer)
+	v3, cleanup7, err := common.NewClickHouse(ctx, clickHouseAggregationConfiguration, tracer, meter, logger)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -141,6 +141,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	progressManagerConfiguration := conf.ProgressManager
 	service, err := common.NewProgressManager(logger, progressManagerConfiguration)
 	if err != nil {
+		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -152,6 +153,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	namespaceConfiguration := conf.Namespace
 	manager, err := common.NewNamespaceManager(namespaceConfiguration)
 	if err != nil {
+		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -162,6 +164,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v3, logger, service, manager)
 	if err != nil {
+		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -172,6 +175,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	adapter, err := common.NewMeterAdapter(logger, client)
 	if err != nil {
+		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -183,6 +187,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	meterService := common.NewMeterService(adapter)
 	locker, err := common.NewLocker(logger)
 	if err != nil {
+		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -195,6 +200,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	balanceWorkerEntitlementRepo := common.NewBalanceWorkerEntitlementRepo(client)
 	repository, err := common.NewNotificationAdapter(logger, client)
 	if err != nil {
+		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -208,6 +214,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	v4 := conf.Svix
 	svix, err := common.NewSvixAPIClient(v4, meterProvider, tracerProvider)
 	if err != nil {
+		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -218,6 +225,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	handler, err := common.NewNotificationWebhookHandler(logger, tracer, webhookConfiguration, svix)
 	if err != nil {
+		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -226,8 +234,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	eventHandler, cleanup7, err := common.NewNotificationEventHandler(notificationConfiguration, logger, tracer, repository, handler)
+	eventHandler, cleanup8, err := common.NewNotificationEventHandler(notificationConfiguration, logger, tracer, repository, handler)
 	if err != nil {
+		cleanup7()
 		cleanup6()
 		cleanup5()
 		cleanup4()
@@ -239,6 +248,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	featureConnector := common.NewFeatureConnector(logger, client, meterService, eventbusPublisher)
 	notificationService, err := common.NewNotificationService(logger, repository, handler, eventHandler, featureConnector)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -250,6 +260,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	subjectAdapter, err := common.NewSubjectAdapter(client)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -261,6 +272,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	subjectService, err := common.NewSubjectService(subjectAdapter)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -272,6 +284,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	customerService, err := common.NewCustomerService(logger, client, entitlement, eventbusPublisher)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -284,6 +297,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	workerOptions := common.NewBalanceWorkerOptions(eventsConfiguration, options, eventbusPublisher, entitlement, balanceWorkerEntitlementRepo, notificationService, subjectService, customerService, logger, balanceWorkerConfiguration)
 	worker, err := common.NewBalanceWorker(workerOptions)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -296,6 +310,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	health := common.NewHealthChecker(logger)
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, telemetryConfig, logger)
 	if err != nil {
+		cleanup8()
 		cleanup7()
 		cleanup6()
 		cleanup5()
@@ -306,7 +321,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v5, cleanup8 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	v5, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	group := common.BalanceWorkerGroup(ctx, worker, v5)
 	runner := common.Runner{
 		Group:  group,
@@ -319,6 +334,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Logger:            logger,
 	}
 	return application, func() {
+		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
