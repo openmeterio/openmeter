@@ -2,6 +2,7 @@ package customersbilling
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -15,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type (
@@ -33,13 +33,13 @@ func (h *handler) CreateCustomerStripePortalSession() CreateCustomerStripePortal
 			// Parse request body
 			body := api.BillingCustomerStripeCreateCustomerPortalSessionRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
-				return CreateCustomerStripePortalSessionRequest{}, fmt.Errorf("field to decode create app stripe portal session request: %w", err)
+				return CreateCustomerStripePortalSessionRequest{}, err
 			}
 
 			// Resolve namespace
 			namespace, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return CreateCustomerStripePortalSessionRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+				return CreateCustomerStripePortalSessionRequest{}, err
 			}
 
 			// Get the customer
@@ -53,10 +53,20 @@ func (h *handler) CreateCustomerStripePortalSession() CreateCustomerStripePortal
 				return CreateCustomerStripePortalSessionRequest{}, err
 			}
 
+			if cus == nil {
+				return CreateCustomerStripePortalSessionRequest{},
+					apierrors.NewNotFoundError(
+						ctx,
+						errors.New("customer not found"),
+						"customer",
+					)
+			}
+
 			if cus != nil && cus.IsDeleted() {
 				return CreateCustomerStripePortalSessionRequest{},
-					models.NewGenericPreConditionFailedError(
-						fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+					apierrors.NewGoneError(
+						ctx,
+						errors.New("customer is deleted"),
 					)
 			}
 
@@ -90,7 +100,7 @@ func (h *handler) CreateCustomerStripePortalSession() CreateCustomerStripePortal
 				Locale:          request.options.Locale,
 			})
 			if err != nil {
-				return CreateCustomerStripePortalSessionResponse{}, fmt.Errorf("failed to create portal session: %w", err)
+				return CreateCustomerStripePortalSessionResponse{}, err
 			}
 
 			return ConvertToApiStripePortalSession(portalSession), nil

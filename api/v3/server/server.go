@@ -112,10 +112,6 @@ func (c *Config) Validate() error {
 		errs = append(errs, errors.New("subscription service is required"))
 	}
 
-	if c.BillingService == nil {
-		errs = append(errs, errors.New("billing service is required"))
-	}
-
 	return errors.Join(errs...)
 }
 

@@ -2,7 +2,6 @@ package customersbilling
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/samber/lo"
@@ -33,11 +32,11 @@ func (h *handler) CreateCustomerStripeCheckoutSession() CreateCustomerStripeChec
 
 			namespace, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return CreateCustomerStripeCheckoutSessionRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+				return CreateCustomerStripeCheckoutSessionRequest{}, err
 			}
 
 			if customerIdParam == "" {
-				return CreateCustomerStripeCheckoutSessionRequest{}, fmt.Errorf("customer is required")
+				return CreateCustomerStripeCheckoutSessionRequest{}, err
 			}
 
 			customerId := lo.ToPtr(customer.CustomerID{
@@ -48,12 +47,12 @@ func (h *handler) CreateCustomerStripeCheckoutSession() CreateCustomerStripeChec
 			// Resolve app ID from request or from billing profile
 			appId, err := appstripehttpdriver.ResolveAppIDFromBillingProfile(ctx, namespace, customerId, h.billingService)
 			if err != nil {
-				return CreateCustomerStripeCheckoutSessionRequest{}, fmt.Errorf("failed to resolve app id from billing profile: %w", err)
+				return CreateCustomerStripeCheckoutSessionRequest{}, err
 			}
 
 			options, err := ConvertToCreateStripeCheckoutSessionRequestOptions(body.StripeOptions)
 			if err != nil {
-				return CreateCustomerStripeCheckoutSessionRequest{}, fmt.Errorf("failed to convert customer options to CreateStripeCheckoutSessionRequestOptions: %w", err)
+				return CreateCustomerStripeCheckoutSessionRequest{}, err
 			}
 
 			// Create request
@@ -69,7 +68,7 @@ func (h *handler) CreateCustomerStripeCheckoutSession() CreateCustomerStripeChec
 		func(ctx context.Context, request CreateCustomerStripeCheckoutSessionRequest) (CreateCustomerStripeCheckoutSessionResponse, error) {
 			out, err := h.stripeService.CreateCheckoutSession(ctx, request)
 			if err != nil {
-				return CreateCustomerStripeCheckoutSessionResponse{}, fmt.Errorf("failed to create app stripe checkout session: %w", err)
+				return CreateCustomerStripeCheckoutSessionResponse{}, err
 			}
 
 			response := CreateCustomerStripeCheckoutSessionResponse{
