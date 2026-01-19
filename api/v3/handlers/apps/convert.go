@@ -113,14 +113,16 @@ func mapSandboxAppToAPI(sandboxApp appsandbox.Meta) (api.BillingAppSandbox, erro
 	}
 
 	return api.BillingAppSandbox{
-		Id:         sandboxApp.GetID().ID,
-		Type:       api.BillingAppSandboxTypeSandbox,
-		Name:       sandboxApp.GetName(),
-		Status:     api.BillingAppStatus(sandboxApp.GetStatus()),
-		Definition: definition,
-		CreatedAt:  lo.ToPtr(sandboxApp.CreatedAt),
-		UpdatedAt:  lo.ToPtr(sandboxApp.UpdatedAt),
-		DeletedAt:  sandboxApp.DeletedAt,
+		Id:          sandboxApp.GetID().ID,
+		Type:        api.BillingAppSandboxTypeSandbox,
+		Name:        sandboxApp.GetName(),
+		Status:      api.BillingAppStatus(sandboxApp.GetStatus()),
+		Definition:  definition,
+		Labels:      ConvertMetadataToLabels(sandboxApp.GetMetadata()),
+		Description: sandboxApp.GetDescription(),
+		CreatedAt:   lo.ToPtr(sandboxApp.CreatedAt),
+		UpdatedAt:   lo.ToPtr(sandboxApp.UpdatedAt),
+		DeletedAt:   sandboxApp.DeletedAt,
 	}, nil
 }
 
@@ -133,23 +135,20 @@ func mapStripeAppToAPI(
 	}
 
 	apiStripeApp := api.BillingAppStripe{
-		Id:           stripeApp.GetID().ID,
-		Type:         api.BillingAppStripeType(stripeApp.GetType()),
-		Name:         stripeApp.Name,
-		Status:       api.BillingAppStatus(stripeApp.GetStatus()),
-		Definition:   definition,
+		Id:          stripeApp.GetID().ID,
+		Type:        api.BillingAppStripeType(stripeApp.GetType()),
+		Name:        stripeApp.Name,
+		Status:      api.BillingAppStatus(stripeApp.GetStatus()),
+		Definition:  definition,
+		Labels:      ConvertMetadataToLabels(stripeApp.GetMetadata()),
+		Description: stripeApp.GetDescription(),
+		CreatedAt:   lo.ToPtr(stripeApp.CreatedAt),
+		UpdatedAt:   lo.ToPtr(stripeApp.UpdatedAt),
+		DeletedAt:   stripeApp.DeletedAt,
+
 		MaskedApiKey: stripeApp.MaskedAPIKey,
-		CreatedAt:    lo.ToPtr(stripeApp.CreatedAt),
-		UpdatedAt:    lo.ToPtr(stripeApp.UpdatedAt),
-		DeletedAt:    stripeApp.DeletedAt,
 		AccountId:    stripeApp.StripeAccountID,
 		Livemode:     stripeApp.Livemode,
-	}
-
-	apiStripeApp.Description = stripeApp.GetDescription()
-
-	if stripeApp.GetMetadata() != nil {
-		apiStripeApp.Labels = ConvertMetadataToLabels(stripeApp.GetMetadata())
 	}
 
 	return apiStripeApp, nil
