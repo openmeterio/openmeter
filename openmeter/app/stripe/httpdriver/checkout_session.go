@@ -113,7 +113,7 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 			if body.AppId != nil {
 				req.AppID = app.AppID{Namespace: namespace, ID: *body.AppId}
 			} else {
-				appId, err := h.resolveAppIDFromBillingProfile(ctx, namespace, customerId)
+				appId, err := ResolveAppIDFromBillingProfile(ctx, namespace, customerId, h.billingService)
 				if err != nil {
 					return CreateAppStripeCheckoutSessionRequest{}, fmt.Errorf("failed to resolve app id from billing profile: %w", err)
 				}
@@ -162,12 +162,12 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 }
 
 // resolveAppID resolves the app ID from the billing profile
-func (h *handler) resolveAppIDFromBillingProfile(ctx context.Context, namespace string, customerId *customer.CustomerID) (app.AppID, error) {
+func ResolveAppIDFromBillingProfile(ctx context.Context, namespace string, customerId *customer.CustomerID, billingService billing.Service) (app.AppID, error) {
 	var appID app.AppID
 
 	// If the customer ID is provided resolve billing profile based on the customer
 	if customerId != nil {
-		billingProfile, err := h.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		billingProfile, err := billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 			Customer: *customerId,
 			Expand: billing.CustomerOverrideExpand{
 				Apps: true,
@@ -192,7 +192,7 @@ func (h *handler) resolveAppIDFromBillingProfile(ctx context.Context, namespace 
 
 	// If the customer ID is not provided, resolve billing profile from namespace
 	// We list all billing profiles to be able to give a better error message
-	billingProfileList, err := h.billingService.ListProfiles(ctx, billing.ListProfilesInput{
+	billingProfileList, err := billingService.ListProfiles(ctx, billing.ListProfilesInput{
 		Namespace: namespace,
 		Expand:    billing.ProfileExpand{Apps: true},
 	})
