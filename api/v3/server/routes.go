@@ -107,15 +107,15 @@ func (s *Server) CreateBillingProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) DeleteBillingProfile(w http.ResponseWriter, r *http.Request, id api.ULID) {
-	s.billingProfilesHandler.DeleteBillingProfile().With(string(id)).ServeHTTP(w, r)
+	s.billingProfilesHandler.DeleteBillingProfile().With(id).ServeHTTP(w, r)
 }
 
 func (s *Server) GetBillingProfile(w http.ResponseWriter, r *http.Request, id api.ULID) {
-	s.billingProfilesHandler.GetBillingProfile().With(string(id)).ServeHTTP(w, r)
+	s.billingProfilesHandler.GetBillingProfile().With(id).ServeHTTP(w, r)
 }
 
 func (s *Server) UpdateBillingProfile(w http.ResponseWriter, r *http.Request, id api.ULID) {
-	s.billingProfilesHandler.UpdateBillingProfile().With(string(id)).ServeHTTP(w, r)
+	s.billingProfilesHandler.UpdateBillingProfile().With(id).ServeHTTP(w, r)
 }
 
 // Customer Billing

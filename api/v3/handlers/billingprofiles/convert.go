@@ -76,7 +76,7 @@ func ResolveIDFromContext(namespacedID models.NamespacedID) string {
 
 func ConvertAppToBillingAppReference(app app.App) api.BillingAppReference {
 	return api.BillingAppReference{
-		Id: api.ULID(app.GetID().ID),
+		Id: app.GetID().ID,
 	}
 }
 
@@ -115,8 +115,7 @@ func ConvertBillingPartyToSupplierContact(party api.BillingParty) billing.Suppli
 	}
 
 	if party.TaxId != nil && party.TaxId.Code != nil {
-		code := string(*party.TaxId.Code)
-		supplier.TaxCode = &code
+		supplier.TaxCode = party.TaxId.Code
 	}
 
 	return supplier
