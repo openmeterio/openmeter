@@ -35,10 +35,6 @@ func (h *handler) CreateCustomerStripeCheckoutSession() CreateCustomerStripeChec
 				return CreateCustomerStripeCheckoutSessionRequest{}, err
 			}
 
-			if customerIdParam == "" {
-				return CreateCustomerStripeCheckoutSessionRequest{}, err
-			}
-
 			customerId := lo.ToPtr(customer.CustomerID{
 				Namespace: namespace,
 				ID:        customerIdParam,
