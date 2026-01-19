@@ -4,9 +4,11 @@
 package billingprofiles
 
 import (
+	"fmt"
 	v3 "github.com/openmeterio/openmeter/api/v3"
 	app "github.com/openmeterio/openmeter/openmeter/app"
 	billing "github.com/openmeterio/openmeter/openmeter/billing"
+	productcatalog "github.com/openmeterio/openmeter/openmeter/productcatalog"
 	models "github.com/openmeterio/openmeter/pkg/models"
 	"time"
 )
@@ -58,7 +60,35 @@ func init() {
 		billingProfileAppReferences.Payment = ConvertBillingAppReferenceToAppID(context, source.Payment)
 		return billingProfileAppReferences
 	}
-	ConvertCreateBillingProfileRequestToCreateProfileInput = func(context string, source v3.CreateBillingProfileRequest) billing.CreateProfileInput {
+	ConvertBillingTaxBehaviorToTaxBehavior = func(source productcatalog.TaxBehavior) (v3.BillingTaxBehavior, error) {
+		var v3BillingTaxBehavior v3.BillingTaxBehavior
+		switch source {
+		case productcatalog.ExclusiveTaxBehavior:
+			v3BillingTaxBehavior = v3.BillingTaxBehaviorExclusive
+		case productcatalog.InclusiveTaxBehavior:
+			v3BillingTaxBehavior = v3.BillingTaxBehaviorInclusive
+		default:
+			return v3BillingTaxBehavior, fmt.Errorf("unexpected enum element: %v", source)
+		}
+		return v3BillingTaxBehavior, nil
+	}
+	ConvertBillingTaxConfigToTaxConfig = func(source *v3.BillingTaxConfig) (*productcatalog.TaxConfig, error) {
+		var pProductcatalogTaxConfig *productcatalog.TaxConfig
+		if source != nil {
+			var productcatalogTaxConfig productcatalog.TaxConfig
+			if (*source).Behavior != nil {
+				productcatalogTaxBehavior, err := ConvertTaxBehaviorBillingToTaxBehavior(*(*source).Behavior)
+				if err != nil {
+					return nil, err
+				}
+				productcatalogTaxConfig.Behavior = &productcatalogTaxBehavior
+			}
+			productcatalogTaxConfig.Stripe = pV3BillingTaxConfigStripeToPProductcatalogStripeTaxConfig((*source).Stripe)
+			pProductcatalogTaxConfig = &productcatalogTaxConfig
+		}
+		return pProductcatalogTaxConfig, nil
+	}
+	ConvertCreateBillingProfileRequestToCreateProfileInput = func(context string, source v3.CreateBillingProfileRequest) (billing.CreateProfileInput, error) {
 		var billingCreateProfileInput billing.CreateProfileInput
 		billingCreateProfileInput.Namespace = NamespaceFromContext(context)
 		billingCreateProfileInput.Name = source.Name
@@ -66,9 +96,13 @@ func init() {
 		billingCreateProfileInput.Metadata = pV3LabelsToMapStringString(source.Labels)
 		billingCreateProfileInput.Supplier = ConvertBillingPartyToSupplierContact(source.Supplier)
 		billingCreateProfileInput.Default = source.Default
-		billingCreateProfileInput.WorkflowConfig = ConvertBillingWorkflowToWorkflowConfig(source.Workflow)
+		billingWorkflowConfig, err := ConvertBillingWorkflowToWorkflowConfig(source.Workflow)
+		if err != nil {
+			return billingCreateProfileInput, err
+		}
+		billingCreateProfileInput.WorkflowConfig = billingWorkflowConfig
 		billingCreateProfileInput.Apps = ConvertBillingProfileAppReferencesToProfileAppReferences(context, source.Apps)
-		return billingCreateProfileInput
+		return billingCreateProfileInput, nil
 	}
 	ConvertProfileAppReferencesToBillingProfileAppReferences = func(source *billing.ProfileAppReferences) v3.BillingProfileAppReferences {
 		var v3BillingProfileAppReferences v3.BillingProfileAppReferences
@@ -112,17 +146,50 @@ func init() {
 		}
 		return v3BillingProfileList, nil
 	}
-	ConvertUpsertBillingProfileRequestToUpdateProfileInput = func(context models.NamespacedID, source v3.UpsertBillingProfileRequest) billing.UpdateProfileInput {
+	ConvertTaxBehaviorBillingToTaxBehavior = func(source v3.BillingTaxBehavior) (productcatalog.TaxBehavior, error) {
+		var productcatalogTaxBehavior productcatalog.TaxBehavior
+		switch source {
+		case v3.BillingTaxBehaviorExclusive:
+			productcatalogTaxBehavior = productcatalog.ExclusiveTaxBehavior
+		case v3.BillingTaxBehaviorInclusive:
+			productcatalogTaxBehavior = productcatalog.InclusiveTaxBehavior
+		default:
+			return productcatalogTaxBehavior, fmt.Errorf("unexpected enum element: %v", source)
+		}
+		return productcatalogTaxBehavior, nil
+	}
+	ConvertTaxConfigToBillingTaxConfig = func(source *productcatalog.TaxConfig) (*v3.BillingTaxConfig, error) {
+		var pV3BillingTaxConfig *v3.BillingTaxConfig
+		if source != nil {
+			var v3BillingTaxConfig v3.BillingTaxConfig
+			if (*source).Behavior != nil {
+				v3BillingTaxBehavior, err := ConvertBillingTaxBehaviorToTaxBehavior(*(*source).Behavior)
+				if err != nil {
+					return nil, err
+				}
+				v3BillingTaxConfig.Behavior = &v3BillingTaxBehavior
+			}
+			v3BillingTaxConfig.ExternalInvoicing = pProductcatalogStripeTaxConfigToPV3BillingTaxConfigExternalInvoicing((*source).Stripe)
+			v3BillingTaxConfig.Stripe = pProductcatalogStripeTaxConfigToPV3BillingTaxConfigStripe((*source).Stripe)
+			pV3BillingTaxConfig = &v3BillingTaxConfig
+		}
+		return pV3BillingTaxConfig, nil
+	}
+	ConvertUpsertBillingProfileRequestToUpdateProfileInput = func(context models.NamespacedID, source v3.UpsertBillingProfileRequest) (billing.UpdateProfileInput, error) {
 		var billingUpdateProfileInput billing.UpdateProfileInput
 		billingUpdateProfileInput.ID = ResolveIDFromContext(context)
 		billingUpdateProfileInput.Namespace = ResolveNamespaceFromContext(context)
 		billingUpdateProfileInput.Name = source.Name
 		billingUpdateProfileInput.Description = source.Description
-		billingUpdateProfileInput.WorkflowConfig = ConvertBillingWorkflowToWorkflowConfig(source.Workflow)
+		billingWorkflowConfig, err := ConvertBillingWorkflowToWorkflowConfig(source.Workflow)
+		if err != nil {
+			return billingUpdateProfileInput, err
+		}
+		billingUpdateProfileInput.WorkflowConfig = billingWorkflowConfig
 		billingUpdateProfileInput.Supplier = ConvertBillingPartyToSupplierContact(source.Supplier)
 		billingUpdateProfileInput.Default = source.Default
 		billingUpdateProfileInput.Metadata = pV3LabelsToBillingMetadata(source.Labels)
-		return billingUpdateProfileInput
+		return billingUpdateProfileInput, nil
 	}
 }
 func billingMetadataToPV3Labels(source billing.Metadata) *v3.Labels {
@@ -147,6 +214,33 @@ func pBillingProfileAppsToV3BillingProfileAppReferences(source *billing.ProfileA
 		v3BillingProfileAppReferences.Tax = ConvertAppToBillingAppReference((*source).Tax)
 	}
 	return v3BillingProfileAppReferences
+}
+func pProductcatalogStripeTaxConfigToPV3BillingTaxConfigExternalInvoicing(source *productcatalog.StripeTaxConfig) *v3.BillingTaxConfigExternalInvoicing {
+	var pV3BillingTaxConfigExternalInvoicing *v3.BillingTaxConfigExternalInvoicing
+	if source != nil {
+		var v3BillingTaxConfigExternalInvoicing v3.BillingTaxConfigExternalInvoicing
+		v3BillingTaxConfigExternalInvoicing.Code = (*source).Code
+		pV3BillingTaxConfigExternalInvoicing = &v3BillingTaxConfigExternalInvoicing
+	}
+	return pV3BillingTaxConfigExternalInvoicing
+}
+func pProductcatalogStripeTaxConfigToPV3BillingTaxConfigStripe(source *productcatalog.StripeTaxConfig) *v3.BillingTaxConfigStripe {
+	var pV3BillingTaxConfigStripe *v3.BillingTaxConfigStripe
+	if source != nil {
+		var v3BillingTaxConfigStripe v3.BillingTaxConfigStripe
+		v3BillingTaxConfigStripe.Code = (*source).Code
+		pV3BillingTaxConfigStripe = &v3BillingTaxConfigStripe
+	}
+	return pV3BillingTaxConfigStripe
+}
+func pV3BillingTaxConfigStripeToPProductcatalogStripeTaxConfig(source *v3.BillingTaxConfigStripe) *productcatalog.StripeTaxConfig {
+	var pProductcatalogStripeTaxConfig *productcatalog.StripeTaxConfig
+	if source != nil {
+		var productcatalogStripeTaxConfig productcatalog.StripeTaxConfig
+		productcatalogStripeTaxConfig.Code = (*source).Code
+		pProductcatalogStripeTaxConfig = &productcatalogStripeTaxConfig
+	}
+	return pProductcatalogStripeTaxConfig
 }
 func pV3LabelsToBillingMetadata(source *v3.Labels) billing.Metadata {
 	return billing.Metadata(pV3LabelsToMapStringString(source))

@@ -8,6 +8,7 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -41,7 +42,7 @@ var (
 	// goverter:map Namespace | NamespaceFromContext
 	// goverter:map Labels Metadata
 	// goverter:map Workflow WorkflowConfig | ConvertBillingWorkflowToWorkflowConfig
-	ConvertCreateBillingProfileRequestToCreateProfileInput func(namespace string, req api.CreateBillingProfileRequest) billing.CreateProfileInput
+	ConvertCreateBillingProfileRequestToCreateProfileInput func(namespace string, req api.CreateBillingProfileRequest) (billing.CreateProfileInput, error)
 	// goverter:context namespacedID
 	// goverter:map Namespace | ResolveNamespaceFromContext
 	// goverter:map ID | ResolveIDFromContext
@@ -51,7 +52,20 @@ var (
 	// goverter:ignore UpdatedAt
 	// goverter:ignore DeletedAt
 	// goverter:ignore AppReferences
-	ConvertUpsertBillingProfileRequestToUpdateProfileInput func(namespacedID models.NamespacedID, req api.UpsertBillingProfileRequest) billing.UpdateProfileInput
+	ConvertUpsertBillingProfileRequestToUpdateProfileInput func(namespacedID models.NamespacedID, req api.UpsertBillingProfileRequest) (billing.UpdateProfileInput, error)
+	// goverter:enum:unknown @error
+	// goverter:enum:map InclusiveTaxBehavior BillingTaxBehaviorInclusive
+	// goverter:enum:map ExclusiveTaxBehavior BillingTaxBehaviorExclusive
+	ConvertBillingTaxBehaviorToTaxBehavior func(behavior productcatalog.TaxBehavior) (api.BillingTaxBehavior, error)
+	// goverter:enum:unknown @error
+	// goverter:enum:map BillingTaxBehaviorInclusive InclusiveTaxBehavior
+	// goverter:enum:map BillingTaxBehaviorExclusive ExclusiveTaxBehavior
+	ConvertTaxBehaviorBillingToTaxBehavior func(behavior api.BillingTaxBehavior) (productcatalog.TaxBehavior, error)
+	// goverter:map Stripe ExternalInvoicing
+	// goverter:map Stripe Stripe
+	ConvertTaxConfigToBillingTaxConfig func(config *productcatalog.TaxConfig) (*api.BillingTaxConfig, error)
+	// goverter:map Stripe Stripe
+	ConvertBillingTaxConfigToTaxConfig func(config *api.BillingTaxConfig) (*productcatalog.TaxConfig, error)
 )
 
 //goverter:context namespace
@@ -122,7 +136,6 @@ func ConvertBillingPartyToSupplierContact(party api.BillingParty) billing.Suppli
 }
 
 // ConvertWorkflowConfigToBillingWorkflow converts billing.WorkflowConfig to API BillingWorkflow
-// This is kept manual due to complex union types and business logic
 func ConvertWorkflowConfigToBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, error) {
 	workflow := api.BillingWorkflow{}
 
@@ -167,9 +180,14 @@ func ConvertWorkflowConfigToBillingWorkflow(config billing.WorkflowConfig) (api.
 	}
 
 	// Tax settings
+	defaultTaxConfig, err := ConvertTaxConfigToBillingTaxConfig(config.Invoicing.DefaultTaxConfig)
+	if err != nil {
+		return api.BillingWorkflow{}, err
+	}
 	workflow.Tax = &api.BillingWorkflowTaxSettings{
-		Enabled:  lo.ToPtr(config.Tax.Enabled),
-		Enforced: lo.ToPtr(config.Tax.Enforced),
+		Enabled:          lo.ToPtr(config.Tax.Enabled),
+		Enforced:         lo.ToPtr(config.Tax.Enforced),
+		DefaultTaxConfig: defaultTaxConfig,
 	}
 
 	// Payment settings
@@ -199,7 +217,7 @@ func ConvertWorkflowConfigToBillingWorkflow(config billing.WorkflowConfig) (api.
 }
 
 // ConvertBillingWorkflowToWorkflowConfig converts API BillingWorkflow to billing.WorkflowConfig
-func ConvertBillingWorkflowToWorkflowConfig(workflow api.BillingWorkflow) billing.WorkflowConfig {
+func ConvertBillingWorkflowToWorkflowConfig(workflow api.BillingWorkflow) (billing.WorkflowConfig, error) {
 	// Start with default configuration
 	def := billing.DefaultWorkflowConfig
 
@@ -279,6 +297,15 @@ func ConvertBillingWorkflowToWorkflowConfig(workflow api.BillingWorkflow) billin
 		}
 	}
 
+	defaultTaxConfig := def.Invoicing.DefaultTaxConfig
+	if workflow.Tax.DefaultTaxConfig != nil {
+		var err error
+		defaultTaxConfig, err = ConvertBillingTaxConfigToTaxConfig(workflow.Tax.DefaultTaxConfig)
+		if err != nil {
+			return billing.WorkflowConfig{}, err
+		}
+	}
+
 	return billing.WorkflowConfig{
 		Collection: billing.CollectionConfig{
 			Alignment:               alignment,
@@ -290,6 +317,7 @@ func ConvertBillingWorkflowToWorkflowConfig(workflow api.BillingWorkflow) billin
 			DraftPeriod:        draftPeriod,
 			DueAfter:           dueAfter,
 			ProgressiveBilling: lo.FromPtrOr(workflow.Invoicing.ProgressiveBilling, def.Invoicing.ProgressiveBilling),
+			DefaultTaxConfig:   defaultTaxConfig,
 		},
 		Payment: billing.PaymentConfig{
 			CollectionMethod: collectionMethod,
@@ -298,5 +326,5 @@ func ConvertBillingWorkflowToWorkflowConfig(workflow api.BillingWorkflow) billin
 			Enabled:  lo.FromPtrOr(workflow.Tax.Enabled, def.Tax.Enabled),
 			Enforced: lo.FromPtrOr(workflow.Tax.Enforced, def.Tax.Enforced),
 		},
-	}
+	}, nil
 }

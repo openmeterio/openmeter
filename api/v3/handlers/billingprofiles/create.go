@@ -32,9 +32,7 @@ func (h *handler) CreateBillingProfile() CreateBillingProfileHandler {
 				return CreateBillingProfileRequest{}, err
 			}
 
-			req := ConvertCreateBillingProfileRequestToCreateProfileInput(ns, body)
-
-			return req, nil
+			return ConvertCreateBillingProfileRequestToCreateProfileInput(ns, body)
 		},
 		func(ctx context.Context, request CreateBillingProfileRequest) (CreateBillingProfileResponse, error) {
 			profile, err := h.service.CreateProfile(ctx, request)
