@@ -67,27 +67,7 @@ func (h *handler) CreateCustomerStripeCheckoutSession() CreateCustomerStripeChec
 				return CreateCustomerStripeCheckoutSessionResponse{}, err
 			}
 
-			response := CreateCustomerStripeCheckoutSessionResponse{
-				CancelUrl:        out.CancelURL,
-				CustomerId:       out.CustomerID.ID,
-				Mode:             api.BillingAppStripeCheckoutSessionMode(out.Mode),
-				ReturnUrl:        out.ReturnURL,
-				SessionId:        out.SessionID,
-				SetupIntentId:    out.SetupIntentID,
-				StripeCustomerId: out.StripeCustomerID,
-				SuccessUrl:       out.SuccessURL,
-				Url:              out.URL,
-
-				// Add new fields from the CreateCheckoutSessionOutput
-				ClientSecret:      out.ClientSecret,
-				ClientReferenceId: out.ClientReferenceID,
-				CustomerEmail:     out.CustomerEmail,
-				Currency:          (*api.CurrencyCode)(out.Currency),
-				CreatedAt:         out.CreatedAt,
-				Metadata:          out.Metadata,
-				Status:            (*string)(out.Status),
-				ExpiresAt:         out.ExpiresAt,
-			}
+			response := ConvertCreateCheckoutSessionOutputToBillingAppStripeCreateCheckoutSessionResult(out)
 
 			return response, nil
 		},

@@ -11,6 +11,33 @@ import (
 )
 
 func init() {
+	ConvertCreateCheckoutSessionOutputToBillingAppStripeCreateCheckoutSessionResult = func(source entity.CreateCheckoutSessionOutput) v3.BillingAppStripeCreateCheckoutSessionResult {
+		var v3BillingAppStripeCreateCheckoutSessionResult v3.BillingAppStripeCreateCheckoutSessionResult
+		v3BillingAppStripeCreateCheckoutSessionResult.CancelUrl = source.StripeCheckoutSession.CancelURL
+		v3BillingAppStripeCreateCheckoutSessionResult.ClientReferenceId = source.StripeCheckoutSession.ClientReferenceID
+		v3BillingAppStripeCreateCheckoutSessionResult.ClientSecret = source.StripeCheckoutSession.ClientSecret
+		v3BillingAppStripeCreateCheckoutSessionResult.CreatedAt = source.StripeCheckoutSession.CreatedAt
+		if source.StripeCheckoutSession.Currency != nil {
+			xstring := string(*source.StripeCheckoutSession.Currency)
+			v3BillingAppStripeCreateCheckoutSessionResult.Currency = &xstring
+		}
+		v3BillingAppStripeCreateCheckoutSessionResult.CustomerEmail = source.StripeCheckoutSession.CustomerEmail
+		v3BillingAppStripeCreateCheckoutSessionResult.CustomerId = ResolveIDFromCustomerId(source.CustomerID)
+		v3BillingAppStripeCreateCheckoutSessionResult.ExpiresAt = source.StripeCheckoutSession.ExpiresAt
+		v3BillingAppStripeCreateCheckoutSessionResult.Metadata = source.StripeCheckoutSession.Metadata
+		v3BillingAppStripeCreateCheckoutSessionResult.Mode = v3.BillingAppStripeCheckoutSessionMode(source.StripeCheckoutSession.Mode)
+		v3BillingAppStripeCreateCheckoutSessionResult.ReturnUrl = source.StripeCheckoutSession.ReturnURL
+		v3BillingAppStripeCreateCheckoutSessionResult.SessionId = source.StripeCheckoutSession.SessionID
+		v3BillingAppStripeCreateCheckoutSessionResult.SetupIntentId = source.StripeCheckoutSession.SetupIntentID
+		if source.StripeCheckoutSession.Status != nil {
+			xstring2 := string(*source.StripeCheckoutSession.Status)
+			v3BillingAppStripeCreateCheckoutSessionResult.Status = &xstring2
+		}
+		v3BillingAppStripeCreateCheckoutSessionResult.StripeCustomerId = source.StripeCustomerID
+		v3BillingAppStripeCreateCheckoutSessionResult.SuccessUrl = source.StripeCheckoutSession.SuccessURL
+		v3BillingAppStripeCreateCheckoutSessionResult.Url = source.StripeCheckoutSession.URL
+		return v3BillingAppStripeCreateCheckoutSessionResult
+	}
 	ConvertToApiStripePortalSession = func(source entity.StripePortalSession) v3.BillingAppStripeCreateCustomerPortalSessionResult {
 		var v3BillingAppStripeCreateCustomerPortalSessionResult v3.BillingAppStripeCreateCustomerPortalSessionResult
 		var pString *string
