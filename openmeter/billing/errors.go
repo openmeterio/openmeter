@@ -58,6 +58,8 @@ var (
 	ErrInvoiceDiscountNoWildcardDiscountOnGatheringInvoices = NewValidationError("invoice_discount_no_wildcard_discount_on_gathering_invoices", "wildcard discount on gathering invoices is not allowed")
 
 	ErrNamespaceLocked = NewValidationError("namespace_locked", "namespace is locked")
+
+	ErrPendingLinesNoBillableLines = NewValidationError("no_billable_lines_found", "no billable lines found")
 )
 
 const (

@@ -947,6 +947,12 @@ func (i InvoicePendingLinesInput) Validate() error {
 		return errors.New("asOf must be in the past")
 	}
 
+	if i.IncludePendingLines.IsPresent() {
+		if len(i.IncludePendingLines.OrEmpty()) == 0 {
+			return errors.New("includePendingLines must contain at least one line ID")
+		}
+	}
+
 	return nil
 }
 

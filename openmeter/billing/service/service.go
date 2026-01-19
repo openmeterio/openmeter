@@ -116,7 +116,6 @@ func New(config Config) (*Service, error) {
 	}
 
 	lineSvc, err := lineservice.New(lineservice.Config{
-		BillingAdapter:     config.Adapter,
 		FeatureService:     config.FeatureService,
 		MeterService:       config.MeterService,
 		StreamingConnector: config.StreamingConnector,

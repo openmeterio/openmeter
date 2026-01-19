@@ -547,38 +547,6 @@ func (a *adapter) expandLineItemsWithDetailedLines(q *db.BillingInvoiceLineQuery
 	return q
 }
 
-func (a *adapter) AssociateLinesToInvoice(ctx context.Context, input billing.AssociateLinesToInvoiceAdapterInput) ([]*billing.Line, error) {
-	if err := input.Validate(); err != nil {
-		return nil, err
-	}
-
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]*billing.Line, error) {
-		nAffected, err := tx.db.BillingInvoiceLine.Update().
-			SetInvoiceID(input.Invoice.ID).
-			Where(billinginvoiceline.Namespace(input.Invoice.Namespace)).
-			Where(billinginvoiceline.IDIn(input.LineIDs...)).
-			Where(billinginvoiceline.DeletedAtIsNil()).
-			Save(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("associating lines: %w", err)
-		}
-
-		if nAffected != len(input.LineIDs) {
-			return nil, fmt.Errorf("not all lines were associated")
-		}
-
-		invoiceLines, err := tx.fetchLines(ctx, fetchLinesInput{
-			Namespace: input.Invoice.Namespace,
-			LineIDs:   input.LineIDs,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("fetching lines: %w", err)
-		}
-
-		return invoiceLines, nil
-	})
-}
-
 type fetchLinesInput struct {
 	Namespace      string
 	LineIDs        []string

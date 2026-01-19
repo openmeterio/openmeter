@@ -2,6 +2,7 @@ package lineservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -25,17 +26,12 @@ type Service struct {
 }
 
 type Config struct {
-	BillingAdapter     billing.Adapter
 	FeatureService     feature.FeatureConnector
 	MeterService       meter.Service
 	StreamingConnector streaming.Connector
 }
 
 func (c Config) Validate() error {
-	if c.BillingAdapter == nil {
-		return fmt.Errorf("adapter is required")
-	}
-
 	if c.FeatureService == nil {
 		return fmt.Errorf("feature service is required")
 	}
@@ -122,26 +118,6 @@ func (s *Service) resolveFeatureMeter(ctx context.Context, ns string, featureKey
 	}, nil
 }
 
-func (s *Service) AssociateLinesToInvoice(ctx context.Context, invoice *billing.Invoice, lines Lines) (Lines, error) {
-	lineEntities, err := s.BillingAdapter.AssociateLinesToInvoice(ctx, billing.AssociateLinesToInvoiceAdapterInput{
-		Invoice: billing.InvoiceID{
-			ID:        invoice.ID,
-			Namespace: invoice.Namespace,
-		},
-
-		LineIDs: lo.Map(lines, func(l Line, _ int) string {
-			return l.ID()
-		}),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	invoice.Lines = billing.NewInvoiceLines(append(invoice.Lines.OrEmpty(), lineEntities...))
-
-	return s.FromEntities(lineEntities)
-}
-
 // UpdateTotalsFromDetailedLines is a helper method to update the totals of a line from its detailed lines.
 func (s *Service) UpdateTotalsFromDetailedLines(line *billing.Line) error {
 	// Calculate the line totals
@@ -209,6 +185,21 @@ type Line interface {
 }
 
 type Lines []Line
+
+func (s Lines) ValidateForInvoice(ctx context.Context, invoice *billing.Invoice) error {
+	return errors.Join(lo.Map(s, func(line Line, idx int) error {
+		if err := line.Validate(ctx, invoice); err != nil {
+			id := line.ID()
+			if id == "" {
+				id = fmt.Sprintf("line[%d]", idx)
+			}
+
+			return fmt.Errorf("line[%s]: %w", id, err)
+		}
+
+		return nil
+	})...)
+}
 
 func (s Lines) ToEntities() []*billing.Line {
 	return lo.Map(s, func(service Line, _ int) *billing.Line {
