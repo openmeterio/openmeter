@@ -449,7 +449,7 @@ model BillingWorkflowInvoicingSettings {
    * Should progressive billing be allowed for this workflow?
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  progressiveBilling?: boolean = false;
+  progressiveBilling?: boolean = true;
 
   /**
    * Default tax configuration to apply to the invoices.

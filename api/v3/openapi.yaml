@@ -2573,7 +2573,7 @@ components:
         progressive_billing:
           type: boolean
           description: Should progressive billing be allowed for this workflow?
-          default: false
+          default: true
       description: Invoice settings for a billing workflow.
       title: Workflow invoice settings
     BillingWorkflowPaymentChargeAutomaticallySettings:
