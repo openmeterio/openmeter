@@ -107,6 +107,7 @@ func NewServer(config *Config) (*Server, error) {
 		BaseURL:                 "/api/v3",
 		NamespaceDecoder:        namespacedriver.StaticNamespaceDecoder(config.RouterConfig.NamespaceManager.GetDefaultNamespace()),
 		ErrorHandler:            config.RouterConfig.ErrorHandler,
+		AppService:              config.RouterConfig.App,
 		IngestService:           config.RouterConfig.IngestService,
 		CustomerService:         config.RouterConfig.Customer,
 		EntitlementService:      config.RouterConfig.EntitlementConnector,
