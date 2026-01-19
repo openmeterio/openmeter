@@ -62,10 +62,10 @@ model BillingParty {
  */
 @friendlyName("BillingPartyAddresses")
 model BillingPartyAddresses {
-    /**
-     * Billing address.
-     */
-    billing_address: Shared.Address;
+  /**
+   * Billing address.
+   */
+  billing_address: Shared.Address;
 }
 
 /**

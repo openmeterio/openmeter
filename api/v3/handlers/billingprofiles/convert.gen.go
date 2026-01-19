@@ -4,12 +4,11 @@
 package billingprofiles
 
 import (
-	"time"
-
 	v3 "github.com/openmeterio/openmeter/api/v3"
 	app "github.com/openmeterio/openmeter/openmeter/app"
 	billing "github.com/openmeterio/openmeter/openmeter/billing"
 	models "github.com/openmeterio/openmeter/pkg/models"
+	"time"
 )
 
 func init() {
@@ -126,12 +125,10 @@ func init() {
 		return billingUpdateProfileInput
 	}
 }
-
 func billingMetadataToPV3Labels(source billing.Metadata) *v3.Labels {
 	v3Labels := billingMetadataToV3Labels(source)
 	return &v3Labels
 }
-
 func billingMetadataToV3Labels(source billing.Metadata) v3.Labels {
 	var v3Labels v3.Labels
 	if source != nil {
@@ -142,7 +139,6 @@ func billingMetadataToV3Labels(source billing.Metadata) v3.Labels {
 	}
 	return v3Labels
 }
-
 func pBillingProfileAppsToV3BillingProfileAppReferences(source *billing.ProfileApps) v3.BillingProfileAppReferences {
 	var v3BillingProfileAppReferences v3.BillingProfileAppReferences
 	if source != nil {
@@ -152,11 +148,9 @@ func pBillingProfileAppsToV3BillingProfileAppReferences(source *billing.ProfileA
 	}
 	return v3BillingProfileAppReferences
 }
-
 func pV3LabelsToBillingMetadata(source *v3.Labels) billing.Metadata {
 	return billing.Metadata(pV3LabelsToMapStringString(source))
 }
-
 func pV3LabelsToMapStringString(source *v3.Labels) map[string]string {
 	var mapStringString map[string]string
 	if source != nil {
@@ -164,11 +158,9 @@ func pV3LabelsToMapStringString(source *v3.Labels) map[string]string {
 	}
 	return mapStringString
 }
-
 func timeTimeToPTimeTime(source time.Time) *time.Time {
 	return &source
 }
-
 func v3LabelsToMapStringString(source v3.Labels) map[string]string {
 	var mapStringString map[string]string
 	if source != nil {
