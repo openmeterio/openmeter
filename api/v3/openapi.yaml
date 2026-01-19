@@ -2017,12 +2017,20 @@ components:
             The entity's legal identification used for tax purposes. They may have
             other numbers, but we're only interested in those valid for tax purposes.
         addresses:
-          type: array
-          items:
-            $ref: '#/components/schemas/Address'
-          maxItems: 1
-          description: Regular post addresses for where information should be sent if needed.
+          allOf:
+            - $ref: '#/components/schemas/BillingPartyAddresses'
+          description: Address for where information should be sent if needed.
       description: Party represents a person or business entity.
+    BillingPartyAddresses:
+      type: object
+      required:
+        - billing_address
+      properties:
+        billing_address:
+          allOf:
+            - $ref: '#/components/schemas/Address'
+          description: Billing address.
+      description: A collection of addresses for the party.
     BillingPartyTaxIdentity:
       type: object
       properties:

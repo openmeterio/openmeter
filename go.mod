@@ -145,7 +145,7 @@ require (
 	github.com/invopop/validation v0.8.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jcmturner/goidentity/v6 v6.0.1 // indirect
-	github.com/jmattheis/goverter v1.9.2 // indirect
+	github.com/jmattheis/goverter v1.9.3 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/jzelinskie/stringz v0.0.3 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
