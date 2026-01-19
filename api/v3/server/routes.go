@@ -137,5 +137,5 @@ func (s *Server) CreateCustomerStripeCheckoutSession(w http.ResponseWriter, r *h
 }
 
 func (s *Server) CreateCustomerStripePortalSession(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
-	unimplemented.CreateCustomerStripePortalSession(w, r, customerId)
+	s.customersBillingHandler.CreateCustomerStripePortalSession().With(customerId).ServeHTTP(w, r)
 }

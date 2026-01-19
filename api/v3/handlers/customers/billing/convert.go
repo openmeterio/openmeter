@@ -4,6 +4,7 @@ package customersbilling
 import (
 	apiOld "github.com/openmeterio/openmeter/api"
 	api "github.com/openmeterio/openmeter/api/v3"
+	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 )
 
 // goverter:variables
@@ -48,4 +49,7 @@ var (
 	// goverter:enum:map BillingAppStripeCheckoutSessionUIModeEmbedded CheckoutSessionUIModeEmbedded
 	// goverter:enum:map BillingAppStripeCheckoutSessionUIModeHosted CheckoutSessionUIModeHosted
 	ConvertToCheckoutSessionUIMode func(source api.BillingAppStripeCheckoutSessionUIMode) (apiOld.CheckoutSessionUIMode, error)
+
+	// goverter:map Configuration.ID ConfigurationId
+	ConvertToApiStripePortalSession func(portalSession appstripeentity.StripePortalSession) api.BillingAppStripeCreateCustomerPortalSessionResult
 )

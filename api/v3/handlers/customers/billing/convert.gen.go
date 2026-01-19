@@ -7,9 +7,28 @@ import (
 	"fmt"
 	api "github.com/openmeterio/openmeter/api"
 	v3 "github.com/openmeterio/openmeter/api/v3"
+	entity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 )
 
 func init() {
+	ConvertToApiStripePortalSession = func(source entity.StripePortalSession) v3.BillingAppStripeCreateCustomerPortalSessionResult {
+		var v3BillingAppStripeCreateCustomerPortalSessionResult v3.BillingAppStripeCreateCustomerPortalSessionResult
+		var pString *string
+		if source.Configuration != nil {
+			pString = &source.Configuration.ID
+		}
+		if pString != nil {
+			v3BillingAppStripeCreateCustomerPortalSessionResult.ConfigurationId = *pString
+		}
+		v3BillingAppStripeCreateCustomerPortalSessionResult.CreatedAt = source.CreatedAt
+		v3BillingAppStripeCreateCustomerPortalSessionResult.Id = source.ID
+		v3BillingAppStripeCreateCustomerPortalSessionResult.Livemode = source.Livemode
+		v3BillingAppStripeCreateCustomerPortalSessionResult.Locale = source.Locale
+		v3BillingAppStripeCreateCustomerPortalSessionResult.ReturnUrl = source.ReturnURL
+		v3BillingAppStripeCreateCustomerPortalSessionResult.StripeCustomerId = source.StripeCustomerID
+		v3BillingAppStripeCreateCustomerPortalSessionResult.Url = source.URL
+		return v3BillingAppStripeCreateCustomerPortalSessionResult
+	}
 	ConvertToCheckoutSessionUIMode = func(source v3.BillingAppStripeCheckoutSessionUIMode) (api.CheckoutSessionUIMode, error) {
 		var apiCheckoutSessionUIMode api.CheckoutSessionUIMode
 		switch source {
