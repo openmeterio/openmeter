@@ -77,20 +77,20 @@
     "@biomejs/biome": "2.3.11",
     "@fetch-mock/vitest": "0.2.18",
     "@knighted/duel": "4.0.0",
-    "@types/node": "25.0.3",
+    "@types/node": "25.0.9",
     "@types/node-fetch": "2.6.13",
-    "@types/react": "19.2.7",
+    "@types/react": "19.2.8",
     "fetch-mock": "12.6.0",
     "openapi-typescript": "7.10.1",
-    "orval": "7.17.2",
-    "prettier": "3.7.4",
+    "orval": "8.0.2",
+    "prettier": "3.8.0",
     "react": "19.2.3",
-    "rollup": "4.55.1",
+    "rollup": "4.55.2",
     "ts-morph": "27.0.2",
     "tslib": "2.8.1",
     "tsx": "4.21.0",
     "typescript": "5.9.3",
-    "vitest": "4.0.16",
+    "vitest": "4.0.17",
     "zod": "4.3.5"
   },
   "packageManager": "pnpm@10.17.1+sha512.17c560fca4867ae9473a3899ad84a88334914f379be46d455cbf92e5cf4b39d34985d452d2583baf19967fa76cb5c17bc9e245529d0b98745721aa7200ecaf7a",
@@ -104,10 +104,6 @@
     ],
     "patchedDependencies": {
       "openapi-typescript": "patches/openapi-typescript.patch"
-    },
-    "overrides": {
-      "js-yaml@>=4.0.0 <4.1.1": ">=4.1.1",
-      "glob@>=11.0.0 <11.1.0": ">=11.1.0"
     }
   }
 }
