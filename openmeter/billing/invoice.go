@@ -963,13 +963,17 @@ type (
 
 type UpdateInvoiceAdapterInput = Invoice
 
-type GetInvoiceOwnershipAdapterInput = InvoiceID
-
-type GetOwnershipAdapterResponse struct {
-	Namespace  string
-	InvoiceID  string
-	CustomerID string
+type GetInvoiceOwnershipAdapterInput struct {
+	InvoiceIDs []InvoiceID
 }
+
+func (i GetInvoiceOwnershipAdapterInput) Validate() error {
+	if len(i.InvoiceIDs) == 0 {
+		return errors.New("invoice IDs are required")
+	}
+}
+
+type GetOwnershipAdapterResponse map[InvoiceID]customer.CustomerID
 
 type DeleteInvoiceInput = InvoiceID
 
@@ -1157,3 +1161,19 @@ func (i UpdateInvoiceFieldsInput) Validate() error {
 }
 
 type RecalculateGatheringInvoicesInput = customer.CustomerID
+
+type StandardImmutableInvoiceUpdate struct {
+	UpsertValidationIssues mo.Option[ValidationIssues]
+}
+
+type BulkUpdateInvoicesInput struct {
+	IncludeDeletedLines                  bool
+	Invoices                             []InvoiceID
+	GatheringInvoiceEditFunction         func(*Invoice) error
+	StandardMutableInvoiceEditFunction   func(*Invoice) error
+	StandardImmutableInvoiceEditFunction func(*Invoice) (StandardImmutableInvoiceUpdate, error)
+}
+
+type BulkUpdateInvoicesResult struct {
+	InvoicesByID map[InvoiceID]Invoice
+}

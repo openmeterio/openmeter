@@ -71,6 +71,7 @@ type InvoiceService interface {
 	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) (Invoice, error)
 	// UpdateInvoice updates an invoice as a whole
 	UpdateInvoice(ctx context.Context, input UpdateInvoiceInput) (Invoice, error)
+	BulkUpdateInvoices(ctx context.Context, input BulkUpdateInvoicesInput) (BulkUpdateInvoicesResult, error)
 
 	// SimulateInvoice generates an invoice based on the provided input, but does not persist it
 	// can be used to execute the invoice generation logic without actually creating an invoice in the database
