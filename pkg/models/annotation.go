@@ -1,6 +1,11 @@
 package models
 
-import "reflect"
+import (
+	"math"
+	"reflect"
+
+	"github.com/brunoga/deep"
+)
 
 type Annotations map[string]interface{}
 
@@ -50,44 +55,66 @@ func (a Annotations) GetInt(key string) (int, bool) {
 		return 0, false
 	}
 
-	intVal, ok := val.(int)
-	if !ok {
+	switch t := val.(type) {
+	case int:
+		return t, true
+	case float32:
+		f := float64(t)
+
+		if f != math.Trunc(f) || float64(math.MaxInt) < f || f < float64(math.MinInt) {
+			return 0, false
+		}
+
+		return int(t), true
+	case float64:
+		if t != math.Trunc(t) || float64(math.MaxInt) < t || t < float64(math.MinInt) {
+			return 0, false
+		}
+
+		return int(t), true
+	default:
 		return 0, false
 	}
-
-	return intVal, true
 }
 
-func (a Annotations) Clone() Annotations {
-	if a == nil {
-		return nil
+func (a Annotations) Reset() {
+	for k := range a {
+		delete(a, k)
 	}
-
-	result := make(Annotations)
-
-	for k, v := range a {
-		result[k] = v
-	}
-
-	return result
 }
 
-func (a Annotations) Merge(m Annotations) Annotations {
+func (a Annotations) Clone() (Annotations, error) {
 	if a == nil {
-		return m
+		return nil, nil
 	}
 
-	result := a.Clone()
+	return deep.Copy[Annotations](a)
+}
+
+func (a Annotations) Merge(m Annotations) (Annotations, error) {
+	if a == nil {
+		return m, nil
+	}
+
+	result, err := a.Clone()
+	if err != nil {
+		return nil, err
+	}
 
 	if len(m) == 0 {
-		return result
+		return result, nil
 	}
 
 	for k, v := range m {
-		result[k] = v
+		vv, err := deep.Copy(v)
+		if err != nil {
+			return nil, err
+		}
+
+		result[k] = vv
 	}
 
-	return result
+	return result, nil
 }
 
 func (a Annotations) Equal(other Annotations) bool {

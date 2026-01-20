@@ -17,6 +17,7 @@ require (
 	github.com/avast/retry-go/v4 v4.7.0
 	github.com/bhmj/jsonslice v1.1.3
 	github.com/brianvoe/gofakeit/v6 v6.28.0
+	github.com/brunoga/deep v1.2.5
 	github.com/cloudevents/sdk-go/v2 v2.16.2
 	github.com/confluentinc/confluent-kafka-go/v2 v2.13.0
 	github.com/forscht/namegen v1.0.1

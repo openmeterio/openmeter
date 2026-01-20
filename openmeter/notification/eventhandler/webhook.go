@@ -393,10 +393,16 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 						}
 					}
 
+					annotations, err := status.Annotations.Merge(msg.Annotations)
+					if err != nil {
+						errs = append(errs, fmt.Errorf("failed to merge delivery status annotations: %w", err))
+						break
+					}
+
 					input = &notification.UpdateEventDeliveryStatusInput{
 						NamespacedID: status.NamespacedID,
 						State:        msgStatusByChannel.State,
-						Annotations:  status.Annotations.Merge(msg.Annotations),
+						Annotations:  annotations,
 						NextAttempt:  msgStatusByChannel.NextAttempt,
 						Attempts:     msgStatusByChannel.Attempts,
 					}
