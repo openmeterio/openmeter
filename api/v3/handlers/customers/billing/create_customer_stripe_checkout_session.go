@@ -10,7 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
-	appstripehttpdriver "github.com/openmeterio/openmeter/openmeter/app/stripe/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -40,8 +39,7 @@ func (h *handler) CreateCustomerStripeCheckoutSession() CreateCustomerStripeChec
 				ID:        customerIdParam,
 			})
 
-			// Resolve app ID from request or from billing profile
-			appId, err := appstripehttpdriver.ResolveAppIDFromBillingProfile(ctx, namespace, customerId, h.billingService)
+			appId, err := h.billingService.ResolveAppIDFromBillingProfile(ctx, namespace, customerId)
 			if err != nil {
 				return CreateCustomerStripeCheckoutSessionRequest{}, err
 			}
