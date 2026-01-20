@@ -30,6 +30,7 @@ type ProfileService interface {
 	UpdateProfile(ctx context.Context, input UpdateProfileInput) (*Profile, error)
 	ProvisionDefaultBillingProfile(ctx context.Context, namespace string) error
 	IsAppUsed(ctx context.Context, appID app.AppID) error
+	ResolveAppIDFromBillingProfile(ctx context.Context, namespace string, customerId *customer.CustomerID) (app.AppID, error)
 }
 
 type CustomerOverrideService interface {

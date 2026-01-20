@@ -16,6 +16,7 @@ import (
 	appshandler "github.com/openmeterio/openmeter/api/v3/handlers/apps"
 	billingprofileshandler "github.com/openmeterio/openmeter/api/v3/handlers/billingprofiles"
 	customershandler "github.com/openmeterio/openmeter/api/v3/handlers/customers"
+	customersbillinghandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/billing"
 	customersentitlementhandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlementaccess"
 	eventshandler "github.com/openmeterio/openmeter/api/v3/handlers/events"
 	metershandler "github.com/openmeterio/openmeter/api/v3/handlers/meters"
@@ -23,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/oasmiddleware"
 	"github.com/openmeterio/openmeter/api/v3/render"
 	"github.com/openmeterio/openmeter/openmeter/app"
+	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -44,14 +46,15 @@ type Config struct {
 
 	// services
 	AppService              app.Service
+	BillingService          billing.Service
 	MeterService            meter.ManageService
 	IngestService           ingest.Service
 	CustomerService         customer.Service
 	EntitlementService      entitlement.Service
 	PlanService             plan.Service
 	PlanSubscriptionService plansubscription.PlanSubscriptionService
+	StripeService           appstripe.Service
 	SubscriptionService     subscription.Service
-	BillingService          billing.Service
 }
 
 func (c *Config) Validate() error {
@@ -71,6 +74,10 @@ func (c *Config) Validate() error {
 
 	if c.AppService == nil {
 		errs = append(errs, errors.New("app service is required"))
+	}
+
+	if c.BillingService == nil {
+		errs = append(errs, errors.New("billing service is required"))
 	}
 
 	if c.MeterService == nil {
@@ -97,12 +104,12 @@ func (c *Config) Validate() error {
 		errs = append(errs, errors.New("plan subscription service is required"))
 	}
 
-	if c.SubscriptionService == nil {
-		errs = append(errs, errors.New("subscription service is required"))
+	if c.StripeService == nil {
+		errs = append(errs, errors.New("stripe service is required"))
 	}
 
-	if c.BillingService == nil {
-		errs = append(errs, errors.New("billing service is required"))
+	if c.SubscriptionService == nil {
+		errs = append(errs, errors.New("subscription service is required"))
 	}
 
 	return errors.Join(errs...)
@@ -117,6 +124,7 @@ type Server struct {
 	appsHandler                 appshandler.Handler
 	eventsHandler               eventshandler.Handler
 	customersHandler            customershandler.Handler
+	customersBillingHandler     customersbillinghandler.Handler
 	customersEntitlementHandler customersentitlementhandler.Handler
 	metersHandler               metershandler.Handler
 	subscriptionsHandler        subscriptionshandler.Handler
@@ -157,6 +165,7 @@ func NewServer(config *Config) (*Server, error) {
 	appsHandler := appshandler.New(resolveNamespace, config.AppService, httptransport.WithErrorHandler(config.ErrorHandler))
 	eventsHandler := eventshandler.New(resolveNamespace, config.IngestService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersHandler := customershandler.New(resolveNamespace, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
+	customersBillingHandler := customersbillinghandler.New(resolveNamespace, config.BillingService, config.CustomerService, config.StripeService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersEntitlementHandler := customersentitlementhandler.New(resolveNamespace, config.CustomerService, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
 	metersHandler := metershandler.New(resolveNamespace, config.MeterService, httptransport.WithErrorHandler(config.ErrorHandler))
 	subscriptionsHandler := subscriptionshandler.New(resolveNamespace, config.CustomerService, config.PlanService, config.PlanSubscriptionService, config.SubscriptionService, httptransport.WithErrorHandler(config.ErrorHandler))
@@ -168,6 +177,7 @@ func NewServer(config *Config) (*Server, error) {
 		appsHandler:                 appsHandler,
 		eventsHandler:               eventsHandler,
 		customersHandler:            customersHandler,
+		customersBillingHandler:     customersBillingHandler,
 		customersEntitlementHandler: customersEntitlementHandler,
 		metersHandler:               metersHandler,
 		subscriptionsHandler:        subscriptionsHandler,

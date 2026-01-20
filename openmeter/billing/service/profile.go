@@ -527,3 +527,82 @@ func (s *Service) handleDefaultProfileChange(ctx context.Context, input defaultP
 
 	return nil
 }
+
+func (s *Service) ResolveAppIDFromBillingProfile(ctx context.Context, namespace string, customerId *customer.CustomerID) (app.AppID, error) {
+	var appID app.AppID
+
+	// If the customer ID is provided, resolve billing profile based on the customer
+	if customerId != nil {
+		billingProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			Customer: *customerId,
+			Expand: billing.CustomerOverrideExpand{
+				Apps: true,
+			},
+		})
+		if err != nil {
+			return appID, fmt.Errorf("failed to get billing profile: %w", err)
+		}
+
+		if billingProfile.MergedProfile.Apps == nil {
+			return appID, fmt.Errorf("apps are not expanded in merged billing profile")
+		}
+
+		if billingProfile.MergedProfile.Apps.Payment.GetType() != app.AppTypeStripe {
+			return appID, models.NewGenericNotFoundError(
+				fmt.Errorf("customer has a billing profile, but the payment app is not a stripe app"),
+			)
+		}
+
+		return billingProfile.MergedProfile.Apps.Payment.GetID(), nil
+	}
+
+	// If the customer ID is not provided, resolve billing profile from namespace
+	// We list all billing profiles to be able to give a better error message
+	billingProfileList, err := s.ListProfiles(ctx, billing.ListProfilesInput{
+		Namespace: namespace,
+		Expand:    billing.ProfileExpand{Apps: true},
+	})
+	if err != nil {
+		return appID, fmt.Errorf("failed to get billing profile: %w", err)
+	}
+
+	// Find the billing profile with the stripe payment app
+	// Prioritize the default profile
+	var stripeApps []app.App
+	var foundDefault bool
+
+	for _, profile := range billingProfileList.Items {
+		if foundDefault {
+			break
+		}
+
+		if profile.Apps == nil {
+			return appID, fmt.Errorf("billing profile apps are not expanded")
+		}
+
+		if profile.Apps.Payment.GetType() == app.AppTypeStripe {
+			appID = profile.Apps.Payment.GetID()
+			stripeApps = append(stripeApps, profile.Apps.Payment)
+
+			if profile.Default {
+				foundDefault = true
+			}
+		}
+	}
+
+	// If no default profile is found, return an error
+	if !foundDefault {
+		// If there is no stripe app, return an error
+		if len(stripeApps) == 0 {
+			return appID, models.NewGenericNotFoundError(
+				fmt.Errorf("no stripe billing profile found, please create a billing profile with a stripe app"),
+			)
+		} else {
+			return appID, models.NewGenericNotFoundError(
+				fmt.Errorf("you have stripe billing profiles, but none is marked as default, provide the app id in the request"),
+			)
+		}
+	}
+
+	return appID, nil
+}
