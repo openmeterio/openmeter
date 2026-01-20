@@ -71,8 +71,11 @@ func (h *handler) CreateCustomerStripePortalSession() CreateCustomerStripePortal
 			}
 
 			return CreateCustomerStripePortalSessionRequest{
-				customerId: cus.GetID(),
-				options:    body.StripeOptions,
+				customerId: customer.CustomerID{
+					Namespace: namespace,
+					ID:        customerIdParam,
+				},
+				options: body.StripeOptions,
 			}, nil
 		},
 		func(ctx context.Context, request CreateCustomerStripePortalSessionRequest) (CreateCustomerStripePortalSessionResponse, error) {

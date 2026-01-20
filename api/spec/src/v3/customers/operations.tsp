@@ -163,7 +163,7 @@ interface CustomerBillingOperations {
     @body body: CustomerBillingStripeCreateCustomerPortalSessionRequest,
   ):
     | Shared.CreateResponse<Apps.CreateStripeCustomerPortalSessionResult>
-    | Common.Conflict
+    | Common.Gone
     | Common.NotFound
     | Common.ErrorResponses;
 }
