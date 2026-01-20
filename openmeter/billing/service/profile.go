@@ -69,10 +69,14 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 			return nil, fmt.Errorf("cannot resolve payment app: %w", err)
 		}
 
-		if taxApp.GetType() != invoicingApp.GetType() ||
-			taxApp.GetType() != paymentApp.GetType() {
+		appIDs := []app.AppID{
+			taxApp.GetID(),
+			invoicingApp.GetID(),
+			paymentApp.GetID(),
+		}
+		if len(lo.Uniq(appIDs)) != 1 {
 			return nil, billing.ValidationError{
-				Err: fmt.Errorf("all apps must be of the same type"),
+				Err: fmt.Errorf("all apps must be the same"),
 			}
 		}
 
@@ -293,6 +297,17 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 		profileWithApps, err := s.resolveProfileApps(ctx, updatedProfile)
 		if err != nil {
 			return nil, err
+		}
+
+		appIDs := []app.AppID{
+			profileWithApps.Apps.Tax.GetID(),
+			profileWithApps.Apps.Invoicing.GetID(),
+			profileWithApps.Apps.Payment.GetID(),
+		}
+		if len(lo.Uniq(appIDs)) != 1 {
+			return nil, billing.ValidationError{
+				Err: fmt.Errorf("all apps must be the same"),
+			}
 		}
 
 		if demotedProfile != nil {
