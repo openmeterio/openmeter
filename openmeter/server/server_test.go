@@ -1420,6 +1420,10 @@ func (n NoopBillingService) IsAppUsed(ctx context.Context, appID app.AppID) erro
 	return nil
 }
 
+func (n NoopBillingService) ResolveAppIDFromBillingProfile(ctx context.Context, namespace string, customerId *customer.CustomerID) (app.AppID, error) {
+	return app.AppID{}, nil
+}
+
 // CustomerOverrideService methods
 func (n NoopBillingService) UpsertCustomerOverride(ctx context.Context, input billing.UpsertCustomerOverrideInput) (billing.CustomerOverrideWithDetails, error) {
 	return billing.CustomerOverrideWithDetails{}, nil
