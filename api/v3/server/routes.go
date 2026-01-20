@@ -121,15 +121,15 @@ func (s *Server) UpdateBillingProfile(w http.ResponseWriter, r *http.Request, id
 // Customer Billing
 
 func (s *Server) GetCustomerBilling(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
-	unimplemented.GetCustomerBilling(w, r, customerId)
+	s.customersBillingHandler.GetCustomerBilling().With(customerId).ServeHTTP(w, r)
 }
 
 func (s *Server) UpdateCustomerBilling(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
-	unimplemented.UpdateCustomerBilling(w, r, customerId)
+	s.customersBillingHandler.UpdateCustomerBilling().With(customerId).ServeHTTP(w, r)
 }
 
 func (s *Server) UpdateCustomerBillingAppData(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
-	unimplemented.UpdateCustomerBillingAppData(w, r, customerId)
+	s.customersBillingHandler.UpdateCustomerBillingAppData().With(customerId).ServeHTTP(w, r)
 }
 
 func (s *Server) CreateCustomerStripeCheckoutSession(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
