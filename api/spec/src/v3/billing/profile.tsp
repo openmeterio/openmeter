@@ -193,7 +193,7 @@ model BillingWorkflowInvoicingSettings {
    * Should progressive billing be allowed for this workflow?
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  progressive_billing?: boolean = false;
+  progressive_billing?: boolean = true;
 }
 
 /**

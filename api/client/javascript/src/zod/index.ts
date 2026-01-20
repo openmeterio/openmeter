@@ -6006,7 +6006,7 @@ export const createBillingProfileBodyWorkflowOneInvoicingOneDraftPeriodDefault =
 export const createBillingProfileBodyWorkflowOneInvoicingOneDueAfterDefault =
   'P30D' as const
 export const createBillingProfileBodyWorkflowOneInvoicingOneProgressiveBillingDefault =
-  false as const
+  true as const
 export const createBillingProfileBodyWorkflowOneInvoicingOneDefaultTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const createBillingProfileBodyWorkflowOnePaymentOneCollectionMethodDefault =
@@ -6441,7 +6441,7 @@ export const updateBillingProfileBodyWorkflowOneInvoicingOneDraftPeriodDefault =
 export const updateBillingProfileBodyWorkflowOneInvoicingOneDueAfterDefault =
   'P30D' as const
 export const updateBillingProfileBodyWorkflowOneInvoicingOneProgressiveBillingDefault =
-  false as const
+  true as const
 export const updateBillingProfileBodyWorkflowOneInvoicingOneDefaultTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const updateBillingProfileBodyWorkflowOnePaymentOneCollectionMethodDefault =

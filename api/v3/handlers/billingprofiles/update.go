@@ -38,13 +38,18 @@ func (h *handler) UpdateBillingProfile() UpdateBillingProfileHandler {
 				return UpdateBillingProfileRequest{}, err
 			}
 
+			profile, err := ConvertUpsertBillingProfileRequestToUpdateProfileInput(models.NamespacedID{
+				Namespace: ns,
+				ID:        profileID,
+			}, body)
+			if err != nil {
+				return UpdateBillingProfileRequest{}, err
+			}
+
 			req := UpdateBillingProfileRequest{
 				Namespace: ns,
 				ProfileID: profileID,
-				Profile: ConvertUpsertBillingProfileRequestToUpdateProfileInput(models.NamespacedID{
-					Namespace: ns,
-					ID:        profileID,
-				}, body),
+				Profile:   profile,
 			}
 
 			return req, nil

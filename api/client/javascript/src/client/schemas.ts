@@ -3385,7 +3385,7 @@ export interface components {
       dueAfter?: string
       /**
        * @description Should progressive billing be allowed for this workflow?
-       * @default false
+       * @default true
        */
       progressiveBilling?: boolean
       /** @description Default tax configuration to apply to the invoices. */
