@@ -99,23 +99,25 @@ func (s subjectCustomerHook) PostDelete(ctx context.Context, sub *subject.Subjec
 	}
 
 	// Let's update the customer usage attribution
-	cus, err = s.provisioner.customer.UpdateCustomer(ctx, customer.UpdateCustomerInput{
-		CustomerID: customer.CustomerID{
-			Namespace: cus.Namespace,
-			ID:        cus.ID,
-		},
-		CustomerMutate: func() customer.CustomerMutate {
-			mut := cus.AsCustomerMutate()
+	cus, err = s.provisioner.customer.UpdateCustomer(
+		subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx),
+		customer.UpdateCustomerInput{
+			CustomerID: customer.CustomerID{
+				Namespace: cus.Namespace,
+				ID:        cus.ID,
+			},
+			CustomerMutate: func() customer.CustomerMutate {
+				mut := cus.AsCustomerMutate()
 
-			if mut.UsageAttribution != nil {
-				mut.UsageAttribution.SubjectKeys = lo.Filter(mut.UsageAttribution.SubjectKeys, func(key string, _ int) bool {
-					return key != sub.Key
-				})
-			}
+				if mut.UsageAttribution != nil {
+					mut.UsageAttribution.SubjectKeys = lo.Filter(mut.UsageAttribution.SubjectKeys, func(key string, _ int) bool {
+						return key != sub.Key
+					})
+				}
 
-			return mut
-		}(),
-	})
+				return mut
+			}(),
+		})
 
 	if cus != nil {
 		var subjectKeysStr string
