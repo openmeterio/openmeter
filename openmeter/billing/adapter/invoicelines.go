@@ -748,6 +748,13 @@ func (a *adapter) refetchInvoiceLines(ctx context.Context, in refetchInvoiceLine
 		return nil, fmt.Errorf("not all lines were created")
 	}
 
+	// Let's make sure that the lines are from the same invoice as the invoice ID passed
+	for _, line := range dbLines {
+		if line.InvoiceID != in.InvoiceID {
+			return nil, fmt.Errorf("line %s is not from the same invoice as the invoice ID passed", line.ID)
+		}
+	}
+
 	dbLinesByID := lo.GroupBy(dbLines, func(line *db.BillingInvoiceLine) string {
 		return line.ID
 	})
