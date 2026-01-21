@@ -73,7 +73,7 @@ func (h *handler) UpdateCustomerBillingAppData() UpdateCustomerBillingAppDataHan
 						apierrors.InvalidParameter{
 							Field:  "stripe",
 							Rule:   "required",
-							Reason: "stripe data is required",
+							Reason: "Stripe data is required",
 							Source: apierrors.InvalidParamSourceBody,
 						},
 					})

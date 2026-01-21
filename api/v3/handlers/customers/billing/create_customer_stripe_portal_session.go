@@ -62,7 +62,7 @@ func (h *handler) CreateCustomerStripePortalSession() CreateCustomerStripePortal
 					)
 			}
 
-			if cus != nil && cus.IsDeleted() {
+			if cus.IsDeleted() {
 				return CreateCustomerStripePortalSessionRequest{},
 					apierrors.NewGoneError(
 						ctx,

@@ -84,6 +84,10 @@ func (h *handler) UpdateCustomerBilling() UpdateCustomerBillingHandler {
 				}
 			}
 
+			if billingProfile.Apps == nil {
+				return UpdateCustomerBillingResponse{}, apierrors.NewInternalError(ctx, fmt.Errorf("apps are not expanded in billing profile"))
+			}
+
 			// TODO: Only one app ID can be in the billing profile right now.
 			// We pick the payment app for now.
 			application := billingProfile.Apps.Payment
@@ -141,6 +145,7 @@ func (h *handler) UpdateCustomerBilling() UpdateCustomerBillingHandler {
 			// Override the billing profile if an ID was provided
 			if request.ProfileID != nil {
 				_, err = h.billingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
+					Namespace:  request.CustomerID.Namespace,
 					CustomerID: request.CustomerID.ID,
 					ProfileID:  billingProfile.ID,
 				})
