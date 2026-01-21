@@ -2,13 +2,9 @@ package lineservice
 
 import (
 	"context"
-	"fmt"
 	"time"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -37,21 +33,7 @@ type LineBase interface {
 	// IsLastInPeriod returns true if the line is the last line in the period that is going to be invoiced.
 	IsLastInPeriod() bool
 	IsDeleted() bool
-	IsSplitLineGroupMember() bool
 
-	CloneForCreate(in UpdateInput) Line
-	Update(in UpdateInput) Line
-	Save(context.Context) (Line, error)
-	Delete(context.Context) error
-	// Split splits a line into two lines at the given time.
-	// The strategy is that we will have a line with status InvoiceLineStatusSplit and two child
-	// lines with status InvoiceLineStatusValid.
-	//
-	// To make algorithms easier, upon next split, we will not create an imbalanced tree, but rather attach
-	// the new split line to the existing parent line.
-	Split(ctx context.Context, at time.Time) (SplitResult, error)
-
-	Service() *Service
 	ResetTotals()
 }
 
@@ -85,10 +67,6 @@ func (l lineBase) Currency() currencyx.Code {
 
 func (l lineBase) Period() billing.Period {
 	return l.line.Period
-}
-
-func (l lineBase) IsSplitLineGroupMember() bool {
-	return l.line.SplitLineGroupID != nil
 }
 
 func (l lineBase) Validate(ctx context.Context, invoice *billing.Invoice) error {
@@ -137,148 +115,8 @@ func (l lineBase) IsDeleted() bool {
 	return l.line.DeletedAt != nil
 }
 
-func (l lineBase) Save(ctx context.Context) (Line, error) {
-	lines, err := l.service.BillingAdapter.UpsertInvoiceLines(ctx,
-		billing.UpsertInvoiceLinesAdapterInput{
-			Namespace: l.line.Namespace,
-			Lines:     []*billing.Line{l.line},
-		})
-	if err != nil {
-		return nil, fmt.Errorf("updating invoice line: %w", err)
-	}
-
-	return l.service.FromEntity(lines[0])
-}
-
-func (l lineBase) Delete(ctx context.Context) error {
-	l.line.DeletedAt = lo.ToPtr(clock.Now())
-
-	_, err := l.Save(ctx)
-
-	return err
-}
-
 func (l lineBase) Service() *Service {
 	return l.service
-}
-
-func (l lineBase) CloneForCreate(in UpdateInput) Line {
-	outEntity := l.line.CloneWithoutDependencies()
-	outEntity.ID = ""
-	outEntity.CreatedAt = time.Time{}
-	outEntity.UpdatedAt = time.Time{}
-
-	out, _ := l.service.FromEntity(outEntity)
-
-	return out.Update(in)
-}
-
-func (l lineBase) Update(in UpdateInput) Line {
-	// TODO[later]: Either we should clone and update the clone or we should not return the Line as if that's a new
-	// object.
-
-	if !in.PeriodStart.IsZero() {
-		l.line.Period.Start = in.PeriodStart
-	}
-
-	if !in.PeriodEnd.IsZero() {
-		l.line.Period.End = in.PeriodEnd
-	}
-
-	if !in.InvoiceAt.IsZero() {
-		l.line.InvoiceAt = in.InvoiceAt
-	}
-
-	if in.SplitLineGroupID != "" {
-		l.line.SplitLineGroupID = lo.ToPtr(in.SplitLineGroupID)
-	}
-
-	if in.ResetChildUniqueReferenceID {
-		l.line.ChildUniqueReferenceID = nil
-	}
-
-	// Let's ignore the error here as we don't allow for any type updates
-	svc, _ := l.service.FromEntity(l.line)
-
-	return svc
-}
-
-// TODO[later]: We should rely on UpsertInvoiceLines and do this in bulk.
-func (l lineBase) Split(ctx context.Context, splitAt time.Time) (SplitResult, error) {
-	if !l.line.Period.Contains(splitAt) {
-		return SplitResult{}, fmt.Errorf("line[%s]: splitAt is not within the line period", l.line.ID)
-	}
-
-	var splitLineGroupID string
-	if !l.IsSplitLineGroupMember() {
-		splitLineGroup, err := l.service.BillingAdapter.CreateSplitLineGroup(ctx, billing.CreateSplitLineGroupAdapterInput{
-			Namespace: l.line.Namespace,
-
-			SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{
-				Name:        l.line.Name,
-				Description: l.line.Description,
-
-				ServicePeriod:     l.line.Period,
-				RatecardDiscounts: l.line.RateCardDiscounts,
-				TaxConfig:         l.line.TaxConfig,
-			},
-
-			UniqueReferenceID: l.line.ChildUniqueReferenceID,
-
-			Currency: l.line.Currency,
-
-			Price:      l.line.UsageBased.Price,
-			FeatureKey: lo.EmptyableToPtr(l.line.UsageBased.FeatureKey),
-
-			Subscription: l.line.Subscription,
-		})
-		if err != nil {
-			return SplitResult{}, fmt.Errorf("creating split line group: %w", err)
-		}
-
-		splitLineGroupID = splitLineGroup.ID
-	} else {
-		splitLineGroupID = *l.line.SplitLineGroupID
-	}
-
-	result := SplitResult{}
-
-	// We have alredy split the line once, we just need to create a new line and update the existing line
-	postSplitAtLine := l.CloneForCreate(UpdateInput{
-		PeriodStart:                 splitAt,
-		SplitLineGroupID:            splitLineGroupID,
-		ResetChildUniqueReferenceID: true,
-	})
-	if !postSplitAtLine.IsPeriodEmptyConsideringTruncations() {
-		postSplitAtLine, err := postSplitAtLine.Save(ctx)
-		if err != nil {
-			return SplitResult{}, fmt.Errorf("saving post split line: %w", err)
-		}
-
-		result.PostSplitAtLine = postSplitAtLine
-	}
-
-	preSplitAtLine := l.Update(UpdateInput{
-		PeriodEnd:                   splitAt,
-		InvoiceAt:                   splitAt,
-		SplitLineGroupID:            splitLineGroupID,
-		ResetChildUniqueReferenceID: true,
-	})
-
-	if !preSplitAtLine.IsPeriodEmptyConsideringTruncations() {
-		preSplitAtLine, err := preSplitAtLine.Save(ctx)
-		if err != nil {
-			return SplitResult{}, fmt.Errorf("saving pre split line: %w", err)
-		}
-
-		result.PreSplitAtLine = preSplitAtLine
-	} else {
-		if err := preSplitAtLine.Delete(ctx); err != nil {
-			return SplitResult{}, fmt.Errorf("deleting pre split line: %w", err)
-		}
-	}
-
-	return result, nil
 }
 
 func (l lineBase) ResetTotals() {

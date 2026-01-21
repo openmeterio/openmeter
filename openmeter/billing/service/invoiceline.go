@@ -254,67 +254,6 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 	}, nil
 }
 
-func (s *Service) associateLinesToInvoice(ctx context.Context, invoice billing.Invoice, lines []lineservice.LineWithBillablePeriod) (billing.Invoice, error) {
-	for _, line := range lines {
-		if line.InvoiceID() == invoice.ID {
-			return invoice, billing.ValidationError{
-				Err: fmt.Errorf("line[%s]: line already associated with invoice[%s]", line.ID(), invoice.ID),
-			}
-		}
-	}
-
-	invoiceLines := make(lineservice.Lines, 0, len(lines))
-	// Let's do the line splitting if needed
-	for _, line := range lines {
-		if !line.Period().Equal(line.BillablePeriod) {
-			// We need to split the line into multiple lines
-			if !line.Period().Start.Equal(line.BillablePeriod.Start) {
-				return invoice, fmt.Errorf("line[%s]: line period start[%s] is not equal to billable period start[%s]", line.ID(), line.Period().Start, line.BillablePeriod.Start)
-			}
-
-			splitLine, err := line.Split(ctx, line.BillablePeriod.End)
-			if err != nil {
-				return invoice, fmt.Errorf("line[%s]: splitting line: %w", line.ID(), err)
-			}
-
-			if splitLine.PreSplitAtLine == nil {
-				s.logger.WarnContext(ctx, "pre split line is nil, we are not creating empty lines", "line", line.ID(), "period_start", line.Period().Start, "period_end", line.Period().End, "period_end", line.Period().End)
-			}
-
-			invoiceLines = append(invoiceLines, splitLine.PreSplitAtLine)
-		} else {
-			invoiceLines = append(invoiceLines, line)
-		}
-	}
-
-	// Validate that the line can be associated with the invoice
-	var validationErrors error
-	for _, line := range invoiceLines {
-		if err := line.Validate(ctx, &invoice); err != nil {
-			validationErrors = fmt.Errorf("line[%s]: %w", line.ID(), err)
-		}
-	}
-	if validationErrors != nil {
-		return invoice, validationErrors
-	}
-
-	// Associate the lines to the invoice
-	invoiceLines, err := s.lineService.AssociateLinesToInvoice(ctx, &invoice, invoiceLines)
-	if err != nil {
-		return invoice, fmt.Errorf("associating lines to invoice: %w", err)
-	}
-
-	// Let's create the sub lines as per the meters (we are not setting the QuantitySnapshotedAt field just now, to signal that this is not the final snapshot)
-	if err := s.snapshotLineQuantitiesInParallel(ctx, invoice.Customer, invoiceLines); err != nil {
-		return invoice, fmt.Errorf("snapshotting lines: %w", err)
-	}
-
-	// Let's active the invoice state machine so that calculations can be done
-	return s.WithInvoiceStateMachine(ctx, invoice, func(ctx context.Context, ism *InvoiceStateMachine) error {
-		return ism.StateMachine.ActivateCtx(ctx)
-	})
-}
-
 func (s *Service) snapshotLineQuantitiesInParallel(ctx context.Context, customer billing.InvoiceCustomer, lines lineservice.Lines) error {
 	linesCh := make(chan lineservice.Line, len(lines))
 	errCh := make(chan error, len(lines))

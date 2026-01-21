@@ -248,9 +248,11 @@ func (i Line) LineID() LineID {
 	}
 }
 
+type LineEditFunction func(*Line)
+
 // CloneWithoutDependencies returns a clone of the line without any external dependencies. Could be used
 // for creating a new line without any references to the parent or children (or config IDs).
-func (i Line) CloneWithoutDependencies() *Line {
+func (i Line) CloneWithoutDependencies(edits ...LineEditFunction) *Line {
 	clone := i.clone(cloneOptions{
 		skipDBState:   true,
 		skipChildren:  true,
@@ -258,12 +260,22 @@ func (i Line) CloneWithoutDependencies() *Line {
 	})
 
 	clone.ID = ""
+	clone.CreatedAt = time.Time{}
+	clone.UpdatedAt = time.Time{}
+	clone.DeletedAt = nil
+
 	clone.ParentLineID = nil
 	clone.SplitLineHierarchy = nil
 	clone.SplitLineGroupID = nil
 
 	if clone.UsageBased != nil {
 		clone.UsageBased.ConfigID = ""
+	}
+
+	for _, edit := range edits {
+		if edit != nil {
+			edit(clone)
+		}
 	}
 
 	return clone
@@ -762,24 +774,6 @@ type ListInvoiceLinesAdapterInput struct {
 func (g ListInvoiceLinesAdapterInput) Validate() error {
 	if g.Namespace == "" {
 		return errors.New("namespace is required")
-	}
-
-	return nil
-}
-
-type AssociateLinesToInvoiceAdapterInput struct {
-	Invoice InvoiceID
-
-	LineIDs []string
-}
-
-func (i AssociateLinesToInvoiceAdapterInput) Validate() error {
-	if err := i.Invoice.Validate(); err != nil {
-		return fmt.Errorf("invoice: %w", err)
-	}
-
-	if len(i.LineIDs) == 0 {
-		return errors.New("line ids are required")
 	}
 
 	return nil
