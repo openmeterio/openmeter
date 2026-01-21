@@ -92,7 +92,15 @@ func (b *BaseSuite) GetSubscriptionMixInDependencies() SubscriptionMixInDependen
 	}
 }
 
+type SetupSuiteOptions struct {
+	ForceAtlas bool
+}
+
 func (s *BaseSuite) SetupSuite() {
+	s.setupSuite(SetupSuiteOptions{})
+}
+
+func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 	t := s.T()
 	t.Log("setup suite")
 	s.Assertions = require.New(t)
@@ -104,7 +112,7 @@ func (s *BaseSuite) SetupSuite() {
 	dbClient := db.NewClient(db.Driver(s.TestDB.EntDriver.Driver()))
 	s.DBClient = dbClient
 
-	if os.Getenv("TEST_DISABLE_ATLAS") != "" {
+	if !opts.ForceAtlas && os.Getenv("TEST_DISABLE_ATLAS") != "" {
 		s.Require().NoError(dbClient.Schema.Create(context.Background()))
 	} else {
 		migrator, err := migrate.New(migrate.MigrateOptions{

@@ -294,6 +294,8 @@ type InvoiceBase struct {
 
 	ExternalIDs InvoiceExternalIDs `json:"externalIds,omitempty"`
 
+	SchemaLevel int `json:"schemaLevel"`
+
 	// TODO[later]: Let's also include the totals here, as that's part of the invoice db table
 }
 

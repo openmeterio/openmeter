@@ -294,6 +294,11 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 		// Force cloning of the workflow
 		workflowConfig.ID = ""
 
+		currentSchemaLevel, err := tx.GetInvoiceWriteSchemaLevel(ctx)
+		if err != nil {
+			return billing.CreateInvoiceAdapterRespone{}, fmt.Errorf("get invoice write schema level: %w", err)
+		}
+
 		createMut := tx.db.BillingInvoice.Create().
 			SetNamespace(input.Namespace).
 			SetMetadata(input.Metadata).
@@ -332,7 +337,8 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			SetNillableSupplierAddressPhoneNumber(supplier.Address.PhoneNumber).
 			SetSupplierName(supplier.Name).
 			SetNillableSupplierTaxCode(supplier.TaxCode).
-			SetNillableCollectionAt(input.CollectionAt)
+			SetNillableCollectionAt(input.CollectionAt).
+			SetSchemaLevel(currentSchemaLevel)
 
 		if customer.BillingAddress != nil {
 			createMut = createMut.
@@ -558,8 +564,10 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			// is needed to lock and recalculate both invoices or do the necessary splits.
 
 			lines, err := tx.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-				Namespace: in.Namespace,
-				Lines:     in.Lines.OrEmpty(),
+				Namespace:   in.Namespace,
+				Lines:       in.Lines.OrEmpty(),
+				SchemaLevel: in.SchemaLevel,
+				InvoiceID:   in.ID,
 			})
 			if err != nil {
 				return in, err
@@ -688,6 +696,8 @@ func (a *adapter) mapInvoiceBaseFromDB(ctx context.Context, invoice *db.BillingI
 			Invoicing: lo.FromPtr(invoice.InvoicingAppExternalID),
 			Payment:   lo.FromPtr(invoice.PaymentAppExternalID),
 		},
+
+		SchemaLevel: invoice.SchemaLevel,
 	}
 }
 
@@ -736,7 +746,7 @@ func (a *adapter) mapInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoi
 	}
 
 	if expand.Lines {
-		mappedLines, err := a.mapInvoiceLineFromDB(invoice.Edges.BillingInvoiceLines)
+		mappedLines, err := a.mapInvoiceLineFromDB(map[string]int{invoice.ID: invoice.SchemaLevel}, invoice.Edges.BillingInvoiceLines)
 		if err != nil {
 			return billing.Invoice{}, err
 		}

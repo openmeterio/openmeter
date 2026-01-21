@@ -13,7 +13,7 @@ import (
 
 var _ billing.CustomerOverrideAdapter = (*adapter)(nil)
 
-func (a *adapter) UpsertCustomerOverride(ctx context.Context, input billing.UpsertCustomerOverrideAdapterInput) error {
+func (a *adapter) UpsertCustomerLock(ctx context.Context, input billing.UpsertCustomerLockAdapterInput) error {
 	err := a.db.BillingCustomerLock.Create().
 		SetNamespace(input.Namespace).
 		SetCustomerID(input.ID).
@@ -32,7 +32,7 @@ func (a *adapter) UpsertCustomerOverride(ctx context.Context, input billing.Upse
 
 func (a *adapter) LockCustomerForUpdate(ctx context.Context, input billing.LockCustomerForUpdateAdapterInput) error {
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
-		if err := tx.UpsertCustomerOverride(ctx, input); err != nil {
+		if err := tx.UpsertCustomerLock(ctx, input); err != nil {
 			return err
 		}
 
@@ -41,7 +41,23 @@ func (a *adapter) LockCustomerForUpdate(ctx context.Context, input billing.LockC
 			Where(billingcustomerlock.Namespace(input.Namespace)).
 			ForUpdate().
 			First(ctx)
+		if err != nil {
+			return err
+		}
 
-		return err
+		// Temp: until the migrations are complete
+		migrationStatus, err := tx.shouldInvoicesBeMigrated(ctx, input)
+		if err != nil {
+			return err
+		}
+
+		if migrationStatus.shouldMigrate {
+			err := tx.migrateCustomerInvoices(ctx, input, migrationStatus.minSchemaLevel)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
 	})
 }

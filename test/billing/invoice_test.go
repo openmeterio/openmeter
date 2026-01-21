@@ -308,6 +308,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 					BillingAddress: customerEntity.BillingAddress,
 				},
 				Supplier: billingProfile.Supplier,
+
+				SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
 			},
 
 			Lines: billing.NewInvoiceLines([]*billing.Line{expectedUSDLine}),
