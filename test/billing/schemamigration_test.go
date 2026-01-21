@@ -45,6 +45,9 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 		lineNameActiveDetailed  = "Test item2"
 	)
 
+	// Force schema level 1 as a starting point.
+	s.NoError(s.BillingAdapter.SetInvoiceDefaultSchemaLevel(ctx, 1))
+
 	var (
 		customerEntity *customer.Customer
 		invoiceID      billing.InvoiceID
@@ -197,7 +200,7 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 	})
 
 	s.Run("When the write schema level is set to 2 and a lock is obtained on the customer", func() {
-		s.NoError(s.BillingAdapter.SetInvoiceWriteSchemaLevel(ctx, 2))
+		s.NoError(s.BillingAdapter.SetInvoiceDefaultSchemaLevel(ctx, 2))
 		// Side-effect: migration happens due to the previous line.
 		s.NoError(s.BillingAdapter.LockCustomerForUpdate(ctx, customerEntity.GetID()))
 	})

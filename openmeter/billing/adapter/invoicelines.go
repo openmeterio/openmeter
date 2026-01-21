@@ -457,7 +457,12 @@ func (a *adapter) upsertDetailedLinesV2(ctx context.Context, in detailedLineDiff
 				SetName(line.Name).
 				SetNillableDescription(line.Description).
 				SetCurrency(line.Currency).
+				SetQuantity(line.Quantity).
+				SetPerUnitAmount(line.PerUnitAmount).
 				SetNillableChildUniqueReferenceID(line.ChildUniqueReferenceID).
+				SetCategory(line.Category).
+				SetPaymentTerm(line.PaymentTerm).
+				SetNillableIndex(line.Index).
 				// Totals
 				SetAmount(line.Totals.Amount).
 				SetChargesTotal(line.Totals.ChargesTotal).
@@ -466,6 +471,7 @@ func (a *adapter) upsertDetailedLinesV2(ctx context.Context, in detailedLineDiff
 				SetTaxesInclusiveTotal(line.Totals.TaxesInclusiveTotal).
 				SetTaxesExclusiveTotal(line.Totals.TaxesExclusiveTotal).
 				SetTotal(line.Totals.Total).
+
 				// ExternalIDs
 				SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(line.ExternalIDs.Invoicing))
 
@@ -478,13 +484,18 @@ func (a *adapter) upsertDetailedLinesV2(ctx context.Context, in detailedLineDiff
 		UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingStandardInvoiceDetailedLineCreate) error {
 			return tx.BillingStandardInvoiceDetailedLine.
 				CreateBulk(items...).
-				OnConflict(sql.ConflictColumns(billingstandardinvoicedetailedline.FieldID),
+				OnConflict(
+					sql.ConflictColumns(billingstandardinvoicedetailedline.FieldID),
 					sql.ResolveWithNewValues(),
 					sql.ResolveWith(func(u *sql.UpdateSet) {
 						u.SetIgnore(billingstandardinvoicedetailedline.FieldCreatedAt)
-					})).
-				UpdateQuantity().
+					}),
+				).
 				UpdateChildUniqueReferenceID().
+				UpdateDescription().
+				UpdateTaxConfig().
+				UpdateIndex().
+				UpdateDeletedAt().
 				Exec(ctx)
 		},
 		MarkDeleted: func(ctx context.Context, line detailedLineWithParent) (detailedLineWithParent, error) {
@@ -530,7 +541,14 @@ func (a *adapter) upsertDetailedLineAmountDiscountsV2(ctx context.Context, in de
 					sql.ResolveWith(func(u *sql.UpdateSet) {
 						u.SetIgnore(billingstandardinvoicedetailedlineamountdiscount.FieldCreatedAt)
 					}),
-				).Exec(ctx)
+				).
+				UpdateRoundingAmount().
+				UpdateDescription().
+				UpdateDeletedAt().
+				UpdateChildUniqueReferenceID().
+				UpdateSourceDiscount().
+				UpdateInvoicingAppExternalID().
+				Exec(ctx)
 		},
 		MarkDeleted: func(ctx context.Context, d detailedLineAmountDiscountWithParent) (detailedLineAmountDiscountWithParent, error) {
 			d.Entity.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))

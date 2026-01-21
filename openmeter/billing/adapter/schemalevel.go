@@ -18,7 +18,7 @@ const (
 	DefaultInvoiceWriteSchemaLevel = 1
 )
 
-func (a *adapter) GetInvoiceWriteSchemaLevel(ctx context.Context) (int, error) {
+func (a *adapter) GetInvoiceDefaultSchemaLevel(ctx context.Context) (int, error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (int, error) {
 		record, err := tx.db.BillingInvoiceWriteSchemaLevel.Query().
 			Where(billinginvoicewriteschemalevel.ID(invoiceWriteSchemaLevelID)).
@@ -33,7 +33,7 @@ func (a *adapter) GetInvoiceWriteSchemaLevel(ctx context.Context) (int, error) {
 	})
 }
 
-func (a *adapter) SetInvoiceWriteSchemaLevel(ctx context.Context, level int) error {
+func (a *adapter) SetInvoiceDefaultSchemaLevel(ctx context.Context, level int) error {
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
 		return tx.db.BillingInvoiceWriteSchemaLevel.Create().
 			SetID(invoiceWriteSchemaLevelID).

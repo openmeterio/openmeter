@@ -90,8 +90,8 @@ type InvoiceAppAdapter interface {
 }
 
 type SchemaLevelAdapter interface {
-	// GetInvoiceWriteSchemaLevel returns the current write schema level for invoices.
-	GetInvoiceWriteSchemaLevel(ctx context.Context) (int, error)
-	// SetInvoiceWriteSchemaLevel sets the current write schema level for invoices.
-	SetInvoiceWriteSchemaLevel(ctx context.Context, level int) error
+	// GetInvoiceDefaultSchemaLevel returns the current default schema level for invoices.
+	GetInvoiceDefaultSchemaLevel(ctx context.Context) (int, error)
+	// SetInvoiceDefaultSchemaLevel sets the current default schema level for invoices.
+	SetInvoiceDefaultSchemaLevel(ctx context.Context, level int) error
 }

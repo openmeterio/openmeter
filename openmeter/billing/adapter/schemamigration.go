@@ -18,7 +18,7 @@ type customerMigrationStatus struct {
 
 func (a *adapter) shouldInvoicesBeMigrated(ctx context.Context, customerID customer.CustomerID) (customerMigrationStatus, error) {
 	res, err := entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (customerMigrationStatus, error) {
-		schemaLevel, err := tx.GetInvoiceWriteSchemaLevel(ctx)
+		schemaLevel, err := tx.GetInvoiceDefaultSchemaLevel(ctx)
 		if err != nil {
 			return customerMigrationStatus{}, err
 		}
