@@ -18,6 +18,30 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
+// InvoicePendingLines invoices the pending lines for the customer.
+// Flow (overview):
+//
+// 1) We fetch the gathering invoices of the customer and collect the lines that can be invoiced asOf input.AsOf.
+//
+// A line is considered billable if it's invoice_at <= input.AsOf OR if progressive billing is enabled and as per the
+// line service the line can be invoiced in multiple parts.
+//
+// 2) We prepare the lines to be billed on the gathering invoice and update it in the database. (prepareLinesToBill)
+//
+// If a line needs to be split the splitGatheringInvoiceLine method is used, what it does:
+//   - It creates a new split line group if it doesn't exist (it groups together the lines on multiple invoices when a single
+//     gathering line is billed on multiple invoices)
+//   - It creates a new line for the period up to the split at time, decreases the existing line's period end to the split at time.
+//   - Note: ChildUniqueReferenceID is set to nil to avoid conflicts on the gathering invoice, the SplitLineGroup owns this unique reference.
+//
+// 3) We create a new standard invoice from the gathering invoice and associate the lines to it. (createStandardInvoiceFromGatheringLines)
+//   - The in-scope lines are moved from the gathering invoice to the new standard invoice (moveLinesToInvoice)
+//
+// 4) We update the gathering invoice to remove the lines that have been associated to the new invoice. (updateGatheringInvoice)
+//
+// 5) We publish the invoice created event.
+//
+// 6) We return the created invoices.
 func (s *Service) InvoicePendingLines(ctx context.Context, input billing.InvoicePendingLinesInput) ([]billing.Invoice, error) {
 	if err := input.Validate(); err != nil {
 		return nil, billing.ValidationError{
@@ -72,7 +96,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 			}
 
 			if len(invoicesByCurrency) == 0 {
-				return nil, billing.ErrPendingLinesNoBillableLines
+				return nil, billing.ErrInvoiceCreateNoLines
 			}
 
 			// let's gather the in-scope lines and validate it
@@ -90,7 +114,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 			}
 
 			if len(inScopeLines) == 0 {
-				return nil, billing.ErrPendingLinesNoBillableLines
+				return nil, billing.ErrInvoiceCreateNoLines
 			}
 
 			createdInvoices := make([]billing.Invoice, 0, len(inScopeLines))
@@ -235,25 +259,6 @@ type gatherInScopeLineInput struct {
 	ProgressiveBilling bool
 }
 
-func (s *Service) advanceUntilStateStable(ctx context.Context, sm *InvoiceStateMachine) error {
-	if s.advancementStrategy == billing.QueuedAdvancementStrategy {
-		return s.publisher.Publish(ctx, billing.AdvanceInvoiceEvent{
-			Invoice:    sm.Invoice.InvoiceID(),
-			CustomerID: sm.Invoice.Customer.CustomerID,
-		})
-	}
-
-	validationIssues, err := billing.ToValidationIssues(
-		sm.AdvanceUntilStateStable(ctx),
-	)
-	if err != nil {
-		return fmt.Errorf("activating invoice: %w", err)
-	}
-
-	sm.Invoice.ValidationIssues = validationIssues
-	return nil
-}
-
 type gatherInScopeLinesResult map[currencyx.Code][]lineservice.LineWithBillablePeriod
 
 func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineInput) (gatherInScopeLinesResult, error) {
@@ -357,8 +362,8 @@ type prepareLinesToBillResult struct {
 	GatheringInvoice billing.Invoice
 }
 
-// gatherLinesToBill gathers the lines that should be billed from the gathering invoice, if needed
-// lines are split into multiple lines for progressively billed lines.
+// prepareLinesToBill prepares the lines to be billed from the gathering invoice, if needed
+// lines are split into multiple lines for progressively billed lines on the gathering invoice.
 func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBillInput) (*prepareLinesToBillResult, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
@@ -376,8 +381,6 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 				return nil, fmt.Errorf("line[%s]: line period start[%s] is not equal to billable period start[%s]", line.ID(), line.Period().Start, line.BillablePeriod.Start)
 			}
 
-			// TODO: let's move the whole split logic to this service, also we need to put these onto the gathering invoice so that
-			// it can be updated
 			splitLine, err := s.splitGatheringInvoiceLine(ctx, splitGatheringInvoiceLineInput{
 				GatheringInvoice: gatheringInvoice,
 				LineID:           line.ID(),
@@ -673,19 +676,19 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 				return sm.TriggerFailed(ctx)
 			}
 
+			invoiceID := sm.Invoice.ID
+
 			// If we have reached this point, we need to persist the invoice to the database so that all the
 			// entities have IDs available for the app.
 			sm.Invoice, err = s.updateInvoice(ctx, sm.Invoice)
 			if err != nil {
-				return fmt.Errorf("updating invoice[%s]: %w", sm.Invoice.ID, err)
+				return fmt.Errorf("updating invoice[%s]: %w", invoiceID, err)
 			}
 
 			// Otherwise, let's advance the invoice to the next final state
 			if err := s.advanceUntilStateStable(ctx, sm); err != nil {
 				return fmt.Errorf("activating invoice: %w", err)
 			}
-
-			invoiceID := sm.Invoice.ID
 
 			sm.Invoice, err = s.updateInvoice(ctx, sm.Invoice)
 			if err != nil {

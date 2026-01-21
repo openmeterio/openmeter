@@ -248,6 +248,25 @@ func (s *Service) GetInvoiceByID(ctx context.Context, input billing.GetInvoiceBy
 	return invoice, nil
 }
 
+func (s *Service) advanceUntilStateStable(ctx context.Context, sm *InvoiceStateMachine) error {
+	if s.advancementStrategy == billing.QueuedAdvancementStrategy {
+		return s.publisher.Publish(ctx, billing.AdvanceInvoiceEvent{
+			Invoice:    sm.Invoice.InvoiceID(),
+			CustomerID: sm.Invoice.Customer.CustomerID,
+		})
+	}
+
+	validationIssues, err := billing.ToValidationIssues(
+		sm.AdvanceUntilStateStable(ctx),
+	)
+	if err != nil {
+		return fmt.Errorf("activating invoice: %w", err)
+	}
+
+	sm.Invoice.ValidationIssues = validationIssues
+	return nil
+}
+
 type withLockedStateMachineInput struct {
 	InvoiceID           billing.InvoiceID
 	Callback            InvoiceStateMachineCallback
