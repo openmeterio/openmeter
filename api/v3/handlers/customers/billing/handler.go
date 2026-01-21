@@ -3,6 +3,7 @@ package customersbilling
 import (
 	"context"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -10,6 +11,9 @@ import (
 )
 
 type Handler interface {
+	GetCustomerBilling() GetCustomerBillingHandler
+	UpdateCustomerBilling() UpdateCustomerBillingHandler
+	UpdateCustomerBillingAppData() UpdateCustomerBillingAppDataHandler
 	CreateCustomerStripeCheckoutSession() CreateCustomerStripeCheckoutSessionHandler
 	CreateCustomerStripePortalSession() CreateCustomerStripePortalSessionHandler
 }
@@ -18,6 +22,7 @@ type handler struct {
 	resolveNamespace func(ctx context.Context) (string, error)
 	billingService   billing.Service
 	customerService  customer.Service
+	appService       app.Service
 	stripeService    appstripe.Service
 	options          []httptransport.HandlerOption
 }

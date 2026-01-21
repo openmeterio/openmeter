@@ -100,6 +100,7 @@ func (s *Service) GetCustomerOverride(ctx context.Context, input billing.GetCust
 	})
 }
 
+// TODO: remove this once legacy API is removed
 // GetCustomerApp returns the app for a customer, it will return the first app found for the app type
 func (s *Service) GetCustomerApp(ctx context.Context, input billing.GetCustomerAppInput) (app.App, error) {
 	// Validate the input
