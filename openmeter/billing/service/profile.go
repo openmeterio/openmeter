@@ -528,7 +528,7 @@ func (s *Service) handleDefaultProfileChange(ctx context.Context, input defaultP
 	return nil
 }
 
-func (s *Service) ResolveAppIDFromBillingProfile(ctx context.Context, namespace string, customerId *customer.CustomerID) (app.AppID, error) {
+func (s *Service) ResolveStripeAppIDFromBillingProfile(ctx context.Context, namespace string, customerId *customer.CustomerID) (app.AppID, error) {
 	var appID app.AppID
 
 	// If the customer ID is provided, resolve billing profile based on the customer

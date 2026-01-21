@@ -39,7 +39,7 @@ func (h *handler) CreateCustomerStripeCheckoutSession() CreateCustomerStripeChec
 				ID:        customerIdParam,
 			})
 
-			appId, err := h.billingService.ResolveAppIDFromBillingProfile(ctx, namespace, customerId)
+			appId, err := h.billingService.ResolveStripeAppIDFromBillingProfile(ctx, namespace, customerId)
 			if err != nil {
 				return CreateCustomerStripeCheckoutSessionRequest{}, err
 			}

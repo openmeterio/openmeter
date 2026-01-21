@@ -112,7 +112,7 @@ func (h *handler) CreateAppStripeCheckoutSession() CreateAppStripeCheckoutSessio
 			if body.AppId != nil {
 				req.AppID = app.AppID{Namespace: namespace, ID: *body.AppId}
 			} else {
-				appId, err := h.billingService.ResolveAppIDFromBillingProfile(ctx, namespace, customerId)
+				appId, err := h.billingService.ResolveStripeAppIDFromBillingProfile(ctx, namespace, customerId)
 				if err != nil {
 					return CreateAppStripeCheckoutSessionRequest{}, fmt.Errorf("failed to resolve app id from billing profile: %w", err)
 				}
