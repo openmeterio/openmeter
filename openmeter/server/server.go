@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
 	oapimiddleware "github.com/oapi-codegen/nethttp-middleware"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
 	v3server "github.com/openmeterio/openmeter/api/v3/server"
@@ -60,7 +61,7 @@ type RouterHooks struct {
 	Routes      []RouteHook
 }
 
-type PostAuthMiddlewares []api.MiddlewareFunc
+type PostAuthMiddlewares []server.MiddlewareFunc
 
 type Config struct {
 	RouterConfig        router.Config
@@ -88,7 +89,7 @@ func NewServer(config *Config) (*Server, error) {
 
 	r := chi.NewRouter()
 
-	v3Middlewares := []func(http.Handler) http.Handler{
+	v3Middlewares := []server.MiddlewareFunc{
 		middleware.RealIP,
 		middleware.RequestID,
 		func(h http.Handler) http.Handler {
@@ -118,6 +119,7 @@ func NewServer(config *Config) (*Server, error) {
 		StripeService:           config.RouterConfig.AppStripe,
 		SubscriptionService:     config.RouterConfig.SubscriptionService,
 		Middlewares:             v3Middlewares,
+		PostAuthMiddlewares:     config.PostAuthMiddlewares,
 	})
 	if err != nil {
 		slog.Error("failed to create v3 API", "error", err)
@@ -202,7 +204,11 @@ func NewServer(config *Config) (*Server, error) {
 			}),
 		}
 
-		middlewares = append(middlewares, config.PostAuthMiddlewares...)
+		postAuthMiddlewares := lo.Map(config.PostAuthMiddlewares, func(mwf server.MiddlewareFunc, _ int) api.MiddlewareFunc {
+			return api.MiddlewareFunc(mwf)
+		})
+
+		middlewares = append(middlewares, postAuthMiddlewares...)
 
 		// Use validator middleware to check requests against the OpenAPI schema
 		_ = api.HandlerWithOptions(impl, api.ChiServerOptions{

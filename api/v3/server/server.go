@@ -10,6 +10,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
+	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
@@ -36,13 +37,15 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/server"
 )
 
 type Config struct {
-	BaseURL          string
-	NamespaceDecoder namespacedriver.NamespaceDecoder
-	ErrorHandler     errorsx.Handler
-	Middlewares      []func(http.Handler) http.Handler
+	BaseURL             string
+	NamespaceDecoder    namespacedriver.NamespaceDecoder
+	ErrorHandler        errorsx.Handler
+	Middlewares         []server.MiddlewareFunc
+	PostAuthMiddlewares []server.MiddlewareFunc
 
 	// services
 	AppService              app.Service
@@ -211,7 +214,9 @@ func (s *Server) RegisterRoutes(r chi.Router) error {
 	})
 
 	r.Route(s.BaseURL, func(r chi.Router) {
-		r.Use(s.Middlewares...)
+		for _, mw := range s.Middlewares {
+			r.Use(mw)
+		}
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			apierrors.
 				NewNotFoundError(r.Context(), errors.New("route not found"), "route").
@@ -232,11 +237,19 @@ func (s *Server) RegisterRoutes(r chi.Router) error {
 			_ = render.RenderYAML(w, s.swagger)
 		})
 
+		middlewares := []api.MiddlewareFunc{
+			validationMiddleware,
+		}
+
+		postAuthMiddlewares := lo.Map(s.PostAuthMiddlewares, func(mwf server.MiddlewareFunc, _ int) api.MiddlewareFunc {
+			return api.MiddlewareFunc(mwf)
+		})
+
+		middlewares = append(middlewares, postAuthMiddlewares...)
+
 		_ = api.HandlerWithOptions(s, api.ChiServerOptions{
-			BaseRouter: r,
-			Middlewares: []api.MiddlewareFunc{
-				validationMiddleware,
-			},
+			BaseRouter:       r,
+			Middlewares:      middlewares,
 			ErrorHandlerFunc: apierrors.NewV3ErrorHandlerFunc(s.ErrorHandler),
 		})
 	})
