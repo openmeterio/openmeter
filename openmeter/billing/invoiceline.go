@@ -248,11 +248,11 @@ func (i Line) LineID() LineID {
 	}
 }
 
-type lineEditFunction func(*Line)
+type LineEditFunction func(*Line)
 
 // CloneWithoutDependencies returns a clone of the line without any external dependencies. Could be used
 // for creating a new line without any references to the parent or children (or config IDs).
-func (i Line) CloneWithoutDependencies(edits ...lineEditFunction) *Line {
+func (i Line) CloneWithoutDependencies(edits ...LineEditFunction) *Line {
 	clone := i.clone(cloneOptions{
 		skipDBState:   true,
 		skipChildren:  true,
@@ -273,7 +273,9 @@ func (i Line) CloneWithoutDependencies(edits ...lineEditFunction) *Line {
 	}
 
 	for _, edit := range edits {
-		edit(clone)
+		if edit != nil {
+			edit(clone)
+		}
 	}
 
 	return clone

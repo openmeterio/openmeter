@@ -188,6 +188,10 @@ type Lines []Line
 
 func (s Lines) ValidateForInvoice(ctx context.Context, invoice *billing.Invoice) error {
 	return errors.Join(lo.Map(s, func(line Line, idx int) error {
+		if line == nil {
+			return fmt.Errorf("line[%d] is nil", idx)
+		}
+
 		if err := line.Validate(ctx, invoice); err != nil {
 			id := line.ID()
 			if id == "" {

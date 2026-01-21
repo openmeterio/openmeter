@@ -318,6 +318,10 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 				_, ok := linesShouldBeIncluded[line.ID()]
 				return ok
 			})
+
+			if len(res[currency]) == 0 {
+				delete(res, currency)
+			}
 		}
 	}
 
@@ -391,7 +395,7 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 			}
 
 			if splitLine.PreSplitAtLine == nil {
-				s.logger.WarnContext(ctx, "pre split line is nil, we are not creating empty lines", "line", line.ID(), "period_start", line.Period().Start, "period_end", line.Period().End, "period_end", line.Period().End)
+				s.logger.WarnContext(ctx, "pre split line is nil, we are not creating empty lines", "line", line.ID(), "period_start", line.Period().Start, "period_end", line.Period().End)
 				continue
 			}
 
