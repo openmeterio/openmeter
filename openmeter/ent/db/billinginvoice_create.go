@@ -501,19 +501,19 @@ func (_c *BillingInvoiceCreate) SetNillableDueAt(v *time.Time) *BillingInvoiceCr
 }
 
 // SetStatus sets the "status" field.
-func (_c *BillingInvoiceCreate) SetStatus(v billing.InvoiceStatus) *BillingInvoiceCreate {
+func (_c *BillingInvoiceCreate) SetStatus(v billing.StandardInvoiceStatus) *BillingInvoiceCreate {
 	_c.mutation.SetStatus(v)
 	return _c
 }
 
 // SetStatusDetailsCache sets the "status_details_cache" field.
-func (_c *BillingInvoiceCreate) SetStatusDetailsCache(v billing.InvoiceStatusDetails) *BillingInvoiceCreate {
+func (_c *BillingInvoiceCreate) SetStatusDetailsCache(v billing.StandardInvoiceStatusDetails) *BillingInvoiceCreate {
 	_c.mutation.SetStatusDetailsCache(v)
 	return _c
 }
 
 // SetNillableStatusDetailsCache sets the "status_details_cache" field if the given value is not nil.
-func (_c *BillingInvoiceCreate) SetNillableStatusDetailsCache(v *billing.InvoiceStatusDetails) *BillingInvoiceCreate {
+func (_c *BillingInvoiceCreate) SetNillableStatusDetailsCache(v *billing.StandardInvoiceStatusDetails) *BillingInvoiceCreate {
 	if v != nil {
 		_c.SetStatusDetailsCache(*v)
 	}
@@ -2013,7 +2013,7 @@ func (u *BillingInvoiceUpsert) ClearDueAt() *BillingInvoiceUpsert {
 }
 
 // SetStatus sets the "status" field.
-func (u *BillingInvoiceUpsert) SetStatus(v billing.InvoiceStatus) *BillingInvoiceUpsert {
+func (u *BillingInvoiceUpsert) SetStatus(v billing.StandardInvoiceStatus) *BillingInvoiceUpsert {
 	u.Set(billinginvoice.FieldStatus, v)
 	return u
 }
@@ -2025,7 +2025,7 @@ func (u *BillingInvoiceUpsert) UpdateStatus() *BillingInvoiceUpsert {
 }
 
 // SetStatusDetailsCache sets the "status_details_cache" field.
-func (u *BillingInvoiceUpsert) SetStatusDetailsCache(v billing.InvoiceStatusDetails) *BillingInvoiceUpsert {
+func (u *BillingInvoiceUpsert) SetStatusDetailsCache(v billing.StandardInvoiceStatusDetails) *BillingInvoiceUpsert {
 	u.Set(billinginvoice.FieldStatusDetailsCache, v)
 	return u
 }
@@ -2985,7 +2985,7 @@ func (u *BillingInvoiceUpsertOne) ClearDueAt() *BillingInvoiceUpsertOne {
 }
 
 // SetStatus sets the "status" field.
-func (u *BillingInvoiceUpsertOne) SetStatus(v billing.InvoiceStatus) *BillingInvoiceUpsertOne {
+func (u *BillingInvoiceUpsertOne) SetStatus(v billing.StandardInvoiceStatus) *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.SetStatus(v)
 	})
@@ -2999,7 +2999,7 @@ func (u *BillingInvoiceUpsertOne) UpdateStatus() *BillingInvoiceUpsertOne {
 }
 
 // SetStatusDetailsCache sets the "status_details_cache" field.
-func (u *BillingInvoiceUpsertOne) SetStatusDetailsCache(v billing.InvoiceStatusDetails) *BillingInvoiceUpsertOne {
+func (u *BillingInvoiceUpsertOne) SetStatusDetailsCache(v billing.StandardInvoiceStatusDetails) *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.SetStatusDetailsCache(v)
 	})
@@ -4155,7 +4155,7 @@ func (u *BillingInvoiceUpsertBulk) ClearDueAt() *BillingInvoiceUpsertBulk {
 }
 
 // SetStatus sets the "status" field.
-func (u *BillingInvoiceUpsertBulk) SetStatus(v billing.InvoiceStatus) *BillingInvoiceUpsertBulk {
+func (u *BillingInvoiceUpsertBulk) SetStatus(v billing.StandardInvoiceStatus) *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.SetStatus(v)
 	})
@@ -4169,7 +4169,7 @@ func (u *BillingInvoiceUpsertBulk) UpdateStatus() *BillingInvoiceUpsertBulk {
 }
 
 // SetStatusDetailsCache sets the "status_details_cache" field.
-func (u *BillingInvoiceUpsertBulk) SetStatusDetailsCache(v billing.InvoiceStatusDetails) *BillingInvoiceUpsertBulk {
+func (u *BillingInvoiceUpsertBulk) SetStatusDetailsCache(v billing.StandardInvoiceStatusDetails) *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.SetStatusDetailsCache(v)
 	})

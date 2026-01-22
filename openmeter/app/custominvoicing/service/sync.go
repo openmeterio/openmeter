@@ -17,12 +17,12 @@ import (
 
 var _ appcustominvoicing.SyncService = (*Service)(nil)
 
-func (s *Service) SyncDraftInvoice(ctx context.Context, input appcustominvoicing.SyncDraftInvoiceInput) (billing.Invoice, error) {
+func (s *Service) SyncDraftInvoice(ctx context.Context, input appcustominvoicing.SyncDraftInvoiceInput) (billing.StandardInvoice, error) {
 	if err := input.Validate(); err != nil {
-		return billing.Invoice{}, err
+		return billing.StandardInvoice{}, err
 	}
 
-	return s.billingService.SyncDraftInvoice(ctx, billing.SyncDraftInvoiceInput{
+	return s.billingService.SyncDraftInvoice(ctx, billing.SyncDraftStandardInvoiceInput{
 		InvoiceID:            input.InvoiceID,
 		UpsertInvoiceResults: input.UpsertInvoiceResults,
 		AdditionalMetadata: map[string]string{
@@ -32,12 +32,12 @@ func (s *Service) SyncDraftInvoice(ctx context.Context, input appcustominvoicing
 	})
 }
 
-func (s *Service) SyncIssuingInvoice(ctx context.Context, input appcustominvoicing.SyncIssuingInvoiceInput) (billing.Invoice, error) {
+func (s *Service) SyncIssuingInvoice(ctx context.Context, input appcustominvoicing.SyncIssuingInvoiceInput) (billing.StandardInvoice, error) {
 	if err := input.Validate(); err != nil {
-		return billing.Invoice{}, err
+		return billing.StandardInvoice{}, err
 	}
 
-	return s.billingService.SyncIssuingInvoice(ctx, billing.SyncIssuingInvoiceInput{
+	return s.billingService.SyncIssuingInvoice(ctx, billing.SyncIssuingStandardInvoiceInput{
 		InvoiceID:             input.InvoiceID,
 		FinalizeInvoiceResult: input.FinalizeInvoiceResult,
 		AdditionalMetadata: map[string]string{
@@ -47,9 +47,9 @@ func (s *Service) SyncIssuingInvoice(ctx context.Context, input appcustominvoici
 	})
 }
 
-func (s *Service) ValidateInvoiceApp(invoice billing.Invoice) error {
+func (s *Service) ValidateInvoiceApp(invoice billing.StandardInvoice) error {
 	if invoice.Workflow.Apps == nil {
-		return models.NewGenericValidationError(fmt.Errorf("invoice %s has no apps", invoice.ID))
+		return models.NewGenericValidationError(fmt.Errorf("standard invoice %s has no apps", invoice.ID))
 	}
 
 	if invoice.Workflow.Apps.Invoicing == nil {
@@ -63,21 +63,21 @@ func (s *Service) ValidateInvoiceApp(invoice billing.Invoice) error {
 	return nil
 }
 
-func (s *Service) HandlePaymentTrigger(ctx context.Context, input appcustominvoicing.HandlePaymentTriggerInput) (billing.Invoice, error) {
+func (s *Service) HandlePaymentTrigger(ctx context.Context, input appcustominvoicing.HandlePaymentTriggerInput) (billing.StandardInvoice, error) {
 	if err := input.Validate(); err != nil {
-		return billing.Invoice{}, err
+		return billing.StandardInvoice{}, err
 	}
 
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.Invoice, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.StandardInvoice, error) {
 		invoice, err := s.billingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 			Invoice: input.InvoiceID,
 		})
 		if err != nil {
-			return billing.Invoice{}, err
+			return billing.StandardInvoice{}, err
 		}
 
 		if err := s.ValidateInvoiceApp(invoice); err != nil {
-			return billing.Invoice{}, err
+			return billing.StandardInvoice{}, err
 		}
 
 		err = s.billingService.TriggerInvoice(ctx, billing.InvoiceTriggerServiceInput{
@@ -89,14 +89,14 @@ func (s *Service) HandlePaymentTrigger(ctx context.Context, input appcustominvoi
 			Capability: app.CapabilityTypeCollectPayments,
 		})
 		if err != nil {
-			return billing.Invoice{}, err
+			return billing.StandardInvoice{}, err
 		}
 
 		invoice, err = s.billingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 			Invoice: input.InvoiceID,
 		})
 		if err != nil {
-			return billing.Invoice{}, err
+			return billing.StandardInvoice{}, err
 		}
 
 		if len(invoice.ValidationIssues) > 0 {
@@ -106,7 +106,7 @@ func (s *Service) HandlePaymentTrigger(ctx context.Context, input appcustominvoi
 
 			if len(criticalIssues) > 0 {
 				// Warning: This causes a rollback of the transaction
-				return billing.Invoice{}, billing.ValidationError{
+				return billing.StandardInvoice{}, billing.ValidationError{
 					Err: criticalIssues.AsError(),
 				}
 			}

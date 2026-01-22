@@ -911,14 +911,14 @@ func (u *BillingInvoiceUpdateOne) SetOrClearDueAt(value *time.Time) *BillingInvo
 	return u.SetDueAt(*value)
 }
 
-func (u *BillingInvoiceUpdate) SetOrClearStatusDetailsCache(value *billing.InvoiceStatusDetails) *BillingInvoiceUpdate {
+func (u *BillingInvoiceUpdate) SetOrClearStatusDetailsCache(value *billing.StandardInvoiceStatusDetails) *BillingInvoiceUpdate {
 	if value == nil {
 		return u.ClearStatusDetailsCache()
 	}
 	return u.SetStatusDetailsCache(*value)
 }
 
-func (u *BillingInvoiceUpdateOne) SetOrClearStatusDetailsCache(value *billing.InvoiceStatusDetails) *BillingInvoiceUpdateOne {
+func (u *BillingInvoiceUpdateOne) SetOrClearStatusDetailsCache(value *billing.StandardInvoiceStatusDetails) *BillingInvoiceUpdateOne {
 	if value == nil {
 		return u.ClearStatusDetailsCache()
 	}

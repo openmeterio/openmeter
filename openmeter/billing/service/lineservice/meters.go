@@ -14,7 +14,7 @@ import (
 )
 
 type getFeatureUsageInput struct {
-	Line     *billing.Line
+	Line     *billing.StandardLine
 	Meter    meter.Meter
 	Feature  feature.Feature
 	Customer billing.InvoiceCustomer

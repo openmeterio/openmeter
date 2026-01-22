@@ -79,9 +79,9 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: customer.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []*billing.Line{
+			Lines: []*billing.StandardLine{
 				{
-					LineBase: billing.LineBase{
+					StandardLineBase: billing.StandardLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Name: "UBP - unit",
 						}),
@@ -95,7 +95,7 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 					},
 				},
 				{
-					LineBase: billing.LineBase{
+					StandardLineBase: billing.StandardLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Name: "UBP - volume",
 						}),
@@ -181,7 +181,7 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 		s.Nil(invoice.QuantitySnapshotedAt)
 		s.Equal(period2End.Add(time.Hour), *invoice.CollectionAt, "collection_at should be periodEnd + 1hr")
 
-		s.Equal(billing.InvoiceStatusDraftWaitingForCollection, invoice.Status)
+		s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
 		s.Nil(invoice.StatusDetails.AvailableActions.Advance)
 
 		// total should be $2
@@ -211,13 +211,13 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 		})
 		s.NoError(err)
 
-		s.Equal(billing.InvoiceStatusDraftWaitingForCollection, invoice.Status)
+		s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
 		s.NotNil(invoice.StatusDetails.AvailableActions.Advance)
 
 		// advancement should work
 		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoiceID)
 		s.NoError(err)
-		s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+		s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
 		s.NotNil(invoice.QuantitySnapshotedAt)
 		s.True(!invoice.QuantitySnapshotedAt.After(clock.Now()), "quantity should be snapshoted before now()")
 
@@ -234,7 +234,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 	tcs := []struct {
 		name      string
 		namespace string
-		line      *billing.Line
+		line      *billing.StandardLine
 	}{
 		{
 			name:      "flat fee only",
@@ -283,7 +283,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 			pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 				Customer: customer.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines:    []*billing.Line{tc.line},
+				Lines:    []*billing.StandardLine{tc.line},
 			})
 			s.NoError(err)
 			s.Len(pendingLineResult.Lines, 1)
@@ -303,7 +303,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 			s.NotNil(invoice.CollectionAt)
 			s.NotNil(invoice.QuantitySnapshotedAt)
 			s.Equal(invoice.CreatedAt, *invoice.CollectionAt)
-			s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+			s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
 		})
 	}
 }
@@ -337,9 +337,9 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 	pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
-		Lines: []*billing.Line{
+		Lines: []*billing.StandardLine{
 			{
-				LineBase: billing.LineBase{
+				StandardLineBase: billing.StandardLineBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 						Name: "UBP - unit",
 					}),
@@ -366,7 +366,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 	s.Len(invoices, 1)
 
 	invoice := invoices[0]
-	s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
 	s.Equal(float64(1), invoice.Totals.Amount.InexactFloat64())
 
 	previousSnapshot := *invoice.QuantitySnapshotedAt
@@ -377,7 +377,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 
 	invoice, err = s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
 		Invoice: invoice.InvoiceID(),
-		EditFn: func(invoice *billing.Invoice) error {
+		EditFn: func(invoice *billing.StandardInvoice) error {
 			linePeriod := billing.Period{
 				Start: periodEnd.Add(time.Hour * 1),
 				End:   periodEnd.Add(time.Hour * 2),
@@ -402,7 +402,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 	s.NoError(err)
 
 	// Then
-	s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
 
 	// No new snapshot should happen
 	s.Equal(float64(11), invoice.Totals.Amount.InexactFloat64()) // Event at periodStart + 35min is ignored
@@ -448,9 +448,9 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_SetsCollectionAtToNextAnchor
 	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customerEntity.GetID(),
 		Currency: currencyx.Code(currency.USD),
-		Lines: []*billing.Line{
+		Lines: []*billing.StandardLine{
 			{
-				LineBase: billing.LineBase{
+				StandardLineBase: billing.StandardLineBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{Name: "UBP - unit"}),
 					Period:          billing.Period{Start: periodStart, End: periodEnd},
 					InvoiceAt:       periodEnd,
@@ -516,9 +516,9 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 	pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
-		Lines: []*billing.Line{
+		Lines: []*billing.StandardLine{
 			{
-				LineBase: billing.LineBase{
+				StandardLineBase: billing.StandardLineBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 						Name: "UBP - unit",
 					}),
@@ -545,7 +545,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 	s.Len(invoices, 1)
 
 	invoice := invoices[0]
-	s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
 	s.Equal(float64(1), invoice.Totals.Amount.InexactFloat64())
 
 	previousSnapshot := *invoice.QuantitySnapshotedAt
@@ -559,9 +559,9 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 	s.Run("adding a new line extends the collection period", func() {
 		invoice, err = s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
 			Invoice: invoice.InvoiceID(),
-			EditFn: func(invoice *billing.Invoice) error {
-				invoice.Lines.Append(&billing.Line{
-					LineBase: billing.LineBase{
+			EditFn: func(invoice *billing.StandardInvoice) error {
+				invoice.Lines.Append(&billing.StandardLine{
+					StandardLineBase: billing.StandardLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Namespace: namespace,
 							Name:      "UBP - unit - new",
@@ -589,7 +589,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 		s.NoError(err)
 
 		// Then
-		s.Equal(billing.InvoiceStatusDraftWaitingForCollection, invoice.Status)
+		s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
 
 		// No new snapshot should happen
 		s.Equal(float64(1), invoice.Totals.Amount.InexactFloat64(), "no new total is registered")
@@ -616,12 +616,12 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 		})
 		s.NoError(err)
 
-		s.Equal(billing.InvoiceStatusDraftWaitingForCollection, invoice.Status)
+		s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
 
 		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.InvoiceID())
 		s.NoError(err)
 
-		s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+		s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
 		s.NotNil(invoice.QuantitySnapshotedAt)
 		s.Equal(float64(4), invoice.Totals.Amount.InexactFloat64())
 		s.NotEqual(previousSnapshot, *invoice.QuantitySnapshotedAt)

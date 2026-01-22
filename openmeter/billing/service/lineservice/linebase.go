@@ -24,7 +24,7 @@ type SplitResult struct {
 }
 
 type LineBase interface {
-	ToEntity() *billing.Line
+	ToEntity() *billing.StandardLine
 	ID() string
 	InvoiceAt() time.Time
 	InvoiceID() string
@@ -40,12 +40,12 @@ type LineBase interface {
 var _ LineBase = (*lineBase)(nil)
 
 type lineBase struct {
-	line     *billing.Line
+	line     *billing.StandardLine
 	service  *Service
 	currency currencyx.Calculator
 }
 
-func (l lineBase) ToEntity() *billing.Line {
+func (l lineBase) ToEntity() *billing.StandardLine {
 	return l.line
 }
 
@@ -69,7 +69,7 @@ func (l lineBase) Period() billing.Period {
 	return l.line.Period
 }
 
-func (l lineBase) Validate(ctx context.Context, invoice *billing.Invoice) error {
+func (l lineBase) Validate(ctx context.Context, invoice *billing.StandardInvoice) error {
 	if l.line.Currency != invoice.Currency || l.line.Currency == "" {
 		return billing.ValidationError{
 			Err: billing.ErrInvoiceLineCurrencyMismatch,

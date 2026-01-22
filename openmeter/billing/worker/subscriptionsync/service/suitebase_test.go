@@ -126,7 +126,7 @@ func (s *SuiteBase) AfterTest(ctx context.Context, suiteName, testName string) {
 	s.Service.featureFlags = FeatureFlags{}
 }
 
-func (s *SuiteBase) gatheringInvoice(ctx context.Context, namespace string, customerID string) billing.Invoice {
+func (s *SuiteBase) gatheringInvoice(ctx context.Context, namespace string, customerID string) billing.StandardInvoice {
 	s.T().Helper()
 
 	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
@@ -138,7 +138,7 @@ func (s *SuiteBase) gatheringInvoice(ctx context.Context, namespace string, cust
 		},
 		Expand: billing.InvoiceExpandAll,
 		Statuses: []string{
-			string(billing.InvoiceStatusGathering),
+			string(billing.StandardInvoiceStatusGathering),
 		},
 	})
 
@@ -159,7 +159,7 @@ func (s *SuiteBase) expectNoGatheringInvoice(ctx context.Context, namespace stri
 		},
 		Expand: billing.InvoiceExpandAll,
 		Statuses: []string{
-			string(billing.InvoiceStatusGathering),
+			string(billing.StandardInvoiceStatusGathering),
 		},
 	})
 
@@ -172,7 +172,7 @@ func (s *SuiteBase) enableProrating() {
 	s.Service.featureFlags.EnableFlatFeeInArrearsProrating = true
 }
 
-func (s *SuiteBase) getLineByChildID(invoice billing.Invoice, childID string) *billing.Line {
+func (s *SuiteBase) getLineByChildID(invoice billing.StandardInvoice, childID string) *billing.StandardLine {
 	s.T().Helper()
 
 	for _, line := range invoice.Lines.OrEmpty() {
@@ -186,7 +186,7 @@ func (s *SuiteBase) getLineByChildID(invoice billing.Invoice, childID string) *b
 	return nil
 }
 
-func (s *SuiteBase) expectNoLineWithChildID(invoice billing.Invoice, childID string) {
+func (s *SuiteBase) expectNoLineWithChildID(invoice billing.StandardInvoice, childID string) {
 	s.T().Helper()
 
 	for _, line := range invoice.Lines.OrEmpty() {
@@ -219,15 +219,15 @@ type expectedLine struct {
 	Price            mo.Option[*productcatalog.Price]
 	Periods          []billing.Period
 	InvoiceAt        mo.Option[[]time.Time]
-	AdditionalChecks func(line *billing.Line)
+	AdditionalChecks func(line *billing.StandardLine)
 }
 
-func (s *SuiteBase) expectLines(invoice billing.Invoice, subscriptionID string, expectedLines []expectedLine) {
+func (s *SuiteBase) expectLines(invoice billing.StandardInvoice, subscriptionID string, expectedLines []expectedLine) {
 	s.T().Helper()
 
 	lines := invoice.Lines.OrEmpty()
 
-	existingLineChildIDs := lo.Map(lines, func(line *billing.Line, _ int) string {
+	existingLineChildIDs := lo.Map(lines, func(line *billing.StandardLine, _ int) string {
 		return lo.FromPtrOr(line.ChildUniqueReferenceID, line.ID)
 	})
 
@@ -240,7 +240,7 @@ func (s *SuiteBase) expectLines(invoice billing.Invoice, subscriptionID string, 
 	for _, expectedLine := range expectedLines {
 		childIDs := expectedLine.Matcher.ChildIDs(subscriptionID)
 		for idx, childID := range childIDs {
-			line, found := lo.Find(lines, func(line *billing.Line) bool {
+			line, found := lo.Find(lines, func(line *billing.StandardLine) bool {
 				return lo.FromPtrOr(line.ChildUniqueReferenceID, line.ID) == childID
 			})
 			s.Truef(found, "line not found with child id %s", childID)
@@ -418,7 +418,7 @@ func (s *SuiteBase) generatePeriods(startStr, endStr string, cadenceStr string, 
 // populateChildIDsFromParents copies over the child ID from the parent line, if it's not already set
 // as line splitting doesn't set the child ID on child lines to prevent conflicts if multiple split lines
 // end up on a single invoice.
-func (s *SuiteBase) populateChildIDsFromParents(invoice *billing.Invoice) {
+func (s *SuiteBase) populateChildIDsFromParents(invoice *billing.StandardInvoice) {
 	for _, line := range invoice.Lines.OrEmpty() {
 		if line.ChildUniqueReferenceID == nil && line.SplitLineGroupID != nil {
 			line.ChildUniqueReferenceID = line.SplitLineHierarchy.Group.UniqueReferenceID

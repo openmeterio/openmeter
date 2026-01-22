@@ -48,7 +48,7 @@ type InvoiceLineService interface {
 	GetLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]LineOrHierarchy, error)
 	// SnapshotLineQuantity returns an updated line with the quantity snapshoted from meters
 	// the invoice is used as contextual information to the call.
-	SnapshotLineQuantity(ctx context.Context, input SnapshotLineQuantityInput) (*Line, error)
+	SnapshotLineQuantity(ctx context.Context, input SnapshotLineQuantityInput) (*StandardLine, error)
 }
 
 type SplitLineGroupService interface {
@@ -58,23 +58,23 @@ type SplitLineGroupService interface {
 
 type InvoiceService interface {
 	ListInvoices(ctx context.Context, input ListInvoicesInput) (ListInvoicesResponse, error)
-	GetInvoiceByID(ctx context.Context, input GetInvoiceByIdInput) (Invoice, error)
-	InvoicePendingLines(ctx context.Context, input InvoicePendingLinesInput) ([]Invoice, error)
+	GetInvoiceByID(ctx context.Context, input GetInvoiceByIdInput) (StandardInvoice, error)
+	InvoicePendingLines(ctx context.Context, input InvoicePendingLinesInput) ([]StandardInvoice, error)
 	// AdvanceInvoice advances the invoice to the next stage, the advancement is stopped until:
 	// - an error is occurred
 	// - the invoice is in a state that cannot be advanced (e.g. waiting for draft period to expire)
 	// - the invoice is advanced to the final state
-	AdvanceInvoice(ctx context.Context, input AdvanceInvoiceInput) (Invoice, error)
-	SnapshotQuantities(ctx context.Context, input SnapshotQuantitiesInput) (Invoice, error)
-	ApproveInvoice(ctx context.Context, input ApproveInvoiceInput) (Invoice, error)
-	RetryInvoice(ctx context.Context, input RetryInvoiceInput) (Invoice, error)
-	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) (Invoice, error)
+	AdvanceInvoice(ctx context.Context, input AdvanceInvoiceInput) (StandardInvoice, error)
+	SnapshotQuantities(ctx context.Context, input SnapshotQuantitiesInput) (StandardInvoice, error)
+	ApproveInvoice(ctx context.Context, input ApproveInvoiceInput) (StandardInvoice, error)
+	RetryInvoice(ctx context.Context, input RetryInvoiceInput) (StandardInvoice, error)
+	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) (StandardInvoice, error)
 	// UpdateInvoice updates an invoice as a whole
-	UpdateInvoice(ctx context.Context, input UpdateInvoiceInput) (Invoice, error)
+	UpdateInvoice(ctx context.Context, input UpdateInvoiceInput) (StandardInvoice, error)
 
 	// SimulateInvoice generates an invoice based on the provided input, but does not persist it
 	// can be used to execute the invoice generation logic without actually creating an invoice in the database
-	SimulateInvoice(ctx context.Context, input SimulateInvoiceInput) (Invoice, error)
+	SimulateInvoice(ctx context.Context, input SimulateInvoiceInput) (StandardInvoice, error)
 	// UpsertValidationIssues upserts validation errors to the invoice bypassing the state machine, can only be
 	// used on invoices in immutable state.
 	UpsertValidationIssues(ctx context.Context, input UpsertValidationIssuesInput) error
@@ -97,8 +97,8 @@ type InvoiceAppService interface {
 	UpdateInvoiceFields(ctx context.Context, input UpdateInvoiceFieldsInput) error
 
 	// Async sync support
-	SyncDraftInvoice(ctx context.Context, input SyncDraftInvoiceInput) (Invoice, error)
-	SyncIssuingInvoice(ctx context.Context, input SyncIssuingInvoiceInput) (Invoice, error)
+	SyncDraftInvoice(ctx context.Context, input SyncDraftStandardInvoiceInput) (StandardInvoice, error)
+	SyncIssuingInvoice(ctx context.Context, input SyncIssuingStandardInvoiceInput) (StandardInvoice, error)
 }
 
 type LockableService interface {

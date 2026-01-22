@@ -8,7 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
-func UpsertDiscountCorrelationIDs(invoice *billing.Invoice) error {
+func UpsertDiscountCorrelationIDs(invoice *billing.StandardInvoice) error {
 	lines := invoice.Lines.OrEmpty()
 	for _, line := range lines {
 		updatedDiscounts, err := ensureDiscountCorrelationIDs(line.RateCardDiscounts)

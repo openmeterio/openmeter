@@ -232,12 +232,12 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 
 	invoice := invoices.Items[0]
 
-	require.Equal(t, billing.InvoiceStatusGathering, invoice.Status)
+	require.Equal(t, billing.StandardInvoiceStatusGathering, invoice.Status)
 
 	lns, ok := invoice.Lines.Get()
 	require.True(t, ok)
 
-	linesByFeature := lo.GroupBy(lns, func(l *billing.Line) string {
+	linesByFeature := lo.GroupBy(lns, func(l *billing.StandardLine) string {
 		if l.UsageBased != nil {
 			return l.UsageBased.FeatureKey
 		}
@@ -267,7 +267,7 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 
 	t.Run("lines for test-feature-2", func(t *testing.T) {
 		// As these are not usagebasedlines, we'll use filtering here
-		var lines []*billing.Line
+		var lines []*billing.StandardLine
 
 		for k, v := range linesByFeature {
 			if strings.Contains(k, feats[1].Key) {
@@ -279,7 +279,7 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 		require.Len(t, lines, 2)
 
 		// Let's sort by line.ChildUniqueReferenceID
-		slices.SortFunc(lines, func(i, j *billing.Line) int {
+		slices.SortFunc(lines, func(i, j *billing.StandardLine) int {
 			return strings.Compare(*i.ChildUniqueReferenceID, *j.ChildUniqueReferenceID)
 		})
 
@@ -302,7 +302,7 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 		require.Len(t, lines, 16)
 
 		// Let's sort the lines by the period start ascending
-		slices.SortFunc(lines, func(i, j *billing.Line) int {
+		slices.SortFunc(lines, func(i, j *billing.StandardLine) int {
 			return i.Period.Start.Compare(j.Period.Start)
 		})
 
@@ -435,13 +435,13 @@ func TestAnchoredAlignment_MidMonthStart_EarlyCancel_IssueNextAnchor(t *testing.
 
 	// Gathering and Standard, let's get the standard
 	require.Len(t, invoices.Items, 2)
-	invoice, ok := lo.Find(invoices.Items, func(i billing.Invoice) bool {
-		return i.Status != billing.InvoiceStatusGathering
+	invoice, ok := lo.Find(invoices.Items, func(i billing.StandardInvoice) bool {
+		return i.Status != billing.StandardInvoiceStatusGathering
 	})
 	require.True(t, ok)
 
 	// We should have a gathering invoice with lines invoiceAt at end of June and collectionAt at July 1st (due to anchored alignment)
-	require.Equal(t, billing.InvoiceStatusDraftWaitingForCollection, invoice.Status)
+	require.Equal(t, billing.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
 	require.NotNil(t, invoice.CollectionAt)
 	require.Equal(t, firstOfNextMonth, *invoice.CollectionAt)
 

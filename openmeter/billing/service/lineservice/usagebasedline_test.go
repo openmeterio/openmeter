@@ -48,8 +48,8 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 	usdCurrencyCalc, err := currencyx.Code(currency.USD).Calculator()
 	require.NoError(t, err)
 
-	line := &billing.Line{
-		LineBase: billing.LineBase{
+	line := &billing.StandardLine{
+		StandardLineBase: billing.StandardLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				ID:   "fake-line",
 				Name: "feature",
@@ -76,8 +76,8 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 		Group: fakeParentGroup,
 		Lines: []billing.LineWithInvoiceHeader{
 			{
-				Line: &billing.Line{
-					LineBase: billing.LineBase{
+				Line: &billing.StandardLine{
+					StandardLineBase: billing.StandardLineBase{
 						// Period is unset, so this fake line is always in scope for NetAmount calculations
 						Totals: billing.Totals{
 							Amount: tc.previousBilledAmount,

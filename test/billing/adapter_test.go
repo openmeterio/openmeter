@@ -30,7 +30,7 @@ func TestBillingAdapter(t *testing.T) {
 	suite.Run(t, new(BillingAdapterTestSuite))
 }
 
-func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *billing.Invoice {
+func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *billing.StandardInvoice {
 	s.T().Helper()
 	// Given we have a customer
 	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
@@ -64,7 +64,7 @@ func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *
 
 		Number:   "INV-123",
 		Currency: currencyx.Code(currency.USD),
-		Status:   billing.InvoiceStatusGathering,
+		Status:   billing.StandardInvoiceStatusGathering,
 
 		Profile:  *profile,
 		IssuedAt: time.Now(),
@@ -80,15 +80,15 @@ func (s *BillingAdapterTestSuite) setupInvoice(ctx context.Context, ns string) *
 type newLineInput struct {
 	Namespace              string
 	Period                 billing.Period
-	Invoice                *billing.Invoice
+	Invoice                *billing.StandardInvoice
 	Name                   string
 	ChildUniqueReferenceID string
 	DetailedLines          mo.Option[[]newLineInput]
 }
 
-func newLine(in newLineInput) *billing.Line {
-	out := &billing.Line{
-		LineBase: billing.LineBase{
+func newLine(in newLineInput) *billing.StandardLine {
+	out := &billing.StandardLine{
+		StandardLineBase: billing.StandardLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace: in.Namespace,
 				Name:      in.Name,
@@ -156,7 +156,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 	invoice := s.setupInvoice(ctx, ns)
 
 	// When we create a line with detailed fields those get persisted
-	linesIn := []*billing.Line{
+	linesIn := []*billing.StandardLine{
 		newLine(newLineInput{
 			Namespace: ns,
 			Period:    period,
@@ -328,7 +328,7 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 		lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 			Namespace:   ns,
 			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
-			Lines:       []*billing.Line{lines[0]},
+			Lines:       []*billing.StandardLine{lines[0]},
 			InvoiceID:   invoice.ID,
 		})
 
@@ -448,7 +448,7 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 	lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 		Namespace:   ns,
 		SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
-		Lines:       []*billing.Line{lineIn},
+		Lines:       []*billing.StandardLine{lineIn},
 		InvoiceID:   invoice.ID,
 	})
 
@@ -540,7 +540,7 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 	updatedLines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 		Namespace:   ns,
 		SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
-		Lines:       []*billing.Line{updateLineIn},
+		Lines:       []*billing.StandardLine{updateLineIn},
 		InvoiceID:   invoice.ID,
 	})
 

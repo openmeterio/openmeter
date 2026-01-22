@@ -11,9 +11,9 @@ import (
 )
 
 func TestSortLines(t *testing.T) {
-	lines := Lines{
+	lines := StandardLines{
 		{
-			LineBase: LineBase{
+			StandardLineBase: StandardLineBase{
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 					Name:        "usage-based-line",
 					Description: lo.ToPtr("index=1"),
@@ -44,7 +44,7 @@ func TestSortLines(t *testing.T) {
 			},
 		},
 		{
-			LineBase: LineBase{
+			StandardLineBase: StandardLineBase{
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 					Name:        "usage-based-line",
 					Description: lo.ToPtr("index=0"),

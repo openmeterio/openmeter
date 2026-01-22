@@ -87,9 +87,9 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines: []*billing.Line{
+				Lines: []*billing.StandardLine{
 					{
-						LineBase: billing.LineBase{
+						StandardLineBase: billing.StandardLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Namespace: namespace,
 								Name:      "Test item1",
@@ -176,7 +176,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 	s.Run("Editing an invoice and adding a new discount generates a new correlation ID", func() {
 		editedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
 			Invoice: draftInvoiceID,
-			EditFn: func(invoice *billing.Invoice) error {
+			EditFn: func(invoice *billing.StandardInvoice) error {
 				line := invoice.Lines.OrEmpty()[0]
 				line.RateCardDiscounts.Usage = &billing.UsageDiscount{
 					UsageDiscount: productcatalog.UsageDiscount{
@@ -189,7 +189,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		s.NoError(err)
 		s.NotNil(editedInvoice)
 
-		s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, editedInvoice.Status)
+		s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, editedInvoice.Status)
 
 		rcDiscounts := editedInvoice.Lines.OrEmpty()[0].RateCardDiscounts
 		s.NotNil(rcDiscounts)
@@ -284,9 +284,9 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []*billing.Line{
+			Lines: []*billing.StandardLine{
 				{
-					LineBase: billing.LineBase{
+					StandardLineBase: billing.StandardLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Namespace: namespace,
 							Name:      "Test item1",

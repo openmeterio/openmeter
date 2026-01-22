@@ -10,7 +10,7 @@ const (
 	EventTypeInvoiceUpdated EventType = "invoice.updated"
 )
 
-type InvoicePayload = billing.EventInvoice
+type InvoicePayload = billing.EventStandardInvoice
 
 var (
 	_ models.Validator                          = (*InvoiceRuleConfig)(nil)

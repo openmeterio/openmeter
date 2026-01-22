@@ -17,7 +17,7 @@ type AppFactory interface {
 	NewApp(ctx context.Context, appBase app.AppBase) (app.App, error)
 }
 
-type InvoiceUpsertCallback func(billing.Invoice) (*billing.UpsertInvoiceResult, error)
+type InvoiceUpsertCallback func(billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error)
 
 type MockApp struct {
 	validateCustomerResponse mo.Option[error]
@@ -29,7 +29,7 @@ type MockApp struct {
 	upsertInvoiceCallback mo.Option[InvoiceUpsertCallback]
 	upsertInvoiceCalled   bool
 
-	finalizeInvoiceResponse mo.Option[*billing.FinalizeInvoiceResult]
+	finalizeInvoiceResponse mo.Option[*billing.FinalizeStandardInvoiceResult]
 	finalizeInvoiceCalled   bool
 
 	deleteInvoiceResponse mo.Option[error]
@@ -67,44 +67,44 @@ func (m *MockApp) OnValidateCustomer(err error) {
 
 // InvoicingApp
 
-func (m *MockApp) ValidateInvoice(appID string, invoice billing.Invoice) error {
+func (m *MockApp) ValidateStandardInvoice(appID string, invoice billing.StandardInvoice) error {
 	m.validateInvoiceResponseCalled = true
 	return m.validateInvoiceResponse.MustGet()
 }
 
-func (m *MockApp) OnValidateInvoice(err error) {
+func (m *MockApp) OnValidateStandardInvoice(err error) {
 	m.validateInvoiceResponse = mo.Some(err)
 }
 
-func (m *MockApp) UpsertInvoice(ctx context.Context, invoice billing.Invoice) (*billing.UpsertInvoiceResult, error) {
+func (m *MockApp) UpsertStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
 	m.upsertInvoiceCalled = true
 
 	if m.upsertInvoiceCallback.IsPresent() && m.upsertInvoiceCallback.MustGet() != nil {
 		return m.upsertInvoiceCallback.MustGet()(invoice)
 	}
 
-	return billing.NewUpsertInvoiceResult(), nil
+	return billing.NewUpsertStandardInvoiceResult(), nil
 }
 
-func (m *MockApp) OnUpsertInvoice(cb InvoiceUpsertCallback) {
+func (m *MockApp) OnUpsertStandardInvoice(cb InvoiceUpsertCallback) {
 	m.upsertInvoiceCallback = mo.Some(cb)
 }
 
-func (m *MockApp) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*billing.FinalizeInvoiceResult, error) {
+func (m *MockApp) FinalizeStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.FinalizeStandardInvoiceResult, error) {
 	m.finalizeInvoiceCalled = true
 	return m.finalizeInvoiceResponse.MustGet(), nil
 }
 
-func (m *MockApp) OnFinalizeInvoice(result *billing.FinalizeInvoiceResult) {
+func (m *MockApp) OnFinalizeStandardInvoice(result *billing.FinalizeStandardInvoiceResult) {
 	m.finalizeInvoiceResponse = mo.Some(result)
 }
 
-func (m *MockApp) DeleteInvoice(ctx context.Context, invoice billing.Invoice) error {
+func (m *MockApp) DeleteStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
 	m.deleteInvoiceCalled = true
 	return m.deleteInvoiceResponse.MustGet()
 }
 
-func (m *MockApp) OnDeleteInvoice(err error) {
+func (m *MockApp) OnDeleteStandardInvoice(err error) {
 	m.deleteInvoiceResponse = mo.Some(err)
 }
 
@@ -122,7 +122,7 @@ func (m *MockApp) Reset(t *testing.T) {
 	m.upsertInvoiceCallback = mo.None[InvoiceUpsertCallback]()
 	m.upsertInvoiceCalled = false
 
-	m.finalizeInvoiceResponse = mo.None[*billing.FinalizeInvoiceResult]()
+	m.finalizeInvoiceResponse = mo.None[*billing.FinalizeStandardInvoiceResult]()
 	m.finalizeInvoiceCalled = false
 
 	m.deleteInvoiceResponse = mo.None[error]()
@@ -191,20 +191,20 @@ func (m *mockAppInstance) ValidateCustomer(ctx context.Context, customer *custom
 	return m.parent.ValidateCustomer(m.GetID().ID, customer, capabilities)
 }
 
-func (m *mockAppInstance) ValidateInvoice(ctx context.Context, invoice billing.Invoice) error {
-	return m.parent.ValidateInvoice(m.GetID().ID, invoice)
+func (m *mockAppInstance) ValidateStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
+	return m.parent.ValidateStandardInvoice(m.GetID().ID, invoice)
 }
 
-func (m *mockAppInstance) UpsertInvoice(ctx context.Context, invoice billing.Invoice) (*billing.UpsertInvoiceResult, error) {
-	return m.parent.UpsertInvoice(ctx, invoice)
+func (m *mockAppInstance) UpsertStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
+	return m.parent.UpsertStandardInvoice(ctx, invoice)
 }
 
-func (m *mockAppInstance) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*billing.FinalizeInvoiceResult, error) {
-	return m.parent.FinalizeInvoice(ctx, invoice)
+func (m *mockAppInstance) FinalizeStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.FinalizeStandardInvoiceResult, error) {
+	return m.parent.FinalizeStandardInvoice(ctx, invoice)
 }
 
-func (m *mockAppInstance) DeleteInvoice(ctx context.Context, invoice billing.Invoice) error {
-	return m.parent.DeleteInvoice(ctx, invoice)
+func (m *mockAppInstance) DeleteStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
+	return m.parent.DeleteStandardInvoice(ctx, invoice)
 }
 
 func (m *mockAppInstance) GetEventAppData() (app.EventAppData, error) {

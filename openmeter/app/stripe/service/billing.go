@@ -92,7 +92,7 @@ func (s *Service) HandleInvoiceStateTransition(ctx context.Context, input appstr
 
 		if stripeValidationErrors != nil {
 			validationErrors = &billing.InvoiceTriggerValidationInput{
-				Operation: billing.InvoiceOpInitiatePayment,
+				Operation: billing.StandardInvoiceOpInitiatePayment,
 				Errors: lo.Map(stripeValidationErrors.Errors, func(stripeErr *stripe.Error, _ int) error {
 					return stripeErrorToValidationError(stripeErr)
 				}),
@@ -148,7 +148,7 @@ func stripeErrorToValidationError(stripeErr *stripe.Error) error {
 }
 
 // getInvoiceByStripeID retrieves an invoice by its stripe ID, it returns nil if the invoice is not found (thus not managed by the app)
-func (s *Service) getInvoiceByStripeID(ctx context.Context, appID app.AppID, stripeInvoiceID string) (*billing.Invoice, error) {
+func (s *Service) getInvoiceByStripeID(ctx context.Context, appID app.AppID, stripeInvoiceID string) (*billing.StandardInvoice, error) {
 	invoices, err := s.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
 		Namespaces: []string{appID.Namespace},
 		ExternalIDs: &billing.ListInvoicesExternalIDFilter{

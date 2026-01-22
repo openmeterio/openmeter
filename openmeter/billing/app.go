@@ -75,50 +75,50 @@ func (u *UpsertResults) GetLineDiscountExternalIDs() map[string]string {
 	return u.lineDiscountExternalIDs
 }
 
-type UpsertInvoiceResult = UpsertResults
+type UpsertStandardInvoiceResult = UpsertResults
 
-func NewUpsertInvoiceResult() *UpsertInvoiceResult {
+func NewUpsertStandardInvoiceResult() *UpsertStandardInvoiceResult {
 	return NewUpsertResults()
 }
 
-type FinalizeInvoiceResult struct {
+type FinalizeStandardInvoiceResult struct {
 	invoiceNumber     string
 	paymentExternalID string
 	sentToCustomerAt  mo.Option[time.Time]
 }
 
-func NewFinalizeInvoiceResult() *FinalizeInvoiceResult {
-	return &FinalizeInvoiceResult{}
+func NewFinalizeStandardInvoiceResult() *FinalizeStandardInvoiceResult {
+	return &FinalizeStandardInvoiceResult{}
 }
 
-func (f *FinalizeInvoiceResult) GetPaymentExternalID() (string, bool) {
+func (f *FinalizeStandardInvoiceResult) GetPaymentExternalID() (string, bool) {
 	return f.paymentExternalID, f.paymentExternalID != ""
 }
 
-func (f *FinalizeInvoiceResult) SetPaymentExternalID(paymentExternalID string) *FinalizeInvoiceResult {
+func (f *FinalizeStandardInvoiceResult) SetPaymentExternalID(paymentExternalID string) *FinalizeStandardInvoiceResult {
 	f.paymentExternalID = paymentExternalID
 	return f
 }
 
-func (u *FinalizeInvoiceResult) GetInvoiceNumber() (string, bool) {
+func (u *FinalizeStandardInvoiceResult) GetInvoiceNumber() (string, bool) {
 	return u.invoiceNumber, u.invoiceNumber != ""
 }
 
-func (f *FinalizeInvoiceResult) SetInvoiceNumber(invoiceNumber string) *FinalizeInvoiceResult {
+func (f *FinalizeStandardInvoiceResult) SetInvoiceNumber(invoiceNumber string) *FinalizeStandardInvoiceResult {
 	f.invoiceNumber = invoiceNumber
 	return f
 }
 
-func (f *FinalizeInvoiceResult) GetSentToCustomerAt() (time.Time, bool) {
+func (f *FinalizeStandardInvoiceResult) GetSentToCustomerAt() (time.Time, bool) {
 	return f.sentToCustomerAt.OrEmpty(), f.sentToCustomerAt.IsPresent()
 }
 
-func (f *FinalizeInvoiceResult) SetSentToCustomerAt(sentToCustomerAt time.Time) *FinalizeInvoiceResult {
+func (f *FinalizeStandardInvoiceResult) SetSentToCustomerAt(sentToCustomerAt time.Time) *FinalizeStandardInvoiceResult {
 	f.sentToCustomerAt = mo.Some(sentToCustomerAt)
 	return f
 }
 
-func (f *FinalizeInvoiceResult) MergeIntoInvoice(invoice *Invoice) error {
+func (f *FinalizeStandardInvoiceResult) MergeIntoInvoice(invoice *StandardInvoice) error {
 	if paymentExternalID, ok := f.GetPaymentExternalID(); ok {
 		invoice.ExternalIDs.Payment = paymentExternalID
 	}
@@ -162,24 +162,24 @@ func (p *PostAdvanceHookResult) GetTriggerToInvoke() *InvoiceTriggerInput {
 //     an earlier version of the invoice will be passed, thus do not call any billingService methods
 //     from these callbacks.
 type InvoicingApp interface {
-	// ValidateInvoice validates if the app can run for the given invoice
-	ValidateInvoice(ctx context.Context, invoice Invoice) error
+	// ValidateStandardInvoice validates if the app can run for the given invoice
+	ValidateStandardInvoice(ctx context.Context, invoice StandardInvoice) error
 
-	// UpsertInvoice upserts the invoice on the remote system, the invoice is read-only, the app should not modify it
+	// UpsertStandardInvoice upserts the invoice on the remote system, the invoice is read-only, the app should not modify it
 	// the recommended behavior is that the invoices FlattenLinesByID is used to get all lines, then the app should
 	// synchronize all the fee lines and store the external IDs in the result.
-	UpsertInvoice(ctx context.Context, invoice Invoice) (*UpsertInvoiceResult, error)
+	UpsertStandardInvoice(ctx context.Context, invoice StandardInvoice) (*UpsertStandardInvoiceResult, error)
 
-	// FinalizeInvoice finalizes the invoice on the remote system, starts the payment flow. It is safe to assume
+	// FinalizeStandardInvoice finalizes the invoice on the remote system, starts the payment flow. It is safe to assume
 	// that the state machine have already performed an upsert as part of this state transition.
 	//
 	// If the payment is handled by a decoupled implementation (different app or app has strict separation of concerns)
 	// then the payment app will be called with FinalizePayment and that should return the external ID of the payment. (later)
-	FinalizeInvoice(ctx context.Context, invoice Invoice) (*FinalizeInvoiceResult, error)
+	FinalizeStandardInvoice(ctx context.Context, invoice StandardInvoice) (*FinalizeStandardInvoiceResult, error)
 
-	// DeleteInvoice deletes the invoice on the remote system, the invoice is read-only, the app should not modify it
+	// DeleteStandardInvoice deletes the invoice on the remote system, the invoice is read-only, the app should not modify it
 	// the invoice deletion is only invoked for non-finalized invoices.
-	DeleteInvoice(ctx context.Context, invoice Invoice) error
+	DeleteStandardInvoice(ctx context.Context, invoice StandardInvoice) error
 }
 
 type InvoicingAppPostAdvanceHook interface {
@@ -188,14 +188,14 @@ type InvoicingAppPostAdvanceHook interface {
 	//
 	// Can be used by the app to perform additional actions in case there are some post-processing steps
 	// required on the invoice.
-	PostAdvanceInvoiceHook(ctx context.Context, invoice Invoice) (*PostAdvanceHookResult, error)
+	PostAdvanceStandardInvoiceHook(ctx context.Context, invoice StandardInvoice) (*PostAdvanceHookResult, error)
 }
 
 // InvoicingAppAsyncSyncer is an optional interface that can be implemented by the app to support
 // asynchronous syncing of the invoice (e.g. when we are receiving the payload such as with custominvoicing app)
 type InvoicingAppAsyncSyncer interface {
-	CanDraftSyncAdvance(invoice Invoice) (bool, error)
-	CanIssuingSyncAdvance(invoice Invoice) (bool, error)
+	CanDraftSyncAdvance(invoice StandardInvoice) (bool, error)
+	CanIssuingSyncAdvance(invoice StandardInvoice) (bool, error)
 	// TODO: finalization check
 }
 
@@ -214,7 +214,7 @@ func GetApp(app app.App) (InvoicingApp, error) {
 }
 
 // MergeIntoInvoice merges the upsert invoice result into the invoice.
-func (r UpsertInvoiceResult) MergeIntoInvoice(invoice *Invoice) error {
+func (r UpsertStandardInvoiceResult) MergeIntoInvoice(invoice *StandardInvoice) error {
 	// Let's merge the results into the invoice
 	if invoiceNumber, ok := r.GetInvoiceNumber(); ok {
 		invoice.Number = invoiceNumber
@@ -274,22 +274,22 @@ func (r UpsertInvoiceResult) MergeIntoInvoice(invoice *Invoice) error {
 type SyncInput interface {
 	models.Validator
 
-	ValidateWithInvoice(invoice Invoice) error
-	MergeIntoInvoice(invoice *Invoice) error
+	ValidateWithInvoice(invoice StandardInvoice) error
+	MergeIntoInvoice(invoice *StandardInvoice) error
 	GetAdditionalMetadata() map[string]string
 	GetInvoiceID() InvoiceID
 }
 
-var _ SyncInput = (*SyncDraftInvoiceInput)(nil)
+var _ SyncInput = (*SyncDraftStandardInvoiceInput)(nil)
 
-type SyncDraftInvoiceInput struct {
+type SyncDraftStandardInvoiceInput struct {
 	InvoiceID            InvoiceID
-	UpsertInvoiceResults *UpsertInvoiceResult
+	UpsertInvoiceResults *UpsertStandardInvoiceResult
 	AdditionalMetadata   map[string]string
-	InvoiceValidator     func(invoice Invoice) error
+	InvoiceValidator     func(invoice StandardInvoice) error
 }
 
-func (i SyncDraftInvoiceInput) Validate() error {
+func (i SyncDraftStandardInvoiceInput) Validate() error {
 	var errs []error
 
 	if err := i.InvoiceID.Validate(); err != nil {
@@ -303,7 +303,7 @@ func (i SyncDraftInvoiceInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (i SyncDraftInvoiceInput) MergeIntoInvoice(invoice *Invoice) error {
+func (i SyncDraftStandardInvoiceInput) MergeIntoInvoice(invoice *StandardInvoice) error {
 	if invoice == nil {
 		return fmt.Errorf("invoice is required")
 	}
@@ -314,15 +314,15 @@ func (i SyncDraftInvoiceInput) MergeIntoInvoice(invoice *Invoice) error {
 	return nil
 }
 
-func (i SyncDraftInvoiceInput) GetAdditionalMetadata() map[string]string {
+func (i SyncDraftStandardInvoiceInput) GetAdditionalMetadata() map[string]string {
 	return i.AdditionalMetadata
 }
 
-func (i SyncDraftInvoiceInput) GetInvoiceID() InvoiceID {
+func (i SyncDraftStandardInvoiceInput) GetInvoiceID() InvoiceID {
 	return i.InvoiceID
 }
 
-func (i SyncDraftInvoiceInput) ValidateWithInvoice(invoice Invoice) error {
+func (i SyncDraftStandardInvoiceInput) ValidateWithInvoice(invoice StandardInvoice) error {
 	if i.InvoiceValidator != nil {
 		return i.InvoiceValidator(invoice)
 	}
@@ -330,16 +330,16 @@ func (i SyncDraftInvoiceInput) ValidateWithInvoice(invoice Invoice) error {
 	return nil
 }
 
-var _ SyncInput = (*SyncIssuingInvoiceInput)(nil)
+var _ SyncInput = (*SyncIssuingStandardInvoiceInput)(nil)
 
-type SyncIssuingInvoiceInput struct {
+type SyncIssuingStandardInvoiceInput struct {
 	InvoiceID             InvoiceID
-	FinalizeInvoiceResult *FinalizeInvoiceResult
+	FinalizeInvoiceResult *FinalizeStandardInvoiceResult
 	AdditionalMetadata    map[string]string
-	InvoiceValidator      func(invoice Invoice) error
+	InvoiceValidator      func(invoice StandardInvoice) error
 }
 
-func (i SyncIssuingInvoiceInput) Validate() error {
+func (i SyncIssuingStandardInvoiceInput) Validate() error {
 	var errs []error
 
 	if err := i.InvoiceID.Validate(); err != nil {
@@ -353,7 +353,7 @@ func (i SyncIssuingInvoiceInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (i SyncIssuingInvoiceInput) MergeIntoInvoice(invoice *Invoice) error {
+func (i SyncIssuingStandardInvoiceInput) MergeIntoInvoice(invoice *StandardInvoice) error {
 	if invoice == nil {
 		return fmt.Errorf("invoice is required")
 	}
@@ -365,15 +365,15 @@ func (i SyncIssuingInvoiceInput) MergeIntoInvoice(invoice *Invoice) error {
 	return nil
 }
 
-func (i SyncIssuingInvoiceInput) GetAdditionalMetadata() map[string]string {
+func (i SyncIssuingStandardInvoiceInput) GetAdditionalMetadata() map[string]string {
 	return i.AdditionalMetadata
 }
 
-func (i SyncIssuingInvoiceInput) GetInvoiceID() InvoiceID {
+func (i SyncIssuingStandardInvoiceInput) GetInvoiceID() InvoiceID {
 	return i.InvoiceID
 }
 
-func (i SyncIssuingInvoiceInput) ValidateWithInvoice(invoice Invoice) error {
+func (i SyncIssuingStandardInvoiceInput) ValidateWithInvoice(invoice StandardInvoice) error {
 	if i.InvoiceValidator != nil {
 		return i.InvoiceValidator(invoice)
 	}

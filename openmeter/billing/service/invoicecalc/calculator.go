@@ -40,13 +40,13 @@ var InvoiceCalculations = invoiceCalculatorsByType{
 }
 
 type (
-	Calculation func(*billing.Invoice, CalculatorDependencies) error
+	Calculation func(*billing.StandardInvoice, CalculatorDependencies) error
 )
 
 type Calculator interface {
-	Calculate(*billing.Invoice) error
-	CalculateGatheringInvoice(*billing.Invoice) error
-	CalculateGatheringInvoiceWithLiveData(*billing.Invoice) error
+	Calculate(*billing.StandardInvoice) error
+	CalculateGatheringInvoice(*billing.StandardInvoice) error
+	CalculateGatheringInvoiceWithLiveData(*billing.StandardInvoice) error
 }
 
 type CalculatorDependencies interface {
@@ -79,11 +79,11 @@ func New(c Config) (Calculator, error) {
 	}, nil
 }
 
-func (c *calculator) Calculate(invoice *billing.Invoice) error {
+func (c *calculator) Calculate(invoice *billing.StandardInvoice) error {
 	return c.applyCalculations(invoice, InvoiceCalculations.Invoice)
 }
 
-func (c *calculator) applyCalculations(invoice *billing.Invoice, calculators []Calculation) error {
+func (c *calculator) applyCalculations(invoice *billing.StandardInvoice, calculators []Calculation) error {
 	var outErr error
 	for _, calc := range calculators {
 		err := calc(invoice, c)
@@ -99,16 +99,16 @@ func (c *calculator) applyCalculations(invoice *billing.Invoice, calculators []C
 		billing.ValidationComponentOpenMeter)
 }
 
-func (c *calculator) CalculateGatheringInvoice(invoice *billing.Invoice) error {
-	if invoice.Status != billing.InvoiceStatusGathering {
+func (c *calculator) CalculateGatheringInvoice(invoice *billing.StandardInvoice) error {
+	if invoice.Status != billing.StandardInvoiceStatusGathering {
 		return errors.New("invoice is not a gathering invoice")
 	}
 
 	return c.applyCalculations(invoice, InvoiceCalculations.GatheringInvoice)
 }
 
-func (c *calculator) CalculateGatheringInvoiceWithLiveData(invoice *billing.Invoice) error {
-	if invoice.Status != billing.InvoiceStatusGathering {
+func (c *calculator) CalculateGatheringInvoiceWithLiveData(invoice *billing.StandardInvoice) error {
+	if invoice.Status != billing.StandardInvoiceStatusGathering {
 		return errors.New("invoice is not a gathering invoice")
 	}
 
@@ -119,8 +119,8 @@ func (c *calculator) LineService() *lineservice.Service {
 	return c.lineService
 }
 
-func WithNoDependencies(cb func(inv *billing.Invoice) error) Calculation {
-	return func(inv *billing.Invoice, _ CalculatorDependencies) error {
+func WithNoDependencies(cb func(inv *billing.StandardInvoice) error) Calculation {
+	return func(inv *billing.StandardInvoice, _ CalculatorDependencies) error {
 		return cb(inv)
 	}
 }

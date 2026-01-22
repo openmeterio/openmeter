@@ -8,12 +8,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func mapUpsertInvoiceResultFromAPI(in *api.CustomInvoicingSyncResult) *billing.UpsertInvoiceResult {
+func mapUpsertStandardInvoiceResultFromAPI(in *api.CustomInvoicingSyncResult) *billing.UpsertStandardInvoiceResult {
 	if in == nil {
 		return nil
 	}
 
-	res := billing.NewUpsertInvoiceResult()
+	res := billing.NewUpsertStandardInvoiceResult()
 
 	if in.InvoiceNumber != nil {
 		res.SetInvoiceNumber(*in.InvoiceNumber)
@@ -38,8 +38,8 @@ func mapUpsertInvoiceResultFromAPI(in *api.CustomInvoicingSyncResult) *billing.U
 	return res
 }
 
-func mapFinalizeInvoiceResultFromAPI(in api.CustomInvoicingFinalizedRequest) *billing.FinalizeInvoiceResult {
-	res := billing.NewFinalizeInvoiceResult()
+func mapFinalizeStandardInvoiceResultFromAPI(in api.CustomInvoicingFinalizedRequest) *billing.FinalizeStandardInvoiceResult {
+	res := billing.NewFinalizeStandardInvoiceResult()
 
 	if in.Invoicing != nil {
 		if in.Invoicing.InvoiceNumber != nil {

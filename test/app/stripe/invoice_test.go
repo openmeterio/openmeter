@@ -300,10 +300,10 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines: []*billing.Line{
+				Lines: []*billing.StandardLine{
 					{
 						// Covered case: Discount caused by maximum amount
-						LineBase: billing.LineBase{
+						StandardLineBase: billing.StandardLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - FLAT per unit",
 							}),
@@ -323,7 +323,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					},
 					{
 						// Covered case: Very small per unit amount, high quantity, rounding to two decimal places
-						LineBase: billing.LineBase{
+						StandardLineBase: billing.StandardLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - AI Usecase",
 							}),
@@ -340,7 +340,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					},
 					{
 						// Covered case: Flat line represented as UBP item
-						LineBase: billing.LineBase{
+						StandardLineBase: billing.StandardLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - FLAT per any usage",
 							}),
@@ -359,7 +359,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					},
 					{
 						// Covered case: Multiple lines per item, tier boundary is fractional
-						LineBase: billing.LineBase{
+						StandardLineBase: billing.StandardLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - Tiered graduated",
 							}),
@@ -395,7 +395,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					},
 					{
 						// Covered case: minimum amount charges
-						LineBase: billing.LineBase{
+						StandardLineBase: billing.StandardLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - Tiered volume",
 							}),
@@ -443,7 +443,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 	var app app.App
 	var customerData appstripeentity.CustomerData
-	var invoice billing.Invoice
+	var invoice billing.StandardInvoice
 	var invoicingApp billing.InvoicingApp
 
 	// Setup the app with the customer
@@ -506,7 +506,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		expectedPeriodStartUnix := periodStart.Truncate(streaming.MinimumWindowSizeDuration).Unix()
 		expectedPeriodEndUnix := periodEnd.Truncate(streaming.MinimumWindowSizeDuration).Unix()
 
-		getParentOfDetailedLine := func(detailedLine billing.DetailedLine) *billing.Line {
+		getParentOfDetailedLine := func(detailedLine billing.DetailedLine) *billing.StandardLine {
 			for _, line := range invoice.Lines.OrEmpty() {
 				_, found := lo.Find(line.DetailedLines, func(dl billing.DetailedLine) bool {
 					return dl.ID == detailedLine.ID
@@ -723,7 +723,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			), nil)
 
 		// Create the invoice.
-		results, err := invoicingApp.UpsertInvoice(ctx, invoice)
+		results, err := invoicingApp.UpsertStandardInvoice(ctx, invoice)
 		s.NoError(err, "failed to upsert invoice")
 
 		// Assert external ID is set.
@@ -856,7 +856,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		defer s.StripeAppClient.Restore()
 
 		// Update the invoice.
-		results, err = invoicingApp.UpsertInvoice(ctx, updateInvoice)
+		results, err = invoicingApp.UpsertStandardInvoice(ctx, updateInvoice)
 		s.NoError(err, "failed to upsert invoice")
 
 		// Assert results.
@@ -896,11 +896,11 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		defer s.StripeAppClient.Restore()
 
 		// Create the invoice.
-		result, err := invoicingApp.FinalizeInvoice(ctx, invoice)
+		result, err := invoicingApp.FinalizeStandardInvoice(ctx, invoice)
 		s.NoError(err, "failed to finalize invoice")
 
 		// Assert the result.
-		expectedResult := billing.NewFinalizeInvoiceResult()
+		expectedResult := billing.NewFinalizeStandardInvoiceResult()
 		expectedResult.SetInvoiceNumber("INV-123")
 		expectedResult.SetPaymentExternalID("pmi_123")
 
@@ -979,11 +979,11 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		defer s.StripeAppClient.Restore()
 
 		// Create the invoice.
-		result, err := invoicingApp.FinalizeInvoice(ctx, invoice)
+		result, err := invoicingApp.FinalizeStandardInvoice(ctx, invoice)
 		s.NoError(err, "failed to finalize invoice")
 
 		// Assert the result.
-		expectedResult := billing.NewFinalizeInvoiceResult()
+		expectedResult := billing.NewFinalizeStandardInvoiceResult()
 		expectedResult.SetInvoiceNumber("INV-123")
 		expectedResult.SetPaymentExternalID("pmi_123")
 
@@ -1109,9 +1109,9 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []*billing.Line{
+			Lines: []*billing.StandardLine{
 				{
-					LineBase: billing.LineBase{
+					StandardLineBase: billing.StandardLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Name: "UBP - FLAT per unit",
 						}),
@@ -1201,7 +1201,7 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 
 	invoice, err = s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
 		Invoice: invoice.InvoiceID(),
-		EditFn: func(i *billing.Invoice) error {
+		EditFn: func(i *billing.StandardInvoice) error {
 			i.Supplier.Name = "ACME Inc. (updated)"
 			return nil
 		},
@@ -1209,7 +1209,7 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	s.NoError(err)
 
 	s.Equal("ACME Inc. (updated)", invoice.Supplier.Name)
-	s.Equal(billing.InvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+	s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
 }
 
 func (s *StripeInvoiceTestSuite) TestSendInvoice() {
@@ -1293,7 +1293,7 @@ func (s *StripeInvoiceTestSuite) TestSendInvoice() {
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []*billing.Line{
+			Lines: []*billing.StandardLine{
 				billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
 					Period:        billing.Period{Start: periodStart, End: periodEnd},
 					InvoiceAt:     periodStart,
@@ -1359,7 +1359,7 @@ func (s *StripeInvoiceTestSuite) TestSendInvoice() {
 	s.NoError(err)
 
 	// Create the invoice.
-	_, err = invoicingApp.UpsertInvoice(ctx, invoice)
+	_, err = invoicingApp.UpsertStandardInvoice(ctx, invoice)
 	s.NoError(err, "failed to create invoice")
 
 	// Assert the client is called with the correct arguments.

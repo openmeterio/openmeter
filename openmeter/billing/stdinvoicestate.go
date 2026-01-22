@@ -43,33 +43,33 @@ var (
 	TriggerVoid InvoiceTrigger = "trigger_void"
 )
 
-type InvoiceOperation string
+type StandardInvoiceOperation string
 
 const (
-	InvoiceOpValidate        InvoiceOperation = "validate"
-	InvoiceOpSync            InvoiceOperation = "sync"
-	InvoiceOpDelete          InvoiceOperation = "delete"
-	InvoiceOpFinalize        InvoiceOperation = "finalize"
-	InvoiceOpInitiatePayment InvoiceOperation = "initiate_payment"
+	StandardInvoiceOpValidate        StandardInvoiceOperation = "validate"
+	StandardInvoiceOpSync            StandardInvoiceOperation = "sync"
+	StandardInvoiceOpDelete          StandardInvoiceOperation = "delete"
+	StandardInvoiceOpFinalize        StandardInvoiceOperation = "finalize"
+	StandardInvoiceOpInitiatePayment StandardInvoiceOperation = "initiate_payment"
 
-	InvoiceOpPostAdvanceHook InvoiceOperation = "post_advance_hook"
-	InvoiceOpTriggerInvoice  InvoiceOperation = "trigger_invoice"
+	StandardInvoiceOpPostAdvanceHook StandardInvoiceOperation = "post_advance_hook"
+	StandardInvoiceOpTriggerInvoice  StandardInvoiceOperation = "trigger_invoice"
 )
 
-var InvoiceOperations = []InvoiceOperation{
-	InvoiceOpValidate,
-	InvoiceOpSync,
-	InvoiceOpDelete,
-	InvoiceOpFinalize,
-	InvoiceOpInitiatePayment,
+var StandardInvoiceOperations = []StandardInvoiceOperation{
+	StandardInvoiceOpValidate,
+	StandardInvoiceOpSync,
+	StandardInvoiceOpDelete,
+	StandardInvoiceOpFinalize,
+	StandardInvoiceOpInitiatePayment,
 
-	InvoiceOpPostAdvanceHook,
-	InvoiceOpTriggerInvoice,
+	StandardInvoiceOpPostAdvanceHook,
+	StandardInvoiceOpTriggerInvoice,
 }
 
-func (o InvoiceOperation) Validate() error {
-	if !slices.Contains(InvoiceOperations, o) {
-		return fmt.Errorf("invalid invoice operation: %s", o)
+func (o StandardInvoiceOperation) Validate() error {
+	if !slices.Contains(StandardInvoiceOperations, o) {
+		return fmt.Errorf("invalid standard invoice operation: %s", o)
 	}
 
 	return nil

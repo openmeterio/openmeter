@@ -208,14 +208,14 @@ func (a *adapter) mapSplitLineHierarchyFromDB(ctx context.Context, dbSplitLineGr
 	}
 
 	mappedLines, err := slicesx.MapWithErr(dbSplitLineGroup.Edges.BillingInvoiceLines, func(dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
-		line, err := a.mapInvoiceLineWithoutReferences(dbLine)
+		line, err := a.mapStandardInvoiceLineWithoutReferences(dbLine)
 		if err != nil {
 			return billing.LineWithInvoiceHeader{}, err
 		}
 
 		return billing.LineWithInvoiceHeader{
 			Line:    line,
-			Invoice: a.mapInvoiceBaseFromDB(ctx, dbLine.Edges.BillingInvoice),
+			Invoice: a.mapStandardInvoiceBaseFromDB(ctx, dbLine.Edges.BillingInvoice),
 		}, nil
 	})
 	if err != nil {
@@ -231,7 +231,7 @@ func (a *adapter) mapSplitLineHierarchyFromDB(ctx context.Context, dbSplitLineGr
 // expandSplitLineHierarchy expands the given lines with their progressive line hierarchy
 // This is done by fetching all the lines that are children of the given lines parent lines and then building
 // the hierarchy.
-func (a *adapter) expandSplitLineHierarchy(ctx context.Context, namespace string, lines []*billing.Line) ([]*billing.Line, error) {
+func (a *adapter) expandSplitLineHierarchy(ctx context.Context, namespace string, lines []*billing.StandardLine) ([]*billing.StandardLine, error) {
 	// Let's collect all the lines with a parent line id set
 
 	lineToGroupIDs := map[string]string{}

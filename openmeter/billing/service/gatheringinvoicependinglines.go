@@ -42,7 +42,7 @@ import (
 // 5) We publish the invoice created event.
 //
 // 6) We return the created invoices.
-func (s *Service) InvoicePendingLines(ctx context.Context, input billing.InvoicePendingLinesInput) ([]billing.Invoice, error) {
+func (s *Service) InvoicePendingLines(ctx context.Context, input billing.InvoicePendingLinesInput) ([]billing.StandardInvoice, error) {
 	if err := input.Validate(); err != nil {
 		return nil, billing.ValidationError{
 			Err: err,
@@ -59,7 +59,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 		ctx,
 		s,
 		input.Customer,
-		func(ctx context.Context) ([]billing.Invoice, error) {
+		func(ctx context.Context) ([]billing.StandardInvoice, error) {
 			// let's resolve the customer's settings
 			customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 				Customer: input.Customer,
@@ -78,7 +78,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 			existingGatheringInvoices, err := s.ListInvoices(ctx, billing.ListInvoicesInput{
 				Namespaces:       []string{input.Customer.Namespace},
 				Customers:        []string{input.Customer.ID},
-				ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
+				ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
 				Expand: billing.InvoiceExpand{
 					Lines: true,
 				},
@@ -87,7 +87,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				return nil, fmt.Errorf("fetching existing gathering invoices: %w", err)
 			}
 
-			invoicesByCurrency := lo.SliceToMap(existingGatheringInvoices.Items, func(i billing.Invoice) (currencyx.Code, billing.Invoice) {
+			invoicesByCurrency := lo.SliceToMap(existingGatheringInvoices.Items, func(i billing.StandardInvoice) (currencyx.Code, billing.StandardInvoice) {
 				return i.Currency, i
 			})
 
@@ -117,7 +117,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				return nil, billing.ErrInvoiceCreateNoLines
 			}
 
-			createdInvoices := make([]billing.Invoice, 0, len(inScopeLines))
+			createdInvoices := make([]billing.StandardInvoice, 0, len(inScopeLines))
 
 			for currency, inScopeLines := range inScopeLines {
 				// Let's first make sure we have properly split the progressively billed
@@ -146,7 +146,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 			}
 
 			for _, invoice := range createdInvoices {
-				event, err := billing.NewInvoiceCreatedEvent(invoice)
+				event, err := billing.NewStandardInvoiceCreatedEvent(invoice)
 				if err != nil {
 					return nil, fmt.Errorf("creating event: %w", err)
 				}
@@ -164,7 +164,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 type handleInvoicePendingLinesForCurrencyInput struct {
 	Currency                currencyx.Code
 	Customer                customer.Customer
-	GatheringInvoice        billing.Invoice
+	GatheringInvoice        billing.StandardInvoice
 	InScopeLines            []lineservice.LineWithBillablePeriod
 	EffectiveBillingProfile billing.Profile
 }
@@ -189,7 +189,7 @@ func (in handleInvoicePendingLinesForCurrencyInput) Validate() error {
 	return nil
 }
 
-func (s *Service) handleInvoicePendingLinesForCurrency(ctx context.Context, in handleInvoicePendingLinesForCurrencyInput) (*billing.Invoice, error) {
+func (s *Service) handleInvoicePendingLinesForCurrency(ctx context.Context, in handleInvoicePendingLinesForCurrencyInput) (*billing.StandardInvoice, error) {
 	if err := in.Validate(); err != nil {
 		return nil, fmt.Errorf("validating input: %w", err)
 	}
@@ -217,7 +217,7 @@ func (s *Service) handleInvoicePendingLinesForCurrency(ctx context.Context, in h
 	gatheringInvoice = prepareResults.GatheringInvoice
 
 	// Step 2: Let's create the standard invoice and move the lines to the new invoice.
-	linesToBill := lo.Filter(gatheringInvoice.Lines.OrEmpty(), func(line *billing.Line, _ int) bool {
+	linesToBill := lo.Filter(gatheringInvoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
 		return slices.Contains(prepareResults.LineIDsToBill, line.ID)
 	})
 
@@ -251,7 +251,7 @@ func (s *Service) handleInvoicePendingLinesForCurrency(ctx context.Context, in h
 }
 
 type gatherInScopeLineInput struct {
-	GatheringInvoicesByCurrency map[currencyx.Code]billing.Invoice
+	GatheringInvoicesByCurrency map[currencyx.Code]billing.StandardInvoice
 	// If set restricts the lines to be included to these IDs, otherwise the AsOf is used
 	// to determine the lines to be included.
 	LinesToInclude     mo.Option[[]string]
@@ -329,14 +329,14 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 }
 
 type prepareLinesToBillInput struct {
-	GatheringInvoice billing.Invoice
+	GatheringInvoice billing.StandardInvoice
 	InScopeLines     []lineservice.LineWithBillablePeriod
 }
 
 func (i prepareLinesToBillInput) Validate() error {
 	var errs []error
 
-	if i.GatheringInvoice.Status != billing.InvoiceStatusGathering {
+	if i.GatheringInvoice.Status != billing.StandardInvoiceStatusGathering {
 		errs = append(errs, fmt.Errorf("gathering invoice is not in gathering status"))
 	}
 
@@ -363,7 +363,7 @@ func (i prepareLinesToBillInput) Validate() error {
 
 type prepareLinesToBillResult struct {
 	LineIDsToBill    []string
-	GatheringInvoice billing.Invoice
+	GatheringInvoice billing.StandardInvoice
 }
 
 // prepareLinesToBill prepares the lines to be billed from the gathering invoice, if needed
@@ -424,7 +424,7 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 }
 
 type splitGatheringInvoiceLineInput struct {
-	GatheringInvoice billing.Invoice
+	GatheringInvoice billing.StandardInvoice
 	LineID           string
 	SplitAt          time.Time
 }
@@ -432,7 +432,7 @@ type splitGatheringInvoiceLineInput struct {
 func (i splitGatheringInvoiceLineInput) Validate() error {
 	var errs []error
 
-	if i.GatheringInvoice.Status != billing.InvoiceStatusGathering {
+	if i.GatheringInvoice.Status != billing.StandardInvoiceStatusGathering {
 		errs = append(errs, fmt.Errorf("gathering invoice is not in gathering status"))
 	}
 
@@ -454,7 +454,7 @@ func (i splitGatheringInvoiceLineInput) Validate() error {
 type splitGatheringInvoiceLineResult struct {
 	PreSplitAtLine   lineservice.Line
 	PostSplitAtLine  lineservice.Line
-	GatheringInvoice billing.Invoice
+	GatheringInvoice billing.StandardInvoice
 }
 
 // splitGatheringInvoiceLine splits a gathering invoice line into two lines, one will be from the
@@ -512,7 +512,7 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 	}
 
 	// We have alredy split the line once, we just need to create a new line and update the existing line
-	postSplitAtLine := line.CloneWithoutDependencies(func(l *billing.Line) {
+	postSplitAtLine := line.CloneWithoutDependencies(func(l *billing.StandardLine) {
 		l.Period.Start = in.SplitAt
 		l.SplitLineGroupID = lo.ToPtr(splitLineGroupID)
 
@@ -562,8 +562,8 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 type createStandardInvoiceFromGatheringLinesInput struct {
 	Customer                customer.Customer
 	Currency                currencyx.Code
-	GatheringInvoice        billing.Invoice
-	Lines                   billing.Lines
+	GatheringInvoice        billing.StandardInvoice
+	Lines                   billing.StandardLines
 	EffectiveBillingProfile billing.Profile
 }
 
@@ -596,8 +596,8 @@ func (in createStandardInvoiceFromGatheringLinesInput) Validate() error {
 }
 
 type createStandardInvoiceFromGatheringLinesResult struct {
-	CreatedInvoice   billing.Invoice
-	GatheringInvoice billing.Invoice
+	CreatedInvoice   billing.StandardInvoice
+	GatheringInvoice billing.StandardInvoice
 }
 
 // createStandardInvoiceFromGatheringLines creates a standard invoice from the gathering invoice lines.
@@ -629,7 +629,7 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 
 		Currency: in.Currency,
 		Number:   invoiceNumber,
-		Status:   billing.InvoiceStatusDraftCreated,
+		Status:   billing.StandardInvoiceStatusDraftCreated,
 
 		Type: billing.InvoiceTypeStandard,
 	})
@@ -648,7 +648,7 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 	moveResults, err := s.moveLinesToInvoice(ctx, moveLinesToInvoiceInput{
 		SourceGatheringInvoice: in.GatheringInvoice,
 		TargetInvoice:          invoice,
-		LineIDsToMove:          lo.Map(in.Lines, func(l *billing.Line, _ int) string { return l.ID }),
+		LineIDsToMove:          lo.Map(in.Lines, func(l *billing.StandardLine, _ int) string { return l.ID }),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("moving lines to invoice: %w", err)
@@ -713,8 +713,8 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 }
 
 type moveLinesToInvoiceInput struct {
-	SourceGatheringInvoice billing.Invoice
-	TargetInvoice          billing.Invoice
+	SourceGatheringInvoice billing.StandardInvoice
+	TargetInvoice          billing.StandardInvoice
 	LineIDsToMove          []string
 }
 
@@ -723,7 +723,7 @@ func (in moveLinesToInvoiceInput) Validate() error {
 		return fmt.Errorf("source gathering invoice: %w", err)
 	}
 
-	if in.SourceGatheringInvoice.Status != billing.InvoiceStatusGathering {
+	if in.SourceGatheringInvoice.Status != billing.StandardInvoiceStatusGathering {
 		return fmt.Errorf("source gathering invoice must be in gathering status")
 	}
 
@@ -731,7 +731,7 @@ func (in moveLinesToInvoiceInput) Validate() error {
 		return fmt.Errorf("target invoice: %w", err)
 	}
 
-	if in.TargetInvoice.Status != billing.InvoiceStatusDraftCreated {
+	if in.TargetInvoice.Status != billing.StandardInvoiceStatusDraftCreated {
 		return fmt.Errorf("target invoice must be in draft created status")
 	}
 
@@ -755,8 +755,8 @@ func (in moveLinesToInvoiceInput) Validate() error {
 }
 
 type moveLinesToInvoiceResult struct {
-	GatheringInvoice billing.Invoice
-	TargetInvoice    billing.Invoice
+	GatheringInvoice billing.StandardInvoice
+	TargetInvoice    billing.StandardInvoice
 	LinesAssociated  lineservice.Lines
 }
 
@@ -773,7 +773,7 @@ func (s *Service) moveLinesToInvoice(ctx context.Context, in moveLinesToInvoiceI
 	dstInvoice := in.TargetInvoice
 
 	// Let's find the lines to move from the source gathering invoice
-	linesToMove := lo.Filter(srcInvoice.Lines.OrEmpty(), func(line *billing.Line, _ int) bool {
+	linesToMove := lo.Filter(srcInvoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
 		return slices.Contains(in.LineIDsToMove, line.ID)
 	})
 
@@ -816,10 +816,10 @@ func (s *Service) moveLinesToInvoice(ctx context.Context, in moveLinesToInvoiceI
 // Invariant:
 // - the invoice is recalculated
 // - the invoice is updated to the database
-func (s *Service) updateGatheringInvoice(ctx context.Context, invoice billing.Invoice) (billing.Invoice, error) {
+func (s *Service) updateGatheringInvoice(ctx context.Context, invoice billing.StandardInvoice) (billing.StandardInvoice, error) {
 	// Let's update the invoice's state
 	if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice); err != nil {
-		return billing.Invoice{}, fmt.Errorf("calculating gathering invoice: %w", err)
+		return billing.StandardInvoice{}, fmt.Errorf("calculating gathering invoice: %w", err)
 	}
 
 	// The gathering invoice has no lines => delete the invoice
@@ -829,7 +829,7 @@ func (s *Service) updateGatheringInvoice(ctx context.Context, invoice billing.In
 
 	invoice, err := s.adapter.UpdateInvoice(ctx, invoice)
 	if err != nil {
-		return billing.Invoice{}, fmt.Errorf("updating gathering invoice: %w", err)
+		return billing.StandardInvoice{}, fmt.Errorf("updating gathering invoice: %w", err)
 	}
 
 	return invoice, nil

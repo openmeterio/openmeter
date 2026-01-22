@@ -298,7 +298,7 @@ func (a *adapter) GetUnpinnedCustomerIDsWithPaidSubscription(ctx context.Context
 				// one gathering line item, if there are still upcoming lines)
 				dbcustomer.HasBillingInvoiceWith(
 					billinginvoice.NamespaceEQ(input.Namespace),
-					billinginvoice.StatusEQ(billing.InvoiceStatusGathering),
+					billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering),
 					billinginvoice.DeletedAtIsNil(),
 					billinginvoice.HasBillingInvoiceLinesWith(
 						billinginvoiceline.DeletedAtIsNil(),

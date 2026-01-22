@@ -30,7 +30,7 @@ const (
 	SubscriptionSyncComponentName billing.ComponentName = "subscription-sync"
 )
 
-type InvoiceByID map[string]billing.Invoice
+type InvoiceByID map[string]billing.StandardInvoice
 
 func (i InvoiceByID) IsGatheringInvoice(invoiceID string) bool {
 	invoice, ok := i[invoiceID]
@@ -39,7 +39,7 @@ func (i InvoiceByID) IsGatheringInvoice(invoiceID string) bool {
 		return true
 	}
 
-	return invoice.Status == billing.InvoiceStatusGathering
+	return invoice.Status == billing.StandardInvoiceStatusGathering
 }
 
 func (s *Service) invoicePendingLines(ctx context.Context, customer customer.CustomerID) error {
@@ -151,7 +151,7 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 				return fmt.Errorf("listing invoices: %w", err)
 			}
 
-			invoiceByID := lo.SliceToMap(invoices.Items, func(i billing.Invoice) (string, billing.Invoice) {
+			invoiceByID := lo.SliceToMap(invoices.Items, func(i billing.StandardInvoice) (string, billing.StandardInvoice) {
 				return i.ID, i
 			})
 
@@ -464,7 +464,7 @@ func (s *Service) correctPeriodStartForUpcomingLines(ctx context.Context, subscr
 func (s *Service) lineOrHierarchyHasAnnotation(lineOrHierarchy billing.LineOrHierarchy, annotation string) (bool, error) {
 	switch lineOrHierarchy.Type() {
 	case billing.LineOrHierarchyTypeLine:
-		previousLine, err := lineOrHierarchy.AsLine()
+		previousLine, err := lineOrHierarchy.AsStandardLine()
 		if err != nil {
 			return false, fmt.Errorf("getting previous line: %w", err)
 		}
@@ -482,7 +482,7 @@ func (s *Service) lineOrHierarchyHasAnnotation(lineOrHierarchy billing.LineOrHie
 	}
 }
 
-func (s *Service) lineHasAnnotation(line *billing.Line, annotation string) bool {
+func (s *Service) lineHasAnnotation(line *billing.StandardLine, annotation string) bool {
 	if line.ManagedBy != billing.SubscriptionManagedLine {
 		// We only correct the period start for subscription managed lines, for manual edits
 		// we should not apply this logic, as the user might have created a setup where the period start
@@ -638,9 +638,9 @@ func (s *Service) collectUpcomingLines(ctx context.Context, subs subscription.Su
 	})
 }
 
-func (s *Service) lineFromSubscritionRateCard(subs subscription.SubscriptionView, item subscriptionItemWithPeriods, currency currencyx.Calculator) (*billing.Line, error) {
-	line := &billing.Line{
-		LineBase: billing.LineBase{
+func (s *Service) lineFromSubscritionRateCard(subs subscription.SubscriptionView, item subscriptionItemWithPeriods, currency currencyx.Calculator) (*billing.StandardLine, error) {
+	line := &billing.StandardLine{
+		StandardLineBase: billing.StandardLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace:   subs.Subscription.Namespace,
 				Name:        item.Spec.RateCard.AsMeta().Name,
@@ -758,7 +758,7 @@ func (s *Service) shouldProrate(item subscriptionItemWithPeriods, subView subscr
 }
 
 func (s *Service) getNewUpcomingLinePatches(ctx context.Context, subs subscription.SubscriptionView, currency currencyx.Calculator, subsItems []subscriptionItemWithPeriods) ([]linePatch, error) {
-	newLines, err := slicesx.MapWithErr(subsItems, func(subsItem subscriptionItemWithPeriods) (*billing.Line, error) {
+	newLines, err := slicesx.MapWithErr(subsItems, func(subsItem subscriptionItemWithPeriods) (*billing.StandardLine, error) {
 		line, err := s.lineFromSubscritionRateCard(subs, subsItem, currency)
 		if err != nil {
 			return nil, fmt.Errorf("generating line from subscription item [%s]: %w", subsItem.SubscriptionItem.ID, err)
@@ -770,16 +770,16 @@ func (s *Service) getNewUpcomingLinePatches(ctx context.Context, subs subscripti
 		return nil, fmt.Errorf("creating new lines: %w", err)
 	}
 
-	lines := lo.Filter(newLines, func(l *billing.Line, _ int) bool {
+	lines := lo.Filter(newLines, func(l *billing.StandardLine, _ int) bool {
 		return l != nil
 	})
 
-	return lo.Map(lines, func(l *billing.Line, _ int) linePatch {
+	return lo.Map(lines, func(l *billing.StandardLine, _ int) linePatch {
 		return newCreateLinePatch(*l)
 	}), nil
 }
 
-func (s *Service) getPatchesForExistingLineOrHierarchy(existingLine billing.LineOrHierarchy, expectedLine *billing.Line, invoiceByID InvoiceByID) ([]linePatch, error) {
+func (s *Service) getPatchesForExistingLineOrHierarchy(existingLine billing.LineOrHierarchy, expectedLine *billing.StandardLine, invoiceByID InvoiceByID) ([]linePatch, error) {
 	// TODO/WARNING[later]: This logic should be fine with everything that can be billed progressively, however the following use-cases
 	// will behave strangely:
 	//
@@ -792,7 +792,7 @@ func (s *Service) getPatchesForExistingLineOrHierarchy(existingLine billing.Line
 
 	switch existingLine.Type() {
 	case billing.LineOrHierarchyTypeLine:
-		line, err := existingLine.AsLine()
+		line, err := existingLine.AsStandardLine()
 		if err != nil {
 			return nil, fmt.Errorf("getting line: %w", err)
 		}
@@ -810,7 +810,7 @@ func (s *Service) getPatchesForExistingLineOrHierarchy(existingLine billing.Line
 	}
 }
 
-func (s *Service) getPatchesForExistingLine(existingLine *billing.Line, expectedLine *billing.Line, invoiceByID InvoiceByID) ([]linePatch, error) {
+func (s *Service) getPatchesForExistingLine(existingLine *billing.StandardLine, expectedLine *billing.StandardLine, invoiceByID InvoiceByID) ([]linePatch, error) {
 	// Lines can be manually marked as ignored in syncing, which is used for cases where we're doing backwards incompatible changes
 	if expectedLine.Annotations.GetBool(billing.AnnotationSubscriptionSyncIgnore) {
 		return nil, nil
@@ -884,7 +884,7 @@ func (s *Service) getPatchesForExistingLine(existingLine *billing.Line, expected
 	}, nil
 }
 
-func (s *Service) getPatchesForExistingHierarchy(existingHierarchy *billing.SplitLineHierarchy, expectedLine *billing.Line, invoiceByID InvoiceByID) ([]linePatch, error) {
+func (s *Service) getPatchesForExistingHierarchy(existingHierarchy *billing.SplitLineHierarchy, expectedLine *billing.StandardLine, invoiceByID InvoiceByID) ([]linePatch, error) {
 	// Parts of the line has been already invoiced using progressive invoicing, so we need to examine the children
 
 	// Nothing to do here, as split lines are UBP lines and thus we don't need the flat fee corrections

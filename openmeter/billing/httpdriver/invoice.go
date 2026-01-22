@@ -54,8 +54,8 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 				),
 				ExtendedStatuses: lo.Map(
 					lo.FromPtr(input.ExtendedStatuses),
-					func(status string, _ int) billing.InvoiceStatus {
-						return billing.InvoiceStatus(status)
+					func(status string, _ int) billing.StandardInvoiceStatus {
+						return billing.StandardInvoiceStatus(status)
 					},
 				),
 
@@ -278,7 +278,7 @@ func (h *handler) ProgressInvoice(action ProgressAction) ProgressInvoiceHandler 
 			}, nil
 		},
 		func(ctx context.Context, request ProgressInvoiceRequest) (ProgressInvoiceResponse, error) {
-			var invoice billing.Invoice
+			var invoice billing.StandardInvoice
 			var err error
 
 			switch action {
@@ -339,7 +339,7 @@ func (h *handler) DeleteInvoice() DeleteInvoiceHandler {
 
 			// Given we are doing background processing, we might be in any delete.* state, but in case we ended up in delete.failed let's have
 			// proper return code for the API (otherwise we would return 200)
-			if invoice.Status == billing.InvoiceStatusDeleteFailed {
+			if invoice.Status == billing.StandardInvoiceStatusDeleteFailed {
 				// If we have validation issues we return them as the deletion sync handler
 				// yields validation errors
 				if len(invoice.ValidationIssues) > 0 {
@@ -400,7 +400,7 @@ func (h *handler) SimulateInvoice() SimulateInvoiceHandler {
 
 				Number:   body.Number,
 				Currency: currencyx.Code(body.Currency),
-				Lines:    billing.NewInvoiceLines(lines),
+				Lines:    billing.NewStandardInvoiceLines(lines),
 			}, nil
 		},
 		func(ctx context.Context, request SimulateInvoiceRequest) (SimulateInvoiceResponse, error) {
@@ -457,7 +457,7 @@ func (h *handler) UpdateInvoice() UpdateInvoiceHandler {
 		func(ctx context.Context, request UpdateInvoiceRequest) (UpdateInvoiceResponse, error) {
 			invoice, err := h.service.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
 				Invoice: request.InvoiceID,
-				EditFn: func(invoice *billing.Invoice) error {
+				EditFn: func(invoice *billing.StandardInvoice) error {
 					var err error
 
 					invoice.Supplier = mergeInvoiceSupplierFromAPI(invoice.Supplier, request.Input.Supplier)
@@ -494,7 +494,7 @@ func (h *handler) UpdateInvoice() UpdateInvoiceHandler {
 	)
 }
 
-func MapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
+func MapInvoiceToAPI(invoice billing.StandardInvoice) (api.Invoice, error) {
 	var apps *api.BillingProfileAppsOrReference
 	var err error
 
@@ -577,7 +577,7 @@ func MapInvoiceToAPI(invoice billing.Invoice) (api.Invoice, error) {
 		Workflow:               workflowConfig,
 	}
 
-	outLines, err := slicesx.MapWithErr(invoice.Lines.OrEmpty(), func(line *billing.Line) (api.InvoiceLine, error) {
+	outLines, err := slicesx.MapWithErr(invoice.Lines.OrEmpty(), func(line *billing.StandardLine) (api.InvoiceLine, error) {
 		mappedLine, err := mapInvoiceLineToAPI(line)
 		if err != nil {
 			return api.InvoiceLine{}, fmt.Errorf("failed to map billing line[%s] to API: %w", line.ID, err)
@@ -607,7 +607,7 @@ func mapInvoiceAppExternalIdsToAPI(externalIds billing.InvoiceExternalIDs) *api.
 	}
 }
 
-func MapEventInvoiceToAPI(event billing.EventInvoice) (api.Invoice, error) {
+func MapEventInvoiceToAPI(event billing.EventStandardInvoice) (api.Invoice, error) {
 	// Prefer the apps from the event
 	event.Invoice.Workflow.Apps = nil
 
@@ -716,7 +716,7 @@ func mapTotalsToAPI(t billing.Totals) api.InvoiceTotals {
 	}
 }
 
-func mapInvoiceAvailableActionsToAPI(actions billing.InvoiceAvailableActions) api.InvoiceAvailableActions {
+func mapInvoiceAvailableActionsToAPI(actions billing.StandardInvoiceAvailableActions) api.InvoiceAvailableActions {
 	return api.InvoiceAvailableActions{
 		Advance:            mapInvoiceAvailableActionDetailsToAPI(actions.Advance),
 		Approve:            mapInvoiceAvailableActionDetailsToAPI(actions.Approve),
@@ -728,7 +728,7 @@ func mapInvoiceAvailableActionsToAPI(actions billing.InvoiceAvailableActions) ap
 	}
 }
 
-func mapInvoiceAvailableActionDetailsToAPI(actions *billing.InvoiceAvailableActionDetails) *api.InvoiceAvailableActionDetails {
+func mapInvoiceAvailableActionDetailsToAPI(actions *billing.StandardInvoiceAvailableActionDetails) *api.InvoiceAvailableActionDetails {
 	if actions == nil {
 		return nil
 	}

@@ -113,9 +113,9 @@ type BillingInvoice struct {
 	// DueAt holds the value of the "due_at" field.
 	DueAt *time.Time `json:"due_at,omitempty"`
 	// Status holds the value of the "status" field.
-	Status billing.InvoiceStatus `json:"status,omitempty"`
+	Status billing.StandardInvoiceStatus `json:"status,omitempty"`
 	// StatusDetailsCache holds the value of the "status_details_cache" field.
-	StatusDetailsCache billing.InvoiceStatusDetails `json:"status_details_cache,omitempty"`
+	StatusDetailsCache billing.StandardInvoiceStatusDetails `json:"status_details_cache,omitempty"`
 	// WorkflowConfigID holds the value of the "workflow_config_id" field.
 	WorkflowConfigID string `json:"workflow_config_id,omitempty"`
 	// TaxAppID holds the value of the "tax_app_id" field.
@@ -590,7 +590,7 @@ func (_m *BillingInvoice) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
-				_m.Status = billing.InvoiceStatus(value.String)
+				_m.Status = billing.StandardInvoiceStatus(value.String)
 			}
 		case billinginvoice.FieldStatusDetailsCache:
 			if value, ok := values[i].(*[]byte); !ok {

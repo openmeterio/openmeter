@@ -31,7 +31,7 @@ func (a *AutoAdvancer) All(ctx context.Context, namespaces []string, batchSize i
 		return fmt.Errorf("failed to list invoices to advance: %w", err)
 	}
 
-	batches := [][]billing.Invoice{
+	batches := [][]billing.StandardInvoice{
 		invoices,
 	}
 	if batchSize > 0 {
@@ -76,9 +76,9 @@ func (a *AutoAdvancer) All(ctx context.Context, namespaces []string, batchSize i
 }
 
 // ListInvoicesPendingAutoAdvance lists invoices that are due to be auto-advanced
-func (a *AutoAdvancer) ListInvoicesPendingAutoAdvance(ctx context.Context, namespaces []string, ids []string) ([]billing.Invoice, error) {
+func (a *AutoAdvancer) ListInvoicesPendingAutoAdvance(ctx context.Context, namespaces []string, ids []string) ([]billing.StandardInvoice, error) {
 	resp, err := a.invoice.ListInvoices(ctx, billing.ListInvoicesInput{
-		ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusDraftWaitingAutoApproval},
+		ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusDraftWaitingAutoApproval},
 		DraftUntil:       lo.ToPtr(time.Now()),
 		Namespaces:       namespaces,
 		IDs:              ids,
@@ -91,9 +91,9 @@ func (a *AutoAdvancer) ListInvoicesPendingAutoAdvance(ctx context.Context, names
 }
 
 // ListInvoicesPendingCollection lists invoices that are due to be collected
-func (a *AutoAdvancer) ListInvoicesPendingCollection(ctx context.Context, namespaces []string, ids []string) ([]billing.Invoice, error) {
+func (a *AutoAdvancer) ListInvoicesPendingCollection(ctx context.Context, namespaces []string, ids []string) ([]billing.StandardInvoice, error) {
 	resp, err := a.invoice.ListInvoices(ctx, billing.ListInvoicesInput{
-		ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusDraftWaitingForCollection},
+		ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusDraftWaitingForCollection},
 		CollectionAt:     lo.ToPtr(time.Now()),
 		Namespaces:       namespaces,
 		IDs:              ids,
@@ -105,8 +105,8 @@ func (a *AutoAdvancer) ListInvoicesPendingCollection(ctx context.Context, namesp
 	return resp.Items, nil
 }
 
-// ListStuckInvoicesNeedingAdvance lists invoices that are stuck in some advancable state (this is a fail-safe mechanism)
-func (a *AutoAdvancer) ListStuckInvoicesNeedingAdvance(ctx context.Context, namespaces []string, ids []string) ([]billing.Invoice, error) {
+// ListStuckInvoicesNeedingAdvance lists invoices that are stuck in some advanceable state (this is a fail-safe mechanism)
+func (a *AutoAdvancer) ListStuckInvoicesNeedingAdvance(ctx context.Context, namespaces []string, ids []string) ([]billing.StandardInvoice, error) {
 	resp, err := a.invoice.ListInvoices(ctx, billing.ListInvoicesInput{
 		HasAvailableAction: []billing.InvoiceAvailableActionsFilter{billing.InvoiceAvailableActionsFilterAdvance},
 		Namespaces:         namespaces,
@@ -119,7 +119,7 @@ func (a *AutoAdvancer) ListStuckInvoicesNeedingAdvance(ctx context.Context, name
 	return resp.Items, nil
 }
 
-func (a *AutoAdvancer) ListInvoicesToAdvance(ctx context.Context, namespace []string, ids []string) ([]billing.Invoice, error) {
+func (a *AutoAdvancer) ListInvoicesToAdvance(ctx context.Context, namespace []string, ids []string) ([]billing.StandardInvoice, error) {
 	autoAdvanceInvoices, err := a.ListInvoicesPendingAutoAdvance(ctx, namespace, ids)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list invoices to auto-advance: %w", err)
@@ -137,12 +137,12 @@ func (a *AutoAdvancer) ListInvoicesToAdvance(ctx context.Context, namespace []st
 
 	allInvoices := append(autoAdvanceInvoices, stuckInvoices...)
 	allInvoices = append(allInvoices, collectingInvoices...)
-	return lo.UniqBy(allInvoices, func(i billing.Invoice) string {
+	return lo.UniqBy(allInvoices, func(i billing.StandardInvoice) string {
 		return i.ID
 	}), nil
 }
 
-func (a *AutoAdvancer) AdvanceInvoice(ctx context.Context, id billing.InvoiceID) (billing.Invoice, error) {
+func (a *AutoAdvancer) AdvanceInvoice(ctx context.Context, id billing.InvoiceID) (billing.StandardInvoice, error) {
 	invoice, err := a.invoice.AdvanceInvoice(ctx, id)
 	if err != nil {
 		// ErrInvoiceCannotAdvance is returned when the invoice cannot be advanced due to state machine settings
@@ -152,7 +152,7 @@ func (a *AutoAdvancer) AdvanceInvoice(ctx context.Context, id billing.InvoiceID)
 				Invoice: id,
 			})
 			if err != nil {
-				return billing.Invoice{}, fmt.Errorf("failed to get invoice by id: %w", err)
+				return billing.StandardInvoice{}, fmt.Errorf("failed to get invoice by id: %w", err)
 			}
 
 			logArgs := []any{

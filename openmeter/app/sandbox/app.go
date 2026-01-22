@@ -71,7 +71,7 @@ func (a App) DeleteCustomerData(ctx context.Context, input app.DeleteAppInstance
 	return nil
 }
 
-func (a App) ValidateInvoice(ctx context.Context, invoice billing.Invoice) error {
+func (a App) ValidateStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
 	return nil
 }
 
@@ -79,11 +79,11 @@ func (a App) UpdateAppConfig(ctx context.Context, input app.AppConfigUpdate) err
 	return nil
 }
 
-func (a App) UpsertInvoice(ctx context.Context, invoice billing.Invoice) (*billing.UpsertInvoiceResult, error) {
-	return billing.NewUpsertInvoiceResult(), nil
+func (a App) UpsertStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
+	return billing.NewUpsertStandardInvoiceResult(), nil
 }
 
-func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*billing.FinalizeInvoiceResult, error) {
+func (a App) FinalizeStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.FinalizeStandardInvoiceResult, error) {
 	invoiceNumber, err := a.billingService.GenerateInvoiceSequenceNumber(
 		ctx,
 		billing.SequenceGenerationInput{
@@ -97,17 +97,17 @@ func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*bil
 		return nil, fmt.Errorf("failed to generate invoice sequence number: %w", err)
 	}
 
-	return billing.NewFinalizeInvoiceResult().
+	return billing.NewFinalizeStandardInvoiceResult().
 		SetInvoiceNumber(invoiceNumber).
 		SetSentToCustomerAt(clock.Now()), nil
 }
 
-func (a App) DeleteInvoice(ctx context.Context, invoice billing.Invoice) error {
+func (a App) DeleteStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
 	return nil
 }
 
-func (a App) PostAdvanceInvoiceHook(ctx context.Context, invoice billing.Invoice) (*billing.PostAdvanceHookResult, error) {
-	if invoice.Status != billing.InvoiceStatusPaymentProcessingPending {
+func (a App) PostAdvanceStandardInvoiceHook(ctx context.Context, invoice billing.StandardInvoice) (*billing.PostAdvanceHookResult, error) {
+	if invoice.Status != billing.StandardInvoiceStatusPaymentProcessingPending {
 		return nil, nil
 	}
 
@@ -127,7 +127,7 @@ func (a App) PostAdvanceInvoiceHook(ctx context.Context, invoice billing.Invoice
 			Invoice: invoice.InvoiceID(),
 			Trigger: billing.TriggerFailed,
 			ValidationErrors: &billing.InvoiceTriggerValidationInput{
-				Operation: billing.InvoiceOpInitiatePayment,
+				Operation: billing.StandardInvoiceOpInitiatePayment,
 				Errors:    []error{ErrSimulatedPaymentFailure},
 			},
 		}), nil

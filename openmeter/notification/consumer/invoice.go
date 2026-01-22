@@ -16,11 +16,11 @@ type InvoiceEventHandler struct {
 	Logger       *slog.Logger
 }
 
-func (h *InvoiceEventHandler) Handle(ctx context.Context, event billing.EventInvoice, eventType notification.EventType) error {
+func (h *InvoiceEventHandler) Handle(ctx context.Context, event billing.EventStandardInvoice, eventType notification.EventType) error {
 	h.Logger.InfoContext(ctx, "handling invoice event", "event.type", eventType)
 
 	// Skip events for gathering invoices
-	if event.Invoice.Status == billing.InvoiceStatusGathering {
+	if event.Invoice.Status == billing.StandardInvoiceStatusGathering {
 		return nil
 	}
 

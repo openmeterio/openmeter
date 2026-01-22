@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
-func isFlatFee(line *billing.Line) bool {
+func isFlatFee(line *billing.StandardLine) bool {
 	if line == nil {
 		return false
 	}
@@ -23,7 +23,7 @@ func isFlatFee(line *billing.Line) bool {
 	return false
 }
 
-func getFlatFeePerUnitAmount(line *billing.Line) (alpacadecimal.Decimal, error) {
+func getFlatFeePerUnitAmount(line *billing.StandardLine) (alpacadecimal.Decimal, error) {
 	if line == nil {
 		return alpacadecimal.Zero, fmt.Errorf("line is nil")
 	}
@@ -40,7 +40,7 @@ func getFlatFeePerUnitAmount(line *billing.Line) (alpacadecimal.Decimal, error) 
 	return flatPrice.Amount, nil
 }
 
-func setFlatFeePerUnitAmount(line *billing.Line, perUnitAmount alpacadecimal.Decimal) error {
+func setFlatFeePerUnitAmount(line *billing.StandardLine, perUnitAmount alpacadecimal.Decimal) error {
 	if line == nil {
 		return fmt.Errorf("line is nil")
 	}

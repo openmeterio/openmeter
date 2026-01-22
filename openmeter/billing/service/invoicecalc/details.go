@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
-func RecalculateDetailedLinesAndTotals(invoice *billing.Invoice, deps CalculatorDependencies) error {
+func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps CalculatorDependencies) error {
 	if invoice.Lines.IsAbsent() {
 		return errors.New("cannot recaulculate invoice without expanded lines")
 	}
@@ -44,7 +44,7 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.Invoice, deps Calculator
 
 	totals := billing.Totals{}
 
-	totals = totals.Add(lo.Map(invoice.Lines.OrEmpty(), func(line *billing.Line, _ int) billing.Totals {
+	totals = totals.Add(lo.Map(invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) billing.Totals {
 		// Deleted lines are not contributing to the totals
 		if line.DeletedAt != nil {
 			return billing.Totals{}

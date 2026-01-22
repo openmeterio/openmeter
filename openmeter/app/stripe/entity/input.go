@@ -478,7 +478,7 @@ func (i GetSupplierContactInput) Validate() error {
 }
 
 type ValidationErrorsInput struct {
-	Op     billing.InvoiceOperation
+	Op     billing.StandardInvoiceOperation
 	Errors []*stripe.Error
 }
 
@@ -492,13 +492,13 @@ type HandleInvoiceStateTransitionInput struct {
 	Trigger billing.InvoiceTrigger
 	// TargetStatus specifies the expected status of the invoice after the transition, needed to filter
 	// for duplicate events as the state machine doesn't allow transition into the same state
-	TargetStatuses []billing.InvoiceStatus
+	TargetStatuses []billing.StandardInvoiceStatus
 
 	// Event filtering
 
 	// IgnoreInvoiceInStatus is a list of invoice statuses. If the invoice is in this status we ignore the event
 	// this allows to filter for out of order events.
-	IgnoreInvoiceInStatus []billing.InvoiceStatusMatcher
+	IgnoreInvoiceInStatus []billing.StandardInvoiceStatusMatcher
 	// ShouldTriggerOnEvent gets the *current* stripe invoice and returns true if the state machine should be triggered
 	// useful for filtering late events based on the current state (optional)
 	ShouldTriggerOnEvent func(*stripe.Invoice) (bool, error)

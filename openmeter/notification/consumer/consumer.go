@@ -86,14 +86,14 @@ func New(opts Options) (*Consumer, error) {
 
 			return consumer.entitlementSnapshotHandler.Handle(ctx, *event)
 		}),
-		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.InvoiceCreatedEvent) error {
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.StandardInvoiceCreatedEvent) error {
 			if event == nil {
 				return nil
 			}
 
-			return consumer.invoiceHandler.Handle(ctx, event.EventInvoice, notification.EventTypeInvoiceCreated)
+			return consumer.invoiceHandler.Handle(ctx, event.EventStandardInvoice, notification.EventTypeInvoiceCreated)
 		}),
-		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.InvoiceUpdatedEvent) error {
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.StandardInvoiceUpdatedEvent) error {
 			if event == nil {
 				return nil
 			}

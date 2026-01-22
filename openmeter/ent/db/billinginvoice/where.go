@@ -2880,19 +2880,19 @@ func DueAtNotNil() predicate.BillingInvoice {
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.
-func StatusEQ(v billing.InvoiceStatus) predicate.BillingInvoice {
+func StatusEQ(v billing.StandardInvoiceStatus) predicate.BillingInvoice {
 	vc := v
 	return predicate.BillingInvoice(sql.FieldEQ(FieldStatus, vc))
 }
 
 // StatusNEQ applies the NEQ predicate on the "status" field.
-func StatusNEQ(v billing.InvoiceStatus) predicate.BillingInvoice {
+func StatusNEQ(v billing.StandardInvoiceStatus) predicate.BillingInvoice {
 	vc := v
 	return predicate.BillingInvoice(sql.FieldNEQ(FieldStatus, vc))
 }
 
 // StatusIn applies the In predicate on the "status" field.
-func StatusIn(vs ...billing.InvoiceStatus) predicate.BillingInvoice {
+func StatusIn(vs ...billing.StandardInvoiceStatus) predicate.BillingInvoice {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -2901,7 +2901,7 @@ func StatusIn(vs ...billing.InvoiceStatus) predicate.BillingInvoice {
 }
 
 // StatusNotIn applies the NotIn predicate on the "status" field.
-func StatusNotIn(vs ...billing.InvoiceStatus) predicate.BillingInvoice {
+func StatusNotIn(vs ...billing.StandardInvoiceStatus) predicate.BillingInvoice {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]

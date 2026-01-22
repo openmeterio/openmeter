@@ -184,7 +184,7 @@ func (t *TestEventGenerator) newTestInvoicePayload(ctx context.Context, namespac
 
 		Number:   lo.ToPtr("TEST-INV-1"),
 		Currency: currencyx.Code(currency.USD),
-		Lines: billing.NewInvoiceLines([]*billing.Line{
+		Lines: billing.NewStandardInvoiceLines([]*billing.StandardLine{
 			billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
 				Namespace: namespace,
 				ID:        ulid.Make().String(),
@@ -209,7 +209,7 @@ func (t *TestEventGenerator) newTestInvoicePayload(ctx context.Context, namespac
 		return notification.EventPayload{}, err
 	}
 
-	eventInvoice, err := billing.NewEventInvoice(invoice)
+	eventInvoice, err := billing.NewEventStandardInvoice(invoice)
 	if err != nil {
 		return notification.EventPayload{}, err
 	}

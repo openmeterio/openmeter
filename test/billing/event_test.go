@@ -33,7 +33,7 @@ func (s *InvoicingEventTestSuite) TestCreateInvoiceEvent() {
 	})
 
 	// When we create an invoice created event
-	event, err := billing.NewInvoiceCreatedEvent(invoice)
+	event, err := billing.NewStandardInvoiceCreatedEvent(invoice)
 	s.NoError(err)
 
 	// Then the event should be be JSON marshallable
@@ -42,7 +42,7 @@ func (s *InvoicingEventTestSuite) TestCreateInvoiceEvent() {
 
 	s.T().Logf("invoice created event: %s", string(marshaledInvoice))
 
-	var unmarshaledEvent billing.InvoiceCreatedEvent
+	var unmarshaledEvent billing.StandardInvoiceCreatedEvent
 	err = json.Unmarshal(marshaledInvoice, &unmarshaledEvent)
 	s.NoError(err)
 

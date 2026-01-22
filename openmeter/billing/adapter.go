@@ -58,18 +58,18 @@ type CustomerSynchronizationAdapter interface {
 }
 
 type InvoiceLineAdapter interface {
-	UpsertInvoiceLines(ctx context.Context, input UpsertInvoiceLinesAdapterInput) ([]*Line, error)
-	ListInvoiceLines(ctx context.Context, input ListInvoiceLinesAdapterInput) ([]*Line, error)
+	UpsertInvoiceLines(ctx context.Context, input UpsertInvoiceLinesAdapterInput) ([]*StandardLine, error)
+	ListInvoiceLines(ctx context.Context, input ListInvoiceLinesAdapterInput) ([]*StandardLine, error)
 	GetLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]LineOrHierarchy, error)
 }
 
 type InvoiceAdapter interface {
 	CreateInvoice(ctx context.Context, input CreateInvoiceAdapterInput) (CreateInvoiceAdapterRespone, error)
-	GetInvoiceById(ctx context.Context, input GetInvoiceByIdInput) (Invoice, error)
+	GetInvoiceById(ctx context.Context, input GetInvoiceByIdInput) (StandardInvoice, error)
 	DeleteGatheringInvoices(ctx context.Context, input DeleteGatheringInvoicesInput) error
 	ListInvoices(ctx context.Context, input ListInvoicesInput) (ListInvoicesResponse, error)
 	AssociatedLineCounts(ctx context.Context, input AssociatedLineCountsAdapterInput) (AssociatedLineCountsAdapterResponse, error)
-	UpdateInvoice(ctx context.Context, input UpdateInvoiceAdapterInput) (Invoice, error)
+	UpdateInvoice(ctx context.Context, input UpdateInvoiceAdapterInput) (StandardInvoice, error)
 
 	GetInvoiceOwnership(ctx context.Context, input GetInvoiceOwnershipAdapterInput) (GetOwnershipAdapterResponse, error)
 }

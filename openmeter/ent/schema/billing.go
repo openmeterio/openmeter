@@ -1097,9 +1097,9 @@ func (BillingInvoice) Fields() []ent.Field {
 			Nillable(),
 
 		field.Enum("status").
-			GoType(billing.InvoiceStatus("")),
+			GoType(billing.StandardInvoiceStatus("")),
 
-		field.JSON("status_details_cache", billing.InvoiceStatusDetails{}).
+		field.JSON("status_details_cache", billing.StandardInvoiceStatusDetails{}).
 			Optional(),
 
 		// Cloned profile settings
