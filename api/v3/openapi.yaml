@@ -51,8 +51,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Apps
-      x-unstable: true
-      x-internal: true
   /openmeter/apps/{appId}:
     get:
       operationId: get-app
@@ -81,8 +79,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Apps
-      x-unstable: true
-      x-internal: true
   /openmeter/customers:
     post:
       operationId: create-customer
@@ -264,8 +260,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Customers
-      x-unstable: true
-      x-internal: true
     put:
       operationId: update-customer-billing
       summary: Update customer billing data
@@ -298,8 +292,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertCustomerBillingDataRequest'
-      x-unstable: true
-      x-internal: true
   /openmeter/customers/{customerId}/billing/app-data:
     put:
       operationId: update-customer-billing-app-data
@@ -333,8 +325,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertAppCustomerDataRequest'
-      x-unstable: true
-      x-internal: true
   /openmeter/customers/{customerId}/billing/stripe/checkout-sessions:
     post:
       operationId: create-customer-stripe-checkout-session
@@ -378,8 +368,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingCustomerStripeCreateCheckoutSessionRequest'
-      x-unstable: true
-      x-internal: true
   /openmeter/customers/{customerId}/billing/stripe/portal-sessions:
     post:
       operationId: create-customer-stripe-portal-session
@@ -421,8 +409,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingCustomerStripeCreateCustomerPortalSessionRequest'
-      x-unstable: true
-      x-internal: true
   /openmeter/customers/{customerId}/entitlement-access:
     get:
       operationId: list-customer-entitlement-access
@@ -604,8 +590,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Billing
-      x-unstable: true
-      x-internal: true
     post:
       operationId: create-billing-profile
       summary: Create a new billing profile
@@ -636,8 +620,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateBillingProfileRequest'
-      x-unstable: true
-      x-internal: true
   /openmeter/profiles/{id}:
     get:
       operationId: get-billing-profile
@@ -666,8 +648,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Billing
-      x-unstable: true
-      x-internal: true
     put:
       operationId: update-billing-profile
       summary: Update a billing profile
@@ -701,8 +681,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertBillingProfileRequest'
-      x-unstable: true
-      x-internal: true
     delete:
       operationId: delete-billing-profile
       summary: Delete a billing profile
@@ -732,8 +710,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Billing
-      x-unstable: true
-      x-internal: true
   /openmeter/subscriptions:
     post:
       operationId: create-subscription

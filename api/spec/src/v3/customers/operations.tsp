@@ -96,8 +96,6 @@ interface CustomerBillingOperations {
   @get
   @operationId("get-customer-billing")
   @summary("Get customer billing data")
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.UnstableExtension, true)
   get(
     @path customerId: Shared.ULID,
   ): Shared.GetResponse<CustomerBillingData> | Common.NotFound | Common.ErrorResponses;
@@ -105,8 +103,6 @@ interface CustomerBillingOperations {
   @put
   @operationId("update-customer-billing")
   @summary("Update customer billing data")
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.UnstableExtension, true)
   upsert(
     @path customerId: Shared.ULID,
     @body body: Shared.UpsertRequest<CustomerBillingData>,
@@ -116,8 +112,6 @@ interface CustomerBillingOperations {
   @route("/app-data")
   @operationId("update-customer-billing-app-data")
   @summary("Update customer billing app data")
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.UnstableExtension, true)
   upsertAppData(
     @path customerId: Shared.ULID,
     @body body: Shared.UpsertRequest<Apps.AppCustomerData>,
@@ -138,8 +132,6 @@ interface CustomerBillingOperations {
   @route("/stripe/checkout-sessions")
   @operationId("create-customer-stripe-checkout-session")
   @summary("Create Stripe Checkout Session")
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.UnstableExtension, true)
   createCheckoutSession(
     @path customerId: Shared.ULID,
     @body body: CustomerBillingStripeCreateCheckoutSessionRequest,
@@ -156,8 +148,6 @@ interface CustomerBillingOperations {
   @route("/stripe/portal-sessions")
   @operationId("create-customer-stripe-portal-session")
   @summary("Create Stripe customer portal session")
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.UnstableExtension, true)
   createPortalSession(
     @path customerId: Shared.ULID,
     @body body: CustomerBillingStripeCreateCustomerPortalSessionRequest,
