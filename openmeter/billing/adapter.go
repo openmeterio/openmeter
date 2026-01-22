@@ -20,6 +20,7 @@ type Adapter interface {
 	SequenceAdapter
 	InvoiceAppAdapter
 	CustomerSynchronizationAdapter
+	SchemaLevelAdapter
 
 	entutils.TxCreator
 }
@@ -52,7 +53,7 @@ type CustomerOverrideAdapter interface {
 type CustomerSynchronizationAdapter interface {
 	// UpsertCustomerOverride upserts a customer override ignoring the transactional context, the override
 	// will be empty.
-	UpsertCustomerOverride(ctx context.Context, input UpsertCustomerOverrideAdapterInput) error
+	UpsertCustomerLock(ctx context.Context, input UpsertCustomerLockAdapterInput) error
 	LockCustomerForUpdate(ctx context.Context, input LockCustomerForUpdateAdapterInput) error
 }
 
@@ -86,4 +87,11 @@ type SequenceAdapter interface {
 
 type InvoiceAppAdapter interface {
 	UpdateInvoiceFields(ctx context.Context, input UpdateInvoiceFieldsInput) error
+}
+
+type SchemaLevelAdapter interface {
+	// GetInvoiceDefaultSchemaLevel returns the current default schema level for invoices.
+	GetInvoiceDefaultSchemaLevel(ctx context.Context) (int, error)
+	// SetInvoiceDefaultSchemaLevel sets the current default schema level for invoices.
+	SetInvoiceDefaultSchemaLevel(ctx context.Context, level int) error
 }

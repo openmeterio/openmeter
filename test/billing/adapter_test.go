@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -211,8 +212,10 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 	}
 
 	lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-		Namespace: ns,
-		Lines:     linesIn,
+		Namespace:   ns,
+		SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+		Lines:       linesIn,
+		InvoiceID:   invoice.ID,
 	})
 	require.NoError(s.T(), err)
 	require.Len(s.T(), lines, 3)
@@ -269,8 +272,10 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 
 		// When we persist the changes
 		lines, err = s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-			Namespace: ns,
-			Lines:     lines,
+			Namespace:   ns,
+			Lines:       lines,
+			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+			InvoiceID:   invoice.ID,
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), lines, 3)
@@ -321,8 +326,10 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 
 		// When we persist the changes
 		lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-			Namespace: ns,
-			Lines:     []*billing.Line{lines[0]},
+			Namespace:   ns,
+			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+			Lines:       []*billing.Line{lines[0]},
+			InvoiceID:   invoice.ID,
 		})
 
 		// Then we only get three lines
@@ -439,8 +446,10 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 	}
 
 	lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-		Namespace: ns,
-		Lines:     []*billing.Line{lineIn},
+		Namespace:   ns,
+		SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+		Lines:       []*billing.Line{lineIn},
+		InvoiceID:   invoice.ID,
 	})
 
 	// Then the lines are persisted as expected
@@ -529,8 +538,10 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 	updateLineIn.DetailedLines = childrenWithIDReuse
 
 	updatedLines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
-		Namespace: ns,
-		Lines:     []*billing.Line{updateLineIn},
+		Namespace:   ns,
+		SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+		Lines:       []*billing.Line{updateLineIn},
+		InvoiceID:   invoice.ID,
 	})
 
 	// Then the discounts are persisted as expected

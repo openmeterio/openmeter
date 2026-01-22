@@ -733,8 +733,10 @@ type CreatePendingInvoiceLinesResult struct {
 }
 
 type UpsertInvoiceLinesAdapterInput struct {
-	Namespace string
-	Lines     []*Line
+	Namespace   string
+	Lines       []*Line
+	SchemaLevel int
+	InvoiceID   string
 }
 
 func (c UpsertInvoiceLinesAdapterInput) Validate() error {
@@ -754,6 +756,14 @@ func (c UpsertInvoiceLinesAdapterInput) Validate() error {
 		if line.InvoiceID == "" {
 			return fmt.Errorf("line[%d]: invoice id is required", i)
 		}
+	}
+
+	if c.SchemaLevel < 1 {
+		return fmt.Errorf("schema level must be at least 1")
+	}
+
+	if c.InvoiceID == "" {
+		return errors.New("invoice id is required")
 	}
 
 	return nil
@@ -948,6 +958,7 @@ type DeleteInvoiceLineInput = LineID
 type GetLinesForSubscriptionInput struct {
 	Namespace      string
 	SubscriptionID string
+	CustomerID     string
 }
 
 func (i GetLinesForSubscriptionInput) Validate() error {
@@ -957,6 +968,10 @@ func (i GetLinesForSubscriptionInput) Validate() error {
 
 	if i.SubscriptionID == "" {
 		return errors.New("subscription id is required")
+	}
+
+	if i.CustomerID == "" {
+		return errors.New("customer id is required")
 	}
 
 	return nil

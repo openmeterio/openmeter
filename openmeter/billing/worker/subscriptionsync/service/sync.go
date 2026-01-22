@@ -299,6 +299,7 @@ func (s *Service) compareSubscriptionWithExistingLines(ctx context.Context, subs
 		existingLines, err := s.billingService.GetLinesForSubscription(ctx, billing.GetLinesForSubscriptionInput{
 			Namespace:      subs.Subscription.Namespace,
 			SubscriptionID: subs.Subscription.ID,
+			CustomerID:     subs.Subscription.CustomerId,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("getting existing lines: %w", err)

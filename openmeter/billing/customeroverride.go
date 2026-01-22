@@ -252,11 +252,6 @@ type (
 
 type HasCustomerOverrideReferencingProfileAdapterInput = ProfileID
 
-type (
-	UpsertCustomerOverrideAdapterInput = customer.CustomerID
-	LockCustomerForUpdateAdapterInput  = customer.CustomerID
-)
-
 type CustomerOverrideWithDetails struct {
 	CustomerOverride *CustomerOverride `json:",inline"`
 	MergedProfile    Profile           `json:"mergedProfile,omitempty"`

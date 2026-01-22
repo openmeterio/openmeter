@@ -17,3 +17,6 @@ go.work.sum
 __debug_bin*
 
 openmeter.log
+
+.gocache
+.gomodcache
