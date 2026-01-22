@@ -20,8 +20,6 @@ interface BillingProfilesOperations {
   @get
   @operationId("list-billing-profiles")
   @summary("List billing profiles")
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.UnstableExtension, true)
   list(
     ...Common.PagePaginationQuery,
   ): Shared.PagePaginatedResponse<BillingProfile> | Common.ErrorResponses;
@@ -36,8 +34,6 @@ interface BillingProfilesOperations {
   @post
   @operationId("create-billing-profile")
   @summary("Create a new billing profile")
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.UnstableExtension, true)
   create(
     @body profile: Shared.CreateRequest<BillingProfile>,
   ): Shared.CreateResponse<BillingProfile> | Common.ErrorResponses;
@@ -48,8 +44,6 @@ interface BillingProfilesOperations {
   @get
   @operationId("get-billing-profile")
   @summary("Get a billing profile")
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.UnstableExtension, true)
   get(
     @path id: Shared.ULID,
   ): Shared.GetResponse<BillingProfile> | Common.NotFound | Common.ErrorResponses;
@@ -60,8 +54,6 @@ interface BillingProfilesOperations {
   @put
   @operationId("update-billing-profile")
   @summary("Update a billing profile")
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.UnstableExtension, true)
   update(
     @path id: Shared.ULID,
     @body profile: Shared.UpsertRequest<BillingProfile>,
@@ -77,8 +69,6 @@ interface BillingProfilesOperations {
   @delete
   @operationId("delete-billing-profile")
   @summary("Delete a billing profile")
-  @extension(Shared.InternalExtension, true)
-  @extension(Shared.UnstableExtension, true)
   delete(
     @path id: Shared.ULID,
   ): Shared.DeleteResponse | Common.NotFound | Common.ErrorResponses;
