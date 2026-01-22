@@ -1030,16 +1030,16 @@ var _ appcustominvoicing.SyncService = (*NoopAppCustomInvoicingService)(nil)
 
 type NoopAppCustomInvoicingService struct{}
 
-func (n NoopAppCustomInvoicingService) SyncDraftInvoice(ctx context.Context, input appcustominvoicing.SyncDraftInvoiceInput) (billing.Invoice, error) {
-	return billing.Invoice{}, nil
+func (n NoopAppCustomInvoicingService) SyncDraftInvoice(ctx context.Context, input appcustominvoicing.SyncDraftInvoiceInput) (billing.StandardInvoice, error) {
+	return billing.StandardInvoice{}, nil
 }
 
-func (n NoopAppCustomInvoicingService) SyncIssuingInvoice(ctx context.Context, input appcustominvoicing.SyncIssuingInvoiceInput) (billing.Invoice, error) {
-	return billing.Invoice{}, nil
+func (n NoopAppCustomInvoicingService) SyncIssuingInvoice(ctx context.Context, input appcustominvoicing.SyncIssuingInvoiceInput) (billing.StandardInvoice, error) {
+	return billing.StandardInvoice{}, nil
 }
 
-func (n NoopAppCustomInvoicingService) HandlePaymentTrigger(ctx context.Context, input appcustominvoicing.HandlePaymentTriggerInput) (billing.Invoice, error) {
-	return billing.Invoice{}, nil
+func (n NoopAppCustomInvoicingService) HandlePaymentTrigger(ctx context.Context, input appcustominvoicing.HandlePaymentTriggerInput) (billing.StandardInvoice, error) {
+	return billing.StandardInvoice{}, nil
 }
 
 var _ customer.Service = (*NoopCustomerService)(nil)
@@ -1454,8 +1454,8 @@ func (n NoopBillingService) GetLinesForSubscription(ctx context.Context, input b
 	return []billing.LineOrHierarchy{}, nil
 }
 
-func (n NoopBillingService) SnapshotLineQuantity(ctx context.Context, input billing.SnapshotLineQuantityInput) (*billing.Line, error) {
-	return &billing.Line{}, nil
+func (n NoopBillingService) SnapshotLineQuantity(ctx context.Context, input billing.SnapshotLineQuantityInput) (*billing.StandardLine, error) {
+	return &billing.StandardLine{}, nil
 }
 
 // InvoiceSplitLineGroupService methods
@@ -1476,40 +1476,40 @@ func (n NoopBillingService) ListInvoices(ctx context.Context, input billing.List
 	return billing.ListInvoicesResponse{}, nil
 }
 
-func (n NoopBillingService) GetInvoiceByID(ctx context.Context, input billing.GetInvoiceByIdInput) (billing.Invoice, error) {
-	return billing.Invoice{}, nil
+func (n NoopBillingService) GetInvoiceByID(ctx context.Context, input billing.GetInvoiceByIdInput) (billing.StandardInvoice, error) {
+	return billing.StandardInvoice{}, nil
 }
 
-func (n NoopBillingService) InvoicePendingLines(ctx context.Context, input billing.InvoicePendingLinesInput) ([]billing.Invoice, error) {
-	return []billing.Invoice{}, nil
+func (n NoopBillingService) InvoicePendingLines(ctx context.Context, input billing.InvoicePendingLinesInput) ([]billing.StandardInvoice, error) {
+	return []billing.StandardInvoice{}, nil
 }
 
-func (n NoopBillingService) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoiceInput) (billing.Invoice, error) {
-	return billing.Invoice{}, nil
+func (n NoopBillingService) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoiceInput) (billing.StandardInvoice, error) {
+	return billing.StandardInvoice{}, nil
 }
 
-func (n NoopBillingService) SnapshotQuantities(ctx context.Context, input billing.SnapshotQuantitiesInput) (billing.Invoice, error) {
-	return billing.Invoice{}, nil
+func (n NoopBillingService) SnapshotQuantities(ctx context.Context, input billing.SnapshotQuantitiesInput) (billing.StandardInvoice, error) {
+	return billing.StandardInvoice{}, nil
 }
 
-func (n NoopBillingService) ApproveInvoice(ctx context.Context, input billing.ApproveInvoiceInput) (billing.Invoice, error) {
-	return billing.Invoice{}, nil
+func (n NoopBillingService) ApproveInvoice(ctx context.Context, input billing.ApproveInvoiceInput) (billing.StandardInvoice, error) {
+	return billing.StandardInvoice{}, nil
 }
 
-func (n NoopBillingService) RetryInvoice(ctx context.Context, input billing.RetryInvoiceInput) (billing.Invoice, error) {
-	return billing.Invoice{}, nil
+func (n NoopBillingService) RetryInvoice(ctx context.Context, input billing.RetryInvoiceInput) (billing.StandardInvoice, error) {
+	return billing.StandardInvoice{}, nil
 }
 
-func (n NoopBillingService) DeleteInvoice(ctx context.Context, input billing.DeleteInvoiceInput) (billing.Invoice, error) {
-	return billing.Invoice{}, nil
+func (n NoopBillingService) DeleteInvoice(ctx context.Context, input billing.DeleteInvoiceInput) (billing.StandardInvoice, error) {
+	return billing.StandardInvoice{}, nil
 }
 
-func (n NoopBillingService) UpdateInvoice(ctx context.Context, input billing.UpdateInvoiceInput) (billing.Invoice, error) {
-	return billing.Invoice{}, nil
+func (n NoopBillingService) UpdateInvoice(ctx context.Context, input billing.UpdateInvoiceInput) (billing.StandardInvoice, error) {
+	return billing.StandardInvoice{}, nil
 }
 
-func (n NoopBillingService) SimulateInvoice(ctx context.Context, input billing.SimulateInvoiceInput) (billing.Invoice, error) {
-	return billing.Invoice{}, nil
+func (n NoopBillingService) SimulateInvoice(ctx context.Context, input billing.SimulateInvoiceInput) (billing.StandardInvoice, error) {
+	return billing.StandardInvoice{}, nil
 }
 
 func (n NoopBillingService) UpsertValidationIssues(ctx context.Context, input billing.UpsertValidationIssuesInput) error {
@@ -1534,12 +1534,12 @@ func (n NoopBillingService) UpdateInvoiceFields(ctx context.Context, input billi
 	return nil
 }
 
-func (n NoopBillingService) SyncDraftInvoice(ctx context.Context, input billing.SyncDraftInvoiceInput) (billing.Invoice, error) {
-	return billing.Invoice{}, nil
+func (n NoopBillingService) SyncDraftInvoice(ctx context.Context, input billing.SyncDraftStandardInvoiceInput) (billing.StandardInvoice, error) {
+	return billing.StandardInvoice{}, nil
 }
 
-func (n NoopBillingService) SyncIssuingInvoice(ctx context.Context, input billing.SyncIssuingInvoiceInput) (billing.Invoice, error) {
-	return billing.Invoice{}, nil
+func (n NoopBillingService) SyncIssuingInvoice(ctx context.Context, input billing.SyncIssuingStandardInvoiceInput) (billing.StandardInvoice, error) {
+	return billing.StandardInvoice{}, nil
 }
 
 // ConfigIntrospectionService methods

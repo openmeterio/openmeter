@@ -22,7 +22,7 @@ type SyncService interface {
 type EventHandler interface {
 	HandleCancelledEvent(ctx context.Context, event *subscription.CancelledEvent) error
 	HandleSubscriptionSyncEvent(ctx context.Context, event *subscription.SubscriptionSyncEvent) error
-	HandleInvoiceCreation(ctx context.Context, event *billing.InvoiceCreatedEvent) error
+	HandleInvoiceCreation(ctx context.Context, event *billing.StandardInvoiceCreatedEvent) error
 }
 
 type SyncStateService interface {

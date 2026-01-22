@@ -179,8 +179,8 @@ func (i SplitLineGroup) Clone() SplitLineGroup {
 }
 
 type LineWithInvoiceHeader struct {
-	Line    *Line
-	Invoice InvoiceBase
+	Line    *StandardLine
+	Invoice StandardInvoiceBase
 }
 
 func (i LineWithInvoiceHeader) Clone() LineWithInvoiceHeader {
@@ -249,7 +249,7 @@ func (h *SplitLineHierarchy) ForEachChild(in ForEachChildInput) error {
 		}
 
 		// The invoice is deleted
-		if child.Invoice.DeletedAt != nil || child.Invoice.Status == InvoiceStatusDeleted {
+		if child.Invoice.DeletedAt != nil || child.Invoice.Status == StandardInvoiceStatusDeleted {
 			continue
 		}
 
@@ -280,13 +280,13 @@ const (
 
 type LineOrHierarchy struct {
 	t                  LineOrHierarchyType
-	line               *Line
+	line               *StandardLine
 	splitLineHierarchy *SplitLineHierarchy
 }
 
-func NewLineOrHierarchy[T Line | SplitLineHierarchy](line *T) LineOrHierarchy {
+func NewLineOrHierarchy[T StandardLine | SplitLineHierarchy](line *T) LineOrHierarchy {
 	switch v := any(line).(type) {
-	case *Line:
+	case *StandardLine:
 		return LineOrHierarchy{t: LineOrHierarchyTypeLine, line: v}
 	case *SplitLineHierarchy:
 		return LineOrHierarchy{t: LineOrHierarchyTypeHierarchy, splitLineHierarchy: v}
@@ -299,7 +299,7 @@ func (i LineOrHierarchy) Type() LineOrHierarchyType {
 	return i.t
 }
 
-func (i LineOrHierarchy) AsLine() (*Line, error) {
+func (i LineOrHierarchy) AsStandardLine() (*StandardLine, error) {
 	if i.t != LineOrHierarchyTypeLine {
 		return nil, fmt.Errorf("line or hierarchy is not a line")
 	}

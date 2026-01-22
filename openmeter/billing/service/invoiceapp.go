@@ -21,7 +21,7 @@ func (s *Service) TriggerInvoice(ctx context.Context, input billing.InvoiceTrigg
 			Callback: func(ctx context.Context, sm *InvoiceStateMachine) error {
 				errOrValidationErrors := sm.HandleInvoiceTrigger(ctx, input.InvoiceTriggerInput)
 
-				op := billing.InvoiceOpTriggerInvoice
+				op := billing.StandardInvoiceOpTriggerInvoice
 				if input.ValidationErrors != nil {
 					op = input.ValidationErrors.Operation
 				}
@@ -29,7 +29,7 @@ func (s *Service) TriggerInvoice(ctx context.Context, input billing.InvoiceTrigg
 				component := billing.AppTypeCapabilityToComponent(
 					input.AppType,
 					input.Capability,
-					op,
+					string(op),
 				)
 
 				remainingErrors := sm.Invoice.MergeValidationIssues(
@@ -62,13 +62,13 @@ func (s *Service) UpdateInvoiceFields(ctx context.Context, input billing.UpdateI
 
 type syncEditInvoiceInput struct {
 	SyncInput             billing.SyncInput
-	ExpectedStartingState billing.InvoiceStatus
+	ExpectedStartingState billing.StandardInvoiceStatus
 }
 
-func (s *Service) syncEditInvoice(ctx context.Context, input syncEditInvoiceInput) (billing.Invoice, error) {
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.Invoice, error) {
+func (s *Service) syncEditInvoice(ctx context.Context, input syncEditInvoiceInput) (billing.StandardInvoice, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.StandardInvoice, error) {
 		if err := input.SyncInput.Validate(); err != nil {
-			return billing.Invoice{}, billing.ValidationError{
+			return billing.StandardInvoice{}, billing.ValidationError{
 				Err: err,
 			}
 		}
@@ -107,23 +107,23 @@ func (s *Service) syncEditInvoice(ctx context.Context, input syncEditInvoiceInpu
 			},
 		})
 		if err != nil {
-			return billing.Invoice{}, err
+			return billing.StandardInvoice{}, err
 		}
 
 		return s.updateInvoice(ctx, invoice)
 	})
 }
 
-func (s *Service) SyncDraftInvoice(ctx context.Context, input billing.SyncDraftInvoiceInput) (billing.Invoice, error) {
+func (s *Service) SyncDraftInvoice(ctx context.Context, input billing.SyncDraftStandardInvoiceInput) (billing.StandardInvoice, error) {
 	return s.syncEditInvoice(ctx, syncEditInvoiceInput{
 		SyncInput:             input,
-		ExpectedStartingState: billing.InvoiceStatusDraftSyncing,
+		ExpectedStartingState: billing.StandardInvoiceStatusDraftSyncing,
 	})
 }
 
-func (s *Service) SyncIssuingInvoice(ctx context.Context, input billing.SyncIssuingInvoiceInput) (billing.Invoice, error) {
+func (s *Service) SyncIssuingInvoice(ctx context.Context, input billing.SyncIssuingStandardInvoiceInput) (billing.StandardInvoice, error) {
 	return s.syncEditInvoice(ctx, syncEditInvoiceInput{
 		SyncInput:             input,
-		ExpectedStartingState: billing.InvoiceStatusIssuingSyncing,
+		ExpectedStartingState: billing.StandardInvoiceStatusIssuingSyncing,
 	})
 }

@@ -87,23 +87,23 @@ func (a App) GetEventAppData() (app.EventAppData, error) {
 // InvoicingApp
 // These are no-ops as whatever is meaningful, is handled via the http driver of the custominvoicing app.
 
-// ValidateInvoice is a no-op as any validation issues are published via the draft.syncing and finalizations syncing
+// ValidateStandardInvoice is a no-op as any validation issues are published via the draft.syncing and finalizations syncing
 // flow.
-func (a App) ValidateInvoice(ctx context.Context, invoice billing.Invoice) error {
+func (a App) ValidateStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
 	return nil
 }
 
-func (a App) UpsertInvoice(ctx context.Context, invoice billing.Invoice) (*billing.UpsertInvoiceResult, error) {
+func (a App) UpsertStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
 	return nil, nil
 }
 
-func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*billing.FinalizeInvoiceResult, error) {
+func (a App) FinalizeStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.FinalizeStandardInvoiceResult, error) {
 	canAdvance, err := a.CanIssuingSyncAdvance(invoice)
 	if err != nil {
 		return nil, err
 	}
 
-	res := billing.NewFinalizeInvoiceResult()
+	res := billing.NewFinalizeStandardInvoiceResult()
 
 	// If we are done with the hook work, let's make sure that the invoice has a non-draft invoice number
 	if canAdvance {
@@ -128,14 +128,14 @@ func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*bil
 	return res, nil
 }
 
-// DeleteInvoice is a no-op as this should happen via the notifications webhook
-func (a App) DeleteInvoice(ctx context.Context, invoice billing.Invoice) error {
+// DeleteStandardInvoice is a no-op as this should happen via the notifications webhook
+func (a App) DeleteStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
 	return nil
 }
 
 // InvoicingAppAsyncSyncer
 
-func (a App) CanDraftSyncAdvance(invoice billing.Invoice) (bool, error) {
+func (a App) CanDraftSyncAdvance(invoice billing.StandardInvoice) (bool, error) {
 	if !a.Configuration.EnableDraftSyncHook {
 		return true, nil
 	}
@@ -151,7 +151,7 @@ func (a App) CanDraftSyncAdvance(invoice billing.Invoice) (bool, error) {
 	return false, nil
 }
 
-func (a App) CanIssuingSyncAdvance(invoice billing.Invoice) (bool, error) {
+func (a App) CanIssuingSyncAdvance(invoice billing.StandardInvoice) (bool, error) {
 	if !a.Configuration.EnableIssuingSyncHook {
 		return true, nil
 	}

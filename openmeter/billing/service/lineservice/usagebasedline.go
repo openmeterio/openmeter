@@ -50,7 +50,7 @@ func (l usageBasedLine) PrepareForCreate(context.Context) (Line, error) {
 	return &l, nil
 }
 
-func (l usageBasedLine) Validate(ctx context.Context, targetInvoice *billing.Invoice) error {
+func (l usageBasedLine) Validate(ctx context.Context, targetInvoice *billing.StandardInvoice) error {
 	if _, err := l.service.resolveFeatureMeter(ctx, l.line.Namespace, l.line.UsageBased.FeatureKey); err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func (l usageBasedLine) Validate(ctx context.Context, targetInvoice *billing.Inv
 		}
 	}
 
-	if l.line.LineBase.Period.Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
+	if l.line.Period.Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
 		return billing.ValidationError{
 			Err: billing.ErrInvoiceCreateUBPLinePeriodIsEmpty,
 		}

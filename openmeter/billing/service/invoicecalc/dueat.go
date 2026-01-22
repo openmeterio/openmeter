@@ -8,7 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
-func CalculateDueAt(i *billing.Invoice) error {
+func CalculateDueAt(i *billing.StandardInvoice) error {
 	if !i.Workflow.Config.Invoicing.AutoAdvance {
 		// In case of manual approval dueAt is started from the moment of the invoice is issued
 		// to prevent the invoice from being overdue on issuance

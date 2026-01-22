@@ -64,7 +64,7 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 				}
 			}
 
-			lineEntities, err := slicesx.MapWithErr(req.Lines, func(line api.InvoicePendingLineCreate) (*billing.Line, error) {
+			lineEntities, err := slicesx.MapWithErr(req.Lines, func(line api.InvoicePendingLineCreate) (*billing.StandardLine, error) {
 				return mapCreateLineToEntity(line, ns)
 			})
 			if err != nil {
@@ -113,7 +113,7 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 	)
 }
 
-func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billing.Line, error) {
+func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billing.StandardLine, error) {
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -124,8 +124,8 @@ func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billi
 		return nil, fmt.Errorf("failed to map usage based line: %w", err)
 	}
 
-	return &billing.Line{
-		LineBase: billing.LineBase{
+	return &billing.StandardLine{
+		StandardLineBase: billing.StandardLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace:   ns,
 				Name:        line.Name,
@@ -249,7 +249,7 @@ func mapLineAppExternalIdsToAPI(externalIds billing.LineExternalIDs) *api.Invoic
 	}
 }
 
-func mapInvoiceLineToAPI(line *billing.Line) (api.InvoiceLine, error) {
+func mapInvoiceLineToAPI(line *billing.StandardLine) (api.InvoiceLine, error) {
 	if line.UsageBased == nil {
 		return api.InvoiceLine{}, fmt.Errorf("usage based line details are nil [line=%s]", line.ID)
 	}
@@ -512,7 +512,7 @@ func decimalPtrToStringPtrIfNotEqual(value *alpacadecimal.Decimal, other *alpaca
 	return lo.ToPtr(value.String())
 }
 
-func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.Line, error) {
+func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.StandardLine, error) {
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -547,8 +547,8 @@ func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.Line, e
 		}
 	}
 
-	return &billing.Line{
-		LineBase: billing.LineBase{
+	return &billing.StandardLine{
+		StandardLineBase: billing.StandardLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				ID:          lo.FromPtr(line.Id),
 				Name:        line.Name,
@@ -577,7 +577,7 @@ func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.Line, e
 	}, nil
 }
 
-func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice *billing.Invoice) (*billing.Line, error) {
+func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice *billing.StandardInvoice) (*billing.StandardLine, error) {
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -588,8 +588,8 @@ func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice
 		return nil, fmt.Errorf("failed to map usage based line: %w", err)
 	}
 
-	return &billing.Line{
-		LineBase: billing.LineBase{
+	return &billing.StandardLine{
+		StandardLineBase: billing.StandardLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace:   invoice.Namespace,
 				Name:        line.Name,
@@ -620,8 +620,8 @@ func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice
 	}, nil
 }
 
-func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.InvoiceLineReplaceUpdate) (*billing.Line, bool, error) {
-	oldBase := existing.LineBase.Clone()
+func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLine, line api.InvoiceLineReplaceUpdate) (*billing.StandardLine, bool, error) {
+	oldBase := existing.StandardLineBase.Clone()
 	oldUBP := existing.UsageBased.Clone()
 
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
@@ -636,9 +636,9 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.Invo
 		}
 	}
 
-	existing.LineBase.Metadata = lo.FromPtrOr(line.Metadata, existing.Metadata)
-	existing.LineBase.Name = line.Name
-	existing.LineBase.Description = line.Description
+	existing.Metadata = lo.FromPtrOr(line.Metadata, existing.Metadata)
+	existing.Name = line.Name
+	existing.Description = line.Description
 
 	existing.Period.Start = line.Period.From.Truncate(streaming.MinimumWindowSizeDuration)
 	existing.Period.End = line.Period.To.Truncate(streaming.MinimumWindowSizeDuration)
@@ -667,7 +667,7 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.Invo
 
 	existing.RateCardDiscounts = rateCardParsed.Discounts
 
-	wasChange := !oldBase.Equal(existing.LineBase) || !oldUBP.Equal(existing.UsageBased)
+	wasChange := !oldBase.Equal(existing.StandardLineBase) || !oldUBP.Equal(existing.UsageBased)
 	if wasChange {
 		existing.ManagedBy = billing.ManuallyManagedLine
 	}
@@ -685,14 +685,14 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.Line, line api.Invo
 	return existing, wasChange, nil
 }
 
-func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing.Invoice, updatedLines []api.InvoiceLineReplaceUpdate) (billing.InvoiceLines, error) {
-	linesByID, _ := slicesx.UniqueGroupBy(invoice.Lines.OrEmpty(), func(line *billing.Line) string {
+func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing.StandardInvoice, updatedLines []api.InvoiceLineReplaceUpdate) (billing.StandardInvoiceLines, error) {
+	linesByID, _ := slicesx.UniqueGroupBy(invoice.Lines.OrEmpty(), func(line *billing.StandardLine) string {
 		return line.ID
 	})
 
 	foundLines := set.New[string]()
 
-	out := make([]*billing.Line, 0, len(updatedLines))
+	out := make([]*billing.StandardLine, 0, len(updatedLines))
 
 	for _, line := range updatedLines {
 		id := lo.FromPtr(line.Id)
@@ -704,16 +704,16 @@ func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing
 			// but we are not persisting them to the database
 			newLine, err := lineFromInvoiceLineReplaceUpdate(line, invoice)
 			if err != nil {
-				return billing.InvoiceLines{}, fmt.Errorf("failed to create new line: %w", err)
+				return billing.StandardInvoiceLines{}, fmt.Errorf("failed to create new line: %w", err)
 			}
 
-			if invoice.Status != billing.InvoiceStatusGathering {
+			if invoice.Status != billing.StandardInvoiceStatusGathering {
 				newLine, err = h.service.SnapshotLineQuantity(ctx, billing.SnapshotLineQuantityInput{
 					Invoice: invoice,
 					Line:    newLine,
 				})
 				if err != nil {
-					return billing.InvoiceLines{}, fmt.Errorf("failed to snapshot quantity: %w", err)
+					return billing.StandardInvoiceLines{}, fmt.Errorf("failed to snapshot quantity: %w", err)
 				}
 			}
 
@@ -724,16 +724,16 @@ func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing
 		foundLines.Add(id)
 		mergedLine, changed, err := mergeLineFromInvoiceLineReplaceUpdate(existingLine, line)
 		if err != nil {
-			return billing.InvoiceLines{}, fmt.Errorf("failed to merge line: %w", err)
+			return billing.StandardInvoiceLines{}, fmt.Errorf("failed to merge line: %w", err)
 		}
 
-		if changed && invoice.Status != billing.InvoiceStatusGathering {
+		if changed && invoice.Status != billing.StandardInvoiceStatusGathering {
 			mergedLine, err = h.service.SnapshotLineQuantity(ctx, billing.SnapshotLineQuantityInput{
 				Invoice: invoice,
 				Line:    mergedLine,
 			})
 			if err != nil {
-				return billing.InvoiceLines{}, fmt.Errorf("failed to snapshot quantity: %w", err)
+				return billing.StandardInvoiceLines{}, fmt.Errorf("failed to snapshot quantity: %w", err)
 			}
 		}
 
@@ -749,5 +749,5 @@ func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing
 		out = append(out, existingLine)
 	}
 
-	return billing.NewInvoiceLines(out), nil
+	return billing.NewStandardInvoiceLines(out), nil
 }

@@ -196,21 +196,21 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 					AppID:   request.AppID,
 					Invoice: invoice,
 					Trigger: billing.TriggerFailed,
-					TargetStatuses: []billing.InvoiceStatus{
-						billing.InvoiceStatusIssuingSyncFailed,
-						billing.InvoiceStatusPaymentProcessingFailed,
+					TargetStatuses: []billing.StandardInvoiceStatus{
+						billing.StandardInvoiceStatusIssuingSyncFailed,
+						billing.StandardInvoiceStatusPaymentProcessingFailed,
 					},
-					IgnoreInvoiceInStatus: []billing.InvoiceStatusMatcher{
-						billing.InvoiceStatusCategoryPaymentProcessing,
-						billing.InvoiceStatusCategoryPaid,
-						billing.InvoiceStatusCategoryUncollectible,
+					IgnoreInvoiceInStatus: []billing.StandardInvoiceStatusMatcher{
+						billing.StandardInvoiceStatusCategoryPaymentProcessing,
+						billing.StandardInvoiceStatusCategoryPaid,
+						billing.StandardInvoiceStatusCategoryUncollectible,
 					},
 					ShouldTriggerOnEvent: func(stripeInvoice *stripe.Invoice) (bool, error) {
 						return stripeInvoice.LastFinalizationError != nil, nil
 					},
 					GetValidationErrors: func(stripeInvoice *stripe.Invoice) (*appstripeentity.ValidationErrorsInput, error) {
 						return &appstripeentity.ValidationErrorsInput{
-							Op:     billing.InvoiceOpFinalize,
+							Op:     billing.StandardInvoiceOpFinalize,
 							Errors: []*stripe.Error{stripeInvoice.LastFinalizationError},
 						}, nil
 					},
@@ -254,9 +254,9 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 					AppID:          request.AppID,
 					Invoice:        invoice,
 					Trigger:        billing.TriggerVoid,
-					TargetStatuses: []billing.InvoiceStatus{billing.InvoiceStatusVoided},
-					IgnoreInvoiceInStatus: []billing.InvoiceStatusMatcher{
-						billing.InvoiceStatusPaid,
+					TargetStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusVoided},
+					IgnoreInvoiceInStatus: []billing.StandardInvoiceStatusMatcher{
+						billing.StandardInvoiceStatusCategoryPaid,
 					},
 					ShouldTriggerOnEvent: func(stripeInvoice *stripe.Invoice) (bool, error) {
 						// Let's only invoke the state transition if the upstream invoice is voided
@@ -282,7 +282,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 					AppID:          request.AppID,
 					Invoice:        invoice,
 					Trigger:        billing.TriggerPaymentUncollectible,
-					TargetStatuses: []billing.InvoiceStatus{billing.InvoiceStatusUncollectible},
+					TargetStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusUncollectible},
 					ShouldTriggerOnEvent: func(stripeInvoice *stripe.Invoice) (bool, error) {
 						// Let's only invoke the state transition if the upstream invoice is uncollectible
 						return stripeInvoice.Status == stripe.InvoiceStatusUncollectible, nil
@@ -306,9 +306,9 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 					AppID:          request.AppID,
 					Invoice:        invoice,
 					Trigger:        billing.TriggerPaymentOverdue,
-					TargetStatuses: []billing.InvoiceStatus{billing.InvoiceStatusOverdue},
-					IgnoreInvoiceInStatus: []billing.InvoiceStatusMatcher{
-						billing.InvoiceStatusCategoryUncollectible,
+					TargetStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusOverdue},
+					IgnoreInvoiceInStatus: []billing.StandardInvoiceStatusMatcher{
+						billing.StandardInvoiceStatusCategoryUncollectible,
 					},
 					ShouldTriggerOnEvent: func(stripeInvoice *stripe.Invoice) (bool, error) {
 						// Let's only invoke the state transition if the upstream invoice is still open
@@ -333,7 +333,7 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 					AppID:          request.AppID,
 					Invoice:        invoice,
 					Trigger:        billing.TriggerPaid,
-					TargetStatuses: []billing.InvoiceStatus{billing.InvoiceStatusPaid},
+					TargetStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusPaid},
 					ShouldTriggerOnEvent: func(stripeInvoice *stripe.Invoice) (bool, error) {
 						// Let's only invoke the state transition if the upstream invoice is paid
 						return stripeInvoice.Status == stripe.InvoiceStatusPaid, nil
@@ -357,10 +357,10 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 					AppID:          request.AppID,
 					Invoice:        invoice,
 					Trigger:        billing.TriggerActionRequired,
-					TargetStatuses: []billing.InvoiceStatus{billing.InvoiceStatusPaymentProcessingActionRequired},
-					IgnoreInvoiceInStatus: []billing.InvoiceStatusMatcher{
-						billing.InvoiceStatusCategoryPaid,
-						billing.InvoiceStatusCategoryUncollectible,
+					TargetStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusPaymentProcessingActionRequired},
+					IgnoreInvoiceInStatus: []billing.StandardInvoiceStatusMatcher{
+						billing.StandardInvoiceStatusCategoryPaid,
+						billing.StandardInvoiceStatusCategoryUncollectible,
 					},
 
 					ShouldTriggerOnEvent: func(stripeInvoice *stripe.Invoice) (bool, error) {
@@ -387,12 +387,12 @@ func (h *handler) AppStripeWebhook() AppStripeWebhookHandler {
 					Invoice: invoice,
 					Trigger: billing.TriggerFailed,
 
-					TargetStatuses: []billing.InvoiceStatus{
-						billing.InvoiceStatusPaymentProcessingFailed,
+					TargetStatuses: []billing.StandardInvoiceStatus{
+						billing.StandardInvoiceStatusPaymentProcessingFailed,
 					},
-					IgnoreInvoiceInStatus: []billing.InvoiceStatusMatcher{
-						billing.InvoiceStatusCategoryPaid,
-						billing.InvoiceStatusCategoryUncollectible,
+					IgnoreInvoiceInStatus: []billing.StandardInvoiceStatusMatcher{
+						billing.StandardInvoiceStatusCategoryPaid,
+						billing.StandardInvoiceStatusCategoryUncollectible,
 					},
 
 					ShouldTriggerOnEvent: func(stripeInvoice *stripe.Invoice) (bool, error) {

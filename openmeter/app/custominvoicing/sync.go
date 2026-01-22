@@ -10,7 +10,7 @@ import (
 
 type SyncDraftInvoiceInput struct {
 	InvoiceID            billing.InvoiceID
-	UpsertInvoiceResults *billing.UpsertInvoiceResult
+	UpsertInvoiceResults *billing.UpsertStandardInvoiceResult
 }
 
 func (i *SyncDraftInvoiceInput) Validate() error {
@@ -29,7 +29,7 @@ func (i *SyncDraftInvoiceInput) Validate() error {
 
 type SyncIssuingInvoiceInput struct {
 	InvoiceID             billing.InvoiceID
-	FinalizeInvoiceResult *billing.FinalizeInvoiceResult
+	FinalizeInvoiceResult *billing.FinalizeStandardInvoiceResult
 }
 
 func (i *SyncIssuingInvoiceInput) Validate() error {

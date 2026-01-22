@@ -33,9 +33,9 @@ type lineDiffExpectation struct {
 }
 
 func TestInvoiceLineDiffing(t *testing.T) {
-	template := []*billing.Line{
+	template := []*billing.StandardLine{
 		{
-			LineBase: billing.LineBase{
+			StandardLineBase: billing.StandardLineBase{
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 					ID: "1",
 				}),
@@ -43,7 +43,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 			UsageBased: &billing.UsageBasedLine{},
 		},
 		{
-			LineBase: billing.LineBase{
+			StandardLineBase: billing.StandardLineBase{
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 					ID: "2",
 				}),
@@ -350,7 +350,7 @@ func requireIdDiffMatches[T entitydiff.Entity](t *testing.T, a idDiff, b entityd
 func requireDiff(t *testing.T, expected lineDiffExpectation, actual invoiceLineDiff) {
 	t.Helper()
 
-	requireIdDiffMatches(t, expected.Line, actual.Line, func(line *billing.Line) *string { return line.GetDescription() }, "line diff")
+	requireIdDiffMatches(t, expected.Line, actual.Line, func(line *billing.StandardLine) *string { return line.GetDescription() }, "line diff")
 	requireIdDiffMatches(t, expected.AmountDiscounts, actual.AmountDiscounts, func(discount amountLineDiscountManagedWithLine) *string { return discount.Entity.Description }, "amount discounts")
 
 	requireIdDiffMatches(t, expected.DetailedLine, actual.DetailedLine, func(line detailedLineWithParent) *string { return line.Entity.GetDescription() }, "detailed line diff")
@@ -360,14 +360,14 @@ func requireDiff(t *testing.T, expected lineDiffExpectation, actual invoiceLineD
 	require.ElementsMatch(t, expected.DetailedLineAffectedLineIDs, actual.DetailedLineAffectedLineIDs.AsSlice(), "detailed line affected line IDs")
 }
 
-func cloneLines(lines []*billing.Line) []*billing.Line {
-	return lo.Map(lines, func(line *billing.Line, _ int) *billing.Line {
+func cloneLines(lines []*billing.StandardLine) []*billing.StandardLine {
+	return lo.Map(lines, func(line *billing.StandardLine, _ int) *billing.StandardLine {
 		return line.Clone()
 	})
 }
 
 // snapshotAsDBState saves the current state of the lines as if they were in the database
-func snapshotAsDBState(lines []*billing.Line) {
+func snapshotAsDBState(lines []*billing.StandardLine) {
 	for _, line := range lines {
 		line.SaveDBSnapshot()
 	}
@@ -386,7 +386,7 @@ func newDetailedLineAmountDiscountsWithIDs(ids ...string) billing.AmountLineDisc
 	})
 }
 
-func getDetailedLineByID(l *billing.Line, id string) *billing.DetailedLine {
+func getDetailedLineByID(l *billing.StandardLine, id string) *billing.DetailedLine {
 	for idx := range l.DetailedLines {
 		if l.DetailedLines[idx].ID == id {
 			return &l.DetailedLines[idx]
@@ -395,7 +395,7 @@ func getDetailedLineByID(l *billing.Line, id string) *billing.DetailedLine {
 	return nil
 }
 
-func removeDetailedLineByID(l *billing.Line, id string) bool {
+func removeDetailedLineByID(l *billing.StandardLine, id string) bool {
 	toBeRemoved := getDetailedLineByID(l, id)
 	if toBeRemoved == nil {
 		return false

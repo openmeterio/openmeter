@@ -10,17 +10,17 @@ import (
 )
 
 type (
-	usageLineDiscountManagedWithLine  = entitydiff.EqualerNestedEntity[billing.UsageLineDiscountManaged, *billing.Line]
-	amountLineDiscountManagedWithLine = entitydiff.EqualerNestedEntity[billing.AmountLineDiscountManaged, *billing.Line]
+	usageLineDiscountManagedWithLine  = entitydiff.EqualerNestedEntity[billing.UsageLineDiscountManaged, *billing.StandardLine]
+	amountLineDiscountManagedWithLine = entitydiff.EqualerNestedEntity[billing.AmountLineDiscountManaged, *billing.StandardLine]
 
-	detailedLineWithParent               = entitydiff.NestedEntity[*billing.DetailedLine, *billing.Line]
+	detailedLineWithParent               = entitydiff.NestedEntity[*billing.DetailedLine, *billing.StandardLine]
 	detailedLineDiff                     = entitydiff.Diff[detailedLineWithParent]
 	detailedLineAmountDiscountWithParent = entitydiff.EqualerNestedEntity[billing.AmountLineDiscountManaged, *billing.DetailedLine]
 	detailedLineAmountDiscountDiff       = entitydiff.Diff[detailedLineAmountDiscountWithParent]
 )
 
 type invoiceLineDiff struct {
-	Line entitydiff.Diff[*billing.Line]
+	Line entitydiff.Diff[*billing.StandardLine]
 
 	// Dependant entities
 	UsageDiscounts  entitydiff.Diff[usageLineDiscountManagedWithLine]
@@ -40,7 +40,7 @@ type invoiceLineDiff struct {
 	DetailedLineAffectedLineIDs *set.Set[string]
 }
 
-func diffInvoiceLines(lines []*billing.Line) (invoiceLineDiff, error) {
+func diffInvoiceLines(lines []*billing.StandardLine) (invoiceLineDiff, error) {
 	diff := invoiceLineDiff{
 		AffectedLineIDs:             set.New[string](),
 		DetailedLineAffectedLineIDs: set.New[string](),
@@ -49,7 +49,7 @@ func diffInvoiceLines(lines []*billing.Line) (invoiceLineDiff, error) {
 	// For now we are handling the dbState on a per line basis so that we don't have to make operations
 	// against the invoice itself. Going forward we can consider moving this to the invoice level, as this
 	// only makes sense for gathering invoices.
-	dbState := []*billing.Line{}
+	dbState := []*billing.StandardLine{}
 	for _, line := range lines {
 		if line.DBState != nil {
 			dbState = append(dbState, line.DBState)
@@ -57,12 +57,12 @@ func diffInvoiceLines(lines []*billing.Line) (invoiceLineDiff, error) {
 	}
 
 	// Handle top level line diffs
-	err := entitydiff.DiffByID(entitydiff.DiffByIDInput[*billing.Line]{
+	err := entitydiff.DiffByID(entitydiff.DiffByIDInput[*billing.StandardLine]{
 		DBState:       dbState,
 		ExpectedState: lines,
 		HandleDelete:  diff.DeleteLine,
 		HandleCreate:  diff.CreateLine,
-		HandleUpdate: func(item entitydiff.DiffUpdate[*billing.Line]) error {
+		HandleUpdate: func(item entitydiff.DiffUpdate[*billing.StandardLine]) error {
 			if item.ExpectedState.UsageBased == nil {
 				return fmt.Errorf("expected state usage based is nil")
 			}
@@ -71,7 +71,7 @@ func diffInvoiceLines(lines []*billing.Line) (invoiceLineDiff, error) {
 				return fmt.Errorf("db state usage based is nil")
 			}
 
-			if !item.ExpectedState.LineBase.Equal(item.PersistedState.LineBase) || !item.ExpectedState.UsageBased.Equal(item.PersistedState.UsageBased) {
+			if !item.ExpectedState.StandardLineBase.Equal(item.PersistedState.StandardLineBase) || !item.ExpectedState.UsageBased.Equal(item.PersistedState.UsageBased) {
 				diff.Line.NeedsUpdate(item)
 			}
 
@@ -161,7 +161,7 @@ func diffInvoiceLines(lines []*billing.Line) (invoiceLineDiff, error) {
 	return diff, nil
 }
 
-func (d *invoiceLineDiff) DeleteLine(item *billing.Line) error {
+func (d *invoiceLineDiff) DeleteLine(item *billing.StandardLine) error {
 	d.Line.NeedsDelete(item)
 
 	for _, discount := range item.Discounts.Usage {
@@ -186,7 +186,7 @@ func (d *invoiceLineDiff) DeleteLine(item *billing.Line) error {
 	return nil
 }
 
-func (d *invoiceLineDiff) CreateLine(item *billing.Line) error {
+func (d *invoiceLineDiff) CreateLine(item *billing.StandardLine) error {
 	d.Line.NeedsCreate(item)
 
 	for _, usageDiscount := range item.Discounts.Usage {
@@ -220,7 +220,7 @@ func (d *invoiceLineDiff) CreateLine(item *billing.Line) error {
 	return nil
 }
 
-func (d *invoiceLineDiff) DeleteDetailedLine(item *billing.DetailedLine, parent *billing.Line) error {
+func (d *invoiceLineDiff) DeleteDetailedLine(item *billing.DetailedLine, parent *billing.StandardLine) error {
 	d.DetailedLine.NeedsDelete(detailedLineWithParent{
 		Entity: item,
 		Parent: parent,
@@ -236,7 +236,7 @@ func (d *invoiceLineDiff) DeleteDetailedLine(item *billing.DetailedLine, parent 
 	return nil
 }
 
-func (d *invoiceLineDiff) CreateDetailedLine(item *billing.DetailedLine, parent *billing.Line) error {
+func (d *invoiceLineDiff) CreateDetailedLine(item *billing.DetailedLine, parent *billing.StandardLine) error {
 	d.DetailedLine.NeedsCreate(detailedLineWithParent{
 		Entity: item,
 		Parent: parent,

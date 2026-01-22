@@ -120,7 +120,7 @@ func (i newDetailedLineInput) AddDiscountForOverage(in addDiscountInput) newDeta
 	return i
 }
 
-func newDetailedLines(line *billing.Line, inputs ...newDetailedLineInput) (billing.DetailedLines, error) {
+func newDetailedLines(line *billing.StandardLine, inputs ...newDetailedLineInput) (billing.DetailedLines, error) {
 	return slicesx.MapWithErr(inputs, func(in newDetailedLineInput) (billing.DetailedLine, error) {
 		if err := in.Validate(); err != nil {
 			return billing.DetailedLine{}, err
@@ -176,7 +176,7 @@ func (i newDetailedLinesInput) Sum(currency currencyx.Calculator) alpacadecimal.
 	return sum
 }
 
-func mergeDetailedLines(parentLine *billing.Line, in newDetailedLinesInput) error {
+func mergeDetailedLines(parentLine *billing.StandardLine, in newDetailedLinesInput) error {
 	detailedLines, err := newDetailedLines(parentLine, in...)
 	if err != nil {
 		return fmt.Errorf("detailed lines: %w", err)

@@ -166,7 +166,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.HUF),
-				Lines: []*billing.Line{
+				Lines: []*billing.StandardLine{
 					billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
 						Period: billing.Period{Start: periodStart, End: periodEnd},
 
@@ -179,7 +179,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 					}),
 					{
-						LineBase: billing.LineBase{
+						StandardLineBase: billing.StandardLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "Test item - HUF",
 							}),
@@ -214,7 +214,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 		s.NotNil(res, "result should not be nil")
 	})
 
-	var invoice billing.Invoice
+	var invoice billing.StandardInvoice
 	// When there are lines to be invoiced, we can create the invoice, and
 	// it will end up in draft.syncing state
 	s.Run("invoice can be created and will end up in draft.syncing state", func() {
@@ -229,12 +229,12 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 		invoice = invoices[0]
 		s.Len(invoice.Lines.OrEmpty(), 2, "invoice should have two lines")
 
-		s.Equal(billing.InvoiceStatusDraftSyncing, invoice.Status, "invoice should be in draft.sync state")
+		s.Equal(billing.StandardInvoiceStatusDraftSyncing, invoice.Status, "invoice should be in draft.sync state")
 	})
 
 	// When calling the service's SyncDraftInvoice, it should advance the invoice to issuing.syncing state
 	s.Run("syncing the invoice should advance it to issuing.syncing state", func() {
-		upsertResults := billing.NewUpsertInvoiceResult().
+		upsertResults := billing.NewUpsertStandardInvoiceResult().
 			SetInvoiceNumber("DRAFT-123").
 			SetExternalID("ext-123").
 			AddLineExternalID(invoice.Lines.OrEmpty()[0].ID, "ext-123")
@@ -244,7 +244,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 			UpsertInvoiceResults: upsertResults,
 		})
 		s.NoError(err, "failed to sync draft invoice")
-		s.Equal(billing.InvoiceStatusIssuingSyncing, draftSyncedInvoice.Status, "invoice should be in issuing.sync state")
+		s.Equal(billing.StandardInvoiceStatusIssuingSyncing, draftSyncedInvoice.Status, "invoice should be in issuing.sync state")
 
 		// Let's validate the external IDs
 		s.Equal("ext-123", draftSyncedInvoice.ExternalIDs.Invoicing, "invoice external ID should be set")
@@ -256,7 +256,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 
 	// When calling the service's SyncIssuingInvoice, it should advance the invoice to payment-processing.pending state
 	s.Run("syncing the invoice should advance it to payment-processing.pending state", func() {
-		finalizeResults := billing.NewFinalizeInvoiceResult().
+		finalizeResults := billing.NewFinalizeStandardInvoiceResult().
 			SetPaymentExternalID("issuing-ext-123").
 			SetInvoiceNumber("ISSUING-123")
 
@@ -265,7 +265,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 			FinalizeInvoiceResult: finalizeResults,
 		})
 		s.NoError(err, "failed to sync issuing invoice")
-		s.Equal(billing.InvoiceStatusPaymentProcessingPending, issuingSyncedInvoice.Status, "invoice should be in issued state")
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, issuingSyncedInvoice.Status, "invoice should be in issued state")
 
 		// Let's validate the external IDs
 		s.Equal("issuing-ext-123", issuingSyncedInvoice.ExternalIDs.Payment, "invoice external ID should be set")
@@ -279,7 +279,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 			Trigger:   billing.TriggerPaid,
 		})
 		s.NoError(err, "failed to handle payment trigger")
-		s.Equal(billing.InvoiceStatusPaid, invoice.Status, "invoice should be in paid state")
+		s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status, "invoice should be in paid state")
 		s.NotNil(invoice.IssuedAt, "invoice should have an issued at time")
 	})
 
@@ -333,7 +333,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowPaymentStatusOnly() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.HUF),
-				Lines: []*billing.Line{
+				Lines: []*billing.StandardLine{
 					billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
 						Period: billing.Period{Start: periodStart, End: periodEnd},
 
@@ -351,7 +351,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowPaymentStatusOnly() {
 		s.NotNil(res, "result should not be nil")
 	})
 
-	var invoice billing.Invoice
+	var invoice billing.StandardInvoice
 
 	// When there are lines to be invoiced, we can create the invoice, and
 	// it will end up in payment_processing.pending state
@@ -370,7 +370,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowPaymentStatusOnly() {
 		// Let's validate the invoice's status
 
 		// We end up in payment_processing.pending state because we don't have a draft sync hook
-		s.Equal(billing.InvoiceStatusPaymentProcessingPending, invoice.Status, "invoice should be in payment_processing.pending state")
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status, "invoice should be in payment_processing.pending state")
 
 		// Invoice should have a generic invoice number assigned
 		s.Equal("INV-TECU-1", invoice.Number, "invoice number should be set")

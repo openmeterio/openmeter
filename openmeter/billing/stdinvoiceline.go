@@ -1,0 +1,689 @@
+package billing
+
+import (
+	"errors"
+	"fmt"
+	"slices"
+	"sort"
+	"strings"
+	"time"
+
+	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
+)
+
+// StandardLineBase represents the common fields for an invoice item.
+type StandardLineBase struct {
+	models.ManagedResource
+
+	Metadata    map[string]string    `json:"metadata,omitempty"`
+	Annotations models.Annotations   `json:"annotations,omitempty"`
+	ManagedBy   InvoiceLineManagedBy `json:"managedBy"`
+
+	InvoiceID string         `json:"invoiceID,omitempty"`
+	Currency  currencyx.Code `json:"currency"`
+
+	// Lifecycle
+	Period    Period    `json:"period"`
+	InvoiceAt time.Time `json:"invoiceAt"`
+
+	// Relationships
+	ParentLineID     *string `json:"parentLine,omitempty"`
+	SplitLineGroupID *string `json:"splitLineGroupId,omitempty"`
+
+	ChildUniqueReferenceID *string `json:"childUniqueReferenceID,omitempty"`
+
+	TaxConfig         *productcatalog.TaxConfig `json:"taxOverrides,omitempty"`
+	RateCardDiscounts Discounts                 `json:"rateCardDiscounts,omitempty"`
+
+	ExternalIDs  LineExternalIDs        `json:"externalIDs,omitempty"`
+	Subscription *SubscriptionReference `json:"subscription,omitempty"`
+
+	Totals Totals `json:"totals,omitempty"`
+}
+
+func (i StandardLineBase) Equal(other StandardLineBase) bool {
+	return deriveEqualLineBase(&i, &other)
+}
+
+func (i StandardLineBase) GetParentID() (string, bool) {
+	if i.ParentLineID == nil {
+		return "", false
+	}
+	return *i.ParentLineID, true
+}
+
+func (i StandardLineBase) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if err := i.Period.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("period: %w", err))
+	}
+
+	if i.InvoiceAt.IsZero() {
+		errs = append(errs, errors.New("invoice at is required"))
+	}
+
+	if i.Name == "" {
+		errs = append(errs, errors.New("name is required"))
+	}
+
+	if err := i.Currency.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("currency: %w", err))
+	}
+
+	if !slices.Contains(InvoiceLineManagedBy("").Values(), string(i.ManagedBy)) {
+		errs = append(errs, fmt.Errorf("invalid managed by %s", i.ManagedBy))
+	}
+
+	return errors.Join(errs...)
+}
+
+func (i StandardLineBase) Clone() StandardLineBase {
+	out := i
+
+	// Clone pointer fields (where they are mutable)
+	if i.Metadata != nil {
+		out.Metadata = make(map[string]string, len(i.Metadata))
+		for k, v := range i.Metadata {
+			out.Metadata[k] = v
+		}
+	}
+
+	if i.Annotations != nil {
+		out.Annotations = make(models.Annotations, len(i.Annotations))
+		for k, v := range i.Annotations {
+			out.Annotations[k] = v
+		}
+	}
+
+	if i.TaxConfig != nil {
+		tc := *i.TaxConfig
+		out.TaxConfig = &tc
+	}
+
+	out.RateCardDiscounts = i.RateCardDiscounts.Clone()
+
+	return out
+}
+
+type SubscriptionReference struct {
+	SubscriptionID string                `json:"subscriptionID"`
+	PhaseID        string                `json:"phaseID"`
+	ItemID         string                `json:"itemID"`
+	BillingPeriod  timeutil.ClosedPeriod `json:"billingPeriod"`
+}
+
+func (i SubscriptionReference) Validate() error {
+	var errs []error
+
+	if i.SubscriptionID == "" {
+		errs = append(errs, errors.New("subscriptionID is required"))
+	}
+
+	if i.PhaseID == "" {
+		errs = append(errs, errors.New("phaseID is required"))
+	}
+
+	if i.ItemID == "" {
+		errs = append(errs, errors.New("itemID is required"))
+	}
+
+	if err := i.BillingPeriod.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("billingPeriod: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+type LineExternalIDs struct {
+	Invoicing string `json:"invoicing,omitempty"`
+}
+
+func (i LineExternalIDs) Equal(other LineExternalIDs) bool {
+	return i.Invoicing == other.Invoicing
+}
+
+type StandardLine struct {
+	StandardLineBase `json:",inline"`
+
+	UsageBased *UsageBasedLine `json:"usageBased,omitempty"`
+
+	DetailedLines      DetailedLines       `json:"detailedLines,omitempty"`
+	SplitLineHierarchy *SplitLineHierarchy `json:"progressiveLineHierarchy,omitempty"`
+
+	Discounts LineDiscounts `json:"discounts,omitempty"`
+
+	DBState *StandardLine `json:"-"`
+}
+
+func (i StandardLine) LineID() LineID {
+	return LineID{
+		Namespace: i.Namespace,
+		ID:        i.ID,
+	}
+}
+
+type StandardLineEditFunction func(*StandardLine)
+
+// CloneWithoutDependencies returns a clone of the line without any external dependencies. Could be used
+// for creating a new line without any references to the parent or children (or config IDs).
+func (i StandardLine) CloneWithoutDependencies(edits ...StandardLineEditFunction) *StandardLine {
+	clone := i.clone(cloneOptions{
+		skipDBState:   true,
+		skipChildren:  true,
+		skipDiscounts: true,
+	})
+
+	clone.ID = ""
+	clone.CreatedAt = time.Time{}
+	clone.UpdatedAt = time.Time{}
+	clone.DeletedAt = nil
+
+	clone.ParentLineID = nil
+	clone.SplitLineHierarchy = nil
+	clone.SplitLineGroupID = nil
+
+	if clone.UsageBased != nil {
+		clone.UsageBased.ConfigID = ""
+	}
+
+	for _, edit := range edits {
+		if edit != nil {
+			edit(clone)
+		}
+	}
+
+	return clone
+}
+
+func (i StandardLine) WithoutDBState() *StandardLine {
+	i.DBState = nil
+	return &i
+}
+
+func (i StandardLine) WithoutSplitLineHierarchy() *StandardLine {
+	i.SplitLineHierarchy = nil
+	return &i
+}
+
+func (i StandardLine) RemoveCircularReferences() *StandardLine {
+	clone := i.Clone()
+
+	clone.DBState = nil
+
+	return clone
+}
+
+// RemoveMetaForCompare returns a copy of the invoice without the fields that are not relevant for higher level
+// tests that compare invoices. What gets removed:
+// - Line's DB state
+// - Line's dependencies are marked as resolved
+// - Parent pointers are removed
+func (i StandardLine) RemoveMetaForCompare() *StandardLine {
+	out := i.Clone()
+
+	out.DetailedLines = nil
+	out.DBState = nil
+	return out
+}
+
+func (i StandardLine) Clone() *StandardLine {
+	return i.clone(cloneOptions{})
+}
+
+type cloneOptions struct {
+	skipDBState   bool
+	skipChildren  bool
+	skipDiscounts bool
+}
+
+func (i StandardLine) clone(opts cloneOptions) *StandardLine {
+	res := &StandardLine{}
+	if !opts.skipDBState {
+		// DBStates are considered immutable, so it's safe to clone
+		res.DBState = i.DBState
+	}
+
+	res.UsageBased = i.UsageBased.Clone()
+	res.StandardLineBase = i.StandardLineBase.Clone()
+
+	if !opts.skipChildren {
+		res.DetailedLines = i.DetailedLines.Clone()
+	}
+
+	if !opts.skipDiscounts {
+		res.Discounts = i.Discounts.Clone()
+	}
+
+	if i.SplitLineHierarchy != nil {
+		res.SplitLineHierarchy = lo.ToPtr(i.SplitLineHierarchy.Clone())
+	}
+
+	return res
+}
+
+func (i StandardLine) CloneWithoutChildren() *StandardLine {
+	return i.clone(cloneOptions{
+		skipChildren: true,
+	})
+}
+
+func (i *StandardLine) SaveDBSnapshot() {
+	i.DBState = i.Clone()
+}
+
+func (i StandardLine) Validate() error {
+	var errs []error
+	if err := i.StandardLineBase.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := i.Discounts.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("discounts: %w", err))
+	}
+
+	if err := i.DetailedLines.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("detailed lines: %w", err))
+	}
+
+	if err := i.ValidateUsageBased(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := i.RateCardDiscounts.ValidateForPrice(i.UsageBased.Price); err != nil {
+		errs = append(errs, fmt.Errorf("rateCardDiscounts: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+func (i StandardLine) ValidateUsageBased() error {
+	var errs []error
+
+	if err := i.UsageBased.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if i.DependsOnMeteredQuantity() && i.InvoiceAt.Before(i.Period.Truncate(streaming.MinimumWindowSizeDuration).End) {
+		errs = append(errs, fmt.Errorf("invoice at (%s) must be after period end (%s) for usage based line", i.InvoiceAt, i.Period.Truncate(streaming.MinimumWindowSizeDuration).End))
+	}
+
+	return errors.Join(errs...)
+}
+
+// DissacociateChildren removes the Children both from the DBState and the current line, so that the
+// line can be safely persisted/managed without the children.
+//
+// The childrens receive DBState objects, so that they can be safely persisted/managed without the parent.
+func (i *StandardLine) DisassociateChildren() {
+	i.DetailedLines = nil
+	if i.DBState != nil {
+		i.DBState.DetailedLines = nil
+	}
+}
+
+func (i StandardLine) DependsOnMeteredQuantity() bool {
+	return i.UsageBased.Price.Type() != productcatalog.FlatPriceType
+}
+
+func (i *StandardLine) SortDetailedLines() {
+	sort.Slice(i.DetailedLines, func(a, b int) bool {
+		lineA := i.DetailedLines[a]
+		lineB := i.DetailedLines[b]
+
+		if lineA.Index != nil && lineB.Index != nil {
+			return *lineA.Index < *lineB.Index
+		}
+
+		if lineA.Index != nil {
+			return true
+		}
+
+		if lineB.Index != nil {
+			return false
+		}
+
+		if nameOrder := strings.Compare(lineA.Name, lineB.Name); nameOrder != 0 {
+			return nameOrder < 0
+		}
+
+		if !lineA.ServicePeriod.Start.Equal(lineB.ServicePeriod.Start) {
+			return lineA.ServicePeriod.Start.Before(lineB.ServicePeriod.Start)
+		}
+
+		return strings.Compare(lineA.ID, lineB.ID) < 0
+	})
+}
+
+// helper functions for generating new lines
+type NewFlatFeeLineInput struct {
+	ID        string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+
+	Namespace string
+	Period    Period
+	InvoiceAt time.Time
+
+	InvoiceID string
+
+	Name        string
+	Metadata    map[string]string
+	Annotations models.Annotations
+	Description *string
+
+	Currency currencyx.Code
+
+	ManagedBy InvoiceLineManagedBy
+
+	PerUnitAmount alpacadecimal.Decimal
+	PaymentTerm   productcatalog.PaymentTermType
+
+	RateCardDiscounts Discounts
+}
+
+type usageBasedLineOptions struct {
+	featureKey string
+}
+
+type usageBasedLineOption func(*usageBasedLineOptions)
+
+func WithFeatureKey(fk string) usageBasedLineOption {
+	return func(ublo *usageBasedLineOptions) {
+		ublo.featureKey = fk
+	}
+}
+
+// NewFlatFeeLine creates a new invoice-level flat fee line.
+func NewFlatFeeLine(input NewFlatFeeLineInput, opts ...usageBasedLineOption) *StandardLine {
+	ubpOptions := usageBasedLineOptions{}
+
+	for _, opt := range opts {
+		opt(&ubpOptions)
+	}
+
+	return &StandardLine{
+		StandardLineBase: StandardLineBase{
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace:   input.Namespace,
+				ID:          input.ID,
+				CreatedAt:   input.CreatedAt,
+				UpdatedAt:   input.UpdatedAt,
+				Name:        input.Name,
+				Description: input.Description,
+			}),
+			Period:    input.Period,
+			InvoiceAt: input.InvoiceAt,
+			InvoiceID: input.InvoiceID,
+
+			Metadata:    input.Metadata,
+			Annotations: input.Annotations,
+
+			ManagedBy: lo.CoalesceOrEmpty(input.ManagedBy, SystemManagedLine),
+
+			Currency:          input.Currency,
+			RateCardDiscounts: input.RateCardDiscounts,
+		},
+		UsageBased: &UsageBasedLine{
+			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      input.PerUnitAmount,
+				PaymentTerm: input.PaymentTerm,
+			}),
+
+			FeatureKey: ubpOptions.featureKey,
+		},
+	}
+}
+
+// DetailedLinesWithIDReuse returns a new DetailedLines instance with the given lines. If the line has a child
+// with a unique reference ID, it will try to retain the database ID of the existing child to avoid a delete/create.
+func (c StandardLine) DetailedLinesWithIDReuse(l DetailedLines) DetailedLines {
+	clonedNewLines := l.Clone()
+
+	existingItems := c.DetailedLines
+	childrenRefToLine := make(map[string]DetailedLine, len(existingItems))
+
+	for _, child := range existingItems {
+		if child.ChildUniqueReferenceID == nil {
+			continue
+		}
+
+		// Let's only reuse lines that were not deleted before
+		if child.DeletedAt != nil {
+			continue
+		}
+
+		childrenRefToLine[*child.ChildUniqueReferenceID] = child
+	}
+
+	for idx := range clonedNewLines {
+		newChild := &clonedNewLines[idx]
+
+		if newChild.ChildUniqueReferenceID == nil {
+			continue
+		}
+
+		if existing, ok := childrenRefToLine[*newChild.ChildUniqueReferenceID]; ok {
+			// Let's retain the database ID to achieve an update instead of a delete/create
+			newChild.ID = existing.ID
+			newChild.FeeLineConfigID = existing.FeeLineConfigID
+
+			// Let's make sure we retain the created and updated at timestamps so that we
+			// don't trigger an update in vain
+			newChild.CreatedAt = existing.CreatedAt
+			newChild.UpdatedAt = existing.UpdatedAt
+
+			discountsWithIDReuse := newChild.AmountDiscounts.ReuseIDsFrom(existing.AmountDiscounts)
+			newChild.AmountDiscounts = discountsWithIDReuse
+		}
+	}
+
+	return clonedNewLines
+}
+
+type StandardLines []*StandardLine
+
+func NewStandardLines(children []*StandardLine) StandardLines {
+	// Note: this helps with test equality checks
+	if len(children) == 0 {
+		children = nil
+	}
+
+	return StandardLines(children)
+}
+
+func (c StandardLines) Validate() error {
+	return errors.Join(lo.Map(c, func(line *StandardLine, idx int) error {
+		return ValidationWithFieldPrefix(fmt.Sprintf("%d", idx), line.Validate())
+	})...)
+}
+
+func (c StandardLines) GetByChildUniqueReferenceID(id string) *StandardLine {
+	return lo.FindOrElse(c, nil, func(line *StandardLine) bool {
+		return lo.FromPtr(line.ChildUniqueReferenceID) == id
+	})
+}
+
+func (c StandardLines) Map(fn func(*StandardLine) *StandardLine) StandardLines {
+	return StandardLines(
+		lo.Map(c, func(l *StandardLine, _ int) *StandardLine {
+			return fn(l)
+		}),
+	)
+}
+
+func (c *StandardLines) Sort() {
+	sort.Slice(*c, func(a, b int) bool {
+		lineA := (*c)[a]
+		lineB := (*c)[b]
+
+		if nameOrder := strings.Compare(lineA.Name, lineB.Name); nameOrder != 0 {
+			return nameOrder < 0
+		}
+
+		if !lineA.Period.Start.Equal(lineB.Period.Start) {
+			return lineA.Period.Start.Before(lineB.Period.Start)
+		}
+
+		return strings.Compare(lineA.ID, lineB.ID) < 0
+	})
+
+	for idx := range *c {
+		(*c)[idx].SortDetailedLines()
+	}
+}
+
+func (i StandardLine) SetDiscountExternalIDs(externalIDs map[string]string) []string {
+	foundIDs := []string{}
+
+	for idx := range i.Discounts.Amount {
+		discount := &i.Discounts.Amount[idx]
+		if externalID, ok := externalIDs[discount.ID]; ok {
+			discount.ExternalIDs.Invoicing = externalID
+			foundIDs = append(foundIDs, discount.ID)
+		}
+	}
+
+	for idx := range i.Discounts.Usage {
+		discount := &i.Discounts.Usage[idx]
+
+		if externalID, ok := externalIDs[discount.ID]; ok {
+			discount.ExternalIDs.Invoicing = externalID
+			foundIDs = append(foundIDs, discount.ID)
+		}
+	}
+
+	return foundIDs
+}
+
+type UsageBasedLine struct {
+	ConfigID string `json:"configId,omitempty"`
+
+	// Price is the price of the usage based line. Note: this should be a pointer or marshaling will fail for
+	// empty prices.
+	Price      *productcatalog.Price `json:"price"`
+	FeatureKey string                `json:"featureKey"`
+
+	Quantity        *alpacadecimal.Decimal `json:"quantity,omitempty"`
+	MeteredQuantity *alpacadecimal.Decimal `json:"meteredQuantity,omitempty"`
+
+	PreLinePeriodQuantity        *alpacadecimal.Decimal `json:"preLinePeriodQuantity,omitempty"`
+	MeteredPreLinePeriodQuantity *alpacadecimal.Decimal `json:"meteredPreLinePeriodQuantity,omitempty"`
+}
+
+func (i UsageBasedLine) Equal(other *UsageBasedLine) bool {
+	return deriveEqualUsageBasedLine(&i, other)
+}
+
+func (i UsageBasedLine) Clone() *UsageBasedLine {
+	return &i
+}
+
+func (i UsageBasedLine) Validate() error {
+	var errs []error
+
+	if err := i.Price.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("price: %w", err))
+	}
+
+	if i.Price.Type() != productcatalog.FlatPriceType {
+		if i.FeatureKey == "" {
+			errs = append(errs, errors.New("featureKey is required"))
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
+type UpsertInvoiceLinesAdapterInput struct {
+	Namespace   string
+	Lines       []*StandardLine
+	SchemaLevel int
+	InvoiceID   string
+}
+
+func (c UpsertInvoiceLinesAdapterInput) Validate() error {
+	if c.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	for i, line := range c.Lines {
+		if err := line.Validate(); err != nil {
+			return fmt.Errorf("line[%d]: %w", i, err)
+		}
+
+		if line.Namespace == "" {
+			return fmt.Errorf("line[%d]: namespace is required", i)
+		}
+
+		if line.InvoiceID == "" {
+			return fmt.Errorf("line[%d]: invoice id is required", i)
+		}
+	}
+
+	if c.SchemaLevel < 1 {
+		return fmt.Errorf("schema level must be at least 1")
+	}
+
+	if c.InvoiceID == "" {
+		return errors.New("invoice id is required")
+	}
+
+	return nil
+}
+
+type ListInvoiceLinesAdapterInput struct {
+	Namespace string
+
+	CustomerID      string
+	InvoiceIDs      []string
+	InvoiceStatuses []StandardInvoiceStatus
+	IncludeDeleted  bool
+	Statuses        []InvoiceLineStatus
+
+	LineIDs []string
+}
+
+func (g ListInvoiceLinesAdapterInput) Validate() error {
+	if g.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	return nil
+}
+
+type GetInvoiceLineAdapterInput = LineID
+
+type GetInvoiceLineInput = LineID
+
+type GetInvoiceLineOwnershipAdapterInput = LineID
+
+type DeleteInvoiceLineInput = LineID
+
+type SnapshotLineQuantityInput struct {
+	Invoice *StandardInvoice
+	Line    *StandardLine
+}
+
+func (i SnapshotLineQuantityInput) Validate() error {
+	if i.Invoice == nil {
+		return errors.New("invoice is required")
+	}
+
+	if i.Line == nil {
+		return errors.New("line is required")
+	}
+
+	return nil
+}

@@ -18,7 +18,7 @@ const (
 )
 
 type linePatchLineCreate struct {
-	Line billing.Line
+	Line billing.StandardLine
 }
 
 type linePatchLineDelete struct {
@@ -27,7 +27,7 @@ type linePatchLineDelete struct {
 }
 
 type linePatchLineUpdate struct {
-	TargetState *billing.Line
+	TargetState *billing.StandardLine
 }
 
 type linePatchSplitLineGroupDelete struct {
@@ -103,7 +103,7 @@ func newDeleteLinePatch(lineID billing.LineID, invoiceID string) linePatch {
 	}
 }
 
-func newUpdateLinePatch(line *billing.Line) linePatch {
+func newUpdateLinePatch(line *billing.StandardLine) linePatch {
 	return linePatch{
 		op: patchOpLineUpdate,
 		updateLinePatch: linePatchLineUpdate{
@@ -130,7 +130,7 @@ func newUpdateSplitLineGroupPatch(group billing.SplitLineGroupUpdate) linePatch 
 	}
 }
 
-func newCreateLinePatch(line billing.Line) linePatch {
+func newCreateLinePatch(line billing.StandardLine) linePatch {
 	return linePatch{
 		op: patchOpLineCreate,
 		createLinePatch: linePatchLineCreate{
@@ -142,7 +142,7 @@ func newCreateLinePatch(line billing.Line) linePatch {
 func (s *Service) getDeletePatchesForLine(lineOrHierarchy billing.LineOrHierarchy) ([]linePatch, error) {
 	switch lineOrHierarchy.Type() {
 	case billing.LineOrHierarchyTypeLine:
-		line, err := lineOrHierarchy.AsLine()
+		line, err := lineOrHierarchy.AsStandardLine()
 		if err != nil {
 			return nil, fmt.Errorf("getting line: %w", err)
 		}

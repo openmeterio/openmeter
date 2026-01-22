@@ -58,7 +58,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: cust.GetID(),
 			Currency: "USD",
-			Lines: []*billing.Line{
+			Lines: []*billing.StandardLine{
 				lineIn,
 			},
 		})
@@ -156,7 +156,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPercentageDiscount() {
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
 		Currency: "USD",
-		Lines: []*billing.Line{
+		Lines: []*billing.StandardLine{
 			billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
 				Period:    period,
 				InvoiceAt: period.End,
@@ -235,7 +235,7 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: cust.GetID(),
 			Currency: "USD",
-			Lines: []*billing.Line{
+			Lines: []*billing.StandardLine{
 				billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
 					Period:    period,
 					InvoiceAt: period.End,
@@ -261,7 +261,7 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: cust.GetID(),
 			Currency: "USD",
-			Lines: []*billing.Line{
+			Lines: []*billing.StandardLine{
 				billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
 					Period: billing.Period{
 						Start: period.Start,

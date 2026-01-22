@@ -75,7 +75,7 @@ func (u *InvoiceUpdater) ApplyPatches(ctx context.Context, customerID customer.C
 }
 
 type patchesParsed struct {
-	newLines []*billing.Line
+	newLines []*billing.StandardLine
 
 	updatedLinesByInvoiceID map[string]invoicePatches
 
@@ -83,7 +83,7 @@ type patchesParsed struct {
 }
 
 type invoicePatches struct {
-	updatedLines []*billing.Line
+	updatedLines []*billing.StandardLine
 	deletedLines []billing.LineID
 }
 
@@ -146,12 +146,12 @@ func (u *InvoiceUpdater) parsePatches(patches []linePatch) (patchesParsed, error
 	return parsed, nil
 }
 
-func (u *InvoiceUpdater) provisionUpcomingLines(ctx context.Context, customerID customer.CustomerID, lines []*billing.Line) error {
+func (u *InvoiceUpdater) provisionUpcomingLines(ctx context.Context, customerID customer.CustomerID, lines []*billing.StandardLine) error {
 	if len(lines) == 0 {
 		return nil
 	}
 
-	linesByCurrency := lo.GroupBy(lines, func(l *billing.Line) currencyx.Code {
+	linesByCurrency := lo.GroupBy(lines, func(l *billing.StandardLine) currencyx.Code {
 		return l.Currency
 	})
 
@@ -169,11 +169,11 @@ func (u *InvoiceUpdater) provisionUpcomingLines(ctx context.Context, customerID 
 	return nil
 }
 
-func (u *InvoiceUpdater) updateMutableInvoice(ctx context.Context, invoice billing.Invoice, linePatches invoicePatches) error {
+func (u *InvoiceUpdater) updateMutableInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
 	updatedInvoice, err := u.billingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
 		Invoice:             invoice.InvoiceID(),
 		IncludeDeletedLines: true,
-		EditFn: func(invoice *billing.Invoice) error {
+		EditFn: func(invoice *billing.StandardInvoice) error {
 			// Let's delete lines if needed
 			for _, lineID := range linePatches.deletedLines {
 				line := invoice.Lines.GetByID(lineID.ID)
@@ -192,7 +192,7 @@ func (u *InvoiceUpdater) updateMutableInvoice(ctx context.Context, invoice billi
 				}
 
 				// update
-				if invoice.Status != billing.InvoiceStatusGathering {
+				if invoice.Status != billing.StandardInvoiceStatusGathering {
 					// We need to update the quantities of the usage based lines, to compensate for any changes in the period
 					// of the line
 
@@ -220,7 +220,7 @@ func (u *InvoiceUpdater) updateMutableInvoice(ctx context.Context, invoice billi
 	}
 
 	if updatedInvoice.Lines.NonDeletedLineCount() == 0 {
-		if updatedInvoice.Status == billing.InvoiceStatusGathering {
+		if updatedInvoice.Status == billing.StandardInvoiceStatusGathering {
 			// Gathering invoice deletion is handled by the service layer if they are empty
 			return nil
 		}
@@ -231,7 +231,7 @@ func (u *InvoiceUpdater) updateMutableInvoice(ctx context.Context, invoice billi
 			return fmt.Errorf("deleting empty invoice: %w", err)
 		}
 
-		if invoice.Status == billing.InvoiceStatusDeleteFailed {
+		if invoice.Status == billing.StandardInvoiceStatusDeleteFailed {
 			u.logger.WarnContext(ctx, "empty invoice deletion failed",
 				"invoice.id", invoice.ID,
 				"invoice.namespace", invoice.Namespace,
@@ -246,7 +246,7 @@ func (u *InvoiceUpdater) updateMutableInvoice(ctx context.Context, invoice billi
 	return err
 }
 
-func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice billing.Invoice, linePatches invoicePatches) error {
+func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
 	invoice, err := u.billingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 		Invoice: invoice.InvoiceID(),
 		Expand:  billing.InvoiceExpandAll,
@@ -329,7 +329,7 @@ func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice bil
 	return nil
 }
 
-func newValidationIssueOnLine(line *billing.Line, message string, a ...any) billing.ValidationIssue {
+func newValidationIssueOnLine(line *billing.StandardLine, message string, a ...any) billing.ValidationIssue {
 	if line == nil {
 		return billing.ValidationIssue{
 			Severity:  billing.ValidationIssueSeverityCritical,
@@ -351,7 +351,7 @@ func newValidationIssueOnLine(line *billing.Line, message string, a ...any) bill
 	}
 }
 
-func (u *InvoiceUpdater) mergeValidationIssues(invoice billing.Invoice, issues []billing.ValidationIssue) (billing.ValidationIssues, bool) {
+func (u *InvoiceUpdater) mergeValidationIssues(invoice billing.StandardInvoice, issues []billing.ValidationIssue) (billing.ValidationIssues, bool) {
 	changed := false
 
 	// We don't expect much issues, and this is temporary until we have credits so let's just

@@ -30,7 +30,7 @@ import (
 
 var _ billing.InvoiceLineAdapter = (*adapter)(nil)
 
-func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.UpsertInvoiceLinesAdapterInput) ([]*billing.Line, error) {
+func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.UpsertInvoiceLinesAdapterInput) ([]*billing.StandardLine, error) {
 	// Given that the input's content is spread across multiple tables, we need to
 	// handle the upserting of the data in a more complex way. We will first upsert
 	// all items that yield an ID into their parent structs then we will create the
@@ -45,14 +45,14 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 
 	input := &billing.UpsertInvoiceLinesAdapterInput{
 		Namespace: inputIn.Namespace,
-		Lines: lo.Map(inputIn.Lines, func(line *billing.Line, _ int) *billing.Line {
+		Lines: lo.Map(inputIn.Lines, func(line *billing.StandardLine, _ int) *billing.StandardLine {
 			return line.Clone()
 		}),
 		SchemaLevel: inputIn.SchemaLevel,
 		InvoiceID:   inputIn.InvoiceID,
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]*billing.Line, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]*billing.StandardLine, error) {
 		// Let's genereate the line diffs first
 		lineDiffs, err := diffInvoiceLines(input.Lines)
 		if err != nil {
@@ -71,8 +71,8 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 		}
 
 		// Step 2: Let's create the lines, but not their detailed lines
-		invoiceLineUpsertConfig := upsertInput[*billing.Line, *db.BillingInvoiceLineCreate]{
-			Create: func(tx *db.Client, line *billing.Line) (*db.BillingInvoiceLineCreate, error) {
+		invoiceLineUpsertConfig := upsertInput[*billing.StandardLine, *db.BillingInvoiceLineCreate]{
+			Create: func(tx *db.Client, line *billing.StandardLine) (*db.BillingInvoiceLineCreate, error) {
 				if line.ID == "" {
 					line.ID = ulid.Make().String()
 				}
@@ -143,7 +143,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					UpdateChildUniqueReferenceID().
 					Exec(ctx)
 			},
-			MarkDeleted: func(ctx context.Context, line *billing.Line) (*billing.Line, error) {
+			MarkDeleted: func(ctx context.Context, line *billing.StandardLine) (*billing.StandardLine, error) {
 				line.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
 				return line, nil
 			},
@@ -285,7 +285,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 		// We will include deleted lines, as we need to return all the lines even if the edit function marked them as deleted.
 		return tx.refetchInvoiceLines(ctx, refetchInvoiceLinesInput{
 			Namespace: input.Namespace,
-			LineIDs: lo.Map(input.Lines, func(line *billing.Line, _ int) string {
+			LineIDs: lo.Map(input.Lines, func(line *billing.StandardLine, _ int) string {
 				return line.ID
 			}),
 			IncludeDeleted: true,
@@ -558,9 +558,9 @@ func (a *adapter) upsertDetailedLineAmountDiscountsV2(ctx context.Context, in de
 	})
 }
 
-func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs entitydiff.Diff[*billing.Line]) error {
-	return upsertWithOptions(ctx, a.db, lineDiffs, upsertInput[*billing.Line, *db.BillingInvoiceUsageBasedLineConfigCreate]{
-		Create: func(tx *db.Client, line *billing.Line) (*db.BillingInvoiceUsageBasedLineConfigCreate, error) {
+func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs entitydiff.Diff[*billing.StandardLine]) error {
+	return upsertWithOptions(ctx, a.db, lineDiffs, upsertInput[*billing.StandardLine, *db.BillingInvoiceUsageBasedLineConfigCreate]{
+		Create: func(tx *db.Client, line *billing.StandardLine) (*db.BillingInvoiceUsageBasedLineConfigCreate, error) {
 			if line.UsageBased.ConfigID == "" {
 				line.UsageBased.ConfigID = ulid.Make().String()
 			}
@@ -589,12 +589,12 @@ func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs entitydi
 }
 
 // TODO[OM-982]: Add pagination
-func (a *adapter) ListInvoiceLines(ctx context.Context, input billing.ListInvoiceLinesAdapterInput) ([]*billing.Line, error) {
+func (a *adapter) ListInvoiceLines(ctx context.Context, input billing.ListInvoiceLinesAdapterInput) ([]*billing.StandardLine, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]*billing.Line, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]*billing.StandardLine, error) {
 		query := tx.db.BillingInvoice.Query().
 			Where(billinginvoice.Namespace(input.Namespace))
 
@@ -641,7 +641,7 @@ func (a *adapter) ListInvoiceLines(ctx context.Context, input billing.ListInvoic
 			return dbInvoice.ID, dbInvoice.SchemaLevel
 		})
 
-		mappedLines, err := tx.mapInvoiceLineFromDB(schemaLevelByInvoiceID, lines)
+		mappedLines, err := tx.mapStandardInvoiceLinesFromDB(schemaLevelByInvoiceID, lines)
 		if err != nil {
 			return nil, err
 		}
@@ -724,7 +724,7 @@ func (i refetchInvoiceLinesInput) Validate() error {
 	return nil
 }
 
-func (a *adapter) refetchInvoiceLines(ctx context.Context, in refetchInvoiceLinesInput) ([]*billing.Line, error) {
+func (a *adapter) refetchInvoiceLines(ctx context.Context, in refetchInvoiceLinesInput) ([]*billing.StandardLine, error) {
 	if err := in.Validate(); err != nil {
 		return nil, err
 	}
@@ -771,7 +771,7 @@ func (a *adapter) refetchInvoiceLines(ctx context.Context, in refetchInvoiceLine
 		return nil, err
 	}
 
-	lines, err := a.mapInvoiceLineFromDB(map[string]int{in.InvoiceID: in.SchemaLevel}, dbLinesInSameOrder)
+	lines, err := a.mapStandardInvoiceLinesFromDB(map[string]int{in.InvoiceID: in.SchemaLevel}, dbLinesInSameOrder)
 	if err != nil {
 		return nil, err
 	}
@@ -813,7 +813,7 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 			return nil, fmt.Errorf("getting schema level per invoice: %w", err)
 		}
 
-		lines, err := tx.mapInvoiceLineFromDB(invoiceSchemaLevelByID, dbLines)
+		lines, err := tx.mapStandardInvoiceLinesFromDB(invoiceSchemaLevelByID, dbLines)
 		if err != nil {
 			return nil, fmt.Errorf("mapping lines: %w", err)
 		}
@@ -836,14 +836,14 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 			}
 
 			lines, err := slicesx.MapWithErr(dbGroup.Edges.BillingInvoiceLines, func(dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
-				line, err := tx.mapInvoiceLineWithoutReferences(dbLine)
+				line, err := tx.mapStandardInvoiceLineWithoutReferences(dbLine)
 				if err != nil {
 					return billing.LineWithInvoiceHeader{}, err
 				}
 
 				return billing.LineWithInvoiceHeader{
 					Line:    line,
-					Invoice: tx.mapInvoiceBaseFromDB(ctx, dbLine.Edges.BillingInvoice),
+					Invoice: tx.mapStandardInvoiceBaseFromDB(ctx, dbLine.Edges.BillingInvoice),
 				}, nil
 			})
 			if err != nil {
@@ -875,11 +875,11 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 		lineChildUniqueReferenceIDs := lo.Map(
 			lo.Filter( // Lines can have a nil childUniqueReferenceID, when they are part of a split line group (e.g. the group has the unique reference id)
 				lines,
-				func(line *billing.Line, _ int) bool {
+				func(line *billing.StandardLine, _ int) bool {
 					return line.ChildUniqueReferenceID != nil
 				},
 			),
-			func(line *billing.Line, _ int) string {
+			func(line *billing.StandardLine, _ int) string {
 				return lo.FromPtr(line.ChildUniqueReferenceID)
 			},
 		)
@@ -897,7 +897,7 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 			return billing.NewLineOrHierarchy(&h)
 		})...)
 
-		out = append(out, lo.Map(lines, func(line *billing.Line, _ int) billing.LineOrHierarchy {
+		out = append(out, lo.Map(lines, func(line *billing.StandardLine, _ int) billing.LineOrHierarchy {
 			return billing.NewLineOrHierarchy(line)
 		})...)
 

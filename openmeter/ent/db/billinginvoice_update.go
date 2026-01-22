@@ -700,13 +700,13 @@ func (_u *BillingInvoiceUpdate) ClearDueAt() *BillingInvoiceUpdate {
 }
 
 // SetStatus sets the "status" field.
-func (_u *BillingInvoiceUpdate) SetStatus(v billing.InvoiceStatus) *BillingInvoiceUpdate {
+func (_u *BillingInvoiceUpdate) SetStatus(v billing.StandardInvoiceStatus) *BillingInvoiceUpdate {
 	_u.mutation.SetStatus(v)
 	return _u
 }
 
 // SetNillableStatus sets the "status" field if the given value is not nil.
-func (_u *BillingInvoiceUpdate) SetNillableStatus(v *billing.InvoiceStatus) *BillingInvoiceUpdate {
+func (_u *BillingInvoiceUpdate) SetNillableStatus(v *billing.StandardInvoiceStatus) *BillingInvoiceUpdate {
 	if v != nil {
 		_u.SetStatus(*v)
 	}
@@ -714,13 +714,13 @@ func (_u *BillingInvoiceUpdate) SetNillableStatus(v *billing.InvoiceStatus) *Bil
 }
 
 // SetStatusDetailsCache sets the "status_details_cache" field.
-func (_u *BillingInvoiceUpdate) SetStatusDetailsCache(v billing.InvoiceStatusDetails) *BillingInvoiceUpdate {
+func (_u *BillingInvoiceUpdate) SetStatusDetailsCache(v billing.StandardInvoiceStatusDetails) *BillingInvoiceUpdate {
 	_u.mutation.SetStatusDetailsCache(v)
 	return _u
 }
 
 // SetNillableStatusDetailsCache sets the "status_details_cache" field if the given value is not nil.
-func (_u *BillingInvoiceUpdate) SetNillableStatusDetailsCache(v *billing.InvoiceStatusDetails) *BillingInvoiceUpdate {
+func (_u *BillingInvoiceUpdate) SetNillableStatusDetailsCache(v *billing.StandardInvoiceStatusDetails) *BillingInvoiceUpdate {
 	if v != nil {
 		_u.SetStatusDetailsCache(*v)
 	}
@@ -2242,13 +2242,13 @@ func (_u *BillingInvoiceUpdateOne) ClearDueAt() *BillingInvoiceUpdateOne {
 }
 
 // SetStatus sets the "status" field.
-func (_u *BillingInvoiceUpdateOne) SetStatus(v billing.InvoiceStatus) *BillingInvoiceUpdateOne {
+func (_u *BillingInvoiceUpdateOne) SetStatus(v billing.StandardInvoiceStatus) *BillingInvoiceUpdateOne {
 	_u.mutation.SetStatus(v)
 	return _u
 }
 
 // SetNillableStatus sets the "status" field if the given value is not nil.
-func (_u *BillingInvoiceUpdateOne) SetNillableStatus(v *billing.InvoiceStatus) *BillingInvoiceUpdateOne {
+func (_u *BillingInvoiceUpdateOne) SetNillableStatus(v *billing.StandardInvoiceStatus) *BillingInvoiceUpdateOne {
 	if v != nil {
 		_u.SetStatus(*v)
 	}
@@ -2256,13 +2256,13 @@ func (_u *BillingInvoiceUpdateOne) SetNillableStatus(v *billing.InvoiceStatus) *
 }
 
 // SetStatusDetailsCache sets the "status_details_cache" field.
-func (_u *BillingInvoiceUpdateOne) SetStatusDetailsCache(v billing.InvoiceStatusDetails) *BillingInvoiceUpdateOne {
+func (_u *BillingInvoiceUpdateOne) SetStatusDetailsCache(v billing.StandardInvoiceStatusDetails) *BillingInvoiceUpdateOne {
 	_u.mutation.SetStatusDetailsCache(v)
 	return _u
 }
 
 // SetNillableStatusDetailsCache sets the "status_details_cache" field if the given value is not nil.
-func (_u *BillingInvoiceUpdateOne) SetNillableStatusDetailsCache(v *billing.InvoiceStatusDetails) *BillingInvoiceUpdateOne {
+func (_u *BillingInvoiceUpdateOne) SetNillableStatusDetailsCache(v *billing.StandardInvoiceStatusDetails) *BillingInvoiceUpdateOne {
 	if v != nil {
 		_u.SetStatusDetailsCache(*v)
 	}

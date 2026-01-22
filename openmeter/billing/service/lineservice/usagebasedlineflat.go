@@ -50,7 +50,7 @@ func (l ubpFlatFeeLine) PrepareForCreate(context.Context) (Line, error) {
 	return &l, nil
 }
 
-func (l ubpFlatFeeLine) Validate(ctx context.Context, targetInvoice *billing.Invoice) error {
+func (l ubpFlatFeeLine) Validate(ctx context.Context, targetInvoice *billing.StandardInvoice) error {
 	var outErr []error
 
 	if l.line.UsageBased.FeatureKey != "" {

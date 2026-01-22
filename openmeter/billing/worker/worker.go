@@ -174,15 +174,15 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 
 			return w.subscriptionSync.HandleSubscriptionSyncEvent(ctx, event)
 		}),
-		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.AdvanceInvoiceEvent) error {
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.AdvanceStandardInvoiceEvent) error {
 			if event != nil && slices.Contains(w.lockdownNamespaces, event.Invoice.Namespace) {
 				return nil
 			}
 
 			return w.asyncAdvanceHandler.Handle(ctx, event)
 		}),
-		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.InvoiceCreatedEvent) error {
-			if event != nil && slices.Contains(w.lockdownNamespaces, event.EventInvoice.Invoice.Namespace) {
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.StandardInvoiceCreatedEvent) error {
+			if event != nil && slices.Contains(w.lockdownNamespaces, event.Invoice.Namespace) {
 				return nil
 			}
 

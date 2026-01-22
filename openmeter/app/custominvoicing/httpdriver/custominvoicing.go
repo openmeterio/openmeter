@@ -40,7 +40,7 @@ func (h *handler) DraftSyncronized() DraftSyncronizedHandler {
 					ID:        params.InvoiceID,
 					Namespace: namespace,
 				},
-				UpsertInvoiceResults: mapUpsertInvoiceResultFromAPI(body.Invoicing),
+				UpsertInvoiceResults: mapUpsertStandardInvoiceResultFromAPI(body.Invoicing),
 			}, nil
 		},
 		func(ctx context.Context, request DraftSyncronizedRequest) (DraftSyncronizedResponse, error) {
@@ -91,7 +91,7 @@ func (h *handler) IssuingSyncronized() IssuingSyncronizedHandler {
 					ID:        params.InvoiceID,
 					Namespace: namespace,
 				},
-				FinalizeInvoiceResult: mapFinalizeInvoiceResultFromAPI(body),
+				FinalizeInvoiceResult: mapFinalizeStandardInvoiceResultFromAPI(body),
 			}, nil
 		},
 		func(ctx context.Context, request IssuingSyncronizedRequest) (IssuingSyncronizedResponse, error) {

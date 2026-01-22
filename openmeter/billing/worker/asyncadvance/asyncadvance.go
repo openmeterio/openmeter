@@ -45,7 +45,7 @@ func New(c Config) (*Handler, error) {
 	}, nil
 }
 
-func (h *Handler) Handle(ctx context.Context, event *billing.AdvanceInvoiceEvent) error {
+func (h *Handler) Handle(ctx context.Context, event *billing.AdvanceStandardInvoiceEvent) error {
 	_, err := h.billingService.AdvanceInvoice(ctx, event.Invoice)
 
 	if errors.Is(err, billing.ErrInvoiceCannotAdvance) {

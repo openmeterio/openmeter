@@ -6,8 +6,8 @@ import (
 )
 
 // SnapshotTaxConfigIntoLines takes the tax configuration from the invoice's workflow and adds it to the lines.
-func SnapshotTaxConfigIntoLines(invoice *billing.Invoice, deps CalculatorDependencies) error {
-	if invoice.Status == billing.InvoiceStatusGathering {
+func SnapshotTaxConfigIntoLines(invoice *billing.StandardInvoice, deps CalculatorDependencies) error {
+	if invoice.Status == billing.StandardInvoiceStatusGathering {
 		return nil
 	}
 

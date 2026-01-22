@@ -55,7 +55,7 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 		deletedAtSet time.Time
 
 		// Adapter snapshot (schema level 1 read-path)
-		invoiceBeforeMigration billing.Invoice
+		invoiceBeforeMigration billing.StandardInvoice
 	)
 
 	s.Run("Given a customer and progressive billing profile exists", func() {
@@ -113,9 +113,9 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []*billing.Line{
+			Lines: []*billing.StandardLine{
 				{
-					LineBase: billing.LineBase{
+					StandardLineBase: billing.StandardLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Namespace: namespace,
 							Name:      lineNameDeletedDetailed,
@@ -140,7 +140,7 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 					},
 				},
 				{
-					LineBase: billing.LineBase{
+					StandardLineBase: billing.StandardLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Namespace: namespace,
 							Name:      lineNameActiveDetailed,
@@ -275,7 +275,7 @@ func (s *SchemaMigrationTestSuite) markAllDetailedChildrenDeleted(ctx context.Co
 	return n, nil
 }
 
-func (s *SchemaMigrationTestSuite) withoutDetailedFeeLineConfigID(in *billing.Line) *billing.Line {
+func (s *SchemaMigrationTestSuite) withoutDetailedFeeLineConfigID(in *billing.StandardLine) *billing.StandardLine {
 	if in == nil {
 		return nil
 	}
@@ -287,7 +287,7 @@ func (s *SchemaMigrationTestSuite) withoutDetailedFeeLineConfigID(in *billing.Li
 	return out
 }
 
-func (s *SchemaMigrationTestSuite) getLineByName(inv billing.Invoice, name string) *billing.Line {
+func (s *SchemaMigrationTestSuite) getLineByName(inv billing.StandardInvoice, name string) *billing.StandardLine {
 	lines := inv.Lines.OrEmpty()
 	for _, l := range lines {
 		if l.Name == name {

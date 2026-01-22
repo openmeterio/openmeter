@@ -228,7 +228,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		gatheringLine := gatheringInvoice.Lines.OrEmpty()[0]
 
 		s.Equal(invoiceUpdatedAt, gatheringInvoice.UpdatedAt)
-		s.Equal(billing.InvoiceStatusGathering, gatheringInvoice.Status)
+		s.Equal(billing.StandardInvoiceStatusGathering, gatheringInvoice.Status)
 		s.Equal(line.UpdatedAt, gatheringLine.UpdatedAt)
 	})
 
@@ -257,7 +257,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		s.Len(invoices, 1)
 		invoice := invoices[0]
 
-		s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+		s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
 		s.Equal(float64(5*100), invoice.Totals.Total.InexactFloat64())
 
 		s.Len(invoice.Lines.OrEmpty(), 1)
@@ -443,9 +443,9 @@ func (s *SubscriptionHandlerTestSuite) TestUncollectableCollection() {
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
-		Lines: []*billing.Line{
+		Lines: []*billing.StandardLine{
 			{
-				LineBase: billing.LineBase{
+				StandardLineBase: billing.StandardLineBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 						Name: "UBP - unit",
 					}),
@@ -586,7 +586,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 		s.Len(invoices.Items, 1)
 
 		lines := invoices.Items[0].Lines.OrEmpty()
-		oneDayLines := lo.Filter(lines, func(line *billing.Line, _ int) bool {
+		oneDayLines := lo.Filter(lines, func(line *billing.StandardLine, _ int) bool {
 			return line.Period.End.Sub(line.Period.Start) == time.Hour*24
 		})
 		s.Len(oneDayLines, 31) // january is 31 days long, and we generate lines for each daily for in arrears price
@@ -642,7 +642,7 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 		s.Len(invoices.Items, 1)
 
 		lines := invoices.Items[0].Lines.OrEmpty()
-		threeMonthLines := lo.Filter(lines, func(line *billing.Line, _ int) bool {
+		threeMonthLines := lo.Filter(lines, func(line *billing.StandardLine, _ int) bool {
 			return line.Period.End.Sub(line.Period.Start) != time.Hour*24 // all other lines will be 1 dqy
 		})
 		s.Len(threeMonthLines, 1)
@@ -1363,11 +1363,11 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 	s.Require().Len(draftInvoices, 1)
 
 	draftInvoice := draftInvoices[0]
-	s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, draftInvoice.Status)
+	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, draftInvoice.Status)
 
 	approvedInvoice, err := s.BillingService.ApproveInvoice(ctx, draftInvoice.InvoiceID())
 	s.NoError(err)
-	s.Equal(billing.InvoiceStatusPaid, approvedInvoice.Status)
+	s.Equal(billing.StandardInvoiceStatusPaid, approvedInvoice.Status)
 
 	s.expectLines(approvedInvoice, subsView.Subscription.ID, []expectedLine{
 		{
@@ -1557,7 +1557,7 @@ func (s *SubscriptionHandlerTestSuite) TestDefactoZeroPrices() {
 		},
 		Expand: billing.InvoiceExpandAll,
 		Statuses: []string{
-			string(billing.InvoiceStatusGathering),
+			string(billing.StandardInvoiceStatusGathering),
 		},
 	})
 	require.NoError(s.T(), err)
@@ -2745,11 +2745,11 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 	s.Len(draftInvoices, 1)
 
 	draftInvoice := draftInvoices[0]
-	s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, draftInvoice.Status)
+	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, draftInvoice.Status)
 
 	issuedInvoice, err := s.BillingService.ApproveInvoice(ctx, draftInvoice.InvoiceID())
 	s.NoError(err)
-	s.Equal(billing.InvoiceStatusPaid, issuedInvoice.Status)
+	s.Equal(billing.StandardInvoiceStatusPaid, issuedInvoice.Status)
 	s.Len(issuedInvoice.ValidationIssues, 0)
 	s.DebugDumpInvoice("issued invoice", issuedInvoice)
 	s.expectLines(issuedInvoice, subsView.Subscription.ID, []expectedLine{
@@ -2903,7 +2903,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 
 	invoice1, err := s.BillingService.ApproveInvoice(ctx, draftInvoices1[0].InvoiceID())
 	s.NoError(err)
-	s.Equal(billing.InvoiceStatusPaid, invoice1.Status)
+	s.Equal(billing.StandardInvoiceStatusPaid, invoice1.Status)
 
 	s.populateChildIDsFromParents(&invoice1)
 	s.DebugDumpInvoice("issued invoice1", invoice1)
@@ -2941,7 +2941,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 	draftInvoice2 := draftInvoices2[0]
 	s.populateChildIDsFromParents(&draftInvoice2)
 	s.DebugDumpInvoice("draft invoice2", draftInvoice2)
-	s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, draftInvoice2.Status)
+	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, draftInvoice2.Status)
 
 	s.expectLines(draftInvoice2, subsView.Subscription.ID, []expectedLine{
 		{
@@ -3106,7 +3106,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 	s.populateChildIDsFromParents(&updatedDraftInvoice)
 	s.DebugDumpInvoice("draft invoice2 - 2nd sync", updatedDraftInvoice)
 	s.Len(updatedDraftInvoice.Lines.OrEmpty(), 0)
-	s.Equal(billing.InvoiceStatusDeleted, updatedDraftInvoice.Status)
+	s.Equal(billing.StandardInvoiceStatusDeleted, updatedDraftInvoice.Status)
 }
 
 func (s *SubscriptionHandlerTestSuite) TestGatheringManualEditSync() {
@@ -3143,10 +3143,10 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualEditSync() {
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 
-	var updatedLine *billing.Line
+	var updatedLine *billing.StandardLine
 	editedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
 		Invoice: gatheringInvoice.InvoiceID(),
-		EditFn: func(invoice *billing.Invoice) error {
+		EditFn: func(invoice *billing.StandardInvoice) error {
 			line := s.getLineByChildID(*invoice, fmt.Sprintf("%s/first-phase/in-advance/v[0]/period[0]", subsView.Subscription.ID))
 
 			price, err := line.UsageBased.Price.AsFlat()
@@ -3177,7 +3177,7 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualEditSync() {
 
 	// Then the line should not be updated
 	invoiceLine := s.getLineByChildID(gatheringInvoice, *updatedLine.ChildUniqueReferenceID)
-	s.True(invoiceLine.LineBase.Equal(updatedLine.LineBase), "line should not be updated")
+	s.True(invoiceLine.StandardLineBase.Equal(updatedLine.StandardLineBase), "line should not be updated")
 }
 
 func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
@@ -3230,10 +3230,10 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
 
 	s.DebugDumpInvoice("draft invoice", draftInvoice)
 
-	var updatedLine *billing.Line
+	var updatedLine *billing.StandardLine
 	editedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
 		Invoice: draftInvoice.InvoiceID(),
-		EditFn: func(invoice *billing.Invoice) error {
+		EditFn: func(invoice *billing.StandardInvoice) error {
 			lines := invoice.Lines.OrEmpty()
 			s.Len(lines, 1)
 
@@ -3278,7 +3278,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
 	resyncedInvoiceLine := resyncedInvoice.Lines.OrEmpty()[0]
 
 	// Field updates are supported for manually managed lines
-	s.Equal(resyncedInvoiceLine.LineBase.Name, updatedLine.Name)
+	s.Equal(resyncedInvoiceLine.StandardLineBase.Name, updatedLine.Name)
 	// Period however is managed by the sync to ensure consistency between line and parent (update endpoint does the filtering)
 	s.Equal(billing.Period{
 		Start: s.mustParseTime("2024-01-01T00:00:00Z"),
@@ -3320,13 +3320,13 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualDeleteSync() {
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 
-	var updatedLine *billing.Line
+	var updatedLine *billing.StandardLine
 
 	childUniqueReferenceID := fmt.Sprintf("%s/first-phase/in-advance/v[0]/period[0]", subsView.Subscription.ID)
 
 	editedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
 		Invoice: gatheringInvoice.InvoiceID(),
-		EditFn: func(invoice *billing.Invoice) error {
+		EditFn: func(invoice *billing.StandardInvoice) error {
 			line := s.getLineByChildID(*invoice, childUniqueReferenceID)
 
 			line.DeletedAt = lo.ToPtr(clock.Now())
@@ -3420,7 +3420,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 	// Now let's manually mark the lines as sync ignored
 	_, err = s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
 		Invoice: draftInvoice.InvoiceID(),
-		EditFn: func(invoice *billing.Invoice) error {
+		EditFn: func(invoice *billing.StandardInvoice) error {
 			line := s.getLineByChildID(*invoice, draftLineReferenceID)
 
 			line.Annotations = models.Annotations{
@@ -3433,11 +3433,11 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 	})
 	s.NoError(err)
 
-	var gatheringInvoiceIgnoredLine *billing.Line
+	var gatheringInvoiceIgnoredLine *billing.StandardLine
 
 	gatheringInvoice, err = s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
 		Invoice: gatheringInvoice.InvoiceID(),
-		EditFn: func(invoice *billing.Invoice) error {
+		EditFn: func(invoice *billing.StandardInvoice) error {
 			line := s.getLineByChildID(*invoice, gatheringLineReferenceID)
 
 			line.Annotations = models.Annotations{
@@ -3482,7 +3482,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 	s.DebugDumpInvoice("draft invoice - after sync", draftInvoiceAfterSync)
 
 	expectedInvoice := draftInvoice.Clone()
-	expectedInvoice.Lines = expectedInvoice.Lines.Map(func(line *billing.Line) *billing.Line {
+	expectedInvoice.Lines = expectedInvoice.Lines.Map(func(line *billing.StandardLine) *billing.StandardLine {
 		if line.ChildUniqueReferenceID != nil && *line.ChildUniqueReferenceID == draftLineReferenceID {
 			line.Annotations = models.Annotations{
 				billing.AnnotationSubscriptionSyncIgnore:               true,
@@ -3498,7 +3498,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 		return line
 	})
 
-	draftInvoiceAfterSync.Lines = draftInvoiceAfterSync.Lines.Map(func(line *billing.Line) *billing.Line {
+	draftInvoiceAfterSync.Lines = draftInvoiceAfterSync.Lines.Map(func(line *billing.StandardLine) *billing.StandardLine {
 		line.DetailedLines = lo.Map(line.DetailedLines, func(child billing.DetailedLine, _ int) billing.DetailedLine {
 			child.FeeLineConfigID = ""
 			return child
@@ -3597,7 +3597,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLinesWhenPeriod
 	// Now let's manually mark the lines as sync ignored
 	gatheringInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
 		Invoice: gatheringInvoice.InvoiceID(),
-		EditFn: func(invoice *billing.Invoice) error {
+		EditFn: func(invoice *billing.StandardInvoice) error {
 			line := s.getLineByChildID(*invoice, markedLineReferenceID)
 
 			line.Annotations = models.Annotations{
@@ -3690,10 +3690,10 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 
 	s.DebugDumpInvoice("draft invoice", draftInvoice)
 
-	var updatedLine *billing.Line
+	var updatedLine *billing.StandardLine
 	editedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
 		Invoice: draftInvoice.InvoiceID(),
-		EditFn: func(invoice *billing.Invoice) error {
+		EditFn: func(invoice *billing.StandardInvoice) error {
 			lines := invoice.Lines.OrEmpty()
 			s.Len(lines, 1)
 
@@ -3994,7 +3994,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 	})
 }
 
-func (s *SubscriptionHandlerTestSuite) expectValidationIssueForLine(line *billing.Line, issue billing.ValidationIssue) {
+func (s *SubscriptionHandlerTestSuite) expectValidationIssueForLine(line *billing.StandardLine, issue billing.ValidationIssue) {
 	s.Equal(billing.ValidationIssueSeverityWarning, issue.Severity)
 	s.Equal(billing.ImmutableInvoiceHandlingNotSupportedErrorCode, issue.Code)
 	s.Equal(SubscriptionSyncComponentName, issue.Component)
@@ -4050,11 +4050,11 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 	s.NoError(err)
 	s.Len(invoices.Items, 2)
 
-	var gatheringInvoice *billing.Invoice
-	var instantInvoice *billing.Invoice
+	var gatheringInvoice *billing.StandardInvoice
+	var instantInvoice *billing.StandardInvoice
 
 	for _, invoice := range invoices.Items {
-		if invoice.Status == billing.InvoiceStatusGathering {
+		if invoice.Status == billing.StandardInvoiceStatusGathering {
 			gatheringInvoice = &invoice
 			continue
 		}
@@ -4435,7 +4435,7 @@ func (s *SubscriptionHandlerTestSuite) TestSynchronizeSubscriptionPeriodAlgorith
 
 	invoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
 		Invoice: invoice.InvoiceID(),
-		EditFn: func(invoice *billing.Invoice) error {
+		EditFn: func(invoice *billing.StandardInvoice) error {
 			line := invoice.Lines.OrEmpty()[0]
 			// simulate some faulty behavior (the old algo would have set the end to 03-03, but this way we can test this with both the old and new alog)
 			line.Period.Start = s.mustParseTime("2025-01-31T00:00:00Z")
@@ -4445,7 +4445,7 @@ func (s *SubscriptionHandlerTestSuite) TestSynchronizeSubscriptionPeriodAlgorith
 				billing.AnnotationSubscriptionSyncForceContinuousLines: true,
 			}
 
-			invoice.Lines = billing.NewInvoiceLines([]*billing.Line{
+			invoice.Lines = billing.NewStandardInvoiceLines([]*billing.StandardLine{
 				line,
 			})
 			return nil
@@ -4628,7 +4628,7 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedCustomerHandling() {
 	})
 
 	// Invoice expectations:
-	s.Equal(billing.InvoiceStatusDraftWaitingAutoApproval, invoice.Status)
+	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
 	s.Equal(float64(5*12), invoice.Totals.Total.InexactFloat64())
 }
 

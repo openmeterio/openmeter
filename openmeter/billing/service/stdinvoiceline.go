@@ -57,7 +57,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 	}
 
 	return transcationForInvoiceManipulation(ctx, s, input.Customer, func(ctx context.Context) (*billing.CreatePendingInvoiceLinesResult, error) {
-		lineServices, err := s.lineService.FromEntities(lo.Map(input.Lines, func(l *billing.Line, _ int) *billing.Line {
+		lineServices, err := s.lineService.FromEntities(lo.Map(input.Lines, func(l *billing.StandardLine, _ int) *billing.StandardLine {
 			l.Namespace = input.Customer.Namespace
 			l.Currency = input.Currency
 
@@ -136,11 +136,11 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 		}
 
 		// Let's resolve the created lines from the final invoice
-		invoiceLinesByID := lo.SliceToMap(gatheringInvoice.Lines.OrEmpty(), func(l *billing.Line) (string, *billing.Line) {
+		invoiceLinesByID := lo.SliceToMap(gatheringInvoice.Lines.OrEmpty(), func(l *billing.StandardLine) (string, *billing.StandardLine) {
 			return l.ID, l
 		})
 
-		finalLines := []*billing.Line{}
+		finalLines := []*billing.StandardLine{}
 		for _, line := range linesToCreate {
 			if line, ok := invoiceLinesByID[line.ID]; ok {
 				finalLines = append(finalLines, line)
@@ -149,7 +149,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 
 		// Publish system event for newly created invoices
 		if gatheringInvoiceUpsertResult.IsInvoiceNew {
-			event, err := billing.NewInvoiceCreatedEvent(gatheringInvoice)
+			event, err := billing.NewStandardInvoiceCreatedEvent(gatheringInvoice)
 			if err != nil {
 				return nil, fmt.Errorf("creating event: %w", err)
 			}
@@ -168,7 +168,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 }
 
 type upsertGatheringInvoiceForCurrencyResponse struct {
-	Invoice      *billing.Invoice
+	Invoice      *billing.StandardInvoice
 	IsInvoiceNew bool
 }
 
@@ -181,7 +181,7 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 		},
 		Customers:        []string{customerProfile.Customer.ID},
 		Namespaces:       []string{customerProfile.Customer.Namespace},
-		ExtendedStatuses: []billing.InvoiceStatus{billing.InvoiceStatusGathering},
+		ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
 		Currencies:       []currencyx.Code{currency},
 		OrderBy:          api.InvoiceOrderByCreatedAt,
 		Order:            sortx.OrderAsc,
@@ -213,7 +213,7 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 			Profile:   customerProfile.MergedProfile,
 			Number:    invoiceNumber,
 			Currency:  currency,
-			Status:    billing.InvoiceStatusGathering,
+			Status:    billing.StandardInvoiceStatusGathering,
 			Type:      billing.InvoiceTypeStandard,
 		})
 		if err != nil {
@@ -233,7 +233,7 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 		// If the invoice was deleted, but has non-deleted lines, we need to delete those lines to prevent
 		// them from reappearing in the recreated gathering invoice.
 		if invoice.Lines.NonDeletedLineCount() > 0 {
-			invoice.Lines = invoice.Lines.Map(func(l *billing.Line) *billing.Line {
+			invoice.Lines = invoice.Lines.Map(func(l *billing.StandardLine) *billing.StandardLine {
 				if l.DeletedAt == nil {
 					l.DeletedAt = lo.ToPtr(clock.Now())
 				}
@@ -317,7 +317,7 @@ func (s *Service) GetLinesForSubscription(ctx context.Context, input billing.Get
 	})
 }
 
-func (s *Service) SnapshotLineQuantity(ctx context.Context, input billing.SnapshotLineQuantityInput) (*billing.Line, error) {
+func (s *Service) SnapshotLineQuantity(ctx context.Context, input billing.SnapshotLineQuantityInput) (*billing.StandardLine, error) {
 	if err := input.Validate(); err != nil {
 		return nil, billing.ValidationError{
 			Err: err,

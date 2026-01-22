@@ -55,7 +55,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceSerialization() {
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
 		Currency: currencyx.Code(currency.USD),
-		Lines: []*billing.Line{
+		Lines: []*billing.StandardLine{
 			billing.NewFlatFeeLine(
 				billing.NewFlatFeeLineInput{
 					Namespace:     namespace,

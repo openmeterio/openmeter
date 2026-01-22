@@ -42,7 +42,7 @@ type EventPayload struct {
 	EntitlementReset *EntitlementResetPayload `json:"entitlementReset,omitempty"`
 
 	// Invoice
-	Invoice *billing.EventInvoice `json:"invoice,omitempty"`
+	Invoice *billing.EventStandardInvoice `json:"invoice,omitempty"`
 }
 
 func (p EventPayload) Validate() error {

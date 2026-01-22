@@ -28,8 +28,8 @@ const (
 
 var _ billing.InvoicingApp = (*App)(nil)
 
-// ValidateInvoice validates the invoice for the app
-func (a App) ValidateInvoice(ctx context.Context, invoice billing.Invoice) error {
+// ValidateStandardInvoice validates the invoice for the app
+func (a App) ValidateStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
 	customerID := customer.CustomerID{
 		Namespace: invoice.Namespace,
 		ID:        invoice.Customer.CustomerID,
@@ -54,14 +54,14 @@ func (a App) ValidateInvoice(ctx context.Context, invoice billing.Invoice) error
 	return nil
 }
 
-// UpsertInvoice upserts the invoice for the app
+// UpsertStandardInvoice upserts the invoice for the app
 // Upsert is idempotent and can be used to create or update an invoice.
 // In case of failure the upsert should be retried.
 //
 // TODO: should we split invoice create and lines adds to make retries more robust?
 // Currently if the create fails between the create and add lines we can end up with
 // an invoice without lines.
-func (a App) UpsertInvoice(ctx context.Context, invoice billing.Invoice) (*billing.UpsertInvoiceResult, error) {
+func (a App) UpsertStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
 	// Create the invoice in Stripe.
 	if invoice.ExternalIDs.Invoicing == "" {
 		return a.createInvoice(ctx, invoice)
@@ -71,8 +71,8 @@ func (a App) UpsertInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	return a.updateInvoice(ctx, invoice)
 }
 
-// DeleteInvoice deletes the invoice for the app
-func (a App) DeleteInvoice(ctx context.Context, invoice billing.Invoice) error {
+// DeleteStandardInvoice deletes the invoice for the app
+func (a App) DeleteStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) error {
 	// Get the Stripe client
 	_, stripeClient, err := a.getStripeClient(ctx, "deleteInvoice", "invoice_id", invoice.ID, "stripe_invoice_id", invoice.ExternalIDs.GetInvoicingOrEmpty())
 	if err != nil {
@@ -85,8 +85,8 @@ func (a App) DeleteInvoice(ctx context.Context, invoice billing.Invoice) error {
 	})
 }
 
-// FinalizeInvoice finalizes the invoice for the app
-func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*billing.FinalizeInvoiceResult, error) {
+// FinalizeStandardInvoice finalizes the invoice for the app
+func (a App) FinalizeStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.FinalizeStandardInvoiceResult, error) {
 	// Get the Stripe client
 	_, stripeClient, err := a.getStripeClient(ctx, "finalizeInvoice", "invoice_id", invoice.ID, "stripe_invoice_id", invoice.ExternalIDs.GetInvoicingOrEmpty())
 	if err != nil {
@@ -121,14 +121,14 @@ func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*bil
 			}
 
 			// Finalize the invoice again
-			return a.FinalizeInvoice(ctx, invoice)
+			return a.FinalizeStandardInvoice(ctx, invoice)
 		}
 
 		return nil, fmt.Errorf("failed to finalize invoice in stripe: %w", err)
 	}
 
 	// Result
-	result := billing.NewFinalizeInvoiceResult()
+	result := billing.NewFinalizeStandardInvoiceResult()
 
 	// Stripe is the source of truth for invoice number
 	// We set it on result to save it
@@ -145,7 +145,7 @@ func (a App) FinalizeInvoice(ctx context.Context, invoice billing.Invoice) (*bil
 }
 
 // createInvoice creates the invoice for the app
-func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billing.UpsertInvoiceResult, error) {
+func (a App) createInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
 	// Get the currency calculator
 	calculator, err := NewStripeCalculator(invoice.Currency)
 	if err != nil {
@@ -208,7 +208,7 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	}
 
 	// Return the result
-	result := billing.NewUpsertInvoiceResult()
+	result := billing.NewUpsertStandardInvoiceResult()
 	result.SetExternalID(stripeInvoice.ID)
 
 	// Stripe is the source of truth for invoice number
@@ -260,7 +260,7 @@ func (a App) createInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 }
 
 // updateInvoice update the invoice for the app
-func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billing.UpsertInvoiceResult, error) {
+func (a App) updateInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
 	// Get the currency calculator
 	calculator, err := NewStripeCalculator(invoice.Currency)
 	if err != nil {
@@ -295,7 +295,7 @@ func (a App) updateInvoice(ctx context.Context, invoice billing.Invoice) (*billi
 	}
 
 	// The result
-	result := billing.NewUpsertInvoiceResult()
+	result := billing.NewUpsertStandardInvoiceResult()
 	result.SetExternalID(stripeInvoice.ID)
 
 	// Stripe is the source of truth for invoice number
@@ -619,7 +619,7 @@ func getStripeTaxBehavior(tb *productcatalog.TaxBehavior) *string {
 // addResultExternalIDs adds the Stripe line item IDs to the result external IDs
 func addResultExternalIDs(
 	newLines []stripeclient.StripeInvoiceItemWithLineID,
-	result *billing.UpsertInvoiceResult,
+	result *billing.UpsertStandardInvoiceResult,
 ) error {
 	// Check if we have the same number of params and new lines
 

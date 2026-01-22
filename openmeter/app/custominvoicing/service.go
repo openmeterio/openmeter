@@ -27,8 +27,8 @@ type FactoryService interface {
 }
 
 type SyncService interface {
-	SyncDraftInvoice(ctx context.Context, input SyncDraftInvoiceInput) (billing.Invoice, error)
-	SyncIssuingInvoice(ctx context.Context, input SyncIssuingInvoiceInput) (billing.Invoice, error)
+	SyncDraftInvoice(ctx context.Context, input SyncDraftInvoiceInput) (billing.StandardInvoice, error)
+	SyncIssuingInvoice(ctx context.Context, input SyncIssuingInvoiceInput) (billing.StandardInvoice, error)
 
-	HandlePaymentTrigger(ctx context.Context, input HandlePaymentTriggerInput) (billing.Invoice, error)
+	HandlePaymentTrigger(ctx context.Context, input HandlePaymentTriggerInput) (billing.StandardInvoice, error)
 }

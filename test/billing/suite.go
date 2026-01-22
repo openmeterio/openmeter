@@ -310,12 +310,12 @@ func (s *BaseSuite) TearDownSuite() {
 	s.TestDB.PGDriver.Close()
 }
 
-func (s *BaseSuite) DebugDumpInvoice(h string, i billing.Invoice) {
+func (s *BaseSuite) DebugDumpInvoice(h string, i billing.StandardInvoice) {
 	s.T().Log(h)
 
 	l := i.Lines.OrEmpty()
 
-	slices.SortFunc(l, func(l1, l2 *billing.Line) int {
+	slices.SortFunc(l, func(l1, l2 *billing.StandardLine) int {
 		if l1.Period.Start.Before(l2.Period.Start) {
 			return -1
 		} else if l1.Period.Start.After(l2.Period.Start) {
@@ -381,7 +381,7 @@ func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: in.Customer.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []*billing.Line{
+			Lines: []*billing.StandardLine{
 				billing.NewFlatFeeLine(
 					billing.NewFlatFeeLineInput{
 						Namespace:     namespace,
@@ -423,7 +423,7 @@ func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in
 	require.NotEmpty(s.T(), line2ID)
 }
 
-func (s *BaseSuite) CreateDraftInvoice(t *testing.T, ctx context.Context, in DraftInvoiceInput) billing.Invoice {
+func (s *BaseSuite) CreateDraftInvoice(t *testing.T, ctx context.Context, in DraftInvoiceInput) billing.StandardInvoice {
 	s.NoError(in.Validate())
 
 	s.CreateGatheringInvoice(t, ctx, in)

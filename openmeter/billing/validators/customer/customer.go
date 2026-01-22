@@ -78,7 +78,7 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 
 	errs := make([]error, 0, len(gatheringInvoices.Items))
 	for _, inv := range gatheringInvoices.Items {
-		if inv.Status == billing.InvoiceStatusGathering {
+		if inv.Status == billing.StandardInvoiceStatusGathering {
 			errs = append(errs, fmt.Errorf("invoice %s is still in gathering state", inv.ID))
 
 			continue

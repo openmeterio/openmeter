@@ -11464,8 +11464,8 @@ type BillingInvoiceMutation struct {
 	quantity_snapshoted_at                   *time.Time
 	currency                                 *currencyx.Code
 	due_at                                   *time.Time
-	status                                   *billing.InvoiceStatus
-	status_details_cache                     *billing.InvoiceStatusDetails
+	status                                   *billing.StandardInvoiceStatus
+	status_details_cache                     *billing.StandardInvoiceStatusDetails
 	invoicing_app_external_id                *string
 	payment_app_external_id                  *string
 	tax_app_external_id                      *string
@@ -13493,12 +13493,12 @@ func (m *BillingInvoiceMutation) ResetDueAt() {
 }
 
 // SetStatus sets the "status" field.
-func (m *BillingInvoiceMutation) SetStatus(bs billing.InvoiceStatus) {
-	m.status = &bs
+func (m *BillingInvoiceMutation) SetStatus(bis billing.StandardInvoiceStatus) {
+	m.status = &bis
 }
 
 // Status returns the value of the "status" field in the mutation.
-func (m *BillingInvoiceMutation) Status() (r billing.InvoiceStatus, exists bool) {
+func (m *BillingInvoiceMutation) Status() (r billing.StandardInvoiceStatus, exists bool) {
 	v := m.status
 	if v == nil {
 		return
@@ -13509,7 +13509,7 @@ func (m *BillingInvoiceMutation) Status() (r billing.InvoiceStatus, exists bool)
 // OldStatus returns the old "status" field's value of the BillingInvoice entity.
 // If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceMutation) OldStatus(ctx context.Context) (v billing.InvoiceStatus, err error) {
+func (m *BillingInvoiceMutation) OldStatus(ctx context.Context) (v billing.StandardInvoiceStatus, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
 	}
@@ -13529,12 +13529,12 @@ func (m *BillingInvoiceMutation) ResetStatus() {
 }
 
 // SetStatusDetailsCache sets the "status_details_cache" field.
-func (m *BillingInvoiceMutation) SetStatusDetailsCache(bsd billing.InvoiceStatusDetails) {
-	m.status_details_cache = &bsd
+func (m *BillingInvoiceMutation) SetStatusDetailsCache(bisd billing.StandardInvoiceStatusDetails) {
+	m.status_details_cache = &bisd
 }
 
 // StatusDetailsCache returns the value of the "status_details_cache" field in the mutation.
-func (m *BillingInvoiceMutation) StatusDetailsCache() (r billing.InvoiceStatusDetails, exists bool) {
+func (m *BillingInvoiceMutation) StatusDetailsCache() (r billing.StandardInvoiceStatusDetails, exists bool) {
 	v := m.status_details_cache
 	if v == nil {
 		return
@@ -13545,7 +13545,7 @@ func (m *BillingInvoiceMutation) StatusDetailsCache() (r billing.InvoiceStatusDe
 // OldStatusDetailsCache returns the old "status_details_cache" field's value of the BillingInvoice entity.
 // If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceMutation) OldStatusDetailsCache(ctx context.Context) (v billing.InvoiceStatusDetails, err error) {
+func (m *BillingInvoiceMutation) OldStatusDetailsCache(ctx context.Context) (v billing.StandardInvoiceStatusDetails, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldStatusDetailsCache is only allowed on UpdateOne operations")
 	}
@@ -15232,14 +15232,14 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 		m.SetDueAt(v)
 		return nil
 	case billinginvoice.FieldStatus:
-		v, ok := value.(billing.InvoiceStatus)
+		v, ok := value.(billing.StandardInvoiceStatus)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetStatus(v)
 		return nil
 	case billinginvoice.FieldStatusDetailsCache:
-		v, ok := value.(billing.InvoiceStatusDetails)
+		v, ok := value.(billing.StandardInvoiceStatusDetails)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

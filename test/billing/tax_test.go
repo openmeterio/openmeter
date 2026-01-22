@@ -122,7 +122,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 		// let's update the invoice
 		updatedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
 			Invoice: draftInvoice.InvoiceID(),
-			EditFn: func(invoice *billing.Invoice) error {
+			EditFn: func(invoice *billing.StandardInvoice) error {
 				invoice.Workflow.Config.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
 					Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 					Stripe: &productcatalog.StripeTaxConfig{
@@ -203,9 +203,9 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customer.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []*billing.Line{
+			Lines: []*billing.StandardLine{
 				{
-					LineBase: billing.LineBase{
+					StandardLineBase: billing.StandardLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Namespace: namespace,
 							Name:      "Test item - USD",
@@ -265,14 +265,14 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.Equal(ubpDetailedLine.TaxConfig, taxConfig, "tax config is retained in detailed line")
 }
 
-func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, customer *customer.Customer) billing.Invoice {
+func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, customer *customer.Customer) billing.StandardInvoice {
 	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customer.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []*billing.Line{
+			Lines: []*billing.StandardLine{
 				billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
 					Period: billing.Period{Start: now, End: now.Add(time.Hour * 24)},
 

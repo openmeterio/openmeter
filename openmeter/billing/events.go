@@ -36,12 +36,12 @@ func (a InvoiceApps) Validate() error {
 	return errors.Join(errs...)
 }
 
-type EventInvoice struct {
-	Invoice Invoice     `json:"invoice"`
-	Apps    InvoiceApps `json:"apps,omitempty"`
+type EventStandardInvoice struct {
+	Invoice StandardInvoice `json:"invoice"`
+	Apps    InvoiceApps     `json:"apps,omitempty"`
 }
 
-func (e EventInvoice) Validate() error {
+func (e EventStandardInvoice) Validate() error {
 	var errs []error
 
 	if err := e.Invoice.Validate(); err != nil {
@@ -55,7 +55,7 @@ func (e EventInvoice) Validate() error {
 	return errors.Join(errs...)
 }
 
-func NewEventInvoice(invoice Invoice) (EventInvoice, error) {
+func NewEventStandardInvoice(invoice StandardInvoice) (EventStandardInvoice, error) {
 	// This causes a stack overflow
 	payload := invoice.RemoveCircularReferences()
 
@@ -70,40 +70,40 @@ func NewEventInvoice(invoice Invoice) (EventInvoice, error) {
 		var err error
 		apps.Invoicing, err = app.NewEventApp(invoice.Workflow.Apps.Invoicing)
 		if err != nil {
-			return EventInvoice{}, err
+			return EventStandardInvoice{}, err
 		}
 
 		apps.Tax, err = app.NewEventApp(invoice.Workflow.Apps.Tax)
 		if err != nil {
-			return EventInvoice{}, err
+			return EventStandardInvoice{}, err
 		}
 
 		apps.Payment, err = app.NewEventApp(invoice.Workflow.Apps.Payment)
 		if err != nil {
-			return EventInvoice{}, err
+			return EventStandardInvoice{}, err
 		}
 	}
 
-	return EventInvoice{
+	return EventStandardInvoice{
 		Invoice: payload,
 		Apps:    apps,
 	}, nil
 }
 
-type InvoiceCreatedEvent struct {
-	EventInvoice `json:",inline"`
+type StandardInvoiceCreatedEvent struct {
+	EventStandardInvoice `json:",inline"`
 }
 
-func NewInvoiceCreatedEvent(invoice Invoice) (InvoiceCreatedEvent, error) {
-	eventInvoice, err := NewEventInvoice(invoice)
+func NewStandardInvoiceCreatedEvent(invoice StandardInvoice) (StandardInvoiceCreatedEvent, error) {
+	eventInvoice, err := NewEventStandardInvoice(invoice)
 	if err != nil {
-		return InvoiceCreatedEvent{}, err
+		return StandardInvoiceCreatedEvent{}, err
 	}
 
-	return InvoiceCreatedEvent{EventInvoice: eventInvoice}, nil
+	return StandardInvoiceCreatedEvent{EventStandardInvoice: eventInvoice}, nil
 }
 
-func (e InvoiceCreatedEvent) EventName() string {
+func (e StandardInvoiceCreatedEvent) EventName() string {
 	return metadata.GetEventName(metadata.EventType{
 		Subsystem: EventSubsystem,
 		Name:      "invoice.created",
@@ -111,35 +111,35 @@ func (e InvoiceCreatedEvent) EventName() string {
 	})
 }
 
-func (e InvoiceCreatedEvent) EventMetadata() metadata.EventMetadata {
+func (e StandardInvoiceCreatedEvent) EventMetadata() metadata.EventMetadata {
 	return metadata.EventMetadata{
 		Source:  metadata.ComposeResourcePath(e.Invoice.Namespace, metadata.EntityInvoice, e.Invoice.ID),
 		Subject: metadata.ComposeResourcePath(e.Invoice.Namespace, metadata.EntityCustomer, e.Invoice.Customer.CustomerID),
 	}
 }
 
-func (e InvoiceCreatedEvent) Validate() error {
-	return e.EventInvoice.Validate()
+func (e StandardInvoiceCreatedEvent) Validate() error {
+	return e.EventStandardInvoice.Validate()
 }
 
-type InvoiceUpdatedEvent struct {
-	Old EventInvoice `json:"old"`
-	New EventInvoice `json:"new"`
+type StandardInvoiceUpdatedEvent struct {
+	Old EventStandardInvoice `json:"old"`
+	New EventStandardInvoice `json:"new"`
 }
 
-func NewInvoiceUpdatedEvent(new Invoice, old EventInvoice) (InvoiceUpdatedEvent, error) {
-	newEventInvoice, err := NewEventInvoice(new)
+func NewStandardInvoiceUpdatedEvent(new StandardInvoice, old EventStandardInvoice) (StandardInvoiceUpdatedEvent, error) {
+	newEventInvoice, err := NewEventStandardInvoice(new)
 	if err != nil {
-		return InvoiceUpdatedEvent{}, err
+		return StandardInvoiceUpdatedEvent{}, err
 	}
 
-	return InvoiceUpdatedEvent{
+	return StandardInvoiceUpdatedEvent{
 		Old: old,
 		New: newEventInvoice,
 	}, nil
 }
 
-func (e InvoiceUpdatedEvent) EventName() string {
+func (e StandardInvoiceUpdatedEvent) EventName() string {
 	return metadata.GetEventName(metadata.EventType{
 		Subsystem: EventSubsystem,
 		Name:      "invoice.updated",
@@ -147,23 +147,23 @@ func (e InvoiceUpdatedEvent) EventName() string {
 	})
 }
 
-func (e InvoiceUpdatedEvent) EventMetadata() metadata.EventMetadata {
+func (e StandardInvoiceUpdatedEvent) EventMetadata() metadata.EventMetadata {
 	return metadata.EventMetadata{
 		Source:  metadata.ComposeResourcePath(e.New.Invoice.Namespace, metadata.EntityInvoice, e.New.Invoice.ID),
 		Subject: metadata.ComposeResourcePath(e.New.Invoice.Namespace, metadata.EntityCustomer, e.New.Invoice.Customer.CustomerID),
 	}
 }
 
-func (e InvoiceUpdatedEvent) Validate() error {
+func (e StandardInvoiceUpdatedEvent) Validate() error {
 	return e.New.Validate()
 }
 
-type AdvanceInvoiceEvent struct {
+type AdvanceStandardInvoiceEvent struct {
 	Invoice    InvoiceID `json:"invoice"`
 	CustomerID string    `json:"customer_id"`
 }
 
-func (e AdvanceInvoiceEvent) EventName() string {
+func (e AdvanceStandardInvoiceEvent) EventName() string {
 	return metadata.GetEventName(metadata.EventType{
 		Subsystem: EventSubsystem,
 		Name:      "invoice.advance",
@@ -171,14 +171,14 @@ func (e AdvanceInvoiceEvent) EventName() string {
 	})
 }
 
-func (e AdvanceInvoiceEvent) EventMetadata() metadata.EventMetadata {
+func (e AdvanceStandardInvoiceEvent) EventMetadata() metadata.EventMetadata {
 	return metadata.EventMetadata{
 		Source:  metadata.ComposeResourcePath(e.Invoice.Namespace, metadata.EntityInvoice, e.Invoice.ID),
 		Subject: metadata.ComposeResourcePath(e.Invoice.Namespace, metadata.EntityCustomer, e.CustomerID),
 	}
 }
 
-func (e AdvanceInvoiceEvent) Validate() error {
+func (e AdvanceStandardInvoiceEvent) Validate() error {
 	if err := e.Invoice.Validate(); err != nil {
 		return err
 	}

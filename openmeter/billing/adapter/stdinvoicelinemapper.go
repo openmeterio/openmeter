@@ -14,11 +14,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func (a *adapter) mapInvoiceLineFromDB(schemaLevelByInvoiceID map[string]int, dbLines []*db.BillingInvoiceLine) ([]*billing.Line, error) {
-	lines := make([]*billing.Line, 0, len(dbLines))
+func (a *adapter) mapStandardInvoiceLinesFromDB(schemaLevelByInvoiceID map[string]int, dbLines []*db.BillingInvoiceLine) ([]*billing.StandardLine, error) {
+	lines := make([]*billing.StandardLine, 0, len(dbLines))
 
 	for _, dbLine := range dbLines {
-		line, err := a.mapInvoiceLineWithoutReferences(dbLine)
+		line, err := a.mapStandardInvoiceLineWithoutReferences(dbLine)
 		if err != nil {
 			return nil, fmt.Errorf("mapping line [id=%s]: %w", dbLine.ID, err)
 		}
@@ -30,12 +30,12 @@ func (a *adapter) mapInvoiceLineFromDB(schemaLevelByInvoiceID map[string]int, db
 
 		if schemaLevel == 1 {
 			// Let's map any detailed lines
-			line.DetailedLines, err = slicesx.MapWithErr(dbLine.Edges.DetailedLines, a.mapInvoiceDetailedLineFromDB)
+			line.DetailedLines, err = slicesx.MapWithErr(dbLine.Edges.DetailedLines, a.mapStandardInvoiceDetailedLineFromDB)
 			if err != nil {
 				return nil, fmt.Errorf("mapping detailed lines [parentID=%s,id=%s]: %w", lo.FromPtr(dbLine.ParentLineID), dbLine.ID, err)
 			}
 		} else {
-			line.DetailedLines, err = slicesx.MapWithErr(dbLine.Edges.DetailedLinesV2, a.mapInvoiceDetailedLineV2FromDB)
+			line.DetailedLines, err = slicesx.MapWithErr(dbLine.Edges.DetailedLinesV2, a.mapStandardInvoiceDetailedLineV2FromDB)
 			if err != nil {
 				return nil, fmt.Errorf("mapping detailed lines [parentID=%s,id=%s]: %w", lo.FromPtr(dbLine.ParentLineID), dbLine.ID, err)
 			}
@@ -49,9 +49,9 @@ func (a *adapter) mapInvoiceLineFromDB(schemaLevelByInvoiceID map[string]int, db
 	return lines, nil
 }
 
-func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine) (*billing.Line, error) {
-	invoiceLine := &billing.Line{
-		LineBase: billing.LineBase{
+func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine) (*billing.StandardLine, error) {
+	invoiceLine := &billing.StandardLine{
+		StandardLineBase: billing.StandardLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace:   dbLine.Namespace,
 				ID:          dbLine.ID,
@@ -129,7 +129,7 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 	}
 
 	if len(dbLine.Edges.LineUsageDiscounts) > 0 {
-		discounts, err := slicesx.MapWithErr(dbLine.Edges.LineUsageDiscounts, a.mapInvoiceLineUsageDiscountFromDB)
+		discounts, err := slicesx.MapWithErr(dbLine.Edges.LineUsageDiscounts, a.mapStandardInvoiceLineUsageDiscountFromDB)
 		if err != nil {
 			return nil, fmt.Errorf("mapping invoice line usage discounts[%s] failed: %w", dbLine.ID, err)
 		}
@@ -138,7 +138,7 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 	}
 
 	if len(dbLine.Edges.LineAmountDiscounts) > 0 {
-		discounts, err := slicesx.MapWithErr(dbLine.Edges.LineAmountDiscounts, a.mapInvoiceLineAmountDiscountFromDB)
+		discounts, err := slicesx.MapWithErr(dbLine.Edges.LineAmountDiscounts, a.mapStandardInvoiceLineAmountDiscountFromDB)
 		if err != nil {
 			return nil, fmt.Errorf("mapping invoice line amount discounts[%s] failed: %w", dbLine.ID, err)
 		}
@@ -148,7 +148,7 @@ func (a *adapter) mapInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine)
 	return invoiceLine, nil
 }
 
-func (a *adapter) mapInvoiceDetailedLineFromDB(dbLine *db.BillingInvoiceLine) (billing.DetailedLine, error) {
+func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoiceLine) (billing.DetailedLine, error) {
 	// TODO: Once we move into a separate table we can get rid of these assertions
 	if dbLine.ParentLineID == nil {
 		return billing.DetailedLine{}, fmt.Errorf("detailed line parent line ID is required [detailed_line_id=%s]", dbLine.ID)
@@ -196,7 +196,7 @@ func (a *adapter) mapInvoiceDetailedLineFromDB(dbLine *db.BillingInvoiceLine) (b
 		},
 	}
 
-	discounts, err := slicesx.MapWithErr(dbLine.Edges.LineAmountDiscounts, a.mapInvoiceLineAmountDiscountFromDB)
+	discounts, err := slicesx.MapWithErr(dbLine.Edges.LineAmountDiscounts, a.mapStandardInvoiceLineAmountDiscountFromDB)
 	if err != nil {
 		return billing.DetailedLine{}, fmt.Errorf("mapping invoice line amount discounts[%s] failed: %w", dbLine.ID, err)
 	}
@@ -207,7 +207,7 @@ func (a *adapter) mapInvoiceDetailedLineFromDB(dbLine *db.BillingInvoiceLine) (b
 	}, nil
 }
 
-func (a *adapter) mapInvoiceDetailedLineV2FromDB(dbLine *db.BillingStandardInvoiceDetailedLine) (billing.DetailedLine, error) {
+func (a *adapter) mapStandardInvoiceDetailedLineV2FromDB(dbLine *db.BillingStandardInvoiceDetailedLine) (billing.DetailedLine, error) {
 	detailedLineBase := billing.DetailedLineBase{
 		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 			Namespace:   dbLine.Namespace,
@@ -249,7 +249,7 @@ func (a *adapter) mapInvoiceDetailedLineV2FromDB(dbLine *db.BillingStandardInvoi
 		},
 	}
 
-	discounts, err := slicesx.MapWithErr(dbLine.Edges.AmountDiscounts, a.mapInvoiceDetailedLineAmountDiscountFromDB)
+	discounts, err := slicesx.MapWithErr(dbLine.Edges.AmountDiscounts, a.mapStandardInvoiceDetailedLineAmountDiscountFromDB)
 	if err != nil {
 		return billing.DetailedLine{}, fmt.Errorf("mapping invoice line amount discounts[%s] failed: %w", dbLine.ID, err)
 	}
@@ -260,7 +260,7 @@ func (a *adapter) mapInvoiceDetailedLineV2FromDB(dbLine *db.BillingStandardInvoi
 	}, nil
 }
 
-func (a *adapter) mapInvoiceLineUsageDiscountFromDB(dbDiscount *db.BillingInvoiceLineUsageDiscount) (billing.UsageLineDiscountManaged, error) {
+func (a *adapter) mapStandardInvoiceLineUsageDiscountFromDB(dbDiscount *db.BillingInvoiceLineUsageDiscount) (billing.UsageLineDiscountManaged, error) {
 	base := billing.LineDiscountBase{
 		Description:            dbDiscount.Description,
 		ChildUniqueReferenceID: dbDiscount.ChildUniqueReferenceID,
@@ -298,7 +298,7 @@ func (a *adapter) mapInvoiceLineUsageDiscountFromDB(dbDiscount *db.BillingInvoic
 	}, nil
 }
 
-func (a *adapter) mapInvoiceLineAmountDiscountFromDB(dbDiscount *db.BillingInvoiceLineDiscount) (billing.AmountLineDiscountManaged, error) {
+func (a *adapter) mapStandardInvoiceLineAmountDiscountFromDB(dbDiscount *db.BillingInvoiceLineDiscount) (billing.AmountLineDiscountManaged, error) {
 	base := billing.LineDiscountBase{
 		Description:            dbDiscount.Description,
 		ChildUniqueReferenceID: dbDiscount.ChildUniqueReferenceID,
@@ -336,7 +336,7 @@ func (a *adapter) mapInvoiceLineAmountDiscountFromDB(dbDiscount *db.BillingInvoi
 	}, nil
 }
 
-func (a *adapter) mapInvoiceDetailedLineAmountDiscountFromDB(dbDiscount *db.BillingStandardInvoiceDetailedLineAmountDiscount) (billing.AmountLineDiscountManaged, error) {
+func (a *adapter) mapStandardInvoiceDetailedLineAmountDiscountFromDB(dbDiscount *db.BillingStandardInvoiceDetailedLineAmountDiscount) (billing.AmountLineDiscountManaged, error) {
 	base := billing.LineDiscountBase{
 		Description:            dbDiscount.Description,
 		ChildUniqueReferenceID: dbDiscount.ChildUniqueReferenceID,

@@ -57,7 +57,7 @@ func New(in Config) (*Service, error) {
 	}, nil
 }
 
-func (s *Service) FromEntity(line *billing.Line) (Line, error) {
+func (s *Service) FromEntity(line *billing.StandardLine) (Line, error) {
 	currencyCalc, err := line.Currency.Calculator()
 	if err != nil {
 		return nil, fmt.Errorf("creating currency calculator: %w", err)
@@ -80,8 +80,8 @@ func (s *Service) FromEntity(line *billing.Line) (Line, error) {
 	}, nil
 }
 
-func (s *Service) FromEntities(line []*billing.Line) (Lines, error) {
-	return slicesx.MapWithErr(line, func(l *billing.Line) (Line, error) {
+func (s *Service) FromEntities(line []*billing.StandardLine) (Lines, error) {
+	return slicesx.MapWithErr(line, func(l *billing.StandardLine) (Line, error) {
 		return s.FromEntity(l)
 	})
 }
@@ -119,7 +119,7 @@ func (s *Service) resolveFeatureMeter(ctx context.Context, ns string, featureKey
 }
 
 // UpdateTotalsFromDetailedLines is a helper method to update the totals of a line from its detailed lines.
-func (s *Service) UpdateTotalsFromDetailedLines(line *billing.Line) error {
+func (s *Service) UpdateTotalsFromDetailedLines(line *billing.StandardLine) error {
 	// Calculate the line totals
 	for idx, detailedLine := range line.DetailedLines {
 		if detailedLine.DeletedAt != nil {
@@ -152,7 +152,7 @@ func (s *Service) UpdateTotalsFromDetailedLines(line *billing.Line) error {
 		return l.Totals
 	})...)
 
-	line.LineBase.Totals = res
+	line.Totals = res
 
 	return nil
 }
@@ -176,7 +176,7 @@ type Line interface {
 	// this method does any truncation for usage based lines.
 	IsPeriodEmptyConsideringTruncations() bool
 
-	Validate(context.Context, *billing.Invoice) error
+	Validate(context.Context, *billing.StandardInvoice) error
 	CanBeInvoicedAsOf(context.Context, CanBeInvoicedAsOfInput) (*billing.Period, error)
 	SnapshotQuantity(ctx context.Context, customer billing.InvoiceCustomer) error
 	CalculateDetailedLines() error
@@ -186,7 +186,7 @@ type Line interface {
 
 type Lines []Line
 
-func (s Lines) ValidateForInvoice(ctx context.Context, invoice *billing.Invoice) error {
+func (s Lines) ValidateForInvoice(ctx context.Context, invoice *billing.StandardInvoice) error {
 	return errors.Join(lo.Map(s, func(line Line, idx int) error {
 		if line == nil {
 			return fmt.Errorf("line[%d] is nil", idx)
@@ -205,8 +205,8 @@ func (s Lines) ValidateForInvoice(ctx context.Context, invoice *billing.Invoice)
 	})...)
 }
 
-func (s Lines) ToEntities() []*billing.Line {
-	return lo.Map(s, func(service Line, _ int) *billing.Line {
+func (s Lines) ToEntities() []*billing.StandardLine {
+	return lo.Map(s, func(service Line, _ int) *billing.StandardLine {
 		return service.ToEntity()
 	})
 }

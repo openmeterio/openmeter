@@ -126,7 +126,7 @@ func (m *discountUsageMutator) getUsageDiscount(l PricerCalculateInput) (*usageD
 // calculateUsedQtyByCorrelationID calculates the used quantity by correlation ID for the previously billed lines
 // by checking the UBP line's discounts. This works because usage discounts are presisted to the UBP line's discounts
 // as they are affecting all the detailed lines.
-func (m *discountUsageMutator) calculateUsedQtyByCorrelationID(l *billing.Line, correlationID string) (alpacadecimal.Decimal, error) {
+func (m *discountUsageMutator) calculateUsedQtyByCorrelationID(l *billing.StandardLine, correlationID string) (alpacadecimal.Decimal, error) {
 	if l.SplitLineHierarchy == nil {
 		return alpacadecimal.Zero, errors.New("no line hierarchy is available for a progressive billed line")
 	}
