@@ -71,6 +71,7 @@ func (h *handler) UpdateBillingProfile() UpdateBillingProfileHandler {
 			h.options,
 			httptransport.WithOperationName("update-billing-profile"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
+			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }

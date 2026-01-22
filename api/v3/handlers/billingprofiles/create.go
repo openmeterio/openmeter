@@ -51,6 +51,7 @@ func (h *handler) CreateBillingProfile() CreateBillingProfileHandler {
 			h.options,
 			httptransport.WithOperationName("create-billing-profile"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
+			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }

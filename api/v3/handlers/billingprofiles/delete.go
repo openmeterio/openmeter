@@ -50,6 +50,7 @@ func (h *handler) DeleteBillingProfile() DeleteBillingProfileHandler {
 			h.options,
 			httptransport.WithOperationName("delete-billing-profile"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
+			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }

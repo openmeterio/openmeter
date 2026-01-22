@@ -83,6 +83,7 @@ func (h *handler) ListBillingProfiles() ListBillingProfilesHandler {
 			h.options,
 			httptransport.WithOperationName("list-billing-profiles"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
+			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
