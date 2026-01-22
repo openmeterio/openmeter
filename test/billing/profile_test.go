@@ -154,7 +154,7 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 			}))
 		})
 
-		t.Run("deleting a profile twice yields an error", func(t *testing.T) {
+		t.Run("deleting a profile twice yields no error", func(t *testing.T) {
 			profile := s.createProfileFixture(false)
 
 			// Delete the profile
@@ -164,10 +164,10 @@ func (s *ProfileTestSuite) TestProfileLifecycle() {
 			}))
 
 			// Try to delete the profile again
-			require.ErrorIs(t, s.BillingService.DeleteProfile(ctx, billing.DeleteProfileInput{
+			require.NoError(t, s.BillingService.DeleteProfile(ctx, billing.DeleteProfileInput{
 				Namespace: profile.Namespace,
 				ID:        profile.ID,
-			}), billing.ErrProfileAlreadyDeleted)
+			}))
 		})
 
 		t.Run("deleting the default profile yields an error", func(t *testing.T) {

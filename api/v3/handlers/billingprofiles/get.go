@@ -55,6 +55,7 @@ func (h *handler) GetBillingProfile() GetBillingProfileHandler {
 			h.options,
 			httptransport.WithOperationName("get-billing-profile"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
+			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
