@@ -563,7 +563,7 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 	if !postSplitAtLineSvc.IsPeriodEmptyConsideringTruncations() {
 		gatheringInvoice.Lines.Append(postSplitAtLine)
 
-		if err := postSplitAtLineSvc.Validate(ctx, &gatheringInvoice); err != nil {
+		if err := postSplitAtLineSvc.Validate(ctx); err != nil {
 			return res, fmt.Errorf("validating post split line: %w", err)
 		}
 	}
@@ -583,7 +583,7 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 	if preSplitAtLineSvc.IsPeriodEmptyConsideringTruncations() {
 		line.DeletedAt = lo.ToPtr(clock.Now())
 	} else {
-		if err := preSplitAtLineSvc.Validate(ctx, &gatheringInvoice); err != nil {
+		if err := preSplitAtLineSvc.Validate(ctx); err != nil {
 			return res, fmt.Errorf("validating pre split line: %w", err)
 		}
 	}
@@ -824,6 +824,12 @@ func (s *Service) moveLinesToInvoice(ctx context.Context, in moveLinesToInvoiceI
 		return slices.Contains(in.LineIDsToMove, line.ID)
 	})
 
+	for _, line := range linesToMove {
+		if line.Currency != dstInvoice.Currency {
+			return nil, fmt.Errorf("line[%s]: currency[%s] is not equal to target invoice currency[%s]", line.ID, line.Currency, dstInvoice.Currency)
+		}
+	}
+
 	if len(linesToMove) != len(in.LineIDsToMove) {
 		return nil, fmt.Errorf("lines to move[%d] must contain the same number of lines as line IDs to move[%d]", len(linesToMove), len(in.LineIDsToMove))
 	}
@@ -833,7 +839,7 @@ func (s *Service) moveLinesToInvoice(ctx context.Context, in moveLinesToInvoiceI
 		return nil, fmt.Errorf("creating line services for lines to move: %w", err)
 	}
 
-	if err := linesToAssociate.ValidateForInvoice(ctx, &dstInvoice); err != nil {
+	if err := linesToAssociate.Validate(ctx); err != nil {
 		return nil, fmt.Errorf("validating lines to move: %w", err)
 	}
 

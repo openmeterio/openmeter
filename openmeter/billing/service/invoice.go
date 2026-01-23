@@ -674,7 +674,7 @@ func (s Service) checkIfLinesAreInvoicable(ctx context.Context, invoice *billing
 
 	return errors.Join(
 		lo.Map(inScopeLineServices, func(lineSvc lineservice.Line, _ int) error {
-			if err := lineSvc.Validate(ctx, invoice); err != nil {
+			if err := lineSvc.Validate(ctx); err != nil {
 				return fmt.Errorf("validating line[%s]: %w", lineSvc.ID(), err)
 			}
 
@@ -806,7 +806,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 
 	// Let's update the lines and the detailed lines
 	for _, lineSvc := range inScopeLineSvcs {
-		if err := lineSvc.Validate(ctx, &invoice); err != nil {
+		if err := lineSvc.Validate(ctx); err != nil {
 			return billing.StandardInvoice{}, billing.ValidationError{
 				Err: err,
 			}

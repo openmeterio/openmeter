@@ -1,7 +1,6 @@
 package lineservice
 
 import (
-	"context"
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -68,16 +67,6 @@ func (l lineBase) Currency() currencyx.Code {
 
 func (l lineBase) Period() billing.Period {
 	return l.line.Period
-}
-
-func (l lineBase) Validate(ctx context.Context, invoice *billing.StandardInvoice) error {
-	if l.line.Currency != invoice.Currency || l.line.Currency == "" {
-		return billing.ValidationError{
-			Err: billing.ErrInvoiceLineCurrencyMismatch,
-		}
-	}
-
-	return nil
 }
 
 func (l lineBase) IsLastInPeriod() bool {

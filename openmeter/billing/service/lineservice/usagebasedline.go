@@ -48,16 +48,6 @@ func (l usageBasedLine) Validate(ctx context.Context, targetInvoice *billing.Sta
 		return err
 	}
 
-	if err := l.lineBase.Validate(ctx, targetInvoice); err != nil {
-		return err
-	}
-
-	if err := targetInvoice.Customer.Validate(); err != nil {
-		return billing.ValidationError{
-			Err: billing.ErrInvoiceCreateUBPLineCustomerUsageAttributionInvalid,
-		}
-	}
-
 	if l.line.Period.Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
 		return billing.ValidationError{
 			Err: billing.ErrInvoiceCreateUBPLinePeriodIsEmpty,

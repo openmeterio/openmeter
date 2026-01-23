@@ -128,7 +128,7 @@ type Line interface {
 	// this method does any truncation for usage based lines.
 	IsPeriodEmptyConsideringTruncations() bool
 
-	Validate(context.Context, *billing.StandardInvoice) error
+	Validate(context.Context) error
 	CanBeInvoicedAsOf(context.Context, CanBeInvoicedAsOfInput) (*billing.Period, error)
 	CalculateDetailedLines() error
 	UpdateTotals() error
@@ -136,13 +136,13 @@ type Line interface {
 
 type Lines []Line
 
-func (s Lines) ValidateForInvoice(ctx context.Context, invoice *billing.StandardInvoice) error {
+func (s Lines) Validate(ctx context.Context) error {
 	return errors.Join(lo.Map(s, func(line Line, idx int) error {
 		if line == nil {
 			return fmt.Errorf("line[%d] is nil", idx)
 		}
 
-		if err := line.Validate(ctx, invoice); err != nil {
+		if err := line.Validate(ctx); err != nil {
 			id := line.ID()
 			if id == "" {
 				id = fmt.Sprintf("line[%d]", idx)

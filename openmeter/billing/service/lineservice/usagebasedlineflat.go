@@ -24,10 +24,6 @@ func (l ubpFlatFeeLine) Validate(ctx context.Context, targetInvoice *billing.Sta
 		}
 	}
 
-	if err := l.lineBase.Validate(ctx, targetInvoice); err != nil {
-		outErr = append(outErr, err)
-	}
-
 	// Usage discounts are not allowed
 	// TODO[later]: Once we have cleaned up the line types, let's move as much as possible to the line's validation
 	if l.line.RateCardDiscounts.Usage != nil {
