@@ -93,7 +93,7 @@ func (s *ManageService) DeleteMeter(ctx context.Context, input meter.DeleteMeter
 
 	// Check if the meter is already deleted
 	if getMeter.DeletedAt != nil {
-		return meter.NewMeterNotFoundError(getMeter.Key)
+		return nil
 	}
 
 	// Validate input with reserved event types
