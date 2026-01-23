@@ -53,6 +53,7 @@ var (
 	ErrInvoiceCreateUBPLineCustomerUsageAttributionInvalid       = NewValidationError("invoice_create_ubp_line_customer_has_no_subjects", "creating an usage based line: customer usage attribution is invalid")
 	ErrInvoiceCreateUBPLinePeriodIsEmpty                         = NewValidationError("invoice_create_ubp_line_period_is_empty", "creating an usage based line: truncated period is empty")
 	ErrInvoiceLineCurrencyMismatch                               = NewValidationError("invoice_line_currency_mismatch", "invoice line currency mismatch")
+	ErrInvoiceLineSnapshotFailed                                 = NewValidationError("invoice_line_snapshot_failed", "invoice line snapshot failed")
 
 	ErrInvoiceDiscountInvalidLineReference                  = NewValidationError("invoice_discount_invalid_line_reference", "invoice discount references non-existing line")
 	ErrInvoiceDiscountNoWildcardDiscountOnGatheringInvoices = NewValidationError("invoice_discount_no_wildcard_discount_on_gathering_invoices", "wildcard discount on gathering invoices is not allowed")

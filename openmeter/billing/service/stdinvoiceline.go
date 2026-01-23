@@ -281,7 +281,7 @@ func (s *Service) snapshotLineQuantitiesInParallel(ctx context.Context, customer
 					return
 				}
 				if err := line.SnapshotQuantity(ctx, customer); err != nil {
-					errCh <- fmt.Errorf("line[%s]: snapshotting quantity: %w", line.ID(), err)
+					errCh <- fmt.Errorf("line[%s]: %w", line.ID(), err)
 				}
 			}
 		}()

@@ -16,6 +16,21 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
+// ErrSnapshotInvalidDatabaseState is returned when the database state is invalid for snapshotting the line quantity.
+// This can happen if the feature or meter is not found. In such cases we should transition the invoice to
+// draft.invalid state.
+type ErrSnapshotInvalidDatabaseState struct {
+	Err error
+}
+
+func (e ErrSnapshotInvalidDatabaseState) Error() string {
+	return fmt.Sprintf("snapshotting line quantity: %s", e.Err.Error())
+}
+
+func (e ErrSnapshotInvalidDatabaseState) Unwrap() error {
+	return e.Err
+}
+
 type featureCacheItem struct {
 	feature feature.Feature
 	meter   meter.Meter
@@ -94,27 +109,40 @@ func (s *Service) resolveFeatureMeter(ctx context.Context, ns string, featureKey
 		feature.IncludeArchivedFeatureTrue,
 	)
 	if err != nil {
+		if _, isNotFound := lo.ErrorsAs[*feature.FeatureNotFoundError](err); isNotFound {
+			return nil, &ErrSnapshotInvalidDatabaseState{
+				Err: fmt.Errorf("fetching feature[%s]: %w", featureKey, err),
+			}
+		}
 		return nil, fmt.Errorf("fetching feature[%s]: %w", featureKey, err)
 	}
 
 	if feat.MeterSlug == nil {
 		return nil, billing.ValidationError{
-			Err: billing.ErrInvoiceLineFeatureHasNoMeters,
+			Err: &ErrSnapshotInvalidDatabaseState{
+				Err: billing.ErrInvoiceLineFeatureHasNoMeters,
+			},
 		}
 	}
 
 	// let's resolve the underlying meter
-	meter, err := s.MeterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+	meterEntity, err := s.MeterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
 		Namespace: ns,
 		IDOrSlug:  *feat.MeterSlug,
 	})
 	if err != nil {
+		if _, isNotFound := lo.ErrorsAs[*meter.MeterNotFoundError](err); isNotFound {
+			return nil, &ErrSnapshotInvalidDatabaseState{
+				Err: fmt.Errorf("fetching meter[%s]: %w", *feat.MeterSlug, err),
+			}
+		}
+
 		return nil, fmt.Errorf("fetching meter[%s]: %w", *feat.MeterSlug, err)
 	}
 
 	return &featureCacheItem{
 		feature: *feat,
-		meter:   meter,
+		meter:   meterEntity,
 	}, nil
 }
 

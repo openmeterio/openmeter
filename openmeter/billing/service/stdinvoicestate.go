@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
+	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
@@ -744,6 +745,18 @@ func (m *InvoiceStateMachine) snapshotQuantityAsNeeded(ctx context.Context) erro
 
 	err = m.Service.snapshotLineQuantitiesInParallel(ctx, m.Invoice.Customer, lineSvcs)
 	if err != nil {
+		if _, isInvalidDatabaseState := lo.ErrorsAs[*lineservice.ErrSnapshotInvalidDatabaseState](err); isInvalidDatabaseState {
+			return m.Invoice.MergeValidationIssues(
+				billing.ValidationIssue{
+					Severity:  billing.ValidationIssueSeverityCritical,
+					Code:      billing.ErrInvoiceLineSnapshotFailed.Code,
+					Message:   err.Error(),
+					Component: billing.ValidationComponentOpenMeterMetering,
+				},
+				billing.ValidationComponentOpenMeterMetering,
+			)
+		}
+
 		return fmt.Errorf("snapshotting lines: %w", err)
 	}
 
