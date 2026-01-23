@@ -16,7 +16,8 @@ const (
 	ValidationIssueSeverityCritical ValidationIssueSeverity = "critical"
 	ValidationIssueSeverityWarning  ValidationIssueSeverity = "warning"
 
-	ValidationComponentOpenMeter = "openmeter"
+	ValidationComponentOpenMeter         = "openmeter"
+	ValidationComponentOpenMeterMetering = "openmeter.metering"
 )
 
 func (ValidationIssueSeverity) Values() []string {

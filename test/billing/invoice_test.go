@@ -4184,3 +4184,147 @@ func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() 
 	s.Error(err)
 	s.Nil(pendingLines)
 }
+
+func (s *InvoicingTestSuite) TestSnapshotQuantityInvalidDatabaseState() {
+	// Given there's:
+	// - A feature + meter
+	// - A gathering invoice with usage based line
+	// - the invoice pending lines is called and the standard invoice is in draft.waiting_for_collection state
+	// When
+	// - the meter is deleted
+	// Then
+	// - advancing the invoice works
+	// - the invoice ends up in draft.invalid state
+
+	var (
+		ctx       = context.Background()
+		namespace = "ns-snapshot-quantity-invalid-database-state"
+
+		periodStart  time.Time
+		periodEnd    time.Time
+		collectionAt time.Time
+
+		invoice billing.StandardInvoice
+	)
+
+	clockBase := lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z"))
+	clock.SetTime(clockBase)
+	defer clock.ResetTime()
+	defer func() {
+		_ = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+	}()
+	defer s.MockStreamingConnector.Reset()
+
+	s.Run("Given a feature+meter and a draft invoice waiting for collection", func() {
+		sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+
+		meterSlug := "snapshot-meter"
+		err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+			{
+				ManagedResource: models.ManagedResource{
+					ID: ulid.Make().String(),
+					NamespacedModel: models.NamespacedModel{
+						Namespace: namespace,
+					},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
+					Name: "Snapshot Meter",
+				},
+				Key:           meterSlug,
+				Aggregation:   meter.MeterAggregationSum,
+				EventType:     "test",
+				ValueProperty: lo.ToPtr("$.value"),
+			},
+		})
+		s.NoError(err, "failed to replace meters")
+
+		snapshotFeature := lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+			Namespace: namespace,
+			Name:      "snapshot-feature",
+			Key:       "snapshot-feature",
+			MeterSlug: lo.ToPtr(meterSlug),
+		}))
+
+		customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+			Namespace: namespace,
+
+			CustomerMutate: customer.CustomerMutate{
+				Name:     "Test Customer",
+				Currency: lo.ToPtr(currencyx.Code(currency.USD)),
+				UsageAttribution: &customer.CustomerUsageAttribution{
+					SubjectKeys: []string{"test-subject-1"},
+				},
+			},
+		})
+		s.NoError(err)
+		s.NotNil(customerEntity)
+		s.NotEmpty(customerEntity.ID)
+
+		s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(),
+			WithCollectionInterval(datetime.NewISODuration(0, 0, 0, 1, 0, 0, 0)), // 1 day collection interval
+		)
+
+		periodStart = lo.Must(time.Parse(time.RFC3339, "2024-09-02T11:13:14Z"))
+		periodEnd = lo.Must(time.Parse(time.RFC3339, "2024-09-02T13:13:14Z"))
+
+		s.MockStreamingConnector.AddSimpleEvent(meterSlug, 0, periodStart.Add(-time.Minute))
+
+		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+			billing.CreatePendingInvoiceLinesInput{
+				Customer: customerEntity.GetID(),
+				Currency: currencyx.Code(currency.USD),
+				Lines: []*billing.StandardLine{
+					{
+						StandardLineBase: billing.StandardLineBase{
+							ManagedResource: models.ManagedResource{
+								NamespacedModel: models.NamespacedModel{
+									Namespace: namespace,
+								},
+								Name: "UBP - snapshot",
+							},
+							Period:    billing.Period{Start: periodStart, End: periodEnd},
+							InvoiceAt: periodEnd,
+							ManagedBy: billing.ManuallyManagedLine,
+						},
+						UsageBased: &billing.UsageBasedLine{
+							FeatureKey: snapshotFeature.Key,
+							Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+								Amount: alpacadecimal.NewFromFloat(1),
+							}),
+						},
+					},
+				},
+			},
+		)
+		s.NoError(err)
+		s.Len(pendingLines.Lines, 1)
+
+		clock.SetTime(periodEnd)
+
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: customerEntity.GetID(),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+		invoice = invoices[0]
+		s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
+		collectionAt = invoice.DefaultCollectionAtForStandardInvoice()
+	})
+
+	s.Run("When the meter is deleted", func() {
+		err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
+		s.NoError(err)
+
+		clock.SetTime(collectionAt.Add(time.Minute))
+	})
+
+	s.Run("Then advancing transitions the invoice to draft.invalid", func() {
+		var err error
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.InvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusDraftInvalid, invoice.Status)
+		s.NotEmpty(invoice.ValidationIssues)
+	})
+}
