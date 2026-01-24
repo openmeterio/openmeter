@@ -43,6 +43,7 @@ func (h *handler) GetCustomerBilling() GetCustomerBillingHandler {
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerBillingRequest) (GetCustomerBillingResponse, error) {
+			resp := GetCustomerBillingResponse{}
 			override, err := h.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 				Customer: request.CustomerID,
 				Expand: billing.CustomerOverrideExpand{
@@ -50,7 +51,7 @@ func (h *handler) GetCustomerBilling() GetCustomerBillingHandler {
 				},
 			})
 			if err != nil {
-				return GetCustomerBillingResponse{}, err
+				return resp, err
 			}
 
 			appData := api.BillingAppCustomerData{}
@@ -62,10 +63,10 @@ func (h *handler) GetCustomerBilling() GetCustomerBillingHandler {
 				CustomerID: request.CustomerID,
 			})
 			if err != nil {
-				return GetCustomerBillingResponse{}, err
+				return resp, err
 			}
 
-			switch override.MergedProfile.Apps.Payment.GetType() {
+			switch application.GetType() {
 			case app.AppTypeStripe:
 				if data, ok := data.(appstripeentity.CustomerData); ok {
 					// TODO: we don't have metadata on the stripe customer data yet
@@ -83,16 +84,17 @@ func (h *handler) GetCustomerBilling() GetCustomerBillingHandler {
 			case app.AppTypeSandbox:
 				// No app data
 			default:
-				return GetCustomerBillingResponse{}, apierrors.NewInternalError(ctx, fmt.Errorf("unsupported app type: %s", application.GetType()))
+				return resp, apierrors.NewInternalError(ctx, fmt.Errorf("unsupported app type: %s", application.GetType()))
 			}
 
-			return GetCustomerBillingResponse{
-					BillingProfile: &api.BillingProfileReference{
-						Id: override.MergedProfile.ID,
-					},
-					AppData: &appData,
+			resp = GetCustomerBillingResponse{
+				BillingProfile: &api.BillingProfileReference{
+					Id: override.MergedProfile.ID,
 				},
-				nil
+				AppData: &appData,
+			}
+
+			return resp, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetCustomerBillingResponse](http.StatusOK),
 		httptransport.AppendOptions(
