@@ -111,7 +111,8 @@ func (h *handler) UpdateCustomerBilling() UpdateCustomerBillingHandler {
 						},
 					})
 				}
-				if request.AppData == nil || request.AppData.Stripe.CustomerId == nil {
+
+				if request.AppData.Stripe.CustomerId == nil {
 					return resp, apierrors.NewBadRequestError(ctx, fmt.Errorf("stripe customer id is required"), apierrors.InvalidParameters{
 						apierrors.InvalidParameter{
 							Field:  "stripe.customer_id",
@@ -130,13 +131,16 @@ func (h *handler) UpdateCustomerBilling() UpdateCustomerBillingHandler {
 					StripeDefaultPaymentMethodID: request.AppData.Stripe.DefaultPaymentMethodId,
 				}
 			case app.AppTypeCustomInvoicing:
-				resp.AppData = &api.BillingAppCustomerData{
-					ExternalInvoicing: request.AppData.ExternalInvoicing,
-				}
 				appData = appcustominvoicing.CustomerData{}
-				if request.AppData != nil && request.AppData.ExternalInvoicing != nil && request.AppData.ExternalInvoicing.Labels != nil {
-					appData = appcustominvoicing.CustomerData{
-						Metadata: models.Metadata(*request.AppData.ExternalInvoicing.Labels),
+				if request.AppData != nil && request.AppData.ExternalInvoicing != nil {
+					resp.AppData = &api.BillingAppCustomerData{
+						ExternalInvoicing: request.AppData.ExternalInvoicing,
+					}
+
+					if request.AppData.ExternalInvoicing.Labels != nil {
+						appData = appcustominvoicing.CustomerData{
+							Metadata: models.Metadata(*request.AppData.ExternalInvoicing.Labels),
+						}
 					}
 				}
 			case app.AppTypeSandbox:
