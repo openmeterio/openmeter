@@ -51,6 +51,7 @@ func (h *handler) UpdateCustomerBillingAppData() UpdateCustomerBillingAppDataHan
 			}, nil
 		},
 		func(ctx context.Context, request UpdateCustomerBillingAppDataRequest) (UpdateCustomerBillingAppDataResponse, error) {
+			resp := UpdateCustomerBillingAppDataResponse{}
 			override, err := h.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 				Customer: request.CustomerID,
 				Expand: billing.CustomerOverrideExpand{
@@ -58,7 +59,7 @@ func (h *handler) UpdateCustomerBillingAppData() UpdateCustomerBillingAppDataHan
 				},
 			})
 			if err != nil {
-				return UpdateCustomerBillingAppDataResponse{}, err
+				return resp, err
 			}
 
 			// TODO: Only one app ID can be in the billing profile right now.
@@ -69,7 +70,7 @@ func (h *handler) UpdateCustomerBillingAppData() UpdateCustomerBillingAppDataHan
 			switch application.GetType() {
 			case app.AppTypeStripe:
 				if request.Data.Stripe == nil {
-					return UpdateCustomerBillingAppDataResponse{}, apierrors.NewBadRequestError(ctx, fmt.Errorf("stripe data is required"), apierrors.InvalidParameters{
+					return resp, apierrors.NewBadRequestError(ctx, fmt.Errorf("stripe data is required"), apierrors.InvalidParameters{
 						apierrors.InvalidParameter{
 							Field:  "stripe",
 							Rule:   "required",
@@ -79,7 +80,7 @@ func (h *handler) UpdateCustomerBillingAppData() UpdateCustomerBillingAppDataHan
 					})
 				}
 				if request.Data.Stripe.CustomerId == nil {
-					return UpdateCustomerBillingAppDataResponse{}, apierrors.NewBadRequestError(ctx, fmt.Errorf("stripe customer id is required"), apierrors.InvalidParameters{
+					return resp, apierrors.NewBadRequestError(ctx, fmt.Errorf("stripe customer id is required"), apierrors.InvalidParameters{
 						apierrors.InvalidParameter{
 							Field:  "stripe.customer_id",
 							Rule:   "required",
@@ -89,11 +90,13 @@ func (h *handler) UpdateCustomerBillingAppData() UpdateCustomerBillingAppDataHan
 					})
 				}
 
+				resp.Stripe = request.Data.Stripe
 				appData = appstripeentity.CustomerData{
 					StripeCustomerID:             *request.Data.Stripe.CustomerId,
 					StripeDefaultPaymentMethodID: request.Data.Stripe.DefaultPaymentMethodId,
 				}
 			case app.AppTypeCustomInvoicing:
+				resp.ExternalInvoicing = request.Data.ExternalInvoicing
 				appData = appcustominvoicing.CustomerData{}
 				if request.Data.ExternalInvoicing != nil && request.Data.ExternalInvoicing.Labels != nil {
 					appData = appcustominvoicing.CustomerData{
@@ -103,7 +106,7 @@ func (h *handler) UpdateCustomerBillingAppData() UpdateCustomerBillingAppDataHan
 			case app.AppTypeSandbox:
 				appData = appsandbox.CustomerData{}
 			default:
-				return UpdateCustomerBillingAppDataResponse{}, apierrors.NewInternalError(ctx, fmt.Errorf("unsupported app type: %s", application.GetType()))
+				return resp, apierrors.NewInternalError(ctx, fmt.Errorf("unsupported app type: %s", application.GetType()))
 			}
 
 			err = application.UpsertCustomerData(ctx, app.UpsertAppInstanceCustomerDataInput{
@@ -111,13 +114,10 @@ func (h *handler) UpdateCustomerBillingAppData() UpdateCustomerBillingAppDataHan
 				Data:       appData,
 			})
 			if err != nil {
-				return UpdateCustomerBillingAppDataResponse{}, fmt.Errorf("failed to update customer data: %w", err)
+				return resp, fmt.Errorf("failed to update customer data: %w", err)
 			}
 
-			return UpdateCustomerBillingAppDataResponse{
-				Stripe:            request.Data.Stripe,
-				ExternalInvoicing: request.Data.ExternalInvoicing,
-			}, nil
+			return resp, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateCustomerBillingAppDataResponse](http.StatusOK),
 		httptransport.AppendOptions(
