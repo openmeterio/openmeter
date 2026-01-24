@@ -17945,6 +17945,8 @@ components:
           items:
             $ref: '#/components/schemas/FilterFloat'
           nullable: true
+          minItems: 1
+          maxItems: 10
           description: Provide a list of filters to be combined with a logical AND.
           x-omitempty: true
         $or:
@@ -17952,6 +17954,8 @@ components:
           items:
             $ref: '#/components/schemas/FilterFloat'
           nullable: true
+          minItems: 1
+          maxItems: 10
           description: Provide a list of filters to be combined with a logical OR.
           x-omitempty: true
       description: A filter for a float field.
@@ -17966,6 +17970,8 @@ components:
             description: ULID (Universally Unique Lexicographically Sortable Identifier).
             example: 01G65Z755AFWAKHE12NY0CQ9FH
           nullable: true
+          minItems: 1
+          maxItems: 100
           description: The field must be in the provided list of values.
           x-omitempty: true
       description: A filter for a ID (ULID) field allowing only equality or inclusion.
@@ -18007,6 +18013,8 @@ components:
           items:
             $ref: '#/components/schemas/FilterInteger'
           nullable: true
+          minItems: 1
+          maxItems: 10
           description: Provide a list of filters to be combined with a logical AND.
           x-omitempty: true
         $or:
@@ -18014,6 +18022,8 @@ components:
           items:
             $ref: '#/components/schemas/FilterInteger'
           nullable: true
+          minItems: 1
+          maxItems: 10
           description: Provide a list of filters to be combined with a logical OR.
           x-omitempty: true
       description: A filter for an integer field.
@@ -18035,6 +18045,8 @@ components:
           items:
             type: string
           nullable: true
+          minItems: 1
+          maxItems: 100
           description: The field must be in the provided list of values.
           x-omitempty: true
         $nin:
@@ -18042,6 +18054,8 @@ components:
           items:
             type: string
           nullable: true
+          minItems: 1
+          maxItems: 100
           description: The field must not be in the provided list of values.
           x-omitempty: true
         $like:
@@ -18089,6 +18103,8 @@ components:
           items:
             $ref: '#/components/schemas/FilterString'
           nullable: true
+          minItems: 1
+          maxItems: 10
           description: Provide a list of filters to be combined with a logical AND.
           x-omitempty: true
         $or:
@@ -18096,6 +18112,8 @@ components:
           items:
             $ref: '#/components/schemas/FilterString'
           nullable: true
+          minItems: 1
+          maxItems: 10
           description: Provide a list of filters to be combined with a logical OR.
           x-omitempty: true
       description: A filter for a string field.
@@ -18131,6 +18149,8 @@ components:
           items:
             $ref: '#/components/schemas/FilterTime'
           nullable: true
+          minItems: 1
+          maxItems: 10
           description: Provide a list of filters to be combined with a logical AND.
           x-omitempty: true
         $or:
@@ -18138,6 +18158,8 @@ components:
           items:
             $ref: '#/components/schemas/FilterTime'
           nullable: true
+          minItems: 1
+          maxItems: 10
           description: Provide a list of filters to be combined with a logical OR.
           x-omitempty: true
       description: A filter for a time field.
