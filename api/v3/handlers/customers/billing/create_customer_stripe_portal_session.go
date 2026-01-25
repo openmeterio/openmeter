@@ -53,15 +53,6 @@ func (h *handler) CreateCustomerStripePortalSession() CreateCustomerStripePortal
 				return CreateCustomerStripePortalSessionRequest{}, err
 			}
 
-			if cus == nil {
-				return CreateCustomerStripePortalSessionRequest{},
-					apierrors.NewNotFoundError(
-						ctx,
-						errors.New("customer not found"),
-						"customer",
-					)
-			}
-
 			if cus.IsDeleted() {
 				return CreateCustomerStripePortalSessionRequest{},
 					apierrors.NewGoneError(

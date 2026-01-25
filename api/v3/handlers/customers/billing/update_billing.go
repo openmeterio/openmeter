@@ -55,15 +55,6 @@ func (h *handler) UpdateCustomerBilling() UpdateCustomerBillingHandler {
 				return UpdateCustomerBillingRequest{}, err
 			}
 
-			if cus == nil {
-				return UpdateCustomerBillingRequest{},
-					apierrors.NewNotFoundError(
-						ctx,
-						errors.New("customer not found"),
-						"customer",
-					)
-			}
-
 			if cus.IsDeleted() {
 				return UpdateCustomerBillingRequest{},
 					apierrors.NewGoneError(

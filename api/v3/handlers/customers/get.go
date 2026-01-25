@@ -2,7 +2,6 @@ package customers
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	api "github.com/openmeterio/openmeter/api/v3"
@@ -40,10 +39,6 @@ func (h *handler) GetCustomer() GetCustomerHandler {
 			cus, err := h.service.GetCustomer(ctx, request)
 			if err != nil {
 				return GetCustomerResponse{}, err
-			}
-
-			if cus == nil {
-				return GetCustomerResponse{}, apierrors.NewNotFoundError(ctx, errors.New("customer not found"), "customer")
 			}
 
 			return ConvertCustomerRequestToBillingCustomer(*cus), nil

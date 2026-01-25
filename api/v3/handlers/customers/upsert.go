@@ -65,10 +65,6 @@ func (h *handler) UpsertCustomer() UpsertCustomerHandler {
 				return UpsertCustomerResponse{}, err
 			}
 
-			if cus == nil {
-				return UpsertCustomerResponse{}, apierrors.NewNotFoundError(ctx, errors.New("customer not found"), "customer")
-			}
-
 			if cus.IsDeleted() {
 				return UpsertCustomerResponse{},
 					apierrors.NewGoneError(
