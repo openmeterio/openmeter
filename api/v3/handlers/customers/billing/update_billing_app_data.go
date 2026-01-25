@@ -2,6 +2,7 @@ package customersbilling
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -40,6 +41,25 @@ func (h *handler) UpdateCustomerBillingAppData() UpdateCustomerBillingAppDataHan
 			namespace, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return UpdateCustomerBillingAppDataRequest{}, err
+			}
+
+			// Validate customer exists and is not deleted
+			cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerID: &customer.CustomerID{
+					Namespace: namespace,
+					ID:        customerID,
+				},
+			})
+			if err != nil {
+				return UpdateCustomerBillingAppDataRequest{}, err
+			}
+
+			if cus.IsDeleted() {
+				return UpdateCustomerBillingAppDataRequest{},
+					apierrors.NewGoneError(
+						ctx,
+						errors.New("customer is deleted"),
+					)
 			}
 
 			return UpdateCustomerBillingAppDataRequest{
