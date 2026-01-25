@@ -5,6 +5,7 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // goverter:variables
@@ -15,6 +16,7 @@ import (
 // goverter:matchIgnoreCase
 // goverter:extend ConvertAPIMeterAggregationToMeterAggregation
 // goverter:extend ConvertMeterAggregationToAPIMeterAggregation
+// goverter:extend ConvertMetadataToLabels
 // goverter:extend IntToFloat32
 var (
 	// goverter:context namespace
@@ -87,4 +89,14 @@ func ConvertAPIMeterAggregationToMeterAggregation(aggregation api.MeterAggregati
 
 func IntToFloat32(i int) float32 {
 	return float32(i)
+}
+
+// ConvertMetadataToLabels converts models.Metadata to api.Labels.
+// Always returns an initialized map (never nil) so JSON serializes to {} instead of null.
+func ConvertMetadataToLabels(source models.Metadata) *api.Labels {
+	labels := make(api.Labels)
+	for k, v := range source {
+		labels[k] = v
+	}
+	return &labels
 }

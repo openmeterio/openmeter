@@ -50,26 +50,12 @@ func init() {
 		v3BillingAppCatalogItem.Type = v3BillingAppType
 		return v3BillingAppCatalogItem, nil
 	}
-	ConvertMetadataToLabels = func(source map[string]string) *v3.Labels {
-		v3Labels := mapStringStringToV3Labels(source)
-		return &v3Labels
-	}
 	ConvertToListAppResponse = func(source response.PagePaginationResponse[v3.BillingApp]) v3.AppPagePaginatedResponse {
 		var v3AppPagePaginatedResponse v3.AppPagePaginatedResponse
 		v3AppPagePaginatedResponse.Data = source.Data
 		v3AppPagePaginatedResponse.Meta = responsePageMetaToV3PaginatedMeta(source.Meta)
 		return v3AppPagePaginatedResponse
 	}
-}
-func mapStringStringToV3Labels(source map[string]string) v3.Labels {
-	var v3Labels v3.Labels
-	if source != nil {
-		v3Labels = make(v3.Labels, len(source))
-		for key, value := range source {
-			v3Labels[key] = value
-		}
-	}
-	return v3Labels
 }
 func responsePageMetaPageToV3PageMeta(source response.PageMetaPage) v3.PageMeta {
 	var v3PageMeta v3.PageMeta

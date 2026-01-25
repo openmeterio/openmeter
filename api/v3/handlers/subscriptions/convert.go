@@ -19,7 +19,7 @@ func ConvertSubscriptionToAPISubscription(subscription subscription.Subscription
 		CustomerId:    subscription.CustomerId,
 		BillingAnchor: subscription.BillingAnchor,
 		Status:        api.BillingSubscriptionStatus(subscription.GetStatusAt(clock.Now())),
-		Labels:        lo.ToPtr(api.Labels(subscription.Metadata)),
+		Labels:        convertMetadataToLabels(subscription.Metadata),
 		CreatedAt:     &subscription.CreatedAt,
 		UpdatedAt:     &subscription.UpdatedAt,
 		DeletedAt:     subscription.DeletedAt,
@@ -84,4 +84,14 @@ func ConvertFromCreateSubscriptionRequestToCreateSubscriptionWorkflowInput(
 	}
 
 	return workflowInput, nil
+}
+
+// convertMetadataToLabels converts models.Metadata to api.Labels.
+// Always returns an initialized map (never nil) so JSON serializes to {} instead of null.
+func convertMetadataToLabels(source models.Metadata) *api.Labels {
+	labels := make(api.Labels)
+	for k, v := range source {
+		labels[k] = v
+	}
+	return &labels
 }

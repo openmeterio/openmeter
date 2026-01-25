@@ -121,7 +121,7 @@ func init() {
 		v3BillingProfile.DeletedAt = source.BaseProfile.DeletedAt
 		v3BillingProfile.Description = source.BaseProfile.Description
 		v3BillingProfile.Id = source.BaseProfile.ID
-		v3BillingProfile.Labels = billingMetadataToPV3Labels(source.BaseProfile.Metadata)
+		v3BillingProfile.Labels = ConvertMetadataToLabels(source.BaseProfile.Metadata)
 		v3BillingProfile.Name = source.BaseProfile.Name
 		v3BillingProfile.Supplier = ConvertSupplierContactToBillingParty(source.BaseProfile.Supplier)
 		v3BillingProfile.UpdatedAt = timeTimeToPTimeTime(source.BaseProfile.UpdatedAt)
@@ -191,20 +191,6 @@ func init() {
 		billingUpdateProfileInput.Metadata = pV3LabelsToBillingMetadata(source.Labels)
 		return billingUpdateProfileInput, nil
 	}
-}
-func billingMetadataToPV3Labels(source billing.Metadata) *v3.Labels {
-	v3Labels := billingMetadataToV3Labels(source)
-	return &v3Labels
-}
-func billingMetadataToV3Labels(source billing.Metadata) v3.Labels {
-	var v3Labels v3.Labels
-	if source != nil {
-		v3Labels = make(v3.Labels, len(source))
-		for key, value := range source {
-			v3Labels[key] = value
-		}
-	}
-	return v3Labels
 }
 func pBillingProfileAppsToV3BillingProfileAppReferences(source *billing.ProfileApps) v3.BillingProfileAppReferences {
 	var v3BillingProfileAppReferences v3.BillingProfileAppReferences

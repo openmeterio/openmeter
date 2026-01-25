@@ -50,26 +50,12 @@ func init() {
 		v3Meter.EventsFrom = source.EventFrom
 		v3Meter.Id = source.ManagedResource.ID
 		v3Meter.Key = source.Key
-		v3Meter.Labels = modelsMetadataToPV3Labels(source.Metadata)
+		v3Meter.Labels = ConvertMetadataToLabels(source.Metadata)
 		v3Meter.Name = source.ManagedResource.Name
 		v3Meter.UpdatedAt = timeTimeToPTimeTime(source.ManagedResource.ManagedModel.UpdatedAt)
 		v3Meter.ValueProperty = source.ValueProperty
 		return v3Meter
 	}
-}
-func modelsMetadataToPV3Labels(source models.Metadata) *v3.Labels {
-	v3Labels := modelsMetadataToV3Labels(source)
-	return &v3Labels
-}
-func modelsMetadataToV3Labels(source models.Metadata) v3.Labels {
-	var v3Labels v3.Labels
-	if source != nil {
-		v3Labels = make(v3.Labels, len(source))
-		for key, value := range source {
-			v3Labels[key] = value
-		}
-	}
-	return v3Labels
 }
 func pV3LabelsToModelsMetadata(source *v3.Labels) models.Metadata {
 	var modelsMetadata models.Metadata
