@@ -106,7 +106,11 @@ interface CustomerBillingOperations {
   upsert(
     @path customerId: Shared.ULID,
     @body body: Shared.UpsertRequest<CustomerBillingData>,
-  ): Shared.UpsertResponse<CustomerBillingData> | Common.NotFound | Common.ErrorResponses;
+  ):
+    | Shared.UpsertResponse<CustomerBillingData>
+    | Common.Gone
+    | Common.NotFound
+    | Common.ErrorResponses;
 
   @put
   @route("/app-data")
@@ -115,7 +119,11 @@ interface CustomerBillingOperations {
   upsertAppData(
     @path customerId: Shared.ULID,
     @body body: Shared.UpsertRequest<Apps.AppCustomerData>,
-  ): Shared.UpsertResponse<Apps.AppCustomerData> | Common.NotFound | Common.ErrorResponses;
+  ):
+    | Shared.UpsertResponse<Apps.AppCustomerData>
+    | Common.Gone
+    | Common.NotFound
+    | Common.ErrorResponses;
 
   /**
    * Create a [Stripe Checkout Session](https://docs.stripe.com/payments/checkout) for the customer.
