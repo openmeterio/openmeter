@@ -143,7 +143,11 @@ interface CustomerBillingOperations {
   createCheckoutSession(
     @path customerId: Shared.ULID,
     @body body: CustomerBillingStripeCreateCheckoutSessionRequest,
-  ): Shared.CreateResponse<Apps.CreateStripeCheckoutSessionResult> | Common.NotFound | Common.ErrorResponses;
+  ):
+    | Shared.CreateResponse<Apps.CreateStripeCheckoutSessionResult>
+    | Common.Gone
+    | Common.NotFound
+    | Common.ErrorResponses;
 
   /**
    * Create Stripe Customer Portal Session.

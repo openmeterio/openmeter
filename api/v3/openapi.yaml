@@ -364,6 +364,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '410':
+          $ref: '#/components/responses/Gone'
       tags:
         - OpenMeter Customers
       requestBody:
