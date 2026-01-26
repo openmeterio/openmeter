@@ -101,6 +101,7 @@ func (h *handler) GetCustomerBilling() GetCustomerBillingHandler {
 			h.options,
 			httptransport.WithOperationName("get-customer-billing"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
+			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }

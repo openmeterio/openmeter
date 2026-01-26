@@ -2,6 +2,7 @@ package customersbilling
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/samber/lo"
@@ -39,6 +40,22 @@ func (h *handler) CreateCustomerStripeCheckoutSession() CreateCustomerStripeChec
 				ID:        customerIdParam,
 			})
 
+			// Get the customer
+			cus, err := h.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerID: customerId,
+			})
+			if err != nil {
+				return CreateCustomerStripeCheckoutSessionRequest{}, err
+			}
+
+			if cus.IsDeleted() {
+				return CreateCustomerStripeCheckoutSessionRequest{},
+					apierrors.NewGoneError(
+						ctx,
+						errors.New("customer is deleted"),
+					)
+			}
+
 			appId, err := h.billingService.ResolveStripeAppIDFromBillingProfile(ctx, namespace, customerId)
 			if err != nil {
 				return CreateCustomerStripeCheckoutSessionRequest{}, err
@@ -74,6 +91,7 @@ func (h *handler) CreateCustomerStripeCheckoutSession() CreateCustomerStripeChec
 			h.options,
 			httptransport.WithOperationName("create-customer-stripe-checkout-session"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
+			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }

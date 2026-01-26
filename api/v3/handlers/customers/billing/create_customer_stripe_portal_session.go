@@ -53,15 +53,6 @@ func (h *handler) CreateCustomerStripePortalSession() CreateCustomerStripePortal
 				return CreateCustomerStripePortalSessionRequest{}, err
 			}
 
-			if cus == nil {
-				return CreateCustomerStripePortalSessionRequest{},
-					apierrors.NewNotFoundError(
-						ctx,
-						errors.New("customer not found"),
-						"customer",
-					)
-			}
-
 			if cus.IsDeleted() {
 				return CreateCustomerStripePortalSessionRequest{},
 					apierrors.NewGoneError(
@@ -113,6 +104,7 @@ func (h *handler) CreateCustomerStripePortalSession() CreateCustomerStripePortal
 			h.options,
 			httptransport.WithOperationName("create-customer-stripe-portal-session"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
+			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
