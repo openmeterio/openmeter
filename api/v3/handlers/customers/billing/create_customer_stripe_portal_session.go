@@ -104,6 +104,7 @@ func (h *handler) CreateCustomerStripePortalSession() CreateCustomerStripePortal
 			h.options,
 			httptransport.WithOperationName("create-customer-stripe-portal-session"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
+			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
 }
