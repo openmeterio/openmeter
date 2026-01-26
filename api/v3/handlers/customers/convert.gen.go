@@ -54,7 +54,7 @@ func init() {
 		if source.Key != nil {
 			v3BillingCustomer.Key = *source.Key
 		}
-		v3BillingCustomer.Labels = pModelsMetadataToPV3Labels(source.Metadata)
+		v3BillingCustomer.Labels = ConvertMetadataToLabels(source.Metadata)
 		v3BillingCustomer.Name = source.ManagedResource.Name
 		v3BillingCustomer.PrimaryEmail = source.PrimaryEmail
 		v3BillingCustomer.UpdatedAt = timeTimeToPTimeTime(source.ManagedResource.ManagedModel.UpdatedAt)
@@ -82,16 +82,6 @@ func init() {
 		return customerCustomerMutate
 	}
 }
-func modelsMetadataToV3Labels(source models.Metadata) v3.Labels {
-	var v3Labels v3.Labels
-	if source != nil {
-		v3Labels = make(v3.Labels, len(source))
-		for key, value := range source {
-			v3Labels[key] = value
-		}
-	}
-	return v3Labels
-}
 func pCustomerCustomerUsageAttributionToPV3BillingCustomerUsageAttribution(source *customer.CustomerUsageAttribution) *v3.BillingCustomerUsageAttribution {
 	var pV3BillingCustomerUsageAttribution *v3.BillingCustomerUsageAttribution
 	if source != nil {
@@ -118,14 +108,6 @@ func pModelsAddressToPV3BillingAddress(source *models.Address) *v3.BillingAddres
 		pV3BillingAddress = &v3BillingAddress
 	}
 	return pV3BillingAddress
-}
-func pModelsMetadataToPV3Labels(source *models.Metadata) *v3.Labels {
-	var pV3Labels *v3.Labels
-	if source != nil {
-		v3Labels := modelsMetadataToV3Labels((*source))
-		pV3Labels = &v3Labels
-	}
-	return pV3Labels
 }
 func pV3BillingAddressToPModelsAddress(source *v3.BillingAddress) *models.Address {
 	var pModelsAddress *models.Address

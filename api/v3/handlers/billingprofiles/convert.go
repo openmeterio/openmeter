@@ -23,6 +23,7 @@ import (
 // goverter:extend ConvertSupplierContactToBillingParty
 // goverter:extend ConvertAppToBillingAppReference
 // goverter:extend ConvertBillingPartyToSupplierContact
+// goverter:extend ConvertMetadataToLabels
 var (
 	ConvertAddressToAPIAddress                               func(address models.Address) api.Address
 	ConvertAPIAddressToAddress                               func(address api.Address) models.Address
@@ -67,6 +68,16 @@ var (
 	// goverter:map Stripe Stripe
 	ConvertBillingTaxConfigToTaxConfig func(config *api.BillingTaxConfig) (*productcatalog.TaxConfig, error)
 )
+
+// ConvertMetadataToLabels converts billing.Metadata to api.Labels.
+// Always returns an initialized map (never nil) so JSON serializes to {} instead of null.
+func ConvertMetadataToLabels(source billing.Metadata) *api.Labels {
+	labels := make(api.Labels)
+	for k, v := range source {
+		labels[k] = v
+	}
+	return &labels
+}
 
 //goverter:context namespace
 func NamespaceFromContext(namespace string) string {

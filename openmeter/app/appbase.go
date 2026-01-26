@@ -41,7 +41,7 @@ type AppBase struct {
 	Type     AppType            `json:"type"`
 	Status   AppStatus          `json:"status"`
 	Listing  MarketplaceListing `json:"listing"`
-	Metadata map[string]string  `json:"metadata,omitempty"`
+	Metadata models.Metadata    `json:"metadata,omitempty"`
 }
 
 func (a AppBase) GetAppBase() AppBase {
@@ -75,7 +75,7 @@ func (a AppBase) GetListing() MarketplaceListing {
 	return a.Listing
 }
 
-func (a AppBase) GetMetadata() map[string]string {
+func (a AppBase) GetMetadata() models.Metadata {
 	return a.Metadata
 }
 

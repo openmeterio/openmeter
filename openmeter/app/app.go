@@ -18,7 +18,7 @@ type App interface {
 	GetName() string
 	GetDescription() *string
 	GetStatus() AppStatus
-	GetMetadata() map[string]string
+	GetMetadata() models.Metadata
 	GetListing() MarketplaceListing
 
 	GetEventAppData() (EventAppData, error)

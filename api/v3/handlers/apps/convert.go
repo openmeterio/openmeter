@@ -13,6 +13,7 @@ import (
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // goverter:variables
@@ -23,6 +24,7 @@ import (
 // goverter:matchIgnoreCase
 // goverter:extend IntToFloat32
 // goverter:extend MapAppToAPI
+// goverter:extend ConvertMetadataToLabels
 // goverter:enum:unknown @error
 var (
 	ConvertToListAppResponse func(source response.PagePaginationResponse[api.BillingApp]) api.AppPagePaginatedResponse
@@ -34,10 +36,18 @@ var (
 	// goverter:enum:map AppTypeCustomInvoicing BillingAppTypeExternalInvoicing
 	ConvertAppTypeToV3Api func(source app.AppType) (api.BillingAppType, error)
 
-	ConvertMetadataToLabels func(source map[string]string) *api.Labels
-
 	ConvertAppsToBillingApps func(source []app.App) ([]api.BillingApp, error)
 )
+
+// ConvertMetadataToLabels converts metadata to api.Labels.
+// Always returns an initialized map (never nil) so JSON serializes to {} instead of null.
+func ConvertMetadataToLabels(source models.Metadata) *api.Labels {
+	labels := make(api.Labels)
+	for k, v := range source {
+		labels[k] = v
+	}
+	return &labels
+}
 
 func IntToFloat32(i int) float32 {
 	return float32(i)

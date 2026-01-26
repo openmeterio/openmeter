@@ -86,7 +86,7 @@ func mapStripeAppToAPI(
 	apiStripeApp.Description = stripeApp.GetDescription()
 
 	if stripeApp.GetMetadata() != nil {
-		apiStripeApp.Metadata = lo.ToPtr(stripeApp.GetMetadata())
+		apiStripeApp.Metadata = lo.ToPtr(api.Metadata(stripeApp.GetMetadata()))
 	}
 
 	return apiStripeApp
@@ -99,7 +99,7 @@ func mapCustomInvoicingAppToAPI(app appcustominvoicing.Meta) api.CustomInvoicing
 		Name:        app.GetName(),
 		Status:      api.AppStatus(app.GetStatus()),
 		Listing:     mapMarketplaceListing(app.GetListing()),
-		Metadata:    lo.EmptyableToPtr(app.GetMetadata()),
+		Metadata:    lo.EmptyableToPtr(api.Metadata(app.GetMetadata())),
 		Description: app.GetDescription(),
 		CreatedAt:   app.CreatedAt,
 		UpdatedAt:   app.UpdatedAt,
