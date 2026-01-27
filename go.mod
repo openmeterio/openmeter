@@ -36,7 +36,7 @@ require (
 	github.com/google/wire v0.7.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/huandu/go-sqlbuilder v1.38.2
-	github.com/invopop/gobl v0.305.1
+	github.com/invopop/gobl v0.306.0
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/lmittmann/tint v1.1.2
 	github.com/mitchellh/mapstructure v1.5.0
@@ -509,12 +509,12 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/crypto v0.46.0 // indirect
+	golang.org/x/crypto v0.47.0 // indirect
 	golang.org/x/mod v0.31.0 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
 	golang.org/x/sync v0.19.0
-	golang.org/x/sys v0.39.0 // indirect
-	golang.org/x/term v0.38.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
+	golang.org/x/term v0.39.0 // indirect
 	golang.org/x/text v0.33.0
 	golang.org/x/time v0.12.0 // indirect
 	golang.org/x/tools v0.40.0 // indirect
