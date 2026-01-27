@@ -41,6 +41,7 @@ func (c *adapter) ListMeters(_ context.Context, params meter.ListMetersParams) (
 	}
 
 	// In memory pagination: case #2 if there is pagination settings return the paginated dataset
+
 	pageNumberIndex := params.PageNumber - 1
 
 	if pageNumberIndex*params.PageSize > len(meters) {

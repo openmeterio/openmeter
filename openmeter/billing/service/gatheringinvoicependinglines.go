@@ -197,6 +197,10 @@ func (in handleInvoicePendingLinesForCurrencyInput) Validate() error {
 		return fmt.Errorf("gathering invoice: %w", err)
 	}
 
+	if in.FeatureMeters == nil {
+		return fmt.Errorf("feature meters cannot be nil")
+	}
+
 	if len(in.InScopeLines) == 0 {
 		return fmt.Errorf("in scope lines must contain at least one line")
 	}
@@ -275,6 +279,7 @@ type gatheringInvoiceWithFeatureMeters struct {
 	Invoice       billing.StandardInvoice
 	FeatureMeters billing.FeatureMeters
 }
+
 type gatherInScopeLineInput struct {
 	GatheringInvoicesByCurrency map[currencyx.Code]gatheringInvoiceWithFeatureMeters
 	// If set restricts the lines to be included to these IDs, otherwise the AsOf is used
@@ -292,12 +297,12 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 	billableLineIDs := make(map[string]interface{})
 
 	for currency, invoice := range in.GatheringInvoicesByCurrency {
-		lineSrvs, err := s.lineService.FromEntities(invoice.Invoice.Lines.OrEmpty(), invoice.FeatureMeters)
+		lineSrvs, err := lineservice.FromEntities(invoice.Invoice.Lines.OrEmpty(), invoice.FeatureMeters)
 		if err != nil {
 			return nil, err
 		}
 
-		linesWithResolvedPeriods, err := lineSrvs.ResolveBillablePeriod(ctx, lineservice.ResolveBillablePeriodInput{
+		linesWithResolvedPeriods, err := lineSrvs.ResolveBillablePeriod(lineservice.ResolveBillablePeriodInput{
 			AsOf:               in.AsOf,
 			ProgressiveBilling: in.ProgressiveBilling,
 		})
@@ -368,6 +373,10 @@ func (i prepareLinesToBillInput) Validate() error {
 
 	if len(i.InScopeLines) == 0 {
 		errs = append(errs, fmt.Errorf("no lines to bill"))
+	}
+
+	if i.FeatureMeters == nil {
+		errs = append(errs, fmt.Errorf("feature meters cannot be nil"))
 	}
 
 	if i.GatheringInvoice.Lines.IsAbsent() {
@@ -555,17 +564,17 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 		l.ChildUniqueReferenceID = nil
 	})
 
-	postSplitAtLineSvc, err := s.lineService.FromEntity(postSplitAtLine, in.FeatureMeters)
+	postSplitAtLineSvc, err := lineservice.FromEntity(postSplitAtLine, in.FeatureMeters)
 	if err != nil {
 		return res, fmt.Errorf("creating line service: %w", err)
 	}
 
 	if !postSplitAtLineSvc.IsPeriodEmptyConsideringTruncations() {
-		gatheringInvoice.Lines.Append(postSplitAtLine)
-
-		if err := postSplitAtLineSvc.Validate(ctx); err != nil {
+		if err := postSplitAtLine.Validate(); err != nil {
 			return res, fmt.Errorf("validating post split line: %w", err)
 		}
+
+		gatheringInvoice.Lines.Append(postSplitAtLine)
 	}
 
 	// Let's update the original line to only contain the period up to the splitAt time
@@ -574,7 +583,9 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 	line.SplitLineGroupID = lo.ToPtr(splitLineGroupID)
 	line.ChildUniqueReferenceID = nil
 
-	preSplitAtLineSvc, err := s.lineService.FromEntity(line, in.FeatureMeters)
+	preSplitAtLine := line
+
+	preSplitAtLineSvc, err := lineservice.FromEntity(line, in.FeatureMeters)
 	if err != nil {
 		return res, fmt.Errorf("creating line service: %w", err)
 	}
@@ -583,7 +594,7 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 	if preSplitAtLineSvc.IsPeriodEmptyConsideringTruncations() {
 		line.DeletedAt = lo.ToPtr(clock.Now())
 	} else {
-		if err := preSplitAtLineSvc.Validate(ctx); err != nil {
+		if err := preSplitAtLine.Validate(); err != nil {
 			return res, fmt.Errorf("validating pre split line: %w", err)
 		}
 	}
@@ -617,6 +628,10 @@ func (in createStandardInvoiceFromGatheringLinesInput) Validate() error {
 
 	if err := in.EffectiveBillingProfile.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("effective billing profile: %w", err))
+	}
+
+	if in.FeatureMeters == nil {
+		errs = append(errs, fmt.Errorf("feature meters cannot be nil"))
 	}
 
 	if len(in.Lines) == 0 {
@@ -834,12 +849,7 @@ func (s *Service) moveLinesToInvoice(ctx context.Context, in moveLinesToInvoiceI
 		return nil, fmt.Errorf("lines to move[%d] must contain the same number of lines as line IDs to move[%d]", len(linesToMove), len(in.LineIDsToMove))
 	}
 
-	linesToAssociate, err := s.lineService.FromEntities(linesToMove, in.FeatureMeters)
-	if err != nil {
-		return nil, fmt.Errorf("creating line services for lines to move: %w", err)
-	}
-
-	if err := linesToAssociate.Validate(ctx); err != nil {
+	if err := linesToMove.Validate(); err != nil {
 		return nil, fmt.Errorf("validating lines to move: %w", err)
 	}
 

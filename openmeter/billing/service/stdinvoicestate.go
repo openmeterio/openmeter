@@ -611,8 +611,7 @@ func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
 		return fmt.Errorf("resolving feature meters: %w", err)
 	}
 
-	return m.Calculator.Calculate(&m.Invoice, invoicecalc.CalculatorDependencies{
-		LineService:   m.Service.lineService,
+	return m.Calculator.Calculate(&m.Invoice, invoicecalc.CalculationDependencies{
 		FeatureMeters: featureMeters,
 	})
 }

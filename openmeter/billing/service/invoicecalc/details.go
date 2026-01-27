@@ -7,14 +7,15 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 )
 
-func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps CalculatorDependencies) error {
+func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps CalculationDependencies) error {
 	if invoice.Lines.IsAbsent() {
 		return errors.New("cannot recaulculate invoice without expanded lines")
 	}
 
-	lines, err := deps.LineService.FromEntities(invoice.Lines.OrEmpty(), deps.FeatureMeters)
+	lines, err := lineservice.FromEntities(invoice.Lines.OrEmpty(), deps.FeatureMeters)
 	if err != nil {
 		return fmt.Errorf("creating line services: %w", err)
 	}

@@ -1,10 +1,10 @@
 package invoicecalc
 
 import (
+	"context"
 	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 )
 
 type invoiceCalculatorsByType struct {
@@ -40,18 +40,22 @@ var InvoiceCalculations = invoiceCalculatorsByType{
 }
 
 type (
-	Calculation func(*billing.StandardInvoice, CalculatorDependencies) error
+	Calculation func(*billing.StandardInvoice, CalculationDependencies) error
 )
 
-type Calculator interface {
-	Calculate(*billing.StandardInvoice, CalculatorDependencies) error
-	CalculateGatheringInvoice(*billing.StandardInvoice) error
-	CalculateGatheringInvoiceWithLiveData(*billing.StandardInvoice, CalculatorDependencies) error
+type CalculationDependencies struct {
+	FeatureMeters billing.FeatureMeters
 }
 
-type CalculatorDependencies struct {
-	LineService   *lineservice.Service
-	FeatureMeters billing.FeatureMeters
+type Calculator interface {
+	Calculate(*billing.StandardInvoice, CalculationDependencies) error
+	CalculateGatheringInvoice(*billing.StandardInvoice) error
+	CalculateGatheringInvoiceWithLiveData(*billing.StandardInvoice, CalculationDependencies) error
+}
+
+type ServiceDependencies interface {
+	// RecalculateInvoiceTotals recalculates the totals of an invoice
+	RecalculateInvoiceTotals(ctx context.Context, invoice *billing.StandardInvoice) error
 }
 
 type calculator struct{}
@@ -60,11 +64,11 @@ func New() Calculator {
 	return &calculator{}
 }
 
-func (c *calculator) Calculate(invoice *billing.StandardInvoice, deps CalculatorDependencies) error {
+func (c *calculator) Calculate(invoice *billing.StandardInvoice, deps CalculationDependencies) error {
 	return c.applyCalculations(invoice, InvoiceCalculations.Invoice, deps)
 }
 
-func (c *calculator) applyCalculations(invoice *billing.StandardInvoice, calculators []Calculation, deps CalculatorDependencies) error {
+func (c *calculator) applyCalculations(invoice *billing.StandardInvoice, calculators []Calculation, deps CalculationDependencies) error {
 	var outErr error
 	for _, calc := range calculators {
 		err := calc(invoice, deps)
@@ -85,10 +89,10 @@ func (c *calculator) CalculateGatheringInvoice(invoice *billing.StandardInvoice)
 		return errors.New("invoice is not a gathering invoice")
 	}
 
-	return c.applyCalculations(invoice, InvoiceCalculations.GatheringInvoice, CalculatorDependencies{})
+	return c.applyCalculations(invoice, InvoiceCalculations.GatheringInvoice, CalculationDependencies{})
 }
 
-func (c *calculator) CalculateGatheringInvoiceWithLiveData(invoice *billing.StandardInvoice, deps CalculatorDependencies) error {
+func (c *calculator) CalculateGatheringInvoiceWithLiveData(invoice *billing.StandardInvoice, deps CalculationDependencies) error {
 	if invoice.Status != billing.StandardInvoiceStatusGathering {
 		return errors.New("invoice is not a gathering invoice")
 	}
@@ -97,7 +101,7 @@ func (c *calculator) CalculateGatheringInvoiceWithLiveData(invoice *billing.Stan
 }
 
 func WithNoDependencies(cb func(inv *billing.StandardInvoice) error) Calculation {
-	return func(inv *billing.StandardInvoice, _ CalculatorDependencies) error {
+	return func(inv *billing.StandardInvoice, _ CalculationDependencies) error {
 		return cb(inv)
 	}
 }

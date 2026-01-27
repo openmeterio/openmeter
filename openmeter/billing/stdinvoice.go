@@ -291,6 +291,14 @@ func (i StandardInvoice) Validate() error {
 		outErr = errors.Join(outErr, ValidationWithFieldPrefix("lines", err))
 	}
 
+	if i.Lines.IsPresent() {
+		for _, line := range i.Lines.OrEmpty() {
+			if line.Currency != i.Currency {
+				outErr = errors.Join(outErr, fmt.Errorf("line[%s]: currency[%s] is not equal to invoice currency[%s]", line.ID, line.Currency, i.Currency))
+			}
+		}
+	}
+
 	return outErr
 }
 

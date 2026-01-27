@@ -9,7 +9,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
-	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -30,8 +29,7 @@ type Service struct {
 	meterService       meter.Service
 	streamingConnector streaming.Connector
 
-	lineService *lineservice.Service
-	publisher   eventbus.Publisher
+	publisher eventbus.Publisher
 
 	advancementStrategy          billing.AdvancementStrategy
 	fsNamespaceLockdown          []string
@@ -115,15 +113,6 @@ func New(config Config) (*Service, error) {
 		maxParallelQuantitySnapshots: config.MaxParallelQuantitySnapshots,
 		invoiceCalculator:            invoicecalc.New(),
 	}
-
-	lineSvc, err := lineservice.New(lineservice.Config{
-		StreamingConnector: config.StreamingConnector,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("creating line service: %w", err)
-	}
-
-	svc.lineService = lineSvc
 
 	return svc, nil
 }

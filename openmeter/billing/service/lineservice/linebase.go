@@ -40,7 +40,6 @@ var _ LineBase = (*lineBase)(nil)
 
 type lineBase struct {
 	line          *billing.StandardLine
-	service       *Service
 	featureMeters billing.FeatureMeters
 	currency      currencyx.Calculator
 }
@@ -103,10 +102,6 @@ func (l lineBase) IsFirstInPeriod() bool {
 
 func (l lineBase) IsDeleted() bool {
 	return l.line.DeletedAt != nil
-}
-
-func (l lineBase) Service() *Service {
-	return l.service
 }
 
 func (l lineBase) ResetTotals() {

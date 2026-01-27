@@ -116,6 +116,10 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 
 		gatheringInvoiceID := gatheringInvoice.ID
 
+		if err := gatheringInvoice.Validate(); err != nil {
+			return nil, fmt.Errorf("validating gathering invoice: %w", err)
+		}
+
 		if err := s.invoiceCalculator.CalculateGatheringInvoice(&gatheringInvoice); err != nil {
 			return nil, fmt.Errorf("calculating invoice[%s]: %w", gatheringInvoiceID, err)
 		}
