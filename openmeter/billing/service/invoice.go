@@ -11,6 +11,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -150,10 +151,16 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 		return invoice, fmt.Errorf("fetching profile: %w", err)
 	}
 
+	featureMeters, err := s.resolveFeatureMeters(ctx, invoice.Lines.OrEmpty())
+	if err != nil {
+		return invoice, fmt.Errorf("resolving feature meters: %w", err)
+	}
+
 	inScopeLineSvcs, err := s.lineService.FromEntities(
 		lo.Filter(invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
 			return line.DeletedAt == nil
 		}),
+		featureMeters,
 	)
 	if err != nil {
 		return invoice, fmt.Errorf("creating line services: %w", err)
@@ -183,7 +190,10 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 
 	invoice.QuantitySnapshotedAt = lo.ToPtr(now)
 
-	if err := s.invoiceCalculator.CalculateGatheringInvoiceWithLiveData(&invoice); err != nil {
+	if err := s.invoiceCalculator.CalculateGatheringInvoiceWithLiveData(&invoice, invoicecalc.CalculatorDependencies{
+		LineService:   s.lineService,
+		FeatureMeters: featureMeters,
+	}); err != nil {
 		return invoice, fmt.Errorf("calculating invoice: %w", err)
 	}
 
@@ -447,7 +457,12 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 						}
 					}
 
-					if err := s.checkIfLinesAreInvoicable(ctx, &sm.Invoice, sm.Invoice.Workflow.Config.Invoicing.ProgressiveBilling); err != nil {
+					featureMeters, err := s.resolveFeatureMeters(ctx, sm.Invoice.Lines.OrEmpty())
+					if err != nil {
+						return fmt.Errorf("resolving feature meters: %w", err)
+					}
+
+					if err := s.checkIfLinesAreInvoicable(ctx, &sm.Invoice, sm.Invoice.Workflow.Config.Invoicing.ProgressiveBilling, featureMeters); err != nil {
 						return err
 					}
 
@@ -556,7 +571,12 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 				return billing.StandardInvoice{}, fmt.Errorf("editing invoice: %w", err)
 			}
 
-			lineServices, err := s.lineService.FromEntities(invoice.Lines.OrEmpty())
+			featureMeters, err := s.resolveFeatureMeters(ctx, invoice.Lines.OrEmpty())
+			if err != nil {
+				return billing.StandardInvoice{}, fmt.Errorf("resolving feature meters: %w", err)
+			}
+
+			lineServices, err := s.lineService.FromEntities(invoice.Lines.OrEmpty(), featureMeters)
 			if err != nil {
 				return billing.StandardInvoice{}, fmt.Errorf("creating line services: %w", err)
 			}
@@ -583,7 +603,7 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 			}
 
 			// Check if the new lines are still invoicable
-			if err := s.checkIfLinesAreInvoicable(ctx, &invoice, customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling); err != nil {
+			if err := s.checkIfLinesAreInvoicable(ctx, &invoice, customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling, featureMeters); err != nil {
 				return billing.StandardInvoice{}, err
 			}
 
@@ -651,11 +671,12 @@ func (s Service) updateInvoice(ctx context.Context, in billing.UpdateInvoiceAdap
 	return invoice, nil
 }
 
-func (s Service) checkIfLinesAreInvoicable(ctx context.Context, invoice *billing.StandardInvoice, progressiveBilling bool) error {
+func (s Service) checkIfLinesAreInvoicable(ctx context.Context, invoice *billing.StandardInvoice, progressiveBilling bool, featureMeters billing.FeatureMeters) error {
 	inScopeLineServices, err := s.lineService.FromEntities(
 		lo.Filter(invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
 			return line.DeletedAt == nil
 		}),
+		featureMeters,
 	)
 	if err != nil {
 		return fmt.Errorf("creating line services: %w", err)
@@ -783,7 +804,12 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		}
 	}
 
-	inScopeLineSvcs, err := s.lineService.FromEntities(invoice.Lines.OrEmpty())
+	featureMeters, err := s.resolveFeatureMeters(ctx, invoice.Lines.OrEmpty())
+	if err != nil {
+		return billing.StandardInvoice{}, fmt.Errorf("resolving feature meters: %w", err)
+	}
+
+	inScopeLineSvcs, err := s.lineService.FromEntities(invoice.Lines.OrEmpty(), featureMeters)
 	if err != nil {
 		return billing.StandardInvoice{}, fmt.Errorf("creating line services: %w", err)
 	}
@@ -806,7 +832,10 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 	}
 
 	// Let's simulate a recalculation of the invoice
-	if err := s.invoiceCalculator.Calculate(&invoice); err != nil {
+	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.CalculatorDependencies{
+		LineService:   s.lineService,
+		FeatureMeters: featureMeters,
+	}); err != nil {
 		return billing.StandardInvoice{}, err
 	}
 

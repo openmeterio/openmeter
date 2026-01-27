@@ -87,9 +87,22 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				return nil, fmt.Errorf("fetching existing gathering invoices: %w", err)
 			}
 
-			invoicesByCurrency := lo.SliceToMap(existingGatheringInvoices.Items, func(i billing.StandardInvoice) (currencyx.Code, billing.StandardInvoice) {
-				return i.Currency, i
+			invoicesByCurrency := lo.SliceToMap(existingGatheringInvoices.Items, func(i billing.StandardInvoice) (currencyx.Code, gatheringInvoiceWithFeatureMeters) {
+				return i.Currency, gatheringInvoiceWithFeatureMeters{
+					Invoice: i,
+				}
 			})
+
+			// Let's resolve the feature meters for each gathering invoice line for downstream calculations.
+			for currency, gatheringInvoiceWithCurrency := range invoicesByCurrency {
+				featureMeters, err := s.resolveFeatureMeters(ctx, invoicesByCurrency[currency].Invoice.Lines.OrEmpty())
+				if err != nil {
+					return nil, fmt.Errorf("resolving feature meters: %w", err)
+				}
+
+				gatheringInvoiceWithCurrency.FeatureMeters = featureMeters
+				invoicesByCurrency[currency] = gatheringInvoiceWithCurrency
+			}
 
 			if len(invoicesByCurrency) != len(existingGatheringInvoices.Items) {
 				return nil, fmt.Errorf("customer has multiple gathering invoices for the same currency: %d", len(invoicesByCurrency))
@@ -130,7 +143,8 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				createdInvoice, err := s.handleInvoicePendingLinesForCurrency(ctx, handleInvoicePendingLinesForCurrencyInput{
 					Currency:                currency,
 					Customer:                lo.FromPtr(customerProfile.Customer),
-					GatheringInvoice:        gatheringInvoice,
+					GatheringInvoice:        gatheringInvoice.Invoice,
+					FeatureMeters:           gatheringInvoice.FeatureMeters,
 					InScopeLines:            inScopeLines,
 					EffectiveBillingProfile: customerProfile.MergedProfile,
 				})
@@ -165,6 +179,7 @@ type handleInvoicePendingLinesForCurrencyInput struct {
 	Currency                currencyx.Code
 	Customer                customer.Customer
 	GatheringInvoice        billing.StandardInvoice
+	FeatureMeters           billing.FeatureMeters
 	InScopeLines            []lineservice.LineWithBillablePeriod
 	EffectiveBillingProfile billing.Profile
 }
@@ -186,6 +201,10 @@ func (in handleInvoicePendingLinesForCurrencyInput) Validate() error {
 		return fmt.Errorf("in scope lines must contain at least one line")
 	}
 
+	if in.FeatureMeters == nil {
+		return fmt.Errorf("feature meters are required")
+	}
+
 	return nil
 }
 
@@ -200,6 +219,7 @@ func (s *Service) handleInvoicePendingLinesForCurrency(ctx context.Context, in h
 	// Invariant: the gathering invoice is updated to contain the new lines if any were split.
 	prepareResults, err := s.prepareLinesToBill(ctx, prepareLinesToBillInput{
 		GatheringInvoice: gatheringInvoice,
+		FeatureMeters:    in.FeatureMeters,
 		InScopeLines:     in.InScopeLines,
 	})
 	if err != nil {
@@ -233,6 +253,7 @@ func (s *Service) handleInvoicePendingLinesForCurrency(ctx context.Context, in h
 		Customer:                in.Customer,
 		Currency:                in.Currency,
 		GatheringInvoice:        gatheringInvoice,
+		FeatureMeters:           in.FeatureMeters,
 		Lines:                   linesToBill,
 		EffectiveBillingProfile: in.EffectiveBillingProfile,
 	})
@@ -250,8 +271,12 @@ func (s *Service) handleInvoicePendingLinesForCurrency(ctx context.Context, in h
 	return &createStandardInvoiceResult.CreatedInvoice, nil
 }
 
+type gatheringInvoiceWithFeatureMeters struct {
+	Invoice       billing.StandardInvoice
+	FeatureMeters billing.FeatureMeters
+}
 type gatherInScopeLineInput struct {
-	GatheringInvoicesByCurrency map[currencyx.Code]billing.StandardInvoice
+	GatheringInvoicesByCurrency map[currencyx.Code]gatheringInvoiceWithFeatureMeters
 	// If set restricts the lines to be included to these IDs, otherwise the AsOf is used
 	// to determine the lines to be included.
 	LinesToInclude     mo.Option[[]string]
@@ -267,7 +292,7 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 	billableLineIDs := make(map[string]interface{})
 
 	for currency, invoice := range in.GatheringInvoicesByCurrency {
-		lineSrvs, err := s.lineService.FromEntities(invoice.Lines.OrEmpty())
+		lineSrvs, err := s.lineService.FromEntities(invoice.Invoice.Lines.OrEmpty(), invoice.FeatureMeters)
 		if err != nil {
 			return nil, err
 		}
@@ -330,6 +355,7 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 
 type prepareLinesToBillInput struct {
 	GatheringInvoice billing.StandardInvoice
+	FeatureMeters    billing.FeatureMeters
 	InScopeLines     []lineservice.LineWithBillablePeriod
 }
 
@@ -346,6 +372,10 @@ func (i prepareLinesToBillInput) Validate() error {
 
 	if i.GatheringInvoice.Lines.IsAbsent() {
 		errs = append(errs, fmt.Errorf("gathering invoice must have lines expanded"))
+	}
+
+	if i.FeatureMeters == nil {
+		errs = append(errs, fmt.Errorf("feature meters are required"))
 	}
 
 	for _, line := range i.InScopeLines {
@@ -387,6 +417,7 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 
 			splitLine, err := s.splitGatheringInvoiceLine(ctx, splitGatheringInvoiceLineInput{
 				GatheringInvoice: gatheringInvoice,
+				FeatureMeters:    input.FeatureMeters,
 				LineID:           line.ID(),
 				SplitAt:          line.BillablePeriod.End,
 			})
@@ -425,6 +456,7 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 
 type splitGatheringInvoiceLineInput struct {
 	GatheringInvoice billing.StandardInvoice
+	FeatureMeters    billing.FeatureMeters
 	LineID           string
 	SplitAt          time.Time
 }
@@ -446,6 +478,10 @@ func (i splitGatheringInvoiceLineInput) Validate() error {
 
 	if i.GatheringInvoice.Lines.IsAbsent() {
 		errs = append(errs, fmt.Errorf("gathering invoice must have lines expanded"))
+	}
+
+	if i.FeatureMeters == nil {
+		errs = append(errs, fmt.Errorf("feature meters are required"))
 	}
 
 	return errors.Join(errs...)
@@ -519,7 +555,7 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 		l.ChildUniqueReferenceID = nil
 	})
 
-	postSplitAtLineSvc, err := s.lineService.FromEntity(postSplitAtLine)
+	postSplitAtLineSvc, err := s.lineService.FromEntity(postSplitAtLine, in.FeatureMeters)
 	if err != nil {
 		return res, fmt.Errorf("creating line service: %w", err)
 	}
@@ -538,7 +574,7 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 	line.SplitLineGroupID = lo.ToPtr(splitLineGroupID)
 	line.ChildUniqueReferenceID = nil
 
-	preSplitAtLineSvc, err := s.lineService.FromEntity(line)
+	preSplitAtLineSvc, err := s.lineService.FromEntity(line, in.FeatureMeters)
 	if err != nil {
 		return res, fmt.Errorf("creating line service: %w", err)
 	}
@@ -563,6 +599,7 @@ type createStandardInvoiceFromGatheringLinesInput struct {
 	Customer                customer.Customer
 	Currency                currencyx.Code
 	GatheringInvoice        billing.StandardInvoice
+	FeatureMeters           billing.FeatureMeters
 	Lines                   billing.StandardLines
 	EffectiveBillingProfile billing.Profile
 }
@@ -590,6 +627,10 @@ func (in createStandardInvoiceFromGatheringLinesInput) Validate() error {
 		if err := line.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("line[%s]: %w", line.ID, err))
 		}
+	}
+
+	if in.FeatureMeters == nil {
+		errs = append(errs, fmt.Errorf("feature meters are required"))
 	}
 
 	return errors.Join(errs...)
@@ -648,6 +689,7 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 	moveResults, err := s.moveLinesToInvoice(ctx, moveLinesToInvoiceInput{
 		SourceGatheringInvoice: in.GatheringInvoice,
 		TargetInvoice:          invoice,
+		FeatureMeters:          in.FeatureMeters,
 		LineIDsToMove:          lo.Map(in.Lines, func(l *billing.StandardLine, _ int) string { return l.ID }),
 	})
 	if err != nil {
@@ -714,6 +756,7 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 
 type moveLinesToInvoiceInput struct {
 	SourceGatheringInvoice billing.StandardInvoice
+	FeatureMeters          billing.FeatureMeters
 	TargetInvoice          billing.StandardInvoice
 	LineIDsToMove          []string
 }
@@ -751,6 +794,10 @@ func (in moveLinesToInvoiceInput) Validate() error {
 		return fmt.Errorf("target invoice namespace must be the same as source gathering invoice namespace")
 	}
 
+	if in.FeatureMeters == nil {
+		return fmt.Errorf("feature meters are required")
+	}
+
 	return nil
 }
 
@@ -781,7 +828,7 @@ func (s *Service) moveLinesToInvoice(ctx context.Context, in moveLinesToInvoiceI
 		return nil, fmt.Errorf("lines to move[%d] must contain the same number of lines as line IDs to move[%d]", len(linesToMove), len(in.LineIDsToMove))
 	}
 
-	linesToAssociate, err := s.lineService.FromEntities(linesToMove)
+	linesToAssociate, err := s.lineService.FromEntities(linesToMove, in.FeatureMeters)
 	if err != nil {
 		return nil, fmt.Errorf("creating line services for lines to move: %w", err)
 	}

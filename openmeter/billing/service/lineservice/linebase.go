@@ -40,9 +40,10 @@ type LineBase interface {
 var _ LineBase = (*lineBase)(nil)
 
 type lineBase struct {
-	line     *billing.StandardLine
-	service  *Service
-	currency currencyx.Calculator
+	line          *billing.StandardLine
+	service       *Service
+	featureMeters billing.FeatureMeters
+	currency      currencyx.Calculator
 }
 
 func (l lineBase) ToEntity() *billing.StandardLine {

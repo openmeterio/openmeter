@@ -152,3 +152,18 @@ type AppError struct {
 func (e AppError) Error() string {
 	return fmt.Sprintf("app %s type with id %s in namespace %s: %s", e.AppType, e.AppID.ID, e.AppID.Namespace, e.Err.Error())
 }
+
+// ErrSnapshotInvalidDatabaseState is returned when the database state is invalid for snapshotting the line quantity.
+// This can happen if the feature or meter is not found. In such cases we should transition the invoice to
+// draft.invalid state.
+type ErrSnapshotInvalidDatabaseState struct {
+	Err error
+}
+
+func (e ErrSnapshotInvalidDatabaseState) Error() string {
+	return fmt.Sprintf("snapshotting line quantity: %s", e.Err.Error())
+}
+
+func (e ErrSnapshotInvalidDatabaseState) Unwrap() error {
+	return e.Err
+}

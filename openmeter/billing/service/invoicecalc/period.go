@@ -3,7 +3,7 @@ package invoicecalc
 import "github.com/openmeterio/openmeter/openmeter/billing"
 
 // CalculateInvoicePeriod calculates the period of the invoice based on the lines.
-func CalculateInvoicePeriod(invoice *billing.StandardInvoice, deps CalculatorDependencies) error {
+func CalculateInvoicePeriod(invoice *billing.StandardInvoice) error {
 	var period *billing.Period
 
 	for _, line := range invoice.Lines.OrEmpty() {

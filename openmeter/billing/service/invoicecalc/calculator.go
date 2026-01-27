@@ -20,22 +20,22 @@ var InvoiceCalculations = invoiceCalculatorsByType{
 		WithNoDependencies(CalculateDueAt),
 		WithNoDependencies(UpsertDiscountCorrelationIDs),
 		RecalculateDetailedLinesAndTotals,
-		CalculateInvoicePeriod,
-		SnapshotTaxConfigIntoLines,
+		WithNoDependencies(CalculateInvoicePeriod),
+		WithNoDependencies(SnapshotTaxConfigIntoLines),
 	},
 	GatheringInvoice: []Calculation{
 		WithNoDependencies(UpsertDiscountCorrelationIDs),
 		WithNoDependencies(GatheringInvoiceCollectionAt),
-		CalculateInvoicePeriod,
+		WithNoDependencies(CalculateInvoicePeriod),
 	},
 	// Calculations that should be running on a gathering invoice to populate line items
 	GatheringInvoiceWithLiveData: []Calculation{
 		WithNoDependencies(UpsertDiscountCorrelationIDs),
 		WithNoDependencies(GatheringInvoiceCollectionAt),
 		RecalculateDetailedLinesAndTotals,
-		CalculateInvoicePeriod,
-		SnapshotTaxConfigIntoLines,
-		FillGatheringDetailedLineMeta,
+		WithNoDependencies(CalculateInvoicePeriod),
+		WithNoDependencies(SnapshotTaxConfigIntoLines),
+		WithNoDependencies(FillGatheringDetailedLineMeta),
 	},
 }
 
@@ -44,49 +44,30 @@ type (
 )
 
 type Calculator interface {
-	Calculate(*billing.StandardInvoice) error
+	Calculate(*billing.StandardInvoice, CalculatorDependencies) error
 	CalculateGatheringInvoice(*billing.StandardInvoice) error
-	CalculateGatheringInvoiceWithLiveData(*billing.StandardInvoice) error
+	CalculateGatheringInvoiceWithLiveData(*billing.StandardInvoice, CalculatorDependencies) error
 }
 
-type CalculatorDependencies interface {
-	LineService() *lineservice.Service
+type CalculatorDependencies struct {
+	LineService   *lineservice.Service
+	FeatureMeters billing.FeatureMeters
 }
 
-type calculator struct {
-	lineService *lineservice.Service
+type calculator struct{}
+
+func New() Calculator {
+	return &calculator{}
 }
 
-type Config struct {
-	LineService *lineservice.Service
+func (c *calculator) Calculate(invoice *billing.StandardInvoice, deps CalculatorDependencies) error {
+	return c.applyCalculations(invoice, InvoiceCalculations.Invoice, deps)
 }
 
-func (c Config) Validate() error {
-	if c.LineService == nil {
-		return errors.New("line service is required")
-	}
-
-	return nil
-}
-
-func New(c Config) (Calculator, error) {
-	if err := c.Validate(); err != nil {
-		return nil, err
-	}
-
-	return &calculator{
-		lineService: c.LineService,
-	}, nil
-}
-
-func (c *calculator) Calculate(invoice *billing.StandardInvoice) error {
-	return c.applyCalculations(invoice, InvoiceCalculations.Invoice)
-}
-
-func (c *calculator) applyCalculations(invoice *billing.StandardInvoice, calculators []Calculation) error {
+func (c *calculator) applyCalculations(invoice *billing.StandardInvoice, calculators []Calculation, deps CalculatorDependencies) error {
 	var outErr error
 	for _, calc := range calculators {
-		err := calc(invoice, c)
+		err := calc(invoice, deps)
 		if err != nil {
 			outErr = errors.Join(outErr, err)
 		}
@@ -104,19 +85,15 @@ func (c *calculator) CalculateGatheringInvoice(invoice *billing.StandardInvoice)
 		return errors.New("invoice is not a gathering invoice")
 	}
 
-	return c.applyCalculations(invoice, InvoiceCalculations.GatheringInvoice)
+	return c.applyCalculations(invoice, InvoiceCalculations.GatheringInvoice, CalculatorDependencies{})
 }
 
-func (c *calculator) CalculateGatheringInvoiceWithLiveData(invoice *billing.StandardInvoice) error {
+func (c *calculator) CalculateGatheringInvoiceWithLiveData(invoice *billing.StandardInvoice, deps CalculatorDependencies) error {
 	if invoice.Status != billing.StandardInvoiceStatusGathering {
 		return errors.New("invoice is not a gathering invoice")
 	}
 
-	return c.applyCalculations(invoice, InvoiceCalculations.GatheringInvoiceWithLiveData)
-}
-
-func (c *calculator) LineService() *lineservice.Service {
-	return c.lineService
+	return c.applyCalculations(invoice, InvoiceCalculations.GatheringInvoiceWithLiveData, deps)
 }
 
 func WithNoDependencies(cb func(inv *billing.StandardInvoice) error) Calculation {

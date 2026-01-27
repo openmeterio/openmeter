@@ -57,6 +57,11 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 	}
 
 	return transcationForInvoiceManipulation(ctx, s, input.Customer, func(ctx context.Context) (*billing.CreatePendingInvoiceLinesResult, error) {
+		featureMeters, err := s.resolveFeatureMeters(ctx, input.Lines)
+		if err != nil {
+			return nil, fmt.Errorf("resolving feature meters: %w", err)
+		}
+
 		lineServices, err := s.lineService.FromEntities(lo.Map(input.Lines, func(l *billing.StandardLine, _ int) *billing.StandardLine {
 			l.Namespace = input.Customer.Namespace
 			l.Currency = input.Currency
@@ -66,7 +71,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			l.ID = ulid.Make().String()
 
 			return l
-		}))
+		}), featureMeters)
 		if err != nil {
 			return nil, fmt.Errorf("creating line services: %w", err)
 		}
@@ -324,7 +329,12 @@ func (s *Service) SnapshotLineQuantity(ctx context.Context, input billing.Snapsh
 		}
 	}
 
-	lineSvc, err := s.lineService.FromEntity(input.Line)
+	featureMeters, err := s.resolveFeatureMeters(ctx, billing.StandardLines{input.Line})
+	if err != nil {
+		return nil, fmt.Errorf("resolving feature meters: %w", err)
+	}
+
+	lineSvc, err := s.lineService.FromEntity(input.Line, featureMeters)
 	if err != nil {
 		return nil, fmt.Errorf("creating line service: %w", err)
 	}
