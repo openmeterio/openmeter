@@ -25,6 +25,11 @@ func (i getFeatureUsageInput) Validate() error {
 		return fmt.Errorf("line is required")
 	}
 
+	// So that we can safely determine the IsFirst/IsLastInPeriod flags
+	if i.Line.SplitLineGroupID != nil && i.Line.SplitLineHierarchy == nil {
+		return fmt.Errorf("split line group id is set but split line hierarchy is not expanded")
+	}
+
 	if slices.Contains([]meter.MeterAggregation{
 		meter.MeterAggregationAvg,
 		meter.MeterAggregationMin,
