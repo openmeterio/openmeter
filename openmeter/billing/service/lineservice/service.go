@@ -9,52 +9,20 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
-
-// ErrSnapshotInvalidDatabaseState is returned when the database state is invalid for snapshotting the line quantity.
-// This can happen if the feature or meter is not found. In such cases we should transition the invoice to
-// draft.invalid state.
-type ErrSnapshotInvalidDatabaseState struct {
-	Err error
-}
-
-func (e ErrSnapshotInvalidDatabaseState) Error() string {
-	return fmt.Sprintf("snapshotting line quantity: %s", e.Err.Error())
-}
-
-func (e ErrSnapshotInvalidDatabaseState) Unwrap() error {
-	return e.Err
-}
-
-type featureCacheItem struct {
-	feature feature.Feature
-	meter   meter.Meter
-}
 
 type Service struct {
 	Config
 }
 
 type Config struct {
-	FeatureService     feature.FeatureConnector
-	MeterService       meter.Service
 	StreamingConnector streaming.Connector
 }
 
 func (c Config) Validate() error {
-	if c.FeatureService == nil {
-		return fmt.Errorf("feature service is required")
-	}
-
-	if c.MeterService == nil {
-		return fmt.Errorf("meter repo is required")
-	}
-
 	if c.StreamingConnector == nil {
 		return fmt.Errorf("streaming connector is required")
 	}
@@ -72,16 +40,17 @@ func New(in Config) (*Service, error) {
 	}, nil
 }
 
-func (s *Service) FromEntity(line *billing.StandardLine) (Line, error) {
+func (s *Service) FromEntity(line *billing.StandardLine, featureMeters billing.FeatureMeters) (Line, error) {
 	currencyCalc, err := line.Currency.Calculator()
 	if err != nil {
 		return nil, fmt.Errorf("creating currency calculator: %w", err)
 	}
 
 	base := lineBase{
-		service:  s,
-		line:     line,
-		currency: currencyCalc,
+		service:       s,
+		featureMeters: featureMeters,
+		line:          line,
+		currency:      currencyCalc,
 	}
 
 	if line.UsageBased.Price.Type() == productcatalog.FlatPriceType {
@@ -95,55 +64,10 @@ func (s *Service) FromEntity(line *billing.StandardLine) (Line, error) {
 	}, nil
 }
 
-func (s *Service) FromEntities(line []*billing.StandardLine) (Lines, error) {
+func (s *Service) FromEntities(line []*billing.StandardLine, featureMeters billing.FeatureMeters) (Lines, error) {
 	return slicesx.MapWithErr(line, func(l *billing.StandardLine) (Line, error) {
-		return s.FromEntity(l)
+		return s.FromEntity(l, featureMeters)
 	})
-}
-
-func (s *Service) resolveFeatureMeter(ctx context.Context, ns string, featureKey string) (*featureCacheItem, error) {
-	feat, err := s.FeatureService.GetFeature(
-		ctx,
-		ns,
-		featureKey,
-		feature.IncludeArchivedFeatureTrue,
-	)
-	if err != nil {
-		if _, isNotFound := lo.ErrorsAs[*feature.FeatureNotFoundError](err); isNotFound {
-			return nil, &ErrSnapshotInvalidDatabaseState{
-				Err: fmt.Errorf("fetching feature[%s]: %w", featureKey, err),
-			}
-		}
-		return nil, fmt.Errorf("fetching feature[%s]: %w", featureKey, err)
-	}
-
-	if feat.MeterSlug == nil {
-		return nil, billing.ValidationError{
-			Err: &ErrSnapshotInvalidDatabaseState{
-				Err: billing.ErrInvoiceLineFeatureHasNoMeters,
-			},
-		}
-	}
-
-	// let's resolve the underlying meter
-	meterEntity, err := s.MeterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
-		Namespace: ns,
-		IDOrSlug:  *feat.MeterSlug,
-	})
-	if err != nil {
-		if _, isNotFound := lo.ErrorsAs[*meter.MeterNotFoundError](err); isNotFound {
-			return nil, &ErrSnapshotInvalidDatabaseState{
-				Err: fmt.Errorf("fetching meter[%s]: %w", *feat.MeterSlug, err),
-			}
-		}
-
-		return nil, fmt.Errorf("fetching meter[%s]: %w", *feat.MeterSlug, err)
-	}
-
-	return &featureCacheItem{
-		feature: *feat,
-		meter:   meterEntity,
-	}, nil
 }
 
 // UpdateTotalsFromDetailedLines is a helper method to update the totals of a line from its detailed lines.

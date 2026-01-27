@@ -14,7 +14,7 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps Ca
 		return errors.New("cannot recaulculate invoice without expanded lines")
 	}
 
-	lines, err := deps.LineService().FromEntities(invoice.Lines.OrEmpty())
+	lines, err := deps.LineService.FromEntities(invoice.Lines.OrEmpty(), deps.FeatureMeters)
 	if err != nil {
 		return fmt.Errorf("creating line services: %w", err)
 	}

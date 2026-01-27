@@ -30,8 +30,16 @@ func (c *adapter) ListMeters(_ context.Context, params meter.ListMetersParams) (
 
 		meters = append(meters, meter)
 	}
+	// In memory pagination: case #1 if there is no pagination settings return the whole dataset
+	if params.Page.IsZero() {
+		return pagination.Result[meter.Meter]{
+			Page:       params.Page,
+			Items:      meters,
+			TotalCount: len(meters),
+		}, nil
+	}
 
-	// In memory pagination
+	// In memory pagination: case #2 if there is pagination settings return the paginated dataset
 	pageNumberIndex := params.PageNumber - 1
 
 	if pageNumberIndex*params.PageSize > len(meters) {

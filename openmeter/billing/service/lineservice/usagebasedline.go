@@ -51,7 +51,7 @@ func (l usageBasedLine) PrepareForCreate(context.Context) (Line, error) {
 }
 
 func (l usageBasedLine) Validate(ctx context.Context, targetInvoice *billing.StandardInvoice) error {
-	if _, err := l.service.resolveFeatureMeter(ctx, l.line.Namespace, l.line.UsageBased.FeatureKey); err != nil {
+	if _, err := l.featureMeters.Get(l.line.UsageBased.FeatureKey, true); err != nil {
 		return err
 	}
 
@@ -102,12 +102,16 @@ func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, in CanBeInvoicedA
 	}
 
 	// Let's check if the underlying meter can be billed in a progressive manner
-	meterAndFactory, err := l.service.resolveFeatureMeter(ctx, l.line.Namespace, l.line.UsageBased.FeatureKey)
+	featureMeter, err := l.featureMeters.Get(l.line.UsageBased.FeatureKey, true)
 	if err != nil {
 		return nil, err
 	}
 
-	meter := meterAndFactory.meter
+	if featureMeter.Meter == nil {
+		return nil, fmt.Errorf("meter is nil for feature[%s]", l.line.UsageBased.FeatureKey)
+	}
+
+	meter := *featureMeter.Meter
 
 	asOfTruncated := in.AsOf.Truncate(streaming.MinimumWindowSizeDuration)
 
@@ -149,7 +153,7 @@ func (l *usageBasedLine) UpdateTotals() error {
 }
 
 func (l *usageBasedLine) SnapshotQuantity(ctx context.Context, customer billing.InvoiceCustomer) error {
-	featureMeter, err := l.service.resolveFeatureMeter(ctx, l.line.Namespace, l.line.UsageBased.FeatureKey)
+	featureMeter, err := l.featureMeters.Get(l.line.UsageBased.FeatureKey, true)
 	if err != nil {
 		return err
 	}
@@ -157,8 +161,8 @@ func (l *usageBasedLine) SnapshotQuantity(ctx context.Context, customer billing.
 	usage, err := l.service.getFeatureUsage(ctx,
 		getFeatureUsageInput{
 			Line:     l.line,
-			Feature:  featureMeter.feature,
-			Meter:    featureMeter.meter,
+			Feature:  featureMeter.Feature,
+			Meter:    *featureMeter.Meter,
 			Customer: customer,
 		},
 	)

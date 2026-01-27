@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
-	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
@@ -607,7 +606,15 @@ func (m *InvoiceStateMachine) validateDraftInvoice(ctx context.Context) error {
 }
 
 func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
-	return m.Calculator.Calculate(&m.Invoice)
+	featureMeters, err := m.Service.resolveFeatureMeters(ctx, m.Invoice.Lines.OrEmpty())
+	if err != nil {
+		return fmt.Errorf("resolving feature meters: %w", err)
+	}
+
+	return m.Calculator.Calculate(&m.Invoice, invoicecalc.CalculatorDependencies{
+		LineService:   m.Service.lineService,
+		FeatureMeters: featureMeters,
+	})
 }
 
 // syncDraftInvoice syncs the draft invoice with the external system.
@@ -738,14 +745,19 @@ func (m *InvoiceStateMachine) snapshotQuantityAsNeeded(ctx context.Context) erro
 		return nil
 	}
 
-	lineSvcs, err := m.Service.lineService.FromEntities(m.Invoice.Lines.OrEmpty())
+	featureMeters, err := m.Service.resolveFeatureMeters(ctx, m.Invoice.Lines.OrEmpty())
+	if err != nil {
+		return fmt.Errorf("resolving feature meters: %w", err)
+	}
+
+	lineSvcs, err := m.Service.lineService.FromEntities(m.Invoice.Lines.OrEmpty(), featureMeters)
 	if err != nil {
 		return fmt.Errorf("creating line services: %w", err)
 	}
 
 	err = m.Service.snapshotLineQuantitiesInParallel(ctx, m.Invoice.Customer, lineSvcs)
 	if err != nil {
-		if _, isInvalidDatabaseState := lo.ErrorsAs[*lineservice.ErrSnapshotInvalidDatabaseState](err); isInvalidDatabaseState {
+		if _, isInvalidDatabaseState := lo.ErrorsAs[*billing.ErrSnapshotInvalidDatabaseState](err); isInvalidDatabaseState {
 			return m.Invoice.MergeValidationIssues(
 				billing.ValidationIssue{
 					Severity:  billing.ValidationIssueSeverityCritical,

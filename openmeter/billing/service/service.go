@@ -113,11 +113,10 @@ func New(config Config) (*Service, error) {
 		advancementStrategy:          config.AdvancementStrategy,
 		fsNamespaceLockdown:          config.FSNamespaceLockdown,
 		maxParallelQuantitySnapshots: config.MaxParallelQuantitySnapshots,
+		invoiceCalculator:            invoicecalc.New(),
 	}
 
 	lineSvc, err := lineservice.New(lineservice.Config{
-		FeatureService:     config.FeatureService,
-		MeterService:       config.MeterService,
 		StreamingConnector: config.StreamingConnector,
 	})
 	if err != nil {
@@ -125,15 +124,6 @@ func New(config Config) (*Service, error) {
 	}
 
 	svc.lineService = lineSvc
-
-	calculator, err := invoicecalc.New(invoicecalc.Config{
-		LineService: lineSvc,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("creating invoice calculator: %w", err)
-	}
-
-	svc.invoiceCalculator = calculator
 
 	return svc, nil
 }
