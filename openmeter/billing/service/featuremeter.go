@@ -26,6 +26,11 @@ func (s *Service) resolveFeatureMeters(ctx context.Context, lines billing.Standa
 	featuresToResolve := lo.Uniq(
 		lo.Filter(
 			lo.Map(lines, func(line *billing.StandardLine, _ int) string {
+				// Never happens, as StandardLine is always a usage based line, but until we migrate to a new table let's keep it here
+				if line.UsageBased == nil {
+					return ""
+				}
+
 				return line.UsageBased.FeatureKey
 			}),
 			func(featureKey string, _ int) bool {
