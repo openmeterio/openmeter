@@ -697,7 +697,7 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 	}
 
 	// Let's create the sub lines as per the meters (we are not setting the QuantitySnapshotedAt field just now, to signal that this is not the final snapshot)
-	if err := s.snapshotLineQuantitiesInParallel(ctx, invoice.Customer, moveResults.LinesAssociated); err != nil {
+	if err := s.snapshotLineQuantitiesInParallel(ctx, invoice.Customer, moveResults.LinesAssociated, in.FeatureMeters); err != nil {
 		return nil, fmt.Errorf("snapshotting lines: %w", err)
 	}
 
@@ -804,7 +804,7 @@ func (in moveLinesToInvoiceInput) Validate() error {
 type moveLinesToInvoiceResult struct {
 	GatheringInvoice billing.StandardInvoice
 	TargetInvoice    billing.StandardInvoice
-	LinesAssociated  lineservice.Lines
+	LinesAssociated  billing.StandardLines
 }
 
 // moveLinesToInvoice moves the lines from the source gathering invoice to the target invoice, invariants:
@@ -855,7 +855,7 @@ func (s *Service) moveLinesToInvoice(ctx context.Context, in moveLinesToInvoiceI
 	return &moveLinesToInvoiceResult{
 		GatheringInvoice: srcInvoice,
 		TargetInvoice:    dstInvoice,
-		LinesAssociated:  linesToAssociate,
+		LinesAssociated:  linesToMove,
 	}, nil
 }
 

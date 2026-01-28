@@ -750,12 +750,7 @@ func (m *InvoiceStateMachine) snapshotQuantityAsNeeded(ctx context.Context) erro
 		return fmt.Errorf("resolving feature meters: %w", err)
 	}
 
-	lineSvcs, err := m.Service.lineService.FromEntities(m.Invoice.Lines.OrEmpty(), featureMeters)
-	if err != nil {
-		return fmt.Errorf("creating line services: %w", err)
-	}
-
-	err = m.Service.snapshotLineQuantitiesInParallel(ctx, m.Invoice.Customer, lineSvcs)
+	err = m.Service.snapshotLineQuantitiesInParallel(ctx, m.Invoice.Customer, m.Invoice.Lines.OrEmpty(), featureMeters)
 	if err != nil {
 		if _, isInvalidDatabaseState := lo.ErrorsAs[*billing.ErrSnapshotInvalidDatabaseState](err); isInvalidDatabaseState {
 			return m.Invoice.MergeValidationIssues(

@@ -138,7 +138,6 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 		invoice.Lines = billing.NewStandardInvoiceLines(lines)
 	}
 
-	hasInvoicableLines := mo.Option[bool]{}
 	now := clock.Now()
 
 	customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
@@ -156,24 +155,24 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 		return invoice, fmt.Errorf("resolving feature meters: %w", err)
 	}
 
-	inScopeLineSvcs, err := s.lineService.FromEntities(
-		lo.Filter(invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
-			return line.DeletedAt == nil
-		}),
-		featureMeters,
-	)
-	if err != nil {
-		return invoice, fmt.Errorf("creating line services: %w", err)
-	}
-
 	if customerProfile.Customer == nil {
 		return invoice, fmt.Errorf("customer profile is nil")
 	}
 
-	if err := s.snapshotLineQuantitiesInParallel(ctx, billing.NewInvoiceCustomer(*customerProfile.Customer), inScopeLineSvcs); err != nil {
+	inScopeLines := lo.Filter(invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
+		return line.DeletedAt == nil
+	})
+
+	if err := s.snapshotLineQuantitiesInParallel(ctx, billing.NewInvoiceCustomer(*customerProfile.Customer), inScopeLines, featureMeters); err != nil {
 		return invoice, fmt.Errorf("snapshotting lines: %w", err)
 	}
 
+	inScopeLineSvcs, err := s.lineService.FromEntities(inScopeLines, featureMeters)
+	if err != nil {
+		return invoice, fmt.Errorf("creating line services: %w", err)
+	}
+
+	hasInvoicableLines := mo.Option[bool]{}
 	for _, lineSvc := range inScopeLineSvcs {
 		period, err := lineSvc.CanBeInvoicedAsOf(ctx, lineservice.CanBeInvoicedAsOfInput{
 			AsOf:               now,
