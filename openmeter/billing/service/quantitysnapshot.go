@@ -62,7 +62,7 @@ func (s *Service) snapshotMeteredLineQuantity(ctx context.Context, line *billing
 	return nil
 }
 
-func (s *Service) snapshotFlatPriceLineQuantity(ctx context.Context, line *billing.StandardLine) error {
+func (s *Service) snapshotFlatPriceLineQuantity(_ context.Context, line *billing.StandardLine) error {
 	line.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(1))
 	line.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(1))
 	line.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
@@ -151,7 +151,7 @@ func (i getFeatureUsageInput) Validate() error {
 		}
 	}
 
-	// TODO[later]: We need to have this check to make sure that usage discounts are properly accounted for
+	// TODO[OM-160]: We need to have this check to make sure that usage discounts are properly accounted for
 	// but we seem to have a bug in syncing progressively billed lines, so let's address this as a separate pr.
 
 	// if i.Line.SplitLineGroupID != nil && i.Line.SplitLineHierarchy == nil {
@@ -245,7 +245,7 @@ func (s *Service) getFeatureUsage(ctx context.Context, in getFeatureUsageInput) 
 }
 
 func summarizeMeterQueryRow(in []meter.MeterQueryRow) alpacadecimal.Decimal {
-	sum := alpacadecimal.Decimal{}
+	sum := alpacadecimal.Zero
 	for _, row := range in {
 		sum = sum.Add(alpacadecimal.NewFromFloat(row.Value))
 	}
