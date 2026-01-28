@@ -145,32 +145,6 @@ func (l *usageBasedLine) UpdateTotals() error {
 	return l.service.UpdateTotalsFromDetailedLines(l.line)
 }
 
-func (l *usageBasedLine) SnapshotQuantity(ctx context.Context, customer billing.InvoiceCustomer) error {
-	featureMeter, err := l.featureMeters.Get(l.line.UsageBased.FeatureKey, true)
-	if err != nil {
-		return err
-	}
-
-	usage, err := l.service.getFeatureUsage(ctx,
-		getFeatureUsageInput{
-			Line:     l.line,
-			Feature:  featureMeter.Feature,
-			Meter:    *featureMeter.Meter,
-			Customer: customer,
-		},
-	)
-	if err != nil {
-		return err
-	}
-
-	// MeteredQuantity is not mutable by the price mutators, that's why we have this redundancy
-	l.line.UsageBased.MeteredQuantity = lo.ToPtr(usage.LinePeriodQty)
-	l.line.UsageBased.Quantity = lo.ToPtr(usage.LinePeriodQty)
-	l.line.UsageBased.PreLinePeriodQuantity = lo.ToPtr(usage.PreLinePeriodQty)
-	l.line.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(usage.PreLinePeriodQty)
-	return nil
-}
-
 func (l *usageBasedLine) CalculateDetailedLines() error {
 	if l.line.UsageBased.Quantity == nil || l.line.UsageBased.PreLinePeriodQuantity == nil {
 		// This is an internal logic error, as the snapshotting should have set these values

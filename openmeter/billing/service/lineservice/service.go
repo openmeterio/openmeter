@@ -130,7 +130,6 @@ type Line interface {
 
 	Validate(context.Context, *billing.StandardInvoice) error
 	CanBeInvoicedAsOf(context.Context, CanBeInvoicedAsOfInput) (*billing.Period, error)
-	SnapshotQuantity(ctx context.Context, customer billing.InvoiceCustomer) error
 	CalculateDetailedLines() error
 	UpdateTotals() error
 }

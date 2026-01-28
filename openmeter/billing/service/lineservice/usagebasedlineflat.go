@@ -5,9 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
@@ -53,15 +50,6 @@ func (l ubpFlatFeeLine) CanBeInvoicedAsOf(_ context.Context, in CanBeInvoicedAsO
 	}
 
 	return nil, nil
-}
-
-func (l ubpFlatFeeLine) SnapshotQuantity(context.Context, billing.InvoiceCustomer) error {
-	l.line.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(1))
-	l.line.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(1))
-	l.line.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
-	l.line.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
-
-	return nil
 }
 
 func (l ubpFlatFeeLine) calculateDetailedLines() (newDetailedLinesInput, error) {

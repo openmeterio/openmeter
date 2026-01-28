@@ -10,7 +10,6 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -250,57 +249,6 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 	}, nil
 }
 
-func (s *Service) snapshotLineQuantitiesInParallel(ctx context.Context, customer billing.InvoiceCustomer, lines lineservice.Lines) error {
-	linesCh := make(chan lineservice.Line, len(lines))
-	errCh := make(chan error, len(lines))
-	doneCh := make(chan struct{})
-
-	// Feed the channel
-	for _, line := range lines {
-		linesCh <- line
-	}
-	close(linesCh)
-
-	// Start workers
-	for range s.maxParallelQuantitySnapshots {
-		go func() {
-			defer func() {
-				if r := recover(); r != nil {
-					errCh <- fmt.Errorf("snapshotting line quantity: %v", r)
-				}
-				doneCh <- struct{}{}
-			}()
-
-			for line := range linesCh {
-				if ctx.Err() != nil {
-					errCh <- ctx.Err()
-					return
-				}
-				if err := line.SnapshotQuantity(ctx, customer); err != nil {
-					errCh <- fmt.Errorf("line[%s]: %w", line.ID(), err)
-				}
-			}
-		}()
-	}
-
-	// Wait for all workers to finish
-	for range s.maxParallelQuantitySnapshots {
-		<-doneCh
-	}
-
-	close(errCh)
-
-	// Collect snapshot errors
-	errs := []error{}
-	for err := range errCh {
-		if err != nil {
-			errs = append(errs, err)
-		}
-	}
-
-	return errors.Join(errs...)
-}
-
 func (s *Service) GetLinesForSubscription(ctx context.Context, input billing.GetLinesForSubscriptionInput) ([]billing.LineOrHierarchy, error) {
 	if err := input.Validate(); err != nil {
 		return nil, billing.ValidationError{
@@ -311,29 +259,4 @@ func (s *Service) GetLinesForSubscription(ctx context.Context, input billing.Get
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]billing.LineOrHierarchy, error) {
 		return s.adapter.GetLinesForSubscription(ctx, input)
 	})
-}
-
-func (s *Service) SnapshotLineQuantity(ctx context.Context, input billing.SnapshotLineQuantityInput) (*billing.StandardLine, error) {
-	if err := input.Validate(); err != nil {
-		return nil, billing.ValidationError{
-			Err: err,
-		}
-	}
-
-	featureMeters, err := s.resolveFeatureMeters(ctx, billing.StandardLines{input.Line})
-	if err != nil {
-		return nil, fmt.Errorf("resolving feature meters: %w", err)
-	}
-
-	lineSvc, err := s.lineService.FromEntity(input.Line, featureMeters)
-	if err != nil {
-		return nil, fmt.Errorf("creating line service: %w", err)
-	}
-
-	err = lineSvc.SnapshotQuantity(ctx, input.Invoice.Customer)
-	if err != nil {
-		return nil, fmt.Errorf("snapshotting line quantity: %w", err)
-	}
-
-	return lineSvc.ToEntity(), nil
 }
