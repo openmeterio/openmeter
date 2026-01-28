@@ -9,6 +9,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"golang.org/x/sync/semaphore"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -84,47 +85,48 @@ func (s *Service) snapshotLineQuantitiesInParallel(ctx context.Context, customer
 		workerCount = 1
 	}
 
-	// Feed the channel
-	linesCh := make(chan *billing.StandardLine, len(lines))
+	sem := semaphore.NewWeighted(int64(workerCount))
+
+	errCh := make(chan error, len(lines))
+
+	var wg sync.WaitGroup
 
 	for _, line := range lines {
-		linesCh <- line
-	}
-	close(linesCh)
+		err := sem.Acquire(ctx, 1)
+		if err != nil {
+			return fmt.Errorf("acquiring worker slot: %w", err)
+		}
 
-	workerWg := sync.WaitGroup{}
-	workerErrs := make([][]error, workerCount)
+		wg.Go(func() {
+			defer sem.Release(1)
 
-	// Start workers
-	for workerIdx := 0; workerIdx < workerCount; workerIdx++ {
-		workerWg.Add(1)
-		go func(workerIdx int) {
-			defer workerWg.Done()
+			var err error
 			defer func() {
-				if r := recover(); r != nil {
-					workerErrs[workerIdx] = append(workerErrs[workerIdx], fmt.Errorf("snapshotting line quantity: %v", r))
+				if err != nil {
+					errCh <- err
 				}
 			}()
 
-			for line := range linesCh {
-				if ctx.Err() != nil {
-					workerErrs[workerIdx] = append(workerErrs[workerIdx], ctx.Err())
-					return
+			defer func() {
+				if r := recover(); r != nil {
+					err = fmt.Errorf("snapshotting line quantity: %v", r)
 				}
+			}()
 
-				if err := s.snapshotLineQuantity(ctx, customer, line, featureMeters); err != nil {
-					workerErrs[workerIdx] = append(workerErrs[workerIdx], fmt.Errorf("line[%s]: %w", line.ID, err))
-				}
-			}
-		}(workerIdx)
+			err = s.snapshotLineQuantity(ctx, customer, line, featureMeters)
+		})
 	}
 
-	workerWg.Wait()
+	wg.Wait()
 
-	// Collect snapshot errors
-	errs := []error{}
-	for _, workerErrs := range workerErrs {
-		errs = append(errs, workerErrs...)
+	close(errCh)
+
+	var errs []error
+
+	for err := range errCh {
+		if err != nil {
+			errs = append(errs, err)
+		}
 	}
 
 	return errors.Join(errs...)
