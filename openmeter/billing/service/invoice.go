@@ -576,21 +576,12 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 				return billing.StandardInvoice{}, fmt.Errorf("resolving feature meters: %w", err)
 			}
 
-			lineServices, err := s.lineService.FromEntities(invoice.Lines.OrEmpty(), featureMeters)
+			normalizedLines, err := invoice.Lines.WithNormalizedValues()
 			if err != nil {
-				return billing.StandardInvoice{}, fmt.Errorf("creating line services: %w", err)
+				return billing.StandardInvoice{}, fmt.Errorf("normalizing lines: %w", err)
 			}
 
-			for idx := range lineServices {
-				lineSvc, err := lineServices[idx].PrepareForCreate(ctx)
-				if err != nil {
-					return billing.StandardInvoice{}, fmt.Errorf("preparing line[%s] for create: %w", lineServices[idx].ID(), err)
-				}
-
-				lineServices[idx] = lineSvc
-			}
-
-			invoice.Lines = billing.NewStandardInvoiceLines(lineServices.ToEntities())
+			invoice.Lines = normalizedLines
 
 			if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice); err != nil {
 				return billing.StandardInvoice{}, fmt.Errorf("calculating invoice[%s]: %w", invoice.ID, err)

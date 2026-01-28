@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type StandardInvoiceStatusCategory string
@@ -426,6 +427,25 @@ func (c StandardInvoiceLines) Map(fn func(*StandardLine) *StandardLine) Standard
 			c.OrEmpty().Map(fn),
 		),
 	}
+}
+
+func (c StandardInvoiceLines) MapWithErr(fn func(*StandardLine) (*StandardLine, error)) (StandardInvoiceLines, error) {
+	if !c.IsPresent() {
+		return c, nil
+	}
+
+	res, err := slicesx.MapWithErr(c.OrEmpty(), fn)
+	if err != nil {
+		return c, err
+	}
+
+	return StandardInvoiceLines{mo.Some(StandardLines(res))}, nil
+}
+
+func (c StandardInvoiceLines) WithNormalizedValues() (StandardInvoiceLines, error) {
+	return c.MapWithErr(func(line *StandardLine) (*StandardLine, error) {
+		return line.WithNormalizedValues()
+	})
 }
 
 func (c StandardInvoiceLines) Clone() StandardInvoiceLines {

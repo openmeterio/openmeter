@@ -43,13 +43,6 @@ type usageBasedLine struct {
 	lineBase
 }
 
-func (l usageBasedLine) PrepareForCreate(context.Context) (Line, error) {
-	l.line.Period = l.line.Period.Truncate(streaming.MinimumWindowSizeDuration)
-	l.line.InvoiceAt = l.line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
-
-	return &l, nil
-}
-
 func (l usageBasedLine) Validate(ctx context.Context, targetInvoice *billing.StandardInvoice) error {
 	if _, err := l.featureMeters.Get(l.line.UsageBased.FeatureKey, true); err != nil {
 		return err
