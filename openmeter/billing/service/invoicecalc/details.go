@@ -10,7 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 )
 
-func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps CalculationDependencies) error {
+func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps CalculatorDependencies) error {
 	if invoice.Lines.IsAbsent() {
 		return errors.New("cannot recaulculate invoice without expanded lines")
 	}

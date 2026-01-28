@@ -26,7 +26,7 @@ type mockCalculator struct {
 	calculateGatheringInvoiceWithLiveDataResultCalled bool
 }
 
-func (m *mockCalculator) Calculate(i *billing.StandardInvoice, deps CalculationDependencies) error {
+func (m *mockCalculator) Calculate(i *billing.StandardInvoice, deps CalculatorDependencies) error {
 	m.calculateResultCalled = true
 
 	res := m.calculateResult.MustGet()
@@ -56,7 +56,7 @@ func (m *mockCalculator) CalculateGatheringInvoice(i *billing.StandardInvoice) e
 		billing.ValidationComponentOpenMeter)
 }
 
-func (m *mockCalculator) CalculateGatheringInvoiceWithLiveData(i *billing.StandardInvoice, deps CalculationDependencies) error {
+func (m *mockCalculator) CalculateGatheringInvoiceWithLiveData(i *billing.StandardInvoice, deps CalculatorDependencies) error {
 	m.calculateGatheringInvoiceWithLiveDataResultCalled = true
 
 	res := m.calculateGatheringInvoiceWithLiveDataResult.MustGet()
@@ -120,7 +120,7 @@ func NewMockableCalculator(_ *testing.T, upstream Calculator) *MockableInvoiceCa
 	}
 }
 
-func (m *MockableInvoiceCalculator) Calculate(i *billing.StandardInvoice, deps CalculationDependencies) error {
+func (m *MockableInvoiceCalculator) Calculate(i *billing.StandardInvoice, deps CalculatorDependencies) error {
 	outErr := m.upstream.Calculate(i, deps)
 
 	if m.mock != nil {
@@ -146,7 +146,7 @@ func (m *MockableInvoiceCalculator) CalculateGatheringInvoice(i *billing.Standar
 	return outErr
 }
 
-func (m *MockableInvoiceCalculator) CalculateGatheringInvoiceWithLiveData(i *billing.StandardInvoice, deps CalculationDependencies) error {
+func (m *MockableInvoiceCalculator) CalculateGatheringInvoiceWithLiveData(i *billing.StandardInvoice, deps CalculatorDependencies) error {
 	outErr := m.upstream.CalculateGatheringInvoiceWithLiveData(i, deps)
 
 	if m.mock != nil {

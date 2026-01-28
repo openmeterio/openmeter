@@ -1,7 +1,6 @@
 package invoicecalc
 
 import (
-	"context"
 	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -40,22 +39,17 @@ var InvoiceCalculations = invoiceCalculatorsByType{
 }
 
 type (
-	Calculation func(*billing.StandardInvoice, CalculationDependencies) error
+	Calculation func(*billing.StandardInvoice, CalculatorDependencies) error
 )
 
-type CalculationDependencies struct {
-	FeatureMeters billing.FeatureMeters
-}
-
 type Calculator interface {
-	Calculate(*billing.StandardInvoice, CalculationDependencies) error
+	Calculate(*billing.StandardInvoice, CalculatorDependencies) error
 	CalculateGatheringInvoice(*billing.StandardInvoice) error
-	CalculateGatheringInvoiceWithLiveData(*billing.StandardInvoice, CalculationDependencies) error
+	CalculateGatheringInvoiceWithLiveData(*billing.StandardInvoice, CalculatorDependencies) error
 }
 
-type ServiceDependencies interface {
-	// RecalculateInvoiceTotals recalculates the totals of an invoice
-	RecalculateInvoiceTotals(ctx context.Context, invoice *billing.StandardInvoice) error
+type CalculatorDependencies struct {
+	FeatureMeters billing.FeatureMeters
 }
 
 type calculator struct{}
@@ -64,11 +58,11 @@ func New() Calculator {
 	return &calculator{}
 }
 
-func (c *calculator) Calculate(invoice *billing.StandardInvoice, deps CalculationDependencies) error {
+func (c *calculator) Calculate(invoice *billing.StandardInvoice, deps CalculatorDependencies) error {
 	return c.applyCalculations(invoice, InvoiceCalculations.Invoice, deps)
 }
 
-func (c *calculator) applyCalculations(invoice *billing.StandardInvoice, calculators []Calculation, deps CalculationDependencies) error {
+func (c *calculator) applyCalculations(invoice *billing.StandardInvoice, calculators []Calculation, deps CalculatorDependencies) error {
 	var outErr error
 	for _, calc := range calculators {
 		err := calc(invoice, deps)
@@ -89,10 +83,10 @@ func (c *calculator) CalculateGatheringInvoice(invoice *billing.StandardInvoice)
 		return errors.New("invoice is not a gathering invoice")
 	}
 
-	return c.applyCalculations(invoice, InvoiceCalculations.GatheringInvoice, CalculationDependencies{})
+	return c.applyCalculations(invoice, InvoiceCalculations.GatheringInvoice, CalculatorDependencies{})
 }
 
-func (c *calculator) CalculateGatheringInvoiceWithLiveData(invoice *billing.StandardInvoice, deps CalculationDependencies) error {
+func (c *calculator) CalculateGatheringInvoiceWithLiveData(invoice *billing.StandardInvoice, deps CalculatorDependencies) error {
 	if invoice.Status != billing.StandardInvoiceStatusGathering {
 		return errors.New("invoice is not a gathering invoice")
 	}
@@ -101,7 +95,7 @@ func (c *calculator) CalculateGatheringInvoiceWithLiveData(invoice *billing.Stan
 }
 
 func WithNoDependencies(cb func(inv *billing.StandardInvoice) error) Calculation {
-	return func(inv *billing.StandardInvoice, _ CalculationDependencies) error {
+	return func(inv *billing.StandardInvoice, _ CalculatorDependencies) error {
 		return cb(inv)
 	}
 }

@@ -193,7 +193,7 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 
 	invoice.QuantitySnapshotedAt = lo.ToPtr(now)
 
-	if err := s.invoiceCalculator.CalculateGatheringInvoiceWithLiveData(&invoice, invoicecalc.CalculationDependencies{
+	if err := s.invoiceCalculator.CalculateGatheringInvoiceWithLiveData(&invoice, invoicecalc.CalculatorDependencies{
 		FeatureMeters: featureMeters,
 	}); err != nil {
 		return invoice, fmt.Errorf("calculating invoice: %w", err)
@@ -588,6 +588,11 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 				}
 			}
 
+			featureMeters, err := s.resolveFeatureMeters(ctx, invoice.Lines.OrEmpty())
+			if err != nil {
+				return billing.StandardInvoice{}, fmt.Errorf("resolving feature meters: %w", err)
+			}
+
 			// Check if the new lines are still invoicable
 			if err := s.checkIfLinesAreInvoicable(ctx, &invoice, customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling, featureMeters); err != nil {
 				return billing.StandardInvoice{}, err
@@ -657,12 +662,7 @@ func (s Service) updateInvoice(ctx context.Context, in billing.UpdateInvoiceAdap
 	return invoice, nil
 }
 
-func (s Service) checkIfLinesAreInvoicable(ctx context.Context, invoice *billing.StandardInvoice, progressiveBilling bool) error {
-	featureMeters, err := s.resolveFeatureMeters(ctx, invoice.Lines.OrEmpty())
-	if err != nil {
-		return fmt.Errorf("resolving feature meters: %w", err)
-	}
-
+func (s Service) checkIfLinesAreInvoicable(ctx context.Context, invoice *billing.StandardInvoice, progressiveBilling bool, featureMeters billing.FeatureMeters) error {
 	linesToCheck := lo.Filter(invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
 		return line.DeletedAt == nil
 	})
@@ -820,7 +820,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 	}
 
 	// Let's simulate a recalculation of the invoice
-	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.CalculationDependencies{
+	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.CalculatorDependencies{
 		FeatureMeters: featureMeters,
 	}); err != nil {
 		return billing.StandardInvoice{}, err
