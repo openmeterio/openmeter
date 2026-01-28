@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
@@ -62,21 +63,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			return nil, fmt.Errorf("resolving feature meters: %w", err)
 		}
 
-		lineServices, err := s.lineService.FromEntities(lo.Map(input.Lines, func(l *billing.StandardLine, _ int) *billing.StandardLine {
-			l.Namespace = input.Customer.Namespace
-			l.Currency = input.Currency
-
-			// This is only used to ensure that we know the line IDs before the upsert so that we can return
-			// the correct lines to the caller.
-			l.ID = ulid.Make().String()
-
-			return l
-		}), featureMeters)
-		if err != nil {
-			return nil, fmt.Errorf("creating line services: %w", err)
-		}
-
-		if len(lineServices) == 0 {
+		if len(input.Lines) == 0 {
 			return nil, nil
 		}
 
@@ -102,25 +89,26 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 		}
 		gatheringInvoice := *gatheringInvoiceUpsertResult.Invoice
 
-		lines := make(lineservice.Lines, 0, len(input.Lines))
+		linesToCreate, err := slicesx.MapWithErr(input.Lines, func(l *billing.StandardLine) (*billing.StandardLine, error) {
+			l.Namespace = input.Customer.Namespace
+			l.Currency = input.Currency
 
-		for i, lineSvc := range lineServices {
-			line := lineSvc.ToEntity()
-			line.InvoiceID = gatheringInvoice.ID
+			// This is only used to ensure that we know the line IDs before the upsert so that we can return
+			// the correct lines to the caller.
+			l.ID = ulid.Make().String()
+			l.InvoiceID = gatheringInvoice.ID
 
-			if err := lineSvc.Validate(ctx, &gatheringInvoice); err != nil {
-				return nil, fmt.Errorf("validating line[%d]: %w", i, err)
-			}
+			return l.WithNormalizedValues()
+		})
 
-			lineSvc, err = lineSvc.PrepareForCreate(ctx)
-			if err != nil {
-				return nil, fmt.Errorf("modifying line[%d]: %w", i, err)
-			}
-
-			lines = append(lines, lineSvc)
+		lineServices, err := s.lineService.FromEntities(linesToCreate, featureMeters)
+		if err != nil {
+			return nil, fmt.Errorf("creating line services: %w", err)
 		}
 
-		linesToCreate := lines.ToEntities()
+		if err := lineServices.ValidateForInvoice(ctx, &gatheringInvoice); err != nil {
+			return nil, fmt.Errorf("validating lines: %w", err)
+		}
 
 		gatheringInvoice.Lines.Append(linesToCreate...)
 
