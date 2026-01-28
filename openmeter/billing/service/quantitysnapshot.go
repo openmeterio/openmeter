@@ -94,7 +94,9 @@ func (s *Service) snapshotLineQuantitiesInParallel(ctx context.Context, customer
 	for _, line := range lines {
 		err := sem.Acquire(ctx, 1)
 		if err != nil {
-			return fmt.Errorf("acquiring worker slot: %w", err)
+			// Clean up and stop the loop
+			errCh <- fmt.Errorf("acquiring worker slot: %w", err)
+			break
 		}
 
 		wg.Go(func() {
