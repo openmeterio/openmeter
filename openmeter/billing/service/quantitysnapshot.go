@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"sync"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -78,52 +79,52 @@ func (s *Service) snapshotLineQuantity(ctx context.Context, customer billing.Inv
 }
 
 func (s *Service) snapshotLineQuantitiesInParallel(ctx context.Context, customer billing.InvoiceCustomer, lines billing.StandardLines, featureMeters billing.FeatureMeters) error {
-	linesCh := make(chan *billing.StandardLine, len(lines))
-	errCh := make(chan error, len(lines))
-	doneCh := make(chan struct{})
+	workerCount := s.maxParallelQuantitySnapshots
+	if workerCount <= 0 {
+		workerCount = 1
+	}
 
 	// Feed the channel
+	linesCh := make(chan *billing.StandardLine, len(lines))
+
 	for _, line := range lines {
 		linesCh <- line
 	}
 	close(linesCh)
 
+	workerWg := sync.WaitGroup{}
+	workerErrs := make([][]error, workerCount)
+
 	// Start workers
-	for range s.maxParallelQuantitySnapshots {
-		go func() {
+	for workerIdx := 0; workerIdx < workerCount; workerIdx++ {
+		workerWg.Add(1)
+		go func(workerIdx int) {
+			defer workerWg.Done()
 			defer func() {
 				if r := recover(); r != nil {
-					errCh <- fmt.Errorf("snapshotting line quantity: %v", r)
+					workerErrs[workerIdx] = append(workerErrs[workerIdx], fmt.Errorf("snapshotting line quantity: %v", r))
 				}
-				doneCh <- struct{}{}
 			}()
 
 			for line := range linesCh {
 				if ctx.Err() != nil {
-					errCh <- ctx.Err()
+					workerErrs[workerIdx] = append(workerErrs[workerIdx], ctx.Err())
 					return
 				}
 
 				if err := s.snapshotLineQuantity(ctx, customer, line, featureMeters); err != nil {
-					errCh <- fmt.Errorf("line[%s]: %w", line.ID, err)
+					workerErrs[workerIdx] = append(workerErrs[workerIdx], fmt.Errorf("line[%s]: %w", line.ID, err))
 				}
 			}
-		}()
+		}(workerIdx)
 	}
 
-	// Wait for all workers to finish
-	for range s.maxParallelQuantitySnapshots {
-		<-doneCh
-	}
-
-	close(errCh)
+	workerWg.Wait()
 
 	// Collect snapshot errors
 	errs := []error{}
-	for err := range errCh {
-		if err != nil {
-			errs = append(errs, err)
-		}
+	for _, workerErrs := range workerErrs {
+		errs = append(errs, workerErrs...)
 	}
 
 	return errors.Join(errs...)
