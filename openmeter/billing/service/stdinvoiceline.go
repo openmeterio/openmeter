@@ -58,13 +58,13 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 	}
 
 	return transcationForInvoiceManipulation(ctx, s, input.Customer, func(ctx context.Context) (*billing.CreatePendingInvoiceLinesResult, error) {
+		if len(input.Lines) == 0 {
+			return nil, nil
+		}
+
 		featureMeters, err := s.resolveFeatureMeters(ctx, input.Lines)
 		if err != nil {
 			return nil, fmt.Errorf("resolving feature meters: %w", err)
-		}
-
-		if len(input.Lines) == 0 {
-			return nil, nil
 		}
 
 		// let's resolve the customer's settings
@@ -100,6 +100,9 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 
 			return l.WithNormalizedValues()
 		})
+		if err != nil {
+			return nil, fmt.Errorf("mapping lines: %w", err)
+		}
 
 		lineServices, err := s.lineService.FromEntities(linesToCreate, featureMeters)
 		if err != nil {

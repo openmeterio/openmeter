@@ -329,6 +329,14 @@ func (i StandardLine) ValidateUsageBased() error {
 func (i StandardLine) WithNormalizedValues() (*StandardLine, error) {
 	out := i.Clone()
 
+	if out.UsageBased == nil {
+		return nil, fmt.Errorf("usage based line is nil")
+	}
+
+	if out.UsageBased.Price == nil {
+		return nil, fmt.Errorf("usage based line price is nil")
+	}
+
 	out.Period = out.Period.Truncate(streaming.MinimumWindowSizeDuration)
 	out.InvoiceAt = out.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
