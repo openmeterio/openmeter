@@ -197,10 +197,6 @@ func (in handleInvoicePendingLinesForCurrencyInput) Validate() error {
 		return fmt.Errorf("gathering invoice: %w", err)
 	}
 
-	if in.FeatureMeters == nil {
-		return fmt.Errorf("feature meters cannot be nil")
-	}
-
 	if len(in.InScopeLines) == 0 {
 		return fmt.Errorf("in scope lines must contain at least one line")
 	}
@@ -373,10 +369,6 @@ func (i prepareLinesToBillInput) Validate() error {
 
 	if len(i.InScopeLines) == 0 {
 		errs = append(errs, fmt.Errorf("no lines to bill"))
-	}
-
-	if i.FeatureMeters == nil {
-		errs = append(errs, fmt.Errorf("feature meters cannot be nil"))
 	}
 
 	if i.GatheringInvoice.Lines.IsAbsent() {
@@ -628,10 +620,6 @@ func (in createStandardInvoiceFromGatheringLinesInput) Validate() error {
 
 	if err := in.EffectiveBillingProfile.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("effective billing profile: %w", err))
-	}
-
-	if in.FeatureMeters == nil {
-		errs = append(errs, fmt.Errorf("feature meters cannot be nil"))
 	}
 
 	if len(in.Lines) == 0 {

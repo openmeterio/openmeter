@@ -159,10 +159,6 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 		return invoice, fmt.Errorf("resolving feature meters: %w", err)
 	}
 
-	if customerProfile.Customer == nil {
-		return invoice, fmt.Errorf("customer profile is nil")
-	}
-
 	inScopeLines := lo.Filter(invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
 		return line.DeletedAt == nil
 	})
