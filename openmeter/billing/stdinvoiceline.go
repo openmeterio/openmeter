@@ -297,6 +297,16 @@ func (i *StandardLine) SaveDBSnapshot() {
 
 func (i StandardLine) Validate() error {
 	var errs []error
+
+	// Fail fast cases (most of the validation logic uses these)
+	if i.UsageBased == nil {
+		return errors.New("usage based line is required")
+	}
+
+	if i.UsageBased.Price == nil {
+		return errors.New("usage based line price is required")
+	}
+
 	if err := i.StandardLineBase.Validate(); err != nil {
 		errs = append(errs, err)
 	}

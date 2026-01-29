@@ -57,7 +57,7 @@ func UpdateTotalsFromDetailedLines(line *billing.StandardLine) error {
 	}
 
 	// WARNING: Even if tempting to add discounts etc. here to the totals, we should always keep the logic as is.
-	// The usageBasedLine will never be syncorinzed directly to stripe or other apps, only the detailed lines.
+	// The usageBasedLine will never be synchronized directly to stripe or other apps, only the detailed lines.
 	//
 	// Given that the external systems will have their own logic for calculating the totals, we cannot expect
 	// any custom logic implemented here to be carried over to the external systems.
