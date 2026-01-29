@@ -574,7 +574,7 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 				return billing.StandardInvoice{}, fmt.Errorf("normalizing lines: %w", err)
 			}
 
-			if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice); err != nil {
+			if err := s.invoiceCalculator.CalculateLegacyGatheringInvoice(&invoice); err != nil {
 				return billing.StandardInvoice{}, fmt.Errorf("calculating invoice[%s]: %w", invoice.ID, err)
 			}
 
@@ -893,7 +893,7 @@ func (s *Service) RecalculateGatheringInvoices(ctx context.Context, input billin
 		for _, invoice := range gatheringInvoices.Items {
 			var err error
 
-			if err = s.invoiceCalculator.CalculateGatheringInvoice(&invoice); err != nil {
+			if err = s.invoiceCalculator.CalculateLegacyGatheringInvoice(&invoice); err != nil {
 				return fmt.Errorf("calculating gathering invoice: %w", err)
 			}
 

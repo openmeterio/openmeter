@@ -372,20 +372,27 @@ func (i StandardLine) WithNormalizedValues() (*StandardLine, error) {
 	out.Period = out.Period.Truncate(streaming.MinimumWindowSizeDuration)
 	out.InvoiceAt = out.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
-	if out.UsageBased.Price.Type() == productcatalog.FlatPriceType {
-		// Let's apply the default inAdvance payment term for flat prices
-		flatPrice, err := out.UsageBased.Price.AsFlat()
-		if err != nil {
-			return nil, fmt.Errorf("converting price to flat price: %w", err)
-		}
-
-		if flatPrice.PaymentTerm == "" {
-			flatPrice.PaymentTerm = productcatalog.InAdvancePaymentTerm
-			out.UsageBased.Price = productcatalog.NewPriceFrom(flatPrice)
-		}
+	if err := setDefaultPaymentTermForFlatPrice(out.UsageBased.Price); err != nil {
+		return nil, fmt.Errorf("setting default payment term for flat price: %w", err)
 	}
 
 	return out, nil
+}
+
+func setDefaultPaymentTermForFlatPrice(price *productcatalog.Price) error {
+	if price.Type() != productcatalog.FlatPriceType {
+		return nil
+	}
+
+	flatPrice, err := price.AsFlat()
+	if err != nil {
+		return err
+	}
+
+	flatPrice.PaymentTerm = productcatalog.InAdvancePaymentTerm
+	price = productcatalog.NewPriceFrom(flatPrice)
+
+	return nil
 }
 
 // DissacociateChildren removes the Children both from the DBState and the current line, so that the
