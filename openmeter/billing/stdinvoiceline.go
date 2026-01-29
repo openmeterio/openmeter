@@ -254,32 +254,6 @@ func (i StandardLine) Clone() *StandardLine {
 	return i.clone(cloneOptions{})
 }
 
-// NormalizeValues normalizes the values of the line to ensure they are matching the expected invariants:
-// - Period is truncated to the minimum window size duration
-// - InvoiceAt is truncated to the minimum window size duration
-// - UsageBased.Price is normalized to have the default inAdvance payment term for flat prices
-func (i StandardLine) WithNormalizedValues() (*StandardLine, error) {
-	out := i.Clone()
-
-	out.Period = out.Period.Truncate(streaming.MinimumWindowSizeDuration)
-	out.InvoiceAt = out.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
-
-	if out.UsageBased.Price.Type() == productcatalog.FlatPriceType {
-		// Let's apply the default inAdvance payment term for flat prices
-		flatPrice, err := out.UsageBased.Price.AsFlat()
-		if err != nil {
-			return nil, fmt.Errorf("converting price to flat price: %w", err)
-		}
-
-		if flatPrice.PaymentTerm == "" {
-			flatPrice.PaymentTerm = productcatalog.InAdvancePaymentTerm
-			out.UsageBased.Price = productcatalog.NewPriceFrom(flatPrice)
-		}
-	}
-
-	return out, nil
-}
-
 type cloneOptions struct {
 	skipDBState   bool
 	skipChildren  bool

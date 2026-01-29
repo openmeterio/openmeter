@@ -171,7 +171,7 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 		return invoice, fmt.Errorf("snapshotting lines: %w", err)
 	}
 
-	inScopeLineSvcs, err := s.lineService.FromEntities(inScopeLines, featureMeters)
+	inScopeLineSvcs, err := lineservice.FromEntities(inScopeLines, featureMeters)
 	if err != nil {
 		return invoice, fmt.Errorf("creating line services: %w", err)
 	}
