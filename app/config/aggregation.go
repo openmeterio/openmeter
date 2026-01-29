@@ -36,6 +36,11 @@ type AggregationConfiguration struct {
 
 	// EnablePrewhere is the setting to enable prewhere for the meter query.
 	EnablePrewhere bool
+
+	// EnableDecimalPrecision enables high precision decimal calculations for meter queries.
+	// When enabled, values are calculated using Decimal128 instead of Float64, providing
+	// higher precision for financial calculations at the cost of some performance.
+	EnableDecimalPrecision bool
 }
 
 // Validate validates the configuration.
@@ -211,4 +216,7 @@ func ConfigureAggregation(v *viper.Viper) {
 	// Pool metrics
 	v.SetDefault("aggregation.clickhouse.poolMetrics.enabled", true)
 	v.SetDefault("aggregation.clickhouse.poolMetrics.pollInterval", "5s")
+
+	// Decimal precision
+	v.SetDefault("aggregation.enableDecimalPrecision", false)
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/samber/lo"
+	"github.com/shopspring/decimal"
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -19,21 +20,31 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+type valueType string
+
+const (
+	valueTypeFloat64 valueType = "float64"
+	valueTypeDecimal valueType = "decimal"
+	valueTypeUInt64  valueType = "uint64"
+)
+
 type queryMeter struct {
-	Database        string
-	EventsTableName string
-	Namespace       string
-	Meter           meterpkg.Meter
-	FilterCustomer  []streaming.Customer
-	FilterSubject   []string
-	FilterGroupBy   map[string]filter.FilterString
-	From            *time.Time
-	To              *time.Time
-	GroupBy         []string
-	WindowSize      *meterpkg.WindowSize
-	WindowTimeZone  *time.Location
-	QuerySettings   map[string]string
-	EnablePrewhere  bool
+	Database               string
+	EventsTableName        string
+	Namespace              string
+	Meter                  meterpkg.Meter
+	FilterCustomer         []streaming.Customer
+	FilterSubject          []string
+	FilterGroupBy          map[string]filter.FilterString
+	From                   *time.Time
+	To                     *time.Time
+	GroupBy                []string
+	WindowSize             *meterpkg.WindowSize
+	WindowTimeZone         *time.Location
+	QuerySettings          map[string]string
+	EnablePrewhere         bool
+	EnableDecimalPrecision bool
+	valueType              valueType
 }
 
 // from returns the from time for the query.
@@ -168,7 +179,9 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	case meterpkg.MeterAggregationMax:
 		sqlAggregation = "max"
 	case meterpkg.MeterAggregationUniqueCount:
-		sqlAggregation = "uniq"
+		// Use the uniqExact function if you absolutely need an exact result.
+		// See: https://clickhouse.com/docs/sql-reference/aggregate-functions/reference/uniqexact
+		sqlAggregation = "uniqExact"
 	case meterpkg.MeterAggregationCount:
 		sqlAggregation = "count"
 	case meterpkg.MeterAggregationLatest:
@@ -181,14 +194,28 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 
 	switch d.Meter.Aggregation {
 	case meterpkg.MeterAggregationCount:
-		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(*)) AS value", sqlAggregation))
+		selectColumns = append(selectColumns, fmt.Sprintf("toUInt64(%s(*)) AS value", sqlAggregation))
+		d.valueType = valueTypeUInt64
 	case meterpkg.MeterAggregationUniqueCount:
-		selectColumns = append(selectColumns, fmt.Sprintf("toFloat64(%s(JSON_VALUE(%s, '%s'))) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
+		selectColumns = append(selectColumns, fmt.Sprintf("%s(JSON_VALUE(%s, '%s')) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
+		d.valueType = valueTypeUInt64
 	case meterpkg.MeterAggregationLatest:
-		selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null), %s) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty), timeColumn))
+		if d.EnableDecimalPrecision {
+			selectColumns = append(selectColumns, fmt.Sprintf("%s(toDecimal128OrNull(JSON_VALUE(%s, '%s'), 19), %s) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty), timeColumn))
+			d.valueType = valueTypeDecimal
+		} else {
+			selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null), %s) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty), timeColumn))
+			d.valueType = valueTypeFloat64
+		}
 	default:
-		// JSON_VALUE returns an empty string if the JSON Path is not found. With toFloat64OrNull we convert it to NULL so the aggregation function can handle it properly.
-		selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null)) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
+		if d.EnableDecimalPrecision {
+			selectColumns = append(selectColumns, fmt.Sprintf("%s(toDecimal128OrNull(JSON_VALUE(%s, '%s'), 19)) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
+			d.valueType = valueTypeDecimal
+		} else {
+			// JSON_VALUE returns an empty string if the JSON Path is not found. With toFloat64OrNull we convert it to NULL so the aggregation function can handle it properly.
+			selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null)) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
+			d.valueType = valueTypeFloat64
+		}
 	}
 
 	for _, groupByKey := range d.GroupBy {
@@ -381,8 +408,18 @@ func (queryMeter queryMeter) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRo
 			GroupBy: map[string]*string{},
 		}
 
-		var value *float64
-		args := []interface{}{&row.WindowStart, &row.WindowEnd, &value}
+		args := []interface{}{&row.WindowStart, &row.WindowEnd}
+		switch queryMeter.valueType {
+		case valueTypeFloat64:
+			var value float64
+			args = append(args, &value)
+		case valueTypeDecimal:
+			var value decimal.Decimal
+			args = append(args, &value)
+		case valueTypeUInt64:
+			var value uint64
+			args = append(args, &value)
+		}
 		argCount := len(args)
 
 		if len(columns) > argCount {
@@ -397,12 +434,19 @@ func (queryMeter queryMeter) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRo
 
 		// If there is no value for the period, we skip the row
 		// This can happen when the event doesn't have the value field.
+		value := args[len(args)-1]
 		if value == nil {
 			continue
 		}
 
-		// TODO: should we use decima all the way?
-		row.Value = *value
+		switch queryMeter.valueType {
+		case valueTypeFloat64:
+			row.Value = *value.(*float64)
+		case valueTypeDecimal:
+			row.Value = value.(*decimal.Decimal).InexactFloat64()
+		case valueTypeUInt64:
+			row.Value = float64(*value.(*uint64))
+		}
 
 		if math.IsNaN(row.Value) {
 			return values, fmt.Errorf("value is NaN")
