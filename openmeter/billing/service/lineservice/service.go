@@ -1,8 +1,6 @@
 package lineservice
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -10,47 +8,19 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-type Service struct {
-	Config
-}
-
-type Config struct {
-	StreamingConnector streaming.Connector
-}
-
-func (c Config) Validate() error {
-	if c.StreamingConnector == nil {
-		return fmt.Errorf("streaming connector is required")
-	}
-
-	return nil
-}
-
-func New(in Config) (*Service, error) {
-	if err := in.Validate(); err != nil {
-		return nil, err
-	}
-
-	return &Service{
-		Config: in,
-	}, nil
-}
-
-func (s *Service) FromEntity(line *billing.StandardLine, featureMeters billing.FeatureMeters) (Line, error) {
+func FromEntity(line *billing.StandardLine, featureMeters billing.FeatureMeters) (Line, error) {
 	currencyCalc, err := line.Currency.Calculator()
 	if err != nil {
 		return nil, fmt.Errorf("creating currency calculator: %w", err)
 	}
 
 	base := lineBase{
-		service:       s,
-		featureMeters: featureMeters,
 		line:          line,
 		currency:      currencyCalc,
+		featureMeters: featureMeters,
 	}
 
 	if line.UsageBased.Price.Type() == productcatalog.FlatPriceType {
@@ -64,14 +34,14 @@ func (s *Service) FromEntity(line *billing.StandardLine, featureMeters billing.F
 	}, nil
 }
 
-func (s *Service) FromEntities(line []*billing.StandardLine, featureMeters billing.FeatureMeters) (Lines, error) {
+func FromEntities(line []*billing.StandardLine, featureMeters billing.FeatureMeters) (Lines, error) {
 	return slicesx.MapWithErr(line, func(l *billing.StandardLine) (Line, error) {
-		return s.FromEntity(l, featureMeters)
+		return FromEntity(l, featureMeters)
 	})
 }
 
 // UpdateTotalsFromDetailedLines is a helper method to update the totals of a line from its detailed lines.
-func (s *Service) UpdateTotalsFromDetailedLines(line *billing.StandardLine) error {
+func UpdateTotalsFromDetailedLines(line *billing.StandardLine) error {
 	// Calculate the line totals
 	for idx, detailedLine := range line.DetailedLines {
 		if detailedLine.DeletedAt != nil {
@@ -87,7 +57,7 @@ func (s *Service) UpdateTotalsFromDetailedLines(line *billing.StandardLine) erro
 	}
 
 	// WARNING: Even if tempting to add discounts etc. here to the totals, we should always keep the logic as is.
-	// The usageBasedLine will never be syncorinzed directly to stripe or other apps, only the detailed lines.
+	// The usageBasedLine will never be synchronized directly to stripe or other apps, only the detailed lines.
 	//
 	// Given that the external systems will have their own logic for calculating the totals, we cannot expect
 	// any custom logic implemented here to be carried over to the external systems.
@@ -122,38 +92,16 @@ type (
 type Line interface {
 	LineBase
 
-	Service() *Service
-
 	// IsPeriodEmptyConsideringTruncations returns true if the line has an empty period. This is different from Period.IsEmpty() as
 	// this method does any truncation for usage based lines.
 	IsPeriodEmptyConsideringTruncations() bool
 
-	Validate(context.Context, *billing.StandardInvoice) error
-	CanBeInvoicedAsOf(context.Context, CanBeInvoicedAsOfInput) (*billing.Period, error)
+	CanBeInvoicedAsOf(CanBeInvoicedAsOfInput) (*billing.Period, error)
 	CalculateDetailedLines() error
 	UpdateTotals() error
 }
 
 type Lines []Line
-
-func (s Lines) ValidateForInvoice(ctx context.Context, invoice *billing.StandardInvoice) error {
-	return errors.Join(lo.Map(s, func(line Line, idx int) error {
-		if line == nil {
-			return fmt.Errorf("line[%d] is nil", idx)
-		}
-
-		if err := line.Validate(ctx, invoice); err != nil {
-			id := line.ID()
-			if id == "" {
-				id = fmt.Sprintf("line[%d]", idx)
-			}
-
-			return fmt.Errorf("line[%s]: %w", id, err)
-		}
-
-		return nil
-	})...)
-}
 
 func (s Lines) ToEntities() []*billing.StandardLine {
 	return lo.Map(s, func(service Line, _ int) *billing.StandardLine {
@@ -166,10 +114,10 @@ type LineWithBillablePeriod struct {
 	BillablePeriod billing.Period
 }
 
-func (s Lines) ResolveBillablePeriod(ctx context.Context, in ResolveBillablePeriodInput) ([]LineWithBillablePeriod, error) {
+func (s Lines) ResolveBillablePeriod(in ResolveBillablePeriodInput) ([]LineWithBillablePeriod, error) {
 	out := make([]LineWithBillablePeriod, 0, len(s))
 	for _, lineSrv := range s {
-		billablePeriod, err := lineSrv.CanBeInvoicedAsOf(ctx, in)
+		billablePeriod, err := lineSrv.CanBeInvoicedAsOf(in)
 		if err != nil {
 			return nil, fmt.Errorf("checking if line can be invoiced: %w", err)
 		}

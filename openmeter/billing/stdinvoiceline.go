@@ -86,6 +86,18 @@ func (i StandardLineBase) Validate() error {
 		errs = append(errs, fmt.Errorf("invalid managed by %s", i.ManagedBy))
 	}
 
+	if i.RateCardDiscounts.Percentage != nil {
+		if err := i.RateCardDiscounts.Percentage.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("percentage discounts: %w", err))
+		}
+	}
+
+	if i.RateCardDiscounts.Usage != nil {
+		if err := i.RateCardDiscounts.Usage.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("usage discounts: %w", err))
+		}
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -285,6 +297,16 @@ func (i *StandardLine) SaveDBSnapshot() {
 
 func (i StandardLine) Validate() error {
 	var errs []error
+
+	// Fail fast cases (most of the validation logic uses these)
+	if i.UsageBased == nil {
+		return errors.New("usage based line is required")
+	}
+
+	if i.UsageBased.Price == nil {
+		return errors.New("usage based line price is required")
+	}
+
 	if err := i.StandardLineBase.Validate(); err != nil {
 		errs = append(errs, err)
 	}
@@ -297,26 +319,36 @@ func (i StandardLine) Validate() error {
 		errs = append(errs, fmt.Errorf("detailed lines: %w", err))
 	}
 
-	if err := i.ValidateUsageBased(); err != nil {
-		errs = append(errs, err)
+	for _, detailedLine := range i.DetailedLines {
+		if detailedLine.Currency != i.Currency {
+			errs = append(errs, fmt.Errorf("detailed line[%s]: currency[%s] is not equal to line currency[%s]", detailedLine.ID, detailedLine.Currency, i.Currency))
+		}
 	}
-
-	if err := i.RateCardDiscounts.ValidateForPrice(i.UsageBased.Price); err != nil {
-		errs = append(errs, fmt.Errorf("rateCardDiscounts: %w", err))
-	}
-
-	return errors.Join(errs...)
-}
-
-func (i StandardLine) ValidateUsageBased() error {
-	var errs []error
 
 	if err := i.UsageBased.Validate(); err != nil {
 		errs = append(errs, err)
 	}
 
-	if i.DependsOnMeteredQuantity() && i.InvoiceAt.Before(i.Period.Truncate(streaming.MinimumWindowSizeDuration).End) {
-		errs = append(errs, fmt.Errorf("invoice at (%s) must be after period end (%s) for usage based line", i.InvoiceAt, i.Period.Truncate(streaming.MinimumWindowSizeDuration).End))
+	if i.UsageBased.Price.Type() != productcatalog.FlatPriceType {
+		if i.InvoiceAt.
+			Truncate(streaming.MinimumWindowSizeDuration).
+			Before(i.Period.Truncate(streaming.MinimumWindowSizeDuration).End) {
+			errs = append(errs, fmt.Errorf("invoice at (%s) must be after period end (%s) for usage based line", i.InvoiceAt, i.Period.Truncate(streaming.MinimumWindowSizeDuration).End))
+		}
+
+		if i.Period.Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
+			errs = append(errs, ValidationError{
+				Err: ErrInvoiceCreateUBPLinePeriodIsEmpty,
+			})
+		}
+	} else {
+		if i.RateCardDiscounts.Usage != nil {
+			errs = append(errs, fmt.Errorf("usage discounts are not allowed for flat price lines"))
+		}
+	}
+
+	if err := i.RateCardDiscounts.ValidateForPrice(i.UsageBased.Price); err != nil {
+		errs = append(errs, fmt.Errorf("rateCardDiscounts: %w", err))
 	}
 
 	return errors.Join(errs...)

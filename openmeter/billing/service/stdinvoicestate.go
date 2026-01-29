@@ -612,7 +612,6 @@ func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
 	}
 
 	return m.Calculator.Calculate(&m.Invoice, invoicecalc.CalculatorDependencies{
-		LineService:   m.Service.lineService,
 		FeatureMeters: featureMeters,
 	})
 }

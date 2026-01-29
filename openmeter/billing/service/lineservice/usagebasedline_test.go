@@ -29,6 +29,11 @@ var ubpTestFullPeriod = billing.Period{
 	End:   lo.Must(time.Parse(time.RFC3339, "2021-01-02T00:00:00Z")),
 }
 
+type featureUsageResponse struct {
+	LinePeriodQty    alpacadecimal.Decimal
+	PreLinePeriodQty alpacadecimal.Decimal
+}
+
 type ubpCalculationTestCase struct {
 	price                productcatalog.Price
 	discounts            billing.Discounts

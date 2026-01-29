@@ -1,7 +1,6 @@
 package lineservice
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -43,31 +42,7 @@ type usageBasedLine struct {
 	lineBase
 }
 
-func (l usageBasedLine) Validate(ctx context.Context, targetInvoice *billing.StandardInvoice) error {
-	if _, err := l.featureMeters.Get(l.line.UsageBased.FeatureKey, true); err != nil {
-		return err
-	}
-
-	if err := l.lineBase.Validate(ctx, targetInvoice); err != nil {
-		return err
-	}
-
-	if err := targetInvoice.Customer.Validate(); err != nil {
-		return billing.ValidationError{
-			Err: billing.ErrInvoiceCreateUBPLineCustomerUsageAttributionInvalid,
-		}
-	}
-
-	if l.line.Period.Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
-		return billing.ValidationError{
-			Err: billing.ErrInvoiceCreateUBPLinePeriodIsEmpty,
-		}
-	}
-
-	return nil
-}
-
-func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, in CanBeInvoicedAsOfInput) (*billing.Period, error) {
+func (l usageBasedLine) CanBeInvoicedAsOf(in CanBeInvoicedAsOfInput) (*billing.Period, error) {
 	if !in.ProgressiveBilling {
 		// If we are not doing progressive billing, we can only bill the line if asof >= line.period.end
 		if in.AsOf.Before(l.line.Period.End) {
@@ -142,7 +117,7 @@ func (l usageBasedLine) CanBeInvoicedAsOf(ctx context.Context, in CanBeInvoicedA
 }
 
 func (l *usageBasedLine) UpdateTotals() error {
-	return l.service.UpdateTotalsFromDetailedLines(l.line)
+	return UpdateTotalsFromDetailedLines(l.line)
 }
 
 func (l *usageBasedLine) CalculateDetailedLines() error {

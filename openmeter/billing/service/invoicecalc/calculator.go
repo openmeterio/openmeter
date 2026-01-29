@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 )
 
 type invoiceCalculatorsByType struct {
@@ -50,7 +49,6 @@ type Calculator interface {
 }
 
 type CalculatorDependencies struct {
-	LineService   *lineservice.Service
 	FeatureMeters billing.FeatureMeters
 }
 

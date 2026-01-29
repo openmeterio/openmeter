@@ -61,11 +61,6 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			return nil, nil
 		}
 
-		featureMeters, err := s.resolveFeatureMeters(ctx, input.Lines)
-		if err != nil {
-			return nil, fmt.Errorf("resolving feature meters: %w", err)
-		}
-
 		// let's resolve the customer's settings
 		customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 			Customer: input.Customer,
@@ -97,24 +92,27 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			l.ID = ulid.Make().String()
 			l.InvoiceID = gatheringInvoice.ID
 
-			return l.WithNormalizedValues()
+			normalizedLine, err := l.WithNormalizedValues()
+			if err != nil {
+				return nil, fmt.Errorf("normalizing line[%s]: %w", l.ID, err)
+			}
+
+			if err := normalizedLine.Validate(); err != nil {
+				return nil, fmt.Errorf("validating line[%s]: %w", l.ID, err)
+			}
+
+			return normalizedLine, nil
 		})
 		if err != nil {
 			return nil, fmt.Errorf("mapping lines: %w", err)
 		}
 
-		lineServices, err := s.lineService.FromEntities(linesToCreate, featureMeters)
-		if err != nil {
-			return nil, fmt.Errorf("creating line services: %w", err)
-		}
-
-		if err := lineServices.ValidateForInvoice(ctx, &gatheringInvoice); err != nil {
-			return nil, fmt.Errorf("validating lines: %w", err)
-		}
-
 		gatheringInvoice.Lines.Append(linesToCreate...)
-
 		gatheringInvoiceID := gatheringInvoice.ID
+
+		if err := gatheringInvoice.Validate(); err != nil {
+			return nil, fmt.Errorf("validating gathering invoice: %w", err)
+		}
 
 		if err := s.invoiceCalculator.CalculateGatheringInvoice(&gatheringInvoice); err != nil {
 			return nil, fmt.Errorf("calculating invoice[%s]: %w", gatheringInvoiceID, err)

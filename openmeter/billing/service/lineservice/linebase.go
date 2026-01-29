@@ -1,7 +1,6 @@
 package lineservice
 
 import (
-	"context"
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -41,7 +40,6 @@ var _ LineBase = (*lineBase)(nil)
 
 type lineBase struct {
 	line          *billing.StandardLine
-	service       *Service
 	featureMeters billing.FeatureMeters
 	currency      currencyx.Calculator
 }
@@ -68,16 +66,6 @@ func (l lineBase) Currency() currencyx.Code {
 
 func (l lineBase) Period() billing.Period {
 	return l.line.Period
-}
-
-func (l lineBase) Validate(ctx context.Context, invoice *billing.StandardInvoice) error {
-	if l.line.Currency != invoice.Currency || l.line.Currency == "" {
-		return billing.ValidationError{
-			Err: billing.ErrInvoiceLineCurrencyMismatch,
-		}
-	}
-
-	return nil
 }
 
 func (l lineBase) IsLastInPeriod() bool {
@@ -114,10 +102,6 @@ func (l lineBase) IsFirstInPeriod() bool {
 
 func (l lineBase) IsDeleted() bool {
 	return l.line.DeletedAt != nil
-}
-
-func (l lineBase) Service() *Service {
-	return l.service
 }
 
 func (l lineBase) ResetTotals() {
