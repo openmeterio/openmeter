@@ -1,9 +1,13 @@
 package invoicecalc
 
-import "github.com/openmeterio/openmeter/openmeter/billing"
+import (
+	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
+	"github.com/samber/lo"
+)
 
-// CalculateInvoicePeriod calculates the period of the invoice based on the lines.
-func CalculateInvoicePeriod(invoice *billing.StandardInvoice) error {
+// CalculateStandardInvoicePeriod calculates the period of the invoice based on the lines.
+func CalculateStandardInvoiceServicePeriod(invoice *billing.StandardInvoice) error {
 	var period *billing.Period
 
 	for _, line := range invoice.Lines.OrEmpty() {
@@ -29,6 +33,33 @@ func CalculateInvoicePeriod(invoice *billing.StandardInvoice) error {
 	}
 
 	invoice.Period = period
+
+	return nil
+}
+
+func CalculateGatheringInvoiceServicePeriod(invoice *billing.GatheringInvoice) error {
+	var period timeutil.ClosedPeriod
+
+	for _, line := range invoice.Lines.OrEmpty() {
+		if line.DeletedAt != nil {
+			continue
+		}
+
+		if lo.IsEmpty(period) {
+			period = line.ServicePeriod
+			continue
+		}
+
+		if line.ServicePeriod.From.Before(period.From) {
+			period.From = line.ServicePeriod.From
+		}
+
+		if line.ServicePeriod.To.After(period.To) {
+			period.To = line.ServicePeriod.To
+		}
+	}
+
+	invoice.ServicePeriod = period
 
 	return nil
 }

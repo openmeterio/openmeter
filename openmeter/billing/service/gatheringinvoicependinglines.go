@@ -869,7 +869,7 @@ func (s *Service) moveLinesToInvoice(ctx context.Context, in moveLinesToInvoiceI
 // - the invoice is updated to the database
 func (s *Service) updateGatheringInvoice(ctx context.Context, invoice billing.StandardInvoice) (billing.StandardInvoice, error) {
 	// Let's update the invoice's state
-	if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice); err != nil {
+	if err := s.invoiceCalculator.CalculateLegacyGatheringInvoice(&invoice); err != nil {
 		return billing.StandardInvoice{}, fmt.Errorf("calculating gathering invoice: %w", err)
 	}
 

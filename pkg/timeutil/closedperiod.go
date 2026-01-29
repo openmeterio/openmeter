@@ -98,3 +98,10 @@ func (p ClosedPeriod) Validate() error {
 
 	return nil
 }
+
+func (p ClosedPeriod) Truncate(resolution time.Duration) ClosedPeriod {
+	return ClosedPeriod{
+		From: p.From.Truncate(resolution),
+		To:   p.To.Truncate(resolution),
+	}
+}

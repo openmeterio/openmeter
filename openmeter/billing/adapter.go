@@ -17,6 +17,7 @@ type Adapter interface {
 	InvoiceLineAdapter
 	InvoiceSplitLineGroupAdapter
 	InvoiceAdapter
+	GatheringInvoiceAdapter
 	SequenceAdapter
 	InvoiceAppAdapter
 	CustomerSynchronizationAdapter
@@ -72,6 +73,13 @@ type InvoiceAdapter interface {
 	UpdateInvoice(ctx context.Context, input UpdateInvoiceAdapterInput) (StandardInvoice, error)
 
 	GetInvoiceOwnership(ctx context.Context, input GetInvoiceOwnershipAdapterInput) (GetOwnershipAdapterResponse, error)
+}
+
+type GatheringInvoiceAdapter interface {
+	CreateGatheringInvoice(ctx context.Context, input CreateGatheringInvoiceAdapterInput) (GatheringInvoice, error)
+	UpdateGatheringInvoice(ctx context.Context, input UpdateGatheringInvoiceAdapterInput) (GatheringInvoice, error)
+	DeleteGatheringInvoice(ctx context.Context, input DeleteGatheringInvoiceAdapterInput) error
+	ListGatheringInvoices(ctx context.Context, input ListGatheringInvoicesInput) (pagination.Result[GatheringInvoice], error)
 }
 
 type InvoiceSplitLineGroupAdapter interface {
