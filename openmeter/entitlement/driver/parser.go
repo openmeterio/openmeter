@@ -26,15 +26,15 @@ type parser struct{}
 
 var Parser = parser{}
 
-func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, error) {
-	metered, err := meteredentitlement.ParseFromGenericEntitlement(e)
+func (parser) ToMetered(e *entitlement.EntitlementWithCustomer) (*api.EntitlementMetered, error) {
+	metered, err := meteredentitlement.ParseFromGenericEntitlement(&e.Entitlement)
 	if err != nil {
 		return nil, err
 	}
 
 	var subjKey string
-	if metered.Customer.UsageAttribution != nil {
-		subjKey, err = metered.Customer.UsageAttribution.GetFirstSubjectKey()
+	if e.Customer.UsageAttribution != nil {
+		subjKey, err = e.Customer.UsageAttribution.GetFirstSubjectKey()
 		if err != nil {
 			subjKey = ""
 		}
@@ -71,15 +71,15 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 	}, nil
 }
 
-func (parser) ToStatic(e *entitlement.Entitlement) (*api.EntitlementStatic, error) {
-	static, err := staticentitlement.ParseFromGenericEntitlement(e)
+func (parser) ToStatic(e *entitlement.EntitlementWithCustomer) (*api.EntitlementStatic, error) {
+	static, err := staticentitlement.ParseFromGenericEntitlement(&e.Entitlement)
 	if err != nil {
 		return nil, err
 	}
 
 	var subjKey string
-	if static.Customer.UsageAttribution != nil {
-		subjKey, err = static.Customer.UsageAttribution.GetFirstSubjectKey()
+	if e.Customer.UsageAttribution != nil {
+		subjKey, err = e.Customer.UsageAttribution.GetFirstSubjectKey()
 		if err != nil {
 			subjKey = ""
 		}
@@ -110,15 +110,15 @@ func (parser) ToStatic(e *entitlement.Entitlement) (*api.EntitlementStatic, erro
 	return apiRes, nil
 }
 
-func (parser) ToBoolean(e *entitlement.Entitlement) (*api.EntitlementBoolean, error) {
-	boolean, err := booleanentitlement.ParseFromGenericEntitlement(e)
+func (parser) ToBoolean(e *entitlement.EntitlementWithCustomer) (*api.EntitlementBoolean, error) {
+	boolean, err := booleanentitlement.ParseFromGenericEntitlement(&e.Entitlement)
 	if err != nil {
 		return nil, err
 	}
 
 	var subjKey string
-	if boolean.Customer.UsageAttribution != nil {
-		subjKey, err = boolean.Customer.UsageAttribution.GetFirstSubjectKey()
+	if e.Customer.UsageAttribution != nil {
+		subjKey, err = e.Customer.UsageAttribution.GetFirstSubjectKey()
 		if err != nil {
 			subjKey = ""
 		}
@@ -144,7 +144,7 @@ func (parser) ToBoolean(e *entitlement.Entitlement) (*api.EntitlementBoolean, er
 	return apiRes, nil
 }
 
-func (p parser) ToAPIGeneric(e *entitlement.Entitlement) (*api.Entitlement, error) {
+func (p parser) ToAPIGeneric(e *entitlement.EntitlementWithCustomer) (*api.Entitlement, error) {
 	res := &api.Entitlement{}
 	switch e.EntitlementType {
 	case entitlement.EntitlementTypeMetered:

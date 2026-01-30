@@ -103,7 +103,7 @@ func (s *service) createItem(
 			}
 
 			res.Entitlement = ent
-			newEnt = &ent.Entitlement
+			newEnt = &ent.Entitlement.Entitlement
 		}
 
 		// Second, let's create the item itself

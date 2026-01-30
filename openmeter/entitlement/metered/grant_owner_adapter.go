@@ -11,10 +11,12 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -26,6 +28,7 @@ type entitlementGrantOwner struct {
 	entitlementRepo entitlement.EntitlementRepo
 	usageResetRepo  UsageResetRepo
 	meterService    meter.Service
+	customerService customer.Service
 	logger          *slog.Logger
 	tracer          trace.Tracer
 }
@@ -35,6 +38,7 @@ func NewEntitlementGrantOwnerAdapter(
 	entitlementRepo entitlement.EntitlementRepo,
 	usageResetRepo UsageResetRepo,
 	meterService meter.Service,
+	customerService customer.Service,
 	logger *slog.Logger,
 	tracer trace.Tracer,
 ) grant.OwnerConnector {
@@ -43,6 +47,7 @@ func NewEntitlementGrantOwnerAdapter(
 		entitlementRepo: entitlementRepo,
 		usageResetRepo:  usageResetRepo,
 		meterService:    meterService,
+		customerService: customerService,
 		logger:          logger,
 		tracer:          tracer,
 	}
@@ -91,19 +96,29 @@ func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.Nam
 		FilterGroupBy: feature.MeterGroupByFilters,
 	}
 
+	cust, err := e.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+		CustomerID: &customer.CustomerID{
+			Namespace: id.Namespace,
+			ID:        ent.CustomerID,
+		},
+	})
+	if err != nil {
+		return def, fmt.Errorf("failed to get customer: %w", err)
+	}
+
 	// Require filtering by customer; error if missing
-	if ent.Customer == nil {
-		return def, models.NewGenericValidationError(fmt.Errorf("meter queries require customer filtering for entitlement %s", id.ID))
+	if cust == nil || (cust.DeletedAt != nil && cust.DeletedAt.Before(clock.Now())) {
+		return def, models.NewGenericValidationError(fmt.Errorf("customer not found for entitlement %s", id.ID))
 	}
 
 	var subjectKeys []string
-	if ent.Customer.UsageAttribution != nil {
-		subjectKeys = ent.Customer.UsageAttribution.SubjectKeys
+	if cust.UsageAttribution != nil {
+		subjectKeys = cust.UsageAttribution.SubjectKeys
 	}
 
 	streamingCustomer := ownerCustomer{
-		id:          ent.Customer.ID,
-		key:         ent.Customer.Key,
+		id:          cust.ID,
+		key:         cust.Key,
 		subjectKeys: subjectKeys,
 	}
 

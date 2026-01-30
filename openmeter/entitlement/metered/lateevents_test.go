@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
+	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlement_postgresadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
@@ -146,12 +147,31 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 
 		mockPublisher := eventbus.NewMock(t)
 
+		subjectRepo, err := subjectadapter.New(dbClient)
+		require.NoError(t, err)
+
+		subjectService, err := subjectservice.New(subjectRepo)
+		require.NoError(t, err)
+
+		customerAdapter, err := customeradapter.New(customeradapter.Config{
+			Client: dbClient,
+			Logger: testLogger,
+		})
+		require.NoError(t, err)
+
+		customerService, err := customerservice.New(customerservice.Config{
+			Adapter:   customerAdapter,
+			Publisher: mockPublisher,
+		})
+		require.NoError(t, err)
+
 		// build adapters
 		ownerConnector := meteredentitlement.NewEntitlementGrantOwnerAdapter(
 			featureRepo,
 			entitlementRepo,
 			usageResetRepo,
 			meterAdapter,
+			customerService,
 			testLogger,
 			tracer,
 		)
@@ -199,18 +219,6 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 		connector.RegisterHooks(
 			meteredentitlement.ConvertHook(entitlementsubscriptionhook.NewEntitlementSubscriptionHook(entitlementsubscriptionhook.EntitlementSubscriptionHookConfig{})),
 		)
-
-		subjectRepo, err := subjectadapter.New(dbClient)
-		require.NoError(t, err)
-
-		subjectService, err := subjectservice.New(subjectRepo)
-		require.NoError(t, err)
-
-		customerService, err := customeradapter.New(customeradapter.Config{
-			Client: dbClient,
-			Logger: testLogger,
-		})
-		require.NoError(t, err)
 
 		return connector, &dependencies{
 			dbClient,

@@ -64,88 +64,16 @@ func (a *EntitlementSubscriptionAdapter) ScheduleEntitlement(ctx context.Context
 		}
 
 		return &subscription.SubscriptionEntitlement{
-			Entitlement: *ent,
+			Entitlement: entitlement.EntitlementWithCustomer{
+				Entitlement: *ent,
+				Customer:    input.Customer,
+			},
 			Cadence: models.CadencedModel{
 				ActiveFrom: *ent.ActiveFrom,
 				ActiveTo:   ent.ActiveTo,
 			},
 		}, nil
 	})
-}
-
-func (a *EntitlementSubscriptionAdapter) GetByItemID(ctx context.Context, id models.NamespacedID) (*subscription.SubscriptionEntitlement, error) {
-	item, err := a.itemRepo.GetByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	if item.EntitlementID == nil {
-		return nil, &NotFoundError{ItemID: id}
-	}
-
-	ent, err := a.entitlementConnector.GetEntitlement(ctx, item.Namespace, *item.EntitlementID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get Entitlement of SubscriptionEntitlement: %w", err)
-	}
-
-	if ent == nil {
-		return nil, fmt.Errorf("entitlement is nil")
-	}
-
-	if ent.ActiveFrom == nil {
-		return nil, fmt.Errorf("entitlement active from is nil, entitlement doesn't have cadence")
-	}
-
-	return &subscription.SubscriptionEntitlement{
-		Entitlement: *ent,
-		Cadence: models.CadencedModel{
-			ActiveFrom: *ent.ActiveFrom,
-			ActiveTo:   ent.ActiveTo,
-		},
-	}, nil
-}
-
-func (a *EntitlementSubscriptionAdapter) GetForSubscriptionAt(ctx context.Context, input subscription.GetForSubscriptionAtInput) ([]subscription.SubscriptionEntitlement, error) {
-	items, err := a.itemRepo.GetForSubscriptionAt(ctx, input)
-	if err != nil {
-		return nil, err
-	}
-
-	var ents pagination.Result[entitlement.Entitlement]
-
-	items = lo.Filter(items, func(s subscription.SubscriptionItem, _ int) bool { return s.EntitlementID != nil })
-
-	if len(items) > 0 {
-		ents, err = a.entitlementConnector.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
-			IDs:        lo.Map(items, func(s subscription.SubscriptionItem, _ int) string { return *s.EntitlementID }),
-			Namespaces: []string{input.Namespace},
-			Page:       pagination.Page{}, // zero value so all entitlements are fetched
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to get Entitlements of SubscriptionEntitlements: %w", err)
-		}
-	}
-
-	if len(ents.Items) != len(items) {
-		return nil, fmt.Errorf("entitlement count mismatch, expected %d, got %d", len(items), len(ents.Items))
-	}
-
-	subEnts := make([]subscription.SubscriptionEntitlement, 0, len(items))
-	for _, ent := range ents.Items {
-		if ent.ActiveFrom == nil {
-			return nil, fmt.Errorf("entitlement active from is nil, entitlement doesn't have cadence")
-		}
-
-		subEnts = append(subEnts, subscription.SubscriptionEntitlement{
-			Entitlement: ent,
-			Cadence: models.CadencedModel{
-				ActiveFrom: *ent.ActiveFrom,
-				ActiveTo:   ent.ActiveTo,
-			},
-		})
-	}
-
-	return subEnts, nil
 }
 
 func (a *EntitlementSubscriptionAdapter) GetForSubscriptionsAt(ctx context.Context, input []subscription.GetForSubscriptionAtInput) ([]subscription.SubscriptionEntitlement, error) {
@@ -160,7 +88,7 @@ func (a *EntitlementSubscriptionAdapter) GetForSubscriptionsAt(ctx context.Conte
 		return nil, nil
 	}
 
-	ents, err := a.entitlementConnector.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
+	ents, err := a.entitlementConnector.ListEntitlementsWithCustomer(ctx, entitlement.ListEntitlementsParams{
 		IDs:        lo.Map(items, func(s subscription.SubscriptionItem, _ int) string { return *s.EntitlementID }),
 		Namespaces: lo.Uniq(lo.Map(input, func(s subscription.GetForSubscriptionAtInput, _ int) string { return s.Namespace })),
 		Page:       pagination.Page{}, // zero value so all entitlements are fetched
@@ -169,13 +97,21 @@ func (a *EntitlementSubscriptionAdapter) GetForSubscriptionsAt(ctx context.Conte
 		return nil, err
 	}
 
-	return slicesx.MapWithErr(ents.Items, func(ent entitlement.Entitlement) (subscription.SubscriptionEntitlement, error) {
+	return slicesx.MapWithErr(ents.Entitlements.Items, func(ent entitlement.Entitlement) (subscription.SubscriptionEntitlement, error) {
 		if ent.ActiveFrom == nil {
 			return subscription.SubscriptionEntitlement{}, fmt.Errorf("entitlement active from is nil, entitlement doesn't have cadence")
 		}
 
+		cust, ok := ents.CustomersByID[models.NamespacedID{Namespace: ent.Namespace, ID: ent.CustomerID}]
+		if !ok || cust == nil {
+			return subscription.SubscriptionEntitlement{}, fmt.Errorf("customer not found for entitlement %s", ent.ID)
+		}
+
 		return subscription.SubscriptionEntitlement{
-			Entitlement: ent,
+			Entitlement: entitlement.EntitlementWithCustomer{
+				Entitlement: ent,
+				Customer:    *cust,
+			},
 			Cadence: models.CadencedModel{
 				ActiveFrom: *ent.ActiveFrom,
 				ActiveTo:   ent.ActiveTo,

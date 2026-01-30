@@ -11,6 +11,7 @@ import (
 	creditpgadapter "github.com/openmeterio/openmeter/openmeter/credit/adapter"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	credithook "github.com/openmeterio/openmeter/openmeter/credit/hook"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	entitlementpgadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
@@ -34,6 +35,7 @@ type EntitlementOptions struct {
 	StreamingConnector        streaming.Connector
 	Logger                    *slog.Logger
 	MeterService              meter.Service
+	CustomerService           customer.Service
 	Publisher                 eventbus.Publisher
 	Tracer                    trace.Tracer
 	Locker                    *lockr.Locker
@@ -54,6 +56,7 @@ func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
 		entitlementDBAdapter,
 		usageResetDBAdapter,
 		opts.MeterService,
+		opts.CustomerService,
 		opts.Logger,
 		opts.Tracer,
 	)
@@ -101,6 +104,7 @@ func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
 		entitlementservice.ServiceConfig{
 			EntitlementRepo:             entitlementDBAdapter,
 			FeatureConnector:            featureConnector,
+			CustomerService:             opts.CustomerService,
 			MeterService:                opts.MeterService,
 			MeteredEntitlementConnector: meteredEntitlementConnector,
 			StaticEntitlementConnector:  staticentitlement.NewStaticEntitlementConnector(),

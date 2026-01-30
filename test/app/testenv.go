@@ -239,6 +239,7 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 		StreamingConnector: mockStreamingConnector,
 		Logger:             slog.Default(),
 		MeterService:       meterAdapter,
+		CustomerService:    in.CustomerService,
 		Publisher:          eventbus.NewMock(t),
 		EntitlementsConfiguration: config.EntitlementsConfiguration{
 			GracePeriod: datetime.ISODurationString("P1D"),

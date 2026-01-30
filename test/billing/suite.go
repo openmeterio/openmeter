@@ -143,23 +143,6 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 	})
 	require.NoError(t, err)
 
-	// Entitlement
-	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
-		DatabaseClient:     dbClient,
-		StreamingConnector: s.MockStreamingConnector,
-		Logger:             slog.Default(),
-		MeterService:       s.MeterAdapter,
-		Publisher:          publisher,
-		EntitlementsConfiguration: config.EntitlementsConfiguration{
-			GracePeriod: datetime.ISODurationString("P1D"),
-		},
-		Locker: locker,
-	})
-
-	// Feature
-	s.FeatureRepo = entitlementRegistry.FeatureRepo
-	s.FeatureService = entitlementRegistry.Feature
-
 	// Subject
 	subjectAdapter, err := subjectadapter.New(dbClient)
 	require.NoError(t, err)
@@ -182,6 +165,25 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 	})
 	require.NoError(t, err)
 	s.CustomerService = customerService
+
+	// Entitlement
+	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
+		DatabaseClient:     dbClient,
+		StreamingConnector: s.MockStreamingConnector,
+		Logger:             slog.Default(),
+		MeterService:       s.MeterAdapter,
+		CustomerService:    s.CustomerService,
+		Publisher:          publisher,
+		EntitlementsConfiguration: config.EntitlementsConfiguration{
+			GracePeriod: datetime.ISODurationString("P1D"),
+		},
+		Locker: locker,
+		Tracer: noop.NewTracerProvider().Tracer("test_env"),
+	})
+
+	// Feature
+	s.FeatureRepo = entitlementRegistry.FeatureRepo
+	s.FeatureService = entitlementRegistry.Feature
 
 	// App
 	appAdapter, err := appadapter.New(appadapter.Config{

@@ -252,12 +252,12 @@ type Entitlement struct {
 	Config *string `json:"config,omitempty"`
 }
 
-func (e Entitlement) AsCreateEntitlementInputs() CreateEntitlementInputs {
+func (e Entitlement) AsCreateEntitlementInputs(cust customer.Customer) CreateEntitlementInputs {
 	i := CreateEntitlementInputs{
 		Namespace:        e.Namespace,
 		FeatureID:        &e.FeatureID,
 		FeatureKey:       &e.FeatureKey,
-		UsageAttribution: e.Customer.GetUsageAttribution(),
+		UsageAttribution: cust.GetUsageAttribution(),
 		EntitlementType:  e.EntitlementType,
 		Metadata:         e.Metadata,
 		ActiveFrom:       e.ActiveFrom,
@@ -360,7 +360,7 @@ type GenericProperties struct {
 	FeatureID  string `json:"featureId,omitempty"`
 	FeatureKey string `json:"featureKey,omitempty"`
 
-	Customer *customer.Customer `json:"customer,omitempty"`
+	CustomerID string `json:"customerId,omitempty"`
 
 	EntitlementType           EntitlementType        `json:"type,omitempty"`
 	UsagePeriod               *UsagePeriod           `json:"usagePeriod,omitempty"`
@@ -370,7 +370,7 @@ type GenericProperties struct {
 
 func (e GenericProperties) Validate() error {
 	// TODO: there are no clear validation requirements now but lets implement the interface
-	if e.Customer == nil {
+	if e.CustomerID == "" {
 		return fmt.Errorf("customer is required")
 	}
 

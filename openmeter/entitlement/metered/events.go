@@ -4,7 +4,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/subject"
@@ -70,38 +69,37 @@ func (e EntitlementResetEvent) Validate() error {
 	return nil
 }
 
-type EntitlementResetEventV2 struct {
-	EntitlementID            string                            `json:"entitlementId"`
-	Namespace                models.NamespaceID                `json:"namespace"`
-	CustomerID               string                            `json:"customerId"`
-	CustomerUsageAttribution customer.CustomerUsageAttribution `json:"customerUsageAttribution"`
-	ResetAt                  time.Time                         `json:"resetAt"`
-	RetainAnchor             bool                              `json:"retainAnchor"`
-	ResetRequestedAt         time.Time                         `json:"resetRequestedAt"`
+type EntitlementResetEventV3 struct {
+	EntitlementID    string             `json:"entitlementId"`
+	Namespace        models.NamespaceID `json:"namespace"`
+	CustomerID       string             `json:"customerId"`
+	ResetAt          time.Time          `json:"resetAt"`
+	RetainAnchor     bool               `json:"retainAnchor"`
+	ResetRequestedAt time.Time          `json:"resetRequestedAt"`
 }
 
 var (
-	_ marshaler.Event = EntitlementResetEvent{}
+	_ marshaler.Event = EntitlementResetEventV3{}
 
-	resetEntitlementEventNameV2 = metadata.GetEventName(metadata.EventType{
+	resetEntitlementEventNameV3 = metadata.GetEventName(metadata.EventType{
 		Subsystem: EventSubsystem,
 		Name:      "entitlement.reset",
-		Version:   "v2",
+		Version:   "v3",
 	})
 )
 
-func (e EntitlementResetEventV2) EventName() string {
-	return resetEntitlementEventNameV2
+func (e EntitlementResetEventV3) EventName() string {
+	return resetEntitlementEventNameV3
 }
 
-func (e EntitlementResetEventV2) EventMetadata() metadata.EventMetadata {
+func (e EntitlementResetEventV3) EventMetadata() metadata.EventMetadata {
 	return metadata.EventMetadata{
 		Source:  metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntityEntitlement, e.EntitlementID),
 		Subject: metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntityCustomer, e.CustomerID),
 	}
 }
 
-func (e EntitlementResetEventV2) Validate() error {
+func (e EntitlementResetEventV3) Validate() error {
 	if e.EntitlementID == "" {
 		return errors.New("entitlementID must be set")
 	}
@@ -112,10 +110,6 @@ func (e EntitlementResetEventV2) Validate() error {
 
 	if e.CustomerID == "" {
 		return errors.New("customerID must be set")
-	}
-
-	if err := e.CustomerUsageAttribution.Validate(); err != nil {
-		return err
 	}
 
 	if e.ResetAt.IsZero() {

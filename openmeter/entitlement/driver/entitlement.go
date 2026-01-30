@@ -106,13 +106,19 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 				return nil, err
 			}
 
+			if cust == nil {
+				return nil, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer not found [namespace=%s subject.id=%s]", request.Namespace, request.SubjectIdOrKey),
+				)
+			}
+
 			request.Inputs.UsageAttribution = cust.GetUsageAttribution()
 
 			res, err := h.connector.CreateEntitlement(ctx, request.Inputs, nil)
 			if err != nil {
 				return nil, err
 			}
-			return Parser.ToAPIGeneric(res)
+			return Parser.ToAPIGeneric(&entitlement.EntitlementWithCustomer{Entitlement: lo.FromPtr(res), Customer: *cust})
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateEntitlementHandlerResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -170,13 +176,19 @@ func (h *entitlementHandler) OverrideEntitlement() OverrideEntitlementHandler {
 				return nil, err
 			}
 
+			if cust == nil {
+				return nil, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer not found [namespace=%s subject.id=%s]", request.Inputs.Namespace, request.SubjectIdOrKey),
+				)
+			}
+
 			request.Inputs.UsageAttribution = cust.GetUsageAttribution()
 
 			res, err := h.connector.OverrideEntitlement(ctx, cust.ID, request.EntitlementIdOrFeatureKey, request.Inputs, nil)
 			if err != nil {
 				return nil, err
 			}
-			return Parser.ToAPIGeneric(res)
+			return Parser.ToAPIGeneric(&entitlement.EntitlementWithCustomer{Entitlement: lo.FromPtr(res), Customer: *cust})
 		},
 		commonhttp.JSONResponseEncoderWithStatus[OverrideEntitlementHandlerResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -222,6 +234,12 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 			cust, err := h.resolveCustomerFromSubject(ctx, request.Namespace, request.SubjectKey)
 			if err != nil {
 				return api.EntitlementValue{}, err
+			}
+
+			if cust == nil {
+				return api.EntitlementValue{}, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer not found [namespace=%s subject.id=%s]", request.Namespace, request.SubjectKey),
+				)
 			}
 
 			entitlementValue, err := h.connector.GetEntitlementValue(ctx, request.Namespace, cust.ID, request.EntitlementIdOrFeatureKey, request.At)
@@ -273,7 +291,13 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 				return nil, err
 			}
 
-			if cust != nil && cust.IsDeleted() {
+			if cust == nil {
+				return GetEntitlementsOfSubjectHandlerResponse{}, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer not found [namespace=%s subject.id=%s]", id.Namespace, id.SubjectIdOrKey),
+				)
+			}
+
+			if cust.IsDeleted() {
 				return GetEntitlementsOfSubjectHandlerResponse{}, models.NewGenericPreConditionFailedError(
 					fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cust.Namespace, cust.ID),
 				)
@@ -295,7 +319,7 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 
 			res := make([]api.Entitlement, 0, len(entitlements))
 			for _, e := range entitlements {
-				ent, err := Parser.ToAPIGeneric(&e)
+				ent, err := Parser.ToAPIGeneric(&entitlement.EntitlementWithCustomer{Entitlement: e, Customer: *cust})
 				if err != nil {
 					return nil, err
 				}
@@ -387,16 +411,21 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 				Option1: &[]api.Entitlement{},
 				Option2: &pagination.Result[api.Entitlement]{},
 			}
-			paged, err := h.connector.ListEntitlements(ctx, request)
+			paged, err := h.connector.ListEntitlementsWithCustomer(ctx, request)
 			if err != nil {
 				return response, err
 			}
 
-			entitlements := paged.Items
+			entitlements := paged.Entitlements.Items
 
 			mapped := make([]api.Entitlement, 0, len(entitlements))
 			for _, e := range entitlements {
-				ent, err := Parser.ToAPIGeneric(&e)
+				cust, ok := paged.CustomersByID[models.NamespacedID{Namespace: e.Namespace, ID: e.CustomerID}]
+				if !ok || cust == nil {
+					return response, models.NewGenericPreConditionFailedError(fmt.Errorf("customer not found [namespace=%s customer.id=%s]", e.Namespace, e.CustomerID))
+				}
+
+				ent, err := Parser.ToAPIGeneric(&entitlement.EntitlementWithCustomer{Entitlement: e, Customer: *cust})
 				if err != nil {
 					return response, err
 				}
@@ -409,8 +438,8 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 				response.Option1 = nil
 				response.Option2 = &pagination.Result[api.Entitlement]{
 					Items:      mapped,
-					TotalCount: paged.TotalCount,
-					Page:       paged.Page,
+					TotalCount: paged.Entitlements.TotalCount,
+					Page:       paged.Entitlements.Page,
 				}
 			}
 
@@ -451,7 +480,7 @@ func (h *entitlementHandler) GetEntitlement() GetEntitlementHandler {
 			}, nil
 		},
 		func(ctx context.Context, request GetEntitlementHandlerRequest) (GetEntitlementHandlerResponse, error) {
-			entitlement, err := h.connector.GetEntitlement(ctx, request.Namespace, request.EntitlementId)
+			entitlement, err := h.connector.GetEntitlementWithCustomer(ctx, request.Namespace, request.EntitlementId)
 			if err != nil {
 				return nil, err
 			}
@@ -493,7 +522,7 @@ func (h *entitlementHandler) GetEntitlementById() GetEntitlementByIdHandler {
 			}, nil
 		},
 		func(ctx context.Context, request GetEntitlementByIdHandlerRequest) (GetEntitlementByIdHandlerResponse, error) {
-			entitlement, err := h.connector.GetEntitlement(ctx, request.Namespace, request.EntitlementId)
+			entitlement, err := h.connector.GetEntitlementWithCustomer(ctx, request.Namespace, request.EntitlementId)
 			if err != nil {
 				return nil, err
 			}

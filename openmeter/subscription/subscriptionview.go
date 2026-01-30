@@ -169,7 +169,7 @@ func (s *SubscriptionItemView) Validate() error {
 			}
 
 		case entitlement.EntitlementTypeMetered:
-			mEnt, err := meteredentitlement.ParseFromGenericEntitlement(&ent)
+			mEnt, err := meteredentitlement.ParseFromGenericEntitlement(&ent.Entitlement)
 			if err != nil {
 				return fmt.Errorf("entitlement %s is not metered: %w", s.Entitlement.Entitlement.ID, err)
 			}

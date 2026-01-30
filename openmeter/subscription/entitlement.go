@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type SubscriptionEntitlement struct {
-	Entitlement entitlement.Entitlement
+	Entitlement entitlement.EntitlementWithCustomer
 	Cadence     models.CadencedModel
 }
 
@@ -37,12 +38,13 @@ func (s SubscriptionEntitlement) Validate() error {
 
 func (s SubscriptionEntitlement) ToScheduleSubscriptionEntitlementInput() ScheduleSubscriptionEntitlementInput {
 	return ScheduleSubscriptionEntitlementInput{
-		CreateEntitlementInputs: s.Entitlement.AsCreateEntitlementInputs(),
+		CreateEntitlementInputs: s.Entitlement.AsCreateEntitlementInputs(s.Entitlement.Customer),
 	}
 }
 
 type ScheduleSubscriptionEntitlementInput struct {
 	entitlement.CreateEntitlementInputs
+	Customer customer.Customer
 }
 
 func (s ScheduleSubscriptionEntitlementInput) Equal(other ScheduleSubscriptionEntitlementInput) bool {
@@ -53,15 +55,16 @@ func (s ScheduleSubscriptionEntitlementInput) Validate() error {
 	if s.CreateEntitlementInputs.ActiveFrom == nil {
 		return fmt.Errorf("entitlement active from is nil")
 	}
+
+	if err := s.Customer.Validate(); err != nil {
+		return fmt.Errorf("customer is invalid: %w", err)
+	}
+
 	return nil
 }
 
 type EntitlementAdapter interface {
 	ScheduleEntitlement(ctx context.Context, input ScheduleSubscriptionEntitlementInput, annotations models.Annotations) (*SubscriptionEntitlement, error)
-	// At refers to a point in time for which we're querying the system state, meaning:
-	// if t1 < t2 < t3, and some entitlement was deleted effective at t2, then
-	// with at = t1 the entitlement will be returned, while with at = t3 it won't.
-	GetForSubscriptionAt(ctx context.Context, input GetForSubscriptionAtInput) ([]SubscriptionEntitlement, error)
 
 	GetForSubscriptionsAt(ctx context.Context, input []GetForSubscriptionAtInput) ([]SubscriptionEntitlement, error)
 

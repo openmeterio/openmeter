@@ -494,35 +494,27 @@ func TestEntitlementLoadsSubjectAndCustomerAndPreservesAcrossTypedMapping(t *tes
 	})
 	require.NoError(t, err)
 
-	subjKey, err := cust.UsageAttribution.GetFirstSubjectKey()
-	require.NoError(t, err)
-
-	// Fetch individually and assert Subject and Customer are populated
+	// Fetch individually and assert CustomerID is populated
 	for _, id := range []string{entMetered.ID, entStatic.ID, entBoolean.ID} {
 		got, err := repo.entRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: ns, ID: id})
 		require.NoError(t, err)
 		require.NotNil(t, got)
-		require.NotNil(t, got.Customer)
-		require.Equal(t, ns, got.Customer.Namespace)
-		require.Contains(t, got.Customer.UsageAttribution.SubjectKeys, subjKey)
+		require.NotEmpty(t, got.CustomerID)
 
 		// Verify preservation through typed mapping
 		switch got.EntitlementType {
 		case entitlement.EntitlementTypeMetered:
 			typed, err := meteredentitlement.ParseFromGenericEntitlement(got)
 			require.NoError(t, err)
-			require.NotNil(t, typed.GenericProperties.Customer)
-			require.Contains(t, typed.GenericProperties.Customer.UsageAttribution.SubjectKeys, subjKey)
+			require.NotEmpty(t, typed.CustomerID)
 		case entitlement.EntitlementTypeStatic:
 			typed, err := staticentitlement.ParseFromGenericEntitlement(got)
 			require.NoError(t, err)
-			require.NotNil(t, typed.GenericProperties.Customer)
-			require.Contains(t, typed.GenericProperties.Customer.UsageAttribution.SubjectKeys, subjKey)
+			require.NotEmpty(t, typed.CustomerID)
 		case entitlement.EntitlementTypeBoolean:
 			typed, err := booleanentitlement.ParseFromGenericEntitlement(got)
 			require.NoError(t, err)
-			require.NotNil(t, typed.GenericProperties.Customer)
-			require.Contains(t, typed.GenericProperties.Customer.UsageAttribution.SubjectKeys, subjKey)
+			require.NotEmpty(t, typed.CustomerID)
 		}
 	}
 }

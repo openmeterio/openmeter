@@ -292,7 +292,7 @@ func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent enti
 
 	custSubj, err := r.customerSubjectCache.Get(ctx, pkgmodels.NamespacedID{
 		Namespace: ent.Namespace,
-		ID:        ent.Customer.ID,
+		ID:        ent.CustomerID,
 	})
 	if err != nil {
 		return empty, err
@@ -345,7 +345,7 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 
 	custSubj, err := r.customerSubjectCache.Get(ctx, pkgmodels.NamespacedID{
 		Namespace: ent.Namespace,
-		ID:        ent.Customer.ID,
+		ID:        ent.CustomerID,
 	})
 	if err != nil {
 		return empty, err
@@ -353,7 +353,7 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 
 	calculatedAt := time.Now()
 
-	value, err := r.opts.Entitlement.Entitlement.GetEntitlementValue(ctx, ent.Namespace, ent.Customer.ID, ent.ID, calculatedAt)
+	value, err := r.opts.Entitlement.Entitlement.GetEntitlementValue(ctx, ent.Namespace, ent.CustomerID, ent.ID, calculatedAt)
 	if err != nil {
 		return empty, fmt.Errorf("failed to get entitlement value: %w", err)
 	}

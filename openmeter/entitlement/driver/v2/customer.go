@@ -161,13 +161,17 @@ func (h *entitlementHandler) ListCustomerEntitlements() ListCustomerEntitlements
 			}, nil
 		},
 		func(ctx context.Context, req ListCustomerEntitlementsHandlerRequest) (ListCustomerEntitlementsHandlerResponse, error) {
-			ents, err := h.connector.ListEntitlements(ctx, req.ListParams)
+			ents, err := h.connector.ListEntitlementsWithCustomer(ctx, req.ListParams)
 			if err != nil {
 				return ListCustomerEntitlementsHandlerResponse{}, err
 			}
 
-			mapped, err := pagination.MapResultErr(ents, func(e entitlement.Entitlement) (api.EntitlementV2, error) {
-				v2, err := ParserV2.ToAPIGenericV2(&e, e.Customer.ID, e.Customer.Key)
+			mapped, err := pagination.MapResultErr(ents.Entitlements, func(e entitlement.Entitlement) (api.EntitlementV2, error) {
+				cust, ok := ents.CustomersByID[models.NamespacedID{Namespace: e.Namespace, ID: e.CustomerID}]
+				if !ok {
+					return api.EntitlementV2{}, models.NewGenericPreConditionFailedError(fmt.Errorf("customer not found [namespace=%s customer.id=%s]", e.Namespace, e.CustomerID))
+				}
+				v2, err := ParserV2.ToAPIGenericV2(&e, cust.ID, cust.Key)
 				if err != nil {
 					return api.EntitlementV2{}, err
 				}
@@ -246,7 +250,7 @@ func (h *entitlementHandler) GetCustomerEntitlement() GetCustomerEntitlementHand
 				return nil, err
 			}
 
-			return ParserV2.ToAPIGenericV2(entitlement, entitlement.Customer.ID, entitlement.Customer.Key)
+			return ParserV2.ToAPIGenericV2(entitlement, entitlement.CustomerID, cus.Key)
 		},
 		commonhttp.JSONResponseEncoder[GetCustomerEntitlementHandlerResponse],
 		httptransport.AppendOptions(
@@ -395,7 +399,7 @@ func (h *entitlementHandler) OverrideCustomerEntitlement() OverrideCustomerEntit
 				return nil, err
 			}
 
-			return ParserV2.ToAPIGenericV2(ent, ent.Customer.ID, ent.Customer.Key)
+			return ParserV2.ToAPIGenericV2(ent, ent.CustomerID, cus.Key)
 		},
 		commonhttp.JSONResponseEncoder[OverrideCustomerEntitlementHandlerResponse],
 		httptransport.AppendOptions(
