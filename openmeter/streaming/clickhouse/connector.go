@@ -26,17 +26,18 @@ type Connector struct {
 }
 
 type Config struct {
-	Logger              *slog.Logger
-	ClickHouse          clickhouse.Conn
-	Database            string
-	EventsTableName     string
-	AsyncInsert         bool
-	AsyncInsertWait     bool
-	InsertQuerySettings map[string]string
-	MeterQuerySettings  map[string]string
-	EnablePrewhere      bool
-	ProgressManager     progressmanager.Service
-	SkipCreateTables    bool
+	Logger                 *slog.Logger
+	ClickHouse             clickhouse.Conn
+	Database               string
+	EventsTableName        string
+	AsyncInsert            bool
+	AsyncInsertWait        bool
+	InsertQuerySettings    map[string]string
+	MeterQuerySettings     map[string]string
+	EnablePrewhere         bool
+	EnableDecimalPrecision bool
+	ProgressManager        progressmanager.Service
+	SkipCreateTables       bool
 }
 
 func (c Config) Validate() error {
@@ -144,20 +145,21 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 	sort.Strings(groupBy)
 
 	query := queryMeter{
-		Database:        c.config.Database,
-		EventsTableName: c.config.EventsTableName,
-		Namespace:       namespace,
-		Meter:           meter,
-		From:            params.From,
-		To:              params.To,
-		FilterCustomer:  params.FilterCustomer,
-		FilterSubject:   params.FilterSubject,
-		FilterGroupBy:   params.FilterGroupBy,
-		GroupBy:         groupBy,
-		WindowSize:      params.WindowSize,
-		WindowTimeZone:  params.WindowTimeZone,
-		QuerySettings:   c.config.MeterQuerySettings,
-		EnablePrewhere:  c.config.EnablePrewhere,
+		Database:               c.config.Database,
+		EventsTableName:        c.config.EventsTableName,
+		Namespace:              namespace,
+		Meter:                  meter,
+		From:                   params.From,
+		To:                     params.To,
+		FilterCustomer:         params.FilterCustomer,
+		FilterSubject:          params.FilterSubject,
+		FilterGroupBy:          params.FilterGroupBy,
+		GroupBy:                groupBy,
+		WindowSize:             params.WindowSize,
+		WindowTimeZone:         params.WindowTimeZone,
+		QuerySettings:          c.config.MeterQuerySettings,
+		EnablePrewhere:         c.config.EnablePrewhere,
+		EnableDecimalPrecision: c.config.EnableDecimalPrecision,
 	}
 
 	// Load cached rows if any
@@ -272,7 +274,7 @@ func (c *Connector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEv
 		// With the `wait_for_async_insert` setting, you can configure
 		// if you want an insert statement to return with an acknowledgment
 		// either immediately after the data got inserted into the buffer.
-		err = c.config.ClickHouse.AsyncInsert(ctx, sql, c.config.AsyncInsertWait, args...)
+		err = c.config.ClickHouse.Exec(clickhouse.Context(ctx, clickhouse.WithAsync(c.config.AsyncInsertWait)), sql, args...)
 	} else {
 		err = c.config.ClickHouse.Exec(ctx, sql, args...)
 	}

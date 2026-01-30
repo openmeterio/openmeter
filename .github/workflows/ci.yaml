@@ -182,7 +182,7 @@ jobs:
       # Let's start docker-compose early so that by the time we have the nix env set up it's already running
       - name: Start docker-compose dependencies
         run: |
-          docker compose up postgres svix redis -d
+          docker compose up postgres svix redis clickhouse -d
 
       - name: Set up Nix
         uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
@@ -221,11 +221,12 @@ jobs:
 
       - name: Wait for dependencies to be ready
         run: |
-          ./tools/wait-for-compose.sh postgres svix redis
+          ./tools/wait-for-compose.sh postgres svix redis clickhouse
 
       - name: Run tests
         env:
           SVIX_HOST: localhost
+          TEST_CLICKHOUSE_DSN: ${{ vars.TEST_CLICKHOUSE_DSN }}
           # Dev JWT secret, non-sensitive
           SVIX_JWT_SECRET: DUMMY_JWT_SECRET
         # count=1 is needed to force retest
