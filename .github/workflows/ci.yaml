@@ -226,7 +226,7 @@ jobs:
       - name: Run tests
         env:
           SVIX_HOST: localhost
-          TEST_CLICKHOUSE_DSN: http://default:default@localhost:8123
+          TEST_CLICKHOUSE_DSN: ${{ vars.TEST_CLICKHOUSE_DSN }}
           # Dev JWT secret, non-sensitive
           SVIX_JWT_SECRET: DUMMY_JWT_SECRET
         # count=1 is needed to force retest
