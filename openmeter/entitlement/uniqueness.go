@@ -37,7 +37,7 @@ func ValidateUniqueConstraint(ents []Entitlement) error {
 	if grouped := lo.GroupBy(ents, func(e Entitlement) string { return e.CustomerID }); len(grouped) > 1 {
 		keys := lo.Keys(grouped)
 		slices.Sort(keys)
-		return fmt.Errorf("entitlements must belong to the same subject, found %v", keys)
+		return fmt.Errorf("entitlements must belong to the same customer, found %v", keys)
 	}
 
 	// We use models.CadenceList to validate the uniqueness constraint.

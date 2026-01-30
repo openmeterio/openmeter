@@ -273,15 +273,15 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 				return nil, err
 			}
 
-			if cust != nil && cust.IsDeleted() {
-				return GetEntitlementsOfSubjectHandlerResponse{}, models.NewGenericPreConditionFailedError(
-					fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cust.Namespace, cust.ID),
-				)
-			}
-
 			if cust == nil {
 				return GetEntitlementsOfSubjectHandlerResponse{}, models.NewGenericPreConditionFailedError(
 					fmt.Errorf("customer not found [namespace=%s subject.id=%s]", id.Namespace, id.SubjectIdOrKey),
+				)
+			}
+
+			if cust.IsDeleted() {
+				return GetEntitlementsOfSubjectHandlerResponse{}, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cust.Namespace, cust.ID),
 				)
 			}
 

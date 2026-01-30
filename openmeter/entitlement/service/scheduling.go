@@ -25,16 +25,6 @@ func (c *service) ScheduleEntitlement(ctx context.Context, input entitlement.Cre
 			return nil, models.NewGenericValidationError(err)
 		}
 
-		customer, err := c.customerService.GetCustomer(ctx, customer.GetCustomerInput{
-			CustomerID: &customer.CustomerID{
-				Namespace: input.Namespace,
-				ID:        input.UsageAttribution.ID,
-			},
-		})
-		if err != nil {
-			return nil, err
-		}
-
 		// ID has priority over key
 		featureIdOrKey := input.FeatureID
 		if featureIdOrKey == nil {
@@ -108,6 +98,16 @@ func (c *service) ScheduleEntitlement(ctx context.Context, input entitlement.Cre
 			}
 		}
 
+		cust, err := c.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+			CustomerID: &customer.CustomerID{
+				Namespace: input.Namespace,
+				ID:        input.UsageAttribution.ID,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+
 		connector, err := c.getTypeConnector(input)
 		if err != nil {
 			return nil, err
@@ -127,7 +127,7 @@ func (c *service) ScheduleEntitlement(ctx context.Context, input entitlement.Cre
 			return nil, err
 		}
 
-		err = c.publisher.Publish(ctx, entitlement.NewEntitlementCreatedEventPayloadV2(*ent, customer))
+		err = c.publisher.Publish(ctx, entitlement.NewEntitlementCreatedEventPayloadV2(*ent, cust))
 		if err != nil {
 			return nil, err
 		}

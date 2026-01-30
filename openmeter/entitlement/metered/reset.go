@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -61,7 +62,7 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 			CustomerID:       ent.CustomerID,
 			ResetAt:          params.At,
 			RetainAnchor:     params.RetainAnchor,
-			ResetRequestedAt: time.Now(),
+			ResetRequestedAt: clock.Now(),
 		}
 
 		if err := e.publisher.Publish(ctx, event); err != nil {

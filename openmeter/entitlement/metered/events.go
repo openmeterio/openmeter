@@ -81,7 +81,7 @@ type EntitlementResetEventV3 struct {
 var (
 	_ marshaler.Event = EntitlementResetEvent{}
 
-	resetEntitlementEventNameV2 = metadata.GetEventName(metadata.EventType{
+	resetEntitlementEventNameV3 = metadata.GetEventName(metadata.EventType{
 		Subsystem: EventSubsystem,
 		Name:      "entitlement.reset",
 		Version:   "v3",
@@ -89,7 +89,7 @@ var (
 )
 
 func (e EntitlementResetEventV3) EventName() string {
-	return resetEntitlementEventNameV2
+	return resetEntitlementEventNameV3
 }
 
 func (e EntitlementResetEventV3) EventMetadata() metadata.EventMetadata {
