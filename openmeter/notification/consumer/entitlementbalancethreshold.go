@@ -183,7 +183,7 @@ type createBalanceThresholdEventInput struct {
 }
 
 func (b *EntitlementSnapshotHandler) createEvent(ctx context.Context, in createBalanceThresholdEventInput) error {
-	entitlementAPIEntity, err := entitlementdriver.Parser.ToMetered(&in.Snapshot.Entitlement)
+	entitlementAPIEntity, err := entitlementdriver.Parser.ToMetered(&entitlement.EntitlementWithCustomer{Entitlement: in.Snapshot.Entitlement, Customer: in.Snapshot.Customer})
 	if err != nil {
 		return fmt.Errorf("failed to map entitlement value to API: %w", err)
 	}

@@ -116,19 +116,6 @@ func setupDependecies(t *testing.T) (entitlement.Service, *dependencies) {
 	})
 	require.NoError(t, err)
 
-	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
-		DatabaseClient:     dbClient,
-		StreamingConnector: streamingConnector,
-		Logger:             testLogger,
-		Tracer:             noop.NewTracerProvider().Tracer("test"),
-		MeterService:       meterService,
-		Publisher:          eventbus.NewMock(t),
-		EntitlementsConfiguration: config.EntitlementsConfiguration{
-			GracePeriod: datetime.ISODurationString("P1D"),
-		},
-		Locker: locker,
-	})
-
 	// Create subject adapter and service
 	subjectAdapter, err := subjectadapter.New(dbClient)
 	if err != nil {
@@ -155,6 +142,20 @@ func setupDependecies(t *testing.T) (entitlement.Service, *dependencies) {
 	if err != nil {
 		t.Fatalf("failed to create customer service: %v", err)
 	}
+
+	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
+		DatabaseClient:     dbClient,
+		StreamingConnector: streamingConnector,
+		Logger:             testLogger,
+		Tracer:             noop.NewTracerProvider().Tracer("test"),
+		MeterService:       meterService,
+		CustomerService:    customerService,
+		Publisher:          eventbus.NewMock(t),
+		EntitlementsConfiguration: config.EntitlementsConfiguration{
+			GracePeriod: datetime.ISODurationString("P1D"),
+		},
+		Locker: locker,
+	})
 
 	deps := &dependencies{
 		dbClient:           dbClient,

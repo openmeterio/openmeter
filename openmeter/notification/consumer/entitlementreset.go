@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	customerhttphandler "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -97,7 +98,7 @@ type createEntitlementResetEventInput struct {
 }
 
 func (b *EntitlementSnapshotHandler) createResetEvent(ctx context.Context, in createEntitlementResetEventInput) error {
-	entitlementAPIEntity, err := entitlementdriver.Parser.ToMetered(&in.Snapshot.Entitlement)
+	entitlementAPIEntity, err := entitlementdriver.Parser.ToMetered(&entitlement.EntitlementWithCustomer{Entitlement: in.Snapshot.Entitlement, Customer: in.Snapshot.Customer})
 	if err != nil {
 		return fmt.Errorf("failed to map entitlement value to API: %w", err)
 	}

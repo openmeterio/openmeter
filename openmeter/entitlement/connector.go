@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -68,12 +69,14 @@ type Service interface {
 	SupersedeEntitlement(ctx context.Context, entitlementId string, input CreateEntitlementInputs) (*Entitlement, error)
 
 	GetEntitlement(ctx context.Context, namespace string, id string) (*Entitlement, error)
+	GetEntitlementWithCustomer(ctx context.Context, namespace string, id string) (*EntitlementWithCustomer, error)
 	DeleteEntitlement(ctx context.Context, namespace string, id string, at time.Time) error
 
 	GetEntitlementValue(ctx context.Context, namespace string, customerID string, idOrFeatureKey string, at time.Time) (EntitlementValue, error)
 
 	GetEntitlementsOfCustomer(ctx context.Context, namespace string, customerId string, at time.Time) ([]Entitlement, error)
 	ListEntitlements(ctx context.Context, params ListEntitlementsParams) (pagination.Result[Entitlement], error)
+	ListEntitlementsWithCustomer(ctx context.Context, params ListEntitlementsParams) (ListEntitlementsWithCustomerResult, error)
 
 	// Attempts to get the entitlement in an ambiguous situation where it's unclear if the entitlement is referenced by ID or FeatureKey + CustomerID.
 	// First attempts to resolve by ID, then by FeatureKey + CustomerID.
@@ -84,4 +87,14 @@ type Service interface {
 	// GetAccess returns the access of a customer.
 	// It returns a map of featureKey to entitlement value + ID.
 	GetAccess(ctx context.Context, namespace string, customerID string) (Access, error)
+}
+
+type ListEntitlementsWithCustomerResult struct {
+	Entitlements  pagination.Result[Entitlement]
+	CustomersByID map[models.NamespacedID]*customer.Customer
+}
+
+type EntitlementWithCustomer struct {
+	Entitlement
+	Customer customer.Customer
 }

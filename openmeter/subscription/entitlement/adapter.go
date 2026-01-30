@@ -6,6 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -64,7 +65,10 @@ func (a *EntitlementSubscriptionAdapter) ScheduleEntitlement(ctx context.Context
 		}
 
 		return &subscription.SubscriptionEntitlement{
-			Entitlement: *ent,
+			Entitlement: entitlement.EntitlementWithCustomer{
+				Entitlement: *ent,
+				Customer:    input.Customer,
+			},
 			Cadence: models.CadencedModel{
 				ActiveFrom: *ent.ActiveFrom,
 				ActiveTo:   ent.ActiveTo,
@@ -73,6 +77,7 @@ func (a *EntitlementSubscriptionAdapter) ScheduleEntitlement(ctx context.Context
 	})
 }
 
+// TODO: is this in use?
 func (a *EntitlementSubscriptionAdapter) GetByItemID(ctx context.Context, id models.NamespacedID) (*subscription.SubscriptionEntitlement, error) {
 	item, err := a.itemRepo.GetByID(ctx, id)
 	if err != nil {
@@ -83,7 +88,7 @@ func (a *EntitlementSubscriptionAdapter) GetByItemID(ctx context.Context, id mod
 		return nil, &NotFoundError{ItemID: id}
 	}
 
-	ent, err := a.entitlementConnector.GetEntitlement(ctx, item.Namespace, *item.EntitlementID)
+	ent, err := a.entitlementConnector.GetEntitlementWithCustomer(ctx, item.Namespace, *item.EntitlementID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Entitlement of SubscriptionEntitlement: %w", err)
 	}
@@ -105,6 +110,7 @@ func (a *EntitlementSubscriptionAdapter) GetByItemID(ctx context.Context, id mod
 	}, nil
 }
 
+// TODO: is this in use?
 func (a *EntitlementSubscriptionAdapter) GetForSubscriptionAt(ctx context.Context, input subscription.GetForSubscriptionAtInput) ([]subscription.SubscriptionEntitlement, error) {
 	items, err := a.itemRepo.GetForSubscriptionAt(ctx, input)
 	if err != nil {
@@ -115,14 +121,22 @@ func (a *EntitlementSubscriptionAdapter) GetForSubscriptionAt(ctx context.Contex
 
 	items = lo.Filter(items, func(s subscription.SubscriptionItem, _ int) bool { return s.EntitlementID != nil })
 
+	var customer *customer.Customer
 	if len(items) > 0 {
-		ents, err = a.entitlementConnector.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
+		entsInScope, err := a.entitlementConnector.ListEntitlementsWithCustomer(ctx, entitlement.ListEntitlementsParams{
 			IDs:        lo.Map(items, func(s subscription.SubscriptionItem, _ int) string { return *s.EntitlementID }),
 			Namespaces: []string{input.Namespace},
 			Page:       pagination.Page{}, // zero value so all entitlements are fetched
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to get Entitlements of SubscriptionEntitlements: %w", err)
+		}
+
+		ents = entsInScope.Entitlements
+
+		customer = entsInScope.CustomersByID[models.NamespacedID{Namespace: input.Namespace, ID: entsInScope.Entitlements.Items[0].CustomerID}]
+		if customer == nil {
+			return nil, fmt.Errorf("customer not found for entitlement %s", entsInScope.Entitlements.Items[0].ID)
 		}
 	}
 
@@ -137,7 +151,10 @@ func (a *EntitlementSubscriptionAdapter) GetForSubscriptionAt(ctx context.Contex
 		}
 
 		subEnts = append(subEnts, subscription.SubscriptionEntitlement{
-			Entitlement: ent,
+			Entitlement: entitlement.EntitlementWithCustomer{
+				Entitlement: ent,
+				Customer:    *customer,
+			},
 			Cadence: models.CadencedModel{
 				ActiveFrom: *ent.ActiveFrom,
 				ActiveTo:   ent.ActiveTo,
@@ -160,7 +177,7 @@ func (a *EntitlementSubscriptionAdapter) GetForSubscriptionsAt(ctx context.Conte
 		return nil, nil
 	}
 
-	ents, err := a.entitlementConnector.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
+	ents, err := a.entitlementConnector.ListEntitlementsWithCustomer(ctx, entitlement.ListEntitlementsParams{
 		IDs:        lo.Map(items, func(s subscription.SubscriptionItem, _ int) string { return *s.EntitlementID }),
 		Namespaces: lo.Uniq(lo.Map(input, func(s subscription.GetForSubscriptionAtInput, _ int) string { return s.Namespace })),
 		Page:       pagination.Page{}, // zero value so all entitlements are fetched
@@ -169,13 +186,21 @@ func (a *EntitlementSubscriptionAdapter) GetForSubscriptionsAt(ctx context.Conte
 		return nil, err
 	}
 
-	return slicesx.MapWithErr(ents.Items, func(ent entitlement.Entitlement) (subscription.SubscriptionEntitlement, error) {
+	return slicesx.MapWithErr(ents.Entitlements.Items, func(ent entitlement.Entitlement) (subscription.SubscriptionEntitlement, error) {
 		if ent.ActiveFrom == nil {
 			return subscription.SubscriptionEntitlement{}, fmt.Errorf("entitlement active from is nil, entitlement doesn't have cadence")
 		}
 
+		cust, ok := ents.CustomersByID[models.NamespacedID{Namespace: ent.Namespace, ID: ent.CustomerID}]
+		if !ok || cust == nil {
+			return subscription.SubscriptionEntitlement{}, fmt.Errorf("customer not found for entitlement %s", ent.ID)
+		}
+
 		return subscription.SubscriptionEntitlement{
-			Entitlement: ent,
+			Entitlement: entitlement.EntitlementWithCustomer{
+				Entitlement: ent,
+				Customer:    *cust,
+			},
 			Cadence: models.CadencedModel{
 				ActiveFrom: *ent.ActiveFrom,
 				ActiveTo:   ent.ActiveTo,

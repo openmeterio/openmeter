@@ -80,7 +80,7 @@ func (e entitlementEventV2EntitlementLiteral) ToDomainEntitlement() Entitlement 
 			ID:                        e.ID,
 			FeatureID:                 e.FeatureID,
 			FeatureKey:                e.FeatureKey,
-			Customer:                  e.Customer,
+			CustomerID:                e.Customer.ID,
 			EntitlementType:           e.EntitlementType,
 			UsagePeriod:               e.UsagePeriod,
 			CurrentUsagePeriod:        e.CurrentUsagePeriod,
@@ -108,7 +108,7 @@ func (e entitlementEventV2EntitlementLiteral) Validate() error {
 	return nil
 }
 
-func mapEntitlementToV2Literal(ent Entitlement) entitlementEventV2EntitlementLiteral {
+func mapEntitlementToV2Literal(ent Entitlement, c *customer.Customer) entitlementEventV2EntitlementLiteral {
 	return entitlementEventV2EntitlementLiteral{
 		NamespacedModel:           ent.NamespacedModel,
 		ManagedModel:              ent.ManagedModel,
@@ -119,7 +119,7 @@ func mapEntitlementToV2Literal(ent Entitlement) entitlementEventV2EntitlementLit
 		ID:                        ent.ID,
 		FeatureID:                 ent.FeatureID,
 		FeatureKey:                ent.FeatureKey,
-		Customer:                  ent.Customer,
+		Customer:                  c,
 		EntitlementType:           ent.EntitlementType,
 		UsagePeriod:               ent.UsagePeriod,
 		CurrentUsagePeriod:        ent.CurrentUsagePeriod,
@@ -134,10 +134,10 @@ func mapEntitlementToV2Literal(ent Entitlement) entitlementEventV2EntitlementLit
 	}
 }
 
-func mapEntitlementToV2(ent Entitlement) entitlementEventV2 {
+func mapEntitlementToV2(ent Entitlement, c *customer.Customer) entitlementEventV2 {
 	return entitlementEventV2{
 		Namespace:   eventmodels.NamespaceID{ID: ent.Namespace},
-		Entitlement: mapEntitlementToV2Literal(ent),
+		Entitlement: mapEntitlementToV2Literal(ent, c),
 	}
 }
 
@@ -170,8 +170,8 @@ func (e EntitlementCreatedEventV2) EventMetadata() metadata.EventMetadata {
 	}
 }
 
-func NewEntitlementCreatedEventPayloadV2(ent Entitlement) EntitlementCreatedEventV2 {
-	return EntitlementCreatedEventV2(mapEntitlementToV2(ent))
+func NewEntitlementCreatedEventPayloadV2(ent Entitlement, c *customer.Customer) EntitlementCreatedEventV2 {
+	return EntitlementCreatedEventV2(mapEntitlementToV2(ent, c))
 }
 
 type EntitlementDeletedEventV2 entitlementEventV2
@@ -201,6 +201,6 @@ func (e EntitlementDeletedEventV2) EventMetadata() metadata.EventMetadata {
 	}
 }
 
-func NewEntitlementDeletedEventPayloadV2(ent Entitlement) EntitlementDeletedEventV2 {
-	return EntitlementDeletedEventV2(mapEntitlementToV2(ent))
+func NewEntitlementDeletedEventPayloadV2(ent Entitlement, c *customer.Customer) EntitlementDeletedEventV2 {
+	return EntitlementDeletedEventV2(mapEntitlementToV2(ent, c))
 }

@@ -3,6 +3,7 @@ package entitlementdriverv2
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"slices"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/strcase"
@@ -96,13 +98,18 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 		},
 		func(ctx context.Context, request ListEntitlementsHandlerRequest) (ListEntitlementsHandlerResponse, error) {
 			// due to backward compatibility, if pagination is not provided we return a simple array
-			paged, err := h.connector.ListEntitlements(ctx, request)
+			paged, err := h.connector.ListEntitlementsWithCustomer(ctx, request)
 			if err != nil {
 				return ListEntitlementsHandlerResponse{}, err
 			}
 
-			return pagination.MapResultErr(paged, func(e entitlement.Entitlement) (api.EntitlementV2, error) {
-				r, err := ParserV2.ToAPIGenericV2(&e, e.Customer.ID, e.Customer.Key)
+			return pagination.MapResultErr(paged.Entitlements, func(e entitlement.Entitlement) (api.EntitlementV2, error) {
+				cust, ok := paged.CustomersByID[models.NamespacedID{Namespace: e.Namespace, ID: e.CustomerID}]
+				if !ok {
+					return api.EntitlementV2{}, models.NewGenericPreConditionFailedError(fmt.Errorf("customer not found [namespace=%s customer.id=%s]", e.Namespace, e.CustomerID))
+				}
+
+				r, err := ParserV2.ToAPIGenericV2(&e, cust.ID, cust.Key)
 				return *r, err
 			})
 		},
@@ -141,12 +148,12 @@ func (h *entitlementHandler) GetEntitlement() GetEntitlementHandler {
 			}, nil
 		},
 		func(ctx context.Context, request GetEntitlementHandlerRequest) (GetEntitlementHandlerResponse, error) {
-			entitlement, err := h.connector.GetEntitlement(ctx, request.Namespace, request.EntitlementId)
+			entitlement, err := h.connector.GetEntitlementWithCustomer(ctx, request.Namespace, request.EntitlementId)
 			if err != nil {
 				return nil, err
 			}
 
-			return ParserV2.ToAPIGenericV2(entitlement, entitlement.Customer.ID, entitlement.Customer.Key)
+			return ParserV2.ToAPIGenericV2(&entitlement.Entitlement, entitlement.Customer.ID, entitlement.Customer.Key)
 		},
 		commonhttp.JSONResponseEncoder[GetEntitlementHandlerResponse],
 		httptransport.AppendOptions(

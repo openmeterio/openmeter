@@ -18,6 +18,7 @@ import (
 	credithook "github.com/openmeterio/openmeter/openmeter/credit/hook"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
+	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -65,7 +66,7 @@ type Dependencies struct {
 	FeatureRepo      feature.FeatureRepo
 	FeatureConnector feature.FeatureConnector
 
-	CustomerService customer.Adapter
+	CustomerService customer.Service
 	SubjectService  subject.Service
 
 	Log *slog.Logger
@@ -129,11 +130,30 @@ func setupDependencies(t *testing.T) Dependencies {
 
 	mockPublisher := eventbus.NewMock(t)
 
+	subjectRepo, err := subjectadapter.New(dbClient)
+	require.NoError(t, err)
+
+	subjectService, err := subjectservice.New(subjectRepo)
+	require.NoError(t, err)
+
+	customerAdapter, err := customeradapter.New(customeradapter.Config{
+		Client: dbClient,
+		Logger: log,
+	})
+	require.NoError(t, err)
+
+	customerService, err := customerservice.New(customerservice.Config{
+		Adapter:   customerAdapter,
+		Publisher: mockPublisher,
+	})
+	require.NoError(t, err)
+
 	owner := meteredentitlement.NewEntitlementGrantOwnerAdapter(
 		featureRepo,
 		entitlementRepo,
 		usageResetRepo,
 		meterAdapter,
+		customerService,
 		log,
 		tracer,
 	)
@@ -189,6 +209,7 @@ func setupDependencies(t *testing.T) Dependencies {
 		entitlementservice.ServiceConfig{
 			EntitlementRepo:             entitlementRepo,
 			FeatureConnector:            featureConnector,
+			CustomerService:             customerService,
 			MeterService:                meterAdapter,
 			MeteredEntitlementConnector: meteredEntitlementConnector,
 			StaticEntitlementConnector:  staticEntitlementConnector,
@@ -202,18 +223,6 @@ func setupDependencies(t *testing.T) Dependencies {
 		entitlementsubscriptionhook.NewEntitlementSubscriptionHook(entitlementsubscriptionhook.EntitlementSubscriptionHookConfig{}),
 		credithook.NewEntitlementHook(grantRepo),
 	)
-
-	subjectRepo, err := subjectadapter.New(dbClient)
-	require.NoError(t, err)
-
-	subjectService, err := subjectservice.New(subjectRepo)
-	require.NoError(t, err)
-
-	customerService, err := customeradapter.New(customeradapter.Config{
-		Client: dbClient,
-		Logger: log,
-	})
-	require.NoError(t, err)
 
 	return Dependencies{
 		DBClient:  dbClient,
@@ -244,7 +253,7 @@ func setupDependencies(t *testing.T) Dependencies {
 	}
 }
 
-func createCustomerAndSubject(t *testing.T, subjectService subject.Service, customerService customer.Adapter, ns, key, name string) *customer.Customer {
+func createCustomerAndSubject(t *testing.T, subjectService subject.Service, customerService customer.Service, ns, key, name string) *customer.Customer {
 	t.Helper()
 	_, err := subjectService.Create(context.Background(), subject.CreateInput{
 		Namespace: ns,

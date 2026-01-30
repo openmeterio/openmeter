@@ -249,7 +249,7 @@ func (w *Worker) snapshotToEvent(ctx context.Context, in snapshotToEventInput) (
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
-	cust, subj, err := resolveCustomerAndSubject(ctx, w.opts.Customer, w.opts.Subject, in.Entitlement.Namespace, in.Entitlement.Customer.ID)
+	cust, subj, err := resolveCustomerAndSubject(ctx, w.opts.Customer, w.opts.Subject, in.Entitlement.Namespace, in.Entitlement.CustomerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get customer and subject: %w", err)
 	}
@@ -279,7 +279,7 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementEntity *ent
 
 	calculationStart := time.Now()
 
-	value, err := w.opts.Entitlement.Entitlement.GetEntitlementValue(ctx, entitlementEntity.Namespace, entitlementEntity.Customer.ID, entitlementEntity.ID, calculatedAt)
+	value, err := w.opts.Entitlement.Entitlement.GetEntitlementValue(ctx, entitlementEntity.Namespace, entitlementEntity.CustomerID, entitlementEntity.ID, calculatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get entitlement value: %w", err)
 	}
@@ -315,7 +315,7 @@ func (w *Worker) createDeletedSnapshotEvent(ctx context.Context, entitlementEnti
 		return nil, fmt.Errorf("failed to get feature: %w", err)
 	}
 
-	cust, subj, err := resolveCustomerAndSubject(ctx, w.opts.Customer, w.opts.Subject, namespace, entitlementEntity.Customer.ID)
+	cust, subj, err := resolveCustomerAndSubject(ctx, w.opts.Customer, w.opts.Subject, namespace, entitlementEntity.CustomerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get customer and subject: %w", err)
 	}

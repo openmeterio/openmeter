@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
@@ -71,17 +70,7 @@ func NewBalanceSnapshotEvent(in BalanceSnapshotEventInput) snapshot.SnapshotEven
 				OriginalUsagePeriodAnchor: lo.ToPtr(TestEntitlementUsagePeriod.GetOriginalValueAsUsagePeriodInput().GetValue().Anchor),
 				CurrentUsagePeriod:        &TestEntitlementCurrentUsagePeriod,
 
-				Customer: &customer.Customer{
-					ManagedResource: models.ManagedResource{
-						ID: TestCustomerID,
-						NamespacedModel: models.NamespacedModel{
-							Namespace: in.Namespace,
-						},
-					},
-					UsageAttribution: &customer.CustomerUsageAttribution{
-						SubjectKeys: []string{TestSubjectKey},
-					},
-				},
+				CustomerID: TestCustomerID,
 			},
 			MeasureUsageFrom: &TestEntitlementCurrentUsagePeriod.From,
 			IsSoftLimit:      convert.ToPointer(true),

@@ -1,13 +1,16 @@
 package common
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/google/wire"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	entitlementvalidator "github.com/openmeterio/openmeter/openmeter/entitlement/validators/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
@@ -29,15 +32,27 @@ func NewEntitlementRegistry(
 	meterService meter.Service,
 	eventPublisher eventbus.Publisher,
 	locker *lockr.Locker,
-) *registry.Entitlement {
-	return registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
+	customerService customer.Service,
+) (*registry.Entitlement, error) {
+	entRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:            db,
 		StreamingConnector:        streamingConnector,
 		MeterService:              meterService,
+		CustomerService:           customerService,
 		Logger:                    logger,
 		Publisher:                 eventPublisher,
 		EntitlementsConfiguration: entitlementConfig,
 		Tracer:                    tracer,
 		Locker:                    locker,
 	})
+
+	// Create and register the entitlement validator
+	validator, err := entitlementvalidator.NewValidator(entRegistry.EntitlementRepo)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create entitlement validator: %w", err)
+	}
+
+	customerService.RegisterRequestValidator(validator)
+
+	return entRegistry, nil
 }

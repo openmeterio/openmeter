@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type SubscriptionEntitlement struct {
-	Entitlement entitlement.Entitlement
+	Entitlement entitlement.EntitlementWithCustomer
 	Cadence     models.CadencedModel
 }
 
@@ -37,12 +38,13 @@ func (s SubscriptionEntitlement) Validate() error {
 
 func (s SubscriptionEntitlement) ToScheduleSubscriptionEntitlementInput() ScheduleSubscriptionEntitlementInput {
 	return ScheduleSubscriptionEntitlementInput{
-		CreateEntitlementInputs: s.Entitlement.AsCreateEntitlementInputs(),
+		CreateEntitlementInputs: s.Entitlement.AsCreateEntitlementInputs(s.Entitlement.Customer),
 	}
 }
 
 type ScheduleSubscriptionEntitlementInput struct {
 	entitlement.CreateEntitlementInputs
+	Customer customer.Customer
 }
 
 func (s ScheduleSubscriptionEntitlementInput) Equal(other ScheduleSubscriptionEntitlementInput) bool {
@@ -53,6 +55,11 @@ func (s ScheduleSubscriptionEntitlementInput) Validate() error {
 	if s.CreateEntitlementInputs.ActiveFrom == nil {
 		return fmt.Errorf("entitlement active from is nil")
 	}
+
+	if err := s.Customer.Validate(); err != nil {
+		return fmt.Errorf("customer is invalid: %w", err)
+	}
+
 	return nil
 }
 

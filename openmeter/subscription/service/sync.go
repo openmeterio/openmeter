@@ -154,7 +154,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 						currentPhaseView.SubscriptionPhase.NamespacedID,
 						cadenceOfCurrentPhaseBasedOnSpec,
 						convert.SafeDeRef(currentItemView.Entitlement, func(s subscription.SubscriptionEntitlement) *entitlement.Entitlement {
-							return &s.Entitlement
+							return &s.Entitlement.Entitlement
 						}),
 					)
 					if err != nil {
@@ -177,7 +177,7 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 						// This won't cause an issue as all relevant properties of the entitlement are specced on the Item (as part of RateCard)
 						// FIXME: This is a lie
 						convert.SafeDeRef(currentItemView.Entitlement, func(s subscription.SubscriptionEntitlement) *entitlement.Entitlement {
-							return &s.Entitlement
+							return &s.Entitlement.Entitlement
 						}),
 					)
 					if err != nil {

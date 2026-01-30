@@ -149,6 +149,7 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 		StreamingConnector: s.MockStreamingConnector,
 		Logger:             slog.Default(),
 		MeterService:       s.MeterAdapter,
+		CustomerService:    s.CustomerService,
 		Publisher:          publisher,
 		EntitlementsConfiguration: config.EntitlementsConfiguration{
 			GracePeriod: datetime.ISODurationString("P1D"),

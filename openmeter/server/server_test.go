@@ -724,6 +724,10 @@ func (n NoopEntitlementConnector) GetEntitlement(ctx context.Context, namespace 
 	return &entitlement.Entitlement{}, nil
 }
 
+func (n NoopEntitlementConnector) GetEntitlementWithCustomer(ctx context.Context, namespace string, id string) (*entitlement.EntitlementWithCustomer, error) {
+	return &entitlement.EntitlementWithCustomer{}, nil
+}
+
 func (n NoopEntitlementConnector) DeleteEntitlement(ctx context.Context, namespace string, id string, at time.Time) error {
 	return nil
 }
@@ -738,6 +742,10 @@ func (n NoopEntitlementConnector) GetEntitlementsOfCustomer(ctx context.Context,
 
 func (n NoopEntitlementConnector) ListEntitlements(ctx context.Context, params entitlement.ListEntitlementsParams) (pagination.Result[entitlement.Entitlement], error) {
 	return pagination.Result[entitlement.Entitlement]{}, nil
+}
+
+func (n NoopEntitlementConnector) ListEntitlementsWithCustomer(ctx context.Context, params entitlement.ListEntitlementsParams) (entitlement.ListEntitlementsWithCustomerResult, error) {
+	return entitlement.ListEntitlementsWithCustomerResult{}, nil
 }
 
 func (n NoopEntitlementConnector) GetEntitlementOfCustomerAt(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (*entitlement.Entitlement, error) {

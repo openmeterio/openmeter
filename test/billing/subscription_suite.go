@@ -229,6 +229,7 @@ func (s *SubscriptionMixin) SetupEntitlements(t *testing.T, deps SubscriptionMix
 		entitlementRepo,
 		usageResetRepo,
 		deps.MeterAdapter,
+		deps.CustomerService,
 		slog.Default(),
 		tracer,
 	)
@@ -284,6 +285,7 @@ func (s *SubscriptionMixin) SetupEntitlements(t *testing.T, deps SubscriptionMix
 		entitlementservice.ServiceConfig{
 			EntitlementRepo:             entitlementRepo,
 			FeatureConnector:            deps.FeatureService,
+			CustomerService:             deps.CustomerService,
 			MeterService:                deps.MeterAdapter,
 			MeteredEntitlementConnector: meteredEntitlementConnector,
 			StaticEntitlementConnector:  staticEntitlementConnector,

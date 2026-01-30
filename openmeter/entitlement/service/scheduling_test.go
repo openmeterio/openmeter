@@ -100,7 +100,7 @@ func TestCreateEntitlementWithGrants(t *testing.T) {
 		entId = ent.ID
 
 		grants, err := deps.registry.MeteredEntitlement.ListEntitlementGrants(t.Context(), ent.Namespace, meteredentitlement.ListEntitlementGrantsParams{
-			CustomerID:                ent.Customer.ID,
+			CustomerID:                ent.CustomerID,
 			EntitlementIDOrFeatureKey: ent.ID,
 			Page:                      pagination.NewPage(1, 100),
 		})
@@ -137,7 +137,7 @@ func TestCreateEntitlementWithGrants(t *testing.T) {
 		entId = ent.ID
 
 		grants, err := deps.registry.MeteredEntitlement.ListEntitlementGrants(t.Context(), ent.Namespace, meteredentitlement.ListEntitlementGrantsParams{
-			CustomerID:                ent.Customer.ID,
+			CustomerID:                ent.CustomerID,
 			EntitlementIDOrFeatureKey: ent.ID,
 			Page:                      pagination.NewPage(1, 100),
 		})

@@ -168,20 +168,6 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	})
 	require.NoError(t, err)
 
-	// Entitlement
-	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
-		DatabaseClient:     dbDeps.DBClient,
-		StreamingConnector: streamingConnector,
-		Logger:             logger,
-		MeterService:       meterService,
-		Publisher:          publisher,
-		EntitlementsConfiguration: config.EntitlementsConfiguration{
-			GracePeriod: datetime.ISODurationString("P1D"),
-		},
-		Locker: locker,
-		Tracer: noop.NewTracerProvider().Tracer("test_env"),
-	})
-
 	// Customer
 	customerAdapter, err := customeradapter.New(customeradapter.Config{
 		Client: dbDeps.DBClient,
@@ -198,6 +184,23 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Entitlement
+	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
+		DatabaseClient:     dbDeps.DBClient,
+		StreamingConnector: streamingConnector,
+		Logger:             logger,
+		MeterService:       meterService,
+		CustomerService:    customerService,
+		Publisher:          publisher,
+		EntitlementsConfiguration: config.EntitlementsConfiguration{
+			GracePeriod: datetime.ISODurationString("P1D"),
+		},
+		Locker: locker,
+		Tracer: noop.NewTracerProvider().Tracer("test_env"),
+	})
+
+	// Customer hooks
 
 	entValidator, err := entcustomervalidator.NewValidator(entitlementRegistry.EntitlementRepo)
 	if err != nil {

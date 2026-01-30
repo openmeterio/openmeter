@@ -976,6 +976,7 @@ func (s SubscriptionItemSpec) ToScheduleSubscriptionEntitlementInput(
 
 	return ScheduleSubscriptionEntitlementInput{
 		CreateEntitlementInputs: scheduleInput,
+		Customer:                opts.Customer,
 	}, true, nil
 }
 

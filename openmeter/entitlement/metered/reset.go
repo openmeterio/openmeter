@@ -53,16 +53,15 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 			return nil, err
 		}
 
-		event := EntitlementResetEventV2{
+		event := EntitlementResetEventV3{
 			EntitlementID: entitlementID.ID,
 			Namespace: eventmodels.NamespaceID{
 				ID: entitlementID.Namespace,
 			},
-			CustomerID:               ent.Customer.ID,
-			CustomerUsageAttribution: lo.FromPtr(ent.Customer.UsageAttribution),
-			ResetAt:                  params.At,
-			RetainAnchor:             params.RetainAnchor,
-			ResetRequestedAt:         time.Now(),
+			CustomerID:       ent.CustomerID,
+			ResetAt:          params.At,
+			RetainAnchor:     params.RetainAnchor,
+			ResetRequestedAt: time.Now(),
 		}
 
 		if err := e.publisher.Publish(ctx, event); err != nil {

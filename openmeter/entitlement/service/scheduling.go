@@ -25,6 +25,16 @@ func (c *service) ScheduleEntitlement(ctx context.Context, input entitlement.Cre
 			return nil, models.NewGenericValidationError(err)
 		}
 
+		customer, err := c.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+			CustomerID: &customer.CustomerID{
+				Namespace: input.Namespace,
+				ID:        input.UsageAttribution.ID,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+
 		// ID has priority over key
 		featureIdOrKey := input.FeatureID
 		if featureIdOrKey == nil {
@@ -70,11 +80,7 @@ func (c *service) ScheduleEntitlement(ctx context.Context, input entitlement.Cre
 			GenericProperties: entitlement.GenericProperties{
 				ID:         newEntitlementId,
 				FeatureKey: *input.FeatureKey,
-				Customer: &customer.Customer{
-					ManagedResource: models.ManagedResource{
-						ID: input.UsageAttribution.ID,
-					},
-				},
+				CustomerID: input.UsageAttribution.ID,
 				ManagedModel: models.ManagedModel{
 					CreatedAt: activeFromTime,
 				},
@@ -96,7 +102,7 @@ func (c *service) ScheduleEntitlement(ctx context.Context, input entitlement.Cre
 					conflict = cErr.E2
 				}
 
-				return nil, &entitlement.AlreadyExistsError{EntitlementID: conflict.ID, FeatureID: conflict.FeatureID, CustomerID: conflict.Customer.ID}
+				return nil, &entitlement.AlreadyExistsError{EntitlementID: conflict.ID, FeatureID: conflict.FeatureID, CustomerID: conflict.CustomerID}
 			} else {
 				return nil, err
 			}
@@ -121,7 +127,7 @@ func (c *service) ScheduleEntitlement(ctx context.Context, input entitlement.Cre
 			return nil, err
 		}
 
-		err = c.publisher.Publish(ctx, entitlement.NewEntitlementCreatedEventPayloadV2(*ent))
+		err = c.publisher.Publish(ctx, entitlement.NewEntitlementCreatedEventPayloadV2(*ent, customer))
 		if err != nil {
 			return nil, err
 		}
@@ -179,7 +185,7 @@ func (c *service) SupersedeEntitlement(ctx context.Context, entitlementId string
 			return nil, models.NewGenericValidationError(fmt.Errorf("old and new entitlements belong to different features"))
 		}
 
-		if input.UsageAttribution.ID != oldEnt.Customer.ID {
+		if input.UsageAttribution.ID != oldEnt.CustomerID {
 			return nil, models.NewGenericValidationError(fmt.Errorf("old and new entitlements belong to different customers"))
 		}
 

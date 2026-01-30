@@ -10,6 +10,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -25,6 +26,7 @@ import (
 type ServiceConfig struct {
 	EntitlementRepo  entitlement.EntitlementRepo
 	FeatureConnector feature.FeatureConnector
+	CustomerService  customer.Service
 	MeterService     meter.Service
 
 	MeteredEntitlementConnector meteredentitlement.Connector
@@ -39,6 +41,7 @@ type service struct {
 	meteredEntitlementConnector meteredentitlement.Connector
 	staticEntitlementConnector  entitlement.SubTypeConnector
 	booleanEntitlementConnector entitlement.SubTypeConnector
+	customerService             customer.Service
 
 	entitlementRepo  entitlement.EntitlementRepo
 	featureConnector feature.FeatureConnector
@@ -61,6 +64,7 @@ func NewEntitlementService(
 		meteredEntitlementConnector: config.MeteredEntitlementConnector,
 		staticEntitlementConnector:  config.StaticEntitlementConnector,
 		booleanEntitlementConnector: config.BooleanEntitlementConnector,
+		customerService:             config.CustomerService,
 		entitlementRepo:             config.EntitlementRepo,
 		featureConnector:            config.FeatureConnector,
 		meterService:                config.MeterService,
@@ -85,7 +89,7 @@ func (c *service) CreateEntitlement(ctx context.Context, input entitlement.Creat
 		}
 
 		for _, grant := range grants {
-			_, err := c.meteredEntitlementConnector.CreateGrant(ctx, ent.Namespace, ent.Customer.ID, ent.ID, grant)
+			_, err := c.meteredEntitlementConnector.CreateGrant(ctx, ent.Namespace, ent.CustomerID, ent.ID, grant)
 			if err != nil {
 				return nil, err
 			}
@@ -131,7 +135,7 @@ func (c *service) OverrideEntitlement(ctx context.Context, customerID string, en
 		}
 
 		for _, grant := range grants {
-			_, err := c.meteredEntitlementConnector.CreateGrant(ctx, ent.Namespace, ent.Customer.ID, ent.ID, grant)
+			_, err := c.meteredEntitlementConnector.CreateGrant(ctx, ent.Namespace, ent.CustomerID, ent.ID, grant)
 			if err != nil {
 				return nil, err
 			}
@@ -145,9 +149,39 @@ func (c *service) GetEntitlement(ctx context.Context, namespace string, id strin
 	return c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
 }
 
+func (c *service) GetEntitlementWithCustomer(ctx context.Context, namespace string, id string) (*entitlement.EntitlementWithCustomer, error) {
+	return transaction.Run(ctx, c.entitlementRepo, func(ctx context.Context) (*entitlement.EntitlementWithCustomer, error) {
+		ent, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
+		if err != nil {
+			return nil, err
+		}
+
+		cust, err := c.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+			CustomerID: &customer.CustomerID{
+				Namespace: namespace,
+				ID:        ent.CustomerID,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+		return &entitlement.EntitlementWithCustomer{Entitlement: lo.FromPtr(ent), Customer: lo.FromPtr(cust)}, nil
+	})
+}
+
 func (c *service) DeleteEntitlement(ctx context.Context, namespace string, id string, at time.Time) error {
 	doInTx := func(ctx context.Context) (*entitlement.Entitlement, error) {
 		ent, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
+		if err != nil {
+			return nil, err
+		}
+
+		cust, err := c.customerService.GetCustomer(ctx, customer.GetCustomerInput{
+			CustomerID: &customer.CustomerID{
+				Namespace: namespace,
+				ID:        ent.CustomerID,
+			},
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -161,7 +195,7 @@ func (c *service) DeleteEntitlement(ctx context.Context, namespace string, id st
 			return nil, err
 		}
 
-		err = c.publisher.Publish(ctx, entitlement.NewEntitlementDeletedEventPayloadV2(*ent))
+		err = c.publisher.Publish(ctx, entitlement.NewEntitlementDeletedEventPayloadV2(*ent, cust))
 		if err != nil {
 			return nil, err
 		}
@@ -223,7 +257,72 @@ func (c *service) ListEntitlements(ctx context.Context, params entitlement.ListE
 			return pagination.Result[entitlement.Entitlement]{}, err
 		}
 	}
+
 	return c.entitlementRepo.ListEntitlements(ctx, params)
+}
+
+func (c *service) ListEntitlementsWithCustomer(ctx context.Context, params entitlement.ListEntitlementsParams) (entitlement.ListEntitlementsWithCustomerResult, error) {
+	if !params.Page.IsZero() {
+		if err := params.Page.Validate(); err != nil {
+			return entitlement.ListEntitlementsWithCustomerResult{}, err
+		}
+	}
+
+	return transaction.Run(ctx, c.entitlementRepo, func(ctx context.Context) (entitlement.ListEntitlementsWithCustomerResult, error) {
+		res, err := c.entitlementRepo.ListEntitlements(ctx, params)
+		if err != nil {
+			return entitlement.ListEntitlementsWithCustomerResult{}, err
+		}
+
+		custs, err := c.expandCustomers(ctx, res.Items)
+		if err != nil {
+			return entitlement.ListEntitlementsWithCustomerResult{}, err
+		}
+
+		return entitlement.ListEntitlementsWithCustomerResult{
+			Entitlements:  res,
+			CustomersByID: custs,
+		}, nil
+	})
+}
+
+func (c *service) expandCustomers(ctx context.Context, entitlements []entitlement.Entitlement) (map[models.NamespacedID]*customer.Customer, error) {
+	customerIDs := lo.Uniq(
+		lo.Map(entitlements, func(ent entitlement.Entitlement, _ int) models.NamespacedID {
+			return models.NamespacedID{
+				Namespace: ent.Namespace,
+				ID:        ent.CustomerID,
+			}
+		}),
+	)
+
+	custs := make(map[models.NamespacedID]*customer.Customer)
+
+	if len(customerIDs) == 0 {
+		return custs, nil
+	}
+
+	customersByNamespace := lo.GroupBy(customerIDs, func(id models.NamespacedID) string {
+		return id.Namespace
+	})
+
+	for namespace, ids := range customersByNamespace {
+		customers, err := c.customerService.ListCustomers(ctx, customer.ListCustomersInput{
+			Namespace: namespace,
+			CustomerIDs: lo.Map(ids, func(id models.NamespacedID, _ int) string {
+				return id.ID
+			}),
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, customer := range customers.Items {
+			custs[models.NamespacedID{Namespace: namespace, ID: customer.ID}] = &customer
+		}
+	}
+
+	return custs, nil
 }
 
 func (c *service) GetAccess(ctx context.Context, namespace string, customerId string) (entitlement.Access, error) {

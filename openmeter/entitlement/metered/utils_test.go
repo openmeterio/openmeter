@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
+	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -55,7 +56,7 @@ type dependencies struct {
 	creditConnector        credit.CreditConnector
 	meterAdapter           *meteradapter.TestAdapter
 	subjectService         subject.Service
-	customerService        customer.Adapter
+	customerService        customer.Service
 }
 
 // Teardown cleans up the dependencies
@@ -121,12 +122,31 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 
 	mockPublisher := eventbus.NewMock(t)
 
+	subjectRepo, err := subjectadapter.New(dbClient)
+	require.NoError(t, err)
+
+	subjectService, err := subjectservice.New(subjectRepo)
+	require.NoError(t, err)
+
+	customerAdapter, err := customeradapter.New(customeradapter.Config{
+		Client: dbClient,
+		Logger: testLogger,
+	})
+	require.NoError(t, err)
+
+	customerService, err := customerservice.New(customerservice.Config{
+		Adapter:   customerAdapter,
+		Publisher: mockPublisher,
+	})
+	require.NoError(t, err)
+
 	// build adapters
 	ownerConnector := meteredentitlement.NewEntitlementGrantOwnerAdapter(
 		featureRepo,
 		entitlementRepo,
 		usageResetRepo,
 		meterAdapter,
+		customerService,
 		testLogger,
 		tracer,
 	)
@@ -170,18 +190,6 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		meteredentitlement.ConvertHook(entitlementsubscriptionhook.NewEntitlementSubscriptionHook(entitlementsubscriptionhook.EntitlementSubscriptionHookConfig{})),
 	)
 
-	subjectRepo, err := subjectadapter.New(dbClient)
-	require.NoError(t, err)
-
-	subjectService, err := subjectservice.New(subjectRepo)
-	require.NoError(t, err)
-
-	customerService, err := customeradapter.New(customeradapter.Config{
-		Client: dbClient,
-		Logger: testLogger,
-	})
-	require.NoError(t, err)
-
 	return connector, &dependencies{
 		dbClient,
 		pgDriver,
@@ -209,7 +217,7 @@ func assertUsagePeriodInputsEquals(t *testing.T, expected, actual *entitlement.U
 	assert.Equal(t, expected.GetValue().Anchor.UTC().Format(time.RFC3339), actual.GetValue().Anchor.UTC().Format(time.RFC3339), "anchors do not match")
 }
 
-func createCustomerAndSubject(t *testing.T, subjectService subject.Service, customerService customer.Adapter, ns, key, name string) *customer.Customer {
+func createCustomerAndSubject(t *testing.T, subjectService subject.Service, customerService customer.Service, ns, key, name string) *customer.Customer {
 	t.Helper()
 
 	_, err := subjectService.Create(t.Context(), subject.CreateInput{

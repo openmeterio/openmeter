@@ -7,7 +7,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -222,11 +221,7 @@ func getEnt(t *testing.T, inp getEntInp) entitlement.Entitlement {
 		GenericProperties: entitlement.GenericProperties{
 			EntitlementType: entitlement.EntitlementTypeBoolean,
 			FeatureKey:      inp.feature,
-			Customer: &customer.Customer{
-				ManagedResource: models.ManagedResource{
-					ID: inp.customerID,
-				},
-			},
+			CustomerID:      inp.customerID,
 			ManagedModel: models.ManagedModel{
 				CreatedAt: createdAt,
 			},

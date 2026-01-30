@@ -97,12 +97,17 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 
 	mockStreaming := streamingtestutils.NewMockStreamingConnector(t)
 
+	customerAdapter := NewCustomerAdapter(t, dbDeps)
+	customerService := NewCustomerService(t, dbDeps)
+	subjectService := NewSubjectService(t, dbDeps)
+
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     dbDeps.DBClient,
 		StreamingConnector: mockStreaming,
 		Logger:             logger,
 		Tracer:             noop.NewTracerProvider().Tracer("test"),
 		MeterService:       meterAdapter,
+		CustomerService:    customerService,
 		Publisher:          publisher,
 		EntitlementsConfiguration: config.EntitlementsConfiguration{
 			GracePeriod: datetime.ISODurationString("P1D"),
@@ -115,10 +120,6 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		subItemRepo,
 		subPhaseRepo,
 	)
-
-	customerAdapter := NewCustomerAdapter(t, dbDeps)
-	customerService := NewCustomerService(t, dbDeps)
-	subjectService := NewSubjectService(t, dbDeps)
 
 	// Hooks
 
