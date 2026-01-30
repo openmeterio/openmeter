@@ -154,7 +154,7 @@ func TestQueryMeter(t *testing.T) {
 					},
 				},
 			},
-			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, uniqExact(JSON_VALUE(om_events.data, '$.value')) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ?",
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, uniqExact(nullIf(JSON_VALUE(om_events.data, '$.value'), '')) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ?",
 			wantArgs: []interface{}{"my_namespace", "event1"},
 		},
 		{
@@ -175,7 +175,130 @@ func TestQueryMeter(t *testing.T) {
 				},
 				EnableDecimalPrecision: true,
 			},
-			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, uniqExact(JSON_VALUE(om_events.data, '$.value')) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ?",
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, uniqExact(nullIf(JSON_VALUE(om_events.data, '$.value'), '')) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ?",
+			wantArgs: []interface{}{"my_namespace", "event1"},
+		},
+		{
+			name: "Aggregate with AVG aggregation",
+			query: queryMeter{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Meter: meter.Meter{
+					Key:           "meter1",
+					EventType:     "event1",
+					Aggregation:   meter.MeterAggregationAvg,
+					ValueProperty: lo.ToPtr("$.value"),
+					GroupBy: map[string]string{
+						"group1": "$.group1",
+						"group2": "$.group2",
+					},
+				},
+			},
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, avg(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ?",
+			wantArgs: []interface{}{"my_namespace", "event1"},
+		},
+		{
+			name: "Aggregate with AVG aggregation with decimal precision",
+			query: queryMeter{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Meter: meter.Meter{
+					Key:           "meter1",
+					EventType:     "event1",
+					Aggregation:   meter.MeterAggregationAvg,
+					ValueProperty: lo.ToPtr("$.value"),
+					GroupBy: map[string]string{
+						"group1": "$.group1",
+						"group2": "$.group2",
+					},
+				},
+				EnableDecimalPrecision: true,
+			},
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, avg(toDecimal128OrNull(JSON_VALUE(om_events.data, '$.value'), 19)) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ?",
+			wantArgs: []interface{}{"my_namespace", "event1"},
+		},
+		{
+			name: "Aggregate with MIN aggregation",
+			query: queryMeter{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Meter: meter.Meter{
+					Key:           "meter1",
+					EventType:     "event1",
+					Aggregation:   meter.MeterAggregationMin,
+					ValueProperty: lo.ToPtr("$.value"),
+					GroupBy: map[string]string{
+						"group1": "$.group1",
+						"group2": "$.group2",
+					},
+				},
+			},
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, min(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ?",
+			wantArgs: []interface{}{"my_namespace", "event1"},
+		},
+		{
+			name: "Aggregate with MIN aggregation with decimal precision",
+			query: queryMeter{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Meter: meter.Meter{
+					Key:           "meter1",
+					EventType:     "event1",
+					Aggregation:   meter.MeterAggregationMin,
+					ValueProperty: lo.ToPtr("$.value"),
+					GroupBy: map[string]string{
+						"group1": "$.group1",
+						"group2": "$.group2",
+					},
+				},
+				EnableDecimalPrecision: true,
+			},
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, min(toDecimal128OrNull(JSON_VALUE(om_events.data, '$.value'), 19)) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ?",
+			wantArgs: []interface{}{"my_namespace", "event1"},
+		},
+		{
+			name: "Aggregate with MAX aggregation",
+			query: queryMeter{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Meter: meter.Meter{
+					Key:           "meter1",
+					EventType:     "event1",
+					Aggregation:   meter.MeterAggregationMax,
+					ValueProperty: lo.ToPtr("$.value"),
+					GroupBy: map[string]string{
+						"group1": "$.group1",
+						"group2": "$.group2",
+					},
+				},
+			},
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, max(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null)) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ?",
+			wantArgs: []interface{}{"my_namespace", "event1"},
+		},
+		{
+			name: "Aggregate with MAX aggregation with decimal precision",
+			query: queryMeter{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Meter: meter.Meter{
+					Key:           "meter1",
+					EventType:     "event1",
+					Aggregation:   meter.MeterAggregationMax,
+					ValueProperty: lo.ToPtr("$.value"),
+					GroupBy: map[string]string{
+						"group1": "$.group1",
+						"group2": "$.group2",
+					},
+				},
+				EnableDecimalPrecision: true,
+			},
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, max(toDecimal128OrNull(JSON_VALUE(om_events.data, '$.value'), 19)) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ?",
 			wantArgs: []interface{}{"my_namespace", "event1"},
 		},
 		{
@@ -196,6 +319,27 @@ func TestQueryMeter(t *testing.T) {
 				},
 			},
 			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, argMax(ifNotFinite(toFloat64OrNull(JSON_VALUE(om_events.data, '$.value')), null), om_events.time) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ?",
+			wantArgs: []interface{}{"my_namespace", "event1"},
+		},
+		{
+			name: "Aggregate with LATEST aggregation with decimal precision",
+			query: queryMeter{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Meter: meter.Meter{
+					Key:           "meter1",
+					EventType:     "event1",
+					Aggregation:   meter.MeterAggregationLatest,
+					ValueProperty: lo.ToPtr("$.value"),
+					GroupBy: map[string]string{
+						"group1": "$.group1",
+						"group2": "$.group2",
+					},
+				},
+				EnableDecimalPrecision: true,
+			},
+			wantSQL:  "SELECT tumbleStart(min(om_events.time), toIntervalMinute(1)) AS windowstart, tumbleEnd(max(om_events.time), toIntervalMinute(1)) AS windowend, argMax(toDecimal128OrNull(JSON_VALUE(om_events.data, '$.value'), 19), om_events.time) AS value FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ?",
 			wantArgs: []interface{}{"my_namespace", "event1"},
 		},
 		{

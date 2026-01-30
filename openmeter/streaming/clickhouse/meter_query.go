@@ -197,7 +197,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		selectColumns = append(selectColumns, fmt.Sprintf("toUInt64(%s(*)) AS value", sqlAggregation))
 		d.valueType = valueTypeUInt64
 	case meterpkg.MeterAggregationUniqueCount:
-		selectColumns = append(selectColumns, fmt.Sprintf("%s(JSON_VALUE(%s, '%s')) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
+		selectColumns = append(selectColumns, fmt.Sprintf("%s(nullIf(JSON_VALUE(%s, '%s'), '')) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
 		d.valueType = valueTypeUInt64
 	case meterpkg.MeterAggregationLatest:
 		if d.EnableDecimalPrecision {
@@ -434,7 +434,7 @@ func (queryMeter queryMeter) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRo
 
 		// If there is no value for the period, we skip the row
 		// This can happen when the event doesn't have the value field.
-		value := args[len(args)-1]
+		value := args[argCount-1]
 		if value == nil {
 			continue
 		}

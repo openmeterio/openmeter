@@ -62,7 +62,9 @@ func (s *CHTestSuite) CreateTempDatabase(t *testing.T) func() {
 	cleanup := func() {
 		if !t.Failed() {
 			_ = s.ClickHouse.Exec(context.Background(), fmt.Sprintf("DROP DATABASE IF EXISTS %s SYNC", db))
+			_ = s.ClickHouse.Close()
 			s.Database = ""
+			s.ClickHouse = nil
 		}
 	}
 
