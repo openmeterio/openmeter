@@ -148,12 +148,12 @@ func (h *entitlementHandler) GetEntitlement() GetEntitlementHandler {
 			}, nil
 		},
 		func(ctx context.Context, request GetEntitlementHandlerRequest) (GetEntitlementHandlerResponse, error) {
-			entitlement, err := h.connector.GetEntitlementWithCustomer(ctx, request.Namespace, request.EntitlementId)
+			ent, err := h.connector.GetEntitlementWithCustomer(ctx, request.Namespace, request.EntitlementId)
 			if err != nil {
 				return nil, err
 			}
 
-			return ParserV2.ToAPIGenericV2(&entitlement.Entitlement, entitlement.Customer.ID, entitlement.Customer.Key)
+			return ParserV2.ToAPIGenericV2(&ent.Entitlement, ent.Customer.ID, ent.Customer.Key)
 		},
 		commonhttp.JSONResponseEncoder[GetEntitlementHandlerResponse],
 		httptransport.AppendOptions(

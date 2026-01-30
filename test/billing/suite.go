@@ -178,6 +178,7 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 			GracePeriod: datetime.ISODurationString("P1D"),
 		},
 		Locker: locker,
+		Tracer: noop.NewTracerProvider().Tracer("test_env"),
 	})
 
 	// Feature

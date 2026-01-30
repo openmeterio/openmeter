@@ -106,6 +106,12 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 				return nil, err
 			}
 
+			if cust == nil {
+				return nil, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer not found [namespace=%s subject.id=%s]", request.Namespace, request.SubjectIdOrKey),
+				)
+			}
+
 			request.Inputs.UsageAttribution = cust.GetUsageAttribution()
 
 			res, err := h.connector.CreateEntitlement(ctx, request.Inputs, nil)
@@ -170,6 +176,12 @@ func (h *entitlementHandler) OverrideEntitlement() OverrideEntitlementHandler {
 				return nil, err
 			}
 
+			if cust == nil {
+				return nil, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer not found [namespace=%s subject.id=%s]", request.Inputs.Namespace, request.SubjectIdOrKey),
+				)
+			}
+
 			request.Inputs.UsageAttribution = cust.GetUsageAttribution()
 
 			res, err := h.connector.OverrideEntitlement(ctx, cust.ID, request.EntitlementIdOrFeatureKey, request.Inputs, nil)
@@ -222,6 +234,12 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 			cust, err := h.resolveCustomerFromSubject(ctx, request.Namespace, request.SubjectKey)
 			if err != nil {
 				return api.EntitlementValue{}, err
+			}
+
+			if cust == nil {
+				return api.EntitlementValue{}, models.NewGenericPreConditionFailedError(
+					fmt.Errorf("customer not found [namespace=%s subject.id=%s]", request.Namespace, request.SubjectKey),
+				)
 			}
 
 			entitlementValue, err := h.connector.GetEntitlementValue(ctx, request.Namespace, cust.ID, request.EntitlementIdOrFeatureKey, request.At)

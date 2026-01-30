@@ -79,7 +79,7 @@ type EntitlementResetEventV3 struct {
 }
 
 var (
-	_ marshaler.Event = EntitlementResetEvent{}
+	_ marshaler.Event = EntitlementResetEventV3{}
 
 	resetEntitlementEventNameV3 = metadata.GetEventName(metadata.EventType{
 		Subsystem: EventSubsystem,

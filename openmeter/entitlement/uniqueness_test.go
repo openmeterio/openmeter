@@ -53,7 +53,7 @@ func TestSchedulingConstraint(t *testing.T) {
 					createdAt:  "2021-01-01T00:00:00Z",
 				}),
 			},
-			expected: fmt.Errorf("entitlements must belong to the same subject, found [subject1 subject2]"),
+			expected: fmt.Errorf("entitlements must belong to the same customer, found [subject1 subject2]"),
 		},
 		{
 			name: "Should not error for single entitlement",
