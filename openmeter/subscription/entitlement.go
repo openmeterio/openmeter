@@ -65,10 +65,6 @@ func (s ScheduleSubscriptionEntitlementInput) Validate() error {
 
 type EntitlementAdapter interface {
 	ScheduleEntitlement(ctx context.Context, input ScheduleSubscriptionEntitlementInput, annotations models.Annotations) (*SubscriptionEntitlement, error)
-	// At refers to a point in time for which we're querying the system state, meaning:
-	// if t1 < t2 < t3, and some entitlement was deleted effective at t2, then
-	// with at = t1 the entitlement will be returned, while with at = t3 it won't.
-	GetForSubscriptionAt(ctx context.Context, input GetForSubscriptionAtInput) ([]SubscriptionEntitlement, error)
 
 	GetForSubscriptionsAt(ctx context.Context, input []GetForSubscriptionAtInput) ([]SubscriptionEntitlement, error)
 
