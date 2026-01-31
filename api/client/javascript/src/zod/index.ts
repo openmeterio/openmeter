@@ -8175,6 +8175,13 @@ export const createFeatureBodyKeyRegExp = /^[a-z0-9]+(?:_[a-z0-9]+)*$/
 export const createFeatureBodyMeterSlugMax = 64 as const
 
 export const createFeatureBodyMeterSlugRegExp = /^[a-z0-9]+(?:_[a-z0-9]+)*$/
+export const createFeatureBodyAdvancedMeterGroupByFiltersInMax = 100 as const
+
+export const createFeatureBodyAdvancedMeterGroupByFiltersNinMax = 100 as const
+
+export const createFeatureBodyAdvancedMeterGroupByFiltersAndMax = 10 as const
+
+export const createFeatureBodyAdvancedMeterGroupByFiltersOrMax = 10 as const
 
 export const CreateFeatureBody = zod
   .object({
@@ -8185,6 +8192,8 @@ export const CreateFeatureBody = zod
           .object({
             $and: zod
               .array(zod.unknown())
+              .min(1)
+              .max(createFeatureBodyAdvancedMeterGroupByFiltersAndMax)
               .nullish()
               .describe(
                 'Provide a list of filters to be combined with a logical AND.',
@@ -8211,6 +8220,8 @@ export const CreateFeatureBody = zod
               ),
             $in: zod
               .array(zod.coerce.string())
+              .min(1)
+              .max(createFeatureBodyAdvancedMeterGroupByFiltersInMax)
               .nullish()
               .describe('The field must be in the provided list of values.'),
             $like: zod.coerce
@@ -8239,6 +8250,8 @@ export const CreateFeatureBody = zod
               ),
             $nin: zod
               .array(zod.coerce.string())
+              .min(1)
+              .max(createFeatureBodyAdvancedMeterGroupByFiltersNinMax)
               .nullish()
               .describe(
                 'The field must not be in the provided list of values.',
@@ -8249,6 +8262,8 @@ export const CreateFeatureBody = zod
               .describe('The field must not match the provided value.'),
             $or: zod
               .array(zod.unknown())
+              .min(1)
+              .max(createFeatureBodyAdvancedMeterGroupByFiltersOrMax)
               .nullish()
               .describe(
                 'Provide a list of filters to be combined with a logical OR.',
@@ -8885,6 +8900,14 @@ export const queryMeterPostBodySubjectMax = 100 as const
 
 export const queryMeterPostBodyFilterCustomerIdMax = 100 as const
 
+export const queryMeterPostBodyAdvancedMeterGroupByFiltersInMax = 100 as const
+
+export const queryMeterPostBodyAdvancedMeterGroupByFiltersNinMax = 100 as const
+
+export const queryMeterPostBodyAdvancedMeterGroupByFiltersAndMax = 10 as const
+
+export const queryMeterPostBodyAdvancedMeterGroupByFiltersOrMax = 10 as const
+
 export const queryMeterPostBodyGroupByMax = 100 as const
 
 export const QueryMeterPostBody = zod
@@ -8896,6 +8919,8 @@ export const QueryMeterPostBody = zod
           .object({
             $and: zod
               .array(zod.unknown())
+              .min(1)
+              .max(queryMeterPostBodyAdvancedMeterGroupByFiltersAndMax)
               .nullish()
               .describe(
                 'Provide a list of filters to be combined with a logical AND.',
@@ -8922,6 +8947,8 @@ export const QueryMeterPostBody = zod
               ),
             $in: zod
               .array(zod.coerce.string())
+              .min(1)
+              .max(queryMeterPostBodyAdvancedMeterGroupByFiltersInMax)
               .nullish()
               .describe('The field must be in the provided list of values.'),
             $like: zod.coerce
@@ -8950,6 +8977,8 @@ export const QueryMeterPostBody = zod
               ),
             $nin: zod
               .array(zod.coerce.string())
+              .min(1)
+              .max(queryMeterPostBodyAdvancedMeterGroupByFiltersNinMax)
               .nullish()
               .describe(
                 'The field must not be in the provided list of values.',
@@ -8960,6 +8989,8 @@ export const QueryMeterPostBody = zod
               .describe('The field must not match the provided value.'),
             $or: zod
               .array(zod.unknown())
+              .min(1)
+              .max(queryMeterPostBodyAdvancedMeterGroupByFiltersOrMax)
               .nullish()
               .describe(
                 'Provide a list of filters to be combined with a logical OR.',
