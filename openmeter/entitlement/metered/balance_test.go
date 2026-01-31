@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -27,7 +28,7 @@ import (
 func getAnchor(t *testing.T) time.Time {
 	t.Helper()
 	now := clock.Now().UTC()
-	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, -1, 0)
+	return datetime.NewDateTime(time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)).AddDateNoOverflow(0, -1, 0).Time
 }
 
 func TestGetEntitlementBalance(t *testing.T) {
@@ -466,15 +467,22 @@ func TestGetEntitlementBalance(t *testing.T) {
 
 				// create entitlement in db
 				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
+				// Anchor is now() - 1 months - 1 months
+				// But without overflow, example:
+				//   now = 2026-01-31
+				//   startTime = 2025-12-31
+				//   anchor = 2025-11-30
+
+				anchor := inp.UsagePeriod.GetValue().Anchor
 				inp.MeasureUsageFrom = &startTime
 				inp.UsagePeriod = lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
 					Interval: timeutil.RecurrencePeriodMonth, // We use a slower recurrence so grace period will fit inside it
-					Anchor:   inp.UsagePeriod.GetValue().Anchor,
+					Anchor:   anchor,
 				}))
 				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
 				require.NoError(t, err)
 
-				queryTime := startTime.AddDate(0, 1, 9) // We progress into the next month when querying so we'll have a history breakpoint at reset time
+				queryTime := datetime.NewDateTime(startTime).AddDateNoOverflow(0, 1, 9).Time // We progress into the next month when querying so we'll have a history breakpoint at reset time
 
 				// issue grants
 				owner := models.NamespacedID{
@@ -489,7 +497,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 					ResetMaxRollover: 1000,
 					Priority:         2,
 					EffectiveAt:      startTime,
-					ExpiresAt:        lo.ToPtr(startTime.AddDate(0, 1, 10)), // let's also extend this a month
+					ExpiresAt:        lo.ToPtr(datetime.NewDateTime(startTime).AddDateNoOverflow(0, 1, 10).Time), // let's also extend this a month
 				})
 				require.NoError(t, err)
 
@@ -514,14 +522,14 @@ func TestGetEntitlementBalance(t *testing.T) {
 				// check snapshot
 				assert.Equal(t, balance.Snapshot{
 					Usage: balance.SnapshottedUsage{
-						Since: startTime.AddDate(0, 1, 0), // Will create a snapshot at the last history breakpoint outside 7 day grace period (which is the last reset time)
-						Usage: 0,                          // And at a reset time the usage is 0
+						Since: datetime.NewDateTime(anchor).AddDateNoOverflow(0, 2, 0).Time, // Will create a snapshot at the last history breakpoint outside 7 day grace period (which is the last reset time)
+						Usage: 0,                                                            // And at a reset time the usage is 0
 					},
 					Balances: balance.Map{
 						g1.ID: 800,
 					},
 					Overage: 0,
-					At:      startTime.AddDate(0, 1, 0), // Will create a snapshot at the last history breakpoint outside 7 day grace period (which is the last reset time)
+					At:      datetime.NewDateTime(anchor).AddDateNoOverflow(0, 2, 0).Time, // Will create a snapshot at the last history breakpoint outside 7 day grace period (which is the last reset time)
 				}, snap)
 			},
 		},
