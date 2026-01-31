@@ -31,7 +31,8 @@ func (s *CHTestSuite) SetupSuite() {
 func (s *CHTestSuite) SetupTest() {
 	dsn := os.Getenv("TEST_CLICKHOUSE_DSN")
 	if dsn == "" {
-		s.T().Skip("TEST_CLICKHOUSE_DSN is not set; skipping integration tests")
+		dsn = "http://default:default@localhost:8123"
+		// s.T().Skip("TEST_CLICKHOUSE_DSN is not set; skipping integration tests")
 	}
 
 	opts, err := clickhouse.ParseDSN(dsn)

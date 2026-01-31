@@ -209,7 +209,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		}
 	default:
 		if d.EnableDecimalPrecision {
-			selectColumns = append(selectColumns, fmt.Sprintf("%s(toDecimal128OrNull(JSON_VALUE(%s, '%s'), 19)) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
+			selectColumns = append(selectColumns, fmt.Sprintf("ifNull(%s(toDecimal128OrNull(JSON_VALUE(%s, '%s'), 19)), 0) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
 			d.valueType = valueTypeDecimal
 		} else {
 			// JSON_VALUE returns an empty string if the JSON Path is not found. With toFloat64OrNull we convert it to NULL so the aggregation function can handle it properly.
