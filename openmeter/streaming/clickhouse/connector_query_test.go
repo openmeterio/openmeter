@@ -95,88 +95,126 @@ func (s *ConnectorTestSuite) TestConnectorQueryMeter() {
 		meterAggregation       meter.MeterAggregation
 		valueProperty          *string
 		enableDecimalPrecision bool
+		from                   time.Time
+		to                     time.Time
 		wantValue              float64
 	}{
 		{
 			meterAggregation:       meter.MeterAggregationSum,
 			valueProperty:          lo.ToPtr("$.value"),
 			enableDecimalPrecision: false,
+			from:                   from,
+			to:                     to,
 			wantValue:              123.45678901234568,
 		},
 		{
 			meterAggregation:       meter.MeterAggregationSum,
 			valueProperty:          lo.ToPtr("$.value"),
 			enableDecimalPrecision: true,
+			from:                   from,
+			to:                     to,
 			wantValue:              123.45678901234568,
 		},
 		{
+			meterAggregation:       meter.MeterAggregationSum,
+			valueProperty:          lo.ToPtr("$.value"),
+			enableDecimalPrecision: true,
+			from:                   to,
+			to:                     to.Add(time.Hour),
+			wantValue:              0,
+		},
+		{
 			meterAggregation:       meter.MeterAggregationCount,
 			enableDecimalPrecision: false,
+			from:                   from,
+			to:                     to,
 			wantValue:              2,
 		},
 		{
 			meterAggregation:       meter.MeterAggregationCount,
 			enableDecimalPrecision: true,
+			from:                   from,
+			to:                     to,
 			wantValue:              2,
 		},
 		{
 			meterAggregation:       meter.MeterAggregationAvg,
 			valueProperty:          lo.ToPtr("$.value"),
 			enableDecimalPrecision: false,
+			from:                   from,
+			to:                     to,
 			wantValue:              61.72839450617284,
 		},
 		{
 			meterAggregation:       meter.MeterAggregationAvg,
 			valueProperty:          lo.ToPtr("$.value"),
 			enableDecimalPrecision: true,
+			from:                   from,
+			to:                     to,
 			wantValue:              61.72839450617284,
 		},
 		{
 			meterAggregation:       meter.MeterAggregationMin,
 			valueProperty:          lo.ToPtr("$.value"),
 			enableDecimalPrecision: false,
+			from:                   from,
+			to:                     to,
 			wantValue:              0.4567890123456789,
 		},
 		{
 			meterAggregation:       meter.MeterAggregationMin,
 			valueProperty:          lo.ToPtr("$.value"),
 			enableDecimalPrecision: true,
+			from:                   from,
+			to:                     to,
 			wantValue:              0.4567890123456789,
 		},
 		{
 			meterAggregation:       meter.MeterAggregationMax,
 			valueProperty:          lo.ToPtr("$.value"),
 			enableDecimalPrecision: false,
+			from:                   from,
+			to:                     to,
 			wantValue:              123,
 		},
 		{
 			meterAggregation:       meter.MeterAggregationMax,
 			valueProperty:          lo.ToPtr("$.value"),
 			enableDecimalPrecision: true,
+			from:                   from,
+			to:                     to,
 			wantValue:              123,
 		},
 		{
 			meterAggregation:       meter.MeterAggregationUniqueCount,
 			valueProperty:          lo.ToPtr("$.name"),
 			enableDecimalPrecision: false,
+			from:                   from,
+			to:                     to,
 			wantValue:              1,
 		},
 		{
 			meterAggregation:       meter.MeterAggregationUniqueCount,
 			valueProperty:          lo.ToPtr("$.name"),
 			enableDecimalPrecision: true,
+			from:                   from,
+			to:                     to,
 			wantValue:              1,
 		},
 		{
 			meterAggregation:       meter.MeterAggregationLatest,
 			valueProperty:          lo.ToPtr("$.value"),
 			enableDecimalPrecision: false,
+			from:                   from,
+			to:                     to,
 			wantValue:              0.4567890123456789,
 		},
 		{
 			meterAggregation:       meter.MeterAggregationLatest,
 			valueProperty:          lo.ToPtr("$.value"),
 			enableDecimalPrecision: true,
+			from:                   from,
+			to:                     to,
 			wantValue:              0.4567890123456789,
 		},
 	}
@@ -206,15 +244,15 @@ func (s *ConnectorTestSuite) TestConnectorQueryMeter() {
 			s.Connector.config.EnableDecimalPrecision = tt.enableDecimalPrecision
 
 			rows, err := s.Connector.QueryMeter(ctx, namespace, m, streaming.QueryParams{
-				From: &from,
-				To:   &to,
+				From: &tt.from,
+				To:   &tt.to,
 			})
 
 			s.NoError(err)
 			s.Equal([]meter.MeterQueryRow{
 				{
-					WindowStart: from,
-					WindowEnd:   to,
+					WindowStart: tt.from,
+					WindowEnd:   tt.to,
 					Value:       tt.wantValue,
 					GroupBy:     map[string]*string{},
 				},
