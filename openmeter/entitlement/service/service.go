@@ -312,6 +312,7 @@ func (c *service) expandCustomers(ctx context.Context, entitlements []entitlemen
 			CustomerIDs: lo.Map(ids, func(id models.NamespacedID, _ int) string {
 				return id.ID
 			}),
+			IncludeDeleted: true,
 		})
 		if err != nil {
 			return nil, err
