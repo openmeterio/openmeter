@@ -183,6 +183,63 @@ func Test_CustomerSubjectHook(t *testing.T) {
 			})
 		})
 	})
+
+	t.Run("Delete", func(t *testing.T) {
+		t.Run("WithExistingSubject", func(t *testing.T) {
+			cus, err := env.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+				Namespace: namespace,
+				CustomerMutate: customer.CustomerMutate{
+					Key:  lo.ToPtr("example-inc-4"),
+					Name: "Example Inc.",
+					UsageAttribution: &customer.CustomerUsageAttribution{
+						SubjectKeys: []string{
+							"example-inc-4",
+						},
+					},
+				},
+			})
+			require.NoErrorf(t, err, "creating customer should not fail")
+			assert.NotNilf(t, cus, "customer must not be nil")
+
+			sub, err := env.SubjectService.GetByKey(ctx, models.NamespacedKey{
+				Namespace: namespace,
+				Key:       cus.UsageAttribution.SubjectKeys[0],
+			})
+			require.NoErrorf(t, err, "getting subject should not fail")
+			assert.NotNilf(t, sub, "subject must not be nil")
+
+			err = env.CustomerService.DeleteCustomer(ctx, customer.DeleteCustomerInput{
+				Namespace: namespace,
+				ID:        cus.ID,
+			})
+			require.NoErrorf(t, err, "deleting customer should not fail")
+
+			_, err = env.SubjectService.GetByKey(ctx, models.NamespacedKey{
+				Namespace: namespace,
+				Key:       cus.UsageAttribution.SubjectKeys[0],
+			})
+			require.ErrorAsf(t, err, lo.ToPtr(&models.GenericNotFoundError{}), "getting subject should return not found error")
+		})
+
+		t.Run("WithoutSubjects", func(t *testing.T) {
+			cus, err := env.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+				Namespace: namespace,
+				CustomerMutate: customer.CustomerMutate{
+					Key:  lo.ToPtr("example-inc-5"),
+					Name: "Example Inc.",
+				},
+			})
+
+			require.NoErrorf(t, err, "creating customer should not fail")
+			assert.NotNilf(t, cus, "customer must not be nil")
+
+			err = env.CustomerService.DeleteCustomer(ctx, customer.DeleteCustomerInput{
+				Namespace: namespace,
+				ID:        cus.ID,
+			})
+			require.NoErrorf(t, err, "deleting customer should not fail")
+		})
+	})
 }
 
 var _ billing.CustomerOverrideService = (*NoopCustomerOverrideService)(nil)
