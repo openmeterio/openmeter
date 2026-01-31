@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -107,7 +106,7 @@ func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.Nam
 	}
 
 	// Require filtering by customer; error if missing
-	if cust == nil || (cust.DeletedAt != nil && cust.DeletedAt.Before(clock.Now())) {
+	if cust == nil {
 		return def, models.NewGenericValidationError(fmt.Errorf("customer not found for entitlement %s", id.ID))
 	}
 
