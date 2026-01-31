@@ -101,6 +101,8 @@ func TestUsagePeriodGetPeriodAt(t *testing.T) {
 			Anchor:   startOfDay.Add(time.Hour),
 		}
 
+		rec1FirstPeriodEnd := datetime.NewDateTime(t1StartOfDay).AddDateNoOverflow(0, 1, 0).Time.Add(time.Hour)
+
 		rec2 := timeutil.Recurrence{
 			Interval: timeutil.RecurrencePeriodMonth,
 			Anchor:   startOfDay.Add(time.Hour * 2),
@@ -113,7 +115,9 @@ func TestUsagePeriodGetPeriodAt(t *testing.T) {
 			timeutil.AsTimed(func(r timeutil.Recurrence) time.Time { return t2 })(rec2),
 		})
 
-		timeInPast := gofakeit.DateRange(t1.AddDate(-1, 0, 1), t1.AddDate(0, 0, -1))
+		timeInPast := gofakeit.DateRange(
+			datetime.NewDateTime(t1).AddDateNoOverflow(-1, 0, 1).Time,
+			datetime.NewDateTime(t1).AddDateNoOverflow(0, 0, -1).Time)
 
 		period, err := up.GetCurrentPeriodAt(timeInPast)
 		require.NoError(t, err)
@@ -121,11 +125,7 @@ func TestUsagePeriodGetPeriodAt(t *testing.T) {
 		// Should return the first period even when queried for past
 		expected := timeutil.ClosedPeriod{
 			From: t1,
-			To:   t1StartOfDay.Add(time.Hour).AddDate(0, 1, 0),
-		}
-
-		if t1.Sub(t1StartOfDay) <= time.Hour {
-			expected.To = t1StartOfDay.Add(time.Hour)
+			To:   rec1FirstPeriodEnd,
 		}
 
 		require.Equal(t, expected, period, `
