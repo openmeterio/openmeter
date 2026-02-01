@@ -20,13 +20,24 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type valueType string
+type NullDecimal struct {
+	decimal.NullDecimal
+}
 
-const (
-	valueTypeFloat64 valueType = "float64"
-	valueTypeDecimal valueType = "decimal"
-	valueTypeUInt64  valueType = "uint64"
-)
+func (v *NullDecimal) Scan(src any) error {
+	err := v.NullDecimal.Scan(src)
+	if err == nil {
+		return nil
+	}
+
+	if d, ok := src.(decimal.Decimal); ok {
+		v.Valid = true
+		v.Decimal = d
+		return nil
+	}
+
+	return err
+}
 
 type queryMeter struct {
 	Database               string
@@ -44,7 +55,6 @@ type queryMeter struct {
 	QuerySettings          map[string]string
 	EnablePrewhere         bool
 	EnableDecimalPrecision bool
-	valueType              valueType
 }
 
 // from returns the from time for the query.
@@ -194,27 +204,21 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 
 	switch d.Meter.Aggregation {
 	case meterpkg.MeterAggregationCount:
-		selectColumns = append(selectColumns, fmt.Sprintf("toUInt64(%s(*)) AS value", sqlAggregation))
-		d.valueType = valueTypeUInt64
+		selectColumns = append(selectColumns, fmt.Sprintf("%s(*) AS value", sqlAggregation))
 	case meterpkg.MeterAggregationUniqueCount:
-		selectColumns = append(selectColumns, fmt.Sprintf("%s(nullIf(JSON_VALUE(%s, '%s'), '')) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
-		d.valueType = valueTypeUInt64
+		selectColumns = append(selectColumns, fmt.Sprintf("%s(nullIf(JSON_VALUE(%s, '%s'), 'null')) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
 	case meterpkg.MeterAggregationLatest:
 		if d.EnableDecimalPrecision {
-			selectColumns = append(selectColumns, fmt.Sprintf("%s(toDecimal128OrNull(JSON_VALUE(%s, '%s'), 19), %s) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty), timeColumn))
-			d.valueType = valueTypeDecimal
+			selectColumns = append(selectColumns, fmt.Sprintf("%s(toDecimal128OrNull(nullIf(JSON_VALUE(%s, '%s'), 'null'), 19), %s) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty), timeColumn))
 		} else {
 			selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null), %s) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty), timeColumn))
-			d.valueType = valueTypeFloat64
 		}
 	default:
 		if d.EnableDecimalPrecision {
-			selectColumns = append(selectColumns, fmt.Sprintf("%s(toDecimal128OrNull(JSON_VALUE(%s, '%s'), 19)) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
-			d.valueType = valueTypeDecimal
+			selectColumns = append(selectColumns, fmt.Sprintf("%s(toDecimal128OrNull(nullIf(JSON_VALUE(%s, '%s'), 'null'), 19)) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
 		} else {
 			// JSON_VALUE returns an empty string if the JSON Path is not found. With toFloat64OrNull we convert it to NULL so the aggregation function can handle it properly.
 			selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null)) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
-			d.valueType = valueTypeFloat64
 		}
 	}
 
@@ -408,18 +412,8 @@ func (queryMeter queryMeter) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRo
 			GroupBy: map[string]*string{},
 		}
 
-		args := []interface{}{&row.WindowStart, &row.WindowEnd}
-		switch queryMeter.valueType {
-		case valueTypeFloat64:
-			var value float64
-			args = append(args, &value)
-		case valueTypeDecimal:
-			var value decimal.Decimal
-			args = append(args, &value)
-		case valueTypeUInt64:
-			var value uint64
-			args = append(args, &value)
-		}
+		var value NullDecimal
+		args := []interface{}{&row.WindowStart, &row.WindowEnd, &value}
 		argCount := len(args)
 
 		if len(columns) > argCount {
@@ -432,21 +426,12 @@ func (queryMeter queryMeter) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRo
 			return values, fmt.Errorf("query meter view row scan: %w", err)
 		}
 
-		// If there is no value for the period, we skip the row
-		// This can happen when the event doesn't have the value field.
-		value := args[argCount-1]
-		if value == nil {
+		if !value.Valid {
 			continue
 		}
 
-		switch queryMeter.valueType {
-		case valueTypeFloat64:
-			row.Value = *value.(*float64)
-		case valueTypeDecimal:
-			row.Value = value.(*decimal.Decimal).InexactFloat64()
-		case valueTypeUInt64:
-			row.Value = float64(*value.(*uint64))
-		}
+		// TODO: use decimal.Decimal for row value
+		row.Value = value.Decimal.InexactFloat64()
 
 		if math.IsNaN(row.Value) {
 			return values, fmt.Errorf("value is NaN")
