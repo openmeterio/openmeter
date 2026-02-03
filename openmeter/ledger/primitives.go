@@ -51,15 +51,7 @@ type Dimension[TValue any] interface {
 // Transaction primitives
 // ----------------------------------------------------------------------------
 
-type EntryType string
-
-const (
-	EntryTypeCredit EntryType = "credit"
-	EntryTypeDebit  EntryType = "debit"
-)
-
 type LedgerEntryInput interface {
-	Type() EntryType
 	Account() Address
 	Amount() alpacadecimal.Decimal
 }
