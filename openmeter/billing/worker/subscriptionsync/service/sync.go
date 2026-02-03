@@ -832,6 +832,10 @@ func (s *Service) getPatchesForExistingLine(existingLine *billing.StandardLine, 
 	wasChange := false
 
 	setIfDoesNotEqual(&targetLine.Period, expectedLine.Period, &wasChange)
+	if wasChange {
+		// If the period has changed we need to adjust the invoice at to the expected line's invoice at
+		targetLine.InvoiceAt = expectedLine.InvoiceAt
+	}
 
 	if invoiceByID.IsGatheringInvoice(existingLine.InvoiceID) {
 		setIfDoesNotEqual(&targetLine.InvoiceAt, expectedLine.InvoiceAt, &wasChange)
