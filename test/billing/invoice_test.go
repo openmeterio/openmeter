@@ -119,10 +119,10 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 	// Given we have a default profile for the namespace
 
-	billingProfile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	_ = s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
-	var items []*billing.StandardLine
-	var HUFItem *billing.StandardLine
+	var items []billing.GatheringLine
+	var HUFItem billing.GatheringLine
 
 	s.T().Run("CreateInvoiceItems", func(t *testing.T) {
 		// When we create invoice items
@@ -131,8 +131,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines: []*billing.StandardLine{
-					billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+				Lines: []billing.GatheringLine{
+					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 						Namespace: namespace,
 
 						Period:    billing.Period{Start: periodStart, End: periodEnd},
@@ -165,8 +165,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.HUF),
-				Lines: []*billing.StandardLine{
-					billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+				Lines: []billing.GatheringLine{
+					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 						Period: billing.Period{Start: periodStart, End: periodEnd},
 
 						InvoiceAt: issueAt,
@@ -178,17 +178,15 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 					}),
 					{
-						StandardLineBase: billing.StandardLineBase{
+						GatheringLineBase: billing.GatheringLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "Test item - HUF",
 							}),
-							Period: billing.Period{Start: periodStart, End: periodEnd},
+							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 
 							InvoiceAt: issueAt,
 							ManagedBy: billing.ManuallyManagedLine,
-						},
-						UsageBased: &billing.UsageBasedLine{
-							Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 								Mode: productcatalog.GraduatedTieredPrice,
 								Tiers: []productcatalog.PriceTier{
 									{
@@ -203,7 +201,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 										},
 									},
 								},
-							}),
+							})),
 							FeatureKey: "test",
 						},
 					},
@@ -212,28 +210,27 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 		// Then we should have the items created
 		require.NoError(s.T(), err)
-		items = []*billing.StandardLine{usdItem, res.Lines[0], res.Lines[1]}
+		items = []billing.GatheringLine{usdItem, res.Lines[0], res.Lines[1]}
 
 		// Then we should have an usd invoice automatically created
-		usdInvoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+		usdInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 			Page: pagination.Page{
 				PageNumber: 1,
 				PageSize:   10,
 			},
 
-			Namespaces:       []string{namespace},
-			Customers:        []string{customerEntity.ID},
-			Expand:           billing.InvoiceExpandAll,
-			ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
-			Currencies:       []currencyx.Code{currencyx.Code(currency.USD)},
+			Namespaces: []string{namespace},
+			Customers:  []string{customerEntity.ID},
+			Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
+			Currencies: []currencyx.Code{currencyx.Code(currency.USD)},
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), usdInvoices.Items, 1)
 		usdInvoice := usdInvoices.Items[0]
 
 		usdInvoiceLine := usdInvoice.Lines.MustGet()[0]
-		expectedUSDLine := &billing.StandardLine{
-			StandardLineBase: billing.StandardLineBase{
+		expectedUSDLine := billing.GatheringLine{
+			GatheringLineBase: billing.GatheringLineBase{
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 					ID:        items[0].ID,
 					Namespace: namespace,
@@ -242,7 +239,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 					UpdatedAt: usdInvoiceLine.UpdatedAt.In(time.UTC),
 				}),
 
-				Period: billing.Period{Start: periodStart.Truncate(time.Microsecond), End: periodEnd.Truncate(time.Microsecond)},
+				ServicePeriod: timeutil.ClosedPeriod{From: periodStart.Truncate(time.Microsecond), To: periodEnd.Truncate(time.Microsecond)},
 
 				InvoiceID: usdInvoice.ID,
 				InvoiceAt: issueAt.In(time.UTC),
@@ -257,78 +254,48 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 					"string_key": "value",
 					"float_key":  1.0,
 				},
-			},
-			UsageBased: &billing.UsageBasedLine{
-				ConfigID: usdInvoiceLine.UsageBased.ConfigID,
-				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				UBPConfigID: usdInvoiceLine.UBPConfigID,
+				Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 					Amount:      alpacadecimal.NewFromFloat(100),
 					PaymentTerm: productcatalog.InAdvancePaymentTerm,
-				}),
+				})),
 			},
 		}
 		// Let's make sure that the workflow config is cloned
-		expectedInvoice := billing.StandardInvoice{
-			StandardInvoiceBase: billing.StandardInvoiceBase{
-				Namespace: namespace,
-				ID:        usdInvoice.ID,
+		expectedInvoice := billing.GatheringInvoice{
+			GatheringInvoiceBase: billing.GatheringInvoiceBase{
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+					Namespace: namespace,
+					ID:        usdInvoice.ID,
+					Name:      "GATHER-TECU-USD-1",
+					CreatedAt: usdInvoice.CreatedAt,
+					UpdatedAt: usdInvoice.UpdatedAt,
+				}),
 
-				Type:     billing.InvoiceTypeStandard,
-				Number:   "GATHER-TECU-USD-1",
-				Currency: currencyx.Code(currency.USD),
-				Status:   billing.StandardInvoiceStatusGathering,
-				Period:   &billing.Period{Start: periodStart.Truncate(time.Second), End: periodEnd.Truncate(time.Second)},
-
-				CreatedAt: usdInvoice.CreatedAt,
-				UpdatedAt: usdInvoice.UpdatedAt,
-
-				Workflow: billing.InvoiceWorkflow{
-					Config: billing.WorkflowConfig{
-						Collection: billingProfile.WorkflowConfig.Collection,
-						Invoicing:  billingProfile.WorkflowConfig.Invoicing,
-						Payment:    billingProfile.WorkflowConfig.Payment,
-						Tax:        billingProfile.WorkflowConfig.Tax,
-					},
-					SourceBillingProfileID: billingProfile.ID,
-					AppReferences:          *billingProfile.AppReferences,
-					Apps:                   billingProfile.Apps,
-				},
+				Number:        "GATHER-TECU-USD-1",
+				Currency:      currencyx.Code(currency.USD),
+				ServicePeriod: timeutil.ClosedPeriod{From: periodStart.Truncate(time.Second), To: periodEnd.Truncate(time.Second)},
 
 				// The customer snapshot
-				Customer: billing.InvoiceCustomer{
-					// Usage attribution fields
-					Key:        customerEntity.Key,
-					CustomerID: customerEntity.ID,
-					UsageAttribution: &streaming.CustomerUsageAttribution{
-						ID:          customerEntity.ID,
-						Key:         customerEntity.Key,
-						SubjectKeys: customerEntity.UsageAttribution.SubjectKeys,
-					},
-
-					// Other fields
-					Name:           customerEntity.Name,
-					BillingAddress: customerEntity.BillingAddress,
-				},
-				Supplier: billingProfile.Supplier,
+				CustomerID: customerEntity.ID,
 
 				SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
 			},
 
-			Lines: billing.NewStandardInvoiceLines([]*billing.StandardLine{expectedUSDLine}),
-
-			ExpandedFields: billing.InvoiceExpandAll,
+			Lines: billing.NewGatheringInvoiceLines([]billing.GatheringLine{expectedUSDLine}),
 		}
 
 		s.NoError(invoicecalc.GatheringInvoiceCollectionAt(&expectedInvoice))
 
 		ExpectJSONEqual(s.T(),
-			expectedInvoice.RemoveMetaForCompare(),
-			usdInvoice.RemoveMetaForCompare())
+			lo.Must(expectedInvoice.WithoutDBState()),
+			lo.Must(usdInvoice.WithoutDBState()))
 
 		require.Len(s.T(), items, 3)
 		// Validate that the create returns the expected items
 		items[0].CreatedAt = expectedUSDLine.CreatedAt
 		items[0].UpdatedAt = expectedUSDLine.UpdatedAt
-		require.Equal(s.T(), items[0].RemoveMetaForCompare(), expectedUSDLine.RemoveMetaForCompare())
+		require.Equal(s.T(), lo.Must(items[0].WithoutDBState()), lo.Must(expectedUSDLine.WithoutDBState()))
 		require.NotEmpty(s.T(), items[1].ID)
 
 		HUFItem = items[1]
@@ -466,8 +433,8 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []*billing.StandardLine{
-				billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+			Lines: []billing.GatheringLine{
+				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Namespace: namespace,
 					Period:    billing.Period{Start: periodStart, End: periodEnd},
 
@@ -484,7 +451,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 					PerUnitAmount: alpacadecimal.NewFromFloat(100),
 					PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 				}),
-				billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Namespace: namespace,
 					Period:    billing.Period{Start: periodStart, End: periodEnd},
 
@@ -642,8 +609,8 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines: []*billing.StandardLine{
-					billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+				Lines: []billing.GatheringLine{
+					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 						Name:      "Test item1",
 						Namespace: namespace,
 						Period:    billing.Period{Start: periodStart, End: periodEnd},
@@ -1044,6 +1011,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				// Given that the app will return a validation error
 				mockApp.OnValidateStandardInvoice(billing.NewValidationError("test1", "validation error"))
 				calcMock.OnCalculate(nil)
+				calcMock.OnCalculateLegacyGatheringInvoice(nil)
 				calcMock.OnCalculateGatheringInvoice(nil)
 
 				// When we create a draft invoice
@@ -1276,6 +1244,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				mockApp.OnFinalizeStandardInvoice(nil)
 				calcMock.OnCalculate(nil)
 				calcMock.OnCalculateGatheringInvoice(nil)
+				calcMock.OnCalculateLegacyGatheringInvoice(nil)
 
 				// When we create a draft invoice
 				invoice := s.CreateDraftInvoice(s.T(), ctx, DraftInvoiceInput{
@@ -1527,55 +1496,48 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines: []*billing.StandardLine{
+				Lines: []billing.GatheringLine{
 					{
-						StandardLineBase: billing.StandardLineBase{
+						GatheringLineBase: billing.GatheringLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - FLAT per unit",
 							}),
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							ManagedBy: billing.ManuallyManagedLine,
-						},
-						UsageBased: &billing.UsageBasedLine{
-							FeatureKey: features.flatPerUnit.Key,
-							Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+							InvoiceAt:     periodEnd,
+							ManagedBy:     billing.ManuallyManagedLine,
+							FeatureKey:    features.flatPerUnit.Key,
+							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 								Amount: alpacadecimal.NewFromFloat(100),
 								Commitments: productcatalog.Commitments{
 									MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
 								},
-							}),
+							})),
 						},
 					},
 					{
-						StandardLineBase: billing.StandardLineBase{
+						GatheringLineBase: billing.GatheringLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - FLAT per any usage",
 							}),
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							ManagedBy: billing.ManuallyManagedLine,
-						},
-						UsageBased: &billing.UsageBasedLine{
-							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+							InvoiceAt:     periodEnd,
+							ManagedBy:     billing.ManuallyManagedLine,
+							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 								Amount:      alpacadecimal.NewFromFloat(100),
 								PaymentTerm: productcatalog.InArrearsPaymentTerm,
-							}),
-							Quantity: lo.ToPtr(alpacadecimal.NewFromFloat(1)),
+							})),
 						},
 					},
 					{
-						StandardLineBase: billing.StandardLineBase{
+						GatheringLineBase: billing.GatheringLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - Tiered graduated",
 							}),
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							ManagedBy: billing.ManuallyManagedLine,
-						},
-						UsageBased: &billing.UsageBasedLine{
-							FeatureKey: features.tieredGraduated.Key,
-							Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+							InvoiceAt:     periodEnd,
+							ManagedBy:     billing.ManuallyManagedLine,
+							FeatureKey:    features.tieredGraduated.Key,
+							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 								Mode: productcatalog.GraduatedTieredPrice,
 								Tiers: []productcatalog.PriceTier{
 									{
@@ -1596,21 +1558,19 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 										},
 									},
 								},
-							}),
+							})),
 						},
 					},
 					{
-						StandardLineBase: billing.StandardLineBase{
+						GatheringLineBase: billing.GatheringLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - Tiered volume",
 							}),
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							ManagedBy: billing.ManuallyManagedLine,
-						},
-						UsageBased: &billing.UsageBasedLine{
-							FeatureKey: features.tieredVolume.Key,
-							Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+							InvoiceAt:     periodEnd,
+							ManagedBy:     billing.ManuallyManagedLine,
+							FeatureKey:    features.tieredVolume.Key,
+							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 								Mode: productcatalog.VolumeTieredPrice,
 								Tiers: []productcatalog.PriceTier{
 									{
@@ -1634,7 +1594,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 								Commitments: productcatalog.Commitments{
 									MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(3000)),
 								},
-							}),
+							})),
 						},
 					},
 				},
@@ -1652,11 +1612,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		// The flat fee line should not be truncated
 		require.Equal(s.T(),
-			billing.Period{
-				Start: truncatedPeriodStart,
-				End:   truncatedPeriodEnd,
-			},
-			lines.flatFee.Period,
+			timeutil.ClosedPeriod{From: truncatedPeriodStart, To: truncatedPeriodEnd},
+			lines.flatFee.ServicePeriod,
 			"period should not be truncated",
 		)
 		require.Equal(s.T(),
@@ -1666,13 +1623,10 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		)
 
 		// The pending invoice items should be truncated to 1 min resolution (start => up to next, end down to previous)
-		for _, line := range []*billing.StandardLine{lines.flatPerUnit, lines.tieredGraduated, lines.tieredVolume} {
+		for _, line := range []billing.GatheringLine{lines.flatPerUnit, lines.tieredGraduated, lines.tieredVolume} {
 			require.Equal(s.T(),
-				billing.Period{
-					Start: testutils.GetRFC3339Time(s.T(), "2024-09-02T12:13:14Z"),
-					End:   testutils.GetRFC3339Time(s.T(), "2024-09-03T12:13:14Z"),
-				},
-				line.Period,
+				timeutil.ClosedPeriod{From: testutils.GetRFC3339Time(s.T(), "2024-09-02T12:13:14Z"), To: testutils.GetRFC3339Time(s.T(), "2024-09-03T12:13:14Z")},
+				line.ServicePeriod,
 				"period should be truncated to 1 min resolution",
 			)
 
@@ -2046,7 +2000,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		s.NotNil(tieredGraduated.SplitLineHierarchy)
 		tieredGraduatedHierarchy := tieredGraduated.SplitLineHierarchy
 
-		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.Equal(lines.tieredGraduated.Period))
+		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.ToClosedPeriod().Equals(lines.tieredGraduated.ServicePeriod))
 		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 3, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
 		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.Period.Equal(billing.Period{
 			Start: truncatedPeriodStart,
@@ -2237,15 +2191,15 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		for _, line := range []*billing.StandardLine{flatPerUnit, tieredGraduated} {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should be changed for the line items")
 		}
-		require.True(s.T(), tieredVolume.Period.Equal(lines.tieredVolume.Period), "period should be unchanged for the tiered volume line")
-		require.True(s.T(), flatFee.Period.Equal(lines.flatFee.Period), "period should be unchanged for the flat line")
+		require.True(s.T(), tieredVolume.Period.ToClosedPeriod().Equals(lines.tieredVolume.ServicePeriod), "period should be unchanged for the tiered volume line")
+		require.True(s.T(), flatFee.Period.ToClosedPeriod().Equals(lines.flatFee.ServicePeriod), "period should be unchanged for the flat line")
 
 		// Let's validate the output of the split itself: no new split should have occurred
 		s.sortedSplitLineGroupChildren(tieredGraduated)
 		tieredGraduatedHierarchy := tieredGraduated.SplitLineHierarchy
 		s.NotNil(tieredGraduatedHierarchy)
 
-		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.Equal(lines.tieredGraduated.Period))
+		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.ToClosedPeriod().Equals(lines.tieredGraduated.ServicePeriod))
 		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 3, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
 		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.Period.Equal(billing.Period{
 			Start: truncatedPeriodStart,
@@ -2412,26 +2366,24 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 	// Given we have a default profile for the namespace
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithProgressiveBilling())
 
-	var pendingLine *billing.StandardLine
+	var pendingLine billing.GatheringLine
 	s.Run("create pending invoice items", func() {
 		// When we create pending invoice items
 		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines: []*billing.StandardLine{
+				Lines: []billing.GatheringLine{
 					{
-						StandardLineBase: billing.StandardLineBase{
+						GatheringLineBase: billing.GatheringLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - Tiered graduated",
 							}),
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							ManagedBy: billing.ManuallyManagedLine,
-						},
-						UsageBased: &billing.UsageBasedLine{
-							FeatureKey: features.tieredGraduated.Key,
-							Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+							InvoiceAt:     periodEnd,
+							ManagedBy:     billing.ManuallyManagedLine,
+							FeatureKey:    features.tieredGraduated.Key,
+							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 								Mode: productcatalog.GraduatedTieredPrice,
 								Tiers: []productcatalog.PriceTier{
 									{
@@ -2458,7 +2410,7 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 										},
 									},
 								},
-							}),
+							})),
 						},
 					},
 				},
@@ -2733,55 +2685,48 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines: []*billing.StandardLine{
+				Lines: []billing.GatheringLine{
 					{
-						StandardLineBase: billing.StandardLineBase{
+						GatheringLineBase: billing.GatheringLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - FLAT per unit",
 							}),
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							ManagedBy: billing.ManuallyManagedLine,
-						},
-						UsageBased: &billing.UsageBasedLine{
-							FeatureKey: features.flatPerUnit.Key,
-							Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+							InvoiceAt:     periodEnd,
+							ManagedBy:     billing.ManuallyManagedLine,
+							FeatureKey:    features.flatPerUnit.Key,
+							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 								Amount: alpacadecimal.NewFromFloat(100),
 								Commitments: productcatalog.Commitments{
 									MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
 								},
-							}),
+							})),
 						},
 					},
 					{
-						StandardLineBase: billing.StandardLineBase{
+						GatheringLineBase: billing.GatheringLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - FLAT per any usage",
 							}),
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							ManagedBy: billing.ManuallyManagedLine,
-						},
-						UsageBased: &billing.UsageBasedLine{
-							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+							InvoiceAt:     periodEnd,
+							ManagedBy:     billing.ManuallyManagedLine,
+							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 								Amount:      alpacadecimal.NewFromFloat(100),
 								PaymentTerm: productcatalog.InArrearsPaymentTerm,
-							}),
-							Quantity: lo.ToPtr(alpacadecimal.NewFromFloat(1)),
+							})),
 						},
 					},
 					{
-						StandardLineBase: billing.StandardLineBase{
+						GatheringLineBase: billing.GatheringLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - Tiered graduated",
 							}),
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							ManagedBy: billing.ManuallyManagedLine,
-						},
-						UsageBased: &billing.UsageBasedLine{
-							FeatureKey: features.tieredGraduated.Key,
-							Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+							InvoiceAt:     periodEnd,
+							ManagedBy:     billing.ManuallyManagedLine,
+							FeatureKey:    features.tieredGraduated.Key,
+							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 								Mode: productcatalog.GraduatedTieredPrice,
 								Tiers: []productcatalog.PriceTier{
 									{
@@ -2802,21 +2747,19 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 										},
 									},
 								},
-							}),
+							})),
 						},
 					},
 					{
-						StandardLineBase: billing.StandardLineBase{
+						GatheringLineBase: billing.GatheringLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - Tiered volume",
 							}),
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							ManagedBy: billing.ManuallyManagedLine,
-						},
-						UsageBased: &billing.UsageBasedLine{
-							FeatureKey: features.tieredVolume.Key,
-							Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+							InvoiceAt:     periodEnd,
+							ManagedBy:     billing.ManuallyManagedLine,
+							FeatureKey:    features.tieredVolume.Key,
+							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 								Mode: productcatalog.VolumeTieredPrice,
 								Tiers: []productcatalog.PriceTier{
 									{
@@ -2840,7 +2783,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 								Commitments: productcatalog.Commitments{
 									MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(3000)),
 								},
-							}),
+							})),
 						},
 					},
 				},
@@ -2857,13 +2800,10 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 		}
 
 		// The pending invoice items should be truncated to 1 min resolution (start => up to next, end down to previous)
-		for _, line := range []*billing.StandardLine{lines.flatPerUnit, lines.tieredGraduated, lines.tieredVolume, lines.flatFee} {
+		for _, line := range []billing.GatheringLine{lines.flatPerUnit, lines.tieredGraduated, lines.tieredVolume, lines.flatFee} {
 			require.Equal(s.T(),
-				billing.Period{
-					Start: truncatedPeriodStart,
-					End:   truncatedPeriodEnd,
-				},
-				line.Period,
+				timeutil.ClosedPeriod{From: truncatedPeriodStart, To: truncatedPeriodEnd},
+				line.ServicePeriod,
 				"period should be truncated to 1 min resolution",
 			)
 
@@ -3073,10 +3013,10 @@ func (s *InvoicingTestSuite) sortedSplitLineGroupChildren(line *billing.Standard
 }
 
 type ubpPendingLines struct {
-	flatPerUnit     *billing.StandardLine
-	flatFee         *billing.StandardLine
-	tieredGraduated *billing.StandardLine
-	tieredVolume    *billing.StandardLine
+	flatPerUnit     billing.GatheringLine
+	flatFee         billing.GatheringLine
+	tieredGraduated billing.GatheringLine
+	tieredVolume    billing.GatheringLine
 }
 
 type ubpFeatures struct {

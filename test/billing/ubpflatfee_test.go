@@ -50,6 +50,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 			Period:    period,
 			InvoiceAt: period.End,
 
+			Currency:      "USD",
 			Name:          "test in arrears",
 			PerUnitAmount: alpacadecimal.NewFromInt(100),
 			PaymentTerm:   productcatalog.InArrearsPaymentTerm,
@@ -67,18 +68,20 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 		s.NotNil(res)
 
 		line := res.Lines[0]
-		expected := lineIn.Clone()
+		expected, err := lineIn.Clone()
+		s.NoError(err)
 
 		// Let's add fields coming from the line creation
+		expected.Namespace = cust.Namespace
 		expected.InvoiceID = res.Invoice.ID
 		expected.ID = line.ID
 		expected.CreatedAt = line.CreatedAt
 		expected.UpdatedAt = line.UpdatedAt
-		expected.UsageBased.ConfigID = line.UsageBased.ConfigID
+		expected.UBPConfigID = line.UBPConfigID
 
 		ExpectJSONEqual(s.T(),
-			expected.RemoveCircularReferences().RemoveMetaForCompare(),
-			line.RemoveCircularReferences().RemoveMetaForCompare())
+			lo.Must(expected.WithoutDBState()),
+			lo.Must(line.WithoutDBState()))
 	})
 
 	// Given the line on gathering invoice is created

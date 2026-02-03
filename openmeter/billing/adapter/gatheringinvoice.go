@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -15,10 +16,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
-	"github.com/samber/lo"
 )
 
 var _ billing.GatheringInvoiceAdapter = (*adapter)(nil)
@@ -62,7 +61,7 @@ func (a *adapter) CreateGatheringInvoice(ctx context.Context, input billing.Crea
 			SetSchemaLevel(currentSchemaLevel).
 			// Customer snapshot about usage attribution fields
 			SetCustomerID(input.Customer.ID).
-			// TODO: Remove all below this line once we have seperate tables for gathering invoices
+			// TODO: Remove all below this line once we have separate tables for gathering invoices
 			SetBillingWorkflowConfigID(clonedWorkflowConfig.ID).
 			SetTaxAppID(input.MergedProfile.Apps.Tax.GetID().ID).
 			SetInvoicingAppID(input.MergedProfile.Apps.Invoicing.GetID().ID).
@@ -147,8 +146,8 @@ func (a *adapter) UpdateGatheringInvoice(ctx context.Context, in billing.Gatheri
 
 		// Supplier
 		updateQuery = updateQuery.
-			SetSupplierName("UNSET"). // Hack until we split the invoices table
-			ClearSupplierAddressCountry().
+			SetSupplierName("UNSET").        // Hack until we split the invoices table
+			SetSupplierAddressCountry("XX"). // Hack until we split the invoices table
 			ClearSupplierAddressPostalCode().
 			ClearSupplierAddressCity().
 			ClearSupplierAddressState().
@@ -182,7 +181,7 @@ func (a *adapter) UpdateGatheringInvoice(ctx context.Context, in billing.Gatheri
 		}
 
 		if in.Lines.IsPresent() {
-			err := a.updateGatheringLines(ctx, in.Lines.OrEmpty())
+			err := tx.updateGatheringLines(ctx, in.Lines.OrEmpty())
 			if err != nil {
 				return err
 			}
@@ -199,7 +198,8 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (pagination.Result[billing.GatheringInvoice], error) {
 		query := tx.db.BillingInvoice.Query().
-			Where(billinginvoice.NamespaceIn(input.Namespaces...))
+			Where(billinginvoice.NamespaceIn(input.Namespaces...)).
+			Where(billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering))
 
 		if len(input.Customers) > 0 {
 			query = query.Where(billinginvoice.CustomerIDIn(input.Customers...))
@@ -407,73 +407,4 @@ func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.Bil
 	}
 
 	return res, nil
-}
-
-func (a *adapter) mapGatheringInvoiceLinesFromDB(schemaLevel int, dbLines []*db.BillingInvoiceLine) ([]billing.GatheringLine, error) {
-	return slicesx.MapWithErr(dbLines, func(dbLine *db.BillingInvoiceLine) (billing.GatheringLine, error) {
-		return a.mapGatheringInvoiceLineFromDB(schemaLevel, dbLine)
-	})
-}
-
-func (a *adapter) mapGatheringInvoiceLineFromDB(schemaLevel int, dbLine *db.BillingInvoiceLine) (billing.GatheringLine, error) {
-	if dbLine.Type != billing.InvoiceLineTypeUsageBased {
-		return billing.GatheringLine{}, fmt.Errorf("only usage based lines can be gathering invoice lines [line_id=%s]", dbLine.ID)
-	}
-
-	ubpLine := dbLine.Edges.UsageBasedLine
-	if ubpLine == nil {
-		return billing.GatheringLine{}, fmt.Errorf("usage based line data is missing [line_id=%s]", dbLine.ID)
-	}
-
-	line := billing.GatheringLine{
-		GatheringLineBase: billing.GatheringLineBase{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Namespace:   dbLine.Namespace,
-				ID:          dbLine.ID,
-				CreatedAt:   dbLine.CreatedAt.In(time.UTC),
-				UpdatedAt:   dbLine.UpdatedAt.In(time.UTC),
-				DeletedAt:   convert.TimePtrIn(dbLine.DeletedAt, time.UTC),
-				Name:        dbLine.Name,
-				Description: dbLine.Description,
-			}),
-
-			Metadata:    dbLine.Metadata,
-			Annotations: dbLine.Annotations,
-			InvoiceID:   dbLine.InvoiceID,
-			ManagedBy:   dbLine.ManagedBy,
-
-			ServicePeriod: timeutil.ClosedPeriod{
-				From: dbLine.PeriodStart.In(time.UTC),
-				To:   dbLine.PeriodEnd.In(time.UTC),
-			},
-
-			SplitLineGroupID:       dbLine.SplitLineGroupID,
-			ChildUniqueReferenceID: dbLine.ChildUniqueReferenceID,
-
-			InvoiceAt: dbLine.InvoiceAt.In(time.UTC),
-
-			Currency: dbLine.Currency,
-
-			TaxConfig:         lo.EmptyableToPtr(dbLine.TaxConfig),
-			RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
-
-			UBPConfigID: ubpLine.ID,
-			FeatureKey:  lo.FromPtr(ubpLine.FeatureKey),
-			Price:       lo.FromPtr(ubpLine.Price),
-		},
-	}
-
-	if dbLine.SubscriptionID != nil && dbLine.SubscriptionPhaseID != nil && dbLine.SubscriptionItemID != nil {
-		line.Subscription = &billing.SubscriptionReference{
-			SubscriptionID: *dbLine.SubscriptionID,
-			PhaseID:        *dbLine.SubscriptionPhaseID,
-			ItemID:         *dbLine.SubscriptionItemID,
-			BillingPeriod: timeutil.ClosedPeriod{
-				From: lo.FromPtr(dbLine.SubscriptionBillingPeriodFrom).In(time.UTC),
-				To:   lo.FromPtr(dbLine.SubscriptionBillingPeriodTo).In(time.UTC),
-			},
-		}
-	}
-
-	return line, nil
 }

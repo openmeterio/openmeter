@@ -8,13 +8,18 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/entitydiff"
-	"github.com/samber/lo"
+	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type gatheringLineDiff struct {
@@ -64,7 +69,7 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 		return err
 	}
 
-	upsertWithOptions(ctx, a.db, diff.Line, upsertInput[*billing.GatheringLine, *db.BillingInvoiceUsageBasedLineConfigCreate]{
+	err = upsertWithOptions(ctx, a.db, diff.Line, upsertInput[*billing.GatheringLine, *db.BillingInvoiceUsageBasedLineConfigCreate]{
 		Create: func(tx *db.Client, line *billing.GatheringLine) (*db.BillingInvoiceUsageBasedLineConfigCreate, error) {
 			if line.UBPConfigID == "" {
 				line.UBPConfigID = ulid.Make().String()
@@ -88,6 +93,9 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 				).Exec(ctx)
 		},
 	})
+	if err != nil {
+		return fmt.Errorf("creating usage based line configs: %w", err)
+	}
 
 	invoiceLineUpsertConfig := upsertInput[*billing.GatheringLine, *db.BillingInvoiceLineCreate]{
 		Create: func(tx *db.Client, line *billing.GatheringLine) (*db.BillingInvoiceLineCreate, error) {
@@ -165,4 +173,80 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 	}
 
 	return nil
+}
+
+func (a *adapter) mapGatheringInvoiceLinesFromDB(schemaLevel int, dbLines []*db.BillingInvoiceLine) ([]billing.GatheringLine, error) {
+	return slicesx.MapWithErr(dbLines, func(dbLine *db.BillingInvoiceLine) (billing.GatheringLine, error) {
+		return a.mapGatheringInvoiceLineFromDB(schemaLevel, dbLine)
+	})
+}
+
+func (a *adapter) mapGatheringInvoiceLineFromDB(schemaLevel int, dbLine *db.BillingInvoiceLine) (billing.GatheringLine, error) {
+	if dbLine.Type != billing.InvoiceLineTypeUsageBased {
+		return billing.GatheringLine{}, fmt.Errorf("only usage based lines can be gathering invoice lines [line_id=%s]", dbLine.ID)
+	}
+
+	ubpLine := dbLine.Edges.UsageBasedLine
+	if ubpLine == nil {
+		return billing.GatheringLine{}, fmt.Errorf("usage based line data is missing [line_id=%s]", dbLine.ID)
+	}
+
+	line := billing.GatheringLine{
+		GatheringLineBase: billing.GatheringLineBase{
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace:   dbLine.Namespace,
+				ID:          dbLine.ID,
+				CreatedAt:   dbLine.CreatedAt.In(time.UTC),
+				UpdatedAt:   dbLine.UpdatedAt.In(time.UTC),
+				DeletedAt:   convert.TimePtrIn(dbLine.DeletedAt, time.UTC),
+				Name:        dbLine.Name,
+				Description: dbLine.Description,
+			}),
+
+			Metadata:    dbLine.Metadata,
+			Annotations: dbLine.Annotations,
+			InvoiceID:   dbLine.InvoiceID,
+			ManagedBy:   dbLine.ManagedBy,
+
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: dbLine.PeriodStart.In(time.UTC),
+				To:   dbLine.PeriodEnd.In(time.UTC),
+			},
+
+			SplitLineGroupID:       dbLine.SplitLineGroupID,
+			ChildUniqueReferenceID: dbLine.ChildUniqueReferenceID,
+
+			InvoiceAt: dbLine.InvoiceAt.In(time.UTC),
+
+			Currency: dbLine.Currency,
+
+			TaxConfig:         lo.EmptyableToPtr(dbLine.TaxConfig),
+			RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
+
+			UBPConfigID: ubpLine.ID,
+			FeatureKey:  lo.FromPtr(ubpLine.FeatureKey),
+			Price:       lo.FromPtr(ubpLine.Price),
+		},
+	}
+
+	if dbLine.SubscriptionID != nil && dbLine.SubscriptionPhaseID != nil && dbLine.SubscriptionItemID != nil {
+		line.Subscription = &billing.SubscriptionReference{
+			SubscriptionID: *dbLine.SubscriptionID,
+			PhaseID:        *dbLine.SubscriptionPhaseID,
+			ItemID:         *dbLine.SubscriptionItemID,
+			BillingPeriod: timeutil.ClosedPeriod{
+				From: lo.FromPtr(dbLine.SubscriptionBillingPeriodFrom).In(time.UTC),
+				To:   lo.FromPtr(dbLine.SubscriptionBillingPeriodTo).In(time.UTC),
+			},
+		}
+	}
+
+	cloned, err := line.WithoutDBState()
+	if err != nil {
+		return billing.GatheringLine{}, fmt.Errorf("cloning line: %w", err)
+	}
+
+	line.DBState = lo.ToPtr(cloned)
+
+	return line, nil
 }

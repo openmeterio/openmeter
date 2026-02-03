@@ -1,9 +1,10 @@
 package invoicecalc
 
 import (
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
-	"github.com/samber/lo"
 )
 
 // CalculateStandardInvoicePeriod calculates the period of the invoice based on the lines.

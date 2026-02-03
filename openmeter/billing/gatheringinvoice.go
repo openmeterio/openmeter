@@ -6,6 +6,9 @@ import (
 	"slices"
 	"time"
 
+	"github.com/samber/lo"
+	"github.com/samber/mo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -16,8 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 	timeutil "github.com/openmeterio/openmeter/pkg/timeutil"
-	"github.com/samber/lo"
-	"github.com/samber/mo"
 )
 
 type GatheringInvoiceBase struct {
@@ -38,8 +39,12 @@ type GatheringInvoiceBase struct {
 func (g GatheringInvoiceBase) Validate() error {
 	var errs []error
 
-	if err := g.ManagedResource.Validate(); err != nil {
-		errs = append(errs, err)
+	if g.Name == "" {
+		errs = append(errs, errors.New("name is required"))
+	}
+
+	if g.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
 	if err := g.Currency.Validate(); err != nil {
@@ -65,6 +70,22 @@ type GatheringInvoice struct {
 
 	// TODO: implement!
 	AvailableActions *GatheringInvoiceAvailableActions `json:"availableActions,omitempty"`
+}
+
+func (g GatheringInvoice) WithoutDBState() (GatheringInvoice, error) {
+	clone, err := g.Clone()
+	if err != nil {
+		return GatheringInvoice{}, fmt.Errorf("cloning invoice: %w", err)
+	}
+
+	clone.Lines, err = clone.Lines.MapWithErr(func(l GatheringLine) (GatheringLine, error) {
+		return l.WithoutDBState()
+	})
+	if err != nil {
+		return GatheringInvoice{}, fmt.Errorf("cloning lines: %w", err)
+	}
+
+	return clone, nil
 }
 
 func (g GatheringInvoice) InvoiceID() InvoiceID {
@@ -94,6 +115,21 @@ func (g *GatheringInvoice) SortLines() {
 	}
 
 	g.Lines.Sort()
+}
+
+func (g GatheringInvoice) Clone() (GatheringInvoice, error) {
+	clone := g
+
+	clonedLines, err := clone.Lines.MapWithErr(func(l GatheringLine) (GatheringLine, error) {
+		return l.Clone()
+	})
+	if err != nil {
+		return GatheringInvoice{}, fmt.Errorf("cloning lines: %w", err)
+	}
+
+	clone.Lines = clonedLines
+
+	return clone, nil
 }
 
 type GatheringInvoiceExpand string
@@ -241,8 +277,12 @@ type GatheringLineBase struct {
 func (i GatheringLineBase) Validate() error {
 	var errs []error
 
-	if err := i.ManagedResource.Validate(); err != nil {
-		errs = append(errs, err)
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.Name == "" {
+		errs = append(errs, errors.New("name is required"))
 	}
 
 	if err := i.ServicePeriod.Validate(); err != nil {
@@ -288,7 +328,7 @@ func (i GatheringLineBase) Validate() error {
 	return errors.Join(errs...)
 }
 
-func (i GatheringLineBase) NormalizeValues() error {
+func (i *GatheringLineBase) NormalizeValues() error {
 	i.ServicePeriod = i.ServicePeriod.Truncate(streaming.MinimumWindowSizeDuration)
 	i.InvoiceAt = i.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
@@ -322,6 +362,7 @@ func (i GatheringLineBase) Clone() (GatheringLineBase, error) {
 	return out, nil
 }
 
+// TODO: rename to UpcomingCharge
 type GatheringLine struct {
 	GatheringLineBase `json:",inline"`
 
@@ -340,7 +381,18 @@ func (g GatheringLine) Clone() (GatheringLine, error) {
 
 	return GatheringLine{
 		GatheringLineBase: base,
+		DBState:           g.DBState,
 	}, nil
+}
+
+func (g GatheringLine) WithoutDBState() (GatheringLine, error) {
+	clone, err := g.Clone()
+	if err != nil {
+		return GatheringLine{}, fmt.Errorf("cloning line: %w", err)
+	}
+
+	clone.DBState = nil
+	return clone, nil
 }
 
 func (g GatheringLine) WithNormalizedValues() (GatheringLine, error) {
@@ -349,7 +401,7 @@ func (g GatheringLine) WithNormalizedValues() (GatheringLine, error) {
 		return GatheringLine{}, fmt.Errorf("cloning line: %w", err)
 	}
 
-	if err := g.GatheringLineBase.NormalizeValues(); err != nil {
+	if err := clone.GatheringLineBase.NormalizeValues(); err != nil {
 		return GatheringLine{}, fmt.Errorf("normalizing line values: %w", err)
 	}
 

@@ -423,8 +423,10 @@ func setDefaultPaymentTermForFlatPrice(price *productcatalog.Price) error {
 		return err
 	}
 
-	flatPrice.PaymentTerm = productcatalog.InAdvancePaymentTerm
-	price = productcatalog.NewPriceFrom(flatPrice)
+	if flatPrice.PaymentTerm == "" {
+		flatPrice.PaymentTerm = productcatalog.InAdvancePaymentTerm
+		*price = lo.FromPtr(productcatalog.NewPriceFrom(flatPrice))
+	}
 
 	return nil
 }

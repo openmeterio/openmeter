@@ -94,6 +94,10 @@ func (m *mockCalculator) OnCalculateGatheringInvoiceWithLiveData(err error) {
 	m.calculateGatheringInvoiceWithLiveDataResult = mo.Some(err)
 }
 
+func (m *mockCalculator) OnCalculateGatheringInvoice(err error) {
+	m.calculateGatheringInvoiceResult = mo.Some(err)
+}
+
 func (m *mockCalculator) AssertExpectations(t *testing.T) {
 	t.Helper()
 

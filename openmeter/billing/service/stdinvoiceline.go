@@ -6,6 +6,8 @@ import (
 	"fmt"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -15,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
-	"github.com/samber/lo"
 )
 
 var _ billing.InvoiceLineService = (*Service)(nil)
@@ -189,10 +190,11 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 
 		// Create a new invoice
 		invoice, err := s.adapter.CreateGatheringInvoice(ctx, billing.CreateGatheringInvoiceAdapterInput{
-			Namespace: customerProfile.Customer.Namespace,
-			Customer:  lo.FromPtr(customerProfile.Customer),
-			Number:    invoiceNumber,
-			Currency:  currency,
+			Namespace:     customerProfile.Customer.Namespace,
+			Customer:      lo.FromPtr(customerProfile.Customer),
+			Number:        invoiceNumber,
+			Currency:      currency,
+			MergedProfile: customerProfile.MergedProfile,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("creating invoice: %w", err)

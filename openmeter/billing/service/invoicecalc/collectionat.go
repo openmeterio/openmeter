@@ -39,7 +39,12 @@ func GatheringInvoiceCollectionAt(i *billing.GatheringInvoice) error {
 	}
 
 	for _, line := range i.Lines.OrEmpty() {
-		if i.NextCollectionAt.Before(line.InvoiceAt) {
+		if i.NextCollectionAt.IsZero() {
+			i.NextCollectionAt = line.InvoiceAt
+			continue
+		}
+
+		if i.NextCollectionAt.After(line.InvoiceAt) {
 			i.NextCollectionAt = line.InvoiceAt
 		}
 	}
