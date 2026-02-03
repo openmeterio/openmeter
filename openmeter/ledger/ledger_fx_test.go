@@ -67,13 +67,11 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 		tx1, err := l.SetUpTransaction(t.Context(), bookedAt, []ledger.LedgerEntryInput{
 			exampleEntryInput{
 				account: custAccs.USDOutstanding.Address(),
-				amount:  amountUSD,
-				typ:     ledger.EntryTypeCredit,
+				amount:  amountUSD.Neg(),
 			},
 			exampleEntryInput{
 				account: custAccs.USD.Address(),
 				amount:  amountUSD,
-				typ:     ledger.EntryTypeDebit,
 			},
 		})
 		require.NoError(t, err)
@@ -84,24 +82,20 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 			// USD entries
 			exampleEntryInput{
 				account: custAccs.USD.Address(),
-				amount:  amountUSD,
-				typ:     ledger.EntryTypeCredit,
+				amount:  amountUSD.Neg(),
 			},
 			exampleEntryInput{
 				account: BRKUSD.Address(),
 				amount:  amountUSD,
-				typ:     ledger.EntryTypeDebit,
 			},
 			// CRD entries
 			exampleEntryInput{
 				account: BRKCRD.Address(),
-				amount:  amountUSD.Mul(costBasis),
-				typ:     ledger.EntryTypeCredit,
+				amount:  amountUSD.Mul(costBasis).Neg(),
 			},
 			exampleEntryInput{
 				account: custAccs.CRD.Address(),
 				amount:  amountUSD.Mul(costBasis),
-				typ:     ledger.EntryTypeDebit,
 			},
 		})
 		require.NoError(t, err)
@@ -112,12 +106,10 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 			exampleEntryInput{
 				account: custAccs.CRDOutstanding.Address(),
 				amount:  amountUSD.Mul(costBasis),
-				typ:     ledger.EntryTypeDebit,
 			},
 			exampleEntryInput{
 				account: custAccs.CRD.Address(),
-				amount:  amountUSD.Mul(costBasis),
-				typ:     ledger.EntryTypeCredit,
+				amount:  amountUSD.Mul(costBasis).Neg(),
 			},
 		})
 		require.NoError(t, err)

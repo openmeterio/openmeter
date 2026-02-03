@@ -15,11 +15,6 @@ import (
 type exampleEntryInput struct {
 	account ledger.Address
 	amount  alpacadecimal.Decimal
-	typ     ledger.EntryType
-}
-
-func (e exampleEntryInput) Type() ledger.EntryType {
-	return e.typ
 }
 
 func (e exampleEntryInput) Account() ledger.Address {
@@ -42,13 +37,11 @@ func TestTwoAccountTransaction(t *testing.T) {
 	tx, err := l.SetUpTransaction(t.Context(), time.Now(), []ledger.LedgerEntryInput{
 		exampleEntryInput{
 			account: a1.Address(),
-			amount:  alpacadecimal.NewFromInt(100),
-			typ:     ledger.EntryTypeCredit,
+			amount:  alpacadecimal.NewFromInt(-100),
 		},
 		exampleEntryInput{
 			account: a2.Address(),
 			amount:  alpacadecimal.NewFromInt(100),
-			typ:     ledger.EntryTypeDebit,
 		},
 	})
 
@@ -69,18 +62,15 @@ func TestMultiAccountTransaction(t *testing.T) {
 	tx, err := l.SetUpTransaction(t.Context(), time.Now(), []ledger.LedgerEntryInput{
 		exampleEntryInput{
 			account: a1.Address(),
-			amount:  alpacadecimal.NewFromInt(100),
-			typ:     ledger.EntryTypeCredit,
+			amount:  alpacadecimal.NewFromInt(-100),
 		},
 		exampleEntryInput{
 			account: a2.Address(),
 			amount:  alpacadecimal.NewFromInt(50),
-			typ:     ledger.EntryTypeDebit,
 		},
 		exampleEntryInput{
 			account: a3.Address(),
 			amount:  alpacadecimal.NewFromInt(49),
-			typ:     ledger.EntryTypeDebit,
 		},
 	})
 
