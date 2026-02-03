@@ -35,11 +35,62 @@ type GatheringInvoiceBase struct {
 	SchemaLevel int `json:"schemaLevel"`
 }
 
+func (g GatheringInvoiceBase) Validate() error {
+	var errs []error
+
+	if err := g.ManagedResource.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := g.Currency.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := g.ServicePeriod.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if g.SchemaLevel == 0 {
+		errs = append(errs, errors.New("schema level is required"))
+	}
+
+	return errors.Join(errs...)
+}
+
 type GatheringInvoice struct {
 	GatheringInvoiceBase `json:",inline"`
 
 	// Entities external to the invoice entity
 	Lines GatheringInvoiceLines `json:"lines,omitempty"`
+}
+
+func (g GatheringInvoice) InvoiceID() InvoiceID {
+	return InvoiceID{
+		Namespace: g.Namespace,
+		ID:        g.ID,
+	}
+}
+
+func (g GatheringInvoice) Validate() error {
+	var errs []error
+
+	if err := g.GatheringInvoiceBase.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := g.Lines.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	return errors.Join(errs...)
+}
+
+func (g *GatheringInvoice) SortLines() {
+	if !g.Lines.IsPresent() {
+		return
+	}
+
+	g.Lines.Sort()
 }
 
 type GatheringInvoiceExpand string
@@ -64,6 +115,35 @@ type GatheringLines []GatheringLine
 
 type GatheringInvoiceLines struct {
 	mo.Option[GatheringLines]
+}
+
+func (l GatheringInvoiceLines) Validate() error {
+	if l.IsAbsent() {
+		return nil
+	}
+
+	return errors.Join(
+		lo.Map(l.OrEmpty(), func(l GatheringLine, _ int) error {
+			err := l.Validate()
+			if err != nil {
+				return fmt.Errorf("line[%s]: %w", l.ID, err)
+			}
+			return nil
+		})...,
+	)
+}
+
+func (l *GatheringInvoiceLines) Sort() {
+	if l.IsAbsent() {
+		return
+	}
+
+	lines := l.OrEmpty()
+	slices.SortFunc(lines, func(a, b GatheringLine) int {
+		return a.CreatedAt.Compare(b.CreatedAt)
+	})
+
+	l.Option = mo.Some(lines)
 }
 
 func (l GatheringInvoiceLines) NonDeletedLineCount() int {
@@ -337,4 +417,44 @@ func (i ListGatheringInvoicesInput) Validate() error {
 	}
 
 	return errors.Join(errs...)
+}
+
+func NewFlatFeeGatheringLine(input NewFlatFeeLineInput, opts ...usageBasedLineOption) GatheringLine {
+	ubpOptions := usageBasedLineOptions{}
+
+	for _, opt := range opts {
+		opt(&ubpOptions)
+	}
+
+	return GatheringLine{
+		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+			Namespace:   input.Namespace,
+			ID:          input.ID,
+			CreatedAt:   input.CreatedAt,
+			UpdatedAt:   input.UpdatedAt,
+			Name:        input.Name,
+			Description: input.Description,
+		}),
+		ServicePeriod: timeutil.ClosedPeriod{
+			From: input.Period.Start,
+			To:   input.Period.End,
+		},
+		InvoiceAt: input.InvoiceAt,
+		InvoiceID: input.InvoiceID,
+
+		Metadata:    input.Metadata,
+		Annotations: input.Annotations,
+
+		ManagedBy: lo.CoalesceOrEmpty(input.ManagedBy, SystemManagedLine),
+
+		Currency:          input.Currency,
+		RateCardDiscounts: input.RateCardDiscounts,
+		Price: lo.FromPtr(
+			productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      input.PerUnitAmount,
+				PaymentTerm: input.PaymentTerm,
+			}),
+		),
+		FeatureKey: ubpOptions.featureKey,
+	}
 }

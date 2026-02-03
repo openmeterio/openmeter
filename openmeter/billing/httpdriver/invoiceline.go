@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/set"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 var _ InvoiceLineHandler = (*handler)(nil)
@@ -64,8 +65,8 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 				}
 			}
 
-			lineEntities, err := slicesx.MapWithErr(req.Lines, func(line api.InvoicePendingLineCreate) (*billing.StandardLine, error) {
-				return mapCreateLineToEntity(line, ns)
+			lineEntities, err := slicesx.MapWithErr(req.Lines, func(line api.InvoicePendingLineCreate) (billing.GatheringLine, error) {
+				return mapCreateGatheringLineToEntity(line, ns)
 			})
 			if err != nil {
 				return CreatePendingLineRequest{}, billing.ValidationError{
@@ -92,7 +93,8 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 				IsInvoiceNew: res.IsInvoiceNew,
 			}
 
-			out.Invoice, err = MapInvoiceToAPI(res.Invoice)
+
+			out.Invoice, err = MapGatheringInvoiceToAPI(res.Invoice)
 			if err != nil {
 				return CreatePendingLineResponse{}, fmt.Errorf("failed to map invoice: %w", err)
 			}
@@ -148,6 +150,44 @@ func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billi
 			Price:      rateCardParsed.Price,
 			FeatureKey: rateCardParsed.FeatureKey,
 		},
+	}, nil
+}
+
+func mapCreateGatheringLineToEntity(line api.InvoicePendingLineCreate, ns string) (billing.GatheringLine, error) {
+	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
+		RateCard:   line.RateCard,
+		Price:      line.Price,
+		TaxConfig:  line.TaxConfig,
+		FeatureKey: line.FeatureKey,
+	})
+	if err != nil {
+		return billing.GatheringLine{}, fmt.Errorf("failed to map usage based line: %w", err)
+	}
+
+	if rateCardParsed.Price == nil {
+		return billing.GatheringLine{}, fmt.Errorf("price is nil [line=%s]", line.Name)
+	}
+
+	return billing.GatheringLine{
+		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+			Namespace:   ns,
+			Name:        line.Name,
+			Description: line.Description,
+		}),
+
+		Metadata:  lo.FromPtrOr(line.Metadata, map[string]string{}),
+		ManagedBy: billing.ManuallyManagedLine,
+
+		ServicePeriod: timeutil.ClosedPeriod{
+			From: line.Period.From,
+			To:   line.Period.To,
+		},
+
+		InvoiceAt:         line.InvoiceAt,
+		TaxConfig:         rateCardParsed.TaxConfig,
+		RateCardDiscounts: rateCardParsed.Discounts,
+		Price:             lo.FromPtr(rateCardParsed.Price),
+		FeatureKey:        rateCardParsed.FeatureKey,
 	}, nil
 }
 

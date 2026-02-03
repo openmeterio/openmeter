@@ -135,13 +135,11 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 
 		// Publish system event for newly created invoices
 		if gatheringInvoiceUpsertResult.IsInvoiceNew {
-			event, err := billing.NewStandardInvoiceCreatedEvent(gatheringInvoice)
-			if err != nil {
-				return nil, fmt.Errorf("creating event: %w", err)
-			}
+			// TODO!: Adjust workers
+			event := billing.NewGatheringInvoiceCreatedEvent(gatheringInvoice)
 
 			if err := s.publisher.Publish(ctx, event); err != nil {
-				return nil, fmt.Errorf("publishing invoice[%s] created event: %w", gatheringInvoiceID, err)
+				return nil, fmt.Errorf("publishing gathering invoice[%s] created event: %w", gatheringInvoiceID, err)
 			}
 		}
 

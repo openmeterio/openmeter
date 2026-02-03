@@ -12,6 +12,7 @@ const (
 	EntitySubscriptionAddon = "subscriptionAddon"
 	EntityInvoice           = "invoice"
 	EntityCustomer          = "customer"
+	EntityGatheringInvoice  = "gatheringInvoice"
 	EntitySubjectKey        = "subjectKey"
 	EntityGrant             = "grant"
 	EntityApp               = "app"
