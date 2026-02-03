@@ -88,7 +88,7 @@ func (a *adapter) ListCustomers(ctx context.Context, input customer.ListCustomer
 		switch input.OrderBy {
 		case "id":
 			query = query.Order(customerdb.ByID(order...))
-		case "created_at":
+		case "createdAt":
 			query = query.Order(customerdb.ByCreatedAt(order...))
 		case "name":
 			fallthrough
