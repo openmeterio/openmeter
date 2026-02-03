@@ -186,6 +186,40 @@ func (i StandardLine) LineID() LineID {
 	}
 }
 
+// ToGatheringLineBase converts the standard line to a gathering line base.
+// This is temporary until the full gathering invoice functionality is split.
+func (i StandardLine) ToGatheringLineBase() (GatheringLineBase, error) {
+	if i.UsageBased == nil {
+		return GatheringLineBase{}, errors.New("usage based line is required")
+	}
+
+	if i.UsageBased.Price == nil {
+		return GatheringLineBase{}, errors.New("usage based line price is required")
+	}
+
+	return GatheringLineBase{
+		ManagedResource: i.ManagedResource,
+		Metadata:        i.Metadata,
+		Annotations:     i.Annotations,
+		ManagedBy:       i.ManagedBy,
+		InvoiceID:       i.InvoiceID,
+		Currency:        i.Currency,
+		ServicePeriod: timeutil.ClosedPeriod{
+			From: i.Period.Start,
+			To:   i.Period.End,
+		},
+		InvoiceAt:              i.InvoiceAt,
+		Price:                  lo.FromPtr(i.UsageBased.Price),
+		FeatureKey:             i.UsageBased.FeatureKey,
+		TaxConfig:              i.TaxConfig,
+		RateCardDiscounts:      i.RateCardDiscounts,
+		ChildUniqueReferenceID: i.ChildUniqueReferenceID,
+		Subscription:           i.Subscription,
+		SplitLineGroupID:       i.SplitLineGroupID,
+		UBPConfigID:            i.UsageBased.ConfigID,
+	}, nil
+}
+
 type StandardLineEditFunction func(*StandardLine)
 
 // CloneWithoutDependencies returns a clone of the line without any external dependencies. Could be used

@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type DiscountsTestSuite struct {
@@ -87,14 +88,14 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines: []*billing.StandardLine{
+				Lines: []billing.GatheringLine{
 					{
-						StandardLineBase: billing.StandardLineBase{
+						GatheringLineBase: billing.GatheringLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Namespace: namespace,
 								Name:      "Test item1",
 							}),
-							Period: billing.Period{Start: periodStart, End: periodEnd},
+							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 
 							InvoiceAt: periodEnd,
 
@@ -108,12 +109,10 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 									},
 								},
 							},
-						},
-						UsageBased: &billing.UsageBasedLine{
 							FeatureKey: featureFlatPerUnit.Key,
-							Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 								Amount: alpacadecimal.NewFromFloat(100),
-							}),
+							})),
 						},
 					},
 				},
@@ -284,14 +283,14 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []*billing.StandardLine{
+			Lines: []billing.GatheringLine{
 				{
-					StandardLineBase: billing.StandardLineBase{
+					GatheringLineBase: billing.GatheringLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Namespace: namespace,
 							Name:      "Test item1",
 						}),
-						Period: billing.Period{Start: periodStart, End: periodEnd},
+						ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 
 						InvoiceAt: periodEnd,
 
@@ -305,12 +304,10 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 								},
 							},
 						},
-					},
-					UsageBased: &billing.UsageBasedLine{
 						FeatureKey: featureFlatPerUnit.Key,
-						Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 							Amount: alpacadecimal.NewFromFloat(100),
-						}),
+						})),
 					},
 				},
 			},

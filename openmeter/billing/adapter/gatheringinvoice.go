@@ -6,12 +6,17 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	"github.com/samber/lo"
 )
@@ -88,11 +93,265 @@ func (a *adapter) CreateGatheringInvoice(ctx context.Context, input billing.Crea
 		// Let's add required edges for mapping
 		newInvoice.Edges.BillingWorkflowConfig = clonedWorkflowConfig
 
-		return tx.mapGatheringInvoiceFromDB(ctx, newInvoice, billing.InvoiceExpandAll)
+		return tx.mapGatheringInvoiceFromDB(ctx, newInvoice, billing.GatheringInvoiceExpands{})
 	})
 }
 
-func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoice, expand billing.InvoiceExpand) (billing.GatheringInvoice, error) {
+func (a *adapter) UpdateGatheringInvoice(ctx context.Context, in billing.GatheringInvoice) error {
+	if err := in.Validate(); err != nil {
+		return fmt.Errorf("validating gathering invoice: %w", err)
+	}
+
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
+		existingInvoice, err := tx.db.BillingInvoice.Query().
+			Where(billinginvoice.ID(in.ID)).
+			Where(billinginvoice.Namespace(in.Namespace)).
+			Only(ctx)
+		if err != nil {
+			return err
+		}
+
+		if err := tx.validateUpdateGatheringInvoiceRequest(in, existingInvoice); err != nil {
+			return err
+		}
+
+		updateQuery := tx.db.BillingInvoice.UpdateOneID(in.ID).
+			Where(billinginvoice.Namespace(in.Namespace)).
+			SetMetadata(in.Metadata).
+			// Currency is immutable
+			SetStatus(billing.StandardInvoiceStatusGathering).
+			ClearStatusDetailsCache().
+			// Type is immutable
+			SetNumber(in.Number).
+			SetOrClearDescription(in.Description).
+			ClearDueAt().
+			SetCollectionAt(in.NextCollectionAt.In(time.UTC)).
+			ClearPaymentProcessingEnteredAt().
+			ClearDraftUntil().
+			ClearIssuedAt().
+			ClearDeletedAt().
+			ClearSentToCustomerAt().
+			ClearQuantitySnapshotedAt().
+			// Totals
+			SetAmount(alpacadecimal.Zero).
+			SetChargesTotal(alpacadecimal.Zero).
+			SetDiscountsTotal(alpacadecimal.Zero).
+			SetTaxesTotal(alpacadecimal.Zero).
+			SetTaxesExclusiveTotal(alpacadecimal.Zero).
+			SetTaxesInclusiveTotal(alpacadecimal.Zero).
+			SetTotal(alpacadecimal.Zero)
+
+		updateQuery = updateQuery.
+			SetPeriodStart(in.ServicePeriod.From.In(time.UTC)).
+			SetPeriodEnd(in.ServicePeriod.To.In(time.UTC))
+
+		// Supplier
+		updateQuery = updateQuery.
+			SetSupplierName("UNSET"). // Hack until we split the invoices table
+			ClearSupplierAddressCountry().
+			ClearSupplierAddressPostalCode().
+			ClearSupplierAddressCity().
+			ClearSupplierAddressState().
+			ClearSupplierAddressLine1().
+			ClearSupplierAddressLine2().
+			ClearSupplierAddressPhoneNumber()
+
+		// Customer
+		updateQuery = updateQuery.
+			// CustomerID is immutable
+			SetCustomerName("UNSET"). // hack until we split the invoices table
+			ClearCustomerKey()
+
+		updateQuery = updateQuery.
+			ClearCustomerAddressCountry().
+			ClearCustomerAddressPostalCode().
+			ClearCustomerAddressCity().
+			ClearCustomerAddressState().
+			ClearCustomerAddressLine1().
+			ClearCustomerAddressLine2().
+			ClearCustomerAddressPhoneNumber()
+
+		// ExternalIDs
+		updateQuery = updateQuery.
+			ClearInvoicingAppExternalID().
+			ClearPaymentAppExternalID()
+
+		_, err = updateQuery.Save(ctx)
+		if err != nil {
+			return err
+		}
+
+		if in.Lines.IsPresent() {
+			err := a.updateGatheringLines(ctx, in.Lines.OrEmpty())
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
+func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListGatheringInvoicesInput) (pagination.Result[billing.GatheringInvoice], error) {
+	if err := input.Validate(); err != nil {
+		return pagination.Result[billing.GatheringInvoice]{}, err
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (pagination.Result[billing.GatheringInvoice], error) {
+		query := tx.db.BillingInvoice.Query().
+			Where(billinginvoice.NamespaceIn(input.Namespaces...))
+
+		if len(input.Customers) > 0 {
+			query = query.Where(billinginvoice.CustomerIDIn(input.Customers...))
+		}
+
+		if len(input.Currencies) > 0 {
+			query = query.Where(billinginvoice.CurrencyIn(input.Currencies...))
+		}
+
+		order := entutils.GetOrdering(sortx.OrderDefault)
+		if !input.Order.IsDefaultValue() {
+			order = entutils.GetOrdering(input.Order)
+		}
+
+		if input.Expand.Has(billing.GatheringInvoiceExpandLines) {
+			query = query.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
+				q.WithUsageBasedLine()
+			})
+		}
+
+		switch input.OrderBy {
+		case api.InvoiceOrderByCustomerName:
+			query = query.Order(billinginvoice.ByCustomerName(order...))
+		case api.InvoiceOrderByIssuedAt:
+			query = query.Order(billinginvoice.ByIssuedAt(order...))
+		case api.InvoiceOrderByPeriodStart:
+			query = query.Order(billinginvoice.ByPeriodStart(order...))
+		case api.InvoiceOrderByStatus:
+			query = query.Order(billinginvoice.ByStatus(order...))
+		case api.InvoiceOrderByUpdatedAt:
+			query = query.Order(billinginvoice.ByUpdatedAt(order...))
+		case api.InvoiceOrderByCreatedAt:
+			fallthrough
+		default:
+			query = query.Order(billinginvoice.ByCreatedAt(order...))
+		}
+
+		if !input.IncludeDeleted {
+			query = query.Where(billinginvoice.DeletedAtIsNil())
+		}
+
+		response := pagination.Result[billing.GatheringInvoice]{
+			Page: input.Page,
+		}
+
+		paged, err := query.Paginate(ctx, input.Page)
+		if err != nil {
+			return response, err
+		}
+
+		result := make([]billing.GatheringInvoice, 0, len(paged.Items))
+		for _, invoice := range paged.Items {
+			mapped, err := tx.mapGatheringInvoiceFromDB(ctx, invoice, input.Expand)
+			if err != nil {
+				return response, err
+			}
+
+			result = append(result, mapped)
+		}
+
+		response.TotalCount = paged.TotalCount
+		response.Items = result
+
+		return response, nil
+	})
+}
+
+func (a *adapter) validateUpdateGatheringInvoiceRequest(req billing.GatheringInvoice, existing *db.BillingInvoice) error {
+	if req.Currency != existing.Currency {
+		return billing.ValidationError{
+			Err: fmt.Errorf("currency cannot be changed"),
+		}
+	}
+
+	if billing.InvoiceTypeStandard != existing.Type {
+		return billing.ValidationError{
+			Err: fmt.Errorf("type cannot be changed"),
+		}
+	}
+
+	if req.CustomerID != existing.CustomerID {
+		return billing.ValidationError{
+			Err: fmt.Errorf("customer cannot be changed"),
+		}
+	}
+
+	return nil
+}
+
+func (a *adapter) DeleteGatheringInvoice(ctx context.Context, input billing.DeleteGatheringInvoiceAdapterInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating delete gathering invoice input: %w", err)
+	}
+
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
+		invoice, err := tx.db.BillingInvoice.Query().
+			Where(billinginvoice.ID(input.ID)).
+			Where(billinginvoice.Namespace(input.Namespace)).
+			Only(ctx)
+		if err != nil {
+			return err
+		}
+
+		if invoice.Status != billing.StandardInvoiceStatusGathering {
+			return billing.ValidationError{
+				Err: fmt.Errorf("invoice is not a gathering invoice [id=%s]", invoice.ID),
+			}
+		}
+
+		if invoice.DeletedAt != nil {
+			return nil
+		}
+
+		_, err = tx.db.BillingInvoice.Update().
+			Where(billinginvoice.ID(input.ID)).
+			Where(billinginvoice.Namespace(input.Namespace)).
+			SetDeletedAt(clock.Now()).
+			Save(ctx)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func (a *adapter) GetGatheringInvoiceById(ctx context.Context, input billing.GetGatheringInvoiceByIdInput) (billing.GatheringInvoice, error) {
+	if err := input.Validate(); err != nil {
+		return billing.GatheringInvoice{}, fmt.Errorf("validating get gathering invoice by id input: %w", err)
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.GatheringInvoice, error) {
+		query := tx.db.BillingInvoice.Query().
+			Where(billinginvoice.ID(input.Invoice.ID)).
+			Where(billinginvoice.Namespace(input.Invoice.Namespace))
+
+		if input.Expand.Has(billing.GatheringInvoiceExpandLines) {
+			query = query.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
+				q.WithUsageBasedLine()
+			})
+		}
+
+		invoice, err := query.Only(ctx)
+		if err != nil {
+			return billing.GatheringInvoice{}, err
+		}
+
+		return tx.mapGatheringInvoiceFromDB(ctx, invoice, input.Expand)
+	})
+}
+
+func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoice, expand billing.GatheringInvoiceExpands) (billing.GatheringInvoice, error) {
 	if invoice.Status != billing.StandardInvoiceStatusGathering {
 		return billing.GatheringInvoice{}, fmt.Errorf("invoice is not a gathering invoice [id=%s]", invoice.ID)
 	}
@@ -132,7 +391,7 @@ func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.Bil
 		},
 	}
 
-	if expand.Lines {
+	if expand.Has(billing.GatheringInvoiceExpandLines) {
 		mappedLines, err := a.mapGatheringInvoiceLinesFromDB(invoice.SchemaLevel, invoice.Edges.BillingInvoiceLines)
 		if err != nil {
 			return billing.GatheringInvoice{}, err
@@ -167,39 +426,41 @@ func (a *adapter) mapGatheringInvoiceLineFromDB(schemaLevel int, dbLine *db.Bill
 	}
 
 	line := billing.GatheringLine{
-		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-			Namespace:   dbLine.Namespace,
-			ID:          dbLine.ID,
-			CreatedAt:   dbLine.CreatedAt.In(time.UTC),
-			UpdatedAt:   dbLine.UpdatedAt.In(time.UTC),
-			DeletedAt:   convert.TimePtrIn(dbLine.DeletedAt, time.UTC),
-			Name:        dbLine.Name,
-			Description: dbLine.Description,
-		}),
+		GatheringLineBase: billing.GatheringLineBase{
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace:   dbLine.Namespace,
+				ID:          dbLine.ID,
+				CreatedAt:   dbLine.CreatedAt.In(time.UTC),
+				UpdatedAt:   dbLine.UpdatedAt.In(time.UTC),
+				DeletedAt:   convert.TimePtrIn(dbLine.DeletedAt, time.UTC),
+				Name:        dbLine.Name,
+				Description: dbLine.Description,
+			}),
 
-		Metadata:    dbLine.Metadata,
-		Annotations: dbLine.Annotations,
-		InvoiceID:   dbLine.InvoiceID,
-		ManagedBy:   dbLine.ManagedBy,
+			Metadata:    dbLine.Metadata,
+			Annotations: dbLine.Annotations,
+			InvoiceID:   dbLine.InvoiceID,
+			ManagedBy:   dbLine.ManagedBy,
 
-		ServicePeriod: timeutil.ClosedPeriod{
-			From: dbLine.PeriodStart.In(time.UTC),
-			To:   dbLine.PeriodEnd.In(time.UTC),
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: dbLine.PeriodStart.In(time.UTC),
+				To:   dbLine.PeriodEnd.In(time.UTC),
+			},
+
+			SplitLineGroupID:       dbLine.SplitLineGroupID,
+			ChildUniqueReferenceID: dbLine.ChildUniqueReferenceID,
+
+			InvoiceAt: dbLine.InvoiceAt.In(time.UTC),
+
+			Currency: dbLine.Currency,
+
+			TaxConfig:         lo.EmptyableToPtr(dbLine.TaxConfig),
+			RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
+
+			UBPConfigID: ubpLine.ID,
+			FeatureKey:  lo.FromPtr(ubpLine.FeatureKey),
+			Price:       lo.FromPtr(ubpLine.Price),
 		},
-
-		SplitLineGroupID:       dbLine.SplitLineGroupID,
-		ChildUniqueReferenceID: dbLine.ChildUniqueReferenceID,
-
-		InvoiceAt: dbLine.InvoiceAt.In(time.UTC),
-
-		Currency: dbLine.Currency,
-
-		TaxConfig:         lo.EmptyableToPtr(dbLine.TaxConfig),
-		RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
-
-		UBPConfigID: ubpLine.ID,
-		FeatureKey:  lo.FromPtr(ubpLine.FeatureKey),
-		Price:       lo.FromPtr(ubpLine.Price),
 	}
 
 	if dbLine.SubscriptionID != nil && dbLine.SubscriptionPhaseID != nil && dbLine.SubscriptionItemID != nil {

@@ -188,13 +188,6 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 
 			return w.subscriptionSync.HandleInvoiceCreation(ctx, event)
 		}),
-		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.GatheringInvoiceCreatedEvent) error {
-			if event != nil && slices.Contains(w.lockdownNamespaces, event.Invoice.Namespace) {
-				return nil
-			}
-
-			return w.subscriptionSync.HandleGatheringInvoiceCreation(ctx, event)
-		}),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create event handler: %w", err)

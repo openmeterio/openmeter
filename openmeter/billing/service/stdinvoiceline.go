@@ -116,7 +116,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			return nil, fmt.Errorf("calculating invoice[%s]: %w", gatheringInvoiceID, err)
 		}
 
-		gatheringInvoice, err = s.adapter.UpdateGatheringInvoice(ctx, gatheringInvoice)
+		err = s.adapter.UpdateGatheringInvoice(ctx, gatheringInvoice)
 		if err != nil {
 			return nil, fmt.Errorf("failed to update invoice[%s]: %w", gatheringInvoiceID, err)
 		}
@@ -221,9 +221,21 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 
 		invoiceID := invoice.ID
 
-		invoice, err = s.adapter.UpdateGatheringInvoice(ctx, invoice)
+		err = s.adapter.UpdateGatheringInvoice(ctx, invoice)
 		if err != nil {
 			return nil, fmt.Errorf("restoring deleted invoice[id=%s]: %w", invoiceID, err)
+		}
+
+		// We need to refetch the invoice to get all included lines
+		invoice, err = s.adapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+			Invoice: billing.InvoiceID{
+				ID:        invoiceID,
+				Namespace: customerProfile.Customer.Namespace,
+			},
+			Expand: billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("refetching invoice: %w", err)
 		}
 	}
 

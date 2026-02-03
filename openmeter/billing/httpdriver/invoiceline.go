@@ -93,13 +93,24 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 				IsInvoiceNew: res.IsInvoiceNew,
 			}
 
+			// TODO: For the V3 api let's not return the invoice
+			mergedProfile, err := h.service.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+				Customer: request.Customer,
+				Expand: billing.CustomerOverrideExpand{
+					Customer: true,
+					Apps:     true,
+				},
+			})
+			if err != nil {
+				return CreatePendingLineResponse{}, fmt.Errorf("failed to get customer override: %w", err)
+			}
 
-			out.Invoice, err = MapGatheringInvoiceToAPI(res.Invoice)
+			out.Invoice, err = MapGatheringInvoiceToAPI(res.Invoice, mergedProfile.Customer, mergedProfile.MergedProfile)
 			if err != nil {
 				return CreatePendingLineResponse{}, fmt.Errorf("failed to map invoice: %w", err)
 			}
 
-			out.Lines, err = slicesx.MapWithErr(res.Lines, mapInvoiceLineToAPI)
+			out.Lines, err = slicesx.MapWithErr(res.Lines, mapGatheringInvoiceLineToAPI)
 			if err != nil {
 				return CreatePendingLineResponse{}, fmt.Errorf("failed to map lines: %w", err)
 			}
@@ -169,25 +180,27 @@ func mapCreateGatheringLineToEntity(line api.InvoicePendingLineCreate, ns string
 	}
 
 	return billing.GatheringLine{
-		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-			Namespace:   ns,
-			Name:        line.Name,
-			Description: line.Description,
-		}),
+		GatheringLineBase: billing.GatheringLineBase{
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace:   ns,
+				Name:        line.Name,
+				Description: line.Description,
+			}),
 
-		Metadata:  lo.FromPtrOr(line.Metadata, map[string]string{}),
-		ManagedBy: billing.ManuallyManagedLine,
+			Metadata:  lo.FromPtrOr(line.Metadata, map[string]string{}),
+			ManagedBy: billing.ManuallyManagedLine,
 
-		ServicePeriod: timeutil.ClosedPeriod{
-			From: line.Period.From,
-			To:   line.Period.To,
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: line.Period.From,
+				To:   line.Period.To,
+			},
+
+			InvoiceAt:         line.InvoiceAt,
+			TaxConfig:         rateCardParsed.TaxConfig,
+			RateCardDiscounts: rateCardParsed.Discounts,
+			Price:             lo.FromPtr(rateCardParsed.Price),
+			FeatureKey:        rateCardParsed.FeatureKey,
 		},
-
-		InvoiceAt:         line.InvoiceAt,
-		TaxConfig:         rateCardParsed.TaxConfig,
-		RateCardDiscounts: rateCardParsed.Discounts,
-		Price:             lo.FromPtr(rateCardParsed.Price),
-		FeatureKey:        rateCardParsed.FeatureKey,
 	}, nil
 }
 

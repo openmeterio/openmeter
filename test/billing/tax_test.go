@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type InvoicingTaxTestSuite struct {
@@ -203,14 +204,14 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customer.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []*billing.StandardLine{
+			Lines: []billing.GatheringLine{
 				{
-					StandardLineBase: billing.StandardLineBase{
+					GatheringLineBase: billing.GatheringLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Namespace: namespace,
 							Name:      "Test item - USD",
 						}),
-						Period: billing.Period{Start: now, End: now.Add(time.Hour * 24)},
+						ServicePeriod: timeutil.ClosedPeriod{From: now, To: now.Add(time.Hour * 24)},
 
 						InvoiceAt: now.Add(time.Hour * 24),
 						ManagedBy: billing.ManuallyManagedLine,
@@ -220,15 +221,13 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 						Metadata: map[string]string{
 							"key": "value",
 						},
-					},
-					UsageBased: &billing.UsageBasedLine{
 						FeatureKey: flatPerUnitFeature.Key,
-						Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 							Amount: alpacadecimal.NewFromFloat(100),
 							Commitments: productcatalog.Commitments{
 								MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
 							},
-						}),
+						})),
 					},
 				},
 			},
@@ -272,8 +271,8 @@ func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, custom
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customer.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []*billing.StandardLine{
-				billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+			Lines: []billing.GatheringLine{
+				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Period: billing.Period{Start: now, End: now.Add(time.Hour * 24)},
 
 					InvoiceAt: now,

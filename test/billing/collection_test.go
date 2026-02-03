@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type CollectionTestSuite struct {
@@ -79,33 +80,29 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: customer.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []*billing.StandardLine{
+			Lines: []billing.GatheringLine{
 				{
-					StandardLineBase: billing.StandardLineBase{
+					GatheringLineBase: billing.GatheringLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Name: "UBP - unit",
 						}),
-						Period:    billing.Period{Start: periodStart, End: periodEnd},
-						InvoiceAt: periodEnd,
-						ManagedBy: billing.ManuallyManagedLine,
-					},
-					UsageBased: &billing.UsageBasedLine{
-						FeatureKey: apiRequestsTotalFeature.Feature.Key,
-						Price:      productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(1)}),
+						ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+						InvoiceAt:     periodEnd,
+						ManagedBy:     billing.ManuallyManagedLine,
+						FeatureKey:    apiRequestsTotalFeature.Feature.Key,
+						Price:         lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(1)})),
 					},
 				},
 				{
-					StandardLineBase: billing.StandardLineBase{
+					GatheringLineBase: billing.GatheringLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Name: "UBP - volume",
 						}),
-						Period:    billing.Period{Start: periodStart, End: period2End},
-						InvoiceAt: period2End,
-						ManagedBy: billing.ManuallyManagedLine,
-					},
-					UsageBased: &billing.UsageBasedLine{
-						FeatureKey: apiRequestsTotalFeature.Feature.Key,
-						Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+						ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: period2End},
+						InvoiceAt:     period2End,
+						ManagedBy:     billing.ManuallyManagedLine,
+						FeatureKey:    apiRequestsTotalFeature.Feature.Key,
+						Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 							Mode: productcatalog.VolumeTieredPrice,
 							Tiers: []productcatalog.PriceTier{
 								{
@@ -117,7 +114,7 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 									UnitPrice:  &productcatalog.PriceTierUnitPrice{Amount: alpacadecimal.NewFromFloat(0.5)},
 								},
 							},
-						}),
+						})),
 					},
 				},
 			},
@@ -128,8 +125,8 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 		gatheringInvoiceID = res.Invoice.InvoiceID()
 
 		// Validate collection_at calculation
-		s.NotNil(res.Invoice.CollectionAt)
-		s.Equal(periodEnd, *res.Invoice.CollectionAt, "collection_at should be the min of the invoice_at of the lines")
+		s.NotNil(res.Invoice.NextCollectionAt)
+		s.Equal(periodEnd, res.Invoice.NextCollectionAt, "collection_at should be the min of the invoice_at of the lines")
 	})
 
 	// Given a gatherting invoice exists
@@ -234,12 +231,12 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 	tcs := []struct {
 		name      string
 		namespace string
-		line      *billing.StandardLine
+		line      billing.GatheringLine
 	}{
 		{
 			name:      "flat fee only",
 			namespace: "ns-collection-flow-flat-fee",
-			line: billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+			line: billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 				Period:    billing.Period{Start: periodStart, End: periodEnd},
 				InvoiceAt: periodStart,
 				Name:      "Flat fee",
@@ -251,7 +248,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 		{
 			name:      "ubp flat fee only",
 			namespace: "ns-collection-flow-ubp-flat-fee",
-			line: billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+			line: billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 				Period:    billing.Period{Start: periodStart, End: periodEnd},
 				InvoiceAt: periodStart,
 				Name:      "Flat fee",
@@ -283,11 +280,11 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 			pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 				Customer: customer.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines:    []*billing.StandardLine{tc.line},
+				Lines:    []billing.GatheringLine{tc.line},
 			})
 			s.NoError(err)
 			s.Len(pendingLineResult.Lines, 1)
-			s.NotNil(pendingLineResult.Invoice.CollectionAt)
+			s.NotNil(pendingLineResult.Invoice.NextCollectionAt)
 
 			// When
 			clock.SetTime(periodStart.Add(time.Hour * 1))
@@ -337,26 +334,22 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 	pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
-		Lines: []*billing.StandardLine{
+		Lines: []billing.GatheringLine{
 			{
-				StandardLineBase: billing.StandardLineBase{
-					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-						Name: "UBP - unit",
-					}),
-					Period:    billing.Period{Start: periodStart, End: periodEnd},
-					InvoiceAt: periodEnd,
-					ManagedBy: billing.ManuallyManagedLine,
-				},
-				UsageBased: &billing.UsageBasedLine{
-					FeatureKey: apiRequestsTotalFeature.Feature.Key,
-					Price:      productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(1)}),
+				GatheringLineBase: billing.GatheringLineBase{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{Name: "UBP - unit"}),
+					ServicePeriod:   timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+					InvoiceAt:       periodEnd,
+					ManagedBy:       billing.ManuallyManagedLine,
+					FeatureKey:      apiRequestsTotalFeature.Feature.Key,
+					Price:           *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(1)}),
 				},
 			},
 		},
 	})
 	s.NoError(err)
 	s.Len(pendingLineResult.Lines, 1)
-	s.NotNil(pendingLineResult.Invoice.CollectionAt)
+	s.NotNil(pendingLineResult.Invoice.NextCollectionAt)
 
 	clock.SetTime(periodEnd.Add(time.Hour * 1))
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -448,17 +441,15 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_SetsCollectionAtToNextAnchor
 	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customerEntity.GetID(),
 		Currency: currencyx.Code(currency.USD),
-		Lines: []*billing.StandardLine{
+		Lines: []billing.GatheringLine{
 			{
-				StandardLineBase: billing.StandardLineBase{
+				GatheringLineBase: billing.GatheringLineBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{Name: "UBP - unit"}),
-					Period:          billing.Period{Start: periodStart, End: periodEnd},
+					ServicePeriod:   timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 					InvoiceAt:       periodEnd,
 					ManagedBy:       billing.ManuallyManagedLine,
-				},
-				UsageBased: &billing.UsageBasedLine{
-					FeatureKey: s.SetupApiRequestsTotalFeature(ctx, namespace).Feature.Key,
-					Price:      productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(1)}),
+					FeatureKey:      s.SetupApiRequestsTotalFeature(ctx, namespace).Feature.Key,
+					Price:           *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(1)}),
 				},
 			},
 		},
@@ -516,26 +507,22 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 	pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
-		Lines: []*billing.StandardLine{
+		Lines: []billing.GatheringLine{
 			{
-				StandardLineBase: billing.StandardLineBase{
-					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-						Name: "UBP - unit",
-					}),
-					Period:    billing.Period{Start: periodStart, End: periodEnd},
-					InvoiceAt: periodEnd,
-					ManagedBy: billing.ManuallyManagedLine,
-				},
-				UsageBased: &billing.UsageBasedLine{
-					FeatureKey: apiRequestsTotalFeature.Feature.Key,
-					Price:      productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(1)}),
+				GatheringLineBase: billing.GatheringLineBase{
+					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{Name: "UBP - unit"}),
+					ServicePeriod:   timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+					InvoiceAt:       periodEnd,
+					ManagedBy:       billing.ManuallyManagedLine,
+					FeatureKey:      apiRequestsTotalFeature.Feature.Key,
+					Price:           *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(1)}),
 				},
 			},
 		},
 	})
 	s.NoError(err)
 	s.Len(pendingLineResult.Lines, 1)
-	s.NotNil(pendingLineResult.Invoice.CollectionAt)
+	s.NotNil(pendingLineResult.Invoice.NextCollectionAt)
 
 	clock.SetTime(periodEnd.Add(time.Hour * 1))
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{

@@ -77,8 +77,9 @@ type InvoiceAdapter interface {
 
 type GatheringInvoiceAdapter interface {
 	CreateGatheringInvoice(ctx context.Context, input CreateGatheringInvoiceAdapterInput) (GatheringInvoice, error)
-	UpdateGatheringInvoice(ctx context.Context, input UpdateGatheringInvoiceAdapterInput) (GatheringInvoice, error)
+	UpdateGatheringInvoice(ctx context.Context, input UpdateGatheringInvoiceAdapterInput) error
 	DeleteGatheringInvoice(ctx context.Context, input DeleteGatheringInvoiceAdapterInput) error
+	GetGatheringInvoiceById(ctx context.Context, input GetGatheringInvoiceByIdInput) (GatheringInvoice, error)
 	ListGatheringInvoices(ctx context.Context, input ListGatheringInvoicesInput) (pagination.Result[GatheringInvoice], error)
 }
 

@@ -62,6 +62,9 @@ type GatheringInvoice struct {
 
 	// Entities external to the invoice entity
 	Lines GatheringInvoiceLines `json:"lines,omitempty"`
+
+	// TODO: implement!
+	AvailableActions *GatheringInvoiceAvailableActions `json:"availableActions,omitempty"`
 }
 
 func (g GatheringInvoice) InvoiceID() InvoiceID {
@@ -104,11 +107,36 @@ func (e GatheringInvoiceExpand) Validate() error {
 }
 
 const (
-	GatheringInvoiceExpandLines GatheringInvoiceExpand = "lines"
+	GatheringInvoiceExpandLines            GatheringInvoiceExpand = "lines"
+	GatheringInvoiceExpandAvailableActions GatheringInvoiceExpand = "availableActions"
 )
 
 var GatheringInvoiceExpandValues = []GatheringInvoiceExpand{
 	GatheringInvoiceExpandLines,
+	GatheringInvoiceExpandAvailableActions,
+}
+
+type GatheringInvoiceExpands []GatheringInvoiceExpand
+
+func (e GatheringInvoiceExpands) Validate() error {
+	for _, expand := range e {
+		if err := expand.Validate(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (e GatheringInvoiceExpands) Has(expand GatheringInvoiceExpand) bool {
+	return slices.Contains(e, expand)
+}
+
+func (e GatheringInvoiceExpands) With(expand GatheringInvoiceExpand) GatheringInvoiceExpands {
+	return append(e, expand)
+}
+
+type GatheringInvoiceAvailableActions struct {
+	CanBeInvoiced bool `json:"canBeInvoiced"`
 }
 
 type GatheringLines []GatheringLine
@@ -185,7 +213,7 @@ func NewGatheringInvoiceLines(children []GatheringLine) GatheringInvoiceLines {
 	}
 }
 
-type GatheringLine struct {
+type GatheringLineBase struct {
 	models.ManagedResource
 
 	Metadata    models.Metadata      `json:"metadata"`
@@ -210,7 +238,7 @@ type GatheringLine struct {
 	UBPConfigID string `json:"ubpConfigID"`
 }
 
-func (i GatheringLine) Validate() error {
+func (i GatheringLineBase) Validate() error {
 	var errs []error
 
 	if err := i.ManagedResource.Validate(); err != nil {
@@ -260,30 +288,25 @@ func (i GatheringLine) Validate() error {
 	return errors.Join(errs...)
 }
 
-func (i GatheringLine) WithNormalizedValues() (GatheringLine, error) {
-	out, err := i.Clone()
-	if err != nil {
-		return GatheringLine{}, fmt.Errorf("cloning line: %w", err)
+func (i GatheringLineBase) NormalizeValues() error {
+	i.ServicePeriod = i.ServicePeriod.Truncate(streaming.MinimumWindowSizeDuration)
+	i.InvoiceAt = i.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
+
+	if err := setDefaultPaymentTermForFlatPrice(&i.Price); err != nil {
+		return fmt.Errorf("setting default payment term for flat price: %w", err)
 	}
 
-	out.ServicePeriod = out.ServicePeriod.Truncate(streaming.MinimumWindowSizeDuration)
-	out.InvoiceAt = out.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
-
-	if err := setDefaultPaymentTermForFlatPrice(&out.Price); err != nil {
-		return GatheringLine{}, fmt.Errorf("setting default payment term for flat price: %w", err)
-	}
-
-	return out, nil
+	return nil
 }
 
-func (i GatheringLine) Clone() (GatheringLine, error) {
+func (i GatheringLineBase) Clone() (GatheringLineBase, error) {
 	var err error
 
 	out := i
 
 	out.Annotations, err = i.Annotations.Clone()
 	if err != nil {
-		return GatheringLine{}, fmt.Errorf("cloning annotations: %w", err)
+		return GatheringLineBase{}, fmt.Errorf("cloning annotations: %w", err)
 	}
 
 	if i.TaxConfig != nil {
@@ -297,6 +320,40 @@ func (i GatheringLine) Clone() (GatheringLine, error) {
 	}
 
 	return out, nil
+}
+
+type GatheringLine struct {
+	GatheringLineBase `json:",inline"`
+
+	DBState *GatheringLine `json:"-"`
+}
+
+func (g GatheringLine) Validate() error {
+	return g.GatheringLineBase.Validate()
+}
+
+func (g GatheringLine) Clone() (GatheringLine, error) {
+	base, err := g.GatheringLineBase.Clone()
+	if err != nil {
+		return GatheringLine{}, fmt.Errorf("cloning line base: %w", err)
+	}
+
+	return GatheringLine{
+		GatheringLineBase: base,
+	}, nil
+}
+
+func (g GatheringLine) WithNormalizedValues() (GatheringLine, error) {
+	clone, err := g.Clone()
+	if err != nil {
+		return GatheringLine{}, fmt.Errorf("cloning line: %w", err)
+	}
+
+	if err := g.GatheringLineBase.NormalizeValues(); err != nil {
+		return GatheringLine{}, fmt.Errorf("normalizing line values: %w", err)
+	}
+
+	return clone, nil
 }
 
 type CreatePendingInvoiceLinesInput struct {
@@ -396,7 +453,7 @@ type ListGatheringInvoicesInput struct {
 	OrderBy        api.InvoiceOrderBy
 	Order          sortx.Order
 	IncludeDeleted bool
-	Expand         []GatheringInvoiceExpand
+	Expand         GatheringInvoiceExpands
 }
 
 func (i ListGatheringInvoicesInput) Validate() error {
@@ -427,34 +484,56 @@ func NewFlatFeeGatheringLine(input NewFlatFeeLineInput, opts ...usageBasedLineOp
 	}
 
 	return GatheringLine{
-		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-			Namespace:   input.Namespace,
-			ID:          input.ID,
-			CreatedAt:   input.CreatedAt,
-			UpdatedAt:   input.UpdatedAt,
-			Name:        input.Name,
-			Description: input.Description,
-		}),
-		ServicePeriod: timeutil.ClosedPeriod{
-			From: input.Period.Start,
-			To:   input.Period.End,
-		},
-		InvoiceAt: input.InvoiceAt,
-		InvoiceID: input.InvoiceID,
-
-		Metadata:    input.Metadata,
-		Annotations: input.Annotations,
-
-		ManagedBy: lo.CoalesceOrEmpty(input.ManagedBy, SystemManagedLine),
-
-		Currency:          input.Currency,
-		RateCardDiscounts: input.RateCardDiscounts,
-		Price: lo.FromPtr(
-			productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-				Amount:      input.PerUnitAmount,
-				PaymentTerm: input.PaymentTerm,
+		GatheringLineBase: GatheringLineBase{
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace:   input.Namespace,
+				ID:          input.ID,
+				CreatedAt:   input.CreatedAt,
+				UpdatedAt:   input.UpdatedAt,
+				Name:        input.Name,
+				Description: input.Description,
 			}),
-		),
-		FeatureKey: ubpOptions.featureKey,
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: input.Period.Start,
+				To:   input.Period.End,
+			},
+			InvoiceAt: input.InvoiceAt,
+			InvoiceID: input.InvoiceID,
+
+			Metadata:    input.Metadata,
+			Annotations: input.Annotations,
+
+			ManagedBy: lo.CoalesceOrEmpty(input.ManagedBy, SystemManagedLine),
+
+			Currency:          input.Currency,
+			RateCardDiscounts: input.RateCardDiscounts,
+			Price: lo.FromPtr(
+				productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      input.PerUnitAmount,
+					PaymentTerm: input.PaymentTerm,
+				}),
+			),
+			FeatureKey: ubpOptions.featureKey,
+		},
 	}
+}
+
+type GetGatheringInvoiceByIdInput struct {
+	Invoice InvoiceID
+	Expand  GatheringInvoiceExpands
+}
+
+func (i GetGatheringInvoiceByIdInput) Validate() error {
+	var errs []error
+
+	if err := i.Invoice.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invoice: %w", err))
+	}
+
+	for _, expand := range i.Expand {
+		if err := expand.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("expand: %w", err))
+		}
+	}
+	return errors.Join(errs...)
 }
