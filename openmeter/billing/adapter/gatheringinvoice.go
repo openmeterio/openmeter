@@ -138,7 +138,7 @@ func (a *adapter) UpdateGatheringInvoice(ctx context.Context, in billing.Gatheri
 			SetTaxesInclusiveTotal(alpacadecimal.Zero).
 			SetTotal(alpacadecimal.Zero)
 
-		if in.NextCollectionAt.IsZero() {
+		if !in.NextCollectionAt.IsZero() {
 			updateQuery = updateQuery.SetCollectionAt(in.NextCollectionAt.In(time.UTC))
 		} else {
 			updateQuery = updateQuery.ClearCollectionAt()
