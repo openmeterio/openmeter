@@ -289,11 +289,6 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			return billing.CreateInvoiceAdapterRespone{}, fmt.Errorf("clone workflow config: %w", err)
 		}
 
-		workflowConfig := mapWorkflowConfigToDB(input.Profile.WorkflowConfig, clonedWorkflowConfig.ID)
-
-		// Force cloning of the workflow
-		workflowConfig.ID = ""
-
 		currentSchemaLevel, err := tx.GetInvoiceDefaultSchemaLevel(ctx)
 		if err != nil {
 			return billing.CreateInvoiceAdapterRespone{}, fmt.Errorf("get invoice write schema level: %w", err)

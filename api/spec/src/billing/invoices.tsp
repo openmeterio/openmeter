@@ -706,6 +706,7 @@ model InvoicePendingLineCreateResponse {
   @visibility(Lifecycle.Read)
   lines: InvoiceLine[];
 
+  // TODO: For the V3 api let's not return the invoice
   /**
    * The invoice containing the created lines.
    */

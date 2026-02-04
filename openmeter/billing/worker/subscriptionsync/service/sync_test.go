@@ -432,34 +432,32 @@ func (s *SubscriptionHandlerTestSuite) TestUncollectableCollection() {
 	apiRequestsTotalFeature := s.SetupApiRequestsTotalFeature(ctx, namespace)
 	defer apiRequestsTotalFeature.Cleanup()
 
-	lineServicePeriod := billing.Period{
-		Start: lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z")),
-		End:   lo.Must(time.Parse(time.RFC3339, "2025-01-02T00:00:00Z")),
+	lineServicePeriod := timeutil.ClosedPeriod{
+		From: lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z")),
+		To:   lo.Must(time.Parse(time.RFC3339, "2025-01-02T00:00:00Z")),
 	}
 
-	clock.SetTime(lineServicePeriod.Start)
+	clock.SetTime(lineServicePeriod.From)
 	defer clock.ResetTime()
 
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
-		Lines: []*billing.StandardLine{
+		Lines: []billing.GatheringLine{
 			{
-				StandardLineBase: billing.StandardLineBase{
+				GatheringLineBase: billing.GatheringLineBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 						Name: "UBP - unit",
 					}),
-					Period:    lineServicePeriod,
-					InvoiceAt: lineServicePeriod.End,
-					ManagedBy: billing.ManuallyManagedLine,
-				},
-				UsageBased: &billing.UsageBasedLine{
-					FeatureKey: apiRequestsTotalFeature.Feature.Key,
-					Price: productcatalog.NewPriceFrom(
+					ServicePeriod: lineServicePeriod,
+					InvoiceAt:     lineServicePeriod.To,
+					ManagedBy:     billing.ManuallyManagedLine,
+					FeatureKey:    apiRequestsTotalFeature.Feature.Key,
+					Price: lo.FromPtr(productcatalog.NewPriceFrom(
 						productcatalog.UnitPrice{
 							Amount: alpacadecimal.NewFromFloat(1),
 						},
-					),
+					)),
 				},
 			},
 		},

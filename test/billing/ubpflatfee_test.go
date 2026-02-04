@@ -46,10 +46,11 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 	}
 
 	s.Run("should create a pending line", func() {
-		lineIn := billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+		lineIn := billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 			Period:    period,
 			InvoiceAt: period.End,
 
+			Currency:      "USD",
 			Name:          "test in arrears",
 			PerUnitAmount: alpacadecimal.NewFromInt(100),
 			PaymentTerm:   productcatalog.InArrearsPaymentTerm,
@@ -58,7 +59,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: cust.GetID(),
 			Currency: "USD",
-			Lines: []*billing.StandardLine{
+			Lines: []billing.GatheringLine{
 				lineIn,
 			},
 		})
@@ -67,18 +68,20 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 		s.NotNil(res)
 
 		line := res.Lines[0]
-		expected := lineIn.Clone()
+		expected, err := lineIn.Clone()
+		s.NoError(err)
 
 		// Let's add fields coming from the line creation
+		expected.Namespace = cust.Namespace
 		expected.InvoiceID = res.Invoice.ID
 		expected.ID = line.ID
 		expected.CreatedAt = line.CreatedAt
 		expected.UpdatedAt = line.UpdatedAt
-		expected.UsageBased.ConfigID = line.UsageBased.ConfigID
+		expected.UBPConfigID = line.UBPConfigID
 
 		ExpectJSONEqual(s.T(),
-			expected.RemoveCircularReferences().RemoveMetaForCompare(),
-			line.RemoveCircularReferences().RemoveMetaForCompare())
+			lo.Must(expected.WithoutDBState()),
+			lo.Must(line.WithoutDBState()))
 	})
 
 	// Given the line on gathering invoice is created
@@ -156,8 +159,8 @@ func (s *UBPFlatFeeLineTestSuite) TestPercentageDiscount() {
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
 		Currency: "USD",
-		Lines: []*billing.StandardLine{
-			billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+		Lines: []billing.GatheringLine{
+			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 				Period:    period,
 				InvoiceAt: period.End,
 
@@ -235,8 +238,8 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: cust.GetID(),
 			Currency: "USD",
-			Lines: []*billing.StandardLine{
-				billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+			Lines: []billing.GatheringLine{
+				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Period:    period,
 					InvoiceAt: period.End,
 
@@ -261,8 +264,8 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: cust.GetID(),
 			Currency: "USD",
-			Lines: []*billing.StandardLine{
-				billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+			Lines: []billing.GatheringLine{
+				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Period: billing.Period{
 						Start: period.Start,
 						End:   period.Start,

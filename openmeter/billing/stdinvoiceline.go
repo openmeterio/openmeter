@@ -22,7 +22,7 @@ import (
 type StandardLineBase struct {
 	models.ManagedResource
 
-	Metadata    map[string]string    `json:"metadata,omitempty"`
+	Metadata    models.Metadata      `json:"metadata,omitempty"`
 	Annotations models.Annotations   `json:"annotations,omitempty"`
 	ManagedBy   InvoiceLineManagedBy `json:"managedBy"`
 
@@ -184,6 +184,47 @@ func (i StandardLine) LineID() LineID {
 		Namespace: i.Namespace,
 		ID:        i.ID,
 	}
+}
+
+// ToGatheringLineBase converts the standard line to a gathering line base.
+// This is temporary until the full gathering invoice functionality is split.
+func (i StandardLine) ToGatheringLineBase() (GatheringLineBase, error) {
+	if i.UsageBased == nil {
+		return GatheringLineBase{}, errors.New("usage based line is required")
+	}
+
+	if i.UsageBased.Price == nil {
+		return GatheringLineBase{}, errors.New("usage based line price is required")
+	}
+
+	clonedMetadata := i.Metadata.Clone()
+
+	clonedAnnotations, err := i.Annotations.Clone()
+	if err != nil {
+		return GatheringLineBase{}, fmt.Errorf("cloning annotations: %w", err)
+	}
+
+	return GatheringLineBase{
+		ManagedResource: i.ManagedResource,
+		Metadata:        clonedMetadata,
+		Annotations:     clonedAnnotations,
+		ManagedBy:       i.ManagedBy,
+		InvoiceID:       i.InvoiceID,
+		Currency:        i.Currency,
+		ServicePeriod: timeutil.ClosedPeriod{
+			From: i.Period.Start,
+			To:   i.Period.End,
+		},
+		InvoiceAt:              i.InvoiceAt,
+		Price:                  lo.FromPtr(i.UsageBased.Price),
+		FeatureKey:             i.UsageBased.FeatureKey,
+		TaxConfig:              i.TaxConfig,
+		RateCardDiscounts:      i.RateCardDiscounts,
+		ChildUniqueReferenceID: i.ChildUniqueReferenceID,
+		Subscription:           i.Subscription,
+		SplitLineGroupID:       i.SplitLineGroupID,
+		UBPConfigID:            i.UsageBased.ConfigID,
+	}, nil
 }
 
 type StandardLineEditFunction func(*StandardLine)
@@ -372,20 +413,29 @@ func (i StandardLine) WithNormalizedValues() (*StandardLine, error) {
 	out.Period = out.Period.Truncate(streaming.MinimumWindowSizeDuration)
 	out.InvoiceAt = out.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
-	if out.UsageBased.Price.Type() == productcatalog.FlatPriceType {
-		// Let's apply the default inAdvance payment term for flat prices
-		flatPrice, err := out.UsageBased.Price.AsFlat()
-		if err != nil {
-			return nil, fmt.Errorf("converting price to flat price: %w", err)
-		}
-
-		if flatPrice.PaymentTerm == "" {
-			flatPrice.PaymentTerm = productcatalog.InAdvancePaymentTerm
-			out.UsageBased.Price = productcatalog.NewPriceFrom(flatPrice)
-		}
+	if err := setDefaultPaymentTermForFlatPrice(out.UsageBased.Price); err != nil {
+		return nil, fmt.Errorf("setting default payment term for flat price: %w", err)
 	}
 
 	return out, nil
+}
+
+func setDefaultPaymentTermForFlatPrice(price *productcatalog.Price) error {
+	if price.Type() != productcatalog.FlatPriceType {
+		return nil
+	}
+
+	flatPrice, err := price.AsFlat()
+	if err != nil {
+		return err
+	}
+
+	if flatPrice.PaymentTerm == "" {
+		flatPrice.PaymentTerm = productcatalog.InAdvancePaymentTerm
+		*price = lo.FromPtr(productcatalog.NewPriceFrom(flatPrice))
+	}
+
+	return nil
 }
 
 // DissacociateChildren removes the Children both from the DBState and the current line, so that the

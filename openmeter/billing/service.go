@@ -5,6 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type Service interface {
@@ -13,6 +14,7 @@ type Service interface {
 	InvoiceLineService
 	SplitLineGroupService
 	InvoiceService
+	GatheringInvoiceService
 	SequenceService
 	LockableService
 
@@ -43,8 +45,6 @@ type CustomerOverrideService interface {
 }
 
 type InvoiceLineService interface {
-	// CreatePendingInvoiceLines creates pending invoice lines for a customer, if the lines are zero valued, the response is nil
-	CreatePendingInvoiceLines(ctx context.Context, input CreatePendingInvoiceLinesInput) (*CreatePendingInvoiceLinesResult, error)
 	GetLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]LineOrHierarchy, error)
 	// SnapshotLineQuantity returns an updated line with the quantity snapshoted from meters
 	// the invoice is used as contextual information to the call.
@@ -82,6 +82,13 @@ type InvoiceService interface {
 	// RecalculateGatheringInvoices recalculates the gathering invoices for a given customer, updating the
 	// collection_at attribute and deleting the gathering invoice if it has no lines.
 	RecalculateGatheringInvoices(ctx context.Context, input RecalculateGatheringInvoicesInput) error
+}
+
+type GatheringInvoiceService interface {
+	// CreatePendingInvoiceLines creates pending invoice lines for a customer, if the lines are zero valued, the response is nil
+	CreatePendingInvoiceLines(ctx context.Context, input CreatePendingInvoiceLinesInput) (*CreatePendingInvoiceLinesResult, error)
+
+	ListGatheringInvoices(ctx context.Context, input ListGatheringInvoicesInput) (pagination.Result[GatheringInvoice], error)
 }
 
 type SequenceService interface {

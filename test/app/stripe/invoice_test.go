@@ -36,6 +36,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
@@ -300,76 +301,68 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines: []*billing.StandardLine{
+				Lines: []billing.GatheringLine{
 					{
 						// Covered case: Discount caused by maximum amount
-						StandardLineBase: billing.StandardLineBase{
+						GatheringLineBase: billing.GatheringLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - FLAT per unit",
 							}),
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							ManagedBy: billing.ManuallyManagedLine,
-						},
-						UsageBased: &billing.UsageBasedLine{
-							FeatureKey: features.flatPerUnit.Key,
-							Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+							InvoiceAt:     periodEnd,
+							ManagedBy:     billing.ManuallyManagedLine,
+							FeatureKey:    features.flatPerUnit.Key,
+							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 								Amount: alpacadecimal.NewFromFloat(100),
 								Commitments: productcatalog.Commitments{
 									MaximumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(2000)),
 								},
 							}),
+							),
 						},
 					},
 					{
 						// Covered case: Very small per unit amount, high quantity, rounding to two decimal places
-						StandardLineBase: billing.StandardLineBase{
+						GatheringLineBase: billing.GatheringLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - AI Usecase",
 							}),
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							ManagedBy: billing.ManuallyManagedLine,
-						},
-						UsageBased: &billing.UsageBasedLine{
-							FeatureKey: features.aiFlatPerUnit.Key,
-							Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+							InvoiceAt:     periodEnd,
+							ManagedBy:     billing.ManuallyManagedLine,
+							FeatureKey:    features.aiFlatPerUnit.Key,
+							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 								Amount: alpacadecimal.NewFromFloat(0.00000075),
-							}),
+							})),
 						},
 					},
 					{
 						// Covered case: Flat line represented as UBP item
-						StandardLineBase: billing.StandardLineBase{
+						GatheringLineBase: billing.GatheringLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - FLAT per any usage",
 							}),
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							ManagedBy: billing.ManuallyManagedLine,
-						},
-						UsageBased: &billing.UsageBasedLine{
-							FeatureKey: features.flatPerUsage.Key,
-							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+							InvoiceAt:     periodEnd,
+							ManagedBy:     billing.ManuallyManagedLine,
+							FeatureKey:    features.flatPerUsage.Key,
+							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 								Amount:      alpacadecimal.NewFromFloat(100),
 								PaymentTerm: productcatalog.InArrearsPaymentTerm,
-							}),
-							Quantity: lo.ToPtr(alpacadecimal.NewFromFloat(1)),
+							})),
 						},
 					},
 					{
 						// Covered case: Multiple lines per item, tier boundary is fractional
-						StandardLineBase: billing.StandardLineBase{
+						GatheringLineBase: billing.GatheringLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - Tiered graduated",
 							}),
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							ManagedBy: billing.ManuallyManagedLine,
-						},
-						UsageBased: &billing.UsageBasedLine{
-							FeatureKey: features.tieredGraduated.Key,
-							Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+							InvoiceAt:     periodEnd,
+							ManagedBy:     billing.ManuallyManagedLine,
+							FeatureKey:    features.tieredGraduated.Key,
+							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 								Mode: productcatalog.GraduatedTieredPrice,
 								Tiers: []productcatalog.PriceTier{
 									{
@@ -390,22 +383,20 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 										},
 									},
 								},
-							}),
+							})),
 						},
 					},
 					{
 						// Covered case: minimum amount charges
-						StandardLineBase: billing.StandardLineBase{
+						GatheringLineBase: billing.GatheringLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - Tiered volume",
 							}),
-							Period:    billing.Period{Start: periodStart, End: periodEnd},
-							InvoiceAt: periodEnd,
-							ManagedBy: billing.ManuallyManagedLine,
-						},
-						UsageBased: &billing.UsageBasedLine{
-							FeatureKey: features.tieredVolume.Key,
-							Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+							InvoiceAt:     periodEnd,
+							ManagedBy:     billing.ManuallyManagedLine,
+							FeatureKey:    features.tieredVolume.Key,
+							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 								Mode: productcatalog.VolumeTieredPrice,
 								Tiers: []productcatalog.PriceTier{
 									{
@@ -429,7 +420,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 								Commitments: productcatalog.Commitments{
 									MinimumAmount: lo.ToPtr(alpacadecimal.NewFromFloat(3000)),
 								},
-							}),
+							})),
 						},
 					},
 				},
@@ -1109,21 +1100,19 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []*billing.StandardLine{
+			Lines: []billing.GatheringLine{
 				{
-					StandardLineBase: billing.StandardLineBase{
+					GatheringLineBase: billing.GatheringLineBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Name: "UBP - FLAT per unit",
 						}),
-						Period:    billing.Period{Start: periodStart, End: periodEnd},
-						InvoiceAt: periodEnd,
-						ManagedBy: billing.ManuallyManagedLine,
-					},
-					UsageBased: &billing.UsageBasedLine{
-						FeatureKey: flatPerUnitFeature.Key,
-						Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+						InvoiceAt:     periodEnd,
+						ManagedBy:     billing.ManuallyManagedLine,
+						FeatureKey:    flatPerUnitFeature.Key,
+						Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 							Amount: alpacadecimal.NewFromFloat(0),
-						}),
+						})),
 					},
 				},
 			},
@@ -1293,8 +1282,8 @@ func (s *StripeInvoiceTestSuite) TestSendInvoice() {
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []*billing.StandardLine{
-				billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+			Lines: []billing.GatheringLine{
+				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Period:        billing.Period{Start: periodStart, End: periodEnd},
 					InvoiceAt:     periodStart,
 					Name:          "Flat fee",

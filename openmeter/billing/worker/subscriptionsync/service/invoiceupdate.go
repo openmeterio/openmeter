@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type InvoiceUpdater struct {
@@ -156,10 +157,22 @@ func (u *InvoiceUpdater) provisionUpcomingLines(ctx context.Context, customerID 
 	})
 
 	for currency, lines := range linesByCurrency {
-		_, err := u.billingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		gatheringLines, err := slicesx.MapWithErr(lines, func(l *billing.StandardLine) (billing.GatheringLine, error) {
+			base, err := l.ToGatheringLineBase()
+			if err != nil {
+				return billing.GatheringLine{}, err
+			}
+
+			return billing.GatheringLine{GatheringLineBase: base}, nil
+		})
+		if err != nil {
+			return fmt.Errorf("converting lines to gathering lines: %w", err)
+		}
+
+		_, err = u.billingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: customerID,
 			Currency: currency,
-			Lines:    lines,
+			Lines:    gatheringLines,
 		})
 		if err != nil {
 			return fmt.Errorf("creating pending invoice lines: %w", err)

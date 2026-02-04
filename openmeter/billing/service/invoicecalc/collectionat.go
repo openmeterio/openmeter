@@ -10,7 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
-func GatheringInvoiceCollectionAt(i *billing.StandardInvoice) error {
+func LegacyGatheringInvoiceCollectionAt(i *billing.StandardInvoice) error {
 	i.CollectionAt = nil
 
 	if !i.Lines.IsPresent() {
@@ -25,6 +25,27 @@ func GatheringInvoiceCollectionAt(i *billing.StandardInvoice) error {
 
 		if i.CollectionAt.After(line.InvoiceAt) {
 			i.CollectionAt = lo.ToPtr(line.InvoiceAt)
+		}
+	}
+
+	return nil
+}
+
+func GatheringInvoiceCollectionAt(i *billing.GatheringInvoice) error {
+	i.NextCollectionAt = time.Time{}
+
+	if !i.Lines.IsPresent() {
+		return errors.New("lines must be expanded")
+	}
+
+	for _, line := range i.Lines.OrEmpty() {
+		if i.NextCollectionAt.IsZero() {
+			i.NextCollectionAt = line.InvoiceAt
+			continue
+		}
+
+		if i.NextCollectionAt.After(line.InvoiceAt) {
+			i.NextCollectionAt = line.InvoiceAt
 		}
 	}
 

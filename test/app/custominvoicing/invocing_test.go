@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
@@ -166,8 +167,8 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.HUF),
-				Lines: []*billing.StandardLine{
-					billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+				Lines: []billing.GatheringLine{
+					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 						Period: billing.Period{Start: periodStart, End: periodEnd},
 
 						InvoiceAt: issueAt,
@@ -179,17 +180,15 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 					}),
 					{
-						StandardLineBase: billing.StandardLineBase{
+						GatheringLineBase: billing.GatheringLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "Test item - HUF",
 							}),
-							Period: billing.Period{Start: periodStart, End: periodEnd},
+							ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 
 							InvoiceAt: issueAt,
 							ManagedBy: billing.ManuallyManagedLine,
-						},
-						UsageBased: &billing.UsageBasedLine{
-							Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 								Mode: productcatalog.GraduatedTieredPrice,
 								Tiers: []productcatalog.PriceTier{
 									{
@@ -204,7 +203,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 										},
 									},
 								},
-							}),
+							})),
 							FeatureKey: "test",
 						},
 					},
@@ -333,8 +332,8 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowPaymentStatusOnly() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.HUF),
-				Lines: []*billing.StandardLine{
-					billing.NewFlatFeeLine(billing.NewFlatFeeLineInput{
+				Lines: []billing.GatheringLine{
+					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 						Period: billing.Period{Start: periodStart, End: periodEnd},
 
 						InvoiceAt: issueAt,

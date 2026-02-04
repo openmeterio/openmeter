@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
+	timeutil "github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type LineID models.NamespacedID
@@ -77,6 +78,13 @@ func (p Period) Contains(t time.Time) bool {
 
 func (p Period) Duration() time.Duration {
 	return p.End.Sub(p.Start)
+}
+
+func (p Period) ToClosedPeriod() timeutil.ClosedPeriod {
+	return timeutil.ClosedPeriod{
+		From: p.Start,
+		To:   p.End,
+	}
 }
 
 type GetLinesForSubscriptionInput struct {

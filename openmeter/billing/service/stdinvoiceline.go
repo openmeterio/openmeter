@@ -21,6 +21,7 @@ import (
 
 var _ billing.InvoiceLineService = (*Service)(nil)
 
+// TODO[later]: Move this to gatheringinvoice.go
 func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.CreatePendingInvoiceLinesInput) (*billing.CreatePendingInvoiceLinesResult, error) {
 	for i := range input.Lines {
 		input.Lines[i].Namespace = input.Customer.Namespace
@@ -44,8 +45,8 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 	if !maxPeriodEnd.IsZero() {
 		var errs []error
 		for _, line := range input.Lines {
-			if line.Period.End.After(maxPeriodEnd) {
-				errs = append(errs, fmt.Errorf("line[%s]: line period end[%s] is after customer deleted at[%s]", line.ID, line.Period.End, maxPeriodEnd))
+			if line.ServicePeriod.To.After(maxPeriodEnd) {
+				errs = append(errs, fmt.Errorf("line[%s]: line period end[%s] is after customer deleted at[%s]", line.ID, line.ServicePeriod.To, maxPeriodEnd))
 			}
 		}
 
@@ -58,7 +59,9 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 
 	return transcationForInvoiceManipulation(ctx, s, input.Customer, func(ctx context.Context) (*billing.CreatePendingInvoiceLinesResult, error) {
 		if len(input.Lines) == 0 {
-			return nil, nil
+			return nil, billing.ValidationError{
+				Err: fmt.Errorf("no lines provided"),
+			}
 		}
 
 		// let's resolve the customer's settings
@@ -78,12 +81,9 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			return nil, fmt.Errorf("upserting gathering invoice: %w", err)
 		}
 
-		if gatheringInvoiceUpsertResult.Invoice == nil {
-			return nil, fmt.Errorf("gathering invoice is nil")
-		}
-		gatheringInvoice := *gatheringInvoiceUpsertResult.Invoice
+		gatheringInvoice := gatheringInvoiceUpsertResult.Invoice
 
-		linesToCreate, err := slicesx.MapWithErr(input.Lines, func(l *billing.StandardLine) (*billing.StandardLine, error) {
+		linesToCreate, err := slicesx.MapWithErr(input.Lines, func(l billing.GatheringLine) (billing.GatheringLine, error) {
 			l.Namespace = input.Customer.Namespace
 			l.Currency = input.Currency
 
@@ -94,11 +94,11 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 
 			normalizedLine, err := l.WithNormalizedValues()
 			if err != nil {
-				return nil, fmt.Errorf("normalizing line[%s]: %w", l.ID, err)
+				return billing.GatheringLine{}, fmt.Errorf("normalizing line[%s]: %w", l.ID, err)
 			}
 
 			if err := normalizedLine.Validate(); err != nil {
-				return nil, fmt.Errorf("validating line[%s]: %w", l.ID, err)
+				return billing.GatheringLine{}, fmt.Errorf("validating line[%s]: %w", l.ID, err)
 			}
 
 			return normalizedLine, nil
@@ -118,22 +118,17 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			return nil, fmt.Errorf("calculating invoice[%s]: %w", gatheringInvoiceID, err)
 		}
 
-		gatheringInvoice, err = s.adapter.UpdateInvoice(ctx, gatheringInvoice)
+		err = s.adapter.UpdateGatheringInvoice(ctx, gatheringInvoice)
 		if err != nil {
 			return nil, fmt.Errorf("failed to update invoice[%s]: %w", gatheringInvoiceID, err)
 		}
 
-		gatheringInvoice, err = s.resolveWorkflowApps(ctx, gatheringInvoice)
-		if err != nil {
-			return nil, fmt.Errorf("error resolving workflow apps for invoice [%s]: %w", gatheringInvoiceID, err)
-		}
-
 		// Let's resolve the created lines from the final invoice
-		invoiceLinesByID := lo.SliceToMap(gatheringInvoice.Lines.OrEmpty(), func(l *billing.StandardLine) (string, *billing.StandardLine) {
+		invoiceLinesByID := lo.SliceToMap(gatheringInvoice.Lines.OrEmpty(), func(l billing.GatheringLine) (string, billing.GatheringLine) {
 			return l.ID, l
 		})
 
-		finalLines := []*billing.StandardLine{}
+		finalLines := []billing.GatheringLine{}
 		for _, line := range linesToCreate {
 			if line, ok := invoiceLinesByID[line.ID]; ok {
 				finalLines = append(finalLines, line)
@@ -142,13 +137,10 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 
 		// Publish system event for newly created invoices
 		if gatheringInvoiceUpsertResult.IsInvoiceNew {
-			event, err := billing.NewStandardInvoiceCreatedEvent(gatheringInvoice)
-			if err != nil {
-				return nil, fmt.Errorf("creating event: %w", err)
-			}
+			event := billing.NewGatheringInvoiceCreatedEvent(gatheringInvoice)
 
 			if err := s.publisher.Publish(ctx, event); err != nil {
-				return nil, fmt.Errorf("publishing invoice[%s] created event: %w", gatheringInvoiceID, err)
+				return nil, fmt.Errorf("publishing gathering invoice[%s] created event: %w", gatheringInvoiceID, err)
 			}
 		}
 
@@ -161,27 +153,24 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 }
 
 type upsertGatheringInvoiceForCurrencyResponse struct {
-	Invoice      *billing.StandardInvoice
+	Invoice      billing.GatheringInvoice
 	IsInvoiceNew bool
 }
 
 func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currency currencyx.Code, customerProfile billing.CustomerOverrideWithDetails) (*upsertGatheringInvoiceForCurrencyResponse, error) {
 	// We would want to stage a pending invoice Line
-	pendingInvoiceList, err := s.adapter.ListInvoices(ctx, billing.ListInvoicesInput{
+	pendingInvoiceList, err := s.adapter.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Page: pagination.Page{
 			PageNumber: 1,
 			PageSize:   10,
 		},
-		Customers:        []string{customerProfile.Customer.ID},
-		Namespaces:       []string{customerProfile.Customer.Namespace},
-		ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
-		Currencies:       []currencyx.Code{currency},
-		OrderBy:          api.InvoiceOrderByCreatedAt,
-		Order:            sortx.OrderAsc,
-		IncludeDeleted:   true,
-		Expand: billing.InvoiceExpand{
-			Lines: true,
-		},
+		Customers:      []string{customerProfile.Customer.ID},
+		Namespaces:     []string{customerProfile.Customer.Namespace},
+		Currencies:     []currencyx.Code{currency},
+		OrderBy:        api.InvoiceOrderByCreatedAt,
+		Order:          sortx.OrderAsc,
+		IncludeDeleted: true,
+		Expand:         []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("fetching gathering invoices: %w", err)
@@ -200,21 +189,19 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 		}
 
 		// Create a new invoice
-		invoice, err := s.adapter.CreateInvoice(ctx, billing.CreateInvoiceAdapterInput{
-			Namespace: customerProfile.Customer.Namespace,
-			Customer:  lo.FromPtr(customerProfile.Customer),
-			Profile:   customerProfile.MergedProfile,
-			Number:    invoiceNumber,
-			Currency:  currency,
-			Status:    billing.StandardInvoiceStatusGathering,
-			Type:      billing.InvoiceTypeStandard,
+		invoice, err := s.adapter.CreateGatheringInvoice(ctx, billing.CreateGatheringInvoiceAdapterInput{
+			Namespace:     customerProfile.Customer.Namespace,
+			Customer:      lo.FromPtr(customerProfile.Customer),
+			Number:        invoiceNumber,
+			Currency:      currency,
+			MergedProfile: customerProfile.MergedProfile,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("creating invoice: %w", err)
 		}
 
 		return &upsertGatheringInvoiceForCurrencyResponse{
-			Invoice:      &invoice,
+			Invoice:      invoice,
 			IsInvoiceNew: true,
 		}, nil
 	}
@@ -226,7 +213,7 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 		// If the invoice was deleted, but has non-deleted lines, we need to delete those lines to prevent
 		// them from reappearing in the recreated gathering invoice.
 		if invoice.Lines.NonDeletedLineCount() > 0 {
-			invoice.Lines = invoice.Lines.Map(func(l *billing.StandardLine) *billing.StandardLine {
+			invoice.Lines = invoice.Lines.Map(func(l billing.GatheringLine) billing.GatheringLine {
 				if l.DeletedAt == nil {
 					l.DeletedAt = lo.ToPtr(clock.Now())
 				}
@@ -236,14 +223,26 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 
 		invoiceID := invoice.ID
 
-		invoice, err = s.adapter.UpdateInvoice(ctx, invoice)
+		err = s.adapter.UpdateGatheringInvoice(ctx, invoice)
 		if err != nil {
 			return nil, fmt.Errorf("restoring deleted invoice[id=%s]: %w", invoiceID, err)
+		}
+
+		// We need to refetch the invoice to get all included lines
+		invoice, err = s.adapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+			Invoice: billing.InvoiceID{
+				ID:        invoiceID,
+				Namespace: customerProfile.Customer.Namespace,
+			},
+			Expand: billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("refetching invoice: %w", err)
 		}
 	}
 
 	return &upsertGatheringInvoiceForCurrencyResponse{
-		Invoice: &invoice,
+		Invoice: invoice,
 	}, nil
 }
 
