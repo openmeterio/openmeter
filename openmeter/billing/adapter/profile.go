@@ -431,22 +431,6 @@ func mapProfileFromDB(dbProfile *db.BillingProfile) (*billing.AdapterGetProfileR
 	}, nil
 }
 
-func mapWorkflowConfigToDB(wc billing.WorkflowConfig, id string) *db.BillingWorkflowConfig {
-	return &db.BillingWorkflowConfig{
-		ID: id,
-
-		CollectionAlignment:     wc.Collection.Alignment,
-		AnchoredAlignmentDetail: wc.Collection.AnchoredAlignmentDetail,
-		LineCollectionPeriod:    wc.Collection.Interval.ISOString(),
-		InvoiceAutoAdvance:      wc.Invoicing.AutoAdvance,
-		InvoiceDraftPeriod:      wc.Invoicing.DraftPeriod.ISOString(),
-		InvoiceDueAfter:         wc.Invoicing.DueAfter.ISOString(),
-		InvoiceCollectionMethod: wc.Payment.CollectionMethod,
-		TaxEnabled:              wc.Tax.Enabled,
-		TaxEnforced:             wc.Tax.Enforced,
-	}
-}
-
 func mapWorkflowConfigFromDB(dbWC *db.BillingWorkflowConfig) (billing.WorkflowConfig, error) {
 	collectionInterval, err := dbWC.LineCollectionPeriod.Parse()
 	if err != nil {

@@ -37,11 +37,6 @@ func (a *adapter) CreateGatheringInvoice(ctx context.Context, input billing.Crea
 			return billing.GatheringInvoice{}, fmt.Errorf("clone workflow config: %w", err)
 		}
 
-		workflowConfig := mapWorkflowConfigToDB(input.MergedProfile.WorkflowConfig, clonedWorkflowConfig.ID)
-
-		// Force cloning of the workflow
-		workflowConfig.ID = ""
-
 		currentSchemaLevel, err := tx.GetInvoiceDefaultSchemaLevel(ctx)
 		if err != nil {
 			return billing.GatheringInvoice{}, fmt.Errorf("get invoice write schema level: %w", err)
