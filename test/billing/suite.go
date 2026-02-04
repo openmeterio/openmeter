@@ -383,8 +383,8 @@ func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: in.Customer.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []billing.UpcomingCharge{
-				billing.NewFlatFeeUpcomingCharge(
+			Lines: []billing.GatheringLine{
+				billing.NewFlatFeeGatheringLine(
 					billing.NewFlatFeeLineInput{
 						Namespace:     namespace,
 						Period:        billing.Period{Start: periodStart, End: periodEnd},
@@ -399,7 +399,7 @@ func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in
 						PaymentTerm: productcatalog.InArrearsPaymentTerm,
 					},
 				),
-				billing.NewFlatFeeUpcomingCharge(
+				billing.NewFlatFeeGatheringLine(
 					billing.NewFlatFeeLineInput{
 						Namespace:     namespace,
 						Period:        billing.Period{Start: periodStart, End: periodEnd},

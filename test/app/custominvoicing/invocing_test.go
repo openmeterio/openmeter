@@ -167,8 +167,8 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.HUF),
-				Lines: []billing.UpcomingCharge{
-					billing.NewFlatFeeUpcomingCharge(billing.NewFlatFeeLineInput{
+				Lines: []billing.GatheringLine{
+					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 						Period: billing.Period{Start: periodStart, End: periodEnd},
 
 						InvoiceAt: issueAt,
@@ -180,7 +180,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 					}),
 					{
-						UpcomingChargeBase: billing.UpcomingChargeBase{
+						GatheringLineBase: billing.GatheringLineBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "Test item - HUF",
 							}),
@@ -332,8 +332,8 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowPaymentStatusOnly() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.HUF),
-				Lines: []billing.UpcomingCharge{
-					billing.NewFlatFeeUpcomingCharge(billing.NewFlatFeeLineInput{
+				Lines: []billing.GatheringLine{
+					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 						Period: billing.Period{Start: periodStart, End: periodEnd},
 
 						InvoiceAt: issueAt,

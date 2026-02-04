@@ -66,7 +66,7 @@ type GatheringInvoice struct {
 	GatheringInvoiceBase `json:",inline"`
 
 	// Entities external to the invoice entity
-	Lines GatheringInvoiceUpcomingCharges `json:"lines,omitempty"`
+	Lines GatheringInvoiceLines `json:"lines,omitempty"`
 
 	// TODO[later]: implement this once we have a lineservice capable of operating on
 	// these lines too.
@@ -79,7 +79,7 @@ func (g GatheringInvoice) WithoutDBState() (GatheringInvoice, error) {
 		return GatheringInvoice{}, fmt.Errorf("cloning invoice: %w", err)
 	}
 
-	clone.Lines, err = clone.Lines.MapWithErr(func(l UpcomingCharge) (UpcomingCharge, error) {
+	clone.Lines, err = clone.Lines.MapWithErr(func(l GatheringLine) (GatheringLine, error) {
 		return l.WithoutDBState()
 	})
 	if err != nil {
@@ -121,7 +121,7 @@ func (g *GatheringInvoice) SortLines() {
 func (g GatheringInvoice) Clone() (GatheringInvoice, error) {
 	clone := g
 
-	clonedLines, err := clone.Lines.MapWithErr(func(l UpcomingCharge) (UpcomingCharge, error) {
+	clonedLines, err := clone.Lines.MapWithErr(func(l GatheringLine) (GatheringLine, error) {
 		return l.Clone()
 	})
 	if err != nil {
@@ -176,19 +176,19 @@ type GatheringInvoiceAvailableActions struct {
 	CanBeInvoiced bool `json:"canBeInvoiced"`
 }
 
-type UpcomingCharges []UpcomingCharge
+type GatheringLines []GatheringLine
 
-type GatheringInvoiceUpcomingCharges struct {
-	mo.Option[UpcomingCharges]
+type GatheringInvoiceLines struct {
+	mo.Option[GatheringLines]
 }
 
-func (l GatheringInvoiceUpcomingCharges) Validate() error {
+func (l GatheringInvoiceLines) Validate() error {
 	if l.IsAbsent() {
 		return nil
 	}
 
 	return errors.Join(
-		lo.Map(l.OrEmpty(), func(l UpcomingCharge, _ int) error {
+		lo.Map(l.OrEmpty(), func(l GatheringLine, _ int) error {
 			err := l.Validate()
 			if err != nil {
 				return fmt.Errorf("line[%s]: %w", l.ID, err)
@@ -198,34 +198,34 @@ func (l GatheringInvoiceUpcomingCharges) Validate() error {
 	)
 }
 
-func (l *GatheringInvoiceUpcomingCharges) Sort() {
+func (l *GatheringInvoiceLines) Sort() {
 	if l.IsAbsent() {
 		return
 	}
 
 	lines := l.OrEmpty()
-	slices.SortFunc(lines, func(a, b UpcomingCharge) int {
+	slices.SortFunc(lines, func(a, b GatheringLine) int {
 		return a.CreatedAt.Compare(b.CreatedAt)
 	})
 
 	l.Option = mo.Some(lines)
 }
 
-func (l GatheringInvoiceUpcomingCharges) NonDeletedLineCount() int {
-	return lo.CountBy(l.OrEmpty(), func(l UpcomingCharge) bool {
+func (l GatheringInvoiceLines) NonDeletedLineCount() int {
+	return lo.CountBy(l.OrEmpty(), func(l GatheringLine) bool {
 		return l.DeletedAt == nil
 	})
 }
 
-func (l GatheringInvoiceUpcomingCharges) Map(fn func(UpcomingCharge) UpcomingCharge) GatheringInvoiceUpcomingCharges {
-	res, _ := l.MapWithErr(func(gl UpcomingCharge) (UpcomingCharge, error) {
+func (l GatheringInvoiceLines) Map(fn func(GatheringLine) GatheringLine) GatheringInvoiceLines {
+	res, _ := l.MapWithErr(func(gl GatheringLine) (GatheringLine, error) {
 		return fn(gl), nil
 	})
 
 	return res
 }
 
-func (l GatheringInvoiceUpcomingCharges) MapWithErr(fn func(UpcomingCharge) (UpcomingCharge, error)) (GatheringInvoiceUpcomingCharges, error) {
+func (l GatheringInvoiceLines) MapWithErr(fn func(GatheringLine) (GatheringLine, error)) (GatheringInvoiceLines, error) {
 	if l.IsAbsent() {
 		return l, nil
 	}
@@ -235,22 +235,22 @@ func (l GatheringInvoiceUpcomingCharges) MapWithErr(fn func(UpcomingCharge) (Upc
 		return l, err
 	}
 
-	return GatheringInvoiceUpcomingCharges{
-		Option: mo.Some(UpcomingCharges(out)),
+	return GatheringInvoiceLines{
+		Option: mo.Some(GatheringLines(out)),
 	}, nil
 }
 
-func (l *GatheringInvoiceUpcomingCharges) Append(lines ...UpcomingCharge) {
+func (l *GatheringInvoiceLines) Append(lines ...GatheringLine) {
 	l.Option = mo.Some(append(l.OrEmpty(), lines...))
 }
 
-func NewGatheringInvoiceUpcomingCharges(children []UpcomingCharge) GatheringInvoiceUpcomingCharges {
-	return GatheringInvoiceUpcomingCharges{
-		Option: mo.Some(UpcomingCharges(children)),
+func NewGatheringInvoiceLines(children []GatheringLine) GatheringInvoiceLines {
+	return GatheringInvoiceLines{
+		Option: mo.Some(GatheringLines(children)),
 	}
 }
 
-type UpcomingChargeBase struct {
+type GatheringLineBase struct {
 	models.ManagedResource
 
 	Metadata    models.Metadata      `json:"metadata"`
@@ -275,7 +275,7 @@ type UpcomingChargeBase struct {
 	UBPConfigID string `json:"ubpConfigID"`
 }
 
-func (i UpcomingChargeBase) Validate() error {
+func (i GatheringLineBase) Validate() error {
 	var errs []error
 
 	if i.Namespace == "" {
@@ -329,7 +329,7 @@ func (i UpcomingChargeBase) Validate() error {
 	return errors.Join(errs...)
 }
 
-func (i *UpcomingChargeBase) NormalizeValues() error {
+func (i *GatheringLineBase) NormalizeValues() error {
 	i.ServicePeriod = i.ServicePeriod.Truncate(streaming.MinimumWindowSizeDuration)
 	i.InvoiceAt = i.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
@@ -340,14 +340,19 @@ func (i *UpcomingChargeBase) NormalizeValues() error {
 	return nil
 }
 
-func (i UpcomingChargeBase) Clone() (UpcomingChargeBase, error) {
+func (i GatheringLineBase) Clone() (GatheringLineBase, error) {
 	var err error
 
 	out := i
 
 	out.Annotations, err = i.Annotations.Clone()
 	if err != nil {
-		return UpcomingChargeBase{}, fmt.Errorf("cloning annotations: %w", err)
+		return GatheringLineBase{}, fmt.Errorf("cloning annotations: %w", err)
+	}
+
+	out.Metadata, err = i.Metadata.Clone()
+	if err != nil {
+		return GatheringLineBase{}, fmt.Errorf("cloning metadata: %w", err)
 	}
 
 	if i.TaxConfig != nil {
@@ -363,43 +368,43 @@ func (i UpcomingChargeBase) Clone() (UpcomingChargeBase, error) {
 	return out, nil
 }
 
-// TODO: rename to UpcomingCharge
-type UpcomingCharge struct {
-	UpcomingChargeBase `json:",inline"`
+// TODO: rename to GatheringLine
+type GatheringLine struct {
+	GatheringLineBase `json:",inline"`
 
-	DBState *UpcomingCharge `json:"-"`
+	DBState *GatheringLine `json:"-"`
 }
 
-func (g UpcomingCharge) Clone() (UpcomingCharge, error) {
-	base, err := g.UpcomingChargeBase.Clone()
+func (g GatheringLine) Clone() (GatheringLine, error) {
+	base, err := g.GatheringLineBase.Clone()
 	if err != nil {
-		return UpcomingCharge{}, fmt.Errorf("cloning line base: %w", err)
+		return GatheringLine{}, fmt.Errorf("cloning line base: %w", err)
 	}
 
-	return UpcomingCharge{
-		UpcomingChargeBase: base,
-		DBState:            g.DBState,
+	return GatheringLine{
+		GatheringLineBase: base,
+		DBState:           g.DBState,
 	}, nil
 }
 
-func (g UpcomingCharge) WithoutDBState() (UpcomingCharge, error) {
+func (g GatheringLine) WithoutDBState() (GatheringLine, error) {
 	clone, err := g.Clone()
 	if err != nil {
-		return UpcomingCharge{}, fmt.Errorf("cloning line: %w", err)
+		return GatheringLine{}, fmt.Errorf("cloning line: %w", err)
 	}
 
 	clone.DBState = nil
 	return clone, nil
 }
 
-func (g UpcomingCharge) WithNormalizedValues() (UpcomingCharge, error) {
+func (g GatheringLine) WithNormalizedValues() (GatheringLine, error) {
 	clone, err := g.Clone()
 	if err != nil {
-		return UpcomingCharge{}, fmt.Errorf("cloning line: %w", err)
+		return GatheringLine{}, fmt.Errorf("cloning line: %w", err)
 	}
 
-	if err := clone.UpcomingChargeBase.NormalizeValues(); err != nil {
-		return UpcomingCharge{}, fmt.Errorf("normalizing line values: %w", err)
+	if err := clone.GatheringLineBase.NormalizeValues(); err != nil {
+		return GatheringLine{}, fmt.Errorf("normalizing line values: %w", err)
 	}
 
 	return clone, nil
@@ -409,7 +414,7 @@ type CreatePendingInvoiceLinesInput struct {
 	Customer customer.CustomerID `json:"customer"`
 	Currency currencyx.Code      `json:"currency"`
 
-	Lines []UpcomingCharge `json:"lines"`
+	Lines []GatheringLine `json:"lines"`
 }
 
 func (c CreatePendingInvoiceLinesInput) Validate() error {
@@ -444,7 +449,7 @@ func (c CreatePendingInvoiceLinesInput) Validate() error {
 }
 
 type CreatePendingInvoiceLinesResult struct {
-	Lines        []UpcomingCharge
+	Lines        []GatheringLine
 	Invoice      GatheringInvoice
 	IsInvoiceNew bool
 }
@@ -525,15 +530,15 @@ func (i ListGatheringInvoicesInput) Validate() error {
 	return errors.Join(errs...)
 }
 
-func NewFlatFeeUpcomingCharge(input NewFlatFeeLineInput, opts ...usageBasedLineOption) UpcomingCharge {
+func NewFlatFeeGatheringLine(input NewFlatFeeLineInput, opts ...usageBasedLineOption) GatheringLine {
 	ubpOptions := usageBasedLineOptions{}
 
 	for _, opt := range opts {
 		opt(&ubpOptions)
 	}
 
-	return UpcomingCharge{
-		UpcomingChargeBase: UpcomingChargeBase{
+	return GatheringLine{
+		GatheringLineBase: GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace:   input.Namespace,
 				ID:          input.ID,

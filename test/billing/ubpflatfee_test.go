@@ -46,7 +46,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 	}
 
 	s.Run("should create a pending line", func() {
-		lineIn := billing.NewFlatFeeUpcomingCharge(billing.NewFlatFeeLineInput{
+		lineIn := billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 			Period:    period,
 			InvoiceAt: period.End,
 
@@ -59,7 +59,7 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: cust.GetID(),
 			Currency: "USD",
-			Lines: []billing.UpcomingCharge{
+			Lines: []billing.GatheringLine{
 				lineIn,
 			},
 		})
@@ -159,8 +159,8 @@ func (s *UBPFlatFeeLineTestSuite) TestPercentageDiscount() {
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: cust.GetID(),
 		Currency: "USD",
-		Lines: []billing.UpcomingCharge{
-			billing.NewFlatFeeUpcomingCharge(billing.NewFlatFeeLineInput{
+		Lines: []billing.GatheringLine{
+			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 				Period:    period,
 				InvoiceAt: period.End,
 
@@ -238,8 +238,8 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: cust.GetID(),
 			Currency: "USD",
-			Lines: []billing.UpcomingCharge{
-				billing.NewFlatFeeUpcomingCharge(billing.NewFlatFeeLineInput{
+			Lines: []billing.GatheringLine{
+				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Period:    period,
 					InvoiceAt: period.End,
 
@@ -264,8 +264,8 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: cust.GetID(),
 			Currency: "USD",
-			Lines: []billing.UpcomingCharge{
-				billing.NewFlatFeeUpcomingCharge(billing.NewFlatFeeLineInput{
+			Lines: []billing.GatheringLine{
+				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Period: billing.Period{
 						Start: period.Start,
 						End:   period.Start,

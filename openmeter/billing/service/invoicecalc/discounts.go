@@ -23,10 +23,10 @@ func UpsertDiscountCorrelationIDs(invoice *billing.StandardInvoice) error {
 }
 
 func UpsertGatheringInvoiceDiscountCorrelationIDs(invoice *billing.GatheringInvoice) error {
-	lines, err := invoice.Lines.MapWithErr(func(line billing.UpcomingCharge) (billing.UpcomingCharge, error) {
+	lines, err := invoice.Lines.MapWithErr(func(line billing.GatheringLine) (billing.GatheringLine, error) {
 		updatedDiscounts, err := ensureDiscountCorrelationIDs(line.RateCardDiscounts)
 		if err != nil {
-			return billing.UpcomingCharge{}, err
+			return billing.GatheringLine{}, err
 		}
 
 		line.RateCardDiscounts = updatedDiscounts

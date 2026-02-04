@@ -7,7 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-// CalculateStandardInvoicePeriod calculates the period of the invoice based on the lines.
+// CalculateStandardInvoiceServicePeriod calculates the period of the invoice based on the lines.
 func CalculateStandardInvoiceServicePeriod(invoice *billing.StandardInvoice) error {
 	var period *billing.Period
 

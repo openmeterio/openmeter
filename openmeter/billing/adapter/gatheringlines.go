@@ -23,35 +23,35 @@ import (
 )
 
 type gatheringLineDiff struct {
-	Line entitydiff.Diff[*billing.UpcomingCharge]
+	Line entitydiff.Diff[*billing.GatheringLine]
 }
 
-func diffGatheringInvoiceLines(lines billing.UpcomingCharges) (gatheringLineDiff, error) {
-	dbState := []*billing.UpcomingCharge{}
+func diffGatheringInvoiceLines(lines billing.GatheringLines) (gatheringLineDiff, error) {
+	dbState := []*billing.GatheringLine{}
 	for _, line := range lines {
 		if line.DBState != nil {
 			dbState = append(dbState, line.DBState)
 		}
 	}
 
-	linePtrs := lo.Map(lines, func(_ billing.UpcomingCharge, idx int) *billing.UpcomingCharge {
+	linePtrs := lo.Map(lines, func(_ billing.GatheringLine, idx int) *billing.GatheringLine {
 		return &lines[idx]
 	})
 
 	diff := gatheringLineDiff{}
 
-	err := entitydiff.DiffByID(entitydiff.DiffByIDInput[*billing.UpcomingCharge]{
+	err := entitydiff.DiffByID(entitydiff.DiffByIDInput[*billing.GatheringLine]{
 		DBState:       dbState,
 		ExpectedState: linePtrs,
-		HandleDelete: func(item *billing.UpcomingCharge) error {
+		HandleDelete: func(item *billing.GatheringLine) error {
 			diff.Line.NeedsDelete(item)
 			return nil
 		},
-		HandleCreate: func(item *billing.UpcomingCharge) error {
+		HandleCreate: func(item *billing.GatheringLine) error {
 			diff.Line.NeedsCreate(item)
 			return nil
 		},
-		HandleUpdate: func(item entitydiff.DiffUpdate[*billing.UpcomingCharge]) error {
+		HandleUpdate: func(item entitydiff.DiffUpdate[*billing.GatheringLine]) error {
 			diff.Line.NeedsUpdate(item)
 			return nil
 		},
@@ -63,14 +63,14 @@ func diffGatheringInvoiceLines(lines billing.UpcomingCharges) (gatheringLineDiff
 	return diff, nil
 }
 
-func (a *adapter) updateUpcomingCharges(ctx context.Context, lines billing.UpcomingCharges) error {
+func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.GatheringLines) error {
 	diff, err := diffGatheringInvoiceLines(lines)
 	if err != nil {
 		return err
 	}
 
-	err = upsertWithOptions(ctx, a.db, diff.Line, upsertInput[*billing.UpcomingCharge, *db.BillingInvoiceUsageBasedLineConfigCreate]{
-		Create: func(tx *db.Client, line *billing.UpcomingCharge) (*db.BillingInvoiceUsageBasedLineConfigCreate, error) {
+	err = upsertWithOptions(ctx, a.db, diff.Line, upsertInput[*billing.GatheringLine, *db.BillingInvoiceUsageBasedLineConfigCreate]{
+		Create: func(tx *db.Client, line *billing.GatheringLine) (*db.BillingInvoiceUsageBasedLineConfigCreate, error) {
 			if line.UBPConfigID == "" {
 				line.UBPConfigID = ulid.Make().String()
 			}
@@ -97,8 +97,8 @@ func (a *adapter) updateUpcomingCharges(ctx context.Context, lines billing.Upcom
 		return fmt.Errorf("creating usage based line configs: %w", err)
 	}
 
-	invoiceLineUpsertConfig := upsertInput[*billing.UpcomingCharge, *db.BillingInvoiceLineCreate]{
-		Create: func(tx *db.Client, line *billing.UpcomingCharge) (*db.BillingInvoiceLineCreate, error) {
+	invoiceLineUpsertConfig := upsertInput[*billing.GatheringLine, *db.BillingInvoiceLineCreate]{
+		Create: func(tx *db.Client, line *billing.GatheringLine) (*db.BillingInvoiceLineCreate, error) {
 			if line.ID == "" {
 				line.ID = ulid.Make().String()
 			}
@@ -162,7 +162,7 @@ func (a *adapter) updateUpcomingCharges(ctx context.Context, lines billing.Upcom
 				UpdateChildUniqueReferenceID().
 				Exec(ctx)
 		},
-		MarkDeleted: func(ctx context.Context, line *billing.UpcomingCharge) (*billing.UpcomingCharge, error) {
+		MarkDeleted: func(ctx context.Context, line *billing.GatheringLine) (*billing.GatheringLine, error) {
 			line.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
 			return line, nil
 		},
@@ -175,24 +175,24 @@ func (a *adapter) updateUpcomingCharges(ctx context.Context, lines billing.Upcom
 	return nil
 }
 
-func (a *adapter) mapGatheringInvoiceLinesFromDB(schemaLevel int, dbLines []*db.BillingInvoiceLine) ([]billing.UpcomingCharge, error) {
-	return slicesx.MapWithErr(dbLines, func(dbLine *db.BillingInvoiceLine) (billing.UpcomingCharge, error) {
+func (a *adapter) mapGatheringInvoiceLinesFromDB(schemaLevel int, dbLines []*db.BillingInvoiceLine) ([]billing.GatheringLine, error) {
+	return slicesx.MapWithErr(dbLines, func(dbLine *db.BillingInvoiceLine) (billing.GatheringLine, error) {
 		return a.mapGatheringInvoiceLineFromDB(schemaLevel, dbLine)
 	})
 }
 
-func (a *adapter) mapGatheringInvoiceLineFromDB(schemaLevel int, dbLine *db.BillingInvoiceLine) (billing.UpcomingCharge, error) {
+func (a *adapter) mapGatheringInvoiceLineFromDB(schemaLevel int, dbLine *db.BillingInvoiceLine) (billing.GatheringLine, error) {
 	if dbLine.Type != billing.InvoiceLineTypeUsageBased {
-		return billing.UpcomingCharge{}, fmt.Errorf("only usage based lines can be gathering invoice lines [line_id=%s]", dbLine.ID)
+		return billing.GatheringLine{}, fmt.Errorf("only usage based lines can be gathering invoice lines [line_id=%s]", dbLine.ID)
 	}
 
 	ubpLine := dbLine.Edges.UsageBasedLine
 	if ubpLine == nil {
-		return billing.UpcomingCharge{}, fmt.Errorf("usage based line data is missing [line_id=%s]", dbLine.ID)
+		return billing.GatheringLine{}, fmt.Errorf("usage based line data is missing [line_id=%s]", dbLine.ID)
 	}
 
-	line := billing.UpcomingCharge{
-		UpcomingChargeBase: billing.UpcomingChargeBase{
+	line := billing.GatheringLine{
+		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace:   dbLine.Namespace,
 				ID:          dbLine.ID,
@@ -243,7 +243,7 @@ func (a *adapter) mapGatheringInvoiceLineFromDB(schemaLevel int, dbLine *db.Bill
 
 	cloned, err := line.WithoutDBState()
 	if err != nil {
-		return billing.UpcomingCharge{}, fmt.Errorf("cloning line: %w", err)
+		return billing.GatheringLine{}, fmt.Errorf("cloning line: %w", err)
 	}
 
 	line.DBState = lo.ToPtr(cloned)

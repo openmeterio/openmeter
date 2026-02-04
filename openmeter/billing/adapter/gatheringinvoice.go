@@ -123,7 +123,6 @@ func (a *adapter) UpdateGatheringInvoice(ctx context.Context, in billing.Gatheri
 			SetNumber(in.Number).
 			SetOrClearDescription(in.Description).
 			ClearDueAt().
-			SetCollectionAt(in.NextCollectionAt.In(time.UTC)).
 			ClearPaymentProcessingEnteredAt().
 			ClearDraftUntil().
 			ClearIssuedAt().
@@ -138,6 +137,12 @@ func (a *adapter) UpdateGatheringInvoice(ctx context.Context, in billing.Gatheri
 			SetTaxesExclusiveTotal(alpacadecimal.Zero).
 			SetTaxesInclusiveTotal(alpacadecimal.Zero).
 			SetTotal(alpacadecimal.Zero)
+
+		if in.NextCollectionAt.IsZero() {
+			updateQuery = updateQuery.SetCollectionAt(in.NextCollectionAt.In(time.UTC))
+		} else {
+			updateQuery = updateQuery.ClearCollectionAt()
+		}
 
 		updateQuery = updateQuery.
 			SetPeriodStart(in.ServicePeriod.From.In(time.UTC)).
@@ -180,7 +185,7 @@ func (a *adapter) UpdateGatheringInvoice(ctx context.Context, in billing.Gatheri
 		}
 
 		if in.Lines.IsPresent() {
-			err := tx.updateUpcomingCharges(ctx, in.Lines.OrEmpty())
+			err := tx.updateGatheringLines(ctx, in.Lines.OrEmpty())
 			if err != nil {
 				return err
 			}
@@ -402,7 +407,7 @@ func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.Bil
 		// 	return billing.StandardInvoice{}, err
 		// }
 
-		res.Lines = billing.NewGatheringInvoiceUpcomingCharges(mappedLines)
+		res.Lines = billing.NewGatheringInvoiceLines(mappedLines)
 	}
 
 	return res, nil

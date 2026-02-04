@@ -34,7 +34,7 @@ import (
 //   - It creates a new line for the period up to the split at time, decreases the existing line's period end to the split at time.
 //   - Note: ChildUniqueReferenceID is set to nil to avoid conflicts on the gathering invoice, the SplitLineGroup owns this unique reference.
 //
-// 3) We create a new standard invoice from the gathering invoice and associate the lines to it. (createStandardInvoiceFromUpcomingCharges)
+// 3) We create a new standard invoice from the gathering invoice and associate the lines to it. (createStandardInvoiceFromGatheringLines)
 //   - The in-scope lines are moved from the gathering invoice to the new standard invoice (moveLinesToInvoice)
 //
 // 4) We update the gathering invoice to remove the lines that have been associated to the new invoice. (updateGatheringInvoice)
@@ -249,7 +249,7 @@ func (s *Service) handleInvoicePendingLinesForCurrency(ctx context.Context, in h
 	// Invariant:
 	// - new invoice: initial calculations are done and persisted to the database
 	// - gathering invoice: lines that have been associated to the new invoice are removed from the gathering invoice
-	createStandardInvoiceResult, err := s.createStandardInvoiceFromUpcomingCharges(ctx, createStandardInvoiceFromUpcomingChargesInput{
+	createStandardInvoiceResult, err := s.createStandardInvoiceFromGatheringLines(ctx, createStandardInvoiceFromGatheringLinesInput{
 		Customer:                in.Customer,
 		Currency:                in.Currency,
 		GatheringInvoice:        gatheringInvoice,
@@ -598,7 +598,7 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 	}, nil
 }
 
-type createStandardInvoiceFromUpcomingChargesInput struct {
+type createStandardInvoiceFromGatheringLinesInput struct {
 	Customer                customer.Customer
 	Currency                currencyx.Code
 	GatheringInvoice        billing.StandardInvoice
@@ -607,7 +607,7 @@ type createStandardInvoiceFromUpcomingChargesInput struct {
 	EffectiveBillingProfile billing.Profile
 }
 
-func (in createStandardInvoiceFromUpcomingChargesInput) Validate() error {
+func (in createStandardInvoiceFromGatheringLinesInput) Validate() error {
 	var errs []error
 
 	if err := in.Customer.Validate(); err != nil {
@@ -639,16 +639,16 @@ func (in createStandardInvoiceFromUpcomingChargesInput) Validate() error {
 	return errors.Join(errs...)
 }
 
-type createStandardInvoiceFromUpcomingChargesResult struct {
+type createStandardInvoiceFromGatheringLinesResult struct {
 	CreatedInvoice   billing.StandardInvoice
 	GatheringInvoice billing.StandardInvoice
 }
 
-// createStandardInvoiceFromUpcomingCharges creates a standard invoice from the gathering invoice lines.
+// createStandardInvoiceFromGatheringLines creates a standard invoice from the gathering invoice lines.
 // Invariant:
 // - the standard invoice is in draft.created state, and is calculated and persisted to the database
 // - the gathering invoice's lines are removed, but not persisted to the database
-func (s *Service) createStandardInvoiceFromUpcomingCharges(ctx context.Context, in createStandardInvoiceFromUpcomingChargesInput) (*createStandardInvoiceFromUpcomingChargesResult, error) {
+func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, in createStandardInvoiceFromGatheringLinesInput) (*createStandardInvoiceFromGatheringLinesResult, error) {
 	if err := in.Validate(); err != nil {
 		return nil, fmt.Errorf("validating input: %w", err)
 	}
@@ -751,7 +751,7 @@ func (s *Service) createStandardInvoiceFromUpcomingCharges(ctx context.Context, 
 		return nil, fmt.Errorf("activating invoice: %w", err)
 	}
 
-	return &createStandardInvoiceFromUpcomingChargesResult{
+	return &createStandardInvoiceFromGatheringLinesResult{
 		CreatedInvoice:   invoice,
 		GatheringInvoice: moveResults.GatheringInvoice,
 	}, nil

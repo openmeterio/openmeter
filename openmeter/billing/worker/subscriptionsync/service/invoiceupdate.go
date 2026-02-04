@@ -157,13 +157,13 @@ func (u *InvoiceUpdater) provisionUpcomingLines(ctx context.Context, customerID 
 	})
 
 	for currency, lines := range linesByCurrency {
-		gatheringLines, err := slicesx.MapWithErr(lines, func(l *billing.StandardLine) (billing.UpcomingCharge, error) {
-			base, err := l.ToUpcomingChargeBase()
+		gatheringLines, err := slicesx.MapWithErr(lines, func(l *billing.StandardLine) (billing.GatheringLine, error) {
+			base, err := l.ToGatheringLineBase()
 			if err != nil {
-				return billing.UpcomingCharge{}, err
+				return billing.GatheringLine{}, err
 			}
 
-			return billing.UpcomingCharge{UpcomingChargeBase: base}, nil
+			return billing.GatheringLine{GatheringLineBase: base}, nil
 		})
 		if err != nil {
 			return fmt.Errorf("converting lines to gathering lines: %w", err)

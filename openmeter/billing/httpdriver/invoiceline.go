@@ -65,8 +65,8 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 				}
 			}
 
-			lineEntities, err := slicesx.MapWithErr(req.Lines, func(line api.InvoicePendingLineCreate) (billing.UpcomingCharge, error) {
-				return mapCreateUpcomingChargeToEntity(line, ns)
+			lineEntities, err := slicesx.MapWithErr(req.Lines, func(line api.InvoicePendingLineCreate) (billing.GatheringLine, error) {
+				return mapCreateGatheringLineToEntity(line, ns)
 			})
 			if err != nil {
 				return CreatePendingLineRequest{}, billing.ValidationError{
@@ -87,6 +87,10 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 			res, err := h.service.CreatePendingInvoiceLines(ctx, request)
 			if err != nil {
 				return CreatePendingLineResponse{}, fmt.Errorf("failed to create invoice lines: %w", err)
+			}
+
+			if res == nil {
+				return CreatePendingLineResponse{}, fmt.Errorf("create pending invoice lines result is nil")
 			}
 
 			out := CreatePendingLineResponse{
@@ -164,7 +168,7 @@ func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billi
 	}, nil
 }
 
-func mapCreateUpcomingChargeToEntity(line api.InvoicePendingLineCreate, ns string) (billing.UpcomingCharge, error) {
+func mapCreateGatheringLineToEntity(line api.InvoicePendingLineCreate, ns string) (billing.GatheringLine, error) {
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -172,15 +176,15 @@ func mapCreateUpcomingChargeToEntity(line api.InvoicePendingLineCreate, ns strin
 		FeatureKey: line.FeatureKey,
 	})
 	if err != nil {
-		return billing.UpcomingCharge{}, fmt.Errorf("failed to map usage based line: %w", err)
+		return billing.GatheringLine{}, fmt.Errorf("failed to map usage based line: %w", err)
 	}
 
 	if rateCardParsed.Price == nil {
-		return billing.UpcomingCharge{}, fmt.Errorf("price is nil [line=%s]", line.Name)
+		return billing.GatheringLine{}, fmt.Errorf("price is nil [line=%s]", line.Name)
 	}
 
-	return billing.UpcomingCharge{
-		UpcomingChargeBase: billing.UpcomingChargeBase{
+	return billing.GatheringLine{
+		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace:   ns,
 				Name:        line.Name,
