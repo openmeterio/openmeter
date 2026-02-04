@@ -13,36 +13,20 @@ import (
 )
 
 type featureGetter interface {
-	GetReferencedFeatureKeys(ctx context.Context) ([]string, error)
-	GetNamespaces(ctx context.Context) ([]string, error)
+	GetReferencedFeatureKeys() ([]string, error)
 }
 
-func (s *Service) resolveFeatureMeters(ctx context.Context, lines featureGetter) (billing.FeatureMeters, error) {
-	namespaces := lo.Uniq(lo.Map(lines, func(line *billing.StandardLine, _ int) string {
-		return line.Namespace
-	}))
-
-	if len(namespaces) != 1 {
-		return nil, fmt.Errorf("all lines must be in the same namespace")
+func (s *Service) resolveFeatureMeters(ctx context.Context, namespace string, lines featureGetter) (billing.FeatureMeters, error) {
+	if namespace == "" {
+		return nil, fmt.Errorf("namespace is required")
 	}
 
-	namespace := namespaces[0]
+	referencedFeatureKeys, err := lines.GetReferencedFeatureKeys()
+	if err != nil {
+		return nil, fmt.Errorf("getting referenced feature keys: %w", err)
+	}
 
-	featuresToResolve := lo.Uniq(
-		lo.Filter(
-			lo.Map(lines, func(line *billing.StandardLine, _ int) string {
-				// Never happens, as StandardLine is always a usage based line, but until we migrate to a new table let's keep it here
-				if line.UsageBased == nil {
-					return ""
-				}
-
-				return line.UsageBased.FeatureKey
-			}),
-			func(featureKey string, _ int) bool {
-				return featureKey != ""
-			},
-		),
-	)
+	featuresToResolve := lo.Uniq(referencedFeatureKeys)
 
 	// Let's resolve the features
 	features, err := s.featureService.ListFeatures(ctx, feature.ListFeaturesParams{

@@ -9,7 +9,7 @@ import (
 )
 
 type dynamicPricer struct {
-	ProgressiveBillingPricer
+	ProgressiveBillingMeteredPricer
 }
 
 var _ Pricer = (*dynamicPricer)(nil)

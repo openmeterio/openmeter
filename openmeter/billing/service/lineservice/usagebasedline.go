@@ -7,9 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
 var _ Line = (*usageBasedLine)(nil)
@@ -68,52 +66,6 @@ func (l usageBasedLine) CanBeInvoicedAsOf(in CanBeInvoicedAsOfInput) (*billing.P
 		// or invalid input, we should not bill the line
 		return nil, nil
 	}
-
-	// Let's check if the underlying meter can be billed in a progressive manner
-	featureMeter, err := l.featureMeters.Get(l.line.UsageBased.FeatureKey, true)
-	if err != nil {
-		return nil, err
-	}
-
-	if featureMeter.Meter == nil {
-		return nil, fmt.Errorf("meter is nil for feature[%s]", l.line.UsageBased.FeatureKey)
-	}
-
-	meter := *featureMeter.Meter
-
-	asOfTruncated := in.AsOf.Truncate(streaming.MinimumWindowSizeDuration)
-
-	switch meter.Aggregation {
-	case meterpkg.MeterAggregationSum, meterpkg.MeterAggregationCount,
-		meterpkg.MeterAggregationMax, meterpkg.MeterAggregationUniqueCount:
-
-		periodStartTrucated := l.line.Period.Start.Truncate(streaming.MinimumWindowSizeDuration)
-
-		if !periodStartTrucated.Before(asOfTruncated) {
-			return nil, nil
-		}
-
-		candidatePeriod := billing.Period{
-			Start: periodStartTrucated,
-			End:   asOfTruncated,
-		}
-
-		if candidatePeriod.End.After(l.line.Period.End) {
-			candidatePeriod.End = l.line.Period.End
-		}
-
-		if candidatePeriod.IsEmpty() {
-			return nil, nil
-		}
-
-		return &candidatePeriod, nil
-	default:
-		// Other types need to be billed arrears truncated by window size
-		if !asOfTruncated.Before(l.line.InvoiceAt) {
-			return &l.line.Period, nil
-		}
-		return nil, nil
-	}
 }
 
 func (l *usageBasedLine) UpdateTotals() error {
@@ -138,10 +90,38 @@ func (l *usageBasedLine) CalculateDetailedLines() error {
 	return nil
 }
 
-func (l usageBasedLine) getPricer() (Pricer, error) {
+func (l usageBasedLine) calculateDetailedLines() (newDetailedLinesInput, error) {
+	pricer, err := l.getPricer()
+	if err != nil {
+		return nil, err
+	}
+
+	return pricer.Calculate(PricerCalculateInput(l))
+}
+
+func formatMaximumSpendDiscountDescription(amount alpacadecimal.Decimal) *string {
+	// TODO[OM-1019]: currency formatting!
+	return lo.ToPtr(fmt.Sprintf("Maximum spend discount for charges over %s", amount))
+}
+
+func newPricerFor(line PriceAccessor) (Pricer, error) {
+	price := line.GetPrice()
+	if price == nil {
+		return nil, fmt.Errorf("price is nil for line[%s]", line.GetFeatureKey())
+	}
+
+	if price.Type() == productcatalog.FlatPriceType {
+		return &priceMutator{
+			Pricer: flatPricer{},
+			PostCalculation: []PostCalculationMutator{
+				&discountPercentageMutator{},
+			},
+		}, nil
+	}
+
 	var basePricer Pricer
 
-	switch l.line.UsageBased.Price.Type() {
+	switch price.Type() {
 	case productcatalog.UnitPriceType:
 		basePricer = unitPricer{}
 	case productcatalog.TieredPriceType:
@@ -151,7 +131,7 @@ func (l usageBasedLine) getPricer() (Pricer, error) {
 	case productcatalog.DynamicPriceType:
 		basePricer = dynamicPricer{}
 	default:
-		return nil, fmt.Errorf("unsupported price type: %s", l.line.UsageBased.Price.Type())
+		return nil, fmt.Errorf("unsupported price type: %s", price.Type())
 	}
 
 	// This priceMutator captures the calculation flow for discounts and commitments:
@@ -167,22 +147,4 @@ func (l usageBasedLine) getPricer() (Pricer, error) {
 			&minAmountCommitmentMutator{},
 		},
 	}, nil
-}
-
-func (l usageBasedLine) calculateDetailedLines() (newDetailedLinesInput, error) {
-	pricer, err := l.getPricer()
-	if err != nil {
-		return nil, err
-	}
-
-	return pricer.Calculate(PricerCalculateInput(l))
-}
-
-func formatMaximumSpendDiscountDescription(amount alpacadecimal.Decimal) *string {
-	// TODO[OM-1019]: currency formatting!
-	return lo.ToPtr(fmt.Sprintf("Maximum spend discount for charges over %s", amount))
-}
-
-func (l usageBasedLine) IsPeriodEmptyConsideringTruncations() bool {
-	return l.Period().Truncate(streaming.MinimumWindowSizeDuration).IsEmpty()
 }

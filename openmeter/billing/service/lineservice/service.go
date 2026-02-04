@@ -2,7 +2,6 @@ package lineservice
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/samber/lo"
 
@@ -79,22 +78,8 @@ func UpdateTotalsFromDetailedLines(line *billing.StandardLine) error {
 	return nil
 }
 
-type InvoicingCapabilityQueryInput struct {
-	AsOf               time.Time
-	ProgressiveBilling bool
-}
-
-type (
-	CanBeInvoicedAsOfInput     = InvoicingCapabilityQueryInput
-	ResolveBillablePeriodInput = InvoicingCapabilityQueryInput
-)
-
 type Line interface {
 	LineBase
-
-	// IsPeriodEmptyConsideringTruncations returns true if the line has an empty period. This is different from Period.IsEmpty() as
-	// this method does any truncation for usage based lines.
-	IsPeriodEmptyConsideringTruncations() bool
 
 	CanBeInvoicedAsOf(CanBeInvoicedAsOfInput) (*billing.Period, error)
 	CalculateDetailedLines() error
@@ -107,35 +92,4 @@ func (s Lines) ToEntities() []*billing.StandardLine {
 	return lo.Map(s, func(service Line, _ int) *billing.StandardLine {
 		return service.ToEntity()
 	})
-}
-
-type LineWithBillablePeriod struct {
-	Line
-	BillablePeriod billing.Period
-}
-
-func (s Lines) ResolveBillablePeriod(in ResolveBillablePeriodInput) ([]LineWithBillablePeriod, error) {
-	out := make([]LineWithBillablePeriod, 0, len(s))
-	for _, lineSrv := range s {
-		billablePeriod, err := lineSrv.CanBeInvoicedAsOf(in)
-		if err != nil {
-			return nil, fmt.Errorf("checking if line can be invoiced: %w", err)
-		}
-
-		if billablePeriod != nil {
-			out = append(out, LineWithBillablePeriod{
-				Line:           lineSrv,
-				BillablePeriod: *billablePeriod,
-			})
-		}
-	}
-
-	if len(out) == 0 {
-		// We haven't requested explicit empty invoice, so we should have some pending lines
-		return nil, billing.ValidationError{
-			Err: billing.ErrInvoiceCreateNoLines,
-		}
-	}
-
-	return out, nil
 }

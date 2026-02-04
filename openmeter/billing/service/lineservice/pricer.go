@@ -5,8 +5,11 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type PricerCapabilities struct {
@@ -42,40 +45,72 @@ func (i PricerCalculateInput) LinePeriodQuantity() alpacadecimal.Decimal {
 	return *i.line.UsageBased.Quantity
 }
 
+type PricerCanBeInvoicedAsOfAccessor interface {
+	PriceAccessor
+	GetSplitLineGroupID() *string
+}
+
+type CanBeInvoicedAsOfInput struct {
+	AsOf               time.Time
+	ProgressiveBilling bool
+	Line               PricerCanBeInvoicedAsOfAccessor
+	FeatureMeters      billing.FeatureMeters
+}
+
 type Pricer interface {
 	// Calculate calculates the detailed lines for a line.
 	Calculate(line PricerCalculateInput) (newDetailedLinesInput, error)
 
-	// CanBeInvoicedAsOf checks if the line can be invoiced as of the given time.
-	CanBeInvoicedAsOf(usageBasedLine, time.Time) (bool, error)
+	// CanBeInvoicedAsOf checks if the line can be invoiced as of the given time and returns the service
+	// period that can be invoiced.
+	CanBeInvoicedAsOf(CanBeInvoicedAsOfInput) (*timeutil.ClosedPeriod, error)
 }
 
-type ProgressiveBillingPricer struct{}
+type ProgressiveBillingMeteredPricer struct{}
 
-func (ProgressiveBillingPricer) CanBeInvoicedAsOf(l usageBasedLine, asOf time.Time) (bool, error) {
-	if asOf.Before(l.line.Period.Start) {
-		return false, nil
+func (ProgressiveBillingMeteredPricer) CanBeInvoicedAsOf(in CanBeInvoicedAsOfInput) (*timeutil.ClosedPeriod, error) {
+	asOf := in.AsOf.Truncate(streaming.MinimumWindowSizeDuration)
+	period := in.Line.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration)
+
+	// If progressive billing is not enabled we only bill the line if asof >= line.period.end
+	if !in.ProgressiveBilling {
+		if asOf.Before(period.To) {
+			return nil, nil
+		}
+
+		return &period, nil
 	}
 
-	return true, nil
+	// If progressive billing is enabled we only need to make sure that asOf > period.from
+	// given we have already truncated the period to the minimum window size duration, this
+	// check also makes sure that we have at least 1s of difference, thus usage data in that
+	// period.
+	if !asOf.After(period.From) {
+		return nil, nil
+	}
+
+	return &timeutil.ClosedPeriod{
+		From: period.From,
+		To:   asOf,
+	}, nil
 }
 
 type NonProgressiveBillingPricer struct{}
 
-func (NonProgressiveBillingPricer) CanBeInvoicedAsOf(l usageBasedLine, asOf time.Time) (bool, error) {
+func (NonProgressiveBillingPricer) CanBeInvoicedAsOf(in CanBeInvoicedAsOfInput) (*timeutil.ClosedPeriod, error) {
 	// Invoicing a line that has a parent line is not supported, as that's a progressive billing use-case
 	//
 	// This check is crucial, as when changing a price on a line from progressive billable to non-progressive
 	// billable, the CanBeInvoicedAsOf is called to ensure that the line is still valid.
-	if l.line.SplitLineGroupID != nil {
-		return false, billing.ValidationError{
+	if in.Line.GetSplitLineGroupID() != nil {
+		return nil, billing.ValidationError{
 			Err: billing.ErrInvoiceProgressiveBillingNotSupported,
 		}
 	}
 
-	if asOf.Before(l.line.Period.End) {
-		return false, nil
+	if in.AsOf.Before(in.Line.GetServicePeriod().To) {
+		return nil, nil
 	}
 
-	return true, nil
+	return lo.ToPtr(in.Line.GetServicePeriod()), nil
 }

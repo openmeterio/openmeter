@@ -94,7 +94,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 
 			// Let's resolve the feature meters for each gathering invoice line for downstream calculations.
 			for currency, gatheringInvoiceWithCurrency := range invoicesByCurrency {
-				featureMeters, err := s.resolveFeatureMeters(ctx, invoicesByCurrency[currency].Invoice.Lines.OrEmpty())
+				featureMeters, err := s.resolveFeatureMeters(ctx, input.Customer.Namespace, invoicesByCurrency[currency].Invoice.Lines.OrEmpty())
 				if err != nil {
 					return nil, fmt.Errorf("resolving feature meters: %w", err)
 				}
@@ -177,7 +177,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 type handleInvoicePendingLinesForCurrencyInput struct {
 	Currency                currencyx.Code
 	Customer                customer.Customer
-	GatheringInvoice        billing.StandardInvoice
+	GatheringInvoice        billing.GatheringInvoice
 	FeatureMeters           billing.FeatureMeters
 	InScopeLines            []lineservice.LineWithBillablePeriod
 	EffectiveBillingProfile billing.Profile
@@ -354,17 +354,13 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 }
 
 type prepareLinesToBillInput struct {
-	GatheringInvoice billing.StandardInvoice
+	GatheringInvoice billing.GatheringInvoice
 	FeatureMeters    billing.FeatureMeters
 	InScopeLines     []lineservice.LineWithBillablePeriod
 }
 
 func (i prepareLinesToBillInput) Validate() error {
 	var errs []error
-
-	if i.GatheringInvoice.Status != billing.StandardInvoiceStatusGathering {
-		errs = append(errs, fmt.Errorf("gathering invoice is not in gathering status"))
-	}
 
 	if len(i.InScopeLines) == 0 {
 		errs = append(errs, fmt.Errorf("no lines to bill"))
@@ -405,7 +401,7 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 
 	gatheringInvoice := input.GatheringInvoice
 
-	invoiceLines := make(lineservice.Lines, 0, len(input.InScopeLines))
+	invoiceLines := make([]billing.GatheringLine, 0, len(input.InScopeLines))
 	wasSplit := false
 
 	for _, line := range input.InScopeLines {
@@ -425,8 +421,11 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 				return nil, fmt.Errorf("line[%s]: splitting line: %w", line.ID(), err)
 			}
 
-			if splitLine.PreSplitAtLine == nil {
+			if splitLine.PreSplitAtLine.DeletedAt != nil {
 				s.logger.WarnContext(ctx, "pre split line is nil, we are not creating empty lines", "line", line.ID(), "period_start", line.Period().Start, "period_end", line.Period().End)
+
+				// We need to persist the gathering invoice either ways
+				wasSplit = true
 				continue
 			}
 
@@ -455,7 +454,7 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 }
 
 type splitGatheringInvoiceLineInput struct {
-	GatheringInvoice billing.StandardInvoice
+	GatheringInvoice billing.GatheringInvoice
 	FeatureMeters    billing.FeatureMeters
 	LineID           string
 	SplitAt          time.Time
@@ -463,10 +462,6 @@ type splitGatheringInvoiceLineInput struct {
 
 func (i splitGatheringInvoiceLineInput) Validate() error {
 	var errs []error
-
-	if i.GatheringInvoice.Status != billing.StandardInvoiceStatusGathering {
-		errs = append(errs, fmt.Errorf("gathering invoice is not in gathering status"))
-	}
 
 	if i.LineID == "" {
 		errs = append(errs, fmt.Errorf("line ID is required"))
@@ -488,9 +483,9 @@ func (i splitGatheringInvoiceLineInput) Validate() error {
 }
 
 type splitGatheringInvoiceLineResult struct {
-	PreSplitAtLine   lineservice.Line
-	PostSplitAtLine  lineservice.Line
-	GatheringInvoice billing.StandardInvoice
+	PreSplitAtLine   billing.GatheringLine
+	PostSplitAtLine  billing.GatheringLine
+	GatheringInvoice billing.GatheringInvoice
 }
 
 // splitGatheringInvoiceLine splits a gathering invoice line into two lines, one will be from the
@@ -511,8 +506,8 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 	if line == nil {
 		return res, fmt.Errorf("line[%s]: line not found in gathering invoice", in.LineID)
 	}
-	if !line.Period.Contains(in.SplitAt) {
-		return res, fmt.Errorf("line[%s]: splitAt is not within the line period", line.ID)
+	if !line.ServicePeriod.Contains(in.SplitAt) {
+		return res, fmt.Errorf("line[%s]: splitAt is not within the line service period", line.ID)
 	}
 
 	var splitLineGroupID string
@@ -524,19 +519,13 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 				Name:        line.Name,
 				Description: line.Description,
 
-				ServicePeriod:     line.Period,
+				ServicePeriod: billing.Period{
+					Start: line.ServicePeriod.From,
+					End:   line.ServicePeriod.To,
+				},
 				RatecardDiscounts: line.RateCardDiscounts,
 				TaxConfig:         line.TaxConfig,
 			},
-
-			UniqueReferenceID: line.ChildUniqueReferenceID,
-
-			Currency: line.Currency,
-
-			Price:      line.UsageBased.Price,
-			FeatureKey: lo.EmptyableToPtr(line.UsageBased.FeatureKey),
-
-			Subscription: line.Subscription,
 		})
 		if err != nil {
 			return res, fmt.Errorf("creating split line group: %w", err)
@@ -548,19 +537,22 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 	}
 
 	// We have alredy split the line once, we just need to create a new line and update the existing line
-	postSplitAtLine := line.CloneWithoutDependencies(func(l *billing.StandardLine) {
-		l.Period.Start = in.SplitAt
+	postSplitAtLine, err := line.CloneAsNew(func(l *billing.GatheringLine) {
+		l.ServicePeriod.From = in.SplitAt
 		l.SplitLineGroupID = lo.ToPtr(splitLineGroupID)
 
 		l.ChildUniqueReferenceID = nil
 	})
-
-	postSplitAtLineSvc, err := lineservice.FromEntity(postSplitAtLine, in.FeatureMeters)
 	if err != nil {
-		return res, fmt.Errorf("creating line service: %w", err)
+		return res, fmt.Errorf("cloning line: %w", err)
 	}
 
-	if !postSplitAtLineSvc.IsPeriodEmptyConsideringTruncations() {
+	postSplitAtLineIsEmpty, err := lineservice.IsPeriodEmptyConsideringTruncations(postSplitAtLine)
+	if err != nil {
+		return res, fmt.Errorf("checking if post split line is empty: %w", err)
+	}
+
+	if !postSplitAtLineIsEmpty {
 		if err := postSplitAtLine.Validate(); err != nil {
 			return res, fmt.Errorf("validating post split line: %w", err)
 		}
@@ -569,20 +561,20 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 	}
 
 	// Let's update the original line to only contain the period up to the splitAt time
-	line.Period.End = in.SplitAt
+	line.ServicePeriod.To = in.SplitAt
 	line.InvoiceAt = in.SplitAt
 	line.SplitLineGroupID = lo.ToPtr(splitLineGroupID)
 	line.ChildUniqueReferenceID = nil
 
 	preSplitAtLine := line
 
-	preSplitAtLineSvc, err := lineservice.FromEntity(line, in.FeatureMeters)
+	preSplitAtLineIsEmpty, err := lineservice.IsPeriodEmptyConsideringTruncations(preSplitAtLine)
 	if err != nil {
-		return res, fmt.Errorf("creating line service: %w", err)
+		return res, fmt.Errorf("checking if pre split line is empty: %w", err)
 	}
 
 	// If the line became empty, due to the split, let's remove it from the gathering invoice
-	if preSplitAtLineSvc.IsPeriodEmptyConsideringTruncations() {
+	if preSplitAtLineIsEmpty {
 		line.DeletedAt = lo.ToPtr(clock.Now())
 	} else {
 		if err := preSplitAtLine.Validate(); err != nil {
@@ -591,8 +583,8 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 	}
 
 	return splitGatheringInvoiceLineResult{
-		PreSplitAtLine:   preSplitAtLineSvc,
-		PostSplitAtLine:  postSplitAtLineSvc,
+		PreSplitAtLine:   *preSplitAtLine,
+		PostSplitAtLine:  postSplitAtLine,
 		GatheringInvoice: gatheringInvoice,
 	}, nil
 }
