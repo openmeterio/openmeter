@@ -328,6 +328,10 @@ func (i GatheringLineBase) Validate() error {
 		errs = append(errs, errors.New("child unique reference id is required"))
 	}
 
+	if i.Price.Type() != productcatalog.FlatPriceType && i.FeatureKey == "" {
+		errs = append(errs, errors.New("feature key is required for non-flat prices"))
+	}
+
 	return errors.Join(errs...)
 }
 

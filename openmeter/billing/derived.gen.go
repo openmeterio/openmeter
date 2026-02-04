@@ -4,7 +4,6 @@ package billing
 
 import (
 	models "github.com/openmeterio/openmeter/pkg/models"
-	timeutil "github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // deriveEqualDetailedLineBase returns whether this and that are equal.
@@ -76,7 +75,7 @@ func deriveEqualLineBase(this, that *StandardLineBase) bool {
 	return (this == nil && that == nil) ||
 		this != nil && that != nil &&
 			deriveEqual(&this.ManagedResource, &that.ManagedResource) &&
-			deriveEqual_2(this.Metadata, that.Metadata) &&
+			this.Metadata.Equal(that.Metadata) &&
 			this.Annotations.Equal(that.Annotations) &&
 			this.ManagedBy == that.ManagedBy &&
 			this.InvoiceID == that.InvoiceID &&
@@ -87,9 +86,9 @@ func deriveEqualLineBase(this, that *StandardLineBase) bool {
 			((this.SplitLineGroupID == nil && that.SplitLineGroupID == nil) || (this.SplitLineGroupID != nil && that.SplitLineGroupID != nil && *(this.SplitLineGroupID) == *(that.SplitLineGroupID))) &&
 			((this.ChildUniqueReferenceID == nil && that.ChildUniqueReferenceID == nil) || (this.ChildUniqueReferenceID != nil && that.ChildUniqueReferenceID != nil && *(this.ChildUniqueReferenceID) == *(that.ChildUniqueReferenceID))) &&
 			this.TaxConfig.Equal(that.TaxConfig) &&
-			deriveEqual_3(&this.RateCardDiscounts, &that.RateCardDiscounts) &&
+			deriveEqual_2(&this.RateCardDiscounts, &that.RateCardDiscounts) &&
 			this.ExternalIDs.Equal(that.ExternalIDs) &&
-			deriveEqual_4(this.Subscription, that.Subscription) &&
+			deriveEqual_3(this.Subscription, that.Subscription) &&
 			deriveEqual_(&this.Totals, &that.Totals)
 }
 
@@ -140,47 +139,19 @@ func deriveEqual_1(this, that *DiscountReason) bool {
 }
 
 // deriveEqual_2 returns whether this and that are equal.
-func deriveEqual_2(this, that map[string]string) bool {
-	if this == nil || that == nil {
-		return this == nil && that == nil
-	}
-	if len(this) != len(that) {
-		return false
-	}
-	for k, v := range this {
-		thatv, ok := that[k]
-		if !ok {
-			return false
-		}
-		if !(v == thatv) {
-			return false
-		}
-	}
-	return true
-}
-
-// deriveEqual_3 returns whether this and that are equal.
-func deriveEqual_3(this, that *Discounts) bool {
+func deriveEqual_2(this, that *Discounts) bool {
 	return (this == nil && that == nil) ||
 		this != nil && that != nil &&
 			((this.Percentage == nil && that.Percentage == nil) || (this.Percentage != nil && that.Percentage != nil && (*(this.Percentage)).Equal(*(that.Percentage)))) &&
 			((this.Usage == nil && that.Usage == nil) || (this.Usage != nil && that.Usage != nil && (*(this.Usage)).Equal(*(that.Usage))))
 }
 
-// deriveEqual_4 returns whether this and that are equal.
-func deriveEqual_4(this, that *SubscriptionReference) bool {
+// deriveEqual_3 returns whether this and that are equal.
+func deriveEqual_3(this, that *SubscriptionReference) bool {
 	return (this == nil && that == nil) ||
 		this != nil && that != nil &&
 			this.SubscriptionID == that.SubscriptionID &&
 			this.PhaseID == that.PhaseID &&
 			this.ItemID == that.ItemID &&
-			deriveEqual_5(&this.BillingPeriod, &that.BillingPeriod)
-}
-
-// deriveEqual_5 returns whether this and that are equal.
-func deriveEqual_5(this, that *timeutil.ClosedPeriod) bool {
-	return (this == nil && that == nil) ||
-		this != nil && that != nil &&
-			this.From.Equal(that.From) &&
-			this.To.Equal(that.To)
+			this.BillingPeriod.Equal(that.BillingPeriod)
 }
