@@ -12,7 +12,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
-func (s *Service) resolveFeatureMeters(ctx context.Context, lines billing.StandardLines) (billing.FeatureMeters, error) {
+type featureGetter interface {
+	GetReferencedFeatureKeys(ctx context.Context) ([]string, error)
+	GetNamespaces(ctx context.Context) ([]string, error)
+}
+
+func (s *Service) resolveFeatureMeters(ctx context.Context, lines featureGetter) (billing.FeatureMeters, error) {
 	namespaces := lo.Uniq(lo.Map(lines, func(line *billing.StandardLine, _ int) string {
 		return line.Namespace
 	}))

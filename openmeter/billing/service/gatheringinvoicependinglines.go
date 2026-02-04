@@ -75,19 +75,18 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 			asOf := lo.FromPtrOr(input.AsOf, clock.Now())
 
 			// let's fetch the existing gathering invoices for the customer
-			existingGatheringInvoices, err := s.ListInvoices(ctx, billing.ListInvoicesInput{
-				Namespaces:       []string{input.Customer.Namespace},
-				Customers:        []string{input.Customer.ID},
-				ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
-				Expand: billing.InvoiceExpand{
-					Lines: true,
+			existingGatheringInvoices, err := s.adapter.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+				Namespaces: []string{input.Customer.Namespace},
+				Customers:  []string{input.Customer.ID},
+				Expand: billing.GatheringInvoiceExpands{
+					billing.GatheringInvoiceExpandLines,
 				},
 			})
 			if err != nil {
 				return nil, fmt.Errorf("fetching existing gathering invoices: %w", err)
 			}
 
-			invoicesByCurrency := lo.SliceToMap(existingGatheringInvoices.Items, func(i billing.StandardInvoice) (currencyx.Code, gatheringInvoiceWithFeatureMeters) {
+			invoicesByCurrency := lo.SliceToMap(existingGatheringInvoices.Items, func(i billing.GatheringInvoice) (currencyx.Code, gatheringInvoiceWithFeatureMeters) {
 				return i.Currency, gatheringInvoiceWithFeatureMeters{
 					Invoice: i,
 				}
@@ -272,7 +271,7 @@ func (s *Service) handleInvoicePendingLinesForCurrency(ctx context.Context, in h
 }
 
 type gatheringInvoiceWithFeatureMeters struct {
-	Invoice       billing.StandardInvoice
+	Invoice       billing.GatheringInvoice
 	FeatureMeters billing.FeatureMeters
 }
 

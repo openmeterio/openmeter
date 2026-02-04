@@ -14,6 +14,7 @@ type Service interface {
 	InvoiceLineService
 	SplitLineGroupService
 	InvoiceService
+	StandardInvoiceService
 	GatheringInvoiceService
 	SequenceService
 	LockableService
@@ -58,6 +59,10 @@ type SplitLineGroupService interface {
 
 type InvoiceService interface {
 	ListInvoices(ctx context.Context, input ListInvoicesInput) (ListInvoicesResponse, error)
+}
+
+type StandardInvoiceService interface {
+	ListStandardInvoices(ctx context.Context, input ListInvoicesInput) (ListStandardInvoicesResponse, error)
 	GetInvoiceByID(ctx context.Context, input GetInvoiceByIdInput) (StandardInvoice, error)
 	InvoicePendingLines(ctx context.Context, input InvoicePendingLinesInput) ([]StandardInvoice, error)
 	// AdvanceInvoice advances the invoice to the next stage, the advancement is stopped until:

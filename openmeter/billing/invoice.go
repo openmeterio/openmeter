@@ -6,7 +6,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/invopop/gobl/bill"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
@@ -22,14 +21,16 @@ import (
 type InvoiceType string
 
 const (
-	InvoiceTypeStandard   InvoiceType = InvoiceType(bill.InvoiceTypeStandard)
-	InvoiceTypeCreditNote InvoiceType = InvoiceType(bill.InvoiceTypeCreditNote)
+	InvoiceTypeStandard   InvoiceType = "standard"
+	InvoiceTypeCreditNote InvoiceType = "credit-note"
+	InvoiceTypeGathering  InvoiceType = "gathering"
 )
 
 func (t InvoiceType) Values() []string {
 	return []string{
 		string(InvoiceTypeStandard),
 		string(InvoiceTypeCreditNote),
+		string(InvoiceTypeGathering),
 	}
 }
 
@@ -278,7 +279,7 @@ func (i ListInvoicesInput) Validate() error {
 	return errors.Join(outErr...)
 }
 
-type ListInvoicesResponse = pagination.Result[StandardInvoice]
+type ListStandardInvoicesResponse = pagination.Result[StandardInvoice]
 
 type InvoicePendingLinesInput struct {
 	Customer customer.CustomerID
@@ -308,3 +309,80 @@ func (i InvoicePendingLinesInput) Validate() error {
 
 	return nil
 }
+
+type Invoice struct {
+	t InvoiceType
+
+	gathering *GatheringInvoice
+	standard  *StandardInvoice
+}
+
+func NewInvoice[T GatheringInvoice | StandardInvoice](in T) Invoice {
+	switch input := any(in).(type) {
+	case GatheringInvoice:
+		return Invoice{
+			t:         InvoiceTypeGathering,
+			gathering: &input,
+			standard:  nil,
+		}
+	case StandardInvoice:
+		return Invoice{
+			t:         InvoiceTypeStandard,
+			gathering: nil,
+			standard:  &input,
+		}
+	}
+
+	return Invoice{}
+}
+
+func (i Invoice) Type() InvoiceType {
+	return i.t
+}
+
+func (i Invoice) AsGathering() (GatheringInvoice, error) {
+	if i.t != InvoiceTypeGathering {
+		return GatheringInvoice{}, fmt.Errorf("invoice is not a gathering invoice")
+	}
+
+	if i.gathering == nil {
+		return GatheringInvoice{}, fmt.Errorf("gathering invoice is nil")
+	}
+
+	return *i.gathering, nil
+}
+
+func (i Invoice) AsStandard() (StandardInvoice, error) {
+	if i.t != InvoiceTypeStandard {
+		return StandardInvoice{}, fmt.Errorf("invoice is not a standard invoice")
+	}
+
+	if i.standard == nil {
+		return StandardInvoice{}, fmt.Errorf("standard invoice is nil")
+	}
+
+	return *i.standard, nil
+}
+
+// Common field accessors
+
+func (i Invoice) IDOrEmpty() string {
+	switch i.t {
+	case InvoiceTypeGathering:
+		if i.gathering == nil {
+			return ""
+		}
+
+		return i.gathering.ID
+	case InvoiceTypeStandard:
+		if i.standard == nil {
+			return ""
+		}
+
+		return i.standard.ID
+	}
+
+	return ""
+}
+
+type ListInvoicesResponse = pagination.Result[Invoice]
