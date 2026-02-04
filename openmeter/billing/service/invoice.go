@@ -26,6 +26,13 @@ func (s *Service) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 		return billing.ListInvoicesResponse{}, err
 	}
 
+	updatedInvoices, err := s.emulateStandardInvoicesGatheringInvoiceFields(ctx, invoices.Items)
+	if err != nil {
+		return billing.ListInvoicesResponse{}, fmt.Errorf("error emulating standard invoices gathering invoice fields: %w", err)
+	}
+
+	invoices.Items = updatedInvoices
+
 	for i := range invoices.Items {
 		invoiceID := invoices.Items[i].ID
 
@@ -231,6 +238,13 @@ func (s *Service) GetInvoiceByID(ctx context.Context, input billing.GetInvoiceBy
 	invoice, err := s.adapter.GetInvoiceById(ctx, input)
 	if err != nil {
 		return billing.StandardInvoice{}, err
+	}
+
+	if invoice.Status == billing.StandardInvoiceStatusGathering {
+		invoice, err = s.emulateStandardInvoiceGatheringInvoiceFields(ctx, invoice)
+		if err != nil {
+			return billing.StandardInvoice{}, fmt.Errorf("error emulating standard invoice gathering invoice fields for invoice [%s]: %w", invoiceID, err)
+		}
 	}
 
 	invoice, err = s.resolveWorkflowApps(ctx, invoice)

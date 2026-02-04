@@ -4251,3 +4251,76 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityInvalidDatabaseState() {
 		s.NotEmpty(invoice.ValidationIssues)
 	})
 }
+
+func (s *InvoicingTestSuite) TestGatheringInvoiceEmulation() {
+	namespace := "ns-gathering-invoice-emulation"
+	now := lo.Must(time.Parse(time.RFC3339, "2024-09-02T11:13:14Z"))
+	periodStart := lo.Must(time.Parse(time.RFC3339, "2024-09-02T11:13:14Z"))
+	periodEnd := lo.Must(time.Parse(time.RFC3339, "2024-09-02T13:13:14Z"))
+
+	clock.SetTime(now)
+	defer clock.ResetTime()
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+
+	ctx := context.Background()
+
+	// Given we provision a new gathering invoice
+	// When we fetch the invoice using the standard invoice path
+	// We get the current supplier and customer data
+
+	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: namespace,
+
+		CustomerMutate: customer.CustomerMutate{
+			Name:         "Test Customer",
+			Key:          lo.ToPtr("test-customer"),
+			PrimaryEmail: lo.ToPtr("test@test.com"),
+			BillingAddress: &models.Address{
+				Country: lo.ToPtr(models.CountryCode("US")),
+			},
+			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
+		},
+	})
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), customerEntity)
+	require.NotEmpty(s.T(), customerEntity.ID)
+
+	// Given we have a default profile for the namespace
+	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+
+	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+		billing.CreatePendingInvoiceLinesInput{
+			Customer: customerEntity.GetID(),
+			Currency: currencyx.Code(currency.USD),
+			Lines: []billing.GatheringLine{
+				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+					Namespace:     namespace,
+					Period:        billing.Period{Start: periodStart, End: periodEnd},
+					InvoiceAt:     now,
+					ManagedBy:     billing.ManuallyManagedLine,
+					Name:          "Test item1",
+					PerUnitAmount: alpacadecimal.NewFromFloat(100),
+					PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+				}),
+			},
+		})
+
+	// Then we should have the items created
+	require.NoError(s.T(), err)
+	require.Len(s.T(), res.Lines, 1)
+
+	gatheringInvoiceID := res.Invoice.InvoiceID()
+	require.NotEmpty(s.T(), gatheringInvoiceID)
+
+	// Let's get the invoice using the standard invoice path
+	invoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+		Invoice: gatheringInvoiceID,
+	})
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), invoice)
+	require.Equal(s.T(), customerEntity.ID, invoice.Customer.CustomerID)
+	require.Equal(s.T(), customerEntity.Name, invoice.Customer.Name)
+	require.Equal(s.T(), profile.Supplier.Name, invoice.Supplier.Name)
+	require.Equal(s.T(), sandboxApp.GetID(), invoice.Workflow.Apps.Invoicing.GetID())
+}
