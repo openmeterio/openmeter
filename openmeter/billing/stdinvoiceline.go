@@ -22,7 +22,7 @@ import (
 type StandardLineBase struct {
 	models.ManagedResource
 
-	Metadata    map[string]string    `json:"metadata,omitempty"`
+	Metadata    models.Metadata      `json:"metadata,omitempty"`
 	Annotations models.Annotations   `json:"annotations,omitempty"`
 	ManagedBy   InvoiceLineManagedBy `json:"managedBy"`
 
@@ -197,10 +197,17 @@ func (i StandardLine) ToGatheringLineBase() (GatheringLineBase, error) {
 		return GatheringLineBase{}, errors.New("usage based line price is required")
 	}
 
+	clonedMetadata := i.Metadata.Clone()
+
+	clonedAnnotations, err := i.Annotations.Clone()
+	if err != nil {
+		return GatheringLineBase{}, fmt.Errorf("cloning annotations: %w", err)
+	}
+
 	return GatheringLineBase{
 		ManagedResource: i.ManagedResource,
-		Metadata:        i.Metadata,
-		Annotations:     i.Annotations,
+		Metadata:        clonedMetadata,
+		Annotations:     clonedAnnotations,
 		ManagedBy:       i.ManagedBy,
 		InvoiceID:       i.InvoiceID,
 		Currency:        i.Currency,

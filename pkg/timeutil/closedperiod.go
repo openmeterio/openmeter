@@ -106,6 +106,6 @@ func (p ClosedPeriod) Truncate(resolution time.Duration) ClosedPeriod {
 	}
 }
 
-func (p ClosedPeriod) Equals(other ClosedPeriod) bool {
+func (p ClosedPeriod) Equal(other ClosedPeriod) bool {
 	return p.From.Equal(other.From) && p.To.Equal(other.To)
 }

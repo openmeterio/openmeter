@@ -34,8 +34,8 @@ func (m Metadata) Merge(d Metadata) Metadata {
 	return r
 }
 
-func (m Metadata) Clone() (Metadata, error) {
-	return Metadata(maps.Clone(m)), nil
+func (m Metadata) Clone() Metadata {
+	return maps.Clone(m)
 }
 
 func NewMetadata[T ~map[string]string](m T) Metadata {

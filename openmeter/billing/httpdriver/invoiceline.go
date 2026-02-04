@@ -693,7 +693,7 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLine, line 
 		}
 	}
 
-	existing.Metadata = lo.FromPtrOr(line.Metadata, existing.Metadata)
+	existing.Metadata = lo.FromPtrOr(line.Metadata, api.Metadata(existing.Metadata))
 	existing.Name = line.Name
 	existing.Description = line.Description
 

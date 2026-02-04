@@ -234,10 +234,13 @@ func (a *adapter) mapGatheringInvoiceLineFromDB(schemaLevel int, dbLine *db.Bill
 			SubscriptionID: *dbLine.SubscriptionID,
 			PhaseID:        *dbLine.SubscriptionPhaseID,
 			ItemID:         *dbLine.SubscriptionItemID,
-			BillingPeriod: timeutil.ClosedPeriod{
-				From: lo.FromPtr(dbLine.SubscriptionBillingPeriodFrom).In(time.UTC),
-				To:   lo.FromPtr(dbLine.SubscriptionBillingPeriodTo).In(time.UTC),
-			},
+		}
+		if dbLine.SubscriptionBillingPeriodFrom != nil &&
+			dbLine.SubscriptionBillingPeriodTo != nil {
+			line.Subscription.BillingPeriod = timeutil.ClosedPeriod{
+				From: dbLine.SubscriptionBillingPeriodFrom.In(time.UTC),
+				To:   dbLine.SubscriptionBillingPeriodTo.In(time.UTC),
+			}
 		}
 	}
 

@@ -2000,7 +2000,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		s.NotNil(tieredGraduated.SplitLineHierarchy)
 		tieredGraduatedHierarchy := tieredGraduated.SplitLineHierarchy
 
-		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.ToClosedPeriod().Equals(lines.tieredGraduated.ServicePeriod))
+		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.ToClosedPeriod().Equal(lines.tieredGraduated.ServicePeriod))
 		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 3, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
 		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.Period.Equal(billing.Period{
 			Start: truncatedPeriodStart,
@@ -2191,15 +2191,15 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		for _, line := range []*billing.StandardLine{flatPerUnit, tieredGraduated} {
 			require.True(s.T(), expectedPeriod.Equal(line.Period), "period should be changed for the line items")
 		}
-		require.True(s.T(), tieredVolume.Period.ToClosedPeriod().Equals(lines.tieredVolume.ServicePeriod), "period should be unchanged for the tiered volume line")
-		require.True(s.T(), flatFee.Period.ToClosedPeriod().Equals(lines.flatFee.ServicePeriod), "period should be unchanged for the flat line")
+		require.True(s.T(), tieredVolume.Period.ToClosedPeriod().Equal(lines.tieredVolume.ServicePeriod), "period should be unchanged for the tiered volume line")
+		require.True(s.T(), flatFee.Period.ToClosedPeriod().Equal(lines.flatFee.ServicePeriod), "period should be unchanged for the flat line")
 
 		// Let's validate the output of the split itself: no new split should have occurred
 		s.sortedSplitLineGroupChildren(tieredGraduated)
 		tieredGraduatedHierarchy := tieredGraduated.SplitLineHierarchy
 		s.NotNil(tieredGraduatedHierarchy)
 
-		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.ToClosedPeriod().Equals(lines.tieredGraduated.ServicePeriod))
+		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.ToClosedPeriod().Equal(lines.tieredGraduated.ServicePeriod))
 		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 3, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
 		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.Period.Equal(billing.Period{
 			Start: truncatedPeriodStart,

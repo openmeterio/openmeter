@@ -121,6 +121,8 @@ func (g *GatheringInvoice) SortLines() {
 func (g GatheringInvoice) Clone() (GatheringInvoice, error) {
 	clone := g
 
+	clone.Metadata = g.Metadata.Clone()
+
 	clonedLines, err := clone.Lines.MapWithErr(func(l GatheringLine) (GatheringLine, error) {
 		return l.Clone()
 	})
@@ -350,10 +352,7 @@ func (i GatheringLineBase) Clone() (GatheringLineBase, error) {
 		return GatheringLineBase{}, fmt.Errorf("cloning annotations: %w", err)
 	}
 
-	out.Metadata, err = i.Metadata.Clone()
-	if err != nil {
-		return GatheringLineBase{}, fmt.Errorf("cloning metadata: %w", err)
-	}
+	out.Metadata = i.Metadata.Clone()
 
 	if i.TaxConfig != nil {
 		out.TaxConfig = &productcatalog.TaxConfig{}
