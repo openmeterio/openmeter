@@ -343,6 +343,12 @@ func (a *adapter) GetGatheringInvoiceById(ctx context.Context, input billing.Get
 
 		invoice, err := query.Only(ctx)
 		if err != nil {
+			if db.IsNotFound(err) {
+				return billing.GatheringInvoice{}, billing.NotFoundError{
+					Err: fmt.Errorf("%w [id=%s]", billing.ErrInvoiceNotFound, input.Invoice.ID),
+				}
+			}
+
 			return billing.GatheringInvoice{}, err
 		}
 
