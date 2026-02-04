@@ -80,9 +80,9 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: customer.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []billing.GatheringLine{
+			Lines: []billing.UpcomingCharge{
 				{
-					GatheringLineBase: billing.GatheringLineBase{
+					UpcomingChargeBase: billing.UpcomingChargeBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Name: "UBP - unit",
 						}),
@@ -94,7 +94,7 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 					},
 				},
 				{
-					GatheringLineBase: billing.GatheringLineBase{
+					UpcomingChargeBase: billing.UpcomingChargeBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Name: "UBP - volume",
 						}),
@@ -231,12 +231,12 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 	tcs := []struct {
 		name      string
 		namespace string
-		line      billing.GatheringLine
+		line      billing.UpcomingCharge
 	}{
 		{
 			name:      "flat fee only",
 			namespace: "ns-collection-flow-flat-fee",
-			line: billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+			line: billing.NewFlatFeeUpcomingCharge(billing.NewFlatFeeLineInput{
 				Period:    billing.Period{Start: periodStart, End: periodEnd},
 				InvoiceAt: periodStart,
 				Name:      "Flat fee",
@@ -248,7 +248,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 		{
 			name:      "ubp flat fee only",
 			namespace: "ns-collection-flow-ubp-flat-fee",
-			line: billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+			line: billing.NewFlatFeeUpcomingCharge(billing.NewFlatFeeLineInput{
 				Period:    billing.Period{Start: periodStart, End: periodEnd},
 				InvoiceAt: periodStart,
 				Name:      "Flat fee",
@@ -280,7 +280,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeOnly() {
 			pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 				Customer: customer.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines:    []billing.GatheringLine{tc.line},
+				Lines:    []billing.UpcomingCharge{tc.line},
 			})
 			s.NoError(err)
 			s.Len(pendingLineResult.Lines, 1)
@@ -334,9 +334,9 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 	pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: []billing.UpcomingCharge{
 			{
-				GatheringLineBase: billing.GatheringLineBase{
+				UpcomingChargeBase: billing.UpcomingChargeBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{Name: "UBP - unit"}),
 					ServicePeriod:   timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 					InvoiceAt:       periodEnd,
@@ -441,9 +441,9 @@ func (s *CollectionTestSuite) TestAnchoredAlignment_SetsCollectionAtToNextAnchor
 	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customerEntity.GetID(),
 		Currency: currencyx.Code(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: []billing.UpcomingCharge{
 			{
-				GatheringLineBase: billing.GatheringLineBase{
+				UpcomingChargeBase: billing.UpcomingChargeBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{Name: "UBP - unit"}),
 					ServicePeriod:   timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 					InvoiceAt:       periodEnd,
@@ -507,9 +507,9 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 	pendingLineResult, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: []billing.UpcomingCharge{
 			{
-				GatheringLineBase: billing.GatheringLineBase{
+				UpcomingChargeBase: billing.UpcomingChargeBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{Name: "UBP - unit"}),
 					ServicePeriod:   timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
 					InvoiceAt:       periodEnd,

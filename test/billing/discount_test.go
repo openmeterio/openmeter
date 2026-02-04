@@ -88,9 +88,9 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines: []billing.GatheringLine{
+				Lines: []billing.UpcomingCharge{
 					{
-						GatheringLineBase: billing.GatheringLineBase{
+						UpcomingChargeBase: billing.UpcomingChargeBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Namespace: namespace,
 								Name:      "Test item1",
@@ -283,9 +283,9 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []billing.GatheringLine{
+			Lines: []billing.UpcomingCharge{
 				{
-					GatheringLineBase: billing.GatheringLineBase{
+					UpcomingChargeBase: billing.UpcomingChargeBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Namespace: namespace,
 							Name:      "Test item1",

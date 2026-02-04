@@ -186,18 +186,18 @@ func (i StandardLine) LineID() LineID {
 	}
 }
 
-// ToGatheringLineBase converts the standard line to a gathering line base.
+// ToUpcomingChargeBase converts the standard line to a gathering line base.
 // This is temporary until the full gathering invoice functionality is split.
-func (i StandardLine) ToGatheringLineBase() (GatheringLineBase, error) {
+func (i StandardLine) ToUpcomingChargeBase() (UpcomingChargeBase, error) {
 	if i.UsageBased == nil {
-		return GatheringLineBase{}, errors.New("usage based line is required")
+		return UpcomingChargeBase{}, errors.New("usage based line is required")
 	}
 
 	if i.UsageBased.Price == nil {
-		return GatheringLineBase{}, errors.New("usage based line price is required")
+		return UpcomingChargeBase{}, errors.New("usage based line price is required")
 	}
 
-	return GatheringLineBase{
+	return UpcomingChargeBase{
 		ManagedResource: i.ManagedResource,
 		Metadata:        i.Metadata,
 		Annotations:     i.Annotations,

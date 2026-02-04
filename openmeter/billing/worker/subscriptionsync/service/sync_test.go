@@ -443,9 +443,9 @@ func (s *SubscriptionHandlerTestSuite) TestUncollectableCollection() {
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: []billing.UpcomingCharge{
 			{
-				GatheringLineBase: billing.GatheringLineBase{
+				UpcomingChargeBase: billing.UpcomingChargeBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 						Name: "UBP - unit",
 					}),

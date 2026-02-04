@@ -65,8 +65,8 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 				}
 			}
 
-			lineEntities, err := slicesx.MapWithErr(req.Lines, func(line api.InvoicePendingLineCreate) (billing.GatheringLine, error) {
-				return mapCreateGatheringLineToEntity(line, ns)
+			lineEntities, err := slicesx.MapWithErr(req.Lines, func(line api.InvoicePendingLineCreate) (billing.UpcomingCharge, error) {
+				return mapCreateUpcomingChargeToEntity(line, ns)
 			})
 			if err != nil {
 				return CreatePendingLineRequest{}, billing.ValidationError{
@@ -164,7 +164,7 @@ func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billi
 	}, nil
 }
 
-func mapCreateGatheringLineToEntity(line api.InvoicePendingLineCreate, ns string) (billing.GatheringLine, error) {
+func mapCreateUpcomingChargeToEntity(line api.InvoicePendingLineCreate, ns string) (billing.UpcomingCharge, error) {
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -172,15 +172,15 @@ func mapCreateGatheringLineToEntity(line api.InvoicePendingLineCreate, ns string
 		FeatureKey: line.FeatureKey,
 	})
 	if err != nil {
-		return billing.GatheringLine{}, fmt.Errorf("failed to map usage based line: %w", err)
+		return billing.UpcomingCharge{}, fmt.Errorf("failed to map usage based line: %w", err)
 	}
 
 	if rateCardParsed.Price == nil {
-		return billing.GatheringLine{}, fmt.Errorf("price is nil [line=%s]", line.Name)
+		return billing.UpcomingCharge{}, fmt.Errorf("price is nil [line=%s]", line.Name)
 	}
 
-	return billing.GatheringLine{
-		GatheringLineBase: billing.GatheringLineBase{
+	return billing.UpcomingCharge{
+		UpcomingChargeBase: billing.UpcomingChargeBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace:   ns,
 				Name:        line.Name,

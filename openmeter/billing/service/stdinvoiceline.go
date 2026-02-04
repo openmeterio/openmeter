@@ -21,8 +21,7 @@ import (
 
 var _ billing.InvoiceLineService = (*Service)(nil)
 
-// TODO[SeperatePR]: Move this to gatheringinvoice.go
-
+// TODO[later]: Move this to gatheringinvoice.go
 func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.CreatePendingInvoiceLinesInput) (*billing.CreatePendingInvoiceLinesResult, error) {
 	for i := range input.Lines {
 		input.Lines[i].Namespace = input.Customer.Namespace
@@ -82,7 +81,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 
 		gatheringInvoice := gatheringInvoiceUpsertResult.Invoice
 
-		linesToCreate, err := slicesx.MapWithErr(input.Lines, func(l billing.GatheringLine) (billing.GatheringLine, error) {
+		linesToCreate, err := slicesx.MapWithErr(input.Lines, func(l billing.UpcomingCharge) (billing.UpcomingCharge, error) {
 			l.Namespace = input.Customer.Namespace
 			l.Currency = input.Currency
 
@@ -93,11 +92,11 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 
 			normalizedLine, err := l.WithNormalizedValues()
 			if err != nil {
-				return billing.GatheringLine{}, fmt.Errorf("normalizing line[%s]: %w", l.ID, err)
+				return billing.UpcomingCharge{}, fmt.Errorf("normalizing line[%s]: %w", l.ID, err)
 			}
 
 			if err := normalizedLine.Validate(); err != nil {
-				return billing.GatheringLine{}, fmt.Errorf("validating line[%s]: %w", l.ID, err)
+				return billing.UpcomingCharge{}, fmt.Errorf("validating line[%s]: %w", l.ID, err)
 			}
 
 			return normalizedLine, nil
@@ -123,11 +122,11 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 		}
 
 		// Let's resolve the created lines from the final invoice
-		invoiceLinesByID := lo.SliceToMap(gatheringInvoice.Lines.OrEmpty(), func(l billing.GatheringLine) (string, billing.GatheringLine) {
+		invoiceLinesByID := lo.SliceToMap(gatheringInvoice.Lines.OrEmpty(), func(l billing.UpcomingCharge) (string, billing.UpcomingCharge) {
 			return l.ID, l
 		})
 
-		finalLines := []billing.GatheringLine{}
+		finalLines := []billing.UpcomingCharge{}
 		for _, line := range linesToCreate {
 			if line, ok := invoiceLinesByID[line.ID]; ok {
 				finalLines = append(finalLines, line)
@@ -136,7 +135,6 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 
 		// Publish system event for newly created invoices
 		if gatheringInvoiceUpsertResult.IsInvoiceNew {
-			// TODO!: Adjust workers
 			event := billing.NewGatheringInvoiceCreatedEvent(gatheringInvoice)
 
 			if err := s.publisher.Publish(ctx, event); err != nil {
@@ -213,7 +211,7 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 		// If the invoice was deleted, but has non-deleted lines, we need to delete those lines to prevent
 		// them from reappearing in the recreated gathering invoice.
 		if invoice.Lines.NonDeletedLineCount() > 0 {
-			invoice.Lines = invoice.Lines.Map(func(l billing.GatheringLine) billing.GatheringLine {
+			invoice.Lines = invoice.Lines.Map(func(l billing.UpcomingCharge) billing.UpcomingCharge {
 				if l.DeletedAt == nil {
 					l.DeletedAt = lo.ToPtr(clock.Now())
 				}

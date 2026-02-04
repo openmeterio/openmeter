@@ -114,9 +114,9 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []billing.GatheringLine{
+			Lines: []billing.UpcomingCharge{
 				{
-					GatheringLineBase: billing.GatheringLineBase{
+					UpcomingChargeBase: billing.UpcomingChargeBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Namespace: namespace,
 							Name:      lineNameDeletedDetailed,
@@ -139,7 +139,7 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 					},
 				},
 				{
-					GatheringLineBase: billing.GatheringLineBase{
+					UpcomingChargeBase: billing.UpcomingChargeBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Namespace: namespace,
 							Name:      lineNameActiveDetailed,

@@ -204,9 +204,9 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customer.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []billing.GatheringLine{
+			Lines: []billing.UpcomingCharge{
 				{
-					GatheringLineBase: billing.GatheringLineBase{
+					UpcomingChargeBase: billing.UpcomingChargeBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Namespace: namespace,
 							Name:      "Test item - USD",
@@ -271,8 +271,8 @@ func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, custom
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customer.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []billing.GatheringLine{
-				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+			Lines: []billing.UpcomingCharge{
+				billing.NewFlatFeeUpcomingCharge(billing.NewFlatFeeLineInput{
 					Period: billing.Period{Start: now, End: now.Add(time.Hour * 24)},
 
 					InvoiceAt: now,

@@ -375,7 +375,7 @@ func (s *CustomerHandlerTestSuite) TestMultiSubjectIntegrationFlow(ctx context.C
 	t.Cleanup(clock.ResetTime)
 
 	periodStart := now
-	pendingLine := billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+	pendingLine := billing.NewFlatFeeUpcomingCharge(billing.NewFlatFeeLineInput{
 		ID:            ulid.Make().String(),
 		CreatedAt:     now,
 		UpdatedAt:     now,
@@ -393,7 +393,7 @@ func (s *CustomerHandlerTestSuite) TestMultiSubjectIntegrationFlow(ctx context.C
 			ID:        createdCustomer.ID,
 		},
 		Currency: currencyx.Code("USD"),
-		Lines:    []billing.GatheringLine{pendingLine},
+		Lines:    []billing.UpcomingCharge{pendingLine},
 	})
 	require.NoError(t, err, "creating pending invoice lines should succeed")
 	require.NotNil(t, result)

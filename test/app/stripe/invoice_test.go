@@ -301,10 +301,10 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines: []billing.GatheringLine{
+				Lines: []billing.UpcomingCharge{
 					{
 						// Covered case: Discount caused by maximum amount
-						GatheringLineBase: billing.GatheringLineBase{
+						UpcomingChargeBase: billing.UpcomingChargeBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - FLAT per unit",
 							}),
@@ -323,7 +323,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					},
 					{
 						// Covered case: Very small per unit amount, high quantity, rounding to two decimal places
-						GatheringLineBase: billing.GatheringLineBase{
+						UpcomingChargeBase: billing.UpcomingChargeBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - AI Usecase",
 							}),
@@ -338,7 +338,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					},
 					{
 						// Covered case: Flat line represented as UBP item
-						GatheringLineBase: billing.GatheringLineBase{
+						UpcomingChargeBase: billing.UpcomingChargeBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - FLAT per any usage",
 							}),
@@ -354,7 +354,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					},
 					{
 						// Covered case: Multiple lines per item, tier boundary is fractional
-						GatheringLineBase: billing.GatheringLineBase{
+						UpcomingChargeBase: billing.UpcomingChargeBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - Tiered graduated",
 							}),
@@ -388,7 +388,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					},
 					{
 						// Covered case: minimum amount charges
-						GatheringLineBase: billing.GatheringLineBase{
+						UpcomingChargeBase: billing.UpcomingChargeBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - Tiered volume",
 							}),
@@ -1100,9 +1100,9 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []billing.GatheringLine{
+			Lines: []billing.UpcomingCharge{
 				{
-					GatheringLineBase: billing.GatheringLineBase{
+					UpcomingChargeBase: billing.UpcomingChargeBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Name: "UBP - FLAT per unit",
 						}),
@@ -1282,8 +1282,8 @@ func (s *StripeInvoiceTestSuite) TestSendInvoice() {
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []billing.GatheringLine{
-				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+			Lines: []billing.UpcomingCharge{
+				billing.NewFlatFeeUpcomingCharge(billing.NewFlatFeeLineInput{
 					Period:        billing.Period{Start: periodStart, End: periodEnd},
 					InvoiceAt:     periodStart,
 					Name:          "Flat fee",

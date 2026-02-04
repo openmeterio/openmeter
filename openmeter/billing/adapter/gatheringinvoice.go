@@ -40,7 +40,6 @@ func (a *adapter) CreateGatheringInvoice(ctx context.Context, input billing.Crea
 		workflowConfig := mapWorkflowConfigToDB(input.MergedProfile.WorkflowConfig, clonedWorkflowConfig.ID)
 
 		// Force cloning of the workflow
-		// TODO: Is this needed?
 		workflowConfig.ID = ""
 
 		currentSchemaLevel, err := tx.GetInvoiceDefaultSchemaLevel(ctx)
@@ -181,7 +180,7 @@ func (a *adapter) UpdateGatheringInvoice(ctx context.Context, in billing.Gatheri
 		}
 
 		if in.Lines.IsPresent() {
-			err := tx.updateGatheringLines(ctx, in.Lines.OrEmpty())
+			err := tx.updateUpcomingCharges(ctx, in.Lines.OrEmpty())
 			if err != nil {
 				return err
 			}
@@ -372,8 +371,8 @@ func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.Bil
 					Namespace: invoice.Namespace,
 				},
 				ManagedModel: models.ManagedModel{
-					CreatedAt: invoice.CreatedAt,
-					UpdatedAt: invoice.UpdatedAt,
+					CreatedAt: invoice.CreatedAt.In(time.UTC),
+					UpdatedAt: invoice.UpdatedAt.In(time.UTC),
 					DeletedAt: convert.TimePtrIn(invoice.DeletedAt, time.UTC),
 				},
 				ID:          invoice.ID,
@@ -403,7 +402,7 @@ func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.Bil
 		// 	return billing.StandardInvoice{}, err
 		// }
 
-		res.Lines = billing.NewGatheringInvoiceLines(mappedLines)
+		res.Lines = billing.NewGatheringInvoiceUpcomingCharges(mappedLines)
 	}
 
 	return res, nil

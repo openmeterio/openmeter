@@ -70,7 +70,7 @@ func MapGatheringInvoiceToAPI(invoice billing.GatheringInvoice, customer *custom
 		Workflow:               workflowConfig,
 	}
 
-	outLines, err := slicesx.MapWithErr(invoice.Lines.OrEmpty(), func(line billing.GatheringLine) (api.InvoiceLine, error) {
+	outLines, err := slicesx.MapWithErr(invoice.Lines.OrEmpty(), func(line billing.UpcomingCharge) (api.InvoiceLine, error) {
 		mappedLine, err := mapGatheringInvoiceLineToAPI(line)
 		if err != nil {
 			return api.InvoiceLine{}, fmt.Errorf("failed to map billing line[%s] to API: %w", line.ID, err)
@@ -100,7 +100,7 @@ func mapServicePeriodToAPI(p timeutil.ClosedPeriod) *api.Period {
 	}
 }
 
-func mapGatheringInvoiceLineToAPI(line billing.GatheringLine) (api.InvoiceLine, error) {
+func mapGatheringInvoiceLineToAPI(line billing.UpcomingCharge) (api.InvoiceLine, error) {
 	price, err := productcataloghttp.FromRateCardUsageBasedPrice(line.Price)
 	if err != nil {
 		return api.InvoiceLine{}, fmt.Errorf("failed to map price: %w", err)
@@ -115,7 +115,6 @@ func mapGatheringInvoiceLineToAPI(line billing.GatheringLine) (api.InvoiceLine, 
 		UpdatedAt: line.UpdatedAt,
 		InvoiceAt: line.InvoiceAt,
 
-		// TODO: deprecation
 		Currency: string(line.Currency),
 		Status:   api.InvoiceLineStatusValid,
 
@@ -123,7 +122,6 @@ func mapGatheringInvoiceLineToAPI(line billing.GatheringLine) (api.InvoiceLine, 
 		Name:        line.Name,
 		ManagedBy:   api.InvoiceLineManagedBy(line.ManagedBy),
 
-		// TODO: deprecation
 		Invoice: &api.InvoiceReference{
 			Id: line.InvoiceID,
 		},

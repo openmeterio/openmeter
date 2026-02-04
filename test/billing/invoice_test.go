@@ -121,8 +121,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 	_ = s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
-	var items []billing.GatheringLine
-	var HUFItem billing.GatheringLine
+	var items []billing.UpcomingCharge
+	var HUFItem billing.UpcomingCharge
 
 	s.T().Run("CreateInvoiceItems", func(t *testing.T) {
 		// When we create invoice items
@@ -131,8 +131,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines: []billing.GatheringLine{
-					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+				Lines: []billing.UpcomingCharge{
+					billing.NewFlatFeeUpcomingCharge(billing.NewFlatFeeLineInput{
 						Namespace: namespace,
 
 						Period:    billing.Period{Start: periodStart, End: periodEnd},
@@ -165,8 +165,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.HUF),
-				Lines: []billing.GatheringLine{
-					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+				Lines: []billing.UpcomingCharge{
+					billing.NewFlatFeeUpcomingCharge(billing.NewFlatFeeLineInput{
 						Period: billing.Period{Start: periodStart, End: periodEnd},
 
 						InvoiceAt: issueAt,
@@ -178,7 +178,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 						PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 					}),
 					{
-						GatheringLineBase: billing.GatheringLineBase{
+						UpcomingChargeBase: billing.UpcomingChargeBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "Test item - HUF",
 							}),
@@ -210,7 +210,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 		// Then we should have the items created
 		require.NoError(s.T(), err)
-		items = []billing.GatheringLine{usdItem, res.Lines[0], res.Lines[1]}
+		items = []billing.UpcomingCharge{usdItem, res.Lines[0], res.Lines[1]}
 
 		// Then we should have an usd invoice automatically created
 		usdInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
@@ -229,8 +229,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		usdInvoice := usdInvoices.Items[0]
 
 		usdInvoiceLine := usdInvoice.Lines.MustGet()[0]
-		expectedUSDLine := billing.GatheringLine{
-			GatheringLineBase: billing.GatheringLineBase{
+		expectedUSDLine := billing.UpcomingCharge{
+			UpcomingChargeBase: billing.UpcomingChargeBase{
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 					ID:        items[0].ID,
 					Namespace: namespace,
@@ -282,7 +282,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
 			},
 
-			Lines: billing.NewGatheringInvoiceLines([]billing.GatheringLine{expectedUSDLine}),
+			Lines: billing.NewGatheringInvoiceUpcomingCharges([]billing.UpcomingCharge{expectedUSDLine}),
 		}
 
 		s.NoError(invoicecalc.GatheringInvoiceCollectionAt(&expectedInvoice))
@@ -433,8 +433,8 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []billing.GatheringLine{
-				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+			Lines: []billing.UpcomingCharge{
+				billing.NewFlatFeeUpcomingCharge(billing.NewFlatFeeLineInput{
 					Namespace: namespace,
 					Period:    billing.Period{Start: periodStart, End: periodEnd},
 
@@ -451,7 +451,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 					PerUnitAmount: alpacadecimal.NewFromFloat(100),
 					PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 				}),
-				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+				billing.NewFlatFeeUpcomingCharge(billing.NewFlatFeeLineInput{
 					Namespace: namespace,
 					Period:    billing.Period{Start: periodStart, End: periodEnd},
 
@@ -609,8 +609,8 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines: []billing.GatheringLine{
-					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+				Lines: []billing.UpcomingCharge{
+					billing.NewFlatFeeUpcomingCharge(billing.NewFlatFeeLineInput{
 						Name:      "Test item1",
 						Namespace: namespace,
 						Period:    billing.Period{Start: periodStart, End: periodEnd},
@@ -1496,9 +1496,9 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines: []billing.GatheringLine{
+				Lines: []billing.UpcomingCharge{
 					{
-						GatheringLineBase: billing.GatheringLineBase{
+						UpcomingChargeBase: billing.UpcomingChargeBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - FLAT per unit",
 							}),
@@ -1515,7 +1515,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 						},
 					},
 					{
-						GatheringLineBase: billing.GatheringLineBase{
+						UpcomingChargeBase: billing.UpcomingChargeBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - FLAT per any usage",
 							}),
@@ -1529,7 +1529,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 						},
 					},
 					{
-						GatheringLineBase: billing.GatheringLineBase{
+						UpcomingChargeBase: billing.UpcomingChargeBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - Tiered graduated",
 							}),
@@ -1562,7 +1562,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 						},
 					},
 					{
-						GatheringLineBase: billing.GatheringLineBase{
+						UpcomingChargeBase: billing.UpcomingChargeBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - Tiered volume",
 							}),
@@ -1623,7 +1623,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		)
 
 		// The pending invoice items should be truncated to 1 min resolution (start => up to next, end down to previous)
-		for _, line := range []billing.GatheringLine{lines.flatPerUnit, lines.tieredGraduated, lines.tieredVolume} {
+		for _, line := range []billing.UpcomingCharge{lines.flatPerUnit, lines.tieredGraduated, lines.tieredVolume} {
 			require.Equal(s.T(),
 				timeutil.ClosedPeriod{From: testutils.GetRFC3339Time(s.T(), "2024-09-02T12:13:14Z"), To: testutils.GetRFC3339Time(s.T(), "2024-09-03T12:13:14Z")},
 				line.ServicePeriod,
@@ -2366,16 +2366,16 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 	// Given we have a default profile for the namespace
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithProgressiveBilling())
 
-	var pendingLine billing.GatheringLine
+	var pendingLine billing.UpcomingCharge
 	s.Run("create pending invoice items", func() {
 		// When we create pending invoice items
 		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines: []billing.GatheringLine{
+				Lines: []billing.UpcomingCharge{
 					{
-						GatheringLineBase: billing.GatheringLineBase{
+						UpcomingChargeBase: billing.UpcomingChargeBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - Tiered graduated",
 							}),
@@ -2685,9 +2685,9 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines: []billing.GatheringLine{
+				Lines: []billing.UpcomingCharge{
 					{
-						GatheringLineBase: billing.GatheringLineBase{
+						UpcomingChargeBase: billing.UpcomingChargeBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - FLAT per unit",
 							}),
@@ -2704,7 +2704,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 						},
 					},
 					{
-						GatheringLineBase: billing.GatheringLineBase{
+						UpcomingChargeBase: billing.UpcomingChargeBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - FLAT per any usage",
 							}),
@@ -2718,7 +2718,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 						},
 					},
 					{
-						GatheringLineBase: billing.GatheringLineBase{
+						UpcomingChargeBase: billing.UpcomingChargeBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - Tiered graduated",
 							}),
@@ -2751,7 +2751,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 						},
 					},
 					{
-						GatheringLineBase: billing.GatheringLineBase{
+						UpcomingChargeBase: billing.UpcomingChargeBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - Tiered volume",
 							}),
@@ -2800,7 +2800,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 		}
 
 		// The pending invoice items should be truncated to 1 min resolution (start => up to next, end down to previous)
-		for _, line := range []billing.GatheringLine{lines.flatPerUnit, lines.tieredGraduated, lines.tieredVolume, lines.flatFee} {
+		for _, line := range []billing.UpcomingCharge{lines.flatPerUnit, lines.tieredGraduated, lines.tieredVolume, lines.flatFee} {
 			require.Equal(s.T(),
 				timeutil.ClosedPeriod{From: truncatedPeriodStart, To: truncatedPeriodEnd},
 				line.ServicePeriod,
@@ -3013,10 +3013,10 @@ func (s *InvoicingTestSuite) sortedSplitLineGroupChildren(line *billing.Standard
 }
 
 type ubpPendingLines struct {
-	flatPerUnit     billing.GatheringLine
-	flatFee         billing.GatheringLine
-	tieredGraduated billing.GatheringLine
-	tieredVolume    billing.GatheringLine
+	flatPerUnit     billing.UpcomingCharge
+	flatFee         billing.UpcomingCharge
+	tieredGraduated billing.UpcomingCharge
+	tieredVolume    billing.UpcomingCharge
 }
 
 type ubpFeatures struct {
@@ -3184,9 +3184,9 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines: []billing.GatheringLine{
+				Lines: []billing.UpcomingCharge{
 					{
-						GatheringLineBase: billing.GatheringLineBase{
+						UpcomingChargeBase: billing.UpcomingChargeBase{
 							ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 								Name: "UBP - FLAT per unit",
 							}),
@@ -3349,9 +3349,9 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []billing.GatheringLine{
+			Lines: []billing.UpcomingCharge{
 				{
-					GatheringLineBase: billing.GatheringLineBase{
+					UpcomingChargeBase: billing.UpcomingChargeBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Name: "UBP - FLAT per unit",
 						}),
@@ -3467,9 +3467,9 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
 		billing.CreatePendingInvoiceLinesInput{
 			Customer: customerEntity.GetID(),
 			Currency: currencyx.Code(currency.USD),
-			Lines: []billing.GatheringLine{
+			Lines: []billing.UpcomingCharge{
 				{
-					GatheringLineBase: billing.GatheringLineBase{
+					UpcomingChargeBase: billing.UpcomingChargeBase{
 						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 							Name: "UBP - FLAT per unit",
 						}),
@@ -3621,9 +3621,9 @@ func (s *InvoicingTestSuite) TestProgressiveBillLate() {
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: []billing.UpcomingCharge{
 			{
-				GatheringLineBase: billing.GatheringLineBase{
+				UpcomingChargeBase: billing.UpcomingChargeBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 						Name: "UBP - volume",
 					}),
@@ -3713,9 +3713,9 @@ func (s *InvoicingTestSuite) TestProgressiveBillingOverride() {
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: []billing.UpcomingCharge{
 			{
-				GatheringLineBase: billing.GatheringLineBase{
+				UpcomingChargeBase: billing.UpcomingChargeBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 						Name: "UBP - volume",
 					}),
@@ -3745,7 +3745,7 @@ func (s *InvoicingTestSuite) TestProgressiveBillingOverride() {
 				},
 			},
 			{
-				GatheringLineBase: billing.GatheringLineBase{
+				UpcomingChargeBase: billing.UpcomingChargeBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 						Name: "UBP - unit",
 					}),
@@ -3821,9 +3821,9 @@ func (s *InvoicingTestSuite) TestSortLines() {
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
-		Lines: []billing.GatheringLine{
+		Lines: []billing.UpcomingCharge{
 			{
-				GatheringLineBase: billing.GatheringLineBase{
+				UpcomingChargeBase: billing.UpcomingChargeBase{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 						Name: "UBP - volume",
 					}),
@@ -3948,8 +3948,8 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
-		Lines: []billing.GatheringLine{
-			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+		Lines: []billing.UpcomingCharge{
+			billing.NewFlatFeeUpcomingCharge(billing.NewFlatFeeLineInput{
 				Period:    billing.Period{Start: periodStart, End: periodEnd},
 				InvoiceAt: periodStart,
 				Name:      "Flat fee",
@@ -3980,8 +3980,8 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 	pendingLines, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
-		Lines: []billing.GatheringLine{
-			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+		Lines: []billing.UpcomingCharge{
+			billing.NewFlatFeeUpcomingCharge(billing.NewFlatFeeLineInput{
 				Period:    billing.Period{Start: newPeriodStart, End: newPeriodEnd},
 				InvoiceAt: newPeriodStart,
 				Name:      "Flat fee",
@@ -4059,8 +4059,8 @@ func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() 
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
-		Lines: []billing.GatheringLine{
-			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+		Lines: []billing.UpcomingCharge{
+			billing.NewFlatFeeUpcomingCharge(billing.NewFlatFeeLineInput{
 				Period:    billing.Period{Start: periodStart, End: periodEnd},
 				InvoiceAt: periodStart,
 				Name:      "Flat fee",
@@ -4096,8 +4096,8 @@ func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() 
 	pendingLines, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer: customer.GetID(),
 		Currency: currencyx.Code(currency.USD),
-		Lines: []billing.GatheringLine{
-			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+		Lines: []billing.UpcomingCharge{
+			billing.NewFlatFeeUpcomingCharge(billing.NewFlatFeeLineInput{
 				Period:        billing.Period{Start: clock.Now(), End: clock.Now().Add(time.Hour * 24)},
 				InvoiceAt:     clock.Now(),
 				Name:          "Flat fee",
@@ -4200,9 +4200,9 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityInvalidDatabaseState() {
 			billing.CreatePendingInvoiceLinesInput{
 				Customer: customerEntity.GetID(),
 				Currency: currencyx.Code(currency.USD),
-				Lines: []billing.GatheringLine{
+				Lines: []billing.UpcomingCharge{
 					{
-						GatheringLineBase: billing.GatheringLineBase{
+						UpcomingChargeBase: billing.UpcomingChargeBase{
 							ManagedResource: models.ManagedResource{
 								NamespacedModel: models.NamespacedModel{
 									Namespace: namespace,
