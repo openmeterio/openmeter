@@ -377,9 +377,10 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 }
 
 type hasInvoicableLinesInput struct {
-	Invoice       billing.StandardInvoice
-	AsOf          time.Time
-	FeatureMeters billing.FeatureMeters
+	Invoice            billing.StandardInvoice
+	AsOf               time.Time
+	FeatureMeters      billing.FeatureMeters
+	ProgressiveBilling bool
 }
 
 func (i hasInvoicableLinesInput) Validate() error {
@@ -416,7 +417,8 @@ func (s *Service) hasInvoicableLines(ctx context.Context, in hasInvoicableLinesI
 				FeatureMeters: in.FeatureMeters,
 			},
 		},
-		AsOf: in.AsOf,
+		AsOf:               in.AsOf,
+		ProgressiveBilling: in.ProgressiveBilling,
 	})
 	if err != nil {
 		return false, fmt.Errorf("gathering in scope lines: %w", err)
@@ -498,7 +500,11 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 				return nil, fmt.Errorf("line[%s]: splitting line: %w", line.Line.ID, err)
 			}
 
-			if splitLine.PreSplitAtLine == nil {
+			if splitLine.PreSplitAtLine == nil || splitLine.PreSplitAtLine.DeletedAt != nil {
+				if splitLine.PreSplitAtLine != nil {
+					wasSplit = true
+				}
+
 				s.logger.WarnContext(ctx, "pre split line is nil, we are not creating empty lines", "line", line.Line.ID, "period_start", line.Line.Period.Start, "period_end", line.Line.Period.End)
 				continue
 			}

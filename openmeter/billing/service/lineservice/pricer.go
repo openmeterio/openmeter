@@ -110,9 +110,15 @@ func (ProgressiveBillingMeteredPricer) CanBeInvoicedAsOf(in CanBeInvoicedAsOfInp
 		return nil, nil
 	}
 
+	// If the asOf is before the period end, we need to truncate the period to the asOf
+	periodEnd := period.To
+	if asOf.Before(periodEnd) {
+		periodEnd = asOf
+	}
+
 	return &timeutil.ClosedPeriod{
 		From: period.From,
-		To:   asOf,
+		To:   periodEnd,
 	}, nil
 }
 

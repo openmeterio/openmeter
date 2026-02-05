@@ -3342,7 +3342,6 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualDeleteSync() {
 	s.NotNil(updatedLineFromEditedInvoice.DeletedAt)
 	s.Equal(billing.ManuallyManagedLine, updatedLineFromEditedInvoice.ManagedBy)
 
-	s.NoError(err)
 	s.DebugDumpInvoice("edited invoice", editedInvoice)
 
 	// When resyncing the subscription

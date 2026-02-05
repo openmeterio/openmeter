@@ -88,7 +88,7 @@ func ResolveBillablePeriod[T PricerCanBeInvoicedAsOfAccessor](in ResolveBillable
 	}
 
 	meterTypeAllowsProgressiveBilling := false
-	if price.Type() != productcatalog.FlatPriceType {
+	if price.Type() != productcatalog.FlatPriceType && in.ProgressiveBilling {
 		isDependingOnIncreaseOnlyMeters, err := isDependingOnIncreaseOnlyMeters(CanBeInvoicedAsOfInput{
 			AsOf:               in.AsOf,
 			ProgressiveBilling: in.ProgressiveBilling,

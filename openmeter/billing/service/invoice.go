@@ -174,9 +174,10 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 	}
 
 	hasInvoicableLines, err := s.hasInvoicableLines(ctx, hasInvoicableLinesInput{
-		Invoice:       invoice,
-		AsOf:          now,
-		FeatureMeters: featureMeters,
+		Invoice:            invoice,
+		AsOf:               now,
+		ProgressiveBilling: customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling,
+		FeatureMeters:      featureMeters,
 	})
 	if err != nil {
 		return invoice, fmt.Errorf("checking if has invoicable lines: %w", err)
