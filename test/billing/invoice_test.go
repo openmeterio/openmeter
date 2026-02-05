@@ -470,10 +470,10 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	// Then we should have the items created
 	require.NoError(s.T(), err)
 	require.Len(s.T(), res.Lines, 2)
-	line1ID := res.Lines[0].ID
-	line2ID := res.Lines[1].ID
-	require.NotEmpty(s.T(), line1ID)
-	require.NotEmpty(s.T(), line2ID)
+	gatheringLine1 := res.Lines[0]
+	gatheringLine2 := res.Lines[1]
+	require.NotEmpty(s.T(), gatheringLine1.ID)
+	require.NotEmpty(s.T(), gatheringLine2.ID)
 
 	// Expect that a single gathering invoice has been created
 	require.Equal(s.T(), res.Lines[0].InvoiceID, res.Lines[1].InvoiceID)
@@ -535,7 +535,12 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 		// Then we should have item1 added to the invoice
 		require.Len(s.T(), invoice[0].Lines.MustGet(), 1)
-		require.Equal(s.T(), line1ID, invoice[0].Lines.MustGet()[0].ID)
+		stdInvoiceLine1 := invoice[0].Lines.MustGet()[0]
+		// The standard invoice line's id must not match the gathering line's id
+		require.NotEqual(s.T(), stdInvoiceLine1.ID, gatheringLine1.ID)
+		// The annotations must contain the mapping between the standard invoice line and the gathering line
+		require.NotNil(s.T(), stdInvoiceLine1.Annotations)
+		require.Equal(s.T(), stdInvoiceLine1.Annotations[billing.AnnotationKeySourceGatheringLineID], gatheringLine1.ID)
 
 		// Then we expect that the gathering invoice is still present, with item2
 		gatheringInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
@@ -545,7 +550,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		require.NoError(s.T(), err)
 		require.Nil(s.T(), gatheringInvoice.DeletedAt, "gathering invoice should be present")
 		require.Len(s.T(), gatheringInvoice.Lines.MustGet(), 1)
-		require.Equal(s.T(), line2ID, gatheringInvoice.Lines.MustGet()[0].ID)
+		require.Equal(s.T(), gatheringLine2.ID, gatheringInvoice.Lines.MustGet()[0].ID)
 
 		// We expect the freshly generated invoice to be in waiting for auto approval state
 		require.Equal(s.T(), billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice[0].Status)
@@ -567,7 +572,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
 			},
-			IncludePendingLines: mo.Some([]string{line2ID}),
+			IncludePendingLines: mo.Some([]string{gatheringLine2.ID}),
 			AsOf:                lo.ToPtr(line1IssueAt.Add(time.Minute)),
 		})
 
@@ -582,7 +587,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
 			},
-			IncludePendingLines: mo.Some([]string{line2ID}),
+			IncludePendingLines: mo.Some([]string{gatheringLine2.ID}),
 			AsOf:                lo.ToPtr(now),
 		})
 
@@ -592,7 +597,12 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 		// Then we should have item2 added to the invoice
 		require.Len(s.T(), invoice[0].Lines.MustGet(), 1)
-		require.Equal(s.T(), line2ID, invoice[0].Lines.MustGet()[0].ID)
+		stdInvoiceLine2 := invoice[0].Lines.MustGet()[0]
+		// The standard invoice line's id must not match the gathering line's id
+		require.NotEqual(s.T(), stdInvoiceLine2.ID, gatheringLine2.ID)
+		// The annotations must contain the mapping between the standard invoice line and the gathering line
+		require.NotNil(s.T(), stdInvoiceLine2.Annotations)
+		require.Equal(s.T(), stdInvoiceLine2.Annotations[billing.AnnotationKeySourceGatheringLineID], gatheringLine2.ID)
 
 		// Then we expect that the gathering invoice is deleted and empty
 		gatheringInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
@@ -600,8 +610,24 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 			Expand:  billing.InvoiceExpandAll,
 		})
 		require.NoError(s.T(), err)
-		require.NotNil(s.T(), gatheringInvoice.DeletedAt, "gathering invoice should be present")
+		require.Nil(s.T(), gatheringInvoice.DeletedAt, "gathering invoice should be deleted")
 		require.Len(s.T(), gatheringInvoice.Lines.MustGet(), 0, "deleted gathering invoice is empty")
+
+		// Fetching the gathering invoice with deleted lines expanded should include the deleted lines with
+		// proper annotations
+		gatheringInvoice, err = s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+			Invoice: gatheringInvoiceID,
+			Expand:  billing.InvoiceExpandAll.SetDeletedLines(true),
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), gatheringInvoice.Lines.MustGet(), 2, "gathering invoice should have 2 lines")
+
+		deletedGatheringLine2 := gatheringInvoice.Lines.GetByID(gatheringLine2.ID)
+		require.NotNil(s.T(), deletedGatheringLine2, "deleted gathering line should be present")
+
+		require.NotNil(s.T(), deletedGatheringLine2.DeletedAt, "deleted gathering line should be deleted")
+		require.NotNil(s.T(), deletedGatheringLine2.Annotations, "deleted gathering line should have annotations")
+		require.Equal(s.T(), deletedGatheringLine2.Annotations[billing.AnnotationKeyStandardInvoiceLineID], stdInvoiceLine2.ID, "deleted gathering line should have the correct standard invoice line id")
 	})
 
 	s.Run("When staging more lines the old gathering invoice gets reused", func() {

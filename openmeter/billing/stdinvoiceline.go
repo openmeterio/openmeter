@@ -18,6 +18,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+const (
+	AnnotationKeyStandardInvoiceLineID = "standard_invoice_line_id"
+	AnnotationKeySourceGatheringLineID = "source_gathering_line_id"
+)
+
 // StandardLineBase represents the common fields for an invoice item.
 type StandardLineBase struct {
 	models.ManagedResource
@@ -689,6 +694,24 @@ func (c *StandardLines) Sort() {
 	for idx := range *c {
 		(*c)[idx].SortDetailedLines()
 	}
+}
+
+func (c StandardLines) GetReferencedFeatureKeys() ([]string, error) {
+	out := make([]string, 0, len(c))
+
+	for _, line := range c {
+		if line.UsageBased == nil {
+			return nil, fmt.Errorf("usage based line is required")
+		}
+
+		if line.UsageBased.FeatureKey == "" {
+			continue
+		}
+
+		out = append(out, line.UsageBased.FeatureKey)
+	}
+
+	return lo.Uniq(out), nil
 }
 
 func (i StandardLine) SetDiscountExternalIDs(externalIDs map[string]string) []string {

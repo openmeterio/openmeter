@@ -606,7 +606,7 @@ func (m *InvoiceStateMachine) validateDraftInvoice(ctx context.Context) error {
 }
 
 func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
-	featureMeters, err := m.Service.resolveFeatureMeters(ctx, m.Invoice.Lines.OrEmpty())
+	featureMeters, err := m.Service.resolveFeatureMeters(ctx, m.Invoice.Namespace, m.Invoice.Lines)
 	if err != nil {
 		return fmt.Errorf("resolving feature meters: %w", err)
 	}
@@ -744,7 +744,7 @@ func (m *InvoiceStateMachine) snapshotQuantityAsNeeded(ctx context.Context) erro
 		return nil
 	}
 
-	featureMeters, err := m.Service.resolveFeatureMeters(ctx, m.Invoice.Lines.OrEmpty())
+	featureMeters, err := m.Service.resolveFeatureMeters(ctx, m.Invoice.Namespace, m.Invoice.Lines)
 	if err != nil {
 		return fmt.Errorf("resolving feature meters: %w", err)
 	}

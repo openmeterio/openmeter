@@ -525,6 +525,14 @@ func (c *StandardInvoiceLines) RemoveByID(id string) bool {
 	return true
 }
 
+func (c StandardInvoiceLines) GetReferencedFeatureKeys() ([]string, error) {
+	if c.IsAbsent() {
+		return nil, nil
+	}
+
+	return c.OrEmpty().GetReferencedFeatureKeys()
+}
+
 type StandardInvoiceAvailableActions struct {
 	Advance            *StandardInvoiceAvailableActionDetails `json:"advance,omitempty"`
 	Approve            *StandardInvoiceAvailableActionDetails `json:"approve,omitempty"`

@@ -160,7 +160,7 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 		return invoice, fmt.Errorf("customer profile is nil")
 	}
 
-	featureMeters, err := s.resolveFeatureMeters(ctx, invoice.Lines.OrEmpty())
+	featureMeters, err := s.resolveFeatureMeters(ctx, invoice.Namespace, invoice.Lines)
 	if err != nil {
 		return invoice, fmt.Errorf("resolving feature meters: %w", err)
 	}
@@ -459,7 +459,7 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 						}
 					}
 
-					featureMeters, err := s.resolveFeatureMeters(ctx, sm.Invoice.Lines.OrEmpty())
+					featureMeters, err := s.resolveFeatureMeters(ctx, sm.Invoice.Namespace, sm.Invoice.Lines)
 					if err != nil {
 						return fmt.Errorf("resolving feature meters: %w", err)
 					}
@@ -588,7 +588,7 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 				}
 			}
 
-			featureMeters, err := s.resolveFeatureMeters(ctx, invoice.Lines.OrEmpty())
+			featureMeters, err := s.resolveFeatureMeters(ctx, invoice.Namespace, invoice.Lines)
 			if err != nil {
 				return billing.StandardInvoice{}, fmt.Errorf("resolving feature meters: %w", err)
 			}
@@ -790,7 +790,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		}
 	}
 
-	featureMeters, err := s.resolveFeatureMeters(ctx, invoice.Lines.OrEmpty())
+	featureMeters, err := s.resolveFeatureMeters(ctx, input.Namespace, invoice.Lines)
 	if err != nil {
 		return billing.StandardInvoice{}, fmt.Errorf("resolving feature meters: %w", err)
 	}

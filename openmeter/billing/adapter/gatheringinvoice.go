@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -215,6 +216,9 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 
 		if input.Expand.Has(billing.GatheringInvoiceExpandLines) {
 			query = query.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
+				if !input.Expand.Has(billing.GatheringInvoiceExpandDeletedLines) {
+					q = q.Where(billinginvoiceline.DeletedAtIsNil())
+				}
 				q.WithUsageBasedLine()
 			})
 		}
@@ -337,6 +341,9 @@ func (a *adapter) GetGatheringInvoiceById(ctx context.Context, input billing.Get
 
 		if input.Expand.Has(billing.GatheringInvoiceExpandLines) {
 			query = query.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
+				if !input.Expand.Has(billing.GatheringInvoiceExpandDeletedLines) {
+					q = q.Where(billinginvoiceline.DeletedAtIsNil())
+				}
 				q.WithUsageBasedLine()
 			})
 		}
