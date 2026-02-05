@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
@@ -852,24 +851,32 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("error resolving workflow apps for invoice [%s]: %w", invoiceID, err)
 	}
 
-	moveResults, err := s.createStandardLinesFromGatheringLines(ctx, createStandardLinesFromGatheringLinesInput{
-		SourceGatheringInvoice: in.GatheringInvoice,
-		TargetInvoice:          invoice,
-		FeatureMeters:          in.FeatureMeters,
-		LineIDsToMove:          lo.Map(in.Lines, func(l billing.GatheringLine, _ int) string { return l.ID }),
+	convertResults, err := s.convertGatheringLinesToStandardLines(ctx, convertGatheringLinesToStandardLinesInput{
+		TargetInvoice:           invoice,
+		FeatureMeters:           in.FeatureMeters,
+		GatheringLinesToConvert: in.Lines,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("moving lines to invoice: %w", err)
 	}
 
+	// Let's first update the gathering invoice to make sure deleted lines are synced, as the standard invoice will have expanded split line hierarchies
+	// and we need to make sure that gathering invoice lines that are already yielded the standard invoice lines are excluded from the split line hierarchy.
+	//
+	// Note: this is a hack, on the long term we need to have a Charge type that encapsulates all of this logic.
+	err = s.removeLinesFromGatheringInvoice(ctx, in.GatheringInvoice, in.Lines)
+	if err != nil {
+		return nil, fmt.Errorf("updating gathering invoice: %w", err)
+	}
+
 	// Let's create the sub lines as per the meters (we are not setting the QuantitySnapshotedAt field just now, to signal that this is not the final snapshot)
-	if err := s.snapshotLineQuantitiesInParallel(ctx, invoice.Customer, moveResults.LinesAssociated, in.FeatureMeters); err != nil {
+	if err := s.snapshotLineQuantitiesInParallel(ctx, invoice.Customer, convertResults.LinesAssociated, in.FeatureMeters); err != nil {
 		return nil, fmt.Errorf("snapshotting lines: %w", err)
 	}
 
 	// Let's persist the target invoice as the state machine always reloads the invoice from the database to make
 	// sure we don't have any manual modifications inside the invoice structure.
-	_, err = s.updateInvoice(ctx, moveResults.TargetInvoice)
+	_, err = s.updateInvoice(ctx, convertResults.TargetInvoice)
 	if err != nil {
 		return nil, fmt.Errorf("updating target invoice: %w", err)
 	}
@@ -914,26 +921,16 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("activating invoice: %w", err)
 	}
 
-	err = s.updateGatheringInvoice(ctx, moveResults.GatheringInvoice)
-	if err != nil {
-		return nil, fmt.Errorf("updating gathering invoice: %w", err)
-	}
-
 	return &invoice, nil
 }
 
-type createStandardLinesFromGatheringLinesInput struct {
-	SourceGatheringInvoice billing.GatheringInvoice
-	FeatureMeters          billing.FeatureMeters
-	TargetInvoice          billing.StandardInvoice
-	LineIDsToMove          []string
+type convertGatheringLinesToStandardLinesInput struct {
+	FeatureMeters           billing.FeatureMeters
+	TargetInvoice           billing.StandardInvoice
+	GatheringLinesToConvert billing.GatheringLines
 }
 
-func (in createStandardLinesFromGatheringLinesInput) Validate() error {
-	if err := in.SourceGatheringInvoice.Validate(); err != nil {
-		return fmt.Errorf("source gathering invoice: %w", err)
-	}
-
+func (in convertGatheringLinesToStandardLinesInput) Validate() error {
 	if err := in.TargetInvoice.Validate(); err != nil {
 		return fmt.Errorf("target invoice: %w", err)
 	}
@@ -942,20 +939,26 @@ func (in createStandardLinesFromGatheringLinesInput) Validate() error {
 		return fmt.Errorf("target invoice must be in draft created status")
 	}
 
-	if len(in.LineIDsToMove) == 0 {
+	if len(in.GatheringLinesToConvert) == 0 {
 		return fmt.Errorf("line IDs to move is required")
-	}
-
-	if in.TargetInvoice.Currency != in.SourceGatheringInvoice.Currency {
-		return fmt.Errorf("target invoice currency must be the same as source gathering invoice currency")
 	}
 
 	if in.TargetInvoice.ID == "" {
 		return fmt.Errorf("target invoice ID is required")
 	}
 
-	if in.TargetInvoice.Namespace != in.SourceGatheringInvoice.Namespace {
-		return fmt.Errorf("target invoice namespace must be the same as source gathering invoice namespace")
+	for _, line := range in.GatheringLinesToConvert {
+		if err := line.Validate(); err != nil {
+			return fmt.Errorf("validating gathering line: %w", err)
+		}
+
+		if line.Currency != in.TargetInvoice.Currency {
+			return fmt.Errorf("gathering line[%s]: currency[%s] is not equal to target invoice currency[%s]", line.ID, line.Currency, in.TargetInvoice.Currency)
+		}
+
+		if line.Namespace != in.TargetInvoice.Namespace {
+			return fmt.Errorf("gathering line[%s]: namespace[%s] is not equal to target invoice namespace[%s]", line.ID, line.Namespace, in.TargetInvoice.Namespace)
+		}
 	}
 
 	if in.FeatureMeters == nil {
@@ -965,88 +968,42 @@ func (in createStandardLinesFromGatheringLinesInput) Validate() error {
 	return nil
 }
 
-type createStandardLinesFromGatheringLinesResult struct {
-	GatheringInvoice billing.GatheringInvoice
-	TargetInvoice    billing.StandardInvoice
-	LinesAssociated  billing.StandardLines
+type convertGatheringLinesToStandardLinesResult struct {
+	TargetInvoice   billing.StandardInvoice
+	LinesAssociated billing.StandardLines
 }
 
-// createStandardLinesFromGatheringLinesInput deletes the lines on the source gathering invoice and creates the standard lines on the target invoice, invariants:
-// - the source gathering invoice is updated by removing the lines that have been moved to the target invoice
-// - the target invoice is updated by adding the lines that have been moved from the source gathering invoice
-// - neither invoices are saved to the database, they are returned as is
-func (s *Service) createStandardLinesFromGatheringLines(ctx context.Context, in createStandardLinesFromGatheringLinesInput) (*createStandardLinesFromGatheringLinesResult, error) {
+// convertGatheringLinesToStandardLines converts the gathering lines to standard lines and adds them to the target invoice.
+// Invariants:
+// - the target invoice is updated by adding the standard lines that have been converted from the gathering lines
+// - no database changes are made
+func (s *Service) convertGatheringLinesToStandardLines(ctx context.Context, in convertGatheringLinesToStandardLinesInput) (*convertGatheringLinesToStandardLinesResult, error) {
 	if err := in.Validate(); err != nil {
 		return nil, fmt.Errorf("validating input: %w", err)
 	}
 
-	srcInvoice := in.SourceGatheringInvoice
-	dstInvoice := in.TargetInvoice
-
-	// Let's find the lines to move from the source gathering invoice
-	linesToMove := lo.Filter(srcInvoice.Lines.OrEmpty(), func(line billing.GatheringLine, _ int) bool {
-		return slices.Contains(in.LineIDsToMove, line.ID)
-	})
-
-	for _, line := range linesToMove {
-		if line.Currency != dstInvoice.Currency {
-			return nil, fmt.Errorf("line[%s]: currency[%s] is not equal to target invoice currency[%s]", line.ID, line.Currency, dstInvoice.Currency)
-		}
-	}
-
-	if len(linesToMove) != len(in.LineIDsToMove) {
-		return nil, fmt.Errorf("lines to move[%d] must contain the same number of lines as line IDs to move[%d]", len(linesToMove), len(in.LineIDsToMove))
-	}
-
-	if err := linesToMove.Validate(); err != nil {
-		return nil, fmt.Errorf("validating lines to move: %w", err)
-	}
-
-	gatheringLineIDsToStandardLineIDs := make(map[string]string)
-
-	newStandardLines := make(billing.StandardLines, 0, len(linesToMove))
-	for _, gatheringLine := range linesToMove {
-		newStandardLine, err := convertGatheringLineToNewStandardLine(gatheringLine, dstInvoice.ID)
+	newStandardLines, err := slicesx.MapWithErr(in.GatheringLinesToConvert, func(gatheringLine billing.GatheringLine) (*billing.StandardLine, error) {
+		newStandardLine, err := convertGatheringLineToNewStandardLine(gatheringLine, in.TargetInvoice.ID)
 		if err != nil {
 			return nil, fmt.Errorf("converting gathering line to new standard line: %w", err)
 		}
-
-		gatheringLineIDsToStandardLineIDs[gatheringLine.ID] = newStandardLine.ID
-
-		if newStandardLine.Annotations == nil {
-			newStandardLine.Annotations = make(models.Annotations)
-		}
-		newStandardLine.Annotations[billing.AnnotationKeySourceGatheringLineID] = gatheringLine.ID
 
 		if err := newStandardLine.Validate(); err != nil {
 			return nil, fmt.Errorf("validating new standard line: %w", err)
 		}
 
-		newStandardLines = append(newStandardLines, newStandardLine)
+		return newStandardLine, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("converting gathering lines to standard lines: %w", err)
 	}
 
 	// Let's add the lines to the target invoice
-	dstInvoice.Lines.Append(newStandardLines...)
+	in.TargetInvoice.Lines.Append(newStandardLines...)
 
-	// Let's remove the lines from the source gathering invoice by deleting them
-	srcInvoice.Lines = srcInvoice.Lines.Map(func(l billing.GatheringLine) billing.GatheringLine {
-		if slices.Contains(in.LineIDsToMove, l.ID) {
-			l.DeletedAt = lo.ToPtr(clock.Now())
-
-			if l.Annotations == nil {
-				l.Annotations = make(models.Annotations)
-			}
-
-			l.Annotations[billing.AnnotationKeyStandardInvoiceLineID] = gatheringLineIDsToStandardLineIDs[l.ID]
-		}
-
-		return l
-	})
-
-	return &createStandardLinesFromGatheringLinesResult{
-		GatheringInvoice: srcInvoice,
-		TargetInvoice:    dstInvoice,
-		LinesAssociated:  newStandardLines,
+	return &convertGatheringLinesToStandardLinesResult{
+		TargetInvoice:   in.TargetInvoice,
+		LinesAssociated: newStandardLines,
 	}, nil
 }
 
@@ -1085,8 +1042,6 @@ func convertGatheringLineToNewStandardLine(line billing.GatheringLine, invoiceID
 		DBState: nil, // We don't want to reuse the state from the gathering line (so let's make it explicit)
 	}
 
-	convertedLine.ID = ulid.Make().String()
-
 	return convertedLine, nil
 }
 
@@ -1094,7 +1049,33 @@ func convertGatheringLineToNewStandardLine(line billing.GatheringLine, invoiceID
 // Invariant:
 // - the invoice is recalculated
 // - the invoice is updated to the database
-func (s *Service) updateGatheringInvoice(ctx context.Context, invoice billing.GatheringInvoice) error {
+func (s *Service) removeLinesFromGatheringInvoice(ctx context.Context, invoice billing.GatheringInvoice, linesToRemove billing.GatheringLines) error {
+	lineIDsToRemove := lo.Map(linesToRemove, func(l billing.GatheringLine, _ int) string { return l.ID })
+
+	nrLinesRemoved := 0
+	invoiceLinesWithRemovedLines := lo.Filter(invoice.Lines.OrEmpty(), func(l billing.GatheringLine, _ int) bool {
+		if slices.Contains(lineIDsToRemove, l.ID) {
+			nrLinesRemoved++
+			return false
+		}
+
+		return true
+	})
+
+	// This makes sure that all the IDs are present on the gathering invoice before invoking the hard delete.
+	if nrLinesRemoved != len(lineIDsToRemove) {
+		return fmt.Errorf("lines to remove[%d] must contain the same number of lines as line IDs to remove[%d]", nrLinesRemoved, len(lineIDsToRemove))
+	}
+
+	invoice.Lines = billing.NewGatheringInvoiceLines(invoiceLinesWithRemovedLines)
+
+	// We need to hard delete the lines from the gathering invoice as now the standard lines are taking their place with the same IDs.
+	// If we would soft-delete the lines, all downstream services would assume that the line was deleted due to synchronization and
+	// would recreate it.
+	if err := s.adapter.HardDeleteGatheringInvoiceLines(ctx, invoice.InvoiceID(), lineIDsToRemove); err != nil {
+		return fmt.Errorf("hard deleting gathering invoice lines: %w", err)
+	}
+
 	// Let's update the invoice's state
 	if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice); err != nil {
 		return fmt.Errorf("calculating gathering invoice: %w", err)

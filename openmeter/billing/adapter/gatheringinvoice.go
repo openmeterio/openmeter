@@ -122,7 +122,7 @@ func (a *adapter) UpdateGatheringInvoice(ctx context.Context, in billing.Gatheri
 			ClearPaymentProcessingEnteredAt().
 			ClearDraftUntil().
 			ClearIssuedAt().
-			ClearDeletedAt().
+			SetOrClearDeletedAt(convert.SafeToUTC(in.DeletedAt)).
 			ClearSentToCustomerAt().
 			ClearQuantitySnapshotedAt().
 			// Totals
@@ -140,9 +140,16 @@ func (a *adapter) UpdateGatheringInvoice(ctx context.Context, in billing.Gatheri
 			updateQuery = updateQuery.ClearCollectionAt()
 		}
 
-		updateQuery = updateQuery.
-			SetPeriodStart(in.ServicePeriod.From.In(time.UTC)).
-			SetPeriodEnd(in.ServicePeriod.To.In(time.UTC))
+		// Clear period when the invoice is soft-deleted
+		if in.DeletedAt != nil {
+			updateQuery = updateQuery.
+				ClearPeriodStart().
+				ClearPeriodEnd()
+		} else {
+			updateQuery = updateQuery.
+				SetPeriodStart(in.ServicePeriod.From.In(time.UTC)).
+				SetPeriodEnd(in.ServicePeriod.To.In(time.UTC))
+		}
 
 		// Supplier
 		updateQuery = updateQuery.

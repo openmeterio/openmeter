@@ -3688,6 +3688,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 	draftInvoice := draftInvoices[0]
 
 	s.DebugDumpInvoice("draft invoice", draftInvoice)
+	s.DebugDumpInvoice("gathering invoice - after invoicing", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
 
 	var updatedLine *billing.StandardLine
 	editedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{

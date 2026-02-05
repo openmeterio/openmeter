@@ -81,6 +81,8 @@ type GatheringInvoiceAdapter interface {
 	DeleteGatheringInvoice(ctx context.Context, input DeleteGatheringInvoiceAdapterInput) error
 	GetGatheringInvoiceById(ctx context.Context, input GetGatheringInvoiceByIdInput) (GatheringInvoice, error)
 	ListGatheringInvoices(ctx context.Context, input ListGatheringInvoicesInput) (pagination.Result[GatheringInvoice], error)
+
+	HardDeleteGatheringInvoiceLines(ctx context.Context, invoiceID InvoiceID, lineIDs []string) error
 }
 
 type InvoiceSplitLineGroupAdapter interface {

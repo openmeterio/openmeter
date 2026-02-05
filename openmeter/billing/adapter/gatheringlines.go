@@ -12,15 +12,86 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/entitydiff"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+func (a *adapter) HardDeleteGatheringInvoiceLines(ctx context.Context, invoiceID billing.InvoiceID, lineIDs []string) error {
+	if err := invoiceID.Validate(); err != nil {
+		return fmt.Errorf("validating invoice ID: %w", err)
+	}
+
+	if len(lineIDs) == 0 {
+		return nil
+	}
+
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
+		// Let's validate the delete
+		invoiceHeader, err := tx.db.BillingInvoice.Query().
+			Select(billinginvoice.FieldStatus, billinginvoice.FieldNamespace).
+			Where(billinginvoice.ID(invoiceID.ID)).
+			Where(billinginvoice.Namespace(invoiceID.Namespace)).
+			Only(ctx)
+		if err != nil {
+			return err
+		}
+
+		if invoiceHeader.Status != billing.StandardInvoiceStatusGathering {
+			return fmt.Errorf("invoice is not a gathering invoice [id=%s, namespace=%s, currency=%s]", invoiceID.ID, invoiceID.Namespace, invoiceHeader.Currency)
+		}
+
+		// Let's determine the usage based line configs to delete
+		existingLines, err := tx.db.BillingInvoiceLine.Query().
+			Where(billinginvoiceline.InvoiceID(invoiceID.ID)).
+			Where(billinginvoiceline.Namespace(invoiceID.Namespace)).
+			Where(billinginvoiceline.IDIn(lineIDs...)).
+			WithUsageBasedLine().
+			All(ctx)
+		if err != nil {
+			return err
+		}
+
+		usageBasedLineConfigIDs := lo.Map(existingLines, func(line *db.BillingInvoiceLine, _ int) string {
+			return line.Edges.UsageBasedLine.ID
+		})
+
+		nrDeleted, err := tx.db.BillingInvoiceLine.Delete().
+			Where(billinginvoiceline.InvoiceID(invoiceID.ID)).
+			Where(billinginvoiceline.Namespace(invoiceID.Namespace)).
+			Where(billinginvoiceline.IDIn(lineIDs...)).
+			Exec(ctx)
+		if err != nil {
+			return err
+		}
+
+		if nrDeleted != len(lineIDs) {
+			// Note: this causes a rollback of the transaction
+			return fmt.Errorf("failed to hard delete all gathering invoice lines [deleted=%d, linesToDelete=%d]", nrDeleted, len(lineIDs))
+		}
+
+		nrDeleted, err = tx.db.BillingInvoiceUsageBasedLineConfig.Delete().
+			Where(billinginvoiceusagebasedlineconfig.IDIn(usageBasedLineConfigIDs...)).
+			Where(billinginvoiceusagebasedlineconfig.Namespace(invoiceID.Namespace)).
+			Exec(ctx)
+		if err != nil {
+			return err
+		}
+
+		if nrDeleted != len(usageBasedLineConfigIDs) {
+			return fmt.Errorf("failed to hard delete all usage based line configs [deleted=%d, configsToDelete=%d]", nrDeleted, len(usageBasedLineConfigIDs))
+		}
+
+		return nil
+	})
+}
 
 type gatheringLineDiff struct {
 	Line entitydiff.Diff[*billing.GatheringLine]

@@ -164,6 +164,11 @@ func (s *SuiteBase) expectNoGatheringInvoice(ctx context.Context, namespace stri
 	})
 
 	s.NoError(err)
+	if len(invoices.Items) > 0 {
+		for _, invoice := range invoices.Items {
+			s.DebugDumpInvoice(fmt.Sprintf("unexpected gathering invoice[%s]", invoice.ID), invoice)
+		}
+	}
 	s.Len(invoices.Items, 0)
 }
 

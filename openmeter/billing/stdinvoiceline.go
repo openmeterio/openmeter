@@ -18,11 +18,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-const (
-	AnnotationKeyStandardInvoiceLineID = "standard_invoice_line_id"
-	AnnotationKeySourceGatheringLineID = "source_gathering_line_id"
-)
-
 // StandardLineBase represents the common fields for an invoice item.
 type StandardLineBase struct {
 	models.ManagedResource
