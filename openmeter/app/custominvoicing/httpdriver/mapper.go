@@ -64,5 +64,22 @@ func mapPaymentTriggerFromAPI(in api.CustomInvoicingPaymentTrigger) (billing.Inv
 		return "", models.NewGenericValidationError(fmt.Errorf("payment trigger is required"))
 	}
 
-	return fmt.Sprintf("trigger_%s", in), nil
+	// Map API trigger names to internal state machine triggers
+	switch in {
+	case api.CustomInvoicingPaymentTriggerPaid:
+		return billing.TriggerPaid, nil
+	case api.CustomInvoicingPaymentTriggerPaymentFailed:
+		// Note: API uses "payment_failed" but internal trigger is "failed"
+		return billing.TriggerFailed, nil
+	case api.CustomInvoicingPaymentTriggerPaymentUncollectible:
+		return billing.TriggerPaymentUncollectible, nil
+	case api.CustomInvoicingPaymentTriggerPaymentOverdue:
+		return billing.TriggerPaymentOverdue, nil
+	case api.CustomInvoicingPaymentTriggerActionRequired:
+		return billing.TriggerActionRequired, nil
+	case api.CustomInvoicingPaymentTriggerVoid:
+		return billing.TriggerVoid, nil
+	default:
+		return "", models.NewGenericValidationError(fmt.Errorf("unknown payment trigger: %s", in))
+	}
 }
