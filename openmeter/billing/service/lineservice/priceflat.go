@@ -3,17 +3,17 @@ package lineservice
 import (
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-type flatPricer struct {
-	// TODO[later]: when we introduce full pro-rating support this should be ProgressiveBillingPricer
-	NonProgressiveBillingPricer
-}
+type flatPricer struct{}
 
 var _ Pricer = (*flatPricer)(nil)
 
@@ -59,4 +59,50 @@ func (p flatPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, er
 	}
 
 	return nil, nil
+}
+
+func (p flatPricer) CanBeInvoicedAsOf(in CanBeInvoicedAsOfInput) (*timeutil.ClosedPeriod, error) {
+	if in.Line.GetSplitLineGroupID() != nil {
+		return nil, billing.ValidationError{
+			Err: billing.ErrInvoiceProgressiveBillingNotSupported,
+		}
+	}
+
+	price := in.Line.GetPrice()
+	if price == nil {
+		return nil, fmt.Errorf("price is nil")
+	}
+
+	if price.Type() != productcatalog.FlatPriceType {
+		return nil, fmt.Errorf("price is not a flat price")
+	}
+
+	flatPrice, err := price.AsFlat()
+	if err != nil {
+		return nil, fmt.Errorf("converting price to flat price: %w", err)
+	}
+
+	paymentTerm := flatPrice.PaymentTerm
+	if paymentTerm == "" {
+		paymentTerm = productcatalog.DefaultPaymentTerm
+	}
+
+	// canBeInvoicedAt is the time at which the line can be invoiced, this is not
+	// necessarily equals to the invoiceAt field of the line, as subscription sync can choose
+	// to defer the invoicing to a later time.
+	var canBeInvoicedAt time.Time
+	switch paymentTerm {
+	case productcatalog.InAdvancePaymentTerm:
+		canBeInvoicedAt = in.Line.GetServicePeriod().From
+	case productcatalog.InArrearsPaymentTerm:
+		canBeInvoicedAt = in.Line.GetServicePeriod().To
+	default:
+		return nil, fmt.Errorf("unsupported payment term: %s", paymentTerm)
+	}
+
+	if in.AsOf.Before(canBeInvoicedAt) {
+		return nil, nil
+	}
+
+	return lo.ToPtr(in.Line.GetServicePeriod()), nil
 }

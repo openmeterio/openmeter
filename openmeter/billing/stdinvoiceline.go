@@ -295,6 +295,33 @@ func (i StandardLine) Clone() *StandardLine {
 	return i.clone(cloneOptions{})
 }
 
+func (i StandardLine) GetFeatureKey() string {
+	if i.UsageBased == nil {
+		return ""
+	}
+
+	return i.UsageBased.FeatureKey
+}
+
+func (i StandardLine) GetPrice() *productcatalog.Price {
+	if i.UsageBased == nil {
+		return nil
+	}
+
+	return i.UsageBased.Price
+}
+
+func (i StandardLine) GetServicePeriod() timeutil.ClosedPeriod {
+	return timeutil.ClosedPeriod{
+		From: i.Period.Start,
+		To:   i.Period.End,
+	}
+}
+
+func (i StandardLine) GetSplitLineGroupID() *string {
+	return i.SplitLineGroupID
+}
+
 type cloneOptions struct {
 	skipDBState   bool
 	skipChildren  bool

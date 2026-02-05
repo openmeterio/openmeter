@@ -9,7 +9,7 @@ import (
 )
 
 type packagePricer struct {
-	ProgressiveBillingPricer
+	ProgressiveBillingMeteredPricer
 }
 
 var _ Pricer = (*packagePricer)(nil)

@@ -7,7 +7,7 @@ import (
 )
 
 type unitPricer struct {
-	ProgressiveBillingPricer
+	ProgressiveBillingMeteredPricer
 }
 
 var _ Pricer = (*unitPricer)(nil)

@@ -10,7 +10,7 @@ import (
 )
 
 type graduatedTieredPricer struct {
-	ProgressiveBillingPricer
+	ProgressiveBillingMeteredPricer
 }
 
 var _ Pricer = (*graduatedTieredPricer)(nil)

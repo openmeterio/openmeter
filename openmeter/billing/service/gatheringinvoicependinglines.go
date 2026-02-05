@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -108,10 +109,6 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				return nil, fmt.Errorf("customer has multiple gathering invoices for the same currency: %d", len(invoicesByCurrency))
 			}
 
-			if len(invoicesByCurrency) == 0 {
-				return nil, billing.ErrInvoiceCreateNoLines
-			}
-
 			// let's gather the in-scope lines and validate it
 			inScopeLines, err := s.gatherInScopeLines(ctx, gatherInScopeLineInput{
 				GatheringInvoicesByCurrency: invoicesByCurrency,
@@ -126,10 +123,6 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				return nil, err
 			}
 
-			if len(inScopeLines) == 0 {
-				return nil, billing.ErrInvoiceCreateNoLines
-			}
-
 			createdInvoices := make([]billing.StandardInvoice, 0, len(inScopeLines))
 
 			for currency, inScopeLines := range inScopeLines {
@@ -138,6 +131,12 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				gatheringInvoice, ok := invoicesByCurrency[currency]
 				if !ok {
 					return nil, fmt.Errorf("gathering invoice for currency [%s] not found", currency)
+				}
+
+				if len(invoicesByCurrency) == 0 {
+					return nil, &billing.ValidationError{
+						Err: billing.ErrInvoiceCreateNoLines,
+					}
 				}
 
 				createdInvoice, err := s.handleInvoicePendingLinesForCurrency(ctx, handleInvoicePendingLinesForCurrencyInput{
@@ -149,7 +148,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 					EffectiveBillingProfile: customerProfile.MergedProfile,
 				})
 				if err != nil {
-					return nil, fmt.Errorf("handling invoice pending lines for currency: %w", err)
+					return nil, err
 				}
 
 				if createdInvoice == nil {
@@ -175,12 +174,14 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 		})
 }
 
+type gatheringLineWithBillablePeriod = lineservice.LineWithBillablePeriod[*billing.StandardLine]
+
 type handleInvoicePendingLinesForCurrencyInput struct {
 	Currency                currencyx.Code
 	Customer                customer.Customer
 	GatheringInvoice        billing.StandardInvoice
 	FeatureMeters           billing.FeatureMeters
-	InScopeLines            []lineservice.LineWithBillablePeriod
+	InScopeLines            []gatheringLineWithBillablePeriod
 	EffectiveBillingProfile billing.Profile
 }
 
@@ -197,10 +198,6 @@ func (in handleInvoicePendingLinesForCurrencyInput) Validate() error {
 		return fmt.Errorf("gathering invoice: %w", err)
 	}
 
-	if len(in.InScopeLines) == 0 {
-		return fmt.Errorf("in scope lines must contain at least one line")
-	}
-
 	if in.FeatureMeters == nil {
 		return fmt.Errorf("feature meters are required")
 	}
@@ -210,7 +207,7 @@ func (in handleInvoicePendingLinesForCurrencyInput) Validate() error {
 
 func (s *Service) handleInvoicePendingLinesForCurrency(ctx context.Context, in handleInvoicePendingLinesForCurrencyInput) (*billing.StandardInvoice, error) {
 	if err := in.Validate(); err != nil {
-		return nil, fmt.Errorf("validating input: %w", err)
+		return nil, err
 	}
 
 	gatheringInvoice := in.GatheringInvoice
@@ -231,7 +228,9 @@ func (s *Service) handleInvoicePendingLinesForCurrency(ctx context.Context, in h
 	}
 
 	if len(prepareResults.LineIDsToBill) == 0 {
-		return nil, fmt.Errorf("no lines to bill")
+		return nil, billing.ValidationError{
+			Err: billing.ErrInvoiceCreateNoLines,
+		}
 	}
 
 	gatheringInvoice = prepareResults.GatheringInvoice
@@ -285,29 +284,45 @@ type gatherInScopeLineInput struct {
 	ProgressiveBilling bool
 }
 
-type gatherInScopeLinesResult map[currencyx.Code][]lineservice.LineWithBillablePeriod
+type gatherInScopeLinesResult map[currencyx.Code][]gatheringLineWithBillablePeriod
 
 func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineInput) (gatherInScopeLinesResult, error) {
 	res := make(gatherInScopeLinesResult)
 
 	billableLineIDs := make(map[string]interface{})
 
+	asOfTruncated := in.AsOf.Truncate(streaming.MinimumWindowSizeDuration)
+
 	for currency, invoice := range in.GatheringInvoicesByCurrency {
-		lineSrvs, err := lineservice.FromEntities(invoice.Invoice.Lines.OrEmpty(), invoice.FeatureMeters)
+		linesWithResolvedPeriods, err := lineservice.GetLinesWithBillablePeriods(
+			lineservice.GetLinesWithBillablePeriodsInput[*billing.StandardLine]{
+				AsOf:               in.AsOf,
+				ProgressiveBilling: in.ProgressiveBilling,
+				Lines:              invoice.Invoice.Lines.OrEmpty(),
+				FeatureMeters:      invoice.FeatureMeters,
+			})
 		if err != nil {
 			return nil, err
 		}
 
-		linesWithResolvedPeriods, err := lineSrvs.ResolveBillablePeriod(lineservice.ResolveBillablePeriodInput{
-			AsOf:               in.AsOf,
-			ProgressiveBilling: in.ProgressiveBilling,
-		})
-		if err != nil {
-			return nil, err
+		if !in.ProgressiveBilling {
+			// Somewhat of a hack: Since we are allowing subscriptions with different billing periods for ratecards, invoiceAt not necessarily equals
+			// to the line's period start and end time.
+
+			// So we have two kinds of progressive billing scenarios:
+			// 1. the line needs to be split into multiple lines
+			// 2. the line does not need to be split but it's invoiceAt is after the line's period end, when the line is technically billable, but
+			//    from the user's perspective as they are not requesting progressive billing we should not include it on the invoice.
+
+			linesWithResolvedPeriods = lo.Filter(linesWithResolvedPeriods, func(line lineservice.LineWithBillablePeriod[*billing.StandardLine], _ int) bool {
+				invoiceAtTruncated := line.Line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
+
+				return invoiceAtTruncated.Before(asOfTruncated) || invoiceAtTruncated.Equal(asOfTruncated)
+			})
 		}
 
 		for _, line := range linesWithResolvedPeriods {
-			billableLineIDs[line.ID()] = struct{}{}
+			billableLineIDs[line.Line.ID] = struct{}{}
 		}
 
 		res[currency] = linesWithResolvedPeriods
@@ -326,10 +341,8 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 		}
 
 		if len(nonBillableLineIDs) > 0 {
-			return nil, billing.NotFoundError{
-				ID:     strings.Join(nonBillableLineIDs, ","),
-				Entity: billing.EntityInvoiceLine,
-				Err:    billing.ErrInvoiceLinesNotBillable,
+			return nil, billing.ValidationError{
+				Err: fmt.Errorf("%w: %s", billing.ErrInvoiceLinesNotBillable, strings.Join(nonBillableLineIDs, ",")),
 			}
 		}
 
@@ -340,8 +353,8 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 		})
 
 		for currency, lines := range res {
-			res[currency] = lo.Filter(lines, func(line lineservice.LineWithBillablePeriod, _ int) bool {
-				_, ok := linesShouldBeIncluded[line.ID()]
+			res[currency] = lo.Filter(lines, func(line gatheringLineWithBillablePeriod, _ int) bool {
+				_, ok := linesShouldBeIncluded[line.Line.ID]
 				return ok
 			})
 
@@ -354,10 +367,63 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 	return res, nil
 }
 
+type hasInvoicableLinesInput struct {
+	Invoice       billing.StandardInvoice
+	AsOf          time.Time
+	FeatureMeters billing.FeatureMeters
+}
+
+func (i hasInvoicableLinesInput) Validate() error {
+	var errs []error
+
+	if err := i.Invoice.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invoice: %w", err))
+	}
+
+	if i.AsOf.IsZero() {
+		errs = append(errs, fmt.Errorf("asOf time must not be zero"))
+	}
+
+	if i.FeatureMeters == nil {
+		errs = append(errs, fmt.Errorf("feature meters are required"))
+	}
+
+	if i.Invoice.Status != billing.StandardInvoiceStatusGathering {
+		errs = append(errs, fmt.Errorf("invoice is not a gathering invoice"))
+	}
+
+	return errors.Join(errs...)
+}
+
+func (s *Service) hasInvoicableLines(ctx context.Context, in hasInvoicableLinesInput) (bool, error) {
+	if err := in.Validate(); err != nil {
+		return false, err
+	}
+
+	inScopeLines, err := s.gatherInScopeLines(ctx, gatherInScopeLineInput{
+		GatheringInvoicesByCurrency: map[currencyx.Code]gatheringInvoiceWithFeatureMeters{
+			in.Invoice.Currency: {
+				Invoice:       in.Invoice,
+				FeatureMeters: in.FeatureMeters,
+			},
+		},
+	})
+	if err != nil {
+		return false, fmt.Errorf("gathering in scope lines: %w", err)
+	}
+
+	res, found := inScopeLines[in.Invoice.Currency]
+	if !found {
+		return false, nil
+	}
+
+	return len(res) > 0, nil
+}
+
 type prepareLinesToBillInput struct {
 	GatheringInvoice billing.StandardInvoice
 	FeatureMeters    billing.FeatureMeters
-	InScopeLines     []lineservice.LineWithBillablePeriod
+	InScopeLines     []gatheringLineWithBillablePeriod
 }
 
 func (i prepareLinesToBillInput) Validate() error {
@@ -365,10 +431,6 @@ func (i prepareLinesToBillInput) Validate() error {
 
 	if i.GatheringInvoice.Status != billing.StandardInvoiceStatusGathering {
 		errs = append(errs, fmt.Errorf("gathering invoice is not in gathering status"))
-	}
-
-	if len(i.InScopeLines) == 0 {
-		errs = append(errs, fmt.Errorf("no lines to bill"))
 	}
 
 	if i.GatheringInvoice.Lines.IsAbsent() {
@@ -380,12 +442,12 @@ func (i prepareLinesToBillInput) Validate() error {
 	}
 
 	for _, line := range i.InScopeLines {
-		if line.InvoiceID() != i.GatheringInvoice.ID {
-			errs = append(errs, fmt.Errorf("line[%s]: line is not associated with gathering invoice[%s]", line.ID(), i.GatheringInvoice.ID))
+		if line.Line.InvoiceID != i.GatheringInvoice.ID {
+			errs = append(errs, fmt.Errorf("line[%s]: line is not associated with gathering invoice[%s]", line.Line.ID, i.GatheringInvoice.ID))
 		}
 
-		if line.Currency() != i.GatheringInvoice.Currency {
-			errs = append(errs, fmt.Errorf("line[%s]: line currency[%s] is not equal to gathering invoice currency[%s]", line.ID(), line.Currency(), i.GatheringInvoice.Currency))
+		if line.Line.Currency != i.GatheringInvoice.Currency {
+			errs = append(errs, fmt.Errorf("line[%s]: line currency[%s] is not equal to gathering invoice currency[%s]", line.Line.ID, line.Line.Currency, i.GatheringInvoice.Currency))
 		}
 	}
 
@@ -406,28 +468,28 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 
 	gatheringInvoice := input.GatheringInvoice
 
-	invoiceLines := make(lineservice.Lines, 0, len(input.InScopeLines))
+	invoiceLines := make([]*billing.StandardLine, 0, len(input.InScopeLines))
 	wasSplit := false
 
 	for _, line := range input.InScopeLines {
-		if !line.Period().Equal(line.BillablePeriod) {
+		if !line.Line.Period.ToClosedPeriod().Equal(line.BillablePeriod) {
 			// We need to split the line into multiple lines
-			if !line.Period().Start.Equal(line.BillablePeriod.Start) {
-				return nil, fmt.Errorf("line[%s]: line period start[%s] is not equal to billable period start[%s]", line.ID(), line.Period().Start, line.BillablePeriod.Start)
+			if !line.Line.Period.Start.Equal(line.BillablePeriod.From) {
+				return nil, fmt.Errorf("line[%s]: line period start[%s] is not equal to billable period start[%s]", line.Line.ID, line.Line.Period.Start, line.BillablePeriod.From)
 			}
 
 			splitLine, err := s.splitGatheringInvoiceLine(ctx, splitGatheringInvoiceLineInput{
 				GatheringInvoice: gatheringInvoice,
 				FeatureMeters:    input.FeatureMeters,
-				LineID:           line.ID(),
-				SplitAt:          line.BillablePeriod.End,
+				LineID:           line.Line.ID,
+				SplitAt:          line.BillablePeriod.To,
 			})
 			if err != nil {
-				return nil, fmt.Errorf("line[%s]: splitting line: %w", line.ID(), err)
+				return nil, fmt.Errorf("line[%s]: splitting line: %w", line.Line.ID, err)
 			}
 
 			if splitLine.PreSplitAtLine == nil {
-				s.logger.WarnContext(ctx, "pre split line is nil, we are not creating empty lines", "line", line.ID(), "period_start", line.Period().Start, "period_end", line.Period().End)
+				s.logger.WarnContext(ctx, "pre split line is nil, we are not creating empty lines", "line", line.Line.ID, "period_start", line.Line.Period.Start, "period_end", line.Line.Period.End)
 				continue
 			}
 
@@ -435,7 +497,7 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 			invoiceLines = append(invoiceLines, splitLine.PreSplitAtLine)
 			wasSplit = true
 		} else {
-			invoiceLines = append(invoiceLines, line)
+			invoiceLines = append(invoiceLines, line.Line)
 		}
 	}
 
@@ -450,7 +512,7 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 	}
 
 	return &prepareLinesToBillResult{
-		LineIDsToBill:    lo.Map(invoiceLines, func(l lineservice.Line, _ int) string { return l.ID() }),
+		LineIDsToBill:    lo.Map(invoiceLines, func(l *billing.StandardLine, _ int) string { return l.ID }),
 		GatheringInvoice: gatheringInvoice,
 	}, nil
 }
@@ -489,8 +551,8 @@ func (i splitGatheringInvoiceLineInput) Validate() error {
 }
 
 type splitGatheringInvoiceLineResult struct {
-	PreSplitAtLine   lineservice.Line
-	PostSplitAtLine  lineservice.Line
+	PreSplitAtLine   *billing.StandardLine
+	PostSplitAtLine  *billing.StandardLine
 	GatheringInvoice billing.StandardInvoice
 }
 
@@ -556,12 +618,12 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 		l.ChildUniqueReferenceID = nil
 	})
 
-	postSplitAtLineSvc, err := lineservice.FromEntity(postSplitAtLine, in.FeatureMeters)
+	postSplitAtLineEmpty, err := lineservice.IsPeriodEmptyConsideringTruncations(postSplitAtLine)
 	if err != nil {
-		return res, fmt.Errorf("creating line service: %w", err)
+		return res, fmt.Errorf("checking if post split line is empty: %w", err)
 	}
 
-	if !postSplitAtLineSvc.IsPeriodEmptyConsideringTruncations() {
+	if !postSplitAtLineEmpty {
 		if err := postSplitAtLine.Validate(); err != nil {
 			return res, fmt.Errorf("validating post split line: %w", err)
 		}
@@ -577,13 +639,13 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 
 	preSplitAtLine := line
 
-	preSplitAtLineSvc, err := lineservice.FromEntity(line, in.FeatureMeters)
+	preSplitAtLineEmpty, err := lineservice.IsPeriodEmptyConsideringTruncations(preSplitAtLine)
 	if err != nil {
-		return res, fmt.Errorf("creating line service: %w", err)
+		return res, fmt.Errorf("checking if pre split line is empty: %w", err)
 	}
 
 	// If the line became empty, due to the split, let's remove it from the gathering invoice
-	if preSplitAtLineSvc.IsPeriodEmptyConsideringTruncations() {
+	if preSplitAtLineEmpty {
 		line.DeletedAt = lo.ToPtr(clock.Now())
 	} else {
 		if err := preSplitAtLine.Validate(); err != nil {
@@ -592,8 +654,8 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 	}
 
 	return splitGatheringInvoiceLineResult{
-		PreSplitAtLine:   preSplitAtLineSvc,
-		PostSplitAtLine:  postSplitAtLineSvc,
+		PreSplitAtLine:   preSplitAtLine,
+		PostSplitAtLine:  postSplitAtLine,
 		GatheringInvoice: gatheringInvoice,
 	}, nil
 }
