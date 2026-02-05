@@ -21,13 +21,6 @@ func (l ubpFlatFeeLine) CanBeInvoicedAsOf(in CanBeInvoicedAsOfInput) (*billing.P
 }
 
 func (l ubpFlatFeeLine) calculateDetailedLines() (newDetailedLinesInput, error) {
-	pricer := &priceMutator{
-		Pricer: flatPricer{},
-		PostCalculation: []PostCalculationMutator{
-			&discountPercentageMutator{},
-		},
-	}
-
 	return pricer.Calculate(PricerCalculateInput(l))
 }
 
@@ -46,9 +39,4 @@ func (l ubpFlatFeeLine) CalculateDetailedLines() error {
 
 func (l *ubpFlatFeeLine) UpdateTotals() error {
 	return UpdateTotalsFromDetailedLines(l.line)
-}
-
-func (l ubpFlatFeeLine) IsPeriodEmptyConsideringTruncations() bool {
-	// Fee lines are not subject to truncation, and for now they can be empty (one time fees)
-	return false
 }

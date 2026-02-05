@@ -180,6 +180,24 @@ type GatheringInvoiceAvailableActions struct {
 
 type GatheringLines []GatheringLine
 
+func (l GatheringLines) GetReferencedFeatureKeys() ([]string, error) {
+	out := make([]string, 0, len(l))
+	for _, line := range l {
+
+		if line.FeatureKey == "" {
+			if line.Price.Type() != productcatalog.FlatPriceType {
+				return nil, fmt.Errorf("line[%s]: feature key is required for non-flat prices", line.ID)
+			}
+
+			continue
+		}
+
+		out = append(out, line.FeatureKey)
+	}
+
+	return lo.Uniq(out), nil
+}
+
 type GatheringInvoiceLines struct {
 	mo.Option[GatheringLines]
 }
@@ -244,6 +262,18 @@ func (l GatheringInvoiceLines) MapWithErr(fn func(GatheringLine) (GatheringLine,
 
 func (l *GatheringInvoiceLines) Append(lines ...GatheringLine) {
 	l.Option = mo.Some(append(l.OrEmpty(), lines...))
+}
+
+func (l GatheringInvoiceLines) GetByID(id string) *GatheringLine {
+	lines := l.OrEmpty()
+
+	for idx := range lines {
+		if lines[idx].ID == id {
+			return &lines[idx]
+		}
+	}
+
+	return nil
 }
 
 func NewGatheringInvoiceLines(children []GatheringLine) GatheringInvoiceLines {
@@ -390,6 +420,25 @@ func (g GatheringLine) Clone() (GatheringLine, error) {
 	}, nil
 }
 
+func (g GatheringLine) CloneAsNew(edits ...func(*GatheringLine)) (GatheringLine, error) {
+	cloned, err := g.Clone()
+	if err != nil {
+		return GatheringLine{}, fmt.Errorf("cloning line: %w", err)
+	}
+
+	cloned.ID = ""
+	cloned.CreatedAt = time.Time{}
+	cloned.UpdatedAt = time.Time{}
+	cloned.DeletedAt = nil
+	cloned.DBState = nil
+
+	for _, edit := range edits {
+		edit(&cloned)
+	}
+
+	return cloned, nil
+}
+
 func (g GatheringLine) WithoutDBState() (GatheringLine, error) {
 	clone, err := g.Clone()
 	if err != nil {
@@ -411,6 +460,14 @@ func (g GatheringLine) WithNormalizedValues() (GatheringLine, error) {
 	}
 
 	return clone, nil
+}
+
+func (g GatheringLine) GetPrice() *productcatalog.Price {
+	return g.Price.Clone()
+}
+
+func (g GatheringLine) GetServicePeriod() timeutil.ClosedPeriod {
+	return g.ServicePeriod
 }
 
 type CreatePendingInvoiceLinesInput struct {

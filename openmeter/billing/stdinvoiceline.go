@@ -660,6 +660,32 @@ func (c *StandardLines) Sort() {
 	}
 }
 
+func (i StandardLines) GetReferencedFeatureKeys() ([]string, error) {
+	out := make([]string, 0, len(i))
+
+	for _, line := range i {
+		if line.UsageBased == nil {
+			continue
+		}
+
+		if line.UsageBased.FeatureKey == "" {
+			if line.UsageBased.Price == nil {
+				return nil, fmt.Errorf("line[%s]: price is required", line.ID)
+			}
+
+			if line.UsageBased.Price.Type() != productcatalog.FlatPriceType {
+				return nil, fmt.Errorf("line[%s]: feature key is required for non-flat prices", line.ID)
+			}
+
+			continue
+		}
+
+		out = append(out, line.UsageBased.FeatureKey)
+	}
+
+	return lo.Uniq(out), nil
+}
+
 func (i StandardLine) SetDiscountExternalIDs(externalIDs map[string]string) []string {
 	foundIDs := []string{}
 

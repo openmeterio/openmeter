@@ -109,3 +109,7 @@ func (p ClosedPeriod) Truncate(resolution time.Duration) ClosedPeriod {
 func (p ClosedPeriod) Equal(other ClosedPeriod) bool {
 	return p.From.Equal(other.From) && p.To.Equal(other.To)
 }
+
+func (p ClosedPeriod) IsEmpty() bool {
+	return p.From.Equal(p.To) || p.From.After(p.To)
+}

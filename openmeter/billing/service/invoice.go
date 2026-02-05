@@ -18,12 +18,15 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
-var _ billing.InvoiceService = (*Service)(nil)
+var (
+	_ billing.StandardInvoiceService = (*Service)(nil)
+	_ billing.InvoiceService         = (*Service)(nil)
+)
 
-func (s *Service) ListInvoices(ctx context.Context, input billing.ListInvoicesInput) (billing.ListInvoicesResponse, error) {
-	invoices, err := s.adapter.ListInvoices(ctx, input)
+func (s *Service) ListStandardInvoices(ctx context.Context, input billing.ListInvoicesInput) (billing.ListStandardInvoicesResponse, error) {
+	invoices, err := s.adapter.ListStandardInvoices(ctx, input)
 	if err != nil {
-		return billing.ListInvoicesResponse{}, err
+		return billing.ListStandardInvoicesResponse{}, err
 	}
 
 	updatedInvoices, err := s.emulateStandardInvoicesGatheringInvoiceFields(ctx, invoices.Items)
@@ -38,12 +41,12 @@ func (s *Service) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 
 		invoices.Items[i], err = s.resolveWorkflowApps(ctx, invoices.Items[i])
 		if err != nil {
-			return billing.ListInvoicesResponse{}, fmt.Errorf("error resolving workflow apps [%s]: %w", invoiceID, err)
+			return billing.ListStandardInvoicesResponse{}, fmt.Errorf("error resolving workflow apps [%s]: %w", invoiceID, err)
 		}
 
 		invoices.Items[i], err = s.resolveStatusDetails(ctx, invoices.Items[i])
 		if err != nil {
-			return billing.ListInvoicesResponse{}, fmt.Errorf("error resolving status details for invoice [%s]: %w", invoiceID, err)
+			return billing.ListStandardInvoicesResponse{}, fmt.Errorf("error resolving status details for invoice [%s]: %w", invoiceID, err)
 		}
 
 		if input.Expand.RecalculateGatheringInvoice {
@@ -52,12 +55,62 @@ func (s *Service) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 				Expand:  input.Expand,
 			})
 			if err != nil {
-				return billing.ListInvoicesResponse{}, fmt.Errorf("error recalculating gathering invoice [%s]: %w", invoiceID, err)
+				return billing.ListStandardInvoicesResponse{}, fmt.Errorf("error recalculating gathering invoice [%s]: %w", invoiceID, err)
 			}
 		}
 	}
 
 	return invoices, nil
+}
+
+func (s *Service) ListInvoices(ctx context.Context, input billing.ListInvoicesInput) (billing.ListInvoicesResponse, error) {
+	invoices, err := s.adapter.ListInvoices(ctx, input)
+	if err != nil {
+		return billing.ListInvoicesResponse{}, err
+	}
+
+	for i := range invoices.Items {
+		invoiceID := invoices.Items[i].IDOrEmpty()
+
+		switch invoices.Items[i].Type() {
+		case billing.InvoiceTypeStandard:
+			standardInvoice, err := invoices.Items[i].AsStandard()
+			if err != nil {
+				return billing.ListInvoicesResponse{}, fmt.Errorf("invoice [%s]: %w", invoiceID, err)
+			}
+
+			standardInvoice, err = s.resolveStandardInvoiceFields(ctx, standardInvoice)
+			if err != nil {
+				return billing.ListInvoicesResponse{}, fmt.Errorf("invoice [%s]: %w", invoiceID, err)
+			}
+
+			invoices.Items[i] = billing.NewInvoice(standardInvoice)
+		case billing.InvoiceTypeGathering:
+			if input.Expand.RecalculateGatheringInvoice {
+				// TODO: implement this!!!
+				panic("not implemented")
+			}
+		default:
+			return billing.ListInvoicesResponse{}, fmt.Errorf("invalid invoice type: %s", invoices.Items[i].Type())
+		}
+
+	}
+
+	return invoices, nil
+}
+
+func (s *Service) resolveStandardInvoiceFields(ctx context.Context, invoice billing.StandardInvoice) (billing.StandardInvoice, error) {
+	invoice, err := s.resolveWorkflowApps(ctx, invoice)
+	if err != nil {
+		return billing.StandardInvoice{}, fmt.Errorf("resolving workflow apps: %w", err)
+	}
+
+	invoice, err = s.resolveStatusDetails(ctx, invoice)
+	if err != nil {
+		return billing.StandardInvoice{}, fmt.Errorf("status details: %w", err)
+	}
+
+	return invoice, nil
 }
 
 func (s *Service) resolveWorkflowApps(ctx context.Context, invoice billing.StandardInvoice) (billing.StandardInvoice, error) {
@@ -894,11 +947,12 @@ func (s *Service) UpsertValidationIssues(ctx context.Context, input billing.Upse
 
 func (s *Service) RecalculateGatheringInvoices(ctx context.Context, input billing.RecalculateGatheringInvoicesInput) error {
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
-		gatheringInvoices, err := s.adapter.ListInvoices(ctx, billing.ListInvoicesInput{
+		gatheringInvoices, err := s.adapter.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 			Namespaces: []string{input.Namespace},
 			Customers:  []string{input.ID},
-			Statuses:   []string{string(billing.StandardInvoiceStatusGathering)},
-			Expand:     billing.InvoiceExpand{Lines: true},
+			Expand: []billing.GatheringInvoiceExpand{
+				billing.GatheringInvoiceExpandLines,
+			},
 		})
 		if err != nil {
 			return fmt.Errorf("listing invoices: %w", err)
@@ -907,24 +961,24 @@ func (s *Service) RecalculateGatheringInvoices(ctx context.Context, input billin
 		for _, invoice := range gatheringInvoices.Items {
 			var err error
 
-			if err = s.invoiceCalculator.CalculateLegacyGatheringInvoice(&invoice); err != nil {
+			if err = s.invoiceCalculator.CalculateGatheringInvoice(&invoice); err != nil {
 				return fmt.Errorf("calculating gathering invoice: %w", err)
-			}
-
-			invoiceID := invoice.ID
-
-			invoice, err = s.updateInvoice(ctx, invoice)
-			if err != nil {
-				return fmt.Errorf("updating invoice[%s]: %w", invoiceID, err)
 			}
 
 			if invoice.Lines.NonDeletedLineCount() == 0 {
 				if err := s.adapter.DeleteGatheringInvoices(ctx, billing.DeleteGatheringInvoicesInput{
 					Namespace:  input.Namespace,
-					InvoiceIDs: []string{invoiceID},
+					InvoiceIDs: []string{invoice.ID},
 				}); err != nil {
 					return fmt.Errorf("deleting gathering invoice: %w", err)
 				}
+
+				continue
+			}
+
+			err = s.adapter.UpdateGatheringInvoice(ctx, invoice)
+			if err != nil {
+				return fmt.Errorf("updating invoice[%s]: %w", invoice.ID, err)
 			}
 		}
 
