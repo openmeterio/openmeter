@@ -85,9 +85,48 @@ Currently, we offer the following Client SDKs:
 In cases where no specific SDK is available for your preferred programming language, you can utilize the [OpenAPI definition](https://github.com/openmeterio/openmeter/blob/main/api/openapi.yaml).
 Please raise a [GitHub issue](https://github.com/openmeterio/openmeter/issues/new?assignees=&labels=area%2Fapi%2Ckind%2Ffeature&projects=&template=feature_request.yaml) to request SDK support in other languages.
 
+## Key Concepts
+
+### Multi-Tenancy
+- **Namespace** - Logical isolation boundary that segments data for multi-tenancy
+
+### Customers & Subjects
+- **Customer** - An entity representing a client who uses the service
+- **Subject** - An individual user or entity within a customer account, used for fine-grained usage tracking
+
+### Metering & Events
+- **Event** - A recorded occurrence of usage activity (e.g., API call, feature usage) with timestamp and metadata
+- **Meter** - Defines how to aggregate events (e.g., sum of API calls, unique users)
+
+### Product Catalog
+- **Feature** - A capability that can be metered and entitled
+- **Plan** - A versioned bundle of features with pricing, organized into phases
+- **Plan Phase** - A time-bounded segment within a plan with specific pricing and rate cards
+- **Addon** - Optional supplementary features that can be attached to plans or subscriptions
+- **Rate Card** - Pricing specification for a feature, defining price type, billing cadence, and discounts
+
+### Entitlements & Credits
+- **Entitlement** - Grants a customer access to a feature with optional limits and usage tracking
+- **Grant** - A credit allocation to an entitlement with amount, priority, and expiration
+
+### Subscriptions
+- **Subscription** - Links a customer to a plan with billing lifecycle and cadence
+- **Subscription Phase** - A time-bounded segment of subscription execution
+- **Subscription Item** - A billable product item within a subscription phase
+
+### Billing
+- **Billing Profile** - Configuration defining billing provider setup, tax settings, and supplier details
+- **Invoice** - A billable document generated from subscription items and usage charges
+- **Invoice Line** - A line item representing a charge (flat fee or usage-based) with quantity and pricing
+
+### Apps & Integrations
+- **App** - An installed integration/provider (e.g., Stripe) for payments, invoicing, or tax calculation
+
 ## Development
 
-**For an optimal developer experience, it is recommended to install [Nix](https://nixos.org/download.html) and [direnv](https://direnv.net/docs/installation.html).**
+### Prerequisites
+
+**Recommended:** Install [Nix](https://nixos.org/download.html) and [direnv](https://direnv.net/docs/installation.html) - the project's `flake.nix` provides all required tools automatically.
 
 <details><summary><i>Installing Nix and direnv</i></summary><br>
 
@@ -128,43 +167,129 @@ Nix may stop working after a MacOS upgrade. If it does, follow [these instructio
 <hr>
 </details>
 
-Run the dependencies:
+**Manual setup:** Go 1.23+, Docker, librdkafka, Node.js (for TypeSpec), Atlas CLI (for migrations).
+
+### Project Layout
+
+```
+api/                  # API definitions and generated code
+  spec/src/           # TypeSpec source files (API-first design)
+  client/             # Generated SDKs (Go, JS, Python)
+  v3/                 # v3 API handlers and generated code
+app/                  # Application wiring (Wire providers)
+cmd/                  # Service entry points
+openmeter/            # Core business logic packages
+pkg/                  # Shared utilities
+tools/migrate/        # Database migrations
+e2e/                  # End-to-end tests
+config.example.yaml   # Configuration reference
+```
+
+### Quick Start
 
 ```sh
+# Start dependencies (PostgreSQL, Kafka, ClickHouse)
 make up
-```
 
-Run OpenMeter:
+# Run the API server with hot-reload
+make server
 
-```sh
-make run
-```
-
-Run tests:
-
-```sh
+# In another terminal, run tests
 make test
 ```
 
-Run linters:
+Configuration is loaded from `config.yaml` (copy `config.example.yaml` to get started).
+
+### Docker Compose Profiles
+
+By default, `make up` starts core dependencies. Use `COMPOSE_PROFILES` to enable optional services:
 
 ```sh
-make lint
+# Start all services including optional ones
+COMPOSE_PROFILES=dev,redis,webhook make up
 ```
 
-### Tools
+Available profiles:
+- `dev` - ClickHouse UI and Kafka UI for debugging
+- `redis` - Redis for caching/deduplication
+- `webhook` - Svix for webhook delivery
 
-Run Docker Compose with dev profile to enable UI for Kafka and ClickHouse:
+### Services
+
+OpenMeter consists of multiple services that can be run independently:
 
 ```sh
-docker compose --profile dev up
+make server              # API server (main entry point)
+make sink-worker         # Processes events from Kafka → ClickHouse
+make balance-worker      # Manages entitlement balances
+make billing-worker      # Processes billing operations
+make notification-service # Handles webhook notifications
 ```
 
-If you are seeing ghcr.io denied error, login to ghcr.io using a GitHub personal access token:
+All services support hot-reload via [air](https://github.com/air-verse/air).
+
+### Common Commands
+
+```sh
+# Building
+make build               # Build all binaries
+make build-server        # Build specific binary
+
+# Testing
+make test                # Run tests
+make test-nocache        # Run tests bypassing cache
+make etoe                # Run e2e tests (starts own dependencies)
+
+# Linting
+make lint                # Run all linters
+make lint-go             # Run Go linter only
+make fmt                 # Auto-fix lint issues
+
+# Code Generation
+make generate            # Regenerate ent schemas + Wire DI
+make gen-api             # Regenerate TypeSpec → OpenAPI → clients
+```
+
+### Testing
+
+Tests require PostgreSQL. When running directly (not via Make):
+
+```sh
+docker compose up -d postgres
+TZ=UTC POSTGRES_HOST=127.0.0.1 go test -tags=dynamic -run TestName ./path/to/package
+```
+
+The `-tags=dynamic` flag is required to build against local librdkafka.
+
+### Code Generation
+
+OpenMeter uses code generation extensively. Never edit these files manually:
+
+- `api/openapi.yaml`, `api/v3/openapi.yaml` - Generated from TypeSpec
+- `api/api.gen.go`, `api/v3/api.gen.go` - Generated from OpenAPI
+- `openmeter/ent/db/` - Generated from ent schemas
+- `cmd/*/wire_gen.go` - Generated by Wire
+
+### Database Migrations
+
+Uses [Atlas](https://atlasgo.io/) with ent schema as source:
+
+```sh
+# Generate a new migration after changing ent schema
+atlas migrate --env local diff <migration-name>
+```
+
+Migrations are stored in `tools/migrate/migrations/`.
+
+### Troubleshooting
+
+If you see `ghcr.io denied` errors:
 
 ```sh
 docker login ghcr.io
 ```
+
+Use a GitHub personal access token with `read:packages` scope.
 
 ## Roadmap
 
