@@ -8,7 +8,6 @@ import (
 
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
-	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
@@ -174,24 +173,14 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 		return invoice, fmt.Errorf("snapshotting lines: %w", err)
 	}
 
-	inScopeLineSvcs, err := lineservice.FromEntities(inScopeLines, featureMeters)
+	hasInvoicableLines, err := s.hasInvoicableLines(ctx, hasInvoicableLinesInput{
+		Invoice:            invoice,
+		AsOf:               now,
+		ProgressiveBilling: customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling,
+		FeatureMeters:      featureMeters,
+	})
 	if err != nil {
-		return invoice, fmt.Errorf("creating line services: %w", err)
-	}
-
-	hasInvoicableLines := mo.Option[bool]{}
-	for _, lineSvc := range inScopeLineSvcs {
-		period, err := lineSvc.CanBeInvoicedAsOf(lineservice.CanBeInvoicedAsOfInput{
-			AsOf:               now,
-			ProgressiveBilling: customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling,
-		})
-		if err != nil {
-			return invoice, fmt.Errorf("checking if can be invoiced: %w", err)
-		}
-
-		if period != nil {
-			hasInvoicableLines = mo.Some(true)
-		}
+		return invoice, fmt.Errorf("checking if has invoicable lines: %w", err)
 	}
 
 	invoice.QuantitySnapshotedAt = lo.ToPtr(now)
@@ -225,7 +214,8 @@ func (s *Service) recalculateGatheringInvoice(ctx context.Context, in recalculat
 	invoice.StatusDetails = billing.StandardInvoiceStatusDetails{
 		Immutable: false,
 		AvailableActions: billing.StandardInvoiceAvailableActions{
-			Invoice: lo.If(hasInvoicableLines.IsPresent(), &billing.StandardInvoiceAvailableActionInvoiceDetails{}).Else(nil),
+			Invoice: lo.If(hasInvoicableLines,
+				&billing.StandardInvoiceAvailableActionInvoiceDetails{}).Else(nil),
 		},
 	}
 
@@ -682,23 +672,19 @@ func (s Service) checkIfLinesAreInvoicable(ctx context.Context, invoice *billing
 			if err := line.Validate(); err != nil {
 				return fmt.Errorf("validating line[%s]: %w", line.ID, err)
 			}
-
-			lineSvc, err := lineservice.FromEntity(line, featureMeters)
-			if err != nil {
-				return fmt.Errorf("creating line service: %w", err)
-			}
-
-			period, err := lineSvc.CanBeInvoicedAsOf(lineservice.CanBeInvoicedAsOfInput{
-				AsOf:               lineSvc.InvoiceAt(),
+			period, err := lineservice.ResolveBillablePeriod(lineservice.ResolveBillablePeriodInput[*billing.StandardLine]{
+				Line:               line,
+				FeatureMeters:      featureMeters,
 				ProgressiveBilling: progressiveBilling,
+				AsOf:               line.InvoiceAt,
 			})
 			if err != nil {
-				return fmt.Errorf("checking if line[%s] can be invoiced: %w", lineSvc.ID(), err)
+				return fmt.Errorf("checking if line[%s] can be invoiced: %w", line.ID, err)
 			}
 
 			if period == nil {
 				return billing.ValidationError{
-					Err: fmt.Errorf("line[%s]: %w as of %s", lineSvc.ID(), billing.ErrInvoiceLinesNotBillable, lineSvc.Period().End),
+					Err: fmt.Errorf("line[%s]: %w as of %s", line.ID, billing.ErrInvoiceLinesNotBillable, line.Period.End),
 				}
 			}
 

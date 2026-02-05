@@ -5,15 +5,15 @@ import (
 	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-type flatPricer struct {
-	// TODO[later]: when we introduce full pro-rating support this should be ProgressiveBillingPricer
-	NonProgressiveBillingPricer
-}
+type flatPricer struct{}
 
 var _ Pricer = (*flatPricer)(nil)
 
@@ -59,4 +59,23 @@ func (p flatPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, er
 	}
 
 	return nil, nil
+}
+
+func (p flatPricer) CanBeInvoicedAsOf(in CanBeInvoicedAsOfInput) (*timeutil.ClosedPeriod, error) {
+	if in.Line.GetSplitLineGroupID() != nil {
+		return nil, billing.ValidationError{
+			Err: billing.ErrInvoiceProgressiveBillingNotSupported,
+		}
+	}
+
+	// For the flat prices they are always billable but the invoiceAt signifies when the line should be
+	// actually billed.
+	invoiceAtTruncated := in.Line.GetInvoiceAt().Truncate(streaming.MinimumWindowSizeDuration)
+	asOfTruncated := in.AsOf.Truncate(streaming.MinimumWindowSizeDuration)
+
+	if invoiceAtTruncated.After(asOfTruncated) {
+		return nil, nil
+	}
+
+	return lo.ToPtr(in.Line.GetServicePeriod()), nil
 }

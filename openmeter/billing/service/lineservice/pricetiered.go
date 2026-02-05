@@ -2,9 +2,9 @@ package lineservice
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // tieredPricer is a pricer that can handle both volume and graduated tiered pricing acts as
@@ -32,18 +32,18 @@ func (p tieredPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, 
 	}
 }
 
-func (p tieredPricer) CanBeInvoicedAsOf(l usageBasedLine, asOf time.Time) (bool, error) {
-	price, err := l.line.UsageBased.Price.AsTiered()
+func (p tieredPricer) CanBeInvoicedAsOf(in CanBeInvoicedAsOfInput) (*timeutil.ClosedPeriod, error) {
+	price, err := in.Line.GetPrice().AsTiered()
 	if err != nil {
-		return false, fmt.Errorf("converting price to tiered price: %w", err)
+		return nil, fmt.Errorf("converting price to tiered price: %w", err)
 	}
 
 	switch price.Mode {
 	case productcatalog.VolumeTieredPrice:
-		return p.volume.CanBeInvoicedAsOf(l, asOf)
+		return p.volume.CanBeInvoicedAsOf(in)
 	case productcatalog.GraduatedTieredPrice:
-		return p.graduated.CanBeInvoicedAsOf(l, asOf)
+		return p.graduated.CanBeInvoicedAsOf(in)
 	default:
-		return false, fmt.Errorf("unsupported tiered price mode: %s", price.Mode)
+		return nil, fmt.Errorf("unsupported tiered price mode: %s", price.Mode)
 	}
 }

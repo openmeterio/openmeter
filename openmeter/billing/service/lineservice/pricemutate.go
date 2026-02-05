@@ -1,6 +1,6 @@
 package lineservice
 
-import "time"
+import "github.com/openmeterio/openmeter/pkg/timeutil"
 
 type priceMutator struct {
 	PreCalculation  []PreCalculationMutator
@@ -45,6 +45,6 @@ func (p *priceMutator) Calculate(l PricerCalculateInput) (newDetailedLinesInput,
 	return newDetailedLines, nil
 }
 
-func (p *priceMutator) CanBeInvoicedAsOf(l usageBasedLine, asOf time.Time) (bool, error) {
-	return p.Pricer.CanBeInvoicedAsOf(l, asOf)
+func (p *priceMutator) CanBeInvoicedAsOf(in CanBeInvoicedAsOfInput) (*timeutil.ClosedPeriod, error) {
+	return p.Pricer.CanBeInvoicedAsOf(in)
 }

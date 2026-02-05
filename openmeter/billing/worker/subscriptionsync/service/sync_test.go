@@ -426,6 +426,7 @@ func (s *SubscriptionHandlerTestSuite) TestUncollectableCollection() {
 		})
 		s.Error(err)
 		s.ErrorIs(err, billing.ErrInvoiceCreateNoLines)
+		s.ErrorAs(err, &billing.ValidationError{})
 		s.Len(invoices, 0)
 	})
 
@@ -3335,12 +3336,12 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualDeleteSync() {
 		},
 		IncludeDeletedLines: true,
 	})
+	s.NoError(err)
 
 	updatedLineFromEditedInvoice := s.getLineByChildID(editedInvoice, childUniqueReferenceID)
 	s.NotNil(updatedLineFromEditedInvoice.DeletedAt)
 	s.Equal(billing.ManuallyManagedLine, updatedLineFromEditedInvoice.ManagedBy)
 
-	s.NoError(err)
 	s.DebugDumpInvoice("edited invoice", editedInvoice)
 
 	// When resyncing the subscription
