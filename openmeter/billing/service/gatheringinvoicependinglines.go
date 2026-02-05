@@ -88,6 +88,15 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				return nil, fmt.Errorf("fetching existing gathering invoices: %w", err)
 			}
 
+			// For consistency, we want to return an error if there are no gathering invoices for the customer. Without this,
+			// the caller would get an empty slice of invoices instead of an error which is inconsistent with the error case when
+			// there are no lines that are billable.
+			if len(existingGatheringInvoices.Items) == 0 {
+				return nil, billing.ValidationError{
+					Err: billing.ErrInvoiceCreateNoLines,
+				}
+			}
+
 			invoicesByCurrency := lo.SliceToMap(existingGatheringInvoices.Items, func(i billing.StandardInvoice) (currencyx.Code, gatheringInvoiceWithFeatureMeters) {
 				return i.Currency, gatheringInvoiceWithFeatureMeters{
 					Invoice: i,
@@ -110,7 +119,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 			}
 
 			// let's gather the in-scope lines and validate it
-			inScopeLines, err := s.gatherInScopeLines(ctx, gatherInScopeLineInput{
+			inScopeLinesByCurrency, err := s.gatherInScopeLines(ctx, gatherInScopeLineInput{
 				GatheringInvoicesByCurrency: invoicesByCurrency,
 				LinesToInclude:              input.IncludePendingLines,
 				AsOf:                        asOf,
@@ -123,9 +132,9 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				return nil, err
 			}
 
-			createdInvoices := make([]billing.StandardInvoice, 0, len(inScopeLines))
+			createdInvoices := make([]billing.StandardInvoice, 0, len(inScopeLinesByCurrency))
 
-			for currency, inScopeLines := range inScopeLines {
+			for currency, inScopeLines := range inScopeLinesByCurrency {
 				// Let's first make sure we have properly split the progressively billed
 				// lines into multiple lines on the gathering invoice if needed.
 				gatheringInvoice, ok := invoicesByCurrency[currency]
@@ -133,8 +142,8 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 					return nil, fmt.Errorf("gathering invoice for currency [%s] not found", currency)
 				}
 
-				if len(invoicesByCurrency) == 0 {
-					return nil, &billing.ValidationError{
+				if len(inScopeLines) == 0 {
+					return nil, billing.ValidationError{
 						Err: billing.ErrInvoiceCreateNoLines,
 					}
 				}
@@ -407,6 +416,7 @@ func (s *Service) hasInvoicableLines(ctx context.Context, in hasInvoicableLinesI
 				FeatureMeters: in.FeatureMeters,
 			},
 		},
+		AsOf: in.AsOf,
 	})
 	if err != nil {
 		return false, fmt.Errorf("gathering in scope lines: %w", err)

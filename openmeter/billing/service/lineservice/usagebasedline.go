@@ -1,6 +1,7 @@
 package lineservice
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -78,7 +79,7 @@ func formatMaximumSpendDiscountDescription(amount alpacadecimal.Decimal) *string
 func newPricerFor(line PriceAccessor) (Pricer, error) {
 	price := line.GetPrice()
 	if price == nil {
-		return nil, fmt.Errorf("price is nil for line[%s]", line.GetFeatureKey())
+		return nil, errors.New("price is nil")
 	}
 
 	if price.Type() == productcatalog.FlatPriceType {

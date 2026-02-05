@@ -49,6 +49,8 @@ func (i PricerCalculateInput) LinePeriodQuantity() alpacadecimal.Decimal {
 type PricerCanBeInvoicedAsOfAccessor interface {
 	PriceAccessor
 	GetSplitLineGroupID() *string
+	GetInvoiceAt() time.Time
+	GetID() string
 }
 
 type CanBeInvoicedAsOfInput struct {

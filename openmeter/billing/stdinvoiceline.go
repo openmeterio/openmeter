@@ -322,6 +322,10 @@ func (i StandardLine) GetSplitLineGroupID() *string {
 	return i.SplitLineGroupID
 }
 
+func (i StandardLine) GetInvoiceAt() time.Time {
+	return i.InvoiceAt
+}
+
 type cloneOptions struct {
 	skipDBState   bool
 	skipChildren  bool

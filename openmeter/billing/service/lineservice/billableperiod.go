@@ -53,7 +53,7 @@ func GetLinesWithBillablePeriods[T PricerCanBeInvoicedAsOfAccessor](in GetLinesW
 			FeatureMeters:      in.FeatureMeters,
 		})
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("line[%s]: %w", line.GetID(), err)
 		}
 
 		if billablePeriod == nil {

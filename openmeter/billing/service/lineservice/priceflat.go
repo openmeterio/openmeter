@@ -3,13 +3,13 @@ package lineservice
 import (
 	"fmt"
 	"slices"
-	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -68,39 +68,12 @@ func (p flatPricer) CanBeInvoicedAsOf(in CanBeInvoicedAsOfInput) (*timeutil.Clos
 		}
 	}
 
-	price := in.Line.GetPrice()
-	if price == nil {
-		return nil, fmt.Errorf("price is nil")
-	}
+	// For the flat prices they are always billable but the invoiceAt signifies when the line should be
+	// actually billed.
+	invoiceAtTruncated := in.Line.GetInvoiceAt().Truncate(streaming.MinimumWindowSizeDuration)
+	asOfTruncated := in.AsOf.Truncate(streaming.MinimumWindowSizeDuration)
 
-	if price.Type() != productcatalog.FlatPriceType {
-		return nil, fmt.Errorf("price is not a flat price")
-	}
-
-	flatPrice, err := price.AsFlat()
-	if err != nil {
-		return nil, fmt.Errorf("converting price to flat price: %w", err)
-	}
-
-	paymentTerm := flatPrice.PaymentTerm
-	if paymentTerm == "" {
-		paymentTerm = productcatalog.DefaultPaymentTerm
-	}
-
-	// canBeInvoicedAt is the time at which the line can be invoiced, this is not
-	// necessarily equals to the invoiceAt field of the line, as subscription sync can choose
-	// to defer the invoicing to a later time.
-	var canBeInvoicedAt time.Time
-	switch paymentTerm {
-	case productcatalog.InAdvancePaymentTerm:
-		canBeInvoicedAt = in.Line.GetServicePeriod().From
-	case productcatalog.InArrearsPaymentTerm:
-		canBeInvoicedAt = in.Line.GetServicePeriod().To
-	default:
-		return nil, fmt.Errorf("unsupported payment term: %s", paymentTerm)
-	}
-
-	if in.AsOf.Before(canBeInvoicedAt) {
+	if invoiceAtTruncated.After(asOfTruncated) {
 		return nil, nil
 	}
 
