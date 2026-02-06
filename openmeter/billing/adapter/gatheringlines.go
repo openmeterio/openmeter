@@ -36,7 +36,7 @@ func (a *adapter) HardDeleteGatheringInvoiceLines(ctx context.Context, invoiceID
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
 		// Let's validate the delete
 		invoiceHeader, err := tx.db.BillingInvoice.Query().
-			Select(billinginvoice.FieldStatus, billinginvoice.FieldNamespace).
+			Select(billinginvoice.FieldStatus, billinginvoice.FieldNamespace, billinginvoice.FieldCurrency).
 			Where(billinginvoice.ID(invoiceID.ID)).
 			Where(billinginvoice.Namespace(invoiceID.Namespace)).
 			Only(ctx)
@@ -59,9 +59,16 @@ func (a *adapter) HardDeleteGatheringInvoiceLines(ctx context.Context, invoiceID
 			return err
 		}
 
-		usageBasedLineConfigIDs := lo.Map(existingLines, func(line *db.BillingInvoiceLine, _ int) string {
-			return line.Edges.UsageBasedLine.ID
+		usageBasedLineConfigIDs, err := slicesx.MapWithErr(existingLines, func(line *db.BillingInvoiceLine) (string, error) {
+			if line.Edges.UsageBasedLine == nil {
+				return "", fmt.Errorf("usage based line is missing [line_id=%s]", line.ID)
+			}
+
+			return line.Edges.UsageBasedLine.ID, nil
 		})
+		if err != nil {
+			return err
+		}
 
 		nrDeleted, err := tx.db.BillingInvoiceLine.Delete().
 			Where(billinginvoiceline.InvoiceID(invoiceID.ID)).

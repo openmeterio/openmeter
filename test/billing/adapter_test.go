@@ -630,7 +630,7 @@ func (s *BillingAdapterTestSuite) TestHardDeleteGatheringInvoiceLines() {
 
 	var customerEntity *customer.Customer
 
-	s.Run("Given a customer and  billing profile exists", func() {
+	s.Run("Given a customer and default billing profile exists", func() {
 		sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 		s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 

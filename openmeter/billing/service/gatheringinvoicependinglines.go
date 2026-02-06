@@ -870,10 +870,15 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("updating gathering invoice: %w", err)
 	}
 
-	// Prerequisite: we should have the split line group headers exapanded so that snapshotting can determine if the preLine
+	// Prerequisite: we should have the split line group headers expanded so that snapshotting can determine if the preLine
 	// queries are needed.
 	if err := s.resolveSplitLineGroupHeadersForLines(ctx, in.Customer.Namespace, convertResults.LinesAssociated); err != nil {
 		return nil, fmt.Errorf("resolving split line group headers for lines: %w", err)
+	}
+
+	// Let's snapshot the quantities for the lines that we have converted to standard lines so that calculations can be performed
+	if err := s.snapshotLineQuantitiesInParallel(ctx, invoice.Customer, convertResults.LinesAssociated, in.FeatureMeters); err != nil {
+		return nil, fmt.Errorf("snapshotting lines: %w", err)
 	}
 
 	// Let's persist the snapshotted values to the database as the state machine always reloads the invoice from the database to make
@@ -1111,16 +1116,16 @@ func (s *Service) removeLinesFromGatheringInvoice(ctx context.Context, invoice b
 // only the headers are needed. (e.g. don't use it for invoice calculations or usage discounts
 // will be off)
 func (s *Service) resolveSplitLineGroupHeadersForLines(ctx context.Context, ns string, lines billing.StandardLines) error {
-	if len(lines) == 0 {
-		return nil
-	}
-
 	splitLineGroupIDs := lo.Uniq(
 		lo.Filter(
 			lo.Map(lines, func(line *billing.StandardLine, _ int) string { return lo.FromPtr(line.SplitLineGroupID) }),
 			func(id string, _ int) bool { return id != "" },
 		),
 	)
+
+	if len(splitLineGroupIDs) == 0 {
+		return nil
+	}
 
 	splitLineGroupHeaders, err := s.adapter.GetSplitLineGroupHeaders(ctx, billing.GetSplitLineGroupHeadersInput{
 		Namespace:         ns,
