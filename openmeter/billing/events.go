@@ -57,7 +57,10 @@ func (e EventStandardInvoice) Validate() error {
 
 func NewEventStandardInvoice(invoice StandardInvoice) (EventStandardInvoice, error) {
 	// This causes a stack overflow
-	payload := invoice.RemoveCircularReferences()
+	payload, err := invoice.RemoveCircularReferences()
+	if err != nil {
+		return EventStandardInvoice{}, err
+	}
 
 	// Remove the Apps from the payload, as they are not json unmarshallable
 	// but either ways, the apps service should be used in workers to acquire

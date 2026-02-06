@@ -49,6 +49,12 @@ func (i InvoiceID) Validate() error {
 	return models.NamespacedID(i).Validate()
 }
 
+type GenericInvoice interface {
+	GetDeletedAt() *time.Time
+	GetID() string
+	GetInvoiceID() InvoiceID
+}
+
 type InvoiceExpand struct {
 	Preceding bool
 

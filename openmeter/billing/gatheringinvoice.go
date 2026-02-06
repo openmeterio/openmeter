@@ -89,11 +89,19 @@ func (g GatheringInvoice) WithoutDBState() (GatheringInvoice, error) {
 	return clone, nil
 }
 
-func (g GatheringInvoice) InvoiceID() InvoiceID {
+func (g GatheringInvoice) GetID() string {
+	return g.ID
+}
+
+func (g GatheringInvoice) GetInvoiceID() InvoiceID {
 	return InvoiceID{
 		Namespace: g.Namespace,
 		ID:        g.ID,
 	}
+}
+
+func (g GatheringInvoice) GetDeletedAt() *time.Time {
+	return g.DeletedAt
 }
 
 func (g GatheringInvoice) Validate() error {
@@ -449,7 +457,31 @@ func (i GatheringLineBase) GetSplitLineGroupID() *string {
 	return i.SplitLineGroupID
 }
 
-// TODO: rename to GatheringLine
+var (
+	_ GenericInvoiceLine = (*gatheringInvoiceLineGenericWrapper)(nil)
+	_ InvoiceAtAccessor  = (*gatheringInvoiceLineGenericWrapper)(nil)
+)
+
+// gatheringInvoiceLineGenericWrapper is a wrapper around a gathering line that implements the GenericInvoiceLine interface.
+// for methods that are present for the specific line type too.
+type gatheringInvoiceLineGenericWrapper struct {
+	GatheringLine
+}
+
+func (i gatheringInvoiceLineGenericWrapper) Clone() (GenericInvoiceLine, error) {
+	cloned, err := i.GatheringLine.Clone()
+	if err != nil {
+		return nil, err
+	}
+
+	return gatheringInvoiceLineGenericWrapper{GatheringLine: cloned}, nil
+}
+
+func (i gatheringInvoiceLineGenericWrapper) CloneWithoutChildren() (GenericInvoiceLine, error) {
+	// Gathering lines don't have children, so we can just clone the line (db state is preserved as with the standard lines)
+	return i.Clone()
+}
+
 type GatheringLine struct {
 	GatheringLineBase `json:",inline"`
 
@@ -509,6 +541,45 @@ func (g GatheringLine) WithNormalizedValues() (GatheringLine, error) {
 	}
 
 	return clone, nil
+}
+
+func (g GatheringLine) GetLineID() LineID {
+	return LineID{
+		Namespace: g.Namespace,
+		ID:        g.ID,
+	}
+}
+
+func (g GatheringLine) GetID() string {
+	return g.ID
+}
+
+func (g GatheringLine) GetManagedBy() InvoiceLineManagedBy {
+	return g.ManagedBy
+}
+
+func (g GatheringLine) GetAnnotations() models.Annotations {
+	return g.Annotations
+}
+
+func (g GatheringLine) SetDeletedAt(at *time.Time) {
+	g.DeletedAt = at
+}
+
+func (g GatheringLine) UpdateServicePeriod(fn func(p *timeutil.ClosedPeriod)) {
+	fn(&g.ServicePeriod)
+}
+
+func (g GatheringLine) GetInvoiceAt() time.Time {
+	return g.InvoiceAt
+}
+
+func (g GatheringLine) SetInvoiceAt(at time.Time) {
+	g.InvoiceAt = at
+}
+
+func (g GatheringLine) GetInvoiceID() string {
+	return g.InvoiceID
 }
 
 type CreatePendingInvoiceLinesInput struct {

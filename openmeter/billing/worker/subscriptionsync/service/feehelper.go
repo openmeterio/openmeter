@@ -9,14 +9,17 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
-func isFlatFee(line *billing.StandardLine) bool {
+func isFlatFee(line billing.GenericInvoiceLine) bool {
 	if line == nil {
 		return false
 	}
 
-	if line.UsageBased != nil &&
-		line.UsageBased.Price != nil &&
-		line.UsageBased.Price.Type() == productcatalog.FlatPriceType {
+	price := line.GetPrice()
+	if price == nil {
+		return false
+	}
+
+	if price.Type() == productcatalog.FlatPriceType {
 		return true
 	}
 

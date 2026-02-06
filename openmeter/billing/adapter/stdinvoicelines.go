@@ -43,11 +43,14 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 	// Validate for missing functionality (this is put here, as we should remove them from here,
 	// once we have the functionality)
 
+	clonedLines, err := inputIn.Lines.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("cloning lines: %w", err)
+	}
+
 	input := &billing.UpsertInvoiceLinesAdapterInput{
-		Namespace: inputIn.Namespace,
-		Lines: lo.Map(inputIn.Lines, func(line *billing.StandardLine, _ int) *billing.StandardLine {
-			return line.Clone()
-		}),
+		Namespace:   inputIn.Namespace,
+		Lines:       clonedLines,
 		SchemaLevel: inputIn.SchemaLevel,
 		InvoiceID:   inputIn.InvoiceID,
 	}
@@ -835,17 +838,7 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 				return billing.SplitLineHierarchy{}, err
 			}
 
-			lines, err := slicesx.MapWithErr(dbGroup.Edges.BillingInvoiceLines, func(dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
-				line, err := tx.mapStandardInvoiceLineWithoutReferences(dbLine)
-				if err != nil {
-					return billing.LineWithInvoiceHeader{}, err
-				}
-
-				return billing.LineWithInvoiceHeader{
-					Line:    line,
-					Invoice: tx.mapStandardInvoiceBaseFromDB(ctx, dbLine.Edges.BillingInvoice),
-				}, nil
-			})
+			lines, err := tx.mapSplitLineHierarchyLinesFromDB(dbGroup.Edges.BillingInvoiceLines)
 			if err != nil {
 				return billing.SplitLineHierarchy{}, err
 			}

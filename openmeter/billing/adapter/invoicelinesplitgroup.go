@@ -209,17 +209,7 @@ func (a *adapter) mapSplitLineHierarchyFromDB(ctx context.Context, dbSplitLineGr
 		return empty, err
 	}
 
-	mappedLines, err := slicesx.MapWithErr(dbSplitLineGroup.Edges.BillingInvoiceLines, func(dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
-		line, err := a.mapStandardInvoiceLineWithoutReferences(dbLine)
-		if err != nil {
-			return billing.LineWithInvoiceHeader{}, err
-		}
-
-		return billing.LineWithInvoiceHeader{
-			Line:    line,
-			Invoice: a.mapStandardInvoiceBaseFromDB(ctx, dbLine.Edges.BillingInvoice),
-		}, nil
-	})
+	mappedLines, err := a.mapSplitLineHierarchyLinesFromDB(dbSplitLineGroup.Edges.BillingInvoiceLines)
 	if err != nil {
 		return empty, err
 	}
@@ -228,6 +218,46 @@ func (a *adapter) mapSplitLineHierarchyFromDB(ctx context.Context, dbSplitLineGr
 		Group: group,
 		Lines: mappedLines,
 	}, nil
+}
+
+func (a *adapter) mapSplitLineHierarchyLinesFromDB(dbLines []*db.BillingInvoiceLine) ([]billing.LineWithInvoiceHeader, error) {
+	return slicesx.MapWithErr(dbLines, func(dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
+		switch dbLine.Edges.BillingInvoice.Status {
+		case billing.StandardInvoiceStatusGathering:
+			return a.mapSplitLineHierarchyGatheringLineFromDB(dbLine)
+		default:
+			return a.mapSplitLineHierarchyStandardLineFromDB(dbLine)
+		}
+	})
+}
+
+func (a *adapter) mapSplitLineHierarchyStandardLineFromDB(dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
+	line, err := a.mapStandardInvoiceLineWithoutReferences(dbLine)
+	if err != nil {
+		return billing.LineWithInvoiceHeader{}, err
+	}
+
+	return billing.NewLineWithInvoiceHeader(billing.StandardLineWithInvoiceHeader{
+		Line:    line,
+		Invoice: a.mapStandardInvoiceBaseFromDB(dbLine.Edges.BillingInvoice),
+	}), nil
+}
+
+func (a *adapter) mapSplitLineHierarchyGatheringLineFromDB(dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
+	line, err := a.mapGatheringInvoiceLineFromDB(dbLine.Edges.BillingInvoice.SchemaLevel, dbLine)
+	if err != nil {
+		return billing.LineWithInvoiceHeader{}, err
+	}
+
+	invoice, err := a.mapGatheringInvoiceFromDB(dbLine.Edges.BillingInvoice, billing.GatheringInvoiceExpands{})
+	if err != nil {
+		return billing.LineWithInvoiceHeader{}, err
+	}
+
+	return billing.NewLineWithInvoiceHeader(billing.GatheringLineWithInvoiceHeader{
+		Line:    line,
+		Invoice: invoice,
+	}), nil
 }
 
 // expandSplitLineHierarchy expands the given lines with their progressive line hierarchy
@@ -257,7 +287,12 @@ func (a *adapter) expandSplitLineHierarchy(ctx context.Context, namespace string
 	hierarchyByLineID := map[string]*billing.SplitLineHierarchy{}
 	for _, splitLineGroup := range splitLineGroups {
 		for _, line := range splitLineGroup.Lines {
-			hierarchyByLineID[line.Line.ID] = &splitLineGroup
+			l, err := line.AsGenericLine()
+			if err != nil {
+				return nil, err
+			}
+
+			hierarchyByLineID[l.Line.GetID()] = &splitLineGroup
 		}
 	}
 

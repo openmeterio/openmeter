@@ -153,7 +153,7 @@ func (s *Service) getDeletePatchesForLine(lineOrHierarchy billing.LineOrHierarch
 		}
 
 		return []linePatch{
-			newDeleteLinePatch(line.LineID(), line.InvoiceID),
+			newDeleteLinePatch(line.GetLineID(), line.InvoiceID),
 		}, nil
 	case billing.LineOrHierarchyTypeHierarchy:
 		group, err := lineOrHierarchy.AsHierarchy()
@@ -171,11 +171,16 @@ func (s *Service) getDeletePatchesForLine(lineOrHierarchy billing.LineOrHierarch
 		}
 
 		for _, line := range group.Lines {
-			if line.Line.DeletedAt != nil {
+			l, err := line.AsGenericLine()
+			if err != nil {
+				return nil, fmt.Errorf("getting line: %w", err)
+			}
+
+			if l.Line.GetDeletedAt() != nil {
 				continue
 			}
 
-			out = append(out, newDeleteLinePatch(line.Line.LineID(), line.Line.InvoiceID))
+			out = append(out, newDeleteLinePatch(l.Line.GetLineID(), l.Invoice.GetID()))
 		}
 
 		return out, nil
