@@ -167,7 +167,6 @@ func allocateStateMachine() *InvoiceStateMachine {
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusDraftSyncFailed).
 		OnActive(allOf(
 			out.syncDraftInvoice,
-			out.requireDBSave, // to save the external IDs returned by the app
 		))
 
 	stateMachine.Configure(billing.StandardInvoiceStatusDraftSyncFailed).
@@ -229,7 +228,6 @@ func allocateStateMachine() *InvoiceStateMachine {
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		OnActive(allOf(
 			out.finalizeInvoice,
-			out.requireDBSave, // to save the external IDs returned by the app
 		))
 
 	stateMachine.Configure(billing.StandardInvoiceStatusIssuingSyncFailed).
@@ -458,6 +456,7 @@ func (m *InvoiceStateMachine) AdvanceUntilStateStable(ctx context.Context) error
 				return fmt.Errorf("error updating invoice: %w", err)
 			}
 
+			m.NeedsDBSave = false
 			m.Invoice = updatedInvoice
 		}
 

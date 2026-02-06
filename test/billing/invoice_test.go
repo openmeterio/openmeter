@@ -2080,16 +2080,12 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 				for _, line := range i.Lines.OrEmpty() {
 					for _, detailedLine := range line.DetailedLines {
-						if detailedLine.ID == "" {
-							s.Fail("detailed line id is empty")
-						}
+						s.NotEmpty(detailedLine.ID, "detailed line id is empty")
 
 						out.AddLineExternalID(detailedLine.ID, "final_upsert_"+detailedLine.ID)
 
 						for _, discount := range detailedLine.AmountDiscounts {
-							if discount.GetID() == "" {
-								s.Fail("discount id is empty")
-							}
+							s.NotEmpty(discount.GetID(), "discount id is empty")
 
 							out.AddLineDiscountExternalID(discount.GetID(), "final_upsert_"+discount.GetID())
 						}
@@ -2136,16 +2132,12 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 			for _, line := range i.Lines.OrEmpty() {
 				for _, detailedLine := range line.DetailedLines {
-					if detailedLine.ID == "" {
-						s.Fail("detailed line id is empty")
-					}
+					s.NotEmpty(detailedLine.ID, "detailed line id is empty")
 
 					out.AddLineExternalID(detailedLine.ID, "final_upsert_"+detailedLine.ID)
 
 					for _, discount := range detailedLine.AmountDiscounts {
-						if discount.GetID() == "" {
-							s.Fail("discount id is empty")
-						}
+						s.NotEmpty(discount.GetID(), "discount id is empty")
 
 						out.AddLineDiscountExternalID(discount.GetID(), "final_upsert_"+discount.GetID())
 					}

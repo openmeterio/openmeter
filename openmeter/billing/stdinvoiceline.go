@@ -158,6 +158,15 @@ func (i SubscriptionReference) Validate() error {
 	return errors.Join(errs...)
 }
 
+func (i SubscriptionReference) Clone() *SubscriptionReference {
+	return &SubscriptionReference{
+		SubscriptionID: i.SubscriptionID,
+		PhaseID:        i.PhaseID,
+		ItemID:         i.ItemID,
+		BillingPeriod:  i.BillingPeriod,
+	}
+}
+
 type LineExternalIDs struct {
 	Invoicing string `json:"invoicing,omitempty"`
 }

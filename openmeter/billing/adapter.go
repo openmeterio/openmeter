@@ -90,6 +90,7 @@ type InvoiceSplitLineGroupAdapter interface {
 	UpdateSplitLineGroup(ctx context.Context, input UpdateSplitLineGroupInput) (SplitLineGroup, error)
 	DeleteSplitLineGroup(ctx context.Context, input DeleteSplitLineGroupInput) error
 	GetSplitLineGroup(ctx context.Context, input GetSplitLineGroupInput) (SplitLineHierarchy, error)
+	GetSplitLineGroupHeaders(ctx context.Context, input GetSplitLineGroupHeadersInput) (SplitLineGroupHeaders, error)
 }
 
 type SequenceAdapter interface {

@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -238,7 +239,7 @@ func (s *Service) handleInvoicePendingLinesForCurrency(ctx context.Context, in h
 		return nil, fmt.Errorf("lines to bill is nil")
 	}
 
-	if len(prepareResults.LineIDsToBill) == 0 {
+	if len(prepareResults.LinesToBill) == 0 {
 		return nil, billing.ValidationError{
 			Err: billing.ErrInvoiceCreateNoLines,
 		}
@@ -247,16 +248,6 @@ func (s *Service) handleInvoicePendingLinesForCurrency(ctx context.Context, in h
 	gatheringInvoice = prepareResults.GatheringInvoice
 
 	// Step 2: Let's create the standard invoice and move the lines to the new invoice.
-	// TODO: Let's get this from the gathering invoice directly, we don't need to filter again here
-	linesToBill := lo.Filter(gatheringInvoice.Lines.OrEmpty(), func(line billing.GatheringLine, _ int) bool {
-		return slices.Contains(prepareResults.LineIDsToBill, line.ID)
-	})
-
-	if len(linesToBill) != len(prepareResults.LineIDsToBill) {
-		return nil, fmt.Errorf("lines to associate[%d] must contain the same number of lines as lines to bill[%d]", len(linesToBill), len(prepareResults.LineIDsToBill))
-	}
-
-	// Let's create the invoice and associate the lines to it
 	// Invariant:
 	// - new invoice: initial calculations are done and persisted to the database
 	// - gathering invoice: lines that have been associated to the new invoice are removed from the gathering invoice
@@ -265,7 +256,7 @@ func (s *Service) handleInvoicePendingLinesForCurrency(ctx context.Context, in h
 		Currency:                in.Currency,
 		GatheringInvoice:        gatheringInvoice,
 		FeatureMeters:           in.FeatureMeters,
-		Lines:                   linesToBill,
+		Lines:                   prepareResults.LinesToBill,
 		EffectiveBillingProfile: in.EffectiveBillingProfile,
 	})
 	if err != nil {
@@ -545,7 +536,7 @@ func (i prepareLinesToBillInput) Validate() error {
 }
 
 type prepareLinesToBillResult struct {
-	LineIDsToBill    []string
+	LinesToBill      billing.GatheringLines
 	GatheringInvoice billing.GatheringInvoice
 }
 
@@ -581,7 +572,11 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 			if splitLine.PreSplitAtLine.DeletedAt != nil {
 				wasSplit = true
 
-				s.logger.WarnContext(ctx, "pre split line is nil, we are not creating empty lines", "line", line.Line.ID, "period_start", line.Line.ServicePeriod.From, "period_end", line.Line.ServicePeriod.To)
+				s.logger.WarnContext(ctx, "pre split line is nil, skipping collection",
+					"line", line.Line.ID,
+					"original_period_start", line.Line.ServicePeriod.From,
+					"original_period_end", line.Line.ServicePeriod.To,
+					"split_at", line.BillablePeriod.To)
 				continue
 			}
 
@@ -614,7 +609,7 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 	}
 
 	return &prepareLinesToBillResult{
-		LineIDsToBill:    lo.Map(invoiceLines, func(l billing.GatheringLine, _ int) string { return l.ID }),
+		LinesToBill:      invoiceLines,
 		GatheringInvoice: gatheringInvoice,
 	}, nil
 }
@@ -875,27 +870,10 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("updating gathering invoice: %w", err)
 	}
 
-	// Prerequisite: we should have the split line group hierarchies expanded on the invoice lines or the quantity snapshot will assume that the lines are not split
-	// the sideeffect of this update will be that the invoice lines will have the split line group hierarchies expanded.
-	invoice, err = s.updateInvoice(ctx, invoice)
-	if err != nil {
-		return nil, fmt.Errorf("updating target invoice: %w", err)
-	}
-
-	// Now we need to refetch the invoice lines from the invoice structure, so that we have pointers to the updated invoices lines
-	// this way the snapshotting will update the correct lines.
-	newLineIDs := lo.Map(convertResults.LinesAssociated, func(l *billing.StandardLine, _ int) string { return l.ID })
-	persistedInvoiceLines := lo.Filter(invoice.Lines.OrEmpty(), func(l *billing.StandardLine, _ int) bool {
-		return slices.Contains(newLineIDs, l.ID)
-	})
-
-	if len(persistedInvoiceLines) != len(convertResults.LinesAssociated) {
-		return nil, fmt.Errorf("number of persisted invoice lines[%d] does not match the number of converted lines[%d]", len(persistedInvoiceLines), len(convertResults.LinesAssociated))
-	}
-
-	// Let's create the sub lines as per the meters (we are not setting the QuantitySnapshotedAt field just now, to signal that this is not the final snapshot)
-	if err := s.snapshotLineQuantitiesInParallel(ctx, invoice.Customer, persistedInvoiceLines, in.FeatureMeters); err != nil {
-		return nil, fmt.Errorf("snapshotting lines: %w", err)
+	// Prerequisite: we should have the split line group headers exapanded so that snapshotting can determine if the preLine
+	// queries are needed.
+	if err := s.resolveSplitLineGroupHeadersForLines(ctx, in.Customer.Namespace, convertResults.LinesAssociated); err != nil {
+		return nil, fmt.Errorf("resolving split line group headers for lines: %w", err)
 	}
 
 	// Let's persist the snapshotted values to the database as the state machine always reloads the invoice from the database to make
@@ -1037,10 +1015,20 @@ func convertGatheringLineToNewStandardLine(line billing.GatheringLine, invoiceID
 		return nil, fmt.Errorf("cloning annotations: %w", err)
 	}
 
+	var taxConfig *productcatalog.TaxConfig
+	if line.TaxConfig != nil {
+		taxConfig = lo.ToPtr(line.TaxConfig.Clone())
+	}
+
+	var subscription *billing.SubscriptionReference
+	if line.Subscription != nil {
+		subscription = line.Subscription.Clone()
+	}
+
 	convertedLine := &billing.StandardLine{
 		StandardLineBase: billing.StandardLineBase{
 			ManagedResource: line.ManagedResource,
-			Metadata:        line.Metadata,
+			Metadata:        line.Metadata.Clone(),
 			Annotations:     clonedAnnotations,
 			ManagedBy:       line.ManagedBy,
 			InvoiceID:       invoiceID,
@@ -1052,10 +1040,10 @@ func convertGatheringLineToNewStandardLine(line billing.GatheringLine, invoiceID
 			},
 			InvoiceAt: line.InvoiceAt,
 
-			TaxConfig:              line.TaxConfig,
-			RateCardDiscounts:      line.RateCardDiscounts,
+			TaxConfig:              taxConfig,
+			RateCardDiscounts:      line.RateCardDiscounts.Clone(),
 			ChildUniqueReferenceID: line.ChildUniqueReferenceID,
-			Subscription:           line.Subscription,
+			Subscription:           subscription,
 			SplitLineGroupID:       line.SplitLineGroupID,
 		},
 		UsageBased: &billing.UsageBasedLine{
@@ -1113,6 +1101,50 @@ func (s *Service) removeLinesFromGatheringInvoice(ctx context.Context, invoice b
 	err := s.adapter.UpdateGatheringInvoice(ctx, invoice)
 	if err != nil {
 		return fmt.Errorf("updating gathering invoice: %w", err)
+	}
+
+	return nil
+}
+
+// resolveSplitLineGroupHeadersForLines resolves the split line group headers for the given lines.
+// Warning: this will not fetch the lines from the database, so only use this if you are sure that
+// only the headers are needed. (e.g. don't use it for invoice calculations or usage discounts
+// will be off)
+func (s *Service) resolveSplitLineGroupHeadersForLines(ctx context.Context, ns string, lines billing.StandardLines) error {
+	if len(lines) == 0 {
+		return nil
+	}
+
+	splitLineGroupIDs := lo.Uniq(
+		lo.Filter(
+			lo.Map(lines, func(line *billing.StandardLine, _ int) string { return lo.FromPtr(line.SplitLineGroupID) }),
+			func(id string, _ int) bool { return id != "" },
+		),
+	)
+
+	splitLineGroupHeaders, err := s.adapter.GetSplitLineGroupHeaders(ctx, billing.GetSplitLineGroupHeadersInput{
+		Namespace:         ns,
+		SplitLineGroupIDs: splitLineGroupIDs,
+	})
+	if err != nil {
+		return fmt.Errorf("getting split line group headers: %w", err)
+	}
+
+	splitLineGroupHeadersByID := lo.SliceToMap(splitLineGroupHeaders, func(header billing.SplitLineGroup) (string, billing.SplitLineGroup) { return header.ID, header })
+
+	for idx := range lines {
+		if lines[idx].SplitLineGroupID == nil {
+			continue
+		}
+
+		splitLineGroupHeader, ok := splitLineGroupHeadersByID[lo.FromPtr(lines[idx].SplitLineGroupID)]
+		if !ok {
+			return fmt.Errorf("split line group header not found for line[%s]: id[%s]", lines[idx].ID, lo.FromPtr(lines[idx].SplitLineGroupID))
+		}
+
+		lines[idx].SplitLineHierarchy = &billing.SplitLineHierarchy{
+			Group: splitLineGroupHeader,
+		}
 	}
 
 	return nil
