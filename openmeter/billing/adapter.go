@@ -81,6 +81,8 @@ type GatheringInvoiceAdapter interface {
 	DeleteGatheringInvoice(ctx context.Context, input DeleteGatheringInvoiceAdapterInput) error
 	GetGatheringInvoiceById(ctx context.Context, input GetGatheringInvoiceByIdInput) (GatheringInvoice, error)
 	ListGatheringInvoices(ctx context.Context, input ListGatheringInvoicesInput) (pagination.Result[GatheringInvoice], error)
+
+	HardDeleteGatheringInvoiceLines(ctx context.Context, invoiceID InvoiceID, lineIDs []string) error
 }
 
 type InvoiceSplitLineGroupAdapter interface {
@@ -88,6 +90,7 @@ type InvoiceSplitLineGroupAdapter interface {
 	UpdateSplitLineGroup(ctx context.Context, input UpdateSplitLineGroupInput) (SplitLineGroup, error)
 	DeleteSplitLineGroup(ctx context.Context, input DeleteSplitLineGroupInput) error
 	GetSplitLineGroup(ctx context.Context, input GetSplitLineGroupInput) (SplitLineHierarchy, error)
+	GetSplitLineGroupHeaders(ctx context.Context, input GetSplitLineGroupHeadersInput) (SplitLineGroupHeaders, error)
 }
 
 type SequenceAdapter interface {

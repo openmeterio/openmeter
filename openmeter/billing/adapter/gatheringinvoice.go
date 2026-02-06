@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -121,7 +122,7 @@ func (a *adapter) UpdateGatheringInvoice(ctx context.Context, in billing.Gatheri
 			ClearPaymentProcessingEnteredAt().
 			ClearDraftUntil().
 			ClearIssuedAt().
-			ClearDeletedAt().
+			SetOrClearDeletedAt(convert.SafeToUTC(in.DeletedAt)).
 			ClearSentToCustomerAt().
 			ClearQuantitySnapshotedAt().
 			// Totals
@@ -139,9 +140,16 @@ func (a *adapter) UpdateGatheringInvoice(ctx context.Context, in billing.Gatheri
 			updateQuery = updateQuery.ClearCollectionAt()
 		}
 
-		updateQuery = updateQuery.
-			SetPeriodStart(in.ServicePeriod.From.In(time.UTC)).
-			SetPeriodEnd(in.ServicePeriod.To.In(time.UTC))
+		// Clear period when the invoice is soft-deleted
+		if in.DeletedAt != nil {
+			updateQuery = updateQuery.
+				ClearPeriodStart().
+				ClearPeriodEnd()
+		} else {
+			updateQuery = updateQuery.
+				SetPeriodStart(in.ServicePeriod.From.In(time.UTC)).
+				SetPeriodEnd(in.ServicePeriod.To.In(time.UTC))
+		}
 
 		// Supplier
 		updateQuery = updateQuery.
@@ -215,6 +223,9 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 
 		if input.Expand.Has(billing.GatheringInvoiceExpandLines) {
 			query = query.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
+				if !input.Expand.Has(billing.GatheringInvoiceExpandDeletedLines) {
+					q = q.Where(billinginvoiceline.DeletedAtIsNil())
+				}
 				q.WithUsageBasedLine()
 			})
 		}
@@ -337,6 +348,9 @@ func (a *adapter) GetGatheringInvoiceById(ctx context.Context, input billing.Get
 
 		if input.Expand.Has(billing.GatheringInvoiceExpandLines) {
 			query = query.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
+				if !input.Expand.Has(billing.GatheringInvoiceExpandDeletedLines) {
+					q = q.Where(billinginvoiceline.DeletedAtIsNil())
+				}
 				q.WithUsageBasedLine()
 			})
 		}

@@ -344,3 +344,20 @@ func (i LineOrHierarchy) ServicePeriod() Period {
 
 	return Period{}
 }
+
+type GetSplitLineGroupHeadersInput struct {
+	Namespace         string
+	SplitLineGroupIDs []string
+}
+
+type SplitLineGroupHeaders = []SplitLineGroup
+
+func (i GetSplitLineGroupHeadersInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	return errors.Join(errs...)
+}

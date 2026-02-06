@@ -147,11 +147,13 @@ func (e GatheringInvoiceExpand) Validate() error {
 
 const (
 	GatheringInvoiceExpandLines            GatheringInvoiceExpand = "lines"
+	GatheringInvoiceExpandDeletedLines     GatheringInvoiceExpand = "deletedLines"
 	GatheringInvoiceExpandAvailableActions GatheringInvoiceExpand = "availableActions"
 )
 
 var GatheringInvoiceExpandValues = []GatheringInvoiceExpand{
 	GatheringInvoiceExpandLines,
+	GatheringInvoiceExpandDeletedLines,
 	GatheringInvoiceExpandAvailableActions,
 }
 
@@ -180,6 +182,18 @@ type GatheringInvoiceAvailableActions struct {
 
 type GatheringLines []GatheringLine
 
+func (l GatheringLines) Validate() error {
+	return errors.Join(
+		lo.Map(l, func(l GatheringLine, _ int) error {
+			err := l.Validate()
+			if err != nil {
+				return fmt.Errorf("line[%s]: %w", l.ID, err)
+			}
+			return nil
+		})...,
+	)
+}
+
 type GatheringInvoiceLines struct {
 	mo.Option[GatheringLines]
 }
@@ -189,15 +203,7 @@ func (l GatheringInvoiceLines) Validate() error {
 		return nil
 	}
 
-	return errors.Join(
-		lo.Map(l.OrEmpty(), func(l GatheringLine, _ int) error {
-			err := l.Validate()
-			if err != nil {
-				return fmt.Errorf("line[%s]: %w", l.ID, err)
-			}
-			return nil
-		})...,
-	)
+	return l.OrEmpty().Validate()
 }
 
 func (l *GatheringInvoiceLines) Sort() {
@@ -244,6 +250,54 @@ func (l GatheringInvoiceLines) MapWithErr(fn func(GatheringLine) (GatheringLine,
 
 func (l *GatheringInvoiceLines) Append(lines ...GatheringLine) {
 	l.Option = mo.Some(append(l.OrEmpty(), lines...))
+}
+
+func (l GatheringInvoiceLines) GetReferencedFeatureKeys() ([]string, error) {
+	if l.IsAbsent() {
+		return nil, nil
+	}
+
+	keys := make([]string, 0, len(l.OrEmpty()))
+	for _, line := range l.OrEmpty() {
+		if line.FeatureKey == "" {
+			continue
+		}
+
+		keys = append(keys, line.FeatureKey)
+	}
+
+	return lo.Uniq(keys), nil
+}
+
+func (l GatheringInvoiceLines) GetByID(id string) (GatheringLine, bool) {
+	if l.IsAbsent() {
+		return GatheringLine{}, false
+	}
+
+	lines := l.OrEmpty()
+	for _, line := range lines {
+		if line.ID == id {
+			return line, true
+		}
+	}
+
+	return GatheringLine{}, false
+}
+
+func (l *GatheringInvoiceLines) SetByID(line GatheringLine) error {
+	if l.IsAbsent() {
+		return fmt.Errorf("lines are absent")
+	}
+
+	lines := l.OrEmpty()
+	for i := range lines {
+		if lines[i].ID == line.ID {
+			lines[i] = line
+			return nil
+		}
+	}
+
+	return fmt.Errorf("line[%s]: line not found", line.ID)
 }
 
 func NewGatheringInvoiceLines(children []GatheringLine) GatheringInvoiceLines {
@@ -371,6 +425,30 @@ func (i GatheringLineBase) Clone() (GatheringLineBase, error) {
 	return out, nil
 }
 
+func (i GatheringLineBase) GetFeatureKey() string {
+	return i.FeatureKey
+}
+
+func (i GatheringLineBase) GetServicePeriod() timeutil.ClosedPeriod {
+	return i.ServicePeriod
+}
+
+func (i GatheringLineBase) GetPrice() *productcatalog.Price {
+	return &i.Price
+}
+
+func (i GatheringLineBase) GetID() string {
+	return i.ID
+}
+
+func (i GatheringLineBase) GetInvoiceAt() time.Time {
+	return i.InvoiceAt
+}
+
+func (i GatheringLineBase) GetSplitLineGroupID() *string {
+	return i.SplitLineGroupID
+}
+
 // TODO: rename to GatheringLine
 type GatheringLine struct {
 	GatheringLineBase `json:",inline"`
@@ -388,6 +466,26 @@ func (g GatheringLine) Clone() (GatheringLine, error) {
 		GatheringLineBase: base,
 		DBState:           g.DBState,
 	}, nil
+}
+
+func (i GatheringLine) CloneForCreate(edits ...func(*GatheringLine)) (GatheringLine, error) {
+	clone, err := i.Clone()
+	if err != nil {
+		return GatheringLine{}, fmt.Errorf("cloning line: %w", err)
+	}
+
+	clone.ID = ""
+	clone.UBPConfigID = ""
+	clone.CreatedAt = time.Time{}
+	clone.UpdatedAt = time.Time{}
+	clone.DeletedAt = nil
+	clone.DBState = nil
+
+	for _, edit := range edits {
+		edit(&clone)
+	}
+
+	return clone, nil
 }
 
 func (g GatheringLine) WithoutDBState() (GatheringLine, error) {
@@ -516,8 +614,10 @@ type ListGatheringInvoicesInput struct {
 func (i ListGatheringInvoicesInput) Validate() error {
 	var errs []error
 
-	if err := i.Page.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("page: %w", err))
+	if !lo.IsEmpty(i.Page) {
+		if err := i.Page.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("page: %w", err))
+		}
 	}
 
 	if len(i.Namespaces) == 0 {

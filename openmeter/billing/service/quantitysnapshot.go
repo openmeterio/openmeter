@@ -24,7 +24,7 @@ func (s *Service) SnapshotLineQuantity(ctx context.Context, input billing.Snapsh
 		}
 	}
 
-	featureMeters, err := s.resolveFeatureMeters(ctx, billing.StandardLines{input.Line})
+	featureMeters, err := s.resolveFeatureMeters(ctx, input.Invoice.Namespace, billing.StandardLines{input.Line})
 	if err != nil {
 		return nil, fmt.Errorf("line[%s]: %w", input.Line.ID, err)
 	}

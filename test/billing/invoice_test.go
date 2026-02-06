@@ -470,10 +470,10 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	// Then we should have the items created
 	require.NoError(s.T(), err)
 	require.Len(s.T(), res.Lines, 2)
-	line1ID := res.Lines[0].ID
-	line2ID := res.Lines[1].ID
-	require.NotEmpty(s.T(), line1ID)
-	require.NotEmpty(s.T(), line2ID)
+	gatheringLine1 := res.Lines[0]
+	gatheringLine2 := res.Lines[1]
+	require.NotEmpty(s.T(), gatheringLine1.ID)
+	require.NotEmpty(s.T(), gatheringLine2.ID)
 
 	// Expect that a single gathering invoice has been created
 	require.Equal(s.T(), res.Lines[0].InvoiceID, res.Lines[1].InvoiceID)
@@ -535,7 +535,9 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 		// Then we should have item1 added to the invoice
 		require.Len(s.T(), invoice[0].Lines.MustGet(), 1)
-		require.Equal(s.T(), line1ID, invoice[0].Lines.MustGet()[0].ID)
+		stdInvoiceLine1 := invoice[0].Lines.MustGet()[0]
+		// The standard invoice line's id must match the gathering line's id
+		require.Equal(s.T(), stdInvoiceLine1.ID, gatheringLine1.ID)
 
 		// Then we expect that the gathering invoice is still present, with item2
 		gatheringInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
@@ -545,7 +547,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		require.NoError(s.T(), err)
 		require.Nil(s.T(), gatheringInvoice.DeletedAt, "gathering invoice should be present")
 		require.Len(s.T(), gatheringInvoice.Lines.MustGet(), 1)
-		require.Equal(s.T(), line2ID, gatheringInvoice.Lines.MustGet()[0].ID)
+		require.Equal(s.T(), gatheringLine2.ID, gatheringInvoice.Lines.MustGet()[0].ID)
 
 		// We expect the freshly generated invoice to be in waiting for auto approval state
 		require.Equal(s.T(), billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice[0].Status)
@@ -567,7 +569,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
 			},
-			IncludePendingLines: mo.Some([]string{line2ID}),
+			IncludePendingLines: mo.Some([]string{gatheringLine2.ID}),
 			AsOf:                lo.ToPtr(line1IssueAt.Add(time.Minute)),
 		})
 
@@ -582,7 +584,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 				ID:        customerEntity.ID,
 				Namespace: customerEntity.Namespace,
 			},
-			IncludePendingLines: mo.Some([]string{line2ID}),
+			IncludePendingLines: mo.Some([]string{gatheringLine2.ID}),
 			AsOf:                lo.ToPtr(now),
 		})
 
@@ -592,7 +594,9 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 		// Then we should have item2 added to the invoice
 		require.Len(s.T(), invoice[0].Lines.MustGet(), 1)
-		require.Equal(s.T(), line2ID, invoice[0].Lines.MustGet()[0].ID)
+		stdInvoiceLine2 := invoice[0].Lines.MustGet()[0]
+		// The standard invoice line's id must match the gathering line's id
+		require.Equal(s.T(), stdInvoiceLine2.ID, gatheringLine2.ID)
 
 		// Then we expect that the gathering invoice is deleted and empty
 		gatheringInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
@@ -600,7 +604,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 			Expand:  billing.InvoiceExpandAll,
 		})
 		require.NoError(s.T(), err)
-		require.NotNil(s.T(), gatheringInvoice.DeletedAt, "gathering invoice should be present")
+		require.NotNil(s.T(), gatheringInvoice.DeletedAt, "gathering invoice should be deleted")
 		require.Len(s.T(), gatheringInvoice.Lines.MustGet(), 0, "deleted gathering invoice is empty")
 	})
 
@@ -1011,7 +1015,6 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				// Given that the app will return a validation error
 				mockApp.OnValidateStandardInvoice(billing.NewValidationError("test1", "validation error"))
 				calcMock.OnCalculate(nil)
-				calcMock.OnCalculateLegacyGatheringInvoice(nil)
 				calcMock.OnCalculateGatheringInvoice(nil)
 
 				// When we create a draft invoice
@@ -1244,7 +1247,6 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 				mockApp.OnFinalizeStandardInvoice(nil)
 				calcMock.OnCalculate(nil)
 				calcMock.OnCalculateGatheringInvoice(nil)
-				calcMock.OnCalculateLegacyGatheringInvoice(nil)
 
 				// When we create a draft invoice
 				invoice := s.CreateDraftInvoice(s.T(), ctx, DraftInvoiceInput{
@@ -2078,9 +2080,13 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 				for _, line := range i.Lines.OrEmpty() {
 					for _, detailedLine := range line.DetailedLines {
+						s.NotEmpty(detailedLine.ID, "detailed line id is empty")
+
 						out.AddLineExternalID(detailedLine.ID, "final_upsert_"+detailedLine.ID)
 
 						for _, discount := range detailedLine.AmountDiscounts {
+							s.NotEmpty(discount.GetID(), "discount id is empty")
+
 							out.AddLineDiscountExternalID(discount.GetID(), "final_upsert_"+discount.GetID())
 						}
 					}
@@ -2126,9 +2132,13 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 			for _, line := range i.Lines.OrEmpty() {
 				for _, detailedLine := range line.DetailedLines {
+					s.NotEmpty(detailedLine.ID, "detailed line id is empty")
+
 					out.AddLineExternalID(detailedLine.ID, "final_upsert_"+detailedLine.ID)
 
 					for _, discount := range detailedLine.AmountDiscounts {
+						s.NotEmpty(discount.GetID(), "discount id is empty")
+
 						out.AddLineDiscountExternalID(discount.GetID(), "final_upsert_"+discount.GetID())
 					}
 				}

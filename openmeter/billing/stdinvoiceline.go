@@ -158,6 +158,15 @@ func (i SubscriptionReference) Validate() error {
 	return errors.Join(errs...)
 }
 
+func (i SubscriptionReference) Clone() *SubscriptionReference {
+	return &SubscriptionReference{
+		SubscriptionID: i.SubscriptionID,
+		PhaseID:        i.PhaseID,
+		ItemID:         i.ItemID,
+		BillingPeriod:  i.BillingPeriod,
+	}
+}
+
 type LineExternalIDs struct {
 	Invoicing string `json:"invoicing,omitempty"`
 }
@@ -689,6 +698,24 @@ func (c *StandardLines) Sort() {
 	for idx := range *c {
 		(*c)[idx].SortDetailedLines()
 	}
+}
+
+func (c StandardLines) GetReferencedFeatureKeys() ([]string, error) {
+	out := make([]string, 0, len(c))
+
+	for _, line := range c {
+		if line.UsageBased == nil {
+			return nil, fmt.Errorf("usage based line is required")
+		}
+
+		if line.UsageBased.FeatureKey == "" {
+			continue
+		}
+
+		out = append(out, line.UsageBased.FeatureKey)
+	}
+
+	return lo.Uniq(out), nil
 }
 
 func (i StandardLine) SetDiscountExternalIDs(externalIDs map[string]string) []string {

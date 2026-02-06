@@ -16,6 +16,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+var _ billing.InvoiceSplitLineGroupAdapter = (*adapter)(nil)
+
 func (a *adapter) CreateSplitLineGroup(ctx context.Context, input billing.CreateSplitLineGroupAdapterInput) (billing.SplitLineGroup, error) {
 	if err := input.Validate(); err != nil {
 		return billing.SplitLineGroup{}, billing.ValidationError{
@@ -293,5 +295,32 @@ func (a *adapter) fetchAllSplitLineGroups(ctx context.Context, namespace string,
 
 	return slicesx.MapWithErr(dbSplitLineGroups, func(dbSplitLineGroup *db.BillingInvoiceSplitLineGroup) (billing.SplitLineHierarchy, error) {
 		return a.mapSplitLineHierarchyFromDB(ctx, dbSplitLineGroup)
+	})
+}
+
+func (a *adapter) GetSplitLineGroupHeaders(ctx context.Context, input billing.GetSplitLineGroupHeadersInput) (billing.SplitLineGroupHeaders, error) {
+	if err := input.Validate(); err != nil {
+		return billing.SplitLineGroupHeaders{}, billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.SplitLineGroupHeaders, error) {
+		dbSplitLineGroups, err := tx.db.BillingInvoiceSplitLineGroup.Query().
+			Where(billinginvoicesplitlinegroup.Namespace(input.Namespace)).
+			Where(billinginvoicesplitlinegroup.IDIn(input.SplitLineGroupIDs...)).
+			All(ctx)
+		if err != nil {
+			return billing.SplitLineGroupHeaders{}, err
+		}
+
+		splitLineGroups, err := slicesx.MapWithErr(dbSplitLineGroups, func(dbSplitLineGroup *db.BillingInvoiceSplitLineGroup) (billing.SplitLineGroup, error) {
+			return a.mapSplitLineGroupFromDB(dbSplitLineGroup)
+		})
+		if err != nil {
+			return billing.SplitLineGroupHeaders{}, err
+		}
+
+		return splitLineGroups, nil
 	})
 }

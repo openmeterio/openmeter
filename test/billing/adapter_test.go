@@ -17,9 +17,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type BillingAdapterTestSuite struct {
@@ -616,4 +621,242 @@ func (s *BillingAdapterTestSuite) findAmountDiscountByDescription(discounts []bi
 
 	s.T().Fatalf("discount not found: %s", description)
 	return billing.AmountLineDiscountManaged{}
+}
+
+func (s *BillingAdapterTestSuite) TestHardDeleteGatheringInvoiceLines() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-adapter-hard-delete-gathering-invoice-lines")
+	featureKey := "in-advance-payment"
+
+	var customerEntity *customer.Customer
+
+	s.Run("Given a customer and default billing profile exists", func() {
+		sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+		s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+
+		customerEntity = s.CreateTestCustomer(namespace, "test-customer")
+		s.NotNil(customerEntity)
+
+		_ = lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+			Namespace: namespace,
+			Name:      featureKey,
+			Key:       featureKey,
+		}))
+	})
+
+	var gatheringInvoice billing.GatheringInvoice
+	s.Run("Given a gathering invoice with two lines", func() {
+		periodStart := time.Now().Add(-time.Hour)
+		periodEnd := time.Now().Add(time.Hour)
+
+		res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+			Customer: customerEntity.GetID(),
+			Currency: currencyx.Code(currency.USD),
+			Lines: []billing.GatheringLine{
+				{
+					GatheringLineBase: billing.GatheringLineBase{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Namespace: namespace,
+							Name:      "Test line 1",
+						}),
+						ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+						InvoiceAt:     periodEnd,
+						ManagedBy:     billing.ManuallyManagedLine,
+						Currency:      currencyx.Code(currency.USD),
+						RateCardDiscounts: billing.Discounts{
+							Percentage: &billing.PercentageDiscount{
+								PercentageDiscount: productcatalog.PercentageDiscount{
+									Percentage: models.NewPercentage(10),
+								},
+							},
+						},
+						FeatureKey: featureKey,
+						Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount: alpacadecimal.NewFromFloat(100),
+						})),
+					},
+				},
+				{
+					GatheringLineBase: billing.GatheringLineBase{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Namespace: namespace,
+							Name:      "Test line 2",
+						}),
+						ServicePeriod: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+						InvoiceAt:     periodEnd,
+						ManagedBy:     billing.ManuallyManagedLine,
+						Currency:      currencyx.Code(currency.USD),
+						RateCardDiscounts: billing.Discounts{
+							Percentage: &billing.PercentageDiscount{
+								PercentageDiscount: productcatalog.PercentageDiscount{
+									Percentage: models.NewPercentage(10),
+								},
+							},
+						},
+						FeatureKey: featureKey,
+						Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount: alpacadecimal.NewFromFloat(100),
+						})),
+					},
+				},
+			},
+		})
+		s.NoError(err)
+
+		gatheringInvoice = res.Invoice
+	})
+
+	var (
+		deletedLine                     billing.GatheringLine
+		gatheringInvoiceWithDeletedLine billing.GatheringInvoice
+	)
+	s.Run("When we hard delete one of the lines", func() {
+		deletedLine = gatheringInvoice.Lines.OrEmpty()[0]
+		err := s.BillingAdapter.HardDeleteGatheringInvoiceLines(ctx, gatheringInvoice.InvoiceID(), []string{deletedLine.ID})
+		s.NoError(err)
+
+		gatheringInvoice, err = s.BillingAdapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+			Invoice: gatheringInvoice.InvoiceID(),
+			Expand:  billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
+		})
+		s.NoError(err)
+		gatheringInvoiceWithDeletedLine = gatheringInvoice
+	})
+
+	s.Run("Then the gathering invoice has only one line", func() {
+		s.Len(gatheringInvoiceWithDeletedLine.Lines.OrEmpty(), 1)
+		s.NotEqual(deletedLine.ID, gatheringInvoice.Lines.OrEmpty()[0].ID)
+	})
+
+	s.Run("Then the deleted line's usage based config is also deleted", func() {
+		s.NotEmpty(deletedLine.UBPConfigID)
+
+		_, err := s.DBClient.BillingInvoiceUsageBasedLineConfig.Query().
+			Where(billinginvoiceusagebasedlineconfig.ID(deletedLine.UBPConfigID)).
+			Only(ctx)
+
+		s.Error(err)
+		s.True(db.IsNotFound(err))
+	})
+}
+
+func (s *BillingAdapterTestSuite) TestHardDeleteGatheringInvoiceLinesNegative() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-adapter-hard-delete-gathering-invoice-lines-negative")
+	featureKey := "in-advance-payment"
+
+	now := lo.Must(time.Parse(time.RFC3339, "2026-01-01T00:00:00Z"))
+	clock.SetTime(now)
+	defer clock.ResetTime()
+
+	var customerEntity *customer.Customer
+
+	s.Run("Given a customer and  billing profile exists", func() {
+		sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+		s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+
+		customerEntity = s.CreateTestCustomer(namespace, "test-customer")
+		s.NotNil(customerEntity)
+
+		_ = lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+			Namespace: namespace,
+			Name:      featureKey,
+			Key:       featureKey,
+		}))
+	})
+
+	var (
+		gatheringInvoice billing.GatheringInvoice
+		standardInvoice  billing.StandardInvoice
+	)
+
+	s.Run("Given a gathering invoice with two lines", func() {
+		line1PeriodStart := lo.Must(time.Parse(time.RFC3339, "2026-01-01T00:00:00Z"))
+		line1PeriodEnd := line1PeriodStart.Add(time.Hour)
+
+		line2PeriodStart := lo.Must(time.Parse(time.RFC3339, "2026-01-01T01:00:00Z"))
+		line2PeriodEnd := line2PeriodStart.Add(time.Hour)
+
+		createdPendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+			Customer: customerEntity.GetID(),
+			Currency: currencyx.Code(currency.USD),
+			Lines: []billing.GatheringLine{
+				{
+					GatheringLineBase: billing.GatheringLineBase{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Namespace: namespace,
+							Name:      "Test line 1",
+						}),
+						ServicePeriod: timeutil.ClosedPeriod{From: line1PeriodStart, To: line1PeriodEnd},
+						InvoiceAt:     line1PeriodStart,
+						ManagedBy:     billing.ManuallyManagedLine,
+						Currency:      currencyx.Code(currency.USD),
+						RateCardDiscounts: billing.Discounts{
+							Percentage: &billing.PercentageDiscount{
+								PercentageDiscount: productcatalog.PercentageDiscount{
+									Percentage: models.NewPercentage(10),
+								},
+							},
+						},
+						FeatureKey: featureKey,
+						Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      alpacadecimal.NewFromFloat(100),
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						})),
+					},
+				},
+				{
+					GatheringLineBase: billing.GatheringLineBase{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Namespace: namespace,
+							Name:      "Test line 2",
+						}),
+						ServicePeriod: timeutil.ClosedPeriod{From: line2PeriodStart, To: line2PeriodEnd},
+						InvoiceAt:     line2PeriodStart,
+						ManagedBy:     billing.ManuallyManagedLine,
+						Currency:      currencyx.Code(currency.USD),
+						RateCardDiscounts: billing.Discounts{
+							Percentage: &billing.PercentageDiscount{
+								PercentageDiscount: productcatalog.PercentageDiscount{
+									Percentage: models.NewPercentage(10),
+								},
+							},
+						},
+						FeatureKey: featureKey,
+						Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      alpacadecimal.NewFromFloat(100),
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						})),
+					},
+				},
+			},
+		})
+		s.NoError(err)
+
+		standardInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: customerEntity.GetID(),
+		})
+		s.NoError(err)
+		s.Len(standardInvoices, 1)
+
+		standardInvoice = standardInvoices[0]
+
+		gatheringInvoice, err = s.BillingAdapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+			Invoice: createdPendingLines.Invoice.InvoiceID(),
+			Expand:  billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
+		})
+		s.NoError(err)
+		s.NotNil(gatheringInvoice)
+		s.Len(gatheringInvoice.Lines.OrEmpty(), 1)
+	})
+
+	s.Run("When we try to hard delete a line from the standard invoice then we fail", func() {
+		err := s.BillingAdapter.HardDeleteGatheringInvoiceLines(ctx, standardInvoice.InvoiceID(), []string{standardInvoice.Lines.OrEmpty()[0].ID})
+		s.Error(err)
+	})
+
+	s.Run("When we try to delete a line that does not belong to the invoice then we fail", func() {
+		err := s.BillingAdapter.HardDeleteGatheringInvoiceLines(ctx, gatheringInvoice.InvoiceID(), []string{standardInvoice.Lines.OrEmpty()[0].ID})
+		s.Error(err)
+	})
 }

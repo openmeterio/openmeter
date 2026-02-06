@@ -498,7 +498,7 @@ func (s *Service) hierarchyHasAnnotation(hierarchy *billing.SplitLineHierarchy, 
 
 	// The correction can only happen if the last line the progressively billed group is in scope for the period correction
 	for _, line := range hierarchy.Lines {
-		if line.Line.Period.End.Equal(servicePeriod.End) {
+		if line.Line.Period.End.Equal(servicePeriod.End) && line.Line.DeletedAt == nil {
 			return s.lineHasAnnotation(line.Line, annotation)
 		}
 	}

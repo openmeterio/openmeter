@@ -12,32 +12,25 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
-func (s *Service) resolveFeatureMeters(ctx context.Context, lines billing.StandardLines) (billing.FeatureMeters, error) {
-	namespaces := lo.Uniq(lo.Map(lines, func(line *billing.StandardLine, _ int) string {
-		return line.Namespace
-	}))
+type linesFeatureGetter interface {
+	GetReferencedFeatureKeys() ([]string, error)
+}
 
-	if len(namespaces) != 1 {
-		return nil, fmt.Errorf("all lines must be in the same namespace")
+func (s *Service) resolveFeatureMeters(ctx context.Context, namespace string, lines linesFeatureGetter) (billing.FeatureMeters, error) {
+	if namespace == "" {
+		return nil, fmt.Errorf("namespace is required")
 	}
 
-	namespace := namespaces[0]
+	featureKeys, err := lines.GetReferencedFeatureKeys()
+	if err != nil {
+		return nil, fmt.Errorf("getting referenced feature keys: %w", err)
+	}
 
-	featuresToResolve := lo.Uniq(
-		lo.Filter(
-			lo.Map(lines, func(line *billing.StandardLine, _ int) string {
-				// Never happens, as StandardLine is always a usage based line, but until we migrate to a new table let's keep it here
-				if line.UsageBased == nil {
-					return ""
-				}
+	if len(featureKeys) == 0 {
+		return billing.FeatureMeters{}, nil
+	}
 
-				return line.UsageBased.FeatureKey
-			}),
-			func(featureKey string, _ int) bool {
-				return featureKey != ""
-			},
-		),
-	)
+	featuresToResolve := lo.Uniq(featureKeys)
 
 	// Let's resolve the features
 	features, err := s.featureService.ListFeatures(ctx, feature.ListFeaturesParams{

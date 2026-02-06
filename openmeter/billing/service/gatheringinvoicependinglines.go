@@ -14,9 +14,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // InvoicePendingLines invoices the pending lines for the customer.
@@ -76,12 +80,11 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 			asOf := lo.FromPtrOr(input.AsOf, clock.Now())
 
 			// let's fetch the existing gathering invoices for the customer
-			existingGatheringInvoices, err := s.ListInvoices(ctx, billing.ListInvoicesInput{
-				Namespaces:       []string{input.Customer.Namespace},
-				Customers:        []string{input.Customer.ID},
-				ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
-				Expand: billing.InvoiceExpand{
-					Lines: true,
+			existingGatheringInvoices, err := s.adapter.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+				Namespaces: []string{input.Customer.Namespace},
+				Customers:  []string{input.Customer.ID},
+				Expand: billing.GatheringInvoiceExpands{
+					billing.GatheringInvoiceExpandLines,
 				},
 			})
 			if err != nil {
@@ -97,7 +100,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				}
 			}
 
-			invoicesByCurrency := lo.SliceToMap(existingGatheringInvoices.Items, func(i billing.StandardInvoice) (currencyx.Code, gatheringInvoiceWithFeatureMeters) {
+			invoicesByCurrency := lo.SliceToMap(existingGatheringInvoices.Items, func(i billing.GatheringInvoice) (currencyx.Code, gatheringInvoiceWithFeatureMeters) {
 				return i.Currency, gatheringInvoiceWithFeatureMeters{
 					Invoice: i,
 				}
@@ -105,7 +108,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 
 			// Let's resolve the feature meters for each gathering invoice line for downstream calculations.
 			for currency, gatheringInvoiceWithCurrency := range invoicesByCurrency {
-				featureMeters, err := s.resolveFeatureMeters(ctx, invoicesByCurrency[currency].Invoice.Lines.OrEmpty())
+				featureMeters, err := s.resolveFeatureMeters(ctx, input.Customer.Namespace, invoicesByCurrency[currency].Invoice.Lines)
 				if err != nil {
 					return nil, fmt.Errorf("resolving feature meters: %w", err)
 				}
@@ -183,12 +186,12 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 		})
 }
 
-type gatheringLineWithBillablePeriod = lineservice.LineWithBillablePeriod[*billing.StandardLine]
+type gatheringLineWithBillablePeriod = lineservice.LineWithBillablePeriod[billing.GatheringLine]
 
 type handleInvoicePendingLinesForCurrencyInput struct {
 	Currency                currencyx.Code
 	Customer                customer.Customer
-	GatheringInvoice        billing.StandardInvoice
+	GatheringInvoice        billing.GatheringInvoice
 	FeatureMeters           billing.FeatureMeters
 	InScopeLines            []gatheringLineWithBillablePeriod
 	EffectiveBillingProfile billing.Profile
@@ -236,7 +239,7 @@ func (s *Service) handleInvoicePendingLinesForCurrency(ctx context.Context, in h
 		return nil, fmt.Errorf("lines to bill is nil")
 	}
 
-	if len(prepareResults.LineIDsToBill) == 0 {
+	if len(prepareResults.LinesToBill) == 0 {
 		return nil, billing.ValidationError{
 			Err: billing.ErrInvoiceCreateNoLines,
 		}
@@ -245,15 +248,6 @@ func (s *Service) handleInvoicePendingLinesForCurrency(ctx context.Context, in h
 	gatheringInvoice = prepareResults.GatheringInvoice
 
 	// Step 2: Let's create the standard invoice and move the lines to the new invoice.
-	linesToBill := lo.Filter(gatheringInvoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
-		return slices.Contains(prepareResults.LineIDsToBill, line.ID)
-	})
-
-	if len(linesToBill) != len(prepareResults.LineIDsToBill) {
-		return nil, fmt.Errorf("lines to associate[%d] must contain the same number of lines as lines to bill[%d]", len(linesToBill), len(prepareResults.LineIDsToBill))
-	}
-
-	// Let's create the invoice and associate the lines to it
 	// Invariant:
 	// - new invoice: initial calculations are done and persisted to the database
 	// - gathering invoice: lines that have been associated to the new invoice are removed from the gathering invoice
@@ -262,25 +256,22 @@ func (s *Service) handleInvoicePendingLinesForCurrency(ctx context.Context, in h
 		Currency:                in.Currency,
 		GatheringInvoice:        gatheringInvoice,
 		FeatureMeters:           in.FeatureMeters,
-		Lines:                   linesToBill,
+		Lines:                   prepareResults.LinesToBill,
 		EffectiveBillingProfile: in.EffectiveBillingProfile,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating standard invoice and associating lines: %w", err)
 	}
 
-	gatheringInvoice = createStandardInvoiceResult.GatheringInvoice
-
-	_, err = s.updateGatheringInvoice(ctx, gatheringInvoice)
-	if err != nil {
-		return nil, fmt.Errorf("updating gathering invoice: %w", err)
+	if createStandardInvoiceResult == nil {
+		return nil, fmt.Errorf("created invoice is nil")
 	}
 
-	return &createStandardInvoiceResult.CreatedInvoice, nil
+	return createStandardInvoiceResult, nil
 }
 
 type gatheringInvoiceWithFeatureMeters struct {
-	Invoice       billing.StandardInvoice
+	Invoice       billing.GatheringInvoice
 	FeatureMeters billing.FeatureMeters
 }
 
@@ -304,7 +295,7 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 
 	for currency, invoice := range in.GatheringInvoicesByCurrency {
 		linesWithResolvedPeriods, err := lineservice.GetLinesWithBillablePeriods(
-			lineservice.GetLinesWithBillablePeriodsInput[*billing.StandardLine]{
+			lineservice.GetLinesWithBillablePeriodsInput[billing.GatheringLine]{
 				AsOf:               in.AsOf,
 				ProgressiveBilling: in.ProgressiveBilling,
 				Lines:              invoice.Invoice.Lines.OrEmpty(),
@@ -323,7 +314,7 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 			// 2. the line does not need to be split but it's invoiceAt is after the line's period end, when the line is technically billable, but
 			//    from the user's perspective as they are not requesting progressive billing we should not include it on the invoice.
 
-			linesWithResolvedPeriods = lo.Filter(linesWithResolvedPeriods, func(line lineservice.LineWithBillablePeriod[*billing.StandardLine], _ int) bool {
+			linesWithResolvedPeriods = lo.Filter(linesWithResolvedPeriods, func(line lineservice.LineWithBillablePeriod[billing.GatheringLine], _ int) bool {
 				invoiceAtTruncated := line.Line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
 				return invoiceAtTruncated.Before(asOfTruncated) || invoiceAtTruncated.Equal(asOfTruncated)
@@ -410,10 +401,16 @@ func (s *Service) hasInvoicableLines(ctx context.Context, in hasInvoicableLinesI
 		return false, err
 	}
 
+	// TODO: Remove once we have the Union type for generic invoice queries
+	gatheringInvoice, err := convertStandardInvoiceToGatheringInvoice(in.Invoice)
+	if err != nil {
+		return false, fmt.Errorf("converting standard invoice to gathering invoice: %w", err)
+	}
+
 	inScopeLines, err := s.gatherInScopeLines(ctx, gatherInScopeLineInput{
 		GatheringInvoicesByCurrency: map[currencyx.Code]gatheringInvoiceWithFeatureMeters{
-			in.Invoice.Currency: {
-				Invoice:       in.Invoice,
+			gatheringInvoice.Currency: {
+				Invoice:       gatheringInvoice,
 				FeatureMeters: in.FeatureMeters,
 			},
 		},
@@ -432,18 +429,90 @@ func (s *Service) hasInvoicableLines(ctx context.Context, in hasInvoicableLinesI
 	return len(res) > 0, nil
 }
 
+func convertStandardInvoiceToGatheringInvoice(invoice billing.StandardInvoice) (billing.GatheringInvoice, error) {
+	// TODO: Remove once we have the Union type for generic invoice queries
+
+	lines := billing.GatheringInvoiceLines{}
+	if invoice.Lines.IsPresent() {
+		gatheringLines, err := slicesx.MapWithErr(invoice.Lines.OrEmpty(), func(l *billing.StandardLine) (billing.GatheringLine, error) {
+			if l.UsageBased == nil {
+				return billing.GatheringLine{}, fmt.Errorf("usage based line is required")
+			}
+
+			if l.UsageBased.Price == nil {
+				return billing.GatheringLine{}, fmt.Errorf("usage based line price is required")
+			}
+
+			return billing.GatheringLine{
+				GatheringLineBase: billing.GatheringLineBase{
+					ManagedResource: l.ManagedResource,
+					Metadata:        l.Metadata,
+					Annotations:     l.Annotations,
+					ManagedBy:       l.ManagedBy,
+					InvoiceID:       l.InvoiceID,
+					Currency:        l.Currency,
+					ServicePeriod: timeutil.ClosedPeriod{
+						From: l.Period.Start,
+						To:   l.Period.End,
+					},
+					InvoiceAt:              l.InvoiceAt,
+					Price:                  lo.FromPtr(l.UsageBased.Price),
+					FeatureKey:             l.UsageBased.FeatureKey,
+					TaxConfig:              l.TaxConfig,
+					RateCardDiscounts:      l.RateCardDiscounts,
+					ChildUniqueReferenceID: l.ChildUniqueReferenceID,
+					Subscription:           l.Subscription,
+
+					UBPConfigID:      l.UsageBased.ConfigID,
+					SplitLineGroupID: l.SplitLineGroupID,
+				},
+			}, nil
+		})
+		if err != nil {
+			return billing.GatheringInvoice{}, fmt.Errorf("mapping lines: %w", err)
+		}
+
+		lines = billing.NewGatheringInvoiceLines(gatheringLines)
+	}
+
+	return billing.GatheringInvoice{
+		GatheringInvoiceBase: billing.GatheringInvoiceBase{
+			ManagedResource: models.ManagedResource{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: invoice.Namespace,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: invoice.CreatedAt,
+					UpdatedAt: invoice.UpdatedAt,
+					DeletedAt: invoice.DeletedAt,
+				},
+				ID:          invoice.ID,
+				Name:        invoice.Number,
+				Description: invoice.Description,
+			},
+			Metadata:   invoice.Metadata,
+			Number:     invoice.Number,
+			CustomerID: invoice.Customer.CustomerID,
+			Currency:   invoice.Currency,
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: invoice.Period.Start,
+				To:   invoice.Period.End,
+			},
+			NextCollectionAt: lo.FromPtrOr(invoice.CollectionAt, clock.Now()),
+			SchemaLevel:      invoice.SchemaLevel,
+		},
+		Lines: lines,
+	}, nil
+}
+
 type prepareLinesToBillInput struct {
-	GatheringInvoice billing.StandardInvoice
+	GatheringInvoice billing.GatheringInvoice
 	FeatureMeters    billing.FeatureMeters
 	InScopeLines     []gatheringLineWithBillablePeriod
 }
 
 func (i prepareLinesToBillInput) Validate() error {
 	var errs []error
-
-	if i.GatheringInvoice.Status != billing.StandardInvoiceStatusGathering {
-		errs = append(errs, fmt.Errorf("gathering invoice is not in gathering status"))
-	}
 
 	if i.GatheringInvoice.Lines.IsAbsent() {
 		errs = append(errs, fmt.Errorf("gathering invoice must have lines expanded"))
@@ -467,8 +536,8 @@ func (i prepareLinesToBillInput) Validate() error {
 }
 
 type prepareLinesToBillResult struct {
-	LineIDsToBill    []string
-	GatheringInvoice billing.StandardInvoice
+	LinesToBill      billing.GatheringLines
+	GatheringInvoice billing.GatheringInvoice
 }
 
 // prepareLinesToBill prepares the lines to be billed from the gathering invoice, if needed
@@ -480,14 +549,14 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 
 	gatheringInvoice := input.GatheringInvoice
 
-	invoiceLines := make([]*billing.StandardLine, 0, len(input.InScopeLines))
+	invoiceLines := make([]billing.GatheringLine, 0, len(input.InScopeLines))
 	wasSplit := false
 
 	for _, line := range input.InScopeLines {
-		if !line.Line.Period.ToClosedPeriod().Equal(line.BillablePeriod) {
+		if !line.Line.ServicePeriod.Equal(line.BillablePeriod) {
 			// We need to split the line into multiple lines
-			if !line.Line.Period.Start.Equal(line.BillablePeriod.From) {
-				return nil, fmt.Errorf("line[%s]: line period start[%s] is not equal to billable period start[%s]", line.Line.ID, line.Line.Period.Start, line.BillablePeriod.From)
+			if !line.Line.ServicePeriod.From.Equal(line.BillablePeriod.From) {
+				return nil, fmt.Errorf("line[%s]: line period start[%s] is not equal to billable period start[%s]", line.Line.ID, line.Line.ServicePeriod.From, line.BillablePeriod.From)
 			}
 
 			splitLine, err := s.splitGatheringInvoiceLine(ctx, splitGatheringInvoiceLineInput{
@@ -500,12 +569,14 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 				return nil, fmt.Errorf("line[%s]: splitting line: %w", line.Line.ID, err)
 			}
 
-			if splitLine.PreSplitAtLine == nil || splitLine.PreSplitAtLine.DeletedAt != nil {
-				if splitLine.PreSplitAtLine != nil {
-					wasSplit = true
-				}
+			if splitLine.PreSplitAtLine.DeletedAt != nil {
+				wasSplit = true
 
-				s.logger.WarnContext(ctx, "pre split line is nil, we are not creating empty lines", "line", line.Line.ID, "period_start", line.Line.Period.Start, "period_end", line.Line.Period.End)
+				s.logger.WarnContext(ctx, "pre split line is nil, skipping collection",
+					"line", line.Line.ID,
+					"original_period_start", line.Line.ServicePeriod.From,
+					"original_period_end", line.Line.ServicePeriod.To,
+					"split_at", line.BillablePeriod.To)
 				continue
 			}
 
@@ -519,22 +590,32 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 
 	if wasSplit {
 		// Let's update the gathering invoice to contain the new lines that we have split
-		updatedInvoice, err := s.adapter.UpdateInvoice(ctx, gatheringInvoice)
+		err := s.adapter.UpdateGatheringInvoice(ctx, gatheringInvoice)
 		if err != nil {
 			return nil, fmt.Errorf("updating gathering invoice: %w", err)
+		}
+
+		updatedInvoice, err := s.adapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+			Invoice: gatheringInvoice.InvoiceID(),
+			Expand: billing.GatheringInvoiceExpands{
+				billing.GatheringInvoiceExpandLines,
+			},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("getting gathering invoice: %w", err)
 		}
 
 		gatheringInvoice = updatedInvoice
 	}
 
 	return &prepareLinesToBillResult{
-		LineIDsToBill:    lo.Map(invoiceLines, func(l *billing.StandardLine, _ int) string { return l.ID }),
+		LinesToBill:      invoiceLines,
 		GatheringInvoice: gatheringInvoice,
 	}, nil
 }
 
 type splitGatheringInvoiceLineInput struct {
-	GatheringInvoice billing.StandardInvoice
+	GatheringInvoice billing.GatheringInvoice
 	FeatureMeters    billing.FeatureMeters
 	LineID           string
 	SplitAt          time.Time
@@ -542,10 +623,6 @@ type splitGatheringInvoiceLineInput struct {
 
 func (i splitGatheringInvoiceLineInput) Validate() error {
 	var errs []error
-
-	if i.GatheringInvoice.Status != billing.StandardInvoiceStatusGathering {
-		errs = append(errs, fmt.Errorf("gathering invoice is not in gathering status"))
-	}
 
 	if i.LineID == "" {
 		errs = append(errs, fmt.Errorf("line ID is required"))
@@ -567,9 +644,9 @@ func (i splitGatheringInvoiceLineInput) Validate() error {
 }
 
 type splitGatheringInvoiceLineResult struct {
-	PreSplitAtLine   *billing.StandardLine
-	PostSplitAtLine  *billing.StandardLine
-	GatheringInvoice billing.StandardInvoice
+	PreSplitAtLine   billing.GatheringLine
+	PostSplitAtLine  billing.GatheringLine
+	GatheringInvoice billing.GatheringInvoice
 }
 
 // splitGatheringInvoiceLine splits a gathering invoice line into two lines, one will be from the
@@ -586,11 +663,12 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 
 	gatheringInvoice := in.GatheringInvoice
 
-	line := gatheringInvoice.Lines.GetByID(in.LineID)
-	if line == nil {
+	line, found := gatheringInvoice.Lines.GetByID(in.LineID)
+	if !found {
 		return res, fmt.Errorf("line[%s]: line not found in gathering invoice", in.LineID)
 	}
-	if !line.Period.Contains(in.SplitAt) {
+
+	if !line.ServicePeriod.Contains(in.SplitAt) {
 		return res, fmt.Errorf("line[%s]: splitAt is not within the line period", line.ID)
 	}
 
@@ -603,7 +681,7 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 				Name:        line.Name,
 				Description: line.Description,
 
-				ServicePeriod:     line.Period,
+				ServicePeriod:     billing.Period{Start: line.ServicePeriod.From, End: line.ServicePeriod.To},
 				RatecardDiscounts: line.RateCardDiscounts,
 				TaxConfig:         line.TaxConfig,
 			},
@@ -612,8 +690,8 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 
 			Currency: line.Currency,
 
-			Price:      line.UsageBased.Price,
-			FeatureKey: lo.EmptyableToPtr(line.UsageBased.FeatureKey),
+			Price:      lo.ToPtr(line.Price),
+			FeatureKey: lo.EmptyableToPtr(line.FeatureKey),
 
 			Subscription: line.Subscription,
 		})
@@ -624,15 +702,21 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 		splitLineGroupID = splitLineGroup.ID
 	} else {
 		splitLineGroupID = lo.FromPtr(line.SplitLineGroupID)
+		if splitLineGroupID == "" {
+			return res, fmt.Errorf("split line group id is empty")
+		}
 	}
 
-	// We have alredy split the line once, we just need to create a new line and update the existing line
-	postSplitAtLine := line.CloneWithoutDependencies(func(l *billing.StandardLine) {
-		l.Period.Start = in.SplitAt
+	// We have already split the line once, we just need to create a new line and update the existing line
+	postSplitAtLine, err := line.CloneForCreate(func(l *billing.GatheringLine) {
+		l.ServicePeriod.From = in.SplitAt
 		l.SplitLineGroupID = lo.ToPtr(splitLineGroupID)
 
 		l.ChildUniqueReferenceID = nil
 	})
+	if err != nil {
+		return res, fmt.Errorf("cloning post split line: %w", err)
+	}
 
 	postSplitAtLineEmpty, err := lineservice.IsPeriodEmptyConsideringTruncations(postSplitAtLine)
 	if err != nil {
@@ -648,7 +732,7 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 	}
 
 	// Let's update the original line to only contain the period up to the splitAt time
-	line.Period.End = in.SplitAt
+	line.ServicePeriod.To = in.SplitAt
 	line.InvoiceAt = in.SplitAt
 	line.SplitLineGroupID = lo.ToPtr(splitLineGroupID)
 	line.ChildUniqueReferenceID = nil
@@ -669,6 +753,10 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 		}
 	}
 
+	if err := gatheringInvoice.Lines.SetByID(preSplitAtLine); err != nil {
+		return res, fmt.Errorf("setting pre split line: %w", err)
+	}
+
 	return splitGatheringInvoiceLineResult{
 		PreSplitAtLine:   preSplitAtLine,
 		PostSplitAtLine:  postSplitAtLine,
@@ -679,9 +767,9 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 type createStandardInvoiceFromGatheringLinesInput struct {
 	Customer                customer.Customer
 	Currency                currencyx.Code
-	GatheringInvoice        billing.StandardInvoice
+	GatheringInvoice        billing.GatheringInvoice
 	FeatureMeters           billing.FeatureMeters
-	Lines                   billing.StandardLines
+	Lines                   billing.GatheringLines
 	EffectiveBillingProfile billing.Profile
 }
 
@@ -717,16 +805,11 @@ func (in createStandardInvoiceFromGatheringLinesInput) Validate() error {
 	return errors.Join(errs...)
 }
 
-type createStandardInvoiceFromGatheringLinesResult struct {
-	CreatedInvoice   billing.StandardInvoice
-	GatheringInvoice billing.StandardInvoice
-}
-
 // createStandardInvoiceFromGatheringLines creates a standard invoice from the gathering invoice lines.
 // Invariant:
 // - the standard invoice is in draft.created state, and is calculated and persisted to the database
-// - the gathering invoice's lines are removed, but not persisted to the database
-func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, in createStandardInvoiceFromGatheringLinesInput) (*createStandardInvoiceFromGatheringLinesResult, error) {
+// - the gathering invoice's lines are deleted, and persisted to the database
+func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, in createStandardInvoiceFromGatheringLinesInput) (*billing.StandardInvoice, error) {
 	if err := in.Validate(); err != nil {
 		return nil, fmt.Errorf("validating input: %w", err)
 	}
@@ -767,24 +850,40 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("error resolving workflow apps for invoice [%s]: %w", invoiceID, err)
 	}
 
-	moveResults, err := s.moveLinesToInvoice(ctx, moveLinesToInvoiceInput{
-		SourceGatheringInvoice: in.GatheringInvoice,
-		TargetInvoice:          invoice,
-		FeatureMeters:          in.FeatureMeters,
-		LineIDsToMove:          lo.Map(in.Lines, func(l *billing.StandardLine, _ int) string { return l.ID }),
+	convertResults, err := s.convertGatheringLinesToStandardLines(ctx, convertGatheringLinesToStandardLinesInput{
+		TargetInvoice:           invoice,
+		FeatureMeters:           in.FeatureMeters,
+		GatheringLinesToConvert: in.Lines,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("moving lines to invoice: %w", err)
 	}
 
-	// Let's create the sub lines as per the meters (we are not setting the QuantitySnapshotedAt field just now, to signal that this is not the final snapshot)
-	if err := s.snapshotLineQuantitiesInParallel(ctx, invoice.Customer, moveResults.LinesAssociated, in.FeatureMeters); err != nil {
+	invoice = convertResults.TargetInvoice
+
+	// Let's first update the gathering invoice to make sure deleted lines are synced, as the standard invoice will have expanded split line hierarchies
+	// and we need to make sure that gathering invoice lines that are already yielded the standard invoice lines are excluded from the split line hierarchy.
+	//
+	// Note: this is a hack, on the long term we need to have a Charge type that encapsulates all of this logic.
+	err = s.removeLinesFromGatheringInvoice(ctx, in.GatheringInvoice, in.Lines)
+	if err != nil {
+		return nil, fmt.Errorf("updating gathering invoice: %w", err)
+	}
+
+	// Prerequisite: we should have the split line group headers expanded so that snapshotting can determine if the preLine
+	// queries are needed.
+	if err := s.resolveSplitLineGroupHeadersForLines(ctx, in.Customer.Namespace, convertResults.LinesAssociated); err != nil {
+		return nil, fmt.Errorf("resolving split line group headers for lines: %w", err)
+	}
+
+	// Let's snapshot the quantities for the lines that we have converted to standard lines so that calculations can be performed
+	if err := s.snapshotLineQuantitiesInParallel(ctx, invoice.Customer, convertResults.LinesAssociated, in.FeatureMeters); err != nil {
 		return nil, fmt.Errorf("snapshotting lines: %w", err)
 	}
 
-	// Let's persist the target invoice as the state machine always reloads the invoice from the database to make
+	// Let's persist the snapshotted values to the database as the state machine always reloads the invoice from the database to make
 	// sure we don't have any manual modifications inside the invoice structure.
-	_, err = s.updateInvoice(ctx, moveResults.TargetInvoice)
+	invoice, err = s.updateInvoice(ctx, invoice)
 	if err != nil {
 		return nil, fmt.Errorf("updating target invoice: %w", err)
 	}
@@ -829,28 +928,16 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("activating invoice: %w", err)
 	}
 
-	return &createStandardInvoiceFromGatheringLinesResult{
-		CreatedInvoice:   invoice,
-		GatheringInvoice: moveResults.GatheringInvoice,
-	}, nil
+	return &invoice, nil
 }
 
-type moveLinesToInvoiceInput struct {
-	SourceGatheringInvoice billing.StandardInvoice
-	FeatureMeters          billing.FeatureMeters
-	TargetInvoice          billing.StandardInvoice
-	LineIDsToMove          []string
+type convertGatheringLinesToStandardLinesInput struct {
+	FeatureMeters           billing.FeatureMeters
+	TargetInvoice           billing.StandardInvoice
+	GatheringLinesToConvert billing.GatheringLines
 }
 
-func (in moveLinesToInvoiceInput) Validate() error {
-	if err := in.SourceGatheringInvoice.Validate(); err != nil {
-		return fmt.Errorf("source gathering invoice: %w", err)
-	}
-
-	if in.SourceGatheringInvoice.Status != billing.StandardInvoiceStatusGathering {
-		return fmt.Errorf("source gathering invoice must be in gathering status")
-	}
-
+func (in convertGatheringLinesToStandardLinesInput) Validate() error {
 	if err := in.TargetInvoice.Validate(); err != nil {
 		return fmt.Errorf("target invoice: %w", err)
 	}
@@ -859,20 +946,26 @@ func (in moveLinesToInvoiceInput) Validate() error {
 		return fmt.Errorf("target invoice must be in draft created status")
 	}
 
-	if len(in.LineIDsToMove) == 0 {
+	if len(in.GatheringLinesToConvert) == 0 {
 		return fmt.Errorf("line IDs to move is required")
-	}
-
-	if in.TargetInvoice.Currency != in.SourceGatheringInvoice.Currency {
-		return fmt.Errorf("target invoice currency must be the same as source gathering invoice currency")
 	}
 
 	if in.TargetInvoice.ID == "" {
 		return fmt.Errorf("target invoice ID is required")
 	}
 
-	if in.TargetInvoice.Namespace != in.SourceGatheringInvoice.Namespace {
-		return fmt.Errorf("target invoice namespace must be the same as source gathering invoice namespace")
+	for _, line := range in.GatheringLinesToConvert {
+		if err := line.Validate(); err != nil {
+			return fmt.Errorf("validating gathering line: %w", err)
+		}
+
+		if line.Currency != in.TargetInvoice.Currency {
+			return fmt.Errorf("gathering line[%s]: currency[%s] is not equal to target invoice currency[%s]", line.ID, line.Currency, in.TargetInvoice.Currency)
+		}
+
+		if line.Namespace != in.TargetInvoice.Namespace {
+			return fmt.Errorf("gathering line[%s]: namespace[%s] is not equal to target invoice namespace[%s]", line.ID, line.Namespace, in.TargetInvoice.Namespace)
+		}
 	}
 
 	if in.FeatureMeters == nil {
@@ -882,73 +975,127 @@ func (in moveLinesToInvoiceInput) Validate() error {
 	return nil
 }
 
-type moveLinesToInvoiceResult struct {
-	GatheringInvoice billing.StandardInvoice
-	TargetInvoice    billing.StandardInvoice
-	LinesAssociated  billing.StandardLines
+type convertGatheringLinesToStandardLinesResult struct {
+	TargetInvoice   billing.StandardInvoice
+	LinesAssociated billing.StandardLines
 }
 
-// moveLinesToInvoice moves the lines from the source gathering invoice to the target invoice, invariants:
-// - the source gathering invoice is updated by removing the lines that have been moved to the target invoice
-// - the target invoice is updated by adding the lines that have been moved from the source gathering invoice
-// - neither invoices are saved to the database, they are returned as is
-func (s *Service) moveLinesToInvoice(ctx context.Context, in moveLinesToInvoiceInput) (*moveLinesToInvoiceResult, error) {
+// convertGatheringLinesToStandardLines converts the gathering lines to standard lines and adds them to the target invoice.
+// Invariants:
+// - the target invoice is updated by adding the standard lines that have been converted from the gathering lines
+// - no database changes are made
+func (s *Service) convertGatheringLinesToStandardLines(ctx context.Context, in convertGatheringLinesToStandardLinesInput) (*convertGatheringLinesToStandardLinesResult, error) {
 	if err := in.Validate(); err != nil {
 		return nil, fmt.Errorf("validating input: %w", err)
 	}
 
-	srcInvoice := in.SourceGatheringInvoice
-	dstInvoice := in.TargetInvoice
-
-	// Let's find the lines to move from the source gathering invoice
-	linesToMove := lo.Filter(srcInvoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
-		return slices.Contains(in.LineIDsToMove, line.ID)
-	})
-
-	for _, line := range linesToMove {
-		if line.Currency != dstInvoice.Currency {
-			return nil, fmt.Errorf("line[%s]: currency[%s] is not equal to target invoice currency[%s]", line.ID, line.Currency, dstInvoice.Currency)
+	newStandardLines, err := slicesx.MapWithErr(in.GatheringLinesToConvert, func(gatheringLine billing.GatheringLine) (*billing.StandardLine, error) {
+		newStandardLine, err := convertGatheringLineToNewStandardLine(gatheringLine, in.TargetInvoice.ID)
+		if err != nil {
+			return nil, fmt.Errorf("converting gathering line to new standard line: %w", err)
 		}
-	}
 
-	if len(linesToMove) != len(in.LineIDsToMove) {
-		return nil, fmt.Errorf("lines to move[%d] must contain the same number of lines as line IDs to move[%d]", len(linesToMove), len(in.LineIDsToMove))
-	}
+		if err := newStandardLine.Validate(); err != nil {
+			return nil, fmt.Errorf("validating new standard line: %w", err)
+		}
 
-	if err := linesToMove.Validate(); err != nil {
-		return nil, fmt.Errorf("validating lines to move: %w", err)
-	}
-
-	// Let's set the invoice ID of the lines to move to the target invoice ID
-	for _, line := range linesToMove {
-		line.InvoiceID = dstInvoice.ID
+		return newStandardLine, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("converting gathering lines to standard lines: %w", err)
 	}
 
 	// Let's add the lines to the target invoice
-	dstInvoice.Lines.Append(linesToMove...)
+	in.TargetInvoice.Lines.Append(newStandardLines...)
 
-	// Let's remove the lines from the source gathering invoice
-	for _, line := range linesToMove {
-		if !srcInvoice.Lines.RemoveByID(line.ID) {
-			return nil, fmt.Errorf("line[%s] not found in source gathering invoice", line.ID)
-		}
+	return &convertGatheringLinesToStandardLinesResult{
+		TargetInvoice:   in.TargetInvoice,
+		LinesAssociated: newStandardLines,
+	}, nil
+}
+
+func convertGatheringLineToNewStandardLine(line billing.GatheringLine, invoiceID string) (*billing.StandardLine, error) {
+	clonedAnnotations, err := line.Annotations.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("cloning annotations: %w", err)
 	}
 
-	return &moveLinesToInvoiceResult{
-		GatheringInvoice: srcInvoice,
-		TargetInvoice:    dstInvoice,
-		LinesAssociated:  linesToMove,
-	}, nil
+	var taxConfig *productcatalog.TaxConfig
+	if line.TaxConfig != nil {
+		taxConfig = lo.ToPtr(line.TaxConfig.Clone())
+	}
+
+	var subscription *billing.SubscriptionReference
+	if line.Subscription != nil {
+		subscription = line.Subscription.Clone()
+	}
+
+	convertedLine := &billing.StandardLine{
+		StandardLineBase: billing.StandardLineBase{
+			ManagedResource: line.ManagedResource,
+			Metadata:        line.Metadata.Clone(),
+			Annotations:     clonedAnnotations,
+			ManagedBy:       line.ManagedBy,
+			InvoiceID:       invoiceID,
+			Currency:        line.Currency,
+
+			Period: billing.Period{
+				Start: line.ServicePeriod.From,
+				End:   line.ServicePeriod.To,
+			},
+			InvoiceAt: line.InvoiceAt,
+
+			TaxConfig:              taxConfig,
+			RateCardDiscounts:      line.RateCardDiscounts.Clone(),
+			ChildUniqueReferenceID: line.ChildUniqueReferenceID,
+			Subscription:           subscription,
+			SplitLineGroupID:       line.SplitLineGroupID,
+		},
+		UsageBased: &billing.UsageBasedLine{
+			Price:      lo.ToPtr(line.Price),
+			FeatureKey: line.FeatureKey,
+		},
+
+		DBState: nil, // We don't want to reuse the state from the gathering line (so let's make it explicit)
+	}
+
+	return convertedLine, nil
 }
 
 // updateGatheringInvoice updates the gathering invoice's state and if it contains no lines, it will be deleted.
 // Invariant:
 // - the invoice is recalculated
 // - the invoice is updated to the database
-func (s *Service) updateGatheringInvoice(ctx context.Context, invoice billing.StandardInvoice) (billing.StandardInvoice, error) {
+func (s *Service) removeLinesFromGatheringInvoice(ctx context.Context, invoice billing.GatheringInvoice, linesToRemove billing.GatheringLines) error {
+	lineIDsToRemove := lo.Map(linesToRemove, func(l billing.GatheringLine, _ int) string { return l.ID })
+
+	nrLinesRemoved := 0
+	invoiceLinesWithoutRemovedLines := lo.Filter(invoice.Lines.OrEmpty(), func(l billing.GatheringLine, _ int) bool {
+		if slices.Contains(lineIDsToRemove, l.ID) {
+			nrLinesRemoved++
+			return false
+		}
+
+		return true
+	})
+
+	// This makes sure that all the IDs are present on the gathering invoice before invoking the hard delete.
+	if nrLinesRemoved != len(lineIDsToRemove) {
+		return fmt.Errorf("lines to remove[%d] must contain the same number of lines as line IDs to remove[%d]", nrLinesRemoved, len(lineIDsToRemove))
+	}
+
+	invoice.Lines = billing.NewGatheringInvoiceLines(invoiceLinesWithoutRemovedLines)
+
+	// We need to hard delete the lines from the gathering invoice as now the standard lines are taking their place with the same IDs.
+	// If we would soft-delete the lines, all downstream services would assume that the line was deleted due to synchronization and
+	// would recreate it.
+	if err := s.adapter.HardDeleteGatheringInvoiceLines(ctx, invoice.InvoiceID(), lineIDsToRemove); err != nil {
+		return fmt.Errorf("hard deleting gathering invoice lines: %w", err)
+	}
+
 	// Let's update the invoice's state
-	if err := s.invoiceCalculator.CalculateLegacyGatheringInvoice(&invoice); err != nil {
-		return billing.StandardInvoice{}, fmt.Errorf("calculating gathering invoice: %w", err)
+	if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice); err != nil {
+		return fmt.Errorf("calculating gathering invoice: %w", err)
 	}
 
 	// The gathering invoice has no lines => delete the invoice
@@ -956,10 +1103,54 @@ func (s *Service) updateGatheringInvoice(ctx context.Context, invoice billing.St
 		invoice.DeletedAt = lo.ToPtr(clock.Now())
 	}
 
-	invoice, err := s.adapter.UpdateInvoice(ctx, invoice)
+	err := s.adapter.UpdateGatheringInvoice(ctx, invoice)
 	if err != nil {
-		return billing.StandardInvoice{}, fmt.Errorf("updating gathering invoice: %w", err)
+		return fmt.Errorf("updating gathering invoice: %w", err)
 	}
 
-	return invoice, nil
+	return nil
+}
+
+// resolveSplitLineGroupHeadersForLines resolves the split line group headers for the given lines.
+// Warning: this will not fetch the lines from the database, so only use this if you are sure that
+// only the headers are needed. (e.g. don't use it for invoice calculations or usage discounts
+// will be off)
+func (s *Service) resolveSplitLineGroupHeadersForLines(ctx context.Context, ns string, lines billing.StandardLines) error {
+	splitLineGroupIDs := lo.Uniq(
+		lo.Filter(
+			lo.Map(lines, func(line *billing.StandardLine, _ int) string { return lo.FromPtr(line.SplitLineGroupID) }),
+			func(id string, _ int) bool { return id != "" },
+		),
+	)
+
+	if len(splitLineGroupIDs) == 0 {
+		return nil
+	}
+
+	splitLineGroupHeaders, err := s.adapter.GetSplitLineGroupHeaders(ctx, billing.GetSplitLineGroupHeadersInput{
+		Namespace:         ns,
+		SplitLineGroupIDs: splitLineGroupIDs,
+	})
+	if err != nil {
+		return fmt.Errorf("getting split line group headers: %w", err)
+	}
+
+	splitLineGroupHeadersByID := lo.SliceToMap(splitLineGroupHeaders, func(header billing.SplitLineGroup) (string, billing.SplitLineGroup) { return header.ID, header })
+
+	for idx := range lines {
+		if lines[idx].SplitLineGroupID == nil {
+			continue
+		}
+
+		splitLineGroupHeader, ok := splitLineGroupHeadersByID[lo.FromPtr(lines[idx].SplitLineGroupID)]
+		if !ok {
+			return fmt.Errorf("split line group header not found for line[%s]: id[%s]", lines[idx].ID, lo.FromPtr(lines[idx].SplitLineGroupID))
+		}
+
+		lines[idx].SplitLineHierarchy = &billing.SplitLineHierarchy{
+			Group: splitLineGroupHeader,
+		}
+	}
+
+	return nil
 }
