@@ -89,6 +89,7 @@ type GatheringInvoiceService interface {
 	CreatePendingInvoiceLines(ctx context.Context, input CreatePendingInvoiceLinesInput) (*CreatePendingInvoiceLinesResult, error)
 
 	ListGatheringInvoices(ctx context.Context, input ListGatheringInvoicesInput) (pagination.Result[GatheringInvoice], error)
+	UpdateGatheringInvoice(ctx context.Context, input UpdateGatheringInvoiceInput) error
 }
 
 type SequenceService interface {

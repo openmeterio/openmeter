@@ -87,7 +87,7 @@ func (a *adapter) CreateGatheringInvoice(ctx context.Context, input billing.Crea
 		// Let's add required edges for mapping
 		newInvoice.Edges.BillingWorkflowConfig = clonedWorkflowConfig
 
-		return tx.mapGatheringInvoiceFromDB(ctx, newInvoice, billing.GatheringInvoiceExpands{})
+		return tx.mapGatheringInvoiceFromDB(newInvoice, billing.GatheringInvoiceExpands{})
 	})
 }
 
@@ -257,7 +257,7 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 
 		result := make([]billing.GatheringInvoice, 0, len(paged.Items))
 		for _, invoice := range paged.Items {
-			mapped, err := tx.mapGatheringInvoiceFromDB(ctx, invoice, input.Expand)
+			mapped, err := tx.mapGatheringInvoiceFromDB(invoice, input.Expand)
 			if err != nil {
 				return response, err
 			}
@@ -368,11 +368,11 @@ func (a *adapter) GetGatheringInvoiceById(ctx context.Context, input billing.Get
 			return billing.GatheringInvoice{}, err
 		}
 
-		return tx.mapGatheringInvoiceFromDB(ctx, invoice, input.Expand)
+		return tx.mapGatheringInvoiceFromDB(invoice, input.Expand)
 	})
 }
 
-func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoice, expand billing.GatheringInvoiceExpands) (billing.GatheringInvoice, error) {
+func (a *adapter) mapGatheringInvoiceFromDB(invoice *db.BillingInvoice, expand billing.GatheringInvoiceExpands) (billing.GatheringInvoice, error) {
 	if invoice.Status != billing.StandardInvoiceStatusGathering {
 		return billing.GatheringInvoice{}, fmt.Errorf("invoice is not a gathering invoice [id=%s]", invoice.ID)
 	}

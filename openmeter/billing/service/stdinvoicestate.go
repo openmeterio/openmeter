@@ -559,7 +559,12 @@ func (m *InvoiceStateMachine) withInvoicingApp(op billing.StandardInvoiceOperati
 func (m *InvoiceStateMachine) triggerPostAdvanceHooks(ctx context.Context) error {
 	return m.withInvoicingApp(billing.StandardInvoiceOpPostAdvanceHook, func(app billing.InvoicingApp) (*billing.StandardInvoiceOperation, error) {
 		if hook, ok := app.(billing.InvoicingAppPostAdvanceHook); ok {
-			res, err := hook.PostAdvanceStandardInvoiceHook(ctx, m.Invoice.Clone())
+			clonedInvoice, err := m.Invoice.Clone()
+			if err != nil {
+				return nil, err
+			}
+
+			res, err := hook.PostAdvanceStandardInvoiceHook(ctx, clonedInvoice)
 			if err != nil {
 				return nil, err
 			}
@@ -630,7 +635,12 @@ func (m *InvoiceStateMachine) validateDraftInvoice(ctx context.Context) error {
 	}
 
 	return m.withInvoicingApp(billing.StandardInvoiceOpValidate, func(app billing.InvoicingApp) (*billing.StandardInvoiceOperation, error) {
-		return nil, app.ValidateStandardInvoice(ctx, m.Invoice.Clone())
+		clonedInvoice, err := m.Invoice.Clone()
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, app.ValidateStandardInvoice(ctx, clonedInvoice)
 	})
 }
 
@@ -653,7 +663,12 @@ func (m *InvoiceStateMachine) syncDraftInvoice(ctx context.Context) error {
 
 	// Let's save the invoice so that we are sure that all the IDs are available for downstream apps
 	return m.withInvoicingApp(billing.StandardInvoiceOpSync, func(app billing.InvoicingApp) (*billing.StandardInvoiceOperation, error) {
-		results, err := app.UpsertStandardInvoice(ctx, m.Invoice.Clone())
+		clonedInvoice, err := m.Invoice.Clone()
+		if err != nil {
+			return nil, err
+		}
+
+		results, err := app.UpsertStandardInvoice(ctx, clonedInvoice)
 		if err != nil {
 			return nil, err
 		}
@@ -673,7 +688,11 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 	}
 
 	return m.withInvoicingApp(billing.StandardInvoiceOpFinalize, func(app billing.InvoicingApp) (*billing.StandardInvoiceOperation, error) {
-		clonedInvoice := m.Invoice.Clone()
+		clonedInvoice, err := m.Invoice.Clone()
+		if err != nil {
+			return nil, err
+		}
+
 		// First we sync the invoice
 		upsertResults, err := app.UpsertStandardInvoice(ctx, clonedInvoice)
 		if err != nil {
@@ -717,7 +736,12 @@ func (m *InvoiceStateMachine) syncDeletedInvoice(ctx context.Context) error {
 	}
 
 	return m.withInvoicingApp(billing.StandardInvoiceOpDelete, func(app billing.InvoicingApp) (*billing.StandardInvoiceOperation, error) {
-		return nil, app.DeleteStandardInvoice(ctx, m.Invoice.Clone())
+		clonedInvoice, err := m.Invoice.Clone()
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, app.DeleteStandardInvoice(ctx, clonedInvoice)
 	})
 }
 

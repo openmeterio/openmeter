@@ -3161,7 +3161,8 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualEditSync() {
 			line.InvoiceAt = line.Period.End
 			line.ManagedBy = billing.ManuallyManagedLine
 
-			updatedLine = line.Clone()
+			updatedLine, err = line.Clone()
+			s.NoError(err)
 			return nil
 		},
 	})
@@ -3241,7 +3242,8 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
 			line.Name = "test"
 			line.ManagedBy = billing.ManuallyManagedLine
 
-			updatedLine = line.Clone()
+			updatedLine, err = line.Clone()
+			s.NoError(err)
 			return nil
 		},
 	})
@@ -3331,7 +3333,7 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualDeleteSync() {
 			line.DeletedAt = lo.ToPtr(clock.Now())
 			line.ManagedBy = billing.ManuallyManagedLine
 
-			updatedLine = line.Clone()
+			updatedLine = lo.Must(line.Clone())
 			return nil
 		},
 		IncludeDeletedLines: true,
@@ -3444,7 +3446,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 				billing.AnnotationSubscriptionSyncForceContinuousLines: true,
 			}
 
-			gatheringInvoiceIgnoredLine = line.Clone()
+			gatheringInvoiceIgnoredLine = lo.Must(line.Clone())
 
 			return nil
 		},
@@ -3480,7 +3482,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 	s.NoError(err)
 	s.DebugDumpInvoice("draft invoice - after sync", draftInvoiceAfterSync)
 
-	expectedInvoice := draftInvoice.Clone()
+	expectedInvoice := lo.Must(draftInvoice.Clone())
 	expectedInvoice.Lines = expectedInvoice.Lines.Map(func(line *billing.StandardLine) *billing.StandardLine {
 		if line.ChildUniqueReferenceID != nil && *line.ChildUniqueReferenceID == draftLineReferenceID {
 			line.Annotations = models.Annotations{
@@ -3509,13 +3511,13 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 		expectedInvoice.ValidationIssues = nil
 	}
 
-	s.Equal(expectedInvoice.RemoveMetaForCompare(), draftInvoiceAfterSync.RemoveMetaForCompare())
+	s.Equal(lo.Must(expectedInvoice.RemoveMetaForCompare()), lo.Must(draftInvoiceAfterSync.RemoveMetaForCompare()))
 
 	gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice - after sync", gatheringInvoice)
 
 	gatheringInvoiceIgnoredLineAfterSync := s.getLineByChildID(gatheringInvoice, *gatheringInvoiceIgnoredLine.ChildUniqueReferenceID)
-	s.Equal(gatheringInvoiceIgnoredLine.RemoveMetaForCompare(), gatheringInvoiceIgnoredLineAfterSync.RemoveMetaForCompare())
+	s.Equal(lo.Must(gatheringInvoiceIgnoredLine.RemoveMetaForCompare()), lo.Must(gatheringInvoiceIgnoredLineAfterSync.RemoveMetaForCompare()))
 
 	// But the non-marked line should be deleted
 	deletedGartheringLinereferenceID := fmt.Sprintf("%s/first-phase/in-advance/v[0]/period[2]", subsView.Subscription.ID)
@@ -3701,7 +3703,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 
 			line.DeletedAt = lo.ToPtr(clock.Now())
 
-			updatedLine = line.Clone()
+			updatedLine = lo.Must(line.Clone())
 			return nil
 		},
 	})

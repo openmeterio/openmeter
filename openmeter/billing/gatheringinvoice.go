@@ -62,6 +62,8 @@ func (g GatheringInvoiceBase) Validate() error {
 	return errors.Join(errs...)
 }
 
+var _ GenericInvoice = (*GatheringInvoice)(nil)
+
 type GatheringInvoice struct {
 	GatheringInvoiceBase `json:",inline"`
 
@@ -89,10 +91,25 @@ func (g GatheringInvoice) WithoutDBState() (GatheringInvoice, error) {
 	return clone, nil
 }
 
-func (g GatheringInvoice) InvoiceID() InvoiceID {
+func (g GatheringInvoice) GetID() string {
+	return g.ID
+}
+
+func (g GatheringInvoice) GetInvoiceID() InvoiceID {
 	return InvoiceID{
 		Namespace: g.Namespace,
 		ID:        g.ID,
+	}
+}
+
+func (g GatheringInvoice) GetDeletedAt() *time.Time {
+	return g.DeletedAt
+}
+
+func (g GatheringInvoice) AsInvoice() Invoice {
+	return Invoice{
+		t:                InvoiceTypeGathering,
+		gatheringInvoice: &g,
 	}
 }
 
@@ -108,6 +125,13 @@ func (g GatheringInvoice) Validate() error {
 	}
 
 	return errors.Join(errs...)
+}
+
+func (g GatheringInvoice) GetCustomerID() customer.CustomerID {
+	return customer.CustomerID{
+		Namespace: g.Namespace,
+		ID:        g.CustomerID,
+	}
 }
 
 func (g *GatheringInvoice) SortLines() {
@@ -248,6 +272,23 @@ func (l GatheringInvoiceLines) MapWithErr(fn func(GatheringLine) (GatheringLine,
 	}, nil
 }
 
+func (l GatheringInvoiceLines) WithNormalizedValues() (GatheringInvoiceLines, error) {
+	if l.IsAbsent() {
+		return l, nil
+	}
+
+	out, err := slicesx.MapWithErr(l.OrEmpty(), func(l GatheringLine) (GatheringLine, error) {
+		return l.WithNormalizedValues()
+	})
+	if err != nil {
+		return GatheringInvoiceLines{}, err
+	}
+
+	return GatheringInvoiceLines{
+		Option: mo.Some(GatheringLines(out)),
+	}, nil
+}
+
 func (l *GatheringInvoiceLines) Append(lines ...GatheringLine) {
 	l.Option = mo.Some(append(l.OrEmpty(), lines...))
 }
@@ -284,7 +325,7 @@ func (l GatheringInvoiceLines) GetByID(id string) (GatheringLine, bool) {
 	return GatheringLine{}, false
 }
 
-func (l *GatheringInvoiceLines) SetByID(line GatheringLine) error {
+func (l *GatheringInvoiceLines) ReplaceByID(line GatheringLine) error {
 	if l.IsAbsent() {
 		return fmt.Errorf("lines are absent")
 	}
@@ -437,6 +478,10 @@ func (i GatheringLineBase) GetPrice() *productcatalog.Price {
 	return &i.Price
 }
 
+func (i *GatheringLineBase) SetPrice(price productcatalog.Price) {
+	i.Price = price
+}
+
 func (i GatheringLineBase) GetID() string {
 	return i.ID
 }
@@ -445,11 +490,39 @@ func (i GatheringLineBase) GetInvoiceAt() time.Time {
 	return i.InvoiceAt
 }
 
+func (i GatheringLineBase) GetChildUniqueReferenceID() *string {
+	return i.ChildUniqueReferenceID
+}
+
 func (i GatheringLineBase) GetSplitLineGroupID() *string {
 	return i.SplitLineGroupID
 }
 
-// TODO: rename to GatheringLine
+var (
+	_ GenericInvoiceLine = (*gatheringInvoiceLineGenericWrapper)(nil)
+	_ InvoiceAtAccessor  = (*gatheringInvoiceLineGenericWrapper)(nil)
+)
+
+// gatheringInvoiceLineGenericWrapper is a wrapper around a gathering line that implements the GenericInvoiceLine interface.
+// for methods that are present for the specific line type too.
+type gatheringInvoiceLineGenericWrapper struct {
+	GatheringLine
+}
+
+func (i gatheringInvoiceLineGenericWrapper) Clone() (GenericInvoiceLine, error) {
+	cloned, err := i.GatheringLine.Clone()
+	if err != nil {
+		return nil, err
+	}
+
+	return &gatheringInvoiceLineGenericWrapper{GatheringLine: cloned}, nil
+}
+
+func (i gatheringInvoiceLineGenericWrapper) CloneWithoutChildren() (GenericInvoiceLine, error) {
+	// Gathering lines don't have children, so we can just clone the line (db state is preserved as with the standard lines)
+	return i.Clone()
+}
+
 type GatheringLine struct {
 	GatheringLineBase `json:",inline"`
 
@@ -509,6 +582,56 @@ func (g GatheringLine) WithNormalizedValues() (GatheringLine, error) {
 	}
 
 	return clone, nil
+}
+
+func (g GatheringLine) GetLineID() LineID {
+	return LineID{
+		Namespace: g.Namespace,
+		ID:        g.ID,
+	}
+}
+
+func (g GatheringLine) GetID() string {
+	return g.ID
+}
+
+func (g GatheringLine) GetManagedBy() InvoiceLineManagedBy {
+	return g.ManagedBy
+}
+
+func (g GatheringLine) GetAnnotations() models.Annotations {
+	return g.Annotations
+}
+
+func (g *GatheringLine) SetDeletedAt(at *time.Time) {
+	g.DeletedAt = at
+}
+
+func (g *GatheringLine) UpdateServicePeriod(fn func(p *timeutil.ClosedPeriod)) {
+	fn(&g.ServicePeriod)
+}
+
+func (g GatheringLine) GetInvoiceAt() time.Time {
+	return g.InvoiceAt
+}
+
+func (g *GatheringLine) SetInvoiceAt(at time.Time) {
+	g.InvoiceAt = at
+}
+
+func (g GatheringLine) GetInvoiceID() string {
+	return g.InvoiceID
+}
+
+func (g GatheringLine) GetRateCardDiscounts() Discounts {
+	return g.RateCardDiscounts
+}
+
+func (g GatheringLine) AsInvoiceLine() InvoiceLine {
+	return InvoiceLine{
+		t:             InvoiceLineTypeGathering,
+		gatheringLine: &g,
+	}
 }
 
 type CreatePendingInvoiceLinesInput struct {
@@ -693,4 +816,23 @@ func (i GetGatheringInvoiceByIdInput) Validate() error {
 		}
 	}
 	return errors.Join(errs...)
+}
+
+type UpdateGatheringInvoiceInput struct {
+	Invoice InvoiceID
+	EditFn  func(*GatheringInvoice) error
+	// IncludeDeletedLines signals the update to populate the deleted lines into the lines field, for the edit function
+	IncludeDeletedLines bool
+}
+
+func (i UpdateGatheringInvoiceInput) Validate() error {
+	if err := i.Invoice.Validate(); err != nil {
+		return fmt.Errorf("id: %w", err)
+	}
+
+	if i.EditFn == nil {
+		return errors.New("edit function is required")
+	}
+
+	return nil
 }

@@ -192,7 +192,7 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 				SetInvoiceAt(line.InvoiceAt.In(time.UTC)).
 				SetStatus(billing.InvoiceLineStatusValid).
 				SetManagedBy(line.ManagedBy).
-				SetType(billing.InvoiceLineTypeUsageBased).
+				SetType(billing.InvoiceLineAdapterTypeUsageBased).
 				SetName(line.Name).
 				SetNillableDescription(line.Description).
 				SetCurrency(line.Currency).
@@ -260,7 +260,7 @@ func (a *adapter) mapGatheringInvoiceLinesFromDB(schemaLevel int, dbLines []*db.
 }
 
 func (a *adapter) mapGatheringInvoiceLineFromDB(schemaLevel int, dbLine *db.BillingInvoiceLine) (billing.GatheringLine, error) {
-	if dbLine.Type != billing.InvoiceLineTypeUsageBased {
+	if dbLine.Type != billing.InvoiceLineAdapterTypeUsageBased {
 		return billing.GatheringLine{}, fmt.Errorf("only usage based lines can be gathering invoice lines [line_id=%s]", dbLine.ID)
 	}
 

@@ -219,8 +219,10 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 		afterActive := s.getLineByName(invoiceAfter, lineNameActiveDetailed).WithoutSplitLineHierarchy().WithoutDBState()
 
 		// Let's remove the DetailedLine's FeeLineConfigID as that's not existing in the schema-level-2 representation.
-		beforeDeleted = s.withoutDetailedFeeLineConfigID(beforeDeleted)
-		beforeActive = s.withoutDetailedFeeLineConfigID(beforeActive)
+		beforeDeleted, err = s.withoutDetailedFeeLineConfigID(beforeDeleted)
+		s.NoError(err)
+		beforeActive, err = s.withoutDetailedFeeLineConfigID(beforeActive)
+		s.NoError(err)
 
 		s.Equal(beforeDeleted, afterDeleted)
 		s.Equal(beforeActive, afterActive)
@@ -272,16 +274,20 @@ func (s *SchemaMigrationTestSuite) markAllDetailedChildrenDeleted(ctx context.Co
 	return n, nil
 }
 
-func (s *SchemaMigrationTestSuite) withoutDetailedFeeLineConfigID(in *billing.StandardLine) *billing.StandardLine {
+func (s *SchemaMigrationTestSuite) withoutDetailedFeeLineConfigID(in *billing.StandardLine) (*billing.StandardLine, error) {
 	if in == nil {
-		return nil
+		return nil, nil
 	}
 
-	out := in.Clone()
+	out, err := in.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("cloning line: %w", err)
+	}
+
 	for i := range out.DetailedLines {
 		out.DetailedLines[i].FeeLineConfigID = ""
 	}
-	return out
+	return out, nil
 }
 
 func (s *SchemaMigrationTestSuite) getLineByName(inv billing.StandardInvoice, name string) *billing.StandardLine {

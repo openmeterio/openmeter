@@ -292,7 +292,7 @@ func ManagedByValidator(mb billing.InvoiceLineManagedBy) error {
 }
 
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
-func TypeValidator(_type billing.InvoiceLineType) error {
+func TypeValidator(_type billing.InvoiceLineAdapterType) error {
 	switch _type {
 	case "flat_fee", "usage_based":
 		return nil

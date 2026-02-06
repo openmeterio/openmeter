@@ -1704,14 +1704,13 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		require.Equal(s.T(), flatPerUnit.UsageBased.Quantity.InexactFloat64(), float64(10), "flat per unit should have 10 units")
 		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 2, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.Period.Equal(billing.Period{
-			Start: truncatedPeriodStart,
-			End:   truncatedPeriodStart.Add(time.Hour),
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.GetServicePeriod().Equal(timeutil.ClosedPeriod{
+			From: truncatedPeriodStart,
+			To:   truncatedPeriodStart.Add(time.Hour),
 		}), "first child period should be truncated")
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.InvoiceAt.Equal(truncatedPeriodStart.Add(time.Hour)), "first child should be issued at the end of parent's period")
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.Period.Equal(billing.Period{
-			Start: truncatedPeriodStart.Add(time.Hour),
-			End:   truncatedPeriodEnd,
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.GetServicePeriod().Equal(timeutil.ClosedPeriod{
+			From: truncatedPeriodStart.Add(time.Hour),
+			To:   truncatedPeriodEnd,
 		}), "second child period should be until the end of parent's period")
 
 		// Let's validate detailed line items
@@ -2004,18 +2003,17 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.ToClosedPeriod().Equal(lines.tieredGraduated.ServicePeriod))
 		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 3, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.Period.Equal(billing.Period{
-			Start: truncatedPeriodStart,
-			End:   truncatedPeriodStart.Add(time.Hour),
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.GetServicePeriod().Equal(timeutil.ClosedPeriod{
+			From: truncatedPeriodStart,
+			To:   truncatedPeriodStart.Add(time.Hour),
 		}), "first child period should be truncated")
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.Period.Equal(billing.Period{
-			Start: truncatedPeriodStart.Add(time.Hour),
-			End:   truncatedPeriodStart.Add(2 * time.Hour),
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.GetServicePeriod().Equal(timeutil.ClosedPeriod{
+			From: truncatedPeriodStart.Add(time.Hour),
+			To:   truncatedPeriodStart.Add(2 * time.Hour),
 		}), "second child period should be between the first and the third child's period")
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.InvoiceAt.Equal(periodStart.Add(2*time.Hour).Truncate(streaming.MinimumWindowSizeDuration)), "second child should be issued at the end of parent's period")
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[2].Line.Period.Equal(billing.Period{
-			Start: truncatedPeriodStart.Add(2 * time.Hour),
-			End:   truncatedPeriodEnd,
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[2].Line.GetServicePeriod().Equal(timeutil.ClosedPeriod{
+			From: truncatedPeriodStart.Add(2 * time.Hour),
+			To:   truncatedPeriodEnd,
 		}), "third child period should be until the end of parent's period")
 
 		// Detailed lines
@@ -2211,18 +2209,17 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		require.True(s.T(), tieredGraduatedHierarchy.Group.ServicePeriod.ToClosedPeriod().Equal(lines.tieredGraduated.ServicePeriod))
 		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 3, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.Period.Equal(billing.Period{
-			Start: truncatedPeriodStart,
-			End:   truncatedPeriodStart.Add(time.Hour),
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.GetServicePeriod().Equal(timeutil.ClosedPeriod{
+			From: truncatedPeriodStart,
+			To:   truncatedPeriodStart.Add(time.Hour),
 		}), "first child period should be truncated")
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.Period.Equal(billing.Period{
-			Start: truncatedPeriodStart.Add(time.Hour),
-			End:   truncatedPeriodStart.Add(2 * time.Hour),
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.GetServicePeriod().Equal(timeutil.ClosedPeriod{
+			From: truncatedPeriodStart.Add(time.Hour),
+			To:   truncatedPeriodStart.Add(2 * time.Hour),
 		}), "second child period should be between the first and the third child's period")
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[1].Line.InvoiceAt.Equal(truncatedPeriodStart.Add(2*time.Hour)), "second child should be issued at the end of parent's period")
-		require.True(s.T(), tieredGraduatedHierarchy.Lines[2].Line.Period.Equal(billing.Period{
-			Start: truncatedPeriodStart.Add(2 * time.Hour),
-			End:   truncatedPeriodEnd,
+		require.True(s.T(), tieredGraduatedHierarchy.Lines[2].Line.GetServicePeriod().Equal(timeutil.ClosedPeriod{
+			From: truncatedPeriodStart.Add(2 * time.Hour),
+			To:   truncatedPeriodEnd,
 		}), "third child period should be until the end of parent's period")
 
 		// Invoice app testing: discounts
@@ -2985,7 +2982,7 @@ func (s *InvoicingTestSuite) lineInSameSplitLineGroup(lines []*billing.StandardL
 		}
 
 		for _, child := range line.SplitLineHierarchy.Lines {
-			if child.Line.ID == shiblingLineID {
+			if child.Line.GetID() == shiblingLineID {
 				return line
 			}
 		}
@@ -3012,9 +3009,9 @@ func (s *InvoicingTestSuite) sortedSplitLineGroupChildren(line *billing.Standard
 
 	slices.SortFunc(line.SplitLineHierarchy.Lines, func(a, b billing.LineWithInvoiceHeader) int {
 		switch {
-		case a.Line.Period.Start.Equal(b.Line.Period.Start):
+		case a.Line.GetServicePeriod().From.Equal(b.Line.GetServicePeriod().From):
 			return 0
-		case a.Line.Period.Start.Before(b.Line.Period.Start):
+		case a.Line.GetServicePeriod().From.Before(b.Line.GetServicePeriod().From):
 			return -1
 		default:
 			return 1
@@ -3974,7 +3971,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 
 	// Then
 	adapterInvoice, err := s.BillingAdapter.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
-		Invoice: pendingLines.Invoice.InvoiceID(),
+		Invoice: pendingLines.Invoice.GetInvoiceID(),
 	})
 	s.NoError(err)
 	s.Equal(periodStart, adapterInvoice.Period.Start)
@@ -4006,7 +4003,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 
 	// Then
 	adapterInvoice, err = s.BillingAdapter.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
-		Invoice: pendingLines.Invoice.InvoiceID(),
+		Invoice: pendingLines.Invoice.GetInvoiceID(),
 	})
 	s.NoError(err)
 	s.Equal(newPeriodStart, adapterInvoice.Period.Start)
@@ -4015,7 +4012,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 	// When a gathering invoice is deleted
 	// Then the period is empty
 
-	gatheringInvoiceID := pendingLines.Invoice.InvoiceID()
+	gatheringInvoiceID := pendingLines.Invoice.GetInvoiceID()
 
 	clock.SetTime(newPeriodEnd)
 	res, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -4320,7 +4317,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceEmulation() {
 	require.NoError(s.T(), err)
 	require.Len(s.T(), res.Lines, 1)
 
-	gatheringInvoiceID := res.Invoice.InvoiceID()
+	gatheringInvoiceID := res.Invoice.GetInvoiceID()
 	require.NotEmpty(s.T(), gatheringInvoiceID)
 
 	// Let's get the invoice using the standard invoice path

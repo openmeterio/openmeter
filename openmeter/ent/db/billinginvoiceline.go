@@ -77,7 +77,7 @@ type BillingInvoiceLine struct {
 	// InvoiceAt holds the value of the "invoice_at" field.
 	InvoiceAt time.Time `json:"invoice_at,omitempty"`
 	// Type holds the value of the "type" field.
-	Type billing.InvoiceLineType `json:"type,omitempty"`
+	Type billing.InvoiceLineAdapterType `json:"type,omitempty"`
 	// Status holds the value of the "status" field.
 	Status billing.InvoiceLineStatus `json:"status,omitempty"`
 	// Quantity holds the value of the "quantity" field.
@@ -460,7 +460,7 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				_m.Type = billing.InvoiceLineType(value.String)
+				_m.Type = billing.InvoiceLineAdapterType(value.String)
 			}
 		case billinginvoiceline.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {

@@ -153,6 +153,14 @@ func transcationForInvoiceManipulation[T any](ctx context.Context, svc *Service,
 	})
 }
 
+func transcationForInvoiceManipulationNoValue(ctx context.Context, svc *Service, customerID customer.CustomerID, fn func(ctx context.Context) error) error {
+	_, err := transcationForInvoiceManipulation(ctx, svc, customerID, func(ctx context.Context) (any, error) {
+		return nil, fn(ctx)
+	})
+
+	return err
+}
+
 func (s Service) GetAdvancementStrategy() billing.AdvancementStrategy {
 	return s.advancementStrategy
 }

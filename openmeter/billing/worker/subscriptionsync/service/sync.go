@@ -439,7 +439,7 @@ func (s *Service) correctPeriodStartForUpcomingLines(ctx context.Context, subscr
 		previousServicePeriod := existingPreviousLine.ServicePeriod()
 
 		// If the lines are continuous we are fine
-		if line.ServicePeriod.Start.Equal(previousServicePeriod.End) {
+		if line.ServicePeriod.Start.Equal(previousServicePeriod.To) {
 			continue
 		}
 
@@ -449,12 +449,12 @@ func (s *Service) correctPeriodStartForUpcomingLines(ctx context.Context, subscr
 		}
 
 		// We are not overriding the billing period start as that is only used to determine the invoiceAt for inAdvance items
-		inScopeLines[idx].ServicePeriod.Start = previousServicePeriod.End
-		inScopeLines[idx].FullServicePeriod.Start = previousServicePeriod.End
+		inScopeLines[idx].ServicePeriod.Start = previousServicePeriod.To
+		inScopeLines[idx].FullServicePeriod.Start = previousServicePeriod.To
 
 		if line.FullServicePeriod.Start.Equal(line.BillingPeriod.Start) {
 			// If the billing period is not truncated, we can update the line's billing period start too
-			inScopeLines[idx].BillingPeriod.Start = previousServicePeriod.End
+			inScopeLines[idx].BillingPeriod.Start = previousServicePeriod.To
 		}
 	}
 
@@ -464,46 +464,46 @@ func (s *Service) correctPeriodStartForUpcomingLines(ctx context.Context, subscr
 func (s *Service) lineOrHierarchyHasAnnotation(lineOrHierarchy billing.LineOrHierarchy, annotation string) (bool, error) {
 	switch lineOrHierarchy.Type() {
 	case billing.LineOrHierarchyTypeLine:
-		previousLine, err := lineOrHierarchy.AsStandardLine()
+		previousLine, err := lineOrHierarchy.AsGenericLine()
 		if err != nil {
 			return false, fmt.Errorf("getting previous line: %w", err)
 		}
 
-		return s.lineHasAnnotation(previousLine, annotation), nil
+		return s.lineHasAnnotation(previousLine.GetManagedBy(), previousLine.GetAnnotations(), annotation), nil
 	case billing.LineOrHierarchyTypeHierarchy:
 		hierarchy, err := lineOrHierarchy.AsHierarchy()
 		if err != nil {
 			return false, fmt.Errorf("getting previous hierarchy: %w", err)
 		}
 
-		return s.hierarchyHasAnnotation(hierarchy, annotation), nil
+		return s.hierarchyHasAnnotation(hierarchy, annotation)
 	default:
 		return false, nil
 	}
 }
 
-func (s *Service) lineHasAnnotation(line *billing.StandardLine, annotation string) bool {
-	if line.ManagedBy != billing.SubscriptionManagedLine {
+func (s *Service) lineHasAnnotation(managedBy billing.InvoiceLineManagedBy, annotations models.Annotations, annotation string) bool {
+	if managedBy != billing.SubscriptionManagedLine {
 		// We only correct the period start for subscription managed lines, for manual edits
 		// we should not apply this logic, as the user might have created a setup where the period start
 		// is no longer valid.
 		return false
 	}
 
-	return line.Annotations.GetBool(annotation)
+	return annotations.GetBool(annotation)
 }
 
-func (s *Service) hierarchyHasAnnotation(hierarchy *billing.SplitLineHierarchy, annotation string) bool {
+func (s *Service) hierarchyHasAnnotation(hierarchy *billing.SplitLineHierarchy, annotation string) (bool, error) {
 	servicePeriod := hierarchy.Group.ServicePeriod
 
 	// The correction can only happen if the last line the progressively billed group is in scope for the period correction
-	for _, line := range hierarchy.Lines {
-		if line.Line.Period.End.Equal(servicePeriod.End) && line.Line.DeletedAt == nil {
-			return s.lineHasAnnotation(line.Line, annotation)
+	for _, child := range hierarchy.Lines {
+		if child.Line.GetServicePeriod().To.Equal(servicePeriod.End) && child.Line.GetDeletedAt() == nil {
+			return s.lineHasAnnotation(child.Line.GetManagedBy(), child.Line.GetAnnotations(), annotation), nil
 		}
 	}
 
-	return false
+	return false, nil
 }
 
 func (s *Service) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.SubscriptionView, currency currencyx.Calculator, invoiceByID InvoiceByID) ([]linePatch, error) {
@@ -537,7 +537,7 @@ func (s *Service) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.
 			continue
 		}
 
-		updatePatches, err := s.getPatchesForExistingLineOrHierarchy(line.Existing, expectedLine, invoiceByID)
+		updatePatches, err := s.getPatchesForExistingLineOrHierarchy(line.Existing, *expectedLine, invoiceByID)
 		if err != nil {
 			return nil, fmt.Errorf("updating line[%s]: %w", line.Target.UniqueID, err)
 		}
@@ -638,9 +638,9 @@ func (s *Service) collectUpcomingLines(ctx context.Context, subs subscription.Su
 	})
 }
 
-func (s *Service) lineFromSubscritionRateCard(subs subscription.SubscriptionView, item subscriptionItemWithPeriods, currency currencyx.Calculator) (*billing.StandardLine, error) {
-	line := &billing.StandardLine{
-		StandardLineBase: billing.StandardLineBase{
+func (s *Service) lineFromSubscritionRateCard(subs subscription.SubscriptionView, item subscriptionItemWithPeriods, currency currencyx.Calculator) (*billing.GatheringLine, error) {
+	line := billing.GatheringLine{
+		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace:   subs.Subscription.Namespace,
 				Name:        item.Spec.RateCard.AsMeta().Name,
@@ -650,7 +650,7 @@ func (s *Service) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 			Currency:               subs.Spec.Currency,
 			ChildUniqueReferenceID: &item.UniqueID,
 			TaxConfig:              item.Spec.RateCard.AsMeta().TaxConfig,
-			Period:                 item.ServicePeriod,
+			ServicePeriod:          item.ServicePeriod.ToClosedPeriod(),
 			InvoiceAt:              item.GetInvoiceAt(),
 			RateCardDiscounts:      s.discountsToBillingDiscounts(item.Spec.RateCard.AsMeta().Discounts),
 
@@ -693,26 +693,22 @@ func (s *Service) lineFromSubscritionRateCard(subs subscription.SubscriptionView
 			return nil, nil
 		}
 
-		line.UsageBased = &billing.UsageBasedLine{
-			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-				Amount:      perUnitAmount,
-				PaymentTerm: price.PaymentTerm,
-			}),
-			FeatureKey: lo.FromPtr(item.SubscriptionItem.RateCard.AsMeta().FeatureKey),
-		}
+		line.Price = lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Amount:      perUnitAmount,
+			PaymentTerm: price.PaymentTerm,
+		}))
+		line.FeatureKey = lo.FromPtr(item.SubscriptionItem.RateCard.AsMeta().FeatureKey)
 
 	default:
 		if item.SubscriptionItem.RateCard.AsMeta().Price == nil {
 			return nil, fmt.Errorf("price must be defined for usage based price")
 		}
 
-		line.UsageBased = &billing.UsageBasedLine{
-			Price:      item.SubscriptionItem.RateCard.AsMeta().Price,
-			FeatureKey: *item.SubscriptionItem.RateCard.AsMeta().FeatureKey,
-		}
+		line.Price = lo.FromPtr(item.SubscriptionItem.RateCard.AsMeta().Price)
+		line.FeatureKey = lo.FromPtr(item.SubscriptionItem.RateCard.AsMeta().FeatureKey)
 	}
 
-	return line, nil
+	return &line, nil
 }
 
 func (s *Service) discountsToBillingDiscounts(discounts productcatalog.Discounts) billing.Discounts {
@@ -758,7 +754,7 @@ func (s *Service) shouldProrate(item subscriptionItemWithPeriods, subView subscr
 }
 
 func (s *Service) getNewUpcomingLinePatches(ctx context.Context, subs subscription.SubscriptionView, currency currencyx.Calculator, subsItems []subscriptionItemWithPeriods) ([]linePatch, error) {
-	newLines, err := slicesx.MapWithErr(subsItems, func(subsItem subscriptionItemWithPeriods) (*billing.StandardLine, error) {
+	newLines, err := slicesx.MapWithErr(subsItems, func(subsItem subscriptionItemWithPeriods) (*billing.GatheringLine, error) {
 		line, err := s.lineFromSubscritionRateCard(subs, subsItem, currency)
 		if err != nil {
 			return nil, fmt.Errorf("generating line from subscription item [%s]: %w", subsItem.SubscriptionItem.ID, err)
@@ -770,16 +766,16 @@ func (s *Service) getNewUpcomingLinePatches(ctx context.Context, subs subscripti
 		return nil, fmt.Errorf("creating new lines: %w", err)
 	}
 
-	lines := lo.Filter(newLines, func(l *billing.StandardLine, _ int) bool {
+	lines := lo.Filter(newLines, func(l *billing.GatheringLine, _ int) bool {
 		return l != nil
 	})
 
-	return lo.Map(lines, func(l *billing.StandardLine, _ int) linePatch {
+	return lo.Map(lines, func(l *billing.GatheringLine, _ int) linePatch {
 		return newCreateLinePatch(*l)
 	}), nil
 }
 
-func (s *Service) getPatchesForExistingLineOrHierarchy(existingLine billing.LineOrHierarchy, expectedLine *billing.StandardLine, invoiceByID InvoiceByID) ([]linePatch, error) {
+func (s *Service) getPatchesForExistingLineOrHierarchy(existingLine billing.LineOrHierarchy, expectedLine billing.GatheringLine, invoiceByID InvoiceByID) ([]linePatch, error) {
 	// TODO/WARNING[later]: This logic should be fine with everything that can be billed progressively, however the following use-cases
 	// will behave strangely:
 	//
@@ -792,7 +788,7 @@ func (s *Service) getPatchesForExistingLineOrHierarchy(existingLine billing.Line
 
 	switch existingLine.Type() {
 	case billing.LineOrHierarchyTypeLine:
-		line, err := existingLine.AsStandardLine()
+		line, err := existingLine.AsGenericLine()
 		if err != nil {
 			return nil, fmt.Errorf("getting line: %w", err)
 		}
@@ -810,48 +806,59 @@ func (s *Service) getPatchesForExistingLineOrHierarchy(existingLine billing.Line
 	}
 }
 
-func (s *Service) getPatchesForExistingLine(existingLine *billing.StandardLine, expectedLine *billing.StandardLine, invoiceByID InvoiceByID) ([]linePatch, error) {
+func (s *Service) getPatchesForExistingLine(existingLine billing.GenericInvoiceLine, expectedLine billing.GatheringLine, invoiceByID InvoiceByID) ([]linePatch, error) {
 	// Lines can be manually marked as ignored in syncing, which is used for cases where we're doing backwards incompatible changes
 	if expectedLine.Annotations.GetBool(billing.AnnotationSubscriptionSyncIgnore) {
 		return nil, nil
 	}
 
-	if existingLine.Annotations.GetBool(billing.AnnotationSubscriptionSyncIgnore) {
+	if existingLine.GetAnnotations().GetBool(billing.AnnotationSubscriptionSyncIgnore) {
 		return nil, nil
 	}
 
 	// Manual edits prevent resyncronization so that we preserve the user intent
-	if existingLine.ManagedBy != billing.SubscriptionManagedLine {
+	if existingLine.GetManagedBy() != billing.SubscriptionManagedLine {
 		return nil, nil
 	}
 
 	// We assume that only the period can change, maybe some pricing data due to prorating (for flat lines)
 
-	targetLine := existingLine.CloneWithoutChildren()
-
-	wasChange := false
-
-	setIfDoesNotEqual(&targetLine.Period, expectedLine.Period, &wasChange)
-	if wasChange {
-		// If the period has changed we need to adjust the invoice at to the expected line's invoice at
-		targetLine.InvoiceAt = expectedLine.InvoiceAt
+	targetLine, err := existingLine.CloneWithoutChildren()
+	if err != nil {
+		return nil, fmt.Errorf("cloning line: %w", err)
 	}
 
-	if invoiceByID.IsGatheringInvoice(existingLine.InvoiceID) {
-		setIfDoesNotEqual(&targetLine.InvoiceAt, expectedLine.InvoiceAt, &wasChange)
+	wasChange := false
+	if !targetLine.GetServicePeriod().Equal(expectedLine.ServicePeriod) {
+		wasChange = true
+
+		targetLine.UpdateServicePeriod(func(p *timeutil.ClosedPeriod) {
+			*p = expectedLine.ServicePeriod
+		})
+
+		if invoiceByID.IsGatheringInvoice(targetLine.GetInvoiceID()) {
+			invoiceAtAccessor, ok := targetLine.(billing.InvoiceAtAccessor)
+			if !ok {
+				// If the period has changed we need to adjust the invoice at to the expected line's invoice at for
+				// gathering invoices (for standard it doesn't matter)
+				return nil, fmt.Errorf("target line is not an invoice at accessor: %T", targetLine)
+			}
+
+			invoiceAtAccessor.SetInvoiceAt(expectedLine.InvoiceAt)
+		}
 	}
 
 	if !isFlatFee(targetLine) {
 		// UBP Empty lines are not allowed, let's delete them instead
-		if targetLine.Period.Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
+		if targetLine.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
 			return []linePatch{
-				newDeleteLinePatch(existingLine.LineID(), existingLine.InvoiceID),
+				newDeleteLinePatch(existingLine.GetLineID(), existingLine.GetInvoiceID()),
 			}, nil
 		}
 	}
 
-	if targetLine.DeletedAt != nil {
-		targetLine.DeletedAt = nil
+	if targetLine.GetDeletedAt() != nil {
+		targetLine.SetDeletedAt(nil)
 		wasChange = true
 	}
 
@@ -888,14 +895,14 @@ func (s *Service) getPatchesForExistingLine(existingLine *billing.StandardLine, 
 	}, nil
 }
 
-func (s *Service) getPatchesForExistingHierarchy(existingHierarchy *billing.SplitLineHierarchy, expectedLine *billing.StandardLine, invoiceByID InvoiceByID) ([]linePatch, error) {
+func (s *Service) getPatchesForExistingHierarchy(existingHierarchy *billing.SplitLineHierarchy, expectedLine billing.GatheringLine, invoiceByID InvoiceByID) ([]linePatch, error) {
 	// Parts of the line has been already invoiced using progressive invoicing, so we need to examine the children
 
 	// Nothing to do here, as split lines are UBP lines and thus we don't need the flat fee corrections
 	// TODO[later]: When we implement progressive billing based pro-rating, we need to support adjusting flat fee
 	// segments here.
 
-	if existingHierarchy.Group.ServicePeriod.End.Equal(expectedLine.Period.End) {
+	if existingHierarchy.Group.ServicePeriod.End.Equal(expectedLine.ServicePeriod.To) {
 		// The line is already in the expected state, so we can safely return here
 		return nil, nil
 	}
@@ -903,36 +910,46 @@ func (s *Service) getPatchesForExistingHierarchy(existingHierarchy *billing.Spli
 	patches := []linePatch{}
 
 	// Case #1: The line is being expanded (e.g. continue subscription)
-	if existingHierarchy.Group.ServicePeriod.End.Before(expectedLine.Period.End) {
+	if existingHierarchy.Group.ServicePeriod.End.Before(expectedLine.ServicePeriod.To) {
 		// Expansion of the line (e.g. continue subscription)
 
-		children := existingHierarchy.Lines
-		if len(children) > 0 {
-			slices.SortFunc(children, func(i, j billing.LineWithInvoiceHeader) int {
-				return timeutil.Compare(i.Line.Period.End, j.Line.Period.End)
+		if len(existingHierarchy.Lines) > 0 {
+			lines := existingHierarchy.Lines
+			slices.SortFunc(lines, func(i, j billing.LineWithInvoiceHeader) int {
+				return timeutil.Compare(i.Line.GetServicePeriod().To, j.Line.GetServicePeriod().To)
 			})
 
-			lastChild := children[len(children)-1].Line.CloneWithoutChildren()
+			lastChild, err := lines[len(lines)-1].Line.CloneWithoutChildren()
+			if err != nil {
+				return nil, fmt.Errorf("cloning last child: %w", err)
+			}
 
-			if lastChild.ManagedBy == billing.SubscriptionManagedLine {
+			if lastChild.GetManagedBy() == billing.SubscriptionManagedLine {
 				// We are not supporting period changes for children, and we need to maintain the consistency so
 				// even for overridden lines we need to update the period
 
 				// We however allow deletions, so we are only un-deleting the line here if it was deleted by the sync engine
-				lastChild.DeletedAt = nil
+				lastChild.SetDeletedAt(nil)
 			}
 
-			lastChild.Period.End = expectedLine.Period.End
+			lastChild.UpdateServicePeriod(func(p *timeutil.ClosedPeriod) {
+				p.To = expectedLine.ServicePeriod.To
+			})
 
-			if invoiceByID.IsGatheringInvoice(lastChild.InvoiceID) {
-				lastChild.InvoiceAt = expectedLine.InvoiceAt
+			if invoiceByID.IsGatheringInvoice(lastChild.GetInvoiceID()) {
+				invoiceAtAccessor, ok := lastChild.(billing.InvoiceAtAccessor)
+				if !ok {
+					return nil, fmt.Errorf("last child is not an invoice at accessor: %T", lastChild)
+				}
+
+				invoiceAtAccessor.SetInvoiceAt(expectedLine.InvoiceAt)
 			}
 			patches = append(patches, newUpdateLinePatch(lastChild))
 		}
 
 		// We have already updated the last child, so we need to update at least the periods regardless of managed_by to keep the consistency
 		updatedGroup := existingHierarchy.Group.ToUpdate()
-		updatedGroup.ServicePeriod.End = expectedLine.Period.End
+		updatedGroup.ServicePeriod.End = expectedLine.ServicePeriod.To
 		patches = append(patches, newUpdateSplitLineGroupPatch(updatedGroup))
 
 		return patches, nil
@@ -941,39 +958,49 @@ func (s *Service) getPatchesForExistingHierarchy(existingHierarchy *billing.Spli
 	// Shrink of the line (e.g. subscription cancled, subscription item edit)
 
 	for _, child := range existingHierarchy.Lines {
-		if child.Line.Period.End.Before(expectedLine.Period.End) {
+		if child.Line.GetServicePeriod().To.Before(expectedLine.ServicePeriod.To) {
 			// The child is not affected by the period shrink, so we can skip it
 			continue
 		}
 
-		if child.Line.Period.Start.After(expectedLine.Period.End) {
+		if child.Line.GetServicePeriod().From.After(expectedLine.ServicePeriod.To) {
 			// The child is after the period shrink, so we need to delete it as it became invalid
-			patches = append(patches, newDeleteLinePatch(child.Line.LineID(), child.Line.InvoiceID))
+			patches = append(patches, newDeleteLinePatch(child.Line.GetLineID(), child.Line.GetInvoiceID()))
 			continue
 		}
 
 		// The child is partially affected by the period shrink, so we need to adjust the period
-		if !child.Line.Period.End.Equal(expectedLine.Period.End) {
-			updatedChild := child.Line.CloneWithoutChildren()
-			updatedChild.Period.End = expectedLine.Period.End
-
-			if invoiceByID.IsGatheringInvoice(child.Line.InvoiceID) {
-				updatedChild.InvoiceAt = expectedLine.InvoiceAt
+		if !child.Line.GetServicePeriod().To.Equal(expectedLine.ServicePeriod.To) {
+			updatedLine, err := child.Line.CloneWithoutChildren()
+			if err != nil {
+				return nil, fmt.Errorf("cloning child: %w", err)
 			}
 
-			if child.Line.ManagedBy == billing.SubscriptionManagedLine {
-				updatedChild.DeletedAt = nil
+			updatedLine.UpdateServicePeriod(func(p *timeutil.ClosedPeriod) {
+				p.To = expectedLine.ServicePeriod.To
+			})
+
+			if invoiceByID.IsGatheringInvoice(updatedLine.GetInvoiceID()) {
+				invoiceAtAccessor, ok := updatedLine.(billing.InvoiceAtAccessor)
+				if !ok {
+					return nil, fmt.Errorf("last child is not an invoice at accessor: %T", updatedLine)
+				}
+				invoiceAtAccessor.SetInvoiceAt(expectedLine.InvoiceAt)
 			}
 
-			if !isFlatFee(updatedChild) {
+			if updatedLine.GetManagedBy() == billing.SubscriptionManagedLine {
+				updatedLine.SetDeletedAt(nil)
+			}
+
+			if !isFlatFee(updatedLine) {
 				// UBP Empty lines are not allowed, let's delete them instead
-				if updatedChild.Period.Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
-					patches = append(patches, newDeleteLinePatch(child.Line.LineID(), child.Line.InvoiceID))
+				if updatedLine.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
+					patches = append(patches, newDeleteLinePatch(updatedLine.GetLineID(), updatedLine.GetInvoiceID()))
 					continue
 				}
 			}
 
-			patches = append(patches, newUpdateLinePatch(updatedChild))
+			patches = append(patches, newUpdateLinePatch(updatedLine))
 		}
 	}
 
@@ -981,7 +1008,7 @@ func (s *Service) getPatchesForExistingHierarchy(existingHierarchy *billing.Spli
 	// we can reliably detect last child
 
 	updatedGroup := existingHierarchy.Group.ToUpdate()
-	updatedGroup.ServicePeriod.End = expectedLine.Period.End
+	updatedGroup.ServicePeriod.End = expectedLine.ServicePeriod.To
 	patches = append(patches, newUpdateSplitLineGroupPatch(updatedGroup))
 
 	return patches, nil

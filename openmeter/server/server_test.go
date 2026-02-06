@@ -1533,6 +1533,10 @@ func (n NoopBillingService) ListGatheringInvoices(ctx context.Context, input bil
 	return pagination.Result[billing.GatheringInvoice]{}, nil
 }
 
+func (n NoopBillingService) UpdateGatheringInvoice(ctx context.Context, input billing.UpdateGatheringInvoiceInput) error {
+	return nil
+}
+
 // SequenceService methods
 func (n NoopBillingService) GenerateInvoiceSequenceNumber(ctx context.Context, in billing.SequenceGenerationInput, def billing.SequenceDefinition) (string, error) {
 	return "", nil

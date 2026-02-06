@@ -267,6 +267,23 @@ func (i StandardInvoiceBase) DefaultCollectionAtForStandardInvoice() time.Time {
 	return lo.FromPtr(i.CollectionAt)
 }
 
+func (i StandardInvoiceBase) GetDeletedAt() *time.Time {
+	return i.DeletedAt
+}
+
+func (i StandardInvoiceBase) GetID() string {
+	return i.ID
+}
+
+func (i StandardInvoiceBase) GetInvoiceID() InvoiceID {
+	return InvoiceID{
+		Namespace: i.Namespace,
+		ID:        i.ID,
+	}
+}
+
+var _ GenericInvoice = (*StandardInvoice)(nil)
+
 type StandardInvoice struct {
 	StandardInvoiceBase `json:",inline"`
 
@@ -316,6 +333,13 @@ func (i StandardInvoice) CustomerID() customer.CustomerID {
 	}
 }
 
+func (i StandardInvoice) AsInvoice() Invoice {
+	return Invoice{
+		t:               InvoiceTypeStandard,
+		standardInvoice: &i,
+	}
+}
+
 func (i *StandardInvoice) MergeValidationIssues(errIn error, reportingComponent ComponentName) error {
 	i.ValidationIssues = lo.Filter(i.ValidationIssues, func(issue ValidationIssue, _ int) bool {
 		return issue.Component != reportingComponent
@@ -342,13 +366,18 @@ func (i *StandardInvoice) HasCriticalValidationIssues() bool {
 // - Line's DB state
 // - Line's dependencies are marked as resolved
 // - Parent pointers are removed
-func (i StandardInvoice) RemoveMetaForCompare() StandardInvoice {
+func (i StandardInvoice) RemoveMetaForCompare() (StandardInvoice, error) {
 	invoice := i
-	invoice.Lines = i.Lines.Map(func(line *StandardLine) *StandardLine {
+	newLines, err := i.Lines.MapWithErr(func(line *StandardLine) (*StandardLine, error) {
 		return line.RemoveMetaForCompare()
 	})
+	if err != nil {
+		return StandardInvoice{}, err
+	}
 
-	return invoice
+	invoice.Lines = newLines
+
+	return invoice, nil
 }
 
 // getLeafLines returns the leaf lines
@@ -378,24 +407,35 @@ func (i *StandardInvoice) GetLeafLinesWithConsolidatedTaxBehavior() DetailedLine
 	})
 }
 
-func (i StandardInvoice) Clone() StandardInvoice {
+func (i StandardInvoice) Clone() (StandardInvoice, error) {
 	clone := i
 
-	clone.Lines = i.Lines.Clone()
+	clonedLines, err := i.Lines.Clone()
+	if err != nil {
+		return StandardInvoice{}, err
+	}
+
+	clone.Lines = clonedLines
 	clone.ValidationIssues = i.ValidationIssues.Clone()
 	clone.Totals = i.Totals
 
-	return clone
+	return clone, nil
 }
 
-func (i StandardInvoice) RemoveCircularReferences() StandardInvoice {
-	clone := i.Clone()
+func (i StandardInvoice) RemoveCircularReferences() (StandardInvoice, error) {
+	clone, err := i.Clone()
+	if err != nil {
+		return StandardInvoice{}, err
+	}
 
-	clone.Lines = clone.Lines.Map(func(line *StandardLine) *StandardLine {
+	clone.Lines, err = clone.Lines.MapWithErr(func(line *StandardLine) (*StandardLine, error) {
 		return line.RemoveCircularReferences()
 	})
+	if err != nil {
+		return StandardInvoice{}, err
+	}
 
-	return clone
+	return clone, nil
 }
 
 func (i *StandardInvoice) SortLines() {
@@ -456,8 +496,8 @@ func (c StandardInvoiceLines) WithNormalizedValues() (StandardInvoiceLines, erro
 	})
 }
 
-func (c StandardInvoiceLines) Clone() StandardInvoiceLines {
-	return c.Map(func(l *StandardLine) *StandardLine {
+func (c StandardInvoiceLines) Clone() (StandardInvoiceLines, error) {
+	return c.MapWithErr(func(l *StandardLine) (*StandardLine, error) {
 		return l.Clone()
 	})
 }

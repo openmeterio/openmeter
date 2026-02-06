@@ -6,7 +6,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/invopop/gobl/bill"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
@@ -22,14 +21,16 @@ import (
 type InvoiceType string
 
 const (
-	InvoiceTypeStandard   InvoiceType = InvoiceType(bill.InvoiceTypeStandard)
-	InvoiceTypeCreditNote InvoiceType = InvoiceType(bill.InvoiceTypeCreditNote)
+	InvoiceTypeStandard   InvoiceType = InvoiceType("standard")
+	InvoiceTypeCreditNote InvoiceType = InvoiceType("credit-note")
+	InvoiceTypeGathering  InvoiceType = InvoiceType("gathering")
 )
 
 func (t InvoiceType) Values() []string {
 	return []string{
 		string(InvoiceTypeStandard),
 		string(InvoiceTypeCreditNote),
+		string(InvoiceTypeGathering),
 	}
 }
 
@@ -47,6 +48,18 @@ type InvoiceID models.NamespacedID
 
 func (i InvoiceID) Validate() error {
 	return models.NamespacedID(i).Validate()
+}
+
+type GenericInvoice interface {
+	GenericInvoiceReader
+}
+
+type GenericInvoiceReader interface {
+	GetDeletedAt() *time.Time
+	GetID() string
+	GetInvoiceID() InvoiceID
+
+	AsInvoice() Invoice
 }
 
 type InvoiceExpand struct {
@@ -95,6 +108,68 @@ func (i *InvoiceExternalIDs) GetInvoicingOrEmpty() string {
 		return ""
 	}
 	return i.Invoicing
+}
+
+type Invoice struct {
+	t                InvoiceType
+	standardInvoice  *StandardInvoice
+	gatheringInvoice *GatheringInvoice
+}
+
+func NewInvoice[T StandardInvoice | GatheringInvoice](invoice T) Invoice {
+	switch v := any(invoice).(type) {
+	case StandardInvoice:
+		return Invoice{
+			t:               InvoiceTypeStandard,
+			standardInvoice: &v,
+		}
+	case GatheringInvoice:
+		return Invoice{
+			t:                InvoiceTypeGathering,
+			gatheringInvoice: &v,
+		}
+	}
+
+	return Invoice{}
+}
+
+func (i Invoice) Type() InvoiceType {
+	return i.t
+}
+
+func (i Invoice) AsStandardInvoice() (StandardInvoice, error) {
+	if i.t != InvoiceTypeStandard {
+		return StandardInvoice{}, fmt.Errorf("invoice is not a standard invoice")
+	}
+
+	if i.standardInvoice == nil {
+		return StandardInvoice{}, fmt.Errorf("standard invoice is nil")
+	}
+
+	return *i.standardInvoice, nil
+}
+
+func (i Invoice) AsGatheringInvoice() (GatheringInvoice, error) {
+	if i.t != InvoiceTypeGathering {
+		return GatheringInvoice{}, fmt.Errorf("invoice is not a gathering invoice")
+	}
+
+	if i.gatheringInvoice == nil {
+		return GatheringInvoice{}, fmt.Errorf("gathering invoice is nil")
+	}
+
+	return *i.gatheringInvoice, nil
+}
+
+func (i Invoice) Validate() error {
+	switch i.t {
+	case InvoiceTypeStandard:
+		return i.standardInvoice.Validate()
+	case InvoiceTypeGathering:
+		return i.gatheringInvoice.Validate()
+	default:
+		return fmt.Errorf("invalid invoice type: %s", i.t)
+	}
 }
 
 type GetInvoiceByIdInput struct {
