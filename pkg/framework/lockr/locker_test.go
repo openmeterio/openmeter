@@ -235,6 +235,144 @@ func TestLockerLockForTx(t *testing.T) {
 		require.Equal(t, []string{"1 start", "2 start", "1 done", "2 done"}, results)
 	}))
 
+	t.Run("TryLock should error if not in a transaction", withDBClient(func(t *testing.T, client *db.Client) {
+		locker, err := lockr.NewLocker(&lockr.LockerConfig{
+			Logger: testutils.NewLogger(t),
+		})
+		require.NoError(t, err)
+
+		key, err := lockr.NewKey("test")
+		require.NoError(t, err)
+
+		acquired, err := locker.TryLockForTX(context.Background(), key)
+		require.Error(t, err)
+		require.False(t, acquired)
+		require.ErrorContains(t, err, "lockr only works in a transaction, but driver not found")
+	}))
+
+	t.Run("TryLock should acquire a lock", withDBClient(func(t *testing.T, client *db.Client) {
+		txCreator := &creator{db: client}
+
+		locker, err := lockr.NewLocker(&lockr.LockerConfig{
+			Logger: testutils.NewLogger(t),
+		})
+		require.NoError(t, err)
+
+		require.NoError(t, transaction.RunWithNoValue(context.Background(), txCreator, func(ctx context.Context) error {
+			key, err := lockr.NewKey("test")
+			if err != nil {
+				t.Fatalf("failed to create key: %v", err)
+			}
+
+			acquired, err := locker.TryLockForTX(ctx, key)
+			require.NoError(t, err)
+			require.True(t, acquired)
+
+			return nil
+		}))
+	}))
+
+	t.Run("TryLock should return false if lock is held by another transaction", withDBClient(func(t *testing.T, client *db.Client) {
+		txCreator := &creator{db: client}
+
+		locker, err := lockr.NewLocker(&lockr.LockerConfig{
+			Logger: testutils.NewLogger(t),
+		})
+		require.NoError(t, err)
+
+		key, err := lockr.NewKey("test")
+		require.NoError(t, err)
+
+		// First goroutine acquires the lock and holds it
+		trigTwo := make(chan struct{}, 1)
+		resultCh := make(chan bool, 1)
+
+		wg := sync.WaitGroup{}
+		wg.Add(2)
+
+		go func() {
+			defer wg.Done()
+
+			require.NoError(t, transaction.RunWithNoValue(context.Background(), txCreator, func(ctx context.Context) error {
+				require.NoError(t, locker.LockForTX(ctx, key))
+
+				trigTwo <- struct{}{}
+
+				// Hold the lock until the second goroutine has attempted to acquire it
+				<-resultCh
+
+				return nil
+			}))
+		}()
+
+		go func() {
+			defer wg.Done()
+
+			timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+
+			require.NoError(t, transaction.RunWithNoValue(context.Background(), txCreator, func(ctx context.Context) error {
+				select {
+				case <-timeoutCtx.Done():
+					require.Fail(t, "first routine failed to acquire the lock in time")
+					return nil
+				case <-trigTwo:
+					acquired, err := locker.TryLockForTX(ctx, key)
+					require.NoError(t, err)
+					require.False(t, acquired, "TryLock should return false when lock is held")
+
+					resultCh <- acquired
+					return nil
+				}
+			}))
+		}()
+
+		wg.Wait()
+	}))
+
+	t.Run("TryLock should be able to acquire same lock twice in same transaction", withDBClient(func(t *testing.T, client *db.Client) {
+		txCreator := &creator{db: client}
+
+		locker, err := lockr.NewLocker(&lockr.LockerConfig{
+			Logger: testutils.NewLogger(t),
+		})
+		require.NoError(t, err)
+
+		require.NoError(t, transaction.RunWithNoValue(context.Background(), txCreator, func(ctx context.Context) error {
+			key, err := lockr.NewKey("test")
+			if err != nil {
+				t.Fatalf("failed to create key: %v", err)
+			}
+
+			acquired, err := locker.TryLockForTX(ctx, key)
+			require.NoError(t, err)
+			require.True(t, acquired)
+
+			acquired, err = locker.TryLockForTX(ctx, key)
+			require.NoError(t, err)
+			require.True(t, acquired)
+
+			return nil
+		}))
+	}))
+
+	t.Run("TryLockForTXWithScopes should work", withDBClient(func(t *testing.T, client *db.Client) {
+		txCreator := &creator{db: client}
+
+		locker, err := lockr.NewLocker(&lockr.LockerConfig{
+			Logger: testutils.NewLogger(t),
+		})
+		require.NoError(t, err)
+
+		require.NoError(t, transaction.RunWithNoValue(context.Background(), txCreator, func(ctx context.Context) error {
+			acquired, err := locker.TryLockForTXWithScopes(ctx, "test", "scope")
+			require.NoError(t, err)
+			require.True(t, acquired)
+
+			return nil
+		}))
+	}))
+
 	t.Run("Should error if acquiring lock takes longer than timeout", func(t *testing.T) {
 		// We'll need a custom db setup to configure the timeout
 		lockTimeout := time.Second * 3
