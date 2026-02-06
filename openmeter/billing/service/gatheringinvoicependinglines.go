@@ -247,6 +247,7 @@ func (s *Service) handleInvoicePendingLinesForCurrency(ctx context.Context, in h
 	gatheringInvoice = prepareResults.GatheringInvoice
 
 	// Step 2: Let's create the standard invoice and move the lines to the new invoice.
+	// TODO: Let's get this from the gathering invoice directly, we don't need to filter again here
 	linesToBill := lo.Filter(gatheringInvoice.Lines.OrEmpty(), func(line billing.GatheringLine, _ int) bool {
 		return slices.Contains(prepareResults.LineIDsToBill, line.ID)
 	})
@@ -706,6 +707,9 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 		splitLineGroupID = splitLineGroup.ID
 	} else {
 		splitLineGroupID = lo.FromPtr(line.SplitLineGroupID)
+		if splitLineGroupID == "" {
+			return res, fmt.Errorf("split line group id is empty")
+		}
 	}
 
 	// We have already split the line once, we just need to create a new line and update the existing line
@@ -860,6 +864,8 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("moving lines to invoice: %w", err)
 	}
 
+	invoice = convertResults.TargetInvoice
+
 	// Let's first update the gathering invoice to make sure deleted lines are synced, as the standard invoice will have expanded split line hierarchies
 	// and we need to make sure that gathering invoice lines that are already yielded the standard invoice lines are excluded from the split line hierarchy.
 	//
@@ -869,14 +875,32 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("updating gathering invoice: %w", err)
 	}
 
+	// Prerequisite: we should have the split line group hierarchies expanded on the invoice lines or the quantity snapshot will assume that the lines are not split
+	// the sideeffect of this update will be that the invoice lines will have the split line group hierarchies expanded.
+	invoice, err = s.updateInvoice(ctx, invoice)
+	if err != nil {
+		return nil, fmt.Errorf("updating target invoice: %w", err)
+	}
+
+	// Now we need to refetch the invoice lines from the invoice structure, so that we have pointers to the updated invoices lines
+	// this way the snapshotting will update the correct lines.
+	newLineIDs := lo.Map(convertResults.LinesAssociated, func(l *billing.StandardLine, _ int) string { return l.ID })
+	persistedInvoiceLines := lo.Filter(invoice.Lines.OrEmpty(), func(l *billing.StandardLine, _ int) bool {
+		return slices.Contains(newLineIDs, l.ID)
+	})
+
+	if len(persistedInvoiceLines) != len(convertResults.LinesAssociated) {
+		return nil, fmt.Errorf("number of persisted invoice lines[%d] does not match the number of converted lines[%d]", len(persistedInvoiceLines), len(convertResults.LinesAssociated))
+	}
+
 	// Let's create the sub lines as per the meters (we are not setting the QuantitySnapshotedAt field just now, to signal that this is not the final snapshot)
-	if err := s.snapshotLineQuantitiesInParallel(ctx, invoice.Customer, convertResults.LinesAssociated, in.FeatureMeters); err != nil {
+	if err := s.snapshotLineQuantitiesInParallel(ctx, invoice.Customer, persistedInvoiceLines, in.FeatureMeters); err != nil {
 		return nil, fmt.Errorf("snapshotting lines: %w", err)
 	}
 
-	// Let's persist the target invoice as the state machine always reloads the invoice from the database to make
+	// Let's persist the snapshotted values to the database as the state machine always reloads the invoice from the database to make
 	// sure we don't have any manual modifications inside the invoice structure.
-	_, err = s.updateInvoice(ctx, convertResults.TargetInvoice)
+	invoice, err = s.updateInvoice(ctx, invoice)
 	if err != nil {
 		return nil, fmt.Errorf("updating target invoice: %w", err)
 	}
@@ -1053,7 +1077,7 @@ func (s *Service) removeLinesFromGatheringInvoice(ctx context.Context, invoice b
 	lineIDsToRemove := lo.Map(linesToRemove, func(l billing.GatheringLine, _ int) string { return l.ID })
 
 	nrLinesRemoved := 0
-	invoiceLinesWithRemovedLines := lo.Filter(invoice.Lines.OrEmpty(), func(l billing.GatheringLine, _ int) bool {
+	invoiceLinesWithoutRemovedLines := lo.Filter(invoice.Lines.OrEmpty(), func(l billing.GatheringLine, _ int) bool {
 		if slices.Contains(lineIDsToRemove, l.ID) {
 			nrLinesRemoved++
 			return false
@@ -1067,7 +1091,7 @@ func (s *Service) removeLinesFromGatheringInvoice(ctx context.Context, invoice b
 		return fmt.Errorf("lines to remove[%d] must contain the same number of lines as line IDs to remove[%d]", nrLinesRemoved, len(lineIDsToRemove))
 	}
 
-	invoice.Lines = billing.NewGatheringInvoiceLines(invoiceLinesWithRemovedLines)
+	invoice.Lines = billing.NewGatheringInvoiceLines(invoiceLinesWithoutRemovedLines)
 
 	// We need to hard delete the lines from the gathering invoice as now the standard lines are taking their place with the same IDs.
 	// If we would soft-delete the lines, all downstream services would assume that the line was deleted due to synchronization and

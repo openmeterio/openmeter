@@ -21,6 +21,7 @@ import (
 
 type InvoiceStateMachine struct {
 	Invoice             billing.StandardInvoice
+	NeedsDBSave         bool
 	Calculator          invoicecalc.Calculator
 	StateMachine        *stateless.StateMachine
 	Logger              *slog.Logger
@@ -85,7 +86,10 @@ func allocateStateMachine() *InvoiceStateMachine {
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusDraftInvalid).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerUpdated, billing.StandardInvoiceStatusDraftUpdating).
-		OnActive(out.calculateInvoice)
+		OnActive(allOf(
+			out.calculateInvoice,
+			out.requireDBSave, // so that any new detailed lines have IDs
+		))
 
 	stateMachine.Configure(billing.StandardInvoiceStatusDraftWaitingForCollection).
 		Permit(
@@ -106,6 +110,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 			allOf(
 				out.snapshotQuantityAsNeeded,
 				out.calculateInvoice,
+				out.requireDBSave, // so that any new detailed lines have IDs
 			),
 		)
 
@@ -118,6 +123,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 			allOf(
 				out.calculateInvoice,
 				out.validateDraftInvoice,
+				out.requireDBSave, // Due to the calculation, new detailed lines may be added
 			),
 		)
 
@@ -134,6 +140,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 		OnActive(allOf(
 			out.calculateInvoice,
 			out.validateDraftInvoice,
+			out.requireDBSave, // Due to the calculation, new detailed lines may be added
 		))
 
 	stateMachine.Configure(billing.StandardInvoiceStatusDraftInvalid).
@@ -158,7 +165,10 @@ func allocateStateMachine() *InvoiceStateMachine {
 		).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusDraftSyncFailed).
-		OnActive(out.syncDraftInvoice)
+		OnActive(allOf(
+			out.syncDraftInvoice,
+			out.requireDBSave, // to save the external IDs returned by the app
+		))
 
 	stateMachine.Configure(billing.StandardInvoiceStatusDraftSyncFailed).
 		Permit(billing.TriggerRetry, billing.StandardInvoiceStatusDraftValidating).
@@ -217,7 +227,10 @@ func allocateStateMachine() *InvoiceStateMachine {
 		).
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusIssuingSyncFailed).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
-		OnActive(out.finalizeInvoice)
+		OnActive(allOf(
+			out.finalizeInvoice,
+			out.requireDBSave, // to save the external IDs returned by the app
+		))
 
 	stateMachine.Configure(billing.StandardInvoiceStatusIssuingSyncFailed).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
@@ -285,6 +298,7 @@ func (s *Service) WithInvoiceStateMachine(ctx context.Context, invoice billing.S
 	sm.FSNamespaceLockdown = s.fsNamespaceLockdown
 	// Stateless doesn't store any state in the state machine, so it's fine to reuse the state machine itself
 	sm.Invoice = invoice
+	sm.NeedsDBSave = false
 	sm.Calculator = s.invoiceCalculator
 	sm.Service = s
 
@@ -295,6 +309,7 @@ func (s *Service) WithInvoiceStateMachine(ctx context.Context, invoice billing.S
 		sm.Logger = nil
 		sm.Publisher = nil
 		sm.FSNamespaceLockdown = nil
+		sm.NeedsDBSave = false
 
 		invoiceStateMachineCache.Put(sm)
 	}()
@@ -406,6 +421,12 @@ func (m *InvoiceStateMachine) calculateAvailableActionDetails(ctx context.Contex
 	}, nil
 }
 
+func (m *InvoiceStateMachine) requireDBSave(ctx context.Context) error {
+	m.NeedsDBSave = true
+
+	return nil
+}
+
 func (m *InvoiceStateMachine) AdvanceUntilStateStable(ctx context.Context) error {
 	for {
 		preAdvanceState, err := billing.NewEventStandardInvoice(m.Invoice)
@@ -429,6 +450,15 @@ func (m *InvoiceStateMachine) AdvanceUntilStateStable(ctx context.Context) error
 
 		if err := m.FireAndActivate(ctx, billing.TriggerNext); err != nil {
 			return fmt.Errorf("cannot transition to the next status [current_status=%s]: %w", m.Invoice.Status, err)
+		}
+
+		if m.NeedsDBSave {
+			updatedInvoice, err := m.Service.updateInvoice(ctx, m.Invoice)
+			if err != nil {
+				return fmt.Errorf("error updating invoice: %w", err)
+			}
+
+			m.Invoice = updatedInvoice
 		}
 
 		// Let's emit an event for the transition
