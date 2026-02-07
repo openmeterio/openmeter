@@ -351,6 +351,7 @@ func (a *adapter) GetGatheringInvoiceById(ctx context.Context, input billing.Get
 				if !input.Expand.Has(billing.GatheringInvoiceExpandDeletedLines) {
 					q = q.Where(billinginvoiceline.DeletedAtIsNil())
 				}
+				q = q.Where(billinginvoiceline.TypeEQ(billing.InvoiceLineTypeUsageBased))
 				q.WithUsageBasedLine()
 			})
 		}
