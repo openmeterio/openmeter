@@ -222,12 +222,7 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 		}
 
 		if input.Expand.Has(billing.GatheringInvoiceExpandLines) {
-			query = query.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
-				if !input.Expand.Has(billing.GatheringInvoiceExpandDeletedLines) {
-					q = q.Where(billinginvoiceline.DeletedAtIsNil())
-				}
-				q.WithUsageBasedLine()
-			})
+			query = a.expandGatheringInvoiceLines(query, input.Expand)
 		}
 
 		switch input.OrderBy {
@@ -336,6 +331,18 @@ func (a *adapter) DeleteGatheringInvoice(ctx context.Context, input billing.Dele
 	})
 }
 
+func (a *adapter) expandGatheringInvoiceLines(q *db.BillingInvoiceQuery, expand billing.GatheringInvoiceExpands) *db.BillingInvoiceQuery {
+	return q.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
+		if !expand.Has(billing.GatheringInvoiceExpandDeletedLines) {
+			q = q.Where(billinginvoiceline.DeletedAtIsNil())
+		}
+		q = q.
+			Where(billinginvoiceline.TypeEQ(billing.InvoiceLineTypeUsageBased)). // Only include usage based lines (there are some detailed lines existing for gathering invoices)
+			Where(billinginvoiceline.ParentLineIDIsNil())                        // Only include top-level lines (there are some detailed lines existing for gathering invoices)
+		q.WithUsageBasedLine()
+	})
+}
+
 func (a *adapter) GetGatheringInvoiceById(ctx context.Context, input billing.GetGatheringInvoiceByIdInput) (billing.GatheringInvoice, error) {
 	if err := input.Validate(); err != nil {
 		return billing.GatheringInvoice{}, fmt.Errorf("validating get gathering invoice by id input: %w", err)
@@ -347,12 +354,7 @@ func (a *adapter) GetGatheringInvoiceById(ctx context.Context, input billing.Get
 			Where(billinginvoice.Namespace(input.Invoice.Namespace))
 
 		if input.Expand.Has(billing.GatheringInvoiceExpandLines) {
-			query = query.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
-				if !input.Expand.Has(billing.GatheringInvoiceExpandDeletedLines) {
-					q = q.Where(billinginvoiceline.DeletedAtIsNil())
-				}
-				q.WithUsageBasedLine()
-			})
+			query = a.expandGatheringInvoiceLines(query, input.Expand)
 		}
 
 		invoice, err := query.Only(ctx)
