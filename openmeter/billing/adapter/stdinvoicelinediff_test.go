@@ -362,7 +362,7 @@ func requireDiff(t *testing.T, expected lineDiffExpectation, actual invoiceLineD
 
 func cloneLines(lines []*billing.StandardLine) []*billing.StandardLine {
 	return lo.Map(lines, func(line *billing.StandardLine, _ int) *billing.StandardLine {
-		return line.Clone()
+		return lo.Must(line.Clone())
 	})
 }
 

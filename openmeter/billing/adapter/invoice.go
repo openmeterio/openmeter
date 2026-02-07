@@ -634,7 +634,7 @@ func (a *adapter) GetInvoiceOwnership(ctx context.Context, in billing.GetInvoice
 	})
 }
 
-func (a *adapter) mapStandardInvoiceBaseFromDB(ctx context.Context, invoice *db.BillingInvoice) billing.StandardInvoiceBase {
+func (a *adapter) mapStandardInvoiceBaseFromDB(invoice *db.BillingInvoice) billing.StandardInvoiceBase {
 	return billing.StandardInvoiceBase{
 		ID:                   invoice.ID,
 		Namespace:            invoice.Namespace,
@@ -697,7 +697,7 @@ func (a *adapter) mapStandardInvoiceBaseFromDB(ctx context.Context, invoice *db.
 }
 
 func (a *adapter) mapStandardInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoice, expand billing.InvoiceExpand) (billing.StandardInvoice, error) {
-	base := a.mapStandardInvoiceBaseFromDB(ctx, invoice)
+	base := a.mapStandardInvoiceBaseFromDB(invoice)
 
 	res := billing.StandardInvoice{
 		StandardInvoiceBase: base,

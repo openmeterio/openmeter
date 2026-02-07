@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 	timeutil "github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -107,4 +108,25 @@ func (i GetLinesForSubscriptionInput) Validate() error {
 	}
 
 	return nil
+}
+
+type GenericInvoiceLine interface {
+	Clone() (GenericInvoiceLine, error)
+	CloneWithoutChildren() (GenericInvoiceLine, error)
+
+	GetDeletedAt() *time.Time
+	SetDeletedAt(at *time.Time)
+	GetServicePeriod() timeutil.ClosedPeriod
+	UpdateServicePeriod(func(p *timeutil.ClosedPeriod))
+	GetID() string
+	GetLineID() LineID
+	GetManagedBy() InvoiceLineManagedBy
+	GetAnnotations() models.Annotations
+	GetInvoiceID() string
+	GetPrice() *productcatalog.Price
+}
+
+type InvoiceAtAccessor interface {
+	GetInvoiceAt() time.Time
+	SetInvoiceAt(at time.Time)
 }

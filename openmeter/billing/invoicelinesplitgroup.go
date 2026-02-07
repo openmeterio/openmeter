@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type SplitLineGroupMutableFields struct {
@@ -178,30 +179,178 @@ func (i SplitLineGroup) Clone() SplitLineGroup {
 	}
 }
 
-type LineWithInvoiceHeader struct {
+type GatheringLineWithInvoiceHeader struct {
+	Line    GatheringLine
+	Invoice GatheringInvoice
+}
+
+func (i GatheringLineWithInvoiceHeader) Clone() (GatheringLineWithInvoiceHeader, error) {
+	clone, err := i.Line.Clone()
+	if err != nil {
+		return GatheringLineWithInvoiceHeader{}, err
+	}
+
+	return GatheringLineWithInvoiceHeader{
+		Line:    clone,
+		Invoice: i.Invoice,
+	}, nil
+}
+
+type StandardLineWithInvoiceHeader struct {
 	Line    *StandardLine
 	Invoice StandardInvoiceBase
 }
 
-func (i LineWithInvoiceHeader) Clone() LineWithInvoiceHeader {
-	return LineWithInvoiceHeader{
-		Line:    i.Line.Clone(),
-		Invoice: i.Invoice,
+func (i StandardLineWithInvoiceHeader) Clone() (StandardLineWithInvoiceHeader, error) {
+	clonedLine, err := i.Line.Clone()
+	if err != nil {
+		return StandardLineWithInvoiceHeader{}, err
 	}
+
+	return StandardLineWithInvoiceHeader{
+		Line:    clonedLine,
+		Invoice: i.Invoice,
+	}, nil
+}
+
+type GenericLineWithInvoiceHeader struct {
+	Line    GenericInvoiceLine
+	Invoice GenericInvoice
+}
+
+type LineWithInvoiceHeaderType string
+
+const (
+	LineWithInvoiceHeaderTypeStandard  LineWithInvoiceHeaderType = "standard"
+	LineWithInvoiceHeaderTypeGathering LineWithInvoiceHeaderType = "gathering"
+)
+
+type LineWithInvoiceHeader struct {
+	t             LineWithInvoiceHeaderType
+	standardLine  *StandardLineWithInvoiceHeader
+	gatheringLine *GatheringLineWithInvoiceHeader
+}
+
+func NewLineWithInvoiceHeader[T StandardLineWithInvoiceHeader | GatheringLineWithInvoiceHeader](line T) LineWithInvoiceHeader {
+	switch v := any(line).(type) {
+	case StandardLineWithInvoiceHeader:
+		return LineWithInvoiceHeader{t: LineWithInvoiceHeaderTypeStandard, standardLine: &v}
+	case GatheringLineWithInvoiceHeader:
+		return LineWithInvoiceHeader{t: LineWithInvoiceHeaderTypeGathering, gatheringLine: &v}
+	}
+
+	return LineWithInvoiceHeader{}
+}
+
+func (i LineWithInvoiceHeader) AsStandardLine() (StandardLineWithInvoiceHeader, error) {
+	if i.t != LineWithInvoiceHeaderTypeStandard {
+		return StandardLineWithInvoiceHeader{}, fmt.Errorf("line is not a standard line")
+	}
+
+	if i.standardLine == nil {
+		return StandardLineWithInvoiceHeader{}, fmt.Errorf("standard line is nil")
+	}
+
+	return *i.standardLine, nil
+}
+
+func (i LineWithInvoiceHeader) AsGatheringLine() (GatheringLineWithInvoiceHeader, error) {
+	if i.t != LineWithInvoiceHeaderTypeGathering {
+		return GatheringLineWithInvoiceHeader{}, fmt.Errorf("line is not a gathering line")
+	}
+
+	if i.gatheringLine == nil {
+		return GatheringLineWithInvoiceHeader{}, fmt.Errorf("gathering line is nil")
+	}
+
+	return *i.gatheringLine, nil
+}
+
+func (i LineWithInvoiceHeader) AsGenericLine() (GenericLineWithInvoiceHeader, error) {
+	switch i.t {
+	case LineWithInvoiceHeaderTypeStandard:
+		if i.standardLine == nil {
+			return GenericLineWithInvoiceHeader{}, fmt.Errorf("standard line is nil")
+		}
+
+		return GenericLineWithInvoiceHeader{
+			Line:    standardInvoiceLineGenericWrapper{StandardLine: i.standardLine.Line},
+			Invoice: i.standardLine.Invoice,
+		}, fmt.Errorf("line is not a generic line")
+	case LineWithInvoiceHeaderTypeGathering:
+		if i.gatheringLine == nil {
+			return GenericLineWithInvoiceHeader{}, fmt.Errorf("gathering line is nil")
+		}
+
+		return GenericLineWithInvoiceHeader{
+			Line:    gatheringInvoiceLineGenericWrapper{GatheringLine: i.gatheringLine.Line},
+			Invoice: i.gatheringLine.Invoice,
+		}, nil
+	}
+
+	return GenericLineWithInvoiceHeader{}, fmt.Errorf("invalid line type: %s", i.t)
+}
+
+func (i LineWithInvoiceHeader) Type() LineWithInvoiceHeaderType {
+	return i.t
+}
+
+func (i LineWithInvoiceHeader) Clone() (LineWithInvoiceHeader, error) {
+	switch i.t {
+	case LineWithInvoiceHeaderTypeStandard:
+		l, err := i.AsStandardLine()
+		if err != nil {
+			return LineWithInvoiceHeader{}, err
+		}
+
+		clonedLine, err := l.Clone()
+		if err != nil {
+			return LineWithInvoiceHeader{}, err
+		}
+
+		return NewLineWithInvoiceHeader(clonedLine), nil
+	case LineWithInvoiceHeaderTypeGathering:
+		l, err := i.AsGatheringLine()
+		if err != nil {
+			return LineWithInvoiceHeader{}, err
+		}
+
+		cloned, err := l.Clone()
+		if err != nil {
+			return LineWithInvoiceHeader{}, err
+		}
+
+		return NewLineWithInvoiceHeader(cloned), nil
+	default:
+		return LineWithInvoiceHeader{}, fmt.Errorf("invalid line type: %s", i.t)
+	}
+}
+
+type LinesWithInvoiceHeaders []LineWithInvoiceHeader
+
+func (i LinesWithInvoiceHeaders) AsGenericLines() ([]GenericLineWithInvoiceHeader, error) {
+	return slicesx.MapWithErr(i, func(line LineWithInvoiceHeader) (GenericLineWithInvoiceHeader, error) {
+		return line.AsGenericLine()
+	})
 }
 
 type SplitLineHierarchy struct {
 	Group SplitLineGroup
-	Lines []LineWithInvoiceHeader
+	Lines LinesWithInvoiceHeaders
 }
 
-func (h *SplitLineHierarchy) Clone() SplitLineHierarchy {
+func (h *SplitLineHierarchy) Clone() (SplitLineHierarchy, error) {
+	lines, err := slicesx.MapWithErr(h.Lines, func(line LineWithInvoiceHeader) (LineWithInvoiceHeader, error) {
+		return line.Clone()
+	})
+	if err != nil {
+		return SplitLineHierarchy{}, err
+	}
+
 	return SplitLineHierarchy{
 		Group: h.Group.Clone(),
-		Lines: lo.Map(h.Lines, func(line LineWithInvoiceHeader, _ int) LineWithInvoiceHeader {
-			return line.Clone()
-		}),
-	}
+		Lines: lines,
+	}, nil
 }
 
 type SumNetAmountInput struct {
@@ -218,10 +367,19 @@ func (h *SplitLineHierarchy) SumNetAmount(in SumNetAmountInput) alpacadecimal.De
 	_ = h.ForEachChild(ForEachChildInput{
 		PeriodEndLTE: in.PeriodEndLTE,
 		Callback: func(child LineWithInvoiceHeader) error {
-			netAmount = netAmount.Add(child.Line.Totals.Amount)
+			if child.Type() != LineWithInvoiceHeaderTypeStandard {
+				return nil
+			}
+
+			stdLine, err := child.AsStandardLine()
+			if err != nil {
+				return err
+			}
+
+			netAmount = netAmount.Add(stdLine.Line.Totals.Amount)
 
 			if in.IncludeCharges {
-				netAmount = netAmount.Add(child.Line.Totals.ChargesTotal)
+				netAmount = netAmount.Add(stdLine.Line.Totals.ChargesTotal)
 			}
 
 			return nil
@@ -238,19 +396,35 @@ type ForEachChildInput struct {
 
 func (h *SplitLineHierarchy) ForEachChild(in ForEachChildInput) error {
 	for _, child := range h.Lines {
+		l, err := child.AsGenericLine()
+		if err != nil {
+			return err
+		}
+
 		// The line is not in scope
-		if !in.PeriodEndLTE.IsZero() && child.Line.Period.End.After(in.PeriodEndLTE) {
+		if !in.PeriodEndLTE.IsZero() && l.Line.GetServicePeriod().To.After(in.PeriodEndLTE) {
 			continue
 		}
 
 		// The line is deleted
-		if child.Line.DeletedAt != nil {
+		if l.Line.GetDeletedAt() != nil {
 			continue
 		}
 
 		// The invoice is deleted
-		if child.Invoice.DeletedAt != nil || child.Invoice.Status == StandardInvoiceStatusDeleted {
+		if l.Invoice.GetDeletedAt() != nil {
 			continue
+		}
+
+		if child.Type() == LineWithInvoiceHeaderTypeStandard {
+			stdLine, err := child.AsStandardLine()
+			if err != nil {
+				return err
+			}
+
+			if stdLine.Invoice.Status == StandardInvoiceStatusDeleted {
+				continue
+			}
 		}
 
 		if err := in.Callback(child); err != nil {

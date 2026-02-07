@@ -28,7 +28,11 @@ func (s *Service) DeleteSplitLineGroup(ctx context.Context, input billing.Delete
 
 		// Let's validate that all of it's children are also deleted
 		for _, childLines := range splitLineGroup.Lines {
-			if childLines.Line.DeletedAt == nil {
+			l, err := childLines.AsGenericLine()
+			if err != nil {
+				return err
+			}
+			if l.Line.GetDeletedAt() == nil {
 				return billing.ValidationError{
 					Err: fmt.Errorf("child lines must be deleted, to delete split line group %s", input.ID),
 				}
