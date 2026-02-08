@@ -337,8 +337,8 @@ func (a *adapter) expandGatheringInvoiceLines(q *db.BillingInvoiceQuery, expand 
 			q = q.Where(billinginvoiceline.DeletedAtIsNil())
 		}
 		q = q.
-			Where(billinginvoiceline.TypeEQ(billing.InvoiceLineTypeUsageBased)). // Only include usage based lines (there are some detailed lines existing for gathering invoices)
-			Where(billinginvoiceline.ParentLineIDIsNil())                        // Only include top-level lines (there are some detailed lines existing for gathering invoices)
+			Where(billinginvoiceline.TypeEQ(billing.InvoiceLineAdapterTypeUsageBased)). // Only include usage based lines (there are some detailed lines existing for gathering invoices)
+			Where(billinginvoiceline.ParentLineIDIsNil())                               // Only include top-level lines (there are some detailed lines existing for gathering invoices)
 		q.WithUsageBasedLine()
 	})
 }
