@@ -401,7 +401,7 @@ func (h *entitlementHandler) OverrideCustomerEntitlement() OverrideCustomerEntit
 
 			return ParserV2.ToAPIGenericV2(ent, ent.CustomerID, cus.Key)
 		},
-		commonhttp.JSONResponseEncoder[OverrideCustomerEntitlementHandlerResponse],
+		commonhttp.JSONResponseEncoderWithStatus[OverrideCustomerEntitlementHandlerResponse](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("overrideCustomerEntitlementV2"),
