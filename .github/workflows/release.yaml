@@ -82,7 +82,7 @@ jobs:
             keep-outputs = true
 
       - name: Restore Nix store
-        uses: nix-community/cache-nix-action/restore@106bba72ed8e29c8357661199511ef07790175e9 # v7.0.1
+        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
         with:
           primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
           restore-prefixes-first-match: |
