@@ -5,9 +5,10 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/stretchr/testify/require"
+
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/stretchr/testify/require"
 )
 
 // This package aims to test if the primitive API is convenient to work with
@@ -25,7 +26,7 @@ func (e exampleEntryInput) Amount() alpacadecimal.Decimal {
 	return e.amount
 }
 
-var _ ledger.LedgerEntryInput = exampleEntryInput{}
+var _ ledger.EntryInput = exampleEntryInput{}
 
 func TestTwoAccountTransaction(t *testing.T) {
 	t.Skipf("This is just to assert the types, it would fail on unimplemented")
@@ -34,7 +35,7 @@ func TestTwoAccountTransaction(t *testing.T) {
 	var a1, a2 ledger.Account
 
 	// Let's create a TX between two accounts
-	tx, err := l.SetUpTransaction(t.Context(), time.Now(), []ledger.LedgerEntryInput{
+	tx, err := l.SetUpTransactionInput(t.Context(), time.Now(), []ledger.EntryInput{
 		exampleEntryInput{
 			account: a1.Address(),
 			amount:  alpacadecimal.NewFromInt(-100),
@@ -48,7 +49,7 @@ func TestTwoAccountTransaction(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, tx)
 
-	err = l.CommitGroup(t.Context(), tx.AsGroup(nil))
+	_, err = l.CommitGroup(t.Context(), tx.AsGroupInput(nil))
 	require.NoError(t, err)
 }
 
@@ -59,7 +60,7 @@ func TestMultiAccountTransaction(t *testing.T) {
 	var a1, a2, a3 ledger.Account
 
 	// Let's create a TX between multiple
-	tx, err := l.SetUpTransaction(t.Context(), time.Now(), []ledger.LedgerEntryInput{
+	tx, err := l.SetUpTransactionInput(t.Context(), time.Now(), []ledger.EntryInput{
 		exampleEntryInput{
 			account: a1.Address(),
 			amount:  alpacadecimal.NewFromInt(-100),

@@ -5,30 +5,31 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/stretchr/testify/require"
+
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/stretchr/testify/require"
 )
 
 // The point of this code is to test the primitive APIs with a more complex flow
 
-type testTransactionGroup struct {
-	transactions []ledger.Transaction
+type testTransactionGroupInput struct {
+	transactions []ledger.TransactionInput
 }
 
-var _ ledger.TransactionGroup = testTransactionGroup{}
+var _ ledger.TransactionGroupInput = testTransactionGroupInput{}
 
-func (t testTransactionGroup) Transactions() []ledger.Transaction {
+func (t testTransactionGroupInput) Transactions() []ledger.TransactionInput {
 	return t.transactions
 }
 
-func (t testTransactionGroup) Annotations() models.Annotations {
+func (t testTransactionGroupInput) Annotations() models.Annotations {
 	return nil
 }
 
-func asTxGroup(transactions []ledger.Transaction) ledger.TransactionGroup {
-	return testTransactionGroup{transactions: transactions}
+func asTxGroupInput(transactions []ledger.TransactionInput) ledger.TransactionGroupInput {
+	return testTransactionGroupInput{transactions: transactions}
 }
 
 func TestFXOnInvoiceIssued(t *testing.T) {
@@ -53,7 +54,7 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 	var BRKUSD ledger.Account
 	var BRKCRD ledger.Account
 
-	var costBasis alpacadecimal.Decimal = alpacadecimal.NewFromFloat(0.5)
+	costBasis := alpacadecimal.NewFromFloat(0.5)
 
 	t.Run("Transactions", func(t *testing.T) {
 		amountUSD := alpacadecimal.NewFromInt(100)
@@ -64,7 +65,7 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 		require.NoError(t, err)
 
 		// Step 1: Outstanding USD for Customer
-		tx1, err := l.SetUpTransaction(t.Context(), bookedAt, []ledger.LedgerEntryInput{
+		tx1, err := l.SetUpTransactionInput(t.Context(), bookedAt, []ledger.EntryInput{
 			exampleEntryInput{
 				account: custAccs.USDOutstanding.Address(),
 				amount:  amountUSD.Neg(),
@@ -78,7 +79,7 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 		require.NotNil(t, tx1)
 
 		// Step 2: Convert USD to CRD into customer account
-		tx2, err := l.SetUpTransaction(t.Context(), bookedAt, []ledger.LedgerEntryInput{
+		tx2, err := l.SetUpTransactionInput(t.Context(), bookedAt, []ledger.EntryInput{
 			// USD entries
 			exampleEntryInput{
 				account: custAccs.USD.Address(),
@@ -102,7 +103,7 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 		require.NotNil(t, tx2)
 
 		// Step 3: Cover outstanding CRD from customer account
-		tx3, err := l.SetUpTransaction(t.Context(), bookedAt, []ledger.LedgerEntryInput{
+		tx3, err := l.SetUpTransactionInput(t.Context(), bookedAt, []ledger.EntryInput{
 			exampleEntryInput{
 				account: custAccs.CRDOutstanding.Address(),
 				amount:  amountUSD.Mul(costBasis),
@@ -116,7 +117,7 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 		require.NotNil(t, tx3)
 
 		// tx1, tx2 & tx3 should be written to the ledger AT THE SAME TIME
-		err = l.CommitGroup(t.Context(), asTxGroup([]ledger.Transaction{tx1, tx2, tx3}))
+		_, err = l.CommitGroup(t.Context(), asTxGroupInput([]ledger.TransactionInput{tx1, tx2, tx3}))
 		require.NoError(t, err)
 	})
 }
