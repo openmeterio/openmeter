@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
@@ -15,11 +16,13 @@ import (
 // Account primitives
 // ----------------------------------------------------------------------------
 
+// Contains routing information for the account
 type Address interface {
 	models.Equaler[Address]
 
 	ID() models.NamespacedID
-	Dimensions() []Dimension[any]
+	Type() AccountType
+	Dimensions() []Dimension
 }
 
 type Balance interface {
@@ -32,7 +35,7 @@ type Account interface {
 	Address() Address
 
 	// SubAccount returns a new account that is a sub-account of the current account defined by the given dimensions.
-	SubAccount(...Dimension[any]) (Account, error)
+	SubAccount(...Dimension) (Account, error)
 
 	// Gets the current account balance
 	GetBalance(ctx context.Context) (Balance, error)
@@ -40,33 +43,43 @@ type Account interface {
 	// ListEntries(ctx context.Context, params any) (pagination.Result[LedgerEntry], error)
 }
 
-type Dimension[TValue any] interface {
-	models.Equaler[Dimension[TValue]]
+type Dimension interface {
+	models.Equaler[Dimension]
 
 	Key() string // can be typed but str should be fine
-	Value() TValue
+	Value() any
 }
 
 // ----------------------------------------------------------------------------
 // Transaction primitives
 // ----------------------------------------------------------------------------
 
-type LedgerEntryInput interface {
+type EntryInput interface {
 	Account() Address
 	Amount() alpacadecimal.Decimal
 }
 
-type LedgerEntry interface {
-	LedgerEntryInput
+type Entry interface {
+	EntryInput
 	TransactionID() models.NamespacedID
+}
+
+type TransactionInput interface {
+	BookedAt() time.Time
+	EntryInputs() []EntryInput
+	AsGroupInput(annotations models.Annotations) TransactionGroupInput
 }
 
 // Transaction represents a list of entries booked at the same time
 type Transaction interface {
+	TransactionInput
+	Entries() []Entry
 	ID() models.NamespacedID
-	BookedAt() time.Time
-	Entries() []LedgerEntry
-	AsGroup(annotations models.Annotations) TransactionGroup
+}
+
+type TransactionGroupInput interface {
+	Transactions() []TransactionInput
+	Annotations() models.Annotations
 }
 
 // TransactionGroup represents a group of transactions written to the ledger at the same time
@@ -83,21 +96,22 @@ type Ledger interface {
 	// GetAccount retreives an account from the Ledger
 	GetAccount(ctx context.Context, address Address) (Account, error)
 
-	// SetUpTransaction creates a new transaction on the Ledger and returns it without committing it
-	SetUpTransaction(ctx context.Context, at time.Time, entries []LedgerEntryInput) (Transaction, error)
+	// SetUpTransactionInput is a no-op that runs some validations and returns a TransactionInput object that can be committed later
+	SetUpTransactionInput(ctx context.Context, at time.Time, entries []EntryInput) (TransactionInput, error)
 
 	// CommitGroup commits a list of transactions on the Ledger atomically
-	CommitGroup(ctx context.Context, group TransactionGroup) error
+	CommitGroup(ctx context.Context, group TransactionGroupInput) (TransactionGroup, error)
 
-	// ListTransactions lists transactions on the Ledger according to some filters
-	//
-	// TODO: Cursoring gets problematic due to diff between wall_clock and booked_at. It would be convenient to return in order of booked_at as that simplifies parsing. This API will likely change.
-	ListTransactions(ctx context.Context, params ListTransactionsInput) (pagination.Result[Transaction], error)
+	// // ListTransactions lists transactions on the Ledger according to some filters
+	// //
+	// // TODO: Cursoring gets problematic due to diff between wall_clock and booked_at. It would be convenient to return in order of booked_at as that simplifies parsing. This API will likely change.
+	// ListTransactions(ctx context.Context, params ListTransactionsInput) (pagination.Result[Transaction], error)
 }
 
 type ListTransactionsInput struct {
-	Cursor        *pagination.Cursor
-	Limit         int
+	Cursor *pagination.Cursor
+	Limit  int
+
 	TransactionID *models.NamespacedID
 }
 
