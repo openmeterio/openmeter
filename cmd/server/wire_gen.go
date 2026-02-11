@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
@@ -402,6 +403,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	currencyService := common.NewCurrencyService()
 	dedupeConfiguration := conf.Dedupe
 	producer, err := common.NewKafkaProducer(kafkaIngestConfiguration, logger, commonMetadata)
 	if err != nil {
@@ -636,6 +638,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Customer:                         customerService,
 		CustomerSubjectHook:              customerSubjectHook,
 		CustomerEntitlementValidatorHook: customerEntitlementValidatorHook,
+		CurrencyService:                  currencyService,
 		Billing:                          billingService,
 		EntClient:                        client,
 		EventPublisher:                   eventbusPublisher,
@@ -695,6 +698,7 @@ type Application struct {
 	Customer                         customer.Service
 	CustomerSubjectHook              common.CustomerSubjectHook
 	CustomerEntitlementValidatorHook common.CustomerEntitlementValidatorHook
+	CurrencyService                  currencies.CurrencyService
 	Billing                          billing.Service
 	EntClient                        *db.Client
 	EventPublisher                   eventbus.Publisher

@@ -1,15 +1,20 @@
-package currencies
+package service
 
 import (
 	"github.com/invopop/gobl/currency"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/samber/lo"
 )
 
-type CurrencyService interface {
-	ListCurrencies() ([]*currency.Def, error)
+var _ currencies.CurrencyService = (*Service)(nil)
+
+type Service struct{}
+
+func New() *Service {
+	return &Service{}
 }
 
-func ListCurrencies() ([]*currency.Def, error) {
+func (s *Service) ListCurrencies() ([]*currency.Def, error) {
 	defs := currency.Definitions()
 	return lo.Map(lo.Filter(
 		defs,

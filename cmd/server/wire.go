@@ -94,6 +94,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.ClickHouse,
 		common.Config,
 		common.Customer,
+		common.Currency,
 		common.NewCustomerSubjectServiceHook,
 		common.NewCustomerEntitlementValidatorServiceHook,
 		common.Database,
