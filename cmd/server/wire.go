@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
@@ -49,6 +50,7 @@ type Application struct {
 	Customer                         customer.Service
 	CustomerSubjectHook              common.CustomerSubjectHook
 	CustomerEntitlementValidatorHook common.CustomerEntitlementValidatorHook
+	CurrencyService                  currencies.CurrencyService
 	Billing                          billing.Service
 	EntClient                        *db.Client
 	EventPublisher                   eventbus.Publisher

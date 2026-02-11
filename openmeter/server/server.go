@@ -118,6 +118,7 @@ func NewServer(config *Config) (*Server, error) {
 		PlanSubscriptionService: config.RouterConfig.PlanSubscriptionService,
 		StripeService:           config.RouterConfig.AppStripe,
 		SubscriptionService:     config.RouterConfig.SubscriptionService,
+		CurrencyService:         config.RouterConfig.CurrencyService,
 		Middlewares:             v3Middlewares,
 		PostAuthMiddlewares:     config.PostAuthMiddlewares,
 	})

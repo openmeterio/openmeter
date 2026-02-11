@@ -143,5 +143,5 @@ func (s *Server) CreateCustomerStripePortalSession(w http.ResponseWriter, r *htt
 // Currencies
 
 func (s *Server) ListCurrencies(w http.ResponseWriter, r *http.Request) {
-	unimplemented.ListCurrencies(w, r)
+	s.currenciesHandler.ListCurrencies().ServeHTTP(w, r)
 }
