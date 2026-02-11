@@ -282,6 +282,13 @@ func (i StandardInvoiceBase) GetInvoiceID() InvoiceID {
 	}
 }
 
+func (i StandardInvoiceBase) GetCustomerID() customer.CustomerID {
+	return customer.CustomerID{
+		Namespace: i.Namespace,
+		ID:        i.Customer.CustomerID,
+	}
+}
+
 var _ GenericInvoice = (*StandardInvoice)(nil)
 
 type StandardInvoice struct {
@@ -338,6 +345,33 @@ func (i StandardInvoice) AsInvoice() Invoice {
 		t:               InvoiceTypeStandard,
 		standardInvoice: &i,
 	}
+}
+
+func (i StandardInvoice) GetGenericLines() mo.Option[[]GenericInvoiceLine] {
+	if !i.Lines.IsPresent() {
+		return mo.None[[]GenericInvoiceLine]()
+	}
+
+	return mo.Some(lo.Map(i.Lines.OrEmpty(), func(l *StandardLine, _ int) GenericInvoiceLine {
+		return &standardInvoiceLineGenericWrapper{StandardLine: l}
+	}))
+}
+
+func (i *StandardInvoice) SetLines(lines []GenericInvoiceLine) error {
+	mappedLines, err := slicesx.MapWithErr(lines, func(l GenericInvoiceLine) (*StandardLine, error) {
+		line, err := l.AsInvoiceLine().AsStandardLine()
+		if err != nil {
+			return nil, err
+		}
+
+		return &line, nil
+	})
+	if err != nil {
+		return fmt.Errorf("mapping lines: %w", err)
+	}
+
+	i.Lines = NewStandardInvoiceLines(mappedLines)
+	return nil
 }
 
 func (i *StandardInvoice) MergeValidationIssues(errIn error, reportingComponent ComponentName) error {
@@ -713,14 +747,14 @@ func (i UpdateInvoiceLinesInternalInput) Validate() error {
 	return nil
 }
 
-type UpdateInvoiceInput struct {
+type UpdateStandardInvoiceInput struct {
 	Invoice InvoiceID
 	EditFn  func(*StandardInvoice) error
 	// IncludeDeletedLines signals the update to populate the deleted lines into the lines field, for the edit function
 	IncludeDeletedLines bool
 }
 
-func (i UpdateInvoiceInput) Validate() error {
+func (i UpdateStandardInvoiceInput) Validate() error {
 	if err := i.Invoice.Validate(); err != nil {
 		return fmt.Errorf("id: %w", err)
 	}

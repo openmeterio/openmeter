@@ -126,19 +126,19 @@ func (s *SuiteBase) AfterTest(ctx context.Context, suiteName, testName string) {
 	s.Service.featureFlags = FeatureFlags{}
 }
 
-func (s *SuiteBase) gatheringInvoice(ctx context.Context, namespace string, customerID string) billing.StandardInvoice {
+func (s *SuiteBase) gatheringInvoice(ctx context.Context, namespace string, customerID string) billing.GatheringInvoice {
 	s.T().Helper()
 
-	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+	invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{namespace},
 		Customers:  []string{customerID},
 		Page: pagination.Page{
 			PageSize:   10,
 			PageNumber: 1,
 		},
-		Expand: billing.InvoiceExpandAll,
-		Statuses: []string{
-			string(billing.StandardInvoiceStatusGathering),
+		Expand: billing.GatheringInvoiceExpands{
+			billing.GatheringInvoiceExpandLines,
+			billing.GatheringInvoiceExpandAvailableActions,
 		},
 	})
 
@@ -150,17 +150,14 @@ func (s *SuiteBase) gatheringInvoice(ctx context.Context, namespace string, cust
 func (s *SuiteBase) expectNoGatheringInvoice(ctx context.Context, namespace string, customerID string) {
 	s.T().Helper()
 
-	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+	invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{namespace},
 		Customers:  []string{customerID},
 		Page: pagination.Page{
 			PageSize:   10,
 			PageNumber: 1,
 		},
-		Expand: billing.InvoiceExpandAll,
-		Statuses: []string{
-			string(billing.StandardInvoiceStatusGathering),
-		},
+		Expand: billing.GatheringInvoiceExpands{},
 	})
 
 	s.NoError(err)
@@ -177,7 +174,21 @@ func (s *SuiteBase) enableProrating() {
 	s.Service.featureFlags.EnableFlatFeeInArrearsProrating = true
 }
 
-func (s *SuiteBase) getLineByChildID(invoice billing.StandardInvoice, childID string) *billing.StandardLine {
+func (s *SuiteBase) getGatheringLineByChildID(invoice billing.GatheringInvoice, childID string) *billing.GatheringLine {
+	s.T().Helper()
+
+	for idx, line := range invoice.Lines.OrEmpty() {
+		if line.ChildUniqueReferenceID != nil && *line.ChildUniqueReferenceID == childID {
+			return &invoice.Lines.OrEmpty()[idx]
+		}
+	}
+
+	s.Failf("line not found", "line with child id %s not found", childID)
+
+	return nil
+}
+
+func (s *SuiteBase) getStandardLineByChildID(invoice billing.StandardInvoice, childID string) *billing.StandardLine {
 	s.T().Helper()
 
 	for _, line := range invoice.Lines.OrEmpty() {
@@ -191,11 +202,11 @@ func (s *SuiteBase) getLineByChildID(invoice billing.StandardInvoice, childID st
 	return nil
 }
 
-func (s *SuiteBase) expectNoLineWithChildID(invoice billing.StandardInvoice, childID string) {
+func (s *SuiteBase) expectNoLineWithChildID(invoice billing.GenericInvoiceReader, childID string) {
 	s.T().Helper()
 
-	for _, line := range invoice.Lines.OrEmpty() {
-		if line.ChildUniqueReferenceID != nil && *line.ChildUniqueReferenceID == childID {
+	for _, line := range invoice.GetGenericLines().OrEmpty() {
+		if line.GetChildUniqueReferenceID() != nil && *line.GetChildUniqueReferenceID() == childID {
 			s.Failf("line found", "line with child id %s found", childID)
 		}
 	}
@@ -224,16 +235,19 @@ type expectedLine struct {
 	Price            mo.Option[*productcatalog.Price]
 	Periods          []billing.Period
 	InvoiceAt        mo.Option[[]time.Time]
-	AdditionalChecks func(line *billing.StandardLine)
+	AdditionalChecks func(line billing.GenericInvoiceLine)
 }
 
-func (s *SuiteBase) expectLines(invoice billing.StandardInvoice, subscriptionID string, expectedLines []expectedLine) {
+func (s *SuiteBase) expectLines(invoice billing.GenericInvoiceReader, subscriptionID string, expectedLines []expectedLine) {
 	s.T().Helper()
 
-	lines := invoice.Lines.OrEmpty()
+	lines := invoice.GetGenericLines()
+	if lines.IsAbsent() {
+		s.Failf("lines not found", "lines not found for invoice %s", invoice.GetID())
+	}
 
-	existingLineChildIDs := lo.Map(lines, func(line *billing.StandardLine, _ int) string {
-		return lo.FromPtrOr(line.ChildUniqueReferenceID, line.ID)
+	existingLineChildIDs := lo.Map(lines.OrEmpty(), func(line billing.GenericInvoiceLine, _ int) string {
+		return lo.FromPtrOr(line.GetChildUniqueReferenceID(), line.GetID())
 	})
 
 	expectedLineIds := lo.Flatten(lo.Map(expectedLines, func(expectedLine expectedLine, _ int) []string {
@@ -245,31 +259,41 @@ func (s *SuiteBase) expectLines(invoice billing.StandardInvoice, subscriptionID 
 	for _, expectedLine := range expectedLines {
 		childIDs := expectedLine.Matcher.ChildIDs(subscriptionID)
 		for idx, childID := range childIDs {
-			line, found := lo.Find(lines, func(line *billing.StandardLine) bool {
-				return lo.FromPtrOr(line.ChildUniqueReferenceID, line.ID) == childID
+			line, found := lo.Find(lines.OrEmpty(), func(line billing.GenericInvoiceLine) bool {
+				return lo.FromPtrOr(line.GetChildUniqueReferenceID(), line.GetID()) == childID
 			})
 			s.Truef(found, "line not found with child id %s", childID)
 			s.NotNil(line)
 
 			if expectedLine.Qty.IsPresent() {
-				if line.UsageBased == nil {
-					s.Failf("usage based line not found", "line not found with child id %s", childID)
-				} else if line.UsageBased.Quantity == nil {
-					s.Failf("usage based line quantity not found", "line not found with child id %s", childID)
+				lineQuantityAccessor, ok := line.(billing.QuantityAccessor)
+				if !ok {
+					s.Failf("line is not a quantity accessor", "line is not a quantity accessor with child id %s", childID)
+				}
+
+				lineQuantity := lineQuantityAccessor.GetQuantity()
+				if lineQuantity == nil {
+					s.Failf("line quantity not found", "line quantity not found with child id %s", childID)
 				} else {
-					s.Equal(expectedLine.Qty.OrEmpty(), line.UsageBased.Quantity.InexactFloat64(), "%s: quantity", childID)
+					s.Equal(expectedLine.Qty.OrEmpty(), lineQuantity.InexactFloat64(), "%s: quantity", childID)
 				}
 			}
 
 			if expectedLine.Price.IsPresent() {
-				s.Equal(*expectedLine.Price.OrEmpty(), *line.UsageBased.Price, "%s: price", childID)
+				s.Equal(*expectedLine.Price.OrEmpty(), *line.GetPrice(), "%s: price", childID)
 			}
 
-			s.Equal(expectedLine.Periods[idx].Start, line.Period.Start, "%s: period start", childID)
-			s.Equal(expectedLine.Periods[idx].End, line.Period.End, "%s: period end", childID)
+			s.Equal(expectedLine.Periods[idx].Start, line.GetServicePeriod().From, "%s: period start", childID)
+			s.Equal(expectedLine.Periods[idx].End, line.GetServicePeriod().To, "%s: period end", childID)
 
 			if expectedLine.InvoiceAt.IsPresent() {
-				s.Equal(expectedLine.InvoiceAt.OrEmpty()[idx], line.InvoiceAt, "%s: invoice at", childID)
+				invoiceAtAccessor, ok := line.(billing.InvoiceAtAccessor)
+				if !ok {
+					s.Failf("line is not a invoice at accessor", "line is not a invoice at accessor with child id %s", childID)
+				}
+
+				invoiceAt := invoiceAtAccessor.GetInvoiceAt()
+				s.Equal(expectedLine.InvoiceAt.OrEmpty()[idx], invoiceAt, "%s: invoice at", childID)
 			}
 
 			if expectedLine.AdditionalChecks != nil {
@@ -423,12 +447,47 @@ func (s *SuiteBase) generatePeriods(startStr, endStr string, cadenceStr string, 
 // populateChildIDsFromParents copies over the child ID from the parent line, if it's not already set
 // as line splitting doesn't set the child ID on child lines to prevent conflicts if multiple split lines
 // end up on a single invoice.
-func (s *SuiteBase) populateChildIDsFromParents(invoice *billing.StandardInvoice) {
-	for _, line := range invoice.Lines.OrEmpty() {
-		if line.ChildUniqueReferenceID == nil && line.SplitLineGroupID != nil {
-			line.ChildUniqueReferenceID = line.SplitLineHierarchy.Group.UniqueReferenceID
-		}
+func (s *SuiteBase) populateChildIDsFromParents(invoice billing.GenericInvoice) {
+	genericLinesOption := invoice.GetGenericLines()
+	if genericLinesOption.IsAbsent() {
+		s.Failf("lines not found", "lines not found for invoice %s", invoice.GetID())
 	}
+
+	genericLines := genericLinesOption.OrEmpty()
+
+	for idx, line := range genericLines {
+		if line.GetChildUniqueReferenceID() == nil && line.GetSplitLineGroupID() != nil {
+			invoiceLine := line.AsInvoiceLine()
+			switch invoiceLine.Type() {
+			case billing.InvoiceLineTypeStandard:
+				stdInvoiceLine, err := invoiceLine.AsStandardLine()
+				s.NoError(err)
+
+				line.SetChildUniqueReferenceID(stdInvoiceLine.SplitLineHierarchy.Group.UniqueReferenceID)
+			case billing.InvoiceLineTypeGathering:
+				splitLineGroupID := line.GetSplitLineGroupID()
+				if splitLineGroupID == nil {
+					s.Failf("split line group id not found", "split line group id not found for line %s", line.GetID())
+					return
+				}
+
+				splitLineGroup, err := s.BillingAdapter.GetSplitLineGroup(s.T().Context(), billing.GetSplitLineGroupInput{
+					Namespace: s.Namespace,
+					ID:        *splitLineGroupID,
+				})
+				s.NoError(err)
+
+				line.SetChildUniqueReferenceID(splitLineGroup.Group.UniqueReferenceID)
+			default:
+				s.Failf("unexpected line type", "unexpected line type %s for line %s", invoiceLine.Type(), line.GetID())
+			}
+		}
+
+		genericLines[idx] = line
+	}
+
+	err := invoice.SetLines(genericLines)
+	s.NoError(err)
 }
 
 // helpers

@@ -176,7 +176,10 @@ func (i LineExternalIDs) Equal(other LineExternalIDs) bool {
 	return i.Invoicing == other.Invoicing
 }
 
-var _ GenericInvoiceLine = (*standardInvoiceLineGenericWrapper)(nil)
+var (
+	_ GenericInvoiceLine = (*standardInvoiceLineGenericWrapper)(nil)
+	_ QuantityAccessor   = (*standardInvoiceLineGenericWrapper)(nil)
+)
 
 // standardInvoiceLineGenericWrapper is a wrapper around a standard line that implements the GenericInvoiceLine interface.
 // for methods that are present for the specific line type too.
@@ -255,11 +258,23 @@ func (i StandardLine) GetChildUniqueReferenceID() *string {
 	return i.ChildUniqueReferenceID
 }
 
+func (i *StandardLine) SetChildUniqueReferenceID(id *string) {
+	i.ChildUniqueReferenceID = id
+}
+
 func (i StandardLine) AsInvoiceLine() InvoiceLine {
 	return InvoiceLine{
 		t:            InvoiceLineTypeStandard,
 		standardLine: &i,
 	}
+}
+
+func (i StandardLine) GetQuantity() *alpacadecimal.Decimal {
+	if i.UsageBased == nil {
+		return nil
+	}
+
+	return i.UsageBased.Quantity
 }
 
 // ToGatheringLineBase converts the standard line to a gathering line base.
@@ -421,6 +436,14 @@ func (i StandardLine) GetSplitLineGroupID() *string {
 
 func (i StandardLine) GetInvoiceAt() time.Time {
 	return i.InvoiceAt
+}
+
+func (i StandardLine) GetSubscriptionReference() *SubscriptionReference {
+	if i.Subscription == nil {
+		return nil
+	}
+
+	return i.Subscription.Clone()
 }
 
 type cloneOptions struct {

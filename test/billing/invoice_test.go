@@ -770,8 +770,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 				require.Equal(s.T(), billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
 
 				// Let's instruct the sandbox to fail the invoice
-				_, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
-					Invoice: invoice.InvoiceID(),
+				_, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+					Invoice: invoice.GetInvoiceID(),
 					EditFn: func(invoice *billing.StandardInvoice) error {
 						invoice.Metadata = map[string]string{
 							appsandbox.TargetPaymentStatusMetadataKey: appsandbox.TargetPaymentStatusFailed,
@@ -1740,7 +1740,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		}, out[0].Totals)
 
 		s.Run("update line item", func() {
-			updatedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
+			updatedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 				Invoice: invoice.InvoiceID(),
 				EditFn: func(invoice *billing.StandardInvoice) error {
 					line := invoice.Lines.GetByID(flatPerUnit.ID)
@@ -1788,8 +1788,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		})
 
 		s.Run("invalid update of a line item", func() {
-			_, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
-				Invoice: invoice.InvoiceID(),
+			_, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+				Invoice: invoice.GetInvoiceID(),
 				EditFn: func(invoice *billing.StandardInvoice) error {
 					line := invoice.Lines.GetByID(flatPerUnit.ID)
 					if line == nil {
@@ -1817,8 +1817,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		})
 
 		s.Run("deleting a valid line item worked", func() {
-			updatedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
-				Invoice: invoice.InvoiceID(),
+			updatedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+				Invoice: invoice.GetInvoiceID(),
 				EditFn: func(invoice *billing.StandardInvoice) error {
 					line := invoice.Lines.GetByID(flatPerUnit.ID)
 					if line == nil {

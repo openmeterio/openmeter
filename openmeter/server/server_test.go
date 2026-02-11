@@ -1508,7 +1508,11 @@ func (n NoopBillingService) DeleteInvoice(ctx context.Context, input billing.Del
 	return billing.StandardInvoice{}, nil
 }
 
-func (n NoopBillingService) UpdateInvoice(ctx context.Context, input billing.UpdateInvoiceInput) (billing.StandardInvoice, error) {
+func (n NoopBillingService) UpdateInvoice(ctx context.Context, input billing.UpdateInvoiceInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
+func (n NoopBillingService) UpdateStandardInvoice(ctx context.Context, input billing.UpdateStandardInvoiceInput) (billing.StandardInvoice, error) {
 	return billing.StandardInvoice{}, nil
 }
 
@@ -1535,6 +1539,10 @@ func (n NoopBillingService) ListGatheringInvoices(ctx context.Context, input bil
 
 func (n NoopBillingService) UpdateGatheringInvoice(ctx context.Context, input billing.UpdateGatheringInvoiceInput) error {
 	return nil
+}
+
+func (n NoopBillingService) GetGatheringInvoiceById(ctx context.Context, input billing.GetGatheringInvoiceByIdInput) (billing.GatheringInvoice, error) {
+	return billing.GatheringInvoice{}, nil
 }
 
 // SequenceService methods

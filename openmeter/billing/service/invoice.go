@@ -536,111 +536,6 @@ func (s *Service) DeleteInvoice(ctx context.Context, input billing.DeleteInvoice
 	return s.executeTriggerOnInvoice(ctx, input, billing.TriggerDelete)
 }
 
-func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoiceInput) (billing.StandardInvoice, error) {
-	if err := input.Validate(); err != nil {
-		return billing.StandardInvoice{}, billing.ValidationError{
-			Err: err,
-		}
-	}
-
-	invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-		Invoice: input.Invoice,
-		Expand:  billing.InvoiceExpand{}, // We don't want to expand anything as we will have to refetch the invoice anyway
-	})
-	if err != nil {
-		return billing.StandardInvoice{}, fmt.Errorf("fetching invoice: %w", err)
-	}
-
-	if invoice.Status == billing.StandardInvoiceStatusGathering {
-		customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
-			Customer: invoice.CustomerID(),
-		})
-		if err != nil {
-			return billing.StandardInvoice{}, fmt.Errorf("fetching profile: %w", err)
-		}
-
-		return transactionForInvoiceManipulation(ctx, s, invoice.CustomerID(), func(ctx context.Context) (billing.StandardInvoice, error) {
-			invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-				Invoice: input.Invoice,
-				Expand: billing.InvoiceExpandAll.
-					SetDeletedLines(input.IncludeDeletedLines),
-			})
-			if err != nil {
-				return billing.StandardInvoice{}, fmt.Errorf("fetching invoice: %w", err)
-			}
-
-			if err := input.EditFn(&invoice); err != nil {
-				return billing.StandardInvoice{}, fmt.Errorf("editing invoice: %w", err)
-			}
-
-			invoice.Lines, err = invoice.Lines.WithNormalizedValues()
-			if err != nil {
-				return billing.StandardInvoice{}, fmt.Errorf("normalizing lines: %w", err)
-			}
-
-			if err := s.invoiceCalculator.CalculateLegacyGatheringInvoice(&invoice); err != nil {
-				return billing.StandardInvoice{}, fmt.Errorf("calculating invoice[%s]: %w", invoice.ID, err)
-			}
-
-			if err := invoice.Validate(); err != nil {
-				return billing.StandardInvoice{}, billing.ValidationError{
-					Err: err,
-				}
-			}
-
-			featureMeters, err := s.resolveFeatureMeters(ctx, invoice.Namespace, invoice.Lines)
-			if err != nil {
-				return billing.StandardInvoice{}, fmt.Errorf("resolving feature meters: %w", err)
-			}
-
-			// Check if the new lines are still invoicable
-			if err := s.checkIfLinesAreInvoicable(ctx, &invoice, customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling, featureMeters); err != nil {
-				return billing.StandardInvoice{}, err
-			}
-
-			invoice, err = s.updateInvoice(ctx, invoice)
-			if err != nil {
-				return billing.StandardInvoice{}, fmt.Errorf("updating invoice[%s]: %w", input.Invoice.ID, err)
-			}
-
-			// Auto delete the invoice if it has no lines, this needs to happen here, as we are in a
-			// TranscationForGatheringInvoiceManipulation
-
-			if invoice.Lines.NonDeletedLineCount() == 0 {
-				if err := s.adapter.DeleteGatheringInvoices(ctx, billing.DeleteGatheringInvoicesInput{
-					Namespace:  input.Invoice.Namespace,
-					InvoiceIDs: []string{invoice.ID},
-				}); err != nil {
-					return billing.StandardInvoice{}, fmt.Errorf("deleting gathering invoice: %w", err)
-				}
-			}
-
-			return invoice, nil
-		})
-	}
-
-	return s.executeTriggerOnInvoice(
-		ctx,
-		input.Invoice,
-		billing.TriggerUpdated,
-		ExecuteTriggerWithIncludeDeletedLines(input.IncludeDeletedLines),
-		ExecuteTriggerWithAllowInStates(billing.StandardInvoiceStatusDraftUpdating),
-		ExecuteTriggerWithEditCallback(func(sm *InvoiceStateMachine) error {
-			if err := input.EditFn(&sm.Invoice); err != nil {
-				return fmt.Errorf("editing invoice: %w", err)
-			}
-
-			if err := sm.Invoice.Validate(); err != nil {
-				return billing.ValidationError{
-					Err: err,
-				}
-			}
-
-			return nil
-		}),
-	)
-}
-
 // updateInvoice calls the adapter to update the invoice and returns the updated invoice including any expands that are
 // the responsibility of the service
 func (s Service) updateInvoice(ctx context.Context, in billing.UpdateInvoiceAdapterInput) (billing.StandardInvoice, error) {
@@ -919,5 +814,89 @@ func (s *Service) RecalculateGatheringInvoices(ctx context.Context, input billin
 		}
 
 		return nil
+	})
+}
+
+func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoiceInput) (billing.Invoice, error) {
+	if err := input.Validate(); err != nil {
+		return billing.Invoice{}, billing.ValidationError{
+			Err: err,
+		}
+	}
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.Invoice, error) {
+		invoiceType, err := s.adapter.GetInvoiceType(ctx, input.Invoice)
+		if err != nil {
+			return billing.Invoice{}, fmt.Errorf("getting invoice type: %w", err)
+		}
+
+		if invoiceType == billing.InvoiceTypeGathering {
+			err := s.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+				Invoice: input.Invoice,
+				EditFn: func(invoice *billing.GatheringInvoice) error {
+					if invoice == nil {
+						return fmt.Errorf("invoice is nil")
+					}
+
+					editedInvoice, err := input.EditFn(billing.NewInvoice(*invoice))
+					if err != nil {
+						return fmt.Errorf("editing invoice: %w", err)
+					}
+
+					editedGatheringInvoice, err := editedInvoice.AsGatheringInvoice()
+					if err != nil {
+						return fmt.Errorf("converting invoice to gathering invoice: %w", err)
+					}
+
+					*invoice = editedGatheringInvoice
+
+					return nil
+				},
+			})
+			if err != nil {
+				return billing.Invoice{}, fmt.Errorf("updating gathering invoice: %w", err)
+			}
+
+			gatheringInvoice, err := s.adapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+				Invoice: input.Invoice,
+				Expand: billing.GatheringInvoiceExpands{
+					billing.GatheringInvoiceExpandLines,
+					billing.GatheringInvoiceExpandAvailableActions,
+				},
+			})
+			if err != nil {
+				return billing.Invoice{}, fmt.Errorf("fetching gathering invoice: %w", err)
+			}
+
+			return billing.NewInvoice(gatheringInvoice), nil
+		}
+
+		// Standard invoice
+		standardInvoice, err := s.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+			Invoice: input.Invoice,
+			EditFn: func(invoice *billing.StandardInvoice) error {
+				if invoice == nil {
+					return fmt.Errorf("invoice is nil")
+				}
+
+				editedInvoice, err := input.EditFn(billing.NewInvoice(*invoice))
+				if err != nil {
+					return fmt.Errorf("editing invoice: %w", err)
+				}
+
+				editedStandardInvoice, err := editedInvoice.AsStandardInvoice()
+				if err != nil {
+					return fmt.Errorf("converting invoice to standard invoice: %w", err)
+				}
+
+				*invoice = editedStandardInvoice
+
+				return nil
+			},
+		})
+		if err != nil {
+			return billing.Invoice{}, fmt.Errorf("updating standard invoice: %w", err)
+		}
+
+		return billing.NewInvoice(standardInvoice), nil
 	})
 }

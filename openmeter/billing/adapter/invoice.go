@@ -866,3 +866,31 @@ func (a *adapter) IsAppUsed(ctx context.Context, appID app.AppID) error {
 
 	return nil
 }
+
+func (a *adapter) GetInvoiceType(ctx context.Context, input billing.GetInvoiceTypeAdapterInput) (billing.InvoiceType, error) {
+	if err := input.Validate(); err != nil {
+		return "", err
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.InvoiceType, error) {
+		invoice, err := tx.db.BillingInvoice.Query().
+			Where(billinginvoice.ID(input.ID)).
+			Where(billinginvoice.Namespace(input.Namespace)).
+			Only(ctx)
+		if err != nil {
+			if db.IsNotFound(err) {
+				return "", billing.NotFoundError{
+					Err: fmt.Errorf("invoice not found: %w", err),
+				}
+			}
+
+			return "", err
+		}
+
+		if invoice.Status == billing.StandardInvoiceStatusGathering {
+			return billing.InvoiceTypeGathering, nil
+		}
+
+		return billing.InvoiceTypeStandard, nil
+	})
+}

@@ -176,8 +176,8 @@ func (u *InvoiceUpdater) provisionUpcomingLines(ctx context.Context, customerID 
 }
 
 func (u *InvoiceUpdater) updateMutableStandardInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
-	updatedInvoice, err := u.billingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
-		Invoice:             invoice.InvoiceID(),
+	updatedInvoice, err := u.billingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice:             invoice.GetInvoiceID(),
 		IncludeDeletedLines: true,
 		EditFn: func(invoice *billing.StandardInvoice) error {
 			// Let's delete lines if needed

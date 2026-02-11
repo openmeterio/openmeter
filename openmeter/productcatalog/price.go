@@ -121,7 +121,7 @@ func (p *Price) Clone() *Price {
 	return clone
 }
 
-func (p *Price) MarshalJSON() ([]byte, error) {
+func (p Price) MarshalJSON() ([]byte, error) {
 	var b []byte
 	var err error
 	var serde interface{}

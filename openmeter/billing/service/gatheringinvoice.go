@@ -205,3 +205,9 @@ func (s Service) checkIfGatheringLinesAreInvoicable(ctx context.Context, invoice
 		})...,
 	)
 }
+
+func (s *Service) GetGatheringInvoiceById(ctx context.Context, input billing.GetGatheringInvoiceByIdInput) (billing.GatheringInvoice, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.GatheringInvoice, error) {
+		return s.adapter.GetGatheringInvoiceById(ctx, input)
+	})
+}
