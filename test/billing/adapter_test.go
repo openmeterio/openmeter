@@ -715,7 +715,7 @@ func (s *BillingAdapterTestSuite) TestHardDeleteGatheringInvoiceLines() {
 		err := s.BillingAdapter.HardDeleteGatheringInvoiceLines(ctx, gatheringInvoice.GetInvoiceID(), []string{deletedLine.ID})
 		s.NoError(err)
 
-		gatheringInvoice, err = s.BillingAdapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		gatheringInvoice, err = s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
 			Invoice: gatheringInvoice.GetInvoiceID(),
 			Expand:  billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
 		})
@@ -841,7 +841,7 @@ func (s *BillingAdapterTestSuite) TestHardDeleteGatheringInvoiceLinesNegative() 
 
 		standardInvoice = standardInvoices[0]
 
-		gatheringInvoice, err = s.BillingAdapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		gatheringInvoice, err = s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
 			Invoice: createdPendingLines.Invoice.GetInvoiceID(),
 			Expand:  billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
 		})

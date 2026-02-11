@@ -6,6 +6,8 @@ import (
 	"slices"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 	timeutil "github.com/openmeterio/openmeter/pkg/timeutil"
@@ -121,6 +123,7 @@ type GenericInvoiceLine interface {
 	SetDeletedAt(at *time.Time)
 	SetPrice(price productcatalog.Price)
 	UpdateServicePeriod(func(p *timeutil.ClosedPeriod))
+	SetChildUniqueReferenceID(id *string)
 }
 
 // GenericInvoiceLineReader is an interface that provides access to the generic invoice fields.
@@ -139,11 +142,17 @@ type GenericInvoiceLineReader interface {
 	Validate() error
 	AsInvoiceLine() InvoiceLine
 	GetRateCardDiscounts() Discounts
+	GetSubscriptionReference() *SubscriptionReference
+	GetSplitLineGroupID() *string
 }
 
 type InvoiceAtAccessor interface {
 	GetInvoiceAt() time.Time
 	SetInvoiceAt(at time.Time)
+}
+
+type QuantityAccessor interface {
+	GetQuantity() *alpacadecimal.Decimal
 }
 
 type InvoiceLineType string

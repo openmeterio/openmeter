@@ -183,9 +183,9 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorSinglePhase() {
 			InvoiceAt: mo.Some([]time.Time{
 				testutils.GetRFC3339Time(s.T(), "2025-07-31T15:00:00Z"),
 			}),
-			AdditionalChecks: func(line *billing.StandardLine) {
-				s.Equal(testutils.GetRFC3339Time(s.T(), "2025-07-10T15:00:00Z"), line.Subscription.BillingPeriod.From)
-				s.Equal(testutils.GetRFC3339Time(s.T(), "2025-07-31T15:00:00Z"), line.Subscription.BillingPeriod.To)
+			AdditionalChecks: func(line billing.GenericInvoiceLine) {
+				s.Equal(testutils.GetRFC3339Time(s.T(), "2025-07-10T15:00:00Z"), line.GetSubscriptionReference().BillingPeriod.From)
+				s.Equal(testutils.GetRFC3339Time(s.T(), "2025-07-31T15:00:00Z"), line.GetSubscriptionReference().BillingPeriod.To)
 			},
 		},
 		{

@@ -73,6 +73,8 @@ type InvoiceAdapter interface {
 	UpdateInvoice(ctx context.Context, input UpdateInvoiceAdapterInput) (StandardInvoice, error)
 
 	GetInvoiceOwnership(ctx context.Context, input GetInvoiceOwnershipAdapterInput) (GetOwnershipAdapterResponse, error)
+
+	GetInvoiceType(ctx context.Context, input GetInvoiceTypeAdapterInput) (InvoiceType, error)
 }
 
 type GatheringInvoiceAdapter interface {

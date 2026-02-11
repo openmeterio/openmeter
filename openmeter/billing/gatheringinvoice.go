@@ -159,6 +159,28 @@ func (g GatheringInvoice) Clone() (GatheringInvoice, error) {
 	return clone, nil
 }
 
+func (g GatheringInvoice) GetGenericLines() mo.Option[[]GenericInvoiceLine] {
+	if !g.Lines.IsPresent() {
+		return mo.None[[]GenericInvoiceLine]()
+	}
+
+	return mo.Some(lo.Map(g.Lines.OrEmpty(), func(l GatheringLine, _ int) GenericInvoiceLine {
+		return &gatheringInvoiceLineGenericWrapper{GatheringLine: l}
+	}))
+}
+
+func (g *GatheringInvoice) SetLines(lines []GenericInvoiceLine) error {
+	mappedLines, err := slicesx.MapWithErr(lines, func(l GenericInvoiceLine) (GatheringLine, error) {
+		return l.AsInvoiceLine().AsGatheringLine()
+	})
+	if err != nil {
+		return fmt.Errorf("mapping lines: %w", err)
+	}
+
+	g.Lines = NewGatheringInvoiceLines(mappedLines)
+	return nil
+}
+
 type GatheringInvoiceExpand string
 
 func (e GatheringInvoiceExpand) Validate() error {
@@ -487,6 +509,10 @@ func (i GatheringLineBase) GetChildUniqueReferenceID() *string {
 	return i.ChildUniqueReferenceID
 }
 
+func (i *GatheringLineBase) SetChildUniqueReferenceID(id *string) {
+	i.ChildUniqueReferenceID = id
+}
+
 func (i GatheringLineBase) GetSplitLineGroupID() *string {
 	return i.SplitLineGroupID
 }
@@ -520,6 +546,18 @@ func (g GatheringLineBase) GetInvoiceID() string {
 
 func (g GatheringLineBase) GetRateCardDiscounts() Discounts {
 	return g.RateCardDiscounts
+}
+
+func (g GatheringLineBase) Equal(other GatheringLineBase) bool {
+	return deriveEqualGatheringLineBase(&g, &other)
+}
+
+func (g GatheringLineBase) GetSubscriptionReference() *SubscriptionReference {
+	if g.Subscription == nil {
+		return nil
+	}
+
+	return g.Subscription.Clone()
 }
 
 var (
@@ -613,6 +651,14 @@ func (g GatheringLine) AsInvoiceLine() InvoiceLine {
 		t:             InvoiceLineTypeGathering,
 		gatheringLine: &g,
 	}
+}
+
+func (g GatheringLine) Equal(other GatheringLine) bool {
+	return g.GatheringLineBase.Equal(other.GatheringLineBase)
+}
+
+func (g GatheringLine) RemoveMetaForCompare() (GatheringLine, error) {
+	return g.WithoutDBState()
 }
 
 type CreatePendingInvoiceLinesInput struct {
@@ -722,10 +768,6 @@ func (i ListGatheringInvoicesInput) Validate() error {
 		if err := i.Page.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("page: %w", err))
 		}
-	}
-
-	if len(i.Namespaces) == 0 {
-		errs = append(errs, errors.New("namespaces is required"))
 	}
 
 	for _, expand := range i.Expand {
