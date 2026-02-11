@@ -809,6 +809,19 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 			return nil, fmt.Errorf("fetching lines: %w", err)
 		}
 
+		// Let's make sure that the lines are loaded with their billing invoice
+		if err := errors.Join(
+			lo.Map(dbLines, func(line *db.BillingInvoiceLine, _ int) error {
+				if line.Edges.BillingInvoice == nil {
+					return fmt.Errorf("billing invoice not found for line [id=%s]", line.ID)
+				}
+
+				return nil
+			})...,
+		); err != nil {
+			return nil, err
+		}
+
 		invoiceSchemaLevelByID, err := tx.getSchemaLevelPerInvoice(ctx, customer.CustomerID{
 			Namespace: in.Namespace,
 			ID:        in.CustomerID,

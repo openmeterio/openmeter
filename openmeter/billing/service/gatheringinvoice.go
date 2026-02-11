@@ -102,7 +102,7 @@ func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.Upda
 		return fmt.Errorf("fetching invoice: %w", err)
 	}
 
-	return transcationForInvoiceManipulationNoValue(ctx, s, gatheringInvoice.GetCustomerID(), func(ctx context.Context) error {
+	return transactionForInvoiceManipulationNoValue(ctx, s, gatheringInvoice.GetCustomerID(), func(ctx context.Context) error {
 		expands := billing.GatheringInvoiceExpands{
 			billing.GatheringInvoiceExpandLines,
 		}

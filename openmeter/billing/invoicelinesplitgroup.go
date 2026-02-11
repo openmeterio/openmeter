@@ -198,7 +198,7 @@ type LineWithInvoiceHeader struct {
 func NewLineWithInvoiceHeader[T StandardLineWithInvoiceHeader | GatheringLineWithInvoiceHeader](line T) LineWithInvoiceHeader {
 	switch v := any(line).(type) {
 	case StandardLineWithInvoiceHeader:
-		return LineWithInvoiceHeader{Line: standardInvoiceLineGenericWrapper{StandardLine: v.Line}, Invoice: v.Invoice}
+		return LineWithInvoiceHeader{Line: &standardInvoiceLineGenericWrapper{StandardLine: v.Line}, Invoice: v.Invoice}
 	case GatheringLineWithInvoiceHeader:
 		return LineWithInvoiceHeader{Line: &gatheringInvoiceLineGenericWrapper{GatheringLine: v.Line}, Invoice: v.Invoice}
 	}

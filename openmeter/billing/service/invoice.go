@@ -297,7 +297,7 @@ func (s *Service) withLockedInvoiceStateMachine(
 		return billing.StandardInvoice{}, fmt.Errorf("fetching invoice: %w", err)
 	}
 
-	return transcationForInvoiceManipulation(ctx, s, invoiceHeader.CustomerID(), func(ctx context.Context) (billing.StandardInvoice, error) {
+	return transactionForInvoiceManipulation(ctx, s, invoiceHeader.CustomerID(), func(ctx context.Context) (billing.StandardInvoice, error) {
 		invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 			Invoice: in.InvoiceID,
 			Expand: billing.InvoiceExpandAll.
@@ -559,7 +559,7 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 			return billing.StandardInvoice{}, fmt.Errorf("fetching profile: %w", err)
 		}
 
-		return transcationForInvoiceManipulation(ctx, s, invoice.CustomerID(), func(ctx context.Context) (billing.StandardInvoice, error) {
+		return transactionForInvoiceManipulation(ctx, s, invoice.CustomerID(), func(ctx context.Context) (billing.StandardInvoice, error) {
 			invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 				Invoice: input.Invoice,
 				Expand: billing.InvoiceExpandAll.

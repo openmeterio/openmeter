@@ -60,7 +60,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 		}
 	}
 
-	return transcationForInvoiceManipulation(
+	return transactionForInvoiceManipulation(
 		ctx,
 		s,
 		input.Customer,

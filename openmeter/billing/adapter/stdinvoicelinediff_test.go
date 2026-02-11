@@ -151,11 +151,11 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		}, lineDiff)
 	})
 
-	t.Run("a line is updated in the existing line hieararchy", func(t *testing.T) {
+	t.Run("a line is updated in the existing line hierarchy", func(t *testing.T) {
 		base := cloneLines(template)
 		snapshotAsDBState(t, base)
 
-		// ID change should tirgger a delete/update
+		// ID change should trigger a delete/update
 		changedLine := getDetailedLineByID(base[1], "2.1")
 		changedLine.ID = ""
 		changedLine.Description = lo.ToPtr("2.3")
