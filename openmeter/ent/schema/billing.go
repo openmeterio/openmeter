@@ -362,7 +362,7 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 		// TODO[dependency]: overrides (as soon as plan override entities are ready)
 
 		field.Enum("type").
-			GoType(billing.InvoiceLineType("")).
+			GoType(billing.InvoiceLineAdapterType("")).
 			Immutable(),
 
 		field.Enum("status").

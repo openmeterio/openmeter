@@ -41,7 +41,9 @@ func (a *adapter) mapStandardInvoiceLinesFromDB(schemaLevelByInvoiceID map[strin
 			}
 		}
 
-		line.SaveDBSnapshot()
+		if err := line.SaveDBSnapshot(); err != nil {
+			return nil, fmt.Errorf("saving DB snapshot [id=%s]: %w", line.GetID(), err)
+		}
 
 		lines = append(lines, line)
 	}
@@ -109,8 +111,8 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 		}
 	}
 
-	if dbLine.Type != billing.InvoiceLineTypeUsageBased {
-		return invoiceLine, fmt.Errorf("only usage based lines can be top level lines [line_id=%s]", dbLine.ID)
+	if dbLine.Type != billing.InvoiceLineAdapterTypeUsageBased {
+		return nil, fmt.Errorf("only usage based lines can be top level lines [line_id=%s]", dbLine.ID)
 	}
 
 	ubpLine := dbLine.Edges.UsageBasedLine

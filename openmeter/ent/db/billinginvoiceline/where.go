@@ -1234,19 +1234,19 @@ func InvoiceAtLTE(v time.Time) predicate.BillingInvoiceLine {
 }
 
 // TypeEQ applies the EQ predicate on the "type" field.
-func TypeEQ(v billing.InvoiceLineType) predicate.BillingInvoiceLine {
+func TypeEQ(v billing.InvoiceLineAdapterType) predicate.BillingInvoiceLine {
 	vc := v
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldType, vc))
 }
 
 // TypeNEQ applies the NEQ predicate on the "type" field.
-func TypeNEQ(v billing.InvoiceLineType) predicate.BillingInvoiceLine {
+func TypeNEQ(v billing.InvoiceLineAdapterType) predicate.BillingInvoiceLine {
 	vc := v
 	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldType, vc))
 }
 
 // TypeIn applies the In predicate on the "type" field.
-func TypeIn(vs ...billing.InvoiceLineType) predicate.BillingInvoiceLine {
+func TypeIn(vs ...billing.InvoiceLineAdapterType) predicate.BillingInvoiceLine {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -1255,7 +1255,7 @@ func TypeIn(vs ...billing.InvoiceLineType) predicate.BillingInvoiceLine {
 }
 
 // TypeNotIn applies the NotIn predicate on the "type" field.
-func TypeNotIn(vs ...billing.InvoiceLineType) predicate.BillingInvoiceLine {
+func TypeNotIn(vs ...billing.InvoiceLineAdapterType) predicate.BillingInvoiceLine {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]

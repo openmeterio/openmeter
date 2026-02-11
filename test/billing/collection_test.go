@@ -122,7 +122,7 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 		s.NoError(err)
 		s.Len(res.Lines, 2)
 
-		gatheringInvoiceID = res.Invoice.InvoiceID()
+		gatheringInvoiceID = res.Invoice.GetInvoiceID()
 
 		// Validate collection_at calculation
 		s.NotNil(res.Invoice.NextCollectionAt)

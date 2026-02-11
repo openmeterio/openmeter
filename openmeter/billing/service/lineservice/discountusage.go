@@ -136,7 +136,17 @@ func (m *discountUsageMutator) calculateUsedQtyByCorrelationID(l *billing.Standa
 	err := l.SplitLineHierarchy.ForEachChild(billing.ForEachChildInput{
 		PeriodEndLTE: l.Period.Start,
 		Callback: func(child billing.LineWithInvoiceHeader) error {
-			for _, usageDiscount := range child.Line.Discounts.Usage {
+			// Gathering lines do not hold usage discounts (as we don't know it yet, so they are safe to ignore)
+			if child.Invoice.AsInvoice().Type() != billing.InvoiceTypeStandard {
+				return nil
+			}
+
+			stdLine, err := child.Line.AsInvoiceLine().AsStandardLine()
+			if err != nil {
+				return err
+			}
+
+			for _, usageDiscount := range stdLine.Discounts.Usage {
 				// Validate that the discount is coming from this mutator by ensuring that what we set
 				// above is available here.
 				if usageDiscount.Reason.Type() != billing.RatecardUsageDiscountReason {

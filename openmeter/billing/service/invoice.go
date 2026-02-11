@@ -297,7 +297,7 @@ func (s *Service) withLockedInvoiceStateMachine(
 		return billing.StandardInvoice{}, fmt.Errorf("fetching invoice: %w", err)
 	}
 
-	return transcationForInvoiceManipulation(ctx, s, invoiceHeader.CustomerID(), func(ctx context.Context) (billing.StandardInvoice, error) {
+	return transactionForInvoiceManipulation(ctx, s, invoiceHeader.CustomerID(), func(ctx context.Context) (billing.StandardInvoice, error) {
 		invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 			Invoice: in.InvoiceID,
 			Expand: billing.InvoiceExpandAll.
@@ -559,7 +559,7 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 			return billing.StandardInvoice{}, fmt.Errorf("fetching profile: %w", err)
 		}
 
-		return transcationForInvoiceManipulation(ctx, s, invoice.CustomerID(), func(ctx context.Context) (billing.StandardInvoice, error) {
+		return transactionForInvoiceManipulation(ctx, s, invoice.CustomerID(), func(ctx context.Context) (billing.StandardInvoice, error) {
 			invoice, err := s.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
 				Invoice: input.Invoice,
 				Expand: billing.InvoiceExpandAll.
@@ -672,6 +672,10 @@ func (s Service) checkIfLinesAreInvoicable(ctx context.Context, invoice *billing
 			if err := line.Validate(); err != nil {
 				return fmt.Errorf("validating line[%s]: %w", line.ID, err)
 			}
+
+			// TODO: This check only makes sense for gathering invoices as if a line is put on a standard invoice
+			// we should not care at all about the billable period, as only a non-empty service period is
+			// required.
 			period, err := lineservice.ResolveBillablePeriod(lineservice.ResolveBillablePeriodInput[*billing.StandardLine]{
 				Line:               line,
 				FeatureMeters:      featureMeters,

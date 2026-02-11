@@ -72,7 +72,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceSerialization() {
 
 	// Let's get the invoice
 	invoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-		Invoice: res.Invoice.InvoiceID(),
+		Invoice: res.Invoice.GetInvoiceID(),
 		Expand:  billing.InvoiceExpand{Lines: true, RecalculateGatheringInvoice: true},
 	})
 	s.NoError(err)

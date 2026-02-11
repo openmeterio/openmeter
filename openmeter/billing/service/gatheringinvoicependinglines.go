@@ -60,7 +60,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 		}
 	}
 
-	return transcationForInvoiceManipulation(
+	return transactionForInvoiceManipulation(
 		ctx,
 		s,
 		input.Customer,
@@ -596,7 +596,7 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 		}
 
 		updatedInvoice, err := s.adapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
-			Invoice: gatheringInvoice.InvoiceID(),
+			Invoice: gatheringInvoice.GetInvoiceID(),
 			Expand: billing.GatheringInvoiceExpands{
 				billing.GatheringInvoiceExpandLines,
 			},
@@ -753,7 +753,7 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 		}
 	}
 
-	if err := gatheringInvoice.Lines.SetByID(preSplitAtLine); err != nil {
+	if err := gatheringInvoice.Lines.ReplaceByID(preSplitAtLine); err != nil {
 		return res, fmt.Errorf("setting pre split line: %w", err)
 	}
 
@@ -1089,7 +1089,7 @@ func (s *Service) removeLinesFromGatheringInvoice(ctx context.Context, invoice b
 	// We need to hard delete the lines from the gathering invoice as now the standard lines are taking their place with the same IDs.
 	// If we would soft-delete the lines, all downstream services would assume that the line was deleted due to synchronization and
 	// would recreate it.
-	if err := s.adapter.HardDeleteGatheringInvoiceLines(ctx, invoice.InvoiceID(), lineIDsToRemove); err != nil {
+	if err := s.adapter.HardDeleteGatheringInvoiceLines(ctx, invoice.GetInvoiceID(), lineIDsToRemove); err != nil {
 		return fmt.Errorf("hard deleting gathering invoice lines: %w", err)
 	}
 

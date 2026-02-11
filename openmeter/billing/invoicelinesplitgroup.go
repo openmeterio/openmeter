@@ -11,6 +11,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
+	timeutil "github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type SplitLineGroupMutableFields struct {
@@ -178,30 +180,63 @@ func (i SplitLineGroup) Clone() SplitLineGroup {
 	}
 }
 
-type LineWithInvoiceHeader struct {
-	Line    *StandardLine
-	Invoice StandardInvoiceBase
+type GatheringLineWithInvoiceHeader struct {
+	Line    GatheringLine
+	Invoice GatheringInvoice
 }
 
-func (i LineWithInvoiceHeader) Clone() LineWithInvoiceHeader {
-	return LineWithInvoiceHeader{
-		Line:    i.Line.Clone(),
-		Invoice: i.Invoice,
+type StandardLineWithInvoiceHeader struct {
+	Line    *StandardLine
+	Invoice StandardInvoice
+}
+
+type LineWithInvoiceHeader struct {
+	Line    GenericInvoiceLine
+	Invoice GenericInvoiceReader
+}
+
+func NewLineWithInvoiceHeader[T StandardLineWithInvoiceHeader | GatheringLineWithInvoiceHeader](line T) LineWithInvoiceHeader {
+	switch v := any(line).(type) {
+	case StandardLineWithInvoiceHeader:
+		return LineWithInvoiceHeader{Line: &standardInvoiceLineGenericWrapper{StandardLine: v.Line}, Invoice: v.Invoice}
+	case GatheringLineWithInvoiceHeader:
+		return LineWithInvoiceHeader{Line: &gatheringInvoiceLineGenericWrapper{GatheringLine: v.Line}, Invoice: v.Invoice}
 	}
+
+	return LineWithInvoiceHeader{}
+}
+
+type LinesWithInvoiceHeaders []LineWithInvoiceHeader
+
+func (i LinesWithInvoiceHeaders) Lines() []GenericInvoiceLine {
+	return lo.Map(i, func(line LineWithInvoiceHeader, _ int) GenericInvoiceLine {
+		return line.Line
+	})
 }
 
 type SplitLineHierarchy struct {
 	Group SplitLineGroup
-	Lines []LineWithInvoiceHeader
+	Lines LinesWithInvoiceHeaders
 }
 
-func (h *SplitLineHierarchy) Clone() SplitLineHierarchy {
+func (h *SplitLineHierarchy) Clone() (SplitLineHierarchy, error) {
+	lines, err := slicesx.MapWithErr(h.Lines, func(line LineWithInvoiceHeader) (LineWithInvoiceHeader, error) {
+		clonedLine, err := line.Line.Clone()
+		if err != nil {
+			return LineWithInvoiceHeader{}, err
+		}
+
+		// TODO: We might want to clone the invoice too, but that data is mostly read-only, so it's fine for now.
+		return LineWithInvoiceHeader{Line: clonedLine, Invoice: line.Invoice}, nil
+	})
+	if err != nil {
+		return SplitLineHierarchy{}, err
+	}
+
 	return SplitLineHierarchy{
 		Group: h.Group.Clone(),
-		Lines: lo.Map(h.Lines, func(line LineWithInvoiceHeader, _ int) LineWithInvoiceHeader {
-			return line.Clone()
-		}),
-	}
+		Lines: lines,
+	}, nil
 }
 
 type SumNetAmountInput struct {
@@ -212,23 +247,36 @@ type SumNetAmountInput struct {
 // SumNetAmount returns the sum of the net amount (pre-tax) of the progressive billed line and its children
 // containing the values for all lines whose period's end is <= in.UpTo and are not deleted or not part of
 // an invoice that has been deleted.
-func (h *SplitLineHierarchy) SumNetAmount(in SumNetAmountInput) alpacadecimal.Decimal {
+// As gathering lines do not represent any kind of actual charge, they are not included in the sum.
+func (h *SplitLineHierarchy) SumNetAmount(in SumNetAmountInput) (alpacadecimal.Decimal, error) {
 	netAmount := alpacadecimal.Zero
 
-	_ = h.ForEachChild(ForEachChildInput{
+	err := h.ForEachChild(ForEachChildInput{
 		PeriodEndLTE: in.PeriodEndLTE,
 		Callback: func(child LineWithInvoiceHeader) error {
-			netAmount = netAmount.Add(child.Line.Totals.Amount)
+			if child.Invoice.AsInvoice().Type() != InvoiceTypeStandard {
+				return nil
+			}
+
+			stdLine, err := child.Line.AsInvoiceLine().AsStandardLine()
+			if err != nil {
+				return err
+			}
+
+			netAmount = netAmount.Add(stdLine.Totals.Amount)
 
 			if in.IncludeCharges {
-				netAmount = netAmount.Add(child.Line.Totals.ChargesTotal)
+				netAmount = netAmount.Add(stdLine.Totals.ChargesTotal)
 			}
 
 			return nil
 		},
 	})
+	if err != nil {
+		return alpacadecimal.Zero, err
+	}
 
-	return netAmount
+	return netAmount, nil
 }
 
 type ForEachChildInput struct {
@@ -238,19 +286,33 @@ type ForEachChildInput struct {
 
 func (h *SplitLineHierarchy) ForEachChild(in ForEachChildInput) error {
 	for _, child := range h.Lines {
+		line := child.Line
+
 		// The line is not in scope
-		if !in.PeriodEndLTE.IsZero() && child.Line.Period.End.After(in.PeriodEndLTE) {
+		if !in.PeriodEndLTE.IsZero() && line.GetServicePeriod().To.After(in.PeriodEndLTE) {
 			continue
 		}
 
 		// The line is deleted
-		if child.Line.DeletedAt != nil {
+		if line.GetDeletedAt() != nil {
 			continue
 		}
 
 		// The invoice is deleted
-		if child.Invoice.DeletedAt != nil || child.Invoice.Status == StandardInvoiceStatusDeleted {
+		if child.Invoice.GetDeletedAt() != nil {
 			continue
+		}
+
+		invoice := child.Invoice.AsInvoice()
+		if invoice.Type() == InvoiceTypeStandard {
+			stdInvoice, err := invoice.AsStandardInvoice()
+			if err != nil {
+				return err
+			}
+
+			if stdInvoice.Status == StandardInvoiceStatusDeleted {
+				continue
+			}
 		}
 
 		if err := in.Callback(child); err != nil {
@@ -280,14 +342,16 @@ const (
 
 type LineOrHierarchy struct {
 	t                  LineOrHierarchyType
-	line               *StandardLine
+	line               GenericInvoiceLine
 	splitLineHierarchy *SplitLineHierarchy
 }
 
-func NewLineOrHierarchy[T StandardLine | SplitLineHierarchy](line *T) LineOrHierarchy {
+func NewLineOrHierarchy[T *StandardLine | GatheringLine | *SplitLineHierarchy](line T) LineOrHierarchy {
 	switch v := any(line).(type) {
 	case *StandardLine:
-		return LineOrHierarchy{t: LineOrHierarchyTypeLine, line: v}
+		return LineOrHierarchy{t: LineOrHierarchyTypeLine, line: standardInvoiceLineGenericWrapper{StandardLine: v}}
+	case GatheringLine:
+		return LineOrHierarchy{t: LineOrHierarchyTypeLine, line: &gatheringInvoiceLineGenericWrapper{GatheringLine: v}}
 	case *SplitLineHierarchy:
 		return LineOrHierarchy{t: LineOrHierarchyTypeHierarchy, splitLineHierarchy: v}
 	}
@@ -299,7 +363,7 @@ func (i LineOrHierarchy) Type() LineOrHierarchyType {
 	return i.t
 }
 
-func (i LineOrHierarchy) AsStandardLine() (*StandardLine, error) {
+func (i LineOrHierarchy) AsGenericLine() (GenericInvoiceLine, error) {
 	if i.t != LineOrHierarchyTypeLine {
 		return nil, fmt.Errorf("line or hierarchy is not a line")
 	}
@@ -326,7 +390,7 @@ func (i LineOrHierarchy) AsHierarchy() (*SplitLineHierarchy, error) {
 func (i LineOrHierarchy) ChildUniqueReferenceID() *string {
 	switch i.t {
 	case LineOrHierarchyTypeLine:
-		return i.line.ChildUniqueReferenceID
+		return i.line.GetChildUniqueReferenceID()
 	case LineOrHierarchyTypeHierarchy:
 		return i.splitLineHierarchy.Group.UniqueReferenceID
 	}
@@ -334,15 +398,15 @@ func (i LineOrHierarchy) ChildUniqueReferenceID() *string {
 	return nil
 }
 
-func (i LineOrHierarchy) ServicePeriod() Period {
+func (i LineOrHierarchy) ServicePeriod() timeutil.ClosedPeriod {
 	switch i.t {
 	case LineOrHierarchyTypeLine:
-		return i.line.Period
+		return i.line.GetServicePeriod()
 	case LineOrHierarchyTypeHierarchy:
-		return i.splitLineHierarchy.Group.ServicePeriod
+		return i.splitLineHierarchy.Group.ServicePeriod.ToClosedPeriod()
 	}
 
-	return Period{}
+	return timeutil.ClosedPeriod{}
 }
 
 type GetSplitLineGroupHeadersInput struct {

@@ -148,8 +148,10 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 
 		// Split lines have the same correlation ID for the discount
 		s.Len(invoiceLine.SplitLineHierarchy.Lines, 2)
-		for _, lineWithInvoice := range invoiceLine.SplitLineHierarchy.Lines {
-			s.Equal(discountCorrelationID, lineWithInvoice.Line.RateCardDiscounts.Percentage.CorrelationID)
+		genericLinesWithInvoices := invoiceLine.SplitLineHierarchy.Lines
+
+		for _, genericLine := range genericLinesWithInvoices {
+			s.Equal(discountCorrelationID, genericLine.Line.GetRateCardDiscounts().Percentage.CorrelationID)
 		}
 
 		// The split line group has the same correlation ID for the discount
