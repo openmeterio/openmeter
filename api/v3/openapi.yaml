@@ -79,6 +79,26 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Apps
+  /openmeter/currencies:
+    get:
+      operationId: list-currencies
+      summary: List currencies
+      description: List all supported currencies.
+      responses:
+        '200':
+          description: List currencies response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrenciesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Billing
   /openmeter/customers:
     post:
       operationId: create-customer
@@ -1798,6 +1818,44 @@ components:
         - stripe
         - external_invoicing
       description: The type of the app.
+    BillingCurrency:
+      type: object
+      required:
+        - code
+        - name
+        - symbol
+        - disambiguate_symbol
+        - subunits
+        - smallest_denomination
+      properties:
+        code:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: Standard ISO 4217 code.
+          readOnly: true
+        name:
+          type: string
+          description: English name of the currency.
+          readOnly: true
+        symbol:
+          type: string
+          description: Symbol representation of the currency.
+          readOnly: true
+        disambiguate_symbol:
+          type: string
+          description: Disambiguation symbol for the currency.
+          readOnly: true
+        subunits:
+          type: integer
+          format: uint32
+          description: Number of subunits in the currency.
+          readOnly: true
+        smallest_denomination:
+          type: integer
+          format: uint8
+          description: Smallest denomination of the currency.
+          readOnly: true
+      description: Currency describes a currency supported by the billing system.
     BillingCustomer:
       type: object
       required:
@@ -2786,6 +2844,16 @@ components:
           example:
             type: $.type
       description: Meter create request.
+    CurrenciesResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingCurrency'
+      description: List currencies response.
     CurrencyCode:
       type: string
       minLength: 3

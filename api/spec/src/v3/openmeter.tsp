@@ -9,6 +9,7 @@ import "./customers/index.tsp";
 import "./subscriptions/index.tsp";
 import "./apps/index.tsp";
 import "./billing/index.tsp";
+import "./currencies/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -76,3 +77,7 @@ interface AppsEndpoints extends Apps.AppsOperations {}
 @route("/openmeter/profiles")
 @tag(Shared.BillingTag)
 interface BillingProfilesEndpoints extends Billing.BillingProfilesOperations {}
+
+@route("/openmeter/currencies")
+@tag(Shared.BillingTag)
+interface CurrenciesEndpoints extends Currencies.CurrenciesOperations {}
