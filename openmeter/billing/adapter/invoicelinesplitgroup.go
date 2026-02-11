@@ -224,6 +224,10 @@ func (a *adapter) mapSplitLineHierarchyFromDB(ctx context.Context, dbSplitLineGr
 
 func (a *adapter) mapSplitLineHierarchyLinesFromDB(ctx context.Context, dbLines []*db.BillingInvoiceLine) ([]billing.LineWithInvoiceHeader, error) {
 	return slicesx.MapWithErr(dbLines, func(dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
+		if dbLine.Edges.BillingInvoice == nil {
+			return billing.LineWithInvoiceHeader{}, fmt.Errorf("billing invoice must be expanded when mapping split line hierarchy lines [id=%s]", dbLine.ID)
+		}
+
 		switch dbLine.Edges.BillingInvoice.Status {
 		case billing.StandardInvoiceStatusGathering:
 			return a.mapSplitLineHierarchyGatheringLineFromDB(dbLine)

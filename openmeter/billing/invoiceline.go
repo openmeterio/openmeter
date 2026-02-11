@@ -175,8 +175,16 @@ type InvoiceLine struct {
 func (i InvoiceLine) Validate() error {
 	switch i.t {
 	case InvoiceLineTypeStandard:
+		if i.standardLine == nil {
+			return fmt.Errorf("standard line is nil")
+		}
+
 		return i.standardLine.Validate()
 	case InvoiceLineTypeGathering:
+		if i.gatheringLine == nil {
+			return fmt.Errorf("gathering line is nil")
+		}
+
 		return i.gatheringLine.Validate()
 	default:
 		return fmt.Errorf("invalid invoice line type: %s", i.t)
@@ -218,7 +226,7 @@ func (i InvoiceLine) AsGenericLine() (GenericInvoiceLine, error) {
 			return nil, fmt.Errorf("standard line is nil")
 		}
 
-		return standardInvoiceLineGenericWrapper{StandardLine: i.standardLine}, nil
+		return &standardInvoiceLineGenericWrapper{StandardLine: i.standardLine}, nil
 	case InvoiceLineTypeGathering:
 		if i.gatheringLine == nil {
 			return nil, fmt.Errorf("gathering line is nil")

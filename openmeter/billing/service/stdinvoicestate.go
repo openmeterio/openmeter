@@ -714,6 +714,12 @@ func (m *InvoiceStateMachine) finalizeInvoice(ctx context.Context) error {
 			return nil, err
 		}
 
+		// Let's update the cloned invoice so that the FinalizeStandardInvoice method can use the updated invoice
+		clonedInvoice, err = m.Invoice.Clone()
+		if err != nil {
+			return nil, err
+		}
+
 		results, err := app.FinalizeStandardInvoice(ctx, clonedInvoice)
 		if err != nil {
 			return nil, err

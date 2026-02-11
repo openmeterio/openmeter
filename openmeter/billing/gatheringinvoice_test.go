@@ -9,9 +9,10 @@ import (
 )
 
 func TestGatheringInvoiceLineInvoiceAtAccessor(t *testing.T) {
+	originalInvoiceAt := lo.Must(time.Parse(time.RFC3339, "2026-01-01T00:00:00Z"))
 	line := GatheringLine{
 		GatheringLineBase: GatheringLineBase{
-			InvoiceAt: lo.Must(time.Parse(time.RFC3339, "2026-01-01T00:00:00Z")),
+			InvoiceAt: originalInvoiceAt,
 		},
 	}
 
@@ -29,4 +30,5 @@ func TestGatheringInvoiceLineInvoiceAtAccessor(t *testing.T) {
 	target = lo.Must(time.Parse(time.RFC3339, "2026-01-01T02:00:00Z"))
 	accessor.SetInvoiceAt(target)
 	require.Equal(t, target, accessor.GetInvoiceAt())
+	require.Equal(t, originalInvoiceAt, line.InvoiceAt, "wrapped line should not be modified")
 }

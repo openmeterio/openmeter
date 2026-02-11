@@ -319,11 +319,11 @@ func (i StandardInvoice) Validate() error {
 	return outErr
 }
 
+// InvoiceID returns the invoice ID.
+// Deprecated: use GetInvoiceID instead
+// TODO[later]: remove this method
 func (i StandardInvoice) InvoiceID() InvoiceID {
-	return InvoiceID{
-		Namespace: i.Namespace,
-		ID:        i.ID,
-	}
+	return i.GetInvoiceID()
 }
 
 func (i StandardInvoice) CustomerID() customer.CustomerID {
@@ -484,7 +484,7 @@ func (c StandardInvoiceLines) MapWithErr(fn func(*StandardLine) (*StandardLine, 
 
 	res, err := slicesx.MapWithErr(c.OrEmpty(), fn)
 	if err != nil {
-		return c, err
+		return StandardInvoiceLines{}, err
 	}
 
 	return StandardInvoiceLines{mo.Some(StandardLines(res))}, nil

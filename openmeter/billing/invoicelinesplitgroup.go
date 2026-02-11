@@ -247,10 +247,10 @@ type SumNetAmountInput struct {
 // SumNetAmount returns the sum of the net amount (pre-tax) of the progressive billed line and its children
 // containing the values for all lines whose period's end is <= in.UpTo and are not deleted or not part of
 // an invoice that has been deleted.
-func (h *SplitLineHierarchy) SumNetAmount(in SumNetAmountInput) alpacadecimal.Decimal {
+func (h *SplitLineHierarchy) SumNetAmount(in SumNetAmountInput) (alpacadecimal.Decimal, error) {
 	netAmount := alpacadecimal.Zero
 
-	_ = h.ForEachChild(ForEachChildInput{
+	err := h.ForEachChild(ForEachChildInput{
 		PeriodEndLTE: in.PeriodEndLTE,
 		Callback: func(child LineWithInvoiceHeader) error {
 			if child.Invoice.AsInvoice().Type() != InvoiceTypeStandard {
@@ -271,8 +271,11 @@ func (h *SplitLineHierarchy) SumNetAmount(in SumNetAmountInput) alpacadecimal.De
 			return nil
 		},
 	})
+	if err != nil {
+		return alpacadecimal.Zero, err
+	}
 
-	return netAmount
+	return netAmount, nil
 }
 
 type ForEachChildInput struct {

@@ -837,13 +837,13 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 		})
 
 		gatheringLines := make([]billing.GatheringLine, 0, len(dbGatheringLines))
-		for invoiceID, dbGatheringLines := range dbGatheringLinesByInvoiceID {
+		for invoiceID, dbGatheringLinesForInvoice := range dbGatheringLinesByInvoiceID {
 			schemaLevel, found := invoiceSchemaLevelByID[invoiceID]
 			if !found {
 				return nil, fmt.Errorf("schema level not found for invoice [id=%s]", invoiceID)
 			}
 
-			mappedLines, err := tx.mapGatheringInvoiceLinesFromDB(schemaLevel, dbGatheringLines)
+			mappedLines, err := tx.mapGatheringInvoiceLinesFromDB(schemaLevel, dbGatheringLinesForInvoice)
 			if err != nil {
 				return nil, fmt.Errorf("mapping gathering lines: %w", err)
 			}

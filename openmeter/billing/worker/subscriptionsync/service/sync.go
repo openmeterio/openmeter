@@ -520,7 +520,7 @@ func (s *Service) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.
 	}
 
 	for _, line := range p.LinesToUpsert {
-		expectedLine, err := s.lineFromSubscritionRateCard(subs, line.Target, currency)
+		expectedLine, err := s.lineFromSubscriptionRateCard(subs, line.Target, currency)
 		if err != nil {
 			return nil, fmt.Errorf("generating expected line[%s]: %w", line.Target.UniqueID, err)
 		}
@@ -638,7 +638,7 @@ func (s *Service) collectUpcomingLines(ctx context.Context, subs subscription.Su
 	})
 }
 
-func (s *Service) lineFromSubscritionRateCard(subs subscription.SubscriptionView, item subscriptionItemWithPeriods, currency currencyx.Calculator) (*billing.GatheringLine, error) {
+func (s *Service) lineFromSubscriptionRateCard(subs subscription.SubscriptionView, item subscriptionItemWithPeriods, currency currencyx.Calculator) (*billing.GatheringLine, error) {
 	line := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -755,7 +755,7 @@ func (s *Service) shouldProrate(item subscriptionItemWithPeriods, subView subscr
 
 func (s *Service) getNewUpcomingLinePatches(ctx context.Context, subs subscription.SubscriptionView, currency currencyx.Calculator, subsItems []subscriptionItemWithPeriods) ([]linePatch, error) {
 	newLines, err := slicesx.MapWithErr(subsItems, func(subsItem subscriptionItemWithPeriods) (*billing.GatheringLine, error) {
-		line, err := s.lineFromSubscritionRateCard(subs, subsItem, currency)
+		line, err := s.lineFromSubscriptionRateCard(subs, subsItem, currency)
 		if err != nil {
 			return nil, fmt.Errorf("generating line from subscription item [%s]: %w", subsItem.SubscriptionItem.ID, err)
 		}

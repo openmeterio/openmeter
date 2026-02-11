@@ -21,15 +21,13 @@ import (
 type InvoiceType string
 
 const (
-	InvoiceTypeStandard   InvoiceType = InvoiceType("standard")
-	InvoiceTypeCreditNote InvoiceType = InvoiceType("credit-note")
-	InvoiceTypeGathering  InvoiceType = InvoiceType("gathering")
+	InvoiceTypeStandard  InvoiceType = InvoiceType("standard")
+	InvoiceTypeGathering InvoiceType = InvoiceType("gathering")
 )
 
 func (t InvoiceType) Values() []string {
 	return []string{
 		string(InvoiceTypeStandard),
-		string(InvoiceTypeCreditNote),
 		string(InvoiceTypeGathering),
 	}
 }
@@ -164,8 +162,16 @@ func (i Invoice) AsGatheringInvoice() (GatheringInvoice, error) {
 func (i Invoice) Validate() error {
 	switch i.t {
 	case InvoiceTypeStandard:
+		if i.standardInvoice == nil {
+			return fmt.Errorf("standard invoice is nil")
+		}
+
 		return i.standardInvoice.Validate()
 	case InvoiceTypeGathering:
+		if i.gatheringInvoice == nil {
+			return fmt.Errorf("gathering invoice is nil")
+		}
+
 		return i.gatheringInvoice.Validate()
 	default:
 		return fmt.Errorf("invalid invoice type: %s", i.t)

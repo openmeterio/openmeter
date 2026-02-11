@@ -112,7 +112,7 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 	}
 
 	if dbLine.Type != billing.InvoiceLineAdapterTypeUsageBased {
-		return invoiceLine, fmt.Errorf("only usage based lines can be top level lines [line_id=%s]", dbLine.ID)
+		return nil, fmt.Errorf("only usage based lines can be top level lines [line_id=%s]", dbLine.ID)
 	}
 
 	ubpLine := dbLine.Edges.UsageBasedLine

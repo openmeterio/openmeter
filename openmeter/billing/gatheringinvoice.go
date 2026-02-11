@@ -273,20 +273,9 @@ func (l GatheringInvoiceLines) MapWithErr(fn func(GatheringLine) (GatheringLine,
 }
 
 func (l GatheringInvoiceLines) WithNormalizedValues() (GatheringInvoiceLines, error) {
-	if l.IsAbsent() {
-		return l, nil
-	}
-
-	out, err := slicesx.MapWithErr(l.OrEmpty(), func(l GatheringLine) (GatheringLine, error) {
-		return l.WithNormalizedValues()
+	return l.MapWithErr(func(gl GatheringLine) (GatheringLine, error) {
+		return gl.WithNormalizedValues()
 	})
-	if err != nil {
-		return GatheringInvoiceLines{}, err
-	}
-
-	return GatheringInvoiceLines{
-		Option: mo.Some(GatheringLines(out)),
-	}, nil
 }
 
 func (l *GatheringInvoiceLines) Append(lines ...GatheringLine) {
@@ -490,12 +479,47 @@ func (i GatheringLineBase) GetInvoiceAt() time.Time {
 	return i.InvoiceAt
 }
 
+func (g *GatheringLineBase) SetInvoiceAt(at time.Time) {
+	g.InvoiceAt = at
+}
+
 func (i GatheringLineBase) GetChildUniqueReferenceID() *string {
 	return i.ChildUniqueReferenceID
 }
 
 func (i GatheringLineBase) GetSplitLineGroupID() *string {
 	return i.SplitLineGroupID
+}
+
+func (g GatheringLineBase) GetLineID() LineID {
+	return LineID{
+		Namespace: g.Namespace,
+		ID:        g.ID,
+	}
+}
+
+func (g GatheringLineBase) GetManagedBy() InvoiceLineManagedBy {
+	return g.ManagedBy
+}
+
+func (g GatheringLineBase) GetAnnotations() models.Annotations {
+	return g.Annotations
+}
+
+func (g *GatheringLineBase) SetDeletedAt(at *time.Time) {
+	g.DeletedAt = at
+}
+
+func (g *GatheringLineBase) UpdateServicePeriod(fn func(p *timeutil.ClosedPeriod)) {
+	fn(&g.ServicePeriod)
+}
+
+func (g GatheringLineBase) GetInvoiceID() string {
+	return g.InvoiceID
+}
+
+func (g GatheringLineBase) GetRateCardDiscounts() Discounts {
+	return g.RateCardDiscounts
 }
 
 var (
@@ -582,49 +606,6 @@ func (g GatheringLine) WithNormalizedValues() (GatheringLine, error) {
 	}
 
 	return clone, nil
-}
-
-func (g GatheringLine) GetLineID() LineID {
-	return LineID{
-		Namespace: g.Namespace,
-		ID:        g.ID,
-	}
-}
-
-func (g GatheringLine) GetID() string {
-	return g.ID
-}
-
-func (g GatheringLine) GetManagedBy() InvoiceLineManagedBy {
-	return g.ManagedBy
-}
-
-func (g GatheringLine) GetAnnotations() models.Annotations {
-	return g.Annotations
-}
-
-func (g *GatheringLine) SetDeletedAt(at *time.Time) {
-	g.DeletedAt = at
-}
-
-func (g *GatheringLine) UpdateServicePeriod(fn func(p *timeutil.ClosedPeriod)) {
-	fn(&g.ServicePeriod)
-}
-
-func (g GatheringLine) GetInvoiceAt() time.Time {
-	return g.InvoiceAt
-}
-
-func (g *GatheringLine) SetInvoiceAt(at time.Time) {
-	g.InvoiceAt = at
-}
-
-func (g GatheringLine) GetInvoiceID() string {
-	return g.InvoiceID
-}
-
-func (g GatheringLine) GetRateCardDiscounts() Discounts {
-	return g.RateCardDiscounts
 }
 
 func (g GatheringLine) AsInvoiceLine() InvoiceLine {

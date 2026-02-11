@@ -104,13 +104,11 @@ func getPreviouslyBilledAmount(l PricerCalculateInput) (alpacadecimal.Decimal, e
 		return alpacadecimal.Zero, fmt.Errorf("line[%s] does not have a progressive line hierarchy, but is a progressive billed line", l.line.ID)
 	}
 
-	sum := l.line.SplitLineHierarchy.SumNetAmount(billing.SumNetAmountInput{
+	return l.line.SplitLineHierarchy.SumNetAmount(billing.SumNetAmountInput{
 		PeriodEndLTE: l.line.Period.Start,
 		// TODO[later]: Should we include charges here? For now it's fine to not include them, as only
 		// minimum amount charges can happen, but if later we add more charge types, we will have to
 		// include them here.
 		IncludeCharges: false,
 	})
-
-	return sum, nil
 }
