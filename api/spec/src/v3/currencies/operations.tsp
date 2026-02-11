@@ -40,11 +40,5 @@ interface CurrenciesOperations {
   @get
   @operationId("list-currencies")
   @summary("List currencies")
-  list(
-    // /**
-    //  * Filter currencies returned in the response.
-    //  */
-    // @query(#{ style: "deepObject", explode: true })
-    // filter?: ListCurrenciesParamsFilter,
-  ): CurrenciesResponse | Common.ErrorResponses;
+  list(): CurrenciesResponse | Common.ErrorResponses;
 }
