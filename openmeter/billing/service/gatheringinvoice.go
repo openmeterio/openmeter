@@ -160,7 +160,7 @@ func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.Upda
 		}
 
 		// Auto delete the invoice if it has no lines, this needs to happen here, as we are in a
-		// TranscationForGatheringInvoiceManipulation
+		// TransactionForGatheringInvoiceManipulation
 
 		if invoice.Lines.NonDeletedLineCount() == 0 {
 			if err := s.adapter.DeleteGatheringInvoices(ctx, billing.DeleteGatheringInvoicesInput{

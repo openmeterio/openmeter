@@ -247,6 +247,7 @@ type SumNetAmountInput struct {
 // SumNetAmount returns the sum of the net amount (pre-tax) of the progressive billed line and its children
 // containing the values for all lines whose period's end is <= in.UpTo and are not deleted or not part of
 // an invoice that has been deleted.
+// As gathering lines do not represent any kind of actual charge, they are not included in the sum.
 func (h *SplitLineHierarchy) SumNetAmount(in SumNetAmountInput) (alpacadecimal.Decimal, error) {
 	netAmount := alpacadecimal.Zero
 
