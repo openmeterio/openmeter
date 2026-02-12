@@ -805,6 +805,12 @@ func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLi
 		}
 	}
 
+	if line.Price == nil {
+		return billing.GatheringLine{}, billing.ValidationError{
+			Err: fmt.Errorf("price is required for usage based lines"),
+		}
+	}
+
 	existing.Metadata = lo.FromPtrOr(line.Metadata, api.Metadata(existing.Metadata))
 	existing.Name = line.Name
 	existing.Description = line.Description

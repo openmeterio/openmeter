@@ -502,24 +502,7 @@ func (h *handler) UpdateInvoice() UpdateInvoiceHandler {
 				return UpdateInvoiceResponse{}, err
 			}
 
-			genericInvoice, err := invoice.AsGenericInvoice()
-			if err != nil {
-				return UpdateInvoiceResponse{}, fmt.Errorf("converting invoice to generic invoice: %w", err)
-			}
-
-			// TODO: For the V3 api let's make sure that we don't return gathering invoice customer data (or even gathering invoices)
-			mergedProfile, err := h.service.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
-				Customer: genericInvoice.GetCustomerID(),
-				Expand: billing.CustomerOverrideExpand{
-					Customer: true,
-					Apps:     true,
-				},
-			})
-			if err != nil {
-				return UpdateInvoiceResponse{}, fmt.Errorf("failed to get customer override: %w", err)
-			}
-
-			return MapInvoiceToAPI(invoice, mergedProfile.Customer, mergedProfile.MergedProfile)
+			return h.MapInvoiceToAPI(ctx, invoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateInvoiceResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -530,7 +513,7 @@ func (h *handler) UpdateInvoice() UpdateInvoiceHandler {
 	)
 }
 
-func MapInvoiceToAPI(invoice billing.Invoice, customer *customer.Customer, profile billing.Profile) (api.Invoice, error) {
+func (h *handler) MapInvoiceToAPI(ctx context.Context, invoice billing.Invoice) (api.Invoice, error) {
 	switch invoice.Type() {
 	case billing.InvoiceTypeStandard:
 		standardInvoice, err := invoice.AsStandardInvoice()
@@ -545,7 +528,19 @@ func MapInvoiceToAPI(invoice billing.Invoice, customer *customer.Customer, profi
 			return api.Invoice{}, fmt.Errorf("converting invoice to gathering invoice: %w", err)
 		}
 
-		return MapGatheringInvoiceToAPI(gatheringInvoice, customer, profile)
+		// TODO: For the V3 api let's make sure that we don't return gathering invoice customer data (or even gathering invoices)
+		mergedProfile, err := h.service.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			Customer: gatheringInvoice.GetCustomerID(),
+			Expand: billing.CustomerOverrideExpand{
+				Customer: true,
+				Apps:     true,
+			},
+		})
+		if err != nil {
+			return UpdateInvoiceResponse{}, fmt.Errorf("failed to get customer override: %w", err)
+		}
+
+		return MapGatheringInvoiceToAPI(gatheringInvoice, mergedProfile.Customer, mergedProfile.MergedProfile)
 	default:
 		return api.Invoice{}, fmt.Errorf("invalid invoice type: %s", invoice.Type())
 	}
