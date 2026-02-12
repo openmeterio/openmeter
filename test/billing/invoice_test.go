@@ -4331,3 +4331,254 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceEmulation() {
 	require.Equal(s.T(), profile.Supplier.Name, invoice.Supplier.Name)
 	require.Equal(s.T(), sandboxApp.GetID(), invoice.Workflow.Apps.Invoicing.GetID())
 }
+
+func (s *InvoicingTestSuite) TestUpdateInvoice() {
+	ctx := context.Background()
+	namespace := s.GetUniqueNamespace("ns-update-invoice")
+	now := clock.Now().Truncate(time.Second).UTC()
+	periodStart := now.Add(-48 * time.Hour)
+	periodEnd := now.Add(-24 * time.Hour)
+	testLines := []billing.GatheringLine{
+		billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+			Namespace:     namespace,
+			Period:        billing.Period{Start: periodStart, End: periodEnd},
+			InvoiceAt:     now,
+			ManagedBy:     billing.ManuallyManagedLine,
+			Name:          "line-active",
+			PerUnitAmount: alpacadecimal.NewFromFloat(100),
+			PaymentTerm:   productcatalog.InArrearsPaymentTerm,
+		}),
+		billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+			Namespace:     namespace,
+			Period:        billing.Period{Start: periodStart, End: periodEnd},
+			InvoiceAt:     now,
+			ManagedBy:     billing.ManuallyManagedLine,
+			Name:          "line-deleted",
+			PerUnitAmount: alpacadecimal.NewFromFloat(200),
+			PaymentTerm:   productcatalog.InArrearsPaymentTerm,
+		}),
+	}
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	customerEntity := s.CreateTestCustomer(namespace, "test-update-invoice")
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
+		profile.WorkflowConfig = billing.WorkflowConfig{
+			Collection: billing.CollectionConfig{
+				Alignment: billing.AlignmentKindSubscription,
+			},
+			Invoicing: billing.InvoicingConfig{
+				AutoAdvance: false,
+				DraftPeriod: lo.Must(datetime.ISODurationString("PT0S").Parse()),
+				DueAfter:    lo.Must(datetime.ISODurationString("P1W").Parse()),
+			},
+			Payment: billing.PaymentConfig{
+				CollectionMethod: billing.CollectionMethodChargeAutomatically,
+			},
+		}
+	}))
+
+	s.Run("gathering invoice", func() {
+		var gatheringInvoiceID billing.InvoiceID
+		var activeLineID string
+		var deletedLineID string
+
+		s.Run("given a gathering invoice with a line and a deleted line", func() {
+			res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+				Customer: customerEntity.GetID(),
+				Currency: currencyx.Code(currency.USD),
+				Lines:    testLines,
+			})
+			require.NoError(s.T(), err)
+			require.Len(s.T(), res.Lines, 2)
+
+			gatheringInvoiceID = res.Invoice.GetInvoiceID()
+			activeLineID = res.Lines[0].ID
+			deletedLineID = res.Lines[1].ID
+
+			err = s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+				Invoice:             gatheringInvoiceID,
+				IncludeDeletedLines: true,
+				EditFn: func(invoice *billing.GatheringInvoice) error {
+					line, ok := invoice.Lines.GetByID(deletedLineID)
+					if !ok {
+						return fmt.Errorf("line[%s] not found", deletedLineID)
+					}
+
+					line.DeletedAt = lo.ToPtr(clock.Now())
+
+					return invoice.Lines.ReplaceByID(line)
+				},
+			})
+			require.NoError(s.T(), err)
+
+			invoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+				Invoice: gatheringInvoiceID,
+				Expand: billing.GatheringInvoiceExpands{
+					billing.GatheringInvoiceExpandLines,
+					billing.GatheringInvoiceExpandDeletedLines,
+				},
+			})
+			require.NoError(s.T(), err)
+			require.Len(s.T(), invoice.Lines.OrEmpty(), 2)
+
+			deletedLine, ok := invoice.Lines.GetByID(deletedLineID)
+			require.True(s.T(), ok)
+			require.NotNil(s.T(), deletedLine.DeletedAt)
+		})
+
+		s.Run("when editing using UpdateInvoice", func() {
+			var sawDeletedLine bool
+
+			updatedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
+				Invoice:             gatheringInvoiceID,
+				IncludeDeletedLines: true,
+				EditFn: func(invoice billing.Invoice) (billing.Invoice, error) {
+					gatheringInvoice, err := invoice.AsGatheringInvoice()
+					if err != nil {
+						return billing.Invoice{}, err
+					}
+
+					deletedLine, ok := gatheringInvoice.Lines.GetByID(deletedLineID)
+					sawDeletedLine = ok && deletedLine.DeletedAt != nil
+
+					activeLine, ok := gatheringInvoice.Lines.GetByID(activeLineID)
+					if !ok {
+						return billing.Invoice{}, fmt.Errorf("line[%s] not found", activeLineID)
+					}
+
+					activeLine.Name = "gathering-line-active-updated"
+
+					if err := gatheringInvoice.Lines.ReplaceByID(activeLine); err != nil {
+						return billing.Invoice{}, err
+					}
+
+					return billing.NewInvoice(gatheringInvoice), nil
+				},
+			})
+			require.NoError(s.T(), err)
+			require.True(s.T(), sawDeletedLine, "edit fn should receive deleted lines when include deleted lines is set")
+
+			updatedGatheringInvoice, err := updatedInvoice.AsGatheringInvoice()
+			require.NoError(s.T(), err)
+
+			updatedLine, ok := updatedGatheringInvoice.Lines.GetByID(activeLineID)
+			require.True(s.T(), ok)
+			require.Equal(s.T(), "gathering-line-active-updated", updatedLine.Name)
+
+			s.Run("then the invoice gets updated", func() {
+				reloadedInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+					Invoice: gatheringInvoiceID,
+					Expand: billing.GatheringInvoiceExpands{
+						billing.GatheringInvoiceExpandLines,
+						billing.GatheringInvoiceExpandDeletedLines,
+					},
+				})
+				require.NoError(s.T(), err)
+
+				reloadedActiveLine, ok := reloadedInvoice.Lines.GetByID(activeLineID)
+				require.True(s.T(), ok)
+				require.Equal(s.T(), "gathering-line-active-updated", reloadedActiveLine.Name)
+			})
+		})
+	})
+
+	s.Run("draft invoice with manual approval", func() {
+		var draftInvoice billing.StandardInvoice
+		var activeLineID string
+		var deletedLineID string
+
+		s.Run("given a draft invoice with a line and a deleted line", func() {
+			pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+				Customer: customerEntity.GetID(),
+				Currency: currencyx.Code(currency.USD),
+				Lines:    testLines,
+			})
+			require.NoError(s.T(), err)
+			require.Len(s.T(), pendingLines.Lines, 2)
+
+			invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+				Customer: customerEntity.GetID(),
+				IncludePendingLines: mo.Some(lo.Map(pendingLines.Lines, func(line billing.GatheringLine, _ int) string {
+					return line.ID
+				})),
+				AsOf: lo.ToPtr(now),
+			})
+			require.NoError(s.T(), err)
+			require.Len(s.T(), invoices, 1)
+			draftInvoice = invoices[0]
+
+			require.Equal(s.T(), billing.StandardInvoiceStatusDraftManualApprovalNeeded, draftInvoice.Status)
+			require.Len(s.T(), draftInvoice.Lines.MustGet(), 2)
+
+			activeLineID = draftInvoice.Lines.MustGet()[0].ID
+			deletedLineID = draftInvoice.Lines.MustGet()[1].ID
+
+			_, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+				Invoice:             draftInvoice.InvoiceID(),
+				IncludeDeletedLines: true,
+				EditFn: func(invoice *billing.StandardInvoice) error {
+					line := invoice.Lines.GetByID(deletedLineID)
+					if line == nil {
+						return fmt.Errorf("line[%s] not found", deletedLineID)
+					}
+
+					line.DeletedAt = lo.ToPtr(clock.Now())
+					return nil
+				},
+			})
+			require.NoError(s.T(), err)
+		})
+
+		s.Run("when editing using UpdateInvoice", func() {
+			var sawDeletedLine bool
+
+			updatedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
+				Invoice:             draftInvoice.InvoiceID(),
+				IncludeDeletedLines: true,
+				EditFn: func(invoice billing.Invoice) (billing.Invoice, error) {
+					standardInvoice, err := invoice.AsStandardInvoice()
+					if err != nil {
+						return billing.Invoice{}, err
+					}
+
+					deletedLine := standardInvoice.Lines.GetByID(deletedLineID)
+					sawDeletedLine = deletedLine != nil && deletedLine.DeletedAt != nil
+
+					activeLine := standardInvoice.Lines.GetByID(activeLineID)
+					if activeLine == nil {
+						return billing.Invoice{}, fmt.Errorf("line[%s] not found", activeLineID)
+					}
+
+					activeLine.Name = "draft-line-active-updated"
+
+					return billing.NewInvoice(standardInvoice), nil
+				},
+			})
+			require.NoError(s.T(), err)
+			require.True(s.T(), sawDeletedLine, "edit fn should receive deleted lines when include deleted lines is set")
+
+			updatedStandardInvoice, err := updatedInvoice.AsStandardInvoice()
+			require.NoError(s.T(), err)
+
+			updatedLine := updatedStandardInvoice.Lines.GetByID(activeLineID)
+			require.NotNil(s.T(), updatedLine)
+			require.Equal(s.T(), "draft-line-active-updated", updatedLine.Name)
+
+			s.Run("then the invoice gets updated", func() {
+				reloadedInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+					Invoice: draftInvoice.InvoiceID(),
+					Expand:  billing.InvoiceExpandAll.SetDeletedLines(true),
+				})
+				require.NoError(s.T(), err)
+
+				reloadedActiveLine := reloadedInvoice.Lines.GetByID(activeLineID)
+				require.NotNil(s.T(), reloadedActiveLine)
+				require.Equal(s.T(), "draft-line-active-updated", reloadedActiveLine.Name)
+
+				reloadedDeletedLine := reloadedInvoice.Lines.GetByID(deletedLineID)
+				require.NotNil(s.T(), reloadedDeletedLine)
+				require.NotNil(s.T(), reloadedDeletedLine.DeletedAt)
+			})
+		})
+	})
+}

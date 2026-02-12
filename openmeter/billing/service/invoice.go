@@ -831,7 +831,8 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 
 		if invoiceType == billing.InvoiceTypeGathering {
 			err := s.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
-				Invoice: input.Invoice,
+				Invoice:             input.Invoice,
+				IncludeDeletedLines: input.IncludeDeletedLines,
 				EditFn: func(invoice *billing.GatheringInvoice) error {
 					if invoice == nil {
 						return fmt.Errorf("invoice is nil")
@@ -856,12 +857,18 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 				return billing.Invoice{}, fmt.Errorf("updating gathering invoice: %w", err)
 			}
 
+			expand := billing.GatheringInvoiceExpands{
+				billing.GatheringInvoiceExpandLines,
+				billing.GatheringInvoiceExpandAvailableActions,
+			}
+
+			if input.IncludeDeletedLines {
+				expand = expand.With(billing.GatheringInvoiceExpandDeletedLines)
+			}
+
 			gatheringInvoice, err := s.adapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
 				Invoice: input.Invoice,
-				Expand: billing.GatheringInvoiceExpands{
-					billing.GatheringInvoiceExpandLines,
-					billing.GatheringInvoiceExpandAvailableActions,
-				},
+				Expand:  expand,
 			})
 			if err != nil {
 				return billing.Invoice{}, fmt.Errorf("fetching gathering invoice: %w", err)
@@ -872,7 +879,8 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 
 		// Standard invoice
 		standardInvoice, err := s.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-			Invoice: input.Invoice,
+			Invoice:             input.Invoice,
+			IncludeDeletedLines: input.IncludeDeletedLines,
 			EditFn: func(invoice *billing.StandardInvoice) error {
 				if invoice == nil {
 					return fmt.Errorf("invoice is nil")
