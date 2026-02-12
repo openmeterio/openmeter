@@ -180,9 +180,12 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 		s.Equal(n, 1)
 
 		// Validate schema-level-1 using the adapter (read-path).
-		invoiceBeforeMigration, err = s.BillingAdapter.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+		invoiceBeforeMigration, err = s.BillingAdapter.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: invoiceID,
-			Expand:  billing.InvoiceExpandAll.SetDeletedLines(true),
+			Expand: billing.StandardInvoiceExpands{
+				billing.StandardInvoiceExpandLines,
+				billing.StandardInvoiceExpandDeletedLines,
+			},
 		})
 		s.NoError(err)
 		s.Len(invoiceBeforeMigration.Lines.OrEmpty(), 2)
@@ -203,9 +206,12 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 	})
 
 	s.Run("Then the invoice is migrated and lines (incl detailed lines) match exactly", func() {
-		invoiceAfter, err := s.BillingAdapter.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+		invoiceAfter, err := s.BillingAdapter.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: invoiceID,
-			Expand:  billing.InvoiceExpandAll.SetDeletedLines(true),
+			Expand: billing.StandardInvoiceExpands{
+				billing.StandardInvoiceExpandLines,
+				billing.StandardInvoiceExpandDeletedLines,
+			},
 		})
 		s.Require().NoError(err)
 

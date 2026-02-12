@@ -42,32 +42,41 @@ func (u *InvoiceUpdater) ApplyPatches(ctx context.Context, customerID customer.C
 
 	// Let's split line patches by invoiceID
 	for invoiceID, linePatches := range patchesParsed.updatedLinesByInvoiceID {
-		invoice, err := u.billingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-			Invoice: billing.InvoiceID{
-				Namespace: customerID.Namespace,
-				ID:        invoiceID,
-			},
-			Expand: billing.InvoiceExpand{},
+		namespacedInvoiceID := billing.InvoiceID{
+			Namespace: customerID.Namespace,
+			ID:        invoiceID,
+		}
+
+		invoice, err := u.billingService.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+			Invoice: namespacedInvoiceID,
 		})
 		if err != nil {
 			return fmt.Errorf("getting invoice: %w", err)
 		}
 
-		switch {
-		case invoice.Status == billing.StandardInvoiceStatusGathering:
-			if err := u.updateGatheringInvoice(ctx, invoice.InvoiceID(), linePatches); err != nil {
+		if invoice.Type() == billing.InvoiceTypeGathering {
+			if err := u.updateGatheringInvoice(ctx, namespacedInvoiceID, linePatches); err != nil {
 				return fmt.Errorf("updating gathering invoice: %w", err)
 			}
 
-		case !invoice.StatusDetails.Immutable:
-			if err := u.updateMutableStandardInvoice(ctx, invoice, linePatches); err != nil {
+			continue
+		}
+
+		standardInvoice, err := invoice.AsStandardInvoice()
+		if err != nil {
+			return fmt.Errorf("converting invoice to standard invoice: %w", err)
+		}
+
+		if !standardInvoice.StatusDetails.Immutable {
+			if err := u.updateMutableStandardInvoice(ctx, standardInvoice, linePatches); err != nil {
 				return fmt.Errorf("updating mutable invoice: %w", err)
 			}
 
-		default:
-			if err := u.updateImmutableInvoice(ctx, invoice, linePatches); err != nil {
-				return fmt.Errorf("updating immutable invoice: %w", err)
-			}
+			continue
+		}
+
+		if err := u.updateImmutableInvoice(ctx, standardInvoice, linePatches); err != nil {
+			return fmt.Errorf("updating immutable invoice: %w", err)
 		}
 	}
 
@@ -291,9 +300,9 @@ func (u *InvoiceUpdater) updateGatheringInvoice(ctx context.Context, invoiceID b
 }
 
 func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
-	invoice, err := u.billingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+	invoice, err := u.billingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 		Invoice: invoice.InvoiceID(),
-		Expand:  billing.InvoiceExpandAll,
+		Expand:  billing.StandardInvoiceExpandAll,
 	})
 	if err != nil {
 		return fmt.Errorf("getting invoice: %w", err)

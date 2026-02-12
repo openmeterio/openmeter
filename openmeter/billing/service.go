@@ -59,7 +59,9 @@ type SplitLineGroupService interface {
 
 type InvoiceService interface {
 	ListInvoices(ctx context.Context, input ListInvoicesInput) (ListInvoicesResponse, error)
-	GetInvoiceByID(ctx context.Context, input GetInvoiceByIdInput) (StandardInvoice, error)
+	// GetInvoiceById returns the invoice by its ID using the Invoice union type.
+	// Please use GetStandardInvoiceById or GetGatheringInvoiceById instead if you know exactly the type of the invoice.
+	GetInvoiceById(ctx context.Context, input GetInvoiceByIdInput) (Invoice, error)
 	InvoicePendingLines(ctx context.Context, input InvoicePendingLinesInput) ([]StandardInvoice, error)
 	// AdvanceInvoice advances the invoice to the next stage, the advancement is stopped until:
 	// - an error is occurred
@@ -87,6 +89,10 @@ type InvoiceService interface {
 type StandardInvoiceService interface {
 	// UpdateStandardInvoice updates a standard invoice as a whole
 	UpdateStandardInvoice(ctx context.Context, input UpdateStandardInvoiceInput) (StandardInvoice, error)
+	// GetStandardInvoiceById gets a standard invoice by its ID
+	GetStandardInvoiceById(ctx context.Context, input GetStandardInvoiceByIdInput) (StandardInvoice, error)
+	// ListStandardInvoices lists standard invoices
+	ListStandardInvoices(ctx context.Context, input ListStandardInvoicesInput) (ListStandardInvoicesResponse, error)
 }
 
 type GatheringInvoiceService interface {

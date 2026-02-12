@@ -14,7 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func (a *adapter) mapStandardInvoiceLinesFromDB(schemaLevelByInvoiceID map[string]int, dbLines []*db.BillingInvoiceLine) ([]*billing.StandardLine, error) {
+func (a *adapter) mapStandardInvoiceLinesFromDB(schemaLevelByInvoiceID map[string]int, dbLines []*db.BillingInvoiceLine) (billing.StandardLines, error) {
 	lines := make([]*billing.StandardLine, 0, len(dbLines))
 
 	for _, dbLine := range dbLines {

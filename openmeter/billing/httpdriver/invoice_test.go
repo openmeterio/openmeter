@@ -71,14 +71,22 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceSerialization() {
 	s.NoError(err)
 
 	// Let's get the invoice
-	invoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+	invoice, err := s.BillingService.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
 		Invoice: res.Invoice.GetInvoiceID(),
-		Expand:  billing.InvoiceExpand{Lines: true, RecalculateGatheringInvoice: true},
+		Expand: billing.InvoiceExpands{
+			billing.InvoiceExpandLines,
+			billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData,
+		},
 	})
 	s.NoError(err)
 
+	// The invoice should be a standard invoice, with status == gathering
+	standardInvoice, err := invoice.AsStandardInvoice()
+	s.NoError(err)
+	s.Equal(billing.StandardInvoiceStatusGathering, standardInvoice.Status)
+
 	// Let's serialize the invoice
-	apiInvoice, err := MapStandardInvoiceToAPI(invoice)
+	apiInvoice, err := MapStandardInvoiceToAPI(standardInvoice)
 	s.NoError(err)
 
 	// Let's deserialize the invoice

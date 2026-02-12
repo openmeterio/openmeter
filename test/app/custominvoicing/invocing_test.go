@@ -284,7 +284,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 
 	// Payment status handling: we cannot transition the invoice to uncollectible state (full mesh transitions)
 	s.Run("invoice cannot be transitioned to uncollectible state", func() {
-		invoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+		invoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: invoice.InvoiceID(),
 		})
 		s.NoError(err, "failed to get invoice")

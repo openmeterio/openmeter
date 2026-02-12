@@ -22,7 +22,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 func TestBillingOnFirstOfMonth(t *testing.T) {
@@ -216,15 +215,10 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 	require.NoError(t, tDeps.subscriptionSyncService.SynchronizeSubscription(ctx, view, firstOfMonth.AddDate(0, 1, 0)))
 
 	// 6th, let's check the invoice
-	invoices, err := tDeps.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
+	invoices, err := tDeps.billingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Namespaces: []string{namespace},
 		Customers:  []string{c.ID},
-		Page: pagination.Page{
-			PageSize:   10,
-			PageNumber: 1,
-		},
-		Expand:   billing.InvoiceExpandAll,
-		Statuses: []string{},
+		Expand:     billing.GatheringInvoiceExpandAll,
 	})
 
 	require.NoError(t, err)
@@ -232,14 +226,12 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 
 	invoice := invoices.Items[0]
 
-	require.Equal(t, billing.StandardInvoiceStatusGathering, invoice.Status)
-
 	lns, ok := invoice.Lines.Get()
 	require.True(t, ok)
 
-	linesByFeature := lo.GroupBy(lns, func(l *billing.StandardLine) string {
-		if l.UsageBased != nil {
-			return l.UsageBased.FeatureKey
+	linesByFeature := lo.GroupBy(lns, func(l billing.GatheringLine) string {
+		if l.FeatureKey != "" {
+			return l.FeatureKey
 		}
 
 		if l.ChildUniqueReferenceID != nil {
@@ -260,14 +252,14 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 
 		line := lines[0]
 
-		require.Equal(t, startOfSub, line.Period.Start)
-		require.Equal(t, endOfMonth, line.Period.End)
+		require.Equal(t, startOfSub, line.ServicePeriod.From)
+		require.Equal(t, endOfMonth, line.ServicePeriod.To)
 		require.Equal(t, endOfMonth, line.InvoiceAt)
 	})
 
 	t.Run("lines for test-feature-2", func(t *testing.T) {
 		// As these are not usagebasedlines, we'll use filtering here
-		var lines []*billing.StandardLine
+		var lines []billing.GatheringLine
 
 		for k, v := range linesByFeature {
 			if strings.Contains(k, feats[1].Key) {
@@ -279,18 +271,18 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 		require.Len(t, lines, 2)
 
 		// Let's sort by line.ChildUniqueReferenceID
-		slices.SortFunc(lines, func(i, j *billing.StandardLine) int {
+		slices.SortFunc(lines, func(i, j billing.GatheringLine) int {
 			return strings.Compare(*i.ChildUniqueReferenceID, *j.ChildUniqueReferenceID)
 		})
 
 		line1 := lines[0]
-		require.Equal(t, startOfSub, line1.Period.Start)
-		require.Equal(t, endOfMonth, line1.Period.End)
+		require.Equal(t, startOfSub, line1.ServicePeriod.From)
+		require.Equal(t, endOfMonth, line1.ServicePeriod.To)
 		require.Equal(t, startOfSub, line1.InvoiceAt)
 
 		line2 := lines[1]
-		require.Equal(t, endOfMonth, line2.Period.Start)
-		require.Equal(t, endOfMonth.AddDate(0, 1, 0), line2.Period.End)
+		require.Equal(t, endOfMonth, line2.ServicePeriod.From)
+		require.Equal(t, endOfMonth.AddDate(0, 1, 0), line2.ServicePeriod.To)
 		require.Equal(t, endOfMonth, line2.InvoiceAt)
 	})
 
@@ -302,19 +294,19 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 		require.Len(t, lines, 16)
 
 		// Let's sort the lines by the period start ascending
-		slices.SortFunc(lines, func(i, j *billing.StandardLine) int {
-			return i.Period.Start.Compare(j.Period.Start)
+		slices.SortFunc(lines, func(i, j billing.GatheringLine) int {
+			return i.ServicePeriod.From.Compare(j.ServicePeriod.From)
 		})
 
 		// The first line will be partial for the half day
 		line1 := lines[0]
-		require.Equal(t, startOfSub, line1.Period.Start)
-		require.Equal(t, startOfDay.AddDate(0, 0, 1), line1.Period.End)
+		require.Equal(t, startOfSub, line1.ServicePeriod.From)
+		require.Equal(t, startOfDay.AddDate(0, 0, 1), line1.ServicePeriod.To)
 		require.Equal(t, endOfMonth, line1.InvoiceAt)
 
 		for idx, line := range lines[1:] {
-			require.Equal(t, startOfDay.AddDate(0, 0, idx+1), line.Period.Start)
-			require.Equal(t, startOfDay.AddDate(0, 0, idx+2), line.Period.End)
+			require.Equal(t, startOfDay.AddDate(0, 0, idx+1), line.ServicePeriod.From)
+			require.Equal(t, startOfDay.AddDate(0, 0, idx+2), line.ServicePeriod.To)
 			require.Equal(t, endOfMonth, line.InvoiceAt)
 		}
 	})
@@ -427,7 +419,6 @@ func TestAnchoredAlignment_MidMonthStart_EarlyCancel_IssueNextAnchor(t *testing.
 	invoices, err := tDeps.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
 		Namespaces: []string{namespace},
 		Customers:  []string{c.ID},
-		Page:       pagination.Page{PageSize: 10, PageNumber: 1},
 		Expand:     billing.InvoiceExpandAll,
 		Statuses:   []string{},
 	})
@@ -435,19 +426,19 @@ func TestAnchoredAlignment_MidMonthStart_EarlyCancel_IssueNextAnchor(t *testing.
 
 	// Gathering and Standard, let's get the standard
 	require.Len(t, invoices.Items, 2)
-	invoice, ok := lo.Find(invoices.Items, func(i billing.StandardInvoice) bool {
-		return i.Status != billing.StandardInvoiceStatusGathering
+	invoice, ok := lo.Find(invoices.Items, func(i billing.Invoice) bool {
+		return i.Type() != billing.InvoiceTypeGathering
 	})
 	require.True(t, ok)
+	gatheringInvoice, err := invoice.AsGatheringInvoice()
+	require.NoError(t, err)
 
 	// We should have a gathering invoice with lines invoiceAt at end of June and collectionAt at July 1st (due to anchored alignment)
-	require.Equal(t, billing.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
-	require.NotNil(t, invoice.CollectionAt)
-	require.Equal(t, firstOfNextMonth, *invoice.CollectionAt)
+	require.Equal(t, firstOfNextMonth, gatheringInvoice.NextCollectionAt)
 
-	lns, ok := invoice.Lines.Get()
+	lns, ok := gatheringInvoice.Lines.Get()
 	require.True(t, ok)
 	for _, l := range lns {
-		require.True(t, l.InvoiceAt.Before(*invoice.CollectionAt))
+		require.True(t, l.InvoiceAt.Before(gatheringInvoice.NextCollectionAt))
 	}
 }
