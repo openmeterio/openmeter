@@ -216,6 +216,14 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 			query = query.Where(billinginvoice.CurrencyIn(input.Currencies...))
 		}
 
+		if len(input.IDs) > 0 {
+			query = query.Where(billinginvoice.IDIn(input.IDs...))
+		}
+
+		if input.NextCollectionAtBeforeOrEqual != nil {
+			query = query.Where(billinginvoice.CollectionAtLTE(*input.NextCollectionAtBeforeOrEqual))
+		}
+
 		order := entutils.GetOrdering(sortx.OrderDefault)
 		if !input.Order.IsDefaultValue() {
 			order = entutils.GetOrdering(input.Order)
@@ -303,6 +311,7 @@ func (a *adapter) DeleteGatheringInvoice(ctx context.Context, input billing.Dele
 		invoice, err := tx.db.BillingInvoice.Query().
 			Where(billinginvoice.ID(input.ID)).
 			Where(billinginvoice.Namespace(input.Namespace)).
+			Where(billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering)).
 			Only(ctx)
 		if err != nil {
 			return err
@@ -322,6 +331,8 @@ func (a *adapter) DeleteGatheringInvoice(ctx context.Context, input billing.Dele
 			Where(billinginvoice.ID(input.ID)).
 			Where(billinginvoice.Namespace(input.Namespace)).
 			SetDeletedAt(clock.Now()).
+			ClearPeriodStart().
+			ClearPeriodEnd().
 			Save(ctx)
 		if err != nil {
 			return err
@@ -351,7 +362,8 @@ func (a *adapter) GetGatheringInvoiceById(ctx context.Context, input billing.Get
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.GatheringInvoice, error) {
 		query := tx.db.BillingInvoice.Query().
 			Where(billinginvoice.ID(input.Invoice.ID)).
-			Where(billinginvoice.Namespace(input.Invoice.Namespace))
+			Where(billinginvoice.Namespace(input.Invoice.Namespace)).
+			Where(billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering))
 
 		if input.Expand.Has(billing.GatheringInvoiceExpandLines) {
 			query = a.expandGatheringInvoiceLines(query, input.Expand)

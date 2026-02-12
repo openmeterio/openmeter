@@ -2,8 +2,8 @@ package billingadapter
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -20,7 +20,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -30,7 +29,7 @@ import (
 
 var _ billing.InvoiceAdapter = (*adapter)(nil)
 
-func (a *adapter) GetInvoiceById(ctx context.Context, in billing.GetInvoiceByIdInput) (billing.StandardInvoice, error) {
+func (a *adapter) GetStandardInvoiceById(ctx context.Context, in billing.GetInvoiceByIdInput) (billing.StandardInvoice, error) {
 	if err := in.Validate(); err != nil {
 		return billing.StandardInvoice{}, billing.ValidationError{
 			Err: err,
@@ -79,36 +78,6 @@ func (a *adapter) expandInvoiceLineItems(query *db.BillingInvoiceQuery, expand b
 		)
 
 		a.expandLineItemsWithDetailedLines(q)
-	})
-}
-
-func (a *adapter) DeleteGatheringInvoices(ctx context.Context, input billing.DeleteGatheringInvoicesInput) error {
-	if err := input.Validate(); err != nil {
-		return billing.ValidationError{
-			Err: err,
-		}
-	}
-
-	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
-		nAffected, err := tx.db.BillingInvoice.Update().
-			Where(billinginvoice.IDIn(input.InvoiceIDs...)).
-			Where(billinginvoice.Namespace(input.Namespace)).
-			Where(billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering)).
-			ClearPeriodStart().
-			ClearPeriodEnd().
-			SetDeletedAt(clock.Now()).
-			Save(ctx)
-		if err != nil {
-			return err
-		}
-
-		if nAffected != len(input.InvoiceIDs) {
-			return billing.ValidationError{
-				Err: errors.New("invoices failed to delete"),
-			}
-		}
-
-		return nil
 	})
 }
 
@@ -161,10 +130,6 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			query = query.Where(billinginvoice.CreatedAtLTE(*input.CreatedBefore))
 		}
 
-		if len(input.ExtendedStatuses) > 0 {
-			query = query.Where(billinginvoice.StatusIn(input.ExtendedStatuses...))
-		}
-
 		if len(input.IDs) > 0 {
 			query = query.Where(billinginvoice.IDIn(input.IDs...))
 		}
@@ -173,14 +138,46 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			query = query.Where(billinginvoice.DeletedAtIsNil())
 		}
 
-		if len(input.Statuses) > 0 {
-			query = query.Where(func(s *sql.Selector) {
-				s.Where(sql.Or(
-					lo.Map(input.Statuses, func(status string, _ int) *sql.Predicate {
-						return sql.Like(billinginvoice.FieldStatus, status+"%")
-					})...,
-				))
-			})
+		if len(input.InvoiceTypes) > 0 {
+			includeStandard := slices.Contains(input.InvoiceTypes, billing.InvoiceTypeStandard) || len(input.InvoiceTypes) == 0
+			includeGathering := slices.Contains(input.InvoiceTypes, billing.InvoiceTypeGathering) || len(input.InvoiceTypes) == 0
+
+			// Hack: right now we are using the statuses to filter for standard and gathering invoices
+			queries := []predicate.BillingInvoice{}
+			if includeStandard {
+				queries = append(queries, func(s *sql.Selector) {
+					predicates := []*sql.Predicate{
+						sql.Not(sql.EQ(billinginvoice.FieldStatus, billing.StandardInvoiceStatusGathering)),
+					}
+
+					if len(input.StandardInvoiceStatuses) > 0 {
+						predicates = append(predicates, sql.Or(
+							lo.Map(input.StandardInvoiceStatuses, func(status string, _ int) *sql.Predicate {
+								return sql.Like(billinginvoice.FieldStatus, status+"%")
+							})...,
+						))
+					}
+
+					if len(input.StandardInvoiceExtendedStatuses) > 0 {
+						predicates = append(predicates, sql.In(billinginvoice.FieldStatus, lo.Map(input.StandardInvoiceExtendedStatuses, func(status billing.StandardInvoiceStatus, _ int) any {
+							return status
+						})...))
+					}
+
+					s.Where(sql.And(predicates...))
+				})
+			}
+
+			if includeGathering {
+				queries = append(queries, func(s *sql.Selector) {
+					s.Where(
+						sql.EQ(billinginvoice.FieldStatus, billing.StandardInvoiceStatusGathering))
+				})
+			}
+
+			query = query.Where(billinginvoice.Or(
+				queries...,
+			))
 		}
 
 		if len(input.Currencies) > 0 {
@@ -248,7 +245,7 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			query = query.Order(billinginvoice.ByCreatedAt(order...))
 		}
 
-		response := pagination.Result[billing.StandardInvoice]{
+		response := pagination.Result[billing.Invoice]{
 			Page: input.Page,
 		}
 
@@ -257,14 +254,33 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			return response, err
 		}
 
-		result := make([]billing.StandardInvoice, 0, len(paged.Items))
+		result := make([]billing.Invoice, 0, len(paged.Items))
 		for _, invoice := range paged.Items {
-			mapped, err := tx.mapStandardInvoiceFromDB(ctx, invoice, input.Expand)
+			if invoice.Status == billing.StandardInvoiceStatusGathering {
+				expand := billing.GatheringInvoiceExpands{}
+				if input.Expand.Lines {
+					expand = expand.With(billing.GatheringInvoiceExpandLines)
+				}
+
+				if input.Expand.DeletedLines {
+					expand = expand.With(billing.GatheringInvoiceExpandDeletedLines)
+				}
+
+				gatheredMapped, err := tx.mapGatheringInvoiceFromDB(invoice, expand)
+				if err != nil {
+					return response, err
+				}
+
+				result = append(result, billing.NewInvoice(gatheredMapped))
+				continue
+			}
+
+			stdMapped, err := tx.mapStandardInvoiceFromDB(ctx, invoice, input.Expand)
 			if err != nil {
 				return response, err
 			}
 
-			result = append(result, mapped)
+			result = append(result, billing.NewInvoice(stdMapped))
 		}
 
 		response.TotalCount = paged.TotalCount

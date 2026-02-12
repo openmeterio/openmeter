@@ -149,7 +149,7 @@ func stripeErrorToValidationError(stripeErr *stripe.Error) error {
 
 // getInvoiceByStripeID retrieves an invoice by its stripe ID, it returns nil if the invoice is not found (thus not managed by the app)
 func (s *Service) getInvoiceByStripeID(ctx context.Context, appID app.AppID, stripeInvoiceID string) (*billing.StandardInvoice, error) {
-	invoices, err := s.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
+	invoices, err := s.billingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
 		Namespaces: []string{appID.Namespace},
 		ExternalIDs: &billing.ListInvoicesExternalIDFilter{
 			Type: billing.InvoicingExternalIDType,

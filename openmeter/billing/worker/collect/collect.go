@@ -39,17 +39,16 @@ func (i ListCollectableInvoicesInput) Validate() error {
 	return errors.Join(errs...)
 }
 
-func (a *InvoiceCollector) ListCollectableInvoices(ctx context.Context, params ListCollectableInvoicesInput) ([]billing.StandardInvoice, error) {
+func (a *InvoiceCollector) ListCollectableInvoices(ctx context.Context, params ListCollectableInvoicesInput) ([]billing.GatheringInvoice, error) {
 	if err := params.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
 
-	resp, err := a.billing.ListInvoices(ctx, billing.ListInvoicesInput{
-		Namespaces:       params.Namespaces,
-		IDs:              params.InvoiceIDs,
-		Customers:        params.Customers,
-		CollectionAt:     lo.ToPtr(params.CollectionAt),
-		ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
+	resp, err := a.billing.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+		Namespaces:                    params.Namespaces,
+		IDs:                           params.InvoiceIDs,
+		Customers:                     params.Customers,
+		NextCollectionAtBeforeOrEqual: lo.ToPtr(params.CollectionAt),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list collectable invoices: %w", err)
@@ -132,10 +131,10 @@ func (a *InvoiceCollector) All(ctx context.Context, namespaces []string, custome
 		return nil
 	}
 
-	customerIDs := lo.Map(invoices, func(i billing.StandardInvoice, _ int) customer.CustomerID {
+	customerIDs := lo.Map(invoices, func(i billing.GatheringInvoice, _ int) customer.CustomerID {
 		return customer.CustomerID{
 			Namespace: i.Namespace,
-			ID:        i.Customer.CustomerID,
+			ID:        i.CustomerID,
 		}
 	})
 

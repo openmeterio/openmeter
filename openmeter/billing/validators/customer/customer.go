@@ -68,7 +68,7 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 		}
 	}
 
-	gatheringInvoices, err := v.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
+	invoices, err := v.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
 		Namespaces: []string{input.Namespace},
 		Customers:  []string{input.ID},
 	})
@@ -76,16 +76,30 @@ func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.D
 		return err
 	}
 
-	errs := make([]error, 0, len(gatheringInvoices.Items))
-	for _, inv := range gatheringInvoices.Items {
-		if inv.Status == billing.StandardInvoiceStatusGathering {
-			errs = append(errs, fmt.Errorf("invoice %s is still in gathering state", inv.ID))
+	errs := make([]error, 0, len(invoices.Items))
+	for _, inv := range invoices.Items {
+		if inv.Type() == billing.InvoiceTypeGathering {
+			gatheringInvoice, err := inv.AsGatheringInvoice()
+			if err != nil {
+				return err
+			}
 
+			if gatheringInvoice.DeletedAt != nil {
+				continue
+			}
+
+			errs = append(errs, fmt.Errorf("invoice %s is still in gathering state", gatheringInvoice.ID))
 			continue
 		}
 
-		if !inv.Status.IsFinal() {
-			errs = append(errs, fmt.Errorf("invoice %s is not in final state, please either delete the invoice or mark it uncollectible", inv.ID))
+		stdInvoice, err := inv.AsStandardInvoice()
+		if err != nil {
+			return err
+		}
+
+		if !stdInvoice.Status.IsFinal() {
+			errs = append(errs, fmt.Errorf("invoice %s is not in final state, please either delete the invoice or mark it uncollectible", stdInvoice.ID))
+			continue
 		}
 	}
 

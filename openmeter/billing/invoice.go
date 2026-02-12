@@ -248,7 +248,6 @@ func (i genericMultiInvoiceInput) Validate() error {
 }
 
 type (
-	DeleteGatheringInvoicesInput     = genericMultiInvoiceInput
 	LockInvoicesForUpdateInput       = genericMultiInvoiceInput
 	AssociatedLineCountsAdapterInput = genericMultiInvoiceInput
 )
@@ -318,14 +317,16 @@ type ListInvoicesInput struct {
 	Namespaces []string
 	IDs        []string
 	Customers  []string
-	// Statuses searches by short InvoiceStatus (e.g. draft, issued)
-	Statuses []string
+
+	// StandardInvoiceStatuses searches by short StandardInvoiceStatus (e.g. draft, issued)
+	StandardInvoiceStatuses []string
+	// StandardInvoiceExtendedStatuses searches by exact StandardInvoiceStatus
+	StandardInvoiceExtendedStatuses []StandardInvoiceStatus
+	InvoiceTypes                    []InvoiceType
 
 	HasAvailableAction []InvoiceAvailableActionsFilter
 
-	// ExtendedStatuses searches by exact InvoiceStatus
-	ExtendedStatuses []StandardInvoiceStatus
-	Currencies       []currencyx.Code
+	Currencies []currencyx.Code
 
 	IssuedAfter  *time.Time
 	IssuedBefore *time.Time
@@ -380,6 +381,27 @@ func (i ListInvoicesInput) Validate() error {
 		}
 	}
 
+	if len(i.InvoiceTypes) > 0 {
+		errs := errors.Join(
+			lo.Map(i.InvoiceTypes, func(invoiceType InvoiceType, _ int) error {
+				return invoiceType.Validate()
+			})...,
+		)
+		if errs != nil {
+			outErr = append(outErr, errs)
+		}
+	}
+
+	willListStandardInvoices := len(i.InvoiceTypes) == 0 || slices.Contains(i.InvoiceTypes, InvoiceTypeStandard)
+	if !willListStandardInvoices {
+		if len(i.StandardInvoiceStatuses) > 0 {
+			outErr = append(outErr, errors.New("standard invoice statuses are not supported when listing non-standard invoices"))
+		}
+		if len(i.StandardInvoiceExtendedStatuses) > 0 {
+			outErr = append(outErr, errors.New("standard invoice extended statuses are not supported when listing non-standard invoices"))
+		}
+	}
+
 	if len(i.HasAvailableAction) > 0 {
 		errs := errors.Join(
 			lo.Map(i.HasAvailableAction, func(action InvoiceAvailableActionsFilter, _ int) error {
@@ -394,7 +416,7 @@ func (i ListInvoicesInput) Validate() error {
 	return errors.Join(outErr...)
 }
 
-type ListInvoicesResponse = pagination.Result[StandardInvoice]
+type ListInvoicesResponse = pagination.Result[Invoice]
 
 type InvoicePendingLinesInput struct {
 	Customer customer.CustomerID

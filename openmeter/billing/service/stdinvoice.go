@@ -51,3 +51,52 @@ func (s *Service) UpdateStandardInvoice(ctx context.Context, input billing.Updat
 		}),
 	)
 }
+
+func (s *Service) GetStandardInvoiceById(ctx context.Context, input billing.GetStandardInvoiceByIdInput) (billing.StandardInvoice, error) {
+	invoice, err := s.adapter.GetInvoiceById(ctx, input)
+	if err != nil {
+		return billing.StandardInvoice{}, err
+	}
+
+	return invoice, nil
+}
+
+func (s *Service) ListStandardInvoices(ctx context.Context, input billing.ListStandardInvoicesInput) (billing.ListStandardInvoicesResponse, error) {
+	invoices, err := s.adapter.ListInvoices(ctx, input)
+	if err != nil {
+		return billing.ListStandardInvoicesResponse{}, err
+	}
+
+	updatedInvoices, err := s.emulateStandardInvoicesGatheringInvoiceFields(ctx, invoices.Items)
+	if err != nil {
+		return billing.ListInvoicesResponse{}, fmt.Errorf("error emulating standard invoices gathering invoice fields: %w", err)
+	}
+
+	invoices.Items = updatedInvoices
+
+	for i := range invoices.Items {
+		invoiceID := invoices.Items[i].ID
+
+		invoices.Items[i], err = s.resolveWorkflowApps(ctx, invoices.Items[i])
+		if err != nil {
+			return billing.ListInvoicesResponse{}, fmt.Errorf("error resolving workflow apps [%s]: %w", invoiceID, err)
+		}
+
+		invoices.Items[i], err = s.resolveStatusDetails(ctx, invoices.Items[i])
+		if err != nil {
+			return billing.ListInvoicesResponse{}, fmt.Errorf("error resolving status details for invoice [%s]: %w", invoiceID, err)
+		}
+
+		if input.Expand.RecalculateGatheringInvoice {
+			invoices.Items[i], err = s.recalculateGatheringInvoice(ctx, recalculateGatheringInvoiceInput{
+				Invoice: invoices.Items[i],
+				Expand:  input.Expand,
+			})
+			if err != nil {
+				return billing.ListInvoicesResponse{}, fmt.Errorf("error recalculating gathering invoice [%s]: %w", invoiceID, err)
+			}
+		}
+	}
+
+	return invoices, nil
+}

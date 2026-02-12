@@ -26,7 +26,7 @@ func (s *Service) ListGatheringInvoices(ctx context.Context, input billing.ListG
 	})
 }
 
-func (s *Service) emulateStandardInvoicesGatheringInvoiceFields(ctx context.Context, invoices []billing.StandardInvoice) ([]billing.StandardInvoice, error) {
+func (s *Service) emulateStandardInvoicesGatheringInvoiceFields(ctx context.Context, invoices []billing.GatheringInvoice) ([]billing.StandardInvoice, error) {
 	mergedProfiles := make(map[customer.CustomerID]billing.CustomerOverrideWithDetails)
 
 	for idx := range invoices {
@@ -163,10 +163,7 @@ func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.Upda
 		// TransactionForGatheringInvoiceManipulation
 
 		if invoice.Lines.NonDeletedLineCount() == 0 {
-			if err := s.adapter.DeleteGatheringInvoices(ctx, billing.DeleteGatheringInvoicesInput{
-				Namespace:  input.Invoice.Namespace,
-				InvoiceIDs: []string{invoice.ID},
-			}); err != nil {
+			if err := s.adapter.DeleteGatheringInvoice(ctx, invoice.GetInvoiceID()); err != nil {
 				return fmt.Errorf("deleting gathering invoice: %w", err)
 			}
 		}

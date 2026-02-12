@@ -61,16 +61,6 @@ type InvoiceService interface {
 	ListInvoices(ctx context.Context, input ListInvoicesInput) (ListInvoicesResponse, error)
 	GetInvoiceByID(ctx context.Context, input GetInvoiceByIdInput) (StandardInvoice, error)
 	InvoicePendingLines(ctx context.Context, input InvoicePendingLinesInput) ([]StandardInvoice, error)
-	// AdvanceInvoice advances the invoice to the next stage, the advancement is stopped until:
-	// - an error is occurred
-	// - the invoice is in a state that cannot be advanced (e.g. waiting for draft period to expire)
-	// - the invoice is advanced to the final state
-	AdvanceInvoice(ctx context.Context, input AdvanceInvoiceInput) (StandardInvoice, error)
-	SnapshotQuantities(ctx context.Context, input SnapshotQuantitiesInput) (StandardInvoice, error)
-	ApproveInvoice(ctx context.Context, input ApproveInvoiceInput) (StandardInvoice, error)
-	RetryInvoice(ctx context.Context, input RetryInvoiceInput) (StandardInvoice, error)
-	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) (StandardInvoice, error)
-	UpdateInvoice(ctx context.Context, input UpdateInvoiceInput) (Invoice, error)
 
 	// SimulateInvoice generates an invoice based on the provided input, but does not persist it
 	// can be used to execute the invoice generation logic without actually creating an invoice in the database
@@ -87,6 +77,22 @@ type InvoiceService interface {
 type StandardInvoiceService interface {
 	// UpdateStandardInvoice updates a standard invoice as a whole
 	UpdateStandardInvoice(ctx context.Context, input UpdateStandardInvoiceInput) (StandardInvoice, error)
+
+	// ListStandardInvoices lists standard invoices for a given customer
+	ListStandardInvoices(ctx context.Context, input ListStandardInvoicesInput) (ListStandardInvoicesResponse, error)
+
+	// AdvanceInvoice advances the invoice to the next stage, the advancement is stopped until:
+	// - an error is occurred
+	// - the invoice is in a state that cannot be advanced (e.g. waiting for draft period to expire)
+	// - the invoice is advanced to the final state
+	AdvanceInvoice(ctx context.Context, input AdvanceInvoiceInput) (StandardInvoice, error)
+	SnapshotQuantities(ctx context.Context, input SnapshotQuantitiesInput) (StandardInvoice, error)
+	ApproveInvoice(ctx context.Context, input ApproveInvoiceInput) (StandardInvoice, error)
+	RetryInvoice(ctx context.Context, input RetryInvoiceInput) (StandardInvoice, error)
+	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) (StandardInvoice, error)
+	UpdateInvoice(ctx context.Context, input UpdateInvoiceInput) (Invoice, error)
+
+	GetStandardInvoiceById(ctx context.Context, input GetStandardInvoiceByIdInput) (StandardInvoice, error)
 }
 
 type GatheringInvoiceService interface {

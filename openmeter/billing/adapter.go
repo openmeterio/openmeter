@@ -66,8 +66,7 @@ type InvoiceLineAdapter interface {
 
 type InvoiceAdapter interface {
 	CreateInvoice(ctx context.Context, input CreateInvoiceAdapterInput) (CreateInvoiceAdapterRespone, error)
-	GetInvoiceById(ctx context.Context, input GetInvoiceByIdInput) (StandardInvoice, error)
-	DeleteGatheringInvoices(ctx context.Context, input DeleteGatheringInvoicesInput) error
+	GetInvoiceById(ctx context.Context, input GetInvoiceByIdInput) (Invoice, error)
 	ListInvoices(ctx context.Context, input ListInvoicesInput) (ListInvoicesResponse, error)
 	AssociatedLineCounts(ctx context.Context, input AssociatedLineCountsAdapterInput) (AssociatedLineCountsAdapterResponse, error)
 	UpdateInvoice(ctx context.Context, input UpdateInvoiceAdapterInput) (StandardInvoice, error)
@@ -81,7 +80,8 @@ type GatheringInvoiceAdapter interface {
 	CreateGatheringInvoice(ctx context.Context, input CreateGatheringInvoiceAdapterInput) (GatheringInvoice, error)
 	UpdateGatheringInvoice(ctx context.Context, input UpdateGatheringInvoiceAdapterInput) error
 	DeleteGatheringInvoice(ctx context.Context, input DeleteGatheringInvoiceAdapterInput) error
-	GetGatheringInvoiceById(ctx context.Context, input GetGatheringInvoiceByIdInput) (GatheringInvoice, error)
+	// TODO: remove
+	// GetGatheringInvoiceById(ctx context.Context, input GetGatheringInvoiceByIdInput) (GatheringInvoice, error)
 	ListGatheringInvoices(ctx context.Context, input ListGatheringInvoicesInput) (pagination.Result[GatheringInvoice], error)
 
 	HardDeleteGatheringInvoiceLines(ctx context.Context, invoiceID InvoiceID, lineIDs []string) error

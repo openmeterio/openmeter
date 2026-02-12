@@ -9,12 +9,15 @@ import (
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type StandardInvoiceStatusCategory string
@@ -913,3 +916,105 @@ func (i UpdateInvoiceFieldsInput) Validate() error {
 }
 
 type RecalculateGatheringInvoicesInput = customer.CustomerID
+
+type ListStandardInvoicesInput struct {
+	pagination.Page
+
+	Namespaces []string
+	IDs        []string
+	// DraftUtil allows to filter invoices which have their draft state expired based on the provided time.
+	// Invoice is expired if the time defined by Invoice.DraftUntil is in the past compared to ListInvoicesInput.DraftUntil.
+	DraftUntil *time.Time
+
+	// ExtendedStatuses searches by exact InvoiceStatus
+	ExtendedStatuses   []StandardInvoiceStatus
+	HasAvailableAction []InvoiceAvailableActionsFilter
+	ExternalIDs        *ListInvoicesExternalIDFilter
+
+	/// DELETE everything below this line
+
+	Customers []string
+	// Statuses searches by short InvoiceStatus (e.g. draft, issued)
+	Statuses []string
+
+	Currencies []currencyx.Code
+
+	IssuedAfter  *time.Time
+	IssuedBefore *time.Time
+
+	PeriodStartAfter  *time.Time
+	PeriodStartBefore *time.Time
+
+	// Filter by invoice creation time
+	CreatedAfter  *time.Time
+	CreatedBefore *time.Time
+
+	IncludeDeleted bool
+
+	// CollectionAt allows to filter invoices which have their collection_at attribute is in the past compared
+	// to the time provided in CollectionAt parameter.
+	CollectionAt *time.Time
+
+	Expand InvoiceExpand
+
+	OrderBy api.InvoiceOrderBy
+	Order   sortx.Order
+}
+
+func (i ListStandardInvoicesInput) Validate() error {
+	var outErr []error
+
+	if i.IssuedAfter != nil && i.IssuedBefore != nil && i.IssuedAfter.After(*i.IssuedBefore) {
+		outErr = append(outErr, errors.New("issuedAfter must be before issuedBefore"))
+	}
+
+	if i.CreatedAfter != nil && i.CreatedBefore != nil && i.CreatedAfter.After(*i.CreatedBefore) {
+		outErr = append(outErr, errors.New("createdAfter must be before createdBefore"))
+	}
+
+	if i.PeriodStartAfter != nil && i.PeriodStartBefore != nil && i.PeriodStartAfter.After(*i.PeriodStartBefore) {
+		outErr = append(outErr, errors.New("periodStartAfter must be before periodStartBefore"))
+	}
+
+	if err := i.Expand.Validate(); err != nil {
+		outErr = append(outErr, fmt.Errorf("expand: %w", err))
+	}
+
+	if i.ExternalIDs != nil {
+		if err := i.ExternalIDs.Validate(); err != nil {
+			outErr = append(outErr, fmt.Errorf("external IDs: %w", err))
+		}
+	}
+
+	if len(i.HasAvailableAction) > 0 {
+		errs := errors.Join(
+			lo.Map(i.HasAvailableAction, func(action InvoiceAvailableActionsFilter, _ int) error {
+				return action.Validate()
+			})...,
+		)
+		if errs != nil {
+			outErr = append(outErr, errs)
+		}
+	}
+
+	return errors.Join(outErr...)
+}
+
+type ListStandardInvoicesResponse = pagination.Result[StandardInvoice]
+
+type GetStandardInvoiceByIdInput struct {
+	Invoice InvoiceID
+	Expand  InvoiceExpand
+}
+
+func (i GetStandardInvoiceByIdInput) Validate() error {
+	if err := i.Invoice.Validate(); err != nil {
+		return fmt.Errorf("id: %w", err)
+	}
+
+	if err := i.Expand.Validate(); err != nil {
+		return fmt.Errorf("expand: %w", err)
+	}
+
+	return nil
+}
