@@ -124,25 +124,39 @@ func (s *Service) Start(ctx context.Context) error {
 
 	s.resources.SetGeneric(IsLeaderKey, false)
 
-	lec := *s.leaderElectionConfig
-	le, err := leaderelection.NewLeaderElector(lec)
-	if err != nil {
-		return fmt.Errorf("failed to create leader elector: %w", err)
-	}
-
-	if lec.WatchDog != nil {
-		lec.WatchDog.SetLeaderElection(le)
-	}
-
 	ctx, cancel := context.WithCancel(ctx)
 	s.cancel = cancel
+	s.started = true
 
-	// Start leader election in a goroutine to make this non-blocking
 	go func() {
 		defer s.Stop(ctx)
 
-		s.started = true
-		le.Run(ctx)
+		for {
+			lec := *s.leaderElectionConfig
+			le, err := leaderelection.NewLeaderElector(lec)
+			if err != nil {
+				s.logger.Errorf("failed to create leader elector: %v", err)
+				return
+			}
+
+			if lec.WatchDog != nil {
+				lec.WatchDog.SetLeaderElection(le)
+			}
+
+			s.logger.Info("starting leader election loop")
+			le.Run(ctx)
+
+			if ctx.Err() != nil {
+				return
+			}
+
+			s.logger.Info("leader election ended, retrying...")
+			select {
+			case <-time.After(s.config.LeaseRetryPeriod):
+			case <-ctx.Done():
+				return
+			}
+		}
 	}()
 
 	return nil
