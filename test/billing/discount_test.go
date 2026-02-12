@@ -175,7 +175,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 	})
 
 	s.Run("Editing an invoice and adding a new discount generates a new correlation ID", func() {
-		editedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
+		editedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 			Invoice: draftInvoiceID,
 			EditFn: func(invoice *billing.StandardInvoice) error {
 				line := invoice.Lines.OrEmpty()[0]

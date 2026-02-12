@@ -50,12 +50,18 @@ func (i InvoiceID) Validate() error {
 
 type GenericInvoice interface {
 	GenericInvoiceReader
+
+	SetLines(lines []GenericInvoiceLine) error
 }
 
 type GenericInvoiceReader interface {
 	GetDeletedAt() *time.Time
 	GetID() string
 	GetInvoiceID() InvoiceID
+	GetCustomerID() customer.CustomerID
+
+	// GetGenericLines returns the lines of the invoice as generic lines.
+	GetGenericLines() mo.Option[[]GenericInvoiceLine]
 
 	AsInvoice() Invoice
 }
@@ -157,6 +163,35 @@ func (i Invoice) AsGatheringInvoice() (GatheringInvoice, error) {
 	}
 
 	return *i.gatheringInvoice, nil
+}
+
+func (i Invoice) AsGenericInvoice() (GenericInvoice, error) {
+	switch i.t {
+	case InvoiceTypeStandard:
+		if i.standardInvoice == nil {
+			return nil, fmt.Errorf("standard invoice is nil")
+		}
+
+		cloned, err := i.standardInvoice.Clone()
+		if err != nil {
+			return nil, err
+		}
+
+		return &cloned, nil
+	case InvoiceTypeGathering:
+		if i.gatheringInvoice == nil {
+			return nil, fmt.Errorf("gathering invoice is nil")
+		}
+
+		cloned, err := i.gatheringInvoice.Clone()
+		if err != nil {
+			return nil, err
+		}
+
+		return &cloned, nil
+	default:
+		return nil, fmt.Errorf("invalid invoice type: %s", i.t)
+	}
 }
 
 func (i Invoice) Validate() error {
@@ -389,3 +424,26 @@ func (i InvoicePendingLinesInput) Validate() error {
 
 	return nil
 }
+
+type UpdateInvoiceInput struct {
+	Invoice InvoiceID
+	EditFn  func(Invoice) (Invoice, error)
+	// IncludeDeletedLines signals the update to populate the deleted lines into the lines field, for the edit function
+	IncludeDeletedLines bool
+}
+
+func (i UpdateInvoiceInput) Validate() error {
+	var outErr []error
+
+	if err := i.Invoice.Validate(); err != nil {
+		outErr = append(outErr, fmt.Errorf("id: %w", err))
+	}
+
+	if i.EditFn == nil {
+		outErr = append(outErr, errors.New("edit function is required"))
+	}
+
+	return errors.Join(outErr...)
+}
+
+type GetInvoiceTypeAdapterInput = InvoiceID

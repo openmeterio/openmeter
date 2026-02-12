@@ -78,7 +78,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceSerialization() {
 	s.NoError(err)
 
 	// Let's serialize the invoice
-	apiInvoice, err := MapInvoiceToAPI(invoice)
+	apiInvoice, err := MapStandardInvoiceToAPI(invoice)
 	s.NoError(err)
 
 	// Let's deserialize the invoice

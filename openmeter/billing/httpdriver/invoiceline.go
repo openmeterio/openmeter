@@ -634,7 +634,7 @@ func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.Standar
 	}, nil
 }
 
-func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice *billing.StandardInvoice) (*billing.StandardLine, error) {
+func standardLineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice *billing.StandardInvoice) (*billing.StandardLine, error) {
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -677,7 +677,52 @@ func lineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice
 	}, nil
 }
 
-func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLine, line api.InvoiceLineReplaceUpdate) (*billing.StandardLine, bool, error) {
+func gatheringLineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate, invoice *billing.GatheringInvoice) (billing.GatheringLine, error) {
+	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
+		RateCard:   line.RateCard,
+		Price:      line.Price,
+		TaxConfig:  line.TaxConfig,
+		FeatureKey: line.FeatureKey,
+	})
+	if err != nil {
+		return billing.GatheringLine{}, fmt.Errorf("failed to map usage based line: %w", err)
+	}
+
+	if rateCardParsed.Price == nil {
+		return billing.GatheringLine{}, billing.ValidationError{
+			Err: fmt.Errorf("price is required for usage based lines"),
+		}
+	}
+
+	return billing.GatheringLine{
+		GatheringLineBase: billing.GatheringLineBase{
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace:   invoice.Namespace,
+				Name:        line.Name,
+				Description: line.Description,
+			}),
+
+			Metadata:  lo.FromPtrOr(line.Metadata, map[string]string{}),
+			ManagedBy: billing.ManuallyManagedLine,
+
+			InvoiceID: invoice.ID,
+			Currency:  invoice.Currency,
+
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: line.Period.From.Truncate(streaming.MinimumWindowSizeDuration),
+				To:   line.Period.To.Truncate(streaming.MinimumWindowSizeDuration),
+			},
+			InvoiceAt: line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration),
+
+			TaxConfig:         rateCardParsed.TaxConfig,
+			RateCardDiscounts: rateCardParsed.Discounts,
+			Price:             lo.FromPtr(rateCardParsed.Price),
+			FeatureKey:        rateCardParsed.FeatureKey,
+		},
+	}, nil
+}
+
+func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLine, line api.InvoiceLineReplaceUpdate) (*billing.StandardLine, bool, error) {
 	oldBase := existing.StandardLineBase.Clone()
 	oldUBP := existing.UsageBased.Clone()
 
@@ -742,7 +787,79 @@ func mergeLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLine, line 
 	return existing, wasChange, nil
 }
 
-func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing.StandardInvoice, updatedLines []api.InvoiceLineReplaceUpdate) (billing.StandardInvoiceLines, error) {
+func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLine, line api.InvoiceLineReplaceUpdate) (billing.GatheringLine, error) {
+	old, err := existing.Clone()
+	if err != nil {
+		return billing.GatheringLine{}, fmt.Errorf("cloning existing line: %w", err)
+	}
+
+	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
+		RateCard:   line.RateCard,
+		Price:      line.Price,
+		TaxConfig:  line.TaxConfig,
+		FeatureKey: line.FeatureKey,
+	})
+	if err != nil {
+		return billing.GatheringLine{}, billing.ValidationError{
+			Err: fmt.Errorf("failed to map usage based line: %w", err),
+		}
+	}
+
+	if line.Price == nil {
+		return billing.GatheringLine{}, billing.ValidationError{
+			Err: fmt.Errorf("price is required for usage based lines"),
+		}
+	}
+
+	existing.Metadata = lo.FromPtrOr(line.Metadata, api.Metadata(existing.Metadata))
+	existing.Name = line.Name
+	existing.Description = line.Description
+
+	existing.ServicePeriod.From = line.Period.From.Truncate(streaming.MinimumWindowSizeDuration)
+	existing.ServicePeriod.To = line.Period.To.Truncate(streaming.MinimumWindowSizeDuration)
+	existing.InvoiceAt = line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
+
+	existing.TaxConfig = rateCardParsed.TaxConfig
+	existing.Price = lo.FromPtr(rateCardParsed.Price)
+	existing.FeatureKey = rateCardParsed.FeatureKey
+
+	// Rate card discounts are not allowed to be updated on a progressively billed line (e.g. if there is
+	// already a partial invoice created), as we might go short on the discount quantity.
+	//
+	// If this is ever requested:
+	// - we should introduce the concept of a "discount pool" that is shared across invoices and
+	// - editing the discount edits the pool
+	// - editing requires that the discount pool's quantity cannot be less than the already used
+	//   quantity.
+
+	if existing.SplitLineGroupID != nil && rateCardParsed.Discounts.Usage != nil && existing.RateCardDiscounts.Usage != nil {
+		if !equal.PtrEqual(rateCardParsed.Discounts.Usage, existing.RateCardDiscounts.Usage) {
+			return billing.GatheringLine{}, billing.ValidationError{
+				Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineProgressiveBillingUsageDiscountUpdateForbidden),
+			}
+		}
+	}
+
+	existing.RateCardDiscounts = rateCardParsed.Discounts
+
+	if !old.Equal(existing) {
+		existing.ManagedBy = billing.ManuallyManagedLine
+	}
+
+	// We are not allowing period change for split lines (or their children), as that would mess up the
+	// calculation logic and/or we would need to update multiple invoices to correct all the references.
+	//
+	// Deletion is allowed.
+	if old.SplitLineGroupID != nil && !old.ServicePeriod.Equal(existing.ServicePeriod) {
+		return billing.GatheringLine{}, billing.ValidationError{
+			Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineNoPeriodChangeForSplitLine),
+		}
+	}
+
+	return existing, nil
+}
+
+func (h *handler) mergeStandardInvoiceLinesFromAPI(ctx context.Context, invoice *billing.StandardInvoice, updatedLines []api.InvoiceLineReplaceUpdate) (billing.StandardInvoiceLines, error) {
 	linesByID, _ := slicesx.UniqueGroupBy(invoice.Lines.OrEmpty(), func(line *billing.StandardLine) string {
 		return line.ID
 	})
@@ -759,7 +876,7 @@ func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing
 		if id == "" || !existingLineFound {
 			// We allow injecting fake IDs for new lines, so that discounts can reference those,
 			// but we are not persisting them to the database
-			newLine, err := lineFromInvoiceLineReplaceUpdate(line, invoice)
+			newLine, err := standardLineFromInvoiceLineReplaceUpdate(line, invoice)
 			if err != nil {
 				return billing.StandardInvoiceLines{}, fmt.Errorf("failed to create new line: %w", err)
 			}
@@ -779,7 +896,7 @@ func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing
 		}
 
 		foundLines.Add(id)
-		mergedLine, changed, err := mergeLineFromInvoiceLineReplaceUpdate(existingLine, line)
+		mergedLine, changed, err := mergeStandardLineFromInvoiceLineReplaceUpdate(existingLine, line)
 		if err != nil {
 			return billing.StandardInvoiceLines{}, fmt.Errorf("failed to merge line: %w", err)
 		}
@@ -807,4 +924,51 @@ func (h *handler) mergeInvoiceLinesFromAPI(ctx context.Context, invoice *billing
 	}
 
 	return billing.NewStandardInvoiceLines(out), nil
+}
+
+func (h *handler) mergeGatheringInvoiceLinesFromAPI(ctx context.Context, invoice *billing.GatheringInvoice, updatedLines []api.InvoiceLineReplaceUpdate) (billing.GatheringInvoiceLines, error) {
+	linesByID, _ := slicesx.UniqueGroupBy(invoice.Lines.OrEmpty(), func(line billing.GatheringLine) string {
+		return line.ID
+	})
+
+	foundLines := set.New[string]()
+
+	out := make([]billing.GatheringLine, 0, len(updatedLines))
+
+	for _, line := range updatedLines {
+		id := lo.FromPtr(line.Id)
+
+		existingLine, existingLineFound := linesByID[id]
+
+		if id == "" || !existingLineFound {
+			// We allow injecting fake IDs for new lines, so that discounts can reference those,
+			// but we are not persisting them to the database
+			newLine, err := gatheringLineFromInvoiceLineReplaceUpdate(line, invoice)
+			if err != nil {
+				return billing.GatheringInvoiceLines{}, fmt.Errorf("failed to create new line: %w", err)
+			}
+
+			out = append(out, newLine)
+			continue
+		}
+
+		foundLines.Add(id)
+		mergedLine, err := mergeGatheringLineFromInvoiceLineReplaceUpdate(existingLine, line)
+		if err != nil {
+			return billing.GatheringInvoiceLines{}, fmt.Errorf("failed to merge line: %w", err)
+		}
+
+		out = append(out, mergedLine)
+	}
+
+	lineIDs := set.New(lo.Keys(linesByID)...)
+
+	deletedLines := set.Subtract(lineIDs, foundLines).AsSlice()
+	for _, id := range deletedLines {
+		existingLine := linesByID[id]
+		existingLine.DeletedAt = lo.ToPtr(clock.Now())
+		out = append(out, existingLine)
+	}
+
+	return billing.NewGatheringInvoiceLines(out), nil
 }

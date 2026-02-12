@@ -312,9 +312,26 @@ func (s *BaseSuite) TearDownSuite() {
 	s.TestDB.PGDriver.Close()
 }
 
-func (s *BaseSuite) DebugDumpInvoice(h string, i billing.StandardInvoice) {
+func (s *BaseSuite) DebugDumpInvoice(h string, i billing.GenericInvoiceReader) {
 	s.T().Log(h)
 
+	invoice := i.AsInvoice()
+	switch invoice.Type() {
+	case billing.InvoiceTypeStandard:
+		standardInvoice, err := invoice.AsStandardInvoice()
+		s.NoError(err)
+
+		s.DebugDumpStandardInvoice(h, standardInvoice)
+	case billing.InvoiceTypeGathering:
+		gatheringInvoice, err := invoice.AsGatheringInvoice()
+		s.NoError(err)
+		s.DebugDumpGatheringInvoice(h, gatheringInvoice)
+	default:
+		s.Fail("invalid invoice type: %s", invoice.Type())
+	}
+}
+
+func (s *BaseSuite) DebugDumpStandardInvoice(h string, i billing.StandardInvoice) {
 	l := i.Lines.OrEmpty()
 
 	slices.SortFunc(l, func(l1, l2 *billing.StandardLine) int {
@@ -343,6 +360,37 @@ func (s *BaseSuite) DebugDumpInvoice(h string, i billing.StandardInvoice) {
 			line.UsageBased.Quantity,
 			string(priceJson),
 			line.Totals.Total.String(),
+			deleted)
+	}
+}
+
+func (s *BaseSuite) DebugDumpGatheringInvoice(h string, i billing.GatheringInvoice) {
+	l := i.Lines.OrEmpty()
+
+	slices.SortFunc(l, func(l1, l2 billing.GatheringLine) int {
+		if l1.ServicePeriod.From.Before(l2.ServicePeriod.From) {
+			return -1
+		} else if l1.ServicePeriod.From.After(l2.ServicePeriod.From) {
+			return 1
+		}
+		return 0
+	})
+
+	for _, line := range i.Lines.OrEmpty() {
+		deleted := ""
+		if line.DeletedAt != nil {
+			deleted = " (deleted)"
+		}
+
+		priceJson, err := json.Marshal(&line.Price)
+		s.NoError(err)
+
+		s.T().Logf("usage[%s..%s] childUniqueReferenceID: %s, invoiceAt: %s, qty: N/A, price: %s (total=N/A) %s\n",
+			line.ServicePeriod.From.Format(time.RFC3339),
+			line.ServicePeriod.To.Format(time.RFC3339),
+			lo.FromPtrOr(line.ChildUniqueReferenceID, "null"),
+			line.InvoiceAt.Format(time.RFC3339),
+			string(priceJson),
 			deleted)
 	}
 }
