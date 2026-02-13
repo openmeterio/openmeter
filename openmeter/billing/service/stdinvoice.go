@@ -96,8 +96,8 @@ func (s *Service) ListStandardInvoices(ctx context.Context, input billing.ListSt
 		IncludeDeleted:  input.IncludeDeleted,
 
 		Expand: billing.InvoiceExpands{}.
-			If(input.Expand.Has(billing.StandardInvoiceExpandLines), billing.InvoiceExpandLines).
-			If(input.Expand.Has(billing.StandardInvoiceExpandDeletedLines), billing.InvoiceExpandDeletedLines),
+			SetOrUnsetIf(input.Expand.Has(billing.StandardInvoiceExpandLines), billing.InvoiceExpandLines).
+			SetOrUnsetIf(input.Expand.Has(billing.StandardInvoiceExpandDeletedLines), billing.InvoiceExpandDeletedLines),
 		OnlyStandard: true,
 	}
 

@@ -235,7 +235,7 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 		if input.Expand.Has(billing.InvoiceExpandLines) {
 			query = tx.expandInvoiceLineItems(query, billing.
 				StandardInvoiceExpands{billing.StandardInvoiceExpandLines}.
-				If(input.Expand.Has(billing.InvoiceExpandDeletedLines), billing.StandardInvoiceExpandDeletedLines))
+				SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandDeletedLines), billing.StandardInvoiceExpandDeletedLines))
 		}
 
 		switch input.OrderBy {
@@ -269,8 +269,8 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 			switch invoice.Status {
 			case billing.StandardInvoiceStatusGathering:
 				mapped, err := tx.mapGatheringInvoiceFromDB(ctx, invoice, billing.GatheringInvoiceExpands{}.
-					If(input.Expand.Has(billing.InvoiceExpandLines), billing.GatheringInvoiceExpandLines).
-					If(input.Expand.Has(billing.InvoiceExpandDeletedLines), billing.GatheringInvoiceExpandDeletedLines),
+					SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandLines), billing.GatheringInvoiceExpandLines).
+					SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandDeletedLines), billing.GatheringInvoiceExpandDeletedLines),
 				)
 				if err != nil {
 					return response, err
@@ -278,8 +278,8 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 				result = append(result, billing.NewInvoice(mapped))
 			default:
 				mapped, err := tx.mapStandardInvoiceFromDB(ctx, invoice, billing.StandardInvoiceExpands{}.
-					If(input.Expand.Has(billing.InvoiceExpandLines), billing.StandardInvoiceExpandLines).
-					If(input.Expand.Has(billing.InvoiceExpandDeletedLines), billing.StandardInvoiceExpandDeletedLines),
+					SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandLines), billing.StandardInvoiceExpandLines).
+					SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandDeletedLines), billing.StandardInvoiceExpandDeletedLines),
 				)
 				if err != nil {
 					return response, err

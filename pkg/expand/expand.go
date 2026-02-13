@@ -58,7 +58,8 @@ func (e Expand[T]) Without(value T) Expand[T] {
 	})
 }
 
-func (e Expand[T]) If(condition bool, value T) Expand[T] {
+// SetOrUnsetIf sets the value if the condition is true, otherwise it removes the value if present.
+func (e Expand[T]) SetOrUnsetIf(condition bool, value T) Expand[T] {
 	if condition {
 		return e.With(value)
 	}

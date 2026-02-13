@@ -406,7 +406,7 @@ func (s *Service) withLockedInvoiceStateMachine(
 		invoice, err := s.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: in.InvoiceID,
 			Expand: billing.StandardInvoiceExpandAll.
-				If(in.IncludeDeletedLines, billing.StandardInvoiceExpandDeletedLines),
+				SetOrUnsetIf(in.IncludeDeletedLines, billing.StandardInvoiceExpandDeletedLines),
 		})
 		if err != nil {
 			return billing.StandardInvoice{}, fmt.Errorf("fetching invoice: %w", err)

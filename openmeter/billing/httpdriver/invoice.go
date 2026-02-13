@@ -210,7 +210,7 @@ func (h *handler) GetInvoice() GetInvoiceHandler {
 					Namespace: ns,
 				},
 				Expand: mapInvoiceExpandsToEntity(params.Expand).
-					If(params.IncludeDeletedLines, billing.InvoiceExpandDeletedLines).
+					SetOrUnsetIf(params.IncludeDeletedLines, billing.InvoiceExpandDeletedLines).
 					With(billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
 			}, nil
 		},
@@ -759,7 +759,7 @@ func mapInvoiceExpandsToEntity(expand []api.InvoiceExpand) billing.InvoiceExpand
 	}
 
 	return billing.InvoiceExpands{}.
-		If(slices.Contains(expand, api.InvoiceExpandLines), billing.InvoiceExpandLines)
+		SetOrUnsetIf(slices.Contains(expand, api.InvoiceExpandLines), billing.InvoiceExpandLines)
 }
 
 func mapTotalsToAPI(t billing.Totals) api.InvoiceTotals {
