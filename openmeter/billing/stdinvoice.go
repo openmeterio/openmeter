@@ -14,6 +14,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/expand"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -301,7 +303,7 @@ type StandardInvoice struct {
 	Totals Totals `json:"totals"`
 
 	// private fields required by the service
-	ExpandedFields InvoiceExpand `json:"-"`
+	ExpandedFields StandardInvoiceExpands `json:"-"`
 }
 
 func (i StandardInvoice) Validate() error {
@@ -324,13 +326,6 @@ func (i StandardInvoice) Validate() error {
 	}
 
 	return outErr
-}
-
-// InvoiceID returns the invoice ID.
-// Deprecated: use GetInvoiceID instead
-// TODO[later]: remove this method
-func (i StandardInvoice) InvoiceID() InvoiceID {
-	return i.GetInvoiceID()
 }
 
 func (i StandardInvoice) CustomerID() customer.CustomerID {
@@ -717,7 +712,7 @@ type (
 	SnapshotQuantitiesInput = InvoiceID
 )
 
-type UpdateInvoiceAdapterInput = StandardInvoice
+type UpdateStandardInvoiceAdapterInput = StandardInvoice
 
 type GetInvoiceOwnershipAdapterInput = InvoiceID
 
@@ -913,3 +908,83 @@ func (i UpdateInvoiceFieldsInput) Validate() error {
 }
 
 type RecalculateGatheringInvoicesInput = customer.CustomerID
+
+type StandardInvoiceExpand string
+
+const (
+	StandardInvoiceExpandLines        StandardInvoiceExpand = "lines"
+	StandardInvoiceExpandDeletedLines StandardInvoiceExpand = "deletedLines"
+)
+
+func (e StandardInvoiceExpand) Values() []StandardInvoiceExpand {
+	return []StandardInvoiceExpand{
+		StandardInvoiceExpandLines,
+		StandardInvoiceExpandDeletedLines,
+	}
+}
+
+type StandardInvoiceExpands = expand.Expand[StandardInvoiceExpand]
+
+var StandardInvoiceExpandAll = StandardInvoiceExpands{
+	StandardInvoiceExpandLines,
+	// Deleted lines are not expanded by default
+}
+
+type GetStandardInvoiceByIdInput struct {
+	Invoice InvoiceID
+	Expand  StandardInvoiceExpands
+}
+
+func (i GetStandardInvoiceByIdInput) Validate() error {
+	var errs []error
+
+	if err := i.Invoice.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("id: %w", err))
+	}
+
+	if err := i.Expand.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("expand: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+type ListStandardInvoicesInput struct {
+	pagination.Page
+
+	Namespaces         []string
+	IDs                []string
+	Statuses           []string
+	ExtendedStatuses   []StandardInvoiceStatus
+	HasAvailableAction []InvoiceAvailableActionsFilter
+
+	Expand          StandardInvoiceExpands
+	ExternalIDs     *ListInvoicesExternalIDFilter
+	DraftUntilLTE   *time.Time
+	CollectionAtLTE *time.Time
+
+	IncludeDeleted bool
+}
+
+func (i ListStandardInvoicesInput) Validate() error {
+	var errs []error
+
+	// Page is not validated here, as for internal use we don't want to use pagination unless
+	// explicitly requested.
+
+	// It's the httpdriver's responsibility to validate the page size and page number.
+
+	if err := i.Expand.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("expand: %w", err))
+	}
+
+	if i.ExternalIDs != nil {
+		if err := i.ExternalIDs.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("externalIDs: %w", err))
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
+type ListStandardInvoicesResponse = pagination.Result[StandardInvoice]

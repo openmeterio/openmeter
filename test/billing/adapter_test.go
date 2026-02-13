@@ -851,7 +851,7 @@ func (s *BillingAdapterTestSuite) TestHardDeleteGatheringInvoiceLinesNegative() 
 	})
 
 	s.Run("When we try to hard delete a line from the standard invoice then we fail", func() {
-		err := s.BillingAdapter.HardDeleteGatheringInvoiceLines(ctx, standardInvoice.InvoiceID(), []string{standardInvoice.Lines.OrEmpty()[0].ID})
+		err := s.BillingAdapter.HardDeleteGatheringInvoiceLines(ctx, standardInvoice.GetInvoiceID(), []string{standardInvoice.Lines.OrEmpty()[0].ID})
 		s.Error(err)
 	})
 

@@ -30,7 +30,7 @@ const (
 	SubscriptionSyncComponentName billing.ComponentName = "subscription-sync"
 )
 
-type InvoiceByID map[string]billing.StandardInvoice
+type InvoiceByID map[string]billing.Invoice
 
 func (i InvoiceByID) IsGatheringInvoice(invoiceID string) bool {
 	invoice, ok := i[invoiceID]
@@ -39,7 +39,7 @@ func (i InvoiceByID) IsGatheringInvoice(invoiceID string) bool {
 		return true
 	}
 
-	return invoice.Status == billing.StandardInvoiceStatusGathering
+	return invoice.Type() == billing.InvoiceTypeGathering
 }
 
 func (s *Service) invoicePendingLines(ctx context.Context, customer customer.CustomerID) error {
@@ -151,9 +151,15 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 				return fmt.Errorf("listing invoices: %w", err)
 			}
 
-			invoiceByID := lo.SliceToMap(invoices.Items, func(i billing.StandardInvoice) (string, billing.StandardInvoice) {
-				return i.ID, i
-			})
+			invoiceByID := make(InvoiceByID, len(invoices.Items))
+			for _, invoice := range invoices.Items {
+				genericInvoice, err := invoice.AsGenericInvoice()
+				if err != nil {
+					return fmt.Errorf("converting invoice to generic invoice: %w", err)
+				}
+
+				invoiceByID[genericInvoice.GetID()] = invoice
+			}
 
 			// Calculate per line patches
 			linesDiff, err := s.compareSubscriptionWithExistingLines(ctx, subs, asOf)

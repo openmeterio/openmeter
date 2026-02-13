@@ -1484,7 +1484,15 @@ func (n NoopBillingService) ListInvoices(ctx context.Context, input billing.List
 	return billing.ListInvoicesResponse{}, nil
 }
 
-func (n NoopBillingService) GetInvoiceByID(ctx context.Context, input billing.GetInvoiceByIdInput) (billing.StandardInvoice, error) {
+func (n NoopBillingService) ListStandardInvoices(ctx context.Context, input billing.ListStandardInvoicesInput) (billing.ListStandardInvoicesResponse, error) {
+	return billing.ListStandardInvoicesResponse{}, nil
+}
+
+func (n NoopBillingService) GetInvoiceById(ctx context.Context, input billing.GetInvoiceByIdInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
+func (n NoopBillingService) GetStandardInvoiceById(ctx context.Context, input billing.GetStandardInvoiceByIdInput) (billing.StandardInvoice, error) {
 	return billing.StandardInvoice{}, nil
 }
 

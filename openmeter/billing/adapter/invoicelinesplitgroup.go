@@ -230,7 +230,7 @@ func (a *adapter) mapSplitLineHierarchyLinesFromDB(ctx context.Context, dbLines 
 
 		switch dbLine.Edges.BillingInvoice.Status {
 		case billing.StandardInvoiceStatusGathering:
-			return a.mapSplitLineHierarchyGatheringLineFromDB(dbLine)
+			return a.mapSplitLineHierarchyGatheringLineFromDB(ctx, dbLine)
 		default:
 			return a.mapSplitLineHierarchyStandardLineFromDB(ctx, dbLine)
 		}
@@ -243,7 +243,7 @@ func (a *adapter) mapSplitLineHierarchyStandardLineFromDB(ctx context.Context, d
 		return billing.LineWithInvoiceHeader{}, err
 	}
 
-	invoice, err := a.mapStandardInvoiceFromDB(ctx, dbLine.Edges.BillingInvoice, billing.InvoiceExpand{})
+	invoice, err := a.mapStandardInvoiceFromDB(ctx, dbLine.Edges.BillingInvoice, billing.StandardInvoiceExpands{})
 	if err != nil {
 		return billing.LineWithInvoiceHeader{}, err
 	}
@@ -254,13 +254,13 @@ func (a *adapter) mapSplitLineHierarchyStandardLineFromDB(ctx context.Context, d
 	}), nil
 }
 
-func (a *adapter) mapSplitLineHierarchyGatheringLineFromDB(dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
+func (a *adapter) mapSplitLineHierarchyGatheringLineFromDB(ctx context.Context, dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
 	line, err := a.mapGatheringInvoiceLineFromDB(dbLine.Edges.BillingInvoice.SchemaLevel, dbLine)
 	if err != nil {
 		return billing.LineWithInvoiceHeader{}, err
 	}
 
-	invoice, err := a.mapGatheringInvoiceFromDB(dbLine.Edges.BillingInvoice, billing.GatheringInvoiceExpands{})
+	invoice, err := a.mapGatheringInvoiceFromDB(ctx, dbLine.Edges.BillingInvoice, billing.GatheringInvoiceExpands{})
 	if err != nil {
 		return billing.LineWithInvoiceHeader{}, err
 	}
@@ -271,22 +271,24 @@ func (a *adapter) mapSplitLineHierarchyGatheringLineFromDB(dbLine *db.BillingInv
 	}), nil
 }
 
+type lineIdToSplitLineHierarchy map[string]*billing.SplitLineHierarchy
+
 // expandSplitLineHierarchy expands the given lines with their progressive line hierarchy
 // This is done by fetching all the lines that are children of the given lines parent lines and then building
 // the hierarchy.
-func (a *adapter) expandSplitLineHierarchy(ctx context.Context, namespace string, lines []*billing.StandardLine) ([]*billing.StandardLine, error) {
+func (a *adapter) expandSplitLineHierarchy(ctx context.Context, namespace string, lines []billing.GenericInvoiceLine) (lineIdToSplitLineHierarchy, error) {
 	// Let's collect all the lines with a parent line id set
 
 	lineToGroupIDs := map[string]string{}
 
 	for _, line := range lines {
-		if line.SplitLineGroupID != nil {
-			lineToGroupIDs[line.ID] = *line.SplitLineGroupID
+		if line.GetSplitLineGroupID() != nil {
+			lineToGroupIDs[line.GetID()] = *line.GetSplitLineGroupID()
 		}
 	}
 
 	if len(lineToGroupIDs) == 0 {
-		return lines, nil
+		return lineIdToSplitLineHierarchy{}, nil
 	}
 
 	splitLineGroups, err := a.fetchAllSplitLineGroups(ctx, namespace, lo.Values(lineToGroupIDs))
@@ -302,17 +304,27 @@ func (a *adapter) expandSplitLineHierarchy(ctx context.Context, namespace string
 		}
 	}
 
+	return hierarchyByLineID, nil
+}
+
+type splitLineSettableLines interface {
+	GetSplitLineGroupID() *string
+	GetID() string
+	SetSplitLineHierarchy(*billing.SplitLineHierarchy)
+}
+
+func withSplitLineHierarchyForLines[T splitLineSettableLines](lines []T, hierarchyByLineID lineIdToSplitLineHierarchy) ([]T, error) {
 	for _, line := range lines {
-		if line.SplitLineGroupID == nil {
+		if line.GetSplitLineGroupID() == nil {
 			continue
 		}
 
-		hierarchy, ok := hierarchyByLineID[line.ID]
+		hierarchy, ok := hierarchyByLineID[line.GetID()]
 		if !ok {
-			return nil, fmt.Errorf("split line group[%s] for line[%s] not found", *line.SplitLineGroupID, line.ID)
+			return nil, fmt.Errorf("split line group[%s] for line[%s] not found", *line.GetSplitLineGroupID(), line.GetID())
 		}
 
-		line.SplitLineHierarchy = hierarchy
+		line.SetSplitLineHierarchy(hierarchy)
 	}
 
 	return lines, nil

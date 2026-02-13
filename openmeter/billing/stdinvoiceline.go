@@ -277,6 +277,10 @@ func (i StandardLine) GetQuantity() *alpacadecimal.Decimal {
 	return i.UsageBased.Quantity
 }
 
+func (i *StandardLine) SetSplitLineHierarchy(hierarchy *SplitLineHierarchy) {
+	i.SplitLineHierarchy = hierarchy
+}
+
 // ToGatheringLineBase converts the standard line to a gathering line base.
 // This is temporary until the full gathering invoice functionality is split.
 func (i StandardLine) ToGatheringLineBase() (GatheringLineBase, error) {
@@ -841,6 +845,12 @@ func (c StandardLines) GetReferencedFeatureKeys() ([]string, error) {
 	}
 
 	return lo.Uniq(out), nil
+}
+
+func (i StandardLines) AsGenericLines() []GenericInvoiceLine {
+	return lo.Map(i, func(line *StandardLine, _ int) GenericInvoiceLine {
+		return &standardInvoiceLineGenericWrapper{StandardLine: line}
+	})
 }
 
 func (i StandardLine) SetDiscountExternalIDs(externalIDs map[string]string) []string {

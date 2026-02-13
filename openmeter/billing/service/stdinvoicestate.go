@@ -594,7 +594,7 @@ func (m *InvoiceStateMachine) HandleInvoiceTrigger(ctx context.Context, trigger 
 		return err
 	}
 
-	if trigger.Invoice != m.Invoice.InvoiceID() {
+	if trigger.Invoice != m.Invoice.GetInvoiceID() {
 		return fmt.Errorf("trigger invoice ID does not match the current invoice ID")
 	}
 

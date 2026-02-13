@@ -253,7 +253,7 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 	return nil
 }
 
-func (a *adapter) mapGatheringInvoiceLinesFromDB(schemaLevel int, dbLines []*db.BillingInvoiceLine) ([]billing.GatheringLine, error) {
+func (a *adapter) mapGatheringInvoiceLinesFromDB(schemaLevel int, dbLines []*db.BillingInvoiceLine) (billing.GatheringLines, error) {
 	return slicesx.MapWithErr(dbLines, func(dbLine *db.BillingInvoiceLine) (billing.GatheringLine, error) {
 		return a.mapGatheringInvoiceLineFromDB(schemaLevel, dbLine)
 	})

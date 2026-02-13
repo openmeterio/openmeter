@@ -30,7 +30,7 @@ import (
 
 var _ billing.InvoiceAdapter = (*adapter)(nil)
 
-func (a *adapter) GetInvoiceById(ctx context.Context, in billing.GetInvoiceByIdInput) (billing.StandardInvoice, error) {
+func (a *adapter) GetStandardInvoiceById(ctx context.Context, in billing.GetStandardInvoiceByIdInput) (billing.StandardInvoice, error) {
 	if err := in.Validate(); err != nil {
 		return billing.StandardInvoice{}, billing.ValidationError{
 			Err: err,
@@ -41,12 +41,13 @@ func (a *adapter) GetInvoiceById(ctx context.Context, in billing.GetInvoiceByIdI
 		query := tx.db.BillingInvoice.Query().
 			Where(billinginvoice.ID(in.Invoice.ID)).
 			Where(billinginvoice.Namespace(in.Invoice.Namespace)).
+			Where(billinginvoice.StatusNEQ(billing.StandardInvoiceStatusGathering)).
 			WithBillingInvoiceValidationIssues(func(q *db.BillingInvoiceValidationIssueQuery) {
 				q.Where(billinginvoicevalidationissue.DeletedAtIsNil())
 			}).
 			WithBillingWorkflowConfig()
 
-		if in.Expand.Lines {
+		if in.Expand.Has(billing.StandardInvoiceExpandLines) {
 			query = tx.expandInvoiceLineItems(query, in.Expand)
 		}
 
@@ -65,9 +66,9 @@ func (a *adapter) GetInvoiceById(ctx context.Context, in billing.GetInvoiceByIdI
 	})
 }
 
-func (a *adapter) expandInvoiceLineItems(query *db.BillingInvoiceQuery, expand billing.InvoiceExpand) *db.BillingInvoiceQuery {
+func (a *adapter) expandInvoiceLineItems(query *db.BillingInvoiceQuery, expand billing.StandardInvoiceExpands) *db.BillingInvoiceQuery {
 	return query.WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
-		if !expand.DeletedLines {
+		if !expand.Has(billing.StandardInvoiceExpandDeletedLines) {
 			q = q.Where(billinginvoiceline.DeletedAtIsNil())
 		}
 
@@ -112,7 +113,7 @@ func (a *adapter) DeleteGatheringInvoices(ctx context.Context, input billing.Del
 	})
 }
 
-func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesInput) (billing.ListInvoicesResponse, error) {
+func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAdapterInput) (billing.ListInvoicesResponse, error) {
 	if err := input.Validate(); err != nil {
 		return billing.ListInvoicesResponse{}, billing.ValidationError{
 			Err: err,
@@ -161,16 +162,20 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			query = query.Where(billinginvoice.CreatedAtLTE(*input.CreatedBefore))
 		}
 
-		if len(input.ExtendedStatuses) > 0 {
-			query = query.Where(billinginvoice.StatusIn(input.ExtendedStatuses...))
-		}
-
 		if len(input.IDs) > 0 {
 			query = query.Where(billinginvoice.IDIn(input.IDs...))
 		}
 
 		if !input.IncludeDeleted {
 			query = query.Where(billinginvoice.DeletedAtIsNil())
+		}
+
+		if input.OnlyGathering {
+			query = query.Where(billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering))
+		}
+
+		if input.OnlyStandard {
+			query = query.Where(billinginvoice.StatusNEQ(billing.StandardInvoiceStatusGathering))
 		}
 
 		if len(input.Statuses) > 0 {
@@ -183,17 +188,17 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			})
 		}
 
-		if len(input.Currencies) > 0 {
-			query = query.Where(billinginvoice.CurrencyIn(input.Currencies...))
+		if len(input.ExtendedStatuses) > 0 {
+			query = query.Where(billinginvoice.StatusIn(input.ExtendedStatuses...))
 		}
 
-		if input.DraftUntil != nil {
-			query = query.Where(billinginvoice.DraftUntilLTE(*input.DraftUntil))
+		if input.DraftUntilLTE != nil {
+			query = query.Where(billinginvoice.DraftUntilLTE(*input.DraftUntilLTE))
 		}
 
-		if input.CollectionAt != nil {
+		if input.CollectionAtLTE != nil {
 			query = query.Where(billinginvoice.Or(
-				billinginvoice.CollectionAtLTE(*input.CollectionAt),
+				billinginvoice.CollectionAtLTE(*input.CollectionAtLTE),
 				billinginvoice.CollectionAtIsNil(),
 			))
 		}
@@ -227,8 +232,10 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			order = entutils.GetOrdering(input.Order)
 		}
 
-		if input.Expand.Lines {
-			query = tx.expandInvoiceLineItems(query, input.Expand)
+		if input.Expand.Has(billing.InvoiceExpandLines) {
+			query = tx.expandInvoiceLineItems(query, billing.
+				StandardInvoiceExpands{billing.StandardInvoiceExpandLines}.
+				SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandDeletedLines), billing.StandardInvoiceExpandDeletedLines))
 		}
 
 		switch input.OrderBy {
@@ -248,7 +255,7 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			query = query.Order(billinginvoice.ByCreatedAt(order...))
 		}
 
-		response := pagination.Result[billing.StandardInvoice]{
+		response := pagination.Result[billing.Invoice]{
 			Page: input.Page,
 		}
 
@@ -257,14 +264,29 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 			return response, err
 		}
 
-		result := make([]billing.StandardInvoice, 0, len(paged.Items))
+		result := make([]billing.Invoice, 0, len(paged.Items))
 		for _, invoice := range paged.Items {
-			mapped, err := tx.mapStandardInvoiceFromDB(ctx, invoice, input.Expand)
-			if err != nil {
-				return response, err
-			}
+			switch invoice.Status {
+			case billing.StandardInvoiceStatusGathering:
+				mapped, err := tx.mapGatheringInvoiceFromDB(ctx, invoice, billing.GatheringInvoiceExpands{}.
+					SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandLines), billing.GatheringInvoiceExpandLines).
+					SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandDeletedLines), billing.GatheringInvoiceExpandDeletedLines),
+				)
+				if err != nil {
+					return response, err
+				}
+				result = append(result, billing.NewInvoice(mapped))
+			default:
+				mapped, err := tx.mapStandardInvoiceFromDB(ctx, invoice, billing.StandardInvoiceExpands{}.
+					SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandLines), billing.StandardInvoiceExpandLines).
+					SetOrUnsetIf(input.Expand.Has(billing.InvoiceExpandDeletedLines), billing.StandardInvoiceExpandDeletedLines),
+				)
+				if err != nil {
+					return response, err
+				}
 
-			result = append(result, mapped)
+				result = append(result, billing.NewInvoice(mapped))
+			}
 		}
 
 		response.TotalCount = paged.TotalCount
@@ -360,7 +382,7 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 		// Let's add required edges for mapping
 		newInvoice.Edges.BillingWorkflowConfig = clonedWorkflowConfig
 
-		return tx.mapStandardInvoiceFromDB(ctx, newInvoice, billing.InvoiceExpandAll)
+		return tx.mapStandardInvoiceFromDB(ctx, newInvoice, billing.StandardInvoiceExpandAll)
 	})
 }
 
@@ -410,7 +432,7 @@ func (a *adapter) AssociatedLineCounts(ctx context.Context, input billing.Associ
 	})
 }
 
-func (a *adapter) validateUpdateRequest(req billing.UpdateInvoiceAdapterInput, existing *db.BillingInvoice) error {
+func (a *adapter) validateUpdateRequest(req billing.UpdateStandardInvoiceAdapterInput, existing *db.BillingInvoice) error {
 	if req.Currency != existing.Currency {
 		return billing.ValidationError{
 			Err: fmt.Errorf("currency cannot be changed"),
@@ -433,7 +455,7 @@ func (a *adapter) validateUpdateRequest(req billing.UpdateInvoiceAdapterInput, e
 }
 
 // UpdateInvoice updates the specified invoice.
-func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAdapterInput) (billing.StandardInvoice, error) {
+func (a *adapter) UpdateStandardInvoice(ctx context.Context, in billing.UpdateStandardInvoiceAdapterInput) (billing.StandardInvoice, error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.StandardInvoice, error) {
 		existingInvoice, err := tx.db.BillingInvoice.Query().
 			Where(billinginvoice.ID(in.ID)).
@@ -573,13 +595,13 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 
 		// If we had just updated the lines, let's reuse that result, as it's quite an expensive operation
 		// to look up the lines again.
-		if in.ExpandedFields.Lines && updatedLines.IsPresent() {
-			updatedInvoice, err := tx.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+		if in.ExpandedFields.Has(billing.StandardInvoiceExpandLines) && updatedLines.IsPresent() {
+			updatedInvoice, err := tx.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 				Invoice: billing.InvoiceID{
 					Namespace: in.Namespace,
 					ID:        in.ID,
 				},
-				Expand: in.ExpandedFields.SetLines(false),
+				Expand: in.ExpandedFields.Without(billing.StandardInvoiceExpandLines),
 			})
 			if err != nil {
 				return in, err
@@ -592,7 +614,7 @@ func (a *adapter) UpdateInvoice(ctx context.Context, in billing.UpdateInvoiceAda
 			return updatedInvoice, nil
 		}
 
-		return tx.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+		return tx.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: billing.InvoiceID{
 				Namespace: in.Namespace,
 				ID:        in.ID,
@@ -696,7 +718,7 @@ func (a *adapter) mapStandardInvoiceBaseFromDB(invoice *db.BillingInvoice) billi
 	}
 }
 
-func (a *adapter) mapStandardInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoice, expand billing.InvoiceExpand) (billing.StandardInvoice, error) {
+func (a *adapter) mapStandardInvoiceFromDB(ctx context.Context, invoice *db.BillingInvoice, expand billing.StandardInvoiceExpands) (billing.StandardInvoice, error) {
 	base := a.mapStandardInvoiceBaseFromDB(invoice)
 
 	res := billing.StandardInvoice{
@@ -740,13 +762,18 @@ func (a *adapter) mapStandardInvoiceFromDB(ctx context.Context, invoice *db.Bill
 		},
 	}
 
-	if expand.Lines {
+	if expand.Has(billing.StandardInvoiceExpandLines) {
 		mappedLines, err := a.mapStandardInvoiceLinesFromDB(map[string]int{invoice.ID: invoice.SchemaLevel}, invoice.Edges.BillingInvoiceLines)
 		if err != nil {
 			return billing.StandardInvoice{}, err
 		}
 
-		mappedLines, err = a.expandSplitLineHierarchy(ctx, invoice.Namespace, mappedLines)
+		hierarchyByLineID, err := a.expandSplitLineHierarchy(ctx, invoice.Namespace, mappedLines.AsGenericLines())
+		if err != nil {
+			return billing.StandardInvoice{}, err
+		}
+
+		mappedLines, err = withSplitLineHierarchyForLines[*billing.StandardLine](mappedLines, hierarchyByLineID)
 		if err != nil {
 			return billing.StandardInvoice{}, err
 		}

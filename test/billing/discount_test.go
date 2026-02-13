@@ -171,7 +171,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		s.Equal(discountCorrelationID, pctDiscount.CorrelationID)
 
 		// Output
-		draftInvoiceID = invoices[0].InvoiceID()
+		draftInvoiceID = invoices[0].GetInvoiceID()
 	})
 
 	s.Run("Editing an invoice and adding a new discount generates a new correlation ID", func() {

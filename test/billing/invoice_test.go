@@ -306,17 +306,11 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		require.NotNil(s.T(), HUFItem.ID)
 
 		// Then we have a different invoice for HUF
-		hufInvoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Page: pagination.Page{
-				PageNumber: 1,
-				PageSize:   10,
-			},
-
-			Namespaces:       []string{namespace},
-			Customers:        []string{customerEntity.ID},
-			Expand:           billing.InvoiceExpandAll,
-			ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
-			Currencies:       []currencyx.Code{currencyx.Code(currency.HUF)},
+		hufInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+			Namespaces: []string{namespace},
+			Customers:  []string{customerEntity.ID},
+			Expand:     billing.GatheringInvoiceExpandAll,
+			Currencies: []currencyx.Code{currencyx.Code(currency.HUF)},
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), hufInvoices.Items, 1)
@@ -326,23 +320,23 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		// Then we have two line items for the invoice
 		require.Len(s.T(), hufInvoiceLines, 2)
 
-		lineItem, found := lo.Find(hufInvoiceLines, func(l *billing.StandardLine) bool {
-			return l.UsageBased.Price.Type() == productcatalog.FlatPriceType
+		lineItem, found := lo.Find(hufInvoiceLines, func(l billing.GatheringLine) bool {
+			return l.Price.Type() == productcatalog.FlatPriceType
 		})
 		require.True(s.T(), found, "manual fee item is present")
-		require.Equal(s.T(), lineItem.UsageBased.Price, productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+		require.Equal(s.T(), lineItem.Price, *productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 			Amount:      alpacadecimal.NewFromFloat(200),
 			PaymentTerm: productcatalog.InAdvancePaymentTerm,
 		}))
 
 		// Then we should have the tiered price present
-		tieredLine, found := lo.Find(hufInvoiceLines, func(l *billing.StandardLine) bool {
-			return l.UsageBased.FeatureKey == "test"
+		tieredLine, found := lo.Find(hufInvoiceLines, func(l billing.GatheringLine) bool {
+			return l.FeatureKey == "test"
 		})
 
 		require.True(s.T(), found, "tiered price item is present")
-		require.Equal(s.T(), tieredLine.UsageBased.Price.Type(), productcatalog.TieredPriceType)
-		tieredPrice, err := tieredLine.UsageBased.Price.AsTiered()
+		require.Equal(s.T(), tieredLine.Price.Type(), productcatalog.TieredPriceType)
+		tieredPrice, err := tieredLine.Price.AsTiered()
 		require.NoError(s.T(), err)
 
 		require.Equal(s.T(),
@@ -367,31 +361,16 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 	})
 
 	s.T().Run("Expand scenarios", func(t *testing.T) {
-		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Page: pagination.Page{
-				PageNumber: 1,
-				PageSize:   10,
-			},
-
-			Namespaces:       []string{namespace},
-			Customers:        []string{customerEntity.ID},
-			Expand:           billing.InvoiceExpand{},
-			ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
-			Currencies:       []currencyx.Code{currencyx.Code(currency.USD)},
+		invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+			Namespaces: []string{namespace},
+			Customers:  []string{customerEntity.ID},
+			Currencies: []currencyx.Code{currencyx.Code(currency.USD)},
 		})
 		require.NoError(s.T(), err)
 		require.Len(s.T(), invoices.Items, 1)
 		invoice := invoices.Items[0]
 
 		require.False(s.T(), invoice.Lines.IsPresent(), "no lines should be returned")
-		require.NotNil(s.T(), invoice.Workflow, "workflow should be returned")
-
-		require.False(s.T(), invoice.Lines.IsPresent(), "no lines should be returned")
-		require.NotNil(s.T(), invoice.Workflow, "workflow should be returned")
-		require.NotNil(s.T(), invoice.Workflow.Apps, "apps should  be resolved")
-		require.NotNil(s.T(), invoice.Workflow.Apps.Tax, "apps should be resolved")
-		require.NotNil(s.T(), invoice.Workflow.Apps.Invoicing, "apps should be resolved")
-		require.NotNil(s.T(), invoice.Workflow.Apps.Payment, "apps should be resolved")
 	})
 }
 
@@ -540,9 +519,9 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		require.Equal(s.T(), stdInvoiceLine1.ID, gatheringLine1.ID)
 
 		// Then we expect that the gathering invoice is still present, with item2
-		gatheringInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+		gatheringInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
 			Invoice: gatheringInvoiceID,
-			Expand:  billing.InvoiceExpandAll,
+			Expand:  billing.GatheringInvoiceExpandAll,
 		})
 		require.NoError(s.T(), err)
 		require.Nil(s.T(), gatheringInvoice.DeletedAt, "gathering invoice should be present")
@@ -553,7 +532,7 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		require.Equal(s.T(), billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice[0].Status)
 
 		// We expect that the invoice can be listed by filtering to it's status_details_cache field
-		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+		invoices, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
 			Namespaces:         []string{namespace},
 			HasAvailableAction: []billing.InvoiceAvailableActionsFilter{billing.InvoiceAvailableActionsFilterApprove},
 		})
@@ -599,9 +578,9 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		require.Equal(s.T(), stdInvoiceLine2.ID, gatheringLine2.ID)
 
 		// Then we expect that the gathering invoice is deleted and empty
-		gatheringInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+		gatheringInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
 			Invoice: gatheringInvoiceID,
-			Expand:  billing.InvoiceExpandAll,
+			Expand:  billing.GatheringInvoiceExpandAll,
 		})
 		require.NoError(s.T(), err)
 		require.NotNil(s.T(), gatheringInvoice.DeletedAt, "gathering invoice should be deleted")
@@ -639,9 +618,9 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		s.Equal(gatheringInvoiceID.ID, newPendingLine.InvoiceID)
 
 		// The gathering invoice is undeleted
-		gatheringInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+		gatheringInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
 			Invoice: gatheringInvoiceID,
-			Expand:  billing.InvoiceExpandAll,
+			Expand:  billing.GatheringInvoiceExpandAll,
 		})
 		s.NoError(err)
 		s.Nil(gatheringInvoice.DeletedAt)
@@ -846,12 +825,9 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 			// When we advance the invoice
 			tc.advance(t, ctx, invoice)
 
-			resultingInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-				Invoice: billing.InvoiceID{
-					Namespace: namespace,
-					ID:        invoice.ID,
-				},
-				Expand: billing.InvoiceExpandAll,
+			resultingInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+				Invoice: invoice.GetInvoiceID(),
+				Expand:  billing.StandardInvoiceExpandAll,
 			})
 
 			require.NoError(s.T(), err)
@@ -901,7 +877,7 @@ func (s *InvoicingTestSuite) TestPaymentProcessingEnteredAt() {
 		Customer:  customerEntity,
 	})
 
-	invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.InvoiceID())
+	invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
 	s.Require().NoError(err)
 
 	s.Require().Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
@@ -909,8 +885,8 @@ func (s *InvoicingTestSuite) TestPaymentProcessingEnteredAt() {
 	s.WithinDuration(clockBase, invoice.PaymentProcessingEnteredAt.UTC(), time.Second)
 
 	// Reload to be sure the timestamp persisted and isn’t recalculated on read.
-	reloadedInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-		Invoice: invoice.InvoiceID(),
+	reloadedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: invoice.GetInvoiceID(),
 	})
 	s.Require().NoError(err)
 	s.Require().Equal(billing.StandardInvoiceStatusPaymentProcessingPending, reloadedInvoice.Status)
@@ -964,9 +940,9 @@ func (s *InvoicingTestSuite) TestStatusDetailsSimulationDoesNotMutatePaymentProc
 	s.Require().Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
 	s.Require().Nil(invoice.PaymentProcessingEnteredAt)
 
-	reloadedInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-		Invoice: invoice.InvoiceID(),
-		Expand:  billing.InvoiceExpandAll,
+	reloadedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: invoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll,
 	})
 	s.Require().NoError(err)
 
@@ -1315,12 +1291,9 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 
 			mockApp.AssertExpectations(t)
 
-			resultingInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-				Invoice: billing.InvoiceID{
-					Namespace: namespace,
-					ID:        invoice.ID,
-				},
-				Expand: billing.InvoiceExpandAll,
+			resultingInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+				Invoice: invoice.GetInvoiceID(),
+				Expand:  billing.StandardInvoiceExpandAll,
 			})
 
 			require.NoError(s.T(), err)
@@ -1741,7 +1714,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		s.Run("update line item", func() {
 			updatedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-				Invoice: invoice.InvoiceID(),
+				Invoice: invoice.GetInvoiceID(),
 				EditFn: func(invoice *billing.StandardInvoice) error {
 					line := invoice.Lines.GetByID(flatPerUnit.ID)
 					if line == nil {
@@ -1772,12 +1745,11 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 				Total:  2500,
 			}, line.Totals)
 
-			invoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+			invoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 				Invoice: billing.InvoiceID{
 					Namespace: namespace,
 					ID:        out[0].ID,
 				},
-				Expand: billing.InvoiceExpand{},
 			})
 			require.NoError(s.T(), err)
 
@@ -1844,9 +1816,11 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			}, updatedInvoice.Totals)
 
 			// Let's validate without deleted line fetching
-			updatedInvoice, err = s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-				Invoice: out[0].InvoiceID(),
-				Expand:  billing.InvoiceExpandAll.SetDeletedLines(false),
+			updatedInvoice, err = s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+				Invoice: out[0].GetInvoiceID(),
+				Expand: billing.StandardInvoiceExpands{
+					billing.StandardInvoiceExpandLines,
+				},
 			})
 			require.NoError(s.T(), err)
 
@@ -1870,7 +1844,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 				validationError := billing.NewValidationError("delete-failed", "invoice cannot be deleted")
 				mockApp.OnDeleteStandardInvoice(validationError)
 
-				invoice, err := s.BillingService.DeleteInvoice(ctx, out[0].InvoiceID())
+				invoice, err := s.BillingService.DeleteInvoice(ctx, out[0].GetInvoiceID())
 				require.NoError(s.T(), err)
 
 				require.Len(s.T(), invoice.ValidationIssues, 1)
@@ -1879,9 +1853,9 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 				require.Equal(s.T(), validationError.Severity, invoice.ValidationIssues[0].Severity)
 				require.Equal(s.T(), "app.sandbox.invoiceCustomers.delete", string(invoice.ValidationIssues[0].Component))
 
-				deletedInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-					Invoice: out[0].InvoiceID(),
-					Expand:  billing.InvoiceExpandAll,
+				deletedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+					Invoice: out[0].GetInvoiceID(),
+					Expand:  billing.StandardInvoiceExpandAll,
 				})
 				require.NoError(s.T(), err)
 				require.NotNil(s.T(), deletedInvoice.DeletedAt)
@@ -1896,7 +1870,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 				// InvoiceDeletion fails
 				mockApp.OnDeleteStandardInvoice(errors.New("generic error"))
 
-				invoice, err := s.BillingService.RetryInvoice(ctx, out[0].InvoiceID())
+				invoice, err := s.BillingService.RetryInvoice(ctx, out[0].GetInvoiceID())
 				require.NotNil(s.T(), invoice)
 				require.NoError(s.T(), err)
 				require.Len(s.T(), invoice.ValidationIssues, 1)
@@ -1915,7 +1889,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 				mockApp.OnDeleteStandardInvoice(nil)
 
-				invoice, err := s.BillingService.RetryInvoice(ctx, out[0].InvoiceID())
+				invoice, err := s.BillingService.RetryInvoice(ctx, out[0].GetInvoiceID())
 				require.NotNil(s.T(), invoice)
 				require.NoError(s.T(), err)
 				require.Len(s.T(), invoice.ValidationIssues, 0)
@@ -2098,7 +2072,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			mockApp.OnFinalizeStandardInvoice(finalizedInvoiceResult)
 
 			// Let's finalize the invoice
-			finalizedInvoice, err := s.BillingService.ApproveInvoice(ctx, out[0].InvoiceID())
+			finalizedInvoice, err := s.BillingService.ApproveInvoice(ctx, out[0].GetInvoiceID())
 			require.NoError(s.T(), err)
 			require.NotNil(s.T(), finalizedInvoice)
 
@@ -3221,16 +3195,17 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 			Namespaces:       []string{namespace},
 			Customers:        []string{customerEntity.ID},
 			ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
-			Expand: billing.InvoiceExpand{
-				RecalculateGatheringInvoice: true,
-			},
-		})
+			Expand: billing.InvoiceExpands{}.
+				With(billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
+		},
+		)
 
 		require.NoError(s.T(), err)
 		require.Len(s.T(), invoices.Items, 1)
 
-		gatheringInvoice := invoices.Items[0]
-		require.Equal(s.T(), float64(0), gatheringInvoice.Totals.Total.InexactFloat64())
+		calculatedGatheringInvoice, err := invoices.Items[0].AsStandardInvoice()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), float64(0), calculatedGatheringInvoice.Totals.Total.InexactFloat64())
 	})
 
 	// when we have some traffic on the meter, the invoice should be recalculated
@@ -3241,16 +3216,16 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 			Namespaces:       []string{namespace},
 			Customers:        []string{customerEntity.ID},
 			ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
-			Expand: billing.InvoiceExpand{
-				RecalculateGatheringInvoice: true,
-			},
+			Expand: billing.InvoiceExpands{}.
+				With(billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
 		})
 
 		require.NoError(s.T(), err)
 		require.Len(s.T(), invoices.Items, 1)
 
-		gatheringInvoice := invoices.Items[0]
-		require.Equal(s.T(), float64(1000), gatheringInvoice.Totals.Total.InexactFloat64())
+		calculatedGatheringInvoice, err := invoices.Items[0].AsStandardInvoice()
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), float64(1000), calculatedGatheringInvoice.Totals.Total.InexactFloat64())
 	})
 
 	// Max spend is reached
@@ -3261,20 +3236,20 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 			Namespaces:       []string{namespace},
 			Customers:        []string{customerEntity.ID},
 			ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
-			Expand: billing.InvoiceExpand{
-				RecalculateGatheringInvoice: true,
-			},
+			Expand: billing.InvoiceExpands{}.
+				With(billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
 		})
 
 		require.NoError(s.T(), err)
 		require.Len(s.T(), invoices.Items, 1)
 
-		gatheringInvoice := invoices.Items[0]
+		calculatedGatheringInvoice, err := invoices.Items[0].AsStandardInvoice()
+		require.NoError(s.T(), err)
 		requireTotals(s.T(), expectedTotals{
 			Amount:         4000,
 			Total:          2000,
 			DiscountsTotal: 2000,
-		}, gatheringInvoice.Totals)
+		}, calculatedGatheringInvoice.Totals)
 	})
 }
 
@@ -3581,7 +3556,7 @@ func (s *InvoicingTestSuite) TestNamespaceLockedInvoiceProgression() {
 		WithAdvancementStrategy(billing.ForegroundAdvancementStrategy)
 
 	// When we try to advance the invoice
-	invoice, err := billingSvc.AdvanceInvoice(ctx, invoices[0].InvoiceID())
+	invoice, err := billingSvc.AdvanceInvoice(ctx, invoices[0].GetInvoiceID())
 	s.NoError(err)
 	s.NotNil(invoice)
 	s.Equal(billing.StandardInvoiceStatusDraftInvalid, invoice.Status)
@@ -3970,12 +3945,12 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 	s.Len(pendingLines.Lines, 1)
 
 	// Then
-	adapterInvoice, err := s.BillingAdapter.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+	adapterInvoice, err := s.BillingAdapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
 		Invoice: pendingLines.Invoice.GetInvoiceID(),
 	})
 	s.NoError(err)
-	s.Equal(periodStart, adapterInvoice.Period.Start)
-	s.Equal(periodEnd, adapterInvoice.Period.End)
+	s.Equal(periodStart, adapterInvoice.ServicePeriod.From)
+	s.Equal(periodEnd, adapterInvoice.ServicePeriod.To)
 
 	// Given an existing gathering invoice
 	// When adding a new line with different period
@@ -4002,12 +3977,12 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 	s.Len(pendingLines.Lines, 1)
 
 	// Then
-	adapterInvoice, err = s.BillingAdapter.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+	adapterInvoice, err = s.BillingAdapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
 		Invoice: pendingLines.Invoice.GetInvoiceID(),
 	})
 	s.NoError(err)
-	s.Equal(newPeriodStart, adapterInvoice.Period.Start)
-	s.Equal(newPeriodEnd, adapterInvoice.Period.End)
+	s.Equal(newPeriodStart, adapterInvoice.ServicePeriod.From)
+	s.Equal(newPeriodEnd, adapterInvoice.ServicePeriod.To)
 
 	// When a gathering invoice is deleted
 	// Then the period is empty
@@ -4026,11 +4001,11 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 	invoice := res[0]
 	s.Len(invoice.Lines.OrEmpty(), 2)
 
-	gatheringInvoice, err := s.BillingAdapter.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+	gatheringInvoice, err := s.BillingAdapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
 		Invoice: gatheringInvoiceID,
 	})
 	s.NoError(err)
-	s.Nil(gatheringInvoice.Period)
+	s.Empty(gatheringInvoice.ServicePeriod)
 	s.NotNil(gatheringInvoice.DeletedAt)
 }
 
@@ -4092,7 +4067,7 @@ func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() 
 	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
 
 	// Approve the invoice
-	invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.InvoiceID())
+	invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
 	s.NoError(err)
 	s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
 
@@ -4252,7 +4227,7 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityInvalidDatabaseState() {
 
 	s.Run("Then advancing transitions the invoice to draft.invalid", func() {
 		var err error
-		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.InvoiceID())
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
 		s.NoError(err)
 		s.Equal(billing.StandardInvoiceStatusDraftInvalid, invoice.Status)
 		s.NotEmpty(invoice.ValidationIssues)
@@ -4294,7 +4269,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceEmulation() {
 	require.NotEmpty(s.T(), customerEntity.ID)
 
 	// Given we have a default profile for the namespace
-	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	_ = s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
@@ -4321,15 +4296,12 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceEmulation() {
 	require.NotEmpty(s.T(), gatheringInvoiceID)
 
 	// Let's get the invoice using the standard invoice path
-	invoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+	invoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
 		Invoice: gatheringInvoiceID,
 	})
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), invoice)
-	require.Equal(s.T(), customerEntity.ID, invoice.Customer.CustomerID)
-	require.Equal(s.T(), customerEntity.Name, invoice.Customer.Name)
-	require.Equal(s.T(), profile.Supplier.Name, invoice.Supplier.Name)
-	require.Equal(s.T(), sandboxApp.GetID(), invoice.Workflow.Apps.Invoicing.GetID())
+	require.Equal(s.T(), customerEntity.ID, invoice.CustomerID)
 }
 
 func (s *InvoicingTestSuite) TestUpdateInvoice() {
@@ -4514,7 +4486,7 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 			deletedLineID = draftInvoice.Lines.MustGet()[1].ID
 
 			_, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-				Invoice:             draftInvoice.InvoiceID(),
+				Invoice:             draftInvoice.GetInvoiceID(),
 				IncludeDeletedLines: true,
 				EditFn: func(invoice *billing.StandardInvoice) error {
 					line := invoice.Lines.GetByID(deletedLineID)
@@ -4533,7 +4505,7 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 			var sawDeletedLine bool
 
 			updatedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
-				Invoice:             draftInvoice.InvoiceID(),
+				Invoice:             draftInvoice.GetInvoiceID(),
 				IncludeDeletedLines: true,
 				EditFn: func(invoice billing.Invoice) (billing.Invoice, error) {
 					standardInvoice, err := invoice.AsStandardInvoice()
@@ -4565,9 +4537,12 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 			require.Equal(s.T(), "draft-line-active-updated", updatedLine.Name)
 
 			s.Run("then the invoice gets updated", func() {
-				reloadedInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-					Invoice: draftInvoice.InvoiceID(),
-					Expand:  billing.InvoiceExpandAll.SetDeletedLines(true),
+				reloadedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+					Invoice: draftInvoice.GetInvoiceID(),
+					Expand: billing.StandardInvoiceExpands{
+						billing.StandardInvoiceExpandLines,
+						billing.StandardInvoiceExpandDeletedLines,
+					},
 				})
 				require.NoError(s.T(), err)
 

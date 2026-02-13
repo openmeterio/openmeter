@@ -65,7 +65,8 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 				PeriodStartBefore: input.PeriodStartBefore,
 				CreatedAfter:      input.CreatedAfter,
 				CreatedBefore:     input.CreatedBefore,
-				Expand:            mapInvoiceExpandToEntity(lo.FromPtr(input.Expand)).SetRecalculateGatheringInvoice(true),
+				Expand: mapInvoiceExpandsToEntity(lo.FromPtr(input.Expand)).
+					With(billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
 
 				Order:   sortx.Order(lo.FromPtrOr(input.Order, api.InvoiceOrderByOrderingOrder(sortx.OrderDefault))),
 				OrderBy: lo.FromPtr(input.OrderBy),
@@ -79,6 +80,11 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 			}, nil
 		},
 		func(ctx context.Context, request ListInvoicesRequest) (ListInvoicesResponse, error) {
+			// Let's mandate properly set page size and page number.
+			if err := request.Page.Validate(); err != nil {
+				return ListInvoicesResponse{}, models.NewGenericValidationError(err)
+			}
+
 			invoices, err := h.service.ListInvoices(ctx, request)
 			if err != nil {
 				return ListInvoicesResponse{}, err
@@ -92,7 +98,7 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 			}
 
 			for _, invoice := range invoices.Items {
-				invoice, err := MapStandardInvoiceToAPI(invoice)
+				invoice, err := h.MapInvoiceToAPI(ctx, invoice)
 				if err != nil {
 					return ListInvoicesResponse{}, err
 				}
@@ -203,16 +209,18 @@ func (h *handler) GetInvoice() GetInvoiceHandler {
 					ID:        params.InvoiceID,
 					Namespace: ns,
 				},
-				Expand: mapInvoiceExpandToEntity(params.Expand).SetDeletedLines(params.IncludeDeletedLines).SetRecalculateGatheringInvoice(true),
+				Expand: mapInvoiceExpandsToEntity(params.Expand).
+					SetOrUnsetIf(params.IncludeDeletedLines, billing.InvoiceExpandDeletedLines).
+					With(billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
 			}, nil
 		},
 		func(ctx context.Context, request GetInvoiceRequest) (GetInvoiceResponse, error) {
-			invoice, err := h.service.GetInvoiceByID(ctx, request)
+			invoice, err := h.service.GetInvoiceById(ctx, request)
 			if err != nil {
 				return GetInvoiceResponse{}, err
 			}
 
-			return MapStandardInvoiceToAPI(invoice)
+			return h.MapInvoiceToAPI(ctx, invoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetInvoiceResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -745,15 +753,13 @@ func mapInvoiceCustomerToAPI(c billing.InvoiceCustomer) api.BillingInvoiceCustom
 	return out
 }
 
-func mapInvoiceExpandToEntity(expand []api.InvoiceExpand) billing.InvoiceExpand {
+func mapInvoiceExpandsToEntity(expand []api.InvoiceExpand) billing.InvoiceExpands {
 	if len(expand) == 0 {
-		return billing.InvoiceExpand{}
+		return nil
 	}
 
-	return billing.InvoiceExpand{
-		Lines:     slices.Contains(expand, api.InvoiceExpandLines),
-		Preceding: slices.Contains(expand, api.InvoiceExpandPreceding),
-	}
+	return billing.InvoiceExpands{}.
+		SetOrUnsetIf(slices.Contains(expand, api.InvoiceExpandLines), billing.InvoiceExpandLines)
 }
 
 func mapTotalsToAPI(t billing.Totals) api.InvoiceTotals {

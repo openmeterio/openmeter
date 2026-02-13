@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/expand"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -73,6 +74,8 @@ type GatheringInvoice struct {
 	// TODO[later]: implement this once we have a lineservice capable of operating on
 	// these lines too.
 	AvailableActions *GatheringInvoiceAvailableActions `json:"availableActions,omitempty"`
+
+	SplitLineHierarchy *SplitLineHierarchy `json:"splitLineHierarchy,omitempty"`
 }
 
 func (g GatheringInvoice) WithoutDBState() (GatheringInvoice, error) {
@@ -183,43 +186,28 @@ func (g *GatheringInvoice) SetLines(lines []GenericInvoiceLine) error {
 
 type GatheringInvoiceExpand string
 
-func (e GatheringInvoiceExpand) Validate() error {
-	if slices.Contains(GatheringInvoiceExpandValues, e) {
-		return nil
-	}
-
-	return fmt.Errorf("invalid gathering invoice expand: %s", e)
-}
-
 const (
-	GatheringInvoiceExpandLines            GatheringInvoiceExpand = "lines"
-	GatheringInvoiceExpandDeletedLines     GatheringInvoiceExpand = "deletedLines"
-	GatheringInvoiceExpandAvailableActions GatheringInvoiceExpand = "availableActions"
+	GatheringInvoiceExpandLines              GatheringInvoiceExpand = "lines"
+	GatheringInvoiceExpandDeletedLines       GatheringInvoiceExpand = "deletedLines"
+	GatheringInvoiceExpandAvailableActions   GatheringInvoiceExpand = "availableActions"
+	GatheringInvoiceExpandSplitLineHierarchy GatheringInvoiceExpand = "splitLineHierarchy"
 )
 
-var GatheringInvoiceExpandValues = []GatheringInvoiceExpand{
-	GatheringInvoiceExpandLines,
-	GatheringInvoiceExpandDeletedLines,
-	GatheringInvoiceExpandAvailableActions,
-}
-
-type GatheringInvoiceExpands []GatheringInvoiceExpand
-
-func (e GatheringInvoiceExpands) Validate() error {
-	for _, expand := range e {
-		if err := expand.Validate(); err != nil {
-			return err
-		}
+func (e GatheringInvoiceExpand) Values() []GatheringInvoiceExpand {
+	return []GatheringInvoiceExpand{
+		GatheringInvoiceExpandLines,
+		GatheringInvoiceExpandDeletedLines,
+		GatheringInvoiceExpandAvailableActions,
+		GatheringInvoiceExpandSplitLineHierarchy,
 	}
-	return nil
 }
 
-func (e GatheringInvoiceExpands) Has(expand GatheringInvoiceExpand) bool {
-	return slices.Contains(e, expand)
-}
+type GatheringInvoiceExpands = expand.Expand[GatheringInvoiceExpand]
 
-func (e GatheringInvoiceExpands) With(expand GatheringInvoiceExpand) GatheringInvoiceExpands {
-	return append(e, expand)
+var GatheringInvoiceExpandAll = GatheringInvoiceExpands(GatheringInvoiceExpand("").Values())
+
+func NewGatheringInvoiceExpands(values ...GatheringInvoiceExpand) GatheringInvoiceExpands {
+	return GatheringInvoiceExpands(values)
 }
 
 type GatheringInvoiceAvailableActions struct {
@@ -238,6 +226,12 @@ func (l GatheringLines) Validate() error {
 			return nil
 		})...,
 	)
+}
+
+func (l GatheringLines) AsGenericLines() []GenericInvoiceLine {
+	return lo.Map(l, func(l GatheringLine, _ int) GenericInvoiceLine {
+		return &gatheringInvoiceLineGenericWrapper{GatheringLine: l}
+	})
 }
 
 type GatheringInvoiceLines struct {
@@ -588,7 +582,8 @@ func (i gatheringInvoiceLineGenericWrapper) CloneWithoutChildren() (GenericInvoi
 type GatheringLine struct {
 	GatheringLineBase `json:",inline"`
 
-	DBState *GatheringLine `json:"-"`
+	DBState            *GatheringLine      `json:"-"`
+	SplitLineHierarchy *SplitLineHierarchy `json:"splitLineHierarchy,omitempty"`
 }
 
 func (g GatheringLine) Clone() (GatheringLine, error) {
@@ -659,6 +654,39 @@ func (g GatheringLine) Equal(other GatheringLine) bool {
 
 func (g GatheringLine) RemoveMetaForCompare() (GatheringLine, error) {
 	return g.WithoutDBState()
+}
+
+func (g *GatheringLine) SetSplitLineHierarchy(hierarchy *SplitLineHierarchy) {
+	g.SplitLineHierarchy = hierarchy
+}
+
+func (g GatheringLine) AsStandardLine() StandardLine {
+	return StandardLine{
+		StandardLineBase: StandardLineBase{
+			ManagedResource: g.ManagedResource,
+			Metadata:        g.Metadata,
+			Annotations:     g.Annotations,
+			ManagedBy:       g.ManagedBy,
+			InvoiceID:       g.InvoiceID,
+			Currency:        g.Currency,
+			Period: Period{
+				Start: g.ServicePeriod.From,
+				End:   g.ServicePeriod.To,
+			},
+			InvoiceAt:              g.InvoiceAt,
+			SplitLineGroupID:       g.SplitLineGroupID,
+			ChildUniqueReferenceID: g.ChildUniqueReferenceID,
+			TaxConfig:              g.TaxConfig,
+			RateCardDiscounts:      g.RateCardDiscounts,
+			Subscription:           g.Subscription,
+		},
+		UsageBased: &UsageBasedLine{
+			Price:      &g.Price,
+			FeatureKey: g.FeatureKey,
+		},
+
+		SplitLineHierarchy: g.SplitLineHierarchy,
+	}
 }
 
 type CreatePendingInvoiceLinesInput struct {
@@ -752,13 +780,15 @@ type UpdateGatheringInvoiceAdapterInput = GatheringInvoice
 type ListGatheringInvoicesInput struct {
 	pagination.Page
 
-	Namespaces     []string
-	Customers      []string
-	Currencies     []currencyx.Code
-	OrderBy        api.InvoiceOrderBy
-	Order          sortx.Order
-	IncludeDeleted bool
-	Expand         GatheringInvoiceExpands
+	Namespaces      []string
+	IDs             []string
+	Customers       []string
+	Currencies      []currencyx.Code
+	OrderBy         api.InvoiceOrderBy
+	Order           sortx.Order
+	IncludeDeleted  bool
+	Expand          GatheringInvoiceExpands
+	CollectionAtLTE *time.Time
 }
 
 func (i ListGatheringInvoicesInput) Validate() error {
@@ -770,10 +800,8 @@ func (i ListGatheringInvoicesInput) Validate() error {
 		}
 	}
 
-	for _, expand := range i.Expand {
-		if err := expand.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("expand: %w", err))
-		}
+	if err := i.Expand.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("expand: %w", err))
 	}
 
 	return errors.Join(errs...)
@@ -833,11 +861,10 @@ func (i GetGatheringInvoiceByIdInput) Validate() error {
 		errs = append(errs, fmt.Errorf("invoice: %w", err))
 	}
 
-	for _, expand := range i.Expand {
-		if err := expand.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("expand: %w", err))
-		}
+	if err := i.Expand.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("expand: %w", err))
 	}
+
 	return errors.Join(errs...)
 }
 
