@@ -660,33 +660,6 @@ func (g *GatheringLine) SetSplitLineHierarchy(hierarchy *SplitLineHierarchy) {
 	g.SplitLineHierarchy = hierarchy
 }
 
-func (g GatheringLine) AsStandardLine() StandardLine {
-	return StandardLine{
-		StandardLineBase: StandardLineBase{
-			ManagedResource: g.ManagedResource,
-			Metadata:        g.Metadata,
-			Annotations:     g.Annotations,
-			ManagedBy:       g.ManagedBy,
-			InvoiceID:       g.InvoiceID,
-			Currency:        g.Currency,
-			Period: Period{
-				Start: g.ServicePeriod.From,
-				End:   g.ServicePeriod.To,
-			},
-			InvoiceAt:              g.InvoiceAt,
-			SplitLineGroupID:       g.SplitLineGroupID,
-			ChildUniqueReferenceID: g.ChildUniqueReferenceID,
-			TaxConfig:              g.TaxConfig,
-			RateCardDiscounts:      g.RateCardDiscounts,
-			Subscription:           g.Subscription,
-			Price:                  g.Price,
-			FeatureKey:             g.FeatureKey,
-		},
-
-		SplitLineHierarchy: g.SplitLineHierarchy,
-	}
-}
-
 type CreatePendingInvoiceLinesInput struct {
 	Customer customer.CustomerID `json:"customer"`
 	Currency currencyx.Code      `json:"currency"`
