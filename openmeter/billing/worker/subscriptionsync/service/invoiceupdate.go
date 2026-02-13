@@ -243,7 +243,7 @@ func (u *InvoiceUpdater) updateMutableStandardInvoice(ctx context.Context, invoi
 		}
 
 		// The invoice has no lines, so let's just delete it
-		invoice, err := u.billingService.DeleteInvoice(ctx, updatedInvoice.InvoiceID())
+		invoice, err := u.billingService.DeleteInvoice(ctx, updatedInvoice.GetInvoiceID())
 		if err != nil {
 			return fmt.Errorf("deleting empty invoice: %w", err)
 		}
@@ -301,7 +301,7 @@ func (u *InvoiceUpdater) updateGatheringInvoice(ctx context.Context, invoiceID b
 
 func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
 	invoice, err := u.billingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-		Invoice: invoice.InvoiceID(),
+		Invoice: invoice.GetInvoiceID(),
 		Expand:  billing.StandardInvoiceExpandAll,
 	})
 	if err != nil {
@@ -379,7 +379,7 @@ func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice bil
 		}
 
 		return u.billingService.UpsertValidationIssues(ctx, billing.UpsertValidationIssuesInput{
-			Invoice: invoice.InvoiceID(),
+			Invoice: invoice.GetInvoiceID(),
 			Issues:  mergedValidationIssues,
 		})
 	}

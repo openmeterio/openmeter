@@ -415,19 +415,19 @@ func (i ListInvoicesAdapterInput) Validate() error {
 
 	if i.OnlyGathering {
 		if len(i.Statuses) > 0 {
-			outErr = append(outErr, errors.New("statuses cannot be set for standard invoices"))
+			outErr = append(outErr, errors.New("filtering by statuses is not supported for gathering invoices"))
 		}
 
 		if len(i.ExtendedStatuses) > 0 {
-			outErr = append(outErr, errors.New("extendedStatuses cannot be set for standard invoices"))
+			outErr = append(outErr, errors.New("filtering by extended statuses is not supported for gathering invoices"))
 		}
 
 		if i.ExternalIDs != nil {
-			outErr = append(outErr, errors.New("externalIDs cannot be set for standard invoices"))
+			outErr = append(outErr, errors.New("filtering by external IDs is not supported for gathering invoices"))
 		}
 
 		if i.DraftUntilLTE != nil {
-			outErr = append(outErr, errors.New("draftUntilLTE cannot be set for standard invoices"))
+			outErr = append(outErr, errors.New("draftUntilLTE is not supported for gathering invoices"))
 		}
 	}
 

@@ -17,17 +17,6 @@ func (s *Service) UpdateStandardInvoice(ctx context.Context, input billing.Updat
 		}
 	}
 
-	invoiceType, err := s.adapter.GetInvoiceType(ctx, input.Invoice)
-	if err != nil {
-		return billing.StandardInvoice{}, fmt.Errorf("getting invoice type: %w", err)
-	}
-
-	if invoiceType != billing.InvoiceTypeStandard {
-		return billing.StandardInvoice{}, billing.ValidationError{
-			Err: fmt.Errorf("invoice[%s] is not a standard invoice, cannot be updated via the standard invoice service", input.Invoice.ID),
-		}
-	}
-
 	return s.executeTriggerOnInvoice(
 		ctx,
 		input.Invoice,
@@ -75,7 +64,7 @@ func (s *Service) GetStandardInvoiceById(ctx context.Context, input billing.GetS
 
 	invoice, err = s.resolveWorkflowApps(ctx, invoice)
 	if err != nil {
-		return billing.StandardInvoice{}, fmt.Errorf("error resolving workload apps for invoice [%s]: %w", input.Invoice.ID, err)
+		return billing.StandardInvoice{}, fmt.Errorf("error resolving workflow apps for invoice [%s]: %w", input.Invoice.ID, err)
 	}
 
 	invoice, err = s.resolveStatusDetails(ctx, invoice)

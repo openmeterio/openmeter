@@ -102,7 +102,7 @@ func (s *Service) HandleInvoiceStateTransition(ctx context.Context, input appstr
 
 	err = s.billingService.TriggerInvoice(ctx, billing.InvoiceTriggerServiceInput{
 		InvoiceTriggerInput: billing.InvoiceTriggerInput{
-			Invoice:          invoice.InvoiceID(),
+			Invoice:          invoice.GetInvoiceID(),
 			Trigger:          input.Trigger,
 			ValidationErrors: validationErrors,
 		},
@@ -134,7 +134,7 @@ func (s *Service) HandleInvoiceSentEvent(ctx context.Context, input appstripeent
 	}
 
 	return s.billingService.UpdateInvoiceFields(ctx, billing.UpdateInvoiceFieldsInput{
-		Invoice:          invoice.InvoiceID(),
+		Invoice:          invoice.GetInvoiceID(),
 		SentToCustomerAt: mo.Some(lo.ToPtr(time.Unix(input.SentAt, 0))),
 	})
 }

@@ -328,13 +328,6 @@ func (i StandardInvoice) Validate() error {
 	return outErr
 }
 
-// InvoiceID returns the invoice ID.
-// Deprecated: use GetInvoiceID instead
-// TODO[later]: remove this method
-func (i StandardInvoice) InvoiceID() InvoiceID {
-	return i.GetInvoiceID()
-}
-
 func (i StandardInvoice) CustomerID() customer.CustomerID {
 	return customer.CustomerID{
 		Namespace: i.Namespace,
@@ -975,6 +968,11 @@ type ListStandardInvoicesInput struct {
 
 func (i ListStandardInvoicesInput) Validate() error {
 	var errs []error
+
+	// Page is not validated here, as for internal use we don't want to use pagination unless
+	// explicitly requested.
+
+	// It's the httpdriver's responsibility to validate the page size and page number.
 
 	if err := i.Expand.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("expand: %w", err))

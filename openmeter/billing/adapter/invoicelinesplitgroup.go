@@ -313,7 +313,7 @@ type splitLineSettableLines interface {
 	SetSplitLineHierarchy(*billing.SplitLineHierarchy)
 }
 
-func setSplitLineHierarchForLines[T splitLineSettableLines](lines []T, hierarchyByLineID lineIdToSplitLineHierarchy) error {
+func withSplitLineHierarchyForLines[T splitLineSettableLines](lines []T, hierarchyByLineID lineIdToSplitLineHierarchy) ([]T, error) {
 	for _, line := range lines {
 		if line.GetSplitLineGroupID() == nil {
 			continue
@@ -321,13 +321,13 @@ func setSplitLineHierarchForLines[T splitLineSettableLines](lines []T, hierarchy
 
 		hierarchy, ok := hierarchyByLineID[line.GetID()]
 		if !ok {
-			return fmt.Errorf("split line group[%s] for line[%s] not found", *line.GetSplitLineGroupID(), line.GetID())
+			return nil, fmt.Errorf("split line group[%s] for line[%s] not found", *line.GetSplitLineGroupID(), line.GetID())
 		}
 
 		line.SetSplitLineHierarchy(hierarchy)
 	}
 
-	return nil
+	return lines, nil
 }
 
 func (a *adapter) fetchAllSplitLineGroups(ctx context.Context, namespace string, splitLineGroupIDs []string) ([]billing.SplitLineHierarchy, error) {

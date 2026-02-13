@@ -655,7 +655,7 @@ func (a *adapter) ListInvoiceLines(ctx context.Context, input billing.ListInvoic
 			return nil, err
 		}
 
-		err = setSplitLineHierarchForLines[*billing.StandardLine](mappedLines, hierarchyByLineID)
+		mappedLines, err = withSplitLineHierarchyForLines[*billing.StandardLine](mappedLines, hierarchyByLineID)
 		if err != nil {
 			return nil, err
 		}
@@ -790,7 +790,7 @@ func (a *adapter) refetchInvoiceLines(ctx context.Context, in refetchInvoiceLine
 		return nil, err
 	}
 
-	err = setSplitLineHierarchForLines[*billing.StandardLine](lines, hierarchyByLineID)
+	lines, err = withSplitLineHierarchyForLines(lines, hierarchyByLineID)
 	if err != nil {
 		return nil, err
 	}

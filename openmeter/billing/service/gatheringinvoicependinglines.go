@@ -802,7 +802,7 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 
 	// Let's make sure that the invoice is in an up-to-date state
 	invoice, err = s.withLockedInvoiceStateMachine(ctx, withLockedStateMachineInput{
-		InvoiceID: invoice.InvoiceID(),
+		InvoiceID: invoice.GetInvoiceID(),
 		Callback: func(ctx context.Context, sm *InvoiceStateMachine) error {
 			// Let's activate the state machine so that the created state's calculation is triggered
 			if err := sm.StateMachine.ActivateCtx(ctx); err != nil {

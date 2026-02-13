@@ -1279,7 +1279,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 
 	// draft invoice
 	draftInvoice, err = s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-		Invoice: draftInvoice.InvoiceID(),
+		Invoice: draftInvoice.GetInvoiceID(),
 		Expand:  billing.StandardInvoiceExpandAll,
 	})
 	s.NoError(err)
@@ -1355,7 +1355,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 	draftInvoice := draftInvoices[0]
 	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, draftInvoice.Status)
 
-	approvedInvoice, err := s.BillingService.ApproveInvoice(ctx, draftInvoice.InvoiceID())
+	approvedInvoice, err := s.BillingService.ApproveInvoice(ctx, draftInvoice.GetInvoiceID())
 	s.NoError(err)
 	s.Equal(billing.StandardInvoiceStatusPaid, approvedInvoice.Status)
 
@@ -1452,7 +1452,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 
 	// issued invoice
 	approvedInvoice, err = s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-		Invoice: draftInvoice.InvoiceID(),
+		Invoice: draftInvoice.GetInvoiceID(),
 		Expand:  billing.StandardInvoiceExpandAll,
 	})
 	s.NoError(err)
@@ -2648,7 +2648,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 	})
 
 	updatedDraftInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-		Invoice: draftInvoice.InvoiceID(),
+		Invoice: draftInvoice.GetInvoiceID(),
 		Expand:  billing.StandardInvoiceExpandAll,
 	})
 	s.NoError(err)
@@ -2733,7 +2733,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 	draftInvoice := draftInvoices[0]
 	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, draftInvoice.Status)
 
-	issuedInvoice, err := s.BillingService.ApproveInvoice(ctx, draftInvoice.InvoiceID())
+	issuedInvoice, err := s.BillingService.ApproveInvoice(ctx, draftInvoice.GetInvoiceID())
 	s.NoError(err)
 	s.Equal(billing.StandardInvoiceStatusPaid, issuedInvoice.Status)
 	s.Len(issuedInvoice.ValidationIssues, 0)
@@ -2795,7 +2795,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 	s.DebugDumpInvoice("gathering invoice - 2nd sync", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
 
 	updatedIssuedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-		Invoice: issuedInvoice.InvoiceID(),
+		Invoice: issuedInvoice.GetInvoiceID(),
 		Expand:  billing.StandardInvoiceExpandAll,
 	})
 	s.NoError(err)
@@ -2885,7 +2885,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 	s.NoError(err)
 	s.Len(draftInvoices1, 1)
 
-	invoice1, err := s.BillingService.ApproveInvoice(ctx, draftInvoices1[0].InvoiceID())
+	invoice1, err := s.BillingService.ApproveInvoice(ctx, draftInvoices1[0].GetInvoiceID())
 	s.NoError(err)
 	s.Equal(billing.StandardInvoiceStatusPaid, invoice1.Status)
 
@@ -3047,7 +3047,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 
 	// invoice 1 (issued) checks
 	updatedIssuedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-		Invoice: invoice1.InvoiceID(),
+		Invoice: invoice1.GetInvoiceID(),
 		Expand:  billing.StandardInvoiceExpandAll,
 	})
 	s.NoError(err)
@@ -3079,7 +3079,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 
 	// invoice 2 (draft) checks
 	updatedDraftInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-		Invoice: draftInvoice2.InvoiceID(),
+		Invoice: draftInvoice2.GetInvoiceID(),
 		Expand:  billing.StandardInvoiceExpandAll,
 	})
 	s.NoError(err)
@@ -3223,7 +3223,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
 
 	var updatedLine *billing.StandardLine
 	editedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-		Invoice: draftInvoice.InvoiceID(),
+		Invoice: draftInvoice.GetInvoiceID(),
 		EditFn: func(invoice *billing.StandardInvoice) error {
 			lines := invoice.Lines.OrEmpty()
 			s.Len(lines, 1)
@@ -3259,7 +3259,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
 
 	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	resyncedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-		Invoice: editedInvoice.InvoiceID(),
+		Invoice: editedInvoice.GetInvoiceID(),
 		Expand:  billing.StandardInvoiceExpandAll,
 	})
 	s.NoError(err)
@@ -3420,7 +3420,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 
 	// Now let's manually mark the lines as sync ignored
 	_, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-		Invoice: draftInvoice.InvoiceID(),
+		Invoice: draftInvoice.GetInvoiceID(),
 		EditFn: func(invoice *billing.StandardInvoice) error {
 			line := s.getStandardLineByChildID(*invoice, draftLineReferenceID)
 
@@ -3476,7 +3476,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 
 	// Then the lines should not be updated
 	draftInvoiceAfterSync, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-		Invoice: draftInvoice.InvoiceID(),
+		Invoice: draftInvoice.GetInvoiceID(),
 		Expand:  billing.StandardInvoiceExpandAll,
 	})
 	s.NoError(err)
@@ -3694,7 +3694,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 
 	var updatedLine *billing.StandardLine
 	editedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-		Invoice: draftInvoice.InvoiceID(),
+		Invoice: draftInvoice.GetInvoiceID(),
 		EditFn: func(invoice *billing.StandardInvoice) error {
 			lines := invoice.Lines.OrEmpty()
 			s.Len(lines, 1)
@@ -3729,7 +3729,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 
 	resyncedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-		Invoice: editedInvoice.InvoiceID(),
+		Invoice: editedInvoice.GetInvoiceID(),
 		Expand:  billing.StandardInvoiceExpandAll.With(billing.StandardInvoiceExpandDeletedLines),
 	})
 	s.NoError(err)

@@ -54,7 +54,7 @@ func (a *AutoAdvancer) All(ctx context.Context, namespaces []string, batchSize i
 			go func() {
 				defer wg.Done()
 
-				_, err = a.AdvanceInvoice(ctx, invoice.InvoiceID())
+				_, err = a.AdvanceInvoice(ctx, invoice.GetInvoiceID())
 				if err != nil {
 					err = fmt.Errorf("failed to auto-advance invoice [namespace=%s id=%s]: %w", invoice.Namespace, invoice.ID, err)
 				}

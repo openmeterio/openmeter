@@ -877,7 +877,7 @@ func (s *InvoicingTestSuite) TestPaymentProcessingEnteredAt() {
 		Customer:  customerEntity,
 	})
 
-	invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.InvoiceID())
+	invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
 	s.Require().NoError(err)
 
 	s.Require().Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
@@ -1714,7 +1714,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		s.Run("update line item", func() {
 			updatedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-				Invoice: invoice.InvoiceID(),
+				Invoice: invoice.GetInvoiceID(),
 				EditFn: func(invoice *billing.StandardInvoice) error {
 					line := invoice.Lines.GetByID(flatPerUnit.ID)
 					if line == nil {
@@ -1817,7 +1817,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 			// Let's validate without deleted line fetching
 			updatedInvoice, err = s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-				Invoice: out[0].InvoiceID(),
+				Invoice: out[0].GetInvoiceID(),
 				Expand: billing.StandardInvoiceExpands{
 					billing.StandardInvoiceExpandLines,
 				},
@@ -1844,7 +1844,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 				validationError := billing.NewValidationError("delete-failed", "invoice cannot be deleted")
 				mockApp.OnDeleteStandardInvoice(validationError)
 
-				invoice, err := s.BillingService.DeleteInvoice(ctx, out[0].InvoiceID())
+				invoice, err := s.BillingService.DeleteInvoice(ctx, out[0].GetInvoiceID())
 				require.NoError(s.T(), err)
 
 				require.Len(s.T(), invoice.ValidationIssues, 1)
@@ -1854,7 +1854,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 				require.Equal(s.T(), "app.sandbox.invoiceCustomers.delete", string(invoice.ValidationIssues[0].Component))
 
 				deletedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-					Invoice: out[0].InvoiceID(),
+					Invoice: out[0].GetInvoiceID(),
 					Expand:  billing.StandardInvoiceExpandAll,
 				})
 				require.NoError(s.T(), err)
@@ -1870,7 +1870,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 				// InvoiceDeletion fails
 				mockApp.OnDeleteStandardInvoice(errors.New("generic error"))
 
-				invoice, err := s.BillingService.RetryInvoice(ctx, out[0].InvoiceID())
+				invoice, err := s.BillingService.RetryInvoice(ctx, out[0].GetInvoiceID())
 				require.NotNil(s.T(), invoice)
 				require.NoError(s.T(), err)
 				require.Len(s.T(), invoice.ValidationIssues, 1)
@@ -1889,7 +1889,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 				mockApp.OnDeleteStandardInvoice(nil)
 
-				invoice, err := s.BillingService.RetryInvoice(ctx, out[0].InvoiceID())
+				invoice, err := s.BillingService.RetryInvoice(ctx, out[0].GetInvoiceID())
 				require.NotNil(s.T(), invoice)
 				require.NoError(s.T(), err)
 				require.Len(s.T(), invoice.ValidationIssues, 0)
@@ -2072,7 +2072,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			mockApp.OnFinalizeStandardInvoice(finalizedInvoiceResult)
 
 			// Let's finalize the invoice
-			finalizedInvoice, err := s.BillingService.ApproveInvoice(ctx, out[0].InvoiceID())
+			finalizedInvoice, err := s.BillingService.ApproveInvoice(ctx, out[0].GetInvoiceID())
 			require.NoError(s.T(), err)
 			require.NotNil(s.T(), finalizedInvoice)
 
@@ -3556,7 +3556,7 @@ func (s *InvoicingTestSuite) TestNamespaceLockedInvoiceProgression() {
 		WithAdvancementStrategy(billing.ForegroundAdvancementStrategy)
 
 	// When we try to advance the invoice
-	invoice, err := billingSvc.AdvanceInvoice(ctx, invoices[0].InvoiceID())
+	invoice, err := billingSvc.AdvanceInvoice(ctx, invoices[0].GetInvoiceID())
 	s.NoError(err)
 	s.NotNil(invoice)
 	s.Equal(billing.StandardInvoiceStatusDraftInvalid, invoice.Status)
@@ -4067,7 +4067,7 @@ func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() 
 	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)
 
 	// Approve the invoice
-	invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.InvoiceID())
+	invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
 	s.NoError(err)
 	s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
 
@@ -4227,7 +4227,7 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityInvalidDatabaseState() {
 
 	s.Run("Then advancing transitions the invoice to draft.invalid", func() {
 		var err error
-		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.InvoiceID())
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
 		s.NoError(err)
 		s.Equal(billing.StandardInvoiceStatusDraftInvalid, invoice.Status)
 		s.NotEmpty(invoice.ValidationIssues)
@@ -4486,7 +4486,7 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 			deletedLineID = draftInvoice.Lines.MustGet()[1].ID
 
 			_, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-				Invoice:             draftInvoice.InvoiceID(),
+				Invoice:             draftInvoice.GetInvoiceID(),
 				IncludeDeletedLines: true,
 				EditFn: func(invoice *billing.StandardInvoice) error {
 					line := invoice.Lines.GetByID(deletedLineID)
@@ -4505,7 +4505,7 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 			var sawDeletedLine bool
 
 			updatedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
-				Invoice:             draftInvoice.InvoiceID(),
+				Invoice:             draftInvoice.GetInvoiceID(),
 				IncludeDeletedLines: true,
 				EditFn: func(invoice billing.Invoice) (billing.Invoice, error) {
 					standardInvoice, err := invoice.AsStandardInvoice()
@@ -4538,7 +4538,7 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 
 			s.Run("then the invoice gets updated", func() {
 				reloadedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-					Invoice: draftInvoice.InvoiceID(),
+					Invoice: draftInvoice.GetInvoiceID(),
 					Expand: billing.StandardInvoiceExpands{
 						billing.StandardInvoiceExpandLines,
 						billing.StandardInvoiceExpandDeletedLines,

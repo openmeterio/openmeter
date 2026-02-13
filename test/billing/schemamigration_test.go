@@ -171,7 +171,7 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 		s.NoError(err)
 		s.Len(invoices, 1)
 
-		invoiceID = invoices[0].InvoiceID()
+		invoiceID = invoices[0].GetInvoiceID()
 
 		// Delete all detailed lines under the chosen parent by directly updating the schema-level-1 representation (billing_invoice_lines).
 		deletedAtSet = clock.Now()

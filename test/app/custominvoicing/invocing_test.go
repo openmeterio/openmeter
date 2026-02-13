@@ -239,7 +239,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 			AddLineExternalID(invoice.Lines.OrEmpty()[0].ID, "ext-123")
 
 		draftSyncedInvoice, err := s.CustomInvoicingService.SyncDraftInvoice(ctx, appcustominvoicing.SyncDraftInvoiceInput{
-			InvoiceID:            invoice.InvoiceID(),
+			InvoiceID:            invoice.GetInvoiceID(),
 			UpsertInvoiceResults: upsertResults,
 		})
 		s.NoError(err, "failed to sync draft invoice")
@@ -260,7 +260,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 			SetInvoiceNumber("ISSUING-123")
 
 		issuingSyncedInvoice, err := s.CustomInvoicingService.SyncIssuingInvoice(ctx, appcustominvoicing.SyncIssuingInvoiceInput{
-			InvoiceID:             invoice.InvoiceID(),
+			InvoiceID:             invoice.GetInvoiceID(),
 			FinalizeInvoiceResult: finalizeResults,
 		})
 		s.NoError(err, "failed to sync issuing invoice")
@@ -274,7 +274,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 	// Payment status handling: we can transition the invoice to paid state
 	s.Run("invoice can be transitioned to uncollectible state", func() {
 		invoice, err := s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
-			InvoiceID: invoice.InvoiceID(),
+			InvoiceID: invoice.GetInvoiceID(),
 			Trigger:   billing.TriggerPaid,
 		})
 		s.NoError(err, "failed to handle payment trigger")
@@ -285,13 +285,13 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 	// Payment status handling: we cannot transition the invoice to uncollectible state (full mesh transitions)
 	s.Run("invoice cannot be transitioned to uncollectible state", func() {
 		invoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-			Invoice: invoice.InvoiceID(),
+			Invoice: invoice.GetInvoiceID(),
 		})
 		s.NoError(err, "failed to get invoice")
 		s.Len(invoice.ValidationIssues, 0, "invoice should have no validation issues")
 
 		invoice, err = s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
-			InvoiceID: invoice.InvoiceID(),
+			InvoiceID: invoice.GetInvoiceID(),
 			Trigger:   billing.TriggerPaymentUncollectible,
 		})
 		s.Error(err, "failed to handle payment trigger")

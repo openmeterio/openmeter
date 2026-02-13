@@ -183,7 +183,7 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 		// total should be $2
 		s.Equal(float64(2), invoice.Totals.Amount.InexactFloat64())
 
-		invoiceID = invoice.InvoiceID()
+		invoiceID = invoice.GetInvoiceID()
 	})
 
 	// Given the draft invoice is in waiting for collection state
@@ -595,7 +595,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 		s.MockStreamingConnector.AddSimpleEvent(apiRequestsTotalFeature.Feature.Key, 1, newLinePeriod.Start.Add(time.Minute*30))
 
 		invoice, err = s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-			Invoice: invoice.InvoiceID(),
+			Invoice: invoice.GetInvoiceID(),
 			Expand: billing.StandardInvoiceExpands{
 				billing.StandardInvoiceExpandLines,
 			},
@@ -604,7 +604,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 
 		s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
 
-		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.InvoiceID())
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
 		s.NoError(err)
 
 		s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)

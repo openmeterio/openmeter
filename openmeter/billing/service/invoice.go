@@ -359,7 +359,7 @@ func (s *Service) GetInvoiceById(ctx context.Context, input billing.GetInvoiceBy
 func (s *Service) advanceUntilStateStable(ctx context.Context, sm *InvoiceStateMachine) error {
 	if s.advancementStrategy == billing.QueuedAdvancementStrategy {
 		return s.publisher.Publish(ctx, billing.AdvanceStandardInvoiceEvent{
-			Invoice:    sm.Invoice.InvoiceID(),
+			Invoice:    sm.Invoice.GetInvoiceID(),
 			CustomerID: sm.Invoice.Customer.CustomerID,
 		})
 	}
@@ -385,7 +385,7 @@ func (s *Service) withLockedInvoiceStateMachine(
 	ctx context.Context,
 	in withLockedStateMachineInput,
 ) (billing.StandardInvoice, error) {
-	invoiceHeader, err := s.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+	invoiceHeader, err := s.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
 		Invoice: in.InvoiceID,
 		Expand:  nil, // We just need the customer ID at this point
 	})
@@ -393,7 +393,16 @@ func (s *Service) withLockedInvoiceStateMachine(
 		return billing.StandardInvoice{}, fmt.Errorf("fetching invoice: %w", err)
 	}
 
-	return transactionForInvoiceManipulation(ctx, s, invoiceHeader.CustomerID(), func(ctx context.Context) (billing.StandardInvoice, error) {
+	if invoiceHeader.Type() != billing.InvoiceTypeStandard {
+		return billing.StandardInvoice{}, fmt.Errorf("invoice[%s] is not a standard invoice, state machine should not be used for manipulation", in.InvoiceID.ID)
+	}
+
+	standardInvoice, err := invoiceHeader.AsStandardInvoice()
+	if err != nil {
+		return billing.StandardInvoice{}, fmt.Errorf("converting invoice to standard invoice: %w", err)
+	}
+
+	return transactionForInvoiceManipulation(ctx, s, standardInvoice.CustomerID(), func(ctx context.Context) (billing.StandardInvoice, error) {
 		invoice, err := s.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: in.InvoiceID,
 			Expand: billing.StandardInvoiceExpandAll.

@@ -124,7 +124,7 @@ func (a App) PostAdvanceStandardInvoiceHook(ctx context.Context, invoice billing
 	switch targetStatus {
 	case TargetPaymentStatusFailed:
 		return out.InvokeTrigger(billing.InvoiceTriggerInput{
-			Invoice: invoice.InvoiceID(),
+			Invoice: invoice.GetInvoiceID(),
 			Trigger: billing.TriggerFailed,
 			ValidationErrors: &billing.InvoiceTriggerValidationInput{
 				Operation: billing.StandardInvoiceOpInitiatePayment,
@@ -133,19 +133,19 @@ func (a App) PostAdvanceStandardInvoiceHook(ctx context.Context, invoice billing
 		}), nil
 	case TargetPaymentStatusUncollectible:
 		return out.InvokeTrigger(billing.InvoiceTriggerInput{
-			Invoice: invoice.InvoiceID(),
+			Invoice: invoice.GetInvoiceID(),
 			Trigger: billing.TriggerPaymentUncollectible,
 		}), nil
 	case TargetPaymentStatusActionRequired:
 		return out.InvokeTrigger(billing.InvoiceTriggerInput{
-			Invoice: invoice.InvoiceID(),
+			Invoice: invoice.GetInvoiceID(),
 			Trigger: billing.TriggerActionRequired,
 		}), nil
 	case TargetPaymentStatusPaid:
 		fallthrough
 	default:
 		return out.InvokeTrigger(billing.InvoiceTriggerInput{
-			Invoice: invoice.InvoiceID(),
+			Invoice: invoice.GetInvoiceID(),
 			Trigger: billing.TriggerPaid,
 		}), nil
 	}

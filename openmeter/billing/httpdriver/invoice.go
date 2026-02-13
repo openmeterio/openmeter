@@ -80,6 +80,11 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 			}, nil
 		},
 		func(ctx context.Context, request ListInvoicesRequest) (ListInvoicesResponse, error) {
+			// Let's mandate properly set page size and page number.
+			if err := request.Page.Validate(); err != nil {
+				return ListInvoicesResponse{}, models.NewGenericValidationError(err)
+			}
+
 			invoices, err := h.service.ListInvoices(ctx, request)
 			if err != nil {
 				return ListInvoicesResponse{}, err

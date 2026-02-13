@@ -34,12 +34,22 @@ func (e Expand[T]) Has(value T) bool {
 	return slices.Contains(e, value)
 }
 
-func (e Expand[T]) With(value T) Expand[T] {
+func (e Expand[T]) Clone() Expand[T] {
 	out := make(Expand[T], len(e))
 	copy(out, e)
-	out = append(out, value)
-
 	return out
+}
+
+func (e Expand[T]) With(value T) Expand[T] {
+	cloned := e.Clone()
+
+	if slices.Contains(cloned, value) {
+		return cloned
+	}
+
+	cloned = append(cloned, value)
+
+	return cloned
 }
 
 func (e Expand[T]) Without(value T) Expand[T] {
