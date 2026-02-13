@@ -38,7 +38,7 @@ func (s *Service) SnapshotLineQuantity(ctx context.Context, input billing.Snapsh
 }
 
 func (s *Service) snapshotMeteredLineQuantity(ctx context.Context, line *billing.StandardLine, customer billing.InvoiceCustomer, featureMeters billing.FeatureMeters) error {
-	featureMeter, err := featureMeters.Get(line.UsageBased.FeatureKey, true)
+	featureMeter, err := featureMeters.Get(line.FeatureKey, true)
 	if err != nil {
 		return err
 	}
@@ -56,18 +56,18 @@ func (s *Service) snapshotMeteredLineQuantity(ctx context.Context, line *billing
 	}
 
 	// MeteredQuantity is not mutable by the price mutators, that's why we have this redundancy
-	line.UsageBased.MeteredQuantity = lo.ToPtr(usage.LinePeriodQty)
-	line.UsageBased.Quantity = lo.ToPtr(usage.LinePeriodQty)
-	line.UsageBased.PreLinePeriodQuantity = lo.ToPtr(usage.PreLinePeriodQty)
-	line.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(usage.PreLinePeriodQty)
+	line.MeteredQuantity = lo.ToPtr(usage.LinePeriodQty)
+	line.Quantity = lo.ToPtr(usage.LinePeriodQty)
+	line.PreLinePeriodQuantity = lo.ToPtr(usage.PreLinePeriodQty)
+	line.MeteredPreLinePeriodQuantity = lo.ToPtr(usage.PreLinePeriodQty)
 	return nil
 }
 
 func (s *Service) snapshotFlatPriceLineQuantity(_ context.Context, line *billing.StandardLine) error {
-	line.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(1))
-	line.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(1))
-	line.UsageBased.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
-	line.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+	line.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(1))
+	line.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(1))
+	line.PreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
+	line.MeteredPreLinePeriodQuantity = lo.ToPtr(alpacadecimal.Zero)
 	return nil
 }
 

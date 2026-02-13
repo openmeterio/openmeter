@@ -185,6 +185,7 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 		return nil, fmt.Errorf("resolving feature meters: %w", err)
 	}
 
+	// TODO: Use convertGatheringLinesToStandardLines instead of AsStandardLine
 	inScopeLines := lo.FilterMap(invoice.Lines.OrEmpty(), func(line billing.GatheringLine, _ int) (*billing.StandardLine, bool) {
 		return lo.ToPtr(line.AsStandardLine()), line.DeletedAt == nil
 	})

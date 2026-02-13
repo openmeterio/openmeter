@@ -15,12 +15,7 @@ func isFlatFee(line billing.GenericInvoiceLineReader) bool {
 		return false
 	}
 
-	price := line.GetPrice()
-	if price == nil {
-		return false
-	}
-
-	if price.Type() == productcatalog.FlatPriceType {
+	if line.GetPrice().Type() == productcatalog.FlatPriceType {
 		return true
 	}
 
@@ -33,10 +28,6 @@ func getFlatFeePerUnitAmount(line billing.GenericInvoiceLineReader) (alpacadecim
 	}
 
 	price := line.GetPrice()
-
-	if price == nil {
-		return alpacadecimal.Zero, fmt.Errorf("line misses usage based metadata")
-	}
 
 	flatPrice, err := price.AsFlat()
 	if err != nil {
@@ -52,10 +43,6 @@ func setFlatFeePerUnitAmount(line billing.GenericInvoiceLine, perUnitAmount alpa
 	}
 
 	price := line.GetPrice()
-	if price == nil {
-		return fmt.Errorf("line misses usage based metadata")
-	}
-
 	flatPrice, err := price.AsFlat()
 	if err != nil {
 		return err

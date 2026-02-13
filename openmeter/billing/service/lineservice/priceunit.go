@@ -13,7 +13,7 @@ type unitPricer struct {
 var _ Pricer = (*unitPricer)(nil)
 
 func (p unitPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, error) {
-	unitPrice, err := l.line.UsageBased.Price.AsUnit()
+	unitPrice, err := l.line.Price.AsUnit()
 	if err != nil {
 		return nil, fmt.Errorf("converting price to unit price: %w", err)
 	}

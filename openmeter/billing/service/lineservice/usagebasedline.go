@@ -1,7 +1,6 @@
 package lineservice
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -45,7 +44,7 @@ func (l *usageBasedLine) UpdateTotals() error {
 }
 
 func (l *usageBasedLine) CalculateDetailedLines() error {
-	if l.line.UsageBased.Quantity == nil || l.line.UsageBased.PreLinePeriodQuantity == nil {
+	if l.line.Quantity == nil || l.line.PreLinePeriodQuantity == nil {
 		// This is an internal logic error, as the snapshotting should have set these values
 		return fmt.Errorf("quantity and pre-line period quantity must be set for line[%s]", l.line.ID)
 	}
@@ -78,9 +77,6 @@ func formatMaximumSpendDiscountDescription(amount alpacadecimal.Decimal) *string
 
 func newPricerFor(line PriceAccessor) (Pricer, error) {
 	price := line.GetPrice()
-	if price == nil {
-		return nil, errors.New("price is nil")
-	}
 
 	if price.Type() == productcatalog.FlatPriceType {
 		return &priceMutator{

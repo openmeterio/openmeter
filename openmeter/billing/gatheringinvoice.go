@@ -420,7 +420,7 @@ func (i GatheringLineBase) Validate() error {
 		errs = append(errs, fmt.Errorf("price: %w", err))
 	}
 
-	if err := i.RateCardDiscounts.ValidateForPrice(&i.Price); err != nil {
+	if err := i.RateCardDiscounts.ValidateForPrice(i.Price); err != nil {
 		errs = append(errs, fmt.Errorf("rate card discounts: %w", err))
 	}
 
@@ -479,8 +479,8 @@ func (i GatheringLineBase) GetServicePeriod() timeutil.ClosedPeriod {
 	return i.ServicePeriod
 }
 
-func (i GatheringLineBase) GetPrice() *productcatalog.Price {
-	return &i.Price
+func (i GatheringLineBase) GetPrice() productcatalog.Price {
+	return i.Price
 }
 
 func (i *GatheringLineBase) SetPrice(price productcatalog.Price) {
@@ -679,10 +679,8 @@ func (g GatheringLine) AsStandardLine() StandardLine {
 			TaxConfig:              g.TaxConfig,
 			RateCardDiscounts:      g.RateCardDiscounts,
 			Subscription:           g.Subscription,
-		},
-		UsageBased: &UsageBasedLine{
-			Price:      &g.Price,
-			FeatureKey: g.FeatureKey,
+			Price:                  g.Price,
+			FeatureKey:             g.FeatureKey,
 		},
 
 		SplitLineHierarchy: g.SplitLineHierarchy,

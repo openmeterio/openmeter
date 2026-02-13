@@ -127,8 +127,8 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 				}
 
 				create = create.
-					SetNillableQuantity(line.UsageBased.Quantity).
-					SetUsageBasedLineID(line.UsageBased.ConfigID).
+					SetNillableQuantity(line.Quantity).
+					SetUsageBasedLineID(line.UBPConfigID).
 					SetNillableFlatFeeLineID(nil)
 
 				return create, nil
@@ -564,19 +564,19 @@ func (a *adapter) upsertDetailedLineAmountDiscountsV2(ctx context.Context, in de
 func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs entitydiff.Diff[*billing.StandardLine]) error {
 	return upsertWithOptions(ctx, a.db, lineDiffs, upsertInput[*billing.StandardLine, *db.BillingInvoiceUsageBasedLineConfigCreate]{
 		Create: func(tx *db.Client, line *billing.StandardLine) (*db.BillingInvoiceUsageBasedLineConfigCreate, error) {
-			if line.UsageBased.ConfigID == "" {
-				line.UsageBased.ConfigID = ulid.Make().String()
+			if line.UBPConfigID == "" {
+				line.UBPConfigID = ulid.Make().String()
 			}
 
 			create := tx.BillingInvoiceUsageBasedLineConfig.Create().
 				SetNamespace(line.Namespace).
-				SetPriceType(line.UsageBased.Price.Type()).
-				SetPrice(line.UsageBased.Price).
-				SetFeatureKey(line.UsageBased.FeatureKey).
-				SetID(line.UsageBased.ConfigID).
-				SetNillablePreLinePeriodQuantity(line.UsageBased.PreLinePeriodQuantity).
-				SetNillableMeteredQuantity(line.UsageBased.MeteredQuantity).
-				SetNillableMeteredPreLinePeriodQuantity(line.UsageBased.MeteredPreLinePeriodQuantity)
+				SetPriceType(line.Price.Type()).
+				SetPrice(&line.Price).
+				SetFeatureKey(line.FeatureKey).
+				SetID(line.UBPConfigID).
+				SetNillablePreLinePeriodQuantity(line.PreLinePeriodQuantity).
+				SetNillableMeteredQuantity(line.MeteredQuantity).
+				SetNillableMeteredPreLinePeriodQuantity(line.MeteredPreLinePeriodQuantity)
 
 			return create, nil
 		},

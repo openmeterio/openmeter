@@ -20,7 +20,7 @@ func (p packagePricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput,
 		return nil, err
 	}
 
-	packagePrice, err := l.line.UsageBased.Price.AsPackage()
+	packagePrice, err := l.line.Price.AsPackage()
 	if err != nil {
 		return nil, fmt.Errorf("converting price to package price: %w", err)
 	}

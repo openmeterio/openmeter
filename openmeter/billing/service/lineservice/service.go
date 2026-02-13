@@ -22,7 +22,7 @@ func FromEntity(line *billing.StandardLine, featureMeters billing.FeatureMeters)
 		featureMeters: featureMeters,
 	}
 
-	if line.UsageBased.Price.Type() == productcatalog.FlatPriceType {
+	if line.Price.Type() == productcatalog.FlatPriceType {
 		return &ubpFlatFeeLine{
 			lineBase: base,
 		}, nil

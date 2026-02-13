@@ -602,7 +602,7 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 
 			Currency: line.Currency,
 
-			Price:      lo.ToPtr(line.Price),
+			Price:      line.Price,
 			FeatureKey: lo.EmptyableToPtr(line.FeatureKey),
 
 			Subscription: line.Subscription,
@@ -962,10 +962,8 @@ func convertGatheringLineToNewStandardLine(line billing.GatheringLine, invoiceID
 			ChildUniqueReferenceID: line.ChildUniqueReferenceID,
 			Subscription:           subscription,
 			SplitLineGroupID:       line.SplitLineGroupID,
-		},
-		UsageBased: &billing.UsageBasedLine{
-			Price:      lo.ToPtr(line.Price),
-			FeatureKey: line.FeatureKey,
+			Price:                  line.Price,
+			FeatureKey:             line.FeatureKey,
 		},
 
 		DBState: nil, // We don't want to reuse the state from the gathering line (so let's make it explicit)

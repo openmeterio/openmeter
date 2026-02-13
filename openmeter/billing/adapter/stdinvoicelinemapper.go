@@ -52,6 +52,19 @@ func (a *adapter) mapStandardInvoiceLinesFromDB(schemaLevelByInvoiceID map[strin
 }
 
 func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine) (*billing.StandardLine, error) {
+	if dbLine.Type != billing.InvoiceLineAdapterTypeUsageBased {
+		return nil, fmt.Errorf("only usage based lines can be top level lines [line_id=%s]", dbLine.ID)
+	}
+
+	ubpLine := dbLine.Edges.UsageBasedLine
+	if ubpLine == nil {
+		return nil, fmt.Errorf("manual usage based line is missing")
+	}
+
+	if ubpLine.Price == nil {
+		return nil, fmt.Errorf("usage based line price is missing")
+	}
+
 	invoiceLine := &billing.StandardLine{
 		StandardLineBase: billing.StandardLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -96,6 +109,14 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 			ExternalIDs: billing.LineExternalIDs{
 				Invoicing: lo.FromPtr(dbLine.InvoicingAppExternalID),
 			},
+
+			UBPConfigID:                  ubpLine.ID,
+			FeatureKey:                   lo.FromPtr(ubpLine.FeatureKey),
+			Price:                        *ubpLine.Price,
+			Quantity:                     dbLine.Quantity,
+			MeteredQuantity:              ubpLine.MeteredQuantity,
+			PreLinePeriodQuantity:        ubpLine.PreLinePeriodQuantity,
+			MeteredPreLinePeriodQuantity: ubpLine.MeteredPreLinePeriodQuantity,
 		},
 	}
 
@@ -109,25 +130,6 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 				To:   lo.FromPtr(dbLine.SubscriptionBillingPeriodTo).In(time.UTC),
 			},
 		}
-	}
-
-	if dbLine.Type != billing.InvoiceLineAdapterTypeUsageBased {
-		return nil, fmt.Errorf("only usage based lines can be top level lines [line_id=%s]", dbLine.ID)
-	}
-
-	ubpLine := dbLine.Edges.UsageBasedLine
-	if ubpLine == nil {
-		return nil, fmt.Errorf("manual usage based line is missing")
-	}
-
-	invoiceLine.UsageBased = &billing.UsageBasedLine{
-		ConfigID:                     ubpLine.ID,
-		FeatureKey:                   lo.FromPtr(ubpLine.FeatureKey),
-		Price:                        ubpLine.Price,
-		Quantity:                     dbLine.Quantity,
-		MeteredQuantity:              ubpLine.MeteredQuantity,
-		PreLinePeriodQuantity:        ubpLine.PreLinePeriodQuantity,
-		MeteredPreLinePeriodQuantity: ubpLine.MeteredPreLinePeriodQuantity,
 	}
 
 	if len(dbLine.Edges.LineUsageDiscounts) > 0 {

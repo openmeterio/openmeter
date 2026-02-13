@@ -61,9 +61,7 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 			}),
 			Currency:          "USD",
 			RateCardDiscounts: tc.discounts,
-		},
-		UsageBased: &billing.UsageBasedLine{
-			Price: lo.ToPtr(tc.price),
+			Price:             tc.price,
 		},
 	}
 
@@ -115,10 +113,10 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 	}
 
 	// Let's set the usage on the line
-	line.UsageBased.Quantity = &tc.usage.LinePeriodQty
-	line.UsageBased.MeteredQuantity = &tc.usage.LinePeriodQty
-	line.UsageBased.PreLinePeriodQuantity = &tc.usage.PreLinePeriodQty
-	line.UsageBased.MeteredPreLinePeriodQuantity = &tc.usage.PreLinePeriodQty
+	line.Quantity = &tc.usage.LinePeriodQty
+	line.MeteredQuantity = &tc.usage.LinePeriodQty
+	line.PreLinePeriodQuantity = &tc.usage.PreLinePeriodQty
+	line.MeteredPreLinePeriodQuantity = &tc.usage.PreLinePeriodQty
 
 	lineBase := lineBase{
 		line:     line,
@@ -126,7 +124,7 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 	}
 
 	var lineImpl ubpLineCalculator
-	switch line.UsageBased.Price.Type() {
+	switch line.Price.Type() {
 	case productcatalog.FlatPriceType:
 		lineImpl = &ubpFlatFeeLine{
 			lineBase: lineBase,

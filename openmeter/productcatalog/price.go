@@ -285,11 +285,11 @@ func (p *Price) Equal(v *Price) bool {
 	}
 }
 
-func (p *Price) Type() PriceType {
+func (p Price) Type() PriceType {
 	return p.t
 }
 
-func (p *Price) AsFlat() (FlatPrice, error) {
+func (p Price) AsFlat() (FlatPrice, error) {
 	if p.t == "" || p.flat == nil {
 		return FlatPrice{}, errors.New("invalid FlatPrice: not initialized")
 	}
@@ -301,7 +301,7 @@ func (p *Price) AsFlat() (FlatPrice, error) {
 	return *p.flat, nil
 }
 
-func (p *Price) AsUnit() (UnitPrice, error) {
+func (p Price) AsUnit() (UnitPrice, error) {
 	if p.t == "" || p.unit == nil {
 		return UnitPrice{}, errors.New("invalid UnitPrice: not initialized")
 	}
@@ -313,7 +313,7 @@ func (p *Price) AsUnit() (UnitPrice, error) {
 	return *p.unit, nil
 }
 
-func (p *Price) AsTiered() (TieredPrice, error) {
+func (p Price) AsTiered() (TieredPrice, error) {
 	if p.t == "" || p.tiered == nil {
 		return TieredPrice{}, errors.New("invalid TieredPrice: not initialized")
 	}
@@ -325,7 +325,7 @@ func (p *Price) AsTiered() (TieredPrice, error) {
 	return *p.tiered, nil
 }
 
-func (p *Price) AsDynamic() (DynamicPrice, error) {
+func (p Price) AsDynamic() (DynamicPrice, error) {
 	if p.t == "" || p.dynamic == nil {
 		return DynamicPrice{}, errors.New("invalid DynamicPrice: not initialized")
 	}
@@ -337,7 +337,7 @@ func (p *Price) AsDynamic() (DynamicPrice, error) {
 	return *p.dynamic, nil
 }
 
-func (p *Price) AsPackage() (PackagePrice, error) {
+func (p Price) AsPackage() (PackagePrice, error) {
 	if p.t == "" || p.packagePrice == nil {
 		return PackagePrice{}, errors.New("invalid PackagePrice: not initialized")
 	}
@@ -398,7 +398,7 @@ func NewPriceFrom[T FlatPrice | UnitPrice | TieredPrice | DynamicPrice | Package
 	return p
 }
 
-func (p *Price) GetCommitments() Commitments {
+func (p Price) GetCommitments() Commitments {
 	switch p.t {
 	case FlatPriceType:
 		return Commitments{}
@@ -415,7 +415,7 @@ func (p *Price) GetCommitments() Commitments {
 	}
 }
 
-func (p *Price) GetPaymentTerm() PaymentTermType {
+func (p Price) GetPaymentTerm() PaymentTermType {
 	switch p.t {
 	case FlatPriceType:
 		// It's only an option for flat prices

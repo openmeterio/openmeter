@@ -36,7 +36,7 @@ func (a *adapter) CreateSplitLineGroup(ctx context.Context, input billing.Create
 			SetServicePeriodEnd(input.ServicePeriod.End.UTC()).
 			SetCurrency(input.Currency).
 			SetRatecardDiscounts(&input.RatecardDiscounts).
-			SetPrice(input.Price).
+			SetPrice(&input.Price).
 			SetNillableTaxConfig(input.TaxConfig).
 			SetNillableFeatureKey(input.FeatureKey)
 
@@ -170,6 +170,10 @@ func (a *adapter) mapSplitLineGroupFromDB(dbSplitLineGroup *db.BillingInvoiceSpl
 		}
 	}
 
+	if dbSplitLineGroup.Price == nil {
+		return billing.SplitLineGroup{}, fmt.Errorf("price is required")
+	}
+
 	return billing.SplitLineGroup{
 		NamespacedID: models.NamespacedID{
 			Namespace: dbSplitLineGroup.Namespace,
@@ -197,7 +201,7 @@ func (a *adapter) mapSplitLineGroupFromDB(dbSplitLineGroup *db.BillingInvoiceSpl
 		UniqueReferenceID: dbSplitLineGroup.UniqueReferenceID,
 
 		Currency:     dbSplitLineGroup.Currency,
-		Price:        dbSplitLineGroup.Price,
+		Price:        *dbSplitLineGroup.Price,
 		FeatureKey:   dbSplitLineGroup.FeatureKey,
 		Subscription: subscriptionRef,
 	}, nil

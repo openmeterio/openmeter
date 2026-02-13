@@ -17,7 +17,7 @@ type tieredPricer struct {
 var _ Pricer = (*tieredPricer)(nil)
 
 func (p tieredPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, error) {
-	price, err := l.line.UsageBased.Price.AsTiered()
+	price, err := l.line.Price.AsTiered()
 	if err != nil {
 		return nil, fmt.Errorf("converting price to tiered price: %w", err)
 	}

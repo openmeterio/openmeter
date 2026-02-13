@@ -12,16 +12,13 @@ import (
 )
 
 type PriceAccessor interface {
-	GetPrice() *productcatalog.Price
+	GetPrice() productcatalog.Price
 	GetServicePeriod() timeutil.ClosedPeriod
 	GetFeatureKey() string
 }
 
 func IsPeriodEmptyConsideringTruncations(line PriceAccessor) (bool, error) {
 	price := line.GetPrice()
-	if price == nil {
-		return false, fmt.Errorf("price is nil")
-	}
 
 	if price.Type() == productcatalog.FlatPriceType {
 		// Flat prices are always billable even if the period is empty
@@ -83,9 +80,6 @@ func ResolveBillablePeriod[T PricerCanBeInvoicedAsOfAccessor](in ResolveBillable
 	}
 
 	price := in.Line.GetPrice()
-	if price == nil {
-		return nil, fmt.Errorf("price is nil")
-	}
 
 	meterTypeAllowsProgressiveBilling := false
 	if price.Type() != productcatalog.FlatPriceType && in.ProgressiveBilling {

@@ -552,15 +552,13 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 							Namespace: namespace,
 							Name:      "UBP - unit - new",
 						}),
-						Currency:  currencyx.Code(currency.USD),
-						InvoiceID: invoice.ID,
-						Period:    newLinePeriod,
-						InvoiceAt: newLinePeriod.End,
-						ManagedBy: billing.ManuallyManagedLine,
-					},
-					UsageBased: &billing.UsageBasedLine{
+						Currency:   currencyx.Code(currency.USD),
+						InvoiceID:  invoice.ID,
+						Period:     newLinePeriod,
+						InvoiceAt:  newLinePeriod.End,
+						ManagedBy:  billing.ManuallyManagedLine,
 						FeatureKey: apiRequestsTotalFeature.Feature.Key,
-						Price:      productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(3)}),
+						Price:      lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(3)})),
 
 						// Note: this emulates a per line quantity snapshot, that would be done by a normal edit flow
 						Quantity:                     lo.ToPtr(alpacadecimal.NewFromFloat(0)),

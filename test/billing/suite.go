@@ -349,7 +349,7 @@ func (s *BaseSuite) DebugDumpStandardInvoice(h string, i billing.StandardInvoice
 			deleted = " (deleted)"
 		}
 
-		priceJson, err := json.Marshal(line.UsageBased.Price)
+		priceJson, err := json.Marshal(line.Price)
 		s.NoError(err)
 
 		s.T().Logf("usage[%s..%s] childUniqueReferenceID: %s, invoiceAt: %s, qty: %s, price: %s (total=%s) %s\n",
@@ -357,7 +357,7 @@ func (s *BaseSuite) DebugDumpStandardInvoice(h string, i billing.StandardInvoice
 			line.Period.End.Format(time.RFC3339),
 			lo.FromPtrOr(line.ChildUniqueReferenceID, "null"),
 			line.InvoiceAt.Format(time.RFC3339),
-			line.UsageBased.Quantity,
+			line.Quantity,
 			string(priceJson),
 			line.Totals.Total.String(),
 			deleted)

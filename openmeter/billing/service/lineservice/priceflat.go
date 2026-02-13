@@ -18,7 +18,7 @@ type flatPricer struct{}
 var _ Pricer = (*flatPricer)(nil)
 
 func (p flatPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, error) {
-	flatPrice, err := l.line.UsageBased.Price.AsFlat()
+	flatPrice, err := l.line.Price.AsFlat()
 	if err != nil {
 		return nil, fmt.Errorf("converting price to flat price: %w", err)
 	}

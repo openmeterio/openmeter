@@ -28,22 +28,22 @@ type usage struct {
 func (i PricerCalculateInput) GetUsage() (usage, error) {
 	empty := usage{}
 
-	if i.line.UsageBased.Quantity == nil {
+	if i.line.Quantity == nil {
 		return empty, fmt.Errorf("usage based line[%s]: quantity is nil", i.line.ID)
 	}
 
-	if i.line.UsageBased.PreLinePeriodQuantity == nil {
+	if i.line.PreLinePeriodQuantity == nil {
 		return empty, fmt.Errorf("usage based line[%s]: pre line period quantity is nil", i.line.ID)
 	}
 
 	return usage{
-		LinePeriodQuantity:    *i.line.UsageBased.Quantity,
-		PreLinePeriodQuantity: *i.line.UsageBased.PreLinePeriodQuantity,
+		LinePeriodQuantity:    *i.line.Quantity,
+		PreLinePeriodQuantity: *i.line.PreLinePeriodQuantity,
 	}, nil
 }
 
 func (i PricerCalculateInput) LinePeriodQuantity() alpacadecimal.Decimal {
-	return *i.line.UsageBased.Quantity
+	return *i.line.Quantity
 }
 
 type PricerCanBeInvoicedAsOfAccessor interface {
