@@ -784,6 +784,15 @@ func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLin
 		}
 	}
 
+	// Temporary restrictions on subscription managed lines until we have proper charges support
+	if oldBase.Subscription != nil {
+		if !oldBase.Period.Equal(existing.Period) {
+			return nil, false, billing.ValidationError{
+				Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineNoPeriodChangeForSubscriptionManagedLine),
+			}
+		}
+	}
+
 	return existing, wasChange, nil
 }
 
@@ -853,6 +862,15 @@ func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLi
 	if old.SplitLineGroupID != nil && !old.ServicePeriod.Equal(existing.ServicePeriod) {
 		return billing.GatheringLine{}, billing.ValidationError{
 			Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineNoPeriodChangeForSplitLine),
+		}
+	}
+
+	// Temporary restrictions on subscription managed lines until we have proper charges support
+	if old.Subscription != nil {
+		if !old.ServicePeriod.Equal(existing.ServicePeriod) {
+			return billing.GatheringLine{}, billing.ValidationError{
+				Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineNoPeriodChangeForSubscriptionManagedLine),
+			}
 		}
 	}
 
