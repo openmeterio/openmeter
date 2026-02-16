@@ -96,6 +96,18 @@ type Tx struct {
 	Grant *GrantClient
 	// LLMCostPrice is the client for interacting with the LLMCostPrice builders.
 	LLMCostPrice *LLMCostPriceClient
+	// LedgerAccount is the client for interacting with the LedgerAccount builders.
+	LedgerAccount *LedgerAccountClient
+	// LedgerDimension is the client for interacting with the LedgerDimension builders.
+	LedgerDimension *LedgerDimensionClient
+	// LedgerEntry is the client for interacting with the LedgerEntry builders.
+	LedgerEntry *LedgerEntryClient
+	// LedgerSubAccount is the client for interacting with the LedgerSubAccount builders.
+	LedgerSubAccount *LedgerSubAccountClient
+	// LedgerTransaction is the client for interacting with the LedgerTransaction builders.
+	LedgerTransaction *LedgerTransactionClient
+	// LedgerTransactionGroup is the client for interacting with the LedgerTransactionGroup builders.
+	LedgerTransactionGroup *LedgerTransactionGroupClient
 	// Meter is the client for interacting with the Meter builders.
 	Meter *MeterClient
 	// NotificationChannel is the client for interacting with the NotificationChannel builders.
@@ -304,6 +316,12 @@ func (tx *Tx) init() {
 	tx.Feature = NewFeatureClient(tx.config)
 	tx.Grant = NewGrantClient(tx.config)
 	tx.LLMCostPrice = NewLLMCostPriceClient(tx.config)
+	tx.LedgerAccount = NewLedgerAccountClient(tx.config)
+	tx.LedgerDimension = NewLedgerDimensionClient(tx.config)
+	tx.LedgerEntry = NewLedgerEntryClient(tx.config)
+	tx.LedgerSubAccount = NewLedgerSubAccountClient(tx.config)
+	tx.LedgerTransaction = NewLedgerTransactionClient(tx.config)
+	tx.LedgerTransactionGroup = NewLedgerTransactionGroupClient(tx.config)
 	tx.Meter = NewMeterClient(tx.config)
 	tx.NotificationChannel = NewNotificationChannelClient(tx.config)
 	tx.NotificationEvent = NewNotificationEventClient(tx.config)

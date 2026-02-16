@@ -55,6 +55,12 @@ import (
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/llmcostprice"
 
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
@@ -177,6 +183,12 @@ func checkColumn(t, c string) error {
 			dbfeature.Table:                                        dbfeature.ValidColumn,
 			dbgrant.Table:                                          dbgrant.ValidColumn,
 			llmcostprice.Table:                                     llmcostprice.ValidColumn,
+			ledgeraccount.Table:                                    ledgeraccount.ValidColumn,
+			ledgerdimension.Table:                                  ledgerdimension.ValidColumn,
+			ledgerentry.Table:                                      ledgerentry.ValidColumn,
+			ledgersubaccount.Table:                                 ledgersubaccount.ValidColumn,
+			ledgertransaction.Table:                                ledgertransaction.ValidColumn,
+			ledgertransactiongroup.Table:                           ledgertransactiongroup.ValidColumn,
 			dbmeter.Table:                                          dbmeter.ValidColumn,
 			notificationchannel.Table:                              notificationchannel.ValidColumn,
 			notificationevent.Table:                                notificationevent.ValidColumn,

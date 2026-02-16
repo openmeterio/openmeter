@@ -1,34 +1,66 @@
 package account
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type Dimension struct {
-	ID          models.NamespacedID
+type DimensionData struct {
+	ID          string
+	Namespace   string
+	CreatedAt   time.Time
 	Annotations models.Annotations
 	models.ManagedModel
 
-	DimensionKey   string
-	DimensionValue string // TBD
+	DimensionKey          ledger.DimensionKey
+	DimensionValue        string // TBD
+	DimensionDisplayValue string
 }
 
-var _ ledger.Dimension = (*Dimension)(nil)
-
-func (d *Dimension) Equal(other ledger.Dimension) bool {
-	o, ok := other.(*Dimension)
-	if !ok {
-		return false
+func (d *DimensionData) AsCurrencyDimension() (*currencyDimension, error) {
+	if d.DimensionKey != ledger.DimensionKeyCurrency {
+		return nil, fmt.Errorf("dimension is not a currency dimension")
 	}
 
-	return d.DimensionKey == o.DimensionKey && d.DimensionValue == o.DimensionValue
+	return &currencyDimension{
+		data: *d,
+	}, nil
 }
 
-func (d *Dimension) Key() string {
-	return d.DimensionKey
+type currencyDimension struct {
+	data DimensionData
 }
 
-func (d *Dimension) Value() any {
-	return d.DimensionValue
+var _ ledger.DimensionCurrency = (*currencyDimension)(nil)
+
+func (d *currencyDimension) Equal(other ledger.Dimension[any]) bool {
+	return d.Key() == other.Key() && d.Value() == other.Value()
+}
+
+func (d *currencyDimension) Key() ledger.DimensionKey {
+	return ledger.DimensionKeyCurrency
+}
+
+func (d *currencyDimension) Value() string {
+	return d.data.DimensionValue
+}
+
+func (d *currencyDimension) DisplayValue() string {
+	return d.data.DimensionDisplayValue
+}
+
+// TODO: Implement other dimension types
+func (d *DimensionData) AsTaxCodeDimension() (ledger.DimensionTaxCode, error) {
+	return nil, ledger.ErrInvalidDimensionKey
+}
+
+func (d *DimensionData) AsFeatureDimension() (ledger.DimensionFeature, error) {
+	return nil, ledger.ErrInvalidDimensionKey
+}
+
+func (d *DimensionData) AsCreditPriorityDimension() (ledger.DimensionCreditPriority, error) {
+	return nil, ledger.ErrInvalidDimensionKey
 }

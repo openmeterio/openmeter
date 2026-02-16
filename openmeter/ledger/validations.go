@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
 
@@ -27,6 +28,32 @@ func ValidateInvariance(ctx context.Context, entries []EntryInput) error {
 
 func ValidateRouting(ctx context.Context, entries []EntryInput) error {
 	// TODO: Implement
+	return nil
+}
+
+func ValidateEntryInput(ctx context.Context, entry EntryInput) error {
+	// Let's validate the address
+	if err := ValidateAddress(ctx, entry.PostingAddress()); err != nil {
+		return fmt.Errorf("invalid address: %w", err)
+	}
+
+	return nil
+}
+
+func ValidateAddress(ctx context.Context, address PostingAddress) error {
+	// Let's validate address dimensions
+	// dimKeys := make(map[DimensionKey]bool)
+	// for _, dim := range address.Dimensions() {
+	// 	if err := ValidateDimensionByKey(dim); err != nil {
+	// 		return fmt.Errorf("invalid dimension: %w", err)
+	// 	}
+
+	// 	if _, ok := dimKeys[dim.Key()]; ok {
+	// 		return fmt.Errorf("dimension key %s is present multiple times", dim.Key())
+	// 	}
+	// 	dimKeys[dim.Key()] = true
+	// }
+
 	return nil
 }
 

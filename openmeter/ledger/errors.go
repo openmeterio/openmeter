@@ -17,3 +17,10 @@ var ErrCreditAccountBalanceIsNegative = models.NewValidationIssue(
 	ErrCodeCreditAccountBalanceIsNegative,
 	"credit account balance is negative",
 )
+
+var ErrCodeInvalidDimensionKey models.ErrorCode = "invalid_dimension_key"
+
+var ErrInvalidDimensionKey = models.NewValidationIssue(
+	ErrCodeInvalidDimensionKey,
+	"invalid dimension key",
+)
