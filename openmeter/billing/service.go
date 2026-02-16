@@ -18,6 +18,7 @@ type Service interface {
 	StandardInvoiceService
 	SequenceService
 	LockableService
+	ChargesService
 
 	InvoiceAppService
 
@@ -91,6 +92,9 @@ type InvoiceService interface {
 	// RecalculateGatheringInvoices recalculates the gathering invoices for a given customer, updating the
 	// collection_at attribute and deleting the gathering invoice if it has no lines.
 	RecalculateGatheringInvoices(ctx context.Context, input RecalculateGatheringInvoicesInput) error
+
+	// GetInvoiceLinesWithInvoiceHeaders gets the invoice lines with the invoice headers
+	GetInvoiceLinesWithInvoiceHeaders(ctx context.Context, input GetInvoiceLinesWithInvoiceHeadersInput) (GetInvoiceLinesWithInvoiceHeadersResponse, error)
 }
 
 type StandardInvoiceService interface {
@@ -136,4 +140,9 @@ type ConfigService interface {
 	GetAdvancementStrategy() AdvancementStrategy
 	WithAdvancementStrategy(strategy AdvancementStrategy) Service
 	WithLockedNamespaces(namespaces []string) Service
+}
+
+type ChargesService interface {
+	SetChargeIDsOnInvoiceLines(ctx context.Context, input SetChargeIDsOnInvoiceLinesInput) error
+	SetChargeIDsOnSplitlineGroups(ctx context.Context, input SetChargeIDsOnSplitlineGroupsInput) error
 }

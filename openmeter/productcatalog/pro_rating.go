@@ -32,6 +32,10 @@ type ProRatingConfig struct {
 func (p ProRatingConfig) Validate() error {
 	var errs []error
 
+	if !p.Enabled {
+		return nil
+	}
+
 	switch p.Mode {
 	case ProRatingModeProratePrices:
 		// Valid mode

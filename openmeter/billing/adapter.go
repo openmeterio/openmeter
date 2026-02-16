@@ -23,6 +23,7 @@ type Adapter interface {
 	InvoiceAppAdapter
 	CustomerSynchronizationAdapter
 	SchemaLevelAdapter
+	ChargesAdapter
 
 	entutils.TxCreator
 }
@@ -63,6 +64,7 @@ type InvoiceLineAdapter interface {
 	UpsertInvoiceLines(ctx context.Context, input UpsertInvoiceLinesAdapterInput) ([]*StandardLine, error)
 	ListInvoiceLines(ctx context.Context, input ListInvoiceLinesAdapterInput) ([]*StandardLine, error)
 	GetLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]LineOrHierarchy, error)
+	GetInvoiceLinesWithInvoiceHeaders(ctx context.Context, input GetInvoiceLinesWithInvoiceHeadersInput) (GetInvoiceLinesWithInvoiceHeadersResponse, error)
 }
 
 type InvoiceAdapter interface {
@@ -97,6 +99,11 @@ type InvoiceSplitLineGroupAdapter interface {
 	DeleteSplitLineGroup(ctx context.Context, input DeleteSplitLineGroupInput) error
 	GetSplitLineGroup(ctx context.Context, input GetSplitLineGroupInput) (SplitLineHierarchy, error)
 	GetSplitLineGroupHeaders(ctx context.Context, input GetSplitLineGroupHeadersInput) (SplitLineGroupHeaders, error)
+}
+
+type ChargesAdapter interface {
+	SetChargeIDsOnInvoiceLines(ctx context.Context, input SetChargeIDsOnInvoiceLinesInput) error
+	SetChargeIDsOnSplitlineGroups(ctx context.Context, input SetChargeIDsOnSplitlineGroupsInput) error
 }
 
 type SequenceAdapter interface {

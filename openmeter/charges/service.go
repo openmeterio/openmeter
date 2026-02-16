@@ -12,4 +12,6 @@ type Service interface {
 
 type ChargeService interface {
 	GetChargeByID(ctx context.Context, input models.NamespacedID) (Charge, error)
+	DeleteChargesByUniqueReferenceID(ctx context.Context, input DeleteChargesByUniqueReferenceIDInput) error
+	UpsertChargesByChildUniqueReferenceID(ctx context.Context, input UpsertChargesByChildUniqueReferenceIDInput) (Charges, error)
 }

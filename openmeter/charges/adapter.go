@@ -16,6 +16,8 @@ type Adapter interface {
 
 type ChargeAdapter interface {
 	GetChargeByID(ctx context.Context, input models.NamespacedID) (Charge, error)
+	UpsertChargesByChildUniqueReferenceID(ctx context.Context, input UpsertChargesByChildUniqueReferenceIDInput) (Charges, error)
+	DeleteChargesByUniqueReferenceID(ctx context.Context, input DeleteChargesByUniqueReferenceIDInput) error
 }
 
 type ProRatingModeAdapterEnum string
