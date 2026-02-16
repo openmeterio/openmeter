@@ -13,17 +13,11 @@ import (
 type Repo interface {
 	entutils.TxCreator
 
-	// Creates a list of entries and returns the data for the created entries
-	CreateEntries(ctx context.Context, entries []CreateEntryInput) ([]EntryData, error)
-
-	// Creates a transaction and returns the data for the created transaction
-	CreateTransaction(ctx context.Context, transaction CreateTransactionInput) (TransactionData, error)
-
-	// Creates a transaction group
+	// Create a transaction group
 	CreateTransactionGroup(ctx context.Context, transactionGroup CreateTransactionGroupInput) (TransactionGroupData, error)
 
-	// Lists entries and returns the data for the listed entries
-	ListEntries(ctx context.Context, input ListEntriesInput) (pagination.Result[EntryData], error)
+	// Book a transaction
+	BookTransaction(ctx context.Context, groupID models.NamespacedID, transaction *TransactionInput) (*Transaction, error)
 }
 
 // ----------------------------------------------------------------------------

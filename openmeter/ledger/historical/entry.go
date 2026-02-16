@@ -10,20 +10,9 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type CreateEntryInput struct {
-	Namespace string
-	// Annotations models.Annotations // TBD
-
-	AccountID    string
-	DimensionIDs []string
-
-	Amount        alpacadecimal.Decimal
-	TransactionID string
-}
-
 type EntryInput struct {
-	input   CreateEntryInput
-	address ledger.Address
+	amount  alpacadecimal.Decimal
+	address ledger.PostingAddress
 }
 
 // ----------------------------------------------------------------------------
@@ -32,12 +21,12 @@ type EntryInput struct {
 
 var _ ledger.EntryInput = (*EntryInput)(nil)
 
-func (e *EntryInput) Account() ledger.Address {
+func (e *EntryInput) PostingAddress() ledger.PostingAddress {
 	return e.address
 }
 
 func (e *EntryInput) Amount() alpacadecimal.Decimal {
-	return e.input.Amount
+	return e.amount
 }
 
 type EntryData struct {
@@ -46,10 +35,8 @@ type EntryData struct {
 	Annotations models.Annotations
 	CreatedAt   time.Time
 
-	AccountID          string
-	AccountType        ledger.AccountType
-	DimensionIDs       []string
-	DimensionsExpanded map[string]*account.Dimension
+	AccountID   string
+	AccountType ledger.AccountType
 
 	Amount        alpacadecimal.Decimal
 	TransactionID string
@@ -65,11 +52,10 @@ var _ ledger.Entry = (*Entry)(nil)
 // Let's implement ledger.Entry interface
 // ----------------------------------------------------------------------------
 
-func (e *Entry) Account() ledger.Address {
+func (e *Entry) PostingAddress() ledger.PostingAddress {
 	return account.NewAddressFromData(account.AddressData{
-		ID:          models.NamespacedID{Namespace: e.data.Namespace, ID: e.data.AccountID},
-		AccountType: e.data.AccountType,
-		Dimensions:  e.data.DimensionsExpanded,
+		SubAccountID: e.data.AccountID,
+		AccountType:  e.data.AccountType,
 	})
 }
 
