@@ -157,10 +157,6 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 		return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "IssueAfterResetPriority requires IssueAfterReset"}
 	}
 
-	if model.IssueAfterReset != nil && *model.IssueAfterReset < 0 {
-		return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "IssueAfterReset must be positive"}
-	}
-
 	measureUsageFrom := convert.SafeDeRef(
 		model.MeasureUsageFrom,
 		func(m entitlement.MeasureUsageFromInput) *time.Time {
