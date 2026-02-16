@@ -53,7 +53,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Depot CLI
-        uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1.6.0
+        uses: depot/setup-action@15c09a5f77a0840ad4bce955686522a257853461 # v1.7.1
 
       - name: Set image name
         id: image-name
@@ -157,7 +157,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Depot CLI
-        uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1.6.0
+        uses: depot/setup-action@15c09a5f77a0840ad4bce955686522a257853461 # v1.7.1
 
       - name: Set image name
         id: image-name
