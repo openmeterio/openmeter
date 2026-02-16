@@ -10,14 +10,14 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func (r *repo) CreateAccount(ctx context.Context, input ledgeraccount.CreateAccountInput) (ledgeraccount.Account, error) {
+func (r *repo) CreateAccount(ctx context.Context, input ledgeraccount.CreateAccountInput) (*ledgeraccount.Account, error) {
 	entity, err := r.db.LedgerAccount.Create().
 		SetNamespace(input.Namespace).
 		SetAccountType(input.Type).
 		SetAnnotations(input.Annotations).
 		Save(ctx)
 	if err != nil {
-		return ledgeraccount.Account{}, fmt.Errorf("failed to create ledger account: %w", err)
+		return nil, fmt.Errorf("failed to create ledger account: %w", err)
 	}
 
 	acc := ledgeraccount.NewAccountFromData(nil, ledgeraccount.AccountData{
@@ -34,10 +34,10 @@ func (r *repo) CreateAccount(ctx context.Context, input ledgeraccount.CreateAcco
 		AccountType: entity.AccountType,
 	})
 
-	return *acc, nil
+	return acc, nil
 }
 
-func (r *repo) GetAccountByID(ctx context.Context, id models.NamespacedID) (ledgeraccount.Account, error) {
+func (r *repo) GetAccountByID(ctx context.Context, id models.NamespacedID) (*ledgeraccount.Account, error) {
 	entity, err := r.db.LedgerAccount.Query().
 		Where(
 			ledgeraccountdb.Namespace(id.Namespace),
@@ -45,7 +45,7 @@ func (r *repo) GetAccountByID(ctx context.Context, id models.NamespacedID) (ledg
 		).
 		Only(ctx)
 	if err != nil {
-		return ledgeraccount.Account{}, fmt.Errorf("failed to get ledger account by id: %w", err)
+		return nil, fmt.Errorf("failed to get ledger account by id: %w", err)
 	}
 
 	acc := ledgeraccount.NewAccountFromData(nil, ledgeraccount.AccountData{
@@ -62,10 +62,10 @@ func (r *repo) GetAccountByID(ctx context.Context, id models.NamespacedID) (ledg
 		AccountType: entity.AccountType,
 	})
 
-	return *acc, nil
+	return acc, nil
 }
 
-func (r *repo) CreateDimension(ctx context.Context, input ledgeraccount.CreateDimensionInput) (ledgeraccount.Dimension, error) {
+func (r *repo) CreateDimension(ctx context.Context, input ledgeraccount.CreateDimensionInput) (*ledgeraccount.Dimension, error) {
 	entity, err := r.db.LedgerDimension.Create().
 		SetNamespace(input.Namespace).
 		SetAnnotations(input.Annotations).
@@ -73,10 +73,10 @@ func (r *repo) CreateDimension(ctx context.Context, input ledgeraccount.CreateDi
 		SetDimensionValue(input.Value).
 		Save(ctx)
 	if err != nil {
-		return ledgeraccount.Dimension{}, fmt.Errorf("failed to create ledger dimension: %w", err)
+		return nil, fmt.Errorf("failed to create ledger dimension: %w", err)
 	}
 
-	return ledgeraccount.Dimension{
+	return &ledgeraccount.Dimension{
 		ID: models.NamespacedID{
 			Namespace: entity.Namespace,
 			ID:        entity.ID,
@@ -92,7 +92,7 @@ func (r *repo) CreateDimension(ctx context.Context, input ledgeraccount.CreateDi
 	}, nil
 }
 
-func (r *repo) GetDimensionByID(ctx context.Context, id models.NamespacedID) (ledgeraccount.Dimension, error) {
+func (r *repo) GetDimensionByID(ctx context.Context, id models.NamespacedID) (*ledgeraccount.Dimension, error) {
 	entity, err := r.db.LedgerDimension.Query().
 		Where(
 			ledgerdimensiondb.Namespace(id.Namespace),
@@ -100,10 +100,10 @@ func (r *repo) GetDimensionByID(ctx context.Context, id models.NamespacedID) (le
 		).
 		Only(ctx)
 	if err != nil {
-		return ledgeraccount.Dimension{}, fmt.Errorf("failed to get ledger dimension by id: %w", err)
+		return nil, fmt.Errorf("failed to get ledger dimension by id: %w", err)
 	}
 
-	return ledgeraccount.Dimension{
+	return &ledgeraccount.Dimension{
 		ID: models.NamespacedID{
 			Namespace: entity.Namespace,
 			ID:        entity.ID,
