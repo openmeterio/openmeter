@@ -14,6 +14,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
+	"github.com/openmeterio/openmeter/openmeter/charges"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -201,7 +202,15 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 
 			patches = append(patches, newLinePatches...)
 
-			invoiceUpdater := NewInvoiceUpdater(s.billingService, s.logger)
+			invoiceUpdater, err := NewInvoiceUpdater(InvoiceUpdaterConfig{
+				BillingService:  s.billingService,
+				ChargesService:  s.chargesService,
+				BackfillCharges: s.backfillCharges,
+				Logger:          s.logger,
+			})
+			if err != nil {
+				return fmt.Errorf("creating invoice updater: %w", err)
+			}
 			if err := invoiceUpdater.ApplyPatches(ctx, customerID, patches); err != nil {
 				return fmt.Errorf("updating invoices: %w", err)
 			}
@@ -531,6 +540,11 @@ func (s *Service) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.
 			return nil, fmt.Errorf("generating expected line[%s]: %w", line.Target.UniqueID, err)
 		}
 
+		expectedCharge, err := s.chargeFromSubscriptionRateCard(subs, line.Target, currency)
+		if err != nil {
+			return nil, fmt.Errorf("generating expected charge[%s]: %w", line.Target.UniqueID, err)
+		}
+
 		// The line have 0 amount, so we are not going to bill it. This can happen if we are quickly changing subscriptions
 		// immediately.
 		if expectedLine == nil {
@@ -543,7 +557,7 @@ func (s *Service) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.
 			continue
 		}
 
-		updatePatches, err := s.getPatchesForExistingLineOrHierarchy(line.Existing, *expectedLine, invoiceByID)
+		updatePatches, err := s.getPatchesForExistingLineOrHierarchy(line.Existing, *expectedLine, expectedCharge, invoiceByID)
 		if err != nil {
 			return nil, fmt.Errorf("updating line[%s]: %w", line.Target.UniqueID, err)
 		}
@@ -781,7 +795,7 @@ func (s *Service) getNewUpcomingLinePatches(ctx context.Context, subs subscripti
 	}), nil
 }
 
-func (s *Service) getPatchesForExistingLineOrHierarchy(existingLine billing.LineOrHierarchy, expectedLine billing.GatheringLine, invoiceByID InvoiceByID) ([]linePatch, error) {
+func (s *Service) getPatchesForExistingLineOrHierarchy(existingLine billing.LineOrHierarchy, expectedLine billing.GatheringLine, expectedCharge *charges.Charge, invoiceByID InvoiceByID) ([]linePatch, error) {
 	// TODO/WARNING[later]: This logic should be fine with everything that can be billed progressively, however the following use-cases
 	// will behave strangely:
 	//
@@ -799,14 +813,43 @@ func (s *Service) getPatchesForExistingLineOrHierarchy(existingLine billing.Line
 			return nil, fmt.Errorf("getting line: %w", err)
 		}
 
-		return s.getPatchesForExistingLine(line, expectedLine, invoiceByID)
+		patches, err := s.getPatchesForExistingLine(line, expectedLine, invoiceByID)
+		if err != nil {
+			return nil, fmt.Errorf("getting patches for existing line: %w", err)
+		}
+
+		// Regardless of the change on the line (even if it's soft delete), let's upsert the charge and associate the lines
+		if expectedCharge != nil {
+			patches = append(patches, newUpsertChargeAndAssociateLinesPatch(*expectedCharge, line.GetLineID()))
+		}
+
+		return patches, nil
+
 	case billing.LineOrHierarchyTypeHierarchy:
 		group, err := existingLine.AsHierarchy()
 		if err != nil {
 			return nil, fmt.Errorf("getting hierarchy: %w", err)
 		}
 
-		return s.getPatchesForExistingHierarchy(group, expectedLine, invoiceByID)
+		patches, err := s.getPatchesForExistingHierarchy(group, expectedLine, invoiceByID)
+		if err != nil {
+			return nil, fmt.Errorf("getting patches for existing hierarchy: %w", err)
+		}
+
+		if expectedCharge != nil {
+			patches = append(patches, newUpsertChargeAndAssociateLinesPatchWithSplitLineGroup(
+				*expectedCharge,
+				lo.Map(group.Lines, func(l billing.LineWithInvoiceHeader, _ int) billing.LineID {
+					return l.Line.GetLineID()
+				}),
+				models.NamespacedID{
+					Namespace: group.Group.Namespace,
+					ID:        group.Group.ID,
+				},
+			))
+		}
+
+		return patches, nil
 	default:
 		return nil, fmt.Errorf("unsupported line or hierarchy type: %s", existingLine.Type())
 	}

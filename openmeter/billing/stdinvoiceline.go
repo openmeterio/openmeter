@@ -37,6 +37,7 @@ type StandardLineBase struct {
 	// Relationships
 	ParentLineID     *string `json:"parentLine,omitempty"`
 	SplitLineGroupID *string `json:"splitLineGroupId,omitempty"`
+	ChargeID         *string `json:"chargeID,omitempty"`
 
 	ChildUniqueReferenceID *string `json:"childUniqueReferenceID,omitempty"`
 

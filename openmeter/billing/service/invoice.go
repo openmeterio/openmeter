@@ -1009,3 +1009,15 @@ func (s *Service) UpdateInvoice(ctx context.Context, input billing.UpdateInvoice
 		return billing.NewInvoice(standardInvoice), nil
 	})
 }
+
+func (s *Service) GetInvoiceLinesWithInvoiceHeaders(ctx context.Context, input billing.GetInvoiceLinesWithInvoiceHeadersInput) (billing.GetInvoiceLinesWithInvoiceHeadersResponse, error) {
+	if err := input.Validate(); err != nil {
+		return billing.GetInvoiceLinesWithInvoiceHeadersResponse{}, billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.GetInvoiceLinesWithInvoiceHeadersResponse, error) {
+		return s.adapter.GetInvoiceLinesWithInvoiceHeaders(ctx, input)
+	})
+}

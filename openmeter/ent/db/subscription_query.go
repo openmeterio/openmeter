@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -36,6 +37,7 @@ type SubscriptionQuery struct {
 	withPhases                 *SubscriptionPhaseQuery
 	withBillingLines           *BillingInvoiceLineQuery
 	withBillingSplitLineGroups *BillingInvoiceSplitLineGroupQuery
+	withChargeIntents          *ChargeQuery
 	withAddons                 *SubscriptionAddonQuery
 	withBillingSyncState       *SubscriptionBillingSyncStateQuery
 	modifiers                  []func(*sql.Selector)
@@ -178,6 +180,28 @@ func (_q *SubscriptionQuery) QueryBillingSplitLineGroups() *BillingInvoiceSplitL
 			sqlgraph.From(subscription.Table, subscription.FieldID, selector),
 			sqlgraph.To(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, subscription.BillingSplitLineGroupsTable, subscription.BillingSplitLineGroupsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryChargeIntents chains the current query on the "charge_intents" edge.
+func (_q *SubscriptionQuery) QueryChargeIntents() *ChargeQuery {
+	query := (&ChargeClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscription.Table, subscription.FieldID, selector),
+			sqlgraph.To(charge.Table, charge.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscription.ChargeIntentsTable, subscription.ChargeIntentsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -426,6 +450,7 @@ func (_q *SubscriptionQuery) Clone() *SubscriptionQuery {
 		withPhases:                 _q.withPhases.Clone(),
 		withBillingLines:           _q.withBillingLines.Clone(),
 		withBillingSplitLineGroups: _q.withBillingSplitLineGroups.Clone(),
+		withChargeIntents:          _q.withChargeIntents.Clone(),
 		withAddons:                 _q.withAddons.Clone(),
 		withBillingSyncState:       _q.withBillingSyncState.Clone(),
 		// clone intermediate query.
@@ -486,6 +511,17 @@ func (_q *SubscriptionQuery) WithBillingSplitLineGroups(opts ...func(*BillingInv
 		opt(query)
 	}
 	_q.withBillingSplitLineGroups = query
+	return _q
+}
+
+// WithChargeIntents tells the query-builder to eager-load the nodes that are connected to
+// the "charge_intents" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *SubscriptionQuery) WithChargeIntents(opts ...func(*ChargeQuery)) *SubscriptionQuery {
+	query := (&ChargeClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withChargeIntents = query
 	return _q
 }
 
@@ -589,12 +625,13 @@ func (_q *SubscriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	var (
 		nodes       = []*Subscription{}
 		_spec       = _q.querySpec()
-		loadedTypes = [7]bool{
+		loadedTypes = [8]bool{
 			_q.withPlan != nil,
 			_q.withCustomer != nil,
 			_q.withPhases != nil,
 			_q.withBillingLines != nil,
 			_q.withBillingSplitLineGroups != nil,
+			_q.withChargeIntents != nil,
 			_q.withAddons != nil,
 			_q.withBillingSyncState != nil,
 		}
@@ -652,6 +689,13 @@ func (_q *SubscriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 			func(n *Subscription, e *BillingInvoiceSplitLineGroup) {
 				n.Edges.BillingSplitLineGroups = append(n.Edges.BillingSplitLineGroups, e)
 			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withChargeIntents; query != nil {
+		if err := _q.loadChargeIntents(ctx, query, nodes,
+			func(n *Subscription) { n.Edges.ChargeIntents = []*Charge{} },
+			func(n *Subscription, e *Charge) { n.Edges.ChargeIntents = append(n.Edges.ChargeIntents, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -811,6 +855,39 @@ func (_q *SubscriptionQuery) loadBillingSplitLineGroups(ctx context.Context, que
 	}
 	query.Where(predicate.BillingInvoiceSplitLineGroup(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(subscription.BillingSplitLineGroupsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.SubscriptionID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "subscription_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "subscription_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *SubscriptionQuery) loadChargeIntents(ctx context.Context, query *ChargeQuery, nodes []*Subscription, init func(*Subscription), assign func(*Subscription, *Charge)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Subscription)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(charge.FieldSubscriptionID)
+	}
+	query.Where(predicate.Charge(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(subscription.ChargeIntentsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

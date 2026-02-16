@@ -246,3 +246,18 @@ func (i InvoiceLine) AsGenericLine() (GenericInvoiceLine, error) {
 
 	return nil, fmt.Errorf("invalid invoice line type: %s", i.t)
 }
+
+type GetInvoiceLinesWithInvoiceHeadersInput struct {
+	Namespace string
+	LineIDs   []string
+}
+
+func (i GetInvoiceLinesWithInvoiceHeadersInput) Validate() error {
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
+	return nil
+}
+
+type GetInvoiceLinesWithInvoiceHeadersResponse = LinesWithInvoiceHeaders

@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -195,6 +196,21 @@ func (_c *SubscriptionPhaseCreate) AddBillingSplitLineGroups(v ...*BillingInvoic
 		ids[i] = v[i].ID
 	}
 	return _c.AddBillingSplitLineGroupIDs(ids...)
+}
+
+// AddChargeIntentIDs adds the "charge_intents" edge to the Charge entity by IDs.
+func (_c *SubscriptionPhaseCreate) AddChargeIntentIDs(ids ...string) *SubscriptionPhaseCreate {
+	_c.mutation.AddChargeIntentIDs(ids...)
+	return _c
+}
+
+// AddChargeIntents adds the "charge_intents" edges to the Charge entity.
+func (_c *SubscriptionPhaseCreate) AddChargeIntents(v ...*Charge) *SubscriptionPhaseCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChargeIntentIDs(ids...)
 }
 
 // Mutation returns the SubscriptionPhaseMutation object of the builder.
@@ -426,6 +442,22 @@ func (_c *SubscriptionPhaseCreate) createSpec() (*SubscriptionPhase, *sqlgraph.C
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargeIntentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionphase.ChargeIntentsTable,
+			Columns: []string{subscriptionphase.ChargeIntentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

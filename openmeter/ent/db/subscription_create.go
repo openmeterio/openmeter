@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -261,6 +262,21 @@ func (_c *SubscriptionCreate) AddBillingSplitLineGroups(v ...*BillingInvoiceSpli
 		ids[i] = v[i].ID
 	}
 	return _c.AddBillingSplitLineGroupIDs(ids...)
+}
+
+// AddChargeIntentIDs adds the "charge_intents" edge to the Charge entity by IDs.
+func (_c *SubscriptionCreate) AddChargeIntentIDs(ids ...string) *SubscriptionCreate {
+	_c.mutation.AddChargeIntentIDs(ids...)
+	return _c
+}
+
+// AddChargeIntents adds the "charge_intents" edges to the Charge entity.
+func (_c *SubscriptionCreate) AddChargeIntents(v ...*Charge) *SubscriptionCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChargeIntentIDs(ids...)
 }
 
 // AddAddonIDs adds the "addons" edge to the SubscriptionAddon entity by IDs.
@@ -588,6 +604,22 @@ func (_c *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargeIntentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscription.ChargeIntentsTable,
+			Columns: []string{subscription.ChargeIntentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

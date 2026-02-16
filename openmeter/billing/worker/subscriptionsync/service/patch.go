@@ -2,19 +2,23 @@ package service
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/charges"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type patchOperation string
 
 const (
-	patchOpLineCreate           patchOperation = "line_create"
-	patchOpLineDelete           patchOperation = "line_delete"
-	patchOpLineUpdate           patchOperation = "line_update"
-	patchOpSplitLineGroupDelete patchOperation = "split_line_group_delete"
-	patchOpSplitLineGroupUpdate patchOperation = "split_line_group_update"
+	patchOpLineCreate                      patchOperation = "line_create"
+	patchOpLineDelete                      patchOperation = "line_delete"
+	patchOpLineUpdate                      patchOperation = "line_update"
+	patchOpSplitLineGroupDelete            patchOperation = "split_line_group_delete"
+	patchOpSplitLineGroupUpdate            patchOperation = "split_line_group_update"
+	patchOpUpsertChargeAndAssociateLines   patchOperation = "upsert_charge_and_associate_lines"
+	patchOpDeleteChargeByUniqueReferenceID patchOperation = "delete_charge_by_unique_reference_id"
 )
 
 type linePatchLineCreate struct {
@@ -38,6 +42,16 @@ type linePatchSplitLineGroupUpdate struct {
 	TargetState billing.SplitLineGroupUpdate
 }
 
+type upsertChargeAndAssociateLinesPatch struct {
+	Charge                      charges.Charge
+	LinesIDsToAssociate         []billing.LineID
+	SplitLineGroupIDToAssociate *models.NamespacedID
+}
+
+type deleteChargeByUniqueReferenceIDPatch struct {
+	UniqueReferenceID string
+}
+
 type linePatch struct {
 	op patchOperation
 
@@ -47,6 +61,10 @@ type linePatch struct {
 
 	deleteSplitLineGroupPatch linePatchSplitLineGroupDelete
 	updateSplitLineGroupPatch linePatchSplitLineGroupUpdate
+
+	// Charges
+	upsertChargeAndAssociateLinesPatch   upsertChargeAndAssociateLinesPatch
+	deleteChargeByUniqueReferenceIDPatch deleteChargeByUniqueReferenceIDPatch
 }
 
 func (p linePatch) Op() patchOperation {
@@ -91,6 +109,22 @@ func (p linePatch) AsUpdateSplitLineGroupPatch() (linePatchSplitLineGroupUpdate,
 	}
 
 	return p.updateSplitLineGroupPatch, nil
+}
+
+func (p linePatch) AsUpsertChargeAndAssociateLinesPatch() (upsertChargeAndAssociateLinesPatch, error) {
+	if p.op != patchOpUpsertChargeAndAssociateLines {
+		return upsertChargeAndAssociateLinesPatch{}, fmt.Errorf("expected upsert charge and associate lines patch, got %s", p.op)
+	}
+
+	return p.upsertChargeAndAssociateLinesPatch, nil
+}
+
+func (p linePatch) AsDeleteChargeByUniqueReferenceIDPatch() (deleteChargeByUniqueReferenceIDPatch, error) {
+	if p.op != patchOpDeleteChargeByUniqueReferenceID {
+		return deleteChargeByUniqueReferenceIDPatch{}, fmt.Errorf("expected delete charge by unique reference ID patch, got %s", p.op)
+	}
+
+	return p.deleteChargeByUniqueReferenceIDPatch, nil
 }
 
 func newDeleteLinePatch(lineID billing.LineID, invoiceID string) linePatch {
@@ -139,6 +173,36 @@ func newCreateLinePatch(line billing.GatheringLine) linePatch {
 	}
 }
 
+func newUpsertChargeAndAssociateLinesPatch(charge charges.Charge, linesIDsToAssociate ...billing.LineID) linePatch {
+	return linePatch{
+		op: patchOpUpsertChargeAndAssociateLines,
+		upsertChargeAndAssociateLinesPatch: upsertChargeAndAssociateLinesPatch{
+			Charge:              charge,
+			LinesIDsToAssociate: linesIDsToAssociate,
+		},
+	}
+}
+
+func newUpsertChargeAndAssociateLinesPatchWithSplitLineGroup(charge charges.Charge, linesIDsToAssociate []billing.LineID, splitLineGroupID models.NamespacedID) linePatch {
+	return linePatch{
+		op: patchOpUpsertChargeAndAssociateLines,
+		upsertChargeAndAssociateLinesPatch: upsertChargeAndAssociateLinesPatch{
+			Charge:                      charge,
+			LinesIDsToAssociate:         linesIDsToAssociate,
+			SplitLineGroupIDToAssociate: &splitLineGroupID,
+		},
+	}
+}
+
+func newDeleteChargeByUniqueReferenceIDPatch(uniqueReferenceID string) linePatch {
+	return linePatch{
+		op: patchOpDeleteChargeByUniqueReferenceID,
+		deleteChargeByUniqueReferenceIDPatch: deleteChargeByUniqueReferenceIDPatch{
+			UniqueReferenceID: uniqueReferenceID,
+		},
+	}
+}
+
 func (s *Service) getDeletePatchesForLine(lineOrHierarchy billing.LineOrHierarchy) ([]linePatch, error) {
 	switch lineOrHierarchy.Type() {
 	case billing.LineOrHierarchyTypeLine:
@@ -147,14 +211,20 @@ func (s *Service) getDeletePatchesForLine(lineOrHierarchy billing.LineOrHierarch
 			return nil, fmt.Errorf("getting line: %w", err)
 		}
 
-		// Ignored lines do not take part in syncing so we skip them
-		if line.GetAnnotations().GetBool(billing.AnnotationSubscriptionSyncIgnore) {
-			return nil, nil
+		chargePatch := []linePatch{}
+		if uniqueReferenceID := line.GetChildUniqueReferenceID(); uniqueReferenceID != nil {
+			chargePatch = append(chargePatch, newDeleteChargeByUniqueReferenceIDPatch(*uniqueReferenceID))
 		}
 
-		return []linePatch{
-			newDeleteLinePatch(line.GetLineID(), line.GetInvoiceID()),
-		}, nil
+		// Ignored lines do not take part in syncing so we skip them
+		if line.GetAnnotations().GetBool(billing.AnnotationSubscriptionSyncIgnore) {
+			return chargePatch, nil
+		}
+
+		return slices.Concat(
+			chargePatch,
+			[]linePatch{newDeleteLinePatch(line.GetLineID(), line.GetInvoiceID())},
+		), nil
 	case billing.LineOrHierarchyTypeHierarchy:
 		group, err := lineOrHierarchy.AsHierarchy()
 		if err != nil {
@@ -176,6 +246,10 @@ func (s *Service) getDeletePatchesForLine(lineOrHierarchy billing.LineOrHierarch
 			}
 
 			out = append(out, newDeleteLinePatch(line.Line.GetLineID(), line.Invoice.GetID()))
+		}
+
+		if group.Group.UniqueReferenceID != nil {
+			out = append(out, newDeleteChargeByUniqueReferenceIDPatch(*group.Group.UniqueReferenceID))
 		}
 
 		return out, nil

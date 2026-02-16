@@ -57,9 +57,11 @@ type SubscriptionPhaseEdges struct {
 	BillingLines []*BillingInvoiceLine `json:"billing_lines,omitempty"`
 	// BillingSplitLineGroups holds the value of the billing_split_line_groups edge.
 	BillingSplitLineGroups []*BillingInvoiceSplitLineGroup `json:"billing_split_line_groups,omitempty"`
+	// ChargeIntents holds the value of the charge_intents edge.
+	ChargeIntents []*Charge `json:"charge_intents,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // SubscriptionOrErr returns the Subscription value or an error if the edge
@@ -98,6 +100,15 @@ func (e SubscriptionPhaseEdges) BillingSplitLineGroupsOrErr() ([]*BillingInvoice
 		return e.BillingSplitLineGroups, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_split_line_groups"}
+}
+
+// ChargeIntentsOrErr returns the ChargeIntents value or an error if the edge
+// was not loaded in eager-loading.
+func (e SubscriptionPhaseEdges) ChargeIntentsOrErr() ([]*Charge, error) {
+	if e.loadedTypes[4] {
+		return e.ChargeIntents, nil
+	}
+	return nil, &NotLoadedError{edge: "charge_intents"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -236,6 +247,11 @@ func (_m *SubscriptionPhase) QueryBillingLines() *BillingInvoiceLineQuery {
 // QueryBillingSplitLineGroups queries the "billing_split_line_groups" edge of the SubscriptionPhase entity.
 func (_m *SubscriptionPhase) QueryBillingSplitLineGroups() *BillingInvoiceSplitLineGroupQuery {
 	return NewSubscriptionPhaseClient(_m.config).QueryBillingSplitLineGroups(_m)
+}
+
+// QueryChargeIntents queries the "charge_intents" edge of the SubscriptionPhase entity.
+func (_m *SubscriptionPhase) QueryChargeIntents() *ChargeQuery {
+	return NewSubscriptionPhaseClient(_m.config).QueryChargeIntents(_m)
 }
 
 // Update returns a builder for updating this SubscriptionPhase.

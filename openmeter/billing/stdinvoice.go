@@ -35,6 +35,13 @@ const (
 	StandardInvoiceStatusCategoryVoided            StandardInvoiceStatusCategory = "voided"
 )
 
+var StandardInvoiceMutableStatusCategories = []StandardInvoiceStatusCategory{
+	StandardInvoiceStatusCategoryDraft,
+	StandardInvoiceStatusCategoryDelete,
+	StandardInvoiceStatusCategoryDeleted,
+	StandardInvoiceStatusCategoryIssuing,
+}
+
 func (s StandardInvoiceStatusCategory) MatchesInvoiceStatus(status StandardInvoiceStatus) bool {
 	return status.ShortStatus() == string(s)
 }

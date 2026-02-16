@@ -17,6 +17,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
+	chargesadapter "github.com/openmeterio/openmeter/openmeter/charges/adapter"
+	chargeservice "github.com/openmeterio/openmeter/openmeter/charges/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -55,8 +57,21 @@ func (s *SuiteBase) SetupSuite() {
 	s.NoError(err)
 	s.Adapter = adapter
 
+	chargesAdapter, err := chargesadapter.New(chargesadapter.Config{
+		Client: s.DBClient,
+		Logger: slog.Default(),
+	})
+	s.NoError(err)
+
+	chargesService, err := chargeservice.New(chargeservice.Config{
+		Adapter: chargesAdapter,
+	})
+	s.NoError(err)
+
 	service, err := New(Config{
 		BillingService:          s.BillingService,
+		ChargesService:          chargesService,
+		BackfillCharges:         true,
 		Logger:                  slog.Default(),
 		Tracer:                  noop.NewTracerProvider().Tracer("test"),
 		SubscriptionSyncAdapter: adapter,
