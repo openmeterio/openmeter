@@ -12,16 +12,16 @@ type Repo interface {
 	entutils.TxCreator
 
 	// CreateAccount creates a new account
-	CreateAccount(ctx context.Context, input CreateAccountInput) (Account, error)
+	CreateAccount(ctx context.Context, input CreateAccountInput) (*Account, error)
 
 	// GetAccountByID returns the account by its ID
-	GetAccountByID(ctx context.Context, id models.NamespacedID) (Account, error)
+	GetAccountByID(ctx context.Context, id models.NamespacedID) (*Account, error)
 
 	// CreateDimension creates a new dimension
-	CreateDimension(ctx context.Context, input CreateDimensionInput) (Dimension, error)
+	CreateDimension(ctx context.Context, input CreateDimensionInput) (*Dimension, error)
 
 	// GetDimensionByID returns the dimension by its ID
-	GetDimensionByID(ctx context.Context, id models.NamespacedID) (Dimension, error)
+	GetDimensionByID(ctx context.Context, id models.NamespacedID) (*Dimension, error)
 }
 
 type CreateAccountInput struct {

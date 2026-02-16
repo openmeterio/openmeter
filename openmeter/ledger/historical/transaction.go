@@ -39,23 +39,6 @@ func (t *TransactionInput) AsGroupInput(annotations models.Annotations) ledger.T
 	}
 }
 
-type TransactionGroupInput struct {
-	transactions []*TransactionInput
-	annotations  models.Annotations
-}
-
-var _ ledger.TransactionGroupInput = (*TransactionGroupInput)(nil)
-
-func (t *TransactionGroupInput) Transactions() []ledger.TransactionInput {
-	return lo.Map(t.transactions, func(t *TransactionInput, _ int) ledger.TransactionInput {
-		return t
-	})
-}
-
-func (t *TransactionGroupInput) Annotations() models.Annotations {
-	return t.annotations
-}
-
 // ----------------------------------------------------------------------------
 // Implementation specific methods
 // ----------------------------------------------------------------------------
@@ -90,6 +73,23 @@ func (t *TransactionInput) Validate(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+type TransactionGroupInput struct {
+	transactions []*TransactionInput
+	annotations  models.Annotations
+}
+
+var _ ledger.TransactionGroupInput = (*TransactionGroupInput)(nil)
+
+func (t *TransactionGroupInput) Transactions() []ledger.TransactionInput {
+	return lo.Map(t.transactions, func(t *TransactionInput, _ int) ledger.TransactionInput {
+		return t
+	})
+}
+
+func (t *TransactionGroupInput) Annotations() models.Annotations {
+	return t.annotations
 }
 
 type Transaction struct {
