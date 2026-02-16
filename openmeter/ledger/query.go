@@ -49,8 +49,8 @@ func (p Query) Validate() error {
 type Filters struct {
 	// BookedAtPeriod is inclusive-exclusive... should it be? Maybe finally add period inclusivity params?
 	BookedAtPeriod *timeutil.OpenPeriod
-	Account        Address
 	TransactionID  *string
+	Dimensions     QueryDimensions
 }
 
 type QuerySummedResult struct {

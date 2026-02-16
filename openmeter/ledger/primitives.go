@@ -16,13 +16,12 @@ import (
 // Account primitives
 // ----------------------------------------------------------------------------
 
-// Contains routing information for the account
-type Address interface {
-	models.Equaler[Address]
+// PostingAddress encapsulates an address you can post-against. This is a one-to-one mapping to a SubAccount, this address format exists for routing purposes where the full sub-sccount isn't needed.
+type PostingAddress interface {
+	models.Equaler[PostingAddress]
 
-	ID() models.NamespacedID
-	Type() AccountType
-	Dimensions() []Dimension
+	SubAccountID() string
+	AccountType() AccountType
 }
 
 type Balance interface {
@@ -30,24 +29,34 @@ type Balance interface {
 	Pending() alpacadecimal.Decimal
 }
 
-// Account represents a ledger account.
-type Account interface {
-	Address() Address
+// SubAccount is an actual address you can post against. It has all required routing information provided.
+// Accounts describe ownership and purpose while SubAccounts parameterize the actual posting address.
+type SubAccount interface {
+	// Returns the address of the sub-account
+	Address() PostingAddress
 
-	// SubAccount returns a new account that is a sub-account of the current account defined by the given dimensions.
-	SubAccount(...Dimension) (Account, error)
-
-	// Gets the current account balance
-	GetBalance(ctx context.Context) (Balance, error)
-
-	// ListEntries(ctx context.Context, params any) (pagination.Result[LedgerEntry], error)
+	Dimensions() SubAccountDimensions
 }
 
-type Dimension interface {
-	models.Equaler[Dimension]
+// QueryDimensions is the set of dimensions that can be used to query the balance of an account
+type QueryDimensions struct {
+	CurrencyID string
 
-	Key() string // can be typed but str should be fine
-	Value() any
+	// TaxCodeID is the ID of the tax code that the sub-account uses.
+	TaxCodeID *string
+
+	// FeatureIDs is the IDs of the features that the sub-account uses.
+	FeatureIDs []string
+
+	// CreditPriority is the priority of the funds in the sub-account
+	CreditPriority *int
+}
+
+// Account represents a ledger account tying together multiple sub-accounts.
+// Accounts describe ownership and purpose while SubAccounts parameterize the actual posting address.
+type Account interface {
+	// Balance can be queried across sub-accounts according to QueryDimensions
+	GetBalance(ctx context.Context, query QueryDimensions) (Balance, error)
 }
 
 // ----------------------------------------------------------------------------
@@ -55,7 +64,7 @@ type Dimension interface {
 // ----------------------------------------------------------------------------
 
 type EntryInput interface {
-	Account() Address
+	PostingAddress() PostingAddress
 	Amount() alpacadecimal.Decimal
 }
 
@@ -67,7 +76,7 @@ type Entry interface {
 type TransactionInput interface {
 	BookedAt() time.Time
 	EntryInputs() []EntryInput
-	AsGroupInput(annotations models.Annotations) TransactionGroupInput
+	AsGroupInput(namespace string, annotations models.Annotations) TransactionGroupInput
 }
 
 // Transaction represents a list of entries booked at the same time
@@ -78,6 +87,7 @@ type Transaction interface {
 }
 
 type TransactionGroupInput interface {
+	Namespace() string
 	Transactions() []TransactionInput
 	Annotations() models.Annotations
 }
@@ -93,24 +103,26 @@ type TransactionGroup interface {
 // ----------------------------------------------------------------------------
 
 type Ledger interface {
-	// GetAccount retreives an account from the Ledger
-	GetAccount(ctx context.Context, address Address) (Account, error)
-
 	// SetUpTransactionInput is a no-op that runs some validations and returns a TransactionInput object that can be committed later
+	// FIXME: maybe we don't need this:
+	// - This isn't an actual two step flow
+	// - This cannot become an actual two step flow without locking
+	// - This cannot run further validations without knowing the namespace
 	SetUpTransactionInput(ctx context.Context, at time.Time, entries []EntryInput) (TransactionInput, error)
 
 	// CommitGroup commits a list of transactions on the Ledger atomically
 	CommitGroup(ctx context.Context, group TransactionGroupInput) (TransactionGroup, error)
 
-	// // ListTransactions lists transactions on the Ledger according to some filters
-	// //
-	// // TODO: Cursoring gets problematic due to diff between wall_clock and booked_at. It would be convenient to return in order of booked_at as that simplifies parsing. This API will likely change.
-	// ListTransactions(ctx context.Context, params ListTransactionsInput) (pagination.Result[Transaction], error)
+	// ListTransactions lists transactions on the Ledger according to some filters
+	//
+	// TODO: Cursoring gets problematic due to diff between wall_clock and booked_at. It would be convenient to return in order of booked_at as that simplifies parsing. This API will likely change.
+	ListTransactions(ctx context.Context, params ListTransactionsInput) (pagination.Result[Transaction], error)
 }
 
 type ListTransactionsInput struct {
-	Cursor *pagination.Cursor
-	Limit  int
+	Namespace string
+	Cursor    *pagination.Cursor
+	Limit     int
 
 	TransactionID *models.NamespacedID
 }
