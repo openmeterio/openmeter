@@ -26,3 +26,7 @@ func (s *Service) ListCurrencies() ([]*currency.Def, error) {
 		return def
 	}), nil
 }
+
+func (s *Service) CreateCustomCurrency(namespace string, currency *currency.Def) (*currency.Def, error) {
+	return currency, nil
+}

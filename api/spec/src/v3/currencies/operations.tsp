@@ -33,6 +33,14 @@ model CurrenciesResponse {
   data: Currency[];
 }
 
+/**
+ * Create custom currencies response
+ */
+@friendlyName("CustomCurrencyResponse")
+model CustomCurrencyResponse {
+  @statusCode _: 202;
+}
+
 interface CurrenciesOperations {
   /**
    * List all supported currencies.
@@ -41,4 +49,12 @@ interface CurrenciesOperations {
   @operationId("list-currencies")
   @summary("List currencies")
   list(): CurrenciesResponse | Common.ErrorResponses;
+
+  @post
+  @operationId("create-custom-currency")
+  @summary("Create custom currency")
+  create(
+    @header contentType: "application/json",
+    @body body: Currencies.CustomCurrency
+  ): CustomCurrencyResponse | Common.ErrorResponses;
 }

@@ -99,6 +99,26 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Billing
+    post:
+      operationId: create-custom-currency
+      summary: Create custom currency
+      responses:
+        '202':
+          description: Create custom currencies response
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Billing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingCustomCurrency'
   /openmeter/customers:
     post:
       operationId: create-customer
@@ -1856,6 +1876,41 @@ components:
           description: Smallest denomination of the currency.
           readOnly: true
       description: Currency describes a currency supported by the billing system.
+    BillingCustomCurrency:
+      type: object
+      required:
+        - id
+        - code
+        - name
+        - symbol
+        - smallest_denomination
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        code:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: Custom currency code based on Standard ISO 4217 code.
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Custom Currency name
+        symbol:
+          type: string
+          description: Custom Currency symbol
+        smallest_denomination:
+          type: integer
+          format: uint8
+          description: Smallest denomination of the custom currency
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+      description: CustomCurrency describes a custom currency by the billing system
     BillingCustomer:
       type: object
       required:
