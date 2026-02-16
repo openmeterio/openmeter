@@ -1831,6 +1831,275 @@ var (
 			},
 		},
 	}
+	// LedgerAccountsColumns holds the columns for the "ledger_accounts" table.
+	LedgerAccountsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "account_type", Type: field.TypeString},
+	}
+	// LedgerAccountsTable holds the schema information for the "ledger_accounts" table.
+	LedgerAccountsTable = &schema.Table{
+		Name:       "ledger_accounts",
+		Columns:    LedgerAccountsColumns,
+		PrimaryKey: []*schema.Column{LedgerAccountsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "ledgeraccount_id",
+				Unique:  true,
+				Columns: []*schema.Column{LedgerAccountsColumns[0]},
+			},
+			{
+				Name:    "ledgeraccount_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerAccountsColumns[1]},
+			},
+			{
+				Name:    "ledgeraccount_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerAccountsColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
+				Name:    "ledgeraccount_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{LedgerAccountsColumns[1], LedgerAccountsColumns[0]},
+			},
+		},
+	}
+	// LedgerDimensionsColumns holds the columns for the "ledger_dimensions" table.
+	LedgerDimensionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "dimension_key", Type: field.TypeString},
+		{Name: "dimension_value", Type: field.TypeString},
+	}
+	// LedgerDimensionsTable holds the schema information for the "ledger_dimensions" table.
+	LedgerDimensionsTable = &schema.Table{
+		Name:       "ledger_dimensions",
+		Columns:    LedgerDimensionsColumns,
+		PrimaryKey: []*schema.Column{LedgerDimensionsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "ledgerdimension_id",
+				Unique:  true,
+				Columns: []*schema.Column{LedgerDimensionsColumns[0]},
+			},
+			{
+				Name:    "ledgerdimension_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerDimensionsColumns[1]},
+			},
+			{
+				Name:    "ledgerdimension_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerDimensionsColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
+				Name:    "ledgerdimension_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{LedgerDimensionsColumns[1], LedgerDimensionsColumns[0]},
+			},
+			{
+				Name:    "ledgerdimension_namespace_dimension_key_dimension_value",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerDimensionsColumns[1], LedgerDimensionsColumns[6], LedgerDimensionsColumns[7]},
+			},
+		},
+	}
+	// LedgerEntriesColumns holds the columns for the "ledger_entries" table.
+	LedgerEntriesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "account_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "account_type", Type: field.TypeString},
+		{Name: "dimension_ids", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "text[]"}},
+		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "transaction_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// LedgerEntriesTable holds the schema information for the "ledger_entries" table.
+	LedgerEntriesTable = &schema.Table{
+		Name:       "ledger_entries",
+		Columns:    LedgerEntriesColumns,
+		PrimaryKey: []*schema.Column{LedgerEntriesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "ledger_entries_ledger_transactions_entries",
+				Columns:    []*schema.Column{LedgerEntriesColumns[10]},
+				RefColumns: []*schema.Column{LedgerTransactionsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "ledgerentry_id",
+				Unique:  true,
+				Columns: []*schema.Column{LedgerEntriesColumns[0]},
+			},
+			{
+				Name:    "ledgerentry_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerEntriesColumns[1]},
+			},
+			{
+				Name:    "ledgerentry_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerEntriesColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
+				Name:    "ledgerentry_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{LedgerEntriesColumns[1], LedgerEntriesColumns[0]},
+			},
+			{
+				Name:    "ledgerentry_namespace_transaction_id",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerEntriesColumns[1], LedgerEntriesColumns[10]},
+			},
+			{
+				Name:    "ledgerentry_namespace_account_id",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerEntriesColumns[1], LedgerEntriesColumns[6]},
+			},
+			{
+				Name:    "ledgerentry_created_at_id",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerEntriesColumns[3], LedgerEntriesColumns[0]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+		},
+	}
+	// LedgerTransactionsColumns holds the columns for the "ledger_transactions" table.
+	LedgerTransactionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "booked_at", Type: field.TypeTime},
+		{Name: "group_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// LedgerTransactionsTable holds the schema information for the "ledger_transactions" table.
+	LedgerTransactionsTable = &schema.Table{
+		Name:       "ledger_transactions",
+		Columns:    LedgerTransactionsColumns,
+		PrimaryKey: []*schema.Column{LedgerTransactionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "ledger_transactions_ledger_transaction_groups_transactions",
+				Columns:    []*schema.Column{LedgerTransactionsColumns[7]},
+				RefColumns: []*schema.Column{LedgerTransactionGroupsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "ledgertransaction_id",
+				Unique:  true,
+				Columns: []*schema.Column{LedgerTransactionsColumns[0]},
+			},
+			{
+				Name:    "ledgertransaction_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerTransactionsColumns[1]},
+			},
+			{
+				Name:    "ledgertransaction_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerTransactionsColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
+				Name:    "ledgertransaction_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{LedgerTransactionsColumns[1], LedgerTransactionsColumns[0]},
+			},
+			{
+				Name:    "ledgertransaction_namespace_group_id",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerTransactionsColumns[1], LedgerTransactionsColumns[7]},
+			},
+			{
+				Name:    "ledgertransaction_namespace_booked_at",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerTransactionsColumns[1], LedgerTransactionsColumns[6]},
+			},
+		},
+	}
+	// LedgerTransactionGroupsColumns holds the columns for the "ledger_transaction_groups" table.
+	LedgerTransactionGroupsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+	}
+	// LedgerTransactionGroupsTable holds the schema information for the "ledger_transaction_groups" table.
+	LedgerTransactionGroupsTable = &schema.Table{
+		Name:       "ledger_transaction_groups",
+		Columns:    LedgerTransactionGroupsColumns,
+		PrimaryKey: []*schema.Column{LedgerTransactionGroupsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "ledgertransactiongroup_id",
+				Unique:  true,
+				Columns: []*schema.Column{LedgerTransactionGroupsColumns[0]},
+			},
+			{
+				Name:    "ledgertransactiongroup_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerTransactionGroupsColumns[1]},
+			},
+			{
+				Name:    "ledgertransactiongroup_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerTransactionGroupsColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
+				Name:    "ledgertransactiongroup_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{LedgerTransactionGroupsColumns[1], LedgerTransactionGroupsColumns[0]},
+			},
+		},
+	}
 	// MetersColumns holds the columns for the "meters" table.
 	MetersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -2968,6 +3237,11 @@ var (
 		EntitlementsTable,
 		FeaturesTable,
 		GrantsTable,
+		LedgerAccountsTable,
+		LedgerDimensionsTable,
+		LedgerEntriesTable,
+		LedgerTransactionsTable,
+		LedgerTransactionGroupsTable,
 		MetersTable,
 		NotificationChannelsTable,
 		NotificationEventsTable,
@@ -3036,6 +3310,8 @@ func init() {
 	EntitlementsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[1].RefTable = FeaturesTable
 	GrantsTable.ForeignKeys[0].RefTable = EntitlementsTable
+	LedgerEntriesTable.ForeignKeys[0].RefTable = LedgerTransactionsTable
+	LedgerTransactionsTable.ForeignKeys[0].RefTable = LedgerTransactionGroupsTable
 	NotificationEventsTable.ForeignKeys[0].RefTable = NotificationRulesTable
 	PlanAddonsTable.ForeignKeys[0].RefTable = AddonsTable
 	PlanAddonsTable.ForeignKeys[1].RefTable = PlansTable

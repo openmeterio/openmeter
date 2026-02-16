@@ -33,7 +33,27 @@ func (t *TransactionInput) EntryInputs() []ledger.EntryInput {
 }
 
 func (t *TransactionInput) AsGroupInput(annotations models.Annotations) ledger.TransactionGroupInput {
-	panic("not implemented")
+	return &TransactionGroupInput{
+		transactions: []*TransactionInput{t},
+		annotations:  annotations,
+	}
+}
+
+type TransactionGroupInput struct {
+	transactions []*TransactionInput
+	annotations  models.Annotations
+}
+
+var _ ledger.TransactionGroupInput = (*TransactionGroupInput)(nil)
+
+func (t *TransactionGroupInput) Transactions() []ledger.TransactionInput {
+	return lo.Map(t.transactions, func(t *TransactionInput, _ int) ledger.TransactionInput {
+		return t
+	})
+}
+
+func (t *TransactionGroupInput) Annotations() models.Annotations {
+	return t.annotations
 }
 
 // ----------------------------------------------------------------------------

@@ -369,6 +369,66 @@ func (f GrantFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.GrantMutation", m)
 }
 
+// The LedgerAccountFunc type is an adapter to allow the use of ordinary
+// function as LedgerAccount mutator.
+type LedgerAccountFunc func(context.Context, *db.LedgerAccountMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LedgerAccountFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.LedgerAccountMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.LedgerAccountMutation", m)
+}
+
+// The LedgerDimensionFunc type is an adapter to allow the use of ordinary
+// function as LedgerDimension mutator.
+type LedgerDimensionFunc func(context.Context, *db.LedgerDimensionMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LedgerDimensionFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.LedgerDimensionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.LedgerDimensionMutation", m)
+}
+
+// The LedgerEntryFunc type is an adapter to allow the use of ordinary
+// function as LedgerEntry mutator.
+type LedgerEntryFunc func(context.Context, *db.LedgerEntryMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LedgerEntryFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.LedgerEntryMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.LedgerEntryMutation", m)
+}
+
+// The LedgerTransactionFunc type is an adapter to allow the use of ordinary
+// function as LedgerTransaction mutator.
+type LedgerTransactionFunc func(context.Context, *db.LedgerTransactionMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LedgerTransactionFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.LedgerTransactionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.LedgerTransactionMutation", m)
+}
+
+// The LedgerTransactionGroupFunc type is an adapter to allow the use of ordinary
+// function as LedgerTransactionGroup mutator.
+type LedgerTransactionGroupFunc func(context.Context, *db.LedgerTransactionGroupMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LedgerTransactionGroupFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.LedgerTransactionGroupMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.LedgerTransactionGroupMutation", m)
+}
+
 // The MeterFunc type is an adapter to allow the use of ordinary
 // function as Meter mutator.
 type MeterFunc func(context.Context, *db.MeterMutation) (db.Value, error)

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -103,7 +102,7 @@ func (a *Account) GetBalance(ctx context.Context) (ledger.Balance, error) {
 		Cursor:    lastClosingCursor,
 		Filters: ledger.Filters{
 			BookedAtPeriod: periodSinceListClosing,
-			Account:        lo.ToPtr(a.Address()),
+			Account:        a.Address(),
 		},
 	}
 
