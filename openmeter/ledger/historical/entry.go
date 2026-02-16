@@ -15,6 +15,7 @@ type CreateEntryInput struct {
 	// Annotations models.Annotations // TBD
 
 	AccountID    string
+	AccountType  ledger.AccountType
 	DimensionIDs []string
 
 	Amount        alpacadecimal.Decimal

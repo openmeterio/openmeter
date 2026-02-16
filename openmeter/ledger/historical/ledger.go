@@ -73,9 +73,10 @@ func (l *Ledger) SetUpTransactionInput(ctx context.Context, at time.Time, entrie
 
 		return &EntryInput{
 			input: CreateEntryInput{
-				AccountID: addr.ID().ID,
-				Amount:    e.Amount(),
-				Namespace: addr.ID().Namespace,
+				AccountID:   addr.ID().ID,
+				AccountType: addr.Type(),
+				Amount:      e.Amount(),
+				Namespace:   addr.ID().Namespace,
 				DimensionIDs: lo.MapToSlice(addrData.Dimensions, func(_ string, value *account.Dimension) string {
 					return value.ID.ID
 				}),
@@ -100,12 +101,11 @@ func (l *Ledger) SetUpTransactionInput(ctx context.Context, at time.Time, entrie
 }
 
 func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupInput) (ledger.TransactionGroup, error) {
-	// We will
-	txInputs := make([]*TransactionInput, len(group.Transactions()), 0)
+	txInputs := make([]*TransactionInput, 0, len(group.Transactions()))
 	for idx, tx := range group.Transactions() {
-		inp, ok := tx.(*TransactionInput)
-		if !ok {
-			return nil, fmt.Errorf("transaction %d is not a *TransactionInput", idx)
+		inp, err := l.requirePreparedTransactionInput(tx)
+		if err != nil {
+			return nil, fmt.Errorf("transaction %d: %w", idx, err)
 		}
 
 		txInputs = append(txInputs, inp)
@@ -161,6 +161,15 @@ func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupI
 	return txGroup, nil
 }
 
+func (l *Ledger) requirePreparedTransactionInput(tx ledger.TransactionInput) (*TransactionInput, error) {
+	inp, ok := tx.(*TransactionInput)
+	if !ok {
+		return nil, errors.New("transaction input is not a *historical.TransactionInput")
+	}
+
+	return inp, nil
+}
+
 func (l *Ledger) createTransaction(ctx context.Context, groupID string, txInput *TransactionInput) (*Transaction, error) {
 	tx, err := l.repo.CreateTransaction(ctx, CreateTransactionInput{
 		Namespace: txInput.getNamespace(),
@@ -186,6 +195,7 @@ func (l *Ledger) createTransaction(ctx context.Context, groupID string, txInput 
 		return CreateEntryInput{
 			Namespace:     txInput.getNamespace(),
 			AccountID:     e.Account().ID().ID,
+			AccountType:   e.Account().Type(),
 			Amount:        e.Amount(),
 			TransactionID: tx.ID,
 			DimensionIDs:  e.input.DimensionIDs,

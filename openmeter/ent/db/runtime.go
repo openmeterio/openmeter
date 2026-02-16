@@ -36,6 +36,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
@@ -1069,6 +1074,141 @@ func init() {
 	dbgrantDescID := dbgrantMixinFields0[0].Descriptor()
 	// dbgrant.DefaultID holds the default value on creation for the id field.
 	dbgrant.DefaultID = dbgrantDescID.Default.(func() string)
+	ledgeraccountMixin := schema.LedgerAccount{}.Mixin()
+	ledgeraccountMixinFields0 := ledgeraccountMixin[0].Fields()
+	_ = ledgeraccountMixinFields0
+	ledgeraccountMixinFields1 := ledgeraccountMixin[1].Fields()
+	_ = ledgeraccountMixinFields1
+	ledgeraccountMixinFields3 := ledgeraccountMixin[3].Fields()
+	_ = ledgeraccountMixinFields3
+	ledgeraccountFields := schema.LedgerAccount{}.Fields()
+	_ = ledgeraccountFields
+	// ledgeraccountDescNamespace is the schema descriptor for namespace field.
+	ledgeraccountDescNamespace := ledgeraccountMixinFields1[0].Descriptor()
+	// ledgeraccount.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	ledgeraccount.NamespaceValidator = ledgeraccountDescNamespace.Validators[0].(func(string) error)
+	// ledgeraccountDescCreatedAt is the schema descriptor for created_at field.
+	ledgeraccountDescCreatedAt := ledgeraccountMixinFields3[0].Descriptor()
+	// ledgeraccount.DefaultCreatedAt holds the default value on creation for the created_at field.
+	ledgeraccount.DefaultCreatedAt = ledgeraccountDescCreatedAt.Default.(func() time.Time)
+	// ledgeraccountDescUpdatedAt is the schema descriptor for updated_at field.
+	ledgeraccountDescUpdatedAt := ledgeraccountMixinFields3[1].Descriptor()
+	// ledgeraccount.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	ledgeraccount.DefaultUpdatedAt = ledgeraccountDescUpdatedAt.Default.(func() time.Time)
+	// ledgeraccount.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	ledgeraccount.UpdateDefaultUpdatedAt = ledgeraccountDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// ledgeraccountDescID is the schema descriptor for id field.
+	ledgeraccountDescID := ledgeraccountMixinFields0[0].Descriptor()
+	// ledgeraccount.DefaultID holds the default value on creation for the id field.
+	ledgeraccount.DefaultID = ledgeraccountDescID.Default.(func() string)
+	ledgerdimensionMixin := schema.LedgerDimension{}.Mixin()
+	ledgerdimensionMixinFields0 := ledgerdimensionMixin[0].Fields()
+	_ = ledgerdimensionMixinFields0
+	ledgerdimensionMixinFields1 := ledgerdimensionMixin[1].Fields()
+	_ = ledgerdimensionMixinFields1
+	ledgerdimensionMixinFields3 := ledgerdimensionMixin[3].Fields()
+	_ = ledgerdimensionMixinFields3
+	ledgerdimensionFields := schema.LedgerDimension{}.Fields()
+	_ = ledgerdimensionFields
+	// ledgerdimensionDescNamespace is the schema descriptor for namespace field.
+	ledgerdimensionDescNamespace := ledgerdimensionMixinFields1[0].Descriptor()
+	// ledgerdimension.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	ledgerdimension.NamespaceValidator = ledgerdimensionDescNamespace.Validators[0].(func(string) error)
+	// ledgerdimensionDescCreatedAt is the schema descriptor for created_at field.
+	ledgerdimensionDescCreatedAt := ledgerdimensionMixinFields3[0].Descriptor()
+	// ledgerdimension.DefaultCreatedAt holds the default value on creation for the created_at field.
+	ledgerdimension.DefaultCreatedAt = ledgerdimensionDescCreatedAt.Default.(func() time.Time)
+	// ledgerdimensionDescUpdatedAt is the schema descriptor for updated_at field.
+	ledgerdimensionDescUpdatedAt := ledgerdimensionMixinFields3[1].Descriptor()
+	// ledgerdimension.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	ledgerdimension.DefaultUpdatedAt = ledgerdimensionDescUpdatedAt.Default.(func() time.Time)
+	// ledgerdimension.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	ledgerdimension.UpdateDefaultUpdatedAt = ledgerdimensionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// ledgerdimensionDescID is the schema descriptor for id field.
+	ledgerdimensionDescID := ledgerdimensionMixinFields0[0].Descriptor()
+	// ledgerdimension.DefaultID holds the default value on creation for the id field.
+	ledgerdimension.DefaultID = ledgerdimensionDescID.Default.(func() string)
+	ledgerentryMixin := schema.LedgerEntry{}.Mixin()
+	ledgerentryMixinFields0 := ledgerentryMixin[0].Fields()
+	_ = ledgerentryMixinFields0
+	ledgerentryMixinFields1 := ledgerentryMixin[1].Fields()
+	_ = ledgerentryMixinFields1
+	ledgerentryMixinFields3 := ledgerentryMixin[3].Fields()
+	_ = ledgerentryMixinFields3
+	ledgerentryFields := schema.LedgerEntry{}.Fields()
+	_ = ledgerentryFields
+	// ledgerentryDescNamespace is the schema descriptor for namespace field.
+	ledgerentryDescNamespace := ledgerentryMixinFields1[0].Descriptor()
+	// ledgerentry.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	ledgerentry.NamespaceValidator = ledgerentryDescNamespace.Validators[0].(func(string) error)
+	// ledgerentryDescCreatedAt is the schema descriptor for created_at field.
+	ledgerentryDescCreatedAt := ledgerentryMixinFields3[0].Descriptor()
+	// ledgerentry.DefaultCreatedAt holds the default value on creation for the created_at field.
+	ledgerentry.DefaultCreatedAt = ledgerentryDescCreatedAt.Default.(func() time.Time)
+	// ledgerentryDescUpdatedAt is the schema descriptor for updated_at field.
+	ledgerentryDescUpdatedAt := ledgerentryMixinFields3[1].Descriptor()
+	// ledgerentry.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	ledgerentry.DefaultUpdatedAt = ledgerentryDescUpdatedAt.Default.(func() time.Time)
+	// ledgerentry.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	ledgerentry.UpdateDefaultUpdatedAt = ledgerentryDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// ledgerentryDescID is the schema descriptor for id field.
+	ledgerentryDescID := ledgerentryMixinFields0[0].Descriptor()
+	// ledgerentry.DefaultID holds the default value on creation for the id field.
+	ledgerentry.DefaultID = ledgerentryDescID.Default.(func() string)
+	ledgertransactionMixin := schema.LedgerTransaction{}.Mixin()
+	ledgertransactionMixinFields0 := ledgertransactionMixin[0].Fields()
+	_ = ledgertransactionMixinFields0
+	ledgertransactionMixinFields1 := ledgertransactionMixin[1].Fields()
+	_ = ledgertransactionMixinFields1
+	ledgertransactionMixinFields3 := ledgertransactionMixin[3].Fields()
+	_ = ledgertransactionMixinFields3
+	ledgertransactionFields := schema.LedgerTransaction{}.Fields()
+	_ = ledgertransactionFields
+	// ledgertransactionDescNamespace is the schema descriptor for namespace field.
+	ledgertransactionDescNamespace := ledgertransactionMixinFields1[0].Descriptor()
+	// ledgertransaction.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	ledgertransaction.NamespaceValidator = ledgertransactionDescNamespace.Validators[0].(func(string) error)
+	// ledgertransactionDescCreatedAt is the schema descriptor for created_at field.
+	ledgertransactionDescCreatedAt := ledgertransactionMixinFields3[0].Descriptor()
+	// ledgertransaction.DefaultCreatedAt holds the default value on creation for the created_at field.
+	ledgertransaction.DefaultCreatedAt = ledgertransactionDescCreatedAt.Default.(func() time.Time)
+	// ledgertransactionDescUpdatedAt is the schema descriptor for updated_at field.
+	ledgertransactionDescUpdatedAt := ledgertransactionMixinFields3[1].Descriptor()
+	// ledgertransaction.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	ledgertransaction.DefaultUpdatedAt = ledgertransactionDescUpdatedAt.Default.(func() time.Time)
+	// ledgertransaction.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	ledgertransaction.UpdateDefaultUpdatedAt = ledgertransactionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// ledgertransactionDescID is the schema descriptor for id field.
+	ledgertransactionDescID := ledgertransactionMixinFields0[0].Descriptor()
+	// ledgertransaction.DefaultID holds the default value on creation for the id field.
+	ledgertransaction.DefaultID = ledgertransactionDescID.Default.(func() string)
+	ledgertransactiongroupMixin := schema.LedgerTransactionGroup{}.Mixin()
+	ledgertransactiongroupMixinFields0 := ledgertransactiongroupMixin[0].Fields()
+	_ = ledgertransactiongroupMixinFields0
+	ledgertransactiongroupMixinFields1 := ledgertransactiongroupMixin[1].Fields()
+	_ = ledgertransactiongroupMixinFields1
+	ledgertransactiongroupMixinFields3 := ledgertransactiongroupMixin[3].Fields()
+	_ = ledgertransactiongroupMixinFields3
+	ledgertransactiongroupFields := schema.LedgerTransactionGroup{}.Fields()
+	_ = ledgertransactiongroupFields
+	// ledgertransactiongroupDescNamespace is the schema descriptor for namespace field.
+	ledgertransactiongroupDescNamespace := ledgertransactiongroupMixinFields1[0].Descriptor()
+	// ledgertransactiongroup.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	ledgertransactiongroup.NamespaceValidator = ledgertransactiongroupDescNamespace.Validators[0].(func(string) error)
+	// ledgertransactiongroupDescCreatedAt is the schema descriptor for created_at field.
+	ledgertransactiongroupDescCreatedAt := ledgertransactiongroupMixinFields3[0].Descriptor()
+	// ledgertransactiongroup.DefaultCreatedAt holds the default value on creation for the created_at field.
+	ledgertransactiongroup.DefaultCreatedAt = ledgertransactiongroupDescCreatedAt.Default.(func() time.Time)
+	// ledgertransactiongroupDescUpdatedAt is the schema descriptor for updated_at field.
+	ledgertransactiongroupDescUpdatedAt := ledgertransactiongroupMixinFields3[1].Descriptor()
+	// ledgertransactiongroup.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	ledgertransactiongroup.DefaultUpdatedAt = ledgertransactiongroupDescUpdatedAt.Default.(func() time.Time)
+	// ledgertransactiongroup.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	ledgertransactiongroup.UpdateDefaultUpdatedAt = ledgertransactiongroupDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// ledgertransactiongroupDescID is the schema descriptor for id field.
+	ledgertransactiongroupDescID := ledgertransactiongroupMixinFields0[0].Descriptor()
+	// ledgertransactiongroup.DefaultID holds the default value on creation for the id field.
+	ledgertransactiongroup.DefaultID = ledgertransactiongroupDescID.Default.(func() string)
 	dbmeterMixin := schema.Meter{}.Mixin()
 	dbmeterMixinFields0 := dbmeterMixin[0].Fields()
 	_ = dbmeterMixinFields0
