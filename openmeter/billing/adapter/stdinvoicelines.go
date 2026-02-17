@@ -810,6 +810,13 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 			Where(billinginvoiceline.Namespace(in.Namespace)).
 			Where(billinginvoiceline.SubscriptionID(in.SubscriptionID)).
 			Where(billinginvoiceline.ParentLineIDIsNil()). // This one is required so that we are not fetching split line's children directly, the mapper will handle that
+			Where(billinginvoiceline.Or(
+				billinginvoiceline.DeletedAtIsNil(),
+				billinginvoiceline.And(
+					billinginvoiceline.DeletedAtNotNil(),
+					billinginvoiceline.ManagedByEQ(billing.ManuallyManagedLine),
+				)),
+			).
 			WithBillingInvoice()
 
 		query = tx.expandLineItems(query)
@@ -882,7 +889,9 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 				q.WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
 					q.WithBillingWorkflowConfig()
 				})
-			}).All(ctx)
+			}).
+			Where(billinginvoicesplitlinegroup.DeletedAtIsNil()).
+			All(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("fetching split line groups: %w", err)
 		}
