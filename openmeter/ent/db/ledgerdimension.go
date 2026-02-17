@@ -33,7 +33,74 @@ type LedgerDimension struct {
 	DimensionKey string `json:"dimension_key,omitempty"`
 	// DimensionValue holds the value of the "dimension_value" field.
 	DimensionValue string `json:"dimension_value,omitempty"`
-	selectValues   sql.SelectValues
+	// DimensionDisplayValue holds the value of the "dimension_display_value" field.
+	DimensionDisplayValue string `json:"dimension_display_value,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the LedgerDimensionQuery when eager-loading is set.
+	Edges        LedgerDimensionEdges `json:"edges"`
+	selectValues sql.SelectValues
+}
+
+// LedgerDimensionEdges holds the relations/edges for other nodes in the graph.
+type LedgerDimensionEdges struct {
+	// SubAccounts holds the value of the sub_accounts edge.
+	SubAccounts []*LedgerSubAccount `json:"sub_accounts,omitempty"`
+	// CurrencySubAccounts holds the value of the currency_sub_accounts edge.
+	CurrencySubAccounts []*LedgerSubAccount `json:"currency_sub_accounts,omitempty"`
+	// TaxCodeSubAccounts holds the value of the tax_code_sub_accounts edge.
+	TaxCodeSubAccounts []*LedgerSubAccount `json:"tax_code_sub_accounts,omitempty"`
+	// FeaturesSubAccounts holds the value of the features_sub_accounts edge.
+	FeaturesSubAccounts []*LedgerSubAccount `json:"features_sub_accounts,omitempty"`
+	// CreditPrioritySubAccounts holds the value of the credit_priority_sub_accounts edge.
+	CreditPrioritySubAccounts []*LedgerSubAccount `json:"credit_priority_sub_accounts,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [5]bool
+}
+
+// SubAccountsOrErr returns the SubAccounts value or an error if the edge
+// was not loaded in eager-loading.
+func (e LedgerDimensionEdges) SubAccountsOrErr() ([]*LedgerSubAccount, error) {
+	if e.loadedTypes[0] {
+		return e.SubAccounts, nil
+	}
+	return nil, &NotLoadedError{edge: "sub_accounts"}
+}
+
+// CurrencySubAccountsOrErr returns the CurrencySubAccounts value or an error if the edge
+// was not loaded in eager-loading.
+func (e LedgerDimensionEdges) CurrencySubAccountsOrErr() ([]*LedgerSubAccount, error) {
+	if e.loadedTypes[1] {
+		return e.CurrencySubAccounts, nil
+	}
+	return nil, &NotLoadedError{edge: "currency_sub_accounts"}
+}
+
+// TaxCodeSubAccountsOrErr returns the TaxCodeSubAccounts value or an error if the edge
+// was not loaded in eager-loading.
+func (e LedgerDimensionEdges) TaxCodeSubAccountsOrErr() ([]*LedgerSubAccount, error) {
+	if e.loadedTypes[2] {
+		return e.TaxCodeSubAccounts, nil
+	}
+	return nil, &NotLoadedError{edge: "tax_code_sub_accounts"}
+}
+
+// FeaturesSubAccountsOrErr returns the FeaturesSubAccounts value or an error if the edge
+// was not loaded in eager-loading.
+func (e LedgerDimensionEdges) FeaturesSubAccountsOrErr() ([]*LedgerSubAccount, error) {
+	if e.loadedTypes[3] {
+		return e.FeaturesSubAccounts, nil
+	}
+	return nil, &NotLoadedError{edge: "features_sub_accounts"}
+}
+
+// CreditPrioritySubAccountsOrErr returns the CreditPrioritySubAccounts value or an error if the edge
+// was not loaded in eager-loading.
+func (e LedgerDimensionEdges) CreditPrioritySubAccountsOrErr() ([]*LedgerSubAccount, error) {
+	if e.loadedTypes[4] {
+		return e.CreditPrioritySubAccounts, nil
+	}
+	return nil, &NotLoadedError{edge: "credit_priority_sub_accounts"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -43,7 +110,7 @@ func (*LedgerDimension) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case ledgerdimension.FieldAnnotations:
 			values[i] = new([]byte)
-		case ledgerdimension.FieldID, ledgerdimension.FieldNamespace, ledgerdimension.FieldDimensionKey, ledgerdimension.FieldDimensionValue:
+		case ledgerdimension.FieldID, ledgerdimension.FieldNamespace, ledgerdimension.FieldDimensionKey, ledgerdimension.FieldDimensionValue, ledgerdimension.FieldDimensionDisplayValue:
 			values[i] = new(sql.NullString)
 		case ledgerdimension.FieldCreatedAt, ledgerdimension.FieldUpdatedAt, ledgerdimension.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -113,6 +180,12 @@ func (_m *LedgerDimension) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.DimensionValue = value.String
 			}
+		case ledgerdimension.FieldDimensionDisplayValue:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field dimension_display_value", values[i])
+			} else if value.Valid {
+				_m.DimensionDisplayValue = value.String
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -124,6 +197,31 @@ func (_m *LedgerDimension) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *LedgerDimension) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QuerySubAccounts queries the "sub_accounts" edge of the LedgerDimension entity.
+func (_m *LedgerDimension) QuerySubAccounts() *LedgerSubAccountQuery {
+	return NewLedgerDimensionClient(_m.config).QuerySubAccounts(_m)
+}
+
+// QueryCurrencySubAccounts queries the "currency_sub_accounts" edge of the LedgerDimension entity.
+func (_m *LedgerDimension) QueryCurrencySubAccounts() *LedgerSubAccountQuery {
+	return NewLedgerDimensionClient(_m.config).QueryCurrencySubAccounts(_m)
+}
+
+// QueryTaxCodeSubAccounts queries the "tax_code_sub_accounts" edge of the LedgerDimension entity.
+func (_m *LedgerDimension) QueryTaxCodeSubAccounts() *LedgerSubAccountQuery {
+	return NewLedgerDimensionClient(_m.config).QueryTaxCodeSubAccounts(_m)
+}
+
+// QueryFeaturesSubAccounts queries the "features_sub_accounts" edge of the LedgerDimension entity.
+func (_m *LedgerDimension) QueryFeaturesSubAccounts() *LedgerSubAccountQuery {
+	return NewLedgerDimensionClient(_m.config).QueryFeaturesSubAccounts(_m)
+}
+
+// QueryCreditPrioritySubAccounts queries the "credit_priority_sub_accounts" edge of the LedgerDimension entity.
+func (_m *LedgerDimension) QueryCreditPrioritySubAccounts() *LedgerSubAccountQuery {
+	return NewLedgerDimensionClient(_m.config).QueryCreditPrioritySubAccounts(_m)
 }
 
 // Update returns a builder for updating this LedgerDimension.
@@ -171,6 +269,9 @@ func (_m *LedgerDimension) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("dimension_value=")
 	builder.WriteString(_m.DimensionValue)
+	builder.WriteString(", ")
+	builder.WriteString("dimension_display_value=")
+	builder.WriteString(_m.DimensionDisplayValue)
 	builder.WriteByte(')')
 	return builder.String()
 }

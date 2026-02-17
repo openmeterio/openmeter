@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -99,6 +100,21 @@ func (_c *LedgerAccountCreate) SetNillableID(v *string) *LedgerAccountCreate {
 	return _c
 }
 
+// AddSubAccountIDs adds the "sub_accounts" edge to the LedgerSubAccount entity by IDs.
+func (_c *LedgerAccountCreate) AddSubAccountIDs(ids ...string) *LedgerAccountCreate {
+	_c.mutation.AddSubAccountIDs(ids...)
+	return _c
+}
+
+// AddSubAccounts adds the "sub_accounts" edges to the LedgerSubAccount entity.
+func (_c *LedgerAccountCreate) AddSubAccounts(v ...*LedgerSubAccount) *LedgerAccountCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddSubAccountIDs(ids...)
+}
+
 // Mutation returns the LedgerAccountMutation object of the builder.
 func (_c *LedgerAccountCreate) Mutation() *LedgerAccountMutation {
 	return _c.mutation
@@ -167,6 +183,11 @@ func (_c *LedgerAccountCreate) check() error {
 	if _, ok := _c.mutation.AccountType(); !ok {
 		return &ValidationError{Name: "account_type", err: errors.New(`db: missing required field "LedgerAccount.account_type"`)}
 	}
+	if v, ok := _c.mutation.AccountType(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "account_type", err: fmt.Errorf(`db: validator failed for field "LedgerAccount.account_type": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -226,6 +247,22 @@ func (_c *LedgerAccountCreate) createSpec() (*LedgerAccount, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.AccountType(); ok {
 		_spec.SetField(ledgeraccount.FieldAccountType, field.TypeString, value)
 		_node.AccountType = value
+	}
+	if nodes := _c.mutation.SubAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.SubAccountsTable,
+			Columns: []string{ledgeraccount.SubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

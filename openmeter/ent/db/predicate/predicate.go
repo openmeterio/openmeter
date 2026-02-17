@@ -204,6 +204,9 @@ type LedgerDimension func(*sql.Selector)
 // LedgerEntry is the predicate function for ledgerentry builders.
 type LedgerEntry func(*sql.Selector)
 
+// LedgerSubAccount is the predicate function for ledgersubaccount builders.
+type LedgerSubAccount func(*sql.Selector)
+
 // LedgerTransaction is the predicate function for ledgertransaction builders.
 type LedgerTransaction func(*sql.Selector)
 

@@ -14,6 +14,7 @@ import (
 	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -207,7 +208,7 @@ func (r *repo) ListEntries(ctx context.Context, input ledgerhistorical.ListEntri
 		}
 
 		for i := range items {
-			items[i].DimensionsExpanded = map[string]*ledgeraccount.Dimension{}
+			items[i].DimensionsExpanded = map[ledger.DimensionKey]*ledgeraccount.DimensionData{}
 
 			for _, dimensionID := range items[i].DimensionIDs {
 				key := items[i].Namespace + ":" + dimensionID
@@ -216,7 +217,9 @@ func (r *repo) ListEntries(ctx context.Context, input ledgerhistorical.ListEntri
 					continue
 				}
 
-				items[i].DimensionsExpanded[dimension.DimensionKey] = &ledgeraccount.Dimension{
+				dKey := ledger.DimensionKey(dimension.DimensionKey)
+
+				items[i].DimensionsExpanded[dKey] = &ledgeraccount.DimensionData{
 					ID: models.NamespacedID{
 						Namespace: dimension.Namespace,
 						ID:        dimension.ID,
@@ -227,8 +230,9 @@ func (r *repo) ListEntries(ctx context.Context, input ledgerhistorical.ListEntri
 						UpdatedAt: dimension.UpdatedAt,
 						DeletedAt: dimension.DeletedAt,
 					},
-					DimensionKey:   dimension.DimensionKey,
-					DimensionValue: dimension.DimensionValue,
+					DimensionKey:          dKey,
+					DimensionValue:        dimension.DimensionValue,
+					DimensionDisplayValue: dimension.DimensionDisplayValue,
 				}
 			}
 		}

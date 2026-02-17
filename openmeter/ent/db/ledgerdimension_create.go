@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -90,6 +91,12 @@ func (_c *LedgerDimensionCreate) SetDimensionValue(v string) *LedgerDimensionCre
 	return _c
 }
 
+// SetDimensionDisplayValue sets the "dimension_display_value" field.
+func (_c *LedgerDimensionCreate) SetDimensionDisplayValue(v string) *LedgerDimensionCreate {
+	_c.mutation.SetDimensionDisplayValue(v)
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *LedgerDimensionCreate) SetID(v string) *LedgerDimensionCreate {
 	_c.mutation.SetID(v)
@@ -102,6 +109,81 @@ func (_c *LedgerDimensionCreate) SetNillableID(v *string) *LedgerDimensionCreate
 		_c.SetID(*v)
 	}
 	return _c
+}
+
+// AddSubAccountIDs adds the "sub_accounts" edge to the LedgerSubAccount entity by IDs.
+func (_c *LedgerDimensionCreate) AddSubAccountIDs(ids ...string) *LedgerDimensionCreate {
+	_c.mutation.AddSubAccountIDs(ids...)
+	return _c
+}
+
+// AddSubAccounts adds the "sub_accounts" edges to the LedgerSubAccount entity.
+func (_c *LedgerDimensionCreate) AddSubAccounts(v ...*LedgerSubAccount) *LedgerDimensionCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddSubAccountIDs(ids...)
+}
+
+// AddCurrencySubAccountIDs adds the "currency_sub_accounts" edge to the LedgerSubAccount entity by IDs.
+func (_c *LedgerDimensionCreate) AddCurrencySubAccountIDs(ids ...string) *LedgerDimensionCreate {
+	_c.mutation.AddCurrencySubAccountIDs(ids...)
+	return _c
+}
+
+// AddCurrencySubAccounts adds the "currency_sub_accounts" edges to the LedgerSubAccount entity.
+func (_c *LedgerDimensionCreate) AddCurrencySubAccounts(v ...*LedgerSubAccount) *LedgerDimensionCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddCurrencySubAccountIDs(ids...)
+}
+
+// AddTaxCodeSubAccountIDs adds the "tax_code_sub_accounts" edge to the LedgerSubAccount entity by IDs.
+func (_c *LedgerDimensionCreate) AddTaxCodeSubAccountIDs(ids ...string) *LedgerDimensionCreate {
+	_c.mutation.AddTaxCodeSubAccountIDs(ids...)
+	return _c
+}
+
+// AddTaxCodeSubAccounts adds the "tax_code_sub_accounts" edges to the LedgerSubAccount entity.
+func (_c *LedgerDimensionCreate) AddTaxCodeSubAccounts(v ...*LedgerSubAccount) *LedgerDimensionCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddTaxCodeSubAccountIDs(ids...)
+}
+
+// AddFeaturesSubAccountIDs adds the "features_sub_accounts" edge to the LedgerSubAccount entity by IDs.
+func (_c *LedgerDimensionCreate) AddFeaturesSubAccountIDs(ids ...string) *LedgerDimensionCreate {
+	_c.mutation.AddFeaturesSubAccountIDs(ids...)
+	return _c
+}
+
+// AddFeaturesSubAccounts adds the "features_sub_accounts" edges to the LedgerSubAccount entity.
+func (_c *LedgerDimensionCreate) AddFeaturesSubAccounts(v ...*LedgerSubAccount) *LedgerDimensionCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddFeaturesSubAccountIDs(ids...)
+}
+
+// AddCreditPrioritySubAccountIDs adds the "credit_priority_sub_accounts" edge to the LedgerSubAccount entity by IDs.
+func (_c *LedgerDimensionCreate) AddCreditPrioritySubAccountIDs(ids ...string) *LedgerDimensionCreate {
+	_c.mutation.AddCreditPrioritySubAccountIDs(ids...)
+	return _c
+}
+
+// AddCreditPrioritySubAccounts adds the "credit_priority_sub_accounts" edges to the LedgerSubAccount entity.
+func (_c *LedgerDimensionCreate) AddCreditPrioritySubAccounts(v ...*LedgerSubAccount) *LedgerDimensionCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddCreditPrioritySubAccountIDs(ids...)
 }
 
 // Mutation returns the LedgerDimensionMutation object of the builder.
@@ -175,6 +257,9 @@ func (_c *LedgerDimensionCreate) check() error {
 	if _, ok := _c.mutation.DimensionValue(); !ok {
 		return &ValidationError{Name: "dimension_value", err: errors.New(`db: missing required field "LedgerDimension.dimension_value"`)}
 	}
+	if _, ok := _c.mutation.DimensionDisplayValue(); !ok {
+		return &ValidationError{Name: "dimension_display_value", err: errors.New(`db: missing required field "LedgerDimension.dimension_display_value"`)}
+	}
 	return nil
 }
 
@@ -238,6 +323,90 @@ func (_c *LedgerDimensionCreate) createSpec() (*LedgerDimension, *sqlgraph.Creat
 	if value, ok := _c.mutation.DimensionValue(); ok {
 		_spec.SetField(ledgerdimension.FieldDimensionValue, field.TypeString, value)
 		_node.DimensionValue = value
+	}
+	if value, ok := _c.mutation.DimensionDisplayValue(); ok {
+		_spec.SetField(ledgerdimension.FieldDimensionDisplayValue, field.TypeString, value)
+		_node.DimensionDisplayValue = value
+	}
+	if nodes := _c.mutation.SubAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.SubAccountsTable,
+			Columns: []string{ledgerdimension.SubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CurrencySubAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.CurrencySubAccountsTable,
+			Columns: []string{ledgerdimension.CurrencySubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.TaxCodeSubAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.TaxCodeSubAccountsTable,
+			Columns: []string{ledgerdimension.TaxCodeSubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.FeaturesSubAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.FeaturesSubAccountsTable,
+			Columns: []string{ledgerdimension.FeaturesSubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CreditPrioritySubAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.CreditPrioritySubAccountsTable,
+			Columns: []string{ledgerdimension.CreditPrioritySubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }
@@ -367,6 +536,9 @@ func (u *LedgerDimensionUpsertOne) UpdateNewValues() *LedgerDimensionUpsertOne {
 		}
 		if _, exists := u.create.mutation.DimensionValue(); exists {
 			s.SetIgnore(ledgerdimension.FieldDimensionValue)
+		}
+		if _, exists := u.create.mutation.DimensionDisplayValue(); exists {
+			s.SetIgnore(ledgerdimension.FieldDimensionDisplayValue)
 		}
 	}))
 	return u
@@ -649,6 +821,9 @@ func (u *LedgerDimensionUpsertBulk) UpdateNewValues() *LedgerDimensionUpsertBulk
 			}
 			if _, exists := b.mutation.DimensionValue(); exists {
 				s.SetIgnore(ledgerdimension.FieldDimensionValue)
+			}
+			if _, exists := b.mutation.DimensionDisplayValue(); exists {
+				s.SetIgnore(ledgerdimension.FieldDimensionDisplayValue)
 			}
 		}
 	}))

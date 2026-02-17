@@ -14,8 +14,7 @@ type CreateEntryInput struct {
 	Namespace string
 	// Annotations models.Annotations // TBD
 
-	AccountID    string
-	AccountType  ledger.AccountType
+	SubAccountID string
 	DimensionIDs []string
 
 	Amount        alpacadecimal.Decimal
@@ -24,7 +23,7 @@ type CreateEntryInput struct {
 
 type EntryInput struct {
 	input   CreateEntryInput
-	address ledger.Address
+	address ledger.PostingAddress
 }
 
 // ----------------------------------------------------------------------------
@@ -33,7 +32,7 @@ type EntryInput struct {
 
 var _ ledger.EntryInput = (*EntryInput)(nil)
 
-func (e *EntryInput) Account() ledger.Address {
+func (e *EntryInput) Account() ledger.PostingAddress {
 	return e.address
 }
 
@@ -50,7 +49,7 @@ type EntryData struct {
 	AccountID          string
 	AccountType        ledger.AccountType
 	DimensionIDs       []string
-	DimensionsExpanded map[string]*account.Dimension
+	DimensionsExpanded map[ledger.DimensionKey]*account.DimensionData
 
 	Amount        alpacadecimal.Decimal
 	TransactionID string
@@ -66,11 +65,10 @@ var _ ledger.Entry = (*Entry)(nil)
 // Let's implement ledger.Entry interface
 // ----------------------------------------------------------------------------
 
-func (e *Entry) Account() ledger.Address {
+func (e *Entry) Account() ledger.PostingAddress {
 	return account.NewAddressFromData(account.AddressData{
 		ID:          models.NamespacedID{Namespace: e.data.Namespace, ID: e.data.AccountID},
 		AccountType: e.data.AccountType,
-		Dimensions:  e.data.DimensionsExpanded,
 	})
 }
 

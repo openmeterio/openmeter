@@ -31,3 +31,15 @@ func (r *repo) Tx(ctx context.Context) (context.Context, transaction.Driver, err
 
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
+
+var _ entutils.TxUser[*repo] = (*repo)(nil)
+
+func (r *repo) WithTx(ctx context.Context, tx *entutils.TxDriver) *repo {
+	return &repo{
+		db: entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client(),
+	}
+}
+
+func (r *repo) Self() *repo {
+	return r
+}

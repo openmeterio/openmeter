@@ -25,7 +25,7 @@ type Ledger struct {
 
 var _ ledger.Ledger = (*Ledger)(nil)
 
-func (l *Ledger) GetAccount(ctx context.Context, address ledger.Address) (ledger.Account, error) {
+func (l *Ledger) GetAccount(ctx context.Context, address ledger.PostingAddress) (ledger.Account, error) {
 	account, err := l.accountService.GetAccount(ctx, address)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get ledger account for address %s: %w", address, err)
@@ -38,17 +38,24 @@ func (l *Ledger) GetAccount(ctx context.Context, address ledger.Address) (ledger
 	return account, nil
 }
 
-// SetUpTransactionIntent sets up a transaction intent and runs validations
+// SetUpTransactionInput sets up a transaction input and runs validations
 func (l *Ledger) SetUpTransactionInput(ctx context.Context, at time.Time, entries []ledger.EntryInput) (ledger.TransactionInput, error) {
 	if len(entries) < 2 {
 		return nil, errors.New("at least two entries are required")
 	}
 
+	// Let's validate the entries
+	for idx, entry := range entries {
+		if err := ledger.ValidateEntryInput(ctx, entry); err != nil {
+			return nil, fmt.Errorf("invalid entry at index %d: %w", idx, err)
+		}
+	}
+
 	// Let's validate the addresses are correct by fetching the accounts
-	uniqAccs := map[ledger.Address]*account.Account{}
+	uniqAccs := map[ledger.PostingAddress]*account.Account{}
 
 	for _, entry := range entries {
-		if lo.SomeBy(lo.Keys(uniqAccs), func(key ledger.Address) bool {
+		if lo.SomeBy(lo.Keys(uniqAccs), func(key ledger.PostingAddress) bool {
 			return key.Equal(entry.Account())
 		}) {
 			continue
@@ -69,7 +76,7 @@ func (l *Ledger) SetUpTransactionInput(ctx context.Context, at time.Time, entrie
 		}
 
 		addrData := acc.AddressData()
-		addr := account.NewAddressFromData(addrData)
+		addr := acc.Address()
 
 		return &EntryInput{
 			input: CreateEntryInput{
@@ -77,7 +84,7 @@ func (l *Ledger) SetUpTransactionInput(ctx context.Context, at time.Time, entrie
 				AccountType: addr.Type(),
 				Amount:      e.Amount(),
 				Namespace:   addr.ID().Namespace,
-				DimensionIDs: lo.MapToSlice(addrData.Dimensions, func(_ string, value *account.Dimension) string {
+				DimensionIDs: lo.MapToSlice(addrData.Dimensions, func(_ ledger.DimensionKey, value *account.DimensionData) string {
 					return value.ID.ID
 				}),
 			},

@@ -13,8 +13,8 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/jackc/pgtype"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
-	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -33,10 +33,8 @@ type LedgerEntry struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// AccountID holds the value of the "account_id" field.
-	AccountID string `json:"account_id,omitempty"`
-	// AccountType holds the value of the "account_type" field.
-	AccountType ledger.AccountType `json:"account_type,omitempty"`
+	// SubAccountID holds the value of the "sub_account_id" field.
+	SubAccountID string `json:"sub_account_id,omitempty"`
 	// DimensionIds holds the value of the "dimension_ids" field.
 	DimensionIds pgtype.TextArray `json:"dimension_ids,omitempty"`
 	// Amount holds the value of the "amount" field.
@@ -53,9 +51,11 @@ type LedgerEntry struct {
 type LedgerEntryEdges struct {
 	// Transaction holds the value of the transaction edge.
 	Transaction *LedgerTransaction `json:"transaction,omitempty"`
+	// SubAccount holds the value of the sub_account edge.
+	SubAccount *LedgerSubAccount `json:"sub_account,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // TransactionOrErr returns the Transaction value or an error if the edge
@@ -69,6 +69,17 @@ func (e LedgerEntryEdges) TransactionOrErr() (*LedgerTransaction, error) {
 	return nil, &NotLoadedError{edge: "transaction"}
 }
 
+// SubAccountOrErr returns the SubAccount value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e LedgerEntryEdges) SubAccountOrErr() (*LedgerSubAccount, error) {
+	if e.SubAccount != nil {
+		return e.SubAccount, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: ledgersubaccount.Label}
+	}
+	return nil, &NotLoadedError{edge: "sub_account"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*LedgerEntry) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -80,7 +91,7 @@ func (*LedgerEntry) scanValues(columns []string) ([]any, error) {
 			values[i] = new(alpacadecimal.Decimal)
 		case ledgerentry.FieldDimensionIds:
 			values[i] = new(pgtype.TextArray)
-		case ledgerentry.FieldID, ledgerentry.FieldNamespace, ledgerentry.FieldAccountID, ledgerentry.FieldAccountType, ledgerentry.FieldTransactionID:
+		case ledgerentry.FieldID, ledgerentry.FieldNamespace, ledgerentry.FieldSubAccountID, ledgerentry.FieldTransactionID:
 			values[i] = new(sql.NullString)
 		case ledgerentry.FieldCreatedAt, ledgerentry.FieldUpdatedAt, ledgerentry.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -138,17 +149,11 @@ func (_m *LedgerEntry) assignValues(columns []string, values []any) error {
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
 			}
-		case ledgerentry.FieldAccountID:
+		case ledgerentry.FieldSubAccountID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field account_id", values[i])
+				return fmt.Errorf("unexpected type %T for field sub_account_id", values[i])
 			} else if value.Valid {
-				_m.AccountID = value.String
-			}
-		case ledgerentry.FieldAccountType:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field account_type", values[i])
-			} else if value.Valid {
-				_m.AccountType = ledger.AccountType(value.String)
+				_m.SubAccountID = value.String
 			}
 		case ledgerentry.FieldDimensionIds:
 			if value, ok := values[i].(*pgtype.TextArray); !ok {
@@ -184,6 +189,11 @@ func (_m *LedgerEntry) Value(name string) (ent.Value, error) {
 // QueryTransaction queries the "transaction" edge of the LedgerEntry entity.
 func (_m *LedgerEntry) QueryTransaction() *LedgerTransactionQuery {
 	return NewLedgerEntryClient(_m.config).QueryTransaction(_m)
+}
+
+// QuerySubAccount queries the "sub_account" edge of the LedgerEntry entity.
+func (_m *LedgerEntry) QuerySubAccount() *LedgerSubAccountQuery {
+	return NewLedgerEntryClient(_m.config).QuerySubAccount(_m)
 }
 
 // Update returns a builder for updating this LedgerEntry.
@@ -226,11 +236,8 @@ func (_m *LedgerEntry) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("account_id=")
-	builder.WriteString(_m.AccountID)
-	builder.WriteString(", ")
-	builder.WriteString("account_type=")
-	builder.WriteString(fmt.Sprintf("%v", _m.AccountType))
+	builder.WriteString("sub_account_id=")
+	builder.WriteString(_m.SubAccountID)
 	builder.WriteString(", ")
 	builder.WriteString("dimension_ids=")
 	builder.WriteString(fmt.Sprintf("%v", _m.DimensionIds))

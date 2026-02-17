@@ -134,6 +134,9 @@ func (_u *LedgerEntryUpdate) check() error {
 	if _u.mutation.TransactionCleared() && len(_u.mutation.TransactionIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "LedgerEntry.transaction"`)
 	}
+	if _u.mutation.SubAccountCleared() && len(_u.mutation.SubAccountIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "LedgerEntry.sub_account"`)
+	}
 	return nil
 }
 
@@ -306,6 +309,9 @@ func (_u *LedgerEntryUpdateOne) defaults() {
 func (_u *LedgerEntryUpdateOne) check() error {
 	if _u.mutation.TransactionCleared() && len(_u.mutation.TransactionIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "LedgerEntry.transaction"`)
+	}
+	if _u.mutation.SubAccountCleared() && len(_u.mutation.SubAccountIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "LedgerEntry.sub_account"`)
 	}
 	return nil
 }

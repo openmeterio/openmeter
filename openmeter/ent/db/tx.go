@@ -80,6 +80,8 @@ type Tx struct {
 	LedgerDimension *LedgerDimensionClient
 	// LedgerEntry is the client for interacting with the LedgerEntry builders.
 	LedgerEntry *LedgerEntryClient
+	// LedgerSubAccount is the client for interacting with the LedgerSubAccount builders.
+	LedgerSubAccount *LedgerSubAccountClient
 	// LedgerTransaction is the client for interacting with the LedgerTransaction builders.
 	LedgerTransaction *LedgerTransactionClient
 	// LedgerTransactionGroup is the client for interacting with the LedgerTransactionGroup builders.
@@ -284,6 +286,7 @@ func (tx *Tx) init() {
 	tx.LedgerAccount = NewLedgerAccountClient(tx.config)
 	tx.LedgerDimension = NewLedgerDimensionClient(tx.config)
 	tx.LedgerEntry = NewLedgerEntryClient(tx.config)
+	tx.LedgerSubAccount = NewLedgerSubAccountClient(tx.config)
 	tx.LedgerTransaction = NewLedgerTransactionClient(tx.config)
 	tx.LedgerTransactionGroup = NewLedgerTransactionGroupClient(tx.config)
 	tx.Meter = NewMeterClient(tx.config)

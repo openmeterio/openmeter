@@ -38,10 +38,10 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 
 	// Let's define some mocks to see a more realistic control flow
 	type customerAccounts struct {
-		USD            ledger.Account
-		CRD            ledger.Account
-		USDOutstanding ledger.Account
-		CRDOutstanding ledger.Account
+		USD            ledger.SubAccount
+		CRD            ledger.SubAccount
+		USDOutstanding ledger.SubAccount
+		CRDOutstanding ledger.SubAccount
 	}
 
 	getCustomerAccounts := func(c customer.Customer) (customerAccounts, error) {
@@ -51,8 +51,8 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 	var l ledger.Ledger
 	var c customer.Customer
 
-	var BRKUSD ledger.Account
-	var BRKCRD ledger.Account
+	var BRKUSD ledger.SubAccount
+	var BRKCRD ledger.SubAccount
 
 	costBasis := alpacadecimal.NewFromFloat(0.5)
 

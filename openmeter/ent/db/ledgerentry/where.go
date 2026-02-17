@@ -10,7 +10,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/jackc/pgtype"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/ledger"
 )
 
 // ID filters vertices based on their ID field.
@@ -88,15 +87,9 @@ func DeletedAt(v time.Time) predicate.LedgerEntry {
 	return predicate.LedgerEntry(sql.FieldEQ(FieldDeletedAt, v))
 }
 
-// AccountID applies equality check predicate on the "account_id" field. It's identical to AccountIDEQ.
-func AccountID(v string) predicate.LedgerEntry {
-	return predicate.LedgerEntry(sql.FieldEQ(FieldAccountID, v))
-}
-
-// AccountType applies equality check predicate on the "account_type" field. It's identical to AccountTypeEQ.
-func AccountType(v ledger.AccountType) predicate.LedgerEntry {
-	vc := string(v)
-	return predicate.LedgerEntry(sql.FieldEQ(FieldAccountType, vc))
+// SubAccountID applies equality check predicate on the "sub_account_id" field. It's identical to SubAccountIDEQ.
+func SubAccountID(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldEQ(FieldSubAccountID, v))
 }
 
 // DimensionIds applies equality check predicate on the "dimension_ids" field. It's identical to DimensionIdsEQ.
@@ -319,153 +312,69 @@ func DeletedAtNotNil() predicate.LedgerEntry {
 	return predicate.LedgerEntry(sql.FieldNotNull(FieldDeletedAt))
 }
 
-// AccountIDEQ applies the EQ predicate on the "account_id" field.
-func AccountIDEQ(v string) predicate.LedgerEntry {
-	return predicate.LedgerEntry(sql.FieldEQ(FieldAccountID, v))
+// SubAccountIDEQ applies the EQ predicate on the "sub_account_id" field.
+func SubAccountIDEQ(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldEQ(FieldSubAccountID, v))
 }
 
-// AccountIDNEQ applies the NEQ predicate on the "account_id" field.
-func AccountIDNEQ(v string) predicate.LedgerEntry {
-	return predicate.LedgerEntry(sql.FieldNEQ(FieldAccountID, v))
+// SubAccountIDNEQ applies the NEQ predicate on the "sub_account_id" field.
+func SubAccountIDNEQ(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldNEQ(FieldSubAccountID, v))
 }
 
-// AccountIDIn applies the In predicate on the "account_id" field.
-func AccountIDIn(vs ...string) predicate.LedgerEntry {
-	return predicate.LedgerEntry(sql.FieldIn(FieldAccountID, vs...))
+// SubAccountIDIn applies the In predicate on the "sub_account_id" field.
+func SubAccountIDIn(vs ...string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldIn(FieldSubAccountID, vs...))
 }
 
-// AccountIDNotIn applies the NotIn predicate on the "account_id" field.
-func AccountIDNotIn(vs ...string) predicate.LedgerEntry {
-	return predicate.LedgerEntry(sql.FieldNotIn(FieldAccountID, vs...))
+// SubAccountIDNotIn applies the NotIn predicate on the "sub_account_id" field.
+func SubAccountIDNotIn(vs ...string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldNotIn(FieldSubAccountID, vs...))
 }
 
-// AccountIDGT applies the GT predicate on the "account_id" field.
-func AccountIDGT(v string) predicate.LedgerEntry {
-	return predicate.LedgerEntry(sql.FieldGT(FieldAccountID, v))
+// SubAccountIDGT applies the GT predicate on the "sub_account_id" field.
+func SubAccountIDGT(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldGT(FieldSubAccountID, v))
 }
 
-// AccountIDGTE applies the GTE predicate on the "account_id" field.
-func AccountIDGTE(v string) predicate.LedgerEntry {
-	return predicate.LedgerEntry(sql.FieldGTE(FieldAccountID, v))
+// SubAccountIDGTE applies the GTE predicate on the "sub_account_id" field.
+func SubAccountIDGTE(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldGTE(FieldSubAccountID, v))
 }
 
-// AccountIDLT applies the LT predicate on the "account_id" field.
-func AccountIDLT(v string) predicate.LedgerEntry {
-	return predicate.LedgerEntry(sql.FieldLT(FieldAccountID, v))
+// SubAccountIDLT applies the LT predicate on the "sub_account_id" field.
+func SubAccountIDLT(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldLT(FieldSubAccountID, v))
 }
 
-// AccountIDLTE applies the LTE predicate on the "account_id" field.
-func AccountIDLTE(v string) predicate.LedgerEntry {
-	return predicate.LedgerEntry(sql.FieldLTE(FieldAccountID, v))
+// SubAccountIDLTE applies the LTE predicate on the "sub_account_id" field.
+func SubAccountIDLTE(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldLTE(FieldSubAccountID, v))
 }
 
-// AccountIDContains applies the Contains predicate on the "account_id" field.
-func AccountIDContains(v string) predicate.LedgerEntry {
-	return predicate.LedgerEntry(sql.FieldContains(FieldAccountID, v))
+// SubAccountIDContains applies the Contains predicate on the "sub_account_id" field.
+func SubAccountIDContains(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldContains(FieldSubAccountID, v))
 }
 
-// AccountIDHasPrefix applies the HasPrefix predicate on the "account_id" field.
-func AccountIDHasPrefix(v string) predicate.LedgerEntry {
-	return predicate.LedgerEntry(sql.FieldHasPrefix(FieldAccountID, v))
+// SubAccountIDHasPrefix applies the HasPrefix predicate on the "sub_account_id" field.
+func SubAccountIDHasPrefix(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldHasPrefix(FieldSubAccountID, v))
 }
 
-// AccountIDHasSuffix applies the HasSuffix predicate on the "account_id" field.
-func AccountIDHasSuffix(v string) predicate.LedgerEntry {
-	return predicate.LedgerEntry(sql.FieldHasSuffix(FieldAccountID, v))
+// SubAccountIDHasSuffix applies the HasSuffix predicate on the "sub_account_id" field.
+func SubAccountIDHasSuffix(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldHasSuffix(FieldSubAccountID, v))
 }
 
-// AccountIDEqualFold applies the EqualFold predicate on the "account_id" field.
-func AccountIDEqualFold(v string) predicate.LedgerEntry {
-	return predicate.LedgerEntry(sql.FieldEqualFold(FieldAccountID, v))
+// SubAccountIDEqualFold applies the EqualFold predicate on the "sub_account_id" field.
+func SubAccountIDEqualFold(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldEqualFold(FieldSubAccountID, v))
 }
 
-// AccountIDContainsFold applies the ContainsFold predicate on the "account_id" field.
-func AccountIDContainsFold(v string) predicate.LedgerEntry {
-	return predicate.LedgerEntry(sql.FieldContainsFold(FieldAccountID, v))
-}
-
-// AccountTypeEQ applies the EQ predicate on the "account_type" field.
-func AccountTypeEQ(v ledger.AccountType) predicate.LedgerEntry {
-	vc := string(v)
-	return predicate.LedgerEntry(sql.FieldEQ(FieldAccountType, vc))
-}
-
-// AccountTypeNEQ applies the NEQ predicate on the "account_type" field.
-func AccountTypeNEQ(v ledger.AccountType) predicate.LedgerEntry {
-	vc := string(v)
-	return predicate.LedgerEntry(sql.FieldNEQ(FieldAccountType, vc))
-}
-
-// AccountTypeIn applies the In predicate on the "account_type" field.
-func AccountTypeIn(vs ...ledger.AccountType) predicate.LedgerEntry {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = string(vs[i])
-	}
-	return predicate.LedgerEntry(sql.FieldIn(FieldAccountType, v...))
-}
-
-// AccountTypeNotIn applies the NotIn predicate on the "account_type" field.
-func AccountTypeNotIn(vs ...ledger.AccountType) predicate.LedgerEntry {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = string(vs[i])
-	}
-	return predicate.LedgerEntry(sql.FieldNotIn(FieldAccountType, v...))
-}
-
-// AccountTypeGT applies the GT predicate on the "account_type" field.
-func AccountTypeGT(v ledger.AccountType) predicate.LedgerEntry {
-	vc := string(v)
-	return predicate.LedgerEntry(sql.FieldGT(FieldAccountType, vc))
-}
-
-// AccountTypeGTE applies the GTE predicate on the "account_type" field.
-func AccountTypeGTE(v ledger.AccountType) predicate.LedgerEntry {
-	vc := string(v)
-	return predicate.LedgerEntry(sql.FieldGTE(FieldAccountType, vc))
-}
-
-// AccountTypeLT applies the LT predicate on the "account_type" field.
-func AccountTypeLT(v ledger.AccountType) predicate.LedgerEntry {
-	vc := string(v)
-	return predicate.LedgerEntry(sql.FieldLT(FieldAccountType, vc))
-}
-
-// AccountTypeLTE applies the LTE predicate on the "account_type" field.
-func AccountTypeLTE(v ledger.AccountType) predicate.LedgerEntry {
-	vc := string(v)
-	return predicate.LedgerEntry(sql.FieldLTE(FieldAccountType, vc))
-}
-
-// AccountTypeContains applies the Contains predicate on the "account_type" field.
-func AccountTypeContains(v ledger.AccountType) predicate.LedgerEntry {
-	vc := string(v)
-	return predicate.LedgerEntry(sql.FieldContains(FieldAccountType, vc))
-}
-
-// AccountTypeHasPrefix applies the HasPrefix predicate on the "account_type" field.
-func AccountTypeHasPrefix(v ledger.AccountType) predicate.LedgerEntry {
-	vc := string(v)
-	return predicate.LedgerEntry(sql.FieldHasPrefix(FieldAccountType, vc))
-}
-
-// AccountTypeHasSuffix applies the HasSuffix predicate on the "account_type" field.
-func AccountTypeHasSuffix(v ledger.AccountType) predicate.LedgerEntry {
-	vc := string(v)
-	return predicate.LedgerEntry(sql.FieldHasSuffix(FieldAccountType, vc))
-}
-
-// AccountTypeEqualFold applies the EqualFold predicate on the "account_type" field.
-func AccountTypeEqualFold(v ledger.AccountType) predicate.LedgerEntry {
-	vc := string(v)
-	return predicate.LedgerEntry(sql.FieldEqualFold(FieldAccountType, vc))
-}
-
-// AccountTypeContainsFold applies the ContainsFold predicate on the "account_type" field.
-func AccountTypeContainsFold(v ledger.AccountType) predicate.LedgerEntry {
-	vc := string(v)
-	return predicate.LedgerEntry(sql.FieldContainsFold(FieldAccountType, vc))
+// SubAccountIDContainsFold applies the ContainsFold predicate on the "sub_account_id" field.
+func SubAccountIDContainsFold(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldContainsFold(FieldSubAccountID, v))
 }
 
 // DimensionIdsEQ applies the EQ predicate on the "dimension_ids" field.
@@ -638,6 +547,29 @@ func HasTransaction() predicate.LedgerEntry {
 func HasTransactionWith(preds ...predicate.LedgerTransaction) predicate.LedgerEntry {
 	return predicate.LedgerEntry(func(s *sql.Selector) {
 		step := newTransactionStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasSubAccount applies the HasEdge predicate on the "sub_account" edge.
+func HasSubAccount() predicate.LedgerEntry {
+	return predicate.LedgerEntry(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, SubAccountTable, SubAccountColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSubAccountWith applies the HasEdge predicate on the "sub_account" edge with a given conditions (other predicates).
+func HasSubAccountWith(preds ...predicate.LedgerSubAccount) predicate.LedgerEntry {
+	return predicate.LedgerEntry(func(s *sql.Selector) {
+		step := newSubAccountStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
