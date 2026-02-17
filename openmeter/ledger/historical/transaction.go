@@ -3,6 +3,7 @@ package historical
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/samber/lo"
@@ -70,6 +71,13 @@ func (t *TransactionInput) Validate(ctx context.Context) error {
 		return e
 	})); err != nil {
 		return err
+	}
+
+	// Let's validate the entries themselves
+	for _, entry := range t.entryInputs {
+		if err := ledger.ValidateEntryInput(ctx, entry); err != nil {
+			return fmt.Errorf("invalid entry: %w", err)
+		}
 	}
 
 	return nil

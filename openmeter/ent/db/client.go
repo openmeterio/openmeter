@@ -48,6 +48,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
@@ -142,6 +143,8 @@ type Client struct {
 	LedgerDimension *LedgerDimensionClient
 	// LedgerEntry is the client for interacting with the LedgerEntry builders.
 	LedgerEntry *LedgerEntryClient
+	// LedgerSubAccount is the client for interacting with the LedgerSubAccount builders.
+	LedgerSubAccount *LedgerSubAccountClient
 	// LedgerTransaction is the client for interacting with the LedgerTransaction builders.
 	LedgerTransaction *LedgerTransactionClient
 	// LedgerTransactionGroup is the client for interacting with the LedgerTransactionGroup builders.
@@ -224,6 +227,7 @@ func (c *Client) init() {
 	c.LedgerAccount = NewLedgerAccountClient(c.config)
 	c.LedgerDimension = NewLedgerDimensionClient(c.config)
 	c.LedgerEntry = NewLedgerEntryClient(c.config)
+	c.LedgerSubAccount = NewLedgerSubAccountClient(c.config)
 	c.LedgerTransaction = NewLedgerTransactionClient(c.config)
 	c.LedgerTransactionGroup = NewLedgerTransactionGroupClient(c.config)
 	c.Meter = NewMeterClient(c.config)
@@ -368,6 +372,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		LedgerAccount:                                    NewLedgerAccountClient(cfg),
 		LedgerDimension:                                  NewLedgerDimensionClient(cfg),
 		LedgerEntry:                                      NewLedgerEntryClient(cfg),
+		LedgerSubAccount:                                 NewLedgerSubAccountClient(cfg),
 		LedgerTransaction:                                NewLedgerTransactionClient(cfg),
 		LedgerTransactionGroup:                           NewLedgerTransactionGroupClient(cfg),
 		Meter:                                            NewMeterClient(cfg),
@@ -439,6 +444,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		LedgerAccount:                                    NewLedgerAccountClient(cfg),
 		LedgerDimension:                                  NewLedgerDimensionClient(cfg),
 		LedgerEntry:                                      NewLedgerEntryClient(cfg),
+		LedgerSubAccount:                                 NewLedgerSubAccountClient(cfg),
 		LedgerTransaction:                                NewLedgerTransactionClient(cfg),
 		LedgerTransactionGroup:                           NewLedgerTransactionGroupClient(cfg),
 		Meter:                                            NewMeterClient(cfg),
@@ -498,12 +504,13 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
 		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
-		c.LedgerAccount, c.LedgerDimension, c.LedgerEntry, c.LedgerTransaction,
-		c.LedgerTransactionGroup, c.Meter, c.NotificationChannel, c.NotificationEvent,
-		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanAddon,
-		c.PlanPhase, c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
-		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
-		c.SubscriptionItem, c.SubscriptionPhase, c.UsageReset,
+		c.LedgerAccount, c.LedgerDimension, c.LedgerEntry, c.LedgerSubAccount,
+		c.LedgerTransaction, c.LedgerTransactionGroup, c.Meter, c.NotificationChannel,
+		c.NotificationEvent, c.NotificationEventDeliveryStatus, c.NotificationRule,
+		c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard, c.Subject, c.Subscription,
+		c.SubscriptionAddon, c.SubscriptionAddonQuantity,
+		c.SubscriptionBillingSyncState, c.SubscriptionItem, c.SubscriptionPhase,
+		c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -524,12 +531,13 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
 		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
-		c.LedgerAccount, c.LedgerDimension, c.LedgerEntry, c.LedgerTransaction,
-		c.LedgerTransactionGroup, c.Meter, c.NotificationChannel, c.NotificationEvent,
-		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanAddon,
-		c.PlanPhase, c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
-		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
-		c.SubscriptionItem, c.SubscriptionPhase, c.UsageReset,
+		c.LedgerAccount, c.LedgerDimension, c.LedgerEntry, c.LedgerSubAccount,
+		c.LedgerTransaction, c.LedgerTransactionGroup, c.Meter, c.NotificationChannel,
+		c.NotificationEvent, c.NotificationEventDeliveryStatus, c.NotificationRule,
+		c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard, c.Subject, c.Subscription,
+		c.SubscriptionAddon, c.SubscriptionAddonQuantity,
+		c.SubscriptionBillingSyncState, c.SubscriptionItem, c.SubscriptionPhase,
+		c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -604,6 +612,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.LedgerDimension.mutate(ctx, m)
 	case *LedgerEntryMutation:
 		return c.LedgerEntry.mutate(ctx, m)
+	case *LedgerSubAccountMutation:
+		return c.LedgerSubAccount.mutate(ctx, m)
 	case *LedgerTransactionMutation:
 		return c.LedgerTransaction.mutate(ctx, m)
 	case *LedgerTransactionGroupMutation:
@@ -6057,6 +6067,22 @@ func (c *LedgerAccountClient) GetX(ctx context.Context, id string) *LedgerAccoun
 	return obj
 }
 
+// QuerySubAccounts queries the sub_accounts edge of a LedgerAccount.
+func (c *LedgerAccountClient) QuerySubAccounts(_m *LedgerAccount) *LedgerSubAccountQuery {
+	query := (&LedgerSubAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgeraccount.Table, ledgeraccount.FieldID, id),
+			sqlgraph.To(ledgersubaccount.Table, ledgersubaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgeraccount.SubAccountsTable, ledgeraccount.SubAccountsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *LedgerAccountClient) Hooks() []Hook {
 	return c.hooks.LedgerAccount
@@ -6188,6 +6214,86 @@ func (c *LedgerDimensionClient) GetX(ctx context.Context, id string) *LedgerDime
 		panic(err)
 	}
 	return obj
+}
+
+// QuerySubAccounts queries the sub_accounts edge of a LedgerDimension.
+func (c *LedgerDimensionClient) QuerySubAccounts(_m *LedgerDimension) *LedgerSubAccountQuery {
+	query := (&LedgerSubAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerdimension.Table, ledgerdimension.FieldID, id),
+			sqlgraph.To(ledgersubaccount.Table, ledgersubaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgerdimension.SubAccountsTable, ledgerdimension.SubAccountsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCurrencySubAccounts queries the currency_sub_accounts edge of a LedgerDimension.
+func (c *LedgerDimensionClient) QueryCurrencySubAccounts(_m *LedgerDimension) *LedgerSubAccountQuery {
+	query := (&LedgerSubAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerdimension.Table, ledgerdimension.FieldID, id),
+			sqlgraph.To(ledgersubaccount.Table, ledgersubaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgerdimension.CurrencySubAccountsTable, ledgerdimension.CurrencySubAccountsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTaxCodeSubAccounts queries the tax_code_sub_accounts edge of a LedgerDimension.
+func (c *LedgerDimensionClient) QueryTaxCodeSubAccounts(_m *LedgerDimension) *LedgerSubAccountQuery {
+	query := (&LedgerSubAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerdimension.Table, ledgerdimension.FieldID, id),
+			sqlgraph.To(ledgersubaccount.Table, ledgersubaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgerdimension.TaxCodeSubAccountsTable, ledgerdimension.TaxCodeSubAccountsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryFeaturesSubAccounts queries the features_sub_accounts edge of a LedgerDimension.
+func (c *LedgerDimensionClient) QueryFeaturesSubAccounts(_m *LedgerDimension) *LedgerSubAccountQuery {
+	query := (&LedgerSubAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerdimension.Table, ledgerdimension.FieldID, id),
+			sqlgraph.To(ledgersubaccount.Table, ledgersubaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgerdimension.FeaturesSubAccountsTable, ledgerdimension.FeaturesSubAccountsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCreditPrioritySubAccounts queries the credit_priority_sub_accounts edge of a LedgerDimension.
+func (c *LedgerDimensionClient) QueryCreditPrioritySubAccounts(_m *LedgerDimension) *LedgerSubAccountQuery {
+	query := (&LedgerSubAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerdimension.Table, ledgerdimension.FieldID, id),
+			sqlgraph.To(ledgersubaccount.Table, ledgersubaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgerdimension.CreditPrioritySubAccountsTable, ledgerdimension.CreditPrioritySubAccountsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.
@@ -6339,6 +6445,22 @@ func (c *LedgerEntryClient) QueryTransaction(_m *LedgerEntry) *LedgerTransaction
 	return query
 }
 
+// QuerySubAccount queries the sub_account edge of a LedgerEntry.
+func (c *LedgerEntryClient) QuerySubAccount(_m *LedgerEntry) *LedgerSubAccountQuery {
+	query := (&LedgerSubAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerentry.Table, ledgerentry.FieldID, id),
+			sqlgraph.To(ledgersubaccount.Table, ledgersubaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgerentry.SubAccountTable, ledgerentry.SubAccountColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *LedgerEntryClient) Hooks() []Hook {
 	return c.hooks.LedgerEntry
@@ -6361,6 +6483,235 @@ func (c *LedgerEntryClient) mutate(ctx context.Context, m *LedgerEntryMutation) 
 		return (&LedgerEntryDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown LedgerEntry mutation op: %q", m.Op())
+	}
+}
+
+// LedgerSubAccountClient is a client for the LedgerSubAccount schema.
+type LedgerSubAccountClient struct {
+	config
+}
+
+// NewLedgerSubAccountClient returns a client for the LedgerSubAccount from the given config.
+func NewLedgerSubAccountClient(c config) *LedgerSubAccountClient {
+	return &LedgerSubAccountClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `ledgersubaccount.Hooks(f(g(h())))`.
+func (c *LedgerSubAccountClient) Use(hooks ...Hook) {
+	c.hooks.LedgerSubAccount = append(c.hooks.LedgerSubAccount, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `ledgersubaccount.Intercept(f(g(h())))`.
+func (c *LedgerSubAccountClient) Intercept(interceptors ...Interceptor) {
+	c.inters.LedgerSubAccount = append(c.inters.LedgerSubAccount, interceptors...)
+}
+
+// Create returns a builder for creating a LedgerSubAccount entity.
+func (c *LedgerSubAccountClient) Create() *LedgerSubAccountCreate {
+	mutation := newLedgerSubAccountMutation(c.config, OpCreate)
+	return &LedgerSubAccountCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of LedgerSubAccount entities.
+func (c *LedgerSubAccountClient) CreateBulk(builders ...*LedgerSubAccountCreate) *LedgerSubAccountCreateBulk {
+	return &LedgerSubAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LedgerSubAccountClient) MapCreateBulk(slice any, setFunc func(*LedgerSubAccountCreate, int)) *LedgerSubAccountCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LedgerSubAccountCreateBulk{err: fmt.Errorf("calling to LedgerSubAccountClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LedgerSubAccountCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &LedgerSubAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for LedgerSubAccount.
+func (c *LedgerSubAccountClient) Update() *LedgerSubAccountUpdate {
+	mutation := newLedgerSubAccountMutation(c.config, OpUpdate)
+	return &LedgerSubAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LedgerSubAccountClient) UpdateOne(_m *LedgerSubAccount) *LedgerSubAccountUpdateOne {
+	mutation := newLedgerSubAccountMutation(c.config, OpUpdateOne, withLedgerSubAccount(_m))
+	return &LedgerSubAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LedgerSubAccountClient) UpdateOneID(id string) *LedgerSubAccountUpdateOne {
+	mutation := newLedgerSubAccountMutation(c.config, OpUpdateOne, withLedgerSubAccountID(id))
+	return &LedgerSubAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for LedgerSubAccount.
+func (c *LedgerSubAccountClient) Delete() *LedgerSubAccountDelete {
+	mutation := newLedgerSubAccountMutation(c.config, OpDelete)
+	return &LedgerSubAccountDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LedgerSubAccountClient) DeleteOne(_m *LedgerSubAccount) *LedgerSubAccountDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *LedgerSubAccountClient) DeleteOneID(id string) *LedgerSubAccountDeleteOne {
+	builder := c.Delete().Where(ledgersubaccount.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LedgerSubAccountDeleteOne{builder}
+}
+
+// Query returns a query builder for LedgerSubAccount.
+func (c *LedgerSubAccountClient) Query() *LedgerSubAccountQuery {
+	return &LedgerSubAccountQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLedgerSubAccount},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a LedgerSubAccount entity by its id.
+func (c *LedgerSubAccountClient) Get(ctx context.Context, id string) (*LedgerSubAccount, error) {
+	return c.Query().Where(ledgersubaccount.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LedgerSubAccountClient) GetX(ctx context.Context, id string) *LedgerSubAccount {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAccount queries the account edge of a LedgerSubAccount.
+func (c *LedgerSubAccountClient) QueryAccount(_m *LedgerSubAccount) *LedgerAccountQuery {
+	query := (&LedgerAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, id),
+			sqlgraph.To(ledgeraccount.Table, ledgeraccount.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgersubaccount.AccountTable, ledgersubaccount.AccountColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryEntries queries the entries edge of a LedgerSubAccount.
+func (c *LedgerSubAccountClient) QueryEntries(_m *LedgerSubAccount) *LedgerEntryQuery {
+	query := (&LedgerEntryClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, id),
+			sqlgraph.To(ledgerentry.Table, ledgerentry.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgersubaccount.EntriesTable, ledgersubaccount.EntriesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCurrencyDimension queries the currency_dimension edge of a LedgerSubAccount.
+func (c *LedgerSubAccountClient) QueryCurrencyDimension(_m *LedgerSubAccount) *LedgerDimensionQuery {
+	query := (&LedgerDimensionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, id),
+			sqlgraph.To(ledgerdimension.Table, ledgerdimension.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgersubaccount.CurrencyDimensionTable, ledgersubaccount.CurrencyDimensionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTaxCodeDimension queries the tax_code_dimension edge of a LedgerSubAccount.
+func (c *LedgerSubAccountClient) QueryTaxCodeDimension(_m *LedgerSubAccount) *LedgerDimensionQuery {
+	query := (&LedgerDimensionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, id),
+			sqlgraph.To(ledgerdimension.Table, ledgerdimension.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgersubaccount.TaxCodeDimensionTable, ledgersubaccount.TaxCodeDimensionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryFeaturesDimension queries the features_dimension edge of a LedgerSubAccount.
+func (c *LedgerSubAccountClient) QueryFeaturesDimension(_m *LedgerSubAccount) *LedgerDimensionQuery {
+	query := (&LedgerDimensionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, id),
+			sqlgraph.To(ledgerdimension.Table, ledgerdimension.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgersubaccount.FeaturesDimensionTable, ledgersubaccount.FeaturesDimensionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCreditPriorityDimension queries the credit_priority_dimension edge of a LedgerSubAccount.
+func (c *LedgerSubAccountClient) QueryCreditPriorityDimension(_m *LedgerSubAccount) *LedgerDimensionQuery {
+	query := (&LedgerDimensionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, id),
+			sqlgraph.To(ledgerdimension.Table, ledgerdimension.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgersubaccount.CreditPriorityDimensionTable, ledgersubaccount.CreditPriorityDimensionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *LedgerSubAccountClient) Hooks() []Hook {
+	return c.hooks.LedgerSubAccount
+}
+
+// Interceptors returns the client interceptors.
+func (c *LedgerSubAccountClient) Interceptors() []Interceptor {
+	return c.inters.LedgerSubAccount
+}
+
+func (c *LedgerSubAccountClient) mutate(ctx context.Context, m *LedgerSubAccountMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LedgerSubAccountCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LedgerSubAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LedgerSubAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LedgerSubAccountDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown LedgerSubAccount mutation op: %q", m.Op())
 	}
 }
 
@@ -9528,12 +9879,12 @@ type (
 		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
 		Customer, CustomerSubjects, Entitlement, Feature, Grant, LedgerAccount,
-		LedgerDimension, LedgerEntry, LedgerTransaction, LedgerTransactionGroup, Meter,
-		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
-		NotificationRule, Plan, PlanAddon, PlanPhase, PlanRateCard, Subject,
-		Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
-		SubscriptionBillingSyncState, SubscriptionItem, SubscriptionPhase,
-		UsageReset []ent.Hook
+		LedgerDimension, LedgerEntry, LedgerSubAccount, LedgerTransaction,
+		LedgerTransactionGroup, Meter, NotificationChannel, NotificationEvent,
+		NotificationEventDeliveryStatus, NotificationRule, Plan, PlanAddon, PlanPhase,
+		PlanRateCard, Subject, Subscription, SubscriptionAddon,
+		SubscriptionAddonQuantity, SubscriptionBillingSyncState, SubscriptionItem,
+		SubscriptionPhase, UsageReset []ent.Hook
 	}
 	inters struct {
 		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
@@ -9546,12 +9897,12 @@ type (
 		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
 		Customer, CustomerSubjects, Entitlement, Feature, Grant, LedgerAccount,
-		LedgerDimension, LedgerEntry, LedgerTransaction, LedgerTransactionGroup, Meter,
-		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
-		NotificationRule, Plan, PlanAddon, PlanPhase, PlanRateCard, Subject,
-		Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
-		SubscriptionBillingSyncState, SubscriptionItem, SubscriptionPhase,
-		UsageReset []ent.Interceptor
+		LedgerDimension, LedgerEntry, LedgerSubAccount, LedgerTransaction,
+		LedgerTransactionGroup, Meter, NotificationChannel, NotificationEvent,
+		NotificationEventDeliveryStatus, NotificationRule, Plan, PlanAddon, PlanPhase,
+		PlanRateCard, Subject, Subscription, SubscriptionAddon,
+		SubscriptionAddonQuantity, SubscriptionBillingSyncState, SubscriptionItem,
+		SubscriptionPhase, UsageReset []ent.Interceptor
 	}
 )
 

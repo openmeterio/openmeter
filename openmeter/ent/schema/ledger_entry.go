@@ -10,7 +10,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/jackc/pgtype"
 
-	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -29,10 +28,9 @@ func (LedgerEntry) Mixin() []ent.Mixin {
 
 func (LedgerEntry) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("account_id").SchemaType(map[string]string{
+		field.String("sub_account_id").SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}).Immutable(),
-		field.String("account_type").GoType(ledger.AccountType("")).Immutable(),
 		// NOTE: We use pgtype.TextArray here instead of field.Strings because, in
 		// our current Ent version, field.Strings encode/decode behavior does not
 		// align with a native Postgres text[] column.
@@ -64,6 +62,12 @@ func (LedgerEntry) Edges() []ent.Edge {
 			Required().
 			Immutable().
 			Unique(),
+		edge.From("sub_account", LedgerSubAccount.Type).
+			Ref("entries").
+			Field("sub_account_id").
+			Required().
+			Immutable().
+			Unique(),
 	}
 }
 
@@ -71,7 +75,7 @@ func (LedgerEntry) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "id").Unique(),
 		index.Fields("namespace", "transaction_id"),
-		index.Fields("namespace", "account_id"),
+		index.Fields("namespace", "sub_account_id"),
 		index.Fields("created_at", "id").Annotations(
 			entsql.IndexWhere("deleted_at IS NULL"),
 		),

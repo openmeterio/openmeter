@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -92,6 +93,11 @@ func DimensionKey(v string) predicate.LedgerDimension {
 // DimensionValue applies equality check predicate on the "dimension_value" field. It's identical to DimensionValueEQ.
 func DimensionValue(v string) predicate.LedgerDimension {
 	return predicate.LedgerDimension(sql.FieldEQ(FieldDimensionValue, v))
+}
+
+// DimensionDisplayValue applies equality check predicate on the "dimension_display_value" field. It's identical to DimensionDisplayValueEQ.
+func DimensionDisplayValue(v string) predicate.LedgerDimension {
+	return predicate.LedgerDimension(sql.FieldEQ(FieldDimensionDisplayValue, v))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -427,6 +433,186 @@ func DimensionValueEqualFold(v string) predicate.LedgerDimension {
 // DimensionValueContainsFold applies the ContainsFold predicate on the "dimension_value" field.
 func DimensionValueContainsFold(v string) predicate.LedgerDimension {
 	return predicate.LedgerDimension(sql.FieldContainsFold(FieldDimensionValue, v))
+}
+
+// DimensionDisplayValueEQ applies the EQ predicate on the "dimension_display_value" field.
+func DimensionDisplayValueEQ(v string) predicate.LedgerDimension {
+	return predicate.LedgerDimension(sql.FieldEQ(FieldDimensionDisplayValue, v))
+}
+
+// DimensionDisplayValueNEQ applies the NEQ predicate on the "dimension_display_value" field.
+func DimensionDisplayValueNEQ(v string) predicate.LedgerDimension {
+	return predicate.LedgerDimension(sql.FieldNEQ(FieldDimensionDisplayValue, v))
+}
+
+// DimensionDisplayValueIn applies the In predicate on the "dimension_display_value" field.
+func DimensionDisplayValueIn(vs ...string) predicate.LedgerDimension {
+	return predicate.LedgerDimension(sql.FieldIn(FieldDimensionDisplayValue, vs...))
+}
+
+// DimensionDisplayValueNotIn applies the NotIn predicate on the "dimension_display_value" field.
+func DimensionDisplayValueNotIn(vs ...string) predicate.LedgerDimension {
+	return predicate.LedgerDimension(sql.FieldNotIn(FieldDimensionDisplayValue, vs...))
+}
+
+// DimensionDisplayValueGT applies the GT predicate on the "dimension_display_value" field.
+func DimensionDisplayValueGT(v string) predicate.LedgerDimension {
+	return predicate.LedgerDimension(sql.FieldGT(FieldDimensionDisplayValue, v))
+}
+
+// DimensionDisplayValueGTE applies the GTE predicate on the "dimension_display_value" field.
+func DimensionDisplayValueGTE(v string) predicate.LedgerDimension {
+	return predicate.LedgerDimension(sql.FieldGTE(FieldDimensionDisplayValue, v))
+}
+
+// DimensionDisplayValueLT applies the LT predicate on the "dimension_display_value" field.
+func DimensionDisplayValueLT(v string) predicate.LedgerDimension {
+	return predicate.LedgerDimension(sql.FieldLT(FieldDimensionDisplayValue, v))
+}
+
+// DimensionDisplayValueLTE applies the LTE predicate on the "dimension_display_value" field.
+func DimensionDisplayValueLTE(v string) predicate.LedgerDimension {
+	return predicate.LedgerDimension(sql.FieldLTE(FieldDimensionDisplayValue, v))
+}
+
+// DimensionDisplayValueContains applies the Contains predicate on the "dimension_display_value" field.
+func DimensionDisplayValueContains(v string) predicate.LedgerDimension {
+	return predicate.LedgerDimension(sql.FieldContains(FieldDimensionDisplayValue, v))
+}
+
+// DimensionDisplayValueHasPrefix applies the HasPrefix predicate on the "dimension_display_value" field.
+func DimensionDisplayValueHasPrefix(v string) predicate.LedgerDimension {
+	return predicate.LedgerDimension(sql.FieldHasPrefix(FieldDimensionDisplayValue, v))
+}
+
+// DimensionDisplayValueHasSuffix applies the HasSuffix predicate on the "dimension_display_value" field.
+func DimensionDisplayValueHasSuffix(v string) predicate.LedgerDimension {
+	return predicate.LedgerDimension(sql.FieldHasSuffix(FieldDimensionDisplayValue, v))
+}
+
+// DimensionDisplayValueEqualFold applies the EqualFold predicate on the "dimension_display_value" field.
+func DimensionDisplayValueEqualFold(v string) predicate.LedgerDimension {
+	return predicate.LedgerDimension(sql.FieldEqualFold(FieldDimensionDisplayValue, v))
+}
+
+// DimensionDisplayValueContainsFold applies the ContainsFold predicate on the "dimension_display_value" field.
+func DimensionDisplayValueContainsFold(v string) predicate.LedgerDimension {
+	return predicate.LedgerDimension(sql.FieldContainsFold(FieldDimensionDisplayValue, v))
+}
+
+// HasSubAccounts applies the HasEdge predicate on the "sub_accounts" edge.
+func HasSubAccounts() predicate.LedgerDimension {
+	return predicate.LedgerDimension(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, SubAccountsTable, SubAccountsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSubAccountsWith applies the HasEdge predicate on the "sub_accounts" edge with a given conditions (other predicates).
+func HasSubAccountsWith(preds ...predicate.LedgerSubAccount) predicate.LedgerDimension {
+	return predicate.LedgerDimension(func(s *sql.Selector) {
+		step := newSubAccountsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCurrencySubAccounts applies the HasEdge predicate on the "currency_sub_accounts" edge.
+func HasCurrencySubAccounts() predicate.LedgerDimension {
+	return predicate.LedgerDimension(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, CurrencySubAccountsTable, CurrencySubAccountsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCurrencySubAccountsWith applies the HasEdge predicate on the "currency_sub_accounts" edge with a given conditions (other predicates).
+func HasCurrencySubAccountsWith(preds ...predicate.LedgerSubAccount) predicate.LedgerDimension {
+	return predicate.LedgerDimension(func(s *sql.Selector) {
+		step := newCurrencySubAccountsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasTaxCodeSubAccounts applies the HasEdge predicate on the "tax_code_sub_accounts" edge.
+func HasTaxCodeSubAccounts() predicate.LedgerDimension {
+	return predicate.LedgerDimension(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, TaxCodeSubAccountsTable, TaxCodeSubAccountsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTaxCodeSubAccountsWith applies the HasEdge predicate on the "tax_code_sub_accounts" edge with a given conditions (other predicates).
+func HasTaxCodeSubAccountsWith(preds ...predicate.LedgerSubAccount) predicate.LedgerDimension {
+	return predicate.LedgerDimension(func(s *sql.Selector) {
+		step := newTaxCodeSubAccountsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasFeaturesSubAccounts applies the HasEdge predicate on the "features_sub_accounts" edge.
+func HasFeaturesSubAccounts() predicate.LedgerDimension {
+	return predicate.LedgerDimension(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, FeaturesSubAccountsTable, FeaturesSubAccountsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasFeaturesSubAccountsWith applies the HasEdge predicate on the "features_sub_accounts" edge with a given conditions (other predicates).
+func HasFeaturesSubAccountsWith(preds ...predicate.LedgerSubAccount) predicate.LedgerDimension {
+	return predicate.LedgerDimension(func(s *sql.Selector) {
+		step := newFeaturesSubAccountsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCreditPrioritySubAccounts applies the HasEdge predicate on the "credit_priority_sub_accounts" edge.
+func HasCreditPrioritySubAccounts() predicate.LedgerDimension {
+	return predicate.LedgerDimension(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, CreditPrioritySubAccountsTable, CreditPrioritySubAccountsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCreditPrioritySubAccountsWith applies the HasEdge predicate on the "credit_priority_sub_accounts" edge with a given conditions (other predicates).
+func HasCreditPrioritySubAccountsWith(preds ...predicate.LedgerSubAccount) predicate.LedgerDimension {
+	return predicate.LedgerDimension(func(s *sql.Selector) {
+		step := newCreditPrioritySubAccountsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

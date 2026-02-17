@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -67,9 +68,45 @@ func (_u *LedgerAccountUpdate) ClearDeletedAt() *LedgerAccountUpdate {
 	return _u
 }
 
+// AddSubAccountIDs adds the "sub_accounts" edge to the LedgerSubAccount entity by IDs.
+func (_u *LedgerAccountUpdate) AddSubAccountIDs(ids ...string) *LedgerAccountUpdate {
+	_u.mutation.AddSubAccountIDs(ids...)
+	return _u
+}
+
+// AddSubAccounts adds the "sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerAccountUpdate) AddSubAccounts(v ...*LedgerSubAccount) *LedgerAccountUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSubAccountIDs(ids...)
+}
+
 // Mutation returns the LedgerAccountMutation object of the builder.
 func (_u *LedgerAccountUpdate) Mutation() *LedgerAccountMutation {
 	return _u.mutation
+}
+
+// ClearSubAccounts clears all "sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerAccountUpdate) ClearSubAccounts() *LedgerAccountUpdate {
+	_u.mutation.ClearSubAccounts()
+	return _u
+}
+
+// RemoveSubAccountIDs removes the "sub_accounts" edge to LedgerSubAccount entities by IDs.
+func (_u *LedgerAccountUpdate) RemoveSubAccountIDs(ids ...string) *LedgerAccountUpdate {
+	_u.mutation.RemoveSubAccountIDs(ids...)
+	return _u
+}
+
+// RemoveSubAccounts removes "sub_accounts" edges to LedgerSubAccount entities.
+func (_u *LedgerAccountUpdate) RemoveSubAccounts(v ...*LedgerSubAccount) *LedgerAccountUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSubAccountIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -132,6 +169,51 @@ func (_u *LedgerAccountUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(ledgeraccount.FieldDeletedAt, field.TypeTime)
 	}
+	if _u.mutation.SubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.SubAccountsTable,
+			Columns: []string{ledgeraccount.SubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSubAccountsIDs(); len(nodes) > 0 && !_u.mutation.SubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.SubAccountsTable,
+			Columns: []string{ledgeraccount.SubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.SubAccountsTable,
+			Columns: []string{ledgeraccount.SubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{ledgeraccount.Label}
@@ -190,9 +272,45 @@ func (_u *LedgerAccountUpdateOne) ClearDeletedAt() *LedgerAccountUpdateOne {
 	return _u
 }
 
+// AddSubAccountIDs adds the "sub_accounts" edge to the LedgerSubAccount entity by IDs.
+func (_u *LedgerAccountUpdateOne) AddSubAccountIDs(ids ...string) *LedgerAccountUpdateOne {
+	_u.mutation.AddSubAccountIDs(ids...)
+	return _u
+}
+
+// AddSubAccounts adds the "sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerAccountUpdateOne) AddSubAccounts(v ...*LedgerSubAccount) *LedgerAccountUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSubAccountIDs(ids...)
+}
+
 // Mutation returns the LedgerAccountMutation object of the builder.
 func (_u *LedgerAccountUpdateOne) Mutation() *LedgerAccountMutation {
 	return _u.mutation
+}
+
+// ClearSubAccounts clears all "sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerAccountUpdateOne) ClearSubAccounts() *LedgerAccountUpdateOne {
+	_u.mutation.ClearSubAccounts()
+	return _u
+}
+
+// RemoveSubAccountIDs removes the "sub_accounts" edge to LedgerSubAccount entities by IDs.
+func (_u *LedgerAccountUpdateOne) RemoveSubAccountIDs(ids ...string) *LedgerAccountUpdateOne {
+	_u.mutation.RemoveSubAccountIDs(ids...)
+	return _u
+}
+
+// RemoveSubAccounts removes "sub_accounts" edges to LedgerSubAccount entities.
+func (_u *LedgerAccountUpdateOne) RemoveSubAccounts(v ...*LedgerSubAccount) *LedgerAccountUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSubAccountIDs(ids...)
 }
 
 // Where appends a list predicates to the LedgerAccountUpdate builder.
@@ -284,6 +402,51 @@ func (_u *LedgerAccountUpdateOne) sqlSave(ctx context.Context) (_node *LedgerAcc
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(ledgeraccount.FieldDeletedAt, field.TypeTime)
+	}
+	if _u.mutation.SubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.SubAccountsTable,
+			Columns: []string{ledgeraccount.SubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSubAccountsIDs(); len(nodes) > 0 && !_u.mutation.SubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.SubAccountsTable,
+			Columns: []string{ledgeraccount.SubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.SubAccountsTable,
+			Columns: []string{ledgeraccount.SubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &LedgerAccount{config: _u.config}
 	_spec.Assign = _node.assignValues

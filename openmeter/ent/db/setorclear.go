@@ -2606,6 +2606,34 @@ func (u *LedgerEntryUpdateOne) SetOrClearDimensionIds(value *pgtype.TextArray) *
 	return u.SetDimensionIds(*value)
 }
 
+func (u *LedgerSubAccountUpdate) SetOrClearAnnotations(value *models.Annotations) *LedgerSubAccountUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *LedgerSubAccountUpdateOne) SetOrClearAnnotations(value *models.Annotations) *LedgerSubAccountUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *LedgerSubAccountUpdate) SetOrClearDeletedAt(value *time.Time) *LedgerSubAccountUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LedgerSubAccountUpdateOne) SetOrClearDeletedAt(value *time.Time) *LedgerSubAccountUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *LedgerTransactionUpdate) SetOrClearAnnotations(value *models.Annotations) *LedgerTransactionUpdate {
 	if value == nil {
 		return u.ClearAnnotations()

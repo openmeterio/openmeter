@@ -15,8 +15,8 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/jackc/pgtype"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
-	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -82,15 +82,9 @@ func (_c *LedgerEntryCreate) SetNillableDeletedAt(v *time.Time) *LedgerEntryCrea
 	return _c
 }
 
-// SetAccountID sets the "account_id" field.
-func (_c *LedgerEntryCreate) SetAccountID(v string) *LedgerEntryCreate {
-	_c.mutation.SetAccountID(v)
-	return _c
-}
-
-// SetAccountType sets the "account_type" field.
-func (_c *LedgerEntryCreate) SetAccountType(v ledger.AccountType) *LedgerEntryCreate {
-	_c.mutation.SetAccountType(v)
+// SetSubAccountID sets the "sub_account_id" field.
+func (_c *LedgerEntryCreate) SetSubAccountID(v string) *LedgerEntryCreate {
+	_c.mutation.SetSubAccountID(v)
 	return _c
 }
 
@@ -137,6 +131,11 @@ func (_c *LedgerEntryCreate) SetNillableID(v *string) *LedgerEntryCreate {
 // SetTransaction sets the "transaction" edge to the LedgerTransaction entity.
 func (_c *LedgerEntryCreate) SetTransaction(v *LedgerTransaction) *LedgerEntryCreate {
 	return _c.SetTransactionID(v.ID)
+}
+
+// SetSubAccount sets the "sub_account" edge to the LedgerSubAccount entity.
+func (_c *LedgerEntryCreate) SetSubAccount(v *LedgerSubAccount) *LedgerEntryCreate {
+	return _c.SetSubAccountID(v.ID)
 }
 
 // Mutation returns the LedgerEntryMutation object of the builder.
@@ -204,11 +203,8 @@ func (_c *LedgerEntryCreate) check() error {
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "LedgerEntry.updated_at"`)}
 	}
-	if _, ok := _c.mutation.AccountID(); !ok {
-		return &ValidationError{Name: "account_id", err: errors.New(`db: missing required field "LedgerEntry.account_id"`)}
-	}
-	if _, ok := _c.mutation.AccountType(); !ok {
-		return &ValidationError{Name: "account_type", err: errors.New(`db: missing required field "LedgerEntry.account_type"`)}
+	if _, ok := _c.mutation.SubAccountID(); !ok {
+		return &ValidationError{Name: "sub_account_id", err: errors.New(`db: missing required field "LedgerEntry.sub_account_id"`)}
 	}
 	if _, ok := _c.mutation.Amount(); !ok {
 		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "LedgerEntry.amount"`)}
@@ -218,6 +214,9 @@ func (_c *LedgerEntryCreate) check() error {
 	}
 	if len(_c.mutation.TransactionIDs()) == 0 {
 		return &ValidationError{Name: "transaction", err: errors.New(`db: missing required edge "LedgerEntry.transaction"`)}
+	}
+	if len(_c.mutation.SubAccountIDs()) == 0 {
+		return &ValidationError{Name: "sub_account", err: errors.New(`db: missing required edge "LedgerEntry.sub_account"`)}
 	}
 	return nil
 }
@@ -275,14 +274,6 @@ func (_c *LedgerEntryCreate) createSpec() (*LedgerEntry, *sqlgraph.CreateSpec) {
 		_spec.SetField(ledgerentry.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := _c.mutation.AccountID(); ok {
-		_spec.SetField(ledgerentry.FieldAccountID, field.TypeString, value)
-		_node.AccountID = value
-	}
-	if value, ok := _c.mutation.AccountType(); ok {
-		_spec.SetField(ledgerentry.FieldAccountType, field.TypeString, value)
-		_node.AccountType = value
-	}
 	if value, ok := _c.mutation.DimensionIds(); ok {
 		_spec.SetField(ledgerentry.FieldDimensionIds, field.TypeOther, value)
 		_node.DimensionIds = value
@@ -306,6 +297,23 @@ func (_c *LedgerEntryCreate) createSpec() (*LedgerEntry, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.TransactionID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SubAccountIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   ledgerentry.SubAccountTable,
+			Columns: []string{ledgerentry.SubAccountColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SubAccountID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -449,11 +457,8 @@ func (u *LedgerEntryUpsertOne) UpdateNewValues() *LedgerEntryUpsertOne {
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(ledgerentry.FieldCreatedAt)
 		}
-		if _, exists := u.create.mutation.AccountID(); exists {
-			s.SetIgnore(ledgerentry.FieldAccountID)
-		}
-		if _, exists := u.create.mutation.AccountType(); exists {
-			s.SetIgnore(ledgerentry.FieldAccountType)
+		if _, exists := u.create.mutation.SubAccountID(); exists {
+			s.SetIgnore(ledgerentry.FieldSubAccountID)
 		}
 		if _, exists := u.create.mutation.Amount(); exists {
 			s.SetIgnore(ledgerentry.FieldAmount)
@@ -758,11 +763,8 @@ func (u *LedgerEntryUpsertBulk) UpdateNewValues() *LedgerEntryUpsertBulk {
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(ledgerentry.FieldCreatedAt)
 			}
-			if _, exists := b.mutation.AccountID(); exists {
-				s.SetIgnore(ledgerentry.FieldAccountID)
-			}
-			if _, exists := b.mutation.AccountType(); exists {
-				s.SetIgnore(ledgerentry.FieldAccountType)
+			if _, exists := b.mutation.SubAccountID(); exists {
+				s.SetIgnore(ledgerentry.FieldSubAccountID)
 			}
 			if _, exists := b.mutation.Amount(); exists {
 				s.SetIgnore(ledgerentry.FieldAmount)

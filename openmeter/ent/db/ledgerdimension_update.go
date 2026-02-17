@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -67,9 +68,189 @@ func (_u *LedgerDimensionUpdate) ClearDeletedAt() *LedgerDimensionUpdate {
 	return _u
 }
 
+// AddSubAccountIDs adds the "sub_accounts" edge to the LedgerSubAccount entity by IDs.
+func (_u *LedgerDimensionUpdate) AddSubAccountIDs(ids ...string) *LedgerDimensionUpdate {
+	_u.mutation.AddSubAccountIDs(ids...)
+	return _u
+}
+
+// AddSubAccounts adds the "sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerDimensionUpdate) AddSubAccounts(v ...*LedgerSubAccount) *LedgerDimensionUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSubAccountIDs(ids...)
+}
+
+// AddCurrencySubAccountIDs adds the "currency_sub_accounts" edge to the LedgerSubAccount entity by IDs.
+func (_u *LedgerDimensionUpdate) AddCurrencySubAccountIDs(ids ...string) *LedgerDimensionUpdate {
+	_u.mutation.AddCurrencySubAccountIDs(ids...)
+	return _u
+}
+
+// AddCurrencySubAccounts adds the "currency_sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerDimensionUpdate) AddCurrencySubAccounts(v ...*LedgerSubAccount) *LedgerDimensionUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCurrencySubAccountIDs(ids...)
+}
+
+// AddTaxCodeSubAccountIDs adds the "tax_code_sub_accounts" edge to the LedgerSubAccount entity by IDs.
+func (_u *LedgerDimensionUpdate) AddTaxCodeSubAccountIDs(ids ...string) *LedgerDimensionUpdate {
+	_u.mutation.AddTaxCodeSubAccountIDs(ids...)
+	return _u
+}
+
+// AddTaxCodeSubAccounts adds the "tax_code_sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerDimensionUpdate) AddTaxCodeSubAccounts(v ...*LedgerSubAccount) *LedgerDimensionUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddTaxCodeSubAccountIDs(ids...)
+}
+
+// AddFeaturesSubAccountIDs adds the "features_sub_accounts" edge to the LedgerSubAccount entity by IDs.
+func (_u *LedgerDimensionUpdate) AddFeaturesSubAccountIDs(ids ...string) *LedgerDimensionUpdate {
+	_u.mutation.AddFeaturesSubAccountIDs(ids...)
+	return _u
+}
+
+// AddFeaturesSubAccounts adds the "features_sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerDimensionUpdate) AddFeaturesSubAccounts(v ...*LedgerSubAccount) *LedgerDimensionUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddFeaturesSubAccountIDs(ids...)
+}
+
+// AddCreditPrioritySubAccountIDs adds the "credit_priority_sub_accounts" edge to the LedgerSubAccount entity by IDs.
+func (_u *LedgerDimensionUpdate) AddCreditPrioritySubAccountIDs(ids ...string) *LedgerDimensionUpdate {
+	_u.mutation.AddCreditPrioritySubAccountIDs(ids...)
+	return _u
+}
+
+// AddCreditPrioritySubAccounts adds the "credit_priority_sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerDimensionUpdate) AddCreditPrioritySubAccounts(v ...*LedgerSubAccount) *LedgerDimensionUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCreditPrioritySubAccountIDs(ids...)
+}
+
 // Mutation returns the LedgerDimensionMutation object of the builder.
 func (_u *LedgerDimensionUpdate) Mutation() *LedgerDimensionMutation {
 	return _u.mutation
+}
+
+// ClearSubAccounts clears all "sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerDimensionUpdate) ClearSubAccounts() *LedgerDimensionUpdate {
+	_u.mutation.ClearSubAccounts()
+	return _u
+}
+
+// RemoveSubAccountIDs removes the "sub_accounts" edge to LedgerSubAccount entities by IDs.
+func (_u *LedgerDimensionUpdate) RemoveSubAccountIDs(ids ...string) *LedgerDimensionUpdate {
+	_u.mutation.RemoveSubAccountIDs(ids...)
+	return _u
+}
+
+// RemoveSubAccounts removes "sub_accounts" edges to LedgerSubAccount entities.
+func (_u *LedgerDimensionUpdate) RemoveSubAccounts(v ...*LedgerSubAccount) *LedgerDimensionUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSubAccountIDs(ids...)
+}
+
+// ClearCurrencySubAccounts clears all "currency_sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerDimensionUpdate) ClearCurrencySubAccounts() *LedgerDimensionUpdate {
+	_u.mutation.ClearCurrencySubAccounts()
+	return _u
+}
+
+// RemoveCurrencySubAccountIDs removes the "currency_sub_accounts" edge to LedgerSubAccount entities by IDs.
+func (_u *LedgerDimensionUpdate) RemoveCurrencySubAccountIDs(ids ...string) *LedgerDimensionUpdate {
+	_u.mutation.RemoveCurrencySubAccountIDs(ids...)
+	return _u
+}
+
+// RemoveCurrencySubAccounts removes "currency_sub_accounts" edges to LedgerSubAccount entities.
+func (_u *LedgerDimensionUpdate) RemoveCurrencySubAccounts(v ...*LedgerSubAccount) *LedgerDimensionUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCurrencySubAccountIDs(ids...)
+}
+
+// ClearTaxCodeSubAccounts clears all "tax_code_sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerDimensionUpdate) ClearTaxCodeSubAccounts() *LedgerDimensionUpdate {
+	_u.mutation.ClearTaxCodeSubAccounts()
+	return _u
+}
+
+// RemoveTaxCodeSubAccountIDs removes the "tax_code_sub_accounts" edge to LedgerSubAccount entities by IDs.
+func (_u *LedgerDimensionUpdate) RemoveTaxCodeSubAccountIDs(ids ...string) *LedgerDimensionUpdate {
+	_u.mutation.RemoveTaxCodeSubAccountIDs(ids...)
+	return _u
+}
+
+// RemoveTaxCodeSubAccounts removes "tax_code_sub_accounts" edges to LedgerSubAccount entities.
+func (_u *LedgerDimensionUpdate) RemoveTaxCodeSubAccounts(v ...*LedgerSubAccount) *LedgerDimensionUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveTaxCodeSubAccountIDs(ids...)
+}
+
+// ClearFeaturesSubAccounts clears all "features_sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerDimensionUpdate) ClearFeaturesSubAccounts() *LedgerDimensionUpdate {
+	_u.mutation.ClearFeaturesSubAccounts()
+	return _u
+}
+
+// RemoveFeaturesSubAccountIDs removes the "features_sub_accounts" edge to LedgerSubAccount entities by IDs.
+func (_u *LedgerDimensionUpdate) RemoveFeaturesSubAccountIDs(ids ...string) *LedgerDimensionUpdate {
+	_u.mutation.RemoveFeaturesSubAccountIDs(ids...)
+	return _u
+}
+
+// RemoveFeaturesSubAccounts removes "features_sub_accounts" edges to LedgerSubAccount entities.
+func (_u *LedgerDimensionUpdate) RemoveFeaturesSubAccounts(v ...*LedgerSubAccount) *LedgerDimensionUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveFeaturesSubAccountIDs(ids...)
+}
+
+// ClearCreditPrioritySubAccounts clears all "credit_priority_sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerDimensionUpdate) ClearCreditPrioritySubAccounts() *LedgerDimensionUpdate {
+	_u.mutation.ClearCreditPrioritySubAccounts()
+	return _u
+}
+
+// RemoveCreditPrioritySubAccountIDs removes the "credit_priority_sub_accounts" edge to LedgerSubAccount entities by IDs.
+func (_u *LedgerDimensionUpdate) RemoveCreditPrioritySubAccountIDs(ids ...string) *LedgerDimensionUpdate {
+	_u.mutation.RemoveCreditPrioritySubAccountIDs(ids...)
+	return _u
+}
+
+// RemoveCreditPrioritySubAccounts removes "credit_priority_sub_accounts" edges to LedgerSubAccount entities.
+func (_u *LedgerDimensionUpdate) RemoveCreditPrioritySubAccounts(v ...*LedgerSubAccount) *LedgerDimensionUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCreditPrioritySubAccountIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -132,6 +313,231 @@ func (_u *LedgerDimensionUpdate) sqlSave(ctx context.Context) (_node int, err er
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(ledgerdimension.FieldDeletedAt, field.TypeTime)
 	}
+	if _u.mutation.SubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.SubAccountsTable,
+			Columns: []string{ledgerdimension.SubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSubAccountsIDs(); len(nodes) > 0 && !_u.mutation.SubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.SubAccountsTable,
+			Columns: []string{ledgerdimension.SubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.SubAccountsTable,
+			Columns: []string{ledgerdimension.SubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CurrencySubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.CurrencySubAccountsTable,
+			Columns: []string{ledgerdimension.CurrencySubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCurrencySubAccountsIDs(); len(nodes) > 0 && !_u.mutation.CurrencySubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.CurrencySubAccountsTable,
+			Columns: []string{ledgerdimension.CurrencySubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CurrencySubAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.CurrencySubAccountsTable,
+			Columns: []string{ledgerdimension.CurrencySubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TaxCodeSubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.TaxCodeSubAccountsTable,
+			Columns: []string{ledgerdimension.TaxCodeSubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedTaxCodeSubAccountsIDs(); len(nodes) > 0 && !_u.mutation.TaxCodeSubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.TaxCodeSubAccountsTable,
+			Columns: []string{ledgerdimension.TaxCodeSubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeSubAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.TaxCodeSubAccountsTable,
+			Columns: []string{ledgerdimension.TaxCodeSubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.FeaturesSubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.FeaturesSubAccountsTable,
+			Columns: []string{ledgerdimension.FeaturesSubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedFeaturesSubAccountsIDs(); len(nodes) > 0 && !_u.mutation.FeaturesSubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.FeaturesSubAccountsTable,
+			Columns: []string{ledgerdimension.FeaturesSubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.FeaturesSubAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.FeaturesSubAccountsTable,
+			Columns: []string{ledgerdimension.FeaturesSubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CreditPrioritySubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.CreditPrioritySubAccountsTable,
+			Columns: []string{ledgerdimension.CreditPrioritySubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCreditPrioritySubAccountsIDs(); len(nodes) > 0 && !_u.mutation.CreditPrioritySubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.CreditPrioritySubAccountsTable,
+			Columns: []string{ledgerdimension.CreditPrioritySubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CreditPrioritySubAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.CreditPrioritySubAccountsTable,
+			Columns: []string{ledgerdimension.CreditPrioritySubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{ledgerdimension.Label}
@@ -190,9 +596,189 @@ func (_u *LedgerDimensionUpdateOne) ClearDeletedAt() *LedgerDimensionUpdateOne {
 	return _u
 }
 
+// AddSubAccountIDs adds the "sub_accounts" edge to the LedgerSubAccount entity by IDs.
+func (_u *LedgerDimensionUpdateOne) AddSubAccountIDs(ids ...string) *LedgerDimensionUpdateOne {
+	_u.mutation.AddSubAccountIDs(ids...)
+	return _u
+}
+
+// AddSubAccounts adds the "sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerDimensionUpdateOne) AddSubAccounts(v ...*LedgerSubAccount) *LedgerDimensionUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSubAccountIDs(ids...)
+}
+
+// AddCurrencySubAccountIDs adds the "currency_sub_accounts" edge to the LedgerSubAccount entity by IDs.
+func (_u *LedgerDimensionUpdateOne) AddCurrencySubAccountIDs(ids ...string) *LedgerDimensionUpdateOne {
+	_u.mutation.AddCurrencySubAccountIDs(ids...)
+	return _u
+}
+
+// AddCurrencySubAccounts adds the "currency_sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerDimensionUpdateOne) AddCurrencySubAccounts(v ...*LedgerSubAccount) *LedgerDimensionUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCurrencySubAccountIDs(ids...)
+}
+
+// AddTaxCodeSubAccountIDs adds the "tax_code_sub_accounts" edge to the LedgerSubAccount entity by IDs.
+func (_u *LedgerDimensionUpdateOne) AddTaxCodeSubAccountIDs(ids ...string) *LedgerDimensionUpdateOne {
+	_u.mutation.AddTaxCodeSubAccountIDs(ids...)
+	return _u
+}
+
+// AddTaxCodeSubAccounts adds the "tax_code_sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerDimensionUpdateOne) AddTaxCodeSubAccounts(v ...*LedgerSubAccount) *LedgerDimensionUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddTaxCodeSubAccountIDs(ids...)
+}
+
+// AddFeaturesSubAccountIDs adds the "features_sub_accounts" edge to the LedgerSubAccount entity by IDs.
+func (_u *LedgerDimensionUpdateOne) AddFeaturesSubAccountIDs(ids ...string) *LedgerDimensionUpdateOne {
+	_u.mutation.AddFeaturesSubAccountIDs(ids...)
+	return _u
+}
+
+// AddFeaturesSubAccounts adds the "features_sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerDimensionUpdateOne) AddFeaturesSubAccounts(v ...*LedgerSubAccount) *LedgerDimensionUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddFeaturesSubAccountIDs(ids...)
+}
+
+// AddCreditPrioritySubAccountIDs adds the "credit_priority_sub_accounts" edge to the LedgerSubAccount entity by IDs.
+func (_u *LedgerDimensionUpdateOne) AddCreditPrioritySubAccountIDs(ids ...string) *LedgerDimensionUpdateOne {
+	_u.mutation.AddCreditPrioritySubAccountIDs(ids...)
+	return _u
+}
+
+// AddCreditPrioritySubAccounts adds the "credit_priority_sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerDimensionUpdateOne) AddCreditPrioritySubAccounts(v ...*LedgerSubAccount) *LedgerDimensionUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCreditPrioritySubAccountIDs(ids...)
+}
+
 // Mutation returns the LedgerDimensionMutation object of the builder.
 func (_u *LedgerDimensionUpdateOne) Mutation() *LedgerDimensionMutation {
 	return _u.mutation
+}
+
+// ClearSubAccounts clears all "sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerDimensionUpdateOne) ClearSubAccounts() *LedgerDimensionUpdateOne {
+	_u.mutation.ClearSubAccounts()
+	return _u
+}
+
+// RemoveSubAccountIDs removes the "sub_accounts" edge to LedgerSubAccount entities by IDs.
+func (_u *LedgerDimensionUpdateOne) RemoveSubAccountIDs(ids ...string) *LedgerDimensionUpdateOne {
+	_u.mutation.RemoveSubAccountIDs(ids...)
+	return _u
+}
+
+// RemoveSubAccounts removes "sub_accounts" edges to LedgerSubAccount entities.
+func (_u *LedgerDimensionUpdateOne) RemoveSubAccounts(v ...*LedgerSubAccount) *LedgerDimensionUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSubAccountIDs(ids...)
+}
+
+// ClearCurrencySubAccounts clears all "currency_sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerDimensionUpdateOne) ClearCurrencySubAccounts() *LedgerDimensionUpdateOne {
+	_u.mutation.ClearCurrencySubAccounts()
+	return _u
+}
+
+// RemoveCurrencySubAccountIDs removes the "currency_sub_accounts" edge to LedgerSubAccount entities by IDs.
+func (_u *LedgerDimensionUpdateOne) RemoveCurrencySubAccountIDs(ids ...string) *LedgerDimensionUpdateOne {
+	_u.mutation.RemoveCurrencySubAccountIDs(ids...)
+	return _u
+}
+
+// RemoveCurrencySubAccounts removes "currency_sub_accounts" edges to LedgerSubAccount entities.
+func (_u *LedgerDimensionUpdateOne) RemoveCurrencySubAccounts(v ...*LedgerSubAccount) *LedgerDimensionUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCurrencySubAccountIDs(ids...)
+}
+
+// ClearTaxCodeSubAccounts clears all "tax_code_sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerDimensionUpdateOne) ClearTaxCodeSubAccounts() *LedgerDimensionUpdateOne {
+	_u.mutation.ClearTaxCodeSubAccounts()
+	return _u
+}
+
+// RemoveTaxCodeSubAccountIDs removes the "tax_code_sub_accounts" edge to LedgerSubAccount entities by IDs.
+func (_u *LedgerDimensionUpdateOne) RemoveTaxCodeSubAccountIDs(ids ...string) *LedgerDimensionUpdateOne {
+	_u.mutation.RemoveTaxCodeSubAccountIDs(ids...)
+	return _u
+}
+
+// RemoveTaxCodeSubAccounts removes "tax_code_sub_accounts" edges to LedgerSubAccount entities.
+func (_u *LedgerDimensionUpdateOne) RemoveTaxCodeSubAccounts(v ...*LedgerSubAccount) *LedgerDimensionUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveTaxCodeSubAccountIDs(ids...)
+}
+
+// ClearFeaturesSubAccounts clears all "features_sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerDimensionUpdateOne) ClearFeaturesSubAccounts() *LedgerDimensionUpdateOne {
+	_u.mutation.ClearFeaturesSubAccounts()
+	return _u
+}
+
+// RemoveFeaturesSubAccountIDs removes the "features_sub_accounts" edge to LedgerSubAccount entities by IDs.
+func (_u *LedgerDimensionUpdateOne) RemoveFeaturesSubAccountIDs(ids ...string) *LedgerDimensionUpdateOne {
+	_u.mutation.RemoveFeaturesSubAccountIDs(ids...)
+	return _u
+}
+
+// RemoveFeaturesSubAccounts removes "features_sub_accounts" edges to LedgerSubAccount entities.
+func (_u *LedgerDimensionUpdateOne) RemoveFeaturesSubAccounts(v ...*LedgerSubAccount) *LedgerDimensionUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveFeaturesSubAccountIDs(ids...)
+}
+
+// ClearCreditPrioritySubAccounts clears all "credit_priority_sub_accounts" edges to the LedgerSubAccount entity.
+func (_u *LedgerDimensionUpdateOne) ClearCreditPrioritySubAccounts() *LedgerDimensionUpdateOne {
+	_u.mutation.ClearCreditPrioritySubAccounts()
+	return _u
+}
+
+// RemoveCreditPrioritySubAccountIDs removes the "credit_priority_sub_accounts" edge to LedgerSubAccount entities by IDs.
+func (_u *LedgerDimensionUpdateOne) RemoveCreditPrioritySubAccountIDs(ids ...string) *LedgerDimensionUpdateOne {
+	_u.mutation.RemoveCreditPrioritySubAccountIDs(ids...)
+	return _u
+}
+
+// RemoveCreditPrioritySubAccounts removes "credit_priority_sub_accounts" edges to LedgerSubAccount entities.
+func (_u *LedgerDimensionUpdateOne) RemoveCreditPrioritySubAccounts(v ...*LedgerSubAccount) *LedgerDimensionUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCreditPrioritySubAccountIDs(ids...)
 }
 
 // Where appends a list predicates to the LedgerDimensionUpdate builder.
@@ -284,6 +870,231 @@ func (_u *LedgerDimensionUpdateOne) sqlSave(ctx context.Context) (_node *LedgerD
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(ledgerdimension.FieldDeletedAt, field.TypeTime)
+	}
+	if _u.mutation.SubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.SubAccountsTable,
+			Columns: []string{ledgerdimension.SubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSubAccountsIDs(); len(nodes) > 0 && !_u.mutation.SubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.SubAccountsTable,
+			Columns: []string{ledgerdimension.SubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.SubAccountsTable,
+			Columns: []string{ledgerdimension.SubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CurrencySubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.CurrencySubAccountsTable,
+			Columns: []string{ledgerdimension.CurrencySubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCurrencySubAccountsIDs(); len(nodes) > 0 && !_u.mutation.CurrencySubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.CurrencySubAccountsTable,
+			Columns: []string{ledgerdimension.CurrencySubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CurrencySubAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.CurrencySubAccountsTable,
+			Columns: []string{ledgerdimension.CurrencySubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TaxCodeSubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.TaxCodeSubAccountsTable,
+			Columns: []string{ledgerdimension.TaxCodeSubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedTaxCodeSubAccountsIDs(); len(nodes) > 0 && !_u.mutation.TaxCodeSubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.TaxCodeSubAccountsTable,
+			Columns: []string{ledgerdimension.TaxCodeSubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeSubAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.TaxCodeSubAccountsTable,
+			Columns: []string{ledgerdimension.TaxCodeSubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.FeaturesSubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.FeaturesSubAccountsTable,
+			Columns: []string{ledgerdimension.FeaturesSubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedFeaturesSubAccountsIDs(); len(nodes) > 0 && !_u.mutation.FeaturesSubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.FeaturesSubAccountsTable,
+			Columns: []string{ledgerdimension.FeaturesSubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.FeaturesSubAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.FeaturesSubAccountsTable,
+			Columns: []string{ledgerdimension.FeaturesSubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CreditPrioritySubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.CreditPrioritySubAccountsTable,
+			Columns: []string{ledgerdimension.CreditPrioritySubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCreditPrioritySubAccountsIDs(); len(nodes) > 0 && !_u.mutation.CreditPrioritySubAccountsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.CreditPrioritySubAccountsTable,
+			Columns: []string{ledgerdimension.CreditPrioritySubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CreditPrioritySubAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerdimension.CreditPrioritySubAccountsTable,
+			Columns: []string{ledgerdimension.CreditPrioritySubAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &LedgerDimension{config: _u.config}
 	_spec.Assign = _node.assignValues

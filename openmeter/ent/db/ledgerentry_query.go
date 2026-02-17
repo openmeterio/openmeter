@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
@@ -25,6 +26,7 @@ type LedgerEntryQuery struct {
 	inters          []Interceptor
 	predicates      []predicate.LedgerEntry
 	withTransaction *LedgerTransactionQuery
+	withSubAccount  *LedgerSubAccountQuery
 	modifiers       []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -77,6 +79,28 @@ func (_q *LedgerEntryQuery) QueryTransaction() *LedgerTransactionQuery {
 			sqlgraph.From(ledgerentry.Table, ledgerentry.FieldID, selector),
 			sqlgraph.To(ledgertransaction.Table, ledgertransaction.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, ledgerentry.TransactionTable, ledgerentry.TransactionColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QuerySubAccount chains the current query on the "sub_account" edge.
+func (_q *LedgerEntryQuery) QuerySubAccount() *LedgerSubAccountQuery {
+	query := (&LedgerSubAccountClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerentry.Table, ledgerentry.FieldID, selector),
+			sqlgraph.To(ledgersubaccount.Table, ledgersubaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgerentry.SubAccountTable, ledgerentry.SubAccountColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -277,6 +301,7 @@ func (_q *LedgerEntryQuery) Clone() *LedgerEntryQuery {
 		inters:          append([]Interceptor{}, _q.inters...),
 		predicates:      append([]predicate.LedgerEntry{}, _q.predicates...),
 		withTransaction: _q.withTransaction.Clone(),
+		withSubAccount:  _q.withSubAccount.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -291,6 +316,17 @@ func (_q *LedgerEntryQuery) WithTransaction(opts ...func(*LedgerTransactionQuery
 		opt(query)
 	}
 	_q.withTransaction = query
+	return _q
+}
+
+// WithSubAccount tells the query-builder to eager-load the nodes that are connected to
+// the "sub_account" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *LedgerEntryQuery) WithSubAccount(opts ...func(*LedgerSubAccountQuery)) *LedgerEntryQuery {
+	query := (&LedgerSubAccountClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withSubAccount = query
 	return _q
 }
 
@@ -372,8 +408,9 @@ func (_q *LedgerEntryQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 	var (
 		nodes       = []*LedgerEntry{}
 		_spec       = _q.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			_q.withTransaction != nil,
+			_q.withSubAccount != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -403,6 +440,12 @@ func (_q *LedgerEntryQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 			return nil, err
 		}
 	}
+	if query := _q.withSubAccount; query != nil {
+		if err := _q.loadSubAccount(ctx, query, nodes, nil,
+			func(n *LedgerEntry, e *LedgerSubAccount) { n.Edges.SubAccount = e }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
 }
 
@@ -428,6 +471,35 @@ func (_q *LedgerEntryQuery) loadTransaction(ctx context.Context, query *LedgerTr
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "transaction_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (_q *LedgerEntryQuery) loadSubAccount(ctx context.Context, query *LedgerSubAccountQuery, nodes []*LedgerEntry, init func(*LedgerEntry), assign func(*LedgerEntry, *LedgerSubAccount)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*LedgerEntry)
+	for i := range nodes {
+		fk := nodes[i].SubAccountID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(ledgersubaccount.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "sub_account_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -466,6 +538,9 @@ func (_q *LedgerEntryQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withTransaction != nil {
 			_spec.Node.AddColumnOnce(ledgerentry.FieldTransactionID)
+		}
+		if _q.withSubAccount != nil {
+			_spec.Node.AddColumnOnce(ledgerentry.FieldSubAccountID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

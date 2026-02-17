@@ -24,10 +24,8 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
-	// FieldAccountID holds the string denoting the account_id field in the database.
-	FieldAccountID = "account_id"
-	// FieldAccountType holds the string denoting the account_type field in the database.
-	FieldAccountType = "account_type"
+	// FieldSubAccountID holds the string denoting the sub_account_id field in the database.
+	FieldSubAccountID = "sub_account_id"
 	// FieldDimensionIds holds the string denoting the dimension_ids field in the database.
 	FieldDimensionIds = "dimension_ids"
 	// FieldAmount holds the string denoting the amount field in the database.
@@ -36,6 +34,8 @@ const (
 	FieldTransactionID = "transaction_id"
 	// EdgeTransaction holds the string denoting the transaction edge name in mutations.
 	EdgeTransaction = "transaction"
+	// EdgeSubAccount holds the string denoting the sub_account edge name in mutations.
+	EdgeSubAccount = "sub_account"
 	// Table holds the table name of the ledgerentry in the database.
 	Table = "ledger_entries"
 	// TransactionTable is the table that holds the transaction relation/edge.
@@ -45,6 +45,13 @@ const (
 	TransactionInverseTable = "ledger_transactions"
 	// TransactionColumn is the table column denoting the transaction relation/edge.
 	TransactionColumn = "transaction_id"
+	// SubAccountTable is the table that holds the sub_account relation/edge.
+	SubAccountTable = "ledger_entries"
+	// SubAccountInverseTable is the table name for the LedgerSubAccount entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgersubaccount" package.
+	SubAccountInverseTable = "ledger_sub_accounts"
+	// SubAccountColumn is the table column denoting the sub_account relation/edge.
+	SubAccountColumn = "sub_account_id"
 )
 
 // Columns holds all SQL columns for ledgerentry fields.
@@ -55,8 +62,7 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
-	FieldAccountID,
-	FieldAccountType,
+	FieldSubAccountID,
 	FieldDimensionIds,
 	FieldAmount,
 	FieldTransactionID,
@@ -113,14 +119,9 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
-// ByAccountID orders the results by the account_id field.
-func ByAccountID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAccountID, opts...).ToFunc()
-}
-
-// ByAccountType orders the results by the account_type field.
-func ByAccountType(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAccountType, opts...).ToFunc()
+// BySubAccountID orders the results by the sub_account_id field.
+func BySubAccountID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubAccountID, opts...).ToFunc()
 }
 
 // ByDimensionIds orders the results by the dimension_ids field.
@@ -144,10 +145,24 @@ func ByTransactionField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newTransactionStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// BySubAccountField orders the results by sub_account field.
+func BySubAccountField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSubAccountStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newTransactionStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(TransactionInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, TransactionTable, TransactionColumn),
+	)
+}
+func newSubAccountStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SubAccountInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, SubAccountTable, SubAccountColumn),
 	)
 }

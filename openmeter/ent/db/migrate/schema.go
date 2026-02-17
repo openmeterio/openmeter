@@ -1884,6 +1884,7 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "dimension_key", Type: field.TypeString},
 		{Name: "dimension_value", Type: field.TypeString},
+		{Name: "dimension_display_value", Type: field.TypeString},
 	}
 	// LedgerDimensionsTable holds the schema information for the "ledger_dimensions" table.
 	LedgerDimensionsTable = &schema.Table{
@@ -1918,7 +1919,7 @@ var (
 			},
 			{
 				Name:    "ledgerdimension_namespace_dimension_key_dimension_value",
-				Unique:  false,
+				Unique:  true,
 				Columns: []*schema.Column{LedgerDimensionsColumns[1], LedgerDimensionsColumns[6], LedgerDimensionsColumns[7]},
 			},
 		},
@@ -1931,10 +1932,9 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "account_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "account_type", Type: field.TypeString},
 		{Name: "dimension_ids", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "text[]"}},
 		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "sub_account_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "transaction_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// LedgerEntriesTable holds the schema information for the "ledger_entries" table.
@@ -1944,8 +1944,14 @@ var (
 		PrimaryKey: []*schema.Column{LedgerEntriesColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
+				Symbol:     "ledger_entries_ledger_sub_accounts_entries",
+				Columns:    []*schema.Column{LedgerEntriesColumns[8]},
+				RefColumns: []*schema.Column{LedgerSubAccountsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
 				Symbol:     "ledger_entries_ledger_transactions_entries",
-				Columns:    []*schema.Column{LedgerEntriesColumns[10]},
+				Columns:    []*schema.Column{LedgerEntriesColumns[9]},
 				RefColumns: []*schema.Column{LedgerTransactionsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1979,12 +1985,12 @@ var (
 			{
 				Name:    "ledgerentry_namespace_transaction_id",
 				Unique:  false,
-				Columns: []*schema.Column{LedgerEntriesColumns[1], LedgerEntriesColumns[10]},
+				Columns: []*schema.Column{LedgerEntriesColumns[1], LedgerEntriesColumns[9]},
 			},
 			{
-				Name:    "ledgerentry_namespace_account_id",
+				Name:    "ledgerentry_namespace_sub_account_id",
 				Unique:  false,
-				Columns: []*schema.Column{LedgerEntriesColumns[1], LedgerEntriesColumns[6]},
+				Columns: []*schema.Column{LedgerEntriesColumns[1], LedgerEntriesColumns[8]},
 			},
 			{
 				Name:    "ledgerentry_created_at_id",
@@ -1993,6 +1999,92 @@ var (
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
+			},
+		},
+	}
+	// LedgerSubAccountsColumns holds the columns for the "ledger_sub_accounts" table.
+	LedgerSubAccountsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "account_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "ledger_dimension_sub_accounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "currency_dimension_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "tax_code_dimension_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "features_dimension_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "credit_priority_dimension_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// LedgerSubAccountsTable holds the schema information for the "ledger_sub_accounts" table.
+	LedgerSubAccountsTable = &schema.Table{
+		Name:       "ledger_sub_accounts",
+		Columns:    LedgerSubAccountsColumns,
+		PrimaryKey: []*schema.Column{LedgerSubAccountsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "ledger_sub_accounts_ledger_accounts_sub_accounts",
+				Columns:    []*schema.Column{LedgerSubAccountsColumns[6]},
+				RefColumns: []*schema.Column{LedgerAccountsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "ledger_sub_accounts_ledger_dimensions_sub_accounts",
+				Columns:    []*schema.Column{LedgerSubAccountsColumns[7]},
+				RefColumns: []*schema.Column{LedgerDimensionsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "ledger_sub_accounts_ledger_dimensions_currency_sub_accounts",
+				Columns:    []*schema.Column{LedgerSubAccountsColumns[8]},
+				RefColumns: []*schema.Column{LedgerDimensionsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "ledger_sub_accounts_ledger_dimensions_tax_code_sub_accounts",
+				Columns:    []*schema.Column{LedgerSubAccountsColumns[9]},
+				RefColumns: []*schema.Column{LedgerDimensionsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "ledger_sub_accounts_ledger_dimensions_features_sub_accounts",
+				Columns:    []*schema.Column{LedgerSubAccountsColumns[10]},
+				RefColumns: []*schema.Column{LedgerDimensionsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "ledger_sub_accounts_ledger_dimensions_credit_priority_sub_accounts",
+				Columns:    []*schema.Column{LedgerSubAccountsColumns[11]},
+				RefColumns: []*schema.Column{LedgerDimensionsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "ledgersubaccount_id",
+				Unique:  true,
+				Columns: []*schema.Column{LedgerSubAccountsColumns[0]},
+			},
+			{
+				Name:    "ledgersubaccount_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerSubAccountsColumns[1]},
+			},
+			{
+				Name:    "ledgersubaccount_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerSubAccountsColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
+				Name:    "ledgersubaccount_namespace_account_id_currency_dimension_id",
+				Unique:  true,
+				Columns: []*schema.Column{LedgerSubAccountsColumns[1], LedgerSubAccountsColumns[6], LedgerSubAccountsColumns[8]},
 			},
 		},
 	}
@@ -3191,6 +3283,7 @@ var (
 		LedgerAccountsTable,
 		LedgerDimensionsTable,
 		LedgerEntriesTable,
+		LedgerSubAccountsTable,
 		LedgerTransactionsTable,
 		LedgerTransactionGroupsTable,
 		MetersTable,
@@ -3260,7 +3353,14 @@ func init() {
 	EntitlementsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[1].RefTable = FeaturesTable
 	GrantsTable.ForeignKeys[0].RefTable = EntitlementsTable
-	LedgerEntriesTable.ForeignKeys[0].RefTable = LedgerTransactionsTable
+	LedgerEntriesTable.ForeignKeys[0].RefTable = LedgerSubAccountsTable
+	LedgerEntriesTable.ForeignKeys[1].RefTable = LedgerTransactionsTable
+	LedgerSubAccountsTable.ForeignKeys[0].RefTable = LedgerAccountsTable
+	LedgerSubAccountsTable.ForeignKeys[1].RefTable = LedgerDimensionsTable
+	LedgerSubAccountsTable.ForeignKeys[2].RefTable = LedgerDimensionsTable
+	LedgerSubAccountsTable.ForeignKeys[3].RefTable = LedgerDimensionsTable
+	LedgerSubAccountsTable.ForeignKeys[4].RefTable = LedgerDimensionsTable
+	LedgerSubAccountsTable.ForeignKeys[5].RefTable = LedgerDimensionsTable
 	LedgerTransactionsTable.ForeignKeys[0].RefTable = LedgerTransactionGroupsTable
 	NotificationEventsTable.ForeignKeys[0].RefTable = NotificationRulesTable
 	PlanAddonsTable.ForeignKeys[0].RefTable = AddonsTable

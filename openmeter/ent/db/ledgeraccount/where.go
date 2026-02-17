@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 )
@@ -378,6 +379,29 @@ func AccountTypeEqualFold(v ledger.AccountType) predicate.LedgerAccount {
 func AccountTypeContainsFold(v ledger.AccountType) predicate.LedgerAccount {
 	vc := string(v)
 	return predicate.LedgerAccount(sql.FieldContainsFold(FieldAccountType, vc))
+}
+
+// HasSubAccounts applies the HasEdge predicate on the "sub_accounts" edge.
+func HasSubAccounts() predicate.LedgerAccount {
+	return predicate.LedgerAccount(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, SubAccountsTable, SubAccountsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSubAccountsWith applies the HasEdge predicate on the "sub_accounts" edge with a given conditions (other predicates).
+func HasSubAccountsWith(preds ...predicate.LedgerSubAccount) predicate.LedgerAccount {
+	return predicate.LedgerAccount(func(s *sql.Selector) {
+		step := newSubAccountsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

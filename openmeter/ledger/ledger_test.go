@@ -14,11 +14,11 @@ import (
 // This package aims to test if the primitive API is convenient to work with
 
 type exampleEntryInput struct {
-	account ledger.Address
+	account ledger.PostingAddress
 	amount  alpacadecimal.Decimal
 }
 
-func (e exampleEntryInput) Account() ledger.Address {
+func (e exampleEntryInput) PostingAddress() ledger.PostingAddress {
 	return e.account
 }
 
@@ -32,7 +32,7 @@ func TestTwoAccountTransaction(t *testing.T) {
 	t.Skipf("This is just to assert the types, it would fail on unimplemented")
 
 	var l ledger.Ledger
-	var a1, a2 ledger.Account
+	var a1, a2 ledger.SubAccount
 
 	// Let's create a TX between two accounts
 	tx, err := l.SetUpTransactionInput(t.Context(), time.Now(), []ledger.EntryInput{
@@ -57,7 +57,7 @@ func TestMultiAccountTransaction(t *testing.T) {
 	t.Skipf("This is just to assert the types, it would fail on unimplemented")
 
 	var l ledger.Ledger
-	var a1, a2, a3 ledger.Account
+	var a1, a2, a3 ledger.SubAccount
 
 	// Let's create a TX between multiple
 	tx, err := l.SetUpTransactionInput(t.Context(), time.Now(), []ledger.EntryInput{
@@ -93,13 +93,11 @@ func TestMultiAccountTransaction(t *testing.T) {
 func TestGetAccountBalance(t *testing.T) {
 	t.Skipf("This is just to assert the types, it would fail on unimplemented")
 
-	var l ledger.Ledger
-	var addr ledger.Address
+	var acc ledger.Account
 
-	acc, err := l.GetAccount(t.Context(), addr)
-	require.NoError(t, err)
-
-	balance, err := acc.GetBalance(t.Context())
+	balance, err := acc.GetBalance(t.Context(), ledger.QueryDimensions{
+		CurrencyID: "01KHNVYVZ6FBKD6QKCGRX6S4Z4",
+	})
 	require.NoError(t, err)
 	require.NotNil(t, balance)
 }
