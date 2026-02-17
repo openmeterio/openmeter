@@ -147,5 +147,5 @@ func (s *Server) ListCurrencies(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) CreateCustomCurrency(w http.ResponseWriter, r *http.Request) {
-	unimplemented.CreateCustomCurrency(w, r)
+	s.currenciesHandler.CreateCurrency().ServeHTTP(w, r)
 }

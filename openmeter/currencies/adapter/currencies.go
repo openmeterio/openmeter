@@ -2,40 +2,55 @@ package adapter
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
+	"github.com/invopop/gobl/currency"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/framework/transaction"
-	"github.com/openmeterio/openmeter/pkg/pagination"
+	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
+	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/samber/lo"
 )
 
 var _ currencies.Adapter = (*adapter)(nil)
 
-// Tx implements entutils.TxCreator interface
-func (a *adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
-	txCtx, rawConfig, eDriver, err := a.db.HijackTx(ctx, &sql.TxOptions{
-		ReadOnly: false,
-	})
+func (a *adapter) ListCurrencies(ctx context.Context, params currencies.ListCurrenciesInput) ([]currencies.Currency, error) {
+	currencyRecords, err := a.db.CustomCurrency.Query().
+		Order(entdb.Asc(customcurrency.FieldCode)).
+		All(ctx)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
+		return nil, fmt.Errorf("failed to list currencies: %w", err)
 	}
-	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
+
+	return lo.Map(currencyRecords, func(currency *entdb.CustomCurrency, _ int) currencies.Currency {
+		return currencies.Currency{
+			Code:                 currency.Code,
+			Name:                 currency.Name,
+			Symbol:               currency.Symbol,
+			SmallestDenomination: currency.SmallestDenomination,
+			IsCustom:             true,
+		}
+	}), nil
 }
 
-func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
-	txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
-	return &adapter{
-		db:     txClient.Client(),
-		logger: a.logger,
+func (a *adapter) CreateCurrency(ctx context.Context, params currencies.CreateCurrencyInput) (*currency.Def, error) {
+	curr, err := a.db.CustomCurrency.Create().
+		SetCode(params.Code).
+		SetName(params.Name).
+		SetSymbol(params.Symbol).
+		SetSmallestDenomination(params.SmallestDenomination).
+		Save(ctx)
+	if err != nil {
+		if entdb.IsConstraintError(err) {
+			return nil, models.NewGenericConflictError(fmt.Errorf("currency with code %s already exists", params.Code))
+		}
+		return nil, fmt.Errorf("failed to create currency: %w", err)
 	}
-}
 
-func (a *adapter) Self() *adapter {
-	return a
-}
-
-func (a *adapter) ListCurrencies(ctx context.Context, params ListCurrenciesInput) (pagination.Result[Currency], error) {
-	return pagination.Result[Currency]{}, nil
+	return &currency.Def{
+		ISOCode:              currency.Code(curr.Code),
+		Name:                 curr.Name,
+		Symbol:               curr.Symbol,
+		SmallestDenomination: int(curr.SmallestDenomination),
+	}, nil
 }

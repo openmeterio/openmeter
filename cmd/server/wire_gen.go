@@ -403,7 +403,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	currencyService := common.NewCurrencyService()
+	currencyService, err := common.NewCurrencyService(logger, client)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	dedupeConfiguration := conf.Dedupe
 	producer, err := common.NewKafkaProducer(kafkaIngestConfiguration, logger, commonMetadata)
 	if err != nil {

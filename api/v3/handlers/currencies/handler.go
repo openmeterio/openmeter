@@ -7,6 +7,7 @@ import (
 
 type Handler interface {
 	ListCurrencies() ListCurrenciesHandler
+	CreateCurrency() CreateCurrencyHandler
 }
 
 type handler struct {

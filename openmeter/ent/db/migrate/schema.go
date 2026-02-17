@@ -1515,7 +1515,7 @@ var (
 	CustomCurrenciesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "created_at", Type: field.TypeTime},
-		{Name: "code", Type: field.TypeString, Unique: true, Size: 3},
+		{Name: "code", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString, Size: 100},
 		{Name: "symbol", Type: field.TypeString, Size: 10},
 		{Name: "smallest_denomination", Type: field.TypeInt8, Default: 2},
