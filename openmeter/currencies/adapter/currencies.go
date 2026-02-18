@@ -61,13 +61,11 @@ func (a *adapter) CreateCurrency(ctx context.Context, params currencies.CreateCu
 
 func (a *adapter) CreateCostBasis(ctx context.Context, params currencies.CreateCostBasisInput) (*currencies.CostBasis, error) {
 	effectiveFrom := time.Now()
-
 	if params.EffectiveFrom != nil {
+		if params.EffectiveFrom.Before(time.Now()) {
+			return nil, models.NewGenericConflictError(fmt.Errorf("effective from must be in the future"))
+		}
 		effectiveFrom = *params.EffectiveFrom
-	}
-
-	if effectiveFrom.Before(time.Now()) {
-		return nil, models.NewGenericConflictError(fmt.Errorf("effective from must be in the future"))
 	}
 
 	costBasis, err := a.db.CurrencyCostBasis.Create().
@@ -88,38 +86,22 @@ func (a *adapter) CreateCostBasis(ctx context.Context, params currencies.CreateC
 		FiatCode:      costBasis.FiatCode,
 		Rate:          costBasis.Rate,
 		EffectiveFrom: costBasis.EffectiveFrom,
-		CreatedAt:     costBasis.CreatedAt,
 	}, nil
 }
 
-func (a *adapter) GetCostBasis(ctx context.Context, id string) (*currencies.CostBasis, error) {
-	costBasis, err := a.db.CurrencyCostBasis.Query().
+func (a *adapter) GetCostBasesByCurrencyID(ctx context.Context, currencyID string) (currencies.CostBases, error) {
+	costBases, err := a.db.CurrencyCostBasis.Query().
 		Where(
-			currencycostbasis.HasCurrencyWith(customcurrency.ID(id)),
+			currencycostbasis.HasCurrencyWith(customcurrency.ID(currencyID)),
 		).
 		Order(entdb.Desc(currencycostbasis.FieldEffectiveFrom)).
 		WithCurrency().
-		First(ctx)
+		All(ctx)
 	if err != nil {
 		if entdb.IsNotFound(err) {
-			return nil, models.NewGenericNotFoundError(fmt.Errorf("cost basis with id: %s not found", id))
+			return nil, models.NewGenericNotFoundError(fmt.Errorf("cost basis with id: %s not found", currencyID))
 		}
 		return nil, fmt.Errorf("failed to get cost basis: %w", err)
-	}
-	return &currencies.CostBasis{
-		ID:            costBasis.ID,
-		CurrencyID:    costBasis.Edges.Currency.ID,
-		FiatCode:      costBasis.FiatCode,
-		Rate:          costBasis.Rate,
-		EffectiveFrom: costBasis.EffectiveFrom,
-		CreatedAt:     costBasis.CreatedAt,
-	}, nil
-}
-
-func (a *adapter) ListCostBases(ctx context.Context) (currencies.CostBases, error) {
-	costBases, err := a.db.CurrencyCostBasis.Query().WithCurrency().All(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get cost bases: %w", err)
 	}
 	return lo.Map(costBases, func(costBasis *entdb.CurrencyCostBasis, _ int) currencies.CostBasis {
 		return currencies.CostBasis{
@@ -128,7 +110,6 @@ func (a *adapter) ListCostBases(ctx context.Context) (currencies.CostBases, erro
 			FiatCode:      costBasis.FiatCode,
 			Rate:          costBasis.Rate,
 			EffectiveFrom: costBasis.EffectiveFrom,
-			CreatedAt:     costBasis.CreatedAt,
 		}
 	}), nil
 }

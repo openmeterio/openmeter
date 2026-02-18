@@ -32,14 +32,4 @@ interface CostBasisOperations {
     @header contentType: "application/json",
     @body body: CostBasis
   ): CreateCostBasisResponse | Common.ErrorResponses;
-
-  /**
-   * Get cost basis by id
-   */
-  @get
-  @operationId("get-cost-basis-by-id")
-  @summary("Get cost basis by id")
-  get_cost_basis(
-    @path id: Shared.ULID
-  ): Shared.GetResponse<CostBasis> | Common.NotFound | Common.ErrorResponses;
 }

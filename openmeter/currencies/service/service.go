@@ -66,10 +66,6 @@ func (s *Service) CreateCostBasis(ctx context.Context, params currencies.CreateC
 	return s.adapter.CreateCostBasis(ctx, params)
 }
 
-func (s *Service) GetCostBasis(ctx context.Context, id string) (*currencies.CostBasis, error) {
-	return s.adapter.GetCostBasis(ctx, id)
-}
-
-func (s *Service) ListCostBases(ctx context.Context) ([]currencies.CostBasis, error) {
-	return s.adapter.ListCostBases(ctx)
+func (s *Service) GetCostBasesByCurrencyID(ctx context.Context, currencyID string) ([]currencies.CostBasis, error) {
+	return s.adapter.GetCostBasesByCurrencyID(ctx, currencyID)
 }

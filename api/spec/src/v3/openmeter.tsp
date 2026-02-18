@@ -86,6 +86,6 @@ interface CurrenciesEndpoints extends Currencies.CurrenciesOperations {}
 @tag(Shared.BillingTag)
 interface CostBasisEndpoints extends Currencies.CostBasisOperations {}
 
-@route("/openmeter/currencies/cost-bases")
+@route("/openmeter/currencies/{currencyId}/cost-bases")
 @tag(Shared.BillingTag)
 interface CostBasesEndpoints extends Currencies.CostBasesOperations {}

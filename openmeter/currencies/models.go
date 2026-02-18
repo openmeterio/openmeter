@@ -25,12 +25,11 @@ type CreateCurrencyInput struct {
 }
 
 type CostBasis struct {
-	ID            string
+	ID            string                `json:"id"`
 	CurrencyID    string                `json:"currency_id"`
 	FiatCode      string                `json:"fiat_code"`
 	Rate          alpacadecimal.Decimal `json:"rate"`
 	EffectiveFrom time.Time             `json:"effective_from"`
-	CreatedAt     time.Time
 }
 
 type CreateCostBasisInput struct {
@@ -41,7 +40,7 @@ type CreateCostBasisInput struct {
 }
 
 type GetCostBasisInput struct {
-	ID string
+	CurrencyID string `json:"currency_id"`
 }
 
 type CostBases = []CostBasis

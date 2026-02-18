@@ -18,12 +18,14 @@ interface CostBasesOperations {
   /**
    * Cost Bases operations
    */
-  
+
   /**
-   * Get cost bases
+   * Get cost bases by currency id
    */
   @get
-  @operationId("list-cost-bases")
-  @summary("List cost bases")
-  list_cost_bases(): CostBases | Common.ErrorResponses;
+  @operationId("get-cost-bases-by-id")
+  @summary("Get cost bases by id")
+  get_cost_bases(
+    @path currencyId: Shared.ULID
+  ): CostBases | Common.ErrorResponses
 }

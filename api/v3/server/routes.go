@@ -154,10 +154,6 @@ func (s *Server) CreateCostBasis(w http.ResponseWriter, r *http.Request) {
 	s.currenciesHandler.CreateCostBasis().ServeHTTP(w, r)
 }
 
-func (s *Server) GetCostBasisById(w http.ResponseWriter, r *http.Request, id api.ULID) {
-	s.currenciesHandler.GetCostBasis().With(id).ServeHTTP(w, r)
-}
-
-func (s *Server) ListCostBases(w http.ResponseWriter, r *http.Request) {
-	s.currenciesHandler.ListCostBases().ServeHTTP(w, r)
+func (s *Server) GetCostBasesById(w http.ResponseWriter, r *http.Request, currencyId string) {
+	s.currenciesHandler.GetCostBasesByCurrencyID().With(currencyId).ServeHTTP(w, r)
 }

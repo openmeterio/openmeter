@@ -10,6 +10,5 @@ type CurrencyService interface {
 	ListCurrencies(ctx context.Context) ([]Currency, error)
 	CreateCurrency(ctx context.Context, params CreateCurrencyInput) (*currency.Def, error)
 	CreateCostBasis(ctx context.Context, params CreateCostBasisInput) (*CostBasis, error)
-	GetCostBasis(ctx context.Context, id string) (*CostBasis, error)
-	ListCostBases(ctx context.Context) ([]CostBasis, error)
+	GetCostBasesByCurrencyID(ctx context.Context, currencyID string) (CostBases, error)
 }

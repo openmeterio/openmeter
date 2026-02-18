@@ -119,26 +119,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingCustomCurrency'
-  /openmeter/currencies/cost-bases:
-    get:
-      operationId: list-cost-bases
-      summary: List cost bases
-      description: Cost Bases operationsGet cost bases
-      responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BillingCostBases'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-      tags:
-        - OpenMeter Billing
   /openmeter/currencies/cost-basis:
     post:
       operationId: create-cost-basis
@@ -161,32 +141,30 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingCostBasis'
-  /openmeter/currencies/cost-basis/{id}:
+  /openmeter/currencies/{currencyId}/cost-bases:
     get:
-      operationId: get-cost-basis-by-id
-      summary: Get cost basis by id
-      description: Get cost basis by id
+      operationId: get-cost-bases-by-id
+      summary: Get cost bases by id
+      description: Cost Bases operationsGet cost bases by currency id
       parameters:
-        - name: id
+        - name: currencyId
           in: path
           required: true
           schema:
             $ref: '#/components/schemas/ULID'
       responses:
         '200':
-          description: CostBasis response.
+          description: The request has succeeded.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BillingCostBasis'
+                $ref: '#/components/schemas/BillingCostBases'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Billing
   /openmeter/customers:
