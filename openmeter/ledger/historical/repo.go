@@ -23,6 +23,9 @@ type Repo interface {
 
 	// Sum ledger entries for a query result set
 	SumEntries(ctx context.Context, query ledger.Query) (alpacadecimal.Decimal, error)
+
+	// List transactions with pagination
+	ListTransactions(ctx context.Context, input ledger.ListTransactionsInput) (pagination.Result[*Transaction], error)
 }
 
 // ----------------------------------------------------------------------------
