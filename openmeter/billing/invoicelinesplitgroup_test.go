@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/stretchr/testify/require"
+
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSplitLineGroupMarshaling(t *testing.T) {
