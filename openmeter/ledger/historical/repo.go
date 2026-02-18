@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -18,6 +20,9 @@ type Repo interface {
 
 	// Book a transaction
 	BookTransaction(ctx context.Context, groupID models.NamespacedID, transaction *TransactionInput) (*Transaction, error)
+
+	// Sum ledger entries for a query result set
+	SumEntries(ctx context.Context, query ledger.Query) (alpacadecimal.Decimal, error)
 }
 
 // ----------------------------------------------------------------------------
