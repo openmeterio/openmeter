@@ -62,6 +62,8 @@ const (
 	EdgeSubscription = "subscription"
 	// EdgeEntitlements holds the string denoting the entitlements edge name in mutations.
 	EdgeEntitlements = "entitlements"
+	// EdgeChargeIntents holds the string denoting the charge_intents edge name in mutations.
+	EdgeChargeIntents = "charge_intents"
 	// Table holds the table name of the customer in the database.
 	Table = "customers"
 	// AppsTable is the table that holds the apps relation/edge.
@@ -106,6 +108,13 @@ const (
 	EntitlementsInverseTable = "entitlements"
 	// EntitlementsColumn is the table column denoting the entitlements relation/edge.
 	EntitlementsColumn = "customer_id"
+	// ChargeIntentsTable is the table that holds the charge_intents relation/edge.
+	ChargeIntentsTable = "charges"
+	// ChargeIntentsInverseTable is the table name for the Charge entity.
+	// It exists in this package in order to avoid circular dependency with the "charge" package.
+	ChargeIntentsInverseTable = "charges"
+	// ChargeIntentsColumn is the table column denoting the charge_intents relation/edge.
+	ChargeIntentsColumn = "customer_id"
 )
 
 // Columns holds all SQL columns for customer fields.
@@ -322,6 +331,20 @@ func ByEntitlements(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newEntitlementsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByChargeIntentsCount orders the results by charge_intents count.
+func ByChargeIntentsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newChargeIntentsStep(), opts...)
+	}
+}
+
+// ByChargeIntents orders the results by charge_intents terms.
+func ByChargeIntents(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChargeIntentsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newAppsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -362,5 +385,12 @@ func newEntitlementsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(EntitlementsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, EntitlementsTable, EntitlementsColumn),
+	)
+}
+func newChargeIntentsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChargeIntentsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ChargeIntentsTable, ChargeIntentsColumn),
 	)
 }

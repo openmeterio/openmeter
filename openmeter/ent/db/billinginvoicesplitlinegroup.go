@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -64,6 +65,8 @@ type BillingInvoiceSplitLineGroup struct {
 	SubscriptionBillingPeriodFrom *time.Time `json:"subscription_billing_period_from,omitempty"`
 	// SubscriptionBillingPeriodTo holds the value of the "subscription_billing_period_to" field.
 	SubscriptionBillingPeriodTo *time.Time `json:"subscription_billing_period_to,omitempty"`
+	// ChargeID holds the value of the "charge_id" field.
+	ChargeID *string `json:"charge_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceSplitLineGroupQuery when eager-loading is set.
 	Edges        BillingInvoiceSplitLineGroupEdges `json:"edges"`
@@ -80,9 +83,11 @@ type BillingInvoiceSplitLineGroupEdges struct {
 	SubscriptionPhase *SubscriptionPhase `json:"subscription_phase,omitempty"`
 	// SubscriptionItem holds the value of the subscription_item edge.
 	SubscriptionItem *SubscriptionItem `json:"subscription_item,omitempty"`
+	// Charge holds the value of the charge edge.
+	Charge *Charge `json:"charge,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // BillingInvoiceLinesOrErr returns the BillingInvoiceLines value or an error if the edge
@@ -127,6 +132,17 @@ func (e BillingInvoiceSplitLineGroupEdges) SubscriptionItemOrErr() (*Subscriptio
 	return nil, &NotLoadedError{edge: "subscription_item"}
 }
 
+// ChargeOrErr returns the Charge value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceSplitLineGroupEdges) ChargeOrErr() (*Charge, error) {
+	if e.Charge != nil {
+		return e.Charge, nil
+	} else if e.loadedTypes[4] {
+		return nil, &NotFoundError{label: charge.Label}
+	}
+	return nil, &NotLoadedError{edge: "charge"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*BillingInvoiceSplitLineGroup) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -134,7 +150,7 @@ func (*BillingInvoiceSplitLineGroup) scanValues(columns []string) ([]any, error)
 		switch columns[i] {
 		case billinginvoicesplitlinegroup.FieldMetadata, billinginvoicesplitlinegroup.FieldTaxConfig:
 			values[i] = new([]byte)
-		case billinginvoicesplitlinegroup.FieldID, billinginvoicesplitlinegroup.FieldNamespace, billinginvoicesplitlinegroup.FieldName, billinginvoicesplitlinegroup.FieldDescription, billinginvoicesplitlinegroup.FieldCurrency, billinginvoicesplitlinegroup.FieldUniqueReferenceID, billinginvoicesplitlinegroup.FieldFeatureKey, billinginvoicesplitlinegroup.FieldSubscriptionID, billinginvoicesplitlinegroup.FieldSubscriptionPhaseID, billinginvoicesplitlinegroup.FieldSubscriptionItemID:
+		case billinginvoicesplitlinegroup.FieldID, billinginvoicesplitlinegroup.FieldNamespace, billinginvoicesplitlinegroup.FieldName, billinginvoicesplitlinegroup.FieldDescription, billinginvoicesplitlinegroup.FieldCurrency, billinginvoicesplitlinegroup.FieldUniqueReferenceID, billinginvoicesplitlinegroup.FieldFeatureKey, billinginvoicesplitlinegroup.FieldSubscriptionID, billinginvoicesplitlinegroup.FieldSubscriptionPhaseID, billinginvoicesplitlinegroup.FieldSubscriptionItemID, billinginvoicesplitlinegroup.FieldChargeID:
 			values[i] = new(sql.NullString)
 		case billinginvoicesplitlinegroup.FieldCreatedAt, billinginvoicesplitlinegroup.FieldUpdatedAt, billinginvoicesplitlinegroup.FieldDeletedAt, billinginvoicesplitlinegroup.FieldServicePeriodStart, billinginvoicesplitlinegroup.FieldServicePeriodEnd, billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom, billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo:
 			values[i] = new(sql.NullTime)
@@ -296,6 +312,13 @@ func (_m *BillingInvoiceSplitLineGroup) assignValues(columns []string, values []
 				_m.SubscriptionBillingPeriodTo = new(time.Time)
 				*_m.SubscriptionBillingPeriodTo = value.Time
 			}
+		case billinginvoicesplitlinegroup.FieldChargeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field charge_id", values[i])
+			} else if value.Valid {
+				_m.ChargeID = new(string)
+				*_m.ChargeID = value.String
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -327,6 +350,11 @@ func (_m *BillingInvoiceSplitLineGroup) QuerySubscriptionPhase() *SubscriptionPh
 // QuerySubscriptionItem queries the "subscription_item" edge of the BillingInvoiceSplitLineGroup entity.
 func (_m *BillingInvoiceSplitLineGroup) QuerySubscriptionItem() *SubscriptionItemQuery {
 	return NewBillingInvoiceSplitLineGroupClient(_m.config).QuerySubscriptionItem(_m)
+}
+
+// QueryCharge queries the "charge" edge of the BillingInvoiceSplitLineGroup entity.
+func (_m *BillingInvoiceSplitLineGroup) QueryCharge() *ChargeQuery {
+	return NewBillingInvoiceSplitLineGroupClient(_m.config).QueryCharge(_m)
 }
 
 // Update returns a builder for updating this BillingInvoiceSplitLineGroup.
@@ -430,6 +458,11 @@ func (_m *BillingInvoiceSplitLineGroup) String() string {
 	if v := _m.SubscriptionBillingPeriodTo; v != nil {
 		builder.WriteString("subscription_billing_period_to=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.ChargeID; v != nil {
+		builder.WriteString("charge_id=")
+		builder.WriteString(*v)
 	}
 	builder.WriteByte(')')
 	return builder.String()
