@@ -26,7 +26,7 @@ func (a *adapter) ListCurrencies(ctx context.Context) ([]currencies.Currency, er
 		return nil, fmt.Errorf("failed to list currencies: %w", err)
 	}
 
-	return lo.Map(currencyRecords, func(currency *entdb.CustomCurrency, _ int) currencies.Currency {
+	customCurrencies := lo.Map(currencyRecords, func(currency *entdb.CustomCurrency, _ int) currencies.Currency {
 		return currencies.Currency{
 			ID:                   currency.ID,
 			Code:                 currency.Code,
@@ -34,6 +34,37 @@ func (a *adapter) ListCurrencies(ctx context.Context) ([]currencies.Currency, er
 			Symbol:               currency.Symbol,
 			SmallestDenomination: currency.SmallestDenomination,
 			IsCustom:             true,
+		}
+	})
+
+	defs := lo.Map(lo.Filter(
+		currency.Definitions(),
+		func(def *currency.Def, _ int) bool {
+			// NOTE: this filters out non-iso currencies such as crypto
+			return def.ISONumeric != ""
+		},
+	), func(def *currency.Def, _ int) currencies.Currency {
+		return currencies.Currency{
+			Code:                 def.ISOCode.String(),
+			Name:                 def.Name,
+			Symbol:               def.Symbol,
+			SmallestDenomination: int8(def.SmallestDenomination),
+			DisambiguateSymbol:   def.DisambiguateSymbol,
+			Subunits:             def.Subunits,
+			IsCustom:             false,
+		}
+	})
+
+	return lo.Map(append(customCurrencies, defs...), func(def currencies.Currency, _ int) currencies.Currency {
+		return currencies.Currency{
+			ID:                   def.ID,
+			Code:                 def.Code,
+			Name:                 def.Name,
+			Symbol:               def.Symbol,
+			SmallestDenomination: def.SmallestDenomination,
+			DisambiguateSymbol:   def.DisambiguateSymbol,
+			Subunits:             def.Subunits,
+			IsCustom:             def.IsCustom,
 		}
 	}), nil
 }
