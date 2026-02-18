@@ -22,7 +22,6 @@ type Query struct {
 	Namespace string
 
 	Cursor *pagination.Cursor
-	Limit  int
 
 	Filters Filters
 }
@@ -31,12 +30,6 @@ func (p Query) Validate() error {
 	if p.Namespace == "" {
 		return ErrLedgerQueryInvalid.WithAttrs(models.Attributes{
 			"namespace": p.Namespace,
-		})
-	}
-
-	if p.Limit < 1 {
-		return ErrLedgerQueryInvalid.WithAttrs(models.Attributes{
-			"limit": p.Limit,
 		})
 	}
 
