@@ -88,6 +88,58 @@ func (l *Locker) lock(ctx context.Context, client *db.Tx, key Key) error {
 	return nil
 }
 
+// TryLockForTX attempts to acquire the lock without blocking.
+// Returns (true, nil) if the lock was acquired, (false, nil) if it is already held by another session,
+// or (false, err) on error.
+func (l *Locker) TryLockForTX(ctx context.Context, key Key) (bool, error) {
+	l.cfg.Logger.DebugContext(ctx, "try locking for tx", "key", key.String(), "hash", key.Hash64())
+	client, err := l.getTxClient(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return l.tryLock(ctx, client, key)
+}
+
+// TryLockForTXWithScopes is a convenience method that creates a key from the given scopes and calls TryLockForTX.
+func (l *Locker) TryLockForTXWithScopes(ctx context.Context, scopes ...string) (bool, error) {
+	k, err := NewKey(scopes...)
+	if err != nil {
+		return false, err
+	}
+
+	return l.TryLockForTX(ctx, k)
+}
+
+// tryLock executes the non-blocking advisory lock query and returns whether the lock was acquired.
+func (l *Locker) tryLock(ctx context.Context, client *db.Tx, key Key) (bool, error) {
+	rows, err := client.QueryContext(ctx, "SELECT pg_try_advisory_xact_lock($1)", int64(key.Hash64()))
+	defer func() {
+		if rows != nil {
+			if e := rows.Close(); e != nil {
+				l.cfg.Logger.WarnContext(ctx, "failed to close result set", "error", e)
+			}
+		}
+	}()
+
+	if err != nil {
+		return false, err
+	}
+
+	var acquired bool
+	for rows.Next() {
+		if err := rows.Scan(&acquired); err != nil {
+			return false, fmt.Errorf("failed to scan try lock result: %w", err)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return false, err
+	}
+
+	return acquired, nil
+}
+
 // Note: it would be great to use in-process timeouts with context.WithTimeout
 // Unfortunately, due to this https://github.com/jackc/pgx/issues/2100#issuecomment-2395092552 (context cancellation resulting in query cancellation resulting in errored tx states) we rely on the pg timeout which leaves the connection intact
 func (l *Locker) checkForTimeout(err error) error {
