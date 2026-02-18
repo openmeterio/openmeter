@@ -238,7 +238,7 @@ func (l *LineWithInvoiceHeader) UnmarshalJSON(data []byte) error {
 	}
 }
 
-func (l *LineWithInvoiceHeader) MarshalJSON() ([]byte, error) {
+func (l LineWithInvoiceHeader) MarshalJSON() ([]byte, error) {
 	invoice := l.Invoice.AsInvoice()
 
 	invoiceType := invoice.Type()
