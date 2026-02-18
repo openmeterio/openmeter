@@ -38,6 +38,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedlineamountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
@@ -55,6 +59,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/standardinvoicesettlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
@@ -150,6 +155,10 @@ func checkColumn(t, c string) error {
 			billingstandardinvoicedetailedline.Table:               billingstandardinvoicedetailedline.ValidColumn,
 			billingstandardinvoicedetailedlineamountdiscount.Table: billingstandardinvoicedetailedlineamountdiscount.ValidColumn,
 			billingworkflowconfig.Table:                            billingworkflowconfig.ValidColumn,
+			charge.Table:                                           charge.ValidColumn,
+			chargecreditpurchase.Table:                             chargecreditpurchase.ValidColumn,
+			chargeflatfee.Table:                                    chargeflatfee.ValidColumn,
+			chargeusagebased.Table:                                 chargeusagebased.ValidColumn,
 			customer.Table:                                         customer.ValidColumn,
 			customersubjects.Table:                                 customersubjects.ValidColumn,
 			entitlement.Table:                                      entitlement.ValidColumn,
@@ -164,6 +173,7 @@ func checkColumn(t, c string) error {
 			planaddon.Table:                                        planaddon.ValidColumn,
 			planphase.Table:                                        planphase.ValidColumn,
 			planratecard.Table:                                     planratecard.ValidColumn,
+			standardinvoicesettlement.Table:                        standardinvoicesettlement.ValidColumn,
 			subject.Table:                                          subject.ValidColumn,
 			subscription.Table:                                     subscription.ValidColumn,
 			subscriptionaddon.Table:                                subscriptionaddon.ValidColumn,

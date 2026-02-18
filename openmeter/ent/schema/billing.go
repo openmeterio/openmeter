@@ -427,6 +427,13 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
+		field.String("charge_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable(),
+
 		// Deprecated fields
 		field.String("line_ids").
 			Optional().
@@ -491,6 +498,12 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 		edge.From("subscription_item", SubscriptionItem.Type).
 			Ref("billing_lines").
 			Field("subscription_item_id").
+			Unique(),
+		edge.From("charge", Charge.Type).
+			Ref("billing_invoice_lines").
+			Field("charge_id").
+			Unique(),
+		edge.To("standard_invoice_settlments", StandardInvoiceSettlement.Type).
 			Unique(),
 	}
 }
@@ -665,6 +678,13 @@ func (BillingInvoiceSplitLineGroup) Fields() []ent.Field {
 		field.Time("subscription_billing_period_to").
 			Optional().
 			Nillable(),
+
+		field.String("charge_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable(),
 	}
 }
 
@@ -695,6 +715,10 @@ func (BillingInvoiceSplitLineGroup) Edges() []ent.Edge {
 			Field("subscription_item_id").
 			Unique().
 			Immutable(),
+		edge.From("charge", Charge.Type).
+			Ref("billing_split_line_groups").
+			Field("charge_id").
+			Unique(),
 	}
 }
 

@@ -309,6 +309,54 @@ func (f BillingWorkflowConfigFunc) Mutate(ctx context.Context, m db.Mutation) (d
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingWorkflowConfigMutation", m)
 }
 
+// The ChargeFunc type is an adapter to allow the use of ordinary
+// function as Charge mutator.
+type ChargeFunc func(context.Context, *db.ChargeMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeMutation", m)
+}
+
+// The ChargeCreditPurchaseFunc type is an adapter to allow the use of ordinary
+// function as ChargeCreditPurchase mutator.
+type ChargeCreditPurchaseFunc func(context.Context, *db.ChargeCreditPurchaseMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeCreditPurchaseFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeCreditPurchaseMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeCreditPurchaseMutation", m)
+}
+
+// The ChargeFlatFeeFunc type is an adapter to allow the use of ordinary
+// function as ChargeFlatFee mutator.
+type ChargeFlatFeeFunc func(context.Context, *db.ChargeFlatFeeMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeFlatFeeFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeFlatFeeMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeeMutation", m)
+}
+
+// The ChargeUsageBasedFunc type is an adapter to allow the use of ordinary
+// function as ChargeUsageBased mutator.
+type ChargeUsageBasedFunc func(context.Context, *db.ChargeUsageBasedMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeUsageBasedFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeUsageBasedMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedMutation", m)
+}
+
 // The CustomerFunc type is an adapter to allow the use of ordinary
 // function as Customer mutator.
 type CustomerFunc func(context.Context, *db.CustomerMutation) (db.Value, error)
@@ -475,6 +523,18 @@ func (f PlanRateCardFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, 
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.PlanRateCardMutation", m)
+}
+
+// The StandardInvoiceSettlementFunc type is an adapter to allow the use of ordinary
+// function as StandardInvoiceSettlement mutator.
+type StandardInvoiceSettlementFunc func(context.Context, *db.StandardInvoiceSettlementMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f StandardInvoiceSettlementFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.StandardInvoiceSettlementMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.StandardInvoiceSettlementMutation", m)
 }
 
 // The SubjectFunc type is an adapter to allow the use of ordinary

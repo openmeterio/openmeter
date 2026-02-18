@@ -57,6 +57,8 @@ const (
 	FieldSubscriptionBillingPeriodFrom = "subscription_billing_period_from"
 	// FieldSubscriptionBillingPeriodTo holds the string denoting the subscription_billing_period_to field in the database.
 	FieldSubscriptionBillingPeriodTo = "subscription_billing_period_to"
+	// FieldChargeID holds the string denoting the charge_id field in the database.
+	FieldChargeID = "charge_id"
 	// EdgeBillingInvoiceLines holds the string denoting the billing_invoice_lines edge name in mutations.
 	EdgeBillingInvoiceLines = "billing_invoice_lines"
 	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
@@ -65,6 +67,8 @@ const (
 	EdgeSubscriptionPhase = "subscription_phase"
 	// EdgeSubscriptionItem holds the string denoting the subscription_item edge name in mutations.
 	EdgeSubscriptionItem = "subscription_item"
+	// EdgeCharge holds the string denoting the charge edge name in mutations.
+	EdgeCharge = "charge"
 	// Table holds the table name of the billinginvoicesplitlinegroup in the database.
 	Table = "billing_invoice_split_line_groups"
 	// BillingInvoiceLinesTable is the table that holds the billing_invoice_lines relation/edge.
@@ -95,6 +99,13 @@ const (
 	SubscriptionItemInverseTable = "subscription_items"
 	// SubscriptionItemColumn is the table column denoting the subscription_item relation/edge.
 	SubscriptionItemColumn = "subscription_item_id"
+	// ChargeTable is the table that holds the charge relation/edge.
+	ChargeTable = "billing_invoice_split_line_groups"
+	// ChargeInverseTable is the table name for the Charge entity.
+	// It exists in this package in order to avoid circular dependency with the "charge" package.
+	ChargeInverseTable = "charges"
+	// ChargeColumn is the table column denoting the charge relation/edge.
+	ChargeColumn = "charge_id"
 )
 
 // Columns holds all SQL columns for billinginvoicesplitlinegroup fields.
@@ -120,6 +131,7 @@ var Columns = []string{
 	FieldSubscriptionItemID,
 	FieldSubscriptionBillingPeriodFrom,
 	FieldSubscriptionBillingPeriodTo,
+	FieldChargeID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -250,6 +262,11 @@ func BySubscriptionBillingPeriodTo(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSubscriptionBillingPeriodTo, opts...).ToFunc()
 }
 
+// ByChargeID orders the results by the charge_id field.
+func ByChargeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldChargeID, opts...).ToFunc()
+}
+
 // ByBillingInvoiceLinesCount orders the results by billing_invoice_lines count.
 func ByBillingInvoiceLinesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -284,6 +301,13 @@ func BySubscriptionItemField(field string, opts ...sql.OrderTermOption) OrderOpt
 		sqlgraph.OrderByNeighborTerms(s, newSubscriptionItemStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByChargeField orders the results by charge field.
+func ByChargeField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChargeStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newBillingInvoiceLinesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -310,5 +334,12 @@ func newSubscriptionItemStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SubscriptionItemInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, SubscriptionItemTable, SubscriptionItemColumn),
+	)
+}
+func newChargeStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChargeInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, ChargeTable, ChargeColumn),
 	)
 }

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	dbapp "github.com/openmeterio/openmeter/openmeter/ent/db/app"
@@ -31,6 +32,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedlineamountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
@@ -45,6 +50,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/standardinvoicesettlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
@@ -877,6 +883,113 @@ func init() {
 	billingworkflowconfigDescID := billingworkflowconfigMixinFields0[0].Descriptor()
 	// billingworkflowconfig.DefaultID holds the default value on creation for the id field.
 	billingworkflowconfig.DefaultID = billingworkflowconfigDescID.Default.(func() string)
+	chargeMixin := schema.Charge{}.Mixin()
+	chargeMixinFields1 := chargeMixin[1].Fields()
+	_ = chargeMixinFields1
+	chargeFields := schema.Charge{}.Fields()
+	_ = chargeFields
+	// chargeDescNamespace is the schema descriptor for namespace field.
+	chargeDescNamespace := chargeMixinFields1[1].Descriptor()
+	// charge.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	charge.NamespaceValidator = chargeDescNamespace.Validators[0].(func(string) error)
+	// chargeDescCreatedAt is the schema descriptor for created_at field.
+	chargeDescCreatedAt := chargeMixinFields1[3].Descriptor()
+	// charge.DefaultCreatedAt holds the default value on creation for the created_at field.
+	charge.DefaultCreatedAt = chargeDescCreatedAt.Default.(func() time.Time)
+	// chargeDescUpdatedAt is the schema descriptor for updated_at field.
+	chargeDescUpdatedAt := chargeMixinFields1[4].Descriptor()
+	// charge.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	charge.DefaultUpdatedAt = chargeDescUpdatedAt.Default.(func() time.Time)
+	// charge.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	charge.UpdateDefaultUpdatedAt = chargeDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chargeDescCustomerID is the schema descriptor for customer_id field.
+	chargeDescCustomerID := chargeFields[0].Descriptor()
+	// charge.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
+	charge.CustomerIDValidator = chargeDescCustomerID.Validators[0].(func(string) error)
+	// chargeDescCurrency is the schema descriptor for currency field.
+	chargeDescCurrency := chargeFields[10].Descriptor()
+	// charge.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	charge.CurrencyValidator = chargeDescCurrency.Validators[0].(func(string) error)
+	// chargeDescID is the schema descriptor for id field.
+	chargeDescID := chargeMixinFields1[0].Descriptor()
+	// charge.DefaultID holds the default value on creation for the id field.
+	charge.DefaultID = chargeDescID.Default.(func() string)
+	chargecreditpurchaseMixin := schema.ChargeCreditPurchase{}.Mixin()
+	chargecreditpurchaseMixinFields0 := chargecreditpurchaseMixin[0].Fields()
+	_ = chargecreditpurchaseMixinFields0
+	chargecreditpurchaseMixinFields1 := chargecreditpurchaseMixin[1].Fields()
+	_ = chargecreditpurchaseMixinFields1
+	chargecreditpurchaseFields := schema.ChargeCreditPurchase{}.Fields()
+	_ = chargecreditpurchaseFields
+	// chargecreditpurchaseDescNamespace is the schema descriptor for namespace field.
+	chargecreditpurchaseDescNamespace := chargecreditpurchaseMixinFields0[0].Descriptor()
+	// chargecreditpurchase.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	chargecreditpurchase.NamespaceValidator = chargecreditpurchaseDescNamespace.Validators[0].(func(string) error)
+	// chargecreditpurchaseDescCurrency is the schema descriptor for currency field.
+	chargecreditpurchaseDescCurrency := chargecreditpurchaseFields[0].Descriptor()
+	// chargecreditpurchase.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	chargecreditpurchase.CurrencyValidator = chargecreditpurchaseDescCurrency.Validators[0].(func(string) error)
+	// chargecreditpurchaseDescSettlement is the schema descriptor for settlement field.
+	chargecreditpurchaseDescSettlement := chargecreditpurchaseFields[2].Descriptor()
+	chargecreditpurchase.ValueScanner.Settlement = chargecreditpurchaseDescSettlement.ValueScanner.(field.TypeValueScanner[charges.CreditPurchaseSettlement])
+	// chargecreditpurchaseDescID is the schema descriptor for id field.
+	chargecreditpurchaseDescID := chargecreditpurchaseMixinFields1[0].Descriptor()
+	// chargecreditpurchase.DefaultID holds the default value on creation for the id field.
+	chargecreditpurchase.DefaultID = chargecreditpurchaseDescID.Default.(func() string)
+	chargeflatfeeMixin := schema.ChargeFlatFee{}.Mixin()
+	chargeflatfeeMixinFields0 := chargeflatfeeMixin[0].Fields()
+	_ = chargeflatfeeMixinFields0
+	chargeflatfeeMixinFields1 := chargeflatfeeMixin[1].Fields()
+	_ = chargeflatfeeMixinFields1
+	chargeflatfeeFields := schema.ChargeFlatFee{}.Fields()
+	_ = chargeflatfeeFields
+	// chargeflatfeeDescNamespace is the schema descriptor for namespace field.
+	chargeflatfeeDescNamespace := chargeflatfeeMixinFields0[0].Descriptor()
+	// chargeflatfee.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	chargeflatfee.NamespaceValidator = chargeflatfeeDescNamespace.Validators[0].(func(string) error)
+	// chargeflatfeeDescPaymentTerm is the schema descriptor for payment_term field.
+	chargeflatfeeDescPaymentTerm := chargeflatfeeFields[0].Descriptor()
+	// chargeflatfee.PaymentTermValidator is a validator for the "payment_term" field. It is called by the builders before save.
+	chargeflatfee.PaymentTermValidator = chargeflatfeeDescPaymentTerm.Validators[0].(func(string) error)
+	// chargeflatfeeDescDiscounts is the schema descriptor for discounts field.
+	chargeflatfeeDescDiscounts := chargeflatfeeFields[3].Descriptor()
+	chargeflatfee.ValueScanner.Discounts = chargeflatfeeDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
+	// chargeflatfeeDescFeatureKey is the schema descriptor for feature_key field.
+	chargeflatfeeDescFeatureKey := chargeflatfeeFields[5].Descriptor()
+	// chargeflatfee.FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
+	chargeflatfee.FeatureKeyValidator = chargeflatfeeDescFeatureKey.Validators[0].(func(string) error)
+	// chargeflatfeeDescID is the schema descriptor for id field.
+	chargeflatfeeDescID := chargeflatfeeMixinFields1[0].Descriptor()
+	// chargeflatfee.DefaultID holds the default value on creation for the id field.
+	chargeflatfee.DefaultID = chargeflatfeeDescID.Default.(func() string)
+	chargeusagebasedMixin := schema.ChargeUsageBased{}.Mixin()
+	chargeusagebasedMixinFields0 := chargeusagebasedMixin[0].Fields()
+	_ = chargeusagebasedMixinFields0
+	chargeusagebasedMixinFields1 := chargeusagebasedMixin[1].Fields()
+	_ = chargeusagebasedMixinFields1
+	chargeusagebasedFields := schema.ChargeUsageBased{}.Fields()
+	_ = chargeusagebasedFields
+	// chargeusagebasedDescNamespace is the schema descriptor for namespace field.
+	chargeusagebasedDescNamespace := chargeusagebasedMixinFields0[0].Descriptor()
+	// chargeusagebased.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	chargeusagebased.NamespaceValidator = chargeusagebasedDescNamespace.Validators[0].(func(string) error)
+	// chargeusagebasedDescPrice is the schema descriptor for price field.
+	chargeusagebasedDescPrice := chargeusagebasedFields[0].Descriptor()
+	chargeusagebased.ValueScanner.Price = chargeusagebasedDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
+	// chargeusagebasedDescFeatureKey is the schema descriptor for feature_key field.
+	chargeusagebasedDescFeatureKey := chargeusagebasedFields[1].Descriptor()
+	// chargeusagebased.FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
+	chargeusagebased.FeatureKeyValidator = chargeusagebasedDescFeatureKey.Validators[0].(func(string) error)
+	// chargeusagebasedDescTaxConfig is the schema descriptor for tax_config field.
+	chargeusagebasedDescTaxConfig := chargeusagebasedFields[3].Descriptor()
+	chargeusagebased.ValueScanner.TaxConfig = chargeusagebasedDescTaxConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.TaxConfig])
+	// chargeusagebasedDescDiscounts is the schema descriptor for discounts field.
+	chargeusagebasedDescDiscounts := chargeusagebasedFields[5].Descriptor()
+	chargeusagebased.ValueScanner.Discounts = chargeusagebasedDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
+	// chargeusagebasedDescID is the schema descriptor for id field.
+	chargeusagebasedDescID := chargeusagebasedMixinFields1[0].Descriptor()
+	// chargeusagebased.DefaultID holds the default value on creation for the id field.
+	chargeusagebased.DefaultID = chargeusagebasedDescID.Default.(func() string)
 	customerMixin := schema.Customer{}.Mixin()
 	customerMixinFields0 := customerMixin[0].Fields()
 	_ = customerMixinFields0
@@ -1381,6 +1494,33 @@ func init() {
 	planratecardDescID := planratecardMixinFields0[0].Descriptor()
 	// planratecard.DefaultID holds the default value on creation for the id field.
 	planratecard.DefaultID = planratecardDescID.Default.(func() string)
+	standardinvoicesettlementMixin := schema.StandardInvoiceSettlement{}.Mixin()
+	standardinvoicesettlementMixinFields0 := standardinvoicesettlementMixin[0].Fields()
+	_ = standardinvoicesettlementMixinFields0
+	standardinvoicesettlementMixinFields1 := standardinvoicesettlementMixin[1].Fields()
+	_ = standardinvoicesettlementMixinFields1
+	standardinvoicesettlementMixinFields2 := standardinvoicesettlementMixin[2].Fields()
+	_ = standardinvoicesettlementMixinFields2
+	standardinvoicesettlementFields := schema.StandardInvoiceSettlement{}.Fields()
+	_ = standardinvoicesettlementFields
+	// standardinvoicesettlementDescNamespace is the schema descriptor for namespace field.
+	standardinvoicesettlementDescNamespace := standardinvoicesettlementMixinFields0[0].Descriptor()
+	// standardinvoicesettlement.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	standardinvoicesettlement.NamespaceValidator = standardinvoicesettlementDescNamespace.Validators[0].(func(string) error)
+	// standardinvoicesettlementDescCreatedAt is the schema descriptor for created_at field.
+	standardinvoicesettlementDescCreatedAt := standardinvoicesettlementMixinFields2[0].Descriptor()
+	// standardinvoicesettlement.DefaultCreatedAt holds the default value on creation for the created_at field.
+	standardinvoicesettlement.DefaultCreatedAt = standardinvoicesettlementDescCreatedAt.Default.(func() time.Time)
+	// standardinvoicesettlementDescUpdatedAt is the schema descriptor for updated_at field.
+	standardinvoicesettlementDescUpdatedAt := standardinvoicesettlementMixinFields2[1].Descriptor()
+	// standardinvoicesettlement.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	standardinvoicesettlement.DefaultUpdatedAt = standardinvoicesettlementDescUpdatedAt.Default.(func() time.Time)
+	// standardinvoicesettlement.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	standardinvoicesettlement.UpdateDefaultUpdatedAt = standardinvoicesettlementDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// standardinvoicesettlementDescID is the schema descriptor for id field.
+	standardinvoicesettlementDescID := standardinvoicesettlementMixinFields1[0].Descriptor()
+	// standardinvoicesettlement.DefaultID holds the default value on creation for the id field.
+	standardinvoicesettlement.DefaultID = standardinvoicesettlementDescID.Default.(func() string)
 	subjectMixin := schema.Subject{}.Mixin()
 	subjectMixinFields0 := subjectMixin[0].Fields()
 	_ = subjectMixinFields0

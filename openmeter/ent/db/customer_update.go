@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
@@ -414,6 +415,21 @@ func (_u *CustomerUpdate) AddEntitlements(v ...*Entitlement) *CustomerUpdate {
 	return _u.AddEntitlementIDs(ids...)
 }
 
+// AddChargeIntentIDs adds the "charge_intents" edge to the Charge entity by IDs.
+func (_u *CustomerUpdate) AddChargeIntentIDs(ids ...string) *CustomerUpdate {
+	_u.mutation.AddChargeIntentIDs(ids...)
+	return _u
+}
+
+// AddChargeIntents adds the "charge_intents" edges to the Charge entity.
+func (_u *CustomerUpdate) AddChargeIntents(v ...*Charge) *CustomerUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargeIntentIDs(ids...)
+}
+
 // Mutation returns the CustomerMutation object of the builder.
 func (_u *CustomerUpdate) Mutation() *CustomerMutation {
 	return _u.mutation
@@ -528,6 +544,27 @@ func (_u *CustomerUpdate) RemoveEntitlements(v ...*Entitlement) *CustomerUpdate 
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveEntitlementIDs(ids...)
+}
+
+// ClearChargeIntents clears all "charge_intents" edges to the Charge entity.
+func (_u *CustomerUpdate) ClearChargeIntents() *CustomerUpdate {
+	_u.mutation.ClearChargeIntents()
+	return _u
+}
+
+// RemoveChargeIntentIDs removes the "charge_intents" edge to Charge entities by IDs.
+func (_u *CustomerUpdate) RemoveChargeIntentIDs(ids ...string) *CustomerUpdate {
+	_u.mutation.RemoveChargeIntentIDs(ids...)
+	return _u
+}
+
+// RemoveChargeIntents removes "charge_intents" edges to Charge entities.
+func (_u *CustomerUpdate) RemoveChargeIntents(v ...*Charge) *CustomerUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargeIntentIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -937,6 +974,51 @@ func (_u *CustomerUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.ChargeIntentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargeIntentsTable,
+			Columns: []string{customer.ChargeIntentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargeIntentsIDs(); len(nodes) > 0 && !_u.mutation.ChargeIntentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargeIntentsTable,
+			Columns: []string{customer.ChargeIntentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeIntentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargeIntentsTable,
+			Columns: []string{customer.ChargeIntentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{customer.Label}
@@ -1335,6 +1417,21 @@ func (_u *CustomerUpdateOne) AddEntitlements(v ...*Entitlement) *CustomerUpdateO
 	return _u.AddEntitlementIDs(ids...)
 }
 
+// AddChargeIntentIDs adds the "charge_intents" edge to the Charge entity by IDs.
+func (_u *CustomerUpdateOne) AddChargeIntentIDs(ids ...string) *CustomerUpdateOne {
+	_u.mutation.AddChargeIntentIDs(ids...)
+	return _u
+}
+
+// AddChargeIntents adds the "charge_intents" edges to the Charge entity.
+func (_u *CustomerUpdateOne) AddChargeIntents(v ...*Charge) *CustomerUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargeIntentIDs(ids...)
+}
+
 // Mutation returns the CustomerMutation object of the builder.
 func (_u *CustomerUpdateOne) Mutation() *CustomerMutation {
 	return _u.mutation
@@ -1449,6 +1546,27 @@ func (_u *CustomerUpdateOne) RemoveEntitlements(v ...*Entitlement) *CustomerUpda
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveEntitlementIDs(ids...)
+}
+
+// ClearChargeIntents clears all "charge_intents" edges to the Charge entity.
+func (_u *CustomerUpdateOne) ClearChargeIntents() *CustomerUpdateOne {
+	_u.mutation.ClearChargeIntents()
+	return _u
+}
+
+// RemoveChargeIntentIDs removes the "charge_intents" edge to Charge entities by IDs.
+func (_u *CustomerUpdateOne) RemoveChargeIntentIDs(ids ...string) *CustomerUpdateOne {
+	_u.mutation.RemoveChargeIntentIDs(ids...)
+	return _u
+}
+
+// RemoveChargeIntents removes "charge_intents" edges to Charge entities.
+func (_u *CustomerUpdateOne) RemoveChargeIntents(v ...*Charge) *CustomerUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargeIntentIDs(ids...)
 }
 
 // Where appends a list predicates to the CustomerUpdate builder.
@@ -1881,6 +1999,51 @@ func (_u *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeIntentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargeIntentsTable,
+			Columns: []string{customer.ChargeIntentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargeIntentsIDs(); len(nodes) > 0 && !_u.mutation.ChargeIntentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargeIntentsTable,
+			Columns: []string{customer.ChargeIntentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeIntentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargeIntentsTable,
+			Columns: []string{customer.ChargeIntentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

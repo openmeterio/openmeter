@@ -77,9 +77,11 @@ type CustomerEdges struct {
 	Subscription []*Subscription `json:"subscription,omitempty"`
 	// Entitlements holds the value of the entitlements edge.
 	Entitlements []*Entitlement `json:"entitlements,omitempty"`
+	// ChargeIntents holds the value of the charge_intents edge.
+	ChargeIntents []*Charge `json:"charge_intents,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [6]bool
+	loadedTypes [7]bool
 }
 
 // AppsOrErr returns the Apps value or an error if the edge
@@ -136,6 +138,15 @@ func (e CustomerEdges) EntitlementsOrErr() ([]*Entitlement, error) {
 		return e.Entitlements, nil
 	}
 	return nil, &NotLoadedError{edge: "entitlements"}
+}
+
+// ChargeIntentsOrErr returns the ChargeIntents value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomerEdges) ChargeIntentsOrErr() ([]*Charge, error) {
+	if e.loadedTypes[6] {
+		return e.ChargeIntents, nil
+	}
+	return nil, &NotLoadedError{edge: "charge_intents"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -334,6 +345,11 @@ func (_m *Customer) QuerySubscription() *SubscriptionQuery {
 // QueryEntitlements queries the "entitlements" edge of the Customer entity.
 func (_m *Customer) QueryEntitlements() *EntitlementQuery {
 	return NewCustomerClient(_m.config).QueryEntitlements(_m)
+}
+
+// QueryChargeIntents queries the "charge_intents" edge of the Customer entity.
+func (_m *Customer) QueryChargeIntents() *ChargeQuery {
+	return NewCustomerClient(_m.config).QueryChargeIntents(_m)
 }
 
 // Update returns a builder for updating this Customer.
