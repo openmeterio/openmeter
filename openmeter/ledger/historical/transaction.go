@@ -152,10 +152,6 @@ func (t *Transaction) BookedAt() time.Time {
 	return t.data.BookedAt
 }
 
-func (t *Transaction) AsGroup(annotations models.Annotations) ledger.TransactionGroup {
-	panic("not implemented")
-}
-
 type TransactionGroup struct {
 	data         TransactionGroupData
 	transactions []*Transaction
