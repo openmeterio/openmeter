@@ -3,9 +3,10 @@ package account
 import (
 	"time"
 
+	"github.com/samber/mo"
+
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/samber/mo"
 )
 
 type SubAccountDimensions struct {
@@ -31,7 +32,7 @@ type SubAccountData struct {
 
 func NewSubAccountFromData(data SubAccountData) (*SubAccount, error) {
 	// TODO: we should validate the data here...
-	// This roughly means runing the sub-account type specific casts/validations
+	// This roughly means running the sub-account type specific casts/validations
 	return &SubAccount{
 		data: data,
 	}, nil
@@ -45,11 +46,8 @@ var _ ledger.SubAccount = (*SubAccount)(nil)
 
 func (s *SubAccount) Address() ledger.PostingAddress {
 	return NewAddressFromData(AddressData{
-		SubAccountID: models.NamespacedID{
-			Namespace: s.data.Namespace,
-			ID:        s.data.ID,
-		},
-		AccountType: s.data.AccountType,
+		SubAccountID: s.data.ID,
+		AccountType:  s.data.AccountType,
 	})
 }
 

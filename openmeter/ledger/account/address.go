@@ -2,11 +2,10 @@ package account
 
 import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type AddressData struct {
-	SubAccountID models.NamespacedID
+	SubAccountID string
 	AccountType  ledger.AccountType
 }
 
@@ -26,7 +25,7 @@ type Address struct {
 
 var _ ledger.PostingAddress = (*Address)(nil)
 
-func (a *Address) SubAccountID() models.NamespacedID {
+func (a *Address) SubAccountID() string {
 	return a.data.SubAccountID
 }
 

@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/account"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -25,17 +26,8 @@ type Ledger struct {
 
 var _ ledger.Ledger = (*Ledger)(nil)
 
-func (l *Ledger) GetAccount(ctx context.Context, address ledger.PostingAddress) (ledger.Account, error) {
-	account, err := l.accountService.GetAccount(ctx, address)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get ledger account for address %s: %w", address, err)
-	}
-
-	if account == nil {
-		return nil, fmt.Errorf("returned nil account for address %s", address)
-	}
-
-	return account, nil
+func (l *Ledger) ListTransactions(ctx context.Context, params ledger.ListTransactionsInput) (pagination.Result[ledger.Transaction], error) {
+	panic("not implemented")
 }
 
 // SetUpTransactionInput sets up a transaction input and runs validations
@@ -51,44 +43,10 @@ func (l *Ledger) SetUpTransactionInput(ctx context.Context, at time.Time, entrie
 		}
 	}
 
-	// Let's validate the addresses are correct by fetching the accounts
-	uniqAccs := map[ledger.PostingAddress]*account.Account{}
-
-	for _, entry := range entries {
-		if lo.SomeBy(lo.Keys(uniqAccs), func(key ledger.PostingAddress) bool {
-			return key.Equal(entry.Account())
-		}) {
-			continue
-		}
-
-		acc, err := l.accountService.GetAccount(ctx, entry.Account())
-		if err != nil {
-			return nil, fmt.Errorf("failed to get account for address %s: %w", entry.Account(), err)
-		}
-
-		uniqAccs[entry.Account()] = acc
-	}
-
 	entryInputs, err := slicesx.MapWithErr(entries, func(e ledger.EntryInput) (*EntryInput, error) {
-		acc, ok := uniqAccs[e.Account()]
-		if !ok {
-			return nil, fmt.Errorf("account %s not found", e.Account())
-		}
-
-		addrData := acc.AddressData()
-		addr := acc.Address()
-
 		return &EntryInput{
-			input: CreateEntryInput{
-				AccountID:   addr.ID().ID,
-				AccountType: addr.Type(),
-				Amount:      e.Amount(),
-				Namespace:   addr.ID().Namespace,
-				DimensionIDs: lo.MapToSlice(addrData.Dimensions, func(_ ledger.DimensionKey, value *account.DimensionData) string {
-					return value.ID.ID
-				}),
-			},
-			address: addr,
+			amount:  e.Amount(),
+			address: e.PostingAddress(),
 		}, nil
 	})
 	if err != nil {
@@ -110,6 +68,7 @@ func (l *Ledger) SetUpTransactionInput(ctx context.Context, at time.Time, entrie
 func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupInput) (ledger.TransactionGroup, error) {
 	txInputs := make([]*TransactionInput, 0, len(group.Transactions()))
 	for idx, tx := range group.Transactions() {
+		// Let's validate the input transactions use the same implementation
 		inp, err := l.requirePreparedTransactionInput(tx)
 		if err != nil {
 			return nil, fmt.Errorf("transaction %d: %w", idx, err)
@@ -123,49 +82,45 @@ func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupI
 	}
 
 	// 1. Validate each transaction sequentially
-	namespace := ""
 	for idx, txInput := range txInputs {
 		if err := txInput.Validate(ctx); err != nil {
 			return nil, fmt.Errorf("failed to validate transaction at index %d in group: %w", idx, err)
 		}
+	}
 
-		if idx == 0 {
-			namespace = txInput.getNamespace()
-		} else if txInput.getNamespace() != namespace {
-			return nil, fmt.Errorf("transaction at index %d has a different namespace than the first transaction", idx)
+	// TODO: accounts should be locked for this, note: later we can be more granular
+	return transaction.Run(ctx, l.repo, func(ctx context.Context) (*TransactionGroup, error) {
+		// 2. Validate account balances after the transactions (lock everything preemptively, not by sub-txs)
+		for _, txInput := range txInputs {
+			if err := l.validateAccountBalancesForTransaction(ctx, txInput); err != nil {
+				return nil, fmt.Errorf("failed to validate account balances for transaction: %w", err)
+			}
 		}
-	}
 
-	// 2. Validate account balances after the transactions (lock everything preemptively, not by sub-txs)
-	for _, txInput := range txInputs {
-		if err := l.validateAccountBalancesForTransaction(ctx, txInput); err != nil {
-			return nil, fmt.Errorf("failed to validate account balances for transaction: %w", err)
-		}
-	}
-
-	// 3. Create the transactions & the group
-	txG, err := l.repo.CreateTransactionGroup(ctx, CreateTransactionGroupInput{
-		Namespace:   namespace,
-		Annotations: group.Annotations(),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create transaction group: %w", err)
-	}
-
-	txGroup := &TransactionGroup{
-		data: txG,
-	}
-
-	for _, txInput := range txInputs {
-		tx, err := l.createTransaction(ctx, txG.ID, txInput)
+		// 3. Create the transactions & the group
+		txG, err := l.repo.CreateTransactionGroup(ctx, CreateTransactionGroupInput{
+			Namespace:   group.Namespace(),
+			Annotations: group.Annotations(),
+		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to create transaction: %w", err)
+			return nil, fmt.Errorf("failed to create transaction group: %w", err)
 		}
 
-		txGroup.transactions = append(txGroup.transactions, tx)
-	}
+		txGroup := &TransactionGroup{
+			data: txG,
+		}
 
-	return txGroup, nil
+		for _, txInput := range txInputs {
+			tx, err := l.repo.BookTransaction(ctx, models.NamespacedID{Namespace: group.Namespace(), ID: txG.ID}, txInput)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create transaction: %w", err)
+			}
+
+			txGroup.transactions = append(txGroup.transactions, tx)
+		}
+
+		return txGroup, nil
+	})
 }
 
 func (l *Ledger) requirePreparedTransactionInput(tx ledger.TransactionInput) (*TransactionInput, error) {
@@ -175,51 +130,6 @@ func (l *Ledger) requirePreparedTransactionInput(tx ledger.TransactionInput) (*T
 	}
 
 	return inp, nil
-}
-
-func (l *Ledger) createTransaction(ctx context.Context, groupID string, txInput *TransactionInput) (*Transaction, error) {
-	tx, err := l.repo.CreateTransaction(ctx, CreateTransactionInput{
-		Namespace: txInput.getNamespace(),
-		GroupID:   groupID,
-		BookedAt:  txInput.BookedAt(),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create transaction: %w", err)
-	}
-
-	// We need *EntryInputs for the already resolved DimensionIDs
-	entryInps := make([]*EntryInput, len(txInput.EntryInputs()), 0)
-	for idx, entry := range txInput.EntryInputs() {
-		ei, ok := entry.(*EntryInput)
-		if !ok {
-			return nil, fmt.Errorf("entry at index %d is not a *EntryInput", idx)
-		}
-
-		entryInps = append(entryInps, ei)
-	}
-
-	entries, err := l.repo.CreateEntries(ctx, lo.Map(entryInps, func(e *EntryInput, _ int) CreateEntryInput {
-		return CreateEntryInput{
-			Namespace:     txInput.getNamespace(),
-			AccountID:     e.Account().ID().ID,
-			AccountType:   e.Account().Type(),
-			Amount:        e.Amount(),
-			TransactionID: tx.ID,
-			DimensionIDs:  e.input.DimensionIDs,
-		}
-	}))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create entries: %w", err)
-	}
-
-	return &Transaction{
-		data: tx,
-		entries: lo.Map(entries, func(e EntryData, _ int) *Entry {
-			return &Entry{
-				data: e,
-			}
-		}),
-	}, nil
 }
 
 func (l *Ledger) validateAccountBalancesForTransaction(_ context.Context, _ *TransactionInput) error {

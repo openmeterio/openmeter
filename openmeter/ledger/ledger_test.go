@@ -49,7 +49,7 @@ func TestTwoAccountTransaction(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, tx)
 
-	_, err = l.CommitGroup(t.Context(), tx.AsGroupInput(nil))
+	_, err = l.CommitGroup(t.Context(), tx.AsGroupInput("default-ns", nil))
 	require.NoError(t, err)
 }
 
