@@ -1,6 +1,7 @@
 package billing
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -193,6 +194,91 @@ type StandardLineWithInvoiceHeader struct {
 type LineWithInvoiceHeader struct {
 	Line    GenericInvoiceLine
 	Invoice GenericInvoiceReader
+}
+
+type lineWithInvoiceHeaderSerde[IT StandardInvoice | GatheringInvoice, LT StandardLine | GatheringLine] struct {
+	Type InvoiceType `json:"type"`
+
+	Line    LT `json:"line"`
+	Invoice IT `json:"invoice"`
+}
+
+func (l *LineWithInvoiceHeader) UnmarshalJSON(data []byte) error {
+	var genericSerde struct {
+		Type InvoiceType `json:"type"`
+	}
+
+	if err := json.Unmarshal(data, &genericSerde); err != nil {
+		return err
+	}
+
+	switch genericSerde.Type {
+	case InvoiceTypeStandard:
+		unmarshalled := lineWithInvoiceHeaderSerde[StandardInvoice, StandardLine]{}
+		if err := json.Unmarshal(data, &unmarshalled); err != nil {
+			return err
+		}
+
+		l.Line = &standardInvoiceLineGenericWrapper{StandardLine: &unmarshalled.Line}
+		l.Invoice = &unmarshalled.Invoice
+
+		return nil
+	case InvoiceTypeGathering:
+		unmarshalled := lineWithInvoiceHeaderSerde[GatheringInvoice, GatheringLine]{}
+		if err := json.Unmarshal(data, &unmarshalled); err != nil {
+			return err
+		}
+
+		l.Line = &gatheringInvoiceLineGenericWrapper{GatheringLine: unmarshalled.Line}
+		l.Invoice = &unmarshalled.Invoice
+
+		return nil
+	default:
+		return fmt.Errorf("unknown invoice type: %s", genericSerde.Type)
+	}
+}
+
+func (l *LineWithInvoiceHeader) MarshalJSON() ([]byte, error) {
+	invoice := l.Invoice.AsInvoice()
+
+	invoiceType := invoice.Type()
+
+	switch invoiceType {
+	case InvoiceTypeStandard:
+		stdInvoice, err := invoice.AsStandardInvoice()
+		if err != nil {
+			return nil, err
+		}
+
+		stdLine, err := l.Line.AsInvoiceLine().AsStandardLine()
+		if err != nil {
+			return nil, err
+		}
+
+		return json.Marshal(lineWithInvoiceHeaderSerde[StandardInvoice, StandardLine]{
+			Type:    InvoiceTypeStandard,
+			Line:    stdLine,
+			Invoice: stdInvoice,
+		})
+	case InvoiceTypeGathering:
+		gatheringInvoice, err := invoice.AsGatheringInvoice()
+		if err != nil {
+			return nil, err
+		}
+
+		gatheringLine, err := l.Line.AsInvoiceLine().AsGatheringLine()
+		if err != nil {
+			return nil, err
+		}
+
+		return json.Marshal(lineWithInvoiceHeaderSerde[GatheringInvoice, GatheringLine]{
+			Type:    InvoiceTypeGathering,
+			Line:    gatheringLine,
+			Invoice: gatheringInvoice,
+		})
+	}
+
+	return nil, fmt.Errorf("unknown invoice type: %s", invoiceType)
 }
 
 func NewLineWithInvoiceHeader[T StandardLineWithInvoiceHeader | GatheringLineWithInvoiceHeader](line T) LineWithInvoiceHeader {
