@@ -1,8 +1,9 @@
 package ledger
 
 import (
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/samber/mo"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // ----------------------------------------------------------------------------

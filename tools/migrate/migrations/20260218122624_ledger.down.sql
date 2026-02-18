@@ -1,13 +1,9 @@
--- reverse: create trigger "ledger_entries_dimension_ids_fk" on table: "ledger_entries"
-DROP TRIGGER "ledger_entries_dimension_ids_fk" ON "ledger_entries";
--- reverse: create function "validate_ledger_entry_dimension_ids"
-DROP FUNCTION "validate_ledger_entry_dimension_ids";
 -- reverse: create index "ledgerentry_namespace_transaction_id" to table: "ledger_entries"
 DROP INDEX "ledgerentry_namespace_transaction_id";
+-- reverse: create index "ledgerentry_namespace_sub_account_id" to table: "ledger_entries"
+DROP INDEX "ledgerentry_namespace_sub_account_id";
 -- reverse: create index "ledgerentry_namespace_id" to table: "ledger_entries"
 DROP INDEX "ledgerentry_namespace_id";
--- reverse: create index "ledgerentry_namespace_account_id" to table: "ledger_entries"
-DROP INDEX "ledgerentry_namespace_account_id";
 -- reverse: create index "ledgerentry_namespace" to table: "ledger_entries"
 DROP INDEX "ledgerentry_namespace";
 -- reverse: create index "ledgerentry_id" to table: "ledger_entries"
@@ -42,6 +38,16 @@ DROP INDEX "ledgertransactiongroup_id";
 DROP INDEX "ledgertransactiongroup_annotations";
 -- reverse: create "ledger_transaction_groups" table
 DROP TABLE "ledger_transaction_groups";
+-- reverse: create index "ledgersubaccount_namespace_account_id_currency_dimension_id" to table: "ledger_sub_accounts"
+DROP INDEX "ledgersubaccount_namespace_account_id_currency_dimension_id";
+-- reverse: create index "ledgersubaccount_namespace" to table: "ledger_sub_accounts"
+DROP INDEX "ledgersubaccount_namespace";
+-- reverse: create index "ledgersubaccount_id" to table: "ledger_sub_accounts"
+DROP INDEX "ledgersubaccount_id";
+-- reverse: create index "ledgersubaccount_annotations" to table: "ledger_sub_accounts"
+DROP INDEX "ledgersubaccount_annotations";
+-- reverse: create "ledger_sub_accounts" table
+DROP TABLE "ledger_sub_accounts";
 -- reverse: create index "ledgerdimension_namespace_id" to table: "ledger_dimensions"
 DROP INDEX "ledgerdimension_namespace_id";
 -- reverse: create index "ledgerdimension_namespace_dimension_key_dimension_value" to table: "ledger_dimensions"

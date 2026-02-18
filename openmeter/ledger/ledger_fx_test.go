@@ -20,6 +20,10 @@ type testTransactionGroupInput struct {
 
 var _ ledger.TransactionGroupInput = testTransactionGroupInput{}
 
+func (t testTransactionGroupInput) Namespace() string {
+	return "default-ns"
+}
+
 func (t testTransactionGroupInput) Transactions() []ledger.TransactionInput {
 	return t.transactions
 }

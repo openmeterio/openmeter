@@ -27,6 +27,7 @@ CREATE TABLE "ledger_dimensions" (
   "deleted_at" timestamptz NULL,
   "dimension_key" character varying NOT NULL,
   "dimension_value" character varying NOT NULL,
+  "dimension_display_value" character varying NOT NULL,
   PRIMARY KEY ("id")
 );
 -- create index "ledgerdimension_annotations" to table: "ledger_dimensions"
@@ -36,9 +37,39 @@ CREATE UNIQUE INDEX "ledgerdimension_id" ON "ledger_dimensions" ("id");
 -- create index "ledgerdimension_namespace" to table: "ledger_dimensions"
 CREATE INDEX "ledgerdimension_namespace" ON "ledger_dimensions" ("namespace");
 -- create index "ledgerdimension_namespace_dimension_key_dimension_value" to table: "ledger_dimensions"
-CREATE INDEX "ledgerdimension_namespace_dimension_key_dimension_value" ON "ledger_dimensions" ("namespace", "dimension_key", "dimension_value");
+CREATE UNIQUE INDEX "ledgerdimension_namespace_dimension_key_dimension_value" ON "ledger_dimensions" ("namespace", "dimension_key", "dimension_value");
 -- create index "ledgerdimension_namespace_id" to table: "ledger_dimensions"
 CREATE UNIQUE INDEX "ledgerdimension_namespace_id" ON "ledger_dimensions" ("namespace", "id");
+-- create "ledger_sub_accounts" table
+CREATE TABLE "ledger_sub_accounts" (
+  "id" character(26) NOT NULL,
+  "namespace" character varying NOT NULL,
+  "annotations" jsonb NULL,
+  "created_at" timestamptz NOT NULL,
+  "updated_at" timestamptz NOT NULL,
+  "deleted_at" timestamptz NULL,
+  "account_id" character(26) NOT NULL,
+  "ledger_dimension_sub_accounts" character(26) NULL,
+  "currency_dimension_id" character(26) NOT NULL,
+  "tax_code_dimension_id" character(26) NULL,
+  "features_dimension_id" character(26) NULL,
+  "credit_priority_dimension_id" character(26) NULL,
+  PRIMARY KEY ("id"),
+  CONSTRAINT "ledger_sub_accounts_ledger_accounts_sub_accounts" FOREIGN KEY ("account_id") REFERENCES "ledger_accounts" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT "ledger_sub_accounts_ledger_dimensions_credit_priority_sub_accou" FOREIGN KEY ("credit_priority_dimension_id") REFERENCES "ledger_dimensions" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+  CONSTRAINT "ledger_sub_accounts_ledger_dimensions_currency_sub_accounts" FOREIGN KEY ("currency_dimension_id") REFERENCES "ledger_dimensions" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT "ledger_sub_accounts_ledger_dimensions_features_sub_accounts" FOREIGN KEY ("features_dimension_id") REFERENCES "ledger_dimensions" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+  CONSTRAINT "ledger_sub_accounts_ledger_dimensions_sub_accounts" FOREIGN KEY ("ledger_dimension_sub_accounts") REFERENCES "ledger_dimensions" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+  CONSTRAINT "ledger_sub_accounts_ledger_dimensions_tax_code_sub_accounts" FOREIGN KEY ("tax_code_dimension_id") REFERENCES "ledger_dimensions" ("id") ON UPDATE NO ACTION ON DELETE SET NULL
+);
+-- create index "ledgersubaccount_annotations" to table: "ledger_sub_accounts"
+CREATE INDEX "ledgersubaccount_annotations" ON "ledger_sub_accounts" USING gin ("annotations");
+-- create index "ledgersubaccount_id" to table: "ledger_sub_accounts"
+CREATE UNIQUE INDEX "ledgersubaccount_id" ON "ledger_sub_accounts" ("id");
+-- create index "ledgersubaccount_namespace" to table: "ledger_sub_accounts"
+CREATE INDEX "ledgersubaccount_namespace" ON "ledger_sub_accounts" ("namespace");
+-- create index "ledgersubaccount_namespace_account_id_currency_dimension_id" to table: "ledger_sub_accounts"
+CREATE UNIQUE INDEX "ledgersubaccount_namespace_account_id_currency_dimension_id" ON "ledger_sub_accounts" ("namespace", "account_id", "currency_dimension_id");
 -- create "ledger_transaction_groups" table
 CREATE TABLE "ledger_transaction_groups" (
   "id" character(26) NOT NULL,
@@ -90,12 +121,12 @@ CREATE TABLE "ledger_entries" (
   "created_at" timestamptz NOT NULL,
   "updated_at" timestamptz NOT NULL,
   "deleted_at" timestamptz NULL,
-  "account_id" character(26) NOT NULL,
-  "account_type" character varying NOT NULL,
   "dimension_ids" text[] NULL,
   "amount" numeric NOT NULL,
+  "sub_account_id" character(26) NOT NULL,
   "transaction_id" character(26) NOT NULL,
   PRIMARY KEY ("id"),
+  CONSTRAINT "ledger_entries_ledger_sub_accounts_entries" FOREIGN KEY ("sub_account_id") REFERENCES "ledger_sub_accounts" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT "ledger_entries_ledger_transactions_entries" FOREIGN KEY ("transaction_id") REFERENCES "ledger_transactions" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 -- create index "ledgerentry_annotations" to table: "ledger_entries"
@@ -106,37 +137,9 @@ CREATE INDEX "ledgerentry_created_at_id" ON "ledger_entries" ("created_at", "id"
 CREATE UNIQUE INDEX "ledgerentry_id" ON "ledger_entries" ("id");
 -- create index "ledgerentry_namespace" to table: "ledger_entries"
 CREATE INDEX "ledgerentry_namespace" ON "ledger_entries" ("namespace");
--- create index "ledgerentry_namespace_account_id" to table: "ledger_entries"
-CREATE INDEX "ledgerentry_namespace_account_id" ON "ledger_entries" ("namespace", "account_id");
 -- create index "ledgerentry_namespace_id" to table: "ledger_entries"
 CREATE UNIQUE INDEX "ledgerentry_namespace_id" ON "ledger_entries" ("namespace", "id");
+-- create index "ledgerentry_namespace_sub_account_id" to table: "ledger_entries"
+CREATE INDEX "ledgerentry_namespace_sub_account_id" ON "ledger_entries" ("namespace", "sub_account_id");
 -- create index "ledgerentry_namespace_transaction_id" to table: "ledger_entries"
 CREATE INDEX "ledgerentry_namespace_transaction_id" ON "ledger_entries" ("namespace", "transaction_id");
--- create function "validate_ledger_entry_dimension_ids"
-CREATE FUNCTION "validate_ledger_entry_dimension_ids"() RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN
-  IF NEW.dimension_ids IS NULL OR array_length(NEW.dimension_ids, 1) IS NULL THEN
-    RETURN NEW;
-  END IF;
-
-  IF EXISTS (
-    SELECT 1
-    FROM unnest(NEW.dimension_ids) AS dim_id
-    LEFT JOIN ledger_dimensions d
-      ON d.id = dim_id
-     AND d.namespace = NEW.namespace
-    WHERE d.id IS NULL
-  ) THEN
-    RAISE EXCEPTION 'ledger entry references non-existent dimension id'
-      USING ERRCODE = '23503',
-            CONSTRAINT = 'ledger_entries_dimension_ids_fk';
-  END IF;
-
-  RETURN NEW;
-END;
-$$;
--- create trigger "ledger_entries_dimension_ids_fk" on table: "ledger_entries"
-CREATE TRIGGER "ledger_entries_dimension_ids_fk"
-BEFORE INSERT OR UPDATE OF "dimension_ids", "namespace" ON "ledger_entries"
-FOR EACH ROW
-EXECUTE FUNCTION "validate_ledger_entry_dimension_ids"();

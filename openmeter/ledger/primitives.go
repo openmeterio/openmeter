@@ -20,7 +20,7 @@ import (
 type PostingAddress interface {
 	models.Equaler[PostingAddress]
 
-	SubAccountID() models.NamespacedID
+	SubAccountID() string
 	AccountType() AccountType
 }
 
@@ -55,7 +55,7 @@ type QueryDimensions struct {
 // Account represents a ledger account tying together multiple sub-accounts.
 // Accounts describe ownership and purpose while SubAccounts parameterize the actual posting address.
 type Account interface {
-	// Balance can be queried accross sub-accounts according to QueryDimensions
+	// Balance can be queried across sub-accounts according to QueryDimensions
 	GetBalance(ctx context.Context, query QueryDimensions) (Balance, error)
 }
 
@@ -76,7 +76,7 @@ type Entry interface {
 type TransactionInput interface {
 	BookedAt() time.Time
 	EntryInputs() []EntryInput
-	AsGroupInput(annotations models.Annotations) TransactionGroupInput
+	AsGroupInput(namespace string, annotations models.Annotations) TransactionGroupInput
 }
 
 // Transaction represents a list of entries booked at the same time
@@ -87,6 +87,7 @@ type Transaction interface {
 }
 
 type TransactionGroupInput interface {
+	Namespace() string
 	Transactions() []TransactionInput
 	Annotations() models.Annotations
 }
@@ -103,6 +104,10 @@ type TransactionGroup interface {
 
 type Ledger interface {
 	// SetUpTransactionInput is a no-op that runs some validations and returns a TransactionInput object that can be committed later
+	// FIXME: maybe we don't need this:
+	// - This isn't an actual two step flow
+	// - This cannot become an actual two step flow without locking
+	// - This cannot run further validations without knowing the namespace
 	SetUpTransactionInput(ctx context.Context, at time.Time, entries []EntryInput) (TransactionInput, error)
 
 	// CommitGroup commits a list of transactions on the Ledger atomically
@@ -115,8 +120,9 @@ type Ledger interface {
 }
 
 type ListTransactionsInput struct {
-	Cursor *pagination.Cursor
-	Limit  int
+	Namespace string
+	Cursor    *pagination.Cursor
+	Limit     int
 
 	TransactionID *models.NamespacedID
 }
