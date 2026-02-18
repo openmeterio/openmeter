@@ -57,7 +57,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 		}
 	}
 
-	return transcationForInvoiceManipulation(ctx, s, input.Customer, func(ctx context.Context) (*billing.CreatePendingInvoiceLinesResult, error) {
+	return transactionForInvoiceManipulation(ctx, s, input.Customer, func(ctx context.Context) (*billing.CreatePendingInvoiceLinesResult, error) {
 		if len(input.Lines) == 0 {
 			return nil, billing.ValidationError{
 				Err: fmt.Errorf("no lines provided"),

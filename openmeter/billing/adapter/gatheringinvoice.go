@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -225,6 +226,14 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 			query = a.expandGatheringInvoiceLines(query, input.Expand)
 		}
 
+		if input.CollectionAtLTE != nil {
+			query = query.Where(billinginvoice.CollectionAtLTE(*input.CollectionAtLTE))
+		}
+
+		if len(input.IDs) > 0 {
+			query = query.Where(billinginvoice.IDIn(input.IDs...))
+		}
+
 		switch input.OrderBy {
 		case api.InvoiceOrderByCustomerName:
 			query = query.Order(billinginvoice.ByCustomerName(order...))
@@ -336,10 +345,11 @@ func (a *adapter) expandGatheringInvoiceLines(q *db.BillingInvoiceQuery, expand 
 		if !expand.Has(billing.GatheringInvoiceExpandDeletedLines) {
 			q = q.Where(billinginvoiceline.DeletedAtIsNil())
 		}
-		q = q.
-			Where(billinginvoiceline.TypeEQ(billing.InvoiceLineTypeUsageBased)). // Only include usage based lines (there are some detailed lines existing for gathering invoices)
-			Where(billinginvoiceline.ParentLineIDIsNil())                        // Only include top-level lines (there are some detailed lines existing for gathering invoices)
-		q.WithUsageBasedLine()
+
+		q.
+			Where(billinginvoiceline.TypeEQ(billing.InvoiceLineAdapterTypeUsageBased)). // Only include usage based lines (there are some detailed lines existing for gathering invoices)
+			Where(billinginvoiceline.ParentLineIDIsNil()).                              // Only include top-level lines (there are some detailed lines existing for gathering invoices)
+			WithUsageBasedLine()
 	})
 }
 
@@ -418,11 +428,23 @@ func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.Bil
 			return billing.GatheringInvoice{}, err
 		}
 
-		// TODO[later]: Implement this once we have proper union type for invoices
-		// mappedLines, err = a.expandSplitLineHierarchy(ctx, invoice.Namespace, mappedLines)
-		// if err != nil {
-		// 	return billing.StandardInvoice{}, err
-		// }
+		if expand.Has(billing.GatheringInvoiceExpandSplitLineHierarchy) {
+			hierarchyByLineID, err := a.expandSplitLineHierarchy(ctx, invoice.Namespace, mappedLines.AsGenericLines())
+			if err != nil {
+				return billing.GatheringInvoice{}, err
+			}
+
+			mappedLinePtrs, err := withSplitLineHierarchyForLines(lo.Map(mappedLines, func(_ billing.GatheringLine, idx int) *billing.GatheringLine {
+				return &mappedLines[idx]
+			}), hierarchyByLineID)
+			if err != nil {
+				return billing.GatheringInvoice{}, err
+			}
+
+			mappedLines = lo.Map(mappedLinePtrs, func(line *billing.GatheringLine, _ int) billing.GatheringLine {
+				return *line
+			})
+		}
 
 		res.Lines = billing.NewGatheringInvoiceLines(mappedLines)
 	}

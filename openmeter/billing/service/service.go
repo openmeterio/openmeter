@@ -127,9 +127,9 @@ func (s Service) InvoiceCalculator() invoicecalc.Calculator {
 	return s.invoiceCalculator
 }
 
-// transcationForInvoiceManipulation is a helper function that wraps the given function in a transaction and ensures that
+// transactionForInvoiceManipulation is a helper function that wraps the given function in a transaction and ensures that
 // an update lock is held on the customer record.
-func transcationForInvoiceManipulation[T any](ctx context.Context, svc *Service, customerID customer.CustomerID, fn func(ctx context.Context) (T, error)) (T, error) {
+func transactionForInvoiceManipulation[T any](ctx context.Context, svc *Service, customerID customer.CustomerID, fn func(ctx context.Context) (T, error)) (T, error) {
 	var empty T
 
 	if err := customerID.Validate(); err != nil {
@@ -151,6 +151,14 @@ func transcationForInvoiceManipulation[T any](ctx context.Context, svc *Service,
 
 		return fn(ctx)
 	})
+}
+
+func transactionForInvoiceManipulationNoValue(ctx context.Context, svc *Service, customerID customer.CustomerID, fn func(ctx context.Context) error) error {
+	_, err := transactionForInvoiceManipulation(ctx, svc, customerID, func(ctx context.Context) (any, error) {
+		return nil, fn(ctx)
+	})
+
+	return err
 }
 
 func (s Service) GetAdvancementStrategy() billing.AdvancementStrategy {

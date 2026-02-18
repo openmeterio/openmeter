@@ -80,7 +80,7 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 	fakeHierarchy := billing.SplitLineHierarchy{
 		Group: fakeParentGroup,
 		Lines: []billing.LineWithInvoiceHeader{
-			{
+			billing.NewLineWithInvoiceHeader(billing.StandardLineWithInvoiceHeader{
 				Line: &billing.StandardLine{
 					StandardLineBase: billing.StandardLineBase{
 						// Period is unset, so this fake line is always in scope for NetAmount calculations
@@ -89,7 +89,7 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 						},
 					},
 				},
-			},
+			}),
 		},
 	}
 

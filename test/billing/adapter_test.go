@@ -536,7 +536,7 @@ func (s *BillingAdapterTestSuite) TestDiscountHandling() {
 		},
 	}
 
-	updateLineIn := lines[0].Clone()
+	updateLineIn := lo.Must(lines[0].Clone())
 	childrenWithIDReuse := updateLineIn.DetailedLinesWithIDReuse(
 		billing.DetailedLines{childLine},
 	)
@@ -712,11 +712,11 @@ func (s *BillingAdapterTestSuite) TestHardDeleteGatheringInvoiceLines() {
 	)
 	s.Run("When we hard delete one of the lines", func() {
 		deletedLine = gatheringInvoice.Lines.OrEmpty()[0]
-		err := s.BillingAdapter.HardDeleteGatheringInvoiceLines(ctx, gatheringInvoice.InvoiceID(), []string{deletedLine.ID})
+		err := s.BillingAdapter.HardDeleteGatheringInvoiceLines(ctx, gatheringInvoice.GetInvoiceID(), []string{deletedLine.ID})
 		s.NoError(err)
 
-		gatheringInvoice, err = s.BillingAdapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
-			Invoice: gatheringInvoice.InvoiceID(),
+		gatheringInvoice, err = s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+			Invoice: gatheringInvoice.GetInvoiceID(),
 			Expand:  billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
 		})
 		s.NoError(err)
@@ -841,8 +841,8 @@ func (s *BillingAdapterTestSuite) TestHardDeleteGatheringInvoiceLinesNegative() 
 
 		standardInvoice = standardInvoices[0]
 
-		gatheringInvoice, err = s.BillingAdapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
-			Invoice: createdPendingLines.Invoice.InvoiceID(),
+		gatheringInvoice, err = s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+			Invoice: createdPendingLines.Invoice.GetInvoiceID(),
 			Expand:  billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
 		})
 		s.NoError(err)
@@ -851,12 +851,12 @@ func (s *BillingAdapterTestSuite) TestHardDeleteGatheringInvoiceLinesNegative() 
 	})
 
 	s.Run("When we try to hard delete a line from the standard invoice then we fail", func() {
-		err := s.BillingAdapter.HardDeleteGatheringInvoiceLines(ctx, standardInvoice.InvoiceID(), []string{standardInvoice.Lines.OrEmpty()[0].ID})
+		err := s.BillingAdapter.HardDeleteGatheringInvoiceLines(ctx, standardInvoice.GetInvoiceID(), []string{standardInvoice.Lines.OrEmpty()[0].ID})
 		s.Error(err)
 	})
 
 	s.Run("When we try to delete a line that does not belong to the invoice then we fail", func() {
-		err := s.BillingAdapter.HardDeleteGatheringInvoiceLines(ctx, gatheringInvoice.InvoiceID(), []string{standardInvoice.Lines.OrEmpty()[0].ID})
+		err := s.BillingAdapter.HardDeleteGatheringInvoiceLines(ctx, gatheringInvoice.GetInvoiceID(), []string{standardInvoice.Lines.OrEmpty()[0].ID})
 		s.Error(err)
 	})
 }

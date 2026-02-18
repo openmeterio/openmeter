@@ -460,7 +460,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		s.NoError(err)
 		s.Len(invoices, 1)
 
-		invoice = invoices[0].RemoveCircularReferences()
+		invoice = lo.Must(invoices[0].RemoveCircularReferences())
 
 		// Create a new invoice for the customer.
 		invoicingApp, err = billing.GetApp(app)
@@ -741,7 +741,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 		// Update the invoice.
 
-		updateInvoice := invoice.Clone()
+		updateInvoice := lo.Must(invoice.Clone())
 
 		// We merge external IDs into the invoice manually to simulate the update.
 		// Normally this is done by the state machine.
@@ -1188,8 +1188,8 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 			},
 		}, nil)
 
-	invoice, err = s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
-		Invoice: invoice.InvoiceID(),
+	invoice, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice: invoice.GetInvoiceID(),
 		EditFn: func(i *billing.StandardInvoice) error {
 			i.Supplier.Name = "ACME Inc. (updated)"
 			return nil
@@ -1341,7 +1341,7 @@ func (s *StripeInvoiceTestSuite) TestSendInvoice() {
 	s.NoError(err)
 	s.Len(invoices, 1)
 
-	invoice := invoices[0].RemoveCircularReferences()
+	invoice := lo.Must(invoices[0].RemoveCircularReferences())
 
 	// Create a new invoice for the customer.
 	invoicingApp, err := billing.GetApp(app)

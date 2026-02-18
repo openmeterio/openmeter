@@ -90,7 +90,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 
 	t.Run("existing line hierarchy, no changes", func(t *testing.T) {
 		base := cloneLines(template)
-		snapshotAsDBState(base)
+		snapshotAsDBState(t, base)
 
 		lineDiff, err := diffInvoiceLines(base)
 		require.NoError(t, err)
@@ -100,7 +100,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 
 	t.Run("existing line hierarchy, one child line is deleted", func(t *testing.T) {
 		base := cloneLines(template)
-		snapshotAsDBState(base)
+		snapshotAsDBState(t, base)
 
 		require.True(t, removeDetailedLineByID(base[1], "2.1"), "child line 2.1 should be removed")
 
@@ -120,7 +120,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 
 	t.Run("existing line hierarchy, one child line is changed", func(t *testing.T) {
 		base := cloneLines(template)
-		snapshotAsDBState(base)
+		snapshotAsDBState(t, base)
 
 		getDetailedLineByID(base[1], "2.1").Quantity = alpacadecimal.NewFromFloat(10)
 
@@ -137,7 +137,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 
 	t.Run("existing line hierarchy, one parent line is changed", func(t *testing.T) {
 		base := cloneLines(template)
-		snapshotAsDBState(base)
+		snapshotAsDBState(t, base)
 
 		base[1].UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromFloat(10))
 
@@ -151,11 +151,11 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		}, lineDiff)
 	})
 
-	t.Run("a line is updated in the existing line hieararchy", func(t *testing.T) {
+	t.Run("a line is updated in the existing line hierarchy", func(t *testing.T) {
 		base := cloneLines(template)
-		snapshotAsDBState(base)
+		snapshotAsDBState(t, base)
 
-		// ID change should tirgger a delete/update
+		// ID change should trigger a delete/update
 		changedLine := getDetailedLineByID(base[1], "2.1")
 		changedLine.ID = ""
 		changedLine.Description = lo.ToPtr("2.3")
@@ -182,7 +182,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 	// Discount handling
 	t.Run("existing line hierarchy, one discount is deleted", func(t *testing.T) {
 		base := cloneLines(template)
-		snapshotAsDBState(base)
+		snapshotAsDBState(t, base)
 
 		getDetailedLineByID(base[1], "2.1").AmountDiscounts = nil
 
@@ -200,7 +200,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 
 	t.Run("existing line hierarchy, one discount is changed", func(t *testing.T) {
 		base := cloneLines(template)
-		snapshotAsDBState(base)
+		snapshotAsDBState(t, base)
 
 		getDetailedLineByID(base[1], "2.1").AmountDiscounts[0].Amount = alpacadecimal.NewFromFloat(20)
 
@@ -218,7 +218,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 
 	t.Run("existing line hierarchy, one discount is added/old one is removed", func(t *testing.T) {
 		base := cloneLines(template)
-		snapshotAsDBState(base)
+		snapshotAsDBState(t, base)
 
 		discounts := getDetailedLineByID(base[1], "2.1").AmountDiscounts
 
@@ -241,7 +241,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 	// DeletedAt handling
 	t.Run("support for detailed lines being deleted using deletedAt", func(t *testing.T) {
 		base := cloneLines(template)
-		snapshotAsDBState(base)
+		snapshotAsDBState(t, base)
 
 		getDetailedLineByID(base[1], "2.1").DeletedAt = lo.ToPtr(clock.Now())
 
@@ -261,7 +261,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 
 	t.Run("support for parent lines with children being deleted using deletedAt", func(t *testing.T) {
 		base := cloneLines(template)
-		snapshotAsDBState(base)
+		snapshotAsDBState(t, base)
 
 		base[1].DeletedAt = lo.ToPtr(clock.Now())
 
@@ -283,7 +283,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 
 	t.Run("support for parent lines without children being deleted using deletedAt", func(t *testing.T) {
 		base := cloneLines(template)
-		snapshotAsDBState(base)
+		snapshotAsDBState(t, base)
 
 		base[0].DeletedAt = lo.ToPtr(clock.Now())
 
@@ -300,7 +300,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 	t.Run("deleted, changed lines are not triggering updates", func(t *testing.T) {
 		base := cloneLines(template)
 		base[0].DeletedAt = lo.ToPtr(clock.Now())
-		snapshotAsDBState(base)
+		snapshotAsDBState(t, base)
 		base[0].Description = lo.ToPtr("test")
 
 		lineDiff, err := diffInvoiceLines(base)
@@ -362,14 +362,17 @@ func requireDiff(t *testing.T, expected lineDiffExpectation, actual invoiceLineD
 
 func cloneLines(lines []*billing.StandardLine) []*billing.StandardLine {
 	return lo.Map(lines, func(line *billing.StandardLine, _ int) *billing.StandardLine {
-		return line.Clone()
+		return lo.Must(line.Clone())
 	})
 }
 
 // snapshotAsDBState saves the current state of the lines as if they were in the database
-func snapshotAsDBState(lines []*billing.StandardLine) {
+func snapshotAsDBState(t *testing.T, lines []*billing.StandardLine) {
+	t.Helper()
+
 	for _, line := range lines {
-		line.SaveDBSnapshot()
+		err := line.SaveDBSnapshot()
+		require.NoError(t, err)
 	}
 }
 

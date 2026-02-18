@@ -102,7 +102,7 @@ func (s *Service) HandleInvoiceStateTransition(ctx context.Context, input appstr
 
 	err = s.billingService.TriggerInvoice(ctx, billing.InvoiceTriggerServiceInput{
 		InvoiceTriggerInput: billing.InvoiceTriggerInput{
-			Invoice:          invoice.InvoiceID(),
+			Invoice:          invoice.GetInvoiceID(),
 			Trigger:          input.Trigger,
 			ValidationErrors: validationErrors,
 		},
@@ -134,7 +134,7 @@ func (s *Service) HandleInvoiceSentEvent(ctx context.Context, input appstripeent
 	}
 
 	return s.billingService.UpdateInvoiceFields(ctx, billing.UpdateInvoiceFieldsInput{
-		Invoice:          invoice.InvoiceID(),
+		Invoice:          invoice.GetInvoiceID(),
 		SentToCustomerAt: mo.Some(lo.ToPtr(time.Unix(input.SentAt, 0))),
 	})
 }
@@ -149,7 +149,7 @@ func stripeErrorToValidationError(stripeErr *stripe.Error) error {
 
 // getInvoiceByStripeID retrieves an invoice by its stripe ID, it returns nil if the invoice is not found (thus not managed by the app)
 func (s *Service) getInvoiceByStripeID(ctx context.Context, appID app.AppID, stripeInvoiceID string) (*billing.StandardInvoice, error) {
-	invoices, err := s.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
+	invoices, err := s.billingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
 		Namespaces: []string{appID.Namespace},
 		ExternalIDs: &billing.ListInvoicesExternalIDFilter{
 			Type: billing.InvoicingExternalIDType,
@@ -160,7 +160,6 @@ func (s *Service) getInvoiceByStripeID(ctx context.Context, appID app.AppID, str
 			PageNumber: 1,
 			PageSize:   5,
 		},
-		Expand: billing.InvoiceExpand{},
 	})
 	if err != nil {
 		return nil, err

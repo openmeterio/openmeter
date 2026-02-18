@@ -48,6 +48,7 @@ var (
 	ErrInvoiceLineMissingOpenEndedTier                           = NewValidationError("invoice_line_missing_open_ended_tier", "usage based invoice line: missing open ended tier")
 	ErrInvoiceLineDeleteInvalidStatus                            = NewValidationError("invoice_line_delete_invalid_status", "invoice line cannot be deleted in the current state (only valid lines can be deleted)")
 	ErrInvoiceLineNoPeriodChangeForSplitLine                     = NewValidationError("invoice_line_no_period_change_for_split_line", "invoice line period cannot be changed for split lines")
+	ErrInvoiceLineNoPeriodChangeForSubscriptionManagedLine       = NewValidationError("invoice_line_no_period_change_for_subscription_managed_line", "invoice line period cannot be changed for subscription managed lines")
 	ErrInvoiceLineProgressiveBillingUsageDiscountUpdateForbidden = NewValidationError("invoice_line_progressive_billing_usage_discount_update_forbidden", "usage discount cannot be updated on a partially invoiced line")
 	ErrInvoiceCreateNoLines                                      = NewValidationError("invoice_create_no_lines", "the new invoice would have no lines")
 	ErrInvoiceCreateUBPLineCustomerUsageAttributionInvalid       = NewValidationError("invoice_create_ubp_line_customer_has_no_subjects", "creating an usage based line: customer usage attribution is invalid")

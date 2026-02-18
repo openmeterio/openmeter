@@ -129,7 +129,9 @@ func (a *adapter) GetSplitLineGroup(ctx context.Context, input billing.GetSplitL
 			).
 			WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
 				a.expandLineItems(q)
-				q.WithBillingInvoice()
+				q.WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
+					q.WithBillingWorkflowConfig()
+				})
 			}).
 			First(ctx)
 		if err != nil {
@@ -209,17 +211,7 @@ func (a *adapter) mapSplitLineHierarchyFromDB(ctx context.Context, dbSplitLineGr
 		return empty, err
 	}
 
-	mappedLines, err := slicesx.MapWithErr(dbSplitLineGroup.Edges.BillingInvoiceLines, func(dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
-		line, err := a.mapStandardInvoiceLineWithoutReferences(dbLine)
-		if err != nil {
-			return billing.LineWithInvoiceHeader{}, err
-		}
-
-		return billing.LineWithInvoiceHeader{
-			Line:    line,
-			Invoice: a.mapStandardInvoiceBaseFromDB(ctx, dbLine.Edges.BillingInvoice),
-		}, nil
-	})
+	mappedLines, err := a.mapSplitLineHierarchyLinesFromDB(ctx, dbSplitLineGroup.Edges.BillingInvoiceLines)
 	if err != nil {
 		return empty, err
 	}
@@ -230,22 +222,73 @@ func (a *adapter) mapSplitLineHierarchyFromDB(ctx context.Context, dbSplitLineGr
 	}, nil
 }
 
+func (a *adapter) mapSplitLineHierarchyLinesFromDB(ctx context.Context, dbLines []*db.BillingInvoiceLine) ([]billing.LineWithInvoiceHeader, error) {
+	return slicesx.MapWithErr(dbLines, func(dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
+		if dbLine.Edges.BillingInvoice == nil {
+			return billing.LineWithInvoiceHeader{}, fmt.Errorf("billing invoice must be expanded when mapping split line hierarchy lines [id=%s]", dbLine.ID)
+		}
+
+		switch dbLine.Edges.BillingInvoice.Status {
+		case billing.StandardInvoiceStatusGathering:
+			return a.mapSplitLineHierarchyGatheringLineFromDB(ctx, dbLine)
+		default:
+			return a.mapSplitLineHierarchyStandardLineFromDB(ctx, dbLine)
+		}
+	})
+}
+
+func (a *adapter) mapSplitLineHierarchyStandardLineFromDB(ctx context.Context, dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
+	line, err := a.mapStandardInvoiceLineWithoutReferences(dbLine)
+	if err != nil {
+		return billing.LineWithInvoiceHeader{}, err
+	}
+
+	invoice, err := a.mapStandardInvoiceFromDB(ctx, dbLine.Edges.BillingInvoice, billing.StandardInvoiceExpands{})
+	if err != nil {
+		return billing.LineWithInvoiceHeader{}, err
+	}
+
+	return billing.NewLineWithInvoiceHeader(billing.StandardLineWithInvoiceHeader{
+		Line:    line,
+		Invoice: invoice,
+	}), nil
+}
+
+func (a *adapter) mapSplitLineHierarchyGatheringLineFromDB(ctx context.Context, dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
+	line, err := a.mapGatheringInvoiceLineFromDB(dbLine.Edges.BillingInvoice.SchemaLevel, dbLine)
+	if err != nil {
+		return billing.LineWithInvoiceHeader{}, err
+	}
+
+	invoice, err := a.mapGatheringInvoiceFromDB(ctx, dbLine.Edges.BillingInvoice, billing.GatheringInvoiceExpands{})
+	if err != nil {
+		return billing.LineWithInvoiceHeader{}, err
+	}
+
+	return billing.NewLineWithInvoiceHeader(billing.GatheringLineWithInvoiceHeader{
+		Line:    line,
+		Invoice: invoice,
+	}), nil
+}
+
+type lineIdToSplitLineHierarchy map[string]*billing.SplitLineHierarchy
+
 // expandSplitLineHierarchy expands the given lines with their progressive line hierarchy
 // This is done by fetching all the lines that are children of the given lines parent lines and then building
 // the hierarchy.
-func (a *adapter) expandSplitLineHierarchy(ctx context.Context, namespace string, lines []*billing.StandardLine) ([]*billing.StandardLine, error) {
+func (a *adapter) expandSplitLineHierarchy(ctx context.Context, namespace string, lines []billing.GenericInvoiceLine) (lineIdToSplitLineHierarchy, error) {
 	// Let's collect all the lines with a parent line id set
 
 	lineToGroupIDs := map[string]string{}
 
 	for _, line := range lines {
-		if line.SplitLineGroupID != nil {
-			lineToGroupIDs[line.ID] = *line.SplitLineGroupID
+		if line.GetSplitLineGroupID() != nil {
+			lineToGroupIDs[line.GetID()] = *line.GetSplitLineGroupID()
 		}
 	}
 
 	if len(lineToGroupIDs) == 0 {
-		return lines, nil
+		return lineIdToSplitLineHierarchy{}, nil
 	}
 
 	splitLineGroups, err := a.fetchAllSplitLineGroups(ctx, namespace, lo.Values(lineToGroupIDs))
@@ -257,21 +300,31 @@ func (a *adapter) expandSplitLineHierarchy(ctx context.Context, namespace string
 	hierarchyByLineID := map[string]*billing.SplitLineHierarchy{}
 	for _, splitLineGroup := range splitLineGroups {
 		for _, line := range splitLineGroup.Lines {
-			hierarchyByLineID[line.Line.ID] = &splitLineGroup
+			hierarchyByLineID[line.Line.GetID()] = &splitLineGroup
 		}
 	}
 
+	return hierarchyByLineID, nil
+}
+
+type splitLineSettableLines interface {
+	GetSplitLineGroupID() *string
+	GetID() string
+	SetSplitLineHierarchy(*billing.SplitLineHierarchy)
+}
+
+func withSplitLineHierarchyForLines[T splitLineSettableLines](lines []T, hierarchyByLineID lineIdToSplitLineHierarchy) ([]T, error) {
 	for _, line := range lines {
-		if line.SplitLineGroupID == nil {
+		if line.GetSplitLineGroupID() == nil {
 			continue
 		}
 
-		hierarchy, ok := hierarchyByLineID[line.ID]
+		hierarchy, ok := hierarchyByLineID[line.GetID()]
 		if !ok {
-			return nil, fmt.Errorf("split line group[%s] for line[%s] not found", *line.SplitLineGroupID, line.ID)
+			return nil, fmt.Errorf("split line group[%s] for line[%s] not found", *line.GetSplitLineGroupID(), line.GetID())
 		}
 
-		line.SplitLineHierarchy = hierarchy
+		line.SetSplitLineHierarchy(hierarchy)
 	}
 
 	return lines, nil
@@ -285,7 +338,9 @@ func (a *adapter) fetchAllSplitLineGroups(ctx context.Context, namespace string,
 		).
 		WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
 			a.expandLineItems(q)
-			q.WithBillingInvoice() // TODO[later]: we can consider loading this in a separate query, might be more efficient
+			q.WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
+				q.WithBillingWorkflowConfig()
+			}) // TODO[later]: we can consider loading this in a separate query, might be more efficient
 		})
 
 	dbSplitLineGroups, err := query.All(ctx)

@@ -16657,7 +16657,7 @@ type BillingInvoiceLineMutation struct {
 	period_end                       *time.Time
 	managed_by                       *billing.InvoiceLineManagedBy
 	invoice_at                       *time.Time
-	_type                            *billing.InvoiceLineType
+	_type                            *billing.InvoiceLineAdapterType
 	status                           *billing.InvoiceLineStatus
 	quantity                         *alpacadecimal.Decimal
 	ratecard_discounts               **billing.Discounts
@@ -17711,12 +17711,12 @@ func (m *BillingInvoiceLineMutation) ResetInvoiceAt() {
 }
 
 // SetType sets the "type" field.
-func (m *BillingInvoiceLineMutation) SetType(blt billing.InvoiceLineType) {
-	m._type = &blt
+func (m *BillingInvoiceLineMutation) SetType(blat billing.InvoiceLineAdapterType) {
+	m._type = &blat
 }
 
 // GetType returns the value of the "type" field in the mutation.
-func (m *BillingInvoiceLineMutation) GetType() (r billing.InvoiceLineType, exists bool) {
+func (m *BillingInvoiceLineMutation) GetType() (r billing.InvoiceLineAdapterType, exists bool) {
 	v := m._type
 	if v == nil {
 		return
@@ -17727,7 +17727,7 @@ func (m *BillingInvoiceLineMutation) GetType() (r billing.InvoiceLineType, exist
 // OldType returns the old "type" field's value of the BillingInvoiceLine entity.
 // If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceLineMutation) OldType(ctx context.Context) (v billing.InvoiceLineType, err error) {
+func (m *BillingInvoiceLineMutation) OldType(ctx context.Context) (v billing.InvoiceLineAdapterType, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldType is only allowed on UpdateOne operations")
 	}
@@ -19265,7 +19265,7 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 		m.SetInvoiceAt(v)
 		return nil
 	case billinginvoiceline.FieldType:
-		v, ok := value.(billing.InvoiceLineType)
+		v, ok := value.(billing.InvoiceLineAdapterType)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

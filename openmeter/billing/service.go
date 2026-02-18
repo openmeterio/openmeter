@@ -15,6 +15,7 @@ type Service interface {
 	SplitLineGroupService
 	InvoiceService
 	GatheringInvoiceService
+	StandardInvoiceService
 	SequenceService
 	LockableService
 
@@ -45,6 +46,13 @@ type CustomerOverrideService interface {
 }
 
 type InvoiceLineService interface {
+	// GetLinesForSubscription returns the lines or hierarchies required for subscription sync.
+	//
+	// It does not include any deleted lines or hierarchy unless the deleted line is manually edited.
+	//
+	// This logic prevents reusing old entities that might have dirty state, but the manually edited lines are
+	// included so that subscription sync can understand the user intent that they don't want to invoice
+	// that line.
 	GetLinesForSubscription(ctx context.Context, input GetLinesForSubscriptionInput) ([]LineOrHierarchy, error)
 	// SnapshotLineQuantity returns an updated line with the quantity snapshoted from meters
 	// the invoice is used as contextual information to the call.
@@ -58,7 +66,9 @@ type SplitLineGroupService interface {
 
 type InvoiceService interface {
 	ListInvoices(ctx context.Context, input ListInvoicesInput) (ListInvoicesResponse, error)
-	GetInvoiceByID(ctx context.Context, input GetInvoiceByIdInput) (StandardInvoice, error)
+	// GetInvoiceById returns the invoice by its ID using the Invoice union type.
+	// Please use GetStandardInvoiceById or GetGatheringInvoiceById instead if you know exactly the type of the invoice.
+	GetInvoiceById(ctx context.Context, input GetInvoiceByIdInput) (Invoice, error)
 	InvoicePendingLines(ctx context.Context, input InvoicePendingLinesInput) ([]StandardInvoice, error)
 	// AdvanceInvoice advances the invoice to the next stage, the advancement is stopped until:
 	// - an error is occurred
@@ -69,8 +79,7 @@ type InvoiceService interface {
 	ApproveInvoice(ctx context.Context, input ApproveInvoiceInput) (StandardInvoice, error)
 	RetryInvoice(ctx context.Context, input RetryInvoiceInput) (StandardInvoice, error)
 	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) (StandardInvoice, error)
-	// UpdateInvoice updates an invoice as a whole
-	UpdateInvoice(ctx context.Context, input UpdateInvoiceInput) (StandardInvoice, error)
+	UpdateInvoice(ctx context.Context, input UpdateInvoiceInput) (Invoice, error)
 
 	// SimulateInvoice generates an invoice based on the provided input, but does not persist it
 	// can be used to execute the invoice generation logic without actually creating an invoice in the database
@@ -84,11 +93,22 @@ type InvoiceService interface {
 	RecalculateGatheringInvoices(ctx context.Context, input RecalculateGatheringInvoicesInput) error
 }
 
+type StandardInvoiceService interface {
+	// UpdateStandardInvoice updates a standard invoice as a whole
+	UpdateStandardInvoice(ctx context.Context, input UpdateStandardInvoiceInput) (StandardInvoice, error)
+	// GetStandardInvoiceById gets a standard invoice by its ID
+	GetStandardInvoiceById(ctx context.Context, input GetStandardInvoiceByIdInput) (StandardInvoice, error)
+	// ListStandardInvoices lists standard invoices
+	ListStandardInvoices(ctx context.Context, input ListStandardInvoicesInput) (ListStandardInvoicesResponse, error)
+}
+
 type GatheringInvoiceService interface {
 	// CreatePendingInvoiceLines creates pending invoice lines for a customer, if the lines are zero valued, the response is nil
 	CreatePendingInvoiceLines(ctx context.Context, input CreatePendingInvoiceLinesInput) (*CreatePendingInvoiceLinesResult, error)
 
 	ListGatheringInvoices(ctx context.Context, input ListGatheringInvoicesInput) (pagination.Result[GatheringInvoice], error)
+	GetGatheringInvoiceById(ctx context.Context, input GetGatheringInvoiceByIdInput) (GatheringInvoice, error)
+	UpdateGatheringInvoice(ctx context.Context, input UpdateGatheringInvoiceInput) error
 }
 
 type SequenceService interface {

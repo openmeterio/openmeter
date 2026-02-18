@@ -122,7 +122,7 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 		s.NoError(err)
 		s.Len(res.Lines, 2)
 
-		gatheringInvoiceID = res.Invoice.InvoiceID()
+		gatheringInvoiceID = res.Invoice.GetInvoiceID()
 
 		// Validate collection_at calculation
 		s.NotNil(res.Invoice.NextCollectionAt)
@@ -134,17 +134,16 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 	// Then collection at is properly returned
 
 	s.Run("validate collection_at for expanded gathering invoice", func() {
-		gatheringInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+		gatheringInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
 			Invoice: gatheringInvoiceID,
-			Expand: billing.InvoiceExpand{
-				Lines:                       true,
-				RecalculateGatheringInvoice: true,
+			Expand: billing.GatheringInvoiceExpands{
+				billing.GatheringInvoiceExpandLines,
 			},
 		})
 		s.NoError(err)
 
-		s.NotNil(gatheringInvoice.CollectionAt)
-		s.Equal(periodEnd, *gatheringInvoice.CollectionAt, "collection_at should be the min of the invoice_at of the lines")
+		s.NotEqual(time.Time{}, gatheringInvoice.NextCollectionAt)
+		s.Equal(periodEnd, gatheringInvoice.NextCollectionAt, "collection_at should be the min of the invoice_at of the lines")
 	})
 
 	s.NotEmpty(gatheringInvoiceID)
@@ -184,7 +183,7 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 		// total should be $2
 		s.Equal(float64(2), invoice.Totals.Amount.InexactFloat64())
 
-		invoiceID = invoice.InvoiceID()
+		invoiceID = invoice.GetInvoiceID()
 	})
 
 	// Given the draft invoice is in waiting for collection state
@@ -200,10 +199,10 @@ func (s *CollectionTestSuite) TestCollectionFlow() {
 
 	clock.SetTime(period2End.Add(time.Hour))
 	s.Run("validate invoice is advancable", func() {
-		invoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+		invoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: invoiceID,
-			Expand: billing.InvoiceExpand{
-				Lines: true,
+			Expand: billing.StandardInvoiceExpands{
+				billing.StandardInvoiceExpandLines,
 			},
 		})
 		s.NoError(err)
@@ -368,8 +367,8 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 	// When adding a flat fee (in arrears)
 	s.MockStreamingConnector.AddSimpleEvent(apiRequestsTotalFeature.Feature.Key, 1, periodStart.Add(time.Minute*35))
 
-	invoice, err = s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
-		Invoice: invoice.InvoiceID(),
+	invoice, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice: invoice.GetInvoiceID(),
 		EditFn: func(invoice *billing.StandardInvoice) error {
 			linePeriod := billing.Period{
 				Start: periodEnd.Add(time.Hour * 1),
@@ -544,8 +543,8 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 		End:   lo.Must(time.Parse(time.RFC3339, "2025-01-03T00:00:00Z")),
 	}
 	s.Run("adding a new line extends the collection period", func() {
-		invoice, err = s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
-			Invoice: invoice.InvoiceID(),
+		invoice, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+			Invoice: invoice.GetInvoiceID(),
 			EditFn: func(invoice *billing.StandardInvoice) error {
 				invoice.Lines.Append(&billing.StandardLine{
 					StandardLineBase: billing.StandardLineBase{
@@ -595,17 +594,17 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 		clock.SetTime(newLinePeriod.End.Add(time.Hour))
 		s.MockStreamingConnector.AddSimpleEvent(apiRequestsTotalFeature.Feature.Key, 1, newLinePeriod.Start.Add(time.Minute*30))
 
-		invoice, err = s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-			Invoice: invoice.InvoiceID(),
-			Expand: billing.InvoiceExpand{
-				Lines: true,
+		invoice, err = s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand: billing.StandardInvoiceExpands{
+				billing.StandardInvoiceExpandLines,
 			},
 		})
 		s.NoError(err)
 
 		s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, invoice.Status)
 
-		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.InvoiceID())
+		invoice, err = s.BillingService.AdvanceInvoice(ctx, invoice.GetInvoiceID())
 		s.NoError(err)
 
 		s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, invoice.Status)

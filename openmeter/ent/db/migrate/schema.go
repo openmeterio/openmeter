@@ -584,7 +584,7 @@ var (
 		{Name: "customer_name", Type: field.TypeString},
 		{Name: "customer_usage_attribution", Type: field.TypeJSON, Nullable: true},
 		{Name: "number", Type: field.TypeString},
-		{Name: "type", Type: field.TypeEnum, Enums: []string{"standard", "credit-note"}},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"standard", "gathering"}},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "voided_at", Type: field.TypeTime, Nullable: true},
 		{Name: "issued_at", Type: field.TypeTime, Nullable: true},

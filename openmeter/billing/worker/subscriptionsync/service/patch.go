@@ -18,7 +18,7 @@ const (
 )
 
 type linePatchLineCreate struct {
-	Line billing.StandardLine
+	Line billing.GatheringLine
 }
 
 type linePatchLineDelete struct {
@@ -27,7 +27,7 @@ type linePatchLineDelete struct {
 }
 
 type linePatchLineUpdate struct {
-	TargetState *billing.StandardLine
+	TargetState billing.GenericInvoiceLine
 }
 
 type linePatchSplitLineGroupDelete struct {
@@ -103,7 +103,7 @@ func newDeleteLinePatch(lineID billing.LineID, invoiceID string) linePatch {
 	}
 }
 
-func newUpdateLinePatch(line *billing.StandardLine) linePatch {
+func newUpdateLinePatch(line billing.GenericInvoiceLine) linePatch {
 	return linePatch{
 		op: patchOpLineUpdate,
 		updateLinePatch: linePatchLineUpdate{
@@ -130,7 +130,7 @@ func newUpdateSplitLineGroupPatch(group billing.SplitLineGroupUpdate) linePatch 
 	}
 }
 
-func newCreateLinePatch(line billing.StandardLine) linePatch {
+func newCreateLinePatch(line billing.GatheringLine) linePatch {
 	return linePatch{
 		op: patchOpLineCreate,
 		createLinePatch: linePatchLineCreate{
@@ -142,18 +142,18 @@ func newCreateLinePatch(line billing.StandardLine) linePatch {
 func (s *Service) getDeletePatchesForLine(lineOrHierarchy billing.LineOrHierarchy) ([]linePatch, error) {
 	switch lineOrHierarchy.Type() {
 	case billing.LineOrHierarchyTypeLine:
-		line, err := lineOrHierarchy.AsStandardLine()
+		line, err := lineOrHierarchy.AsGenericLine()
 		if err != nil {
 			return nil, fmt.Errorf("getting line: %w", err)
 		}
 
 		// Ignored lines do not take part in syncing so we skip them
-		if line.Annotations.GetBool(billing.AnnotationSubscriptionSyncIgnore) {
+		if line.GetAnnotations().GetBool(billing.AnnotationSubscriptionSyncIgnore) {
 			return nil, nil
 		}
 
 		return []linePatch{
-			newDeleteLinePatch(line.LineID(), line.InvoiceID),
+			newDeleteLinePatch(line.GetLineID(), line.GetInvoiceID()),
 		}, nil
 	case billing.LineOrHierarchyTypeHierarchy:
 		group, err := lineOrHierarchy.AsHierarchy()
@@ -171,11 +171,11 @@ func (s *Service) getDeletePatchesForLine(lineOrHierarchy billing.LineOrHierarch
 		}
 
 		for _, line := range group.Lines {
-			if line.Line.DeletedAt != nil {
+			if line.Line.GetDeletedAt() != nil {
 				continue
 			}
 
-			out = append(out, newDeleteLinePatch(line.Line.LineID(), line.Line.InvoiceID))
+			out = append(out, newDeleteLinePatch(line.Line.GetLineID(), line.Invoice.GetID()))
 		}
 
 		return out, nil

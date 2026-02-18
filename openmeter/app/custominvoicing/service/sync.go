@@ -69,7 +69,7 @@ func (s *Service) HandlePaymentTrigger(ctx context.Context, input appcustominvoi
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.StandardInvoice, error) {
-		invoice, err := s.billingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+		invoice, err := s.billingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: input.InvoiceID,
 		})
 		if err != nil {
@@ -92,7 +92,7 @@ func (s *Service) HandlePaymentTrigger(ctx context.Context, input appcustominvoi
 			return billing.StandardInvoice{}, err
 		}
 
-		invoice, err = s.billingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+		invoice, err = s.billingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: input.InvoiceID,
 		})
 		if err != nil {

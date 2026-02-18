@@ -1484,7 +1484,15 @@ func (n NoopBillingService) ListInvoices(ctx context.Context, input billing.List
 	return billing.ListInvoicesResponse{}, nil
 }
 
-func (n NoopBillingService) GetInvoiceByID(ctx context.Context, input billing.GetInvoiceByIdInput) (billing.StandardInvoice, error) {
+func (n NoopBillingService) ListStandardInvoices(ctx context.Context, input billing.ListStandardInvoicesInput) (billing.ListStandardInvoicesResponse, error) {
+	return billing.ListStandardInvoicesResponse{}, nil
+}
+
+func (n NoopBillingService) GetInvoiceById(ctx context.Context, input billing.GetInvoiceByIdInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
+func (n NoopBillingService) GetStandardInvoiceById(ctx context.Context, input billing.GetStandardInvoiceByIdInput) (billing.StandardInvoice, error) {
 	return billing.StandardInvoice{}, nil
 }
 
@@ -1508,7 +1516,11 @@ func (n NoopBillingService) DeleteInvoice(ctx context.Context, input billing.Del
 	return billing.StandardInvoice{}, nil
 }
 
-func (n NoopBillingService) UpdateInvoice(ctx context.Context, input billing.UpdateInvoiceInput) (billing.StandardInvoice, error) {
+func (n NoopBillingService) UpdateInvoice(ctx context.Context, input billing.UpdateInvoiceInput) (billing.Invoice, error) {
+	return billing.Invoice{}, nil
+}
+
+func (n NoopBillingService) UpdateStandardInvoice(ctx context.Context, input billing.UpdateStandardInvoiceInput) (billing.StandardInvoice, error) {
 	return billing.StandardInvoice{}, nil
 }
 
@@ -1531,6 +1543,14 @@ func (n NoopBillingService) InvoicePendingLines(ctx context.Context, input billi
 
 func (n NoopBillingService) ListGatheringInvoices(ctx context.Context, input billing.ListGatheringInvoicesInput) (pagination.Result[billing.GatheringInvoice], error) {
 	return pagination.Result[billing.GatheringInvoice]{}, nil
+}
+
+func (n NoopBillingService) UpdateGatheringInvoice(ctx context.Context, input billing.UpdateGatheringInvoiceInput) error {
+	return nil
+}
+
+func (n NoopBillingService) GetGatheringInvoiceById(ctx context.Context, input billing.GetGatheringInvoiceByIdInput) (billing.GatheringInvoice, error) {
+	return billing.GatheringInvoice{}, nil
 }
 
 // SequenceService methods

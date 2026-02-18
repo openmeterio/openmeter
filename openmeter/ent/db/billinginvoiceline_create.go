@@ -225,7 +225,7 @@ func (_c *BillingInvoiceLineCreate) SetInvoiceAt(v time.Time) *BillingInvoiceLin
 }
 
 // SetType sets the "type" field.
-func (_c *BillingInvoiceLineCreate) SetType(v billing.InvoiceLineType) *BillingInvoiceLineCreate {
+func (_c *BillingInvoiceLineCreate) SetType(v billing.InvoiceLineAdapterType) *BillingInvoiceLineCreate {
 	_c.mutation.SetType(v)
 	return _c
 }

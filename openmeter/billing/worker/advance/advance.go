@@ -14,7 +14,7 @@ import (
 )
 
 type AutoAdvancer struct {
-	invoice billing.InvoiceService
+	invoice billing.Service
 
 	logger *slog.Logger
 }
@@ -54,7 +54,7 @@ func (a *AutoAdvancer) All(ctx context.Context, namespaces []string, batchSize i
 			go func() {
 				defer wg.Done()
 
-				_, err = a.AdvanceInvoice(ctx, invoice.InvoiceID())
+				_, err = a.AdvanceInvoice(ctx, invoice.GetInvoiceID())
 				if err != nil {
 					err = fmt.Errorf("failed to auto-advance invoice [namespace=%s id=%s]: %w", invoice.Namespace, invoice.ID, err)
 				}
@@ -77,9 +77,9 @@ func (a *AutoAdvancer) All(ctx context.Context, namespaces []string, batchSize i
 
 // ListInvoicesPendingAutoAdvance lists invoices that are due to be auto-advanced
 func (a *AutoAdvancer) ListInvoicesPendingAutoAdvance(ctx context.Context, namespaces []string, ids []string) ([]billing.StandardInvoice, error) {
-	resp, err := a.invoice.ListInvoices(ctx, billing.ListInvoicesInput{
+	resp, err := a.invoice.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
 		ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusDraftWaitingAutoApproval},
-		DraftUntil:       lo.ToPtr(time.Now()),
+		DraftUntilLTE:    lo.ToPtr(time.Now()),
 		Namespaces:       namespaces,
 		IDs:              ids,
 	})
@@ -92,9 +92,9 @@ func (a *AutoAdvancer) ListInvoicesPendingAutoAdvance(ctx context.Context, names
 
 // ListInvoicesPendingCollection lists invoices that are due to be collected
 func (a *AutoAdvancer) ListInvoicesPendingCollection(ctx context.Context, namespaces []string, ids []string) ([]billing.StandardInvoice, error) {
-	resp, err := a.invoice.ListInvoices(ctx, billing.ListInvoicesInput{
+	resp, err := a.invoice.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
 		ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusDraftWaitingForCollection},
-		CollectionAt:     lo.ToPtr(time.Now()),
+		CollectionAtLTE:  lo.ToPtr(time.Now()),
 		Namespaces:       namespaces,
 		IDs:              ids,
 	})
@@ -107,7 +107,7 @@ func (a *AutoAdvancer) ListInvoicesPendingCollection(ctx context.Context, namesp
 
 // ListStuckInvoicesNeedingAdvance lists invoices that are stuck in some advanceable state (this is a fail-safe mechanism)
 func (a *AutoAdvancer) ListStuckInvoicesNeedingAdvance(ctx context.Context, namespaces []string, ids []string) ([]billing.StandardInvoice, error) {
-	resp, err := a.invoice.ListInvoices(ctx, billing.ListInvoicesInput{
+	resp, err := a.invoice.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
 		HasAvailableAction: []billing.InvoiceAvailableActionsFilter{billing.InvoiceAvailableActionsFilterAdvance},
 		Namespaces:         namespaces,
 		IDs:                ids,
@@ -148,7 +148,7 @@ func (a *AutoAdvancer) AdvanceInvoice(ctx context.Context, id billing.InvoiceID)
 		// ErrInvoiceCannotAdvance is returned when the invoice cannot be advanced due to state machine settings
 		// thus we can safely ignore this error, we will retry
 		if errors.Is(err, billing.ErrInvoiceCannotAdvance) {
-			invoice, err := a.invoice.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+			invoice, err := a.invoice.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 				Invoice: id,
 			})
 			if err != nil {

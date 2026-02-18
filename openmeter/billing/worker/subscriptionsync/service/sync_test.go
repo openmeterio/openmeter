@@ -221,15 +221,14 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 
 		gatheringInvoice := s.gatheringInvoice(ctx, namespace, s.Customer.ID)
 		s.NoError(err)
-		gatheringInvoiceID = gatheringInvoice.InvoiceID()
+		gatheringInvoiceID = gatheringInvoice.GetInvoiceID()
 
 		s.DebugDumpInvoice("gathering invoice - 2nd update", gatheringInvoice)
 
 		gatheringLine := gatheringInvoice.Lines.OrEmpty()[0]
 
-		s.Equal(invoiceUpdatedAt, gatheringInvoice.UpdatedAt)
-		s.Equal(billing.StandardInvoiceStatusGathering, gatheringInvoice.Status)
-		s.Equal(line.UpdatedAt, gatheringLine.UpdatedAt)
+		s.Equal(invoiceUpdatedAt, gatheringInvoice.GetUpdatedAt())
+		s.Equal(line.GetUpdatedAt(), gatheringLine.GetUpdatedAt())
 	})
 
 	s.NoError(gatheringInvoiceID.Validate())
@@ -272,9 +271,9 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		})
 
 		// let's fetch the gathering invoice
-		gatheringInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+		gatheringInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
 			Invoice: gatheringInvoiceID,
-			Expand:  billing.InvoiceExpandAll,
+			Expand:  billing.GatheringInvoiceExpandAll,
 		})
 		s.NoError(err)
 
@@ -284,9 +283,9 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		s.Equal(gatheringLine.Subscription.PhaseID, discountedPhase.SubscriptionPhase.ID)
 		s.Equal(gatheringLine.Subscription.ItemID, discountedPhase.ItemsByKey[s.APIRequestsTotalFeature.Key][0].SubscriptionItem.ID)
 		s.Equal(gatheringLine.InvoiceAt, s.mustParseTime("2024-03-01T00:00:00Z"))
-		s.Equal(gatheringLine.Period, billing.Period{
-			Start: s.mustParseTime("2024-02-15T00:00:00Z"),
-			End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+		s.Equal(gatheringLine.ServicePeriod, timeutil.ClosedPeriod{
+			From: s.mustParseTime("2024-02-15T00:00:00Z"),
+			To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 		})
 
 		// TODO[OM-1037]: let's add/change some items of the subscription then expect that the new item appears on the gathering
@@ -318,9 +317,9 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 
 		s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, clock.Now()))
 
-		gatheringInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+		gatheringInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
 			Invoice: gatheringInvoiceID,
-			Expand:  billing.InvoiceExpandAll,
+			Expand:  billing.GatheringInvoiceExpandAll,
 		})
 		s.NoError(err)
 
@@ -331,9 +330,9 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		s.Equal(gatheringLine.Subscription.PhaseID, discountedPhase.SubscriptionPhase.ID)
 		s.Equal(gatheringLine.Subscription.ItemID, discountedPhase.ItemsByKey[s.APIRequestsTotalFeature.Key][0].SubscriptionItem.ID)
 
-		s.Equal(gatheringLine.Period, billing.Period{
-			Start: s.mustParseTime("2024-02-15T00:00:00Z"),
-			End:   cancelAt.Truncate(streaming.MinimumWindowSizeDuration),
+		s.Equal(gatheringLine.ServicePeriod, timeutil.ClosedPeriod{
+			From: s.mustParseTime("2024-02-15T00:00:00Z"),
+			To:   cancelAt.Truncate(streaming.MinimumWindowSizeDuration),
 		})
 		s.Equal(gatheringLine.InvoiceAt, cancelAt.Truncate(streaming.MinimumWindowSizeDuration))
 
@@ -367,9 +366,9 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 
 		s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, clock.Now()))
 
-		gatheringInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
+		gatheringInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
 			Invoice: gatheringInvoiceID,
-			Expand:  billing.InvoiceExpandAll,
+			Expand:  billing.GatheringInvoiceExpandAll,
 		})
 		s.NoError(err)
 
@@ -380,9 +379,9 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 		s.Equal(gatheringLine.Subscription.PhaseID, discountedPhase.SubscriptionPhase.ID)
 		s.Equal(gatheringLine.Subscription.ItemID, discountedPhase.ItemsByKey[s.APIRequestsTotalFeature.Key][0].SubscriptionItem.ID)
 
-		s.Equal(gatheringLine.Period, billing.Period{
-			Start: s.mustParseTime("2024-02-15T00:00:00Z"),
-			End:   s.mustParseTime("2024-03-01T00:00:00Z"),
+		s.Equal(gatheringLine.ServicePeriod, timeutil.ClosedPeriod{
+			From: s.mustParseTime("2024-02-15T00:00:00Z"),
+			To:   s.mustParseTime("2024-03-01T00:00:00Z"),
 		})
 		s.Equal(gatheringLine.InvoiceAt, s.mustParseTime("2024-03-01T00:00:00Z"))
 
@@ -572,21 +571,17 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 		s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, clock.Now()))
 
 		// then there should be a gathering invoice
-		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+		invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 			Namespaces: []string{namespace},
 			Customers:  []string{customerEntity.ID},
-			Page: pagination.Page{
-				PageSize:   10,
-				PageNumber: 1,
-			},
-			Expand: billing.InvoiceExpandAll,
+			Expand:     billing.GatheringInvoiceExpandAll,
 		})
 		s.NoError(err)
 		s.Len(invoices.Items, 1)
 
 		lines := invoices.Items[0].Lines.OrEmpty()
-		oneDayLines := lo.Filter(lines, func(line *billing.StandardLine, _ int) bool {
-			return line.Period.End.Sub(line.Period.Start) == time.Hour*24
+		oneDayLines := lo.Filter(lines, func(line billing.GatheringLine, _ int) bool {
+			return line.ServicePeriod.Duration() == time.Hour*24
 		})
 		s.Len(oneDayLines, 31) // january is 31 days long, and we generate lines for each daily for in arrears price
 
@@ -595,11 +590,11 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 			s.Equal(line.Subscription.PhaseID, subsView.Phases[0].SubscriptionPhase.ID, "failed for line %v", line.ID)
 			s.Equal(line.Subscription.ItemID, subsView.Phases[0].ItemsByKey["in-arrears"][0].SubscriptionItem.ID, "failed for line %v", line.ID)
 			s.Equal(line.InvoiceAt, s.mustParseTime("2024-02-01T00:00:00Z"), "failed for line %v", line.ID)
-			s.Equal(line.Period, billing.Period{
-				Start: s.mustParseTime("2024-01-01T00:00:00Z").AddDate(0, 0, line.Period.Start.Day()-1),
-				End:   s.mustParseTime("2024-01-01T00:00:00Z").AddDate(0, 0, line.Period.Start.Day()),
+			s.Equal(line.ServicePeriod, timeutil.ClosedPeriod{
+				From: s.mustParseTime("2024-01-01T00:00:00Z").AddDate(0, 0, line.ServicePeriod.From.Day()-1),
+				To:   s.mustParseTime("2024-01-01T00:00:00Z").AddDate(0, 0, line.ServicePeriod.From.Day()),
 			}, "failed for line %v", line.ID)
-			price, err := line.UsageBased.Price.AsFlat()
+			price, err := line.Price.AsFlat()
 			s.NoError(err)
 			s.Equal(price.Amount.InexactFloat64(), 5.0, "failed for line %v", line.ID)
 			s.Equal(price.PaymentTerm, productcatalog.InArrearsPaymentTerm, "failed for line %v", line.ID)
@@ -628,32 +623,28 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 		s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, clock.Now()))
 
 		// then there should be a gathering invoice
-		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+		invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 			Namespaces: []string{namespace},
 			Customers:  []string{customerEntity.ID},
-			Page: pagination.Page{
-				PageSize:   10,
-				PageNumber: 1,
-			},
-			Expand: billing.InvoiceExpandAll,
+			Expand:     billing.GatheringInvoiceExpandAll,
 		})
 		s.NoError(err)
 		s.Len(invoices.Items, 1)
 
 		lines := invoices.Items[0].Lines.OrEmpty()
-		threeMonthLines := lo.Filter(lines, func(line *billing.StandardLine, _ int) bool {
-			return line.Period.End.Sub(line.Period.Start) != time.Hour*24 // all other lines will be 1 dqy
+		threeMonthLines := lo.Filter(lines, func(line billing.GatheringLine, _ int) bool {
+			return line.ServicePeriod.Duration() != time.Hour*24 // all other lines will be 1 dqy
 		})
 		s.Len(threeMonthLines, 1)
 
 		flatFeeLine := threeMonthLines[0]
 		s.Equal(flatFeeLine.Subscription.SubscriptionID, subsView.Subscription.ID)
 		s.Equal(flatFeeLine.InvoiceAt, cancelAt)
-		s.Equal(flatFeeLine.Period, billing.Period{
-			Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-			End:   cancelAt,
+		s.Equal(flatFeeLine.ServicePeriod, timeutil.ClosedPeriod{
+			From: s.mustParseTime("2024-01-01T00:00:00Z"),
+			To:   cancelAt,
 		})
-		price, err := flatFeeLine.UsageBased.Price.AsFlat()
+		price, err := flatFeeLine.Price.AsFlat()
 		s.NoError(err)
 		s.Equal(price.Amount.InexactFloat64(), 9.0, "failed for line %v", flatFeeLine.ID)
 		s.Equal(price.PaymentTerm, productcatalog.InArrearsPaymentTerm, "failed for line %v", flatFeeLine.ID)
@@ -1287,9 +1278,9 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncDraftInvoicePro
 	})
 
 	// draft invoice
-	draftInvoice, err = s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-		Invoice: draftInvoice.InvoiceID(),
-		Expand:  billing.InvoiceExpandAll,
+	draftInvoice, err = s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: draftInvoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll,
 	})
 	s.NoError(err)
 
@@ -1364,7 +1355,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 	draftInvoice := draftInvoices[0]
 	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, draftInvoice.Status)
 
-	approvedInvoice, err := s.BillingService.ApproveInvoice(ctx, draftInvoice.InvoiceID())
+	approvedInvoice, err := s.BillingService.ApproveInvoice(ctx, draftInvoice.GetInvoiceID())
 	s.NoError(err)
 	s.Equal(billing.StandardInvoiceStatusPaid, approvedInvoice.Status)
 
@@ -1460,9 +1451,9 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePr
 	})
 
 	// issued invoice
-	approvedInvoice, err = s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-		Invoice: draftInvoice.InvoiceID(),
-		Expand:  billing.InvoiceExpandAll,
+	approvedInvoice, err = s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: draftInvoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll,
 	})
 	s.NoError(err)
 
@@ -2122,9 +2113,6 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProgressiveBilling
 					End:   startTime.AddDate(0, 0, 1),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{
-				startTime.AddDate(0, 0, 1),
-			}),
 		},
 	})
 
@@ -2552,7 +2540,6 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
 		},
 	})
 
@@ -2660,9 +2647,9 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateDraftInvoice
 		},
 	})
 
-	updatedDraftInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-		Invoice: draftInvoice.InvoiceID(),
-		Expand:  billing.InvoiceExpandAll,
+	updatedDraftInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: draftInvoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll,
 	})
 	s.NoError(err)
 	s.DebugDumpInvoice("draft invoice - 2nd sync", updatedDraftInvoice)
@@ -2746,7 +2733,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 	draftInvoice := draftInvoices[0]
 	s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, draftInvoice.Status)
 
-	issuedInvoice, err := s.BillingService.ApproveInvoice(ctx, draftInvoice.InvoiceID())
+	issuedInvoice, err := s.BillingService.ApproveInvoice(ctx, draftInvoice.GetInvoiceID())
 	s.NoError(err)
 	s.Equal(billing.StandardInvoiceStatusPaid, issuedInvoice.Status)
 	s.Len(issuedInvoice.ValidationIssues, 0)
@@ -2768,7 +2755,6 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
 		},
 	})
 
@@ -2808,9 +2794,9 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 	// gathering invoice
 	s.DebugDumpInvoice("gathering invoice - 2nd sync", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
 
-	updatedIssuedInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-		Invoice: issuedInvoice.InvoiceID(),
-		Expand:  billing.InvoiceExpandAll,
+	updatedIssuedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: issuedInvoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll,
 	})
 	s.NoError(err)
 	s.DebugDumpInvoice("issued invoice - 2nd sync", updatedIssuedInvoice)
@@ -2832,7 +2818,6 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedGatheringUpdateIssuedInvoic
 					End:   s.mustParseTime("2024-02-01T00:00:00Z"), // This is not updated, which is what we want
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-02-01T00:00:00Z")}),
 		},
 	})
 
@@ -2900,7 +2885,7 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 	s.NoError(err)
 	s.Len(draftInvoices1, 1)
 
-	invoice1, err := s.BillingService.ApproveInvoice(ctx, draftInvoices1[0].InvoiceID())
+	invoice1, err := s.BillingService.ApproveInvoice(ctx, draftInvoices1[0].GetInvoiceID())
 	s.NoError(err)
 	s.Equal(billing.StandardInvoiceStatusPaid, invoice1.Status)
 
@@ -2923,7 +2908,6 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 					End:   s.mustParseTime("2024-01-15T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-15T00:00:00Z")}),
 		},
 	})
 
@@ -2958,7 +2942,6 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 					End:   s.mustParseTime("2024-01-18T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-18T00:00:00Z")}),
 		},
 	})
 
@@ -3063,9 +3046,9 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 	})
 
 	// invoice 1 (issued) checks
-	updatedIssuedInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-		Invoice: invoice1.InvoiceID(),
-		Expand:  billing.InvoiceExpandAll,
+	updatedIssuedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: invoice1.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll,
 	})
 	s.NoError(err)
 
@@ -3089,16 +3072,15 @@ func (s *SubscriptionHandlerTestSuite) TestUsageBasedUpdateWithLineSplits() {
 					End:   s.mustParseTime("2024-01-15T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-15T00:00:00Z")}),
 		},
 	})
 
 	s.expectValidationIssueForLine(updatedIssuedInvoice.Lines.OrEmpty()[0], updatedIssuedInvoice.ValidationIssues[0])
 
 	// invoice 2 (draft) checks
-	updatedDraftInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-		Invoice: draftInvoice2.InvoiceID(),
-		Expand:  billing.InvoiceExpandAll,
+	updatedDraftInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: draftInvoice2.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll,
 	})
 	s.NoError(err)
 
@@ -3142,27 +3124,37 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualEditSync() {
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 
-	var updatedLine *billing.StandardLine
-	editedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
-		Invoice: gatheringInvoice.InvoiceID(),
-		EditFn: func(invoice *billing.StandardInvoice) error {
-			line := s.getLineByChildID(*invoice, fmt.Sprintf("%s/first-phase/in-advance/v[0]/period[0]", subsView.Subscription.ID))
+	var updatedLine billing.GatheringLine
+	err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+		Invoice: gatheringInvoice.GetInvoiceID(),
+		EditFn: func(invoice *billing.GatheringInvoice) error {
+			line := s.getGatheringLineByChildID(*invoice, fmt.Sprintf("%s/first-phase/in-advance/v[0]/period[0]", subsView.Subscription.ID))
 
-			price, err := line.UsageBased.Price.AsFlat()
+			price, err := line.Price.AsFlat()
 			s.NoError(err)
 
 			price.PaymentTerm = productcatalog.InArrearsPaymentTerm
-			line.UsageBased.Price = productcatalog.NewPriceFrom(price)
+			line.Price = *productcatalog.NewPriceFrom(price)
 
-			line.Period = billing.Period{
-				Start: line.Period.Start.Add(time.Hour),
-				End:   line.Period.End.Add(time.Hour),
+			line.ServicePeriod = timeutil.ClosedPeriod{
+				From: line.ServicePeriod.From.Add(time.Hour),
+				To:   line.ServicePeriod.To.Add(time.Hour),
 			}
-			line.InvoiceAt = line.Period.End
+			line.InvoiceAt = line.ServicePeriod.To
 			line.ManagedBy = billing.ManuallyManagedLine
 
-			updatedLine = line.Clone()
+			updatedLine, err = line.Clone()
+			s.NoError(err)
 			return nil
+		},
+	})
+	s.NoError(err)
+
+	editedInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		Invoice: gatheringInvoice.GetInvoiceID(),
+		Expand: billing.GatheringInvoiceExpands{
+			billing.GatheringInvoiceExpandLines,
+			billing.GatheringInvoiceExpandDeletedLines,
 		},
 	})
 
@@ -3175,8 +3167,8 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualEditSync() {
 	s.DebugDumpInvoice("gathering invoice - after sync", gatheringInvoice)
 
 	// Then the line should not be updated
-	invoiceLine := s.getLineByChildID(gatheringInvoice, *updatedLine.ChildUniqueReferenceID)
-	s.True(invoiceLine.StandardLineBase.Equal(updatedLine.StandardLineBase), "line should not be updated")
+	invoiceLine := s.getGatheringLineByChildID(gatheringInvoice, *updatedLine.ChildUniqueReferenceID)
+	s.True(invoiceLine.GatheringLineBase.Equal(updatedLine.GatheringLineBase), "line should not be updated")
 }
 
 func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
@@ -3230,8 +3222,8 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
 	s.DebugDumpInvoice("draft invoice", draftInvoice)
 
 	var updatedLine *billing.StandardLine
-	editedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
-		Invoice: draftInvoice.InvoiceID(),
+	editedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice: draftInvoice.GetInvoiceID(),
 		EditFn: func(invoice *billing.StandardInvoice) error {
 			lines := invoice.Lines.OrEmpty()
 			s.Len(lines, 1)
@@ -3241,7 +3233,8 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
 			line.Name = "test"
 			line.ManagedBy = billing.ManuallyManagedLine
 
-			updatedLine = line.Clone()
+			updatedLine, err = line.Clone()
+			s.NoError(err)
 			return nil
 		},
 	})
@@ -3265,9 +3258,9 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
 	s.T().Log("-> Subscription canceled")
 
 	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	resyncedInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-		Invoice: editedInvoice.InvoiceID(),
-		Expand:  billing.InvoiceExpandAll,
+	resyncedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: editedInvoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll,
 	})
 	s.NoError(err)
 	s.DebugDumpInvoice("draft invoice - after sync", resyncedInvoice)
@@ -3319,26 +3312,35 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualDeleteSync() {
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 
-	var updatedLine *billing.StandardLine
+	var updatedLine billing.GatheringLine
 
 	childUniqueReferenceID := fmt.Sprintf("%s/first-phase/in-advance/v[0]/period[0]", subsView.Subscription.ID)
 
-	editedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
-		Invoice: gatheringInvoice.InvoiceID(),
-		EditFn: func(invoice *billing.StandardInvoice) error {
-			line := s.getLineByChildID(*invoice, childUniqueReferenceID)
+	err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+		Invoice: gatheringInvoice.GetInvoiceID(),
+		EditFn: func(invoice *billing.GatheringInvoice) error {
+			line := s.getGatheringLineByChildID(*invoice, childUniqueReferenceID)
 
 			line.DeletedAt = lo.ToPtr(clock.Now())
 			line.ManagedBy = billing.ManuallyManagedLine
 
-			updatedLine = line.Clone()
+			updatedLine = lo.Must(line.Clone())
 			return nil
 		},
 		IncludeDeletedLines: true,
 	})
 	s.NoError(err)
 
-	updatedLineFromEditedInvoice := s.getLineByChildID(editedInvoice, childUniqueReferenceID)
+	editedInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		Invoice: gatheringInvoice.GetInvoiceID(),
+		Expand: billing.GatheringInvoiceExpands{
+			billing.GatheringInvoiceExpandLines,
+			billing.GatheringInvoiceExpandDeletedLines,
+		},
+	})
+	s.NoError(err)
+
+	updatedLineFromEditedInvoice := s.getGatheringLineByChildID(editedInvoice, childUniqueReferenceID)
 	s.NotNil(updatedLineFromEditedInvoice.DeletedAt)
 	s.Equal(billing.ManuallyManagedLine, updatedLineFromEditedInvoice.ManagedBy)
 
@@ -3417,10 +3419,10 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 	s.Equal(gatheringLineReferenceID, *gatheringLines[0].ChildUniqueReferenceID)
 
 	// Now let's manually mark the lines as sync ignored
-	_, err = s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
-		Invoice: draftInvoice.InvoiceID(),
+	_, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice: draftInvoice.GetInvoiceID(),
 		EditFn: func(invoice *billing.StandardInvoice) error {
-			line := s.getLineByChildID(*invoice, draftLineReferenceID)
+			line := s.getStandardLineByChildID(*invoice, draftLineReferenceID)
 
 			line.Annotations = models.Annotations{
 				billing.AnnotationSubscriptionSyncIgnore:               true,
@@ -3432,19 +3434,19 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 	})
 	s.NoError(err)
 
-	var gatheringInvoiceIgnoredLine *billing.StandardLine
+	var gatheringInvoiceIgnoredLine billing.GatheringLine
 
-	gatheringInvoice, err = s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
-		Invoice: gatheringInvoice.InvoiceID(),
-		EditFn: func(invoice *billing.StandardInvoice) error {
-			line := s.getLineByChildID(*invoice, gatheringLineReferenceID)
+	err = s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+		Invoice: gatheringInvoice.GetInvoiceID(),
+		EditFn: func(invoice *billing.GatheringInvoice) error {
+			line := s.getGatheringLineByChildID(*invoice, gatheringLineReferenceID)
 
 			line.Annotations = models.Annotations{
 				billing.AnnotationSubscriptionSyncIgnore:               true,
 				billing.AnnotationSubscriptionSyncForceContinuousLines: true,
 			}
 
-			gatheringInvoiceIgnoredLine = line.Clone()
+			gatheringInvoiceIgnoredLine = lo.Must(line.Clone())
 
 			return nil
 		},
@@ -3473,14 +3475,14 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 	s.NoError(s.Service.SynchronizeSubscription(ctx, subsView, s.mustParseTime("2024-03-01T00:00:00Z")))
 
 	// Then the lines should not be updated
-	draftInvoiceAfterSync, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-		Invoice: draftInvoice.InvoiceID(),
-		Expand:  billing.InvoiceExpandAll,
+	draftInvoiceAfterSync, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: draftInvoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll,
 	})
 	s.NoError(err)
 	s.DebugDumpInvoice("draft invoice - after sync", draftInvoiceAfterSync)
 
-	expectedInvoice := draftInvoice.Clone()
+	expectedInvoice := lo.Must(draftInvoice.Clone())
 	expectedInvoice.Lines = expectedInvoice.Lines.Map(func(line *billing.StandardLine) *billing.StandardLine {
 		if line.ChildUniqueReferenceID != nil && *line.ChildUniqueReferenceID == draftLineReferenceID {
 			line.Annotations = models.Annotations{
@@ -3509,13 +3511,13 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 		expectedInvoice.ValidationIssues = nil
 	}
 
-	s.Equal(expectedInvoice.RemoveMetaForCompare(), draftInvoiceAfterSync.RemoveMetaForCompare())
+	s.Equal(lo.Must(expectedInvoice.RemoveMetaForCompare()), lo.Must(draftInvoiceAfterSync.RemoveMetaForCompare()))
 
 	gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice - after sync", gatheringInvoice)
 
-	gatheringInvoiceIgnoredLineAfterSync := s.getLineByChildID(gatheringInvoice, *gatheringInvoiceIgnoredLine.ChildUniqueReferenceID)
-	s.Equal(gatheringInvoiceIgnoredLine.RemoveMetaForCompare(), gatheringInvoiceIgnoredLineAfterSync.RemoveMetaForCompare())
+	gatheringInvoiceIgnoredLineAfterSync := s.getGatheringLineByChildID(gatheringInvoice, *gatheringInvoiceIgnoredLine.ChildUniqueReferenceID)
+	s.Equal(lo.Must(gatheringInvoiceIgnoredLine.RemoveMetaForCompare()), lo.Must(gatheringInvoiceIgnoredLineAfterSync.RemoveMetaForCompare()))
 
 	// But the non-marked line should be deleted
 	deletedGartheringLinereferenceID := fmt.Sprintf("%s/first-phase/in-advance/v[0]/period[2]", subsView.Subscription.ID)
@@ -3530,10 +3532,10 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 	s.Len(updatedGartheringLines, 4)
 
 	newLineReferenceID := fmt.Sprintf("%s/first-phase/in-advance/v[1]/period[0]", subsView.Subscription.ID)
-	updatedLine := s.getLineByChildID(gatheringInvoice, newLineReferenceID)
+	updatedLine := s.getGatheringLineByChildID(gatheringInvoice, newLineReferenceID)
 	s.NotNil(updatedLine)
 
-	price, err := updatedLine.UsageBased.Price.AsFlat()
+	price, err := updatedLine.Price.AsFlat()
 	s.NoError(err)
 	s.Equal(alpacadecimal.NewFromFloat(10), price.Amount)
 }
@@ -3594,10 +3596,10 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLinesWhenPeriod
 	unMarkedLineReferenceID := fmt.Sprintf("%s/first-phase/non-marked/v[0]/period[0]", subsView.Subscription.ID)
 
 	// Now let's manually mark the lines as sync ignored
-	gatheringInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
-		Invoice: gatheringInvoice.InvoiceID(),
-		EditFn: func(invoice *billing.StandardInvoice) error {
-			line := s.getLineByChildID(*invoice, markedLineReferenceID)
+	err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+		Invoice: gatheringInvoice.GetInvoiceID(),
+		EditFn: func(invoice *billing.GatheringInvoice) error {
+			line := s.getGatheringLineByChildID(*invoice, markedLineReferenceID)
 
 			line.Annotations = models.Annotations{
 				billing.AnnotationSubscriptionSyncIgnore:               true,
@@ -3625,18 +3627,18 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLinesWhenPeriod
 	s.DebugDumpInvoice("gathering invoice - after sync", gatheringInvoice)
 
 	// And assert that everything works as expected
-	markedLine := s.getLineByChildID(gatheringInvoice, markedLineReferenceID)
+	markedLine := s.getGatheringLineByChildID(gatheringInvoice, markedLineReferenceID)
 	s.NotNil(markedLine)
-	s.Equal(markedLine.Period, billing.Period{
-		Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-		End:   s.mustParseTime("2024-04-01T00:00:00Z"), // period wasn't updated
+	s.Equal(markedLine.ServicePeriod, timeutil.ClosedPeriod{
+		From: s.mustParseTime("2024-01-01T00:00:00Z"),
+		To:   s.mustParseTime("2024-04-01T00:00:00Z"), // period wasn't updated
 	})
 
-	unmarkedLine := s.getLineByChildID(gatheringInvoice, unMarkedLineReferenceID)
+	unmarkedLine := s.getGatheringLineByChildID(gatheringInvoice, unMarkedLineReferenceID)
 	s.NotNil(unmarkedLine)
-	s.Equal(unmarkedLine.Period, billing.Period{
-		Start: s.mustParseTime("2024-01-01T00:00:00Z"),
-		End:   s.mustParseTime("2024-02-01T00:00:00Z"), // period was updated
+	s.Equal(unmarkedLine.ServicePeriod, timeutil.ClosedPeriod{
+		From: s.mustParseTime("2024-01-01T00:00:00Z"),
+		To:   s.mustParseTime("2024-02-01T00:00:00Z"), // period was updated
 	})
 }
 
@@ -3691,8 +3693,8 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 	s.DebugDumpInvoice("gathering invoice - after invoicing", s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID))
 
 	var updatedLine *billing.StandardLine
-	editedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
-		Invoice: draftInvoice.InvoiceID(),
+	editedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice: draftInvoice.GetInvoiceID(),
 		EditFn: func(invoice *billing.StandardInvoice) error {
 			lines := invoice.Lines.OrEmpty()
 			s.Len(lines, 1)
@@ -3701,7 +3703,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 
 			line.DeletedAt = lo.ToPtr(clock.Now())
 
-			updatedLine = line.Clone()
+			updatedLine = lo.Must(line.Clone())
 			return nil
 		},
 	})
@@ -3726,9 +3728,9 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 
 	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 
-	resyncedInvoice, err := s.BillingService.GetInvoiceByID(ctx, billing.GetInvoiceByIdInput{
-		Invoice: editedInvoice.InvoiceID(),
-		Expand:  billing.InvoiceExpandAll.SetDeletedLines(true),
+	resyncedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: editedInvoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll.With(billing.StandardInvoiceExpandDeletedLines),
 	})
 	s.NoError(err)
 	s.DebugDumpInvoice("draft invoice - after sync", resyncedInvoice)
@@ -3888,7 +3890,9 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 	s.NoError(err)
 	s.Len(invoices.Items, 1)
 
-	instantInvoice := invoices.Items[0]
+	instantInvoice, err := invoices.Items[0].AsStandardInvoice()
+	s.NoError(err)
+
 	s.DebugDumpInvoice("instant invoice", instantInvoice)
 
 	// Instant invoice should have the in advance fee
@@ -3908,7 +3912,6 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-01T00:00:00Z")}),
 		},
 	})
 }
@@ -3961,9 +3964,13 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 
 	s.NoError(s.Service.SynchronizeSubscriptionAndInvoiceCustomer(ctx, subsView, clock.Now()))
 
-	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-		Customers: []string{s.Customer.ID},
-		Expand:    billing.InvoiceExpandAll,
+	invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+		Namespaces: []string{s.Namespace},
+		Customers:  []string{s.Customer.ID},
+		Expand: billing.GatheringInvoiceExpands{
+			billing.GatheringInvoiceExpandLines,
+			billing.GatheringInvoiceExpandDeletedLines,
+		},
 	})
 	s.NoError(err)
 	s.Len(invoices.Items, 1)
@@ -4050,16 +4057,20 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 	s.NoError(err)
 	s.Len(invoices.Items, 2)
 
-	var gatheringInvoice *billing.StandardInvoice
+	var gatheringInvoice *billing.GatheringInvoice
 	var instantInvoice *billing.StandardInvoice
 
 	for _, invoice := range invoices.Items {
-		if invoice.Status == billing.StandardInvoiceStatusGathering {
-			gatheringInvoice = &invoice
+		if invoice.Type() == billing.InvoiceTypeGathering {
+			invoiceAsGathering, err := invoice.AsGatheringInvoice()
+			s.NoError(err)
+			gatheringInvoice = &invoiceAsGathering
 			continue
 		}
 
-		instantInvoice = &invoice
+		invoiceAsStandard, err := invoice.AsStandardInvoice()
+		s.NoError(err)
+		instantInvoice = &invoiceAsStandard
 	}
 
 	s.NotNil(gatheringInvoice, "gathering invoice should be present")
@@ -4126,7 +4137,6 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 					End:   s.mustParseTime("2024-02-01T00:00:00Z"),
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{s.mustParseTime("2024-01-01T00:00:00Z")}),
 		},
 	})
 
@@ -4433,22 +4443,31 @@ func (s *SubscriptionHandlerTestSuite) TestSynchronizeSubscriptionPeriodAlgorith
 	invoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice", invoice)
 
-	invoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
-		Invoice: invoice.InvoiceID(),
-		EditFn: func(invoice *billing.StandardInvoice) error {
+	err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+		Invoice: invoice.GetInvoiceID(),
+		EditFn: func(invoice *billing.GatheringInvoice) error {
 			line := invoice.Lines.OrEmpty()[0]
 			// simulate some faulty behavior (the old algo would have set the end to 03-03, but this way we can test this with both the old and new alog)
-			line.Period.Start = s.mustParseTime("2025-01-31T00:00:00Z")
-			line.Period.End = s.mustParseTime("2025-03-02T00:00:00Z")
+			line.ServicePeriod.From = s.mustParseTime("2025-01-31T00:00:00Z")
+			line.ServicePeriod.To = s.mustParseTime("2025-03-02T00:00:00Z")
 			line.Annotations = models.Annotations{
 				billing.AnnotationSubscriptionSyncIgnore:               true,
 				billing.AnnotationSubscriptionSyncForceContinuousLines: true,
 			}
 
-			invoice.Lines = billing.NewStandardInvoiceLines([]*billing.StandardLine{
+			invoice.Lines = billing.NewGatheringInvoiceLines([]billing.GatheringLine{
 				line,
 			})
 			return nil
+		},
+	})
+	s.NoError(err)
+
+	invoice, err = s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		Invoice: invoice.GetInvoiceID(),
+		Expand: billing.GatheringInvoiceExpands{
+			billing.GatheringInvoiceExpandLines,
+			billing.GatheringInvoiceExpandDeletedLines,
 		},
 	})
 	s.NoError(err)
@@ -4711,9 +4730,9 @@ func (s *SubscriptionHandlerTestSuite) TestFirstDayOfMonthBillingForSubPeriodLen
 
 	s.NoError(s.Service.SynchronizeSubscriptionAndInvoiceCustomer(ctx, subsView, clock.Now()))
 
-	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+	invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 		Customers: []string{s.Customer.ID},
-		Expand:    billing.InvoiceExpandAll,
+		Expand:    billing.GatheringInvoiceExpandAll,
 	})
 	s.NoError(err)
 	s.Len(invoices.Items, 1)

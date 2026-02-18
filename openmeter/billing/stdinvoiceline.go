@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -175,6 +176,35 @@ func (i LineExternalIDs) Equal(other LineExternalIDs) bool {
 	return i.Invoicing == other.Invoicing
 }
 
+var (
+	_ GenericInvoiceLine = (*standardInvoiceLineGenericWrapper)(nil)
+	_ QuantityAccessor   = (*standardInvoiceLineGenericWrapper)(nil)
+)
+
+// standardInvoiceLineGenericWrapper is a wrapper around a standard line that implements the GenericInvoiceLine interface.
+// for methods that are present for the specific line type too.
+type standardInvoiceLineGenericWrapper struct {
+	*StandardLine
+}
+
+func (i standardInvoiceLineGenericWrapper) Clone() (GenericInvoiceLine, error) {
+	cloned, err := i.StandardLine.Clone()
+	if err != nil {
+		return nil, err
+	}
+
+	return standardInvoiceLineGenericWrapper{StandardLine: cloned}, nil
+}
+
+func (i standardInvoiceLineGenericWrapper) CloneWithoutChildren() (GenericInvoiceLine, error) {
+	cloned, err := i.StandardLine.CloneWithoutChildren()
+	if err != nil {
+		return nil, err
+	}
+
+	return standardInvoiceLineGenericWrapper{StandardLine: cloned}, nil
+}
+
 type StandardLine struct {
 	StandardLineBase `json:",inline"`
 
@@ -188,11 +218,67 @@ type StandardLine struct {
 	DBState *StandardLine `json:"-"`
 }
 
-func (i StandardLine) LineID() LineID {
+func (i StandardLine) GetLineID() LineID {
 	return LineID{
 		Namespace: i.Namespace,
 		ID:        i.ID,
 	}
+}
+
+func (i StandardLine) GetID() string {
+	return i.ID
+}
+
+func (i StandardLine) GetManagedBy() InvoiceLineManagedBy {
+	return i.ManagedBy
+}
+
+func (i StandardLine) GetAnnotations() models.Annotations {
+	return i.Annotations
+}
+
+func (i *StandardLine) SetDeletedAt(at *time.Time) {
+	i.DeletedAt = at
+}
+
+func (i *StandardLine) UpdateServicePeriod(fn func(p *timeutil.ClosedPeriod)) {
+	period := i.Period.ToClosedPeriod()
+	fn(&period)
+	i.Period = Period{
+		Start: period.From,
+		End:   period.To,
+	}
+}
+
+func (i StandardLine) GetInvoiceID() string {
+	return i.InvoiceID
+}
+
+func (i StandardLine) GetChildUniqueReferenceID() *string {
+	return i.ChildUniqueReferenceID
+}
+
+func (i *StandardLine) SetChildUniqueReferenceID(id *string) {
+	i.ChildUniqueReferenceID = id
+}
+
+func (i StandardLine) AsInvoiceLine() InvoiceLine {
+	return InvoiceLine{
+		t:            InvoiceLineTypeStandard,
+		standardLine: &i,
+	}
+}
+
+func (i StandardLine) GetQuantity() *alpacadecimal.Decimal {
+	if i.UsageBased == nil {
+		return nil
+	}
+
+	return i.UsageBased.Quantity
+}
+
+func (i *StandardLine) SetSplitLineHierarchy(hierarchy *SplitLineHierarchy) {
+	i.SplitLineHierarchy = hierarchy
 }
 
 // ToGatheringLineBase converts the standard line to a gathering line base.
@@ -240,12 +326,15 @@ type StandardLineEditFunction func(*StandardLine)
 
 // CloneWithoutDependencies returns a clone of the line without any external dependencies. Could be used
 // for creating a new line without any references to the parent or children (or config IDs).
-func (i StandardLine) CloneWithoutDependencies(edits ...StandardLineEditFunction) *StandardLine {
-	clone := i.clone(cloneOptions{
+func (i StandardLine) CloneWithoutDependencies(edits ...StandardLineEditFunction) (*StandardLine, error) {
+	clone, err := i.clone(cloneOptions{
 		skipDBState:   true,
 		skipChildren:  true,
 		skipDiscounts: true,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("cloning line: %w", err)
+	}
 
 	clone.ID = ""
 	clone.CreatedAt = time.Time{}
@@ -266,7 +355,7 @@ func (i StandardLine) CloneWithoutDependencies(edits ...StandardLineEditFunction
 		}
 	}
 
-	return clone
+	return clone, nil
 }
 
 func (i StandardLine) WithoutDBState() *StandardLine {
@@ -279,12 +368,15 @@ func (i StandardLine) WithoutSplitLineHierarchy() *StandardLine {
 	return &i
 }
 
-func (i StandardLine) RemoveCircularReferences() *StandardLine {
-	clone := i.Clone()
+func (i StandardLine) RemoveCircularReferences() (*StandardLine, error) {
+	clone, err := i.Clone()
+	if err != nil {
+		return nil, err
+	}
 
 	clone.DBState = nil
 
-	return clone
+	return clone, nil
 }
 
 // RemoveMetaForCompare returns a copy of the invoice without the fields that are not relevant for higher level
@@ -292,15 +384,18 @@ func (i StandardLine) RemoveCircularReferences() *StandardLine {
 // - Line's DB state
 // - Line's dependencies are marked as resolved
 // - Parent pointers are removed
-func (i StandardLine) RemoveMetaForCompare() *StandardLine {
-	out := i.Clone()
+func (i StandardLine) RemoveMetaForCompare() (*StandardLine, error) {
+	out, err := i.Clone()
+	if err != nil {
+		return nil, err
+	}
 
 	out.DetailedLines = nil
 	out.DBState = nil
-	return out
+	return out, nil
 }
 
-func (i StandardLine) Clone() *StandardLine {
+func (i StandardLine) Clone() (*StandardLine, error) {
 	return i.clone(cloneOptions{})
 }
 
@@ -320,6 +415,18 @@ func (i StandardLine) GetPrice() *productcatalog.Price {
 	return i.UsageBased.Price
 }
 
+func (i *StandardLine) SetPrice(price productcatalog.Price) {
+	if i.UsageBased == nil {
+		return
+	}
+
+	i.UsageBased.Price = price.Clone()
+}
+
+func (i StandardLine) GetRateCardDiscounts() Discounts {
+	return i.RateCardDiscounts
+}
+
 func (i StandardLine) GetServicePeriod() timeutil.ClosedPeriod {
 	return timeutil.ClosedPeriod{
 		From: i.Period.Start,
@@ -335,13 +442,21 @@ func (i StandardLine) GetInvoiceAt() time.Time {
 	return i.InvoiceAt
 }
 
+func (i StandardLine) GetSubscriptionReference() *SubscriptionReference {
+	if i.Subscription == nil {
+		return nil
+	}
+
+	return i.Subscription.Clone()
+}
+
 type cloneOptions struct {
 	skipDBState   bool
 	skipChildren  bool
 	skipDiscounts bool
 }
 
-func (i StandardLine) clone(opts cloneOptions) *StandardLine {
+func (i StandardLine) clone(opts cloneOptions) (*StandardLine, error) {
 	res := &StandardLine{}
 	if !opts.skipDBState {
 		// DBStates are considered immutable, so it's safe to clone
@@ -360,20 +475,31 @@ func (i StandardLine) clone(opts cloneOptions) *StandardLine {
 	}
 
 	if i.SplitLineHierarchy != nil {
-		res.SplitLineHierarchy = lo.ToPtr(i.SplitLineHierarchy.Clone())
+		cloned, err := i.SplitLineHierarchy.Clone()
+		if err != nil {
+			return nil, fmt.Errorf("cloning split line hierarchy: %w", err)
+		}
+
+		res.SplitLineHierarchy = lo.ToPtr(cloned)
 	}
 
-	return res
+	return res, nil
 }
 
-func (i StandardLine) CloneWithoutChildren() *StandardLine {
+func (i StandardLine) CloneWithoutChildren() (*StandardLine, error) {
 	return i.clone(cloneOptions{
 		skipChildren: true,
 	})
 }
 
-func (i *StandardLine) SaveDBSnapshot() {
-	i.DBState = i.Clone()
+func (i *StandardLine) SaveDBSnapshot() error {
+	cloned, err := i.Clone()
+	if err != nil {
+		return err
+	}
+
+	i.DBState = cloned
+	return nil
 }
 
 func (i StandardLine) Validate() error {
@@ -440,7 +566,10 @@ func (i StandardLine) Validate() error {
 // - InvoiceAt is truncated to the minimum window size duration
 // - UsageBased.Price is normalized to have the default inAdvance payment term for flat prices
 func (i StandardLine) WithNormalizedValues() (*StandardLine, error) {
-	out := i.Clone()
+	out, err := i.Clone()
+	if err != nil {
+		return nil, err
+	}
 
 	if out.UsageBased == nil {
 		return nil, fmt.Errorf("usage based line is nil")
@@ -718,6 +847,12 @@ func (c StandardLines) GetReferencedFeatureKeys() ([]string, error) {
 	return lo.Uniq(out), nil
 }
 
+func (i StandardLines) AsGenericLines() []GenericInvoiceLine {
+	return lo.Map(i, func(line *StandardLine, _ int) GenericInvoiceLine {
+		return &standardInvoiceLineGenericWrapper{StandardLine: line}
+	})
+}
+
 func (i StandardLine) SetDiscountExternalIDs(externalIDs map[string]string) []string {
 	foundIDs := []string{}
 
@@ -739,6 +874,12 @@ func (i StandardLine) SetDiscountExternalIDs(externalIDs map[string]string) []st
 	}
 
 	return foundIDs
+}
+
+func (i StandardLines) Clone() (StandardLines, error) {
+	return slicesx.MapWithErr(i, func(line *StandardLine) (*StandardLine, error) {
+		return line.Clone()
+	})
 }
 
 type UsageBasedLine struct {
@@ -782,7 +923,7 @@ func (i UsageBasedLine) Validate() error {
 
 type UpsertInvoiceLinesAdapterInput struct {
 	Namespace   string
-	Lines       []*StandardLine
+	Lines       StandardLines
 	SchemaLevel int
 	InvoiceID   string
 }

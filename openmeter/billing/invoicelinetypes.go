@@ -1,19 +1,19 @@
 package billing
 
 // TODO: Deprecated: remove in the next PR
-type InvoiceLineType string
+type InvoiceLineAdapterType string
 
 const (
 	// InvoiceLineTypeFee is an item that represents a single charge without meter backing.
-	InvoiceLineTypeFee InvoiceLineType = "flat_fee"
+	InvoiceLineAdapterTypeFee InvoiceLineAdapterType = "flat_fee"
 	// InvoiceLineTypeUsageBased is an item that is added to the invoice and is usage based.
-	InvoiceLineTypeUsageBased InvoiceLineType = "usage_based"
+	InvoiceLineAdapterTypeUsageBased InvoiceLineAdapterType = "usage_based"
 )
 
-func (InvoiceLineType) Values() []string {
+func (InvoiceLineAdapterType) Values() []string {
 	return []string{
-		string(InvoiceLineTypeFee),
-		string(InvoiceLineTypeUsageBased),
+		string(InvoiceLineAdapterTypeFee),
+		string(InvoiceLineAdapterTypeUsageBased),
 	}
 }
 

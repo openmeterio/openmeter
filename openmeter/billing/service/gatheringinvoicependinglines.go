@@ -18,9 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // InvoicePendingLines invoices the pending lines for the customer.
@@ -60,7 +58,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 		}
 	}
 
-	return transcationForInvoiceManipulation(
+	return transactionForInvoiceManipulation(
 		ctx,
 		s,
 		input.Customer,
@@ -368,7 +366,7 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 }
 
 type hasInvoicableLinesInput struct {
-	Invoice            billing.StandardInvoice
+	Invoice            billing.GatheringInvoice
 	AsOf               time.Time
 	FeatureMeters      billing.FeatureMeters
 	ProgressiveBilling bool
@@ -389,10 +387,6 @@ func (i hasInvoicableLinesInput) Validate() error {
 		errs = append(errs, fmt.Errorf("feature meters are required"))
 	}
 
-	if i.Invoice.Status != billing.StandardInvoiceStatusGathering {
-		errs = append(errs, fmt.Errorf("invoice is not a gathering invoice"))
-	}
-
 	return errors.Join(errs...)
 }
 
@@ -401,16 +395,10 @@ func (s *Service) hasInvoicableLines(ctx context.Context, in hasInvoicableLinesI
 		return false, err
 	}
 
-	// TODO: Remove once we have the Union type for generic invoice queries
-	gatheringInvoice, err := convertStandardInvoiceToGatheringInvoice(in.Invoice)
-	if err != nil {
-		return false, fmt.Errorf("converting standard invoice to gathering invoice: %w", err)
-	}
-
 	inScopeLines, err := s.gatherInScopeLines(ctx, gatherInScopeLineInput{
 		GatheringInvoicesByCurrency: map[currencyx.Code]gatheringInvoiceWithFeatureMeters{
-			gatheringInvoice.Currency: {
-				Invoice:       gatheringInvoice,
+			in.Invoice.Currency: {
+				Invoice:       in.Invoice,
 				FeatureMeters: in.FeatureMeters,
 			},
 		},
@@ -427,82 +415,6 @@ func (s *Service) hasInvoicableLines(ctx context.Context, in hasInvoicableLinesI
 	}
 
 	return len(res) > 0, nil
-}
-
-func convertStandardInvoiceToGatheringInvoice(invoice billing.StandardInvoice) (billing.GatheringInvoice, error) {
-	// TODO: Remove once we have the Union type for generic invoice queries
-
-	lines := billing.GatheringInvoiceLines{}
-	if invoice.Lines.IsPresent() {
-		gatheringLines, err := slicesx.MapWithErr(invoice.Lines.OrEmpty(), func(l *billing.StandardLine) (billing.GatheringLine, error) {
-			if l.UsageBased == nil {
-				return billing.GatheringLine{}, fmt.Errorf("usage based line is required")
-			}
-
-			if l.UsageBased.Price == nil {
-				return billing.GatheringLine{}, fmt.Errorf("usage based line price is required")
-			}
-
-			return billing.GatheringLine{
-				GatheringLineBase: billing.GatheringLineBase{
-					ManagedResource: l.ManagedResource,
-					Metadata:        l.Metadata,
-					Annotations:     l.Annotations,
-					ManagedBy:       l.ManagedBy,
-					InvoiceID:       l.InvoiceID,
-					Currency:        l.Currency,
-					ServicePeriod: timeutil.ClosedPeriod{
-						From: l.Period.Start,
-						To:   l.Period.End,
-					},
-					InvoiceAt:              l.InvoiceAt,
-					Price:                  lo.FromPtr(l.UsageBased.Price),
-					FeatureKey:             l.UsageBased.FeatureKey,
-					TaxConfig:              l.TaxConfig,
-					RateCardDiscounts:      l.RateCardDiscounts,
-					ChildUniqueReferenceID: l.ChildUniqueReferenceID,
-					Subscription:           l.Subscription,
-
-					UBPConfigID:      l.UsageBased.ConfigID,
-					SplitLineGroupID: l.SplitLineGroupID,
-				},
-			}, nil
-		})
-		if err != nil {
-			return billing.GatheringInvoice{}, fmt.Errorf("mapping lines: %w", err)
-		}
-
-		lines = billing.NewGatheringInvoiceLines(gatheringLines)
-	}
-
-	return billing.GatheringInvoice{
-		GatheringInvoiceBase: billing.GatheringInvoiceBase{
-			ManagedResource: models.ManagedResource{
-				NamespacedModel: models.NamespacedModel{
-					Namespace: invoice.Namespace,
-				},
-				ManagedModel: models.ManagedModel{
-					CreatedAt: invoice.CreatedAt,
-					UpdatedAt: invoice.UpdatedAt,
-					DeletedAt: invoice.DeletedAt,
-				},
-				ID:          invoice.ID,
-				Name:        invoice.Number,
-				Description: invoice.Description,
-			},
-			Metadata:   invoice.Metadata,
-			Number:     invoice.Number,
-			CustomerID: invoice.Customer.CustomerID,
-			Currency:   invoice.Currency,
-			ServicePeriod: timeutil.ClosedPeriod{
-				From: invoice.Period.Start,
-				To:   invoice.Period.End,
-			},
-			NextCollectionAt: lo.FromPtrOr(invoice.CollectionAt, clock.Now()),
-			SchemaLevel:      invoice.SchemaLevel,
-		},
-		Lines: lines,
-	}, nil
 }
 
 type prepareLinesToBillInput struct {
@@ -596,7 +508,7 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 		}
 
 		updatedInvoice, err := s.adapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
-			Invoice: gatheringInvoice.InvoiceID(),
+			Invoice: gatheringInvoice.GetInvoiceID(),
 			Expand: billing.GatheringInvoiceExpands{
 				billing.GatheringInvoiceExpandLines,
 			},
@@ -753,7 +665,7 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 		}
 	}
 
-	if err := gatheringInvoice.Lines.SetByID(preSplitAtLine); err != nil {
+	if err := gatheringInvoice.Lines.ReplaceByID(preSplitAtLine); err != nil {
 		return res, fmt.Errorf("setting pre split line: %w", err)
 	}
 
@@ -890,7 +802,7 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 
 	// Let's make sure that the invoice is in an up-to-date state
 	invoice, err = s.withLockedInvoiceStateMachine(ctx, withLockedStateMachineInput{
-		InvoiceID: invoice.InvoiceID(),
+		InvoiceID: invoice.GetInvoiceID(),
 		Callback: func(ctx context.Context, sm *InvoiceStateMachine) error {
 			// Let's activate the state machine so that the created state's calculation is triggered
 			if err := sm.StateMachine.ActivateCtx(ctx); err != nil {
@@ -1089,7 +1001,7 @@ func (s *Service) removeLinesFromGatheringInvoice(ctx context.Context, invoice b
 	// We need to hard delete the lines from the gathering invoice as now the standard lines are taking their place with the same IDs.
 	// If we would soft-delete the lines, all downstream services would assume that the line was deleted due to synchronization and
 	// would recreate it.
-	if err := s.adapter.HardDeleteGatheringInvoiceLines(ctx, invoice.InvoiceID(), lineIDsToRemove); err != nil {
+	if err := s.adapter.HardDeleteGatheringInvoiceLines(ctx, invoice.GetInvoiceID(), lineIDsToRemove); err != nil {
 		return fmt.Errorf("hard deleting gathering invoice lines: %w", err)
 	}
 

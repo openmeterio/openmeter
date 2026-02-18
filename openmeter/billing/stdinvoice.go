@@ -14,6 +14,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/expand"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -267,6 +269,30 @@ func (i StandardInvoiceBase) DefaultCollectionAtForStandardInvoice() time.Time {
 	return lo.FromPtr(i.CollectionAt)
 }
 
+func (i StandardInvoiceBase) GetDeletedAt() *time.Time {
+	return i.DeletedAt
+}
+
+func (i StandardInvoiceBase) GetID() string {
+	return i.ID
+}
+
+func (i StandardInvoiceBase) GetInvoiceID() InvoiceID {
+	return InvoiceID{
+		Namespace: i.Namespace,
+		ID:        i.ID,
+	}
+}
+
+func (i StandardInvoiceBase) GetCustomerID() customer.CustomerID {
+	return customer.CustomerID{
+		Namespace: i.Namespace,
+		ID:        i.Customer.CustomerID,
+	}
+}
+
+var _ GenericInvoice = (*StandardInvoice)(nil)
+
 type StandardInvoice struct {
 	StandardInvoiceBase `json:",inline"`
 
@@ -277,7 +303,7 @@ type StandardInvoice struct {
 	Totals Totals `json:"totals"`
 
 	// private fields required by the service
-	ExpandedFields InvoiceExpand `json:"-"`
+	ExpandedFields StandardInvoiceExpands `json:"-"`
 }
 
 func (i StandardInvoice) Validate() error {
@@ -302,18 +328,45 @@ func (i StandardInvoice) Validate() error {
 	return outErr
 }
 
-func (i StandardInvoice) InvoiceID() InvoiceID {
-	return InvoiceID{
-		Namespace: i.Namespace,
-		ID:        i.ID,
-	}
-}
-
 func (i StandardInvoice) CustomerID() customer.CustomerID {
 	return customer.CustomerID{
 		Namespace: i.Namespace,
 		ID:        i.Customer.CustomerID,
 	}
+}
+
+func (i StandardInvoice) AsInvoice() Invoice {
+	return Invoice{
+		t:               InvoiceTypeStandard,
+		standardInvoice: &i,
+	}
+}
+
+func (i StandardInvoice) GetGenericLines() mo.Option[[]GenericInvoiceLine] {
+	if !i.Lines.IsPresent() {
+		return mo.None[[]GenericInvoiceLine]()
+	}
+
+	return mo.Some(lo.Map(i.Lines.OrEmpty(), func(l *StandardLine, _ int) GenericInvoiceLine {
+		return &standardInvoiceLineGenericWrapper{StandardLine: l}
+	}))
+}
+
+func (i *StandardInvoice) SetLines(lines []GenericInvoiceLine) error {
+	mappedLines, err := slicesx.MapWithErr(lines, func(l GenericInvoiceLine) (*StandardLine, error) {
+		line, err := l.AsInvoiceLine().AsStandardLine()
+		if err != nil {
+			return nil, err
+		}
+
+		return &line, nil
+	})
+	if err != nil {
+		return fmt.Errorf("mapping lines: %w", err)
+	}
+
+	i.Lines = NewStandardInvoiceLines(mappedLines)
+	return nil
 }
 
 func (i *StandardInvoice) MergeValidationIssues(errIn error, reportingComponent ComponentName) error {
@@ -342,13 +395,18 @@ func (i *StandardInvoice) HasCriticalValidationIssues() bool {
 // - Line's DB state
 // - Line's dependencies are marked as resolved
 // - Parent pointers are removed
-func (i StandardInvoice) RemoveMetaForCompare() StandardInvoice {
+func (i StandardInvoice) RemoveMetaForCompare() (StandardInvoice, error) {
 	invoice := i
-	invoice.Lines = i.Lines.Map(func(line *StandardLine) *StandardLine {
+	newLines, err := i.Lines.MapWithErr(func(line *StandardLine) (*StandardLine, error) {
 		return line.RemoveMetaForCompare()
 	})
+	if err != nil {
+		return StandardInvoice{}, err
+	}
 
-	return invoice
+	invoice.Lines = newLines
+
+	return invoice, nil
 }
 
 // getLeafLines returns the leaf lines
@@ -378,24 +436,35 @@ func (i *StandardInvoice) GetLeafLinesWithConsolidatedTaxBehavior() DetailedLine
 	})
 }
 
-func (i StandardInvoice) Clone() StandardInvoice {
+func (i StandardInvoice) Clone() (StandardInvoice, error) {
 	clone := i
 
-	clone.Lines = i.Lines.Clone()
+	clonedLines, err := i.Lines.Clone()
+	if err != nil {
+		return StandardInvoice{}, err
+	}
+
+	clone.Lines = clonedLines
 	clone.ValidationIssues = i.ValidationIssues.Clone()
 	clone.Totals = i.Totals
 
-	return clone
+	return clone, nil
 }
 
-func (i StandardInvoice) RemoveCircularReferences() StandardInvoice {
-	clone := i.Clone()
+func (i StandardInvoice) RemoveCircularReferences() (StandardInvoice, error) {
+	clone, err := i.Clone()
+	if err != nil {
+		return StandardInvoice{}, err
+	}
 
-	clone.Lines = clone.Lines.Map(func(line *StandardLine) *StandardLine {
+	clone.Lines, err = clone.Lines.MapWithErr(func(line *StandardLine) (*StandardLine, error) {
 		return line.RemoveCircularReferences()
 	})
+	if err != nil {
+		return StandardInvoice{}, err
+	}
 
-	return clone
+	return clone, nil
 }
 
 func (i *StandardInvoice) SortLines() {
@@ -444,7 +513,7 @@ func (c StandardInvoiceLines) MapWithErr(fn func(*StandardLine) (*StandardLine, 
 
 	res, err := slicesx.MapWithErr(c.OrEmpty(), fn)
 	if err != nil {
-		return c, err
+		return StandardInvoiceLines{}, err
 	}
 
 	return StandardInvoiceLines{mo.Some(StandardLines(res))}, nil
@@ -456,8 +525,8 @@ func (c StandardInvoiceLines) WithNormalizedValues() (StandardInvoiceLines, erro
 	})
 }
 
-func (c StandardInvoiceLines) Clone() StandardInvoiceLines {
-	return c.Map(func(l *StandardLine) *StandardLine {
+func (c StandardInvoiceLines) Clone() (StandardInvoiceLines, error) {
+	return c.MapWithErr(func(l *StandardLine) (*StandardLine, error) {
 		return l.Clone()
 	})
 }
@@ -643,7 +712,7 @@ type (
 	SnapshotQuantitiesInput = InvoiceID
 )
 
-type UpdateInvoiceAdapterInput = StandardInvoice
+type UpdateStandardInvoiceAdapterInput = StandardInvoice
 
 type GetInvoiceOwnershipAdapterInput = InvoiceID
 
@@ -673,14 +742,14 @@ func (i UpdateInvoiceLinesInternalInput) Validate() error {
 	return nil
 }
 
-type UpdateInvoiceInput struct {
+type UpdateStandardInvoiceInput struct {
 	Invoice InvoiceID
 	EditFn  func(*StandardInvoice) error
 	// IncludeDeletedLines signals the update to populate the deleted lines into the lines field, for the edit function
 	IncludeDeletedLines bool
 }
 
-func (i UpdateInvoiceInput) Validate() error {
+func (i UpdateStandardInvoiceInput) Validate() error {
 	if err := i.Invoice.Validate(); err != nil {
 		return fmt.Errorf("id: %w", err)
 	}
@@ -839,3 +908,83 @@ func (i UpdateInvoiceFieldsInput) Validate() error {
 }
 
 type RecalculateGatheringInvoicesInput = customer.CustomerID
+
+type StandardInvoiceExpand string
+
+const (
+	StandardInvoiceExpandLines        StandardInvoiceExpand = "lines"
+	StandardInvoiceExpandDeletedLines StandardInvoiceExpand = "deletedLines"
+)
+
+func (e StandardInvoiceExpand) Values() []StandardInvoiceExpand {
+	return []StandardInvoiceExpand{
+		StandardInvoiceExpandLines,
+		StandardInvoiceExpandDeletedLines,
+	}
+}
+
+type StandardInvoiceExpands = expand.Expand[StandardInvoiceExpand]
+
+var StandardInvoiceExpandAll = StandardInvoiceExpands{
+	StandardInvoiceExpandLines,
+	// Deleted lines are not expanded by default
+}
+
+type GetStandardInvoiceByIdInput struct {
+	Invoice InvoiceID
+	Expand  StandardInvoiceExpands
+}
+
+func (i GetStandardInvoiceByIdInput) Validate() error {
+	var errs []error
+
+	if err := i.Invoice.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("id: %w", err))
+	}
+
+	if err := i.Expand.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("expand: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+type ListStandardInvoicesInput struct {
+	pagination.Page
+
+	Namespaces         []string
+	IDs                []string
+	Statuses           []string
+	ExtendedStatuses   []StandardInvoiceStatus
+	HasAvailableAction []InvoiceAvailableActionsFilter
+
+	Expand          StandardInvoiceExpands
+	ExternalIDs     *ListInvoicesExternalIDFilter
+	DraftUntilLTE   *time.Time
+	CollectionAtLTE *time.Time
+
+	IncludeDeleted bool
+}
+
+func (i ListStandardInvoicesInput) Validate() error {
+	var errs []error
+
+	// Page is not validated here, as for internal use we don't want to use pagination unless
+	// explicitly requested.
+
+	// It's the httpdriver's responsibility to validate the page size and page number.
+
+	if err := i.Expand.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("expand: %w", err))
+	}
+
+	if i.ExternalIDs != nil {
+		if err := i.ExternalIDs.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("externalIDs: %w", err))
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
+type ListStandardInvoicesResponse = pagination.Result[StandardInvoice]

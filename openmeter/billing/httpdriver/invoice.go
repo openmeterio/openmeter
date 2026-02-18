@@ -65,7 +65,8 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 				PeriodStartBefore: input.PeriodStartBefore,
 				CreatedAfter:      input.CreatedAfter,
 				CreatedBefore:     input.CreatedBefore,
-				Expand:            mapInvoiceExpandToEntity(lo.FromPtr(input.Expand)).SetRecalculateGatheringInvoice(true),
+				Expand: mapInvoiceExpandsToEntity(lo.FromPtr(input.Expand)).
+					With(billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
 
 				Order:   sortx.Order(lo.FromPtrOr(input.Order, api.InvoiceOrderByOrderingOrder(sortx.OrderDefault))),
 				OrderBy: lo.FromPtr(input.OrderBy),
@@ -79,6 +80,11 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 			}, nil
 		},
 		func(ctx context.Context, request ListInvoicesRequest) (ListInvoicesResponse, error) {
+			// Let's mandate properly set page size and page number.
+			if err := request.Page.Validate(); err != nil {
+				return ListInvoicesResponse{}, models.NewGenericValidationError(err)
+			}
+
 			invoices, err := h.service.ListInvoices(ctx, request)
 			if err != nil {
 				return ListInvoicesResponse{}, err
@@ -92,7 +98,7 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 			}
 
 			for _, invoice := range invoices.Items {
-				invoice, err := MapInvoiceToAPI(invoice)
+				invoice, err := h.MapInvoiceToAPI(ctx, invoice)
 				if err != nil {
 					return ListInvoicesResponse{}, err
 				}
@@ -156,7 +162,7 @@ func (h *handler) InvoicePendingLinesAction() InvoicePendingLinesActionHandler {
 			out := make([]api.Invoice, 0, len(invoices))
 
 			for _, invoice := range invoices {
-				invoice, err := MapInvoiceToAPI(invoice)
+				invoice, err := MapStandardInvoiceToAPI(invoice)
 				if err != nil {
 					return nil, err
 				}
@@ -203,16 +209,18 @@ func (h *handler) GetInvoice() GetInvoiceHandler {
 					ID:        params.InvoiceID,
 					Namespace: ns,
 				},
-				Expand: mapInvoiceExpandToEntity(params.Expand).SetDeletedLines(params.IncludeDeletedLines).SetRecalculateGatheringInvoice(true),
+				Expand: mapInvoiceExpandsToEntity(params.Expand).
+					SetOrUnsetIf(params.IncludeDeletedLines, billing.InvoiceExpandDeletedLines).
+					With(billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
 			}, nil
 		},
 		func(ctx context.Context, request GetInvoiceRequest) (GetInvoiceResponse, error) {
-			invoice, err := h.service.GetInvoiceByID(ctx, request)
+			invoice, err := h.service.GetInvoiceById(ctx, request)
 			if err != nil {
 				return GetInvoiceResponse{}, err
 			}
 
-			return MapInvoiceToAPI(invoice)
+			return h.MapInvoiceToAPI(ctx, invoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetInvoiceResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -298,7 +306,7 @@ func (h *handler) ProgressInvoice(action ProgressAction) ProgressInvoiceHandler 
 				return ProgressInvoiceResponse{}, err
 			}
 
-			return MapInvoiceToAPI(invoice)
+			return MapStandardInvoiceToAPI(invoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[ProgressInvoiceResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -409,7 +417,7 @@ func (h *handler) SimulateInvoice() SimulateInvoiceHandler {
 				return SimulateInvoiceResponse{}, err
 			}
 
-			return MapInvoiceToAPI(invoice)
+			return MapStandardInvoiceToAPI(invoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[SimulateInvoiceResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -457,33 +465,52 @@ func (h *handler) UpdateInvoice() UpdateInvoiceHandler {
 		func(ctx context.Context, request UpdateInvoiceRequest) (UpdateInvoiceResponse, error) {
 			invoice, err := h.service.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
 				Invoice: request.InvoiceID,
-				EditFn: func(invoice *billing.StandardInvoice) error {
+				EditFn: func(invoice billing.Invoice) (billing.Invoice, error) {
 					var err error
 
-					invoice.Supplier = mergeInvoiceSupplierFromAPI(invoice.Supplier, request.Input.Supplier)
-					invoice.Customer = mergeInvoiceCustomerFromAPI(invoice.Customer, request.Input.Customer)
-					invoice.Workflow, err = mergeInvoiceWorkflowFromAPI(invoice.Workflow, request.Input.Workflow)
-					if err != nil {
-						return err
+					if invoice.Type() == billing.InvoiceTypeGathering {
+						gatheringInvoice, err := invoice.AsGatheringInvoice()
+						if err != nil {
+							return billing.Invoice{}, fmt.Errorf("converting invoice to gathering invoice: %w", err)
+						}
+
+						gatheringInvoice.Lines, err = h.mergeGatheringInvoiceLinesFromAPI(ctx, &gatheringInvoice, request.Input.Lines)
+						if err != nil {
+							return billing.Invoice{}, fmt.Errorf("merging lines: %w", err)
+						}
+
+						return billing.NewInvoice(gatheringInvoice), nil
 					}
 
-					invoice.Lines, err = h.mergeInvoiceLinesFromAPI(ctx, invoice, request.Input.Lines)
+					stdInvoice, err := invoice.AsStandardInvoice()
 					if err != nil {
-						return err
+						return billing.Invoice{}, fmt.Errorf("converting invoice to standard invoice: %w", err)
+					}
+
+					stdInvoice.Supplier = mergeInvoiceSupplierFromAPI(stdInvoice.Supplier, request.Input.Supplier)
+					stdInvoice.Customer = mergeInvoiceCustomerFromAPI(stdInvoice.Customer, request.Input.Customer)
+					stdInvoice.Workflow, err = mergeInvoiceWorkflowFromAPI(stdInvoice.Workflow, request.Input.Workflow)
+					if err != nil {
+						return billing.Invoice{}, fmt.Errorf("merging workflow: %w", err)
+					}
+
+					stdInvoice.Lines, err = h.mergeStandardInvoiceLinesFromAPI(ctx, &stdInvoice, request.Input.Lines)
+					if err != nil {
+						return billing.Invoice{}, fmt.Errorf("merging lines: %w", err)
 					}
 
 					// basic fields
-					invoice.Description = request.Input.Description
-					invoice.Metadata = lo.FromPtrOr(request.Input.Metadata, map[string]string{})
+					stdInvoice.Description = request.Input.Description
+					stdInvoice.Metadata = lo.FromPtrOr(request.Input.Metadata, map[string]string{})
 
-					return nil
+					return billing.NewInvoice(stdInvoice), nil
 				},
 			})
 			if err != nil {
 				return UpdateInvoiceResponse{}, err
 			}
 
-			return MapInvoiceToAPI(invoice)
+			return h.MapInvoiceToAPI(ctx, invoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateInvoiceResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -494,7 +521,40 @@ func (h *handler) UpdateInvoice() UpdateInvoiceHandler {
 	)
 }
 
-func MapInvoiceToAPI(invoice billing.StandardInvoice) (api.Invoice, error) {
+func (h *handler) MapInvoiceToAPI(ctx context.Context, invoice billing.Invoice) (api.Invoice, error) {
+	switch invoice.Type() {
+	case billing.InvoiceTypeStandard:
+		standardInvoice, err := invoice.AsStandardInvoice()
+		if err != nil {
+			return api.Invoice{}, fmt.Errorf("converting invoice to standard invoice: %w", err)
+		}
+
+		return MapStandardInvoiceToAPI(standardInvoice)
+	case billing.InvoiceTypeGathering:
+		gatheringInvoice, err := invoice.AsGatheringInvoice()
+		if err != nil {
+			return api.Invoice{}, fmt.Errorf("converting invoice to gathering invoice: %w", err)
+		}
+
+		// TODO: For the V3 api let's make sure that we don't return gathering invoice customer data (or even gathering invoices)
+		mergedProfile, err := h.service.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			Customer: gatheringInvoice.GetCustomerID(),
+			Expand: billing.CustomerOverrideExpand{
+				Customer: true,
+				Apps:     true,
+			},
+		})
+		if err != nil {
+			return UpdateInvoiceResponse{}, fmt.Errorf("failed to get customer override: %w", err)
+		}
+
+		return MapGatheringInvoiceToAPI(gatheringInvoice, mergedProfile.Customer, mergedProfile.MergedProfile)
+	default:
+		return api.Invoice{}, fmt.Errorf("invalid invoice type: %s", invoice.Type())
+	}
+}
+
+func MapStandardInvoiceToAPI(invoice billing.StandardInvoice) (api.Invoice, error) {
 	var apps *api.BillingProfileAppsOrReference
 	var err error
 
@@ -611,7 +671,7 @@ func MapEventInvoiceToAPI(event billing.EventStandardInvoice) (api.Invoice, erro
 	// Prefer the apps from the event
 	event.Invoice.Workflow.Apps = nil
 
-	invoice, err := MapInvoiceToAPI(event.Invoice)
+	invoice, err := MapStandardInvoiceToAPI(event.Invoice)
 	if err != nil {
 		return api.Invoice{}, err
 	}
@@ -693,15 +753,13 @@ func mapInvoiceCustomerToAPI(c billing.InvoiceCustomer) api.BillingInvoiceCustom
 	return out
 }
 
-func mapInvoiceExpandToEntity(expand []api.InvoiceExpand) billing.InvoiceExpand {
+func mapInvoiceExpandsToEntity(expand []api.InvoiceExpand) billing.InvoiceExpands {
 	if len(expand) == 0 {
-		return billing.InvoiceExpand{}
+		return nil
 	}
 
-	return billing.InvoiceExpand{
-		Lines:     slices.Contains(expand, api.InvoiceExpandLines),
-		Preceding: slices.Contains(expand, api.InvoiceExpandPreceding),
-	}
+	return billing.InvoiceExpands{}.
+		SetOrUnsetIf(slices.Contains(expand, api.InvoiceExpandLines), billing.InvoiceExpandLines)
 }
 
 func mapTotalsToAPI(t billing.Totals) api.InvoiceTotals {
