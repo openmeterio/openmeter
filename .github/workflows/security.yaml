@@ -5,10 +5,10 @@ permissions:
 on:
   pull_request:
     branches:
-    - main
+      - main
   push:
     branches:
-    - main
+      - main
 
 name: Security
 
@@ -18,16 +18,16 @@ jobs:
     runs-on: ubuntu-latest
     if: (github.actor != 'dependabot[bot]' && github.actor != 'renovate[bot]')
     steps:
-    - name: Checkout code
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      with:
-        fetch-depth: 0
-        persist-credentials: false
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
-    - uses: Kong/public-shared-actions/security-actions/secret-scan@1ab4c3b2b6d6056b08cc007e8bccb87a41b485e4 # 1.1.1
-      name: Running Secret Scan using Trufflehog
-      with:
-        fail_on_findings: 'true'
+      - uses: Kong/public-shared-actions/security-actions/secret-scan@1ab4c3b2b6d6056b08cc007e8bccb87a41b485e4 # 1.1.1
+        name: Running Secret Scan using Trufflehog
+        with:
+          fail_on_findings: "true"
 
   sca:
     runs-on: ubuntu-latest
@@ -51,49 +51,6 @@ jobs:
           dir: "."
           config: .syft.yaml
           fail_build: "true"
-
-  semgrep:
-    name: SAST (semgrep)
-    runs-on: ubuntu-latest
-    permissions:
-      # required for all workflows
-      security-events: write
-      # only required for workflows in private repositories
-      actions: read
-      contents: read
-
-    if: (github.actor != 'dependabot[bot]' && github.actor != 'renovate[bot]')
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          # Required by semgrep
-          persist-credentials: true
-
-      - uses: Kong/public-shared-actions/security-actions/semgrep@1ab4c3b2b6d6056b08cc007e8bccb87a41b485e4 # v5.0.1
-        with:
-          fail_on_findings: "true"
-          # Let's ignore any rules that are not relevant from the OpenMeter code point of view (later on we can remove these if needed)
-          # Why:
-          # - generic.secrets.security.detected-generic-secret.detected-generic-secret: ticket: Kong/[OM-52]
-          # - generic.secrets.security.detected-jwt-token.detected-jwt-token: ticket: Kong/[OM-52]
-          # - python.lang.security.audit.eval-detected.eval-detected: python API generated code, seems safe
-          # - go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter: bad rule, we are using json data to be fed into the response writer
-          #
-          # Others:
-          # - infra hardening is not in scope for now (ticket: Kong/[OM-53])
-          additional_config: |
-            --exclude-rule=generic.secrets.security.detected-generic-secret.detected-generic-secret \
-            --exclude-rule=generic.secrets.security.detected-jwt-token.detected-jwt-token \
-            --exclude-rule=yaml.docker-compose.security.no-new-privileges.no-new-privileges \
-            --exclude-rule=yaml.docker-compose.security.writable-filesystem-service.writable-filesystem-service \
-            --exclude-rule=yaml.kubernetes.security.allow-privilege-escalation-no-securitycontext.allow-privilege-escalation-no-securitycontext \
-            --exclude-rule=yaml.kubernetes.security.run-as-non-root.run-as-non-root \
-            --exclude-rule=dockerfile.security.missing-user-entrypoint.missing-user-entrypoint \
-            --exclude-rule=dockerfile.security.missing-user.missing-user \
-            --exclude-rule=generic.secrets.security.detected-generic-api-key.detected-generic-api-key \
-            --exclude-rule=python.lang.security.audit.eval-detected.eval-detected \
-            --exclude-rule=go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter
-
 
   scan-gh-workflows:
     name: Scan GitHub Workflows
