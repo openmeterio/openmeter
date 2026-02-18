@@ -572,6 +572,12 @@ func WithCollectionInterval(period datetime.ISODuration) BillingProfileProvision
 	})
 }
 
+func WithManualApproval() BillingProfileProvisionOption {
+	return WithBillingProfileEditFn(func(p *billing.CreateProfileInput) {
+		p.WorkflowConfig.Invoicing.AutoAdvance = false
+	})
+}
+
 func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, appID app.AppID, opts ...BillingProfileProvisionOption) *billing.Profile {
 	provisionOpts := BillingProfileProvisionOptions{}
 

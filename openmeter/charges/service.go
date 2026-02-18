@@ -12,4 +12,5 @@ type Service interface {
 
 type ChargeService interface {
 	GetChargeByID(ctx context.Context, input models.NamespacedID) (Charge, error)
+	CreateCharges(ctx context.Context, input CreateChargeInput) (Charges, error)
 }

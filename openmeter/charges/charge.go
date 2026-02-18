@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -43,6 +44,9 @@ type Charge struct {
 	Intent       Intent       `json:"intent"`
 	Status       ChargeStatus `json:"status"`
 	Realizations Realizations `json:"realizations"`
+
+	// TODO: Should this be a realization?
+	Expanded ChargeExpanded `json:"expanded"`
 }
 
 func (c Charge) Validate() error {
@@ -67,6 +71,8 @@ func (c Charge) Validate() error {
 	return errors.Join(errs...)
 }
 
+type Charges []Charge
+
 type Realizations struct {
 	StandardInvoice []StandardInvoiceRealization `json:"standardInvoice"`
 }
@@ -81,4 +87,8 @@ func (r Realizations) Validate() error {
 	}
 
 	return errors.Join(errs...)
+}
+
+type ChargeExpanded struct {
+	GatheringLines []billing.GatheringLineWithInvoiceHeader `json:"gatheringLines"`
 }

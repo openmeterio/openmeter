@@ -368,6 +368,7 @@ type GatheringLineBase struct {
 
 	TaxConfig         *productcatalog.TaxConfig `json:"taxOverrides,omitempty"`
 	RateCardDiscounts Discounts                 `json:"rateCardDiscounts,omitempty"`
+	ChargeID          *string                   `json:"chargeID,omitempty"`
 
 	ChildUniqueReferenceID *string                `json:"childUniqueReferenceID,omitempty"`
 	Subscription           *SubscriptionReference `json:"subscription,omitempty"`

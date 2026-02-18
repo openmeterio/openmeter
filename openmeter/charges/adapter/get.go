@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/charges"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbcharge "github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -38,11 +39,16 @@ func (a *adapter) GetChargeByID(ctx context.Context, input models.NamespacedID) 
 			return charges.Charge{}, err
 		}
 
-		return mapChargeFromDB(entity), nil
+		return mapChargeFromDB(entity)
 	})
 }
 
-func mapChargeFromDB(entity *db.Charge) charges.Charge {
+func mapChargeFromDB(entity *db.Charge) (charges.Charge, error) {
+	intent, err := mapIntentFromDB(entity)
+	if err != nil {
+		return charges.Charge{}, fmt.Errorf("failed to map intent: %w", err)
+	}
+
 	return charges.Charge{
 		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 			CreatedAt:   entity.CreatedAt,
@@ -53,41 +59,85 @@ func mapChargeFromDB(entity *db.Charge) charges.Charge {
 			Name:        entity.Name,
 			Description: entity.Description,
 		}),
-		Intent: mapIntentFromDB(entity),
+		Intent: intent,
 		Realizations: charges.Realizations{
 			StandardInvoice: lo.Map(entity.Edges.StandardInvoiceRealizations, func(realization *db.ChargeStandardInvoiceRealization, _ int) charges.StandardInvoiceRealization {
 				return mapStandardInvoiceRealizationFromDB(realization)
 			}),
 		},
-	}
+	}, nil
 }
 
-func mapIntentFromDB(entity *db.Charge) charges.Intent {
-	return charges.Intent{
-		IntentMeta: charges.IntentMeta{
-			Metadata:    entity.Metadata,
-			Annotations: entity.Annotations,
-			ManagedBy:   entity.ManagedBy,
-			CustomerID:  entity.CustomerID,
-			Currency:    entity.Currency,
-			ServicePeriod: timeutil.ClosedPeriod{
-				From: entity.ServicePeriodFrom,
-				To:   entity.ServicePeriodTo,
-			},
-			FullServicePeriod: timeutil.ClosedPeriod{
-				From: entity.FullServicePeriodFrom,
-				To:   entity.FullServicePeriodTo,
-			},
-			BillingPeriod: timeutil.ClosedPeriod{
-				From: entity.BillingPeriodFrom,
-				To:   entity.BillingPeriodTo,
-			},
-			InvoiceAt:         entity.InvoiceAt,
-			TaxConfig:         lo.EmptyableToPtr(entity.TaxConfig),
-			UniqueReferenceID: entity.UniqueReferenceID,
-			Subscription:      mapSubscriptionFromDB(entity),
+func mapIntentFromDB(entity *db.Charge) (charges.Intent, error) {
+	intentMeta := charges.IntentMeta{
+		Metadata:    entity.Metadata,
+		Annotations: entity.Annotations,
+		ManagedBy:   entity.ManagedBy,
+		CustomerID:  entity.CustomerID,
+		Currency:    entity.Currency,
+		ServicePeriod: timeutil.ClosedPeriod{
+			From: entity.ServicePeriodFrom,
+			To:   entity.ServicePeriodTo,
 		},
-		IntentType: entity.Type,
+		FullServicePeriod: timeutil.ClosedPeriod{
+			From: entity.FullServicePeriodFrom,
+			To:   entity.FullServicePeriodTo,
+		},
+		BillingPeriod: timeutil.ClosedPeriod{
+			From: entity.BillingPeriodFrom,
+			To:   entity.BillingPeriodTo,
+		},
+		InvoiceAt:         entity.InvoiceAt,
+		TaxConfig:         lo.EmptyableToPtr(entity.TaxConfig),
+		UniqueReferenceID: entity.UniqueReferenceID,
+		Subscription:      mapSubscriptionFromDB(entity),
+	}
+
+	switch entity.Type {
+	case charges.IntentTypeFlatFee:
+		if entity.Edges.FlatFee == nil {
+			return charges.Intent{}, fmt.Errorf("flat fee entity not found for charge %s", entity.ID)
+		}
+
+		feeEntity := entity.Edges.FlatFee
+
+		var percentageDiscounts *productcatalog.PercentageDiscount
+		if feeEntity.Discounts != nil {
+			percentageDiscounts = feeEntity.Discounts.Percentage
+		}
+
+		proRating, err := mapProRatingFromDB(feeEntity.ProRating)
+		if err != nil {
+			return charges.Intent{}, err
+		}
+
+		flatFeeIntent := charges.FlatFeeIntent{
+			PaymentTerm:         feeEntity.PaymentTerm,
+			FeatureKey:          lo.FromPtr(feeEntity.FeatureKey),
+			PercentageDiscounts: percentageDiscounts,
+
+			ProRating:             proRating,
+			AmountBeforeProration: feeEntity.AmountBeforeProration,
+			AmountAfterProration:  feeEntity.AmountAfterProration,
+		}
+
+		return charges.NewIntent(intentMeta, flatFeeIntent), nil
+	case charges.IntentTypeUsageBased:
+		if entity.Edges.UsageBased == nil {
+			return charges.Intent{}, fmt.Errorf("usage based entity not found for charge %s", entity.ID)
+		}
+
+		usageBasedEntity := entity.Edges.UsageBased
+
+		usageBasedIntent := charges.UsageBasedIntent{
+			Price:      lo.FromPtr(usageBasedEntity.Price),
+			FeatureKey: usageBasedEntity.FeatureKey,
+			Discounts:  usageBasedEntity.Discounts,
+		}
+
+		return charges.NewIntent(intentMeta, usageBasedIntent), nil
+	default:
+		return charges.Intent{}, fmt.Errorf("invalid intent type %s", entity.Type)
 	}
 }
 

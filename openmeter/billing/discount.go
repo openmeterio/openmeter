@@ -110,6 +110,24 @@ func (d Discounts) ValidateForPrice(price *productcatalog.Price) error {
 	return nil
 }
 
+func NewDiscountsFromProductCatalogDiscounts(discounts *productcatalog.Discounts) Discounts {
+	if discounts == nil {
+		return Discounts{}
+	}
+
+	out := Discounts{}
+
+	if discounts.Usage != nil {
+		out.Usage = &UsageDiscount{UsageDiscount: *discounts.Usage}
+	}
+
+	if discounts.Percentage != nil {
+		out.Percentage = &PercentageDiscount{PercentageDiscount: *discounts.Percentage}
+	}
+
+	return out
+}
+
 // DiscountReason type
 type discountReason interface {
 	json.Marshaler
