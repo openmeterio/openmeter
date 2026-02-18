@@ -66,6 +66,7 @@ func (Customer) Edges() []ent.Edge {
 		edge.To("billing_invoice", BillingInvoice.Type),
 		edge.To("subscription", Subscription.Type),
 		edge.To("entitlements", Entitlement.Type),
+		edge.To("charge_intents", Charge.Type),
 	}
 }
 

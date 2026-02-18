@@ -64,6 +64,14 @@ type Tx struct {
 	BillingStandardInvoiceDetailedLineAmountDiscount *BillingStandardInvoiceDetailedLineAmountDiscountClient
 	// BillingWorkflowConfig is the client for interacting with the BillingWorkflowConfig builders.
 	BillingWorkflowConfig *BillingWorkflowConfigClient
+	// Charge is the client for interacting with the Charge builders.
+	Charge *ChargeClient
+	// ChargeFlatFee is the client for interacting with the ChargeFlatFee builders.
+	ChargeFlatFee *ChargeFlatFeeClient
+	// ChargeStandardInvoiceRealization is the client for interacting with the ChargeStandardInvoiceRealization builders.
+	ChargeStandardInvoiceRealization *ChargeStandardInvoiceRealizationClient
+	// ChargeUsageBased is the client for interacting with the ChargeUsageBased builders.
+	ChargeUsageBased *ChargeUsageBasedClient
 	// Customer is the client for interacting with the Customer builders.
 	Customer *CustomerClient
 	// CustomerSubjects is the client for interacting with the CustomerSubjects builders.
@@ -264,6 +272,10 @@ func (tx *Tx) init() {
 	tx.BillingStandardInvoiceDetailedLine = NewBillingStandardInvoiceDetailedLineClient(tx.config)
 	tx.BillingStandardInvoiceDetailedLineAmountDiscount = NewBillingStandardInvoiceDetailedLineAmountDiscountClient(tx.config)
 	tx.BillingWorkflowConfig = NewBillingWorkflowConfigClient(tx.config)
+	tx.Charge = NewChargeClient(tx.config)
+	tx.ChargeFlatFee = NewChargeFlatFeeClient(tx.config)
+	tx.ChargeStandardInvoiceRealization = NewChargeStandardInvoiceRealizationClient(tx.config)
+	tx.ChargeUsageBased = NewChargeUsageBasedClient(tx.config)
 	tx.Customer = NewCustomerClient(tx.config)
 	tx.CustomerSubjects = NewCustomerSubjectsClient(tx.config)
 	tx.Entitlement = NewEntitlementClient(tx.config)

@@ -169,6 +169,40 @@ func BillingStandardInvoiceDetailedLineAmountDiscountOrErr(p BillingStandardInvo
 // BillingWorkflowConfig is the predicate function for billingworkflowconfig builders.
 type BillingWorkflowConfig func(*sql.Selector)
 
+// Charge is the predicate function for charge builders.
+type Charge func(*sql.Selector)
+
+// ChargeFlatFee is the predicate function for chargeflatfee builders.
+type ChargeFlatFee func(*sql.Selector)
+
+// ChargeFlatFeeOrErr calls the predicate only if the error is not nit.
+func ChargeFlatFeeOrErr(p ChargeFlatFee, err error) ChargeFlatFee {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
+// ChargeStandardInvoiceRealization is the predicate function for chargestandardinvoicerealization builders.
+type ChargeStandardInvoiceRealization func(*sql.Selector)
+
+// ChargeUsageBased is the predicate function for chargeusagebased builders.
+type ChargeUsageBased func(*sql.Selector)
+
+// ChargeUsageBasedOrErr calls the predicate only if the error is not nit.
+func ChargeUsageBasedOrErr(p ChargeUsageBased, err error) ChargeUsageBased {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // Customer is the predicate function for customer builders.
 type Customer func(*sql.Selector)
 
