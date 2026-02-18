@@ -8,6 +8,7 @@ import (
 
 	"entgo.io/ent/entc"
 	"entgo.io/ent/entc/gen"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/entcursor"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entexpose"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entpaginate"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entsetorclear"
@@ -27,6 +28,7 @@ func main() {
 			Package: "github.com/openmeterio/openmeter/openmeter/ent/db",
 		},
 		entc.Extensions(
+			entcursor.New(),
 			entexpose.New(),
 			entpaginate.New(),
 			entsetorclear.New(),

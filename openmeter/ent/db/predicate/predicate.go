@@ -195,6 +195,24 @@ type Feature func(*sql.Selector)
 // Grant is the predicate function for dbgrant builders.
 type Grant func(*sql.Selector)
 
+// LedgerAccount is the predicate function for ledgeraccount builders.
+type LedgerAccount func(*sql.Selector)
+
+// LedgerDimension is the predicate function for ledgerdimension builders.
+type LedgerDimension func(*sql.Selector)
+
+// LedgerEntry is the predicate function for ledgerentry builders.
+type LedgerEntry func(*sql.Selector)
+
+// LedgerSubAccount is the predicate function for ledgersubaccount builders.
+type LedgerSubAccount func(*sql.Selector)
+
+// LedgerTransaction is the predicate function for ledgertransaction builders.
+type LedgerTransaction func(*sql.Selector)
+
+// LedgerTransactionGroup is the predicate function for ledgertransactiongroup builders.
+type LedgerTransactionGroup func(*sql.Selector)
+
 // Meter is the predicate function for dbmeter builders.
 type Meter func(*sql.Selector)
 
