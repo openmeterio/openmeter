@@ -104,10 +104,6 @@ type TransactionGroup interface {
 
 type Ledger interface {
 	// SetUpTransactionInput is a no-op that runs some validations and returns a TransactionInput object that can be committed later
-	// FIXME: maybe we don't need this:
-	// - This isn't an actual two step flow
-	// - This cannot become an actual two step flow without locking
-	// - This cannot run further validations without knowing the namespace
 	SetUpTransactionInput(ctx context.Context, at time.Time, entries []EntryInput) (TransactionInput, error)
 
 	// CommitGroup commits a list of transactions on the Ledger atomically
