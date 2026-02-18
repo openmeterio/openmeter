@@ -24,3 +24,10 @@ var ErrInvalidDimensionKey = models.NewValidationIssue(
 	ErrCodeInvalidDimensionKey,
 	"invalid dimension key",
 )
+
+var ErrCodeLedgerQueryInvalid models.ErrorCode = "ledger_query_invalid"
+
+var ErrLedgerQueryInvalid = models.NewValidationIssue(
+	ErrCodeLedgerQueryInvalid,
+	"ledger query is invalid",
+)

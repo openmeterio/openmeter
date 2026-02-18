@@ -144,5 +144,18 @@ func (l *Ledger) validateAccountBalancesForTransaction(_ context.Context, _ *Tra
 var _ ledger.Querier = (*Ledger)(nil)
 
 func (l *Ledger) SumEntries(ctx context.Context, query ledger.Query) (ledger.QuerySummedResult, error) {
-	panic("not implemented")
+	if err := query.Validate(); err != nil {
+		return ledger.QuerySummedResult{}, fmt.Errorf("failed to validate query: %w", err)
+	}
+
+	total, err := l.repo.SumEntries(ctx, query)
+	if err != nil {
+		return ledger.QuerySummedResult{}, fmt.Errorf("failed to sum ledger entries: %w", err)
+	}
+
+	// Historical ledger currently has no settled/pending separation.
+	return ledger.QuerySummedResult{
+		SettledSum: total,
+		PendingSum: total,
+	}, nil
 }

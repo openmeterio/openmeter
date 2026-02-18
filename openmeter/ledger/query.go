@@ -2,11 +2,10 @@ package ledger
 
 import (
 	"context"
-	"errors"
-	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -30,16 +29,23 @@ type Query struct {
 
 func (p Query) Validate() error {
 	if p.Namespace == "" {
-		return errors.New("namespace is required")
+		return ErrLedgerQueryInvalid.WithAttrs(models.Attributes{
+			"namespace": p.Namespace,
+		})
 	}
 
 	if p.Limit < 1 {
-		return errors.New("limit must be greater than 0")
+		return ErrLedgerQueryInvalid.WithAttrs(models.Attributes{
+			"limit": p.Limit,
+		})
 	}
 
 	if p.Cursor != nil {
 		if err := p.Cursor.Validate(); err != nil {
-			return fmt.Errorf("cursor: %w", err)
+			return ErrLedgerQueryInvalid.WithAttrs(models.Attributes{
+				"cursor": p.Cursor,
+				"error":  err,
+			})
 		}
 	}
 

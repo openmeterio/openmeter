@@ -2,11 +2,14 @@ package adapter
 
 import (
 	"context"
+	stdsql "database/sql"
 	"fmt"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -86,4 +89,34 @@ func (r *repo) CreateTransactionGroup(ctx context.Context, transactionGroup ledg
 		CreatedAt:   entity.CreatedAt,
 		Annotations: entity.Annotations,
 	}, nil
+}
+
+func (r *repo) SumEntries(ctx context.Context, query ledger.Query) (alpacadecimal.Decimal, error) {
+	q := sumEntriesQuery{
+		query: query,
+	}
+
+	entryQuery := q.Build(r.db)
+
+	var rows []struct {
+		SumAmount stdsql.NullString `json:"sum_amount,omitempty"`
+	}
+
+	err := entryQuery.
+		Aggregate(db.As(db.Sum(ledgerentrydb.FieldAmount), "sum_amount")).
+		Scan(ctx, &rows)
+	if err != nil {
+		return alpacadecimal.Decimal{}, fmt.Errorf("failed to query ledger entries to sum: %w", err)
+	}
+
+	if len(rows) == 0 || !rows[0].SumAmount.Valid {
+		return alpacadecimal.NewFromInt(0), nil
+	}
+
+	total, err := alpacadecimal.NewFromString(rows[0].SumAmount.String)
+	if err != nil {
+		return alpacadecimal.Decimal{}, fmt.Errorf("failed to parse summed amount %q: %w", rows[0].SumAmount.String, err)
+	}
+
+	return total, nil
 }
