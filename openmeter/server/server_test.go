@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/cloudevents/sdk-go/v2/event"
+	"github.com/invopop/gobl/currency"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -27,6 +28,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
@@ -511,6 +513,7 @@ func getTestServer(t *testing.T) *Server {
 			AppCustomInvoicing:          appCustomInvoicingService,
 			Billing:                     billingService,
 			Customer:                    customerService,
+			CurrencyService:             &NoopCurrencyService{},
 			DebugConnector:              MockDebugHandler{},
 			EntitlementConnector:        &NoopEntitlementConnector{},
 			EntitlementBalanceConnector: &NoopEntitlementBalanceConnector{},
@@ -1638,4 +1641,24 @@ type NoopIngestService struct{}
 
 func (n NoopIngestService) IngestEvents(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {
 	return true, nil
+}
+
+// NoopCurrencyService implements currency.Service with no-op operations
+// for use in testing
+type NoopCurrencyService struct{}
+
+func (n NoopCurrencyService) ListCurrencies(ctx context.Context) ([]currencies.Currency, error) {
+	return []currencies.Currency{}, nil
+}
+
+func (n NoopCurrencyService) CreateCurrency(ctx context.Context, params currencies.CreateCurrencyInput) (*currency.Def, error) {
+	return nil, nil
+}
+
+func (n NoopCurrencyService) CreateCostBasis(ctx context.Context, params currencies.CreateCostBasisInput) (*currencies.CostBasis, error) {
+	return nil, nil
+}
+
+func (n NoopCurrencyService) GetCostBasesByCurrencyID(ctx context.Context, currencyID string) (currencies.CostBases, error) {
+	return currencies.CostBases{}, nil
 }
