@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/invopop/gobl/currency"
 	v3 "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/samber/lo"
@@ -23,12 +23,12 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 			return ListCurrenciesRequest{}, nil
 		},
 		func(ctx context.Context, request ListCurrenciesRequest) (ListCurrenciesResponse, error) {
-			defs, err := h.currencyService.ListCurrencies()
+			defs, err := h.currencyService.ListCurrencies(ctx)
 			if err != nil {
 				return nil, err
 			}
 
-			return lo.Map(defs, func(def *currency.Def, _ int) v3.BillingCurrency {
+			return lo.Map(defs, func(def currencies.Currency, _ int) v3.BillingCurrency {
 				return MapCurrencyToAPI(def)
 			}), nil
 		},

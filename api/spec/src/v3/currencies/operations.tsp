@@ -38,7 +38,7 @@ model CurrenciesResponse {
  */
 @friendlyName("CustomCurrencyResponse")
 model CustomCurrencyResponse {
-  @statusCode _: 202;
+  @statusCode _: 201;
 }
 
 interface CurrenciesOperations {

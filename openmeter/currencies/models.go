@@ -1,11 +1,13 @@
 package currencies
 
 import (
-	"github.com/openmeterio/openmeter/pkg/pagination"
+	"time"
+
+	"github.com/alpacahq/alpacadecimal"
 )
 
-// Currency represents a currency.
 type Currency struct {
+	ID                   string
 	Code                 string `json:"code"`
 	Name                 string `json:"name"`
 	Symbol               string `json:"symbol,omitempty"`
@@ -15,7 +17,6 @@ type Currency struct {
 	Subunits             uint32
 }
 
-// CreateCurrencyInput represents the input for creating a currency.
 type CreateCurrencyInput struct {
 	Code                 string `json:"code"`
 	Name                 string `json:"name"`
@@ -23,7 +24,24 @@ type CreateCurrencyInput struct {
 	SmallestDenomination int8   `json:"smallest_denomination"`
 }
 
-// ListCurrenciesInput represents the input for listing currencies.
-type ListCurrenciesInput struct {
-	pagination.Page
+type CostBasis struct {
+	ID            string
+	CurrencyID    string                `json:"currency_id"`
+	FiatCode      string                `json:"fiat_code"`
+	Rate          alpacadecimal.Decimal `json:"rate"`
+	EffectiveFrom time.Time             `json:"effective_from"`
+	CreatedAt     time.Time
 }
+
+type CreateCostBasisInput struct {
+	CurrencyID    string     `json:"currency_id"`
+	FiatCode      string     `json:"fiat_code"`
+	Rate          float32    `json:"rate"`
+	EffectiveFrom *time.Time `json:"effective_from"`
+}
+
+type GetCostBasisInput struct {
+	ID string
+}
+
+type CostBases = []CostBasis

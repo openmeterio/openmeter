@@ -20,8 +20,8 @@ func New(adapter currencies.Adapter) *Service {
 	}
 }
 
-func (s *Service) ListCurrencies() ([]*currency.Def, error) {
-	customCurrencies, err := s.adapter.ListCurrencies(context.Background(), currencies.ListCurrenciesInput{})
+func (s *Service) ListCurrencies(ctx context.Context) ([]currencies.Currency, error) {
+	customCurrencies, err := s.adapter.ListCurrencies(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -44,18 +44,32 @@ func (s *Service) ListCurrencies() ([]*currency.Def, error) {
 		}
 	})
 
-	return lo.Map(append(customCurrencies, defs...), func(def currencies.Currency, _ int) *currency.Def {
-		return &currency.Def{
-			ISOCode:              currency.Code(def.Code),
+	return lo.Map(append(customCurrencies, defs...), func(def currencies.Currency, _ int) currencies.Currency {
+		return currencies.Currency{
+			ID:                   def.ID,
+			Code:                 def.Code,
 			Name:                 def.Name,
 			Symbol:               def.Symbol,
-			SmallestDenomination: int(def.SmallestDenomination),
+			SmallestDenomination: int8(def.SmallestDenomination),
 			DisambiguateSymbol:   def.DisambiguateSymbol,
 			Subunits:             uint32(def.Subunits),
+			IsCustom:             def.IsCustom,
 		}
 	}), nil
 }
 
 func (s *Service) CreateCurrency(ctx context.Context, params currencies.CreateCurrencyInput) (*currency.Def, error) {
 	return s.adapter.CreateCurrency(ctx, params)
+}
+
+func (s *Service) CreateCostBasis(ctx context.Context, params currencies.CreateCostBasisInput) (*currencies.CostBasis, error) {
+	return s.adapter.CreateCostBasis(ctx, params)
+}
+
+func (s *Service) GetCostBasis(ctx context.Context, id string) (*currencies.CostBasis, error) {
+	return s.adapter.GetCostBasis(ctx, id)
+}
+
+func (s *Service) ListCostBases(ctx context.Context) ([]currencies.CostBasis, error) {
+	return s.adapter.ListCostBases(ctx)
 }

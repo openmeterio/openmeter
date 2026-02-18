@@ -149,3 +149,15 @@ func (s *Server) ListCurrencies(w http.ResponseWriter, r *http.Request) {
 func (s *Server) CreateCustomCurrency(w http.ResponseWriter, r *http.Request) {
 	s.currenciesHandler.CreateCurrency().ServeHTTP(w, r)
 }
+
+func (s *Server) CreateCostBasis(w http.ResponseWriter, r *http.Request) {
+	s.currenciesHandler.CreateCostBasis().ServeHTTP(w, r)
+}
+
+func (s *Server) GetCostBasisById(w http.ResponseWriter, r *http.Request, id api.ULID) {
+	s.currenciesHandler.GetCostBasis().With(id).ServeHTTP(w, r)
+}
+
+func (s *Server) ListCostBases(w http.ResponseWriter, r *http.Request) {
+	s.currenciesHandler.ListCostBases().ServeHTTP(w, r)
+}

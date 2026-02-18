@@ -8,6 +8,9 @@ import (
 type Handler interface {
 	ListCurrencies() ListCurrenciesHandler
 	CreateCurrency() CreateCurrencyHandler
+	CreateCostBasis() CreateCostBasisHandler
+	GetCostBasis() GetCostBasisHandler
+	ListCostBases() ListCostBasesHandler
 }
 
 type handler struct {

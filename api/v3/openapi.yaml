@@ -103,7 +103,7 @@ paths:
       operationId: create-custom-currency
       summary: Create custom currency
       responses:
-        '202':
+        '201':
           description: Create custom currencies response
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -119,6 +119,76 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingCustomCurrency'
+  /openmeter/currencies/cost-bases:
+    get:
+      operationId: list-cost-bases
+      summary: List cost bases
+      description: Cost Bases operationsGet cost bases
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCostBases'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Billing
+  /openmeter/currencies/cost-basis:
+    post:
+      operationId: create-cost-basis
+      summary: Create custom cost basis for custom currencies
+      description: Cost Basis operations.
+      responses:
+        '201':
+          description: Create cost basis response
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Billing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingCostBasis'
+  /openmeter/currencies/cost-basis/{id}:
+    get:
+      operationId: get-cost-basis-by-id
+      summary: Get cost basis by id
+      description: Get cost basis by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: CostBasis response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCostBasis'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Billing
   /openmeter/customers:
     post:
       operationId: create-customer
@@ -1838,16 +1908,52 @@ components:
         - stripe
         - external_invoicing
       description: The type of the app.
+    BillingCostBases:
+      type: array
+      items:
+        $ref: '#/components/schemas/BillingCostBasis'
+      description: Describes currency cost bases
+    BillingCostBasis:
+      type: object
+      required:
+        - id
+        - currency_id
+        - fiat_code
+        - rate
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        currency_id:
+          $ref: '#/components/schemas/ULID'
+        fiat_code:
+          type: string
+        rate:
+          type: number
+        effective_from:
+          $ref: '#/components/schemas/DateTime'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          readOnly: true
+      description: Describes currency basis supported by billing system.
     BillingCurrency:
       type: object
       required:
+        - id
         - code
         - name
         - symbol
         - disambiguate_symbol
         - subunits
         - smallest_denomination
+        - is_custom
       properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
         code:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
@@ -1874,6 +1980,10 @@ components:
           type: integer
           format: uint8
           description: Smallest denomination of the currency.
+          readOnly: true
+        is_custom:
+          type: boolean
+          description: Flag for the currency if it is custom or not
           readOnly: true
       description: Currency describes a currency supported by the billing system.
     BillingCustomCurrency:

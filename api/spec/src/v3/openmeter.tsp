@@ -81,3 +81,11 @@ interface BillingProfilesEndpoints extends Billing.BillingProfilesOperations {}
 @route("/openmeter/currencies")
 @tag(Shared.BillingTag)
 interface CurrenciesEndpoints extends Currencies.CurrenciesOperations {}
+
+@route("/openmeter/currencies/cost-basis")
+@tag(Shared.BillingTag)
+interface CostBasisEndpoints extends Currencies.CostBasisOperations {}
+
+@route("/openmeter/currencies/cost-bases")
+@tag(Shared.BillingTag)
+interface CostBasesEndpoints extends Currencies.CostBasesOperations {}

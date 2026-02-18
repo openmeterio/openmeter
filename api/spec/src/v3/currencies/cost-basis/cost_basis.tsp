@@ -1,4 +1,4 @@
-import "../shared/index.tsp";
+import "../../shared/index.tsp";
 
 namespace Currencies;
 
@@ -12,7 +12,7 @@ model CostBasis {
   id: Shared.ULID;
 
   #suppress "@openmeter/api-spec/doc-decorator" "shared model"
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Create, Lifecycle.Read)
   currency_id: Shared.ULID;
 
   @visibility(Lifecycle.Create, Lifecycle.Read)
@@ -22,7 +22,7 @@ model CostBasis {
   rate: numeric;
 
   @visibility(Lifecycle.Create, Lifecycle.Read)
-  effective_from: Shared.DateTime;
+  effective_from?: Shared.DateTime;
 
   @visibility(Lifecycle.Read)
   created_at?: Shared.DateTime;

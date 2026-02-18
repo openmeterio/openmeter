@@ -7,6 +7,10 @@ namespace Currencies;
  */
 @friendlyName("BillingCurrency")
 model Currency {
+  #suppress "@openmeter/api-spec/doc-decorator" "shared model"
+  @visibility(Lifecycle.Read)
+  id: Shared.ULID;
+  
   /**
    * Standard ISO 4217 code.
    */
@@ -42,4 +46,10 @@ model Currency {
    */
   @visibility(Lifecycle.Read)
   smallest_denomination: uint8;
+
+  /**
+   * Flag for the currency if it is custom or not
+   */
+  @visibility(Lifecycle.Read)
+  is_custom: boolean
 }
