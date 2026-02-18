@@ -159,6 +159,98 @@ func TestRepo_BookTransaction_NilInput(t *testing.T) {
 	require.ErrorContains(t, err, "transaction input is required")
 }
 
+func TestRepo_ListTransactions_PaginatesAndFilters(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+	env.DBSchemaMigrate(t)
+
+	ctx := t.Context()
+	namespace := testNamespace()
+	subAccountA := env.createSubAccount(t, namespace, "acc-a")
+	subAccountB := env.createSubAccount(t, namespace, "acc-b")
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+
+	hLedger := &ledgerhistorical.Ledger{}
+
+	txInput1Intf, err := hLedger.SetUpTransactionInput(ctx, time.Now().UTC(), []ledger.EntryInput{
+		testEntryInput{
+			address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
+				SubAccountID: subAccountA,
+				AccountType:  ledger.AccountTypeCustomerFBO,
+			}),
+			amount: alpacadecimal.NewFromInt(-10),
+		},
+		testEntryInput{
+			address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
+				SubAccountID: subAccountB,
+				AccountType:  ledger.AccountTypeCustomerFBO,
+			}),
+			amount: alpacadecimal.NewFromInt(10),
+		},
+	})
+	require.NoError(t, err)
+	tx1, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInput1Intf.(*ledgerhistorical.TransactionInput))
+	require.NoError(t, err)
+
+	time.Sleep(5 * time.Millisecond)
+
+	txInput2Intf, err := hLedger.SetUpTransactionInput(ctx, time.Now().UTC(), []ledger.EntryInput{
+		testEntryInput{
+			address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
+				SubAccountID: subAccountA,
+				AccountType:  ledger.AccountTypeCustomerFBO,
+			}),
+			amount: alpacadecimal.NewFromInt(-20),
+		},
+		testEntryInput{
+			address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
+				SubAccountID: subAccountB,
+				AccountType:  ledger.AccountTypeCustomerFBO,
+			}),
+			amount: alpacadecimal.NewFromInt(20),
+		},
+	})
+	require.NoError(t, err)
+	tx2, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInput2Intf.(*ledgerhistorical.TransactionInput))
+	require.NoError(t, err)
+
+	page1, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace: namespace,
+		Limit:     1,
+	})
+	require.NoError(t, err)
+	require.Len(t, page1.Items, 1)
+	require.NotNil(t, page1.NextCursor)
+	require.Equal(t, tx1.ID(), page1.Items[0].ID())
+	require.Len(t, page1.Items[0].Entries(), 2)
+
+	page2, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace: namespace,
+		Limit:     1,
+		Cursor:    page1.NextCursor,
+	})
+	require.NoError(t, err)
+	require.Len(t, page2.Items, 1)
+	require.Equal(t, tx2.ID(), page2.Items[0].ID())
+	require.Len(t, page2.Items[0].Entries(), 2)
+
+	tx2ID := tx2.ID()
+	filtered, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace:     namespace,
+		Limit:         10,
+		TransactionID: &tx2ID,
+	})
+	require.NoError(t, err)
+	require.Len(t, filtered.Items, 1)
+	require.Equal(t, tx2.ID(), filtered.Items[0].ID())
+}
+
 func TestRepo_SumEntries_Filters(t *testing.T) {
 	env := NewTestEnv(t)
 	t.Cleanup(func() {

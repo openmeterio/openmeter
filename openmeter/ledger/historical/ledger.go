@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -27,7 +29,21 @@ type Ledger struct {
 var _ ledger.Ledger = (*Ledger)(nil)
 
 func (l *Ledger) ListTransactions(ctx context.Context, params ledger.ListTransactionsInput) (pagination.Result[ledger.Transaction], error) {
-	panic("not implemented")
+	if err := params.Validate(); err != nil {
+		return pagination.Result[ledger.Transaction]{}, fmt.Errorf("failed to validate list transactions input: %w", err)
+	}
+
+	res, err := l.repo.ListTransactions(ctx, params)
+	if err != nil {
+		return pagination.Result[ledger.Transaction]{}, fmt.Errorf("failed to list transactions: %w", err)
+	}
+
+	return pagination.Result[ledger.Transaction]{
+		Items: lo.Map(res.Items, func(item *Transaction, _ int) ledger.Transaction {
+			return item
+		}),
+		NextCursor: res.NextCursor,
+	}, nil
 }
 
 // SetUpTransactionInput sets up a transaction input and runs validations

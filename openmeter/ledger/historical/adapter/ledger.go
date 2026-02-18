@@ -10,9 +10,12 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
+	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination/v2"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID, input *ledgerhistorical.TransactionInput) (*ledgerhistorical.Transaction, error) {
@@ -119,4 +122,83 @@ func (r *repo) SumEntries(ctx context.Context, query ledger.Query) (alpacadecima
 	}
 
 	return total, nil
+}
+
+func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactionsInput) (pagination.Result[*ledgerhistorical.Transaction], error) {
+	query := r.db.LedgerTransaction.Query().
+		Where(ledgertransactiondb.Namespace(input.Namespace)).
+		WithEntries(func(q *db.LedgerEntryQuery) {
+			q.Order(
+				ledgerentrydb.ByCreatedAt(),
+				ledgerentrydb.ByID(),
+			)
+			q.WithSubAccount(func(sq *db.LedgerSubAccountQuery) {
+				sq.WithAccount()
+			})
+		})
+
+	if input.TransactionID != nil {
+		query = query.Where(ledgertransactiondb.ID(input.TransactionID.ID))
+	}
+
+	if input.Limit > 0 {
+		query = query.Limit(input.Limit)
+	}
+
+	paged, err := query.Cursor(ctx, input.Cursor)
+	if err != nil {
+		return pagination.Result[*ledgerhistorical.Transaction]{}, fmt.Errorf("failed to list transactions: %w", err)
+	}
+	if len(paged.Items) == 0 {
+		return pagination.Result[*ledgerhistorical.Transaction]{
+			Items: []*ledgerhistorical.Transaction{},
+		}, nil
+	}
+
+	items, err := slicesx.MapWithErr(paged.Items, func(tx *db.LedgerTransaction) (*ledgerhistorical.Transaction, error) {
+		entryData, err := slicesx.MapWithErr(tx.Edges.Entries, func(entry *db.LedgerEntry) (ledgerhistorical.EntryData, error) {
+			subAccount, err := entry.Edges.SubAccountOrErr()
+			if err != nil {
+				return ledgerhistorical.EntryData{}, fmt.Errorf("entry %s missing sub-account edge: %w", entry.ID, err)
+			}
+
+			account, err := subAccount.Edges.AccountOrErr()
+			if err != nil {
+				return ledgerhistorical.EntryData{}, fmt.Errorf("entry %s sub-account %s missing account edge: %w", entry.ID, subAccount.ID, err)
+			}
+
+			return ledgerhistorical.EntryData{
+				ID:            entry.ID,
+				Namespace:     entry.Namespace,
+				Annotations:   entry.Annotations,
+				CreatedAt:     entry.CreatedAt,
+				AccountID:     entry.SubAccountID,
+				AccountType:   account.AccountType,
+				Amount:        entry.Amount,
+				TransactionID: entry.TransactionID,
+			}, nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("transaction %s entry hydration failed: %w", tx.ID, err)
+		}
+
+		return ledgerhistorical.NewTransactionFromData(
+			ledgerhistorical.TransactionData{
+				ID:          tx.ID,
+				Namespace:   tx.Namespace,
+				Annotations: tx.Annotations,
+				CreatedAt:   tx.CreatedAt,
+				BookedAt:    tx.BookedAt,
+			},
+			entryData,
+		), nil
+	})
+	if err != nil {
+		return pagination.Result[*ledgerhistorical.Transaction]{}, fmt.Errorf("failed to hydrate listed transactions: %w", err)
+	}
+
+	return pagination.Result[*ledgerhistorical.Transaction]{
+		Items:      items,
+		NextCursor: paged.NextCursor,
+	}, nil
 }
