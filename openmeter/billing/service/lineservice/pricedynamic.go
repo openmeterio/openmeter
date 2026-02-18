@@ -20,7 +20,7 @@ func (p dynamicPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput,
 		return nil, err
 	}
 
-	dynamicPrice, err := l.line.UsageBased.Price.AsDynamic()
+	dynamicPrice, err := l.line.Price.AsDynamic()
 	if err != nil {
 		return nil, fmt.Errorf("converting price to dynamic price: %w", err)
 	}

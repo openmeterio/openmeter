@@ -40,7 +40,6 @@ func TestInvoiceLineDiffing(t *testing.T) {
 					ID: "1",
 				}),
 			},
-			UsageBased: &billing.UsageBasedLine{},
 		},
 		{
 			StandardLineBase: billing.StandardLineBase{
@@ -48,7 +47,6 @@ func TestInvoiceLineDiffing(t *testing.T) {
 					ID: "2",
 				}),
 			},
-			UsageBased: &billing.UsageBasedLine{},
 			DetailedLines: billing.DetailedLines{
 				{
 					DetailedLineBase: billing.DetailedLineBase{
@@ -139,7 +137,7 @@ func TestInvoiceLineDiffing(t *testing.T) {
 		base := cloneLines(template)
 		snapshotAsDBState(t, base)
 
-		base[1].UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromFloat(10))
+		base[1].Quantity = lo.ToPtr(alpacadecimal.NewFromFloat(10))
 
 		lineDiff, err := diffInvoiceLines(base)
 		require.NoError(t, err)

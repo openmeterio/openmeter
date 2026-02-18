@@ -21,7 +21,7 @@ func (p graduatedTieredPricer) Calculate(l PricerCalculateInput) (newDetailedLin
 		return nil, err
 	}
 
-	price, err := l.line.UsageBased.Price.AsTiered()
+	price, err := l.line.Price.AsTiered()
 	if err != nil {
 		return nil, fmt.Errorf("converting price to graduated tiered price: %w", err)
 	}

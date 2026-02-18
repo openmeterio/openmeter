@@ -1675,7 +1675,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		s.sortedSplitLineGroupChildren(tieredGraduated)
 		tieredGraduatedHierarchy := tieredGraduated.SplitLineHierarchy
 
-		require.Equal(s.T(), flatPerUnit.UsageBased.Quantity.InexactFloat64(), float64(10), "flat per unit should have 10 units")
+		require.Equal(s.T(), flatPerUnit.Quantity.InexactFloat64(), float64(10), "flat per unit should have 10 units")
 		require.Len(s.T(), tieredGraduatedHierarchy.Lines, 2, "there should be to child lines [id=%s]", tieredGraduatedHierarchy.Group.ID)
 		require.True(s.T(), tieredGraduatedHierarchy.Lines[0].Line.GetServicePeriod().Equal(timeutil.ClosedPeriod{
 			From: truncatedPeriodStart,
@@ -1721,9 +1721,11 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 						return fmt.Errorf("line not found")
 					}
 
-					line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-						Amount: alpacadecimal.NewFromFloat(250),
-					})
+					line.Price = lo.FromPtr(
+						productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromFloat(250),
+						}),
+					)
 					return nil
 				},
 			})
@@ -1736,7 +1738,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			// TODO[later]: we need to decide how to handle the situation where the line is updated, but there are split
 			// lines
 
-			require.Equal(s.T(), float64(250), lo.Must(line.UsageBased.Price.AsUnit()).Amount.InexactFloat64())
+			require.Equal(s.T(), float64(250), lo.Must(line.Price.AsUnit()).Amount.InexactFloat64())
 			require.True(s.T(), flatPerUnit.UpdatedAt.Before(line.UpdatedAt), "updated at should be changed")
 			require.True(s.T(), flatPerUnit.CreatedAt.Equal(line.CreatedAt), "created at should not be changed")
 
@@ -1768,16 +1770,17 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 						return fmt.Errorf("line not found")
 					}
 
-					line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.TieredPrice{
-						Mode: productcatalog.VolumeTieredPrice,
-						Tiers: []productcatalog.PriceTier{
-							{
-								UnitPrice: &productcatalog.PriceTierUnitPrice{
-									Amount: alpacadecimal.NewFromFloat(250),
+					line.Price = lo.FromPtr(
+						productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+							Mode: productcatalog.VolumeTieredPrice,
+							Tiers: []productcatalog.PriceTier{
+								{
+									UnitPrice: &productcatalog.PriceTierUnitPrice{
+										Amount: alpacadecimal.NewFromFloat(250),
+									},
 								},
 							},
-						},
-					})
+						}))
 
 					return nil
 				},
@@ -3486,7 +3489,7 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
 	line := lines[0]
 	s.Equal(line.Name, "UBP - FLAT per unit")
 	s.Equal(float64(0), line.Totals.Total.InexactFloat64())
-	s.Equal(float64(10), line.UsageBased.Quantity.InexactFloat64())
+	s.Equal(float64(10), line.Quantity.InexactFloat64())
 
 	// And there should be a detailed line with 0 total
 	s.Len(line.DetailedLines, 1)

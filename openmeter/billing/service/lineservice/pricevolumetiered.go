@@ -16,7 +16,7 @@ type volumeTieredPricer struct {
 var _ Pricer = (*volumeTieredPricer)(nil)
 
 func (p volumeTieredPricer) Calculate(l PricerCalculateInput) (newDetailedLinesInput, error) {
-	price, err := l.line.UsageBased.Price.AsTiered()
+	price, err := l.line.Price.AsTiered()
 	if err != nil {
 		return nil, fmt.Errorf("converting price to volume tiered price: %w", err)
 	}

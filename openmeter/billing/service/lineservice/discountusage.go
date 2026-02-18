@@ -69,7 +69,7 @@ func (m *discountUsageMutator) Mutate(l PricerCalculateInput) (PricerCalculateIn
 
 		// We still need to set the pre line period quantity to the remaining quantity, to be consistent with the
 		// usage discount case.
-		l.line.UsageBased.PreLinePeriodQuantity = lo.ToPtr(usage.PreLinePeriodQuantity.Sub(discountBeforeLineUsedQty))
+		l.line.PreLinePeriodQuantity = lo.ToPtr(usage.PreLinePeriodQuantity.Sub(discountBeforeLineUsedQty))
 
 		return m.removeUsageDiscounts(l), nil
 	}
@@ -87,8 +87,8 @@ func (m *discountUsageMutator) Mutate(l PricerCalculateInput) (PricerCalculateIn
 		},
 	)
 
-	l.line.UsageBased.Quantity = lo.ToPtr(usage.LinePeriodQuantity.Sub(discountQuantity))
-	l.line.UsageBased.PreLinePeriodQuantity = lo.ToPtr(usage.PreLinePeriodQuantity.Sub(discountBeforeLineUsedQty))
+	l.line.Quantity = lo.ToPtr(usage.LinePeriodQuantity.Sub(discountQuantity))
+	l.line.PreLinePeriodQuantity = lo.ToPtr(usage.PreLinePeriodQuantity.Sub(discountBeforeLineUsedQty))
 
 	return l, nil
 }

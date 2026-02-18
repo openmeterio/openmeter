@@ -280,7 +280,7 @@ func (s *SuiteBase) expectLines(invoice billing.GenericInvoiceReader, subscripti
 			}
 
 			if expectedLine.Price.IsPresent() {
-				s.Equal(*expectedLine.Price.OrEmpty(), *line.GetPrice(), "%s: price", childID)
+				s.Equal(*expectedLine.Price.OrEmpty(), line.GetPrice(), "%s: price", childID)
 			}
 
 			s.Equal(expectedLine.Periods[idx].Start, line.GetServicePeriod().From, "%s: period start", childID)

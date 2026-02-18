@@ -107,11 +107,11 @@ func newLine(in newLineInput) *billing.StandardLine {
 			InvoiceAt: in.Period.End,
 
 			ChildUniqueReferenceID: lo.EmptyableToPtr(in.ChildUniqueReferenceID),
-		},
-		UsageBased: &billing.UsageBasedLine{
-			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-				Amount: alpacadecimal.NewFromFloat(1),
-			}),
+			Price: lo.FromPtr(
+				productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromFloat(1),
+				}),
+			),
 			FeatureKey: "test",
 		},
 	}

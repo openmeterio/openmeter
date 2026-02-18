@@ -160,10 +160,8 @@ func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billi
 			InvoiceAt:         line.InvoiceAt,
 			TaxConfig:         rateCardParsed.TaxConfig,
 			RateCardDiscounts: rateCardParsed.Discounts,
-		},
-		UsageBased: &billing.UsageBasedLine{
-			Price:      rateCardParsed.Price,
-			FeatureKey: rateCardParsed.FeatureKey,
+			Price:             lo.FromPtr(rateCardParsed.Price),
+			FeatureKey:        rateCardParsed.FeatureKey,
 		},
 	}, nil
 }
@@ -307,15 +305,7 @@ func mapLineAppExternalIdsToAPI(externalIds billing.LineExternalIDs) *api.Invoic
 }
 
 func mapInvoiceLineToAPI(line *billing.StandardLine) (api.InvoiceLine, error) {
-	if line.UsageBased == nil {
-		return api.InvoiceLine{}, fmt.Errorf("usage based line details are nil [line=%s]", line.ID)
-	}
-
-	if line.UsageBased.Price == nil {
-		return api.InvoiceLine{}, fmt.Errorf("price is nil [line=%s]", line.ID)
-	}
-
-	price, err := productcataloghttp.FromRateCardUsageBasedPrice(*line.UsageBased.Price)
+	price, err := productcataloghttp.FromRateCardUsageBasedPrice(line.Price)
 	if err != nil {
 		return api.InvoiceLine{}, fmt.Errorf("failed to map price: %w", err)
 	}
@@ -360,18 +350,18 @@ func mapInvoiceLineToAPI(line *billing.StandardLine) (api.InvoiceLine, error) {
 
 		TaxConfig: mapTaxConfigToAPI(line.TaxConfig),
 
-		FeatureKey:                   lo.EmptyableToPtr(line.UsageBased.FeatureKey),
-		MeteredQuantity:              decimalPtrToStringPtrIfNotEqual(line.UsageBased.MeteredQuantity, line.UsageBased.Quantity),
-		Quantity:                     decimalPtrToStringPtr(line.UsageBased.Quantity),
-		PreLinePeriodQuantity:        decimalPtrToStringPtrIgnoringZeroValue(line.UsageBased.PreLinePeriodQuantity),
-		MeteredPreLinePeriodQuantity: decimalPtrToStringPtrIgnoringZeroValue(line.UsageBased.MeteredPreLinePeriodQuantity),
+		FeatureKey:                   lo.EmptyableToPtr(line.FeatureKey),
+		MeteredQuantity:              decimalPtrToStringPtrIfNotEqual(line.MeteredQuantity, line.Quantity),
+		Quantity:                     decimalPtrToStringPtr(line.Quantity),
+		PreLinePeriodQuantity:        decimalPtrToStringPtrIgnoringZeroValue(line.PreLinePeriodQuantity),
+		MeteredPreLinePeriodQuantity: decimalPtrToStringPtrIgnoringZeroValue(line.MeteredPreLinePeriodQuantity),
 
 		Price: lo.ToPtr(price),
 
 		RateCard: &api.InvoiceUsageBasedRateCard{
 			TaxConfig:  mapTaxConfigToAPI(line.TaxConfig),
 			Price:      lo.ToPtr(price),
-			FeatureKey: lo.EmptyableToPtr(line.UsageBased.FeatureKey),
+			FeatureKey: lo.EmptyableToPtr(line.FeatureKey),
 		},
 
 		Discounts: discountsAPI,
@@ -619,12 +609,10 @@ func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.Standar
 				End:   line.Period.To.Truncate(streaming.MinimumWindowSizeDuration),
 			},
 
-			InvoiceAt:         line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration),
-			TaxConfig:         rateCardParsed.TaxConfig,
-			RateCardDiscounts: rateCardParsed.Discounts,
-		},
-		UsageBased: &billing.UsageBasedLine{
-			Price:                        rateCardParsed.Price,
+			InvoiceAt:                    line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration),
+			TaxConfig:                    rateCardParsed.TaxConfig,
+			RateCardDiscounts:            rateCardParsed.Discounts,
+			Price:                        lo.FromPtr(rateCardParsed.Price),
 			FeatureKey:                   rateCardParsed.FeatureKey,
 			Quantity:                     &qty,
 			MeteredQuantity:              &qty,
@@ -667,12 +655,8 @@ func standardLineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate,
 
 			TaxConfig:         rateCardParsed.TaxConfig,
 			RateCardDiscounts: rateCardParsed.Discounts,
-		},
-		UsageBased: &billing.UsageBasedLine{
-			Price:      rateCardParsed.Price,
-			FeatureKey: rateCardParsed.FeatureKey,
-
-			// TODO: snapshotting
+			Price:             lo.FromPtr(rateCardParsed.Price),
+			FeatureKey:        rateCardParsed.FeatureKey,
 		},
 	}, nil
 }
@@ -724,7 +708,6 @@ func gatheringLineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate
 
 func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLine, line api.InvoiceLineReplaceUpdate) (*billing.StandardLine, bool, error) {
 	oldBase := existing.StandardLineBase.Clone()
-	oldUBP := existing.UsageBased.Clone()
 
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
@@ -738,6 +721,12 @@ func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLin
 		}
 	}
 
+	if rateCardParsed.Price == nil {
+		return nil, false, billing.ValidationError{
+			Err: fmt.Errorf("price is required for usage based lines"),
+		}
+	}
+
 	existing.Metadata = lo.FromPtrOr(line.Metadata, api.Metadata(existing.Metadata))
 	existing.Name = line.Name
 	existing.Description = line.Description
@@ -747,8 +736,8 @@ func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLin
 	existing.InvoiceAt = line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
 	existing.TaxConfig = rateCardParsed.TaxConfig
-	existing.UsageBased.Price = rateCardParsed.Price
-	existing.UsageBased.FeatureKey = rateCardParsed.FeatureKey
+	existing.Price = lo.FromPtr(rateCardParsed.Price)
+	existing.FeatureKey = rateCardParsed.FeatureKey
 
 	// Rate card discounts are not allowed to be updated on a progressively billed line (e.g. if there is
 	// already a partial invoice created), as we might go short on the discount quantity.
@@ -769,7 +758,7 @@ func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLin
 
 	existing.RateCardDiscounts = rateCardParsed.Discounts
 
-	wasChange := !oldBase.Equal(existing.StandardLineBase) || !oldUBP.Equal(existing.UsageBased)
+	wasChange := !oldBase.Equal(existing.StandardLineBase)
 	if wasChange {
 		existing.ManagedBy = billing.ManuallyManagedLine
 	}

@@ -14,7 +14,7 @@ type minAmountCommitmentMutator struct{}
 var _ PostCalculationMutator = (*minAmountCommitmentMutator)(nil)
 
 func (m *minAmountCommitmentMutator) Mutate(i PricerCalculateInput, pricerResult newDetailedLinesInput) (newDetailedLinesInput, error) {
-	commitments := i.line.UsageBased.Price.GetCommitments()
+	commitments := i.line.Price.GetCommitments()
 
 	if commitments.MinimumAmount == nil {
 		return pricerResult, nil
@@ -64,7 +64,7 @@ type maxAmountCommitmentMutator struct{}
 var _ PostCalculationMutator = (*maxAmountCommitmentMutator)(nil)
 
 func (m *maxAmountCommitmentMutator) Mutate(i PricerCalculateInput, pricerResult newDetailedLinesInput) (newDetailedLinesInput, error) {
-	commitments := i.line.UsageBased.Price.GetCommitments()
+	commitments := i.line.Price.GetCommitments()
 
 	if commitments.MaximumAmount == nil {
 		return pricerResult, nil

@@ -359,10 +359,10 @@ func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice bil
 				return fmt.Errorf("snapshotting quantity for line[%s]: %w", targetState.GetID(), err)
 			}
 
-			if !targetStateWithUpdatedQty.UsageBased.Quantity.Equal(lo.FromPtr(existingLine.UsageBased.Quantity)) {
+			if !targetStateWithUpdatedQty.Quantity.Equal(lo.FromPtr(existingLine.Quantity)) {
 				validationIssues = append(validationIssues,
 					newValidationIssueOnLine(existingLine, "usage based line's quantity cannot be changed on immutable invoice (new qty: %s)",
-						targetStateWithUpdatedQty.UsageBased.Quantity.String()),
+						targetStateWithUpdatedQty.Quantity.String()),
 				)
 			}
 		}

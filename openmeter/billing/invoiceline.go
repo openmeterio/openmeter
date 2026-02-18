@@ -134,7 +134,7 @@ type GenericInvoiceLineReader interface {
 	GetManagedBy() InvoiceLineManagedBy
 	GetAnnotations() models.Annotations
 	GetInvoiceID() string
-	GetPrice() *productcatalog.Price
+	GetPrice() productcatalog.Price
 	GetServicePeriod() timeutil.ClosedPeriod
 	GetChildUniqueReferenceID() *string
 	GetFeatureKey() string

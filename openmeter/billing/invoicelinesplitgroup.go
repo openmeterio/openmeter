@@ -27,7 +27,7 @@ type SplitLineGroupMutableFields struct {
 	TaxConfig         *productcatalog.TaxConfig `json:"taxConfig,omitempty"`
 }
 
-func (i SplitLineGroupMutableFields) ValidateForPrice(price *productcatalog.Price) error {
+func (i SplitLineGroupMutableFields) ValidateForPrice(price productcatalog.Price) error {
 	var errs []error
 
 	if i.Name == "" {
@@ -67,7 +67,7 @@ type SplitLineGroupCreate struct {
 
 	SplitLineGroupMutableFields `json:",inline"`
 
-	Price             *productcatalog.Price  `json:"price"`
+	Price             productcatalog.Price   `json:"price"`
 	FeatureKey        *string                `json:"featureKey,omitempty"`
 	Subscription      *SubscriptionReference `json:"subscription,omitempty"`
 	Currency          currencyx.Code         `json:"currency"`
@@ -85,12 +85,8 @@ func (i SplitLineGroupCreate) Validate() error {
 		errs = append(errs, err)
 	}
 
-	if i.Price == nil {
-		errs = append(errs, errors.New("price is required"))
-	} else {
-		if err := i.Price.Validate(); err != nil {
-			errs = append(errs, err)
-		}
+	if err := i.Price.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	if i.Subscription != nil {
@@ -116,7 +112,7 @@ type SplitLineGroupUpdate struct {
 	SplitLineGroupMutableFields `json:",inline"`
 }
 
-func (i SplitLineGroupUpdate) ValidateWithPrice(price *productcatalog.Price) error {
+func (i SplitLineGroupUpdate) ValidateWithPrice(price productcatalog.Price) error {
 	var errs []error
 
 	if err := i.SplitLineGroupMutableFields.ValidateForPrice(price); err != nil {
@@ -135,7 +131,7 @@ type SplitLineGroup struct {
 	models.NamespacedID         `json:",inline"`
 	SplitLineGroupMutableFields `json:",inline"`
 
-	Price             *productcatalog.Price  `json:"price"`
+	Price             productcatalog.Price   `json:"price"`
 	FeatureKey        *string                `json:"featureKey,omitempty"`
 	Subscription      *SubscriptionReference `json:"subscription,omitempty"`
 	Currency          currencyx.Code         `json:"currency"`
@@ -149,10 +145,8 @@ func (i SplitLineGroup) Validate() error {
 		errs = append(errs, err)
 	}
 
-	if i.Price != nil {
-		if err := i.Price.Validate(); err != nil {
-			errs = append(errs, err)
-		}
+	if err := i.Price.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	if i.Currency == "" {

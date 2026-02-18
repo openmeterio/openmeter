@@ -47,6 +47,18 @@ type StandardLineBase struct {
 	Subscription *SubscriptionReference `json:"subscription,omitempty"`
 
 	Totals Totals `json:"totals,omitempty"`
+
+	// UsageBasedLine settings
+	Price      productcatalog.Price `json:"price,omitempty"`
+	FeatureKey string               `json:"featureKey,omitempty"`
+
+	Quantity        *alpacadecimal.Decimal `json:"quantity,omitempty"`
+	MeteredQuantity *alpacadecimal.Decimal `json:"meteredQuantity,omitempty"`
+
+	PreLinePeriodQuantity        *alpacadecimal.Decimal `json:"preLinePeriodQuantity,omitempty"`
+	MeteredPreLinePeriodQuantity *alpacadecimal.Decimal `json:"meteredPreLinePeriodQuantity,omitempty"`
+
+	UBPConfigID string `json:"ubpConfigID,omitempty"`
 }
 
 func (i StandardLineBase) Equal(other StandardLineBase) bool {
@@ -97,6 +109,38 @@ func (i StandardLineBase) Validate() error {
 		if err := i.RateCardDiscounts.Usage.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("usage discounts: %w", err))
 		}
+	}
+
+	if err := i.Price.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("price: %w", err))
+	}
+
+	if i.Price.Type() != productcatalog.FlatPriceType {
+		if i.FeatureKey == "" {
+			errs = append(errs, errors.New("featureKey is required"))
+		}
+	}
+
+	if i.Price.Type() != productcatalog.FlatPriceType {
+		if i.InvoiceAt.
+			Truncate(streaming.MinimumWindowSizeDuration).
+			Before(i.Period.Truncate(streaming.MinimumWindowSizeDuration).End) {
+			errs = append(errs, fmt.Errorf("invoice at (%s) must be after period end (%s) for usage based line", i.InvoiceAt, i.Period.Truncate(streaming.MinimumWindowSizeDuration).End))
+		}
+
+		if i.Period.Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
+			errs = append(errs, ValidationError{
+				Err: ErrInvoiceCreateUBPLinePeriodIsEmpty,
+			})
+		}
+	} else {
+		if i.RateCardDiscounts.Usage != nil {
+			errs = append(errs, fmt.Errorf("usage discounts are not allowed for flat price lines"))
+		}
+	}
+
+	if err := i.RateCardDiscounts.ValidateForPrice(i.Price); err != nil {
+		errs = append(errs, fmt.Errorf("rateCardDiscounts: %w", err))
 	}
 
 	return errors.Join(errs...)
@@ -208,8 +252,6 @@ func (i standardInvoiceLineGenericWrapper) CloneWithoutChildren() (GenericInvoic
 type StandardLine struct {
 	StandardLineBase `json:",inline"`
 
-	UsageBased *UsageBasedLine `json:"usageBased,omitempty"`
-
 	DetailedLines      DetailedLines       `json:"detailedLines,omitempty"`
 	SplitLineHierarchy *SplitLineHierarchy `json:"progressiveLineHierarchy,omitempty"`
 
@@ -270,56 +312,11 @@ func (i StandardLine) AsInvoiceLine() InvoiceLine {
 }
 
 func (i StandardLine) GetQuantity() *alpacadecimal.Decimal {
-	if i.UsageBased == nil {
-		return nil
-	}
-
-	return i.UsageBased.Quantity
+	return i.Quantity
 }
 
 func (i *StandardLine) SetSplitLineHierarchy(hierarchy *SplitLineHierarchy) {
 	i.SplitLineHierarchy = hierarchy
-}
-
-// ToGatheringLineBase converts the standard line to a gathering line base.
-// This is temporary until the full gathering invoice functionality is split.
-func (i StandardLine) ToGatheringLineBase() (GatheringLineBase, error) {
-	if i.UsageBased == nil {
-		return GatheringLineBase{}, errors.New("usage based line is required")
-	}
-
-	if i.UsageBased.Price == nil {
-		return GatheringLineBase{}, errors.New("usage based line price is required")
-	}
-
-	clonedMetadata := i.Metadata.Clone()
-
-	clonedAnnotations, err := i.Annotations.Clone()
-	if err != nil {
-		return GatheringLineBase{}, fmt.Errorf("cloning annotations: %w", err)
-	}
-
-	return GatheringLineBase{
-		ManagedResource: i.ManagedResource,
-		Metadata:        clonedMetadata,
-		Annotations:     clonedAnnotations,
-		ManagedBy:       i.ManagedBy,
-		InvoiceID:       i.InvoiceID,
-		Currency:        i.Currency,
-		ServicePeriod: timeutil.ClosedPeriod{
-			From: i.Period.Start,
-			To:   i.Period.End,
-		},
-		InvoiceAt:              i.InvoiceAt,
-		Price:                  lo.FromPtr(i.UsageBased.Price),
-		FeatureKey:             i.UsageBased.FeatureKey,
-		TaxConfig:              i.TaxConfig,
-		RateCardDiscounts:      i.RateCardDiscounts,
-		ChildUniqueReferenceID: i.ChildUniqueReferenceID,
-		Subscription:           i.Subscription,
-		SplitLineGroupID:       i.SplitLineGroupID,
-		UBPConfigID:            i.UsageBased.ConfigID,
-	}, nil
 }
 
 type StandardLineEditFunction func(*StandardLine)
@@ -345,9 +342,7 @@ func (i StandardLine) CloneWithoutDependencies(edits ...StandardLineEditFunction
 	clone.SplitLineHierarchy = nil
 	clone.SplitLineGroupID = nil
 
-	if clone.UsageBased != nil {
-		clone.UsageBased.ConfigID = ""
-	}
+	clone.UBPConfigID = ""
 
 	for _, edit := range edits {
 		if edit != nil {
@@ -400,27 +395,15 @@ func (i StandardLine) Clone() (*StandardLine, error) {
 }
 
 func (i StandardLine) GetFeatureKey() string {
-	if i.UsageBased == nil {
-		return ""
-	}
-
-	return i.UsageBased.FeatureKey
+	return i.FeatureKey
 }
 
-func (i StandardLine) GetPrice() *productcatalog.Price {
-	if i.UsageBased == nil {
-		return nil
-	}
-
-	return i.UsageBased.Price
+func (i StandardLine) GetPrice() productcatalog.Price {
+	return i.Price
 }
 
 func (i *StandardLine) SetPrice(price productcatalog.Price) {
-	if i.UsageBased == nil {
-		return
-	}
-
-	i.UsageBased.Price = price.Clone()
+	i.Price = lo.FromPtr(price.Clone())
 }
 
 func (i StandardLine) GetRateCardDiscounts() Discounts {
@@ -463,7 +446,6 @@ func (i StandardLine) clone(opts cloneOptions) (*StandardLine, error) {
 		res.DBState = i.DBState
 	}
 
-	res.UsageBased = i.UsageBased.Clone()
 	res.StandardLineBase = i.StandardLineBase.Clone()
 
 	if !opts.skipChildren {
@@ -505,13 +487,8 @@ func (i *StandardLine) SaveDBSnapshot() error {
 func (i StandardLine) Validate() error {
 	var errs []error
 
-	// Fail fast cases (most of the validation logic uses these)
-	if i.UsageBased == nil {
-		return errors.New("usage based line is required")
-	}
-
-	if i.UsageBased.Price == nil {
-		return errors.New("usage based line price is required")
+	if lo.IsEmpty(i.Price) {
+		return errors.New("price is required")
 	}
 
 	if err := i.StandardLineBase.Validate(); err != nil {
@@ -532,32 +509,6 @@ func (i StandardLine) Validate() error {
 		}
 	}
 
-	if err := i.UsageBased.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if i.UsageBased.Price.Type() != productcatalog.FlatPriceType {
-		if i.InvoiceAt.
-			Truncate(streaming.MinimumWindowSizeDuration).
-			Before(i.Period.Truncate(streaming.MinimumWindowSizeDuration).End) {
-			errs = append(errs, fmt.Errorf("invoice at (%s) must be after period end (%s) for usage based line", i.InvoiceAt, i.Period.Truncate(streaming.MinimumWindowSizeDuration).End))
-		}
-
-		if i.Period.Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
-			errs = append(errs, ValidationError{
-				Err: ErrInvoiceCreateUBPLinePeriodIsEmpty,
-			})
-		}
-	} else {
-		if i.RateCardDiscounts.Usage != nil {
-			errs = append(errs, fmt.Errorf("usage discounts are not allowed for flat price lines"))
-		}
-	}
-
-	if err := i.RateCardDiscounts.ValidateForPrice(i.UsageBased.Price); err != nil {
-		errs = append(errs, fmt.Errorf("rateCardDiscounts: %w", err))
-	}
-
 	return errors.Join(errs...)
 }
 
@@ -571,18 +522,10 @@ func (i StandardLine) WithNormalizedValues() (*StandardLine, error) {
 		return nil, err
 	}
 
-	if out.UsageBased == nil {
-		return nil, fmt.Errorf("usage based line is nil")
-	}
-
-	if out.UsageBased.Price == nil {
-		return nil, fmt.Errorf("usage based line price is nil")
-	}
-
 	out.Period = out.Period.Truncate(streaming.MinimumWindowSizeDuration)
 	out.InvoiceAt = out.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
-	if err := setDefaultPaymentTermForFlatPrice(out.UsageBased.Price); err != nil {
+	if err := setDefaultPaymentTermForFlatPrice(&out.Price); err != nil {
 		return nil, fmt.Errorf("setting default payment term for flat price: %w", err)
 	}
 
@@ -619,7 +562,7 @@ func (i *StandardLine) DisassociateChildren() {
 }
 
 func (i StandardLine) DependsOnMeteredQuantity() bool {
-	return i.UsageBased.Price.Type() != productcatalog.FlatPriceType
+	return i.Price.Type() != productcatalog.FlatPriceType
 }
 
 func (i *StandardLine) SortDetailedLines() {
@@ -719,12 +662,12 @@ func NewFlatFeeLine(input NewFlatFeeLineInput, opts ...usageBasedLineOption) *St
 
 			Currency:          input.Currency,
 			RateCardDiscounts: input.RateCardDiscounts,
-		},
-		UsageBased: &UsageBasedLine{
-			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-				Amount:      input.PerUnitAmount,
-				PaymentTerm: input.PaymentTerm,
-			}),
+			Price: lo.FromPtr(
+				productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      input.PerUnitAmount,
+					PaymentTerm: input.PaymentTerm,
+				}),
+			),
 
 			FeatureKey: ubpOptions.featureKey,
 		},
@@ -830,21 +773,9 @@ func (c *StandardLines) Sort() {
 }
 
 func (c StandardLines) GetReferencedFeatureKeys() ([]string, error) {
-	out := make([]string, 0, len(c))
-
-	for _, line := range c {
-		if line.UsageBased == nil {
-			return nil, fmt.Errorf("usage based line is required")
-		}
-
-		if line.UsageBased.FeatureKey == "" {
-			continue
-		}
-
-		out = append(out, line.UsageBased.FeatureKey)
-	}
-
-	return lo.Uniq(out), nil
+	return lo.Uniq(lo.FilterMap(c, func(line *StandardLine, _ int) (string, bool) {
+		return line.FeatureKey, line.FeatureKey != ""
+	})), nil
 }
 
 func (i StandardLines) AsGenericLines() []GenericInvoiceLine {
@@ -880,45 +811,6 @@ func (i StandardLines) Clone() (StandardLines, error) {
 	return slicesx.MapWithErr(i, func(line *StandardLine) (*StandardLine, error) {
 		return line.Clone()
 	})
-}
-
-type UsageBasedLine struct {
-	ConfigID string `json:"configId,omitempty"`
-
-	// Price is the price of the usage based line. Note: this should be a pointer or marshaling will fail for
-	// empty prices.
-	Price      *productcatalog.Price `json:"price"`
-	FeatureKey string                `json:"featureKey"`
-
-	Quantity        *alpacadecimal.Decimal `json:"quantity,omitempty"`
-	MeteredQuantity *alpacadecimal.Decimal `json:"meteredQuantity,omitempty"`
-
-	PreLinePeriodQuantity        *alpacadecimal.Decimal `json:"preLinePeriodQuantity,omitempty"`
-	MeteredPreLinePeriodQuantity *alpacadecimal.Decimal `json:"meteredPreLinePeriodQuantity,omitempty"`
-}
-
-func (i UsageBasedLine) Equal(other *UsageBasedLine) bool {
-	return deriveEqualUsageBasedLine(&i, other)
-}
-
-func (i UsageBasedLine) Clone() *UsageBasedLine {
-	return &i
-}
-
-func (i UsageBasedLine) Validate() error {
-	var errs []error
-
-	if err := i.Price.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("price: %w", err))
-	}
-
-	if i.Price.Type() != productcatalog.FlatPriceType {
-		if i.FeatureKey == "" {
-			errs = append(errs, errors.New("featureKey is required"))
-		}
-	}
-
-	return errors.Join(errs...)
 }
 
 type UpsertInvoiceLinesAdapterInput struct {

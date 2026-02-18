@@ -339,11 +339,11 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		s.NotNil(invoiceLine.SplitLineHierarchy)
 
 		// The line has 0 quantity, 50 metered quantity
-		require.Equal(s.T(), float64(0), invoiceLine.UsageBased.Quantity.InexactFloat64())
-		require.Equal(s.T(), float64(50), invoiceLine.UsageBased.MeteredQuantity.InexactFloat64())
+		require.Equal(s.T(), float64(0), invoiceLine.Quantity.InexactFloat64())
+		require.Equal(s.T(), float64(50), invoiceLine.MeteredQuantity.InexactFloat64())
 
-		require.Equal(s.T(), float64(0), invoiceLine.UsageBased.PreLinePeriodQuantity.InexactFloat64())
-		require.Equal(s.T(), float64(0), invoiceLine.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
+		require.Equal(s.T(), float64(0), invoiceLine.PreLinePeriodQuantity.InexactFloat64())
+		require.Equal(s.T(), float64(0), invoiceLine.MeteredPreLinePeriodQuantity.InexactFloat64())
 
 		s.Len(invoiceLine.Discounts.Usage, 1)
 		usageDiscount := invoiceLine.Discounts.Usage[0]
@@ -380,11 +380,11 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		s.NotNil(invoiceLine.SplitLineHierarchy)
 
 		// The line has 0 quantity, 50 metered quantity
-		require.Equal(s.T(), float64(15), invoiceLine.UsageBased.Quantity.InexactFloat64())
-		require.Equal(s.T(), float64(75), invoiceLine.UsageBased.MeteredQuantity.InexactFloat64())
+		require.Equal(s.T(), float64(15), invoiceLine.Quantity.InexactFloat64())
+		require.Equal(s.T(), float64(75), invoiceLine.MeteredQuantity.InexactFloat64())
 
-		require.Equal(s.T(), float64(0), invoiceLine.UsageBased.PreLinePeriodQuantity.InexactFloat64())
-		require.Equal(s.T(), float64(50), invoiceLine.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
+		require.Equal(s.T(), float64(0), invoiceLine.PreLinePeriodQuantity.InexactFloat64())
+		require.Equal(s.T(), float64(50), invoiceLine.MeteredPreLinePeriodQuantity.InexactFloat64())
 
 		s.Len(invoiceLine.Discounts.Usage, 1)
 		usageDiscount := invoiceLine.Discounts.Usage[0]
@@ -424,11 +424,11 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		s.NotNil(invoiceLine.SplitLineHierarchy)
 
 		// The line has 0 quantity, 50 metered quantity
-		require.Equal(s.T(), float64(30), invoiceLine.UsageBased.Quantity.InexactFloat64())
-		require.Equal(s.T(), float64(30), invoiceLine.UsageBased.MeteredQuantity.InexactFloat64())
+		require.Equal(s.T(), float64(30), invoiceLine.Quantity.InexactFloat64())
+		require.Equal(s.T(), float64(30), invoiceLine.MeteredQuantity.InexactFloat64())
 
-		require.Equal(s.T(), float64(15), invoiceLine.UsageBased.PreLinePeriodQuantity.InexactFloat64())
-		require.Equal(s.T(), float64(125), invoiceLine.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
+		require.Equal(s.T(), float64(15), invoiceLine.PreLinePeriodQuantity.InexactFloat64())
+		require.Equal(s.T(), float64(125), invoiceLine.MeteredPreLinePeriodQuantity.InexactFloat64())
 
 		s.Len(invoiceLine.Discounts.Usage, 0)
 
