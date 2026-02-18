@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"regexp"
 	"time"
 
 	"entgo.io/ent"
@@ -37,7 +36,7 @@ func (CustomCurrency) Mixin() []ent.Mixin {
 
 func (CustomCurrency) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("code").NotEmpty().Match(regexp.MustCompile(`^[A-Z]{3}$`)).Immutable(),
+		field.String("code").NotEmpty().Immutable(),
 		field.String("name").NotEmpty().MaxLen(100).Immutable(),
 		field.String("symbol").NotEmpty().MaxLen(10).Immutable(),
 		field.Int8("smallest_denomination").NonNegative().Default(2).Immutable(),
