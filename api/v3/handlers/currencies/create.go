@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/invopop/gobl/currency"
+
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"

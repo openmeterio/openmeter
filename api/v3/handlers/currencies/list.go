@@ -4,11 +4,12 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/samber/lo"
+
 	v3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/samber/lo"
 )
 
 type (

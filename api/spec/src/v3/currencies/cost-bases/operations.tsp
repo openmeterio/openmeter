@@ -13,12 +13,10 @@ using TypeSpec.OpenAPI;
 
 namespace Currencies;
 
-
 interface CostBasesOperations {
   /**
    * Cost Bases operations
    */
-
   /**
    * Get cost bases by currency id
    */
@@ -26,6 +24,6 @@ interface CostBasesOperations {
   @operationId("get-cost-bases-by-id")
   @summary("Get cost bases by id")
   get_cost_bases(
-    @path currencyId: Shared.ULID
-  ): CostBases | Common.ErrorResponses
+    @path currencyId: Shared.ULID,
+  ): CostBases | Common.ErrorResponses;
 }

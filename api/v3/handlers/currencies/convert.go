@@ -8,7 +8,7 @@ import (
 func MapCurrencyToAPI(currency currencies.Currency) v3.BillingCurrency {
 	return v3.BillingCurrency{
 		Id:                   currency.ID,
-		Code:                 v3.CurrencyCode(currency.Code),
+		Code:                 currency.Code,
 		DisambiguateSymbol:   currency.DisambiguateSymbol,
 		Name:                 currency.Name,
 		SmallestDenomination: uint8(currency.SmallestDenomination),

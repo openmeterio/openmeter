@@ -4,8 +4,9 @@ import (
 	"context"
 
 	"github.com/invopop/gobl/currency"
-	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 )
 
 var _ currencies.CurrencyService = (*Service)(nil)
@@ -39,7 +40,7 @@ func (s *Service) ListCurrencies(ctx context.Context) ([]currencies.Currency, er
 			Symbol:               def.Symbol,
 			SmallestDenomination: int8(def.SmallestDenomination),
 			DisambiguateSymbol:   def.DisambiguateSymbol,
-			Subunits:             uint32(def.Subunits),
+			Subunits:             def.Subunits,
 			IsCustom:             false,
 		}
 	})
@@ -50,9 +51,9 @@ func (s *Service) ListCurrencies(ctx context.Context) ([]currencies.Currency, er
 			Code:                 def.Code,
 			Name:                 def.Name,
 			Symbol:               def.Symbol,
-			SmallestDenomination: int8(def.SmallestDenomination),
+			SmallestDenomination: def.SmallestDenomination,
 			DisambiguateSymbol:   def.DisambiguateSymbol,
-			Subunits:             uint32(def.Subunits),
+			Subunits:             def.Subunits,
 			IsCustom:             def.IsCustom,
 		}
 	}), nil

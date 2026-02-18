@@ -10,7 +10,7 @@ model Currency {
   #suppress "@openmeter/api-spec/doc-decorator" "shared model"
   @visibility(Lifecycle.Read)
   id: Shared.ULID;
-  
+
   /**
    * Standard ISO 4217 code.
    */
@@ -51,5 +51,5 @@ model Currency {
    * Flag for the currency if it is custom or not
    */
   @visibility(Lifecycle.Read)
-  is_custom: boolean
+  is_custom: boolean;
 }

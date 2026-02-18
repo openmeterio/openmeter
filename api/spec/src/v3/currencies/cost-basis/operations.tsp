@@ -30,6 +30,6 @@ interface CostBasisOperations {
   @summary("Create custom cost basis for custom currencies")
   create_cost_basis(
     @header contentType: "application/json",
-    @body body: CostBasis
+    @body body: CostBasis,
   ): CreateCostBasisResponse | Common.ErrorResponses;
 }

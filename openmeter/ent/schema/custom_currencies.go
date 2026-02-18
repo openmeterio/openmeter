@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/schema/index"
 	"entgo.io/ent/schema/mixin"
 	"github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 

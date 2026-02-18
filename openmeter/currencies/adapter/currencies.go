@@ -7,12 +7,13 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/samber/lo"
 )
 
 var _ currencies.Adapter = (*adapter)(nil)

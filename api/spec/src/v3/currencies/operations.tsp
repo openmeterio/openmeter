@@ -55,6 +55,6 @@ interface CurrenciesOperations {
   @summary("Create custom currency")
   create(
     @header contentType: "application/json",
-    @body body: Currencies.CustomCurrency
+    @body body: Currencies.CustomCurrency,
   ): CustomCurrencyResponse | Common.ErrorResponses;
 }

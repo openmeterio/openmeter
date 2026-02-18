@@ -929,21 +929,7 @@ func init() {
 	// customcurrencyDescCode is the schema descriptor for code field.
 	customcurrencyDescCode := customcurrencyFields[0].Descriptor()
 	// customcurrency.CodeValidator is a validator for the "code" field. It is called by the builders before save.
-	customcurrency.CodeValidator = func() func(string) error {
-		validators := customcurrencyDescCode.Validators
-		fns := [...]func(string) error{
-			validators[0].(func(string) error),
-			validators[1].(func(string) error),
-		}
-		return func(code string) error {
-			for _, fn := range fns {
-				if err := fn(code); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}()
+	customcurrency.CodeValidator = customcurrencyDescCode.Validators[0].(func(string) error)
 	// customcurrencyDescName is the schema descriptor for name field.
 	customcurrencyDescName := customcurrencyFields[1].Descriptor()
 	// customcurrency.NameValidator is a validator for the "name" field. It is called by the builders before save.

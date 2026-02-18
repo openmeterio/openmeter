@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/google/wire"
+
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currencyAdapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
 	"github.com/openmeterio/openmeter/openmeter/currencies/service"
