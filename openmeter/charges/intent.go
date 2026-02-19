@@ -225,20 +225,28 @@ func (i Intent) Validate() error {
 	return errors.Join(errs...)
 }
 
-func (i Intent) GetFlatFeeIntent() (*FlatFeeIntent, error) {
+func (i Intent) GetFlatFeeIntent() (FlatFeeIntent, error) {
 	if i.IntentType != IntentTypeFlatFee {
-		return nil, fmt.Errorf("intent is not a flat fee intent")
+		return FlatFeeIntent{}, fmt.Errorf("intent is not a flat fee intent")
 	}
 
-	return i.flatFee, nil
+	if i.flatFee == nil {
+		return FlatFeeIntent{}, fmt.Errorf("flat fee intent is nil")
+	}
+
+	return *i.flatFee, nil
 }
 
-func (i Intent) GetUsageBasedIntent() (*UsageBasedIntent, error) {
+func (i Intent) GetUsageBasedIntent() (UsageBasedIntent, error) {
 	if i.IntentType != IntentTypeUsageBased {
-		return nil, fmt.Errorf("intent is not a usage based intent")
+		return UsageBasedIntent{}, fmt.Errorf("intent is not a usage based intent")
 	}
 
-	return i.usageBased, nil
+	if i.usageBased == nil {
+		return UsageBasedIntent{}, fmt.Errorf("usage based intent is nil")
+	}
+
+	return *i.usageBased, nil
 }
 
 func NewIntent[T FlatFeeIntent | UsageBasedIntent](meta IntentMeta, v T) Intent {
