@@ -100,11 +100,16 @@ type StandardInvoiceService interface {
 	GetStandardInvoiceById(ctx context.Context, input GetStandardInvoiceByIdInput) (StandardInvoice, error)
 	// ListStandardInvoices lists standard invoices
 	ListStandardInvoices(ctx context.Context, input ListStandardInvoicesInput) (ListStandardInvoicesResponse, error)
+	// CreateStandardInvoiceFromGatheringLines creates a standard invoice from the gathering invoice lines.
+	CreateStandardInvoiceFromGatheringLines(ctx context.Context, input CreateStandardInvoiceFromGatheringLinesInput) (*StandardInvoice, error)
 }
 
 type GatheringInvoiceService interface {
 	// CreatePendingInvoiceLines creates pending invoice lines for a customer, if the lines are zero valued, the response is nil
 	CreatePendingInvoiceLines(ctx context.Context, input CreatePendingInvoiceLinesInput) (*CreatePendingInvoiceLinesResult, error)
+
+	// PrepareBillableLines prepares the billable lines for a customer, if the lines are zero valued, the response is nil
+	PrepareBillableLines(ctx context.Context, input PrepareBillableLinesInput) (*PrepareBillableLinesResult, error)
 
 	ListGatheringInvoices(ctx context.Context, input ListGatheringInvoicesInput) (pagination.Result[GatheringInvoice], error)
 	GetGatheringInvoiceById(ctx context.Context, input GetGatheringInvoiceByIdInput) (GatheringInvoice, error)

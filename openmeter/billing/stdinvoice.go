@@ -988,3 +988,42 @@ func (i ListStandardInvoicesInput) Validate() error {
 }
 
 type ListStandardInvoicesResponse = pagination.Result[StandardInvoice]
+
+type CreateStandardInvoiceFromGatheringLinesInput struct {
+	Customer customer.CustomerID
+	Currency currencyx.Code
+
+	Lines GatheringLines
+}
+
+func (i CreateStandardInvoiceFromGatheringLinesInput) Validate() error {
+	var errs []error
+
+	if err := i.Customer.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer: %w", err))
+	}
+
+	if err := i.Currency.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("currency: %w", err))
+	}
+
+	if len(i.Lines) == 0 {
+		errs = append(errs, fmt.Errorf("lines are required"))
+	}
+
+	for _, line := range i.Lines {
+		if err := line.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("line[%s]: %w", line.ID, err))
+		}
+
+		if line.Currency != i.Currency {
+			errs = append(errs, fmt.Errorf("line[%s]: currency[%s] is not equal to invoice currency[%s]", line.ID, line.Currency, i.Currency))
+		}
+
+		if line.Namespace != i.Customer.Namespace {
+			errs = append(errs, fmt.Errorf("line[%s]: namespace[%s] is not equal to invoice namespace[%s]", line.ID, line.Namespace, i.Customer.Namespace))
+		}
+	}
+
+	return errors.Join(errs...)
+}
