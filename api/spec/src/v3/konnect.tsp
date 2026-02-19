@@ -10,6 +10,7 @@ import "./entitlements/index.tsp";
 import "./subscriptions/index.tsp";
 import "./apps/index.tsp";
 import "./billing/index.tsp";
+import "./tax/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -43,6 +44,7 @@ using TypeSpec.OpenAPI;
 )
 @tagMetadata(Shared.AppsTag, #{ description: Shared.AppsDescription })
 @tagMetadata(Shared.BillingTag, #{ description: Shared.BillingDescription })
+@tagMetadata(Shared.TaxTag, #{ description: Shared.TaxDescription })
 @useAuth(systemAccountAccessToken | personalAccessToken | konnectAccessToken)
 namespace MeteringAndBilling;
 
@@ -80,6 +82,10 @@ interface AppsEndpoints extends Apps.AppsOperations {}
 @route("/openmeter/profiles")
 @tag(Shared.BillingTag)
 interface BillingProfilesEndpoints extends Billing.BillingProfilesOperations {}
+
+@route("/openmeter/tax-codes")
+@tag(Shared.TaxTag)
+interface TaxCodesEndpoints extends Tax.TaxCodesOperations {}
 
 /**
  * The system account access token is meant for automations and integrations that are not directly associated with a human identity.
