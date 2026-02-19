@@ -13,7 +13,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -63,6 +62,68 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 		s,
 		input.Customer,
 		func(ctx context.Context) ([]billing.StandardInvoice, error) {
+			asOf := lo.FromPtrOr(input.AsOf, clock.Now())
+			input.AsOf = &asOf
+
+			billableLines, err := s.PrepareBillableLines(ctx, input)
+			if err != nil {
+				return nil, fmt.Errorf("preparing billable lines: %w", err)
+			}
+
+			if billableLines == nil {
+				// Should not happen, but we want to be defensive, but we are not surfacing this error to the caller.
+				return nil, fmt.Errorf("billable lines are nil")
+			}
+
+			createdInvoices := make([]billing.StandardInvoice, 0, len(billableLines.LinesByCurrency))
+
+			for currency, inScopeLines := range billableLines.LinesByCurrency {
+				createdInvoice, err := s.CreateStandardInvoiceFromGatheringLines(ctx, billing.CreateStandardInvoiceFromGatheringLinesInput{
+					Customer: input.Customer,
+					Currency: currency,
+					Lines:    inScopeLines,
+				})
+				if err != nil {
+					return nil, fmt.Errorf("creating standard invoice from gathering lines: %w", err)
+				}
+
+				createdInvoices = append(createdInvoices, *createdInvoice)
+			}
+
+			for _, invoice := range createdInvoices {
+				event, err := billing.NewStandardInvoiceCreatedEvent(invoice)
+				if err != nil {
+					return nil, fmt.Errorf("creating event: %w", err)
+				}
+
+				err = s.publisher.Publish(ctx, event)
+				if err != nil {
+					return nil, fmt.Errorf("publishing event: %w", err)
+				}
+			}
+
+			return createdInvoices, nil
+		})
+}
+
+func (s *Service) PrepareBillableLines(ctx context.Context, input billing.PrepareBillableLinesInput) (*billing.PrepareBillableLinesResult, error) {
+	if err := input.Validate(); err != nil {
+		return nil, billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	if slices.Contains(s.fsNamespaceLockdown, input.Customer.Namespace) {
+		return nil, billing.ValidationError{
+			Err: fmt.Errorf("%w: %s", billing.ErrNamespaceLocked, input.Customer.Namespace),
+		}
+	}
+
+	return transactionForInvoiceManipulation(
+		ctx,
+		s,
+		input.Customer,
+		func(ctx context.Context) (*billing.PrepareBillableLinesResult, error) {
 			// let's resolve the customer's settings
 			customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 				Customer: input.Customer,
@@ -133,7 +194,7 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				return nil, err
 			}
 
-			createdInvoices := make([]billing.StandardInvoice, 0, len(inScopeLinesByCurrency))
+			linesToBeBilledByCurrency := make(map[currencyx.Code]billing.GatheringLines)
 
 			for currency, inScopeLines := range inScopeLinesByCurrency {
 				// Let's first make sure we have properly split the progressively billed
@@ -144,129 +205,45 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				}
 
 				if len(inScopeLines) == 0 {
-					return nil, billing.ValidationError{
-						Err: billing.ErrInvoiceCreateNoLines,
-					}
+					continue
 				}
 
-				createdInvoice, err := s.handleInvoicePendingLinesForCurrency(ctx, handleInvoicePendingLinesForCurrencyInput{
-					Currency:                currency,
-					Customer:                lo.FromPtr(customerProfile.Customer),
-					GatheringInvoice:        gatheringInvoice.Invoice,
-					FeatureMeters:           gatheringInvoice.FeatureMeters,
-					InScopeLines:            inScopeLines,
-					EffectiveBillingProfile: customerProfile.MergedProfile,
+				// Step 1: Let's make sure we have lines properly split on the gathering invoice.
+				// Invariant: the gathering invoice is updated to contain the new lines if any were split.
+				prepareResults, err := s.prepareLinesToBill(ctx, prepareLinesToBillInput{
+					GatheringInvoice: gatheringInvoice.Invoice,
+					FeatureMeters:    gatheringInvoice.FeatureMeters,
+					InScopeLines:     inScopeLines,
 				})
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("gathering lines to bill: %w", err)
 				}
 
-				if createdInvoice == nil {
-					return nil, fmt.Errorf("created invoice is nil")
+				if prepareResults == nil {
+					continue
 				}
 
-				createdInvoices = append(createdInvoices, *createdInvoice)
+				linesToBeBilledByCurrency[currency] = prepareResults.LinesToBill
 			}
 
-			for _, invoice := range createdInvoices {
-				event, err := billing.NewStandardInvoiceCreatedEvent(invoice)
-				if err != nil {
-					return nil, fmt.Errorf("creating event: %w", err)
-				}
+			totalLinesToBeBilled := 0
+			for _, lines := range linesToBeBilledByCurrency {
+				totalLinesToBeBilled += len(lines)
+			}
 
-				err = s.publisher.Publish(ctx, event)
-				if err != nil {
-					return nil, fmt.Errorf("publishing event: %w", err)
+			if totalLinesToBeBilled == 0 {
+				return nil, billing.ValidationError{
+					Err: billing.ErrInvoiceCreateNoLines,
 				}
 			}
 
-			return createdInvoices, nil
+			return &billing.PrepareBillableLinesResult{
+				LinesByCurrency: linesToBeBilledByCurrency,
+			}, nil
 		})
 }
 
 type gatheringLineWithBillablePeriod = lineservice.LineWithBillablePeriod[billing.GatheringLine]
-
-type handleInvoicePendingLinesForCurrencyInput struct {
-	Currency                currencyx.Code
-	Customer                customer.Customer
-	GatheringInvoice        billing.GatheringInvoice
-	FeatureMeters           billing.FeatureMeters
-	InScopeLines            []gatheringLineWithBillablePeriod
-	EffectiveBillingProfile billing.Profile
-}
-
-func (in handleInvoicePendingLinesForCurrencyInput) Validate() error {
-	if err := in.Currency.Validate(); err != nil {
-		return fmt.Errorf("currency: %w", err)
-	}
-
-	if err := in.Customer.Validate(); err != nil {
-		return fmt.Errorf("customer: %w", err)
-	}
-
-	if err := in.GatheringInvoice.Validate(); err != nil {
-		return fmt.Errorf("gathering invoice: %w", err)
-	}
-
-	if in.FeatureMeters == nil {
-		return fmt.Errorf("feature meters are required")
-	}
-
-	return nil
-}
-
-func (s *Service) handleInvoicePendingLinesForCurrency(ctx context.Context, in handleInvoicePendingLinesForCurrencyInput) (*billing.StandardInvoice, error) {
-	if err := in.Validate(); err != nil {
-		return nil, err
-	}
-
-	gatheringInvoice := in.GatheringInvoice
-
-	// Step 1: Let's make sure we have lines properly split on the gathering invoice.
-	// Invariant: the gathering invoice is updated to contain the new lines if any were split.
-	prepareResults, err := s.prepareLinesToBill(ctx, prepareLinesToBillInput{
-		GatheringInvoice: gatheringInvoice,
-		FeatureMeters:    in.FeatureMeters,
-		InScopeLines:     in.InScopeLines,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("gathering lines to bill: %w", err)
-	}
-
-	if prepareResults == nil {
-		return nil, fmt.Errorf("lines to bill is nil")
-	}
-
-	if len(prepareResults.LinesToBill) == 0 {
-		return nil, billing.ValidationError{
-			Err: billing.ErrInvoiceCreateNoLines,
-		}
-	}
-
-	gatheringInvoice = prepareResults.GatheringInvoice
-
-	// Step 2: Let's create the standard invoice and move the lines to the new invoice.
-	// Invariant:
-	// - new invoice: initial calculations are done and persisted to the database
-	// - gathering invoice: lines that have been associated to the new invoice are removed from the gathering invoice
-	createStandardInvoiceResult, err := s.createStandardInvoiceFromGatheringLines(ctx, createStandardInvoiceFromGatheringLinesInput{
-		Customer:                in.Customer,
-		Currency:                in.Currency,
-		GatheringInvoice:        gatheringInvoice,
-		FeatureMeters:           in.FeatureMeters,
-		Lines:                   prepareResults.LinesToBill,
-		EffectiveBillingProfile: in.EffectiveBillingProfile,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("creating standard invoice and associating lines: %w", err)
-	}
-
-	if createStandardInvoiceResult == nil {
-		return nil, fmt.Errorf("created invoice is nil")
-	}
-
-	return createStandardInvoiceResult, nil
-}
 
 type gatheringInvoiceWithFeatureMeters struct {
 	Invoice       billing.GatheringInvoice
@@ -676,60 +653,30 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 	}, nil
 }
 
-type createStandardInvoiceFromGatheringLinesInput struct {
-	Customer                customer.Customer
-	Currency                currencyx.Code
-	GatheringInvoice        billing.GatheringInvoice
-	FeatureMeters           billing.FeatureMeters
-	Lines                   billing.GatheringLines
-	EffectiveBillingProfile billing.Profile
-}
-
-func (in createStandardInvoiceFromGatheringLinesInput) Validate() error {
-	var errs []error
-
-	if err := in.Customer.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("customer: %w", err))
-	}
-
-	if err := in.Currency.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("currency: %w", err))
-	}
-
-	if err := in.EffectiveBillingProfile.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("effective billing profile: %w", err))
-	}
-
-	if len(in.Lines) == 0 {
-		errs = append(errs, fmt.Errorf("lines must contain at least one line"))
-	}
-
-	for _, line := range in.Lines {
-		if err := line.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("line[%s]: %w", line.ID, err))
-		}
-	}
-
-	if in.FeatureMeters == nil {
-		errs = append(errs, fmt.Errorf("feature meters are required"))
-	}
-
-	return errors.Join(errs...)
-}
-
 // createStandardInvoiceFromGatheringLines creates a standard invoice from the gathering invoice lines.
 // Invariant:
 // - the standard invoice is in draft.created state, and is calculated and persisted to the database
 // - the gathering invoice's lines are deleted, and persisted to the database
-func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, in createStandardInvoiceFromGatheringLinesInput) (*billing.StandardInvoice, error) {
+func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, in billing.CreateStandardInvoiceFromGatheringLinesInput) (*billing.StandardInvoice, error) {
 	if err := in.Validate(); err != nil {
 		return nil, fmt.Errorf("validating input: %w", err)
+	}
+
+	profile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		Customer: in.Customer,
+		Expand: billing.CustomerOverrideExpand{
+			Customer: true,
+			Apps:     true,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("fetching customer profile: %w", err)
 	}
 
 	invoiceNumber, err := s.GenerateInvoiceSequenceNumber(ctx,
 		billing.SequenceGenerationInput{
 			Namespace:    in.Customer.Namespace,
-			CustomerName: in.Customer.Name,
+			CustomerName: profile.Customer.Name,
 			Currency:     in.Currency,
 		},
 		billing.DraftInvoiceSequenceNumber,
@@ -741,8 +688,8 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 	// let's create the invoice
 	invoice, err := s.adapter.CreateInvoice(ctx, billing.CreateInvoiceAdapterInput{
 		Namespace: in.Customer.Namespace,
-		Customer:  in.Customer,
-		Profile:   in.EffectiveBillingProfile,
+		Customer:  lo.FromPtr(profile.Customer),
+		Profile:   profile.MergedProfile,
 
 		Currency: in.Currency,
 		Number:   invoiceNumber,
@@ -754,17 +701,17 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("creating invoice: %w", err)
 	}
 
-	invoiceID := invoice.ID
+	// let's set the workflow apps as some checks such as CanDraftSyncAdvance depends on the apps
+	invoice.Workflow.Apps = profile.MergedProfile.Apps
 
-	// let's resolve the workflow apps as some checks such as CanDraftSyncAdvance depends on the apps
-	invoice, err = s.resolveWorkflowApps(ctx, invoice)
+	featureMeters, err := s.resolveFeatureMeters(ctx, in.Customer.Namespace, billing.NewGatheringInvoiceLines(in.Lines))
 	if err != nil {
-		return nil, fmt.Errorf("error resolving workflow apps for invoice [%s]: %w", invoiceID, err)
+		return nil, fmt.Errorf("resolving feature meters: %w", err)
 	}
 
 	convertResults, err := s.convertGatheringLinesToStandardLines(ctx, convertGatheringLinesToStandardLinesInput{
 		TargetInvoice:           invoice,
-		FeatureMeters:           in.FeatureMeters,
+		FeatureMeters:           featureMeters,
 		GatheringLinesToConvert: in.Lines,
 	})
 	if err != nil {
@@ -773,13 +720,33 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 
 	invoice = convertResults.TargetInvoice
 
-	// Let's first update the gathering invoice to make sure deleted lines are synced, as the standard invoice will have expanded split line hierarchies
-	// and we need to make sure that gathering invoice lines that are already yielded the standard invoice lines are excluded from the split line hierarchy.
-	//
-	// Note: this is a hack, on the long term we need to have a Charge type that encapsulates all of this logic.
-	err = s.removeLinesFromGatheringInvoice(ctx, in.GatheringInvoice, in.Lines)
-	if err != nil {
-		return nil, fmt.Errorf("updating gathering invoice: %w", err)
+	affectedGatheringInvoiceIDs := lo.Uniq(lo.Map(in.Lines, func(line billing.GatheringLine, _ int) billing.InvoiceID {
+		return billing.InvoiceID{Namespace: line.Namespace, ID: line.InvoiceID}
+	}))
+
+	for _, gatheringInvoiceID := range affectedGatheringInvoiceIDs {
+		gatheringInvoice, err := s.adapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+			Invoice: gatheringInvoiceID,
+			Expand: billing.GatheringInvoiceExpands{
+				billing.GatheringInvoiceExpandLines,
+			},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("fetching gathering invoice: %w", err)
+		}
+
+		invoiceLinesToRemove := lo.Filter(in.Lines, func(line billing.GatheringLine, _ int) bool {
+			return billing.InvoiceID{Namespace: gatheringInvoice.Namespace, ID: line.InvoiceID} == gatheringInvoiceID
+		})
+
+		// Let's first update the gathering invoice to make sure deleted lines are synced, as the standard invoice will have expanded split line hierarchies
+		// and we need to make sure that gathering invoice lines that are already yielded the standard invoice lines are excluded from the split line hierarchy.
+		//
+		// Note: this is a hack, on the long term we need to have a Charge type that encapsulates all of this logic.
+		err = s.removeLinesFromGatheringInvoice(ctx, gatheringInvoice, invoiceLinesToRemove)
+		if err != nil {
+			return nil, fmt.Errorf("updating gathering invoice: %w", err)
+		}
 	}
 
 	// Prerequisite: we should have the split line group headers expanded so that snapshotting can determine if the preLine
@@ -789,7 +756,7 @@ func (s *Service) createStandardInvoiceFromGatheringLines(ctx context.Context, i
 	}
 
 	// Let's snapshot the quantities for the lines that we have converted to standard lines so that calculations can be performed
-	if err := s.snapshotLineQuantitiesInParallel(ctx, invoice.Customer, convertResults.LinesAssociated, in.FeatureMeters); err != nil {
+	if err := s.snapshotLineQuantitiesInParallel(ctx, invoice.Customer, convertResults.LinesAssociated, featureMeters); err != nil {
 		return nil, fmt.Errorf("snapshotting lines: %w", err)
 	}
 

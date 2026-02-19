@@ -1488,6 +1488,10 @@ func (n NoopBillingService) ListStandardInvoices(ctx context.Context, input bill
 	return billing.ListStandardInvoicesResponse{}, nil
 }
 
+func (n NoopBillingService) CreateStandardInvoiceFromGatheringLines(ctx context.Context, input billing.CreateStandardInvoiceFromGatheringLinesInput) (*billing.StandardInvoice, error) {
+	return &billing.StandardInvoice{}, nil
+}
+
 func (n NoopBillingService) GetInvoiceById(ctx context.Context, input billing.GetInvoiceByIdInput) (billing.Invoice, error) {
 	return billing.Invoice{}, nil
 }
@@ -1539,6 +1543,10 @@ func (n NoopBillingService) RecalculateGatheringInvoices(ctx context.Context, in
 // GatheringInvoiceService methods
 func (n NoopBillingService) InvoicePendingLines(ctx context.Context, input billing.InvoicePendingLinesInput) ([]billing.StandardInvoice, error) {
 	return []billing.StandardInvoice{}, nil
+}
+
+func (n NoopBillingService) PrepareBillableLines(ctx context.Context, input billing.PrepareBillableLinesInput) (*billing.PrepareBillableLinesResult, error) {
+	return nil, nil
 }
 
 func (n NoopBillingService) ListGatheringInvoices(ctx context.Context, input billing.ListGatheringInvoicesInput) (pagination.Result[billing.GatheringInvoice], error) {

@@ -886,3 +886,9 @@ func (i UpdateGatheringInvoiceInput) Validate() error {
 
 	return nil
 }
+
+type PrepareBillableLinesInput = InvoicePendingLinesInput
+
+type PrepareBillableLinesResult struct {
+	LinesByCurrency map[currencyx.Code]GatheringLines
+}
