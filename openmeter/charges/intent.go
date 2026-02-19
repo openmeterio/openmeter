@@ -23,9 +23,10 @@ type IntentMeta struct {
 
 	Currency currencyx.Code `json:"currency"`
 
-	ServicePeriod     timeutil.ClosedPeriod `json:"servicePeriod"`
-	FullServicePeriod timeutil.ClosedPeriod `json:"fullServicePeriod"`
-	BillingPeriod     timeutil.ClosedPeriod `json:"billingPeriod"`
+	ServicePeriod     timeutil.ClosedPeriod         `json:"servicePeriod"`
+	FullServicePeriod timeutil.ClosedPeriod         `json:"fullServicePeriod"`
+	BillingPeriod     timeutil.ClosedPeriod         `json:"billingPeriod"`
+	SettlementMode    productcatalog.SettlementMode `json:"settlementMode"`
 
 	InvoiceAt time.Time `json:"invoiceAt"`
 
