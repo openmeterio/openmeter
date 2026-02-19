@@ -62,9 +62,6 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 		s,
 		input.Customer,
 		func(ctx context.Context) ([]billing.StandardInvoice, error) {
-			asOf := lo.FromPtrOr(input.AsOf, clock.Now())
-			input.AsOf = &asOf
-
 			billableLines, err := s.PrepareBillableLines(ctx, input)
 			if err != nil {
 				return nil, fmt.Errorf("preparing billable lines: %w", err)
@@ -88,18 +85,6 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 				}
 
 				createdInvoices = append(createdInvoices, *createdInvoice)
-			}
-
-			for _, invoice := range createdInvoices {
-				event, err := billing.NewStandardInvoiceCreatedEvent(invoice)
-				if err != nil {
-					return nil, fmt.Errorf("creating event: %w", err)
-				}
-
-				err = s.publisher.Publish(ctx, event)
-				if err != nil {
-					return nil, fmt.Errorf("publishing event: %w", err)
-				}
 			}
 
 			return createdInvoices, nil
@@ -805,6 +790,17 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 	})
 	if err != nil {
 		return nil, fmt.Errorf("activating invoice: %w", err)
+	}
+
+	// Let's publish the created event
+	event, err := billing.NewStandardInvoiceCreatedEvent(invoice)
+	if err != nil {
+		return nil, fmt.Errorf("creating event: %w", err)
+	}
+
+	err = s.publisher.Publish(ctx, event)
+	if err != nil {
+		return nil, fmt.Errorf("publishing event: %w", err)
 	}
 
 	return &invoice, nil
