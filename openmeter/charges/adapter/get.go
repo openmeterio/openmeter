@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/charges"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -11,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
-	"github.com/samber/lo"
 )
 
 func (a *adapter) GetChargeByID(ctx context.Context, input models.NamespacedID) (charges.Charge, error) {

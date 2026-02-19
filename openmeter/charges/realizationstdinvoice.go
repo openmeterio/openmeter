@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"

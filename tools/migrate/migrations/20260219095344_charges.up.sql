@@ -86,6 +86,8 @@ CREATE TABLE "charges" (
   "full_service_period_to" timestamptz NOT NULL,
   "invoice_at" timestamptz NOT NULL,
   "type" character varying NOT NULL,
+  "status" character varying NOT NULL,
+  "settlement_mode" character varying NOT NULL,
   "unique_reference_id" character varying NULL,
   "currency" character varying(3) NOT NULL,
   "tax_config" jsonb NULL,

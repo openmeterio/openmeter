@@ -903,7 +903,7 @@ func init() {
 	// charge.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	charge.CustomerIDValidator = chargeDescCustomerID.Validators[0].(func(string) error)
 	// chargeDescCurrency is the schema descriptor for currency field.
-	chargeDescCurrency := chargeFields[10].Descriptor()
+	chargeDescCurrency := chargeFields[12].Descriptor()
 	// charge.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	charge.CurrencyValidator = chargeDescCurrency.Validators[0].(func(string) error)
 	// chargeDescID is the schema descriptor for id field.
