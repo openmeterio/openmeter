@@ -1516,6 +1516,8 @@ var (
 		{Name: "full_service_period_to", Type: field.TypeTime},
 		{Name: "invoice_at", Type: field.TypeTime},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"flat_fee", "usage_based"}},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"active", "settled", "final"}},
+		{Name: "settlement_mode", Type: field.TypeEnum, Enums: []string{"invoice_only", "credit_then_invoice", "credit_only"}},
 		{Name: "unique_reference_id", Type: field.TypeString, Nullable: true},
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "tax_config", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
@@ -1533,25 +1535,25 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charges_customers_charge_intents",
-				Columns:    []*schema.Column{ChargesColumns[21]},
+				Columns:    []*schema.Column{ChargesColumns[23]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charges_subscriptions_charge_intents",
-				Columns:    []*schema.Column{ChargesColumns[22]},
+				Columns:    []*schema.Column{ChargesColumns[24]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charges_subscription_items_charge_intents",
-				Columns:    []*schema.Column{ChargesColumns[23]},
+				Columns:    []*schema.Column{ChargesColumns[25]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charges_subscription_phases_charge_intents",
-				Columns:    []*schema.Column{ChargesColumns[24]},
+				Columns:    []*schema.Column{ChargesColumns[26]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -1585,7 +1587,7 @@ var (
 			{
 				Name:    "charge_namespace_customer_id_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargesColumns[2], ChargesColumns[21], ChargesColumns[17]},
+				Columns: []*schema.Column{ChargesColumns[2], ChargesColumns[23], ChargesColumns[19]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},

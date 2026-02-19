@@ -33607,6 +33607,8 @@ type ChargeMutation struct {
 	full_service_period_to               *time.Time
 	invoice_at                           *time.Time
 	_type                                *charges.IntentType
+	status                               *charges.ChargeStatus
+	settlement_mode                      *productcatalog.SettlementMode
 	unique_reference_id                  *string
 	currency                             *currencyx.Code
 	tax_config                           *productcatalog.TaxConfig
@@ -34406,6 +34408,78 @@ func (m *ChargeMutation) ResetType() {
 	m._type = nil
 }
 
+// SetStatus sets the "status" field.
+func (m *ChargeMutation) SetStatus(cs charges.ChargeStatus) {
+	m.status = &cs
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *ChargeMutation) Status() (r charges.ChargeStatus, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the Charge entity.
+// If the Charge object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeMutation) OldStatus(ctx context.Context) (v charges.ChargeStatus, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *ChargeMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetSettlementMode sets the "settlement_mode" field.
+func (m *ChargeMutation) SetSettlementMode(pm productcatalog.SettlementMode) {
+	m.settlement_mode = &pm
+}
+
+// SettlementMode returns the value of the "settlement_mode" field in the mutation.
+func (m *ChargeMutation) SettlementMode() (r productcatalog.SettlementMode, exists bool) {
+	v := m.settlement_mode
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSettlementMode returns the old "settlement_mode" field's value of the Charge entity.
+// If the Charge object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeMutation) OldSettlementMode(ctx context.Context) (v productcatalog.SettlementMode, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSettlementMode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSettlementMode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSettlementMode: %w", err)
+	}
+	return oldValue.SettlementMode, nil
+}
+
+// ResetSettlementMode resets all changes to the "settlement_mode" field.
+func (m *ChargeMutation) ResetSettlementMode() {
+	m.settlement_mode = nil
+}
+
 // SetUniqueReferenceID sets the "unique_reference_id" field.
 func (m *ChargeMutation) SetUniqueReferenceID(s string) {
 	m.unique_reference_id = &s
@@ -35105,7 +35179,7 @@ func (m *ChargeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeMutation) Fields() []string {
-	fields := make([]string, 0, 24)
+	fields := make([]string, 0, 26)
 	if m.annotations != nil {
 		fields = append(fields, charge.FieldAnnotations)
 	}
@@ -35156,6 +35230,12 @@ func (m *ChargeMutation) Fields() []string {
 	}
 	if m._type != nil {
 		fields = append(fields, charge.FieldType)
+	}
+	if m.status != nil {
+		fields = append(fields, charge.FieldStatus)
+	}
+	if m.settlement_mode != nil {
+		fields = append(fields, charge.FieldSettlementMode)
 	}
 	if m.unique_reference_id != nil {
 		fields = append(fields, charge.FieldUniqueReferenceID)
@@ -35220,6 +35300,10 @@ func (m *ChargeMutation) Field(name string) (ent.Value, bool) {
 		return m.InvoiceAt()
 	case charge.FieldType:
 		return m.GetType()
+	case charge.FieldStatus:
+		return m.Status()
+	case charge.FieldSettlementMode:
+		return m.SettlementMode()
 	case charge.FieldUniqueReferenceID:
 		return m.UniqueReferenceID()
 	case charge.FieldCurrency:
@@ -35277,6 +35361,10 @@ func (m *ChargeMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldInvoiceAt(ctx)
 	case charge.FieldType:
 		return m.OldType(ctx)
+	case charge.FieldStatus:
+		return m.OldStatus(ctx)
+	case charge.FieldSettlementMode:
+		return m.OldSettlementMode(ctx)
 	case charge.FieldUniqueReferenceID:
 		return m.OldUniqueReferenceID(ctx)
 	case charge.FieldCurrency:
@@ -35418,6 +35506,20 @@ func (m *ChargeMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetType(v)
+		return nil
+	case charge.FieldStatus:
+		v, ok := value.(charges.ChargeStatus)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case charge.FieldSettlementMode:
+		v, ok := value.(productcatalog.SettlementMode)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSettlementMode(v)
 		return nil
 	case charge.FieldUniqueReferenceID:
 		v, ok := value.(string)
@@ -35624,6 +35726,12 @@ func (m *ChargeMutation) ResetField(name string) error {
 		return nil
 	case charge.FieldType:
 		m.ResetType()
+		return nil
+	case charge.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case charge.FieldSettlementMode:
+		m.ResetSettlementMode()
 		return nil
 	case charge.FieldUniqueReferenceID:
 		m.ResetUniqueReferenceID()

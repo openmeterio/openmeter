@@ -63,6 +63,10 @@ type Charge struct {
 	InvoiceAt time.Time `json:"invoice_at,omitempty"`
 	// Type holds the value of the "type" field.
 	Type charges.IntentType `json:"type,omitempty"`
+	// Status holds the value of the "status" field.
+	Status charges.ChargeStatus `json:"status,omitempty"`
+	// SettlementMode holds the value of the "settlement_mode" field.
+	SettlementMode productcatalog.SettlementMode `json:"settlement_mode,omitempty"`
 	// UniqueReferenceID holds the value of the "unique_reference_id" field.
 	UniqueReferenceID *string `json:"unique_reference_id,omitempty"`
 	// Currency holds the value of the "currency" field.
@@ -208,7 +212,7 @@ func (*Charge) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case charge.FieldAnnotations, charge.FieldMetadata, charge.FieldTaxConfig:
 			values[i] = new([]byte)
-		case charge.FieldID, charge.FieldNamespace, charge.FieldName, charge.FieldDescription, charge.FieldCustomerID, charge.FieldType, charge.FieldUniqueReferenceID, charge.FieldCurrency, charge.FieldManagedBy, charge.FieldSubscriptionID, charge.FieldSubscriptionPhaseID, charge.FieldSubscriptionItemID:
+		case charge.FieldID, charge.FieldNamespace, charge.FieldName, charge.FieldDescription, charge.FieldCustomerID, charge.FieldType, charge.FieldStatus, charge.FieldSettlementMode, charge.FieldUniqueReferenceID, charge.FieldCurrency, charge.FieldManagedBy, charge.FieldSubscriptionID, charge.FieldSubscriptionPhaseID, charge.FieldSubscriptionItemID:
 			values[i] = new(sql.NullString)
 		case charge.FieldCreatedAt, charge.FieldUpdatedAt, charge.FieldDeletedAt, charge.FieldServicePeriodFrom, charge.FieldServicePeriodTo, charge.FieldBillingPeriodFrom, charge.FieldBillingPeriodTo, charge.FieldFullServicePeriodFrom, charge.FieldFullServicePeriodTo, charge.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
@@ -340,6 +344,18 @@ func (_m *Charge) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
 				_m.Type = charges.IntentType(value.String)
+			}
+		case charge.FieldStatus:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field status", values[i])
+			} else if value.Valid {
+				_m.Status = charges.ChargeStatus(value.String)
+			}
+		case charge.FieldSettlementMode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field settlement_mode", values[i])
+			} else if value.Valid {
+				_m.SettlementMode = productcatalog.SettlementMode(value.String)
 			}
 		case charge.FieldUniqueReferenceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -524,6 +540,12 @@ func (_m *Charge) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("type=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Type))
+	builder.WriteString(", ")
+	builder.WriteString("status=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Status))
+	builder.WriteString(", ")
+	builder.WriteString("settlement_mode=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SettlementMode))
 	builder.WriteString(", ")
 	if v := _m.UniqueReferenceID; v != nil {
 		builder.WriteString("unique_reference_id=")

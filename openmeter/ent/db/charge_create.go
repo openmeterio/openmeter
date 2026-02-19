@@ -171,6 +171,18 @@ func (_c *ChargeCreate) SetType(v charges.IntentType) *ChargeCreate {
 	return _c
 }
 
+// SetStatus sets the "status" field.
+func (_c *ChargeCreate) SetStatus(v charges.ChargeStatus) *ChargeCreate {
+	_c.mutation.SetStatus(v)
+	return _c
+}
+
+// SetSettlementMode sets the "settlement_mode" field.
+func (_c *ChargeCreate) SetSettlementMode(v productcatalog.SettlementMode) *ChargeCreate {
+	_c.mutation.SetSettlementMode(v)
+	return _c
+}
+
 // SetUniqueReferenceID sets the "unique_reference_id" field.
 func (_c *ChargeCreate) SetUniqueReferenceID(v string) *ChargeCreate {
 	_c.mutation.SetUniqueReferenceID(v)
@@ -475,6 +487,22 @@ func (_c *ChargeCreate) check() error {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "Charge.type": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.Status(); !ok {
+		return &ValidationError{Name: "status", err: errors.New(`db: missing required field "Charge.status"`)}
+	}
+	if v, ok := _c.mutation.Status(); ok {
+		if err := charge.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "Charge.status": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.SettlementMode(); !ok {
+		return &ValidationError{Name: "settlement_mode", err: errors.New(`db: missing required field "Charge.settlement_mode"`)}
+	}
+	if v, ok := _c.mutation.SettlementMode(); ok {
+		if err := charge.SettlementModeValidator(v); err != nil {
+			return &ValidationError{Name: "settlement_mode", err: fmt.Errorf(`db: validator failed for field "Charge.settlement_mode": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Currency(); !ok {
 		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "Charge.currency"`)}
 	}
@@ -598,6 +626,14 @@ func (_c *ChargeCreate) createSpec() (*Charge, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.GetType(); ok {
 		_spec.SetField(charge.FieldType, field.TypeEnum, value)
 		_node.Type = value
+	}
+	if value, ok := _c.mutation.Status(); ok {
+		_spec.SetField(charge.FieldStatus, field.TypeEnum, value)
+		_node.Status = value
+	}
+	if value, ok := _c.mutation.SettlementMode(); ok {
+		_spec.SetField(charge.FieldSettlementMode, field.TypeEnum, value)
+		_node.SettlementMode = value
 	}
 	if value, ok := _c.mutation.UniqueReferenceID(); ok {
 		_spec.SetField(charge.FieldUniqueReferenceID, field.TypeString, value)
@@ -995,6 +1031,18 @@ func (u *ChargeUpsert) UpdateInvoiceAt() *ChargeUpsert {
 	return u
 }
 
+// SetStatus sets the "status" field.
+func (u *ChargeUpsert) SetStatus(v charges.ChargeStatus) *ChargeUpsert {
+	u.Set(charge.FieldStatus, v)
+	return u
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *ChargeUpsert) UpdateStatus() *ChargeUpsert {
+	u.SetExcluded(charge.FieldStatus)
+	return u
+}
+
 // SetUniqueReferenceID sets the "unique_reference_id" field.
 func (u *ChargeUpsert) SetUniqueReferenceID(v string) *ChargeUpsert {
 	u.Set(charge.FieldUniqueReferenceID, v)
@@ -1071,6 +1119,9 @@ func (u *ChargeUpsertOne) UpdateNewValues() *ChargeUpsertOne {
 		}
 		if _, exists := u.create.mutation.GetType(); exists {
 			s.SetIgnore(charge.FieldType)
+		}
+		if _, exists := u.create.mutation.SettlementMode(); exists {
+			s.SetIgnore(charge.FieldSettlementMode)
 		}
 		if _, exists := u.create.mutation.Currency(); exists {
 			s.SetIgnore(charge.FieldCurrency)
@@ -1325,6 +1376,20 @@ func (u *ChargeUpsertOne) UpdateInvoiceAt() *ChargeUpsertOne {
 	})
 }
 
+// SetStatus sets the "status" field.
+func (u *ChargeUpsertOne) SetStatus(v charges.ChargeStatus) *ChargeUpsertOne {
+	return u.Update(func(s *ChargeUpsert) {
+		s.SetStatus(v)
+	})
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *ChargeUpsertOne) UpdateStatus() *ChargeUpsertOne {
+	return u.Update(func(s *ChargeUpsert) {
+		s.UpdateStatus()
+	})
+}
+
 // SetUniqueReferenceID sets the "unique_reference_id" field.
 func (u *ChargeUpsertOne) SetUniqueReferenceID(v string) *ChargeUpsertOne {
 	return u.Update(func(s *ChargeUpsert) {
@@ -1575,6 +1640,9 @@ func (u *ChargeUpsertBulk) UpdateNewValues() *ChargeUpsertBulk {
 			}
 			if _, exists := b.mutation.GetType(); exists {
 				s.SetIgnore(charge.FieldType)
+			}
+			if _, exists := b.mutation.SettlementMode(); exists {
+				s.SetIgnore(charge.FieldSettlementMode)
 			}
 			if _, exists := b.mutation.Currency(); exists {
 				s.SetIgnore(charge.FieldCurrency)
@@ -1827,6 +1895,20 @@ func (u *ChargeUpsertBulk) SetInvoiceAt(v time.Time) *ChargeUpsertBulk {
 func (u *ChargeUpsertBulk) UpdateInvoiceAt() *ChargeUpsertBulk {
 	return u.Update(func(s *ChargeUpsert) {
 		s.UpdateInvoiceAt()
+	})
+}
+
+// SetStatus sets the "status" field.
+func (u *ChargeUpsertBulk) SetStatus(v charges.ChargeStatus) *ChargeUpsertBulk {
+	return u.Update(func(s *ChargeUpsert) {
+		s.SetStatus(v)
+	})
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *ChargeUpsertBulk) UpdateStatus() *ChargeUpsertBulk {
+	return u.Update(func(s *ChargeUpsert) {
+		s.UpdateStatus()
 	})
 }
 

@@ -3,14 +3,45 @@ package charges
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+type ChargeStatus string
+
+const (
+	// ChargeStatusActive is the status of a charge that is active and is not yet fully settled for the service period.
+	ChargeStatusActive ChargeStatus = "active"
+	// ChargeStatusSettled is the status of a charge that is settled and is fully settled for the service period. The charge might receive additional
+	// late events in the future.
+	ChargeStatusSettled ChargeStatus = "settled"
+	// ChargeStatusFinal is the status of a charge that is final and is fully settled for the service period. The charge will not receive any additional
+	// late events in the future.
+	ChargeStatusFinal ChargeStatus = "final"
+)
+
+func (s ChargeStatus) Values() []string {
+	return []string{
+		string(ChargeStatusActive),
+		string(ChargeStatusSettled),
+		string(ChargeStatusFinal),
+	}
+}
+
+func (s ChargeStatus) Validate() error {
+	if !slices.Contains(s.Values(), string(s)) {
+		return fmt.Errorf("invalid charge status: %s", s)
+	}
+
+	return nil
+}
 
 type Charge struct {
 	models.ManagedResource
 
 	Intent       Intent       `json:"intent"`
+	Status       ChargeStatus `json:"status"`
 	Realizations Realizations `json:"realizations"`
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/charges"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -892,6 +893,66 @@ func TypeNotIn(vs ...charges.IntentType) predicate.Charge {
 		v[i] = vs[i]
 	}
 	return predicate.Charge(sql.FieldNotIn(FieldType, v...))
+}
+
+// StatusEQ applies the EQ predicate on the "status" field.
+func StatusEQ(v charges.ChargeStatus) predicate.Charge {
+	vc := v
+	return predicate.Charge(sql.FieldEQ(FieldStatus, vc))
+}
+
+// StatusNEQ applies the NEQ predicate on the "status" field.
+func StatusNEQ(v charges.ChargeStatus) predicate.Charge {
+	vc := v
+	return predicate.Charge(sql.FieldNEQ(FieldStatus, vc))
+}
+
+// StatusIn applies the In predicate on the "status" field.
+func StatusIn(vs ...charges.ChargeStatus) predicate.Charge {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Charge(sql.FieldIn(FieldStatus, v...))
+}
+
+// StatusNotIn applies the NotIn predicate on the "status" field.
+func StatusNotIn(vs ...charges.ChargeStatus) predicate.Charge {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Charge(sql.FieldNotIn(FieldStatus, v...))
+}
+
+// SettlementModeEQ applies the EQ predicate on the "settlement_mode" field.
+func SettlementModeEQ(v productcatalog.SettlementMode) predicate.Charge {
+	vc := v
+	return predicate.Charge(sql.FieldEQ(FieldSettlementMode, vc))
+}
+
+// SettlementModeNEQ applies the NEQ predicate on the "settlement_mode" field.
+func SettlementModeNEQ(v productcatalog.SettlementMode) predicate.Charge {
+	vc := v
+	return predicate.Charge(sql.FieldNEQ(FieldSettlementMode, vc))
+}
+
+// SettlementModeIn applies the In predicate on the "settlement_mode" field.
+func SettlementModeIn(vs ...productcatalog.SettlementMode) predicate.Charge {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Charge(sql.FieldIn(FieldSettlementMode, v...))
+}
+
+// SettlementModeNotIn applies the NotIn predicate on the "settlement_mode" field.
+func SettlementModeNotIn(vs ...productcatalog.SettlementMode) predicate.Charge {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Charge(sql.FieldNotIn(FieldSettlementMode, v...))
 }
 
 // UniqueReferenceIDEQ applies the EQ predicate on the "unique_reference_id" field.

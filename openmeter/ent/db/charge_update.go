@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/charges"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
@@ -214,6 +215,20 @@ func (_u *ChargeUpdate) SetInvoiceAt(v time.Time) *ChargeUpdate {
 func (_u *ChargeUpdate) SetNillableInvoiceAt(v *time.Time) *ChargeUpdate {
 	if v != nil {
 		_u.SetInvoiceAt(*v)
+	}
+	return _u
+}
+
+// SetStatus sets the "status" field.
+func (_u *ChargeUpdate) SetStatus(v charges.ChargeStatus) *ChargeUpdate {
+	_u.mutation.SetStatus(v)
+	return _u
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (_u *ChargeUpdate) SetNillableStatus(v *charges.ChargeStatus) *ChargeUpdate {
+	if v != nil {
+		_u.SetStatus(*v)
 	}
 	return _u
 }
@@ -473,6 +488,11 @@ func (_u *ChargeUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeUpdate) check() error {
+	if v, ok := _u.mutation.Status(); ok {
+		if err := charge.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "Charge.status": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.TaxConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "Charge.tax_config": %w`, err)}
@@ -551,6 +571,9 @@ func (_u *ChargeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.InvoiceAt(); ok {
 		_spec.SetField(charge.FieldInvoiceAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.Status(); ok {
+		_spec.SetField(charge.FieldStatus, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.UniqueReferenceID(); ok {
 		_spec.SetField(charge.FieldUniqueReferenceID, field.TypeString, value)
@@ -962,6 +985,20 @@ func (_u *ChargeUpdateOne) SetNillableInvoiceAt(v *time.Time) *ChargeUpdateOne {
 	return _u
 }
 
+// SetStatus sets the "status" field.
+func (_u *ChargeUpdateOne) SetStatus(v charges.ChargeStatus) *ChargeUpdateOne {
+	_u.mutation.SetStatus(v)
+	return _u
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (_u *ChargeUpdateOne) SetNillableStatus(v *charges.ChargeStatus) *ChargeUpdateOne {
+	if v != nil {
+		_u.SetStatus(*v)
+	}
+	return _u
+}
+
 // SetUniqueReferenceID sets the "unique_reference_id" field.
 func (_u *ChargeUpdateOne) SetUniqueReferenceID(v string) *ChargeUpdateOne {
 	_u.mutation.SetUniqueReferenceID(v)
@@ -1230,6 +1267,11 @@ func (_u *ChargeUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeUpdateOne) check() error {
+	if v, ok := _u.mutation.Status(); ok {
+		if err := charge.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "Charge.status": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.TaxConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "Charge.tax_config": %w`, err)}
@@ -1325,6 +1367,9 @@ func (_u *ChargeUpdateOne) sqlSave(ctx context.Context) (_node *Charge, err erro
 	}
 	if value, ok := _u.mutation.InvoiceAt(); ok {
 		_spec.SetField(charge.FieldInvoiceAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.Status(); ok {
+		_spec.SetField(charge.FieldStatus, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.UniqueReferenceID(); ok {
 		_spec.SetField(charge.FieldUniqueReferenceID, field.TypeString, value)

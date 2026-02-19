@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/charges"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 const (
@@ -51,6 +52,10 @@ const (
 	FieldInvoiceAt = "invoice_at"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
+	// FieldStatus holds the string denoting the status field in the database.
+	FieldStatus = "status"
+	// FieldSettlementMode holds the string denoting the settlement_mode field in the database.
+	FieldSettlementMode = "settlement_mode"
 	// FieldUniqueReferenceID holds the string denoting the unique_reference_id field in the database.
 	FieldUniqueReferenceID = "unique_reference_id"
 	// FieldCurrency holds the string denoting the currency field in the database.
@@ -170,6 +175,8 @@ var Columns = []string{
 	FieldFullServicePeriodTo,
 	FieldInvoiceAt,
 	FieldType,
+	FieldStatus,
+	FieldSettlementMode,
 	FieldUniqueReferenceID,
 	FieldCurrency,
 	FieldTaxConfig,
@@ -213,6 +220,26 @@ func TypeValidator(_type charges.IntentType) error {
 		return nil
 	default:
 		return fmt.Errorf("charge: invalid enum value for type field: %q", _type)
+	}
+}
+
+// StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
+func StatusValidator(s charges.ChargeStatus) error {
+	switch s {
+	case "active", "settled", "final":
+		return nil
+	default:
+		return fmt.Errorf("charge: invalid enum value for status field: %q", s)
+	}
+}
+
+// SettlementModeValidator is a validator for the "settlement_mode" field enum values. It is called by the builders before save.
+func SettlementModeValidator(sm productcatalog.SettlementMode) error {
+	switch sm {
+	case "invoice_only", "credit_then_invoice", "credit_only":
+		return nil
+	default:
+		return fmt.Errorf("charge: invalid enum value for settlement_mode field: %q", sm)
 	}
 }
 
@@ -307,6 +334,16 @@ func ByInvoiceAt(opts ...sql.OrderTermOption) OrderOption {
 // ByType orders the results by the type field.
 func ByType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldType, opts...).ToFunc()
+}
+
+// ByStatus orders the results by the status field.
+func ByStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// BySettlementMode orders the results by the settlement_mode field.
+func BySettlementMode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSettlementMode, opts...).ToFunc()
 }
 
 // ByUniqueReferenceID orders the results by the unique_reference_id field.

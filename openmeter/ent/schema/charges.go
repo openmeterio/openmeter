@@ -48,6 +48,13 @@ func (Charge) Fields() []ent.Field {
 			GoType(charges.IntentType("")).
 			Immutable(),
 
+		field.Enum("status").
+			GoType(charges.ChargeStatus("")),
+
+		field.Enum("settlement_mode").
+			GoType(productcatalog.SettlementMode("")).
+			Immutable(),
+
 		field.String("unique_reference_id").
 			Optional().
 			Nillable(),
