@@ -169,11 +169,11 @@ func (s *Server) ListCurrencies(w http.ResponseWriter, r *http.Request, params a
 }
 
 func (s *Server) CreateCustomCurrency(w http.ResponseWriter, r *http.Request) {
-	unimplemented.CreateCustomCurrency(w, r)
+	s.currenciesHandler.CreateCurrency().ServeHTTP(w, r)
 }
 
 func (s *Server) CreateCostBasis(w http.ResponseWriter, r *http.Request, currencyId api.ULID) {
-	unimplemented.CreateCostBasis(w, r, currencyId)
+	s.currenciesHandler.CreateCostBasis().With(currencyId).ServeHTTP(w, r)
 }
 
 func (s *Server) ListCostBases(w http.ResponseWriter, r *http.Request, currencyId api.ULID, params api.ListCostBasesParams) {
