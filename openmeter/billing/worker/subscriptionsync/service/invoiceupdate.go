@@ -2,30 +2,67 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strings"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/charges"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-type InvoiceUpdater struct {
-	billingService billing.Service
-	logger         *slog.Logger
+type InvoiceUpdaterConfig struct {
+	BillingService  billing.Service
+	ChargesService  charges.Service
+	BackfillCharges bool
+	Logger          *slog.Logger
 }
 
-func NewInvoiceUpdater(billingService billing.Service, logger *slog.Logger) *InvoiceUpdater {
-	return &InvoiceUpdater{
-		billingService: billingService,
-		logger:         logger,
+func (c InvoiceUpdaterConfig) Validate() error {
+	errs := []error{}
+
+	if c.BillingService == nil {
+		errs = append(errs, errors.New("billing service is required"))
 	}
+
+	if c.ChargesService == nil {
+		errs = append(errs, errors.New("charges service is required"))
+	}
+
+	if c.Logger == nil {
+		errs = append(errs, errors.New("logger is required"))
+	}
+
+	return errors.Join(errs...)
+}
+
+type InvoiceUpdater struct {
+	billingService  billing.Service
+	chargesService  charges.Service
+	backfillCharges bool
+	logger          *slog.Logger
+}
+
+func NewInvoiceUpdater(config InvoiceUpdaterConfig) (*InvoiceUpdater, error) {
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("validating invoice updater config: %w", err)
+	}
+
+	return &InvoiceUpdater{
+		billingService:  config.BillingService,
+		chargesService:  config.ChargesService,
+		backfillCharges: config.BackfillCharges,
+		logger:          config.Logger,
+	}, nil
 }
 
 func (u *InvoiceUpdater) ApplyPatches(ctx context.Context, customerID customer.CustomerID, patches []linePatch) error {
@@ -86,6 +123,18 @@ func (u *InvoiceUpdater) ApplyPatches(ctx context.Context, customerID customer.C
 		return fmt.Errorf("upserting split line groups: %w", err)
 	}
 
+	// Let's make sure charges are in sync
+	err = u.syncCharges(ctx, syncChargesInput{
+		CustomerID: customerID,
+		Upserts:    patchesParsed.chargeUpserts,
+		Deletes: lo.Map(patchesParsed.chargeDeletes, func(delete deleteChargeByUniqueReferenceIDPatch, _ int) string {
+			return delete.UniqueReferenceID
+		}),
+	})
+	if err != nil {
+		return fmt.Errorf("upserting charges: %w", err)
+	}
+
 	return nil
 }
 
@@ -95,6 +144,9 @@ type patchesParsed struct {
 	updatedLinesByInvoiceID map[string]invoicePatches
 
 	splitLineGroups splitLineGroupPatches
+
+	chargeUpserts []upsertChargeAndAssociateLinesPatch
+	chargeDeletes []deleteChargeByUniqueReferenceIDPatch
 }
 
 type invoicePatches struct {
@@ -153,6 +205,20 @@ func (u *InvoiceUpdater) parsePatches(patches []linePatch) (patchesParsed, error
 			}
 
 			parsed.splitLineGroups.updated = append(parsed.splitLineGroups.updated, update.TargetState)
+		case patchOpUpsertChargeAndAssociateLines:
+			upsert, err := patch.AsUpsertChargeAndAssociateLinesPatch()
+			if err != nil {
+				return patchesParsed{}, fmt.Errorf("getting charge: %w", err)
+			}
+
+			parsed.chargeUpserts = append(parsed.chargeUpserts, upsert)
+		case patchOpDeleteChargeByUniqueReferenceID:
+			delete, err := patch.AsDeleteChargeByUniqueReferenceIDPatch()
+			if err != nil {
+				return patchesParsed{}, fmt.Errorf("getting charge: %w", err)
+			}
+
+			parsed.chargeDeletes = append(parsed.chargeDeletes, delete)
 		default:
 			return patchesParsed{}, fmt.Errorf("unexpected patch operation: %s", patch.Op())
 		}
@@ -450,6 +516,174 @@ func (u *InvoiceUpdater) upsertSplitLineGroups(ctx context.Context, customerID c
 		if _, err := u.billingService.UpdateSplitLineGroup(ctx, group); err != nil {
 			return fmt.Errorf("upserting split line group: %w", err)
 		}
+	}
+
+	return nil
+}
+
+type handleChargesInput struct {
+	CustomerID                        customer.CustomerID
+	NewCharges                        []charges.Charge
+	UpdatedCharges                    []charges.Charge
+	DeletedChargesByUniqueReferenceID []string
+}
+
+func (i handleChargesInput) Validate() error {
+	if err := i.CustomerID.Validate(); err != nil {
+		return fmt.Errorf("customer ID: %w", err)
+	}
+
+	return nil
+}
+
+type syncChargesInput struct {
+	CustomerID customer.CustomerID
+	Upserts    []upsertChargeAndAssociateLinesPatch
+	Deletes    []string
+}
+
+func (i syncChargesInput) Validate() error {
+	if err := i.CustomerID.Validate(); err != nil {
+		return fmt.Errorf("customer ID: %w", err)
+	}
+
+	// Validate uniqueness
+	upsertUniqueReferenceIDs, err := slicesx.MapWithErr(i.Upserts, func(upsert upsertChargeAndAssociateLinesPatch) (string, error) {
+		ref := upsert.Charge.Intent.UniqueReferenceID
+		if ref == nil {
+			return "", fmt.Errorf("upsert charge has no unique reference ID")
+		}
+
+		return *ref, nil
+	})
+	if err != nil {
+		return fmt.Errorf("mapping upsert charges: %w", err)
+	}
+
+	if len(lo.Uniq(upsertUniqueReferenceIDs)) != len(upsertUniqueReferenceIDs) {
+		return fmt.Errorf("upsert charges have duplicate unique reference IDs")
+	}
+
+	if len(lo.Uniq(i.Deletes)) != len(i.Deletes) {
+		return fmt.Errorf("delete charges have duplicate unique reference IDs")
+	}
+
+	allUniqueReferenceIDs := slices.Concat(upsertUniqueReferenceIDs, i.Deletes)
+	if len(lo.Uniq(allUniqueReferenceIDs)) != len(allUniqueReferenceIDs) {
+		return fmt.Errorf("upsert and delete charges have duplicate unique reference IDs")
+	}
+
+	return nil
+}
+
+// syncCharges is responsible for upserting charges and associating them to lines and split line groups
+// this is a temporary solution so that the charges are available in the database (backfill)
+//
+// once charges are fully functional, the charge service will handle the state instead of this upsert
+func (u *InvoiceUpdater) syncCharges(ctx context.Context, input syncChargesInput) error {
+	if u.chargesService == nil {
+		u.logger.WarnContext(ctx, "charges service is not available, skipping charge sync", "customer.id", input.CustomerID)
+		return nil
+	}
+
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating sync charges input: %w", err)
+	}
+
+	if len(input.Upserts) == 0 && len(input.Deletes) == 0 {
+		return nil
+	}
+
+	lineIDsToAssociate := make([]string, 0, len(input.Upserts))
+	for _, upsert := range input.Upserts {
+		lineIDsToAssociate = append(lineIDsToAssociate, lo.Map(upsert.LinesIDsToAssociate, func(lineID billing.LineID, _ int) string {
+			return lineID.ID
+		})...)
+	}
+
+	// Let's fetch the lines with invoice headers to populate the realization statuses
+	linesWithInvoiceHeaders, err := u.billingService.GetInvoiceLinesWithInvoiceHeaders(ctx, billing.GetInvoiceLinesWithInvoiceHeadersInput{
+		Namespace: input.CustomerID.Namespace,
+		LineIDs:   lineIDsToAssociate,
+	})
+	if err != nil {
+		return fmt.Errorf("getting invoice lines with invoice headers: %w", err)
+	}
+
+	linesByLineID := lo.SliceToMap(linesWithInvoiceHeaders, func(lineWithInvoiceHeader billing.LineWithInvoiceHeader) (string, billing.LineWithInvoiceHeader) {
+		return lineWithInvoiceHeader.Line.GetID(), lineWithInvoiceHeader
+	})
+
+	upserts, err := slicesx.MapWithErr(input.Upserts, func(upsert upsertChargeAndAssociateLinesPatch) (upsertChargeAndAssociateLinesPatch, error) {
+		return upsertWithRealizations(upsert, linesByLineID)
+	})
+	if err != nil {
+		return fmt.Errorf("mapping upsert charges: %w", err)
+	}
+
+	// Let's upsert charges
+	upsertedCharges, err := u.chargesService.UpsertChargesByChildUniqueReferenceID(ctx, charges.UpsertChargesByChildUniqueReferenceIDInput{
+		Customer: input.CustomerID,
+		Charges: lo.Map(upserts, func(upsert upsertChargeAndAssociateLinesPatch, _ int) charges.Charge {
+			return upsert.Charge
+		}),
+	})
+	if err != nil {
+		return fmt.Errorf("upserting charges: %w", err)
+	}
+
+	upsertedChargesByUniqueReferenceID := make(map[string]charges.Charge)
+	for _, charge := range upsertedCharges {
+		ref := charge.Intent.UniqueReferenceID
+		if ref == nil {
+			return fmt.Errorf("upsert charge has no unique reference ID")
+		}
+
+		upsertedChargesByUniqueReferenceID[*ref] = charge
+	}
+
+	// Let's execute the associations for lines
+	lineIDToChargeID := make(map[string]string)
+	groupIDToChargeID := make(map[string]string)
+	for _, upsert := range upserts {
+		uniqueReferenceID := *upsert.Charge.Intent.UniqueReferenceID
+		charge, ok := upsertedChargesByUniqueReferenceID[uniqueReferenceID]
+		if !ok {
+			return fmt.Errorf("upsert charge with unique reference ID %s not found", uniqueReferenceID)
+		}
+
+		for _, lineID := range upsert.LinesIDsToAssociate {
+			lineIDToChargeID[lineID.ID] = charge.ID
+		}
+
+		if upsert.SplitLineGroupIDToAssociate != nil {
+			groupIDToChargeID[upsert.SplitLineGroupIDToAssociate.ID] = charge.ID
+		}
+	}
+
+	err = u.billingService.SetChargeIDsOnInvoiceLines(ctx, billing.SetChargeIDsOnInvoiceLinesInput{
+		Namespace:        input.CustomerID.Namespace,
+		LineIDToChargeID: lineIDToChargeID,
+	})
+	if err != nil {
+		return fmt.Errorf("setting charge IDs on invoice lines: %w", err)
+	}
+
+	err = u.billingService.SetChargeIDsOnSplitlineGroups(ctx, billing.SetChargeIDsOnSplitlineGroupsInput{
+		Namespace:         input.CustomerID.Namespace,
+		GroupIDToChargeID: groupIDToChargeID,
+	})
+	if err != nil {
+		return fmt.Errorf("setting charge IDs on split line groups: %w", err)
+	}
+
+	// Let's (soft) delete charges
+	err = u.chargesService.DeleteChargesByUniqueReferenceID(ctx, charges.DeleteChargesByUniqueReferenceIDInput{
+		Customer:           input.CustomerID,
+		UniqueReferenceIDs: input.Deletes,
+	})
+	if err != nil {
+		return fmt.Errorf("deleting charges: %w", err)
 	}
 
 	return nil

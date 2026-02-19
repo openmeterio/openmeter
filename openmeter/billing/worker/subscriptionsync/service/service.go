@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
+	"github.com/openmeterio/openmeter/openmeter/charges"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
@@ -20,6 +21,8 @@ type FeatureFlags struct {
 
 type Config struct {
 	BillingService          billing.Service
+	ChargesService          charges.Service
+	BackfillCharges         bool
 	SubscriptionService     subscription.Service
 	SubscriptionSyncAdapter subscriptionsync.Adapter
 	FeatureFlags            FeatureFlags
@@ -30,6 +33,10 @@ type Config struct {
 func (c Config) Validate() error {
 	if c.BillingService == nil {
 		return fmt.Errorf("billing service is required")
+	}
+
+	if c.ChargesService == nil {
+		return fmt.Errorf("charges service is required")
 	}
 
 	if c.SubscriptionService == nil {
@@ -55,6 +62,8 @@ var _ subscriptionsync.Service = (*Service)(nil)
 
 type Service struct {
 	billingService          billing.Service
+	chargesService          charges.Service
+	backfillCharges         bool
 	subscriptionService     subscription.Service
 	subscriptionSyncAdapter subscriptionsync.Adapter
 	featureFlags            FeatureFlags
@@ -68,6 +77,8 @@ func New(config Config) (*Service, error) {
 	}
 	return &Service{
 		billingService:          config.BillingService,
+		chargesService:          config.ChargesService,
+		backfillCharges:         config.BackfillCharges,
 		subscriptionSyncAdapter: config.SubscriptionSyncAdapter,
 		featureFlags:            config.FeatureFlags,
 		subscriptionService:     config.SubscriptionService,

@@ -372,6 +372,7 @@ type GatheringLineBase struct {
 	ChildUniqueReferenceID *string                `json:"childUniqueReferenceID,omitempty"`
 	Subscription           *SubscriptionReference `json:"subscription,omitempty"`
 	SplitLineGroupID       *string                `json:"splitLineGroupID,omitempty"`
+	ChargeID               *string                `json:"chargeID,omitempty"`
 
 	// TODO: Remove once we have dedicated db field for gathering invoice lines
 	UBPConfigID string `json:"ubpConfigID"`
@@ -675,6 +676,7 @@ func (g GatheringLine) AsStandardLine() StandardLine {
 			},
 			InvoiceAt:              g.InvoiceAt,
 			SplitLineGroupID:       g.SplitLineGroupID,
+			ChargeID:               g.ChargeID,
 			ChildUniqueReferenceID: g.ChildUniqueReferenceID,
 			TaxConfig:              g.TaxConfig,
 			RateCardDiscounts:      g.RateCardDiscounts,

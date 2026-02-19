@@ -25,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
@@ -919,5 +920,41 @@ func (a *adapter) GetInvoiceType(ctx context.Context, input billing.GetInvoiceTy
 		}
 
 		return billing.InvoiceTypeStandard, nil
+	})
+}
+
+func (a *adapter) GetInvoiceLinesWithInvoiceHeaders(ctx context.Context, input billing.GetInvoiceLinesWithInvoiceHeadersInput) (billing.GetInvoiceLinesWithInvoiceHeadersResponse, error) {
+	if err := input.Validate(); err != nil {
+		return billing.GetInvoiceLinesWithInvoiceHeadersResponse{}, billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (billing.GetInvoiceLinesWithInvoiceHeadersResponse, error) {
+		query := tx.db.BillingInvoiceLine.Query().
+			Where(billinginvoiceline.Namespace(input.Namespace)).
+			Where(billinginvoiceline.IDIn(input.LineIDs...)).
+			WithBillingInvoice(func(bq *db.BillingInvoiceQuery) {
+				bq.WithBillingWorkflowConfig()
+			})
+
+		query = tx.expandLineItems(query)
+
+		dbLines, err := query.All(ctx)
+		if err != nil {
+			return billing.GetInvoiceLinesWithInvoiceHeadersResponse{}, err
+		}
+
+		return slicesx.MapWithErr(dbLines, func(dbLine *db.BillingInvoiceLine) (billing.LineWithInvoiceHeader, error) {
+			if dbLine.Edges.BillingInvoice == nil {
+				return billing.LineWithInvoiceHeader{}, fmt.Errorf("billing invoice must be expanded when mapping invoice lines with invoice headers [id=%s]", dbLine.ID)
+			}
+
+			if dbLine.Edges.BillingInvoice.Status == billing.StandardInvoiceStatusGathering {
+				return a.mapSplitLineHierarchyGatheringLineFromDB(ctx, dbLine)
+			}
+
+			return a.mapSplitLineHierarchyStandardLineFromDB(ctx, dbLine)
+		})
 	})
 }
