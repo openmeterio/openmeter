@@ -1,0 +1,33 @@
+name: 'Rebase API Changes'
+description: 'Rebases the PR onto main, handling API conflicts via `make gen-api`'
+
+inputs:
+  github_token:
+    description: 'GitHub token for API calls and push'
+    required: true
+  comment_id:
+    description: 'The ID of the triggering comment for reactions'
+    required: true
+  pr_branch_ref:
+    description: 'The ref of the pull request branch (e.g., refs/heads/feature-branch)'
+    required: true
+  base_branch:
+    description: 'The base branch to rebase onto (e.g., main)'
+    required: true
+    default: 'main'
+  api_directory:
+    description: 'The directory containing API files where conflicts are expected/handled'
+    required: true
+    default: 'api' # Assuming 'api' is the default, adjust if needed
+  trigger-phrase:
+    description: 'The phrase in the comment required to trigger the rebase'
+    required: false
+    default: '/rebase-api'
+
+runs:
+  using: 'node20' # Or node16 if compatibility is needed
+  main: 'dist/index.js' # We'll bundle our code here using ncc
+
+branding:
+  icon: 'git-pull-request'
+  color: 'purple'
