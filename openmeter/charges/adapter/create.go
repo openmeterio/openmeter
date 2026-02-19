@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/charges"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
-	"github.com/samber/lo"
 )
 
 type createChargeIntentInputWithID struct {
@@ -36,6 +37,8 @@ func (a *adapter) CreateCharges(ctx context.Context, input charges.CreateChargeI
 				SetManagedBy(intent.ManagedBy).
 				SetCustomerID(input.Customer.ID).
 				SetCurrency(input.Currency).
+				SetSettlementMode(intent.SettlementMode).
+				SetStatus(charges.ChargeStatusActive).
 				SetServicePeriodFrom(intent.ServicePeriod.From).
 				SetServicePeriodTo(intent.ServicePeriod.To).
 				SetBillingPeriodFrom(intent.BillingPeriod.From).
@@ -98,6 +101,9 @@ func (a *adapter) CreateCharges(ctx context.Context, input charges.CreateChargeI
 				SetAmountBeforeProration(flatFee.AmountBeforeProration).
 				SetAmountAfterProration(flatFee.AmountAfterProration), nil
 		})
+		if err != nil {
+			return nil, err
+		}
 
 		flatFeeEntities, err := repo.db.ChargeFlatFee.CreateBulk(flatFeeCreates...).Save(ctx)
 		if err != nil {
@@ -125,6 +131,9 @@ func (a *adapter) CreateCharges(ctx context.Context, input charges.CreateChargeI
 				SetFeatureKey(usageBased.FeatureKey).
 				SetDiscounts(usageBased.Discounts), nil
 		})
+		if err != nil {
+			return nil, err
+		}
 
 		usageBasedEntities, err := repo.db.ChargeUsageBased.CreateBulk(usageBasedCreates...).Save(ctx)
 		if err != nil {

@@ -79,6 +79,10 @@ func (i IntentMeta) Validate() error {
 		errs = append(errs, fmt.Errorf("unique reference ID cannot be empty"))
 	}
 
+	if err := i.SettlementMode.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("settlement mode: %w", err))
+	}
+
 	return errors.Join(errs...)
 }
 

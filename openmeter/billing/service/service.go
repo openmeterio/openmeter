@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ billing.Service = (*Service)(nil)
@@ -34,6 +35,9 @@ type Service struct {
 	advancementStrategy          billing.AdvancementStrategy
 	fsNamespaceLockdown          []string
 	maxParallelQuantitySnapshots int
+
+	// hooks
+	standardInvoiceHooks *billing.StandardInvoiceHooks
 }
 
 type Config struct {
@@ -112,6 +116,7 @@ func New(config Config) (*Service, error) {
 		fsNamespaceLockdown:          config.FSNamespaceLockdown,
 		maxParallelQuantitySnapshots: config.MaxParallelQuantitySnapshots,
 		invoiceCalculator:            invoicecalc.New(),
+		standardInvoiceHooks:         models.NewServiceHookRegistry[billing.StandardInvoice](),
 	}
 
 	return svc, nil

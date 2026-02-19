@@ -10,11 +10,13 @@ import (
 type service struct {
 	adapter        charges.Adapter
 	billingService billing.Service
+	handler        charges.Handler
 }
 
 type Config struct {
 	Adapter        charges.Adapter
 	BillingService billing.Service
+	Handler        charges.Handler
 }
 
 func (c Config) Validate() error {
@@ -34,10 +36,19 @@ func New(config Config) (*service, error) {
 		return nil, err
 	}
 
-	return &service{
+	svc := &service{
 		adapter:        config.Adapter,
 		billingService: config.BillingService,
-	}, nil
+		handler:        config.Handler,
+	}
+
+	standardInvoiceEventHandler := &standardInvoiceEventHandler{
+		chargesService: svc,
+	}
+
+	config.BillingService.RegisterStandardInvoiceHooks(standardInvoiceEventHandler)
+
+	return svc, nil
 }
 
 var _ charges.Service = (*service)(nil)

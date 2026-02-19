@@ -5,18 +5,24 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Adapter interface {
 	ChargeAdapter
+	StandardInvoiceRealizationAdapter
 
 	entutils.TxCreator
 }
 
 type ChargeAdapter interface {
-	GetChargeByID(ctx context.Context, input models.NamespacedID) (Charge, error)
+	GetChargeByID(ctx context.Context, input ChargeID) (Charge, error)
+	GetChargesByIDs(ctx context.Context, ns string, ids []string) (Charges, error)
 	CreateCharges(ctx context.Context, input CreateChargeInput) (Charges, error)
+}
+
+type StandardInvoiceRealizationAdapter interface {
+	CreateStandardInvoiceRealization(ctx context.Context, chargeID ChargeID, realization StandardInvoiceRealization) (StandardInvoiceRealization, error)
+	UpdateStandardInvoiceRealizationByID(ctx context.Context, chargeID ChargeID, realization StandardInvoiceRealization) (StandardInvoiceRealization, error)
 }
 
 type ProRatingModeAdapterEnum string

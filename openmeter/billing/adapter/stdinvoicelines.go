@@ -88,6 +88,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					SetPeriodEnd(line.Period.End.In(time.UTC)).
 					SetNillableParentLineID(line.ParentLineID).
 					SetNillableSplitLineGroupID(line.SplitLineGroupID).
+					SetNillableChargeID(line.ChargeID).
 					SetNillableDeletedAt(line.DeletedAt).
 					SetInvoiceAt(line.InvoiceAt.In(time.UTC)).
 					SetStatus(billing.InvoiceLineStatusValid).
@@ -144,6 +145,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					// TODO[OM-1416]: all nillable fileds must be listed explicitly
 					UpdateQuantity().
 					UpdateChildUniqueReferenceID().
+					UpdateChargeID().
 					Exec(ctx)
 			},
 			MarkDeleted: func(ctx context.Context, line *billing.StandardLine) (*billing.StandardLine, error) {

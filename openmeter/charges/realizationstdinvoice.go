@@ -63,3 +63,41 @@ func (r StandardInvoiceRealization) Validate() error {
 
 	return errors.Join(errs...)
 }
+
+type StandardInvoiceRealizationWithLine struct {
+	StandardInvoiceRealization
+	billing.StandardLineWithInvoiceHeader
+}
+
+func (r StandardInvoiceRealizationWithLine) Validate() error {
+	var errs []error
+
+	if err := r.StandardInvoiceRealization.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("standard invoice realization: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+type StandardInvoiceRealizations []StandardInvoiceRealization
+
+func (r StandardInvoiceRealizations) Validate() error {
+	var errs []error
+
+	for idx, realization := range r {
+		if err := realization.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("standard invoice realization[%d]: %w", idx, err))
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
+func (r StandardInvoiceRealizations) GetByLineID(lineID string) (StandardInvoiceRealization, bool) {
+	for _, realization := range r {
+		if realization.LineID == lineID {
+			return realization, true
+		}
+	}
+	return StandardInvoiceRealization{}, false
+}

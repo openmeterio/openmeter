@@ -77,6 +77,7 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 			ParentLineID:           dbLine.ParentLineID,
 			SplitLineGroupID:       dbLine.SplitLineGroupID,
 			ChildUniqueReferenceID: dbLine.ChildUniqueReferenceID,
+			ChargeID:               dbLine.ChargeID,
 
 			InvoiceAt: dbLine.InvoiceAt.In(time.UTC),
 

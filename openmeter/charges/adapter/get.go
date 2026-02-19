@@ -2,7 +2,9 @@ package adapter
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -11,35 +13,67 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbcharge "github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func (a *adapter) GetChargeByID(ctx context.Context, input models.NamespacedID) (charges.Charge, error) {
-	if err := input.Validate(); err != nil {
+func (a *adapter) GetChargeByID(ctx context.Context, input charges.ChargeID) (charges.Charge, error) {
+	res, err := a.GetChargesByIDs(ctx, input.Namespace, []string{input.ID})
+	if err != nil {
+		// Note: not found is handled by the GetChargesByIDs function
 		return charges.Charge{}, err
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (charges.Charge, error) {
-		entity, err := tx.db.Charge.Query().
-			Where(dbcharge.Namespace(input.Namespace)).
-			Where(dbcharge.ID(input.ID)).
+	return res[0], nil
+}
+
+func (a *adapter) GetChargesByIDs(ctx context.Context, ns string, ids []string) (charges.Charges, error) {
+	if ns == "" {
+		return nil, fmt.Errorf("namespace is required")
+	}
+
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (charges.Charges, error) {
+		entities, err := tx.db.Charge.Query().
+			Where(dbcharge.Namespace(ns)).
+			Where(dbcharge.IDIn(ids...)).
 			WithStandardInvoiceRealizations().
 			WithUsageBased().
 			WithFlatFee().
-			First(ctx)
+			All(ctx)
 		if err != nil {
-			if db.IsNotFound(err) {
-				return charges.Charge{}, models.NewGenericNotFoundError(
-					fmt.Errorf("charge not found [namespace=%s charge.id=%s]", input.Namespace, input.ID),
-				)
-			}
-
-			return charges.Charge{}, err
+			return nil, err
 		}
 
-		return mapChargeFromDB(entity)
+		entriesById := lo.SliceToMap(entities, func(entity *db.Charge) (string, *db.Charge) {
+			return entity.ID, entity
+		})
+
+		dbChargesInInputOrder := make([]*db.Charge, len(ids))
+
+		errs := []error{}
+		for idx, id := range ids {
+			dbCharge, ok := entriesById[id]
+			if !ok {
+				errs = append(errs, models.NewGenericNotFoundError(
+					fmt.Errorf("charge not found [namespace=%s charge.id=%s]", ns, id),
+				))
+				continue
+			}
+
+			dbChargesInInputOrder[idx] = dbCharge
+		}
+		if len(errs) > 0 {
+			return nil, errors.Join(errs...)
+		}
+
+		return slicesx.MapWithErr(entities, mapChargeFromDB)
 	})
 }
 
@@ -51,9 +85,9 @@ func mapChargeFromDB(entity *db.Charge) (charges.Charge, error) {
 
 	return charges.Charge{
 		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-			CreatedAt:   entity.CreatedAt,
-			UpdatedAt:   entity.UpdatedAt,
-			DeletedAt:   entity.DeletedAt,
+			CreatedAt:   entity.CreatedAt.In(time.UTC),
+			UpdatedAt:   entity.UpdatedAt.In(time.UTC),
+			DeletedAt:   convert.TimePtrIn(entity.DeletedAt, time.UTC),
 			Namespace:   entity.Namespace,
 			ID:          entity.ID,
 			Name:        entity.Name,
@@ -65,29 +99,31 @@ func mapChargeFromDB(entity *db.Charge) (charges.Charge, error) {
 				return mapStandardInvoiceRealizationFromDB(realization)
 			}),
 		},
+		Status: entity.Status,
 	}, nil
 }
 
 func mapIntentFromDB(entity *db.Charge) (charges.Intent, error) {
 	intentMeta := charges.IntentMeta{
-		Metadata:    entity.Metadata,
-		Annotations: entity.Annotations,
-		ManagedBy:   entity.ManagedBy,
-		CustomerID:  entity.CustomerID,
-		Currency:    entity.Currency,
+		Metadata:       entity.Metadata,
+		Annotations:    entity.Annotations,
+		ManagedBy:      entity.ManagedBy,
+		CustomerID:     entity.CustomerID,
+		Currency:       entity.Currency,
+		SettlementMode: entity.SettlementMode,
 		ServicePeriod: timeutil.ClosedPeriod{
-			From: entity.ServicePeriodFrom,
-			To:   entity.ServicePeriodTo,
+			From: entity.ServicePeriodFrom.In(time.UTC),
+			To:   entity.ServicePeriodTo.In(time.UTC),
 		},
 		FullServicePeriod: timeutil.ClosedPeriod{
-			From: entity.FullServicePeriodFrom,
-			To:   entity.FullServicePeriodTo,
+			From: entity.FullServicePeriodFrom.In(time.UTC),
+			To:   entity.FullServicePeriodTo.In(time.UTC),
 		},
 		BillingPeriod: timeutil.ClosedPeriod{
-			From: entity.BillingPeriodFrom,
-			To:   entity.BillingPeriodTo,
+			From: entity.BillingPeriodFrom.In(time.UTC),
+			To:   entity.BillingPeriodTo.In(time.UTC),
 		},
-		InvoiceAt:         entity.InvoiceAt,
+		InvoiceAt:         entity.InvoiceAt.In(time.UTC),
 		TaxConfig:         lo.EmptyableToPtr(entity.TaxConfig),
 		UniqueReferenceID: entity.UniqueReferenceID,
 		Subscription:      mapSubscriptionFromDB(entity),
@@ -160,16 +196,16 @@ func mapStandardInvoiceRealizationFromDB(entity *db.ChargeStandardInvoiceRealiza
 			ID:        entity.ID,
 		},
 		ManagedModel: models.ManagedModel{
-			CreatedAt: entity.CreatedAt,
-			UpdatedAt: entity.UpdatedAt,
-			DeletedAt: entity.DeletedAt,
+			CreatedAt: entity.CreatedAt.In(time.UTC),
+			UpdatedAt: entity.UpdatedAt.In(time.UTC),
+			DeletedAt: convert.TimePtrIn(entity.DeletedAt, time.UTC),
 		},
 
 		Annotations: entity.Annotations,
 		LineID:      entity.LineID,
 		ServicePeriod: timeutil.ClosedPeriod{
-			From: entity.ServicePeriodFrom,
-			To:   entity.ServicePeriodTo,
+			From: entity.ServicePeriodFrom.In(time.UTC),
+			To:   entity.ServicePeriodTo.In(time.UTC),
 		},
 		Status:                          entity.Status,
 		MeteredServicePeriodQuantity:    entity.MeteredServicePeriodQuantity,

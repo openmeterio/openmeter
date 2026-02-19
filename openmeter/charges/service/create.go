@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/charges"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -11,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
-	"github.com/samber/lo"
 )
 
 func (s *service) CreateCharges(ctx context.Context, input charges.CreateChargeInput) (charges.Charges, error) {
@@ -42,6 +43,9 @@ func (s *service) CreateCharges(ctx context.Context, input charges.CreateChargeI
 			Currency: input.Currency,
 			Lines:    gatheringLines,
 		})
+		if err != nil {
+			return nil, err
+		}
 
 		for idx := range createdCharges {
 			createdCharges[idx].Expanded.GatheringLines = []billing.GatheringLineWithInvoiceHeader{

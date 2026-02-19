@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 type InvoiceStateMachine struct {
@@ -520,6 +521,21 @@ func (m *InvoiceStateMachine) FireAndActivate(ctx context.Context, trigger billi
 		}
 
 		return validationIssues.AsError()
+	}
+
+	// We are embedding the handling into a new sub-transaction so that whenever we are returning an error, whatever was changed downstream is rolled back.
+	//
+	// This is important as the invoice update will take the error and record it as a validation issue, and commit the transaction.
+	err := transaction.RunWithNoValue(ctx, m.Service.adapter, func(ctx context.Context) error {
+		if err := m.Service.standardInvoiceHooks.PostUpdate(ctx, &m.Invoice); err != nil {
+			return fmt.Errorf("error calling post update hooks for invoice [%s]: %w", m.Invoice.ID, err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		// TODO: We should make these validation errors, but make sure that the charges/ledger transactions are rolled back.
+		return err
 	}
 
 	return nil
