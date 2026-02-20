@@ -9,7 +9,8 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
+
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 )
 
 // TaxCodeDelete is the builder for deleting a TaxCode entity.
@@ -40,7 +41,7 @@ func (_d *TaxCodeDelete) ExecX(ctx context.Context) int {
 }
 
 func (_d *TaxCodeDelete) sqlExec(ctx context.Context) (int, error) {
-	_spec := sqlgraph.NewDeleteSpec(taxcode.Table, sqlgraph.NewFieldSpec(taxcode.FieldID, field.TypeString))
+	_spec := sqlgraph.NewDeleteSpec(dbtaxcode.Table, sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString))
 	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -74,7 +75,7 @@ func (_d *TaxCodeDeleteOne) Exec(ctx context.Context) error {
 	case err != nil:
 		return err
 	case n == 0:
-		return &NotFoundError{taxcode.Label}
+		return &NotFoundError{dbtaxcode.Label}
 	default:
 		return nil
 	}

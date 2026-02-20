@@ -61,7 +61,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 
 	stdsql "database/sql"
@@ -8614,13 +8614,13 @@ func NewTaxCodeClient(c config) *TaxCodeClient {
 }
 
 // Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `taxcode.Hooks(f(g(h())))`.
+// A call to `Use(f, g, h)` equals to `dbtaxcode.Hooks(f(g(h())))`.
 func (c *TaxCodeClient) Use(hooks ...Hook) {
 	c.hooks.TaxCode = append(c.hooks.TaxCode, hooks...)
 }
 
 // Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `taxcode.Intercept(f(g(h())))`.
+// A call to `Intercept(f, g, h)` equals to `dbtaxcode.Intercept(f(g(h())))`.
 func (c *TaxCodeClient) Intercept(interceptors ...Interceptor) {
 	c.inters.TaxCode = append(c.inters.TaxCode, interceptors...)
 }
@@ -8682,7 +8682,7 @@ func (c *TaxCodeClient) DeleteOne(_m *TaxCode) *TaxCodeDeleteOne {
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
 func (c *TaxCodeClient) DeleteOneID(id string) *TaxCodeDeleteOne {
-	builder := c.Delete().Where(taxcode.ID(id))
+	builder := c.Delete().Where(dbtaxcode.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
 	return &TaxCodeDeleteOne{builder}
@@ -8699,7 +8699,7 @@ func (c *TaxCodeClient) Query() *TaxCodeQuery {
 
 // Get returns a TaxCode entity by its id.
 func (c *TaxCodeClient) Get(ctx context.Context, id string) (*TaxCode, error) {
-	return c.Query().Where(taxcode.ID(id)).Only(ctx)
+	return c.Query().Where(dbtaxcode.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.

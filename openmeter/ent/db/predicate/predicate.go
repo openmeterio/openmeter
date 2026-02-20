@@ -309,7 +309,7 @@ func SubscriptionItemOrErr(p SubscriptionItem, err error) SubscriptionItem {
 // SubscriptionPhase is the predicate function for subscriptionphase builders.
 type SubscriptionPhase func(*sql.Selector)
 
-// TaxCode is the predicate function for taxcode builders.
+// TaxCode is the predicate function for dbtaxcode builders.
 type TaxCode func(*sql.Selector)
 
 // TaxCodeOrErr calls the predicate only if the error is not nit.

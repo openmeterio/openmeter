@@ -10,8 +10,8 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
-	"github.com/openmeterio/openmeter/openmeter/ent/schema"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 )
 
 // TaxCode is the model entity for the TaxCode schema.
@@ -36,7 +36,7 @@ type TaxCode struct {
 	// Key holds the value of the "key" field.
 	Key string `json:"key,omitempty"`
 	// AppMappings holds the value of the "app_mappings" field.
-	AppMappings  *schema.TaxCodeAppMappings `json:"app_mappings,omitempty"`
+	AppMappings  *taxcode.TaxCodeAppMappings `json:"app_mappings,omitempty"`
 	selectValues sql.SelectValues
 }
 
@@ -45,14 +45,14 @@ func (*TaxCode) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case taxcode.FieldMetadata:
+		case dbtaxcode.FieldMetadata:
 			values[i] = new([]byte)
-		case taxcode.FieldID, taxcode.FieldNamespace, taxcode.FieldName, taxcode.FieldDescription, taxcode.FieldKey:
+		case dbtaxcode.FieldID, dbtaxcode.FieldNamespace, dbtaxcode.FieldName, dbtaxcode.FieldDescription, dbtaxcode.FieldKey:
 			values[i] = new(sql.NullString)
-		case taxcode.FieldCreatedAt, taxcode.FieldUpdatedAt, taxcode.FieldDeletedAt:
+		case dbtaxcode.FieldCreatedAt, dbtaxcode.FieldUpdatedAt, dbtaxcode.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
-		case taxcode.FieldAppMappings:
-			values[i] = taxcode.ValueScanner.AppMappings.ScanValue()
+		case dbtaxcode.FieldAppMappings:
+			values[i] = dbtaxcode.ValueScanner.AppMappings.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -68,19 +68,19 @@ func (_m *TaxCode) assignValues(columns []string, values []any) error {
 	}
 	for i := range columns {
 		switch columns[i] {
-		case taxcode.FieldID:
+		case dbtaxcode.FieldID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				_m.ID = value.String
 			}
-		case taxcode.FieldNamespace:
+		case dbtaxcode.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
 				_m.Namespace = value.String
 			}
-		case taxcode.FieldMetadata:
+		case dbtaxcode.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
@@ -88,46 +88,46 @@ func (_m *TaxCode) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
-		case taxcode.FieldCreatedAt:
+		case dbtaxcode.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				_m.CreatedAt = value.Time
 			}
-		case taxcode.FieldUpdatedAt:
+		case dbtaxcode.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
 			}
-		case taxcode.FieldDeletedAt:
+		case dbtaxcode.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
 			}
-		case taxcode.FieldName:
+		case dbtaxcode.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
 				_m.Name = value.String
 			}
-		case taxcode.FieldDescription:
+		case dbtaxcode.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
 				_m.Description = new(string)
 				*_m.Description = value.String
 			}
-		case taxcode.FieldKey:
+		case dbtaxcode.FieldKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field key", values[i])
 			} else if value.Valid {
 				_m.Key = value.String
 			}
-		case taxcode.FieldAppMappings:
-			if value, err := taxcode.ValueScanner.AppMappings.FromValue(values[i]); err != nil {
+		case dbtaxcode.FieldAppMappings:
+			if value, err := dbtaxcode.ValueScanner.AppMappings.FromValue(values[i]); err != nil {
 				return err
 			} else {
 				_m.AppMappings = value

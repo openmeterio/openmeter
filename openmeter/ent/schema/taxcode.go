@@ -7,16 +7,9 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
-	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
-
-type TaxCodeAppMapping struct {
-	AppType app.AppType `json:"app_type"`
-	TaxCode string      `json:"tax_code"`
-}
-
-type TaxCodeAppMappings []TaxCodeAppMapping
 
 // Tax code stores information about an entity's tax code
 type TaxCode struct {
@@ -32,7 +25,7 @@ func (TaxCode) Mixin() []ent.Mixin {
 func (TaxCode) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("app_mappings").
-			GoType(&TaxCodeAppMappings{}).
+			GoType(&taxcode.TaxCodeAppMappings{}).
 			ValueScanner(TaxCodeAppMappingsValueScanner).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
@@ -52,4 +45,4 @@ func (TaxCode) Indexes() []ent.Index {
 	}
 }
 
-var TaxCodeAppMappingsValueScanner = entutils.JSONStringValueScanner[*TaxCodeAppMappings]()
+var TaxCodeAppMappingsValueScanner = entutils.JSONStringValueScanner[*taxcode.TaxCodeAppMappings]()

@@ -63,13 +63,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
-	"github.com/openmeterio/openmeter/openmeter/ent/schema"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -59212,7 +59212,7 @@ type TaxCodeMutation struct {
 	name          *string
 	description   *string
 	key           *string
-	app_mappings  **schema.TaxCodeAppMappings
+	app_mappings  **taxcode.TaxCodeAppMappings
 	clearedFields map[string]struct{}
 	done          bool
 	oldValue      func(context.Context) (*TaxCode, error)
@@ -59393,19 +59393,19 @@ func (m *TaxCodeMutation) OldMetadata(ctx context.Context) (v map[string]string,
 // ClearMetadata clears the value of the "metadata" field.
 func (m *TaxCodeMutation) ClearMetadata() {
 	m.metadata = nil
-	m.clearedFields[taxcode.FieldMetadata] = struct{}{}
+	m.clearedFields[dbtaxcode.FieldMetadata] = struct{}{}
 }
 
 // MetadataCleared returns if the "metadata" field was cleared in this mutation.
 func (m *TaxCodeMutation) MetadataCleared() bool {
-	_, ok := m.clearedFields[taxcode.FieldMetadata]
+	_, ok := m.clearedFields[dbtaxcode.FieldMetadata]
 	return ok
 }
 
 // ResetMetadata resets all changes to the "metadata" field.
 func (m *TaxCodeMutation) ResetMetadata() {
 	m.metadata = nil
-	delete(m.clearedFields, taxcode.FieldMetadata)
+	delete(m.clearedFields, dbtaxcode.FieldMetadata)
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -59514,19 +59514,19 @@ func (m *TaxCodeMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err e
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (m *TaxCodeMutation) ClearDeletedAt() {
 	m.deleted_at = nil
-	m.clearedFields[taxcode.FieldDeletedAt] = struct{}{}
+	m.clearedFields[dbtaxcode.FieldDeletedAt] = struct{}{}
 }
 
 // DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
 func (m *TaxCodeMutation) DeletedAtCleared() bool {
-	_, ok := m.clearedFields[taxcode.FieldDeletedAt]
+	_, ok := m.clearedFields[dbtaxcode.FieldDeletedAt]
 	return ok
 }
 
 // ResetDeletedAt resets all changes to the "deleted_at" field.
 func (m *TaxCodeMutation) ResetDeletedAt() {
 	m.deleted_at = nil
-	delete(m.clearedFields, taxcode.FieldDeletedAt)
+	delete(m.clearedFields, dbtaxcode.FieldDeletedAt)
 }
 
 // SetName sets the "name" field.
@@ -59599,19 +59599,19 @@ func (m *TaxCodeMutation) OldDescription(ctx context.Context) (v *string, err er
 // ClearDescription clears the value of the "description" field.
 func (m *TaxCodeMutation) ClearDescription() {
 	m.description = nil
-	m.clearedFields[taxcode.FieldDescription] = struct{}{}
+	m.clearedFields[dbtaxcode.FieldDescription] = struct{}{}
 }
 
 // DescriptionCleared returns if the "description" field was cleared in this mutation.
 func (m *TaxCodeMutation) DescriptionCleared() bool {
-	_, ok := m.clearedFields[taxcode.FieldDescription]
+	_, ok := m.clearedFields[dbtaxcode.FieldDescription]
 	return ok
 }
 
 // ResetDescription resets all changes to the "description" field.
 func (m *TaxCodeMutation) ResetDescription() {
 	m.description = nil
-	delete(m.clearedFields, taxcode.FieldDescription)
+	delete(m.clearedFields, dbtaxcode.FieldDescription)
 }
 
 // SetKey sets the "key" field.
@@ -59651,12 +59651,12 @@ func (m *TaxCodeMutation) ResetKey() {
 }
 
 // SetAppMappings sets the "app_mappings" field.
-func (m *TaxCodeMutation) SetAppMappings(scam *schema.TaxCodeAppMappings) {
-	m.app_mappings = &scam
+func (m *TaxCodeMutation) SetAppMappings(tcam *taxcode.TaxCodeAppMappings) {
+	m.app_mappings = &tcam
 }
 
 // AppMappings returns the value of the "app_mappings" field in the mutation.
-func (m *TaxCodeMutation) AppMappings() (r *schema.TaxCodeAppMappings, exists bool) {
+func (m *TaxCodeMutation) AppMappings() (r *taxcode.TaxCodeAppMappings, exists bool) {
 	v := m.app_mappings
 	if v == nil {
 		return
@@ -59667,7 +59667,7 @@ func (m *TaxCodeMutation) AppMappings() (r *schema.TaxCodeAppMappings, exists bo
 // OldAppMappings returns the old "app_mappings" field's value of the TaxCode entity.
 // If the TaxCode object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *TaxCodeMutation) OldAppMappings(ctx context.Context) (v *schema.TaxCodeAppMappings, err error) {
+func (m *TaxCodeMutation) OldAppMappings(ctx context.Context) (v *taxcode.TaxCodeAppMappings, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldAppMappings is only allowed on UpdateOne operations")
 	}
@@ -59684,19 +59684,19 @@ func (m *TaxCodeMutation) OldAppMappings(ctx context.Context) (v *schema.TaxCode
 // ClearAppMappings clears the value of the "app_mappings" field.
 func (m *TaxCodeMutation) ClearAppMappings() {
 	m.app_mappings = nil
-	m.clearedFields[taxcode.FieldAppMappings] = struct{}{}
+	m.clearedFields[dbtaxcode.FieldAppMappings] = struct{}{}
 }
 
 // AppMappingsCleared returns if the "app_mappings" field was cleared in this mutation.
 func (m *TaxCodeMutation) AppMappingsCleared() bool {
-	_, ok := m.clearedFields[taxcode.FieldAppMappings]
+	_, ok := m.clearedFields[dbtaxcode.FieldAppMappings]
 	return ok
 }
 
 // ResetAppMappings resets all changes to the "app_mappings" field.
 func (m *TaxCodeMutation) ResetAppMappings() {
 	m.app_mappings = nil
-	delete(m.clearedFields, taxcode.FieldAppMappings)
+	delete(m.clearedFields, dbtaxcode.FieldAppMappings)
 }
 
 // Where appends a list predicates to the TaxCodeMutation builder.
@@ -59735,31 +59735,31 @@ func (m *TaxCodeMutation) Type() string {
 func (m *TaxCodeMutation) Fields() []string {
 	fields := make([]string, 0, 9)
 	if m.namespace != nil {
-		fields = append(fields, taxcode.FieldNamespace)
+		fields = append(fields, dbtaxcode.FieldNamespace)
 	}
 	if m.metadata != nil {
-		fields = append(fields, taxcode.FieldMetadata)
+		fields = append(fields, dbtaxcode.FieldMetadata)
 	}
 	if m.created_at != nil {
-		fields = append(fields, taxcode.FieldCreatedAt)
+		fields = append(fields, dbtaxcode.FieldCreatedAt)
 	}
 	if m.updated_at != nil {
-		fields = append(fields, taxcode.FieldUpdatedAt)
+		fields = append(fields, dbtaxcode.FieldUpdatedAt)
 	}
 	if m.deleted_at != nil {
-		fields = append(fields, taxcode.FieldDeletedAt)
+		fields = append(fields, dbtaxcode.FieldDeletedAt)
 	}
 	if m.name != nil {
-		fields = append(fields, taxcode.FieldName)
+		fields = append(fields, dbtaxcode.FieldName)
 	}
 	if m.description != nil {
-		fields = append(fields, taxcode.FieldDescription)
+		fields = append(fields, dbtaxcode.FieldDescription)
 	}
 	if m.key != nil {
-		fields = append(fields, taxcode.FieldKey)
+		fields = append(fields, dbtaxcode.FieldKey)
 	}
 	if m.app_mappings != nil {
-		fields = append(fields, taxcode.FieldAppMappings)
+		fields = append(fields, dbtaxcode.FieldAppMappings)
 	}
 	return fields
 }
@@ -59769,23 +59769,23 @@ func (m *TaxCodeMutation) Fields() []string {
 // schema.
 func (m *TaxCodeMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case taxcode.FieldNamespace:
+	case dbtaxcode.FieldNamespace:
 		return m.Namespace()
-	case taxcode.FieldMetadata:
+	case dbtaxcode.FieldMetadata:
 		return m.Metadata()
-	case taxcode.FieldCreatedAt:
+	case dbtaxcode.FieldCreatedAt:
 		return m.CreatedAt()
-	case taxcode.FieldUpdatedAt:
+	case dbtaxcode.FieldUpdatedAt:
 		return m.UpdatedAt()
-	case taxcode.FieldDeletedAt:
+	case dbtaxcode.FieldDeletedAt:
 		return m.DeletedAt()
-	case taxcode.FieldName:
+	case dbtaxcode.FieldName:
 		return m.Name()
-	case taxcode.FieldDescription:
+	case dbtaxcode.FieldDescription:
 		return m.Description()
-	case taxcode.FieldKey:
+	case dbtaxcode.FieldKey:
 		return m.Key()
-	case taxcode.FieldAppMappings:
+	case dbtaxcode.FieldAppMappings:
 		return m.AppMappings()
 	}
 	return nil, false
@@ -59796,23 +59796,23 @@ func (m *TaxCodeMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *TaxCodeMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case taxcode.FieldNamespace:
+	case dbtaxcode.FieldNamespace:
 		return m.OldNamespace(ctx)
-	case taxcode.FieldMetadata:
+	case dbtaxcode.FieldMetadata:
 		return m.OldMetadata(ctx)
-	case taxcode.FieldCreatedAt:
+	case dbtaxcode.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
-	case taxcode.FieldUpdatedAt:
+	case dbtaxcode.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
-	case taxcode.FieldDeletedAt:
+	case dbtaxcode.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
-	case taxcode.FieldName:
+	case dbtaxcode.FieldName:
 		return m.OldName(ctx)
-	case taxcode.FieldDescription:
+	case dbtaxcode.FieldDescription:
 		return m.OldDescription(ctx)
-	case taxcode.FieldKey:
+	case dbtaxcode.FieldKey:
 		return m.OldKey(ctx)
-	case taxcode.FieldAppMappings:
+	case dbtaxcode.FieldAppMappings:
 		return m.OldAppMappings(ctx)
 	}
 	return nil, fmt.Errorf("unknown TaxCode field %s", name)
@@ -59823,64 +59823,64 @@ func (m *TaxCodeMutation) OldField(ctx context.Context, name string) (ent.Value,
 // type.
 func (m *TaxCodeMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case taxcode.FieldNamespace:
+	case dbtaxcode.FieldNamespace:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNamespace(v)
 		return nil
-	case taxcode.FieldMetadata:
+	case dbtaxcode.FieldMetadata:
 		v, ok := value.(map[string]string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMetadata(v)
 		return nil
-	case taxcode.FieldCreatedAt:
+	case dbtaxcode.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCreatedAt(v)
 		return nil
-	case taxcode.FieldUpdatedAt:
+	case dbtaxcode.FieldUpdatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUpdatedAt(v)
 		return nil
-	case taxcode.FieldDeletedAt:
+	case dbtaxcode.FieldDeletedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
 		return nil
-	case taxcode.FieldName:
+	case dbtaxcode.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetName(v)
 		return nil
-	case taxcode.FieldDescription:
+	case dbtaxcode.FieldDescription:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDescription(v)
 		return nil
-	case taxcode.FieldKey:
+	case dbtaxcode.FieldKey:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetKey(v)
 		return nil
-	case taxcode.FieldAppMappings:
-		v, ok := value.(*schema.TaxCodeAppMappings)
+	case dbtaxcode.FieldAppMappings:
+		v, ok := value.(*taxcode.TaxCodeAppMappings)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -59916,17 +59916,17 @@ func (m *TaxCodeMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *TaxCodeMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(taxcode.FieldMetadata) {
-		fields = append(fields, taxcode.FieldMetadata)
+	if m.FieldCleared(dbtaxcode.FieldMetadata) {
+		fields = append(fields, dbtaxcode.FieldMetadata)
 	}
-	if m.FieldCleared(taxcode.FieldDeletedAt) {
-		fields = append(fields, taxcode.FieldDeletedAt)
+	if m.FieldCleared(dbtaxcode.FieldDeletedAt) {
+		fields = append(fields, dbtaxcode.FieldDeletedAt)
 	}
-	if m.FieldCleared(taxcode.FieldDescription) {
-		fields = append(fields, taxcode.FieldDescription)
+	if m.FieldCleared(dbtaxcode.FieldDescription) {
+		fields = append(fields, dbtaxcode.FieldDescription)
 	}
-	if m.FieldCleared(taxcode.FieldAppMappings) {
-		fields = append(fields, taxcode.FieldAppMappings)
+	if m.FieldCleared(dbtaxcode.FieldAppMappings) {
+		fields = append(fields, dbtaxcode.FieldAppMappings)
 	}
 	return fields
 }
@@ -59942,16 +59942,16 @@ func (m *TaxCodeMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *TaxCodeMutation) ClearField(name string) error {
 	switch name {
-	case taxcode.FieldMetadata:
+	case dbtaxcode.FieldMetadata:
 		m.ClearMetadata()
 		return nil
-	case taxcode.FieldDeletedAt:
+	case dbtaxcode.FieldDeletedAt:
 		m.ClearDeletedAt()
 		return nil
-	case taxcode.FieldDescription:
+	case dbtaxcode.FieldDescription:
 		m.ClearDescription()
 		return nil
-	case taxcode.FieldAppMappings:
+	case dbtaxcode.FieldAppMappings:
 		m.ClearAppMappings()
 		return nil
 	}
@@ -59962,31 +59962,31 @@ func (m *TaxCodeMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *TaxCodeMutation) ResetField(name string) error {
 	switch name {
-	case taxcode.FieldNamespace:
+	case dbtaxcode.FieldNamespace:
 		m.ResetNamespace()
 		return nil
-	case taxcode.FieldMetadata:
+	case dbtaxcode.FieldMetadata:
 		m.ResetMetadata()
 		return nil
-	case taxcode.FieldCreatedAt:
+	case dbtaxcode.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
-	case taxcode.FieldUpdatedAt:
+	case dbtaxcode.FieldUpdatedAt:
 		m.ResetUpdatedAt()
 		return nil
-	case taxcode.FieldDeletedAt:
+	case dbtaxcode.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
-	case taxcode.FieldName:
+	case dbtaxcode.FieldName:
 		m.ResetName()
 		return nil
-	case taxcode.FieldDescription:
+	case dbtaxcode.FieldDescription:
 		m.ResetDescription()
 		return nil
-	case taxcode.FieldKey:
+	case dbtaxcode.FieldKey:
 		m.ResetKey()
 		return nil
-	case taxcode.FieldAppMappings:
+	case dbtaxcode.FieldAppMappings:
 		m.ResetAppMappings()
 		return nil
 	}
