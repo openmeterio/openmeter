@@ -61,6 +61,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 
 	stdsql "database/sql"
@@ -163,6 +164,8 @@ type Client struct {
 	SubscriptionItem *SubscriptionItemClient
 	// SubscriptionPhase is the client for interacting with the SubscriptionPhase builders.
 	SubscriptionPhase *SubscriptionPhaseClient
+	// TaxCode is the client for interacting with the TaxCode builders.
+	TaxCode *TaxCodeClient
 	// UsageReset is the client for interacting with the UsageReset builders.
 	UsageReset *UsageResetClient
 }
@@ -222,6 +225,7 @@ func (c *Client) init() {
 	c.SubscriptionBillingSyncState = NewSubscriptionBillingSyncStateClient(c.config)
 	c.SubscriptionItem = NewSubscriptionItemClient(c.config)
 	c.SubscriptionPhase = NewSubscriptionPhaseClient(c.config)
+	c.TaxCode = NewTaxCodeClient(c.config)
 	c.UsageReset = NewUsageResetClient(c.config)
 }
 
@@ -361,6 +365,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		SubscriptionBillingSyncState:                     NewSubscriptionBillingSyncStateClient(cfg),
 		SubscriptionItem:                                 NewSubscriptionItemClient(cfg),
 		SubscriptionPhase:                                NewSubscriptionPhaseClient(cfg),
+		TaxCode:                                          NewTaxCodeClient(cfg),
 		UsageReset:                                       NewUsageResetClient(cfg),
 	}, nil
 }
@@ -427,6 +432,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		SubscriptionBillingSyncState:                     NewSubscriptionBillingSyncStateClient(cfg),
 		SubscriptionItem:                                 NewSubscriptionItemClient(cfg),
 		SubscriptionPhase:                                NewSubscriptionPhaseClient(cfg),
+		TaxCode:                                          NewTaxCodeClient(cfg),
 		UsageReset:                                       NewUsageResetClient(cfg),
 	}, nil
 }
@@ -472,7 +478,7 @@ func (c *Client) Use(hooks ...Hook) {
 		c.NotificationRule, c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard,
 		c.Subject, c.Subscription, c.SubscriptionAddon, c.SubscriptionAddonQuantity,
 		c.SubscriptionBillingSyncState, c.SubscriptionItem, c.SubscriptionPhase,
-		c.UsageReset,
+		c.TaxCode, c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -497,7 +503,7 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.NotificationRule, c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard,
 		c.Subject, c.Subscription, c.SubscriptionAddon, c.SubscriptionAddonQuantity,
 		c.SubscriptionBillingSyncState, c.SubscriptionItem, c.SubscriptionPhase,
-		c.UsageReset,
+		c.TaxCode, c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -598,6 +604,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.SubscriptionItem.mutate(ctx, m)
 	case *SubscriptionPhaseMutation:
 		return c.SubscriptionPhase.mutate(ctx, m)
+	case *TaxCodeMutation:
+		return c.TaxCode.mutate(ctx, m)
 	case *UsageResetMutation:
 		return c.UsageReset.mutate(ctx, m)
 	default:
@@ -8595,6 +8603,139 @@ func (c *SubscriptionPhaseClient) mutate(ctx context.Context, m *SubscriptionPha
 	}
 }
 
+// TaxCodeClient is a client for the TaxCode schema.
+type TaxCodeClient struct {
+	config
+}
+
+// NewTaxCodeClient returns a client for the TaxCode from the given config.
+func NewTaxCodeClient(c config) *TaxCodeClient {
+	return &TaxCodeClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `dbtaxcode.Hooks(f(g(h())))`.
+func (c *TaxCodeClient) Use(hooks ...Hook) {
+	c.hooks.TaxCode = append(c.hooks.TaxCode, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `dbtaxcode.Intercept(f(g(h())))`.
+func (c *TaxCodeClient) Intercept(interceptors ...Interceptor) {
+	c.inters.TaxCode = append(c.inters.TaxCode, interceptors...)
+}
+
+// Create returns a builder for creating a TaxCode entity.
+func (c *TaxCodeClient) Create() *TaxCodeCreate {
+	mutation := newTaxCodeMutation(c.config, OpCreate)
+	return &TaxCodeCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of TaxCode entities.
+func (c *TaxCodeClient) CreateBulk(builders ...*TaxCodeCreate) *TaxCodeCreateBulk {
+	return &TaxCodeCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *TaxCodeClient) MapCreateBulk(slice any, setFunc func(*TaxCodeCreate, int)) *TaxCodeCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &TaxCodeCreateBulk{err: fmt.Errorf("calling to TaxCodeClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*TaxCodeCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &TaxCodeCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for TaxCode.
+func (c *TaxCodeClient) Update() *TaxCodeUpdate {
+	mutation := newTaxCodeMutation(c.config, OpUpdate)
+	return &TaxCodeUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TaxCodeClient) UpdateOne(_m *TaxCode) *TaxCodeUpdateOne {
+	mutation := newTaxCodeMutation(c.config, OpUpdateOne, withTaxCode(_m))
+	return &TaxCodeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TaxCodeClient) UpdateOneID(id string) *TaxCodeUpdateOne {
+	mutation := newTaxCodeMutation(c.config, OpUpdateOne, withTaxCodeID(id))
+	return &TaxCodeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for TaxCode.
+func (c *TaxCodeClient) Delete() *TaxCodeDelete {
+	mutation := newTaxCodeMutation(c.config, OpDelete)
+	return &TaxCodeDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TaxCodeClient) DeleteOne(_m *TaxCode) *TaxCodeDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TaxCodeClient) DeleteOneID(id string) *TaxCodeDeleteOne {
+	builder := c.Delete().Where(dbtaxcode.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TaxCodeDeleteOne{builder}
+}
+
+// Query returns a query builder for TaxCode.
+func (c *TaxCodeClient) Query() *TaxCodeQuery {
+	return &TaxCodeQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTaxCode},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a TaxCode entity by its id.
+func (c *TaxCodeClient) Get(ctx context.Context, id string) (*TaxCode, error) {
+	return c.Query().Where(dbtaxcode.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TaxCodeClient) GetX(ctx context.Context, id string) *TaxCode {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *TaxCodeClient) Hooks() []Hook {
+	return c.hooks.TaxCode
+}
+
+// Interceptors returns the client interceptors.
+func (c *TaxCodeClient) Interceptors() []Interceptor {
+	return c.inters.TaxCode
+}
+
+func (c *TaxCodeClient) mutate(ctx context.Context, m *TaxCodeMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TaxCodeCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TaxCodeUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TaxCodeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TaxCodeDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown TaxCode mutation op: %q", m.Op())
+	}
+}
+
 // UsageResetClient is a client for the UsageReset schema.
 type UsageResetClient struct {
 	config
@@ -8760,7 +8901,7 @@ type (
 		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
 		NotificationRule, Plan, PlanAddon, PlanPhase, PlanRateCard, Subject,
 		Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
-		SubscriptionBillingSyncState, SubscriptionItem, SubscriptionPhase,
+		SubscriptionBillingSyncState, SubscriptionItem, SubscriptionPhase, TaxCode,
 		UsageReset []ent.Hook
 	}
 	inters struct {
@@ -8777,7 +8918,7 @@ type (
 		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
 		NotificationRule, Plan, PlanAddon, PlanPhase, PlanRateCard, Subject,
 		Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
-		SubscriptionBillingSyncState, SubscriptionItem, SubscriptionPhase,
+		SubscriptionBillingSyncState, SubscriptionItem, SubscriptionPhase, TaxCode,
 		UsageReset []ent.Interceptor
 	}
 )
