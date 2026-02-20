@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
@@ -359,6 +360,21 @@ func (_c *CustomerCreate) AddEntitlements(v ...*Entitlement) *CustomerCreate {
 	return _c.AddEntitlementIDs(ids...)
 }
 
+// AddChargeIntentIDs adds the "charge_intents" edge to the Charge entity by IDs.
+func (_c *CustomerCreate) AddChargeIntentIDs(ids ...string) *CustomerCreate {
+	_c.mutation.AddChargeIntentIDs(ids...)
+	return _c
+}
+
+// AddChargeIntents adds the "charge_intents" edges to the Charge entity.
+func (_c *CustomerCreate) AddChargeIntents(v ...*Charge) *CustomerCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChargeIntentIDs(ids...)
+}
+
 // Mutation returns the CustomerMutation object of the builder.
 func (_c *CustomerCreate) Mutation() *CustomerMutation {
 	return _c.mutation
@@ -634,6 +650,22 @@ func (_c *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargeIntentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargeIntentsTable,
+			Columns: []string{customer.ChargeIntentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

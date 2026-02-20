@@ -139,6 +139,14 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		BillingWorkflowConfig: NewBillingWorkflowConfigClient(config),
 
+		Charge: NewChargeClient(config),
+
+		ChargeFlatFee: NewChargeFlatFeeClient(config),
+
+		ChargeStandardInvoiceRealization: NewChargeStandardInvoiceRealizationClient(config),
+
+		ChargeUsageBased: NewChargeUsageBasedClient(config),
+
 		Customer: NewCustomerClient(config),
 
 		CustomerSubjects: NewCustomerSubjectsClient(config),

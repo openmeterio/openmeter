@@ -73,6 +73,7 @@ func (Subscription) Edges() []ent.Edge {
 		}),
 		edge.To("billing_lines", BillingInvoiceLine.Type),
 		edge.To("billing_split_line_groups", BillingInvoiceSplitLineGroup.Type),
+		edge.To("charge_intents", Charge.Type),
 		edge.To("addons", SubscriptionAddon.Type).
 			Annotations(entsql.Annotation{
 				OnDelete: entsql.Cascade,
@@ -125,6 +126,7 @@ func (SubscriptionPhase) Edges() []ent.Edge {
 		}),
 		edge.To("billing_lines", BillingInvoiceLine.Type),
 		edge.To("billing_split_line_groups", BillingInvoiceSplitLineGroup.Type),
+		edge.To("charge_intents", Charge.Type),
 	}
 }
 
@@ -221,5 +223,6 @@ func (SubscriptionItem) Edges() []ent.Edge {
 		}),
 		edge.To("billing_lines", BillingInvoiceLine.Type),
 		edge.To("billing_split_line_groups", BillingInvoiceSplitLineGroup.Type),
+		edge.To("charge_intents", Charge.Type),
 	}
 }

@@ -1308,6 +1308,29 @@ func HasBillingSplitLineGroupsWith(preds ...predicate.BillingInvoiceSplitLineGro
 	})
 }
 
+// HasChargeIntents applies the HasEdge predicate on the "charge_intents" edge.
+func HasChargeIntents() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChargeIntentsTable, ChargeIntentsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChargeIntentsWith applies the HasEdge predicate on the "charge_intents" edge with a given conditions (other predicates).
+func HasChargeIntentsWith(preds ...predicate.Charge) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(func(s *sql.Selector) {
+		step := newChargeIntentsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.SubscriptionItem) predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(sql.AndPredicates(predicates...))

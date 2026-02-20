@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
@@ -355,6 +356,21 @@ func (_u *SubscriptionItemUpdate) AddBillingSplitLineGroups(v ...*BillingInvoice
 	return _u.AddBillingSplitLineGroupIDs(ids...)
 }
 
+// AddChargeIntentIDs adds the "charge_intents" edge to the Charge entity by IDs.
+func (_u *SubscriptionItemUpdate) AddChargeIntentIDs(ids ...string) *SubscriptionItemUpdate {
+	_u.mutation.AddChargeIntentIDs(ids...)
+	return _u
+}
+
+// AddChargeIntents adds the "charge_intents" edges to the Charge entity.
+func (_u *SubscriptionItemUpdate) AddChargeIntents(v ...*Charge) *SubscriptionItemUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargeIntentIDs(ids...)
+}
+
 // Mutation returns the SubscriptionItemMutation object of the builder.
 func (_u *SubscriptionItemUpdate) Mutation() *SubscriptionItemMutation {
 	return _u.mutation
@@ -406,6 +422,27 @@ func (_u *SubscriptionItemUpdate) RemoveBillingSplitLineGroups(v ...*BillingInvo
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBillingSplitLineGroupIDs(ids...)
+}
+
+// ClearChargeIntents clears all "charge_intents" edges to the Charge entity.
+func (_u *SubscriptionItemUpdate) ClearChargeIntents() *SubscriptionItemUpdate {
+	_u.mutation.ClearChargeIntents()
+	return _u
+}
+
+// RemoveChargeIntentIDs removes the "charge_intents" edge to Charge entities by IDs.
+func (_u *SubscriptionItemUpdate) RemoveChargeIntentIDs(ids ...string) *SubscriptionItemUpdate {
+	_u.mutation.RemoveChargeIntentIDs(ids...)
+	return _u
+}
+
+// RemoveChargeIntents removes "charge_intents" edges to Charge entities.
+func (_u *SubscriptionItemUpdate) RemoveChargeIntents(v ...*Charge) *SubscriptionItemUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargeIntentIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -714,6 +751,51 @@ func (_u *SubscriptionItemUpdate) sqlSave(ctx context.Context) (_node int, err e
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeIntentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.ChargeIntentsTable,
+			Columns: []string{subscriptionitem.ChargeIntentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargeIntentsIDs(); len(nodes) > 0 && !_u.mutation.ChargeIntentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.ChargeIntentsTable,
+			Columns: []string{subscriptionitem.ChargeIntentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeIntentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.ChargeIntentsTable,
+			Columns: []string{subscriptionitem.ChargeIntentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1062,6 +1144,21 @@ func (_u *SubscriptionItemUpdateOne) AddBillingSplitLineGroups(v ...*BillingInvo
 	return _u.AddBillingSplitLineGroupIDs(ids...)
 }
 
+// AddChargeIntentIDs adds the "charge_intents" edge to the Charge entity by IDs.
+func (_u *SubscriptionItemUpdateOne) AddChargeIntentIDs(ids ...string) *SubscriptionItemUpdateOne {
+	_u.mutation.AddChargeIntentIDs(ids...)
+	return _u
+}
+
+// AddChargeIntents adds the "charge_intents" edges to the Charge entity.
+func (_u *SubscriptionItemUpdateOne) AddChargeIntents(v ...*Charge) *SubscriptionItemUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargeIntentIDs(ids...)
+}
+
 // Mutation returns the SubscriptionItemMutation object of the builder.
 func (_u *SubscriptionItemUpdateOne) Mutation() *SubscriptionItemMutation {
 	return _u.mutation
@@ -1113,6 +1210,27 @@ func (_u *SubscriptionItemUpdateOne) RemoveBillingSplitLineGroups(v ...*BillingI
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBillingSplitLineGroupIDs(ids...)
+}
+
+// ClearChargeIntents clears all "charge_intents" edges to the Charge entity.
+func (_u *SubscriptionItemUpdateOne) ClearChargeIntents() *SubscriptionItemUpdateOne {
+	_u.mutation.ClearChargeIntents()
+	return _u
+}
+
+// RemoveChargeIntentIDs removes the "charge_intents" edge to Charge entities by IDs.
+func (_u *SubscriptionItemUpdateOne) RemoveChargeIntentIDs(ids ...string) *SubscriptionItemUpdateOne {
+	_u.mutation.RemoveChargeIntentIDs(ids...)
+	return _u
+}
+
+// RemoveChargeIntents removes "charge_intents" edges to Charge entities.
+func (_u *SubscriptionItemUpdateOne) RemoveChargeIntents(v ...*Charge) *SubscriptionItemUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargeIntentIDs(ids...)
 }
 
 // Where appends a list predicates to the SubscriptionItemUpdate builder.
@@ -1451,6 +1569,51 @@ func (_u *SubscriptionItemUpdateOne) sqlSave(ctx context.Context) (_node *Subscr
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeIntentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.ChargeIntentsTable,
+			Columns: []string{subscriptionitem.ChargeIntentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargeIntentsIDs(); len(nodes) > 0 && !_u.mutation.ChargeIntentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.ChargeIntentsTable,
+			Columns: []string{subscriptionitem.ChargeIntentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeIntentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.ChargeIntentsTable,
+			Columns: []string{subscriptionitem.ChargeIntentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -309,6 +309,54 @@ func (f BillingWorkflowConfigFunc) Mutate(ctx context.Context, m db.Mutation) (d
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingWorkflowConfigMutation", m)
 }
 
+// The ChargeFunc type is an adapter to allow the use of ordinary
+// function as Charge mutator.
+type ChargeFunc func(context.Context, *db.ChargeMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeMutation", m)
+}
+
+// The ChargeFlatFeeFunc type is an adapter to allow the use of ordinary
+// function as ChargeFlatFee mutator.
+type ChargeFlatFeeFunc func(context.Context, *db.ChargeFlatFeeMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeFlatFeeFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeFlatFeeMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeeMutation", m)
+}
+
+// The ChargeStandardInvoiceRealizationFunc type is an adapter to allow the use of ordinary
+// function as ChargeStandardInvoiceRealization mutator.
+type ChargeStandardInvoiceRealizationFunc func(context.Context, *db.ChargeStandardInvoiceRealizationMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeStandardInvoiceRealizationFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeStandardInvoiceRealizationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeStandardInvoiceRealizationMutation", m)
+}
+
+// The ChargeUsageBasedFunc type is an adapter to allow the use of ordinary
+// function as ChargeUsageBased mutator.
+type ChargeUsageBasedFunc func(context.Context, *db.ChargeUsageBasedMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeUsageBasedFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeUsageBasedMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedMutation", m)
+}
+
 // The CustomerFunc type is an adapter to allow the use of ordinary
 // function as Customer mutator.
 type CustomerFunc func(context.Context, *db.CustomerMutation) (db.Value, error)
