@@ -22,6 +22,7 @@ func deriveEqualGatheringLineBase(this, that *GatheringLineBase) bool {
 			this.FeatureKey == that.FeatureKey &&
 			this.TaxConfig.Equal(that.TaxConfig) &&
 			deriveEqual_(&this.RateCardDiscounts, &that.RateCardDiscounts) &&
+			((this.ChargeID == nil && that.ChargeID == nil) || (this.ChargeID != nil && that.ChargeID != nil && *(this.ChargeID) == *(that.ChargeID))) &&
 			((this.ChildUniqueReferenceID == nil && that.ChildUniqueReferenceID == nil) || (this.ChildUniqueReferenceID != nil && that.ChildUniqueReferenceID != nil && *(this.ChildUniqueReferenceID) == *(that.ChildUniqueReferenceID))) &&
 			deriveEqual_1(this.Subscription, that.Subscription) &&
 			((this.SplitLineGroupID == nil && that.SplitLineGroupID == nil) || (this.SplitLineGroupID != nil && that.SplitLineGroupID != nil && *(this.SplitLineGroupID) == *(that.SplitLineGroupID))) &&
@@ -102,6 +103,7 @@ func deriveEqualLineBase(this, that *StandardLineBase) bool {
 			this.ManagedBy == that.ManagedBy &&
 			this.InvoiceID == that.InvoiceID &&
 			this.Currency == that.Currency &&
+			((this.ChargeID == nil && that.ChargeID == nil) || (this.ChargeID != nil && that.ChargeID != nil && *(this.ChargeID) == *(that.ChargeID))) &&
 			this.Period.Equal(that.Period) &&
 			this.InvoiceAt.Equal(that.InvoiceAt) &&
 			((this.ParentLineID == nil && that.ParentLineID == nil) || (this.ParentLineID != nil && that.ParentLineID != nil && *(this.ParentLineID) == *(that.ParentLineID))) &&

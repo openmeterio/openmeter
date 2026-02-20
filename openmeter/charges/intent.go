@@ -79,6 +79,10 @@ func (i IntentMeta) Validate() error {
 		errs = append(errs, fmt.Errorf("unique reference ID cannot be empty"))
 	}
 
+	if err := i.SettlementMode.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("settlement mode: %w", err))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -267,4 +271,18 @@ func NewIntent[T FlatFeeIntent | UsageBasedIntent](meta IntentMeta, v T) Intent 
 	}
 
 	return Intent{}
+}
+
+type Intents []Intent
+
+func (i Intents) Validate() error {
+	var errs []error
+
+	for idx, intent := range i {
+		if err := intent.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("intent[%d]: %w", idx, err))
+		}
+	}
+
+	return errors.Join(errs...)
 }

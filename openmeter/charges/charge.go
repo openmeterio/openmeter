@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -37,12 +38,21 @@ func (s ChargeStatus) Validate() error {
 	return nil
 }
 
+type ChargeID models.NamespacedID
+
+func (i ChargeID) Validate() error {
+	return models.NamespacedID(i).Validate()
+}
+
 type Charge struct {
 	models.ManagedResource
 
 	Intent       Intent       `json:"intent"`
 	Status       ChargeStatus `json:"status"`
 	Realizations Realizations `json:"realizations"`
+
+	// TODO: Should this be a realization?
+	Expanded ChargeExpanded `json:"expanded"`
 }
 
 func (c Charge) Validate() error {
@@ -64,11 +74,24 @@ func (c Charge) Validate() error {
 		errs = append(errs, fmt.Errorf("realizations: %w", err))
 	}
 
+	if err := c.Status.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("status: %w", err))
+	}
+
 	return errors.Join(errs...)
 }
 
+func (c Charge) GetChargeID() ChargeID {
+	return ChargeID{
+		Namespace: c.Namespace,
+		ID:        c.ID,
+	}
+}
+
+type Charges []Charge
+
 type Realizations struct {
-	StandardInvoice []StandardInvoiceRealization `json:"standardInvoice"`
+	StandardInvoice StandardInvoiceRealizations `json:"standardInvoice"`
 }
 
 func (r Realizations) Validate() error {
@@ -81,4 +104,8 @@ func (r Realizations) Validate() error {
 	}
 
 	return errors.Join(errs...)
+}
+
+type ChargeExpanded struct {
+	GatheringLines []billing.GatheringLineWithInvoiceHeader `json:"gatheringLines"`
 }

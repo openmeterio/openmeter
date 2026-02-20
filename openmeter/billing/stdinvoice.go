@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/expand"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -34,6 +35,13 @@ const (
 	StandardInvoiceStatusCategoryUncollectible     StandardInvoiceStatusCategory = "uncollectible"
 	StandardInvoiceStatusCategoryVoided            StandardInvoiceStatusCategory = "voided"
 )
+
+var StandardInvoiceMutableStatusCategories = []StandardInvoiceStatusCategory{
+	StandardInvoiceStatusCategoryDraft,
+	StandardInvoiceStatusCategoryDelete,
+	StandardInvoiceStatusCategoryDeleted,
+	StandardInvoiceStatusCategoryIssuing,
+}
 
 func (s StandardInvoiceStatusCategory) MatchesInvoiceStatus(status StandardInvoiceStatus) bool {
 	return status.ShortStatus() == string(s)
@@ -1027,3 +1035,8 @@ func (i CreateStandardInvoiceFromGatheringLinesInput) Validate() error {
 
 	return errors.Join(errs...)
 }
+
+type (
+	StandardInvoiceHook  = models.ServiceHook[StandardInvoice]
+	StandardInvoiceHooks = models.ServiceHookRegistry[StandardInvoice]
+)

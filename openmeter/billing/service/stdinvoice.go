@@ -119,3 +119,7 @@ func (s *Service) ListStandardInvoices(ctx context.Context, input billing.ListSt
 		TotalCount: resp.TotalCount,
 	}, nil
 }
+
+func (s *Service) RegisterStandardInvoiceHooks(hooks ...billing.StandardInvoiceHook) {
+	s.standardInvoiceHooks.RegisterHooks(hooks...)
+}

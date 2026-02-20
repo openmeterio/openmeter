@@ -29,6 +29,7 @@ type StandardLineBase struct {
 
 	InvoiceID string         `json:"invoiceID,omitempty"`
 	Currency  currencyx.Code `json:"currency"`
+	ChargeID  *string        `json:"chargeID,omitempty"`
 
 	// Lifecycle
 	Period    Period    `json:"period"`

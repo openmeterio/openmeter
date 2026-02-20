@@ -926,6 +926,7 @@ func convertGatheringLineToNewStandardLine(line billing.GatheringLine, invoiceID
 			ChildUniqueReferenceID: line.ChildUniqueReferenceID,
 			Subscription:           subscription,
 			SplitLineGroupID:       line.SplitLineGroupID,
+			ChargeID:               line.ChargeID,
 		},
 		UsageBased: &billing.UsageBasedLine{
 			Price:      lo.ToPtr(line.Price),
