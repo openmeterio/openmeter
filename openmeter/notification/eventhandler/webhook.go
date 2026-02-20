@@ -324,7 +324,8 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 						break
 					}
 
-					if !lo.Contains(wh.Channels, event.Rule.ID) {
+					missingChannels := getMissingChannels(wh.Channels, event)
+					if len(missingChannels) > 0 {
 						h.logger.ErrorContext(ctx, "notification rule is not associated with notification channel for delivery status at webhook provider. it means its state is out of sync",
 							"namespace", event.Namespace,
 							"notification.event.id", event.ID,
@@ -435,6 +436,20 @@ func (h *Handler) reconcileWebhookEvent(ctx context.Context, event *notification
 	}
 
 	return tracex.StartWithNoValue(ctx, h.tracer, "event_handler.reconcile_event.webhook").Wrap(fn)
+}
+
+func getMissingChannels(existingChannels []string, event *notification.Event) []string {
+	return lo.FilterMap(event.Rule.Channels, func(channel notification.Channel, _ int) (string, bool) {
+		if channel.Disabled {
+			return channel.ID, false
+		}
+
+		if lo.Contains(existingChannels, channel.ID) {
+			return channel.ID, false
+		}
+
+		return channel.ID, true
+	})
 }
 
 func getDeliveryStatusByChannelID(items []webhook.MessageDeliveryStatus, channelID string) *webhook.MessageDeliveryStatus {
