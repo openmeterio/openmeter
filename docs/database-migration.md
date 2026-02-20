@@ -22,7 +22,7 @@ Data migrations can be written alongside the schema migrations code.
 
 ### Testing Data Migrations
 
-To test your data migrations in hypothetical scenarios, you can use the `tools/migrate` package to write assertions on how data changes after applying the migration. Examples can be found int the package.
+To test your data migrations in hypothetical scenarios, you can use the `tools/migrate` package to write assertions on how data changes after applying the migration. Examples can be found in the package.
 
 ## Running Migrations
 
