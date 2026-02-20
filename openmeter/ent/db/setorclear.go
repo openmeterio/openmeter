@@ -2171,6 +2171,48 @@ func (u *ChargeUpdateOne) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *
 	return u.SetTaxConfig(*value)
 }
 
+func (u *ChargeCreditRealizationUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeCreditRealizationUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeCreditRealizationUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeCreditRealizationUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeCreditRealizationUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeCreditRealizationUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeCreditRealizationUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeCreditRealizationUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeCreditRealizationUpdate) SetOrClearStdRealizationID(value *string) *ChargeCreditRealizationUpdate {
+	if value == nil {
+		return u.ClearStdRealizationID()
+	}
+	return u.SetStdRealizationID(*value)
+}
+
+func (u *ChargeCreditRealizationUpdateOne) SetOrClearStdRealizationID(value *string) *ChargeCreditRealizationUpdateOne {
+	if value == nil {
+		return u.ClearStdRealizationID()
+	}
+	return u.SetStdRealizationID(*value)
+}
+
 func (u *ChargeFlatFeeUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *ChargeFlatFeeUpdate {
 	if value == nil {
 		return u.ClearDiscounts()

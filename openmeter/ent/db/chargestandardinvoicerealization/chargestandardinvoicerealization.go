@@ -58,6 +58,8 @@ const (
 	EdgeCharge = "charge"
 	// EdgeBillingInvoiceLine holds the string denoting the billing_invoice_line edge name in mutations.
 	EdgeBillingInvoiceLine = "billing_invoice_line"
+	// EdgeCreditRealization holds the string denoting the credit_realization edge name in mutations.
+	EdgeCreditRealization = "credit_realization"
 	// Table holds the table name of the chargestandardinvoicerealization in the database.
 	Table = "charge_standard_invoice_realizations"
 	// ChargeTable is the table that holds the charge relation/edge.
@@ -74,6 +76,13 @@ const (
 	BillingInvoiceLineInverseTable = "billing_invoice_lines"
 	// BillingInvoiceLineColumn is the table column denoting the billing_invoice_line relation/edge.
 	BillingInvoiceLineColumn = "line_id"
+	// CreditRealizationTable is the table that holds the credit_realization relation/edge.
+	CreditRealizationTable = "charge_credit_realizations"
+	// CreditRealizationInverseTable is the table name for the ChargeCreditRealization entity.
+	// It exists in this package in order to avoid circular dependency with the "chargecreditrealization" package.
+	CreditRealizationInverseTable = "charge_credit_realizations"
+	// CreditRealizationColumn is the table column denoting the credit_realization relation/edge.
+	CreditRealizationColumn = "std_realization_id"
 )
 
 // Columns holds all SQL columns for chargestandardinvoicerealization fields.
@@ -244,6 +253,13 @@ func ByBillingInvoiceLineField(field string, opts ...sql.OrderTermOption) OrderO
 		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceLineStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByCreditRealizationField orders the results by credit_realization field.
+func ByCreditRealizationField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCreditRealizationStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newChargeStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -256,5 +272,12 @@ func newBillingInvoiceLineStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingInvoiceLineInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, false, BillingInvoiceLineTable, BillingInvoiceLineColumn),
+	)
+}
+func newCreditRealizationStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CreditRealizationInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, CreditRealizationTable, CreditRealizationColumn),
 	)
 }

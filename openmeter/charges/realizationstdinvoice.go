@@ -101,3 +101,16 @@ func (r StandardInvoiceRealizations) GetByLineID(lineID string) (StandardInvoice
 	}
 	return StandardInvoiceRealization{}, false
 }
+
+func (r StandardInvoiceRealizations) RealizedUnsettledAmount() alpacadecimal.Decimal {
+	sum := alpacadecimal.Zero
+	for _, realization := range r {
+		// Only consider invoices for which we have started the payment process
+		if realization.Status == StandardInvoiceRealizationStatusDraft {
+			continue
+		}
+
+		sum = sum.Add(realization.Totals.Amount)
+	}
+	return sum
+}

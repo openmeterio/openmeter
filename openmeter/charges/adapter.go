@@ -10,6 +10,7 @@ import (
 type Adapter interface {
 	ChargeAdapter
 	StandardInvoiceRealizationAdapter
+	CreditRealizationAdapter
 
 	entutils.TxCreator
 }
@@ -23,6 +24,10 @@ type ChargeAdapter interface {
 type StandardInvoiceRealizationAdapter interface {
 	CreateStandardInvoiceRealization(ctx context.Context, chargeID ChargeID, realization StandardInvoiceRealization) (StandardInvoiceRealization, error)
 	UpdateStandardInvoiceRealizationByID(ctx context.Context, chargeID ChargeID, realization StandardInvoiceRealization) (StandardInvoiceRealization, error)
+}
+
+type CreditRealizationAdapter interface {
+	CreateCreditRealizations(ctx context.Context, chargeID ChargeID, realizations []CreditRealizationCreateInput) (CreditRealizations, error)
 }
 
 type ProRatingModeAdapterEnum string

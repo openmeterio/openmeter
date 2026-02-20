@@ -16,6 +16,8 @@ type ChargeService interface {
 	GetChargeByID(ctx context.Context, input ChargeID) (Charge, error)
 	GetChargesByIDs(ctx context.Context, ns string, ids []string) (Charges, error)
 	CreateCharges(ctx context.Context, input CreateChargeInput) (Charges, error)
+
+	TriggerPeriodicRealization(ctx context.Context, input ChargeID) error
 }
 
 type BillingEmulationService interface {

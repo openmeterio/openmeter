@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicerealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
@@ -330,6 +331,21 @@ func (_c *ChargeCreate) AddStandardInvoiceRealizations(v ...*ChargeStandardInvoi
 		ids[i] = v[i].ID
 	}
 	return _c.AddStandardInvoiceRealizationIDs(ids...)
+}
+
+// AddCreditRealizationIDs adds the "credit_realizations" edge to the ChargeCreditRealization entity by IDs.
+func (_c *ChargeCreate) AddCreditRealizationIDs(ids ...string) *ChargeCreate {
+	_c.mutation.AddCreditRealizationIDs(ids...)
+	return _c
+}
+
+// AddCreditRealizations adds the "credit_realizations" edges to the ChargeCreditRealization entity.
+func (_c *ChargeCreate) AddCreditRealizations(v ...*ChargeCreditRealization) *ChargeCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddCreditRealizationIDs(ids...)
 }
 
 // AddBillingInvoiceLineIDs adds the "billing_invoice_lines" edge to the BillingInvoiceLine entity by IDs.
@@ -692,6 +708,22 @@ func (_c *ChargeCreate) createSpec() (*Charge, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargestandardinvoicerealization.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CreditRealizationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   charge.CreditRealizationsTable,
+			Columns: []string{charge.CreditRealizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditrealization.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
