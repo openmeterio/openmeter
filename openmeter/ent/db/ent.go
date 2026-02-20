@@ -38,6 +38,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedlineamountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
@@ -148,6 +150,8 @@ func checkColumn(t, c string) error {
 			billingstandardinvoicedetailedline.Table:               billingstandardinvoicedetailedline.ValidColumn,
 			billingstandardinvoicedetailedlineamountdiscount.Table: billingstandardinvoicedetailedlineamountdiscount.ValidColumn,
 			billingworkflowconfig.Table:                            billingworkflowconfig.ValidColumn,
+			currencycostbasis.Table:                                currencycostbasis.ValidColumn,
+			customcurrency.Table:                                   customcurrency.ValidColumn,
 			customer.Table:                                         customer.ValidColumn,
 			customersubjects.Table:                                 customersubjects.ValidColumn,
 			entitlement.Table:                                      entitlement.ValidColumn,

@@ -31,6 +31,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedlineamountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
@@ -875,6 +877,105 @@ func init() {
 	billingworkflowconfigDescID := billingworkflowconfigMixinFields0[0].Descriptor()
 	// billingworkflowconfig.DefaultID holds the default value on creation for the id field.
 	billingworkflowconfig.DefaultID = billingworkflowconfigDescID.Default.(func() string)
+	currencycostbasisMixin := schema.CurrencyCostBasis{}.Mixin()
+	currencycostbasisMixinFields0 := currencycostbasisMixin[0].Fields()
+	_ = currencycostbasisMixinFields0
+	currencycostbasisMixinFields1 := currencycostbasisMixin[1].Fields()
+	_ = currencycostbasisMixinFields1
+	currencycostbasisFields := schema.CurrencyCostBasis{}.Fields()
+	_ = currencycostbasisFields
+	// currencycostbasisDescCreatedAt is the schema descriptor for created_at field.
+	currencycostbasisDescCreatedAt := currencycostbasisMixinFields1[0].Descriptor()
+	// currencycostbasis.DefaultCreatedAt holds the default value on creation for the created_at field.
+	currencycostbasis.DefaultCreatedAt = currencycostbasisDescCreatedAt.Default.(func() time.Time)
+	// currencycostbasisDescFiatCode is the schema descriptor for fiat_code field.
+	currencycostbasisDescFiatCode := currencycostbasisFields[0].Descriptor()
+	// currencycostbasis.FiatCodeValidator is a validator for the "fiat_code" field. It is called by the builders before save.
+	currencycostbasis.FiatCodeValidator = func() func(string) error {
+		validators := currencycostbasisDescFiatCode.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+			validators[2].(func(string) error),
+		}
+		return func(fiat_code string) error {
+			for _, fn := range fns {
+				if err := fn(fiat_code); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// currencycostbasisDescEffectiveFrom is the schema descriptor for effective_from field.
+	currencycostbasisDescEffectiveFrom := currencycostbasisFields[2].Descriptor()
+	// currencycostbasis.DefaultEffectiveFrom holds the default value on creation for the effective_from field.
+	currencycostbasis.DefaultEffectiveFrom = currencycostbasisDescEffectiveFrom.Default.(func() time.Time)
+	// currencycostbasisDescID is the schema descriptor for id field.
+	currencycostbasisDescID := currencycostbasisMixinFields0[0].Descriptor()
+	// currencycostbasis.DefaultID holds the default value on creation for the id field.
+	currencycostbasis.DefaultID = currencycostbasisDescID.Default.(func() string)
+	customcurrencyMixin := schema.CustomCurrency{}.Mixin()
+	customcurrencyMixinFields0 := customcurrencyMixin[0].Fields()
+	_ = customcurrencyMixinFields0
+	customcurrencyMixinFields1 := customcurrencyMixin[1].Fields()
+	_ = customcurrencyMixinFields1
+	customcurrencyFields := schema.CustomCurrency{}.Fields()
+	_ = customcurrencyFields
+	// customcurrencyDescCreatedAt is the schema descriptor for created_at field.
+	customcurrencyDescCreatedAt := customcurrencyMixinFields1[0].Descriptor()
+	// customcurrency.DefaultCreatedAt holds the default value on creation for the created_at field.
+	customcurrency.DefaultCreatedAt = customcurrencyDescCreatedAt.Default.(func() time.Time)
+	// customcurrencyDescCode is the schema descriptor for code field.
+	customcurrencyDescCode := customcurrencyFields[0].Descriptor()
+	// customcurrency.CodeValidator is a validator for the "code" field. It is called by the builders before save.
+	customcurrency.CodeValidator = customcurrencyDescCode.Validators[0].(func(string) error)
+	// customcurrencyDescName is the schema descriptor for name field.
+	customcurrencyDescName := customcurrencyFields[1].Descriptor()
+	// customcurrency.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	customcurrency.NameValidator = func() func(string) error {
+		validators := customcurrencyDescName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(name string) error {
+			for _, fn := range fns {
+				if err := fn(name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// customcurrencyDescSymbol is the schema descriptor for symbol field.
+	customcurrencyDescSymbol := customcurrencyFields[2].Descriptor()
+	// customcurrency.SymbolValidator is a validator for the "symbol" field. It is called by the builders before save.
+	customcurrency.SymbolValidator = func() func(string) error {
+		validators := customcurrencyDescSymbol.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(symbol string) error {
+			for _, fn := range fns {
+				if err := fn(symbol); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// customcurrencyDescSmallestDenomination is the schema descriptor for smallest_denomination field.
+	customcurrencyDescSmallestDenomination := customcurrencyFields[3].Descriptor()
+	// customcurrency.DefaultSmallestDenomination holds the default value on creation for the smallest_denomination field.
+	customcurrency.DefaultSmallestDenomination = customcurrencyDescSmallestDenomination.Default.(int8)
+	// customcurrency.SmallestDenominationValidator is a validator for the "smallest_denomination" field. It is called by the builders before save.
+	customcurrency.SmallestDenominationValidator = customcurrencyDescSmallestDenomination.Validators[0].(func(int8) error)
+	// customcurrencyDescID is the schema descriptor for id field.
+	customcurrencyDescID := customcurrencyMixinFields0[0].Descriptor()
+	// customcurrency.DefaultID holds the default value on creation for the id field.
+	customcurrency.DefaultID = customcurrencyDescID.Default.(func() string)
 	customerMixin := schema.Customer{}.Mixin()
 	customerMixinFields0 := customerMixin[0].Fields()
 	_ = customerMixinFields0

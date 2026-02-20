@@ -139,3 +139,21 @@ func (s *Server) CreateCustomerStripeCheckoutSession(w http.ResponseWriter, r *h
 func (s *Server) CreateCustomerStripePortalSession(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
 	s.customersBillingHandler.CreateCustomerStripePortalSession().With(customerId).ServeHTTP(w, r)
 }
+
+// Currencies
+
+func (s *Server) ListCurrencies(w http.ResponseWriter, r *http.Request) {
+	s.currenciesHandler.ListCurrencies().ServeHTTP(w, r)
+}
+
+func (s *Server) CreateCustomCurrency(w http.ResponseWriter, r *http.Request) {
+	s.currenciesHandler.CreateCurrency().ServeHTTP(w, r)
+}
+
+func (s *Server) CreateCostBasis(w http.ResponseWriter, r *http.Request) {
+	s.currenciesHandler.CreateCostBasis().ServeHTTP(w, r)
+}
+
+func (s *Server) GetCostBasesById(w http.ResponseWriter, r *http.Request, currencyId string) {
+	s.currenciesHandler.GetCostBasesByCurrencyID().With(currencyId).ServeHTTP(w, r)
+}

@@ -309,6 +309,30 @@ func (f BillingWorkflowConfigFunc) Mutate(ctx context.Context, m db.Mutation) (d
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingWorkflowConfigMutation", m)
 }
 
+// The CurrencyCostBasisFunc type is an adapter to allow the use of ordinary
+// function as CurrencyCostBasis mutator.
+type CurrencyCostBasisFunc func(context.Context, *db.CurrencyCostBasisMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f CurrencyCostBasisFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.CurrencyCostBasisMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.CurrencyCostBasisMutation", m)
+}
+
+// The CustomCurrencyFunc type is an adapter to allow the use of ordinary
+// function as CustomCurrency mutator.
+type CustomCurrencyFunc func(context.Context, *db.CustomCurrencyMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f CustomCurrencyFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.CustomCurrencyMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.CustomCurrencyMutation", m)
+}
+
 // The CustomerFunc type is an adapter to allow the use of ordinary
 // function as Customer mutator.
 type CustomerFunc func(context.Context, *db.CustomerMutation) (db.Value, error)

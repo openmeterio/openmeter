@@ -81,6 +81,10 @@ interface AppsEndpoints extends Apps.AppsOperations {}
 @tag(Shared.BillingTag)
 interface BillingProfilesEndpoints extends Billing.BillingProfilesOperations {}
 
+@route("/openmeter/currencies")
+@tag(Shared.BillingTag)
+interface CurrenciesEndpoints extends Currencies.CurrenciesOperations {}
+
 /**
  * The system account access token is meant for automations and integrations that are not directly associated with a human identity.
  */

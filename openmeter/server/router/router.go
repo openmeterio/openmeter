@@ -12,6 +12,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 
 	"github.com/openmeterio/openmeter/api"
+	currencyHandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
@@ -24,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	creditdriver "github.com/openmeterio/openmeter/openmeter/credit/driver"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/debug"
@@ -118,6 +120,7 @@ type Config struct {
 	SubscriptionAddonService    subscriptionaddon.Service
 	SubscriptionWorkflowService subscriptionworkflow.Service
 	SubjectService              subject.Service
+	CurrencyService             currencies.CurrencyService
 }
 
 func (c Config) Validate() error {
@@ -214,6 +217,10 @@ func (c Config) Validate() error {
 		return errors.New("subject service is required")
 	}
 
+	if c.CurrencyService == nil {
+		return errors.New("currency service is required")
+	}
+
 	return nil
 }
 
@@ -244,6 +251,7 @@ type Router struct {
 	progressHandler           progresshttpdriver.Handler
 	infoHandler               infohttpdriver.Handler
 	subjectHandler            subjecthttphandler.Handler
+	currencyHandler           currencyHandler.Handler
 }
 
 // Make sure we conform to ServerInterface
@@ -419,6 +427,11 @@ func NewRouter(config Config) (*Router, error) {
 		config.Logger,
 		config.SubjectService,
 		config.EntitlementConnector,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
+
+	router.currencyHandler = currencyHandler.New(
+		config.CurrencyService,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
