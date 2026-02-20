@@ -16,7 +16,7 @@ type TaxCodeAppMapping struct {
 
 type TaxCodeAppMappings []TaxCodeAppMapping
 
-// Tax code stores information about an entities tax code
+// Tax code stores information about an entity's tax code
 type TaxCode struct {
 	ent.Schema
 }
