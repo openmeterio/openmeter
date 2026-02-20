@@ -23,6 +23,9 @@ const AppsDescription = "Apps enable you to extend and customize billing and usa
 const BillingTag = "OpenMeter Billing";
 const BillingDescription = "Billing manages the billing profiles, and invoices for customers.";
 
+const TaxTag = "OpenMeter Tax";
+const TaxDescription = "Tax codes are used to calculate taxes for customers.";
+
 const UnstableExtension = "x-unstable";
 const InternalExtension = "x-internal";
 const PrivateExtension = "x-private";
