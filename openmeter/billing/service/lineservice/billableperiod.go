@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -35,7 +35,7 @@ type GetLinesWithBillablePeriodsInput[T PriceAccessor] struct {
 	AsOf               time.Time
 	ProgressiveBilling bool
 	Lines              []T
-	FeatureMeters      billing.FeatureMeters
+	FeatureMeters      feature.FeatureMeters
 }
 
 type LineWithBillablePeriod[T PriceAccessor] struct {
@@ -73,7 +73,7 @@ type ResolveBillablePeriodInput[T PricerCanBeInvoicedAsOfAccessor] struct {
 	AsOf               time.Time
 	ProgressiveBilling bool
 	Line               T
-	FeatureMeters      billing.FeatureMeters
+	FeatureMeters      feature.FeatureMeters
 }
 
 func ResolveBillablePeriod[T PricerCanBeInvoicedAsOfAccessor](in ResolveBillablePeriodInput[T]) (*timeutil.ClosedPeriod, error) {

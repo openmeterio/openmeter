@@ -696,6 +696,10 @@ func (n NoopFeatureConnector) ArchiveFeature(ctx context.Context, featureID mode
 	return nil
 }
 
+func (n NoopFeatureConnector) ResolveFeatureMeters(ctx context.Context, namespace string, featureKeys []string) (feature.FeatureMeters, error) {
+	return feature.FeatureMeterCollection{}, nil
+}
+
 // NoopEntitlementConnector
 var _ entitlement.Service = (*NoopEntitlementConnector)(nil)
 

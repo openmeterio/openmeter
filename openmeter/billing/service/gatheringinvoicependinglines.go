@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -232,7 +233,7 @@ type gatheringLineWithBillablePeriod = lineservice.LineWithBillablePeriod[billin
 
 type gatheringInvoiceWithFeatureMeters struct {
 	Invoice       billing.GatheringInvoice
-	FeatureMeters billing.FeatureMeters
+	FeatureMeters feature.FeatureMeters
 }
 
 type gatherInScopeLineInput struct {
@@ -330,7 +331,7 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 type hasInvoicableLinesInput struct {
 	Invoice            billing.GatheringInvoice
 	AsOf               time.Time
-	FeatureMeters      billing.FeatureMeters
+	FeatureMeters      feature.FeatureMeters
 	ProgressiveBilling bool
 }
 
@@ -381,7 +382,7 @@ func (s *Service) hasInvoicableLines(ctx context.Context, in hasInvoicableLinesI
 
 type prepareLinesToBillInput struct {
 	GatheringInvoice billing.GatheringInvoice
-	FeatureMeters    billing.FeatureMeters
+	FeatureMeters    feature.FeatureMeters
 	InScopeLines     []gatheringLineWithBillablePeriod
 }
 
@@ -490,7 +491,7 @@ func (s *Service) prepareLinesToBill(ctx context.Context, input prepareLinesToBi
 
 type splitGatheringInvoiceLineInput struct {
 	GatheringInvoice billing.GatheringInvoice
-	FeatureMeters    billing.FeatureMeters
+	FeatureMeters    feature.FeatureMeters
 	LineID           string
 	SplitAt          time.Time
 }
@@ -807,7 +808,7 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 }
 
 type convertGatheringLinesToStandardLinesInput struct {
-	FeatureMeters           billing.FeatureMeters
+	FeatureMeters           feature.FeatureMeters
 	TargetInvoice           billing.StandardInvoice
 	GatheringLinesToConvert billing.GatheringLines
 }

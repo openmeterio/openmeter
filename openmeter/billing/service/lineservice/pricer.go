@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -57,7 +58,7 @@ type CanBeInvoicedAsOfInput struct {
 	AsOf               time.Time
 	ProgressiveBilling bool
 	Line               PricerCanBeInvoicedAsOfAccessor
-	FeatureMeters      billing.FeatureMeters
+	FeatureMeters      feature.FeatureMeters
 }
 
 func (i CanBeInvoicedAsOfInput) Validate() error {

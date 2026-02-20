@@ -3,12 +3,8 @@ package billingservice
 import (
 	"context"
 	"fmt"
-	"time"
-
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
@@ -16,155 +12,33 @@ type linesFeatureGetter interface {
 	GetReferencedFeatureKeys() ([]string, error)
 }
 
-func (s *Service) resolveFeatureMeters(ctx context.Context, namespace string, lines linesFeatureGetter) (billing.FeatureMeters, error) {
-	if namespace == "" {
-		return nil, fmt.Errorf("namespace is required")
-	}
-
-	featureKeys, err := lines.GetReferencedFeatureKeys()
+func (s *Service) resolveFeatureMeters(ctx context.Context, namespace string, lines linesFeatureGetter) (feature.FeatureMeters, error) {
+	keys, err := lines.GetReferencedFeatureKeys()
 	if err != nil {
 		return nil, fmt.Errorf("getting referenced feature keys: %w", err)
 	}
 
-	if len(featureKeys) == 0 {
-		return billing.FeatureMeters{}, nil
-	}
-
-	featuresToResolve := lo.Uniq(featureKeys)
-
-	// Let's resolve the features
-	features, err := s.featureService.ListFeatures(ctx, feature.ListFeaturesParams{
-		IDsOrKeys:       featuresToResolve,
-		Namespace:       namespace,
-		IncludeArchived: true,
-	})
+	featureMeters, err := s.featureService.ResolveFeatureMeters(ctx, namespace, keys)
 	if err != nil {
-		return nil, fmt.Errorf("listing features: %w", err)
+		return nil, fmt.Errorf("resolving feature meters: %w", err)
 	}
 
-	featuresByKey := getLastFeatures(features.Items)
+	return featureMetersErrorWrapper{featureMeters}, nil
+}
 
-	metersToResolve := lo.Uniq(
-		lo.Filter(
-			lo.Map(lo.Values(featuresByKey), func(feature feature.Feature, _ int) string {
-				if feature.MeterSlug == nil {
-					return ""
-				}
+// featureMetersErrorWrapper is a wrapper around the feature meters that returns a ErrSnapshotInvalidDatabaseState if the feature meter is not found.
+// This is useful to wrap the feature meters in a way that allows us to return a consistent error type for the billing service.
+type featureMetersErrorWrapper struct {
+	feature.FeatureMeters
+}
 
-				return *feature.MeterSlug
-			}),
-			func(meterSlug string, _ int) bool {
-				return meterSlug != ""
-			},
-		),
-	)
-
-	meters, err := s.meterService.ListMeters(ctx, meter.ListMetersParams{
-		SlugFilter:     lo.ToPtr(metersToResolve),
-		Namespace:      namespace,
-		IncludeDeleted: true,
-	})
+func (w featureMetersErrorWrapper) Get(featureKey string, requireMeter bool) (feature.FeatureMeter, error) {
+	featureMeter, err := w.FeatureMeters.Get(featureKey, requireMeter)
 	if err != nil {
-		return nil, fmt.Errorf("listing meters: %w", err)
-	}
-
-	metersByKey := getLastMeters(meters.Items)
-
-	out := make(billing.FeatureMeters, len(featuresByKey))
-	for featureKey, feature := range featuresByKey {
-		if feature.MeterSlug == nil {
-			out[featureKey] = billing.FeatureMeter{
-				Feature: feature,
-			}
-
-			continue
-		}
-
-		meter, exists := metersByKey[*feature.MeterSlug]
-		if !exists {
-			out[featureKey] = billing.FeatureMeter{
-				Feature: feature,
-			}
-
-			continue
-		}
-
-		out[featureKey] = billing.FeatureMeter{
-			Feature: feature,
-			Meter:   &meter,
+		return feature.FeatureMeter{}, &billing.ErrSnapshotInvalidDatabaseState{
+			Err: err,
 		}
 	}
 
-	return out, nil
-}
-
-type lastEntityAccessor[T any] interface {
-	GetKey(T) string
-	GetDeletedAt(T) *time.Time
-}
-
-func getLastEntity[T any](entities []T, accessor lastEntityAccessor[T]) map[string]T {
-	featuresByKey := lo.GroupBy(entities, func(entity T) string {
-		return accessor.GetKey(entity)
-	})
-
-	out := make(map[string]T, len(featuresByKey))
-	for key, features := range featuresByKey {
-		// Let's try to find an unarchived feature
-		out[key] = latestEntity(features, accessor)
-	}
-
-	return out
-}
-
-func latestEntity[T any](entities []T, accessor lastEntityAccessor[T]) T {
-	for _, entity := range entities {
-		if accessor.GetDeletedAt(entity) == nil {
-			return entity
-		}
-	}
-
-	// Otherwise, let's find the most recently archived feature:
-	// - all entities have non-nil deleted at (or we would have returned already)
-	// - and we have at least one entity due to the definition of the groupBy
-	mostRecentlyArchivedFeature := entities[0]
-	for _, entity := range entities {
-		if accessor.GetDeletedAt(entity).After(*accessor.GetDeletedAt(mostRecentlyArchivedFeature)) {
-			mostRecentlyArchivedFeature = entity
-		}
-	}
-
-	return mostRecentlyArchivedFeature
-}
-
-type featureAccessor struct{}
-
-var _ lastEntityAccessor[feature.Feature] = (*featureAccessor)(nil)
-
-func (a featureAccessor) GetKey(feature feature.Feature) string {
-	return feature.Key
-}
-
-func (a featureAccessor) GetDeletedAt(feature feature.Feature) *time.Time {
-	return feature.ArchivedAt
-}
-
-func getLastFeatures(features []feature.Feature) map[string]feature.Feature {
-	return getLastEntity(features, featureAccessor{})
-}
-
-type meterAccessor struct{}
-
-var _ lastEntityAccessor[meter.Meter] = (*meterAccessor)(nil)
-
-func (a meterAccessor) GetKey(meter meter.Meter) string {
-	return meter.Key
-}
-
-func (a meterAccessor) GetDeletedAt(meter meter.Meter) *time.Time {
-	return meter.DeletedAt
-}
-
-func getLastMeters(meters []meter.Meter) map[string]meter.Meter {
-	return getLastEntity(meters, meterAccessor{})
+	return featureMeter, nil
 }
