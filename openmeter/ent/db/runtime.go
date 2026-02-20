@@ -52,6 +52,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/openmeter/ent/schema"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -1659,6 +1660,36 @@ func init() {
 	subscriptionphaseDescID := subscriptionphaseMixinFields0[0].Descriptor()
 	// subscriptionphase.DefaultID holds the default value on creation for the id field.
 	subscriptionphase.DefaultID = subscriptionphaseDescID.Default.(func() string)
+	taxcodeMixin := schema.TaxCode{}.Mixin()
+	taxcodeMixinFields0 := taxcodeMixin[0].Fields()
+	_ = taxcodeMixinFields0
+	taxcodeFields := schema.TaxCode{}.Fields()
+	_ = taxcodeFields
+	// taxcodeDescNamespace is the schema descriptor for namespace field.
+	taxcodeDescNamespace := taxcodeMixinFields0[1].Descriptor()
+	// taxcode.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	taxcode.NamespaceValidator = taxcodeDescNamespace.Validators[0].(func(string) error)
+	// taxcodeDescCreatedAt is the schema descriptor for created_at field.
+	taxcodeDescCreatedAt := taxcodeMixinFields0[3].Descriptor()
+	// taxcode.DefaultCreatedAt holds the default value on creation for the created_at field.
+	taxcode.DefaultCreatedAt = taxcodeDescCreatedAt.Default.(func() time.Time)
+	// taxcodeDescUpdatedAt is the schema descriptor for updated_at field.
+	taxcodeDescUpdatedAt := taxcodeMixinFields0[4].Descriptor()
+	// taxcode.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	taxcode.DefaultUpdatedAt = taxcodeDescUpdatedAt.Default.(func() time.Time)
+	// taxcode.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	taxcode.UpdateDefaultUpdatedAt = taxcodeDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// taxcodeDescKey is the schema descriptor for key field.
+	taxcodeDescKey := taxcodeMixinFields0[8].Descriptor()
+	// taxcode.KeyValidator is a validator for the "key" field. It is called by the builders before save.
+	taxcode.KeyValidator = taxcodeDescKey.Validators[0].(func(string) error)
+	// taxcodeDescAppMappings is the schema descriptor for app_mappings field.
+	taxcodeDescAppMappings := taxcodeFields[0].Descriptor()
+	taxcode.ValueScanner.AppMappings = taxcodeDescAppMappings.ValueScanner.(field.TypeValueScanner[*schema.TaxCodeAppMappings])
+	// taxcodeDescID is the schema descriptor for id field.
+	taxcodeDescID := taxcodeMixinFields0[0].Descriptor()
+	// taxcode.DefaultID holds the default value on creation for the id field.
+	taxcode.DefaultID = taxcodeDescID.Default.(func() string)
 	usageresetMixin := schema.UsageReset{}.Mixin()
 	usageresetMixinFields0 := usageresetMixin[0].Fields()
 	_ = usageresetMixinFields0

@@ -106,6 +106,8 @@ type Tx struct {
 	SubscriptionItem *SubscriptionItemClient
 	// SubscriptionPhase is the client for interacting with the SubscriptionPhase builders.
 	SubscriptionPhase *SubscriptionPhaseClient
+	// TaxCode is the client for interacting with the TaxCode builders.
+	TaxCode *TaxCodeClient
 	// UsageReset is the client for interacting with the UsageReset builders.
 	UsageReset *UsageResetClient
 
@@ -285,6 +287,7 @@ func (tx *Tx) init() {
 	tx.SubscriptionBillingSyncState = NewSubscriptionBillingSyncStateClient(tx.config)
 	tx.SubscriptionItem = NewSubscriptionItemClient(tx.config)
 	tx.SubscriptionPhase = NewSubscriptionPhaseClient(tx.config)
+	tx.TaxCode = NewTaxCodeClient(tx.config)
 	tx.UsageReset = NewUsageResetClient(tx.config)
 }
 

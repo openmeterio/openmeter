@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/ent/schema"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -3569,6 +3570,62 @@ func (u *SubscriptionPhaseUpdateOne) SetOrClearSortHint(value *uint8) *Subscript
 		return u.ClearSortHint()
 	}
 	return u.SetSortHint(*value)
+}
+
+func (u *TaxCodeUpdate) SetOrClearMetadata(value *map[string]string) *TaxCodeUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *TaxCodeUpdateOne) SetOrClearMetadata(value *map[string]string) *TaxCodeUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *TaxCodeUpdate) SetOrClearDeletedAt(value *time.Time) *TaxCodeUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *TaxCodeUpdateOne) SetOrClearDeletedAt(value *time.Time) *TaxCodeUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *TaxCodeUpdate) SetOrClearDescription(value *string) *TaxCodeUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *TaxCodeUpdateOne) SetOrClearDescription(value *string) *TaxCodeUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *TaxCodeUpdate) SetOrClearAppMappings(value **schema.TaxCodeAppMappings) *TaxCodeUpdate {
+	if value == nil {
+		return u.ClearAppMappings()
+	}
+	return u.SetAppMappings(*value)
+}
+
+func (u *TaxCodeUpdateOne) SetOrClearAppMappings(value **schema.TaxCodeAppMappings) *TaxCodeUpdateOne {
+	if value == nil {
+		return u.ClearAppMappings()
+	}
+	return u.SetAppMappings(*value)
 }
 
 func (u *UsageResetUpdate) SetOrClearAnnotations(value *models.Annotations) *UsageResetUpdate {
