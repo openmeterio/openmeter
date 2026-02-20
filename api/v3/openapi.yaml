@@ -79,6 +79,107 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Apps
+  /openmeter/currencies:
+    get:
+      operationId: list-currencies
+      summary: List currencies
+      description: List all supported currencies.
+      responses:
+        '200':
+          description: List currencies response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrenciesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Billing
+    post:
+      operationId: create-custom-currency
+      summary: Create custom currency
+      responses:
+        '201':
+          description: CustomCurrency created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCustomCurrency'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Billing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingCustomCurrency'
+  /openmeter/currencies/{currencyId}/cost-bases:
+    get:
+      operationId: get-cost-bases
+      summary: Get cost bases
+      description: Get a cost basis.
+      parameters:
+        - name: currencyId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: CostBases response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCostBases'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Billing
+    post:
+      operationId: create-cost-basis
+      summary: Create cost basis
+      description: Create cost basis for custom currency
+      parameters:
+        - name: currencyId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '201':
+          description: CostBasis created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCostBasis'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Billing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingCostBasis'
   /openmeter/customers:
     post:
       operationId: create-customer
@@ -1798,6 +1899,111 @@ components:
         - stripe
         - external_invoicing
       description: The type of the app.
+    BillingCostBases:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingCostBasis'
+          description: The cost bases for the currency
+      description: Describes currency cost bases
+    BillingCostBasis:
+      type: object
+      required:
+        - id
+        - fiat_code
+        - rate
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        fiat_code:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency id this cost basis belongs to.
+        rate:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The cost rate for the currency. It is the amount of money that represents one unit of the currency.
+        effective_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            An ISO-8601 timestamp representation of the date from which the cost basis is effective.
+            If not provided, it will be effective immediately and will set to time.Now() by the system.
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+      description: Describes currency basis supported by billing system.
+    BillingCurrency:
+      type: object
+      required:
+        - id
+        - name
+        - symbol
+        - code
+        - is_custom
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Custom Currency name
+        symbol:
+          type: string
+          description: Symbol representation of the currency.
+        code:
+          anyOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+            - $ref: '#/components/schemas/Currencies.CustomCurrencyCode'
+          description: Standard ISO 4217 code.
+          x-go-type: string
+          readOnly: true
+        is_custom:
+          type: boolean
+          description: Flag for the currency if it is custom or not
+          readOnly: true
+      description: Currency describes a currency supported by the billing system.
+    BillingCustomCurrency:
+      type: object
+      required:
+        - id
+        - name
+        - symbol
+        - code
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Custom Currency name
+        symbol:
+          type: string
+          description: Symbol representation of the currency.
+        code:
+          allOf:
+            - $ref: '#/components/schemas/Currencies.CustomCurrencyCode'
+          description: Custom currency code based on Standard ISO 4217 code.
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+      description: CustomCurrency describes a custom currency by the billing system
     BillingCustomer:
       type: object
       required:
@@ -2786,6 +2992,20 @@ components:
           example:
             type: $.type
       description: Meter create request.
+    Currencies.CustomCurrencyCode:
+      type: string
+      minLength: 3
+      maxLength: 24
+    CurrenciesResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingCurrency'
+      description: List currencies response.
     CurrencyCode:
       type: string
       minLength: 3
@@ -3048,6 +3268,10 @@ components:
           tokens: 100
           model: gpt-4o
           type: input
+    Numeric:
+      type: string
+      pattern: ^\-?[0-9]+(\.[0-9]+)?$
+      description: Numeric represents an arbitrary precision number.
     RecurringPeriod:
       type: object
       required:
