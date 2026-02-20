@@ -37,7 +37,7 @@ func (s *Service) SnapshotLineQuantity(ctx context.Context, input billing.Snapsh
 	return input.Line, nil
 }
 
-func (s *Service) snapshotMeteredLineQuantity(ctx context.Context, line *billing.StandardLine, customer billing.InvoiceCustomer, featureMeters billing.FeatureMeters) error {
+func (s *Service) snapshotMeteredLineQuantity(ctx context.Context, line *billing.StandardLine, customer billing.InvoiceCustomer, featureMeters feature.FeatureMeters) error {
 	featureMeter, err := featureMeters.Get(line.UsageBased.FeatureKey, true)
 	if err != nil {
 		return err
@@ -71,7 +71,7 @@ func (s *Service) snapshotFlatPriceLineQuantity(_ context.Context, line *billing
 	return nil
 }
 
-func (s *Service) snapshotLineQuantity(ctx context.Context, customer billing.InvoiceCustomer, line *billing.StandardLine, featureMeters billing.FeatureMeters) error {
+func (s *Service) snapshotLineQuantity(ctx context.Context, customer billing.InvoiceCustomer, line *billing.StandardLine, featureMeters feature.FeatureMeters) error {
 	if !line.DependsOnMeteredQuantity() {
 		return s.snapshotFlatPriceLineQuantity(ctx, line)
 	}
@@ -79,7 +79,7 @@ func (s *Service) snapshotLineQuantity(ctx context.Context, customer billing.Inv
 	return s.snapshotMeteredLineQuantity(ctx, line, customer, featureMeters)
 }
 
-func (s *Service) snapshotLineQuantitiesInParallel(ctx context.Context, customer billing.InvoiceCustomer, lines billing.StandardLines, featureMeters billing.FeatureMeters) error {
+func (s *Service) snapshotLineQuantitiesInParallel(ctx context.Context, customer billing.InvoiceCustomer, lines billing.StandardLines, featureMeters feature.FeatureMeters) error {
 	workerCount := s.maxParallelQuantitySnapshots
 	if workerCount <= 0 {
 		workerCount = 1

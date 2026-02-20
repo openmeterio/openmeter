@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -40,7 +41,7 @@ var _ LineBase = (*lineBase)(nil)
 
 type lineBase struct {
 	line          *billing.StandardLine
-	featureMeters billing.FeatureMeters
+	featureMeters feature.FeatureMeters
 	currency      currencyx.Calculator
 }
 

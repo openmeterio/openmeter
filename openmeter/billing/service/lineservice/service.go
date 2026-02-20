@@ -7,10 +7,11 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func FromEntity(line *billing.StandardLine, featureMeters billing.FeatureMeters) (Line, error) {
+func FromEntity(line *billing.StandardLine, featureMeters feature.FeatureMeters) (Line, error) {
 	currencyCalc, err := line.Currency.Calculator()
 	if err != nil {
 		return nil, fmt.Errorf("creating currency calculator: %w", err)
@@ -33,7 +34,7 @@ func FromEntity(line *billing.StandardLine, featureMeters billing.FeatureMeters)
 	}, nil
 }
 
-func FromEntities(line []*billing.StandardLine, featureMeters billing.FeatureMeters) (Lines, error) {
+func FromEntities(line []*billing.StandardLine, featureMeters feature.FeatureMeters) (Lines, error) {
 	return slicesx.MapWithErr(line, func(l *billing.StandardLine) (Line, error) {
 		return FromEntity(l, featureMeters)
 	})
