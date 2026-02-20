@@ -2817,6 +2817,14 @@ var (
 				Unique:  true,
 				Columns: []*schema.Column{TaxCodesColumns[1], TaxCodesColumns[8], TaxCodesColumns[5]},
 			},
+			{
+				Name:    "taxcode_namespace_key",
+				Unique:  true,
+				Columns: []*schema.Column{TaxCodesColumns[1], TaxCodesColumns[8]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
 		},
 	}
 	// UsageResetsColumns holds the columns for the "usage_resets" table.
