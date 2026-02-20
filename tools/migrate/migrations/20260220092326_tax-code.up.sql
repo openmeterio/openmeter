@@ -19,4 +19,6 @@ CREATE INDEX "taxcode_namespace" ON "tax_codes" ("namespace");
 -- create index "taxcode_namespace_id" to table: "tax_codes"
 CREATE UNIQUE INDEX "taxcode_namespace_id" ON "tax_codes" ("namespace", "id");
 -- create index "taxcode_namespace_key_deleted_at" to table: "tax_codes"
-CREATE UNIQUE INDEX "taxcode_namespace_key_deleted_at" ON "tax_codes" ("namespace", "key", "deleted_at");
+CREATE UNIQUE INDEX "taxcode_namespace_key"
+  ON "tax_codes" ("namespace", "key")
+  WHERE "deleted_at" IS NULL;
