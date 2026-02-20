@@ -12,8 +12,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
-	"github.com/openmeterio/openmeter/openmeter/ent/schema"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 )
 
 // TaxCodeCreate is the builder for creating a TaxCode entity.
@@ -105,7 +105,7 @@ func (_c *TaxCodeCreate) SetKey(v string) *TaxCodeCreate {
 }
 
 // SetAppMappings sets the "app_mappings" field.
-func (_c *TaxCodeCreate) SetAppMappings(v *schema.TaxCodeAppMappings) *TaxCodeCreate {
+func (_c *TaxCodeCreate) SetAppMappings(v *taxcode.TaxCodeAppMappings) *TaxCodeCreate {
 	_c.mutation.SetAppMappings(v)
 	return _c
 }
@@ -160,15 +160,15 @@ func (_c *TaxCodeCreate) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (_c *TaxCodeCreate) defaults() {
 	if _, ok := _c.mutation.CreatedAt(); !ok {
-		v := taxcode.DefaultCreatedAt()
+		v := dbtaxcode.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
-		v := taxcode.DefaultUpdatedAt()
+		v := dbtaxcode.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
-		v := taxcode.DefaultID()
+		v := dbtaxcode.DefaultID()
 		_c.mutation.SetID(v)
 	}
 }
@@ -179,7 +179,7 @@ func (_c *TaxCodeCreate) check() error {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "TaxCode.namespace"`)}
 	}
 	if v, ok := _c.mutation.Namespace(); ok {
-		if err := taxcode.NamespaceValidator(v); err != nil {
+		if err := dbtaxcode.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "TaxCode.namespace": %w`, err)}
 		}
 	}
@@ -196,7 +196,7 @@ func (_c *TaxCodeCreate) check() error {
 		return &ValidationError{Name: "key", err: errors.New(`db: missing required field "TaxCode.key"`)}
 	}
 	if v, ok := _c.mutation.Key(); ok {
-		if err := taxcode.KeyValidator(v); err != nil {
+		if err := dbtaxcode.KeyValidator(v); err != nil {
 			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "TaxCode.key": %w`, err)}
 		}
 	}
@@ -232,7 +232,7 @@ func (_c *TaxCodeCreate) sqlSave(ctx context.Context) (*TaxCode, error) {
 func (_c *TaxCodeCreate) createSpec() (*TaxCode, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &TaxCode{config: _c.config}
-		_spec = sqlgraph.NewCreateSpec(taxcode.Table, sqlgraph.NewFieldSpec(taxcode.FieldID, field.TypeString))
+		_spec = sqlgraph.NewCreateSpec(dbtaxcode.Table, sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString))
 	)
 	_spec.OnConflict = _c.conflict
 	if id, ok := _c.mutation.ID(); ok {
@@ -240,43 +240,43 @@ func (_c *TaxCodeCreate) createSpec() (*TaxCode, *sqlgraph.CreateSpec, error) {
 		_spec.ID.Value = id
 	}
 	if value, ok := _c.mutation.Namespace(); ok {
-		_spec.SetField(taxcode.FieldNamespace, field.TypeString, value)
+		_spec.SetField(dbtaxcode.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
 	if value, ok := _c.mutation.Metadata(); ok {
-		_spec.SetField(taxcode.FieldMetadata, field.TypeJSON, value)
+		_spec.SetField(dbtaxcode.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
-		_spec.SetField(taxcode.FieldCreatedAt, field.TypeTime, value)
+		_spec.SetField(dbtaxcode.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
 	if value, ok := _c.mutation.UpdatedAt(); ok {
-		_spec.SetField(taxcode.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(dbtaxcode.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
 	if value, ok := _c.mutation.DeletedAt(); ok {
-		_spec.SetField(taxcode.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(dbtaxcode.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
 	if value, ok := _c.mutation.Name(); ok {
-		_spec.SetField(taxcode.FieldName, field.TypeString, value)
+		_spec.SetField(dbtaxcode.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
 	if value, ok := _c.mutation.Description(); ok {
-		_spec.SetField(taxcode.FieldDescription, field.TypeString, value)
+		_spec.SetField(dbtaxcode.FieldDescription, field.TypeString, value)
 		_node.Description = &value
 	}
 	if value, ok := _c.mutation.Key(); ok {
-		_spec.SetField(taxcode.FieldKey, field.TypeString, value)
+		_spec.SetField(dbtaxcode.FieldKey, field.TypeString, value)
 		_node.Key = value
 	}
 	if value, ok := _c.mutation.AppMappings(); ok {
-		vv, err := taxcode.ValueScanner.AppMappings.Value(value)
+		vv, err := dbtaxcode.ValueScanner.AppMappings.Value(value)
 		if err != nil {
 			return nil, nil, err
 		}
-		_spec.SetField(taxcode.FieldAppMappings, field.TypeString, vv)
+		_spec.SetField(dbtaxcode.FieldAppMappings, field.TypeString, vv)
 		_node.AppMappings = value
 	}
 	return _node, _spec, nil
@@ -333,97 +333,97 @@ type (
 
 // SetMetadata sets the "metadata" field.
 func (u *TaxCodeUpsert) SetMetadata(v map[string]string) *TaxCodeUpsert {
-	u.Set(taxcode.FieldMetadata, v)
+	u.Set(dbtaxcode.FieldMetadata, v)
 	return u
 }
 
 // UpdateMetadata sets the "metadata" field to the value that was provided on create.
 func (u *TaxCodeUpsert) UpdateMetadata() *TaxCodeUpsert {
-	u.SetExcluded(taxcode.FieldMetadata)
+	u.SetExcluded(dbtaxcode.FieldMetadata)
 	return u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
 func (u *TaxCodeUpsert) ClearMetadata() *TaxCodeUpsert {
-	u.SetNull(taxcode.FieldMetadata)
+	u.SetNull(dbtaxcode.FieldMetadata)
 	return u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
 func (u *TaxCodeUpsert) SetUpdatedAt(v time.Time) *TaxCodeUpsert {
-	u.Set(taxcode.FieldUpdatedAt, v)
+	u.Set(dbtaxcode.FieldUpdatedAt, v)
 	return u
 }
 
 // UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
 func (u *TaxCodeUpsert) UpdateUpdatedAt() *TaxCodeUpsert {
-	u.SetExcluded(taxcode.FieldUpdatedAt)
+	u.SetExcluded(dbtaxcode.FieldUpdatedAt)
 	return u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
 func (u *TaxCodeUpsert) SetDeletedAt(v time.Time) *TaxCodeUpsert {
-	u.Set(taxcode.FieldDeletedAt, v)
+	u.Set(dbtaxcode.FieldDeletedAt, v)
 	return u
 }
 
 // UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
 func (u *TaxCodeUpsert) UpdateDeletedAt() *TaxCodeUpsert {
-	u.SetExcluded(taxcode.FieldDeletedAt)
+	u.SetExcluded(dbtaxcode.FieldDeletedAt)
 	return u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (u *TaxCodeUpsert) ClearDeletedAt() *TaxCodeUpsert {
-	u.SetNull(taxcode.FieldDeletedAt)
+	u.SetNull(dbtaxcode.FieldDeletedAt)
 	return u
 }
 
 // SetName sets the "name" field.
 func (u *TaxCodeUpsert) SetName(v string) *TaxCodeUpsert {
-	u.Set(taxcode.FieldName, v)
+	u.Set(dbtaxcode.FieldName, v)
 	return u
 }
 
 // UpdateName sets the "name" field to the value that was provided on create.
 func (u *TaxCodeUpsert) UpdateName() *TaxCodeUpsert {
-	u.SetExcluded(taxcode.FieldName)
+	u.SetExcluded(dbtaxcode.FieldName)
 	return u
 }
 
 // SetDescription sets the "description" field.
 func (u *TaxCodeUpsert) SetDescription(v string) *TaxCodeUpsert {
-	u.Set(taxcode.FieldDescription, v)
+	u.Set(dbtaxcode.FieldDescription, v)
 	return u
 }
 
 // UpdateDescription sets the "description" field to the value that was provided on create.
 func (u *TaxCodeUpsert) UpdateDescription() *TaxCodeUpsert {
-	u.SetExcluded(taxcode.FieldDescription)
+	u.SetExcluded(dbtaxcode.FieldDescription)
 	return u
 }
 
 // ClearDescription clears the value of the "description" field.
 func (u *TaxCodeUpsert) ClearDescription() *TaxCodeUpsert {
-	u.SetNull(taxcode.FieldDescription)
+	u.SetNull(dbtaxcode.FieldDescription)
 	return u
 }
 
 // SetAppMappings sets the "app_mappings" field.
-func (u *TaxCodeUpsert) SetAppMappings(v *schema.TaxCodeAppMappings) *TaxCodeUpsert {
-	u.Set(taxcode.FieldAppMappings, v)
+func (u *TaxCodeUpsert) SetAppMappings(v *taxcode.TaxCodeAppMappings) *TaxCodeUpsert {
+	u.Set(dbtaxcode.FieldAppMappings, v)
 	return u
 }
 
 // UpdateAppMappings sets the "app_mappings" field to the value that was provided on create.
 func (u *TaxCodeUpsert) UpdateAppMappings() *TaxCodeUpsert {
-	u.SetExcluded(taxcode.FieldAppMappings)
+	u.SetExcluded(dbtaxcode.FieldAppMappings)
 	return u
 }
 
 // ClearAppMappings clears the value of the "app_mappings" field.
 func (u *TaxCodeUpsert) ClearAppMappings() *TaxCodeUpsert {
-	u.SetNull(taxcode.FieldAppMappings)
+	u.SetNull(dbtaxcode.FieldAppMappings)
 	return u
 }
 
@@ -434,7 +434,7 @@ func (u *TaxCodeUpsert) ClearAppMappings() *TaxCodeUpsert {
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
 //			sql.ResolveWith(func(u *sql.UpdateSet) {
-//				u.SetIgnore(taxcode.FieldID)
+//				u.SetIgnore(dbtaxcode.FieldID)
 //			}),
 //		).
 //		Exec(ctx)
@@ -442,16 +442,16 @@ func (u *TaxCodeUpsertOne) UpdateNewValues() *TaxCodeUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		if _, exists := u.create.mutation.ID(); exists {
-			s.SetIgnore(taxcode.FieldID)
+			s.SetIgnore(dbtaxcode.FieldID)
 		}
 		if _, exists := u.create.mutation.Namespace(); exists {
-			s.SetIgnore(taxcode.FieldNamespace)
+			s.SetIgnore(dbtaxcode.FieldNamespace)
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
-			s.SetIgnore(taxcode.FieldCreatedAt)
+			s.SetIgnore(dbtaxcode.FieldCreatedAt)
 		}
 		if _, exists := u.create.mutation.Key(); exists {
-			s.SetIgnore(taxcode.FieldKey)
+			s.SetIgnore(dbtaxcode.FieldKey)
 		}
 	}))
 	return u
@@ -576,7 +576,7 @@ func (u *TaxCodeUpsertOne) ClearDescription() *TaxCodeUpsertOne {
 }
 
 // SetAppMappings sets the "app_mappings" field.
-func (u *TaxCodeUpsertOne) SetAppMappings(v *schema.TaxCodeAppMappings) *TaxCodeUpsertOne {
+func (u *TaxCodeUpsertOne) SetAppMappings(v *taxcode.TaxCodeAppMappings) *TaxCodeUpsertOne {
 	return u.Update(func(s *TaxCodeUpsert) {
 		s.SetAppMappings(v)
 	})
@@ -771,7 +771,7 @@ type TaxCodeUpsertBulk struct {
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
 //			sql.ResolveWith(func(u *sql.UpdateSet) {
-//				u.SetIgnore(taxcode.FieldID)
+//				u.SetIgnore(dbtaxcode.FieldID)
 //			}),
 //		).
 //		Exec(ctx)
@@ -780,16 +780,16 @@ func (u *TaxCodeUpsertBulk) UpdateNewValues() *TaxCodeUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		for _, b := range u.create.builders {
 			if _, exists := b.mutation.ID(); exists {
-				s.SetIgnore(taxcode.FieldID)
+				s.SetIgnore(dbtaxcode.FieldID)
 			}
 			if _, exists := b.mutation.Namespace(); exists {
-				s.SetIgnore(taxcode.FieldNamespace)
+				s.SetIgnore(dbtaxcode.FieldNamespace)
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
-				s.SetIgnore(taxcode.FieldCreatedAt)
+				s.SetIgnore(dbtaxcode.FieldCreatedAt)
 			}
 			if _, exists := b.mutation.Key(); exists {
-				s.SetIgnore(taxcode.FieldKey)
+				s.SetIgnore(dbtaxcode.FieldKey)
 			}
 		}
 	}))
@@ -915,7 +915,7 @@ func (u *TaxCodeUpsertBulk) ClearDescription() *TaxCodeUpsertBulk {
 }
 
 // SetAppMappings sets the "app_mappings" field.
-func (u *TaxCodeUpsertBulk) SetAppMappings(v *schema.TaxCodeAppMappings) *TaxCodeUpsertBulk {
+func (u *TaxCodeUpsertBulk) SetAppMappings(v *taxcode.TaxCodeAppMappings) *TaxCodeUpsertBulk {
 	return u.Update(func(s *TaxCodeUpsert) {
 		s.SetAppMappings(v)
 	})

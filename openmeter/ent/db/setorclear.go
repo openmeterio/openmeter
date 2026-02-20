@@ -7,10 +7,10 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/ent/schema"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -3614,14 +3614,14 @@ func (u *TaxCodeUpdateOne) SetOrClearDescription(value *string) *TaxCodeUpdateOn
 	return u.SetDescription(*value)
 }
 
-func (u *TaxCodeUpdate) SetOrClearAppMappings(value **schema.TaxCodeAppMappings) *TaxCodeUpdate {
+func (u *TaxCodeUpdate) SetOrClearAppMappings(value **taxcode.TaxCodeAppMappings) *TaxCodeUpdate {
 	if value == nil {
 		return u.ClearAppMappings()
 	}
 	return u.SetAppMappings(*value)
 }
 
-func (u *TaxCodeUpdateOne) SetOrClearAppMappings(value **schema.TaxCodeAppMappings) *TaxCodeUpdateOne {
+func (u *TaxCodeUpdateOne) SetOrClearAppMappings(value **taxcode.TaxCodeAppMappings) *TaxCodeUpdateOne {
 	if value == nil {
 		return u.ClearAppMappings()
 	}

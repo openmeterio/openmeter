@@ -12,8 +12,8 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
-	"github.com/openmeterio/openmeter/openmeter/ent/schema"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 )
 
 // TaxCodeUpdate is the builder for updating TaxCode entities.
@@ -102,7 +102,7 @@ func (_u *TaxCodeUpdate) ClearDescription() *TaxCodeUpdate {
 }
 
 // SetAppMappings sets the "app_mappings" field.
-func (_u *TaxCodeUpdate) SetAppMappings(v *schema.TaxCodeAppMappings) *TaxCodeUpdate {
+func (_u *TaxCodeUpdate) SetAppMappings(v *taxcode.TaxCodeAppMappings) *TaxCodeUpdate {
 	_u.mutation.SetAppMappings(v)
 	return _u
 }
@@ -149,13 +149,13 @@ func (_u *TaxCodeUpdate) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (_u *TaxCodeUpdate) defaults() {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
-		v := taxcode.UpdateDefaultUpdatedAt()
+		v := dbtaxcode.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 func (_u *TaxCodeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
-	_spec := sqlgraph.NewUpdateSpec(taxcode.Table, taxcode.Columns, sqlgraph.NewFieldSpec(taxcode.FieldID, field.TypeString))
+	_spec := sqlgraph.NewUpdateSpec(dbtaxcode.Table, dbtaxcode.Columns, sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -164,42 +164,42 @@ func (_u *TaxCodeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(taxcode.FieldMetadata, field.TypeJSON, value)
+		_spec.SetField(dbtaxcode.FieldMetadata, field.TypeJSON, value)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(taxcode.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(dbtaxcode.FieldMetadata, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
-		_spec.SetField(taxcode.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(dbtaxcode.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
-		_spec.SetField(taxcode.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(dbtaxcode.FieldDeletedAt, field.TypeTime, value)
 	}
 	if _u.mutation.DeletedAtCleared() {
-		_spec.ClearField(taxcode.FieldDeletedAt, field.TypeTime)
+		_spec.ClearField(dbtaxcode.FieldDeletedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Name(); ok {
-		_spec.SetField(taxcode.FieldName, field.TypeString, value)
+		_spec.SetField(dbtaxcode.FieldName, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.Description(); ok {
-		_spec.SetField(taxcode.FieldDescription, field.TypeString, value)
+		_spec.SetField(dbtaxcode.FieldDescription, field.TypeString, value)
 	}
 	if _u.mutation.DescriptionCleared() {
-		_spec.ClearField(taxcode.FieldDescription, field.TypeString)
+		_spec.ClearField(dbtaxcode.FieldDescription, field.TypeString)
 	}
 	if value, ok := _u.mutation.AppMappings(); ok {
-		vv, err := taxcode.ValueScanner.AppMappings.Value(value)
+		vv, err := dbtaxcode.ValueScanner.AppMappings.Value(value)
 		if err != nil {
 			return 0, err
 		}
-		_spec.SetField(taxcode.FieldAppMappings, field.TypeString, vv)
+		_spec.SetField(dbtaxcode.FieldAppMappings, field.TypeString, vv)
 	}
 	if _u.mutation.AppMappingsCleared() {
-		_spec.ClearField(taxcode.FieldAppMappings, field.TypeString)
+		_spec.ClearField(dbtaxcode.FieldAppMappings, field.TypeString)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
-			err = &NotFoundError{taxcode.Label}
+			err = &NotFoundError{dbtaxcode.Label}
 		} else if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -290,7 +290,7 @@ func (_u *TaxCodeUpdateOne) ClearDescription() *TaxCodeUpdateOne {
 }
 
 // SetAppMappings sets the "app_mappings" field.
-func (_u *TaxCodeUpdateOne) SetAppMappings(v *schema.TaxCodeAppMappings) *TaxCodeUpdateOne {
+func (_u *TaxCodeUpdateOne) SetAppMappings(v *taxcode.TaxCodeAppMappings) *TaxCodeUpdateOne {
 	_u.mutation.SetAppMappings(v)
 	return _u
 }
@@ -350,13 +350,13 @@ func (_u *TaxCodeUpdateOne) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (_u *TaxCodeUpdateOne) defaults() {
 	if _, ok := _u.mutation.UpdatedAt(); !ok {
-		v := taxcode.UpdateDefaultUpdatedAt()
+		v := dbtaxcode.UpdateDefaultUpdatedAt()
 		_u.mutation.SetUpdatedAt(v)
 	}
 }
 
 func (_u *TaxCodeUpdateOne) sqlSave(ctx context.Context) (_node *TaxCode, err error) {
-	_spec := sqlgraph.NewUpdateSpec(taxcode.Table, taxcode.Columns, sqlgraph.NewFieldSpec(taxcode.FieldID, field.TypeString))
+	_spec := sqlgraph.NewUpdateSpec(dbtaxcode.Table, dbtaxcode.Columns, sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString))
 	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "TaxCode.id" for update`)}
@@ -364,12 +364,12 @@ func (_u *TaxCodeUpdateOne) sqlSave(ctx context.Context) (_node *TaxCode, err er
 	_spec.Node.ID.Value = id
 	if fields := _u.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, taxcode.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, dbtaxcode.FieldID)
 		for _, f := range fields {
-			if !taxcode.ValidColumn(f) {
+			if !dbtaxcode.ValidColumn(f) {
 				return nil, &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 			}
-			if f != taxcode.FieldID {
+			if f != dbtaxcode.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, f)
 			}
 		}
@@ -382,45 +382,45 @@ func (_u *TaxCodeUpdateOne) sqlSave(ctx context.Context) (_node *TaxCode, err er
 		}
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
-		_spec.SetField(taxcode.FieldMetadata, field.TypeJSON, value)
+		_spec.SetField(dbtaxcode.FieldMetadata, field.TypeJSON, value)
 	}
 	if _u.mutation.MetadataCleared() {
-		_spec.ClearField(taxcode.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(dbtaxcode.FieldMetadata, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
-		_spec.SetField(taxcode.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(dbtaxcode.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.DeletedAt(); ok {
-		_spec.SetField(taxcode.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(dbtaxcode.FieldDeletedAt, field.TypeTime, value)
 	}
 	if _u.mutation.DeletedAtCleared() {
-		_spec.ClearField(taxcode.FieldDeletedAt, field.TypeTime)
+		_spec.ClearField(dbtaxcode.FieldDeletedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Name(); ok {
-		_spec.SetField(taxcode.FieldName, field.TypeString, value)
+		_spec.SetField(dbtaxcode.FieldName, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.Description(); ok {
-		_spec.SetField(taxcode.FieldDescription, field.TypeString, value)
+		_spec.SetField(dbtaxcode.FieldDescription, field.TypeString, value)
 	}
 	if _u.mutation.DescriptionCleared() {
-		_spec.ClearField(taxcode.FieldDescription, field.TypeString)
+		_spec.ClearField(dbtaxcode.FieldDescription, field.TypeString)
 	}
 	if value, ok := _u.mutation.AppMappings(); ok {
-		vv, err := taxcode.ValueScanner.AppMappings.Value(value)
+		vv, err := dbtaxcode.ValueScanner.AppMappings.Value(value)
 		if err != nil {
 			return nil, err
 		}
-		_spec.SetField(taxcode.FieldAppMappings, field.TypeString, vv)
+		_spec.SetField(dbtaxcode.FieldAppMappings, field.TypeString, vv)
 	}
 	if _u.mutation.AppMappingsCleared() {
-		_spec.ClearField(taxcode.FieldAppMappings, field.TypeString)
+		_spec.ClearField(dbtaxcode.FieldAppMappings, field.TypeString)
 	}
 	_node = &TaxCode{config: _u.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
 	if err = sqlgraph.UpdateNode(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
-			err = &NotFoundError{taxcode.Label}
+			err = &NotFoundError{dbtaxcode.Label}
 		} else if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}

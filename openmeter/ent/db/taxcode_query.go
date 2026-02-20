@@ -13,14 +13,14 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 )
 
 // TaxCodeQuery is the builder for querying TaxCode entities.
 type TaxCodeQuery struct {
 	config
 	ctx        *QueryContext
-	order      []taxcode.OrderOption
+	order      []dbtaxcode.OrderOption
 	inters     []Interceptor
 	predicates []predicate.TaxCode
 	modifiers  []func(*sql.Selector)
@@ -55,7 +55,7 @@ func (_q *TaxCodeQuery) Unique(unique bool) *TaxCodeQuery {
 }
 
 // Order specifies how the records should be ordered.
-func (_q *TaxCodeQuery) Order(o ...taxcode.OrderOption) *TaxCodeQuery {
+func (_q *TaxCodeQuery) Order(o ...dbtaxcode.OrderOption) *TaxCodeQuery {
 	_q.order = append(_q.order, o...)
 	return _q
 }
@@ -68,7 +68,7 @@ func (_q *TaxCodeQuery) First(ctx context.Context) (*TaxCode, error) {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{taxcode.Label}
+		return nil, &NotFoundError{dbtaxcode.Label}
 	}
 	return nodes[0], nil
 }
@@ -90,7 +90,7 @@ func (_q *TaxCodeQuery) FirstID(ctx context.Context) (id string, err error) {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{taxcode.Label}
+		err = &NotFoundError{dbtaxcode.Label}
 		return
 	}
 	return ids[0], nil
@@ -117,9 +117,9 @@ func (_q *TaxCodeQuery) Only(ctx context.Context) (*TaxCode, error) {
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{taxcode.Label}
+		return nil, &NotFoundError{dbtaxcode.Label}
 	default:
-		return nil, &NotSingularError{taxcode.Label}
+		return nil, &NotSingularError{dbtaxcode.Label}
 	}
 }
 
@@ -144,9 +144,9 @@ func (_q *TaxCodeQuery) OnlyID(ctx context.Context) (id string, err error) {
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{taxcode.Label}
+		err = &NotFoundError{dbtaxcode.Label}
 	default:
-		err = &NotSingularError{taxcode.Label}
+		err = &NotSingularError{dbtaxcode.Label}
 	}
 	return
 }
@@ -185,7 +185,7 @@ func (_q *TaxCodeQuery) IDs(ctx context.Context) (ids []string, err error) {
 		_q.Unique(true)
 	}
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
-	if err = _q.Select(taxcode.FieldID).Scan(ctx, &ids); err != nil {
+	if err = _q.Select(dbtaxcode.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
@@ -249,7 +249,7 @@ func (_q *TaxCodeQuery) Clone() *TaxCodeQuery {
 	return &TaxCodeQuery{
 		config:     _q.config,
 		ctx:        _q.ctx.Clone(),
-		order:      append([]taxcode.OrderOption{}, _q.order...),
+		order:      append([]dbtaxcode.OrderOption{}, _q.order...),
 		inters:     append([]Interceptor{}, _q.inters...),
 		predicates: append([]predicate.TaxCode{}, _q.predicates...),
 		// clone intermediate query.
@@ -269,14 +269,14 @@ func (_q *TaxCodeQuery) Clone() *TaxCodeQuery {
 //	}
 //
 //	client.TaxCode.Query().
-//		GroupBy(taxcode.FieldNamespace).
+//		GroupBy(dbtaxcode.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
 func (_q *TaxCodeQuery) GroupBy(field string, fields ...string) *TaxCodeGroupBy {
 	_q.ctx.Fields = append([]string{field}, fields...)
 	grbuild := &TaxCodeGroupBy{build: _q}
 	grbuild.flds = &_q.ctx.Fields
-	grbuild.label = taxcode.Label
+	grbuild.label = dbtaxcode.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -291,12 +291,12 @@ func (_q *TaxCodeQuery) GroupBy(field string, fields ...string) *TaxCodeGroupBy 
 //	}
 //
 //	client.TaxCode.Query().
-//		Select(taxcode.FieldNamespace).
+//		Select(dbtaxcode.FieldNamespace).
 //		Scan(ctx, &v)
 func (_q *TaxCodeQuery) Select(fields ...string) *TaxCodeSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
 	sbuild := &TaxCodeSelect{TaxCodeQuery: _q}
-	sbuild.label = taxcode.Label
+	sbuild.label = dbtaxcode.Label
 	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
@@ -318,7 +318,7 @@ func (_q *TaxCodeQuery) prepareQuery(ctx context.Context) error {
 		}
 	}
 	for _, f := range _q.ctx.Fields {
-		if !taxcode.ValidColumn(f) {
+		if !dbtaxcode.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
@@ -373,7 +373,7 @@ func (_q *TaxCodeQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (_q *TaxCodeQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(taxcode.Table, taxcode.Columns, sqlgraph.NewFieldSpec(taxcode.FieldID, field.TypeString))
+	_spec := sqlgraph.NewQuerySpec(dbtaxcode.Table, dbtaxcode.Columns, sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -382,9 +382,9 @@ func (_q *TaxCodeQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, taxcode.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, dbtaxcode.FieldID)
 		for i := range fields {
-			if fields[i] != taxcode.FieldID {
+			if fields[i] != dbtaxcode.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
@@ -414,10 +414,10 @@ func (_q *TaxCodeQuery) querySpec() *sqlgraph.QuerySpec {
 
 func (_q *TaxCodeQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(_q.driver.Dialect())
-	t1 := builder.Table(taxcode.Table)
+	t1 := builder.Table(dbtaxcode.Table)
 	columns := _q.ctx.Fields
 	if len(columns) == 0 {
-		columns = taxcode.Columns
+		columns = dbtaxcode.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if _q.sql != nil {
