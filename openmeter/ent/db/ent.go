@@ -39,6 +39,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedlineamountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicerealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
@@ -153,6 +154,7 @@ func checkColumn(t, c string) error {
 			billingstandardinvoicedetailedlineamountdiscount.Table: billingstandardinvoicedetailedlineamountdiscount.ValidColumn,
 			billingworkflowconfig.Table:                            billingworkflowconfig.ValidColumn,
 			charge.Table:                                           charge.ValidColumn,
+			chargecreditrealization.Table:                          chargecreditrealization.ValidColumn,
 			chargeflatfee.Table:                                    chargeflatfee.ValidColumn,
 			chargestandardinvoicerealization.Table:                 chargestandardinvoicerealization.ValidColumn,
 			chargeusagebased.Table:                                 chargeusagebased.ValidColumn,

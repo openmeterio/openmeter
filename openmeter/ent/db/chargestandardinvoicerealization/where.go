@@ -1003,6 +1003,29 @@ func HasBillingInvoiceLineWith(preds ...predicate.BillingInvoiceLine) predicate.
 	})
 }
 
+// HasCreditRealization applies the HasEdge predicate on the "credit_realization" edge.
+func HasCreditRealization() predicate.ChargeStandardInvoiceRealization {
+	return predicate.ChargeStandardInvoiceRealization(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, CreditRealizationTable, CreditRealizationColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCreditRealizationWith applies the HasEdge predicate on the "credit_realization" edge with a given conditions (other predicates).
+func HasCreditRealizationWith(preds ...predicate.ChargeCreditRealization) predicate.ChargeStandardInvoiceRealization {
+	return predicate.ChargeStandardInvoiceRealization(func(s *sql.Selector) {
+		step := newCreditRealizationStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.ChargeStandardInvoiceRealization) predicate.ChargeStandardInvoiceRealization {
 	return predicate.ChargeStandardInvoiceRealization(sql.AndPredicates(predicates...))

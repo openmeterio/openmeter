@@ -44,6 +44,7 @@ func (a *adapter) GetChargesByIDs(ctx context.Context, ns string, ids []string) 
 			Where(dbcharge.Namespace(ns)).
 			Where(dbcharge.IDIn(ids...)).
 			WithStandardInvoiceRealizations().
+			WithCreditRealizations().
 			WithUsageBased().
 			WithFlatFee().
 			All(ctx)
@@ -97,6 +98,9 @@ func mapChargeFromDB(entity *db.Charge) (charges.Charge, error) {
 		Realizations: charges.Realizations{
 			StandardInvoice: lo.Map(entity.Edges.StandardInvoiceRealizations, func(realization *db.ChargeStandardInvoiceRealization, _ int) charges.StandardInvoiceRealization {
 				return mapStandardInvoiceRealizationFromDB(realization)
+			}),
+			Credit: lo.Map(entity.Edges.CreditRealizations, func(realization *db.ChargeCreditRealization, _ int) charges.CreditRealization {
+				return mapCreditRealizationFromDB(realization)
 			}),
 		},
 		Status: entity.Status,
@@ -219,5 +223,28 @@ func mapStandardInvoiceRealizationFromDB(entity *db.ChargeStandardInvoiceRealiza
 			DiscountsTotal:      entity.DiscountsTotal,
 			Total:               entity.Total,
 		},
+	}
+}
+
+func mapCreditRealizationFromDB(entity *db.ChargeCreditRealization) charges.CreditRealization {
+	return charges.CreditRealization{
+		NamespacedID: models.NamespacedID{
+			Namespace: entity.Namespace,
+			ID:        entity.ID,
+		},
+		ManagedModel: models.ManagedModel{
+			CreatedAt: entity.CreatedAt.In(time.UTC),
+			UpdatedAt: entity.UpdatedAt.In(time.UTC),
+			DeletedAt: convert.TimePtrIn(entity.DeletedAt, time.UTC),
+		},
+		CreditRealizationCreateInput: charges.CreditRealizationCreateInput{
+			Annotations: entity.Annotations,
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: entity.ServicePeriodFrom.In(time.UTC),
+				To:   entity.ServicePeriodTo.In(time.UTC),
+			},
+			Amount: entity.Amount,
+		},
+		AllocatedToStandardInvoiceRealizationID: entity.StdRealizationID,
 	}
 }

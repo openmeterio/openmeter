@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -92,18 +93,25 @@ type Charges []Charge
 
 type Realizations struct {
 	StandardInvoice StandardInvoiceRealizations `json:"standardInvoice"`
+	Credit          CreditRealizations          `json:"credit"`
 }
 
 func (r Realizations) Validate() error {
 	var errs []error
 
-	for idx, realization := range r.StandardInvoice {
-		if err := realization.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("standard invoice realization[%d]: %w", idx, err))
-		}
+	if err := r.StandardInvoice.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("standard invoice realizations: %w", err))
+	}
+
+	if err := r.Credit.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("credit realizations: %w", err))
 	}
 
 	return errors.Join(errs...)
+}
+
+func (r Realizations) RealizedUnsettledAmount() alpacadecimal.Decimal {
+	return r.StandardInvoice.RealizedUnsettledAmount().Add(r.Credit.RealizedUnsettledAmount())
 }
 
 type ChargeExpanded struct {

@@ -43,6 +43,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedlineamountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicerealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
@@ -113,6 +114,7 @@ const (
 	TypeBillingStandardInvoiceDetailedLineAmountDiscount = "BillingStandardInvoiceDetailedLineAmountDiscount"
 	TypeBillingWorkflowConfig                            = "BillingWorkflowConfig"
 	TypeCharge                                           = "Charge"
+	TypeChargeCreditRealization                          = "ChargeCreditRealization"
 	TypeChargeFlatFee                                    = "ChargeFlatFee"
 	TypeChargeStandardInvoiceRealization                 = "ChargeStandardInvoiceRealization"
 	TypeChargeUsageBased                                 = "ChargeUsageBased"
@@ -33621,6 +33623,9 @@ type ChargeMutation struct {
 	standard_invoice_realizations        map[string]struct{}
 	removedstandard_invoice_realizations map[string]struct{}
 	clearedstandard_invoice_realizations bool
+	credit_realizations                  map[string]struct{}
+	removedcredit_realizations           map[string]struct{}
+	clearedcredit_realizations           bool
 	billing_invoice_lines                map[string]struct{}
 	removedbilling_invoice_lines         map[string]struct{}
 	clearedbilling_invoice_lines         bool
@@ -34929,6 +34934,60 @@ func (m *ChargeMutation) ResetStandardInvoiceRealizations() {
 	m.removedstandard_invoice_realizations = nil
 }
 
+// AddCreditRealizationIDs adds the "credit_realizations" edge to the ChargeCreditRealization entity by ids.
+func (m *ChargeMutation) AddCreditRealizationIDs(ids ...string) {
+	if m.credit_realizations == nil {
+		m.credit_realizations = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.credit_realizations[ids[i]] = struct{}{}
+	}
+}
+
+// ClearCreditRealizations clears the "credit_realizations" edge to the ChargeCreditRealization entity.
+func (m *ChargeMutation) ClearCreditRealizations() {
+	m.clearedcredit_realizations = true
+}
+
+// CreditRealizationsCleared reports if the "credit_realizations" edge to the ChargeCreditRealization entity was cleared.
+func (m *ChargeMutation) CreditRealizationsCleared() bool {
+	return m.clearedcredit_realizations
+}
+
+// RemoveCreditRealizationIDs removes the "credit_realizations" edge to the ChargeCreditRealization entity by IDs.
+func (m *ChargeMutation) RemoveCreditRealizationIDs(ids ...string) {
+	if m.removedcredit_realizations == nil {
+		m.removedcredit_realizations = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.credit_realizations, ids[i])
+		m.removedcredit_realizations[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedCreditRealizations returns the removed IDs of the "credit_realizations" edge to the ChargeCreditRealization entity.
+func (m *ChargeMutation) RemovedCreditRealizationsIDs() (ids []string) {
+	for id := range m.removedcredit_realizations {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// CreditRealizationsIDs returns the "credit_realizations" edge IDs in the mutation.
+func (m *ChargeMutation) CreditRealizationsIDs() (ids []string) {
+	for id := range m.credit_realizations {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetCreditRealizations resets all changes to the "credit_realizations" edge.
+func (m *ChargeMutation) ResetCreditRealizations() {
+	m.credit_realizations = nil
+	m.clearedcredit_realizations = false
+	m.removedcredit_realizations = nil
+}
+
 // AddBillingInvoiceLineIDs adds the "billing_invoice_lines" edge to the BillingInvoiceLine entity by ids.
 func (m *ChargeMutation) AddBillingInvoiceLineIDs(ids ...string) {
 	if m.billing_invoice_lines == nil {
@@ -35760,7 +35819,7 @@ func (m *ChargeMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeMutation) AddedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.flat_fee != nil {
 		edges = append(edges, charge.EdgeFlatFee)
 	}
@@ -35769,6 +35828,9 @@ func (m *ChargeMutation) AddedEdges() []string {
 	}
 	if m.standard_invoice_realizations != nil {
 		edges = append(edges, charge.EdgeStandardInvoiceRealizations)
+	}
+	if m.credit_realizations != nil {
+		edges = append(edges, charge.EdgeCreditRealizations)
 	}
 	if m.billing_invoice_lines != nil {
 		edges = append(edges, charge.EdgeBillingInvoiceLines)
@@ -35809,6 +35871,12 @@ func (m *ChargeMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case charge.EdgeCreditRealizations:
+		ids := make([]ent.Value, 0, len(m.credit_realizations))
+		for id := range m.credit_realizations {
+			ids = append(ids, id)
+		}
+		return ids
 	case charge.EdgeBillingInvoiceLines:
 		ids := make([]ent.Value, 0, len(m.billing_invoice_lines))
 		for id := range m.billing_invoice_lines {
@@ -35843,9 +35911,12 @@ func (m *ChargeMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.removedstandard_invoice_realizations != nil {
 		edges = append(edges, charge.EdgeStandardInvoiceRealizations)
+	}
+	if m.removedcredit_realizations != nil {
+		edges = append(edges, charge.EdgeCreditRealizations)
 	}
 	if m.removedbilling_invoice_lines != nil {
 		edges = append(edges, charge.EdgeBillingInvoiceLines)
@@ -35863,6 +35934,12 @@ func (m *ChargeMutation) RemovedIDs(name string) []ent.Value {
 	case charge.EdgeStandardInvoiceRealizations:
 		ids := make([]ent.Value, 0, len(m.removedstandard_invoice_realizations))
 		for id := range m.removedstandard_invoice_realizations {
+			ids = append(ids, id)
+		}
+		return ids
+	case charge.EdgeCreditRealizations:
+		ids := make([]ent.Value, 0, len(m.removedcredit_realizations))
+		for id := range m.removedcredit_realizations {
 			ids = append(ids, id)
 		}
 		return ids
@@ -35884,7 +35961,7 @@ func (m *ChargeMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 9)
+	edges := make([]string, 0, 10)
 	if m.clearedflat_fee {
 		edges = append(edges, charge.EdgeFlatFee)
 	}
@@ -35893,6 +35970,9 @@ func (m *ChargeMutation) ClearedEdges() []string {
 	}
 	if m.clearedstandard_invoice_realizations {
 		edges = append(edges, charge.EdgeStandardInvoiceRealizations)
+	}
+	if m.clearedcredit_realizations {
+		edges = append(edges, charge.EdgeCreditRealizations)
 	}
 	if m.clearedbilling_invoice_lines {
 		edges = append(edges, charge.EdgeBillingInvoiceLines)
@@ -35925,6 +36005,8 @@ func (m *ChargeMutation) EdgeCleared(name string) bool {
 		return m.clearedusage_based
 	case charge.EdgeStandardInvoiceRealizations:
 		return m.clearedstandard_invoice_realizations
+	case charge.EdgeCreditRealizations:
+		return m.clearedcredit_realizations
 	case charge.EdgeBillingInvoiceLines:
 		return m.clearedbilling_invoice_lines
 	case charge.EdgeBillingSplitLineGroups:
@@ -35980,6 +36062,9 @@ func (m *ChargeMutation) ResetEdge(name string) error {
 	case charge.EdgeStandardInvoiceRealizations:
 		m.ResetStandardInvoiceRealizations()
 		return nil
+	case charge.EdgeCreditRealizations:
+		m.ResetCreditRealizations()
+		return nil
 	case charge.EdgeBillingInvoiceLines:
 		m.ResetBillingInvoiceLines()
 		return nil
@@ -36000,6 +36085,997 @@ func (m *ChargeMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown Charge edge %s", name)
+}
+
+// ChargeCreditRealizationMutation represents an operation that mutates the ChargeCreditRealization nodes in the graph.
+type ChargeCreditRealizationMutation struct {
+	config
+	op                                  Op
+	typ                                 string
+	id                                  *string
+	namespace                           *string
+	created_at                          *time.Time
+	updated_at                          *time.Time
+	deleted_at                          *time.Time
+	annotations                         *models.Annotations
+	amount                              *alpacadecimal.Decimal
+	service_period_from                 *time.Time
+	service_period_to                   *time.Time
+	clearedFields                       map[string]struct{}
+	charge                              *string
+	clearedcharge                       bool
+	standard_invoice_realization        *string
+	clearedstandard_invoice_realization bool
+	done                                bool
+	oldValue                            func(context.Context) (*ChargeCreditRealization, error)
+	predicates                          []predicate.ChargeCreditRealization
+}
+
+var _ ent.Mutation = (*ChargeCreditRealizationMutation)(nil)
+
+// chargecreditrealizationOption allows management of the mutation configuration using functional options.
+type chargecreditrealizationOption func(*ChargeCreditRealizationMutation)
+
+// newChargeCreditRealizationMutation creates new mutation for the ChargeCreditRealization entity.
+func newChargeCreditRealizationMutation(c config, op Op, opts ...chargecreditrealizationOption) *ChargeCreditRealizationMutation {
+	m := &ChargeCreditRealizationMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeChargeCreditRealization,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withChargeCreditRealizationID sets the ID field of the mutation.
+func withChargeCreditRealizationID(id string) chargecreditrealizationOption {
+	return func(m *ChargeCreditRealizationMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ChargeCreditRealization
+		)
+		m.oldValue = func(ctx context.Context) (*ChargeCreditRealization, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ChargeCreditRealization.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withChargeCreditRealization sets the old ChargeCreditRealization of the mutation.
+func withChargeCreditRealization(node *ChargeCreditRealization) chargecreditrealizationOption {
+	return func(m *ChargeCreditRealizationMutation) {
+		m.oldValue = func(context.Context) (*ChargeCreditRealization, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ChargeCreditRealizationMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ChargeCreditRealizationMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ChargeCreditRealization entities.
+func (m *ChargeCreditRealizationMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ChargeCreditRealizationMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ChargeCreditRealizationMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ChargeCreditRealization.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *ChargeCreditRealizationMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *ChargeCreditRealizationMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the ChargeCreditRealization entity.
+// If the ChargeCreditRealization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditRealizationMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *ChargeCreditRealizationMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ChargeCreditRealizationMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ChargeCreditRealizationMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ChargeCreditRealization entity.
+// If the ChargeCreditRealization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditRealizationMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ChargeCreditRealizationMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ChargeCreditRealizationMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ChargeCreditRealizationMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ChargeCreditRealization entity.
+// If the ChargeCreditRealization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditRealizationMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ChargeCreditRealizationMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *ChargeCreditRealizationMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *ChargeCreditRealizationMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the ChargeCreditRealization entity.
+// If the ChargeCreditRealization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditRealizationMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *ChargeCreditRealizationMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[chargecreditrealization.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *ChargeCreditRealizationMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[chargecreditrealization.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *ChargeCreditRealizationMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, chargecreditrealization.FieldDeletedAt)
+}
+
+// SetAnnotations sets the "annotations" field.
+func (m *ChargeCreditRealizationMutation) SetAnnotations(value models.Annotations) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *ChargeCreditRealizationMutation) Annotations() (r models.Annotations, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the ChargeCreditRealization entity.
+// If the ChargeCreditRealization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditRealizationMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *ChargeCreditRealizationMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[chargecreditrealization.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *ChargeCreditRealizationMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[chargecreditrealization.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *ChargeCreditRealizationMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, chargecreditrealization.FieldAnnotations)
+}
+
+// SetChargeID sets the "charge_id" field.
+func (m *ChargeCreditRealizationMutation) SetChargeID(s string) {
+	m.charge = &s
+}
+
+// ChargeID returns the value of the "charge_id" field in the mutation.
+func (m *ChargeCreditRealizationMutation) ChargeID() (r string, exists bool) {
+	v := m.charge
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChargeID returns the old "charge_id" field's value of the ChargeCreditRealization entity.
+// If the ChargeCreditRealization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditRealizationMutation) OldChargeID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChargeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChargeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChargeID: %w", err)
+	}
+	return oldValue.ChargeID, nil
+}
+
+// ResetChargeID resets all changes to the "charge_id" field.
+func (m *ChargeCreditRealizationMutation) ResetChargeID() {
+	m.charge = nil
+}
+
+// SetStdRealizationID sets the "std_realization_id" field.
+func (m *ChargeCreditRealizationMutation) SetStdRealizationID(s string) {
+	m.standard_invoice_realization = &s
+}
+
+// StdRealizationID returns the value of the "std_realization_id" field in the mutation.
+func (m *ChargeCreditRealizationMutation) StdRealizationID() (r string, exists bool) {
+	v := m.standard_invoice_realization
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStdRealizationID returns the old "std_realization_id" field's value of the ChargeCreditRealization entity.
+// If the ChargeCreditRealization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditRealizationMutation) OldStdRealizationID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStdRealizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStdRealizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStdRealizationID: %w", err)
+	}
+	return oldValue.StdRealizationID, nil
+}
+
+// ClearStdRealizationID clears the value of the "std_realization_id" field.
+func (m *ChargeCreditRealizationMutation) ClearStdRealizationID() {
+	m.standard_invoice_realization = nil
+	m.clearedFields[chargecreditrealization.FieldStdRealizationID] = struct{}{}
+}
+
+// StdRealizationIDCleared returns if the "std_realization_id" field was cleared in this mutation.
+func (m *ChargeCreditRealizationMutation) StdRealizationIDCleared() bool {
+	_, ok := m.clearedFields[chargecreditrealization.FieldStdRealizationID]
+	return ok
+}
+
+// ResetStdRealizationID resets all changes to the "std_realization_id" field.
+func (m *ChargeCreditRealizationMutation) ResetStdRealizationID() {
+	m.standard_invoice_realization = nil
+	delete(m.clearedFields, chargecreditrealization.FieldStdRealizationID)
+}
+
+// SetAmount sets the "amount" field.
+func (m *ChargeCreditRealizationMutation) SetAmount(a alpacadecimal.Decimal) {
+	m.amount = &a
+}
+
+// Amount returns the value of the "amount" field in the mutation.
+func (m *ChargeCreditRealizationMutation) Amount() (r alpacadecimal.Decimal, exists bool) {
+	v := m.amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAmount returns the old "amount" field's value of the ChargeCreditRealization entity.
+// If the ChargeCreditRealization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditRealizationMutation) OldAmount(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAmount: %w", err)
+	}
+	return oldValue.Amount, nil
+}
+
+// ResetAmount resets all changes to the "amount" field.
+func (m *ChargeCreditRealizationMutation) ResetAmount() {
+	m.amount = nil
+}
+
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (m *ChargeCreditRealizationMutation) SetServicePeriodFrom(t time.Time) {
+	m.service_period_from = &t
+}
+
+// ServicePeriodFrom returns the value of the "service_period_from" field in the mutation.
+func (m *ChargeCreditRealizationMutation) ServicePeriodFrom() (r time.Time, exists bool) {
+	v := m.service_period_from
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldServicePeriodFrom returns the old "service_period_from" field's value of the ChargeCreditRealization entity.
+// If the ChargeCreditRealization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditRealizationMutation) OldServicePeriodFrom(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldServicePeriodFrom is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldServicePeriodFrom requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldServicePeriodFrom: %w", err)
+	}
+	return oldValue.ServicePeriodFrom, nil
+}
+
+// ResetServicePeriodFrom resets all changes to the "service_period_from" field.
+func (m *ChargeCreditRealizationMutation) ResetServicePeriodFrom() {
+	m.service_period_from = nil
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (m *ChargeCreditRealizationMutation) SetServicePeriodTo(t time.Time) {
+	m.service_period_to = &t
+}
+
+// ServicePeriodTo returns the value of the "service_period_to" field in the mutation.
+func (m *ChargeCreditRealizationMutation) ServicePeriodTo() (r time.Time, exists bool) {
+	v := m.service_period_to
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldServicePeriodTo returns the old "service_period_to" field's value of the ChargeCreditRealization entity.
+// If the ChargeCreditRealization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditRealizationMutation) OldServicePeriodTo(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldServicePeriodTo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldServicePeriodTo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldServicePeriodTo: %w", err)
+	}
+	return oldValue.ServicePeriodTo, nil
+}
+
+// ResetServicePeriodTo resets all changes to the "service_period_to" field.
+func (m *ChargeCreditRealizationMutation) ResetServicePeriodTo() {
+	m.service_period_to = nil
+}
+
+// ClearCharge clears the "charge" edge to the Charge entity.
+func (m *ChargeCreditRealizationMutation) ClearCharge() {
+	m.clearedcharge = true
+	m.clearedFields[chargecreditrealization.FieldChargeID] = struct{}{}
+}
+
+// ChargeCleared reports if the "charge" edge to the Charge entity was cleared.
+func (m *ChargeCreditRealizationMutation) ChargeCleared() bool {
+	return m.clearedcharge
+}
+
+// ChargeIDs returns the "charge" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ChargeID instead. It exists only for internal usage by the builders.
+func (m *ChargeCreditRealizationMutation) ChargeIDs() (ids []string) {
+	if id := m.charge; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCharge resets all changes to the "charge" edge.
+func (m *ChargeCreditRealizationMutation) ResetCharge() {
+	m.charge = nil
+	m.clearedcharge = false
+}
+
+// SetStandardInvoiceRealizationID sets the "standard_invoice_realization" edge to the ChargeStandardInvoiceRealization entity by id.
+func (m *ChargeCreditRealizationMutation) SetStandardInvoiceRealizationID(id string) {
+	m.standard_invoice_realization = &id
+}
+
+// ClearStandardInvoiceRealization clears the "standard_invoice_realization" edge to the ChargeStandardInvoiceRealization entity.
+func (m *ChargeCreditRealizationMutation) ClearStandardInvoiceRealization() {
+	m.clearedstandard_invoice_realization = true
+	m.clearedFields[chargecreditrealization.FieldStdRealizationID] = struct{}{}
+}
+
+// StandardInvoiceRealizationCleared reports if the "standard_invoice_realization" edge to the ChargeStandardInvoiceRealization entity was cleared.
+func (m *ChargeCreditRealizationMutation) StandardInvoiceRealizationCleared() bool {
+	return m.StdRealizationIDCleared() || m.clearedstandard_invoice_realization
+}
+
+// StandardInvoiceRealizationID returns the "standard_invoice_realization" edge ID in the mutation.
+func (m *ChargeCreditRealizationMutation) StandardInvoiceRealizationID() (id string, exists bool) {
+	if m.standard_invoice_realization != nil {
+		return *m.standard_invoice_realization, true
+	}
+	return
+}
+
+// StandardInvoiceRealizationIDs returns the "standard_invoice_realization" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// StandardInvoiceRealizationID instead. It exists only for internal usage by the builders.
+func (m *ChargeCreditRealizationMutation) StandardInvoiceRealizationIDs() (ids []string) {
+	if id := m.standard_invoice_realization; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetStandardInvoiceRealization resets all changes to the "standard_invoice_realization" edge.
+func (m *ChargeCreditRealizationMutation) ResetStandardInvoiceRealization() {
+	m.standard_invoice_realization = nil
+	m.clearedstandard_invoice_realization = false
+}
+
+// Where appends a list predicates to the ChargeCreditRealizationMutation builder.
+func (m *ChargeCreditRealizationMutation) Where(ps ...predicate.ChargeCreditRealization) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ChargeCreditRealizationMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ChargeCreditRealizationMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ChargeCreditRealization, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ChargeCreditRealizationMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ChargeCreditRealizationMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ChargeCreditRealization).
+func (m *ChargeCreditRealizationMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ChargeCreditRealizationMutation) Fields() []string {
+	fields := make([]string, 0, 10)
+	if m.namespace != nil {
+		fields = append(fields, chargecreditrealization.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, chargecreditrealization.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, chargecreditrealization.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, chargecreditrealization.FieldDeletedAt)
+	}
+	if m.annotations != nil {
+		fields = append(fields, chargecreditrealization.FieldAnnotations)
+	}
+	if m.charge != nil {
+		fields = append(fields, chargecreditrealization.FieldChargeID)
+	}
+	if m.standard_invoice_realization != nil {
+		fields = append(fields, chargecreditrealization.FieldStdRealizationID)
+	}
+	if m.amount != nil {
+		fields = append(fields, chargecreditrealization.FieldAmount)
+	}
+	if m.service_period_from != nil {
+		fields = append(fields, chargecreditrealization.FieldServicePeriodFrom)
+	}
+	if m.service_period_to != nil {
+		fields = append(fields, chargecreditrealization.FieldServicePeriodTo)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ChargeCreditRealizationMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case chargecreditrealization.FieldNamespace:
+		return m.Namespace()
+	case chargecreditrealization.FieldCreatedAt:
+		return m.CreatedAt()
+	case chargecreditrealization.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case chargecreditrealization.FieldDeletedAt:
+		return m.DeletedAt()
+	case chargecreditrealization.FieldAnnotations:
+		return m.Annotations()
+	case chargecreditrealization.FieldChargeID:
+		return m.ChargeID()
+	case chargecreditrealization.FieldStdRealizationID:
+		return m.StdRealizationID()
+	case chargecreditrealization.FieldAmount:
+		return m.Amount()
+	case chargecreditrealization.FieldServicePeriodFrom:
+		return m.ServicePeriodFrom()
+	case chargecreditrealization.FieldServicePeriodTo:
+		return m.ServicePeriodTo()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ChargeCreditRealizationMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case chargecreditrealization.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case chargecreditrealization.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case chargecreditrealization.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case chargecreditrealization.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case chargecreditrealization.FieldAnnotations:
+		return m.OldAnnotations(ctx)
+	case chargecreditrealization.FieldChargeID:
+		return m.OldChargeID(ctx)
+	case chargecreditrealization.FieldStdRealizationID:
+		return m.OldStdRealizationID(ctx)
+	case chargecreditrealization.FieldAmount:
+		return m.OldAmount(ctx)
+	case chargecreditrealization.FieldServicePeriodFrom:
+		return m.OldServicePeriodFrom(ctx)
+	case chargecreditrealization.FieldServicePeriodTo:
+		return m.OldServicePeriodTo(ctx)
+	}
+	return nil, fmt.Errorf("unknown ChargeCreditRealization field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ChargeCreditRealizationMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case chargecreditrealization.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case chargecreditrealization.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case chargecreditrealization.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case chargecreditrealization.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case chargecreditrealization.FieldAnnotations:
+		v, ok := value.(models.Annotations)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
+		return nil
+	case chargecreditrealization.FieldChargeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChargeID(v)
+		return nil
+	case chargecreditrealization.FieldStdRealizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStdRealizationID(v)
+		return nil
+	case chargecreditrealization.FieldAmount:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAmount(v)
+		return nil
+	case chargecreditrealization.FieldServicePeriodFrom:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetServicePeriodFrom(v)
+		return nil
+	case chargecreditrealization.FieldServicePeriodTo:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetServicePeriodTo(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeCreditRealization field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ChargeCreditRealizationMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ChargeCreditRealizationMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ChargeCreditRealizationMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown ChargeCreditRealization numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ChargeCreditRealizationMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(chargecreditrealization.FieldDeletedAt) {
+		fields = append(fields, chargecreditrealization.FieldDeletedAt)
+	}
+	if m.FieldCleared(chargecreditrealization.FieldAnnotations) {
+		fields = append(fields, chargecreditrealization.FieldAnnotations)
+	}
+	if m.FieldCleared(chargecreditrealization.FieldStdRealizationID) {
+		fields = append(fields, chargecreditrealization.FieldStdRealizationID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ChargeCreditRealizationMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ChargeCreditRealizationMutation) ClearField(name string) error {
+	switch name {
+	case chargecreditrealization.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case chargecreditrealization.FieldAnnotations:
+		m.ClearAnnotations()
+		return nil
+	case chargecreditrealization.FieldStdRealizationID:
+		m.ClearStdRealizationID()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeCreditRealization nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ChargeCreditRealizationMutation) ResetField(name string) error {
+	switch name {
+	case chargecreditrealization.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case chargecreditrealization.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case chargecreditrealization.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case chargecreditrealization.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case chargecreditrealization.FieldAnnotations:
+		m.ResetAnnotations()
+		return nil
+	case chargecreditrealization.FieldChargeID:
+		m.ResetChargeID()
+		return nil
+	case chargecreditrealization.FieldStdRealizationID:
+		m.ResetStdRealizationID()
+		return nil
+	case chargecreditrealization.FieldAmount:
+		m.ResetAmount()
+		return nil
+	case chargecreditrealization.FieldServicePeriodFrom:
+		m.ResetServicePeriodFrom()
+		return nil
+	case chargecreditrealization.FieldServicePeriodTo:
+		m.ResetServicePeriodTo()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeCreditRealization field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ChargeCreditRealizationMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.charge != nil {
+		edges = append(edges, chargecreditrealization.EdgeCharge)
+	}
+	if m.standard_invoice_realization != nil {
+		edges = append(edges, chargecreditrealization.EdgeStandardInvoiceRealization)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ChargeCreditRealizationMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case chargecreditrealization.EdgeCharge:
+		if id := m.charge; id != nil {
+			return []ent.Value{*id}
+		}
+	case chargecreditrealization.EdgeStandardInvoiceRealization:
+		if id := m.standard_invoice_realization; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ChargeCreditRealizationMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ChargeCreditRealizationMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ChargeCreditRealizationMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedcharge {
+		edges = append(edges, chargecreditrealization.EdgeCharge)
+	}
+	if m.clearedstandard_invoice_realization {
+		edges = append(edges, chargecreditrealization.EdgeStandardInvoiceRealization)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ChargeCreditRealizationMutation) EdgeCleared(name string) bool {
+	switch name {
+	case chargecreditrealization.EdgeCharge:
+		return m.clearedcharge
+	case chargecreditrealization.EdgeStandardInvoiceRealization:
+		return m.clearedstandard_invoice_realization
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ChargeCreditRealizationMutation) ClearEdge(name string) error {
+	switch name {
+	case chargecreditrealization.EdgeCharge:
+		m.ClearCharge()
+		return nil
+	case chargecreditrealization.EdgeStandardInvoiceRealization:
+		m.ClearStandardInvoiceRealization()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeCreditRealization unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ChargeCreditRealizationMutation) ResetEdge(name string) error {
+	switch name {
+	case chargecreditrealization.EdgeCharge:
+		m.ResetCharge()
+		return nil
+	case chargecreditrealization.EdgeStandardInvoiceRealization:
+		m.ResetStandardInvoiceRealization()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeCreditRealization edge %s", name)
 }
 
 // ChargeFlatFeeMutation represents an operation that mutates the ChargeFlatFee nodes in the graph.
@@ -36794,6 +37870,8 @@ type ChargeStandardInvoiceRealizationMutation struct {
 	clearedcharge                       bool
 	billing_invoice_line                *string
 	clearedbilling_invoice_line         bool
+	credit_realization                  *string
+	clearedcredit_realization           bool
 	done                                bool
 	oldValue                            func(context.Context) (*ChargeStandardInvoiceRealization, error)
 	predicates                          []predicate.ChargeStandardInvoiceRealization
@@ -37680,6 +38758,45 @@ func (m *ChargeStandardInvoiceRealizationMutation) ResetBillingInvoiceLine() {
 	m.clearedbilling_invoice_line = false
 }
 
+// SetCreditRealizationID sets the "credit_realization" edge to the ChargeCreditRealization entity by id.
+func (m *ChargeStandardInvoiceRealizationMutation) SetCreditRealizationID(id string) {
+	m.credit_realization = &id
+}
+
+// ClearCreditRealization clears the "credit_realization" edge to the ChargeCreditRealization entity.
+func (m *ChargeStandardInvoiceRealizationMutation) ClearCreditRealization() {
+	m.clearedcredit_realization = true
+}
+
+// CreditRealizationCleared reports if the "credit_realization" edge to the ChargeCreditRealization entity was cleared.
+func (m *ChargeStandardInvoiceRealizationMutation) CreditRealizationCleared() bool {
+	return m.clearedcredit_realization
+}
+
+// CreditRealizationID returns the "credit_realization" edge ID in the mutation.
+func (m *ChargeStandardInvoiceRealizationMutation) CreditRealizationID() (id string, exists bool) {
+	if m.credit_realization != nil {
+		return *m.credit_realization, true
+	}
+	return
+}
+
+// CreditRealizationIDs returns the "credit_realization" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CreditRealizationID instead. It exists only for internal usage by the builders.
+func (m *ChargeStandardInvoiceRealizationMutation) CreditRealizationIDs() (ids []string) {
+	if id := m.credit_realization; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCreditRealization resets all changes to the "credit_realization" edge.
+func (m *ChargeStandardInvoiceRealizationMutation) ResetCreditRealization() {
+	m.credit_realization = nil
+	m.clearedcredit_realization = false
+}
+
 // Where appends a list predicates to the ChargeStandardInvoiceRealizationMutation builder.
 func (m *ChargeStandardInvoiceRealizationMutation) Where(ps ...predicate.ChargeStandardInvoiceRealization) {
 	m.predicates = append(m.predicates, ps...)
@@ -38134,12 +39251,15 @@ func (m *ChargeStandardInvoiceRealizationMutation) ResetField(name string) error
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeStandardInvoiceRealizationMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.charge != nil {
 		edges = append(edges, chargestandardinvoicerealization.EdgeCharge)
 	}
 	if m.billing_invoice_line != nil {
 		edges = append(edges, chargestandardinvoicerealization.EdgeBillingInvoiceLine)
+	}
+	if m.credit_realization != nil {
+		edges = append(edges, chargestandardinvoicerealization.EdgeCreditRealization)
 	}
 	return edges
 }
@@ -38156,13 +39276,17 @@ func (m *ChargeStandardInvoiceRealizationMutation) AddedIDs(name string) []ent.V
 		if id := m.billing_invoice_line; id != nil {
 			return []ent.Value{*id}
 		}
+	case chargestandardinvoicerealization.EdgeCreditRealization:
+		if id := m.credit_realization; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeStandardInvoiceRealizationMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	return edges
 }
 
@@ -38174,12 +39298,15 @@ func (m *ChargeStandardInvoiceRealizationMutation) RemovedIDs(name string) []ent
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeStandardInvoiceRealizationMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedcharge {
 		edges = append(edges, chargestandardinvoicerealization.EdgeCharge)
 	}
 	if m.clearedbilling_invoice_line {
 		edges = append(edges, chargestandardinvoicerealization.EdgeBillingInvoiceLine)
+	}
+	if m.clearedcredit_realization {
+		edges = append(edges, chargestandardinvoicerealization.EdgeCreditRealization)
 	}
 	return edges
 }
@@ -38192,6 +39319,8 @@ func (m *ChargeStandardInvoiceRealizationMutation) EdgeCleared(name string) bool
 		return m.clearedcharge
 	case chargestandardinvoicerealization.EdgeBillingInvoiceLine:
 		return m.clearedbilling_invoice_line
+	case chargestandardinvoicerealization.EdgeCreditRealization:
+		return m.clearedcredit_realization
 	}
 	return false
 }
@@ -38206,6 +39335,9 @@ func (m *ChargeStandardInvoiceRealizationMutation) ClearEdge(name string) error 
 	case chargestandardinvoicerealization.EdgeBillingInvoiceLine:
 		m.ClearBillingInvoiceLine()
 		return nil
+	case chargestandardinvoicerealization.EdgeCreditRealization:
+		m.ClearCreditRealization()
+		return nil
 	}
 	return fmt.Errorf("unknown ChargeStandardInvoiceRealization unique edge %s", name)
 }
@@ -38219,6 +39351,9 @@ func (m *ChargeStandardInvoiceRealizationMutation) ResetEdge(name string) error 
 		return nil
 	case chargestandardinvoicerealization.EdgeBillingInvoiceLine:
 		m.ResetBillingInvoiceLine()
+		return nil
+	case chargestandardinvoicerealization.EdgeCreditRealization:
+		m.ResetCreditRealization()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeStandardInvoiceRealization edge %s", name)

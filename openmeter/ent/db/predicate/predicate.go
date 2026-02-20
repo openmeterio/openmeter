@@ -172,6 +172,9 @@ type BillingWorkflowConfig func(*sql.Selector)
 // Charge is the predicate function for charge builders.
 type Charge func(*sql.Selector)
 
+// ChargeCreditRealization is the predicate function for chargecreditrealization builders.
+type ChargeCreditRealization func(*sql.Selector)
+
 // ChargeFlatFee is the predicate function for chargeflatfee builders.
 type ChargeFlatFee func(*sql.Selector)
 

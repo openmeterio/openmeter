@@ -117,6 +117,7 @@ func (Charge) Edges() []ent.Edge {
 			Unique(),
 		// Realizations
 		edge.To("standard_invoice_realizations", ChargeStandardInvoiceRealization.Type),
+		edge.To("credit_realizations", ChargeCreditRealization.Type),
 		// Billing
 		edge.To("billing_invoice_lines", BillingInvoiceLine.Type),
 		edge.To("billing_split_line_groups", BillingInvoiceSplitLineGroup.Type),
@@ -324,5 +325,61 @@ func (ChargeStandardInvoiceRealization) Edges() []ent.Edge {
 			Unique().
 			Required().
 			Immutable(),
+		edge.To("credit_realization", ChargeCreditRealization.Type).
+			Unique(),
+	}
+}
+
+type ChargeCreditRealization struct {
+	ent.Schema
+}
+
+func (ChargeCreditRealization) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.NamespaceMixin{},
+		entutils.IDMixin{},
+		entutils.TimeMixin{},
+		entutils.AnnotationsMixin{},
+	}
+}
+
+func (ChargeCreditRealization) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("charge_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Immutable(),
+
+		field.String("std_realization_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			NotEmpty().
+			Nillable(),
+
+		field.Other("amount", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
+
+		field.Time("service_period_from"),
+		field.Time("service_period_to"),
+	}
+}
+
+func (ChargeCreditRealization) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("charge", Charge.Type).
+			Ref("credit_realizations").
+			Field("charge_id").
+			Unique().
+			Required().
+			Immutable(),
+		edge.From("standard_invoice_realization", ChargeStandardInvoiceRealization.Type).
+			Ref("credit_realization").
+			Field("std_realization_id").
+			Unique(),
 	}
 }
