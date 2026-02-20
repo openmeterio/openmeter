@@ -169,6 +169,12 @@ func BillingStandardInvoiceDetailedLineAmountDiscountOrErr(p BillingStandardInvo
 // BillingWorkflowConfig is the predicate function for billingworkflowconfig builders.
 type BillingWorkflowConfig func(*sql.Selector)
 
+// CurrencyCostBasis is the predicate function for currencycostbasis builders.
+type CurrencyCostBasis func(*sql.Selector)
+
+// CustomCurrency is the predicate function for customcurrency builders.
+type CustomCurrency func(*sql.Selector)
+
 // Customer is the predicate function for customer builders.
 type Customer func(*sql.Selector)
 
