@@ -11,9 +11,15 @@ model CostBasis {
   @visibility(Lifecycle.Read)
   id: Shared.ULID;
 
+  /**
+   * The currency id this cost basis belongs to.
+   */
   @visibility(Lifecycle.Create, Lifecycle.Read)
-  fiat_code: string;
+  fiat_code: Shared.CurrencyCode;
 
+  /**
+   * The cost rate for the currency. It is the amount of money that represents one unit of the currency.
+   */
   @visibility(Lifecycle.Create, Lifecycle.Read)
   rate: Shared.Numeric;
 
@@ -24,6 +30,9 @@ model CostBasis {
   @visibility(Lifecycle.Create, Lifecycle.Read)
   effective_from?: Shared.DateTime;
 
+  /**
+   * An ISO-8601 timestamp representation of entity creation date.
+   */
   @visibility(Lifecycle.Read)
   created_at?: Shared.DateTime;
 }

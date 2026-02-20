@@ -13,16 +13,6 @@ using TypeSpec.OpenAPI;
 namespace Currencies;
 
 /**
- * Filter options for listing currencies.
- */
-@friendlyName("ListCurrenciesParamsFilter")
-model ListCurrenciesParamsFilter {
-  /**
-   * Filter currencies by code.
-   */
-}
-
-/**
  * List currencies response.
  */
 @friendlyName("CurrenciesResponse")
@@ -33,14 +23,8 @@ model CurrenciesResponse {
   data: Currency[];
 }
 
-/**
- * Create custom currencies response
- */
-@friendlyName("CustomCurrencyResponse")
-model CustomCurrencyResponse {
-  @statusCode _: 201;
-}
-
+@extension(Shared.PrivateExtension, true)
+@extension(Shared.UnstableExtension, true)
 interface CurrenciesOperations {
   /**
    * List all supported currencies.
@@ -56,5 +40,5 @@ interface CurrenciesOperations {
   create(
     @header contentType: "application/json",
     @body body: Currencies.CustomCurrency,
-  ): CustomCurrencyResponse | Common.ErrorResponses;
+  ): Shared.CreateResponse<CustomCurrency> | Common.ErrorResponses;
 }

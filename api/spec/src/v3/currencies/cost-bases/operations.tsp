@@ -14,16 +14,18 @@ using TypeSpec.OpenAPI;
 
 namespace Currencies;
 
+@extension(Shared.PrivateExtension, true)
+@extension(Shared.UnstableExtension, true)
 interface CostBasesOperations {
   /**
-   * Get cost bases by currency id
+   * Get a cost basis.
    */
   @get
-  @operationId("get-cost-bases-by-id")
-  @summary("Get cost bases by id")
+  @operationId("get-cost-bases")
+  @summary("Get cost bases")
   get_cost_bases(
     @path currencyId: Shared.ULID,
-  ): CostBases | Common.ErrorResponses;
+  ): Shared.GetResponse<CostBases> | Common.ErrorResponses;
 
   /**
    * Create cost basis for custom currency

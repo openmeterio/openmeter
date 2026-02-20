@@ -104,7 +104,11 @@ paths:
       summary: Create custom currency
       responses:
         '201':
-          description: Create custom currencies response
+          description: CustomCurrency created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCustomCurrency'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -121,9 +125,9 @@ paths:
               $ref: '#/components/schemas/BillingCustomCurrency'
   /openmeter/currencies/{currencyId}/cost-bases:
     get:
-      operationId: get-cost-bases-by-id
-      summary: Get cost bases by id
-      description: Get cost bases by currency id
+      operationId: get-cost-bases
+      summary: Get cost bases
+      description: Get a cost basis.
       parameters:
         - name: currencyId
           in: path
@@ -132,7 +136,7 @@ paths:
             $ref: '#/components/schemas/ULID'
       responses:
         '200':
-          description: The request has succeeded.
+          description: CostBases response.
           content:
             application/json:
               schema:
@@ -1896,9 +1900,15 @@ components:
         - external_invoicing
       description: The type of the app.
     BillingCostBases:
-      type: array
-      items:
-        $ref: '#/components/schemas/BillingCostBasis'
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingCostBasis'
+          description: The cost bases for the currency
       description: Describes currency cost bases
     BillingCostBasis:
       type: object
@@ -1912,9 +1922,13 @@ components:
             - $ref: '#/components/schemas/ULID'
           readOnly: true
         fiat_code:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency id this cost basis belongs to.
         rate:
-          $ref: '#/components/schemas/Numeric'
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The cost rate for the currency. It is the amount of money that represents one unit of the currency.
         effective_from:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -1924,53 +1938,36 @@ components:
         created_at:
           allOf:
             - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
           readOnly: true
       description: Describes currency basis supported by billing system.
     BillingCurrency:
       type: object
       required:
         - id
-        - code
         - name
         - symbol
-        - disambiguate_symbol
-        - subunits
-        - smallest_denomination
+        - code
         - is_custom
       properties:
         id:
           allOf:
             - $ref: '#/components/schemas/ULID'
           readOnly: true
-        code:
-          anyOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-            - type: string
-          maxLength: 64
-          description: Standard ISO 4217 code.
-          x-go-type: string
-          readOnly: true
         name:
           type: string
-          description: English name of the currency.
-          readOnly: true
+          minLength: 1
+          maxLength: 256
+          description: Custom Currency name
         symbol:
           type: string
           description: Symbol representation of the currency.
-          readOnly: true
-        disambiguate_symbol:
-          type: string
-          description: Disambiguation symbol for the currency.
-          readOnly: true
-        subunits:
-          type: integer
-          format: uint32
-          description: Number of subunits in the currency.
-          readOnly: true
-        smallest_denomination:
-          type: integer
-          format: uint8
-          description: Smallest denomination of the currency.
+        code:
+          anyOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+            - $ref: '#/components/schemas/Currencies.CustomCurrencyCode'
+          description: Standard ISO 4217 code.
+          x-go-type: string
           readOnly: true
         is_custom:
           type: boolean
@@ -1981,19 +1978,14 @@ components:
       type: object
       required:
         - id
-        - code
         - name
         - symbol
-        - smallest_denomination
+        - code
       properties:
         id:
           allOf:
             - $ref: '#/components/schemas/ULID'
           readOnly: true
-        code:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          description: Custom currency code based on Standard ISO 4217 code.
         name:
           type: string
           minLength: 1
@@ -2001,11 +1993,11 @@ components:
           description: Custom Currency name
         symbol:
           type: string
-          description: Custom Currency symbol
-        smallest_denomination:
-          type: integer
-          format: uint8
-          description: Smallest denomination of the custom currency
+          description: Symbol representation of the currency.
+        code:
+          allOf:
+            - $ref: '#/components/schemas/Currencies.CustomCurrencyCode'
+          description: Custom currency code based on Standard ISO 4217 code.
         created_at:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -3000,6 +2992,10 @@ components:
           example:
             type: $.type
       description: Meter create request.
+    Currencies.CustomCurrencyCode:
+      type: string
+      minLength: 3
+      maxLength: 24
     CurrenciesResponse:
       type: object
       required:

@@ -7,4 +7,9 @@ namespace Currencies;
  * Describes currency cost bases
  */
 @friendlyName("BillingCostBases")
-model CostBases is CostBasis[];
+model CostBases {
+  /**
+   * The cost bases for the currency
+   */
+  data: CostBasis[];
+}
