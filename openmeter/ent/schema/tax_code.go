@@ -3,7 +3,9 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -37,6 +39,16 @@ func (TaxCode) Fields() []ent.Field {
 			}).
 			Optional().
 			Nillable(),
+	}
+}
+
+func (TaxCode) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "key").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL"),
+			).
+			Unique(),
 	}
 }
 
