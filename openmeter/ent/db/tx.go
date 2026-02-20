@@ -64,6 +64,10 @@ type Tx struct {
 	BillingStandardInvoiceDetailedLineAmountDiscount *BillingStandardInvoiceDetailedLineAmountDiscountClient
 	// BillingWorkflowConfig is the client for interacting with the BillingWorkflowConfig builders.
 	BillingWorkflowConfig *BillingWorkflowConfigClient
+	// CurrencyCostBasis is the client for interacting with the CurrencyCostBasis builders.
+	CurrencyCostBasis *CurrencyCostBasisClient
+	// CustomCurrency is the client for interacting with the CustomCurrency builders.
+	CustomCurrency *CustomCurrencyClient
 	// Customer is the client for interacting with the Customer builders.
 	Customer *CustomerClient
 	// CustomerSubjects is the client for interacting with the CustomerSubjects builders.
@@ -264,6 +268,8 @@ func (tx *Tx) init() {
 	tx.BillingStandardInvoiceDetailedLine = NewBillingStandardInvoiceDetailedLineClient(tx.config)
 	tx.BillingStandardInvoiceDetailedLineAmountDiscount = NewBillingStandardInvoiceDetailedLineAmountDiscountClient(tx.config)
 	tx.BillingWorkflowConfig = NewBillingWorkflowConfigClient(tx.config)
+	tx.CurrencyCostBasis = NewCurrencyCostBasisClient(tx.config)
+	tx.CustomCurrency = NewCustomCurrencyClient(tx.config)
 	tx.Customer = NewCustomerClient(tx.config)
 	tx.CustomerSubjects = NewCustomerSubjectsClient(tx.config)
 	tx.Entitlement = NewEntitlementClient(tx.config)
