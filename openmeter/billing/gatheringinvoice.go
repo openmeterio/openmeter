@@ -661,6 +661,7 @@ func (g *GatheringLine) SetSplitLineHierarchy(hierarchy *SplitLineHierarchy) {
 	g.SplitLineHierarchy = hierarchy
 }
 
+// TODO: fix the duality between this and the implementation in the billing service :/
 func (g GatheringLine) AsStandardLine() StandardLine {
 	return StandardLine{
 		StandardLineBase: StandardLineBase{
@@ -677,6 +678,7 @@ func (g GatheringLine) AsStandardLine() StandardLine {
 			InvoiceAt:              g.InvoiceAt,
 			SplitLineGroupID:       g.SplitLineGroupID,
 			ChildUniqueReferenceID: g.ChildUniqueReferenceID,
+			ChargeID:               g.ChargeID,
 			TaxConfig:              g.TaxConfig,
 			RateCardDiscounts:      g.RateCardDiscounts,
 			Subscription:           g.Subscription,

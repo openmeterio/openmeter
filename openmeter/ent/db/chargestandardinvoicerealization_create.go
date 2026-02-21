@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/charges"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicerealization"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -194,6 +195,25 @@ func (_c *ChargeStandardInvoiceRealizationCreate) SetBillingInvoiceLineID(id str
 // SetBillingInvoiceLine sets the "billing_invoice_line" edge to the BillingInvoiceLine entity.
 func (_c *ChargeStandardInvoiceRealizationCreate) SetBillingInvoiceLine(v *BillingInvoiceLine) *ChargeStandardInvoiceRealizationCreate {
 	return _c.SetBillingInvoiceLineID(v.ID)
+}
+
+// SetCreditRealizationID sets the "credit_realization" edge to the ChargeCreditRealization entity by ID.
+func (_c *ChargeStandardInvoiceRealizationCreate) SetCreditRealizationID(id string) *ChargeStandardInvoiceRealizationCreate {
+	_c.mutation.SetCreditRealizationID(id)
+	return _c
+}
+
+// SetNillableCreditRealizationID sets the "credit_realization" edge to the ChargeCreditRealization entity by ID if the given value is not nil.
+func (_c *ChargeStandardInvoiceRealizationCreate) SetNillableCreditRealizationID(id *string) *ChargeStandardInvoiceRealizationCreate {
+	if id != nil {
+		_c = _c.SetCreditRealizationID(*id)
+	}
+	return _c
+}
+
+// SetCreditRealization sets the "credit_realization" edge to the ChargeCreditRealization entity.
+func (_c *ChargeStandardInvoiceRealizationCreate) SetCreditRealization(v *ChargeCreditRealization) *ChargeStandardInvoiceRealizationCreate {
+	return _c.SetCreditRealizationID(v.ID)
 }
 
 // Mutation returns the ChargeStandardInvoiceRealizationMutation object of the builder.
@@ -450,6 +470,22 @@ func (_c *ChargeStandardInvoiceRealizationCreate) createSpec() (*ChargeStandardI
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.LineID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CreditRealizationIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargestandardinvoicerealization.CreditRealizationTable,
+			Columns: []string{chargestandardinvoicerealization.CreditRealizationColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditrealization.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
