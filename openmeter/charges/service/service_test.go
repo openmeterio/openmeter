@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"testing"
 	"time"
@@ -44,9 +45,12 @@ func (s *ChargesServiceTestSuite) SetupSuite() {
 	s.NoError(err)
 
 	chargesService, err := New(Config{
-		Adapter:        chargesAdapter,
-		BillingService: s.BillingService,
-		Handler:        charges.NewNoopHandlerRouter(),
+		Adapter:            chargesAdapter,
+		BillingService:     s.BillingService,
+		Handler:            charges.NewNoopHandlerRouter(),
+		CustomerService:    s.CustomerService,
+		StreamingConnector: s.MockStreamingConnector,
+		FeatureService:     s.FeatureService,
 	})
 	s.NoError(err)
 	s.Charges = chargesService
@@ -406,4 +410,259 @@ func (s *ChargesServiceTestSuite) mustGetCharge(id charges.ChargeID) charges.Cha
 	s.NoError(err)
 
 	return charge
+}
+
+type testCreditThenInvoiceHandler struct {
+	charges.NoOpHandler
+	charges charges.Service
+
+	// emulate ledger
+	customerAccountBalance     float64
+	customerOutstandingBalance float64
+
+	// TODO: let's use the balances instead
+	realizePercent float64
+}
+
+func (h *testCreditThenInvoiceHandler) OnRealizeUsageBasedCreditChargePeriodically(ctx context.Context, input charges.UsageBasedRealizationInput) ([]charges.CreditRealizationCreateInput, error) {
+	realizePercent := alpacadecimal.NewFromFloat(h.realizePercent)
+
+	// Get the realized unsettled amount for the charge and the line's current total usage amount
+	realizedUnsettledAmount := input.Charge.Realizations.RealizedUnsettledAmount()
+	totalUsageAmount := input.CurrentUsage.Totals.Amount
+
+	// Calculate the realizable amount (amount that can be realized from credits as the difference of the previous two)
+	realizableAmount := totalUsageAmount.Sub(realizedUnsettledAmount)
+	if realizableAmount.IsNegative() || realizableAmount.IsZero() {
+		return nil, nil
+	}
+
+	// Simulate ledger balance checks by multiplying the realizable amount by the realization percentage
+
+	amountToRealize := realizableAmount.Mul(realizePercent)
+
+	if amountToRealize.IsNegative() {
+		return nil, fmt.Errorf("amount to realize is negative: %s", amountToRealize.String())
+	}
+
+	// Let's find out the service period for the credit realization
+	servicePeriod := timeutil.ClosedPeriod{
+		From: input.Charge.Intent.ServicePeriod.From,
+		To:   input.AsOf,
+	}
+
+	lastRealizedPeriod := input.Charge.Realizations.Credit.LastRealizedPeriod()
+	if lastRealizedPeriod != nil {
+		servicePeriod.From = lastRealizedPeriod.To
+	}
+
+	h.customerAccountBalance -= amountToRealize.InexactFloat64()
+
+	// Note: we are also realizing the 0 value to make sure that we signify that in that period there was no usage
+	// in this setup the ledger transaction should not be created.
+
+	return []charges.CreditRealizationCreateInput{
+		{
+			Amount:        amountToRealize,
+			ServicePeriod: servicePeriod,
+		},
+	}, nil
+}
+
+func (s *ChargesServiceTestSuite) TestCreditThenInvoiceFlow() {
+	namespace := "ns-credit-then-invoice-flow"
+	ctx := context.Background()
+	defer clock.ResetTime()
+
+	customInvoicing := s.SetupCustomInvoicing(namespace)
+
+	cust := s.CreateTestCustomer(namespace, "test")
+
+	_ = s.ProvisionBillingProfile(ctx, namespace, customInvoicing.App.GetID(),
+		billingtest.WithProgressiveBilling(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	clock.SetTime(servicePeriod.From)
+
+	const (
+		flatFeeName    = "test-flat-fee"
+		usageBasedName = "test-usage-based"
+	)
+
+	feature := s.SetupApiRequestsTotalFeature(ctx, namespace)
+	// Let's add some usage before the period to initialize the streaming connector
+	s.MockStreamingConnector.AddSimpleEvent(*feature.Feature.MeterSlug, 100, servicePeriod.From.Add(-time.Hour))
+
+	var (
+		flatFeeChargeID    charges.ChargeID
+		usageBasedChargeID charges.ChargeID
+	)
+
+	handler := &testCreditThenInvoiceHandler{
+		charges: s.Charges,
+	}
+	s.Charges.handler = handler
+
+	s.Run("create new upcoming charges", func() {
+		res, err := s.Charges.CreateCharges(ctx, charges.CreateChargeInput{
+			Customer: cust.GetID(),
+			Currency: currencyx.Code(currency.USD),
+			Intents: []charges.CreateChargeIntentInput{
+				s.createMockChargeIntent(createMockChargeIntentInput{
+					servicePeriod: servicePeriod,
+					price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromFloat(2),
+					}),
+					name:              usageBasedName,
+					featureKey:        feature.Feature.Key,
+					managedBy:         billing.SubscriptionManagedLine,
+					uniqueReferenceID: usageBasedName,
+					settlementMode:    productcatalog.CreditThenInvoiceSettlementMode,
+				}),
+			},
+		})
+		s.NoError(err)
+
+		s.Len(res, 1)
+		s.Equal(res[0].Intent.IntentType, charges.IntentTypeUsageBased)
+		s.Equal(res[0].Intent.SettlementMode, productcatalog.CreditThenInvoiceSettlementMode)
+
+		usageBasedChargeID = res[0].GetChargeID()
+	})
+
+	s.Run("trigger realization for 2026-01-01", func() {
+		asOf := datetime.MustParseTimeInLocation(s.T(), "2026-01-02T01:00:00Z", time.UTC).AsTime()
+		clock.SetTime(asOf)
+
+		// Let's register 5 units of usage for the period (cost = 10)
+		s.MockStreamingConnector.AddSimpleEvent(*feature.Feature.MeterSlug, 5, asOf.Add(-time.Second))
+
+		handler.realizePercent = 0.5 // Let's realize 50% of the usage, we expect an 5 USD credit realization
+
+		err := s.Charges.TriggerPeriodicRealization(ctx, usageBasedChargeID)
+		s.NoError(err)
+
+		usageBasedCharge := s.mustGetCharge(usageBasedChargeID)
+		s.Len(usageBasedCharge.Realizations.Credit, 1)
+		s.Equal(usageBasedCharge.Realizations.Credit[0].Amount, alpacadecimal.NewFromFloat(5))
+		s.Equal(usageBasedCharge.Realizations.Credit[0].ServicePeriod, timeutil.ClosedPeriod{
+			From: servicePeriod.From,
+			To:   datetime.MustParseTimeInLocation(s.T(), "2026-01-02T00:00:00Z", time.UTC).AsTime(),
+		})
+	})
+
+	s.Run("trigger realization for 2026-01-02", func() {
+		asOf := datetime.MustParseTimeInLocation(s.T(), "2026-01-03T01:00:00Z", time.UTC).AsTime()
+		clock.SetTime(asOf)
+
+		err := s.Charges.TriggerPeriodicRealization(ctx, usageBasedChargeID)
+		s.NoError(err)
+
+		handler.realizePercent = 0 // Let's not realize any credits this time
+
+		s.expectCreditRealizations(usageBasedChargeID, []creditRealizationExpectation{
+			{
+				periodFrom: "2026-01-01T00:00:00Z",
+				periodTo:   "2026-01-02T00:00:00Z",
+				amount:     5,
+			},
+			{
+				periodFrom: "2026-01-02T00:00:00Z",
+				periodTo:   "2026-01-03T00:00:00Z",
+				amount:     0,
+			},
+		})
+	})
+
+	s.Run("after realization we progressively bill the charge's current amount", func() {
+		asOf := datetime.MustParseTimeInLocation(s.T(), "2026-01-03T13:00:00Z", time.UTC).AsTime()
+		clock.SetTime(asOf)
+
+		// Let's register 2 units of usage for the period (cost = 4), right before the invoice time
+		s.MockStreamingConnector.AddSimpleEvent(*feature.Feature.MeterSlug, 2, asOf.Add(-time.Second))
+
+		handler.realizePercent = 0.5 // Let's pay 50% of the usage from credits
+
+		stdInvoices, err := s.Charges.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     &asOf,
+			// TODO: is this needed?!
+			ProgressiveBillingOverride: lo.ToPtr(true),
+		})
+		s.NoError(err)
+
+		s.Len(stdInvoices, 1)
+		stdInvoice := stdInvoices[0]
+		s.Equal(stdInvoice.Status, billing.StandardInvoiceStatusDraftManualApprovalNeeded)
+
+		lines := stdInvoice.Lines.OrEmpty()
+		s.Len(lines, 2)
+		stdLineUsageBased := s.getStandardLineByName(lines, usageBasedName)
+		s.NotNil(stdLineUsageBased)
+		stdLineFlatFee := s.getStandardLineByName(lines, flatFeeName)
+		s.NotNil(stdLineFlatFee)
+
+		// TODO: add a test for the flat fee line
+
+		s.Equal(stdLineUsageBased.UsageBased.Quantity, alpacadecimal.NewFromFloat(2))
+		s.Equal(stdLineUsageBased.UsageBased.MeteredQuantity, alpacadecimal.NewFromFloat(2))
+		s.Equal(*stdLineUsageBased.ChargeID, usageBasedChargeID.ID)
+
+		s.expectCreditRealizations(usageBasedChargeID, []creditRealizationExpectation{
+			{
+				periodFrom: "2026-01-01T00:00:00Z",
+				periodTo:   "2026-01-02T00:00:00Z",
+				amount:     5,
+			},
+			{
+				periodFrom: "2026-01-02T00:00:00Z",
+				periodTo:   "2026-01-03T00:00:00Z",
+				amount:     0,
+			},
+			{
+				periodFrom: "2026-01-03T00:00:00Z",
+				periodTo:   "2026-01-04T13:00:00Z",
+				amount:     4, // TODO
+			},
+		})
+		usageBasedCharge := s.mustGetCharge(usageBasedChargeID)
+		s.Len(usageBasedCharge.Realizations.StandardInvoice, 1)
+		// TODO: expect the realization's various values, including the totals / credit allocations etc
+	})
+
+	s.Failf("not implemented", "not implemented %v %v", flatFeeChargeID, usageBasedChargeID)
+}
+
+type creditRealizationExpectation struct {
+	periodFrom string
+	periodTo   string
+	amount     float64
+}
+
+func (s *ChargesServiceTestSuite) expectCreditRealizations(chargeID charges.ChargeID, expectations []creditRealizationExpectation) {
+	s.T().Helper()
+
+	charge := s.mustGetCharge(chargeID)
+
+	actual := lo.Map(charge.Realizations.Credit, func(realization charges.CreditRealization, _ int) creditRealizationExpectation {
+		return creditRealizationExpectation{
+			periodFrom: realization.ServicePeriod.From.Format(time.RFC3339),
+			periodTo:   realization.ServicePeriod.To.Format(time.RFC3339),
+			amount:     realization.Amount.InexactFloat64(),
+		}
+	})
+
+	s.T().Logf("actual credit realizations for charge %s:", chargeID)
+	for _, realization := range actual {
+		s.T().Logf("  - [%s..%s]: %f\n", realization.periodFrom, realization.periodTo, realization.amount)
+	}
+
+	s.ElementsMatch(expectations, actual)
 }

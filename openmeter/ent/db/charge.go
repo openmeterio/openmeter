@@ -95,6 +95,8 @@ type ChargeEdges struct {
 	UsageBased *ChargeUsageBased `json:"usage_based,omitempty"`
 	// StandardInvoiceRealizations holds the value of the standard_invoice_realizations edge.
 	StandardInvoiceRealizations []*ChargeStandardInvoiceRealization `json:"standard_invoice_realizations,omitempty"`
+	// CreditRealizations holds the value of the credit_realizations edge.
+	CreditRealizations []*ChargeCreditRealization `json:"credit_realizations,omitempty"`
 	// BillingInvoiceLines holds the value of the billing_invoice_lines edge.
 	BillingInvoiceLines []*BillingInvoiceLine `json:"billing_invoice_lines,omitempty"`
 	// BillingSplitLineGroups holds the value of the billing_split_line_groups edge.
@@ -109,7 +111,7 @@ type ChargeEdges struct {
 	SubscriptionItem *SubscriptionItem `json:"subscription_item,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [9]bool
+	loadedTypes [10]bool
 }
 
 // FlatFeeOrErr returns the FlatFee value or an error if the edge
@@ -143,10 +145,19 @@ func (e ChargeEdges) StandardInvoiceRealizationsOrErr() ([]*ChargeStandardInvoic
 	return nil, &NotLoadedError{edge: "standard_invoice_realizations"}
 }
 
+// CreditRealizationsOrErr returns the CreditRealizations value or an error if the edge
+// was not loaded in eager-loading.
+func (e ChargeEdges) CreditRealizationsOrErr() ([]*ChargeCreditRealization, error) {
+	if e.loadedTypes[3] {
+		return e.CreditRealizations, nil
+	}
+	return nil, &NotLoadedError{edge: "credit_realizations"}
+}
+
 // BillingInvoiceLinesOrErr returns the BillingInvoiceLines value or an error if the edge
 // was not loaded in eager-loading.
 func (e ChargeEdges) BillingInvoiceLinesOrErr() ([]*BillingInvoiceLine, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[4] {
 		return e.BillingInvoiceLines, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice_lines"}
@@ -155,7 +166,7 @@ func (e ChargeEdges) BillingInvoiceLinesOrErr() ([]*BillingInvoiceLine, error) {
 // BillingSplitLineGroupsOrErr returns the BillingSplitLineGroups value or an error if the edge
 // was not loaded in eager-loading.
 func (e ChargeEdges) BillingSplitLineGroupsOrErr() ([]*BillingInvoiceSplitLineGroup, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[5] {
 		return e.BillingSplitLineGroups, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_split_line_groups"}
@@ -166,7 +177,7 @@ func (e ChargeEdges) BillingSplitLineGroupsOrErr() ([]*BillingInvoiceSplitLineGr
 func (e ChargeEdges) CustomerOrErr() (*Customer, error) {
 	if e.Customer != nil {
 		return e.Customer, nil
-	} else if e.loadedTypes[5] {
+	} else if e.loadedTypes[6] {
 		return nil, &NotFoundError{label: customer.Label}
 	}
 	return nil, &NotLoadedError{edge: "customer"}
@@ -177,7 +188,7 @@ func (e ChargeEdges) CustomerOrErr() (*Customer, error) {
 func (e ChargeEdges) SubscriptionOrErr() (*Subscription, error) {
 	if e.Subscription != nil {
 		return e.Subscription, nil
-	} else if e.loadedTypes[6] {
+	} else if e.loadedTypes[7] {
 		return nil, &NotFoundError{label: subscription.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription"}
@@ -188,7 +199,7 @@ func (e ChargeEdges) SubscriptionOrErr() (*Subscription, error) {
 func (e ChargeEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
 	if e.SubscriptionPhase != nil {
 		return e.SubscriptionPhase, nil
-	} else if e.loadedTypes[7] {
+	} else if e.loadedTypes[8] {
 		return nil, &NotFoundError{label: subscriptionphase.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_phase"}
@@ -199,7 +210,7 @@ func (e ChargeEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
 func (e ChargeEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
 	if e.SubscriptionItem != nil {
 		return e.SubscriptionItem, nil
-	} else if e.loadedTypes[8] {
+	} else if e.loadedTypes[9] {
 		return nil, &NotFoundError{label: subscriptionitem.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_item"}
@@ -431,6 +442,11 @@ func (_m *Charge) QueryUsageBased() *ChargeUsageBasedQuery {
 // QueryStandardInvoiceRealizations queries the "standard_invoice_realizations" edge of the Charge entity.
 func (_m *Charge) QueryStandardInvoiceRealizations() *ChargeStandardInvoiceRealizationQuery {
 	return NewChargeClient(_m.config).QueryStandardInvoiceRealizations(_m)
+}
+
+// QueryCreditRealizations queries the "credit_realizations" edge of the Charge entity.
+func (_m *Charge) QueryCreditRealizations() *ChargeCreditRealizationQuery {
+	return NewChargeClient(_m.config).QueryCreditRealizations(_m)
 }
 
 // QueryBillingInvoiceLines queries the "billing_invoice_lines" edge of the Charge entity.

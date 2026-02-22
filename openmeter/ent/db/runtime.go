@@ -32,6 +32,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedlineamountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicerealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
@@ -910,6 +911,37 @@ func init() {
 	chargeDescID := chargeMixinFields1[0].Descriptor()
 	// charge.DefaultID holds the default value on creation for the id field.
 	charge.DefaultID = chargeDescID.Default.(func() string)
+	chargecreditrealizationMixin := schema.ChargeCreditRealization{}.Mixin()
+	chargecreditrealizationMixinFields0 := chargecreditrealizationMixin[0].Fields()
+	_ = chargecreditrealizationMixinFields0
+	chargecreditrealizationMixinFields1 := chargecreditrealizationMixin[1].Fields()
+	_ = chargecreditrealizationMixinFields1
+	chargecreditrealizationMixinFields2 := chargecreditrealizationMixin[2].Fields()
+	_ = chargecreditrealizationMixinFields2
+	chargecreditrealizationFields := schema.ChargeCreditRealization{}.Fields()
+	_ = chargecreditrealizationFields
+	// chargecreditrealizationDescNamespace is the schema descriptor for namespace field.
+	chargecreditrealizationDescNamespace := chargecreditrealizationMixinFields0[0].Descriptor()
+	// chargecreditrealization.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	chargecreditrealization.NamespaceValidator = chargecreditrealizationDescNamespace.Validators[0].(func(string) error)
+	// chargecreditrealizationDescCreatedAt is the schema descriptor for created_at field.
+	chargecreditrealizationDescCreatedAt := chargecreditrealizationMixinFields2[0].Descriptor()
+	// chargecreditrealization.DefaultCreatedAt holds the default value on creation for the created_at field.
+	chargecreditrealization.DefaultCreatedAt = chargecreditrealizationDescCreatedAt.Default.(func() time.Time)
+	// chargecreditrealizationDescUpdatedAt is the schema descriptor for updated_at field.
+	chargecreditrealizationDescUpdatedAt := chargecreditrealizationMixinFields2[1].Descriptor()
+	// chargecreditrealization.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	chargecreditrealization.DefaultUpdatedAt = chargecreditrealizationDescUpdatedAt.Default.(func() time.Time)
+	// chargecreditrealization.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	chargecreditrealization.UpdateDefaultUpdatedAt = chargecreditrealizationDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chargecreditrealizationDescStdRealizationID is the schema descriptor for std_realization_id field.
+	chargecreditrealizationDescStdRealizationID := chargecreditrealizationFields[1].Descriptor()
+	// chargecreditrealization.StdRealizationIDValidator is a validator for the "std_realization_id" field. It is called by the builders before save.
+	chargecreditrealization.StdRealizationIDValidator = chargecreditrealizationDescStdRealizationID.Validators[0].(func(string) error)
+	// chargecreditrealizationDescID is the schema descriptor for id field.
+	chargecreditrealizationDescID := chargecreditrealizationMixinFields1[0].Descriptor()
+	// chargecreditrealization.DefaultID holds the default value on creation for the id field.
+	chargecreditrealization.DefaultID = chargecreditrealizationDescID.Default.(func() string)
 	chargeflatfeeMixin := schema.ChargeFlatFee{}.Mixin()
 	chargeflatfeeMixinFields0 := chargeflatfeeMixin[0].Fields()
 	_ = chargeflatfeeMixinFields0

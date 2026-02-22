@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/charges"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicerealization"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -73,9 +74,11 @@ type ChargeStandardInvoiceRealizationEdges struct {
 	Charge *Charge `json:"charge,omitempty"`
 	// BillingInvoiceLine holds the value of the billing_invoice_line edge.
 	BillingInvoiceLine *BillingInvoiceLine `json:"billing_invoice_line,omitempty"`
+	// CreditRealization holds the value of the credit_realization edge.
+	CreditRealization *ChargeCreditRealization `json:"credit_realization,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // ChargeOrErr returns the Charge value or an error if the edge
@@ -98,6 +101,17 @@ func (e ChargeStandardInvoiceRealizationEdges) BillingInvoiceLineOrErr() (*Billi
 		return nil, &NotFoundError{label: billinginvoiceline.Label}
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice_line"}
+}
+
+// CreditRealizationOrErr returns the CreditRealization value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeStandardInvoiceRealizationEdges) CreditRealizationOrErr() (*ChargeCreditRealization, error) {
+	if e.CreditRealization != nil {
+		return e.CreditRealization, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: chargecreditrealization.Label}
+	}
+	return nil, &NotLoadedError{edge: "credit_realization"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -272,6 +286,11 @@ func (_m *ChargeStandardInvoiceRealization) QueryCharge() *ChargeQuery {
 // QueryBillingInvoiceLine queries the "billing_invoice_line" edge of the ChargeStandardInvoiceRealization entity.
 func (_m *ChargeStandardInvoiceRealization) QueryBillingInvoiceLine() *BillingInvoiceLineQuery {
 	return NewChargeStandardInvoiceRealizationClient(_m.config).QueryBillingInvoiceLine(_m)
+}
+
+// QueryCreditRealization queries the "credit_realization" edge of the ChargeStandardInvoiceRealization entity.
+func (_m *ChargeStandardInvoiceRealization) QueryCreditRealization() *ChargeCreditRealizationQuery {
+	return NewChargeStandardInvoiceRealizationClient(_m.config).QueryCreditRealization(_m)
 }
 
 // Update returns a builder for updating this ChargeStandardInvoiceRealization.

@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicerealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
@@ -36,6 +37,7 @@ type ChargeQuery struct {
 	withFlatFee                     *ChargeFlatFeeQuery
 	withUsageBased                  *ChargeUsageBasedQuery
 	withStandardInvoiceRealizations *ChargeStandardInvoiceRealizationQuery
+	withCreditRealizations          *ChargeCreditRealizationQuery
 	withBillingInvoiceLines         *BillingInvoiceLineQuery
 	withBillingSplitLineGroups      *BillingInvoiceSplitLineGroupQuery
 	withCustomer                    *CustomerQuery
@@ -138,6 +140,28 @@ func (_q *ChargeQuery) QueryStandardInvoiceRealizations() *ChargeStandardInvoice
 			sqlgraph.From(charge.Table, charge.FieldID, selector),
 			sqlgraph.To(chargestandardinvoicerealization.Table, chargestandardinvoicerealization.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, charge.StandardInvoiceRealizationsTable, charge.StandardInvoiceRealizationsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCreditRealizations chains the current query on the "credit_realizations" edge.
+func (_q *ChargeQuery) QueryCreditRealizations() *ChargeCreditRealizationQuery {
+	query := (&ChargeCreditRealizationClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(charge.Table, charge.FieldID, selector),
+			sqlgraph.To(chargecreditrealization.Table, chargecreditrealization.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, charge.CreditRealizationsTable, charge.CreditRealizationsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -472,6 +496,7 @@ func (_q *ChargeQuery) Clone() *ChargeQuery {
 		withFlatFee:                     _q.withFlatFee.Clone(),
 		withUsageBased:                  _q.withUsageBased.Clone(),
 		withStandardInvoiceRealizations: _q.withStandardInvoiceRealizations.Clone(),
+		withCreditRealizations:          _q.withCreditRealizations.Clone(),
 		withBillingInvoiceLines:         _q.withBillingInvoiceLines.Clone(),
 		withBillingSplitLineGroups:      _q.withBillingSplitLineGroups.Clone(),
 		withCustomer:                    _q.withCustomer.Clone(),
@@ -514,6 +539,17 @@ func (_q *ChargeQuery) WithStandardInvoiceRealizations(opts ...func(*ChargeStand
 		opt(query)
 	}
 	_q.withStandardInvoiceRealizations = query
+	return _q
+}
+
+// WithCreditRealizations tells the query-builder to eager-load the nodes that are connected to
+// the "credit_realizations" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeQuery) WithCreditRealizations(opts ...func(*ChargeCreditRealizationQuery)) *ChargeQuery {
+	query := (&ChargeCreditRealizationClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCreditRealizations = query
 	return _q
 }
 
@@ -661,10 +697,11 @@ func (_q *ChargeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Charg
 	var (
 		nodes       = []*Charge{}
 		_spec       = _q.querySpec()
-		loadedTypes = [9]bool{
+		loadedTypes = [10]bool{
 			_q.withFlatFee != nil,
 			_q.withUsageBased != nil,
 			_q.withStandardInvoiceRealizations != nil,
+			_q.withCreditRealizations != nil,
 			_q.withBillingInvoiceLines != nil,
 			_q.withBillingSplitLineGroups != nil,
 			_q.withCustomer != nil,
@@ -711,6 +748,15 @@ func (_q *ChargeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Charg
 			func(n *Charge) { n.Edges.StandardInvoiceRealizations = []*ChargeStandardInvoiceRealization{} },
 			func(n *Charge, e *ChargeStandardInvoiceRealization) {
 				n.Edges.StandardInvoiceRealizations = append(n.Edges.StandardInvoiceRealizations, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withCreditRealizations; query != nil {
+		if err := _q.loadCreditRealizations(ctx, query, nodes,
+			func(n *Charge) { n.Edges.CreditRealizations = []*ChargeCreditRealization{} },
+			func(n *Charge, e *ChargeCreditRealization) {
+				n.Edges.CreditRealizations = append(n.Edges.CreditRealizations, e)
 			}); err != nil {
 			return nil, err
 		}
@@ -823,6 +869,36 @@ func (_q *ChargeQuery) loadStandardInvoiceRealizations(ctx context.Context, quer
 	}
 	query.Where(predicate.ChargeStandardInvoiceRealization(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(charge.StandardInvoiceRealizationsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.ChargeID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "charge_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *ChargeQuery) loadCreditRealizations(ctx context.Context, query *ChargeCreditRealizationQuery, nodes []*Charge, init func(*Charge), assign func(*Charge, *ChargeCreditRealization)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Charge)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargecreditrealization.FieldChargeID)
+	}
+	query.Where(predicate.ChargeCreditRealization(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(charge.CreditRealizationsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

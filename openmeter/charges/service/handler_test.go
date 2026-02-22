@@ -32,6 +32,11 @@ func (m *MockHandler) OnStandardInvoiceRealizationSettled(ctx context.Context, c
 	return args.Get(0).(charges.Charge), args.Error(1)
 }
 
+func (m *MockHandler) OnRealizeUsageBasedCreditChargePeriodically(ctx context.Context, input charges.UsageBasedRealizationInput) ([]charges.CreditRealizationCreateInput, error) {
+	args := m.Called(ctx, input)
+	return args.Get(0).([]charges.CreditRealizationCreateInput), args.Error(1)
+}
+
 type chargeAndRealization struct {
 	charge      charges.Charge
 	realization charges.StandardInvoiceRealizationWithLine
@@ -43,6 +48,7 @@ type RecordingHandler struct {
 	standardInvoiceRealizationCreated    []chargeAndRealization
 	standardInvoiceRealizationAuthorized []chargeAndRealization
 	standardInvoiceRealizationSettled    []chargeAndRealization
+	usageBasedRealizationInput           []charges.UsageBasedRealizationInput
 }
 
 func (r *RecordingHandler) OnStandardInvoiceRealizationCreated(ctx context.Context, charge charges.Charge, realization charges.StandardInvoiceRealizationWithLine) (charges.Charge, error) {
@@ -60,10 +66,16 @@ func (r *RecordingHandler) OnStandardInvoiceRealizationSettled(ctx context.Conte
 	return charge, nil
 }
 
+func (r *RecordingHandler) OnRealizeUsageBasedCreditChargePeriodically(ctx context.Context, input charges.UsageBasedRealizationInput) ([]charges.CreditRealizationCreateInput, error) {
+	r.usageBasedRealizationInput = append(r.usageBasedRealizationInput, input)
+	return nil, nil
+}
+
 func (r *RecordingHandler) Reset() {
 	r.standardInvoiceRealizationCreated = nil
 	r.standardInvoiceRealizationAuthorized = nil
 	r.standardInvoiceRealizationSettled = nil
+	r.usageBasedRealizationInput = nil
 }
 
 type recordingHandlerExpectationItem struct {
@@ -76,6 +88,7 @@ type recordingHandlerExpectation struct {
 	standardInvoiceRealizationCreated    []recordingHandlerExpectationItem
 	standardInvoiceRealizationAuthorized []recordingHandlerExpectationItem
 	standardInvoiceRealizationSettled    []recordingHandlerExpectationItem
+	usageBasedRealizationInput           []charges.UsageBasedRealizationInput
 }
 
 func (r *RecordingHandler) Expect(t *testing.T, expectations recordingHandlerExpectation) {
@@ -84,6 +97,12 @@ func (r *RecordingHandler) Expect(t *testing.T, expectations recordingHandlerExp
 	compareExpectationWithChargeAndRealization(t, expectations.standardInvoiceRealizationCreated, r.standardInvoiceRealizationCreated, "standardInvoiceRealizationCreated")
 	compareExpectationWithChargeAndRealization(t, expectations.standardInvoiceRealizationAuthorized, r.standardInvoiceRealizationAuthorized, "standardInvoiceRealizationAuthorized")
 	compareExpectationWithChargeAndRealization(t, expectations.standardInvoiceRealizationSettled, r.standardInvoiceRealizationSettled, "standardInvoiceRealizationSettled")
+
+	// realizationTriggers
+	mapped := lo.Map(r.usageBasedRealizationInput, func(item charges.UsageBasedRealizationInput, _ int) string {
+		return item.Charge.ID
+	})
+	require.ElementsMatch(t, expectations.usageBasedRealizationInput, mapped, "usageBasedRealizationInput")
 }
 
 func compareExpectationWithChargeAndRealization(t *testing.T, expectation []recordingHandlerExpectationItem, actual []chargeAndRealization, hookName string) {

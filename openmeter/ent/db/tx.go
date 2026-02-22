@@ -66,6 +66,8 @@ type Tx struct {
 	BillingWorkflowConfig *BillingWorkflowConfigClient
 	// Charge is the client for interacting with the Charge builders.
 	Charge *ChargeClient
+	// ChargeCreditRealization is the client for interacting with the ChargeCreditRealization builders.
+	ChargeCreditRealization *ChargeCreditRealizationClient
 	// ChargeFlatFee is the client for interacting with the ChargeFlatFee builders.
 	ChargeFlatFee *ChargeFlatFeeClient
 	// ChargeStandardInvoiceRealization is the client for interacting with the ChargeStandardInvoiceRealization builders.
@@ -273,6 +275,7 @@ func (tx *Tx) init() {
 	tx.BillingStandardInvoiceDetailedLineAmountDiscount = NewBillingStandardInvoiceDetailedLineAmountDiscountClient(tx.config)
 	tx.BillingWorkflowConfig = NewBillingWorkflowConfigClient(tx.config)
 	tx.Charge = NewChargeClient(tx.config)
+	tx.ChargeCreditRealization = NewChargeCreditRealizationClient(tx.config)
 	tx.ChargeFlatFee = NewChargeFlatFeeClient(tx.config)
 	tx.ChargeStandardInvoiceRealization = NewChargeStandardInvoiceRealizationClient(tx.config)
 	tx.ChargeUsageBased = NewChargeUsageBasedClient(tx.config)
