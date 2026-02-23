@@ -19,14 +19,18 @@ func (a *adapter) CreateTaxCode(ctx context.Context, input taxcode.CreateTaxCode
 			return taxcode.TaxCode{}, err
 		}
 
-		taxCode, err := a.db.TaxCode.Create().
+		query := a.db.TaxCode.Create().
 			SetNamespace(input.Namespace).
 			SetKey(input.Key).
 			SetName(input.Name).
 			SetNillableDescription(input.Description).
-			SetAppMappings(&input.AppMappings).
-			SetMetadata(input.Metadata).
-			Save(ctx)
+			SetMetadata(input.Metadata)
+
+		if len(input.AppMappings) > 0 {
+			query = query.SetAppMappings(&input.AppMappings)
+		}
+
+		entity, err := query.Save(ctx)
 		if err != nil {
 			if db.IsConstraintError(err) {
 				return taxcode.TaxCode{}, models.NewGenericConflictError(fmt.Errorf("tax code with the same key already exists"))
@@ -35,7 +39,7 @@ func (a *adapter) CreateTaxCode(ctx context.Context, input taxcode.CreateTaxCode
 			return taxcode.TaxCode{}, fmt.Errorf("failed to create tax code: %w", err)
 		}
 
-		return mapTaxCodeFromEntity(taxCode)
+		return mapTaxCodeFromEntity(entity)
 	})
 }
 
@@ -45,19 +49,29 @@ func (a *adapter) UpdateTaxCode(ctx context.Context, input taxcode.UpdateTaxCode
 			return taxcode.TaxCode{}, err
 		}
 
-		taxCode, err := a.db.TaxCode.UpdateOneID(input.ID).
+		query := a.db.TaxCode.UpdateOneID(input.ID).
 			Where(taxcodedb.NamespaceEQ(input.Namespace)).
 			Where(taxcodedb.DeletedAtIsNil()).
 			SetName(input.Name).
 			SetNillableDescription(input.Description).
-			SetAppMappings(&input.AppMappings).
-			SetMetadata(input.Metadata).
-			Save(ctx)
+			SetMetadata(input.Metadata)
+
+		if len(input.AppMappings) > 0 {
+			query = query.SetAppMappings(&input.AppMappings)
+		} else {
+			query = query.ClearAppMappings()
+		}
+
+		entity, err := query.Save(ctx)
 		if err != nil {
+			if db.IsNotFound(err) {
+				return taxcode.TaxCode{}, taxcode.NewTaxCodeNotFoundError(input.ID)
+			}
+
 			return taxcode.TaxCode{}, fmt.Errorf("failed to update tax code: %w", err)
 		}
 
-		return mapTaxCodeFromEntity(taxCode)
+		return mapTaxCodeFromEntity(entity)
 	})
 }
 

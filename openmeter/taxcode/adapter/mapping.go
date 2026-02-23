@@ -3,6 +3,8 @@ package adapter
 import (
 	"errors"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -26,7 +28,7 @@ func mapTaxCodeFromEntity(entity *db.TaxCode) (taxcode.TaxCode, error) {
 		Key:         entity.Key,
 		Name:        entity.Name,
 		Description: entity.Description,
-		AppMappings: *entity.AppMappings,
+		AppMappings: lo.FromPtr(entity.AppMappings),
 		Metadata:    models.NewMetadata(entity.Metadata),
 	}, nil
 }
