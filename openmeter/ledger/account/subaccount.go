@@ -31,11 +31,11 @@ type SubAccountData struct {
 }
 
 func NewSubAccountFromData(data SubAccountData) (*SubAccount, error) {
-	// TODO: we should validate the data here...
-	// This roughly means running the sub-account type specific casts/validations
-	return &SubAccount{
+	sAcc := &SubAccount{
 		data: data,
-	}, nil
+	}
+
+	return sAcc, nil
 }
 
 type SubAccount struct {
