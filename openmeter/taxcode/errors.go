@@ -60,3 +60,23 @@ var ErrTaxCodeNotFound = models.NewValidationIssue(
 func NewTaxCodeNotFoundError(id string) error {
 	return ErrTaxCodeNotFound.WithAttr("id", id)
 }
+
+const ErrCodeTaxCodeEmpty models.ErrorCode = "tax_code_empty"
+
+var ErrTaxCodeEmpty = models.NewValidationIssue(
+	ErrCodeTaxCodeEmpty,
+	"tax code cannot be empty",
+	models.WithFieldString("app_mappings"),
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
+const ErrCodeTaxCodeStripeInvalid models.ErrorCode = "tax_code_stripe_invalid"
+
+var ErrTaxCodeStripeInvalid = models.NewValidationIssue(
+	ErrCodeTaxCodeStripeInvalid,
+	"stripe tax code must be in the format of txcd_12345678",
+	models.WithFieldString("app_mappings"),
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)

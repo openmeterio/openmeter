@@ -85,6 +85,8 @@ func (i UpdateTaxCodeInput) Validate() error {
 type ListTaxCodesInput struct {
 	Namespace string
 	pagination.Page
+
+	IncludeDeleted bool
 }
 
 func (i ListTaxCodesInput) Validate() error {

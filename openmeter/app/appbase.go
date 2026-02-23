@@ -16,6 +16,15 @@ const (
 	AppTypeCustomInvoicing AppType = "custom_invoicing"
 )
 
+func (t AppType) Validate() error {
+	switch t {
+	case AppTypeStripe, AppTypeSandbox, AppTypeCustomInvoicing:
+		return nil
+	default:
+		return models.NewGenericValidationError(fmt.Errorf("invalid app type: %s", t))
+	}
+}
+
 // AppStatus represents the status of an app
 type AppStatus string
 

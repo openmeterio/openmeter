@@ -2,6 +2,7 @@ package taxcode
 
 import (
 	"errors"
+	"regexp"
 
 	"github.com/samber/lo"
 
@@ -9,10 +10,33 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+var TaxCodeStripeRegexp = regexp.MustCompile(`^txcd_\d{8}$`)
+
 // TaxCodeAppMapping represents a mapping of an app type to a tax code.
 type TaxCodeAppMapping struct {
 	AppType app.AppType `json:"app_type"`
 	TaxCode string      `json:"tax_code"`
+}
+
+func (t TaxCodeAppMapping) Validate() error {
+	var errs []error
+
+	if err := t.AppType.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if t.TaxCode == "" {
+		errs = append(errs, ErrTaxCodeEmpty)
+	}
+
+	switch t.AppType {
+	case app.AppTypeStripe:
+		if !TaxCodeStripeRegexp.MatchString(t.TaxCode) {
+			errs = append(errs, ErrTaxCodeStripeInvalid)
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // TaxCodeAppMappings is a list of TaxCodeAppMapping.
@@ -27,6 +51,12 @@ func (t TaxCodeAppMappings) Validate() error {
 
 	if len(appTypes) != len(t) {
 		errs = append(errs, ErrAppTypesMustBeUnique)
+	}
+
+	for _, t := range t {
+		if err := t.Validate(); err != nil {
+			errs = append(errs, err)
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

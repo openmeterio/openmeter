@@ -81,7 +81,13 @@ func (a *adapter) ListTaxCodes(ctx context.Context, input taxcode.ListTaxCodesIn
 			return pagination.Result[taxcode.TaxCode]{}, err
 		}
 
-		entities, err := a.db.TaxCode.Query().Where(taxcodedb.Namespace(input.Namespace)).Where(taxcodedb.DeletedAtIsNil()).Paginate(ctx, input.Page)
+		query := a.db.TaxCode.Query().
+			Where(taxcodedb.Namespace(input.Namespace))
+		if !input.IncludeDeleted {
+			query = query.Where(taxcodedb.DeletedAtIsNil())
+		}
+
+		entities, err := query.Paginate(ctx, input.Page)
 		if err != nil {
 			return pagination.Result[taxcode.TaxCode]{}, fmt.Errorf("failed to list tax codes: %w", err)
 		}
@@ -96,7 +102,10 @@ func (a *adapter) GetTaxCode(ctx context.Context, input taxcode.GetTaxCodeInput)
 			return taxcode.TaxCode{}, err
 		}
 
-		entity, err := a.db.TaxCode.Query().Where(taxcodedb.Namespace(input.Namespace)).Where(taxcodedb.ID(input.ID)).Where(taxcodedb.DeletedAtIsNil()).Only(ctx)
+		entity, err := a.db.TaxCode.Query().
+			Where(taxcodedb.Namespace(input.Namespace)).
+			Where(taxcodedb.ID(input.ID)).
+			Only(ctx)
 		if err != nil {
 			if db.IsNotFound(err) {
 				return taxcode.TaxCode{}, taxcode.NewTaxCodeNotFoundError(input.ID)
@@ -115,13 +124,26 @@ func (a *adapter) DeleteTaxCode(ctx context.Context, input taxcode.DeleteTaxCode
 			return err
 		}
 
-		err := a.db.TaxCode.UpdateOneID(input.ID).Where(taxcodedb.Namespace(input.Namespace)).Where(taxcodedb.DeletedAtIsNil()).SetDeletedAt(clock.Now()).Exec(ctx)
+		entity, err := a.db.TaxCode.Query().
+			Where(taxcodedb.Namespace(input.Namespace)).
+			Where(taxcodedb.ID(input.ID)).
+			Only(ctx)
 		if err != nil {
 			if db.IsNotFound(err) {
 				return taxcode.NewTaxCodeNotFoundError(input.ID)
 			}
 
-			return fmt.Errorf("failed to delete tax code: %w", err)
+			return fmt.Errorf("failed to get tax code: %w", err)
+		}
+
+		if entity.DeletedAt == nil {
+			err := a.db.TaxCode.UpdateOneID(input.ID).
+				Where(taxcodedb.Namespace(input.Namespace)).
+				SetDeletedAt(clock.Now()).
+				Exec(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to delete tax code: %w", err)
+			}
 		}
 
 		return nil
