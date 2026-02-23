@@ -14,6 +14,8 @@ servers:
     description: Cloud
     variables: {}
 tags:
+  - name: OpenMeter Tax
+    description: Tax codes are used to calculate taxes for customers.
   - name: OpenMeter Billing
     description: Billing manages the billing profiles, and invoices for customers.
   - name: OpenMeter Apps
@@ -912,6 +914,144 @@ paths:
           $ref: '#/components/responses/Conflict'
       tags:
         - OpenMeter Subscriptions
+  /openmeter/tax-codes:
+    post:
+      operationId: create-tax-code
+      summary: Create tax code
+      responses:
+        '201':
+          description: TaxCode created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingTaxCode'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Tax
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaxCodeRequest'
+      x-unstable: true
+      x-private: true
+    get:
+      operationId: list-tax-codes
+      summary: List tax codes
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxCodePagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Tax
+      x-unstable: true
+      x-private: true
+  /openmeter/tax-codes/{taxCodeId}:
+    get:
+      operationId: get-tax-code
+      summary: Get tax code
+      parameters:
+        - name: taxCodeId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: TaxCode response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingTaxCode'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Tax
+      x-unstable: true
+      x-private: true
+    put:
+      operationId: upsert-tax-code
+      summary: Upsert tax code
+      parameters:
+        - name: taxCodeId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: TaxCode upsert response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingTaxCode'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '410':
+          $ref: '#/components/responses/Gone'
+      tags:
+        - OpenMeter Tax
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertTaxCodeRequest'
+      x-unstable: true
+      x-private: true
+    delete:
+      operationId: delete-tax-code
+      summary: Delete tax code
+      parameters:
+        - name: taxCodeId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: Deleted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Tax
+      x-unstable: true
+      x-private: true
 components:
   parameters:
     PagePaginationQuery:
@@ -2401,6 +2541,75 @@ components:
         Tax behavior.
 
         This enum is used to specify whether tax is included in the price or excluded from the price.
+    BillingTaxCode:
+      type: object
+      required:
+        - id
+        - name
+        - key
+        - app_mappings
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        key:
+          $ref: '#/components/schemas/ResourceKey'
+        app_mappings:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingTaxCodeAppMapping'
+          description: Mapping of app types to tax codes.
+          title: App type to tax code mappings
+      description: Tax codes by provider.
+    BillingTaxCodeAppMapping:
+      type: object
+      required:
+        - app_type
+        - tax_code
+      properties:
+        app_type:
+          allOf:
+            - $ref: '#/components/schemas/BillingAppType'
+          description: The app type that the tax code is associated with.
+          title: App type
+        tax_code:
+          type: string
+          description: Tax code.
+          title: Tax code
+      description: Mapping of app types to tax codes.
     BillingTaxConfig:
       type: object
       properties:
@@ -2786,6 +2995,39 @@ components:
           example:
             type: $.type
       description: Meter create request.
+    CreateTaxCodeRequest:
+      type: object
+      required:
+        - name
+        - key
+        - app_mappings
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        key:
+          $ref: '#/components/schemas/ResourceKey'
+        app_mappings:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingTaxCodeAppMapping'
+          description: Mapping of app types to tax codes.
+          title: App type to tax code mappings
+      description: TaxCode create request.
     CurrencyCode:
       type: string
       minLength: 3
@@ -3088,6 +3330,19 @@ components:
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
       description: Page paginated response.
+    TaxCodePagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingTaxCode'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      description: Page paginated response.
     ULID:
       type: string
       pattern: ^[0-7][0-9A-HJKMNP-TV-Z]{25}$
@@ -3208,6 +3463,36 @@ components:
             Used for tax and invoicing.
           title: Billing Address
       description: Customer upsert request.
+    UpsertTaxCodeRequest:
+      type: object
+      required:
+        - name
+        - app_mappings
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        app_mappings:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingTaxCodeAppMapping'
+          description: Mapping of app types to tax codes.
+          title: App type to tax code mappings
+      description: TaxCode upsert request.
     UsageAttributionSubjectKey:
       type: string
       minLength: 1

@@ -139,3 +139,25 @@ func (s *Server) CreateCustomerStripeCheckoutSession(w http.ResponseWriter, r *h
 func (s *Server) CreateCustomerStripePortalSession(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
 	s.customersBillingHandler.CreateCustomerStripePortalSession().With(customerId).ServeHTTP(w, r)
 }
+
+// Tax Codes
+
+func (s *Server) ListTaxCodes(w http.ResponseWriter, r *http.Request, params api.ListTaxCodesParams) {
+	unimplemented.ListTaxCodes(w, r, params)
+}
+
+func (s *Server) CreateTaxCode(w http.ResponseWriter, r *http.Request) {
+	unimplemented.CreateTaxCode(w, r)
+}
+
+func (s *Server) DeleteTaxCode(w http.ResponseWriter, r *http.Request, taxCodeId api.ULID) {
+	unimplemented.DeleteTaxCode(w, r, taxCodeId)
+}
+
+func (s *Server) GetTaxCode(w http.ResponseWriter, r *http.Request, taxCodeId api.ULID) {
+	unimplemented.GetTaxCode(w, r, taxCodeId)
+}
+
+func (s *Server) UpsertTaxCode(w http.ResponseWriter, r *http.Request, taxCodeId api.ULID) {
+	unimplemented.UpsertTaxCode(w, r, taxCodeId)
+}
