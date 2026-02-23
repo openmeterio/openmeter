@@ -200,6 +200,11 @@ func (_c *TaxCodeCreate) check() error {
 			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "TaxCode.key": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.AppMappings(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "app_mappings", err: fmt.Errorf(`db: validator failed for field "TaxCode.app_mappings": %w`, err)}
+		}
+	}
 	return nil
 }
 

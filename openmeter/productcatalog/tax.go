@@ -3,10 +3,10 @@ package productcatalog
 import (
 	"errors"
 	"fmt"
-	"regexp"
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -103,8 +103,6 @@ func MergeTaxConfigs(base, overrides *TaxConfig) *TaxConfig {
 	return base
 }
 
-var StripeProductTaxCodeRegexp = regexp.MustCompile(`^txcd_\d{8}$`)
-
 type StripeTaxConfig struct {
 	// Code stores the product tax code.
 	// See: https://docs.stripe.com/tax/tax-codes
@@ -125,7 +123,7 @@ func (s *StripeTaxConfig) Equal(v *StripeTaxConfig) bool {
 }
 
 func (s *StripeTaxConfig) Validate() error {
-	if s.Code != "" && !StripeProductTaxCodeRegexp.MatchString(s.Code) {
+	if s.Code != "" && !taxcode.TaxCodeStripeRegexp.MatchString(s.Code) {
 		return models.NewGenericValidationError(fmt.Errorf("invalid product tax code: %s", s.Code))
 	}
 

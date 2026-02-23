@@ -303,6 +303,11 @@ func (_c *AppCreate) check() error {
 	if _, ok := _c.mutation.GetType(); !ok {
 		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "App.type"`)}
 	}
+	if v, ok := _c.mutation.GetType(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "App.type": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`db: missing required field "App.status"`)}
 	}
