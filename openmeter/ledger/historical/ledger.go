@@ -10,6 +10,8 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/account"
+	"github.com/openmeterio/openmeter/openmeter/ledger/subaccounts"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
@@ -20,6 +22,8 @@ import (
 type Ledger struct {
 	accountService account.Service
 	repo           Repo
+
+	locker *lockr.Locker
 }
 
 // ----------------------------------------------------------------------------
@@ -104,9 +108,13 @@ func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupI
 		}
 	}
 
-	// TODO: accounts should be locked for this, note: later we can be more granular
 	return transaction.Run(ctx, l.repo, func(ctx context.Context) (*TransactionGroup, error) {
-		// 2. Validate account balances after the transactions (lock everything preemptively, not by sub-txs)
+		// 1.1  (lock everything preemptively, not by sub-txs)
+		if err := l.lockAccountsForTransactionInputs(ctx, group.Namespace(), txInputs); err != nil {
+			return nil, fmt.Errorf("failed to lock accounts for transaction inputs: %w", err)
+		}
+
+		// 2. Validate account balances after the transactions
 		for _, txInput := range txInputs {
 			if err := l.validateAccountBalancesForTransaction(ctx, txInput); err != nil {
 				return nil, fmt.Errorf("failed to validate account balances for transaction: %w", err)
@@ -137,6 +145,45 @@ func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupI
 
 		return txGroup, nil
 	})
+}
+
+func (l *Ledger) lockAccountsForTransactionInputs(ctx context.Context, namespace string, txInputs []*TransactionInput) error {
+	// Let's collect all subaccounts
+	subAccountIDs := make(map[string]struct{}, len(txInputs))
+
+	for _, txInput := range txInputs {
+		for _, entryInput := range txInput.EntryInputs() {
+			subAccountID := entryInput.PostingAddress().SubAccountID()
+
+			subAccountIDs[subAccountID] = struct{}{}
+		}
+	}
+
+	subAccounts := make([]ledger.SubAccount, 0, len(subAccountIDs))
+	for subAccountID := range subAccountIDs {
+		subAccount, err := l.accountService.GetSubAccountByID(ctx, models.NamespacedID{Namespace: namespace, ID: subAccountID})
+		if err != nil {
+			return fmt.Errorf("failed to get sub-account: %w", err)
+		}
+		subAccounts = append(subAccounts, subAccount)
+	}
+
+	for _, subAccount := range subAccounts {
+		switch subAccount.Address().AccountType() {
+		// We need to lock all customer FBO accounts so their balances are stable
+		case ledger.AccountTypeCustomerFBO:
+			customerFBO, err := subaccounts.AsCustomerFBOSubAccount(l.locker, subAccount)
+			if err != nil {
+				return fmt.Errorf("failed to convert sub-account to customer FBO sub-account: %w", err)
+			}
+
+			if err := customerFBO.Lock(ctx, namespace); err != nil {
+				return fmt.Errorf("failed to lock customer FBO sub-account: %w", err)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (l *Ledger) requirePreparedTransactionInput(tx ledger.TransactionInput) (*TransactionInput, error) {
