@@ -142,8 +142,8 @@ func (s *Server) CreateCustomerStripePortalSession(w http.ResponseWriter, r *htt
 
 // Tax Codes
 
-func (s *Server) ListTaxCodes(w http.ResponseWriter, r *http.Request) {
-	unimplemented.ListTaxCodes(w, r)
+func (s *Server) ListTaxCodes(w http.ResponseWriter, r *http.Request, params api.ListTaxCodesParams) {
+	unimplemented.ListTaxCodes(w, r, params)
 }
 
 func (s *Server) CreateTaxCode(w http.ResponseWriter, r *http.Request) {

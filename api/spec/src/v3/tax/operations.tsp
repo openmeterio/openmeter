@@ -13,15 +13,6 @@ using TypeSpec.OpenAPI;
 
 namespace Tax;
 
-/**
- * Response for listing tax codes.
- */
-@friendlyName("ListTaxCodesResponse")
-model ListTaxCodesResponse {
-  @Http.statusCode _: 200;
-  data: TaxCode[];
-}
-
 interface TaxCodesOperations {
   @post
   @operationId("create-tax-code")
@@ -47,7 +38,9 @@ interface TaxCodesOperations {
   @summary("List tax codes")
   @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
-  list(): ListTaxCodesResponse | Common.ErrorResponses;
+  list(
+    ...Common.PagePaginationQuery,
+  ): Shared.PagePaginatedResponse<TaxCode> | Common.ErrorResponses;
 
   @put
   @operationId("upsert-tax-code")

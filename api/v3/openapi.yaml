@@ -944,13 +944,15 @@ paths:
     get:
       operationId: list-tax-codes
       summary: List tax codes
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
       responses:
         '200':
-          description: Response for listing tax codes.
+          description: Page paginated response.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListTaxCodesResponse'
+                $ref: '#/components/schemas/TaxCodePagePaginatedResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -3090,16 +3092,6 @@ components:
             Filter customers by key.
             Case-insensitive partial match.
       description: Filter options for listing customers.
-    ListTaxCodesResponse:
-      type: object
-      required:
-        - data
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingTaxCode'
-      description: Response for listing tax codes.
     Meter:
       type: object
       required:
@@ -3335,6 +3327,19 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BillingSubscription'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      description: Page paginated response.
+    TaxCodePagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingTaxCode'
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
       description: Page paginated response.
