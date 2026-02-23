@@ -45,6 +45,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
@@ -131,6 +137,18 @@ type Client struct {
 	Feature *FeatureClient
 	// Grant is the client for interacting with the Grant builders.
 	Grant *GrantClient
+	// LedgerAccount is the client for interacting with the LedgerAccount builders.
+	LedgerAccount *LedgerAccountClient
+	// LedgerDimension is the client for interacting with the LedgerDimension builders.
+	LedgerDimension *LedgerDimensionClient
+	// LedgerEntry is the client for interacting with the LedgerEntry builders.
+	LedgerEntry *LedgerEntryClient
+	// LedgerSubAccount is the client for interacting with the LedgerSubAccount builders.
+	LedgerSubAccount *LedgerSubAccountClient
+	// LedgerTransaction is the client for interacting with the LedgerTransaction builders.
+	LedgerTransaction *LedgerTransactionClient
+	// LedgerTransactionGroup is the client for interacting with the LedgerTransactionGroup builders.
+	LedgerTransactionGroup *LedgerTransactionGroupClient
 	// Meter is the client for interacting with the Meter builders.
 	Meter *MeterClient
 	// NotificationChannel is the client for interacting with the NotificationChannel builders.
@@ -206,6 +224,12 @@ func (c *Client) init() {
 	c.Entitlement = NewEntitlementClient(c.config)
 	c.Feature = NewFeatureClient(c.config)
 	c.Grant = NewGrantClient(c.config)
+	c.LedgerAccount = NewLedgerAccountClient(c.config)
+	c.LedgerDimension = NewLedgerDimensionClient(c.config)
+	c.LedgerEntry = NewLedgerEntryClient(c.config)
+	c.LedgerSubAccount = NewLedgerSubAccountClient(c.config)
+	c.LedgerTransaction = NewLedgerTransactionClient(c.config)
+	c.LedgerTransactionGroup = NewLedgerTransactionGroupClient(c.config)
 	c.Meter = NewMeterClient(c.config)
 	c.NotificationChannel = NewNotificationChannelClient(c.config)
 	c.NotificationEvent = NewNotificationEventClient(c.config)
@@ -345,6 +369,12 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Entitlement:                                      NewEntitlementClient(cfg),
 		Feature:                                          NewFeatureClient(cfg),
 		Grant:                                            NewGrantClient(cfg),
+		LedgerAccount:                                    NewLedgerAccountClient(cfg),
+		LedgerDimension:                                  NewLedgerDimensionClient(cfg),
+		LedgerEntry:                                      NewLedgerEntryClient(cfg),
+		LedgerSubAccount:                                 NewLedgerSubAccountClient(cfg),
+		LedgerTransaction:                                NewLedgerTransactionClient(cfg),
+		LedgerTransactionGroup:                           NewLedgerTransactionGroupClient(cfg),
 		Meter:                                            NewMeterClient(cfg),
 		NotificationChannel:                              NewNotificationChannelClient(cfg),
 		NotificationEvent:                                NewNotificationEventClient(cfg),
@@ -411,6 +441,12 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Entitlement:                                      NewEntitlementClient(cfg),
 		Feature:                                          NewFeatureClient(cfg),
 		Grant:                                            NewGrantClient(cfg),
+		LedgerAccount:                                    NewLedgerAccountClient(cfg),
+		LedgerDimension:                                  NewLedgerDimensionClient(cfg),
+		LedgerEntry:                                      NewLedgerEntryClient(cfg),
+		LedgerSubAccount:                                 NewLedgerSubAccountClient(cfg),
+		LedgerTransaction:                                NewLedgerTransactionClient(cfg),
+		LedgerTransactionGroup:                           NewLedgerTransactionGroupClient(cfg),
 		Meter:                                            NewMeterClient(cfg),
 		NotificationChannel:                              NewNotificationChannelClient(cfg),
 		NotificationEvent:                                NewNotificationEventClient(cfg),
@@ -467,10 +503,12 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BillingProfile, c.BillingSequenceNumbers,
 		c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
-		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.Meter,
-		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
-		c.NotificationRule, c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard,
-		c.Subject, c.Subscription, c.SubscriptionAddon, c.SubscriptionAddonQuantity,
+		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
+		c.LedgerAccount, c.LedgerDimension, c.LedgerEntry, c.LedgerSubAccount,
+		c.LedgerTransaction, c.LedgerTransactionGroup, c.Meter, c.NotificationChannel,
+		c.NotificationEvent, c.NotificationEventDeliveryStatus, c.NotificationRule,
+		c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard, c.Subject, c.Subscription,
+		c.SubscriptionAddon, c.SubscriptionAddonQuantity,
 		c.SubscriptionBillingSyncState, c.SubscriptionItem, c.SubscriptionPhase,
 		c.UsageReset,
 	} {
@@ -492,10 +530,12 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BillingProfile, c.BillingSequenceNumbers,
 		c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
-		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.Meter,
-		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
-		c.NotificationRule, c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard,
-		c.Subject, c.Subscription, c.SubscriptionAddon, c.SubscriptionAddonQuantity,
+		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
+		c.LedgerAccount, c.LedgerDimension, c.LedgerEntry, c.LedgerSubAccount,
+		c.LedgerTransaction, c.LedgerTransactionGroup, c.Meter, c.NotificationChannel,
+		c.NotificationEvent, c.NotificationEventDeliveryStatus, c.NotificationRule,
+		c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard, c.Subject, c.Subscription,
+		c.SubscriptionAddon, c.SubscriptionAddonQuantity,
 		c.SubscriptionBillingSyncState, c.SubscriptionItem, c.SubscriptionPhase,
 		c.UsageReset,
 	} {
@@ -566,6 +606,18 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Feature.mutate(ctx, m)
 	case *GrantMutation:
 		return c.Grant.mutate(ctx, m)
+	case *LedgerAccountMutation:
+		return c.LedgerAccount.mutate(ctx, m)
+	case *LedgerDimensionMutation:
+		return c.LedgerDimension.mutate(ctx, m)
+	case *LedgerEntryMutation:
+		return c.LedgerEntry.mutate(ctx, m)
+	case *LedgerSubAccountMutation:
+		return c.LedgerSubAccount.mutate(ctx, m)
+	case *LedgerTransactionMutation:
+		return c.LedgerTransaction.mutate(ctx, m)
+	case *LedgerTransactionGroupMutation:
+		return c.LedgerTransactionGroup.mutate(ctx, m)
 	case *MeterMutation:
 		return c.Meter.mutate(ctx, m)
 	case *NotificationChannelMutation:
@@ -5907,6 +5959,1076 @@ func (c *GrantClient) mutate(ctx context.Context, m *GrantMutation) (Value, erro
 	}
 }
 
+// LedgerAccountClient is a client for the LedgerAccount schema.
+type LedgerAccountClient struct {
+	config
+}
+
+// NewLedgerAccountClient returns a client for the LedgerAccount from the given config.
+func NewLedgerAccountClient(c config) *LedgerAccountClient {
+	return &LedgerAccountClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `ledgeraccount.Hooks(f(g(h())))`.
+func (c *LedgerAccountClient) Use(hooks ...Hook) {
+	c.hooks.LedgerAccount = append(c.hooks.LedgerAccount, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `ledgeraccount.Intercept(f(g(h())))`.
+func (c *LedgerAccountClient) Intercept(interceptors ...Interceptor) {
+	c.inters.LedgerAccount = append(c.inters.LedgerAccount, interceptors...)
+}
+
+// Create returns a builder for creating a LedgerAccount entity.
+func (c *LedgerAccountClient) Create() *LedgerAccountCreate {
+	mutation := newLedgerAccountMutation(c.config, OpCreate)
+	return &LedgerAccountCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of LedgerAccount entities.
+func (c *LedgerAccountClient) CreateBulk(builders ...*LedgerAccountCreate) *LedgerAccountCreateBulk {
+	return &LedgerAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LedgerAccountClient) MapCreateBulk(slice any, setFunc func(*LedgerAccountCreate, int)) *LedgerAccountCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LedgerAccountCreateBulk{err: fmt.Errorf("calling to LedgerAccountClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LedgerAccountCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &LedgerAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for LedgerAccount.
+func (c *LedgerAccountClient) Update() *LedgerAccountUpdate {
+	mutation := newLedgerAccountMutation(c.config, OpUpdate)
+	return &LedgerAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LedgerAccountClient) UpdateOne(_m *LedgerAccount) *LedgerAccountUpdateOne {
+	mutation := newLedgerAccountMutation(c.config, OpUpdateOne, withLedgerAccount(_m))
+	return &LedgerAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LedgerAccountClient) UpdateOneID(id string) *LedgerAccountUpdateOne {
+	mutation := newLedgerAccountMutation(c.config, OpUpdateOne, withLedgerAccountID(id))
+	return &LedgerAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for LedgerAccount.
+func (c *LedgerAccountClient) Delete() *LedgerAccountDelete {
+	mutation := newLedgerAccountMutation(c.config, OpDelete)
+	return &LedgerAccountDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LedgerAccountClient) DeleteOne(_m *LedgerAccount) *LedgerAccountDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *LedgerAccountClient) DeleteOneID(id string) *LedgerAccountDeleteOne {
+	builder := c.Delete().Where(ledgeraccount.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LedgerAccountDeleteOne{builder}
+}
+
+// Query returns a query builder for LedgerAccount.
+func (c *LedgerAccountClient) Query() *LedgerAccountQuery {
+	return &LedgerAccountQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLedgerAccount},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a LedgerAccount entity by its id.
+func (c *LedgerAccountClient) Get(ctx context.Context, id string) (*LedgerAccount, error) {
+	return c.Query().Where(ledgeraccount.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LedgerAccountClient) GetX(ctx context.Context, id string) *LedgerAccount {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QuerySubAccounts queries the sub_accounts edge of a LedgerAccount.
+func (c *LedgerAccountClient) QuerySubAccounts(_m *LedgerAccount) *LedgerSubAccountQuery {
+	query := (&LedgerSubAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgeraccount.Table, ledgeraccount.FieldID, id),
+			sqlgraph.To(ledgersubaccount.Table, ledgersubaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgeraccount.SubAccountsTable, ledgeraccount.SubAccountsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *LedgerAccountClient) Hooks() []Hook {
+	return c.hooks.LedgerAccount
+}
+
+// Interceptors returns the client interceptors.
+func (c *LedgerAccountClient) Interceptors() []Interceptor {
+	return c.inters.LedgerAccount
+}
+
+func (c *LedgerAccountClient) mutate(ctx context.Context, m *LedgerAccountMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LedgerAccountCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LedgerAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LedgerAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LedgerAccountDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown LedgerAccount mutation op: %q", m.Op())
+	}
+}
+
+// LedgerDimensionClient is a client for the LedgerDimension schema.
+type LedgerDimensionClient struct {
+	config
+}
+
+// NewLedgerDimensionClient returns a client for the LedgerDimension from the given config.
+func NewLedgerDimensionClient(c config) *LedgerDimensionClient {
+	return &LedgerDimensionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `ledgerdimension.Hooks(f(g(h())))`.
+func (c *LedgerDimensionClient) Use(hooks ...Hook) {
+	c.hooks.LedgerDimension = append(c.hooks.LedgerDimension, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `ledgerdimension.Intercept(f(g(h())))`.
+func (c *LedgerDimensionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.LedgerDimension = append(c.inters.LedgerDimension, interceptors...)
+}
+
+// Create returns a builder for creating a LedgerDimension entity.
+func (c *LedgerDimensionClient) Create() *LedgerDimensionCreate {
+	mutation := newLedgerDimensionMutation(c.config, OpCreate)
+	return &LedgerDimensionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of LedgerDimension entities.
+func (c *LedgerDimensionClient) CreateBulk(builders ...*LedgerDimensionCreate) *LedgerDimensionCreateBulk {
+	return &LedgerDimensionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LedgerDimensionClient) MapCreateBulk(slice any, setFunc func(*LedgerDimensionCreate, int)) *LedgerDimensionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LedgerDimensionCreateBulk{err: fmt.Errorf("calling to LedgerDimensionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LedgerDimensionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &LedgerDimensionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for LedgerDimension.
+func (c *LedgerDimensionClient) Update() *LedgerDimensionUpdate {
+	mutation := newLedgerDimensionMutation(c.config, OpUpdate)
+	return &LedgerDimensionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LedgerDimensionClient) UpdateOne(_m *LedgerDimension) *LedgerDimensionUpdateOne {
+	mutation := newLedgerDimensionMutation(c.config, OpUpdateOne, withLedgerDimension(_m))
+	return &LedgerDimensionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LedgerDimensionClient) UpdateOneID(id string) *LedgerDimensionUpdateOne {
+	mutation := newLedgerDimensionMutation(c.config, OpUpdateOne, withLedgerDimensionID(id))
+	return &LedgerDimensionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for LedgerDimension.
+func (c *LedgerDimensionClient) Delete() *LedgerDimensionDelete {
+	mutation := newLedgerDimensionMutation(c.config, OpDelete)
+	return &LedgerDimensionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LedgerDimensionClient) DeleteOne(_m *LedgerDimension) *LedgerDimensionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *LedgerDimensionClient) DeleteOneID(id string) *LedgerDimensionDeleteOne {
+	builder := c.Delete().Where(ledgerdimension.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LedgerDimensionDeleteOne{builder}
+}
+
+// Query returns a query builder for LedgerDimension.
+func (c *LedgerDimensionClient) Query() *LedgerDimensionQuery {
+	return &LedgerDimensionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLedgerDimension},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a LedgerDimension entity by its id.
+func (c *LedgerDimensionClient) Get(ctx context.Context, id string) (*LedgerDimension, error) {
+	return c.Query().Where(ledgerdimension.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LedgerDimensionClient) GetX(ctx context.Context, id string) *LedgerDimension {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QuerySubAccounts queries the sub_accounts edge of a LedgerDimension.
+func (c *LedgerDimensionClient) QuerySubAccounts(_m *LedgerDimension) *LedgerSubAccountQuery {
+	query := (&LedgerSubAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerdimension.Table, ledgerdimension.FieldID, id),
+			sqlgraph.To(ledgersubaccount.Table, ledgersubaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgerdimension.SubAccountsTable, ledgerdimension.SubAccountsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCurrencySubAccounts queries the currency_sub_accounts edge of a LedgerDimension.
+func (c *LedgerDimensionClient) QueryCurrencySubAccounts(_m *LedgerDimension) *LedgerSubAccountQuery {
+	query := (&LedgerSubAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerdimension.Table, ledgerdimension.FieldID, id),
+			sqlgraph.To(ledgersubaccount.Table, ledgersubaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgerdimension.CurrencySubAccountsTable, ledgerdimension.CurrencySubAccountsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTaxCodeSubAccounts queries the tax_code_sub_accounts edge of a LedgerDimension.
+func (c *LedgerDimensionClient) QueryTaxCodeSubAccounts(_m *LedgerDimension) *LedgerSubAccountQuery {
+	query := (&LedgerSubAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerdimension.Table, ledgerdimension.FieldID, id),
+			sqlgraph.To(ledgersubaccount.Table, ledgersubaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgerdimension.TaxCodeSubAccountsTable, ledgerdimension.TaxCodeSubAccountsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryFeaturesSubAccounts queries the features_sub_accounts edge of a LedgerDimension.
+func (c *LedgerDimensionClient) QueryFeaturesSubAccounts(_m *LedgerDimension) *LedgerSubAccountQuery {
+	query := (&LedgerSubAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerdimension.Table, ledgerdimension.FieldID, id),
+			sqlgraph.To(ledgersubaccount.Table, ledgersubaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgerdimension.FeaturesSubAccountsTable, ledgerdimension.FeaturesSubAccountsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCreditPrioritySubAccounts queries the credit_priority_sub_accounts edge of a LedgerDimension.
+func (c *LedgerDimensionClient) QueryCreditPrioritySubAccounts(_m *LedgerDimension) *LedgerSubAccountQuery {
+	query := (&LedgerSubAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerdimension.Table, ledgerdimension.FieldID, id),
+			sqlgraph.To(ledgersubaccount.Table, ledgersubaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgerdimension.CreditPrioritySubAccountsTable, ledgerdimension.CreditPrioritySubAccountsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *LedgerDimensionClient) Hooks() []Hook {
+	return c.hooks.LedgerDimension
+}
+
+// Interceptors returns the client interceptors.
+func (c *LedgerDimensionClient) Interceptors() []Interceptor {
+	return c.inters.LedgerDimension
+}
+
+func (c *LedgerDimensionClient) mutate(ctx context.Context, m *LedgerDimensionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LedgerDimensionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LedgerDimensionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LedgerDimensionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LedgerDimensionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown LedgerDimension mutation op: %q", m.Op())
+	}
+}
+
+// LedgerEntryClient is a client for the LedgerEntry schema.
+type LedgerEntryClient struct {
+	config
+}
+
+// NewLedgerEntryClient returns a client for the LedgerEntry from the given config.
+func NewLedgerEntryClient(c config) *LedgerEntryClient {
+	return &LedgerEntryClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `ledgerentry.Hooks(f(g(h())))`.
+func (c *LedgerEntryClient) Use(hooks ...Hook) {
+	c.hooks.LedgerEntry = append(c.hooks.LedgerEntry, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `ledgerentry.Intercept(f(g(h())))`.
+func (c *LedgerEntryClient) Intercept(interceptors ...Interceptor) {
+	c.inters.LedgerEntry = append(c.inters.LedgerEntry, interceptors...)
+}
+
+// Create returns a builder for creating a LedgerEntry entity.
+func (c *LedgerEntryClient) Create() *LedgerEntryCreate {
+	mutation := newLedgerEntryMutation(c.config, OpCreate)
+	return &LedgerEntryCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of LedgerEntry entities.
+func (c *LedgerEntryClient) CreateBulk(builders ...*LedgerEntryCreate) *LedgerEntryCreateBulk {
+	return &LedgerEntryCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LedgerEntryClient) MapCreateBulk(slice any, setFunc func(*LedgerEntryCreate, int)) *LedgerEntryCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LedgerEntryCreateBulk{err: fmt.Errorf("calling to LedgerEntryClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LedgerEntryCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &LedgerEntryCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for LedgerEntry.
+func (c *LedgerEntryClient) Update() *LedgerEntryUpdate {
+	mutation := newLedgerEntryMutation(c.config, OpUpdate)
+	return &LedgerEntryUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LedgerEntryClient) UpdateOne(_m *LedgerEntry) *LedgerEntryUpdateOne {
+	mutation := newLedgerEntryMutation(c.config, OpUpdateOne, withLedgerEntry(_m))
+	return &LedgerEntryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LedgerEntryClient) UpdateOneID(id string) *LedgerEntryUpdateOne {
+	mutation := newLedgerEntryMutation(c.config, OpUpdateOne, withLedgerEntryID(id))
+	return &LedgerEntryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for LedgerEntry.
+func (c *LedgerEntryClient) Delete() *LedgerEntryDelete {
+	mutation := newLedgerEntryMutation(c.config, OpDelete)
+	return &LedgerEntryDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LedgerEntryClient) DeleteOne(_m *LedgerEntry) *LedgerEntryDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *LedgerEntryClient) DeleteOneID(id string) *LedgerEntryDeleteOne {
+	builder := c.Delete().Where(ledgerentry.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LedgerEntryDeleteOne{builder}
+}
+
+// Query returns a query builder for LedgerEntry.
+func (c *LedgerEntryClient) Query() *LedgerEntryQuery {
+	return &LedgerEntryQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLedgerEntry},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a LedgerEntry entity by its id.
+func (c *LedgerEntryClient) Get(ctx context.Context, id string) (*LedgerEntry, error) {
+	return c.Query().Where(ledgerentry.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LedgerEntryClient) GetX(ctx context.Context, id string) *LedgerEntry {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryTransaction queries the transaction edge of a LedgerEntry.
+func (c *LedgerEntryClient) QueryTransaction(_m *LedgerEntry) *LedgerTransactionQuery {
+	query := (&LedgerTransactionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerentry.Table, ledgerentry.FieldID, id),
+			sqlgraph.To(ledgertransaction.Table, ledgertransaction.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgerentry.TransactionTable, ledgerentry.TransactionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubAccount queries the sub_account edge of a LedgerEntry.
+func (c *LedgerEntryClient) QuerySubAccount(_m *LedgerEntry) *LedgerSubAccountQuery {
+	query := (&LedgerSubAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerentry.Table, ledgerentry.FieldID, id),
+			sqlgraph.To(ledgersubaccount.Table, ledgersubaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgerentry.SubAccountTable, ledgerentry.SubAccountColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *LedgerEntryClient) Hooks() []Hook {
+	return c.hooks.LedgerEntry
+}
+
+// Interceptors returns the client interceptors.
+func (c *LedgerEntryClient) Interceptors() []Interceptor {
+	return c.inters.LedgerEntry
+}
+
+func (c *LedgerEntryClient) mutate(ctx context.Context, m *LedgerEntryMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LedgerEntryCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LedgerEntryUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LedgerEntryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LedgerEntryDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown LedgerEntry mutation op: %q", m.Op())
+	}
+}
+
+// LedgerSubAccountClient is a client for the LedgerSubAccount schema.
+type LedgerSubAccountClient struct {
+	config
+}
+
+// NewLedgerSubAccountClient returns a client for the LedgerSubAccount from the given config.
+func NewLedgerSubAccountClient(c config) *LedgerSubAccountClient {
+	return &LedgerSubAccountClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `ledgersubaccount.Hooks(f(g(h())))`.
+func (c *LedgerSubAccountClient) Use(hooks ...Hook) {
+	c.hooks.LedgerSubAccount = append(c.hooks.LedgerSubAccount, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `ledgersubaccount.Intercept(f(g(h())))`.
+func (c *LedgerSubAccountClient) Intercept(interceptors ...Interceptor) {
+	c.inters.LedgerSubAccount = append(c.inters.LedgerSubAccount, interceptors...)
+}
+
+// Create returns a builder for creating a LedgerSubAccount entity.
+func (c *LedgerSubAccountClient) Create() *LedgerSubAccountCreate {
+	mutation := newLedgerSubAccountMutation(c.config, OpCreate)
+	return &LedgerSubAccountCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of LedgerSubAccount entities.
+func (c *LedgerSubAccountClient) CreateBulk(builders ...*LedgerSubAccountCreate) *LedgerSubAccountCreateBulk {
+	return &LedgerSubAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LedgerSubAccountClient) MapCreateBulk(slice any, setFunc func(*LedgerSubAccountCreate, int)) *LedgerSubAccountCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LedgerSubAccountCreateBulk{err: fmt.Errorf("calling to LedgerSubAccountClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LedgerSubAccountCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &LedgerSubAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for LedgerSubAccount.
+func (c *LedgerSubAccountClient) Update() *LedgerSubAccountUpdate {
+	mutation := newLedgerSubAccountMutation(c.config, OpUpdate)
+	return &LedgerSubAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LedgerSubAccountClient) UpdateOne(_m *LedgerSubAccount) *LedgerSubAccountUpdateOne {
+	mutation := newLedgerSubAccountMutation(c.config, OpUpdateOne, withLedgerSubAccount(_m))
+	return &LedgerSubAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LedgerSubAccountClient) UpdateOneID(id string) *LedgerSubAccountUpdateOne {
+	mutation := newLedgerSubAccountMutation(c.config, OpUpdateOne, withLedgerSubAccountID(id))
+	return &LedgerSubAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for LedgerSubAccount.
+func (c *LedgerSubAccountClient) Delete() *LedgerSubAccountDelete {
+	mutation := newLedgerSubAccountMutation(c.config, OpDelete)
+	return &LedgerSubAccountDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LedgerSubAccountClient) DeleteOne(_m *LedgerSubAccount) *LedgerSubAccountDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *LedgerSubAccountClient) DeleteOneID(id string) *LedgerSubAccountDeleteOne {
+	builder := c.Delete().Where(ledgersubaccount.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LedgerSubAccountDeleteOne{builder}
+}
+
+// Query returns a query builder for LedgerSubAccount.
+func (c *LedgerSubAccountClient) Query() *LedgerSubAccountQuery {
+	return &LedgerSubAccountQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLedgerSubAccount},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a LedgerSubAccount entity by its id.
+func (c *LedgerSubAccountClient) Get(ctx context.Context, id string) (*LedgerSubAccount, error) {
+	return c.Query().Where(ledgersubaccount.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LedgerSubAccountClient) GetX(ctx context.Context, id string) *LedgerSubAccount {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAccount queries the account edge of a LedgerSubAccount.
+func (c *LedgerSubAccountClient) QueryAccount(_m *LedgerSubAccount) *LedgerAccountQuery {
+	query := (&LedgerAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, id),
+			sqlgraph.To(ledgeraccount.Table, ledgeraccount.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgersubaccount.AccountTable, ledgersubaccount.AccountColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryEntries queries the entries edge of a LedgerSubAccount.
+func (c *LedgerSubAccountClient) QueryEntries(_m *LedgerSubAccount) *LedgerEntryQuery {
+	query := (&LedgerEntryClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, id),
+			sqlgraph.To(ledgerentry.Table, ledgerentry.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgersubaccount.EntriesTable, ledgersubaccount.EntriesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCurrencyDimension queries the currency_dimension edge of a LedgerSubAccount.
+func (c *LedgerSubAccountClient) QueryCurrencyDimension(_m *LedgerSubAccount) *LedgerDimensionQuery {
+	query := (&LedgerDimensionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, id),
+			sqlgraph.To(ledgerdimension.Table, ledgerdimension.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgersubaccount.CurrencyDimensionTable, ledgersubaccount.CurrencyDimensionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTaxCodeDimension queries the tax_code_dimension edge of a LedgerSubAccount.
+func (c *LedgerSubAccountClient) QueryTaxCodeDimension(_m *LedgerSubAccount) *LedgerDimensionQuery {
+	query := (&LedgerDimensionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, id),
+			sqlgraph.To(ledgerdimension.Table, ledgerdimension.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgersubaccount.TaxCodeDimensionTable, ledgersubaccount.TaxCodeDimensionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryFeaturesDimension queries the features_dimension edge of a LedgerSubAccount.
+func (c *LedgerSubAccountClient) QueryFeaturesDimension(_m *LedgerSubAccount) *LedgerDimensionQuery {
+	query := (&LedgerDimensionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, id),
+			sqlgraph.To(ledgerdimension.Table, ledgerdimension.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgersubaccount.FeaturesDimensionTable, ledgersubaccount.FeaturesDimensionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCreditPriorityDimension queries the credit_priority_dimension edge of a LedgerSubAccount.
+func (c *LedgerSubAccountClient) QueryCreditPriorityDimension(_m *LedgerSubAccount) *LedgerDimensionQuery {
+	query := (&LedgerDimensionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, id),
+			sqlgraph.To(ledgerdimension.Table, ledgerdimension.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgersubaccount.CreditPriorityDimensionTable, ledgersubaccount.CreditPriorityDimensionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *LedgerSubAccountClient) Hooks() []Hook {
+	return c.hooks.LedgerSubAccount
+}
+
+// Interceptors returns the client interceptors.
+func (c *LedgerSubAccountClient) Interceptors() []Interceptor {
+	return c.inters.LedgerSubAccount
+}
+
+func (c *LedgerSubAccountClient) mutate(ctx context.Context, m *LedgerSubAccountMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LedgerSubAccountCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LedgerSubAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LedgerSubAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LedgerSubAccountDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown LedgerSubAccount mutation op: %q", m.Op())
+	}
+}
+
+// LedgerTransactionClient is a client for the LedgerTransaction schema.
+type LedgerTransactionClient struct {
+	config
+}
+
+// NewLedgerTransactionClient returns a client for the LedgerTransaction from the given config.
+func NewLedgerTransactionClient(c config) *LedgerTransactionClient {
+	return &LedgerTransactionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `ledgertransaction.Hooks(f(g(h())))`.
+func (c *LedgerTransactionClient) Use(hooks ...Hook) {
+	c.hooks.LedgerTransaction = append(c.hooks.LedgerTransaction, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `ledgertransaction.Intercept(f(g(h())))`.
+func (c *LedgerTransactionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.LedgerTransaction = append(c.inters.LedgerTransaction, interceptors...)
+}
+
+// Create returns a builder for creating a LedgerTransaction entity.
+func (c *LedgerTransactionClient) Create() *LedgerTransactionCreate {
+	mutation := newLedgerTransactionMutation(c.config, OpCreate)
+	return &LedgerTransactionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of LedgerTransaction entities.
+func (c *LedgerTransactionClient) CreateBulk(builders ...*LedgerTransactionCreate) *LedgerTransactionCreateBulk {
+	return &LedgerTransactionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LedgerTransactionClient) MapCreateBulk(slice any, setFunc func(*LedgerTransactionCreate, int)) *LedgerTransactionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LedgerTransactionCreateBulk{err: fmt.Errorf("calling to LedgerTransactionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LedgerTransactionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &LedgerTransactionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for LedgerTransaction.
+func (c *LedgerTransactionClient) Update() *LedgerTransactionUpdate {
+	mutation := newLedgerTransactionMutation(c.config, OpUpdate)
+	return &LedgerTransactionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LedgerTransactionClient) UpdateOne(_m *LedgerTransaction) *LedgerTransactionUpdateOne {
+	mutation := newLedgerTransactionMutation(c.config, OpUpdateOne, withLedgerTransaction(_m))
+	return &LedgerTransactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LedgerTransactionClient) UpdateOneID(id string) *LedgerTransactionUpdateOne {
+	mutation := newLedgerTransactionMutation(c.config, OpUpdateOne, withLedgerTransactionID(id))
+	return &LedgerTransactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for LedgerTransaction.
+func (c *LedgerTransactionClient) Delete() *LedgerTransactionDelete {
+	mutation := newLedgerTransactionMutation(c.config, OpDelete)
+	return &LedgerTransactionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LedgerTransactionClient) DeleteOne(_m *LedgerTransaction) *LedgerTransactionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *LedgerTransactionClient) DeleteOneID(id string) *LedgerTransactionDeleteOne {
+	builder := c.Delete().Where(ledgertransaction.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LedgerTransactionDeleteOne{builder}
+}
+
+// Query returns a query builder for LedgerTransaction.
+func (c *LedgerTransactionClient) Query() *LedgerTransactionQuery {
+	return &LedgerTransactionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLedgerTransaction},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a LedgerTransaction entity by its id.
+func (c *LedgerTransactionClient) Get(ctx context.Context, id string) (*LedgerTransaction, error) {
+	return c.Query().Where(ledgertransaction.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LedgerTransactionClient) GetX(ctx context.Context, id string) *LedgerTransaction {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryGroup queries the group edge of a LedgerTransaction.
+func (c *LedgerTransactionClient) QueryGroup(_m *LedgerTransaction) *LedgerTransactionGroupQuery {
+	query := (&LedgerTransactionGroupClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgertransaction.Table, ledgertransaction.FieldID, id),
+			sqlgraph.To(ledgertransactiongroup.Table, ledgertransactiongroup.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgertransaction.GroupTable, ledgertransaction.GroupColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryEntries queries the entries edge of a LedgerTransaction.
+func (c *LedgerTransactionClient) QueryEntries(_m *LedgerTransaction) *LedgerEntryQuery {
+	query := (&LedgerEntryClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgertransaction.Table, ledgertransaction.FieldID, id),
+			sqlgraph.To(ledgerentry.Table, ledgerentry.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgertransaction.EntriesTable, ledgertransaction.EntriesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *LedgerTransactionClient) Hooks() []Hook {
+	return c.hooks.LedgerTransaction
+}
+
+// Interceptors returns the client interceptors.
+func (c *LedgerTransactionClient) Interceptors() []Interceptor {
+	return c.inters.LedgerTransaction
+}
+
+func (c *LedgerTransactionClient) mutate(ctx context.Context, m *LedgerTransactionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LedgerTransactionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LedgerTransactionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LedgerTransactionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LedgerTransactionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown LedgerTransaction mutation op: %q", m.Op())
+	}
+}
+
+// LedgerTransactionGroupClient is a client for the LedgerTransactionGroup schema.
+type LedgerTransactionGroupClient struct {
+	config
+}
+
+// NewLedgerTransactionGroupClient returns a client for the LedgerTransactionGroup from the given config.
+func NewLedgerTransactionGroupClient(c config) *LedgerTransactionGroupClient {
+	return &LedgerTransactionGroupClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `ledgertransactiongroup.Hooks(f(g(h())))`.
+func (c *LedgerTransactionGroupClient) Use(hooks ...Hook) {
+	c.hooks.LedgerTransactionGroup = append(c.hooks.LedgerTransactionGroup, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `ledgertransactiongroup.Intercept(f(g(h())))`.
+func (c *LedgerTransactionGroupClient) Intercept(interceptors ...Interceptor) {
+	c.inters.LedgerTransactionGroup = append(c.inters.LedgerTransactionGroup, interceptors...)
+}
+
+// Create returns a builder for creating a LedgerTransactionGroup entity.
+func (c *LedgerTransactionGroupClient) Create() *LedgerTransactionGroupCreate {
+	mutation := newLedgerTransactionGroupMutation(c.config, OpCreate)
+	return &LedgerTransactionGroupCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of LedgerTransactionGroup entities.
+func (c *LedgerTransactionGroupClient) CreateBulk(builders ...*LedgerTransactionGroupCreate) *LedgerTransactionGroupCreateBulk {
+	return &LedgerTransactionGroupCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LedgerTransactionGroupClient) MapCreateBulk(slice any, setFunc func(*LedgerTransactionGroupCreate, int)) *LedgerTransactionGroupCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LedgerTransactionGroupCreateBulk{err: fmt.Errorf("calling to LedgerTransactionGroupClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LedgerTransactionGroupCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &LedgerTransactionGroupCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for LedgerTransactionGroup.
+func (c *LedgerTransactionGroupClient) Update() *LedgerTransactionGroupUpdate {
+	mutation := newLedgerTransactionGroupMutation(c.config, OpUpdate)
+	return &LedgerTransactionGroupUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LedgerTransactionGroupClient) UpdateOne(_m *LedgerTransactionGroup) *LedgerTransactionGroupUpdateOne {
+	mutation := newLedgerTransactionGroupMutation(c.config, OpUpdateOne, withLedgerTransactionGroup(_m))
+	return &LedgerTransactionGroupUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LedgerTransactionGroupClient) UpdateOneID(id string) *LedgerTransactionGroupUpdateOne {
+	mutation := newLedgerTransactionGroupMutation(c.config, OpUpdateOne, withLedgerTransactionGroupID(id))
+	return &LedgerTransactionGroupUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for LedgerTransactionGroup.
+func (c *LedgerTransactionGroupClient) Delete() *LedgerTransactionGroupDelete {
+	mutation := newLedgerTransactionGroupMutation(c.config, OpDelete)
+	return &LedgerTransactionGroupDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LedgerTransactionGroupClient) DeleteOne(_m *LedgerTransactionGroup) *LedgerTransactionGroupDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *LedgerTransactionGroupClient) DeleteOneID(id string) *LedgerTransactionGroupDeleteOne {
+	builder := c.Delete().Where(ledgertransactiongroup.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LedgerTransactionGroupDeleteOne{builder}
+}
+
+// Query returns a query builder for LedgerTransactionGroup.
+func (c *LedgerTransactionGroupClient) Query() *LedgerTransactionGroupQuery {
+	return &LedgerTransactionGroupQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLedgerTransactionGroup},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a LedgerTransactionGroup entity by its id.
+func (c *LedgerTransactionGroupClient) Get(ctx context.Context, id string) (*LedgerTransactionGroup, error) {
+	return c.Query().Where(ledgertransactiongroup.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LedgerTransactionGroupClient) GetX(ctx context.Context, id string) *LedgerTransactionGroup {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryTransactions queries the transactions edge of a LedgerTransactionGroup.
+func (c *LedgerTransactionGroupClient) QueryTransactions(_m *LedgerTransactionGroup) *LedgerTransactionQuery {
+	query := (&LedgerTransactionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgertransactiongroup.Table, ledgertransactiongroup.FieldID, id),
+			sqlgraph.To(ledgertransaction.Table, ledgertransaction.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgertransactiongroup.TransactionsTable, ledgertransactiongroup.TransactionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *LedgerTransactionGroupClient) Hooks() []Hook {
+	return c.hooks.LedgerTransactionGroup
+}
+
+// Interceptors returns the client interceptors.
+func (c *LedgerTransactionGroupClient) Interceptors() []Interceptor {
+	return c.inters.LedgerTransactionGroup
+}
+
+func (c *LedgerTransactionGroupClient) mutate(ctx context.Context, m *LedgerTransactionGroupMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LedgerTransactionGroupCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LedgerTransactionGroupUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LedgerTransactionGroupUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LedgerTransactionGroupDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown LedgerTransactionGroup mutation op: %q", m.Op())
+	}
+}
+
 // MeterClient is a client for the Meter schema.
 type MeterClient struct {
 	config
@@ -8756,12 +9878,13 @@ type (
 		BillingInvoiceValidationIssue, BillingInvoiceWriteSchemaLevel, BillingProfile,
 		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
-		Customer, CustomerSubjects, Entitlement, Feature, Grant, Meter,
-		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
-		NotificationRule, Plan, PlanAddon, PlanPhase, PlanRateCard, Subject,
-		Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
-		SubscriptionBillingSyncState, SubscriptionItem, SubscriptionPhase,
-		UsageReset []ent.Hook
+		Customer, CustomerSubjects, Entitlement, Feature, Grant, LedgerAccount,
+		LedgerDimension, LedgerEntry, LedgerSubAccount, LedgerTransaction,
+		LedgerTransactionGroup, Meter, NotificationChannel, NotificationEvent,
+		NotificationEventDeliveryStatus, NotificationRule, Plan, PlanAddon, PlanPhase,
+		PlanRateCard, Subject, Subscription, SubscriptionAddon,
+		SubscriptionAddonQuantity, SubscriptionBillingSyncState, SubscriptionItem,
+		SubscriptionPhase, UsageReset []ent.Hook
 	}
 	inters struct {
 		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
@@ -8773,12 +9896,13 @@ type (
 		BillingInvoiceValidationIssue, BillingInvoiceWriteSchemaLevel, BillingProfile,
 		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
-		Customer, CustomerSubjects, Entitlement, Feature, Grant, Meter,
-		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
-		NotificationRule, Plan, PlanAddon, PlanPhase, PlanRateCard, Subject,
-		Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
-		SubscriptionBillingSyncState, SubscriptionItem, SubscriptionPhase,
-		UsageReset []ent.Interceptor
+		Customer, CustomerSubjects, Entitlement, Feature, Grant, LedgerAccount,
+		LedgerDimension, LedgerEntry, LedgerSubAccount, LedgerTransaction,
+		LedgerTransactionGroup, Meter, NotificationChannel, NotificationEvent,
+		NotificationEventDeliveryStatus, NotificationRule, Plan, PlanAddon, PlanPhase,
+		PlanRateCard, Subject, Subscription, SubscriptionAddon,
+		SubscriptionAddonQuantity, SubscriptionBillingSyncState, SubscriptionItem,
+		SubscriptionPhase, UsageReset []ent.Interceptor
 	}
 )
 
