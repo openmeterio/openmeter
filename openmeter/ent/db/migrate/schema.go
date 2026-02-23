@@ -2778,6 +2778,55 @@ var (
 			},
 		},
 	}
+	// TaxCodesColumns holds the columns for the "tax_codes" table.
+	TaxCodesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "key", Type: field.TypeString},
+		{Name: "app_mappings", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+	}
+	// TaxCodesTable holds the schema information for the "tax_codes" table.
+	TaxCodesTable = &schema.Table{
+		Name:       "tax_codes",
+		Columns:    TaxCodesColumns,
+		PrimaryKey: []*schema.Column{TaxCodesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "taxcode_id",
+				Unique:  true,
+				Columns: []*schema.Column{TaxCodesColumns[0]},
+			},
+			{
+				Name:    "taxcode_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{TaxCodesColumns[1]},
+			},
+			{
+				Name:    "taxcode_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{TaxCodesColumns[1], TaxCodesColumns[0]},
+			},
+			{
+				Name:    "taxcode_namespace_key_deleted_at",
+				Unique:  true,
+				Columns: []*schema.Column{TaxCodesColumns[1], TaxCodesColumns[8], TaxCodesColumns[5]},
+			},
+			{
+				Name:    "taxcode_namespace_key",
+				Unique:  true,
+				Columns: []*schema.Column{TaxCodesColumns[1], TaxCodesColumns[8]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+		},
+	}
 	// UsageResetsColumns holds the columns for the "usage_resets" table.
 	UsageResetsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -2935,6 +2984,7 @@ var (
 		SubscriptionBillingSyncStatesTable,
 		SubscriptionItemsTable,
 		SubscriptionPhasesTable,
+		TaxCodesTable,
 		UsageResetsTable,
 		NotificationChannelRulesTable,
 		NotificationEventDeliveryStatusEventsTable,

@@ -561,6 +561,18 @@ func (f SubscriptionPhaseFunc) Mutate(ctx context.Context, m db.Mutation) (db.Va
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.SubscriptionPhaseMutation", m)
 }
 
+// The TaxCodeFunc type is an adapter to allow the use of ordinary
+// function as TaxCode mutator.
+type TaxCodeFunc func(context.Context, *db.TaxCodeMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f TaxCodeFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.TaxCodeMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.TaxCodeMutation", m)
+}
+
 // The UsageResetFunc type is an adapter to allow the use of ordinary
 // function as UsageReset mutator.
 type UsageResetFunc func(context.Context, *db.UsageResetMutation) (db.Value, error)
