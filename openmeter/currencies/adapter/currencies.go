@@ -44,26 +44,20 @@ func (a *adapter) ListCurrencies(ctx context.Context) ([]currencies.Currency, er
 		},
 	), func(def *currency.Def, _ int) currencies.Currency {
 		return currencies.Currency{
-			Code:                 def.ISOCode.String(),
-			Name:                 def.Name,
-			Symbol:               def.Symbol,
-			SmallestDenomination: int8(def.SmallestDenomination),
-			DisambiguateSymbol:   def.DisambiguateSymbol,
-			Subunits:             def.Subunits,
-			IsCustom:             false,
+			Code:     def.ISOCode.String(),
+			Name:     def.Name,
+			Symbol:   def.Symbol,
+			IsCustom: false,
 		}
 	})
 
 	return lo.Map(append(customCurrencies, defs...), func(def currencies.Currency, _ int) currencies.Currency {
 		return currencies.Currency{
-			ID:                   def.ID,
-			Code:                 def.Code,
-			Name:                 def.Name,
-			Symbol:               def.Symbol,
-			SmallestDenomination: def.SmallestDenomination,
-			DisambiguateSymbol:   def.DisambiguateSymbol,
-			Subunits:             def.Subunits,
-			IsCustom:             def.IsCustom,
+			ID:       def.ID,
+			Code:     def.Code,
+			Name:     def.Name,
+			Symbol:   def.Symbol,
+			IsCustom: def.IsCustom,
 		}
 	}), nil
 }

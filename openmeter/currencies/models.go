@@ -7,21 +7,17 @@ import (
 )
 
 type Currency struct {
-	ID                   string
-	Code                 string `json:"code"`
-	Name                 string `json:"name"`
-	Symbol               string `json:"symbol,omitempty"`
-	SmallestDenomination int8   `json:"smallest_denomination,omitempty"`
-	IsCustom             bool
-	DisambiguateSymbol   string
-	Subunits             uint32
+	ID       string
+	Code     string `json:"code"`
+	Name     string `json:"name"`
+	Symbol   string `json:"symbol,omitempty"`
+	IsCustom bool
 }
 
 type CreateCurrencyInput struct {
-	Code                 string `json:"code"`
-	Name                 string `json:"name"`
-	Symbol               string `json:"symbol"`
-	SmallestDenomination int8   `json:"smallest_denomination"`
+	Code   string `json:"code"`
+	Name   string `json:"name"`
+	Symbol string `json:"symbol"`
 }
 
 type CostBasis struct {
