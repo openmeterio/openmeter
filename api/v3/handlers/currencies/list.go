@@ -14,7 +14,7 @@ import (
 
 type (
 	ListCurrenciesRequest  struct{}
-	ListCurrenciesResponse []v3.BillingCurrency
+	ListCurrenciesResponse v3.CurrenciesResponse
 	ListCurrenciesHandler  httptransport.Handler[ListCurrenciesRequest, ListCurrenciesResponse]
 )
 
@@ -26,17 +26,21 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 		func(ctx context.Context, request ListCurrenciesRequest) (ListCurrenciesResponse, error) {
 			defs, err := h.currencyService.ListCurrencies(ctx)
 			if err != nil {
-				return nil, err
+				return ListCurrenciesResponse{}, err
 			}
 
-			return lo.Map(defs, func(def currencies.Currency, _ int) v3.BillingCurrency {
+			response := v3.CurrenciesResponse{}
+
+			response.Data = lo.Map(defs, func(def currencies.Currency, _ int) v3.BillingCurrency {
 				return MapCurrencyToAPI(def)
-			}), nil
+			})
+
+			return ListCurrenciesResponse(response), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[ListCurrenciesResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("listCurrencies"),
+			httptransport.WithOperationName("list-currencies"),
 		)...,
 	)
 }

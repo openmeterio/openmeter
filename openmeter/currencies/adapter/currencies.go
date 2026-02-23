@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
@@ -62,7 +61,7 @@ func (a *adapter) ListCurrencies(ctx context.Context) ([]currencies.Currency, er
 	}), nil
 }
 
-func (a *adapter) CreateCurrency(ctx context.Context, params currencies.CreateCurrencyInput) (*currency.Def, error) {
+func (a *adapter) CreateCurrency(ctx context.Context, params currencies.CreateCurrencyInput) (currencies.Currency, error) {
 	curr, err := a.db.CustomCurrency.Create().
 		SetCode(params.Code).
 		SetName(params.Name).
@@ -70,15 +69,17 @@ func (a *adapter) CreateCurrency(ctx context.Context, params currencies.CreateCu
 		Save(ctx)
 	if err != nil {
 		if entdb.IsConstraintError(err) {
-			return nil, models.NewGenericConflictError(fmt.Errorf("currency with code %s already exists", params.Code))
+			return currencies.Currency{}, models.NewGenericConflictError(fmt.Errorf("currency with code %s already exists", params.Code))
 		}
-		return nil, fmt.Errorf("failed to create currency: %w", err)
+		return currencies.Currency{}, fmt.Errorf("failed to create currency: %w", err)
 	}
 
-	return &currency.Def{
-		ISOCode: currency.Code(curr.Code),
-		Name:    curr.Name,
-		Symbol:  curr.Symbol,
+	return currencies.Currency{
+		ID:       curr.ID,
+		Code:     curr.Code,
+		Name:     curr.Name,
+		Symbol:   curr.Symbol,
+		IsCustom: true,
 	}, nil
 }
 
@@ -94,7 +95,7 @@ func (a *adapter) CreateCostBasis(ctx context.Context, params currencies.CreateC
 	costBasis, err := a.db.CurrencyCostBasis.Create().
 		SetCurrencyID(params.CurrencyID).
 		SetFiatCode(params.FiatCode).
-		SetRate(alpacadecimal.NewFromFloat32(params.Rate)).
+		SetRate(params.Rate).
 		SetEffectiveFrom(effectiveFrom).
 		Save(ctx)
 	if err != nil {

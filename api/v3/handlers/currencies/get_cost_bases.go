@@ -31,6 +31,6 @@ func (h *handler) GetCostBasesByCurrencyID() GetCostBasesByCurrencyIDHandler {
 			return costBases, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetCostBasesByCurrencyIDResponse](http.StatusOK),
-		httptransport.AppendOptions(h.options, httptransport.WithOperationName("getCostBasesByCurrencyID"))...,
+		httptransport.AppendOptions(h.options, httptransport.WithOperationName("get-cost-bases"))...,
 	)
 }

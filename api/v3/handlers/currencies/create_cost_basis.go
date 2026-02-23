@@ -11,7 +11,7 @@ import (
 
 type (
 	CreateCostBasisRequest  = currencies.CreateCostBasisInput
-	CreateCostBasisResponse = *currencies.CostBasis
+	CreateCostBasisResponse = struct{}
 	CreateCostBasisHandler  = httptransport.HandlerWithArgs[CreateCostBasisRequest, CreateCostBasisResponse, string]
 )
 
@@ -30,14 +30,14 @@ func (h *handler) CreateCostBasis() CreateCostBasisHandler {
 		func(ctx context.Context, request CreateCostBasisRequest) (CreateCostBasisResponse, error) {
 			_, err := h.currencyService.CreateCostBasis(ctx, request)
 			if err != nil {
-				return nil, err
+				return CreateCostBasisResponse{}, err
 			}
-			return nil, nil
+			return CreateCostBasisResponse{}, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCostBasisResponse](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("createCostBasis"),
+			httptransport.WithOperationName("create-cost-basis"),
 		)...,
 	)
 }

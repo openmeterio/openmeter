@@ -3,8 +3,6 @@ package service
 import (
 	"context"
 
-	"github.com/invopop/gobl/currency"
-
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 )
 
@@ -24,7 +22,7 @@ func (s *Service) ListCurrencies(ctx context.Context) ([]currencies.Currency, er
 	return s.adapter.ListCurrencies(ctx)
 }
 
-func (s *Service) CreateCurrency(ctx context.Context, params currencies.CreateCurrencyInput) (*currency.Def, error) {
+func (s *Service) CreateCurrency(ctx context.Context, params currencies.CreateCurrencyInput) (currencies.Currency, error) {
 	return s.adapter.CreateCurrency(ctx, params)
 }
 

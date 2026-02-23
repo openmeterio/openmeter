@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/cloudevents/sdk-go/v2/event"
-	"github.com/invopop/gobl/currency"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -1665,8 +1664,8 @@ func (n NoopCurrencyService) ListCurrencies(ctx context.Context) ([]currencies.C
 	return []currencies.Currency{}, nil
 }
 
-func (n NoopCurrencyService) CreateCurrency(ctx context.Context, params currencies.CreateCurrencyInput) (*currency.Def, error) {
-	return nil, nil
+func (n NoopCurrencyService) CreateCurrency(ctx context.Context, params currencies.CreateCurrencyInput) (currencies.Currency, error) {
+	return currencies.Currency{}, nil
 }
 
 func (n NoopCurrencyService) CreateCostBasis(ctx context.Context, params currencies.CreateCostBasisInput) (*currencies.CostBasis, error) {
