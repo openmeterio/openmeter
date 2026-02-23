@@ -25,7 +25,7 @@
     }
   },
   "devDependencies": {
-    "@redocly/cli": "2.14.5",
+    "@redocly/cli": "2.19.1",
     "@types/node": "24.10.1",
     "@typespec/compiler": "1.6.0",
     "@typespec/http": "1.6.0",
@@ -35,7 +35,7 @@
     "@typespec/prettier-plugin-typespec": "1.6.0",
     "@typespec/rest": "0.76.0",
     "@typespec/versioning": "0.76.0",
-    "prettier": "3.8.0",
+    "prettier": "3.8.1",
     "yaml": "2.8.2"
   },
   "private": true,
@@ -53,7 +53,9 @@
       "@typespec/http-client-python": "patches/@typespec__http-client-python.patch"
     },
     "overrides": {
-      "tar@<=7.5.2": ">=7.5.3"
+      "minimatch@<10.2.1": ">=10.2.1",
+      "tar@<7.5.8": ">=7.5.8",
+      "ajv@>=7.0.0-alpha.0 <8.18.0": ">=8.18.0"
     }
   }
 }
