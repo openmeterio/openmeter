@@ -2,6 +2,7 @@ package entutils
 
 import (
 	"fmt"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
@@ -189,15 +190,28 @@ type TimeMixin struct {
 func (TimeMixin) Fields() []ent.Field {
 	return []ent.Field{
 		field.Time("created_at").
-			Default(clock.Now).
+			Default(truncatedNow).
 			Immutable(),
 		field.Time("updated_at").
-			Default(clock.Now).
-			UpdateDefault(clock.Now),
+			Default(truncatedNow).
+			UpdateDefault(truncatedNow),
 		field.Time("deleted_at").
 			Optional().
 			Nillable(),
 	}
+}
+
+// truncatedNow returns the current time truncated to microsecond precision. This is useful, as:
+// - ent when creating resources will return the in memory calculated data including the timestamp in host precision
+// - PostgreSQL has microsecond precision
+// - Linux has nanosecond precision
+// - MacOS seem to have at most microsecond precision in go
+//
+// This means that any test that relies on CreatedAt or UpdatedAt comparisons will pass on macos, but will fail on CI.
+func truncatedNow() time.Time {
+	// PostgreSQL has microsecond precision, so let's truncate to that which makes
+	// it easier to test and compare times.
+	return clock.Now().Truncate(time.Microsecond)
 }
 
 type CadencedMixin struct {
