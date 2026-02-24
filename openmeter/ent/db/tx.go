@@ -64,6 +64,14 @@ type Tx struct {
 	BillingStandardInvoiceDetailedLineAmountDiscount *BillingStandardInvoiceDetailedLineAmountDiscountClient
 	// BillingWorkflowConfig is the client for interacting with the BillingWorkflowConfig builders.
 	BillingWorkflowConfig *BillingWorkflowConfigClient
+	// Charge is the client for interacting with the Charge builders.
+	Charge *ChargeClient
+	// ChargeCreditPurchase is the client for interacting with the ChargeCreditPurchase builders.
+	ChargeCreditPurchase *ChargeCreditPurchaseClient
+	// ChargeFlatFee is the client for interacting with the ChargeFlatFee builders.
+	ChargeFlatFee *ChargeFlatFeeClient
+	// ChargeUsageBased is the client for interacting with the ChargeUsageBased builders.
+	ChargeUsageBased *ChargeUsageBasedClient
 	// Customer is the client for interacting with the Customer builders.
 	Customer *CustomerClient
 	// CustomerSubjects is the client for interacting with the CustomerSubjects builders.
@@ -92,6 +100,8 @@ type Tx struct {
 	PlanPhase *PlanPhaseClient
 	// PlanRateCard is the client for interacting with the PlanRateCard builders.
 	PlanRateCard *PlanRateCardClient
+	// StandardInvoiceSettlement is the client for interacting with the StandardInvoiceSettlement builders.
+	StandardInvoiceSettlement *StandardInvoiceSettlementClient
 	// Subject is the client for interacting with the Subject builders.
 	Subject *SubjectClient
 	// Subscription is the client for interacting with the Subscription builders.
@@ -266,6 +276,10 @@ func (tx *Tx) init() {
 	tx.BillingStandardInvoiceDetailedLine = NewBillingStandardInvoiceDetailedLineClient(tx.config)
 	tx.BillingStandardInvoiceDetailedLineAmountDiscount = NewBillingStandardInvoiceDetailedLineAmountDiscountClient(tx.config)
 	tx.BillingWorkflowConfig = NewBillingWorkflowConfigClient(tx.config)
+	tx.Charge = NewChargeClient(tx.config)
+	tx.ChargeCreditPurchase = NewChargeCreditPurchaseClient(tx.config)
+	tx.ChargeFlatFee = NewChargeFlatFeeClient(tx.config)
+	tx.ChargeUsageBased = NewChargeUsageBasedClient(tx.config)
 	tx.Customer = NewCustomerClient(tx.config)
 	tx.CustomerSubjects = NewCustomerSubjectsClient(tx.config)
 	tx.Entitlement = NewEntitlementClient(tx.config)
@@ -280,6 +294,7 @@ func (tx *Tx) init() {
 	tx.PlanAddon = NewPlanAddonClient(tx.config)
 	tx.PlanPhase = NewPlanPhaseClient(tx.config)
 	tx.PlanRateCard = NewPlanRateCardClient(tx.config)
+	tx.StandardInvoiceSettlement = NewStandardInvoiceSettlementClient(tx.config)
 	tx.Subject = NewSubjectClient(tx.config)
 	tx.Subscription = NewSubscriptionClient(tx.config)
 	tx.SubscriptionAddon = NewSubscriptionAddonClient(tx.config)

@@ -69,6 +69,8 @@ const (
 	EdgeBillingLines = "billing_lines"
 	// EdgeBillingSplitLineGroups holds the string denoting the billing_split_line_groups edge name in mutations.
 	EdgeBillingSplitLineGroups = "billing_split_line_groups"
+	// EdgeChargeIntents holds the string denoting the charge_intents edge name in mutations.
+	EdgeChargeIntents = "charge_intents"
 	// Table holds the table name of the subscriptionitem in the database.
 	Table = "subscription_items"
 	// PhaseTable is the table that holds the phase relation/edge.
@@ -99,6 +101,13 @@ const (
 	BillingSplitLineGroupsInverseTable = "billing_invoice_split_line_groups"
 	// BillingSplitLineGroupsColumn is the table column denoting the billing_split_line_groups relation/edge.
 	BillingSplitLineGroupsColumn = "subscription_item_id"
+	// ChargeIntentsTable is the table that holds the charge_intents relation/edge.
+	ChargeIntentsTable = "charges"
+	// ChargeIntentsInverseTable is the table name for the Charge entity.
+	// It exists in this package in order to avoid circular dependency with the "charge" package.
+	ChargeIntentsInverseTable = "charges"
+	// ChargeIntentsColumn is the table column denoting the charge_intents relation/edge.
+	ChargeIntentsColumn = "subscription_item_id"
 )
 
 // Columns holds all SQL columns for subscriptionitem fields.
@@ -319,6 +328,20 @@ func ByBillingSplitLineGroups(term sql.OrderTerm, terms ...sql.OrderTerm) OrderO
 		sqlgraph.OrderByNeighborTerms(s, newBillingSplitLineGroupsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByChargeIntentsCount orders the results by charge_intents count.
+func ByChargeIntentsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newChargeIntentsStep(), opts...)
+	}
+}
+
+// ByChargeIntents orders the results by charge_intents terms.
+func ByChargeIntents(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChargeIntentsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newPhaseStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -345,5 +368,12 @@ func newBillingSplitLineGroupsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingSplitLineGroupsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BillingSplitLineGroupsTable, BillingSplitLineGroupsColumn),
+	)
+}
+func newChargeIntentsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChargeIntentsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ChargeIntentsTable, ChargeIntentsColumn),
 	)
 }

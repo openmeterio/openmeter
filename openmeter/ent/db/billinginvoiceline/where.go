@@ -209,6 +209,11 @@ func SplitLineGroupID(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldSplitLineGroupID, v))
 }
 
+// ChargeID applies equality check predicate on the "charge_id" field. It's identical to ChargeIDEQ.
+func ChargeID(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldChargeID, v))
+}
+
 // LineIds applies equality check predicate on the "line_ids" field. It's identical to LineIdsEQ.
 func LineIds(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldLineIds, v))
@@ -1903,6 +1908,81 @@ func SplitLineGroupIDContainsFold(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldSplitLineGroupID, v))
 }
 
+// ChargeIDEQ applies the EQ predicate on the "charge_id" field.
+func ChargeIDEQ(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldChargeID, v))
+}
+
+// ChargeIDNEQ applies the NEQ predicate on the "charge_id" field.
+func ChargeIDNEQ(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldChargeID, v))
+}
+
+// ChargeIDIn applies the In predicate on the "charge_id" field.
+func ChargeIDIn(vs ...string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldChargeID, vs...))
+}
+
+// ChargeIDNotIn applies the NotIn predicate on the "charge_id" field.
+func ChargeIDNotIn(vs ...string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldChargeID, vs...))
+}
+
+// ChargeIDGT applies the GT predicate on the "charge_id" field.
+func ChargeIDGT(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldChargeID, v))
+}
+
+// ChargeIDGTE applies the GTE predicate on the "charge_id" field.
+func ChargeIDGTE(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldChargeID, v))
+}
+
+// ChargeIDLT applies the LT predicate on the "charge_id" field.
+func ChargeIDLT(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldChargeID, v))
+}
+
+// ChargeIDLTE applies the LTE predicate on the "charge_id" field.
+func ChargeIDLTE(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldChargeID, v))
+}
+
+// ChargeIDContains applies the Contains predicate on the "charge_id" field.
+func ChargeIDContains(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldContains(FieldChargeID, v))
+}
+
+// ChargeIDHasPrefix applies the HasPrefix predicate on the "charge_id" field.
+func ChargeIDHasPrefix(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldHasPrefix(FieldChargeID, v))
+}
+
+// ChargeIDHasSuffix applies the HasSuffix predicate on the "charge_id" field.
+func ChargeIDHasSuffix(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldHasSuffix(FieldChargeID, v))
+}
+
+// ChargeIDIsNil applies the IsNil predicate on the "charge_id" field.
+func ChargeIDIsNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldChargeID))
+}
+
+// ChargeIDNotNil applies the NotNil predicate on the "charge_id" field.
+func ChargeIDNotNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldChargeID))
+}
+
+// ChargeIDEqualFold applies the EqualFold predicate on the "charge_id" field.
+func ChargeIDEqualFold(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEqualFold(FieldChargeID, v))
+}
+
+// ChargeIDContainsFold applies the ContainsFold predicate on the "charge_id" field.
+func ChargeIDContainsFold(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldChargeID, v))
+}
+
 // LineIdsEQ applies the EQ predicate on the "line_ids" field.
 func LineIdsEQ(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldLineIds, v))
@@ -2246,6 +2326,52 @@ func HasSubscriptionItem() predicate.BillingInvoiceLine {
 func HasSubscriptionItemWith(preds ...predicate.SubscriptionItem) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
 		step := newSubscriptionItemStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCharge applies the HasEdge predicate on the "charge" edge.
+func HasCharge() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ChargeTable, ChargeColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChargeWith applies the HasEdge predicate on the "charge" edge with a given conditions (other predicates).
+func HasChargeWith(preds ...predicate.Charge) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := newChargeStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasStandardInvoiceSettlments applies the HasEdge predicate on the "standard_invoice_settlments" edge.
+func HasStandardInvoiceSettlments() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, StandardInvoiceSettlmentsTable, StandardInvoiceSettlmentsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasStandardInvoiceSettlmentsWith applies the HasEdge predicate on the "standard_invoice_settlments" edge with a given conditions (other predicates).
+func HasStandardInvoiceSettlmentsWith(preds ...predicate.StandardInvoiceSettlement) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		step := newStandardInvoiceSettlmentsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

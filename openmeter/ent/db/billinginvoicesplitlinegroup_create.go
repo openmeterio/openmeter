@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -246,6 +247,20 @@ func (_c *BillingInvoiceSplitLineGroupCreate) SetNillableSubscriptionBillingPeri
 	return _c
 }
 
+// SetChargeID sets the "charge_id" field.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetChargeID(v string) *BillingInvoiceSplitLineGroupCreate {
+	_c.mutation.SetChargeID(v)
+	return _c
+}
+
+// SetNillableChargeID sets the "charge_id" field if the given value is not nil.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetNillableChargeID(v *string) *BillingInvoiceSplitLineGroupCreate {
+	if v != nil {
+		_c.SetChargeID(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *BillingInvoiceSplitLineGroupCreate) SetID(v string) *BillingInvoiceSplitLineGroupCreate {
 	_c.mutation.SetID(v)
@@ -288,6 +303,11 @@ func (_c *BillingInvoiceSplitLineGroupCreate) SetSubscriptionPhase(v *Subscripti
 // SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
 func (_c *BillingInvoiceSplitLineGroupCreate) SetSubscriptionItem(v *SubscriptionItem) *BillingInvoiceSplitLineGroupCreate {
 	return _c.SetSubscriptionItemID(v.ID)
+}
+
+// SetCharge sets the "charge" edge to the Charge entity.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetCharge(v *Charge) *BillingInvoiceSplitLineGroupCreate {
+	return _c.SetChargeID(v.ID)
 }
 
 // Mutation returns the BillingInvoiceSplitLineGroupMutation object of the builder.
@@ -567,6 +587,23 @@ func (_c *BillingInvoiceSplitLineGroupCreate) createSpec() (*BillingInvoiceSplit
 		_node.SubscriptionItemID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.ChargeTable,
+			Columns: []string{billinginvoicesplitlinegroup.ChargeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.ChargeID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec, nil
 }
 
@@ -790,6 +827,24 @@ func (u *BillingInvoiceSplitLineGroupUpsert) UpdateSubscriptionBillingPeriodTo()
 // ClearSubscriptionBillingPeriodTo clears the value of the "subscription_billing_period_to" field.
 func (u *BillingInvoiceSplitLineGroupUpsert) ClearSubscriptionBillingPeriodTo() *BillingInvoiceSplitLineGroupUpsert {
 	u.SetNull(billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo)
+	return u
+}
+
+// SetChargeID sets the "charge_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) SetChargeID(v string) *BillingInvoiceSplitLineGroupUpsert {
+	u.Set(billinginvoicesplitlinegroup.FieldChargeID, v)
+	return u
+}
+
+// UpdateChargeID sets the "charge_id" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsert) UpdateChargeID() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetExcluded(billinginvoicesplitlinegroup.FieldChargeID)
+	return u
+}
+
+// ClearChargeID clears the value of the "charge_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) ClearChargeID() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetNull(billinginvoicesplitlinegroup.FieldChargeID)
 	return u
 }
 
@@ -1068,6 +1123,27 @@ func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateSubscriptionBillingPeriodT
 func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearSubscriptionBillingPeriodTo() *BillingInvoiceSplitLineGroupUpsertOne {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
 		s.ClearSubscriptionBillingPeriodTo()
+	})
+}
+
+// SetChargeID sets the "charge_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) SetChargeID(v string) *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetChargeID(v)
+	})
+}
+
+// UpdateChargeID sets the "charge_id" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateChargeID() *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateChargeID()
+	})
+}
+
+// ClearChargeID clears the value of the "charge_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearChargeID() *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.ClearChargeID()
 	})
 }
 
@@ -1516,6 +1592,27 @@ func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateSubscriptionBillingPeriod
 func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearSubscriptionBillingPeriodTo() *BillingInvoiceSplitLineGroupUpsertBulk {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
 		s.ClearSubscriptionBillingPeriodTo()
+	})
+}
+
+// SetChargeID sets the "charge_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetChargeID(v string) *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetChargeID(v)
+	})
+}
+
+// UpdateChargeID sets the "charge_id" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateChargeID() *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateChargeID()
+	})
+}
+
+// ClearChargeID clears the value of the "charge_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearChargeID() *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.ClearChargeID()
 	})
 }
 

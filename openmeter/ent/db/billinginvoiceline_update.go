@@ -21,7 +21,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/standardinvoicesettlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -540,6 +542,26 @@ func (_u *BillingInvoiceLineUpdate) ClearSplitLineGroupID() *BillingInvoiceLineU
 	return _u
 }
 
+// SetChargeID sets the "charge_id" field.
+func (_u *BillingInvoiceLineUpdate) SetChargeID(v string) *BillingInvoiceLineUpdate {
+	_u.mutation.SetChargeID(v)
+	return _u
+}
+
+// SetNillableChargeID sets the "charge_id" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdate) SetNillableChargeID(v *string) *BillingInvoiceLineUpdate {
+	if v != nil {
+		_u.SetChargeID(*v)
+	}
+	return _u
+}
+
+// ClearChargeID clears the value of the "charge_id" field.
+func (_u *BillingInvoiceLineUpdate) ClearChargeID() *BillingInvoiceLineUpdate {
+	_u.mutation.ClearChargeID()
+	return _u
+}
+
 // SetLineIds sets the "line_ids" field.
 func (_u *BillingInvoiceLineUpdate) SetLineIds(v string) *BillingInvoiceLineUpdate {
 	_u.mutation.SetLineIds(v)
@@ -694,6 +716,30 @@ func (_u *BillingInvoiceLineUpdate) SetSubscriptionItem(v *SubscriptionItem) *Bi
 	return _u.SetSubscriptionItemID(v.ID)
 }
 
+// SetCharge sets the "charge" edge to the Charge entity.
+func (_u *BillingInvoiceLineUpdate) SetCharge(v *Charge) *BillingInvoiceLineUpdate {
+	return _u.SetChargeID(v.ID)
+}
+
+// SetStandardInvoiceSettlmentsID sets the "standard_invoice_settlments" edge to the StandardInvoiceSettlement entity by ID.
+func (_u *BillingInvoiceLineUpdate) SetStandardInvoiceSettlmentsID(id string) *BillingInvoiceLineUpdate {
+	_u.mutation.SetStandardInvoiceSettlmentsID(id)
+	return _u
+}
+
+// SetNillableStandardInvoiceSettlmentsID sets the "standard_invoice_settlments" edge to the StandardInvoiceSettlement entity by ID if the given value is not nil.
+func (_u *BillingInvoiceLineUpdate) SetNillableStandardInvoiceSettlmentsID(id *string) *BillingInvoiceLineUpdate {
+	if id != nil {
+		_u = _u.SetStandardInvoiceSettlmentsID(*id)
+	}
+	return _u
+}
+
+// SetStandardInvoiceSettlments sets the "standard_invoice_settlments" edge to the StandardInvoiceSettlement entity.
+func (_u *BillingInvoiceLineUpdate) SetStandardInvoiceSettlments(v *StandardInvoiceSettlement) *BillingInvoiceLineUpdate {
+	return _u.SetStandardInvoiceSettlmentsID(v.ID)
+}
+
 // Mutation returns the BillingInvoiceLineMutation object of the builder.
 func (_u *BillingInvoiceLineUpdate) Mutation() *BillingInvoiceLineMutation {
 	return _u.mutation
@@ -828,6 +874,18 @@ func (_u *BillingInvoiceLineUpdate) ClearSubscriptionPhase() *BillingInvoiceLine
 // ClearSubscriptionItem clears the "subscription_item" edge to the SubscriptionItem entity.
 func (_u *BillingInvoiceLineUpdate) ClearSubscriptionItem() *BillingInvoiceLineUpdate {
 	_u.mutation.ClearSubscriptionItem()
+	return _u
+}
+
+// ClearCharge clears the "charge" edge to the Charge entity.
+func (_u *BillingInvoiceLineUpdate) ClearCharge() *BillingInvoiceLineUpdate {
+	_u.mutation.ClearCharge()
+	return _u
+}
+
+// ClearStandardInvoiceSettlments clears the "standard_invoice_settlments" edge to the StandardInvoiceSettlement entity.
+func (_u *BillingInvoiceLineUpdate) ClearStandardInvoiceSettlments() *BillingInvoiceLineUpdate {
+	_u.mutation.ClearStandardInvoiceSettlments()
 	return _u
 }
 
@@ -1432,6 +1490,64 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.ChargeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.ChargeTable,
+			Columns: []string{billinginvoiceline.ChargeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.ChargeTable,
+			Columns: []string{billinginvoiceline.ChargeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.StandardInvoiceSettlmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   billinginvoiceline.StandardInvoiceSettlmentsTable,
+			Columns: []string{billinginvoiceline.StandardInvoiceSettlmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(standardinvoicesettlement.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.StandardInvoiceSettlmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   billinginvoiceline.StandardInvoiceSettlmentsTable,
+			Columns: []string{billinginvoiceline.StandardInvoiceSettlmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(standardinvoicesettlement.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billinginvoiceline.Label}
@@ -1950,6 +2066,26 @@ func (_u *BillingInvoiceLineUpdateOne) ClearSplitLineGroupID() *BillingInvoiceLi
 	return _u
 }
 
+// SetChargeID sets the "charge_id" field.
+func (_u *BillingInvoiceLineUpdateOne) SetChargeID(v string) *BillingInvoiceLineUpdateOne {
+	_u.mutation.SetChargeID(v)
+	return _u
+}
+
+// SetNillableChargeID sets the "charge_id" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdateOne) SetNillableChargeID(v *string) *BillingInvoiceLineUpdateOne {
+	if v != nil {
+		_u.SetChargeID(*v)
+	}
+	return _u
+}
+
+// ClearChargeID clears the value of the "charge_id" field.
+func (_u *BillingInvoiceLineUpdateOne) ClearChargeID() *BillingInvoiceLineUpdateOne {
+	_u.mutation.ClearChargeID()
+	return _u
+}
+
 // SetLineIds sets the "line_ids" field.
 func (_u *BillingInvoiceLineUpdateOne) SetLineIds(v string) *BillingInvoiceLineUpdateOne {
 	_u.mutation.SetLineIds(v)
@@ -2104,6 +2240,30 @@ func (_u *BillingInvoiceLineUpdateOne) SetSubscriptionItem(v *SubscriptionItem) 
 	return _u.SetSubscriptionItemID(v.ID)
 }
 
+// SetCharge sets the "charge" edge to the Charge entity.
+func (_u *BillingInvoiceLineUpdateOne) SetCharge(v *Charge) *BillingInvoiceLineUpdateOne {
+	return _u.SetChargeID(v.ID)
+}
+
+// SetStandardInvoiceSettlmentsID sets the "standard_invoice_settlments" edge to the StandardInvoiceSettlement entity by ID.
+func (_u *BillingInvoiceLineUpdateOne) SetStandardInvoiceSettlmentsID(id string) *BillingInvoiceLineUpdateOne {
+	_u.mutation.SetStandardInvoiceSettlmentsID(id)
+	return _u
+}
+
+// SetNillableStandardInvoiceSettlmentsID sets the "standard_invoice_settlments" edge to the StandardInvoiceSettlement entity by ID if the given value is not nil.
+func (_u *BillingInvoiceLineUpdateOne) SetNillableStandardInvoiceSettlmentsID(id *string) *BillingInvoiceLineUpdateOne {
+	if id != nil {
+		_u = _u.SetStandardInvoiceSettlmentsID(*id)
+	}
+	return _u
+}
+
+// SetStandardInvoiceSettlments sets the "standard_invoice_settlments" edge to the StandardInvoiceSettlement entity.
+func (_u *BillingInvoiceLineUpdateOne) SetStandardInvoiceSettlments(v *StandardInvoiceSettlement) *BillingInvoiceLineUpdateOne {
+	return _u.SetStandardInvoiceSettlmentsID(v.ID)
+}
+
 // Mutation returns the BillingInvoiceLineMutation object of the builder.
 func (_u *BillingInvoiceLineUpdateOne) Mutation() *BillingInvoiceLineMutation {
 	return _u.mutation
@@ -2238,6 +2398,18 @@ func (_u *BillingInvoiceLineUpdateOne) ClearSubscriptionPhase() *BillingInvoiceL
 // ClearSubscriptionItem clears the "subscription_item" edge to the SubscriptionItem entity.
 func (_u *BillingInvoiceLineUpdateOne) ClearSubscriptionItem() *BillingInvoiceLineUpdateOne {
 	_u.mutation.ClearSubscriptionItem()
+	return _u
+}
+
+// ClearCharge clears the "charge" edge to the Charge entity.
+func (_u *BillingInvoiceLineUpdateOne) ClearCharge() *BillingInvoiceLineUpdateOne {
+	_u.mutation.ClearCharge()
+	return _u
+}
+
+// ClearStandardInvoiceSettlments clears the "standard_invoice_settlments" edge to the StandardInvoiceSettlement entity.
+func (_u *BillingInvoiceLineUpdateOne) ClearStandardInvoiceSettlments() *BillingInvoiceLineUpdateOne {
+	_u.mutation.ClearStandardInvoiceSettlments()
 	return _u
 }
 
@@ -2865,6 +3037,64 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.ChargeTable,
+			Columns: []string{billinginvoiceline.ChargeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoiceline.ChargeTable,
+			Columns: []string{billinginvoiceline.ChargeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.StandardInvoiceSettlmentsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   billinginvoiceline.StandardInvoiceSettlmentsTable,
+			Columns: []string{billinginvoiceline.StandardInvoiceSettlmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(standardinvoicesettlement.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.StandardInvoiceSettlmentsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   billinginvoiceline.StandardInvoiceSettlmentsTable,
+			Columns: []string{billinginvoiceline.StandardInvoiceSettlmentsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(standardinvoicesettlement.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

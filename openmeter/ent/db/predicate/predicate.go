@@ -169,6 +169,51 @@ func BillingStandardInvoiceDetailedLineAmountDiscountOrErr(p BillingStandardInvo
 // BillingWorkflowConfig is the predicate function for billingworkflowconfig builders.
 type BillingWorkflowConfig func(*sql.Selector)
 
+// Charge is the predicate function for charge builders.
+type Charge func(*sql.Selector)
+
+// ChargeCreditPurchase is the predicate function for chargecreditpurchase builders.
+type ChargeCreditPurchase func(*sql.Selector)
+
+// ChargeCreditPurchaseOrErr calls the predicate only if the error is not nit.
+func ChargeCreditPurchaseOrErr(p ChargeCreditPurchase, err error) ChargeCreditPurchase {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
+// ChargeFlatFee is the predicate function for chargeflatfee builders.
+type ChargeFlatFee func(*sql.Selector)
+
+// ChargeFlatFeeOrErr calls the predicate only if the error is not nit.
+func ChargeFlatFeeOrErr(p ChargeFlatFee, err error) ChargeFlatFee {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
+// ChargeUsageBased is the predicate function for chargeusagebased builders.
+type ChargeUsageBased func(*sql.Selector)
+
+// ChargeUsageBasedOrErr calls the predicate only if the error is not nit.
+func ChargeUsageBasedOrErr(p ChargeUsageBased, err error) ChargeUsageBased {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // Customer is the predicate function for customer builders.
 type Customer func(*sql.Selector)
 
@@ -265,6 +310,9 @@ func PlanRateCardOrErr(p PlanRateCard, err error) PlanRateCard {
 		p(s)
 	}
 }
+
+// StandardInvoiceSettlement is the predicate function for standardinvoicesettlement builders.
+type StandardInvoiceSettlement func(*sql.Selector)
 
 // Subject is the predicate function for subject builders.
 type Subject func(*sql.Selector)

@@ -87,6 +87,8 @@ const (
 	FieldSubscriptionBillingPeriodTo = "subscription_billing_period_to"
 	// FieldSplitLineGroupID holds the string denoting the split_line_group_id field in the database.
 	FieldSplitLineGroupID = "split_line_group_id"
+	// FieldChargeID holds the string denoting the charge_id field in the database.
+	FieldChargeID = "charge_id"
 	// FieldLineIds holds the string denoting the line_ids field in the database.
 	FieldLineIds = "line_ids"
 	// EdgeBillingInvoice holds the string denoting the billing_invoice edge name in mutations.
@@ -113,6 +115,10 @@ const (
 	EdgeSubscriptionPhase = "subscription_phase"
 	// EdgeSubscriptionItem holds the string denoting the subscription_item edge name in mutations.
 	EdgeSubscriptionItem = "subscription_item"
+	// EdgeCharge holds the string denoting the charge edge name in mutations.
+	EdgeCharge = "charge"
+	// EdgeStandardInvoiceSettlments holds the string denoting the standard_invoice_settlments edge name in mutations.
+	EdgeStandardInvoiceSettlments = "standard_invoice_settlments"
 	// Table holds the table name of the billinginvoiceline in the database.
 	Table = "billing_invoice_lines"
 	// BillingInvoiceTable is the table that holds the billing_invoice relation/edge.
@@ -193,6 +199,20 @@ const (
 	SubscriptionItemInverseTable = "subscription_items"
 	// SubscriptionItemColumn is the table column denoting the subscription_item relation/edge.
 	SubscriptionItemColumn = "subscription_item_id"
+	// ChargeTable is the table that holds the charge relation/edge.
+	ChargeTable = "billing_invoice_lines"
+	// ChargeInverseTable is the table name for the Charge entity.
+	// It exists in this package in order to avoid circular dependency with the "charge" package.
+	ChargeInverseTable = "charges"
+	// ChargeColumn is the table column denoting the charge relation/edge.
+	ChargeColumn = "charge_id"
+	// StandardInvoiceSettlmentsTable is the table that holds the standard_invoice_settlments relation/edge.
+	StandardInvoiceSettlmentsTable = "billing_invoice_lines"
+	// StandardInvoiceSettlmentsInverseTable is the table name for the StandardInvoiceSettlement entity.
+	// It exists in this package in order to avoid circular dependency with the "standardinvoicesettlement" package.
+	StandardInvoiceSettlmentsInverseTable = "standard_invoice_settlements"
+	// StandardInvoiceSettlmentsColumn is the table column denoting the standard_invoice_settlments relation/edge.
+	StandardInvoiceSettlmentsColumn = "billing_invoice_line_standard_invoice_settlments"
 )
 
 // Columns holds all SQL columns for billinginvoiceline fields.
@@ -233,6 +253,7 @@ var Columns = []string{
 	FieldSubscriptionBillingPeriodFrom,
 	FieldSubscriptionBillingPeriodTo,
 	FieldSplitLineGroupID,
+	FieldChargeID,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "billing_invoice_lines"
@@ -240,6 +261,7 @@ var Columns = []string{
 var ForeignKeys = []string{
 	"fee_line_config_id",
 	"usage_based_line_config_id",
+	"billing_invoice_line_standard_invoice_settlments",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -479,6 +501,11 @@ func BySplitLineGroupID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSplitLineGroupID, opts...).ToFunc()
 }
 
+// ByChargeID orders the results by the charge_id field.
+func ByChargeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldChargeID, opts...).ToFunc()
+}
+
 // ByLineIds orders the results by the line_ids field.
 func ByLineIds(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLineIds, opts...).ToFunc()
@@ -595,6 +622,20 @@ func BySubscriptionItemField(field string, opts ...sql.OrderTermOption) OrderOpt
 		sqlgraph.OrderByNeighborTerms(s, newSubscriptionItemStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByChargeField orders the results by charge field.
+func ByChargeField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChargeStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByStandardInvoiceSettlmentsField orders the results by standard_invoice_settlments field.
+func ByStandardInvoiceSettlmentsField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newStandardInvoiceSettlmentsStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newBillingInvoiceStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -677,5 +718,19 @@ func newSubscriptionItemStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SubscriptionItemInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, SubscriptionItemTable, SubscriptionItemColumn),
+	)
+}
+func newChargeStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChargeInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, ChargeTable, ChargeColumn),
+	)
+}
+func newStandardInvoiceSettlmentsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(StandardInvoiceSettlmentsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, StandardInvoiceSettlmentsTable, StandardInvoiceSettlmentsColumn),
 	)
 }
