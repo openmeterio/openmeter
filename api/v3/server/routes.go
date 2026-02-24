@@ -176,6 +176,6 @@ func (s *Server) CreateCostBasis(w http.ResponseWriter, r *http.Request, currenc
 	unimplemented.CreateCostBasis(w, r, currencyId)
 }
 
-func (s *Server) GetCostBases(w http.ResponseWriter, r *http.Request, currencyId api.ULID, params api.GetCostBasesParams) {
-	unimplemented.GetCostBases(w, r, currencyId, params)
+func (s *Server) ListCostBases(w http.ResponseWriter, r *http.Request, currencyId api.ULID, params api.ListCostBasesParams) {
+	unimplemented.ListCostBases(w, r, currencyId, params)
 }

@@ -87,6 +87,12 @@ interface TaxCodesEndpoints extends Tax.TaxCodesOperations {}
 @tag(Shared.BillingTag)
 interface CurrenciesEndpoints extends Currencies.CurrenciesOperations {}
 
-@route("/openmeter/currencies/{currencyId}/cost-bases")
+@route("/openmeter/currencies/custom")
 @tag(Shared.BillingTag)
-interface CostBasesEndpoints extends Currencies.CostBasesOperations {}
+interface CurrenciesCustomEndpoints
+  extends Currencies.CurrenciesCustomOperations {}
+
+@route("/openmeter/currencies/custom/{currencyId}/cost-bases")
+@tag(Shared.BillingTag)
+interface CurrenciesCustomCostBasesEndpoints
+  extends Currencies.CurrenciesCustomCostBasesOperations {}

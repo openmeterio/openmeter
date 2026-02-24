@@ -12,11 +12,20 @@ using TypeSpec.OpenAPI;
 
 namespace Currencies;
 
+/**
+ * Filter options for listing currencies.
+ */
+@friendlyName("ListCurrenciesParamsFilter")
+model ListCurrenciesParamsFilter {
+  /**
+   * Filter currencies by type.
+   */
+  type?: CurrencyType;
+}
+
 interface CurrenciesOperations {
   /**
-   * List all currencies supported by the billing system.
-   * This includes both standard currencies provided by the system and custom currencies created by users.
-   * The response will contain details for each currency, such as its name, symbol, code, and whether it is a custom currency or a standard currency.
+   * List currencies supported by the billing system.
    */
   @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
@@ -25,13 +34,21 @@ interface CurrenciesOperations {
   @summary("List currencies")
   list(
     ...Common.PagePaginationQuery,
-  ): Shared.PagePaginatedResponse<Currency> | Common.ErrorResponses;
 
+    /**
+     * Filter currencies returned in the response.
+     *
+     * To filter currencies by type add the following query param: filter[type]=custom
+     */
+    @query(#{ style: "deepObject", explode: true })
+    filter?: ListCurrenciesParamsFilter,
+  ): Shared.PagePaginatedResponse<Currency> | Common.ErrorResponses;
+}
+
+interface CurrenciesCustomOperations {
   /**
-   * Create a custom currency. This operation allows users to define their own custom currency for billing purposes.
-   * The request body should include the details of the custom currency, such as its name, symbol, and a unique code that follows the ISO 4217 format but does not conflict with any existing standard currency codes.
-   * The response will include the details of the created custom currency, including its unique identifier, name, symbol, code, and creation timestamp.
-   * This operation is only applicable for creating custom currencies; standard currencies are predefined by the system and cannot be created or modified by users.
+   * Create a custom currency.
+   * This operation allows defining your own custom currency for billing purposes.
    */
   @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)

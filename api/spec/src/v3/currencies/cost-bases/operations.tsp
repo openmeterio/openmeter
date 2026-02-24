@@ -13,18 +13,38 @@ using TypeSpec.OpenAPI;
 
 namespace Currencies;
 
-interface CostBasesOperations {
+/**
+ * Filter options for listing cost bases.
+ */
+@friendlyName("ListCostBasesParamsFilter")
+model ListCostBasesParamsFilter {
   /**
-   * Get cost bases for a currency.
+   * Filter cost bases by fiat currency code.
+   */
+  fiat_code?: Shared.CurrencyCode;
+}
+
+interface CurrenciesCustomCostBasesOperations {
+  /**
+   * List cost bases for a currency.
    * For custom currencies, there can be multiple cost bases with different `effective_from` dates.
    */
   @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @get
-  @operationId("get-cost-bases")
-  @summary("Get cost bases")
+  @operationId("list-cost-bases")
+  @summary("List cost bases")
   get_cost_bases(
     @path currencyId: Shared.ULID,
+
+    /**
+     * Filter cost bases returned in the response.
+     *
+     * To filter cost bases by fiat currency code add the following query param: filter[fiat_code]=USD
+     */
+    @query(#{ style: "deepObject", explode: true })
+    filter?: ListCostBasesParamsFilter,
+
     ...Common.PagePaginationQuery,
   ): Shared.PagePaginatedResponse<CostBasis> | Common.NotFound | Common.ErrorResponses;
 
