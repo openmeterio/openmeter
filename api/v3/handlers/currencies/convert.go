@@ -3,18 +3,18 @@ package currencies
 import (
 	"fmt"
 
+	"github.com/samber/lo"
+
 	v3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
-	"github.com/samber/lo"
 )
 
 func MapCostBasisToAPI(cb currencies.CostBasis) v3.BillingCostBasis {
-	effectiveFrom := v3.DateTime(cb.EffectiveFrom)
 	return v3.BillingCostBasis{
 		Id:            cb.ID,
 		FiatCode:      cb.FiatCode,
 		Rate:          cb.Rate.String(),
-		EffectiveFrom: lo.ToPtr(effectiveFrom),
+		EffectiveFrom: lo.ToPtr(cb.EffectiveFrom),
 	}
 }
 

@@ -64,7 +64,7 @@ func (h *handler) ListCostBases() ListCostBasesHandler {
 
 			var filterFiatCode *string
 			if args.Params.Filter != nil && args.Params.Filter.FiatCode != nil {
-				s := string(*args.Params.Filter.FiatCode)
+				s := *args.Params.Filter.FiatCode
 				filterFiatCode = &s
 			}
 

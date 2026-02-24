@@ -79,4 +79,3 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 		)...,
 	)
 }
-
