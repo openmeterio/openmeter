@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/expand"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -1027,3 +1028,8 @@ func (i CreateStandardInvoiceFromGatheringLinesInput) Validate() error {
 
 	return errors.Join(errs...)
 }
+
+type (
+	StandardInvoiceHook  = models.ServiceHook[StandardInvoice]
+	StandardInvoiceHooks = models.ServiceHookRegistry[StandardInvoice]
+)
