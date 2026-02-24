@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -48,16 +49,7 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 		CRDOutstanding ledger.SubAccount
 	}
 
-	getCustomerAccounts := func(c customer.Customer) (customerAccounts, error) {
-		return customerAccounts{}, nil
-	}
-
 	var l ledger.Ledger
-	var c customer.Customer
-
-	var BRKUSD ledger.SubAccount
-	var BRKCRD ledger.SubAccount
-
 	costBasis := alpacadecimal.NewFromFloat(0.5)
 
 	t.Run("Transactions", func(t *testing.T) {
@@ -65,60 +57,32 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 
 		bookedAt := time.Now()
 
-		custAccs, err := getCustomerAccounts(c)
-		require.NoError(t, err)
-
+		var resolvers transactions.Resolvers
 		// Step 1: Outstanding USD for Customer
-		tx1, err := l.SetUpTransactionInput(t.Context(), bookedAt, []ledger.EntryInput{
-			exampleEntryInput{
-				account: custAccs.USDOutstanding.Address(),
-				amount:  amountUSD.Neg(),
-			},
-			exampleEntryInput{
-				account: custAccs.USD.Address(),
-				amount:  amountUSD,
-			},
-		})
+		tx1, err := transactions.IssueCustomerReceivableTemplate{
+			At:       bookedAt,
+			Amount:   amountUSD,
+			Currency: "USD",
+		}.Resolve(t.Context(), customer.CustomerID{ID: "123", Namespace: "test"}, resolvers)
 		require.NoError(t, err)
-		require.NotNil(t, tx1)
 
 		// Step 2: Convert USD to CRD into customer account
-		tx2, err := l.SetUpTransactionInput(t.Context(), bookedAt, []ledger.EntryInput{
-			// USD entries
-			exampleEntryInput{
-				account: custAccs.USD.Address(),
-				amount:  amountUSD.Neg(),
-			},
-			exampleEntryInput{
-				account: BRKUSD.Address(),
-				amount:  amountUSD,
-			},
-			// CRD entries
-			exampleEntryInput{
-				account: BRKCRD.Address(),
-				amount:  amountUSD.Mul(costBasis).Neg(),
-			},
-			exampleEntryInput{
-				account: custAccs.CRD.Address(),
-				amount:  amountUSD.Mul(costBasis),
-			},
-		})
+		tx2, err := transactions.ConvertCurrencyTemplate{
+			At:             bookedAt,
+			TargetAmount:   amountUSD,
+			CostBasis:      costBasis,
+			SourceCurrency: "USD",
+			TargetCurrency: "CRD",
+		}.Resolve(t.Context(), customer.CustomerID{ID: "123", Namespace: "test"}, resolvers)
 		require.NoError(t, err)
-		require.NotNil(t, tx2)
 
 		// Step 3: Cover outstanding CRD from customer account
-		tx3, err := l.SetUpTransactionInput(t.Context(), bookedAt, []ledger.EntryInput{
-			exampleEntryInput{
-				account: custAccs.CRDOutstanding.Address(),
-				amount:  amountUSD.Mul(costBasis),
-			},
-			exampleEntryInput{
-				account: custAccs.CRD.Address(),
-				amount:  amountUSD.Mul(costBasis).Neg(),
-			},
-		})
+		tx3, err := transactions.CoverCustomerReceivableTemplate{
+			At:       bookedAt,
+			Amount:   amountUSD,
+			Currency: "CRD",
+		}.Resolve(t.Context(), customer.CustomerID{ID: "123", Namespace: "test"}, resolvers)
 		require.NoError(t, err)
-		require.NotNil(t, tx3)
 
 		// tx1, tx2 & tx3 should be written to the ledger AT THE SAME TIME
 		_, err = l.CommitGroup(t.Context(), asTxGroupInput([]ledger.TransactionInput{tx1, tx2, tx3}))

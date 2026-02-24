@@ -132,6 +132,94 @@ func TestRepo_CreateDimension_InvalidKey(t *testing.T) {
 	require.ErrorContains(t, err, "invalid dimension key")
 }
 
+func TestRepo_ListSubAccounts(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+	env.DBSchemaMigrate(t)
+
+	ctx := t.Context()
+	namespace := testNamespace()
+
+	currencyA, err := env.repo.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
+		Namespace:    namespace,
+		Key:          string(ledger.DimensionKeyCurrency),
+		Value:        "USD",
+		DisplayValue: "USD",
+	})
+	require.NoError(t, err)
+
+	currencyB, err := env.repo.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
+		Namespace:    namespace,
+		Key:          string(ledger.DimensionKeyCurrency),
+		Value:        "EUR",
+		DisplayValue: "EUR",
+	})
+	require.NoError(t, err)
+
+	accountA, err := env.repo.CreateAccount(ctx, ledgeraccount.CreateAccountInput{
+		Namespace: namespace,
+		Type:      ledger.AccountTypeCustomerFBO,
+	})
+	require.NoError(t, err)
+
+	accountB, err := env.repo.CreateAccount(ctx, ledgeraccount.CreateAccountInput{
+		Namespace: namespace,
+		Type:      ledger.AccountTypeCustomerFBO,
+	})
+	require.NoError(t, err)
+
+	subA1, err := env.repo.CreateSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
+		Namespace: namespace,
+		AccountID: accountA.ID.ID,
+		Dimensions: ledgeraccount.SubAccountDimensionInput{
+			CurrencyDimensionID: currencyA.ID,
+		},
+	})
+	require.NoError(t, err)
+
+	_, err = env.repo.CreateSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
+		Namespace: namespace,
+		AccountID: accountA.ID.ID,
+		Dimensions: ledgeraccount.SubAccountDimensionInput{
+			CurrencyDimensionID: currencyB.ID,
+		},
+	})
+	require.NoError(t, err)
+
+	_, err = env.repo.CreateSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
+		Namespace: namespace,
+		AccountID: accountB.ID.ID,
+		Dimensions: ledgeraccount.SubAccountDimensionInput{
+			CurrencyDimensionID: currencyA.ID,
+		},
+	})
+	require.NoError(t, err)
+
+	t.Run("filters by namespace/account", func(t *testing.T) {
+		items, err := env.repo.ListSubAccounts(ctx, ledgeraccount.ListSubAccountsInput{
+			Namespace: namespace,
+			AccountID: accountA.ID.ID,
+		})
+		require.NoError(t, err)
+		require.Len(t, items, 2)
+	})
+
+	t.Run("filters by dimensions", func(t *testing.T) {
+		items, err := env.repo.ListSubAccounts(ctx, ledgeraccount.ListSubAccountsInput{
+			Namespace: namespace,
+			AccountID: accountA.ID.ID,
+			Dimensions: ledger.QueryDimensions{
+				CurrencyID: currencyA.ID,
+			},
+		})
+		require.NoError(t, err)
+		require.Len(t, items, 1)
+		require.Equal(t, subA1.ID, items[0].ID)
+	})
+}
+
 type TestEnv struct {
 	repo   ledgeraccount.Repo
 	client *entdb.Client

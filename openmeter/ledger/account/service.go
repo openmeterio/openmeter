@@ -16,6 +16,17 @@ type Service interface {
 	GetAccountByID(ctx context.Context, id models.NamespacedID) (*Account, error)
 	GetSubAccountByID(ctx context.Context, id models.NamespacedID) (*SubAccount, error)
 	GetDimensionByID(ctx context.Context, id models.NamespacedID) (*DimensionData, error)
+
+	ListSubAccounts(ctx context.Context, input ListSubAccountsInput) ([]*SubAccount, error)
+}
+
+// TODO: we could do a better API than this :)
+type ListSubAccountsInput struct {
+	Namespace string
+	AccountID string
+
+	// How should we do this? Dimensions are a mess
+	Dimensions ledger.QueryDimensions
 }
 
 type CreateAccountInput struct {
@@ -76,7 +87,7 @@ func (d SubAccountDimensionInput) ValidateForAccountType(accountType ledger.Acco
 	}
 
 	switch accountType {
-	case ledger.AccountTypeCustomerFBO, ledger.AccountTypeCustomerReceivable, ledger.AccountTypeCustomerBreakage:
+	case ledger.AccountTypeCustomerFBO, ledger.AccountTypeCustomerReceivable:
 		if d.TaxCodeDimensionID == nil {
 			return models.NewGenericValidationError(errors.New("tax code dimension id is required"))
 		}

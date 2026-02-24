@@ -1,46 +1,61 @@
 package ledger
 
 import (
-	"fmt"
+	"context"
 
-	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/samber/mo"
 )
 
-type AccountType string
-
+// ----------------------------------------------------------------------------
 // Customer Accounts
-const (
-	AccountTypeCustomerFBO        AccountType = "customer_fbo" // is this the right name?
-	AccountTypeCustomerReceivable AccountType = "customer_receivable"
-	AccountTypeCustomerBreakage   AccountType = "customer_breakage"
-)
+// ----------------------------------------------------------------------------
 
-type CustomerAccounts struct {
-	FBOAccountID        string
-	ReceivableAccountID string
-	BreakageAccountID   string
+// CustomerAccount is a Customer specific account
+type CustomerAccount interface {
+	Account
+
+	// Lock locks the entire account for the duration of the transaction so balances are stable.
+	Lock(ctx context.Context) error
 }
 
-// Shared Business Accounts
-const (
-	AccountTypeWash      AccountType = "wash"
-	AccountTypeEarnings  AccountType = "earnings"
-	AccountTypeBrokerage AccountType = "brokerage"
-)
+// CustomerFBOAccount is a customer FBO account.
+type CustomerFBOAccount interface {
+	CustomerAccount
 
-type BusinessAccounts struct {
-	WashAccountID      string
-	EarningsAccountID  string
-	BrokerageAccountID string
+	GetSubAccountForDimensions(ctx context.Context, dimensions CustomerFBOSubAccountDimensions) (SubAccount, error)
 }
 
-func (t AccountType) Validate() error {
-	switch t {
-	case AccountTypeCustomerFBO, AccountTypeCustomerReceivable, AccountTypeCustomerBreakage:
-		return nil
-	case AccountTypeWash, AccountTypeEarnings, AccountTypeBrokerage:
-		return nil
-	default:
-		return models.NewGenericValidationError(fmt.Errorf("invalid account type: %s", t))
-	}
+// CustomerFBOSubAccountDimensions are dimensions specific to customer FBO sub-accounts.
+type CustomerFBOSubAccountDimensions struct {
+	Currency       DimensionCurrency
+	TaxCode        DimensionTaxCode
+	CreditPriority DimensionCreditPriority
+	Features       mo.Option[DimensionFeature]
+}
+
+// CustomerReceivableAccount is a customer receivable account.
+type CustomerReceivableAccount interface {
+	CustomerAccount
+
+	GetSubAccountForDimensions(ctx context.Context, dimensions CustomerReceivableSubAccountDimensions) (SubAccount, error)
+}
+
+// CustomerReceivableSubAccountDimensions are dimensions specific to customer receivable sub-accounts.
+type CustomerReceivableSubAccountDimensions struct {
+	Currency DimensionCurrency
+}
+
+// ----------------------------------------------------------------------------
+// Business Accounts
+// ----------------------------------------------------------------------------
+
+// BusinessAccount is a business account.
+type BusinessAccount interface {
+	Account
+
+	GetSubAccountForDimensions(ctx context.Context, dimensions BusinessSubAccountDimensions) (SubAccount, error)
+}
+
+type BusinessSubAccountDimensions struct {
+	Currency DimensionCurrency
 }
