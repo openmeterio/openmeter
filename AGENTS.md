@@ -1,25 +1,53 @@
-# OpenMeter
+# AGENTS.md
 
-## Tips for working with the codebase
+OpenMeter is a billing and metering platform providing usage-based billing, real-time insights, and usage limit enforcement.
 
-Development commands are run via `Makefile`, it contains all commonly used commands during development. `Dagger` and `justfile` are also present but seldom used. Use the Makefile commands for common tasks like running tests, generating code, linting, etc.
+## Commands
 
-## Testing
+```bash
+make up              # Start dependencies (postgres, kafka, clickhouse)
+make server          # Run API server with hot-reload
+make test            # Run tests
+make test-nocache    # Run tests bypassing cache
+make lint            # Run linters
+make fmt             # Auto-fix lint issues
+make generate        # Regenerate ent schemas + wire DI
+make gen-api         # Regenerate TypeSpec -> OpenAPI -> clients
+```
 
-To run all tests, invoke `make test` or `make test-nocache` if you want to bypass the test cache.
+Running tests directly:
+```bash
+TZ=UTC POSTGRES_HOST=127.0.0.1 go test -tags=dynamic -run TestName ./path/to/package
+```
 
-When running tests for a single file or testcase (invoking directly and not with Make), make sure the environment is set correctly. Examples of a correct setup can be found in the `Makefile`'s `test` command, or in `.vscode/settings.json` `go.testEnvVars`. Example command would be:
+## Generated Files - Do Not Edit
 
-E2E tests are run via `make etoe`, they are API tests that need to start dependencies via docker compose, always invoke them via Make.
+- `api/openapi.yaml`, `api/v3/openapi.yaml` - from TypeSpec (`api/spec/src/`)
+- `api/api.gen.go`, `api/v3/api.gen.go` - from OpenAPI via oapi-codegen
+- `api/client/` - SDK clients
+- `openmeter/ent/db/` - from ent schemas (`openmeter/ent/schema/`)
+- `cmd/*/wire_gen.go` - from Wire (`wire.go` files)
 
-## Code Generation
+## Architecture
 
-Some directories are generated from code, never edit them manually. A non-exhaustive list of them is:
-- `make gen-api`: generates from TypeSpec
-  - the clients in `api/client`
-  - the OAPI spec in `api/openapi.yaml`
-- `make generate`: runs go codegen steps
-  - database access in `**/ent/db` from the ent schema in `**/ent/schema`
-  - dependency injection with wire in `**/wire_gen.go` from `**/wire.go`
-- `atlas migrate --env local diff <migration-name>`: generates a migration diff from changes in the generated ent schema (in `tools/migrate/migrations`)
+**Services** (`cmd/`): server, sink-worker, balance-worker, billing-worker, notification-service, benthos-collector, jobs
 
+**Core packages** (`openmeter/`): billing, customer, entitlement, productcatalog, subscription, meter, streaming, ingest, notification, app
+
+**API layers**: TypeSpec (`api/spec/src/`) → OpenAPI → Go handlers (`api/`, `api/v3/handlers/`)
+
+**Storage**: PostgreSQL (ent ORM), ClickHouse (time-series), Kafka (events), Redis (cache)
+
+**DI**: Google Wire - `wire.go` (providers) → `wire_gen.go` (generated)
+
+## Go Build Tags
+
+Required: `-tags=dynamic,wireinject`
+
+## Database Migrations
+
+```bash
+atlas migrate --env local diff <migration-name>
+```
+
+Migrations: `tools/migrate/migrations/`
