@@ -56,6 +56,7 @@ import (
 
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgercustomeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
@@ -184,6 +185,7 @@ func checkColumn(t, c string) error {
 			dbgrant.Table:                                          dbgrant.ValidColumn,
 			llmcostprice.Table:                                     llmcostprice.ValidColumn,
 			ledgeraccount.Table:                                    ledgeraccount.ValidColumn,
+			ledgercustomeraccount.Table:                            ledgercustomeraccount.ValidColumn,
 			ledgerdimension.Table:                                  ledgerdimension.ValidColumn,
 			ledgerentry.Table:                                      ledgerentry.ValidColumn,
 			ledgersubaccount.Table:                                 ledgersubaccount.ValidColumn,

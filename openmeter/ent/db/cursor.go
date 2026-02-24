@@ -1033,6 +1033,363 @@ func (_m *BillingWorkflowConfigQuery) Cursor(ctx context.Context, cursor *pagina
 
 // Cursor runs the query and returns a cursor-paginated response.
 // Ordering is always by created_at asc, id asc.
+func (_m *ChargeQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*Charge], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*Charge]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*Charge]{}, err
+	}
+
+	if items == nil {
+		items = make([]*Charge, 0)
+	}
+
+	result := pagination.Result[*Charge]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
+func (_m *ChargeCreditRealizationQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*ChargeCreditRealization], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*ChargeCreditRealization]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*ChargeCreditRealization]{}, err
+	}
+
+	if items == nil {
+		items = make([]*ChargeCreditRealization, 0)
+	}
+
+	result := pagination.Result[*ChargeCreditRealization]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
+func (_m *ChargeExternalPaymentSettlementQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*ChargeExternalPaymentSettlement], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*ChargeExternalPaymentSettlement]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*ChargeExternalPaymentSettlement]{}, err
+	}
+
+	if items == nil {
+		items = make([]*ChargeExternalPaymentSettlement, 0)
+	}
+
+	result := pagination.Result[*ChargeExternalPaymentSettlement]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
+func (_m *ChargeStandardInvoiceAccruedUsageQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*ChargeStandardInvoiceAccruedUsage], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*ChargeStandardInvoiceAccruedUsage]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*ChargeStandardInvoiceAccruedUsage]{}, err
+	}
+
+	if items == nil {
+		items = make([]*ChargeStandardInvoiceAccruedUsage, 0)
+	}
+
+	result := pagination.Result[*ChargeStandardInvoiceAccruedUsage]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
+func (_m *ChargeStandardInvoicePaymentSettlementQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*ChargeStandardInvoicePaymentSettlement], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*ChargeStandardInvoicePaymentSettlement]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*ChargeStandardInvoicePaymentSettlement]{}, err
+	}
+
+	if items == nil {
+		items = make([]*ChargeStandardInvoicePaymentSettlement, 0)
+	}
+
+	result := pagination.Result[*ChargeStandardInvoicePaymentSettlement]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
+func (_m *CurrencyCostBasisQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*CurrencyCostBasis], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*CurrencyCostBasis]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*CurrencyCostBasis]{}, err
+	}
+
+	if items == nil {
+		items = make([]*CurrencyCostBasis, 0)
+	}
+
+	result := pagination.Result[*CurrencyCostBasis]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
+func (_m *CustomCurrencyQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*CustomCurrency], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*CustomCurrency]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*CustomCurrency]{}, err
+	}
+
+	if items == nil {
+		items = make([]*CustomCurrency, 0)
+	}
+
+	result := pagination.Result[*CustomCurrency]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
 func (_m *CustomerQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*Customer], error) {
 	if cursor != nil {
 		if err := cursor.Validate(); err != nil {
@@ -1288,6 +1645,57 @@ func (_m *GrantQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pa
 
 // Cursor runs the query and returns a cursor-paginated response.
 // Ordering is always by created_at asc, id asc.
+func (_m *LLMCostPriceQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*LLMCostPrice], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*LLMCostPrice]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*LLMCostPrice]{}, err
+	}
+
+	if items == nil {
+		items = make([]*LLMCostPrice, 0)
+	}
+
+	result := pagination.Result[*LLMCostPrice]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
 func (_m *LedgerAccountQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*LedgerAccount], error) {
 	if cursor != nil {
 		if err := cursor.Validate(); err != nil {
@@ -1326,6 +1734,57 @@ func (_m *LedgerAccountQuery) Cursor(ctx context.Context, cursor *pagination.Cur
 	}
 
 	result := pagination.Result[*LedgerAccount]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
+func (_m *LedgerCustomerAccountQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*LedgerCustomerAccount], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*LedgerCustomerAccount]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*LedgerCustomerAccount]{}, err
+	}
+
+	if items == nil {
+		items = make([]*LedgerCustomerAccount, 0)
+	}
+
+	result := pagination.Result[*LedgerCustomerAccount]{
 		Items: items,
 	}
 
@@ -2346,6 +2805,57 @@ func (_m *SubscriptionPhaseQuery) Cursor(ctx context.Context, cursor *pagination
 	}
 
 	result := pagination.Result[*SubscriptionPhase]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
+func (_m *TaxCodeQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*TaxCode], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*TaxCode]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*TaxCode]{}, err
+	}
+
+	if items == nil {
+		items = make([]*TaxCode, 0)
+	}
+
+	result := pagination.Result[*TaxCode]{
 		Items: items,
 	}
 

@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -30,4 +31,10 @@ type Repo interface {
 
 	// GetDimensionByID returns the dimension by its ID
 	GetDimensionByID(ctx context.Context, id models.NamespacedID) (*DimensionData, error)
+
+	// ListAccounts returns accounts filtered by type within a namespace
+	ListAccounts(ctx context.Context, input ListAccountsInput) ([]*AccountData, error)
+
+	// GetDimensionByKeyAndValue looks up a dimension by its key+value pair (used by DimensionResolver)
+	GetDimensionByKeyAndValue(ctx context.Context, namespace string, key ledger.DimensionKey, value string) (*DimensionData, error)
 }

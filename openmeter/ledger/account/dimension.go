@@ -30,11 +30,20 @@ func (d *DimensionData) AsCurrencyDimension() (*currencyDimension, error) {
 	}, nil
 }
 
+// dimensionIDer is an internal interface that lets GetSubAccountForDimensions
+// extract the DB ID from a dimension object.
+type dimensionIDer interface {
+	dimensionID() string
+}
+
 type currencyDimension struct {
 	data DimensionData
 }
 
 var _ ledger.DimensionCurrency = (*currencyDimension)(nil)
+var _ dimensionIDer = (*currencyDimension)(nil)
+
+func (d *currencyDimension) dimensionID() string { return d.data.ID }
 
 func (d *currencyDimension) Equal(other ledger.Dimension[any]) bool {
 	return d.Key() == other.Key() && d.Value() == other.Value()
