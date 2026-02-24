@@ -9,11 +9,10 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type FlatFeeCharge struct {
-	models.ManagedResource
+	ManagedResource
 
 	Intent FlatFeeIntent `json:"intent"`
 	Status ChargeStatus  `json:"status"`
@@ -27,14 +26,6 @@ func (c FlatFeeCharge) AsCharge() Charge {
 		flatFee: &c,
 	}
 }
-
-func (c FlatFeeCharge) Type() ChargeType {
-	return ChargeTypeFlatFee
-}
-
-func (c FlatFeeCharge) GetIntentMeta() IntentMeta                  { return c.Intent.IntentMeta }
-func (c FlatFeeCharge) GetManagedResource() models.ManagedResource { return c.ManagedResource }
-func (c FlatFeeCharge) GetStatus() ChargeStatus                    { return c.Status }
 
 func (c FlatFeeCharge) Validate() error {
 	var errs []error

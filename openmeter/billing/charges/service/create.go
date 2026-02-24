@@ -7,7 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
-func (s *service) CreateCharges(ctx context.Context, input charges.Charges) (charges.Charges, error) {
+func (s *service) CreateCharges(ctx context.Context, input charges.CreateChargeInputs) (charges.Charges, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}

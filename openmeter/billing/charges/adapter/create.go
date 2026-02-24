@@ -9,30 +9,28 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-type chargeWithOriginal struct {
+type chargeWithOriginalIntent struct {
 	entity *db.Charge
-	orig   charges.Charge
+	orig   charges.ChargeIntent
 }
 
-func (a *adapter) CreateCharges(ctx context.Context, input charges.Charges) (charges.Charges, error) {
-	if len(input) == 0 {
+func (a *adapter) CreateCharges(ctx context.Context, in charges.CreateChargeInputs) (charges.Charges, error) {
+	if err := in.Validate(); err != nil {
+		return nil, err
+	}
+
+	if len(in.Intents) == 0 {
 		return nil, nil
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (charges.Charges, error) {
 		// Step 1: Create all parent Charge entities in bulk.
-		chargeCreates, err := slicesx.MapWithErr(input, func(ch charges.Charge) (*db.ChargeCreate, error) {
-			gc, err := ch.AsGenericCharge()
-			if err != nil {
-				return nil, err
-			}
-
-			return tx.buildCreateCharge(ctx, gc), nil
+		chargeCreates, err := slicesx.MapWithErr(in.Intents, func(ch charges.ChargeIntent) (*db.ChargeCreate, error) {
+			return tx.buildCreateCharge(ctx, in.Namespace, ch)
 		})
 		if err != nil {
 			return nil, err
@@ -43,23 +41,22 @@ func (a *adapter) CreateCharges(ctx context.Context, input charges.Charges) (cha
 			return nil, fmt.Errorf("creating charges: %w", err)
 		}
 
-		pairs := lo.Map(createdEntities, func(entity *db.Charge, idx int) chargeWithOriginal {
-			return chargeWithOriginal{entity: entity, orig: input[idx]}
+		pairs := lo.Map(createdEntities, func(entity *db.Charge, idx int) chargeWithOriginalIntent {
+			return chargeWithOriginalIntent{entity: entity, orig: in.Intents[idx]}
 		})
 
 		// Step 2: Create FlatFee sub-entities in bulk.
-		ffPairs := lo.Filter(pairs, func(p chargeWithOriginal, _ int) bool {
+		ffPairs := lo.Filter(pairs, func(p chargeWithOriginalIntent, _ int) bool {
 			return p.entity.Type == charges.ChargeTypeFlatFee
 		})
 
-		ffCreates, err := slicesx.MapWithErr(ffPairs, func(p chargeWithOriginal) (*db.ChargeFlatFeeCreate, error) {
-			ff, err := p.orig.AsFlatFeeCharge()
+		ffCreates, err := slicesx.MapWithErr(ffPairs, func(p chargeWithOriginalIntent) (*db.ChargeFlatFeeCreate, error) {
+			ff, err := p.orig.AsFlatFeeIntent()
 			if err != nil {
 				return nil, err
 			}
 
-			ff.ID = p.entity.ID
-			return tx.buildCreateFlatFeeCharge(ctx, ff)
+			return tx.buildCreateFlatFeeCharge(ctx, in.Namespace, p.entity.ID, ff)
 		})
 		if err != nil {
 			return nil, err
@@ -81,18 +78,17 @@ func (a *adapter) CreateCharges(ctx context.Context, input charges.Charges) (cha
 		}
 
 		// Step 3: Create UsageBased sub-entities in bulk.
-		ubPairs := lo.Filter(pairs, func(p chargeWithOriginal, _ int) bool {
+		ubPairs := lo.Filter(pairs, func(p chargeWithOriginalIntent, _ int) bool {
 			return p.entity.Type == charges.ChargeTypeUsageBased
 		})
 
-		ubCreates, err := slicesx.MapWithErr(ubPairs, func(p chargeWithOriginal) (*db.ChargeUsageBasedCreate, error) {
-			ub, err := p.orig.AsUsageBasedCharge()
+		ubCreates, err := slicesx.MapWithErr(ubPairs, func(p chargeWithOriginalIntent) (*db.ChargeUsageBasedCreate, error) {
+			ub, err := p.orig.AsUsageBasedIntent()
 			if err != nil {
 				return nil, err
 			}
 
-			ub.ID = p.entity.ID
-			return tx.buildCreateUsageBasedCharge(ctx, ub)
+			return tx.buildCreateUsageBasedCharge(ctx, in.Namespace, p.entity.ID, ub)
 		})
 		if err != nil {
 			return nil, err
@@ -114,18 +110,17 @@ func (a *adapter) CreateCharges(ctx context.Context, input charges.Charges) (cha
 		}
 
 		// Step 4: Create CreditPurchase sub-entities in bulk.
-		cpPairs := lo.Filter(pairs, func(p chargeWithOriginal, _ int) bool {
+		cpPairs := lo.Filter(pairs, func(p chargeWithOriginalIntent, _ int) bool {
 			return p.entity.Type == charges.ChargeTypeCreditPurchase
 		})
 
-		cpCreates, err := slicesx.MapWithErr(cpPairs, func(p chargeWithOriginal) (*db.ChargeCreditPurchaseCreate, error) {
-			cp, err := p.orig.AsCreditPurchase()
+		cpCreates, err := slicesx.MapWithErr(cpPairs, func(p chargeWithOriginalIntent) (*db.ChargeCreditPurchaseCreate, error) {
+			cp, err := p.orig.AsCreditPurchaseIntent()
 			if err != nil {
 				return nil, err
 			}
 
-			cp.ID = p.entity.ID
-			return tx.buildCreateCreditPurchaseCharge(ctx, cp), nil
+			return tx.buildCreateCreditPurchaseCharge(in.Namespace, p.entity.ID, cp), nil
 		})
 		if err != nil {
 			return nil, err
@@ -153,16 +148,36 @@ func (a *adapter) CreateCharges(ctx context.Context, input charges.Charges) (cha
 	})
 }
 
-func (a *adapter) buildCreateCharge(ctx context.Context, in charges.GenericCharge) *db.ChargeCreate {
-	mr := in.GetManagedResource()
-	meta := in.GetIntentMeta()
-	chargeType := in.Type()
-	status := in.GetStatus()
+func (a *adapter) buildCreateCharge(ctx context.Context, ns string, in charges.ChargeIntent) (*db.ChargeCreate, error) {
+	var meta charges.IntentMeta
+
+	switch in.Type() {
+	case charges.ChargeTypeFlatFee:
+		ff, err := in.AsFlatFeeIntent()
+		if err != nil {
+			return nil, err
+		}
+		meta = ff.IntentMeta
+
+	case charges.ChargeTypeUsageBased:
+		ub, err := in.AsUsageBasedIntent()
+		if err != nil {
+			return nil, err
+		}
+		meta = ub.IntentMeta
+
+	case charges.ChargeTypeCreditPurchase:
+		cp, err := in.AsCreditPurchaseIntent()
+		if err != nil {
+			return nil, err
+		}
+		meta = cp.IntentMeta
+	}
 
 	create := a.db.Charge.Create().
-		SetNamespace(mr.Namespace).
-		SetName(mr.Name).
-		SetNillableDescription(mr.Description).
+		SetNamespace(ns).
+		SetName(meta.Name).
+		SetNillableDescription(meta.Description).
 		SetCustomerID(meta.CustomerID).
 		SetServicePeriodFrom(meta.ServicePeriod.From.UTC()).
 		SetServicePeriodTo(meta.ServicePeriod.To.UTC()).
@@ -170,12 +185,11 @@ func (a *adapter) buildCreateCharge(ctx context.Context, in charges.GenericCharg
 		SetBillingPeriodTo(meta.BillingPeriod.To.UTC()).
 		SetFullServicePeriodFrom(meta.FullServicePeriod.From.UTC()).
 		SetFullServicePeriodTo(meta.FullServicePeriod.To.UTC()).
-		SetType(chargeType).
-		SetStatus(status).
+		SetType(in.Type()).
+		SetStatus(charges.ChargeStatusCreated).
 		SetCurrency(meta.Currency).
 		SetManagedBy(meta.ManagedBy).
-		SetNillableUniqueReferenceID(meta.UniqueReferenceID).
-		SetNillableDeletedAt(convert.SafeToUTC(mr.DeletedAt))
+		SetNillableUniqueReferenceID(meta.UniqueReferenceID)
 
 	if meta.Metadata != nil {
 		create = create.SetMetadata(meta.Metadata)
@@ -192,31 +206,31 @@ func (a *adapter) buildCreateCharge(ctx context.Context, in charges.GenericCharg
 			SetNillableSubscriptionItemID(&meta.Subscription.ItemID)
 	}
 
-	return create
+	return create, nil
 }
 
-func (a *adapter) buildCreateFlatFeeCharge(ctx context.Context, in charges.FlatFeeCharge) (*db.ChargeFlatFeeCreate, error) {
+func (a *adapter) buildCreateFlatFeeCharge(ctx context.Context, ns string, chargeID string, in charges.FlatFeeIntent) (*db.ChargeFlatFeeCreate, error) {
 	var discounts *productcatalog.Discounts
-	if in.Intent.PercentageDiscounts != nil {
-		discounts = &productcatalog.Discounts{Percentage: in.Intent.PercentageDiscounts}
+	if in.PercentageDiscounts != nil {
+		discounts = &productcatalog.Discounts{Percentage: in.PercentageDiscounts}
 	}
 
-	proRating, err := proRatingConfigToDB(in.Intent.ProRating)
+	proRating, err := proRatingConfigToDB(in.ProRating)
 	if err != nil {
 		return nil, err
 	}
 
 	create := a.db.ChargeFlatFee.Create().
-		SetID(in.ID).
-		SetChargeID(in.ID).
-		SetNamespace(in.Namespace).
-		SetPaymentTerm(in.Intent.PaymentTerm).
-		SetInvoiceAt(in.Intent.InvoiceAt).
-		SetSettlementMode(in.Intent.SettlementMode).
-		SetNillableFeatureKey(lo.EmptyableToPtr(in.Intent.FeatureKey)).
+		SetID(chargeID).
+		SetChargeID(chargeID).
+		SetNamespace(ns).
+		SetPaymentTerm(in.PaymentTerm).
+		SetInvoiceAt(in.InvoiceAt).
+		SetSettlementMode(in.SettlementMode).
+		SetNillableFeatureKey(lo.EmptyableToPtr(in.FeatureKey)).
 		SetProRating(proRating).
-		SetAmountBeforeProration(in.Intent.AmountBeforeProration).
-		SetAmountAfterProration(in.Intent.AmountAfterProration)
+		SetAmountBeforeProration(in.AmountBeforeProration).
+		SetAmountAfterProration(in.AmountAfterProration)
 
 	if discounts != nil {
 		create = create.SetDiscounts(discounts)
@@ -225,29 +239,29 @@ func (a *adapter) buildCreateFlatFeeCharge(ctx context.Context, in charges.FlatF
 	return create, nil
 }
 
-func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, in charges.UsageBasedCharge) (*db.ChargeUsageBasedCreate, error) {
+func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, chargeID string, in charges.UsageBasedIntent) (*db.ChargeUsageBasedCreate, error) {
 	create := a.db.ChargeUsageBased.Create().
-		SetID(in.ID).
-		SetChargeID(in.ID).
-		SetNamespace(in.Namespace).
-		SetPrice(&in.Intent.Price).
-		SetFeatureKey(in.Intent.FeatureKey).
-		SetInvoiceAt(in.Intent.InvoiceAt).
-		SetSettlementMode(in.Intent.SettlementMode)
+		SetID(chargeID).
+		SetChargeID(chargeID).
+		SetNamespace(ns).
+		SetPrice(&in.Price).
+		SetFeatureKey(in.FeatureKey).
+		SetInvoiceAt(in.InvoiceAt).
+		SetSettlementMode(in.SettlementMode)
 
-	if in.Intent.Discounts != nil {
-		create = create.SetDiscounts(in.Intent.Discounts)
+	if in.Discounts != nil {
+		create = create.SetDiscounts(in.Discounts)
 	}
 
 	return create, nil
 }
 
-func (a *adapter) buildCreateCreditPurchaseCharge(_ context.Context, in charges.CreditPurchaseCharge) *db.ChargeCreditPurchaseCreate {
+func (a *adapter) buildCreateCreditPurchaseCharge(ns string, chargeID string, in charges.CreditPurchaseIntent) *db.ChargeCreditPurchaseCreate {
 	return a.db.ChargeCreditPurchase.Create().
-		SetID(in.ID).
-		SetChargeID(in.ID).
-		SetNamespace(in.Namespace).
-		SetCreditAmount(in.Intent.CreditAmount).
-		SetSettlement(in.Intent.Settlement).
-		SetStatus(in.State.Status)
+		SetID(chargeID).
+		SetChargeID(chargeID).
+		SetNamespace(ns).
+		SetCreditAmount(in.CreditAmount).
+		SetSettlement(in.Settlement).
+		SetStatus(charges.InitiatedPaymentSettlementStatus)
 }

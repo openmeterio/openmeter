@@ -15,7 +15,6 @@ import (
 	chargesadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
@@ -52,37 +51,38 @@ func (s *ChargesAdapterTestSuite) TestCreateAndGetFlatFeeCharge() {
 	periodStart := now.Add(-30 * 24 * time.Hour)
 	periodEnd := now
 
-	input := charges.NewCharge(charges.FlatFeeCharge{
-		ManagedResource: newManagedResource(ns, "Flat Fee Charge"),
-		Status:          charges.ChargeStatusActive,
-		Intent: charges.FlatFeeIntent{
-			IntentMeta:            newIntentMeta(customer.ID, periodStart, periodEnd),
-			InvoiceAt:             periodEnd,
-			SettlementMode:        productcatalog.InvoiceOnlySettlementMode,
-			PaymentTerm:           productcatalog.InArrearsPaymentTerm,
-			AmountBeforeProration: alpacadecimal.NewFromFloat(100),
-			AmountAfterProration:  alpacadecimal.NewFromFloat(100),
-			ProRating: productcatalog.ProRatingConfig{
-				Enabled: false,
-				Mode:    productcatalog.ProRatingModeProratePrices,
-			},
+	feeIntent := charges.FlatFeeIntent{
+		IntentMeta:            newIntentMeta(customer.ID, periodStart, periodEnd, "Flat Fee Charge"),
+		InvoiceAt:             periodEnd,
+		SettlementMode:        productcatalog.InvoiceOnlySettlementMode,
+		PaymentTerm:           productcatalog.InArrearsPaymentTerm,
+		AmountBeforeProration: alpacadecimal.NewFromFloat(100),
+		AmountAfterProration:  alpacadecimal.NewFromFloat(100),
+		ProRating: productcatalog.ProRatingConfig{
+			Enabled: false,
+			Mode:    productcatalog.ProRatingModeProratePrices,
 		},
-		State: charges.FlatFeeState{},
-	})
+	}
 
-	created, err := s.adapter.CreateCharges(ctx, []charges.Charge{input})
+	created, err := s.adapter.CreateCharges(ctx, charges.CreateChargeInputs{
+		Namespace: ns,
+		Intents:   charges.ChargeIntents{charges.NewChargeIntent(feeIntent)},
+	})
 	s.NoError(err)
 	s.Len(created, 1)
 
-	gc, err := created[0].AsGenericCharge()
+	ffCreated, err := created[0].AsFlatFeeCharge()
 	s.NoError(err)
-	s.NotEmpty(gc.GetManagedResource().ID)
+	s.NotEmpty(ffCreated.ManagedResource.ID)
 
-	fetched, err := s.adapter.GetChargesByIDs(ctx, ns, []string{gc.GetManagedResource().ID})
+	fetched, err := s.adapter.GetChargesByIDs(ctx, ns, []string{ffCreated.ManagedResource.ID})
 	s.NoError(err)
 	s.Len(fetched, 1)
+	ffFetched, err := fetched[0].AsFlatFeeCharge()
+	s.NoError(err)
 
-	s.Equal(created[0], fetched[0])
+	s.Equal(ffCreated.Intent, ffFetched.Intent)
+	s.Equal(charges.ChargeStatusActive, ffFetched.Status)
 }
 
 func (s *ChargesAdapterTestSuite) TestCreateAndGetUsageBasedCharge() {
@@ -101,32 +101,33 @@ func (s *ChargesAdapterTestSuite) TestCreateAndGetUsageBasedCharge() {
 		PaymentTerm: productcatalog.InArrearsPaymentTerm,
 	})
 
-	input := charges.NewCharge(charges.UsageBasedCharge{
-		ManagedResource: newManagedResource(ns, "Usage Based Charge"),
-		Status:          charges.ChargeStatusActive,
-		Intent: charges.UsageBasedIntent{
-			IntentMeta:     newIntentMeta(customer.ID, periodStart, periodEnd),
-			Price:          *price,
-			FeatureKey:     "api-requests",
-			InvoiceAt:      periodEnd,
-			SettlementMode: productcatalog.InvoiceOnlySettlementMode,
-		},
-		State: charges.UsageBasedState{},
-	})
+	usageIntent := charges.UsageBasedIntent{
+		IntentMeta:     newIntentMeta(customer.ID, periodStart, periodEnd, "Usage Based Charge"),
+		Price:          *price,
+		FeatureKey:     "api-requests",
+		InvoiceAt:      periodEnd,
+		SettlementMode: productcatalog.InvoiceOnlySettlementMode,
+	}
 
-	created, err := s.adapter.CreateCharges(ctx, []charges.Charge{input})
+	created, err := s.adapter.CreateCharges(ctx, charges.CreateChargeInputs{
+		Namespace: ns,
+		Intents:   charges.ChargeIntents{charges.NewChargeIntent(usageIntent)},
+	})
 	s.NoError(err)
 	s.Len(created, 1)
 
-	gc, err := created[0].AsGenericCharge()
+	ubCreated, err := created[0].AsUsageBasedCharge()
 	s.NoError(err)
-	s.NotEmpty(gc.GetManagedResource().ID)
+	s.NotEmpty(ubCreated.ManagedResource.ID)
 
-	fetched, err := s.adapter.GetChargesByIDs(ctx, ns, []string{gc.GetManagedResource().ID})
+	fetched, err := s.adapter.GetChargesByIDs(ctx, ns, []string{ubCreated.ManagedResource.ID})
 	s.NoError(err)
 	s.Len(fetched, 1)
+	ubFetched, err := fetched[0].AsUsageBasedCharge()
+	s.NoError(err)
 
-	s.Equal(created[0], fetched[0])
+	s.Equal(ubCreated.Intent, ubFetched.Intent)
+	s.Equal(charges.ChargeStatusActive, ubFetched.Status)
 }
 
 func (s *ChargesAdapterTestSuite) TestCreateAndGetCreditPurchaseCharge() {
@@ -147,44 +148,44 @@ func (s *ChargesAdapterTestSuite) TestCreateAndGetCreditPurchaseCharge() {
 		},
 	})
 
-	input := charges.NewCharge(charges.CreditPurchaseCharge{
-		ManagedResource: newManagedResource(ns, "Credit Purchase Charge"),
-		Status:          charges.ChargeStatusActive,
-		Intent: charges.CreditPurchaseIntent{
-			IntentMeta:   newIntentMeta(customer.ID, periodStart, periodEnd),
-			CreditAmount: alpacadecimal.NewFromFloat(100),
-			Settlement:   settlement,
-		},
-		State: charges.CreditPurchaseState{
-			Status: charges.AuthorizedPaymentSettlementStatus,
-		},
-	})
+	cpIntent := charges.CreditPurchaseIntent{
+		IntentMeta:   newIntentMeta(customer.ID, periodStart, periodEnd, "Credit Purchase Charge"),
+		CreditAmount: alpacadecimal.NewFromFloat(100),
+		Settlement:   settlement,
+	}
 
-	created, err := s.adapter.CreateCharges(ctx, []charges.Charge{input})
+	created, err := s.adapter.CreateCharges(ctx, charges.CreateChargeInputs{
+		Namespace: ns,
+		Intents:   charges.ChargeIntents{charges.NewChargeIntent(cpIntent)},
+	})
 	s.NoError(err)
 	s.Len(created, 1)
 
-	gc, err := created[0].AsGenericCharge()
+	cpCreated, err := created[0].AsCreditPurchaseCharge()
 	s.NoError(err)
-	s.NotEmpty(gc.GetManagedResource().ID)
+	s.NotEmpty(cpCreated.ManagedResource.ID)
 
-	fetched, err := s.adapter.GetChargesByIDs(ctx, ns, []string{gc.GetManagedResource().ID})
+	fetched, err := s.adapter.GetChargesByIDs(ctx, ns, []string{cpCreated.ManagedResource.ID})
 	s.NoError(err)
 	s.Len(fetched, 1)
+	cpFetched, err := fetched[0].AsCreditPurchaseCharge()
+	s.NoError(err)
 
-	s.Equal(created[0], fetched[0])
+	s.Equal(cpCreated.Intent, cpFetched.Intent)
+	s.Equal(charges.ChargeStatusActive, cpFetched.Status)
+	s.Equal(cpCreated.State, cpFetched.State)
 }
 
-func newManagedResource(ns, name string) models.ManagedResource {
-	mr := models.ManagedResource{}
+func newManagedResource(ns string) charges.ManagedResource {
+	mr := charges.ManagedResource{}
 	mr.Namespace = ns
-	mr.Name = name
 
 	return mr
 }
 
-func newIntentMeta(customerID string, periodStart, periodEnd time.Time) charges.IntentMeta {
+func newIntentMeta(customerID string, periodStart, periodEnd time.Time, name string) charges.IntentMeta {
 	return charges.IntentMeta{
+		Name:       name,
 		ManagedBy:  billing.ManuallyManagedLine,
 		CustomerID: customerID,
 		Currency:   currencyx.Code(currency.USD),

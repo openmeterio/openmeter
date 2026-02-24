@@ -13,6 +13,9 @@ import (
 )
 
 type IntentMeta struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+
 	Metadata    models.Metadata              `json:"metadata"`
 	Annotations models.Annotations           `json:"annotations"`
 	ManagedBy   billing.InvoiceLineManagedBy `json:"managedBy"`
@@ -35,6 +38,10 @@ func (i IntentMeta) Validate() error {
 
 	if !slices.Contains(billing.InvoiceLineManagedBy("").Values(), string(i.ManagedBy)) {
 		errs = append(errs, fmt.Errorf("invalid managed by %s", i.ManagedBy))
+	}
+
+	if i.Name == "" {
+		errs = append(errs, fmt.Errorf("name is required"))
 	}
 
 	if i.CustomerID == "" {

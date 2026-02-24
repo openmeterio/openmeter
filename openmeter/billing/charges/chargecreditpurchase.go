@@ -10,11 +10,10 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type CreditPurchaseCharge struct {
-	models.ManagedResource
+	ManagedResource
 
 	Status ChargeStatus `json:"status"`
 
@@ -46,14 +45,6 @@ func (c CreditPurchaseCharge) AsCharge() Charge {
 		creditPurchase: &c,
 	}
 }
-
-func (c CreditPurchaseCharge) Type() ChargeType {
-	return ChargeTypeCreditPurchase
-}
-
-func (c CreditPurchaseCharge) GetIntentMeta() IntentMeta                  { return c.Intent.IntentMeta }
-func (c CreditPurchaseCharge) GetManagedResource() models.ManagedResource { return c.ManagedResource }
-func (c CreditPurchaseCharge) GetStatus() ChargeStatus                    { return c.Status }
 
 type CreditPurchaseIntent struct {
 	IntentMeta

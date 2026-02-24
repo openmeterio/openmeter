@@ -122,16 +122,18 @@ func MapCreditPurchaseChargeFromDB(entity *entdb.Charge) (charges.CreditPurchase
 }
 
 // mapManagedResourceFromDB extracts the ManagedResource from a DB Charge entity.
-func mapManagedResourceFromDB(entity *entdb.Charge) models.ManagedResource {
-	return models.NewManagedResource(models.ManagedResourceInput{
-		ID:          entity.ID,
-		Namespace:   entity.Namespace,
-		Name:        entity.Name,
-		Description: entity.Description,
-		CreatedAt:   entity.CreatedAt,
-		UpdatedAt:   entity.UpdatedAt,
-		DeletedAt:   entity.DeletedAt,
-	})
+func mapManagedResourceFromDB(entity *entdb.Charge) charges.ManagedResource {
+	return charges.ManagedResource{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: entity.Namespace,
+		},
+		ManagedModel: models.ManagedModel{
+			CreatedAt: entity.CreatedAt,
+			UpdatedAt: entity.UpdatedAt,
+			DeletedAt: entity.DeletedAt,
+		},
+		ID: entity.ID,
+	}
 }
 
 // mapIntentMetaFromDB extracts the IntentMeta from a DB Charge entity.

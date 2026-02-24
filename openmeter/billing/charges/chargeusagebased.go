@@ -6,11 +6,10 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type UsageBasedCharge struct {
-	models.ManagedResource
+	ManagedResource
 
 	Intent UsageBasedIntent `json:"intent"`
 
@@ -43,14 +42,6 @@ func (c UsageBasedCharge) AsCharge() Charge {
 		usageBased: &c,
 	}
 }
-
-func (c UsageBasedCharge) Type() ChargeType {
-	return ChargeTypeUsageBased
-}
-
-func (c UsageBasedCharge) GetIntentMeta() IntentMeta                  { return c.Intent.IntentMeta }
-func (c UsageBasedCharge) GetManagedResource() models.ManagedResource { return c.ManagedResource }
-func (c UsageBasedCharge) GetStatus() ChargeStatus                    { return c.Status }
 
 type UsageBasedIntent struct {
 	IntentMeta

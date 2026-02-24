@@ -16,5 +16,5 @@ type Adapter interface {
 type ChargeAdapter interface {
 	GetChargeByID(ctx context.Context, input models.NamespacedID) (Charge, error)
 	GetChargesByIDs(ctx context.Context, namespace string, ids []string) (Charges, error)
-	CreateCharges(ctx context.Context, input Charges) (Charges, error)
+	CreateCharges(ctx context.Context, input CreateChargeInputs) (Charges, error)
 }
