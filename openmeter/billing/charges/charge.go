@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -321,26 +320,4 @@ type ManagedResource struct {
 	models.NamespacedModel
 	models.ManagedModel
 	ID string `json:"id"`
-}
-
-type NewManagedResourceInput struct {
-	Namespace string
-	ID        string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time
-}
-
-func NewManagedResource(input NewManagedResourceInput) ManagedResource {
-	return ManagedResource{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: input.Namespace,
-		},
-		ManagedModel: models.ManagedModel{
-			CreatedAt: input.CreatedAt,
-			UpdatedAt: input.UpdatedAt,
-			DeletedAt: input.DeletedAt,
-		},
-		ID: input.ID,
-	}
 }
