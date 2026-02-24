@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 env:
-  DAGGER_VERSION: 0.18.14
+  DAGGER_VERSION: 0.19.11
 
 jobs:
   artifacts:
@@ -43,7 +43,7 @@ jobs:
           persist-credentials: false
 
       - name: Run pipeline
-        uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
+        uses: dagger/dagger-for-github@456fc3af63a2ba6f9789af9c55045b459115541b # v8.3.0
         with:
           verb: call
           args: release --version ${{ github.ref_name }} --github-actor ${{ github.actor }} --github-token env:GITHUB_TOKEN --pypi-token env:PYPI_TOKEN --npm-token env:NPM_TOKEN

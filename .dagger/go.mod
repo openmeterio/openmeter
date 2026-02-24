@@ -1,6 +1,6 @@
 module github.com/openmeterio/openmeter/.dagger
 
-go 1.23.2
+go 1.24.0
 
 require (
 	github.com/99designs/gqlgen v0.17.70
