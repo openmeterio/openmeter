@@ -44,6 +44,7 @@ type customerSubjectHook struct {
 	NoopCustomerSubjectHook
 
 	provisioner *SubjectProvisioner
+	service     subject.Service
 	logger      *slog.Logger
 	tracer      trace.Tracer
 }
@@ -78,6 +79,62 @@ func (s customerSubjectHook) PostUpdate(ctx context.Context, cus *customer.Custo
 	return err
 }
 
+func (s customerSubjectHook) PostDelete(ctx context.Context, cus *customer.Customer) error {
+	ctx, span := s.tracer.Start(ctx, "customer_subject_hook.pre_delete")
+	defer span.End()
+
+	if SkipSubjectCustomerFromContext(ctx) {
+		return nil
+	}
+
+	if cus == nil {
+		return errors.New("failed to delete subjects for customer: customer is nil")
+	}
+
+	if cus.UsageAttribution == nil {
+		return nil
+	}
+
+	if len(cus.UsageAttribution.SubjectKeys) == 0 {
+		return nil
+	}
+
+	for _, subKey := range cus.UsageAttribution.SubjectKeys {
+		sub, err := s.service.GetByIdOrKey(ctx, cus.Namespace, subKey)
+		if err != nil {
+			if models.IsGenericNotFoundError(err) {
+				continue
+			}
+
+			span.RecordError(err)
+			span.SetStatus(otelcodes.Error, err.Error())
+
+			return err
+		}
+
+		if sub.IsDeleted() {
+			continue
+		}
+
+		if err := s.service.Delete(ctx, models.NamespacedID{
+			Namespace: cus.Namespace,
+			ID:        sub.Id,
+		}); err != nil {
+			span.RecordError(err)
+			span.SetStatus(otelcodes.Error, err.Error())
+
+			return err
+		}
+
+		span.AddEvent("deleted subject", trace.WithAttributes(
+			attribute.String("subject.id", sub.Id),
+			attribute.String("subject.key", sub.Key),
+		))
+	}
+
+	return nil
+}
+
 func NewCustomerSubjectHook(config CustomerSubjectHookConfig) (CustomerSubjectHook, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid subject hook config: %w", err)
@@ -90,6 +147,7 @@ func NewCustomerSubjectHook(config CustomerSubjectHookConfig) (CustomerSubjectHo
 
 	return &customerSubjectHook{
 		provisioner: provisioner,
+		service:     config.Subject,
 		logger:      config.Logger.With("subsystem", "subject_customer_provisioner"),
 		tracer:      config.Tracer,
 	}, nil
