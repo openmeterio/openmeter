@@ -12,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // ChargeCreditPurchase is the model entity for the ChargeCreditPurchase schema.
@@ -22,8 +21,6 @@ type ChargeCreditPurchase struct {
 	ID string `json:"id,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
-	// Currency holds the value of the "currency" field.
-	Currency currencyx.Code `json:"currency,omitempty"`
 	// CreditAmount holds the value of the "credit_amount" field.
 	CreditAmount alpacadecimal.Decimal `json:"credit_amount,omitempty"`
 	// Settlement holds the value of the "settlement" field.
@@ -63,7 +60,7 @@ func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargecreditpurchase.FieldCreditAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldCurrency, chargecreditpurchase.FieldStatus:
+		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldStatus:
 			values[i] = new(sql.NullString)
 		case chargecreditpurchase.FieldSettlement:
 			values[i] = chargecreditpurchase.ValueScanner.Settlement.ScanValue()
@@ -93,12 +90,6 @@ func (_m *ChargeCreditPurchase) assignValues(columns []string, values []any) err
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
 				_m.Namespace = value.String
-			}
-		case chargecreditpurchase.FieldCurrency:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field currency", values[i])
-			} else if value.Valid {
-				_m.Currency = currencyx.Code(value.String)
 			}
 		case chargecreditpurchase.FieldCreditAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -161,9 +152,6 @@ func (_m *ChargeCreditPurchase) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
 	builder.WriteString(_m.Namespace)
-	builder.WriteString(", ")
-	builder.WriteString("currency=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
 	builder.WriteString(", ")
 	builder.WriteString("credit_amount=")
 	builder.WriteString(fmt.Sprintf("%v", _m.CreditAmount))

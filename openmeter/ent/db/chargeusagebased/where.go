@@ -251,16 +251,6 @@ func InvoiceAtLTE(v time.Time) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldLTE(FieldInvoiceAt, v))
 }
 
-// TaxConfigIsNil applies the IsNil predicate on the "tax_config" field.
-func TaxConfigIsNil() predicate.ChargeUsageBased {
-	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldTaxConfig))
-}
-
-// TaxConfigNotNil applies the NotNil predicate on the "tax_config" field.
-func TaxConfigNotNil() predicate.ChargeUsageBased {
-	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldTaxConfig))
-}
-
 // SettlementModeEQ applies the EQ predicate on the "settlement_mode" field.
 func SettlementModeEQ(v productcatalog.SettlementMode) predicate.ChargeUsageBased {
 	vc := v

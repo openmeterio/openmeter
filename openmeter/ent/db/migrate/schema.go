@@ -1595,10 +1595,9 @@ var (
 	ChargeCreditPurchasesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "namespace", Type: field.TypeString},
-		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "credit_amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "settlement", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"authorized", "settled"}},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"initiated", "authorized", "settled"}},
 	}
 	// ChargeCreditPurchasesTable holds the schema information for the "charge_credit_purchases" table.
 	ChargeCreditPurchasesTable = &schema.Table{
@@ -1677,7 +1676,6 @@ var (
 		{Name: "price", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "feature_key", Type: field.TypeString},
 		{Name: "invoice_at", Type: field.TypeTime},
-		{Name: "tax_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "settlement_mode", Type: field.TypeEnum, Enums: []string{"invoice_only", "credit_then_invoice", "credit_only"}},
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 	}

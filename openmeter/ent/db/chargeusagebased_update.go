@@ -64,18 +64,6 @@ func (_u *ChargeUsageBasedUpdate) SetNillableInvoiceAt(v *time.Time) *ChargeUsag
 	return _u
 }
 
-// SetTaxConfig sets the "tax_config" field.
-func (_u *ChargeUsageBasedUpdate) SetTaxConfig(v *productcatalog.TaxConfig) *ChargeUsageBasedUpdate {
-	_u.mutation.SetTaxConfig(v)
-	return _u
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (_u *ChargeUsageBasedUpdate) ClearTaxConfig() *ChargeUsageBasedUpdate {
-	_u.mutation.ClearTaxConfig()
-	return _u
-}
-
 // SetDiscounts sets the "discounts" field.
 func (_u *ChargeUsageBasedUpdate) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpdate {
 	_u.mutation.SetDiscounts(v)
@@ -149,11 +137,6 @@ func (_u *ChargeUsageBasedUpdate) check() error {
 			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.feature_key": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.tax_config": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.discounts": %w`, err)}
@@ -189,16 +172,6 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if value, ok := _u.mutation.InvoiceAt(); ok {
 		_spec.SetField(chargeusagebased.FieldInvoiceAt, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.TaxConfig(); ok {
-		vv, err := chargeusagebased.ValueScanner.TaxConfig.Value(value)
-		if err != nil {
-			return 0, err
-		}
-		_spec.SetField(chargeusagebased.FieldTaxConfig, field.TypeString, vv)
-	}
-	if _u.mutation.TaxConfigCleared() {
-		_spec.ClearField(chargeusagebased.FieldTaxConfig, field.TypeString)
 	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := chargeusagebased.ValueScanner.Discounts.Value(value)
@@ -293,18 +266,6 @@ func (_u *ChargeUsageBasedUpdateOne) SetNillableInvoiceAt(v *time.Time) *ChargeU
 	return _u
 }
 
-// SetTaxConfig sets the "tax_config" field.
-func (_u *ChargeUsageBasedUpdateOne) SetTaxConfig(v *productcatalog.TaxConfig) *ChargeUsageBasedUpdateOne {
-	_u.mutation.SetTaxConfig(v)
-	return _u
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (_u *ChargeUsageBasedUpdateOne) ClearTaxConfig() *ChargeUsageBasedUpdateOne {
-	_u.mutation.ClearTaxConfig()
-	return _u
-}
-
 // SetDiscounts sets the "discounts" field.
 func (_u *ChargeUsageBasedUpdateOne) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpdateOne {
 	_u.mutation.SetDiscounts(v)
@@ -391,11 +352,6 @@ func (_u *ChargeUsageBasedUpdateOne) check() error {
 			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.feature_key": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.tax_config": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.discounts": %w`, err)}
@@ -448,16 +404,6 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	}
 	if value, ok := _u.mutation.InvoiceAt(); ok {
 		_spec.SetField(chargeusagebased.FieldInvoiceAt, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.TaxConfig(); ok {
-		vv, err := chargeusagebased.ValueScanner.TaxConfig.Value(value)
-		if err != nil {
-			return nil, err
-		}
-		_spec.SetField(chargeusagebased.FieldTaxConfig, field.TypeString, vv)
-	}
-	if _u.mutation.TaxConfigCleared() {
-		_spec.ClearField(chargeusagebased.FieldTaxConfig, field.TypeString)
 	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := chargeusagebased.ValueScanner.Discounts.Value(value)

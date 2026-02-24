@@ -35892,7 +35892,6 @@ type ChargeCreditPurchaseMutation struct {
 	typ           string
 	id            *string
 	namespace     *string
-	currency      *currencyx.Code
 	credit_amount *alpacadecimal.Decimal
 	settlement    *charges.CreditPurchaseSettlement
 	status        *charges.PaymentSettlementStatus
@@ -36042,42 +36041,6 @@ func (m *ChargeCreditPurchaseMutation) OldNamespace(ctx context.Context) (v stri
 // ResetNamespace resets all changes to the "namespace" field.
 func (m *ChargeCreditPurchaseMutation) ResetNamespace() {
 	m.namespace = nil
-}
-
-// SetCurrency sets the "currency" field.
-func (m *ChargeCreditPurchaseMutation) SetCurrency(c currencyx.Code) {
-	m.currency = &c
-}
-
-// Currency returns the value of the "currency" field in the mutation.
-func (m *ChargeCreditPurchaseMutation) Currency() (r currencyx.Code, exists bool) {
-	v := m.currency
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCurrency returns the old "currency" field's value of the ChargeCreditPurchase entity.
-// If the ChargeCreditPurchase object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeCreditPurchaseMutation) OldCurrency(ctx context.Context) (v currencyx.Code, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCurrency is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCurrency requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCurrency: %w", err)
-	}
-	return oldValue.Currency, nil
-}
-
-// ResetCurrency resets all changes to the "currency" field.
-func (m *ChargeCreditPurchaseMutation) ResetCurrency() {
-	m.currency = nil
 }
 
 // SetCreditAmount sets the "credit_amount" field.
@@ -36261,12 +36224,9 @@ func (m *ChargeCreditPurchaseMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeCreditPurchaseMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 4)
 	if m.namespace != nil {
 		fields = append(fields, chargecreditpurchase.FieldNamespace)
-	}
-	if m.currency != nil {
-		fields = append(fields, chargecreditpurchase.FieldCurrency)
 	}
 	if m.credit_amount != nil {
 		fields = append(fields, chargecreditpurchase.FieldCreditAmount)
@@ -36287,8 +36247,6 @@ func (m *ChargeCreditPurchaseMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case chargecreditpurchase.FieldNamespace:
 		return m.Namespace()
-	case chargecreditpurchase.FieldCurrency:
-		return m.Currency()
 	case chargecreditpurchase.FieldCreditAmount:
 		return m.CreditAmount()
 	case chargecreditpurchase.FieldSettlement:
@@ -36306,8 +36264,6 @@ func (m *ChargeCreditPurchaseMutation) OldField(ctx context.Context, name string
 	switch name {
 	case chargecreditpurchase.FieldNamespace:
 		return m.OldNamespace(ctx)
-	case chargecreditpurchase.FieldCurrency:
-		return m.OldCurrency(ctx)
 	case chargecreditpurchase.FieldCreditAmount:
 		return m.OldCreditAmount(ctx)
 	case chargecreditpurchase.FieldSettlement:
@@ -36329,13 +36285,6 @@ func (m *ChargeCreditPurchaseMutation) SetField(name string, value ent.Value) er
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNamespace(v)
-		return nil
-	case chargecreditpurchase.FieldCurrency:
-		v, ok := value.(currencyx.Code)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCurrency(v)
 		return nil
 	case chargecreditpurchase.FieldCreditAmount:
 		v, ok := value.(alpacadecimal.Decimal)
@@ -36409,9 +36358,6 @@ func (m *ChargeCreditPurchaseMutation) ResetField(name string) error {
 	switch name {
 	case chargecreditpurchase.FieldNamespace:
 		m.ResetNamespace()
-		return nil
-	case chargecreditpurchase.FieldCurrency:
-		m.ResetCurrency()
 		return nil
 	case chargecreditpurchase.FieldCreditAmount:
 		m.ResetCreditAmount()
@@ -37382,7 +37328,6 @@ type ChargeUsageBasedMutation struct {
 	price           **productcatalog.Price
 	feature_key     *string
 	invoice_at      *time.Time
-	tax_config      **productcatalog.TaxConfig
 	settlement_mode *productcatalog.SettlementMode
 	discounts       **productcatalog.Discounts
 	clearedFields   map[string]struct{}
@@ -37641,55 +37586,6 @@ func (m *ChargeUsageBasedMutation) ResetInvoiceAt() {
 	m.invoice_at = nil
 }
 
-// SetTaxConfig sets the "tax_config" field.
-func (m *ChargeUsageBasedMutation) SetTaxConfig(pc *productcatalog.TaxConfig) {
-	m.tax_config = &pc
-}
-
-// TaxConfig returns the value of the "tax_config" field in the mutation.
-func (m *ChargeUsageBasedMutation) TaxConfig() (r *productcatalog.TaxConfig, exists bool) {
-	v := m.tax_config
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxConfig returns the old "tax_config" field's value of the ChargeUsageBased entity.
-// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldTaxConfig(ctx context.Context) (v *productcatalog.TaxConfig, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxConfig is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxConfig requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxConfig: %w", err)
-	}
-	return oldValue.TaxConfig, nil
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (m *ChargeUsageBasedMutation) ClearTaxConfig() {
-	m.tax_config = nil
-	m.clearedFields[chargeusagebased.FieldTaxConfig] = struct{}{}
-}
-
-// TaxConfigCleared returns if the "tax_config" field was cleared in this mutation.
-func (m *ChargeUsageBasedMutation) TaxConfigCleared() bool {
-	_, ok := m.clearedFields[chargeusagebased.FieldTaxConfig]
-	return ok
-}
-
-// ResetTaxConfig resets all changes to the "tax_config" field.
-func (m *ChargeUsageBasedMutation) ResetTaxConfig() {
-	m.tax_config = nil
-	delete(m.clearedFields, chargeusagebased.FieldTaxConfig)
-}
-
 // SetSettlementMode sets the "settlement_mode" field.
 func (m *ChargeUsageBasedMutation) SetSettlementMode(pm productcatalog.SettlementMode) {
 	m.settlement_mode = &pm
@@ -37848,7 +37744,7 @@ func (m *ChargeUsageBasedMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 6)
 	if m.namespace != nil {
 		fields = append(fields, chargeusagebased.FieldNamespace)
 	}
@@ -37860,9 +37756,6 @@ func (m *ChargeUsageBasedMutation) Fields() []string {
 	}
 	if m.invoice_at != nil {
 		fields = append(fields, chargeusagebased.FieldInvoiceAt)
-	}
-	if m.tax_config != nil {
-		fields = append(fields, chargeusagebased.FieldTaxConfig)
 	}
 	if m.settlement_mode != nil {
 		fields = append(fields, chargeusagebased.FieldSettlementMode)
@@ -37886,8 +37779,6 @@ func (m *ChargeUsageBasedMutation) Field(name string) (ent.Value, bool) {
 		return m.FeatureKey()
 	case chargeusagebased.FieldInvoiceAt:
 		return m.InvoiceAt()
-	case chargeusagebased.FieldTaxConfig:
-		return m.TaxConfig()
 	case chargeusagebased.FieldSettlementMode:
 		return m.SettlementMode()
 	case chargeusagebased.FieldDiscounts:
@@ -37909,8 +37800,6 @@ func (m *ChargeUsageBasedMutation) OldField(ctx context.Context, name string) (e
 		return m.OldFeatureKey(ctx)
 	case chargeusagebased.FieldInvoiceAt:
 		return m.OldInvoiceAt(ctx)
-	case chargeusagebased.FieldTaxConfig:
-		return m.OldTaxConfig(ctx)
 	case chargeusagebased.FieldSettlementMode:
 		return m.OldSettlementMode(ctx)
 	case chargeusagebased.FieldDiscounts:
@@ -37951,13 +37840,6 @@ func (m *ChargeUsageBasedMutation) SetField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetInvoiceAt(v)
-		return nil
-	case chargeusagebased.FieldTaxConfig:
-		v, ok := value.(*productcatalog.TaxConfig)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxConfig(v)
 		return nil
 	case chargeusagebased.FieldSettlementMode:
 		v, ok := value.(productcatalog.SettlementMode)
@@ -38003,9 +37885,6 @@ func (m *ChargeUsageBasedMutation) AddField(name string, value ent.Value) error 
 // mutation.
 func (m *ChargeUsageBasedMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(chargeusagebased.FieldTaxConfig) {
-		fields = append(fields, chargeusagebased.FieldTaxConfig)
-	}
 	if m.FieldCleared(chargeusagebased.FieldDiscounts) {
 		fields = append(fields, chargeusagebased.FieldDiscounts)
 	}
@@ -38023,9 +37902,6 @@ func (m *ChargeUsageBasedMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *ChargeUsageBasedMutation) ClearField(name string) error {
 	switch name {
-	case chargeusagebased.FieldTaxConfig:
-		m.ClearTaxConfig()
-		return nil
 	case chargeusagebased.FieldDiscounts:
 		m.ClearDiscounts()
 		return nil
@@ -38048,9 +37924,6 @@ func (m *ChargeUsageBasedMutation) ResetField(name string) error {
 		return nil
 	case chargeusagebased.FieldInvoiceAt:
 		m.ResetInvoiceAt()
-		return nil
-	case chargeusagebased.FieldTaxConfig:
-		m.ResetTaxConfig()
 		return nil
 	case chargeusagebased.FieldSettlementMode:
 		m.ResetSettlementMode()

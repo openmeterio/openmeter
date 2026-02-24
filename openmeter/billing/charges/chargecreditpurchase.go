@@ -40,10 +40,10 @@ func (c CreditPurchaseCharge) Validate() error {
 	return errors.Join(errs...)
 }
 
-func (c *CreditPurchaseCharge) AsCharge() Charge {
+func (c CreditPurchaseCharge) AsCharge() Charge {
 	return Charge{
 		t:              ChargeTypeCreditPurchase,
-		creditPurchase: c,
+		creditPurchase: &c,
 	}
 }
 
@@ -58,7 +58,6 @@ func (c CreditPurchaseCharge) GetStatus() ChargeStatus                    { retu
 type CreditPurchaseIntent struct {
 	IntentMeta
 
-	Currency     currencyx.Code        `json:"currency"`
 	CreditAmount alpacadecimal.Decimal `json:"amount"`
 
 	// Settlement intent
@@ -72,18 +71,12 @@ func (i CreditPurchaseIntent) Validate() error {
 		errs = append(errs, fmt.Errorf("intent meta: %w", err))
 	}
 
-	if err := i.Currency.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("currency: %w", err))
-	}
-
-	if i.TaxConfig != nil {
-		if err := i.TaxConfig.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("tax config: %w", err))
-		}
-	}
-
 	if !i.CreditAmount.IsPositive() {
 		errs = append(errs, fmt.Errorf("credit amount must be positive"))
+	}
+
+	if err := i.Settlement.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("settlement: %w", err))
 	}
 
 	return errors.Join(errs...)
@@ -126,7 +119,7 @@ func (s GenericCreditPurchaseSettlement) Validate() error {
 	}
 
 	if s.CostBasis.IsNegative() {
-		errs = append(errs, fmt.Errorf("cost basis must be positive"))
+		errs = append(errs, fmt.Errorf("cost basis must be zero or positive"))
 	}
 
 	if s.TaxConfig != nil {
@@ -169,6 +162,7 @@ func (s PaymentSettlementStatus) Validate() error {
 
 func (s PaymentSettlementStatus) Values() []string {
 	return []string{
+		string(InitiatedPaymentSettlementStatus),
 		string(AuthorizedPaymentSettlementStatus),
 		string(SettledPaymentSettlementStatus),
 	}
@@ -309,37 +303,35 @@ func (s CreditPurchaseSettlement) Type() CreditPurchaseSettlementType {
 }
 
 func (s CreditPurchaseSettlement) Validate() error {
-	var errs []error
-
 	switch s.t {
 	case CreditPurchaseSettlementTypeInvoice:
 		if s.invoice == nil {
-			errs = append(errs, fmt.Errorf("invoice is required"))
+			return fmt.Errorf("invoice is required")
 		}
 
 		if err := s.invoice.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invoice: %w", err))
+			return fmt.Errorf("invoice: %w", err)
 		}
 	case CreditPurchaseSettlementTypeExternal:
 		if s.external == nil {
-			errs = append(errs, fmt.Errorf("external is required"))
+			return fmt.Errorf("external is required")
 		}
 
 		if err := s.external.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("external: %w", err))
+			return fmt.Errorf("external: %w", err)
 		}
 	case CreditPurchaseSettlementTypePromotional:
 		if s.promotional == nil {
-			errs = append(errs, fmt.Errorf("promotional is required"))
+			return fmt.Errorf("promotional is required")
 		}
 
 		if err := s.promotional.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("promotional: %w", err))
+			return fmt.Errorf("promotional: %w", err)
 		}
 	default:
-		errs = append(errs, fmt.Errorf("invalid credit purchase settlement type: %s", s.t))
+		return fmt.Errorf("invalid credit purchase settlement type: %s", s.t)
 	}
-	return errors.Join(errs...)
+	return nil
 }
 
 func (s CreditPurchaseSettlement) AsInvoiceCreditPurchaseSettlement() (InvoiceCreditPurchaseSettlement, error) {

@@ -93,7 +93,6 @@ func MapUsageBasedChargeFromDB(entity *entdb.Charge) (charges.UsageBasedCharge, 
 			FeatureKey:     ub.FeatureKey,
 			InvoiceAt:      ub.InvoiceAt.UTC(),
 			SettlementMode: ub.SettlementMode,
-			TaxConfig:      ub.TaxConfig,
 			Discounts:      ub.Discounts,
 		},
 		State: charges.UsageBasedState{},
@@ -113,7 +112,6 @@ func MapCreditPurchaseChargeFromDB(entity *entdb.Charge) (charges.CreditPurchase
 		Status:          entity.Status,
 		Intent: charges.CreditPurchaseIntent{
 			IntentMeta:   mapIntentMetaFromDB(entity),
-			Currency:     cp.Currency,
 			CreditAmount: cp.CreditAmount,
 			Settlement:   cp.Settlement,
 		},
@@ -177,7 +175,7 @@ func mapSubscriptionRefFromDB(entity *entdb.Charge) *charges.SubscriptionReferen
 // proRatingConfigFromDB converts a DB ProRatingModeAdapterEnum to a ProRatingConfig.
 func proRatingConfigFromDB(pr charges.ProRatingModeAdapterEnum) productcatalog.ProRatingConfig {
 	switch pr {
-	case charges.ProRatingAdapterModeEnumProratePrices:
+	case charges.ProratePricesProratingAdapterMode:
 		return productcatalog.ProRatingConfig{
 			Enabled: true,
 			Mode:    productcatalog.ProRatingModeProratePrices,
@@ -193,11 +191,11 @@ func proRatingConfigFromDB(pr charges.ProRatingModeAdapterEnum) productcatalog.P
 // proRatingConfigToDB converts a ProRatingConfig to a DB ProRatingModeAdapterEnum.
 func proRatingConfigToDB(pc productcatalog.ProRatingConfig) (charges.ProRatingModeAdapterEnum, error) {
 	if !pc.Enabled {
-		return charges.ProRatingAdapterModeEnumNoProrate, nil
+		return charges.NoProratingAdapterMode, nil
 	}
 
 	if pc.Mode == productcatalog.ProRatingModeProratePrices {
-		return charges.ProRatingAdapterModeEnumProratePrices, nil
+		return charges.ProratePricesProratingAdapterMode, nil
 	}
 
 	return "", fmt.Errorf("invalid pro rating mode: %s", pc.Mode)

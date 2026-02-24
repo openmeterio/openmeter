@@ -2186,20 +2186,6 @@ func (u *ChargeFlatFeeUpdateOne) SetOrClearFeatureKey(value *string) *ChargeFlat
 	return u.SetFeatureKey(*value)
 }
 
-func (u *ChargeUsageBasedUpdate) SetOrClearTaxConfig(value **productcatalog.TaxConfig) *ChargeUsageBasedUpdate {
-	if value == nil {
-		return u.ClearTaxConfig()
-	}
-	return u.SetTaxConfig(*value)
-}
-
-func (u *ChargeUsageBasedUpdateOne) SetOrClearTaxConfig(value **productcatalog.TaxConfig) *ChargeUsageBasedUpdateOne {
-	if value == nil {
-		return u.ClearTaxConfig()
-	}
-	return u.SetTaxConfig(*value)
-}
-
 func (u *ChargeUsageBasedUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *ChargeUsageBasedUpdate {
 	if value == nil {
 		return u.ClearDiscounts()

@@ -18,8 +18,6 @@ const (
 	FieldID = "id"
 	// FieldNamespace holds the string denoting the namespace field in the database.
 	FieldNamespace = "namespace"
-	// FieldCurrency holds the string denoting the currency field in the database.
-	FieldCurrency = "currency"
 	// FieldCreditAmount holds the string denoting the credit_amount field in the database.
 	FieldCreditAmount = "credit_amount"
 	// FieldSettlement holds the string denoting the settlement field in the database.
@@ -43,7 +41,6 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldNamespace,
-	FieldCurrency,
 	FieldCreditAmount,
 	FieldSettlement,
 	FieldStatus,
@@ -62,8 +59,6 @@ func ValidColumn(column string) bool {
 var (
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	NamespaceValidator func(string) error
-	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	CurrencyValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all ChargeCreditPurchase fields.
@@ -75,7 +70,7 @@ var (
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s charges.PaymentSettlementStatus) error {
 	switch s {
-	case "authorized", "settled":
+	case "initiated", "authorized", "settled":
 		return nil
 	default:
 		return fmt.Errorf("chargecreditpurchase: invalid enum value for status field: %q", s)
@@ -93,11 +88,6 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByNamespace orders the results by the namespace field.
 func ByNamespace(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNamespace, opts...).ToFunc()
-}
-
-// ByCurrency orders the results by the currency field.
-func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
 }
 
 // ByCreditAmount orders the results by the credit_amount field.

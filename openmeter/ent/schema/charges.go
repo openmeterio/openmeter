@@ -164,15 +164,6 @@ func (ChargeUsageBased) Fields() []ent.Field {
 
 		field.Time("invoice_at"),
 
-		field.String("tax_config").
-			GoType(&productcatalog.TaxConfig{}).
-			ValueScanner(TaxConfigValueScanner).
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}).
-			Optional().
-			Nillable(),
-
 		field.Enum("settlement_mode").
 			GoType(productcatalog.SettlementMode("")).
 			Immutable(),
@@ -288,15 +279,6 @@ func (ChargeCreditPurchase) Mixin() []ent.Mixin {
 func (ChargeCreditPurchase) Fields() []ent.Field {
 	return []ent.Field{
 		// Intent fields
-
-		field.String("currency").
-			GoType(currencyx.Code("")).
-			NotEmpty().
-			Immutable().
-			SchemaType(map[string]string{
-				dialect.Postgres: "varchar(3)",
-			}),
-
 		field.Other("credit_amount", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",

@@ -152,7 +152,6 @@ func (s *ChargesAdapterTestSuite) TestCreateAndGetCreditPurchaseCharge() {
 		Status:          charges.ChargeStatusActive,
 		Intent: charges.CreditPurchaseIntent{
 			IntentMeta:   newIntentMeta(customer.ID, periodStart, periodEnd),
-			Currency:     currencyx.Code(currency.USD),
 			CreditAmount: alpacadecimal.NewFromFloat(100),
 			Settlement:   settlement,
 		},

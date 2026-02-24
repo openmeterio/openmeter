@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -182,9 +183,23 @@ func (c Charges) Validate() error {
 
 	for i, ch := range c {
 		if err := ch.Validate(); err != nil {
-			errs = append(errs, ErrChargeInvalid.WithAttr("index", i).WithAttr("error", err.Error()))
+			errs = append(errs, fmt.Errorf("charge [%d]: %w", i, err))
 		}
 	}
 
 	return errors.Join(errs...)
+}
+
+type ProRatingModeAdapterEnum string
+
+const (
+	ProratePricesProratingAdapterMode ProRatingModeAdapterEnum = ProRatingModeAdapterEnum(productcatalog.ProRatingModeProratePrices)
+	NoProratingAdapterMode            ProRatingModeAdapterEnum = "no_prorate"
+)
+
+func (e ProRatingModeAdapterEnum) Values() []string {
+	return []string{
+		string(ProratePricesProratingAdapterMode),
+		string(NoProratingAdapterMode),
+	}
 }

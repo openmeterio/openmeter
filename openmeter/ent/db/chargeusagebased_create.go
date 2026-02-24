@@ -49,12 +49,6 @@ func (_c *ChargeUsageBasedCreate) SetInvoiceAt(v time.Time) *ChargeUsageBasedCre
 	return _c
 }
 
-// SetTaxConfig sets the "tax_config" field.
-func (_c *ChargeUsageBasedCreate) SetTaxConfig(v *productcatalog.TaxConfig) *ChargeUsageBasedCreate {
-	_c.mutation.SetTaxConfig(v)
-	return _c
-}
-
 // SetSettlementMode sets the "settlement_mode" field.
 func (_c *ChargeUsageBasedCreate) SetSettlementMode(v productcatalog.SettlementMode) *ChargeUsageBasedCreate {
 	_c.mutation.SetSettlementMode(v)
@@ -162,11 +156,6 @@ func (_c *ChargeUsageBasedCreate) check() error {
 	if _, ok := _c.mutation.InvoiceAt(); !ok {
 		return &ValidationError{Name: "invoice_at", err: errors.New(`db: missing required field "ChargeUsageBased.invoice_at"`)}
 	}
-	if v, ok := _c.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.tax_config": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.SettlementMode(); !ok {
 		return &ValidationError{Name: "settlement_mode", err: errors.New(`db: missing required field "ChargeUsageBased.settlement_mode"`)}
 	}
@@ -241,14 +230,6 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 	if value, ok := _c.mutation.InvoiceAt(); ok {
 		_spec.SetField(chargeusagebased.FieldInvoiceAt, field.TypeTime, value)
 		_node.InvoiceAt = value
-	}
-	if value, ok := _c.mutation.TaxConfig(); ok {
-		vv, err := chargeusagebased.ValueScanner.TaxConfig.Value(value)
-		if err != nil {
-			return nil, nil, err
-		}
-		_spec.SetField(chargeusagebased.FieldTaxConfig, field.TypeString, vv)
-		_node.TaxConfig = value
 	}
 	if value, ok := _c.mutation.SettlementMode(); ok {
 		_spec.SetField(chargeusagebased.FieldSettlementMode, field.TypeEnum, value)
@@ -367,24 +348,6 @@ func (u *ChargeUsageBasedUpsert) UpdateInvoiceAt() *ChargeUsageBasedUpsert {
 	return u
 }
 
-// SetTaxConfig sets the "tax_config" field.
-func (u *ChargeUsageBasedUpsert) SetTaxConfig(v *productcatalog.TaxConfig) *ChargeUsageBasedUpsert {
-	u.Set(chargeusagebased.FieldTaxConfig, v)
-	return u
-}
-
-// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsert) UpdateTaxConfig() *ChargeUsageBasedUpsert {
-	u.SetExcluded(chargeusagebased.FieldTaxConfig)
-	return u
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (u *ChargeUsageBasedUpsert) ClearTaxConfig() *ChargeUsageBasedUpsert {
-	u.SetNull(chargeusagebased.FieldTaxConfig)
-	return u
-}
-
 // SetDiscounts sets the "discounts" field.
 func (u *ChargeUsageBasedUpsert) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpsert {
 	u.Set(chargeusagebased.FieldDiscounts, v)
@@ -496,27 +459,6 @@ func (u *ChargeUsageBasedUpsertOne) SetInvoiceAt(v time.Time) *ChargeUsageBasedU
 func (u *ChargeUsageBasedUpsertOne) UpdateInvoiceAt() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateInvoiceAt()
-	})
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (u *ChargeUsageBasedUpsertOne) SetTaxConfig(v *productcatalog.TaxConfig) *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.SetTaxConfig(v)
-	})
-}
-
-// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsertOne) UpdateTaxConfig() *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.UpdateTaxConfig()
-	})
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (u *ChargeUsageBasedUpsertOne) ClearTaxConfig() *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.ClearTaxConfig()
 	})
 }
 
@@ -804,27 +746,6 @@ func (u *ChargeUsageBasedUpsertBulk) SetInvoiceAt(v time.Time) *ChargeUsageBased
 func (u *ChargeUsageBasedUpsertBulk) UpdateInvoiceAt() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateInvoiceAt()
-	})
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (u *ChargeUsageBasedUpsertBulk) SetTaxConfig(v *productcatalog.TaxConfig) *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.SetTaxConfig(v)
-	})
-}
-
-// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsertBulk) UpdateTaxConfig() *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.UpdateTaxConfig()
-	})
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (u *ChargeUsageBasedUpsertBulk) ClearTaxConfig() *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.ClearTaxConfig()
 	})
 }
 

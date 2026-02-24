@@ -925,12 +925,8 @@ func init() {
 	chargecreditpurchaseDescNamespace := chargecreditpurchaseMixinFields0[0].Descriptor()
 	// chargecreditpurchase.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	chargecreditpurchase.NamespaceValidator = chargecreditpurchaseDescNamespace.Validators[0].(func(string) error)
-	// chargecreditpurchaseDescCurrency is the schema descriptor for currency field.
-	chargecreditpurchaseDescCurrency := chargecreditpurchaseFields[0].Descriptor()
-	// chargecreditpurchase.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	chargecreditpurchase.CurrencyValidator = chargecreditpurchaseDescCurrency.Validators[0].(func(string) error)
 	// chargecreditpurchaseDescSettlement is the schema descriptor for settlement field.
-	chargecreditpurchaseDescSettlement := chargecreditpurchaseFields[2].Descriptor()
+	chargecreditpurchaseDescSettlement := chargecreditpurchaseFields[1].Descriptor()
 	chargecreditpurchase.ValueScanner.Settlement = chargecreditpurchaseDescSettlement.ValueScanner.(field.TypeValueScanner[charges.CreditPurchaseSettlement])
 	// chargecreditpurchaseDescID is the schema descriptor for id field.
 	chargecreditpurchaseDescID := chargecreditpurchaseMixinFields1[0].Descriptor()
@@ -980,11 +976,8 @@ func init() {
 	chargeusagebasedDescFeatureKey := chargeusagebasedFields[1].Descriptor()
 	// chargeusagebased.FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
 	chargeusagebased.FeatureKeyValidator = chargeusagebasedDescFeatureKey.Validators[0].(func(string) error)
-	// chargeusagebasedDescTaxConfig is the schema descriptor for tax_config field.
-	chargeusagebasedDescTaxConfig := chargeusagebasedFields[3].Descriptor()
-	chargeusagebased.ValueScanner.TaxConfig = chargeusagebasedDescTaxConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.TaxConfig])
 	// chargeusagebasedDescDiscounts is the schema descriptor for discounts field.
-	chargeusagebasedDescDiscounts := chargeusagebasedFields[5].Descriptor()
+	chargeusagebasedDescDiscounts := chargeusagebasedFields[4].Descriptor()
 	chargeusagebased.ValueScanner.Discounts = chargeusagebasedDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// chargeusagebasedDescID is the schema descriptor for id field.
 	chargeusagebasedDescID := chargeusagebasedMixinFields1[0].Descriptor()

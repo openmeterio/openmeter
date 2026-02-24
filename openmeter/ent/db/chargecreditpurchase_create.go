@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // ChargeCreditPurchaseCreate is the builder for creating a ChargeCreditPurchase entity.
@@ -29,12 +28,6 @@ type ChargeCreditPurchaseCreate struct {
 // SetNamespace sets the "namespace" field.
 func (_c *ChargeCreditPurchaseCreate) SetNamespace(v string) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetNamespace(v)
-	return _c
-}
-
-// SetCurrency sets the "currency" field.
-func (_c *ChargeCreditPurchaseCreate) SetCurrency(v currencyx.Code) *ChargeCreditPurchaseCreate {
-	_c.mutation.SetCurrency(v)
 	return _c
 }
 
@@ -132,14 +125,6 @@ func (_c *ChargeCreditPurchaseCreate) check() error {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.namespace": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.Currency(); !ok {
-		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "ChargeCreditPurchase.currency"`)}
-	}
-	if v, ok := _c.mutation.Currency(); ok {
-		if err := chargecreditpurchase.CurrencyValidator(string(v)); err != nil {
-			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.currency": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.CreditAmount(); !ok {
 		return &ValidationError{Name: "credit_amount", err: errors.New(`db: missing required field "ChargeCreditPurchase.credit_amount"`)}
 	}
@@ -204,10 +189,6 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(chargecreditpurchase.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
-	}
-	if value, ok := _c.mutation.Currency(); ok {
-		_spec.SetField(chargecreditpurchase.FieldCurrency, field.TypeString, value)
-		_node.Currency = value
 	}
 	if value, ok := _c.mutation.CreditAmount(); ok {
 		_spec.SetField(chargecreditpurchase.FieldCreditAmount, field.TypeOther, value)
@@ -349,9 +330,6 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateNewValues() *ChargeCreditPurchaseU
 		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldNamespace)
-		}
-		if _, exists := u.create.mutation.Currency(); exists {
-			s.SetIgnore(chargecreditpurchase.FieldCurrency)
 		}
 	}))
 	return u
@@ -614,9 +592,6 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateNewValues() *ChargeCreditPurchase
 			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldNamespace)
-			}
-			if _, exists := b.mutation.Currency(); exists {
-				s.SetIgnore(chargecreditpurchase.FieldCurrency)
 			}
 		}
 	}))

@@ -24,8 +24,6 @@ const (
 	FieldFeatureKey = "feature_key"
 	// FieldInvoiceAt holds the string denoting the invoice_at field in the database.
 	FieldInvoiceAt = "invoice_at"
-	// FieldTaxConfig holds the string denoting the tax_config field in the database.
-	FieldTaxConfig = "tax_config"
 	// FieldSettlementMode holds the string denoting the settlement_mode field in the database.
 	FieldSettlementMode = "settlement_mode"
 	// FieldDiscounts holds the string denoting the discounts field in the database.
@@ -50,7 +48,6 @@ var Columns = []string{
 	FieldPrice,
 	FieldFeatureKey,
 	FieldInvoiceAt,
-	FieldTaxConfig,
 	FieldSettlementMode,
 	FieldDiscounts,
 }
@@ -75,7 +72,6 @@ var (
 	// ValueScanner of all ChargeUsageBased fields.
 	ValueScanner struct {
 		Price     field.TypeValueScanner[*productcatalog.Price]
-		TaxConfig field.TypeValueScanner[*productcatalog.TaxConfig]
 		Discounts field.TypeValueScanner[*productcatalog.Discounts]
 	}
 )
@@ -116,11 +112,6 @@ func ByFeatureKey(opts ...sql.OrderTermOption) OrderOption {
 // ByInvoiceAt orders the results by the invoice_at field.
 func ByInvoiceAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceAt, opts...).ToFunc()
-}
-
-// ByTaxConfig orders the results by the tax_config field.
-func ByTaxConfig(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTaxConfig, opts...).ToFunc()
 }
 
 // BySettlementMode orders the results by the settlement_mode field.

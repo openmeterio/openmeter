@@ -235,10 +235,6 @@ func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, in charges.Us
 		SetInvoiceAt(in.Intent.InvoiceAt).
 		SetSettlementMode(in.Intent.SettlementMode)
 
-	if in.Intent.TaxConfig != nil {
-		create = create.SetTaxConfig(in.Intent.TaxConfig)
-	}
-
 	if in.Intent.Discounts != nil {
 		create = create.SetDiscounts(in.Intent.Discounts)
 	}
@@ -251,7 +247,6 @@ func (a *adapter) buildCreateCreditPurchaseCharge(_ context.Context, in charges.
 		SetID(in.ID).
 		SetChargeID(in.ID).
 		SetNamespace(in.Namespace).
-		SetCurrency(in.Intent.Currency).
 		SetCreditAmount(in.Intent.CreditAmount).
 		SetSettlement(in.Intent.Settlement).
 		SetStatus(in.State.Status)

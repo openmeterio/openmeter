@@ -27,8 +27,6 @@ type ChargeUsageBased struct {
 	FeatureKey string `json:"feature_key,omitempty"`
 	// InvoiceAt holds the value of the "invoice_at" field.
 	InvoiceAt time.Time `json:"invoice_at,omitempty"`
-	// TaxConfig holds the value of the "tax_config" field.
-	TaxConfig *productcatalog.TaxConfig `json:"tax_config,omitempty"`
 	// SettlementMode holds the value of the "settlement_mode" field.
 	SettlementMode productcatalog.SettlementMode `json:"settlement_mode,omitempty"`
 	// Discounts holds the value of the "discounts" field.
@@ -70,8 +68,6 @@ func (*ChargeUsageBased) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullTime)
 		case chargeusagebased.FieldPrice:
 			values[i] = chargeusagebased.ValueScanner.Price.ScanValue()
-		case chargeusagebased.FieldTaxConfig:
-			values[i] = chargeusagebased.ValueScanner.TaxConfig.ScanValue()
 		case chargeusagebased.FieldDiscounts:
 			values[i] = chargeusagebased.ValueScanner.Discounts.ScanValue()
 		default:
@@ -118,12 +114,6 @@ func (_m *ChargeUsageBased) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field invoice_at", values[i])
 			} else if value.Valid {
 				_m.InvoiceAt = value.Time
-			}
-		case chargeusagebased.FieldTaxConfig:
-			if value, err := chargeusagebased.ValueScanner.TaxConfig.FromValue(values[i]); err != nil {
-				return err
-			} else {
-				_m.TaxConfig = value
 			}
 		case chargeusagebased.FieldSettlementMode:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -189,11 +179,6 @@ func (_m *ChargeUsageBased) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("invoice_at=")
 	builder.WriteString(_m.InvoiceAt.Format(time.ANSIC))
-	builder.WriteString(", ")
-	if v := _m.TaxConfig; v != nil {
-		builder.WriteString("tax_config=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
 	builder.WriteString(", ")
 	builder.WriteString("settlement_mode=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SettlementMode))

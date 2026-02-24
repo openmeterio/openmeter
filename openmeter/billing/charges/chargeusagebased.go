@@ -27,7 +27,7 @@ func (c UsageBasedCharge) Validate() error {
 	}
 
 	if err := c.State.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("status: %w", err))
+		errs = append(errs, fmt.Errorf("state: %w", err))
 	}
 
 	if err := c.Status.Validate(); err != nil {
@@ -37,10 +37,10 @@ func (c UsageBasedCharge) Validate() error {
 	return errors.Join(errs...)
 }
 
-func (c *UsageBasedCharge) AsCharge() Charge {
+func (c UsageBasedCharge) AsCharge() Charge {
 	return Charge{
 		t:          ChargeTypeUsageBased,
-		usageBased: c,
+		usageBased: &c,
 	}
 }
 
@@ -59,7 +59,6 @@ type UsageBasedIntent struct {
 	FeatureKey     string                        `json:"featureKey,omitempty"`
 	InvoiceAt      time.Time                     `json:"invoiceAt"`
 	SettlementMode productcatalog.SettlementMode `json:"settlementMode"`
-	TaxConfig      *productcatalog.TaxConfig     `json:"taxConfig,omitempty"`
 
 	Discounts *productcatalog.Discounts `json:"rateCardDiscounts"`
 }
@@ -79,8 +78,10 @@ func (i UsageBasedIntent) Validate() error {
 		errs = append(errs, fmt.Errorf("price: %w", err))
 	}
 
-	if err := i.Discounts.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("discounts: %w", err))
+	if i.Discounts != nil {
+		if err := i.Discounts.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("discounts: %w", err))
+		}
 	}
 
 	if i.FeatureKey == "" {

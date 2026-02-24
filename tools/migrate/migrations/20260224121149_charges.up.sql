@@ -6,7 +6,6 @@ ALTER TABLE "billing_invoice_split_line_groups" ADD COLUMN "charge_id" character
 CREATE TABLE "charge_credit_purchases" (
   "id" character(26) NOT NULL,
   "namespace" character varying NOT NULL,
-  "currency" character varying(3) NOT NULL,
   "credit_amount" numeric NOT NULL,
   "settlement" jsonb NOT NULL,
   "status" character varying NOT NULL,
@@ -43,7 +42,6 @@ CREATE TABLE "charge_usage_baseds" (
   "price" jsonb NOT NULL,
   "feature_key" character varying NOT NULL,
   "invoice_at" timestamptz NOT NULL,
-  "tax_config" jsonb NULL,
   "settlement_mode" character varying NOT NULL,
   "discounts" jsonb NULL,
   PRIMARY KEY ("id")
