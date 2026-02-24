@@ -29,9 +29,17 @@ func (b *Balance) Pending() alpacadecimal.Decimal {
 	return b.pending
 }
 
+// SubAccountCreatorLister is used by account types to find-or-create sub-accounts
+// for a given set of dimensions.
+type SubAccountCreatorLister interface {
+	ListSubAccounts(ctx context.Context, input ListSubAccountsInput) ([]*SubAccount, error)
+	CreateSubAccount(ctx context.Context, input CreateSubAccountInput) (*SubAccount, error)
+}
+
 type AccountLiveServices struct {
-	Querier ledger.Querier
-	Locker  *lockr.Locker
+	Querier           ledger.Querier
+	Locker            *lockr.Locker
+	SubAccountService SubAccountCreatorLister
 }
 
 // AccountData is a simple data transfer object for the Account entity.
@@ -90,4 +98,9 @@ func (a *Account) GetBalance(ctx context.Context, query ledger.QueryDimensions) 
 
 func (a *Account) Type() ledger.AccountType {
 	return a.data.AccountType
+}
+
+// ID returns the namespaced identifier of this account.
+func (a *Account) ID() models.NamespacedID {
+	return a.data.ID
 }

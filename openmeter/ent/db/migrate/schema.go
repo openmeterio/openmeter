@@ -1874,6 +1874,45 @@ var (
 			},
 		},
 	}
+	// LedgerCustomerAccountsColumns holds the columns for the "ledger_customer_accounts" table.
+	LedgerCustomerAccountsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "customer_id", Type: field.TypeString},
+		{Name: "account_type", Type: field.TypeString},
+		{Name: "account_id", Type: field.TypeString},
+	}
+	// LedgerCustomerAccountsTable holds the schema information for the "ledger_customer_accounts" table.
+	LedgerCustomerAccountsTable = &schema.Table{
+		Name:       "ledger_customer_accounts",
+		Columns:    LedgerCustomerAccountsColumns,
+		PrimaryKey: []*schema.Column{LedgerCustomerAccountsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "ledgercustomeraccount_id",
+				Unique:  true,
+				Columns: []*schema.Column{LedgerCustomerAccountsColumns[0]},
+			},
+			{
+				Name:    "ledgercustomeraccount_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerCustomerAccountsColumns[1]},
+			},
+			{
+				Name:    "ledgercustomeraccount_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{LedgerCustomerAccountsColumns[1], LedgerCustomerAccountsColumns[0]},
+			},
+			{
+				Name:    "ledgercustomeraccount_namespace_customer_id_account_type",
+				Unique:  true,
+				Columns: []*schema.Column{LedgerCustomerAccountsColumns[1], LedgerCustomerAccountsColumns[5], LedgerCustomerAccountsColumns[6]},
+			},
+		},
+	}
 	// LedgerDimensionsColumns holds the columns for the "ledger_dimensions" table.
 	LedgerDimensionsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -3329,6 +3368,7 @@ var (
 		FeaturesTable,
 		GrantsTable,
 		LedgerAccountsTable,
+		LedgerCustomerAccountsTable,
 		LedgerDimensionsTable,
 		LedgerEntriesTable,
 		LedgerSubAccountsTable,

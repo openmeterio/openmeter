@@ -76,6 +76,8 @@ type Tx struct {
 	Grant *GrantClient
 	// LedgerAccount is the client for interacting with the LedgerAccount builders.
 	LedgerAccount *LedgerAccountClient
+	// LedgerCustomerAccount is the client for interacting with the LedgerCustomerAccount builders.
+	LedgerCustomerAccount *LedgerCustomerAccountClient
 	// LedgerDimension is the client for interacting with the LedgerDimension builders.
 	LedgerDimension *LedgerDimensionClient
 	// LedgerEntry is the client for interacting with the LedgerEntry builders.
@@ -284,6 +286,7 @@ func (tx *Tx) init() {
 	tx.Feature = NewFeatureClient(tx.config)
 	tx.Grant = NewGrantClient(tx.config)
 	tx.LedgerAccount = NewLedgerAccountClient(tx.config)
+	tx.LedgerCustomerAccount = NewLedgerCustomerAccountClient(tx.config)
 	tx.LedgerDimension = NewLedgerDimensionClient(tx.config)
 	tx.LedgerEntry = NewLedgerEntryClient(tx.config)
 	tx.LedgerSubAccount = NewLedgerSubAccountClient(tx.config)

@@ -37,6 +37,7 @@ import (
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgercustomeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
@@ -1104,6 +1105,33 @@ func init() {
 	ledgeraccountDescID := ledgeraccountMixinFields0[0].Descriptor()
 	// ledgeraccount.DefaultID holds the default value on creation for the id field.
 	ledgeraccount.DefaultID = ledgeraccountDescID.Default.(func() string)
+	ledgercustomeraccountMixin := schema.LedgerCustomerAccount{}.Mixin()
+	ledgercustomeraccountMixinFields0 := ledgercustomeraccountMixin[0].Fields()
+	_ = ledgercustomeraccountMixinFields0
+	ledgercustomeraccountMixinFields1 := ledgercustomeraccountMixin[1].Fields()
+	_ = ledgercustomeraccountMixinFields1
+	ledgercustomeraccountMixinFields2 := ledgercustomeraccountMixin[2].Fields()
+	_ = ledgercustomeraccountMixinFields2
+	ledgercustomeraccountFields := schema.LedgerCustomerAccount{}.Fields()
+	_ = ledgercustomeraccountFields
+	// ledgercustomeraccountDescNamespace is the schema descriptor for namespace field.
+	ledgercustomeraccountDescNamespace := ledgercustomeraccountMixinFields1[0].Descriptor()
+	// ledgercustomeraccount.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	ledgercustomeraccount.NamespaceValidator = ledgercustomeraccountDescNamespace.Validators[0].(func(string) error)
+	// ledgercustomeraccountDescCreatedAt is the schema descriptor for created_at field.
+	ledgercustomeraccountDescCreatedAt := ledgercustomeraccountMixinFields2[0].Descriptor()
+	// ledgercustomeraccount.DefaultCreatedAt holds the default value on creation for the created_at field.
+	ledgercustomeraccount.DefaultCreatedAt = ledgercustomeraccountDescCreatedAt.Default.(func() time.Time)
+	// ledgercustomeraccountDescUpdatedAt is the schema descriptor for updated_at field.
+	ledgercustomeraccountDescUpdatedAt := ledgercustomeraccountMixinFields2[1].Descriptor()
+	// ledgercustomeraccount.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	ledgercustomeraccount.DefaultUpdatedAt = ledgercustomeraccountDescUpdatedAt.Default.(func() time.Time)
+	// ledgercustomeraccount.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	ledgercustomeraccount.UpdateDefaultUpdatedAt = ledgercustomeraccountDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// ledgercustomeraccountDescID is the schema descriptor for id field.
+	ledgercustomeraccountDescID := ledgercustomeraccountMixinFields0[0].Descriptor()
+	// ledgercustomeraccount.DefaultID holds the default value on creation for the id field.
+	ledgercustomeraccount.DefaultID = ledgercustomeraccountDescID.Default.(func() string)
 	ledgerdimensionMixin := schema.LedgerDimension{}.Mixin()
 	ledgerdimensionMixinFields0 := ledgerdimensionMixin[0].Fields()
 	_ = ledgerdimensionMixinFields0

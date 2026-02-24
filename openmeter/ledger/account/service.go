@@ -18,6 +18,14 @@ type Service interface {
 	GetDimensionByID(ctx context.Context, id models.NamespacedID) (*DimensionData, error)
 
 	ListSubAccounts(ctx context.Context, input ListSubAccountsInput) ([]*SubAccount, error)
+	ListAccounts(ctx context.Context, input ListAccountsInput) ([]*Account, error)
+
+	GetDimensionByKeyAndValue(ctx context.Context, namespace string, key ledger.DimensionKey, value string) (*DimensionData, error)
+}
+
+type ListAccountsInput struct {
+	Namespace    string
+	AccountTypes []ledger.AccountType
 }
 
 // TODO: we could do a better API than this :)
@@ -86,20 +94,8 @@ func (d SubAccountDimensionInput) ValidateForAccountType(accountType ledger.Acco
 		return err
 	}
 
-	switch accountType {
-	case ledger.AccountTypeCustomerFBO, ledger.AccountTypeCustomerReceivable:
-		if d.TaxCodeDimensionID == nil {
-			return models.NewGenericValidationError(errors.New("tax code dimension id is required"))
-		}
-
-		if d.FeaturesDimensionID == nil {
-			return models.NewGenericValidationError(errors.New("features dimension id is required"))
-		}
-
-		if d.CreditPriorityDimensionID == nil {
-			return models.NewGenericValidationError(errors.New("credit priority dimension id is required"))
-		}
-	}
+	// TBD: TaxCode, Features, CreditPriority dimension requirements are not enforced yet.
+	// Currency is the only mandatory dimension across all account types.
 
 	return nil
 }

@@ -45,6 +45,23 @@ func (r *repo) GetDimensionByID(ctx context.Context, id models.NamespacedID) (*l
 	})
 }
 
+func (r *repo) GetDimensionByKeyAndValue(ctx context.Context, namespace string, key ledger.DimensionKey, value string) (*ledgeraccount.DimensionData, error) {
+	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (*ledgeraccount.DimensionData, error) {
+		entity, err := r.db.LedgerDimension.Query().
+			Where(
+				ledgerdimensiondb.Namespace(namespace),
+				ledgerdimensiondb.DimensionKey(string(key)),
+				ledgerdimensiondb.DimensionValue(value),
+			).
+			Only(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get ledger dimension by key and value: %w", err)
+		}
+
+		return MapDimensionData(entity)
+	})
+}
+
 func MapDimensionData(entity *db.LedgerDimension) (*ledgeraccount.DimensionData, error) {
 	dKey := ledger.DimensionKey(entity.DimensionKey)
 	if err := dKey.Validate(); err != nil {

@@ -42,6 +42,33 @@ func (r *repo) GetAccountByID(ctx context.Context, id models.NamespacedID) (*led
 	})
 }
 
+func (r *repo) ListAccounts(ctx context.Context, input ledgeraccount.ListAccountsInput) ([]*ledgeraccount.AccountData, error) {
+	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) ([]*ledgeraccount.AccountData, error) {
+		q := r.db.LedgerAccount.Query().
+			Where(ledgeraccountdb.Namespace(input.Namespace))
+
+		if len(input.AccountTypes) > 0 {
+			q = q.Where(ledgeraccountdb.AccountTypeIn(input.AccountTypes...))
+		}
+
+		entities, err := q.All(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list ledger accounts: %w", err)
+		}
+
+		out := make([]*ledgeraccount.AccountData, 0, len(entities))
+		for _, entity := range entities {
+			accData, err := MapAccountData(entity)
+			if err != nil {
+				return nil, fmt.Errorf("failed to map account data: %w", err)
+			}
+			out = append(out, accData)
+		}
+
+		return out, nil
+	})
+}
+
 func MapAccountData(entity *db.LedgerAccount) (*ledgeraccount.AccountData, error) {
 	return &ledgeraccount.AccountData{
 		ID: models.NamespacedID{
