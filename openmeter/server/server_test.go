@@ -1660,8 +1660,8 @@ var _ currencies.CurrencyService = (*NoopCurrencyService)(nil)
 
 type NoopCurrencyService struct{}
 
-func (n NoopCurrencyService) ListCurrencies(ctx context.Context) ([]currencies.Currency, error) {
-	return []currencies.Currency{}, nil
+func (n NoopCurrencyService) ListCurrencies(ctx context.Context, params currencies.ListCurrenciesInput) ([]currencies.Currency, int, error) {
+	return []currencies.Currency{}, 0, nil
 }
 
 func (n NoopCurrencyService) CreateCurrency(ctx context.Context, params currencies.CreateCurrencyInput) (currencies.Currency, error) {
@@ -1672,6 +1672,6 @@ func (n NoopCurrencyService) CreateCostBasis(ctx context.Context, params currenc
 	return nil, nil
 }
 
-func (n NoopCurrencyService) GetCostBasesByCurrencyID(ctx context.Context, currencyID string) (currencies.CostBases, error) {
-	return currencies.CostBases{}, nil
+func (n NoopCurrencyService) ListCostBases(ctx context.Context, params currencies.ListCostBasesInput) ([]currencies.CostBasis, int, error) {
+	return []currencies.CostBasis{}, 0, nil
 }

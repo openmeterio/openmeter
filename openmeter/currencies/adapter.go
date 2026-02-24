@@ -12,8 +12,8 @@ type Adapter interface {
 }
 
 type CurrenciesAdapter interface {
-	ListCurrencies(ctx context.Context) ([]Currency, error)
+	ListCurrencies(ctx context.Context, params ListCurrenciesInput) ([]Currency, int, error)
 	CreateCurrency(ctx context.Context, params CreateCurrencyInput) (Currency, error)
 	CreateCostBasis(ctx context.Context, params CreateCostBasisInput) (*CostBasis, error)
-	GetCostBasesByCurrencyID(ctx context.Context, currencyID string) ([]CostBasis, error)
+	ListCostBases(ctx context.Context, params ListCostBasesInput) ([]CostBasis, int, error)
 }

@@ -4,6 +4,23 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+
+	"github.com/openmeterio/openmeter/pkg/pagination"
+)
+
+type ListCurrenciesInput struct {
+	pagination.Page
+
+	// FilterType filters currencies by type: "custom" or "fiat". Nil means no filter.
+	FilterType *CurrencyType
+}
+
+// CurrencyType distinguishes custom currencies from ISO/fiat ones.
+type CurrencyType string
+
+const (
+	CurrencyTypeCustom CurrencyType = "custom"
+	CurrencyTypeFiat   CurrencyType = "fiat"
 )
 
 type Currency struct {
@@ -35,8 +52,13 @@ type CreateCostBasisInput struct {
 	EffectiveFrom *time.Time            `json:"effective_from"`
 }
 
-type GetCostBasisInput struct {
-	CurrencyID string `json:"currency_id"`
+type ListCostBasesInput struct {
+	pagination.Page
+
+	CurrencyID string
+
+	// FilterFiatCode filters cost bases by fiat currency code. Nil means no filter.
+	FilterFiatCode *string
 }
 
 type CostBases = []CostBasis

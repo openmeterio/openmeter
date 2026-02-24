@@ -5,60 +5,81 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasiseffectivefrom"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ currencies.Adapter = (*adapter)(nil)
 
-func (a *adapter) ListCurrencies(ctx context.Context) ([]currencies.Currency, error) {
-	currencyRecords, err := a.db.CustomCurrency.Query().
-		Order(entdb.Asc(customcurrency.FieldCode)).
-		All(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list currencies: %w", err)
+func (a *adapter) ListCurrencies(ctx context.Context, params currencies.ListCurrenciesInput) ([]currencies.Currency, int, error) {
+	var all []currencies.Currency
+
+	includeCustom := params.FilterType == nil || *params.FilterType == currencies.CurrencyTypeCustom
+	includeFiat := params.FilterType == nil || *params.FilterType == currencies.CurrencyTypeFiat
+
+	if includeCustom {
+		currencyRecords, err := a.db.CustomCurrency.Query().
+			Order(entdb.Asc(customcurrency.FieldCode)).
+			All(ctx)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to list currencies: %w", err)
+		}
+
+		all = append(all, lo.Map(currencyRecords, func(c *entdb.CustomCurrency, _ int) currencies.Currency {
+			return currencies.Currency{
+				ID:       c.ID,
+				Code:     c.Code,
+				Name:     c.Name,
+				Symbol:   c.Symbol,
+				IsCustom: true,
+			}
+		})...)
 	}
 
-	customCurrencies := lo.Map(currencyRecords, func(currency *entdb.CustomCurrency, _ int) currencies.Currency {
-		return currencies.Currency{
-			ID:       currency.ID,
-			Code:     currency.Code,
-			Name:     currency.Name,
-			Symbol:   currency.Symbol,
-			IsCustom: true,
-		}
-	})
+	if includeFiat {
+		fiat := lo.Map(lo.Filter(
+			currency.Definitions(),
+			func(def *currency.Def, _ int) bool {
+				// NOTE: this filters out non-iso currencies such as crypto
+				return def.ISONumeric != ""
+			},
+		), func(def *currency.Def, _ int) currencies.Currency {
+			return currencies.Currency{
+				Code:     def.ISOCode.String(),
+				Name:     def.Name,
+				Symbol:   def.Symbol,
+				IsCustom: false,
+			}
+		})
+		all = append(all, fiat...)
+	}
 
-	defs := lo.Map(lo.Filter(
-		currency.Definitions(),
-		func(def *currency.Def, _ int) bool {
-			// NOTE: this filters out non-iso currencies such as crypto
-			return def.ISONumeric != ""
-		},
-	), func(def *currency.Def, _ int) currencies.Currency {
-		return currencies.Currency{
-			Code:     def.ISOCode.String(),
-			Name:     def.Name,
-			Symbol:   def.Symbol,
-			IsCustom: false,
-		}
-	})
+	total := len(all)
 
-	return lo.Map(append(customCurrencies, defs...), func(def currencies.Currency, _ int) currencies.Currency {
-		return currencies.Currency{
-			ID:       def.ID,
-			Code:     def.Code,
-			Name:     def.Name,
-			Symbol:   def.Symbol,
-			IsCustom: def.IsCustom,
+	// Apply page-based pagination
+	pageSize := params.Page.PageSize
+	pageNumber := params.Page.PageNumber
+	if pageSize > 0 && pageNumber > 0 {
+		start := (pageNumber - 1) * pageSize
+		if start >= total {
+			return []currencies.Currency{}, total, nil
 		}
-	}), nil
+		end := start + pageSize
+		if end > total {
+			end = total
+		}
+		all = all[start:end]
+	}
+
+	return all, total, nil
 }
 
 func (a *adapter) CreateCurrency(ctx context.Context, params currencies.CreateCurrencyInput) (currencies.Currency, error) {
@@ -96,7 +117,6 @@ func (a *adapter) CreateCostBasis(ctx context.Context, params currencies.CreateC
 		SetCurrencyID(params.CurrencyID).
 		SetFiatCode(params.FiatCode).
 		SetRate(params.Rate).
-		SetEffectiveFrom(effectiveFrom).
 		Save(ctx)
 	if err != nil {
 		if entdb.IsConstraintError(err) {
@@ -104,36 +124,64 @@ func (a *adapter) CreateCostBasis(ctx context.Context, params currencies.CreateC
 		}
 		return nil, fmt.Errorf("failed to create cost basis: %w", err)
 	}
+
+	_, err = a.db.CurrencyCostBasisEffectiveFrom.Create().
+		SetCostBasisID(costBasis.ID).
+		SetEffectiveFrom(effectiveFrom).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create cost basis effective from: %w", err)
+	}
+
 	return &currencies.CostBasis{
 		ID:            costBasis.ID,
 		CurrencyID:    params.CurrencyID,
 		FiatCode:      costBasis.FiatCode,
 		Rate:          costBasis.Rate,
-		EffectiveFrom: costBasis.EffectiveFrom,
+		EffectiveFrom: effectiveFrom,
 	}, nil
 }
 
-func (a *adapter) GetCostBasesByCurrencyID(ctx context.Context, currencyID string) (currencies.CostBases, error) {
-	costBases, err := a.db.CurrencyCostBasis.Query().
-		Where(
-			currencycostbasis.HasCurrencyWith(customcurrency.ID(currencyID)),
-		).
-		Order(entdb.Desc(currencycostbasis.FieldEffectiveFrom)).
+func (a *adapter) ListCostBases(ctx context.Context, params currencies.ListCostBasesInput) ([]currencies.CostBasis, int, error) {
+	q := a.db.CurrencyCostBasis.Query().
+		Where(currencycostbasis.HasCurrencyWith(customcurrency.ID(params.CurrencyID))).
+		Order(currencycostbasis.ByEffectiveFromHistory(
+			sql.OrderByField(currencycostbasiseffectivefrom.FieldEffectiveFrom, sql.OrderDesc()),
+		)).
 		WithCurrency().
-		All(ctx)
-	if err != nil {
-		if entdb.IsNotFound(err) {
-			return nil, models.NewGenericNotFoundError(fmt.Errorf("cost basis with id: %s not found", currencyID))
-		}
-		return nil, fmt.Errorf("failed to get cost basis: %w", err)
+		WithEffectiveFromHistory(func(q *entdb.CurrencyCostBasisEffectiveFromQuery) {
+			q.Order(entdb.Desc(currencycostbasiseffectivefrom.FieldEffectiveFrom))
+		})
+
+	if params.FilterFiatCode != nil {
+		q = q.Where(currencycostbasis.FiatCode(*params.FilterFiatCode))
 	}
+
+	total, err := q.Count(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count cost bases: %w", err)
+	}
+
+	if params.Page.PageSize > 0 && params.Page.PageNumber > 0 {
+		q = q.Offset((params.Page.PageNumber - 1) * params.Page.PageSize).Limit(params.Page.PageSize)
+	}
+
+	costBases, err := q.All(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list cost bases: %w", err)
+	}
+
 	return lo.Map(costBases, func(costBasis *entdb.CurrencyCostBasis, _ int) currencies.CostBasis {
+		var effectiveFrom time.Time
+		if len(costBasis.Edges.EffectiveFromHistory) > 0 {
+			effectiveFrom = costBasis.Edges.EffectiveFromHistory[0].EffectiveFrom
+		}
 		return currencies.CostBasis{
 			ID:            costBasis.ID,
 			CurrencyID:    costBasis.Edges.Currency.ID,
 			FiatCode:      costBasis.FiatCode,
 			Rate:          costBasis.Rate,
-			EffectiveFrom: costBasis.EffectiveFrom,
+			EffectiveFrom: effectiveFrom,
 		}
-	}), nil
+	}), total, nil
 }

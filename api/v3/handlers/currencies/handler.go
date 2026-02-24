@@ -9,7 +9,7 @@ type Handler interface {
 	ListCurrencies() ListCurrenciesHandler
 	CreateCurrency() CreateCurrencyHandler
 	CreateCostBasis() CreateCostBasisHandler
-	GetCostBasesByCurrencyID() GetCostBasesByCurrencyIDHandler
+	ListCostBases() ListCostBasesHandler
 }
 
 type handler struct {

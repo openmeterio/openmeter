@@ -18,8 +18,8 @@ func New(adapter currencies.Adapter) *Service {
 	}
 }
 
-func (s *Service) ListCurrencies(ctx context.Context) ([]currencies.Currency, error) {
-	return s.adapter.ListCurrencies(ctx)
+func (s *Service) ListCurrencies(ctx context.Context, params currencies.ListCurrenciesInput) ([]currencies.Currency, int, error) {
+	return s.adapter.ListCurrencies(ctx, params)
 }
 
 func (s *Service) CreateCurrency(ctx context.Context, params currencies.CreateCurrencyInput) (currencies.Currency, error) {
@@ -30,6 +30,6 @@ func (s *Service) CreateCostBasis(ctx context.Context, params currencies.CreateC
 	return s.adapter.CreateCostBasis(ctx, params)
 }
 
-func (s *Service) GetCostBasesByCurrencyID(ctx context.Context, currencyID string) ([]currencies.CostBasis, error) {
-	return s.adapter.GetCostBasesByCurrencyID(ctx, currencyID)
+func (s *Service) ListCostBases(ctx context.Context, params currencies.ListCostBasesInput) ([]currencies.CostBasis, int, error) {
+	return s.adapter.ListCostBases(ctx, params)
 }
