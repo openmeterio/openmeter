@@ -10,7 +10,7 @@ namespace Currencies;
 scalar CustomCurrencyCode extends string;
 
 /**
- * CurrencyBase describes the common properties of a currency. It is used as a base model for both standard currencies and custom currencies.
+ * Describes the common properties of a currency. It is used as a base model for both standard currencies and custom currencies.
  * It includes properties such as id, name, and symbol that are shared by both types of currencies.
  */
 @friendlyName("BillingCustomCurrencyBase")

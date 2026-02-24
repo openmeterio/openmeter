@@ -13,7 +13,7 @@ model CustomCurrency {
   ...CurrencyBase;
 
   /**
-   * The currency code for the custom currency. It should be a unique code based on the ISO 4217 format but not conflicting with any existing standard currency codes. This field is required when creating a custom currency and is read-only after creation.
+   * The currency code for the custom currency. It should be a unique code but not conflicting with any existing standard currency codes. This field is required when creating a custom currency and is read-only after creation.
    * The system will validate that the provided code does not match any standard ISO 4217 code and is unique among custom currencies.
    */
   @visibility(Lifecycle.Create, Lifecycle.Read)
