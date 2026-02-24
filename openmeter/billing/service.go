@@ -102,6 +102,8 @@ type StandardInvoiceService interface {
 	ListStandardInvoices(ctx context.Context, input ListStandardInvoicesInput) (ListStandardInvoicesResponse, error)
 	// CreateStandardInvoiceFromGatheringLines creates a standard invoice from the gathering invoice lines.
 	CreateStandardInvoiceFromGatheringLines(ctx context.Context, input CreateStandardInvoiceFromGatheringLinesInput) (*StandardInvoice, error)
+	// RegisterStandardInvoiceHooks registers hooks for standard invoice lifecycle events
+	RegisterStandardInvoiceHooks(hooks ...StandardInvoiceHook)
 }
 
 type GatheringInvoiceService interface {

@@ -3,23 +3,32 @@ package service
 import (
 	"errors"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 )
 
 type service struct {
-	adapter charges.Adapter
+	adapter        charges.Adapter
+	billingService billing.Service
 }
 
 type Config struct {
-	Adapter charges.Adapter
+	Adapter        charges.Adapter
+	BillingService billing.Service
 }
 
 func (c Config) Validate() error {
+	var errs []error
+
 	if c.Adapter == nil {
-		return errors.New("adapter cannot be null")
+		errs = append(errs, errors.New("adapter cannot be null"))
 	}
 
-	return nil
+	if c.BillingService == nil {
+		errs = append(errs, errors.New("billing service cannot be null"))
+	}
+
+	return errors.Join(errs...)
 }
 
 func New(config Config) (*service, error) {
@@ -27,9 +36,18 @@ func New(config Config) (*service, error) {
 		return nil, err
 	}
 
-	return &service{
-		adapter: config.Adapter,
-	}, nil
+	svc := &service{
+		adapter:        config.Adapter,
+		billingService: config.BillingService,
+	}
+
+	standardInvoiceEventHandler := &standardInvoiceEventHandler{
+		chargesService: svc,
+	}
+
+	config.BillingService.RegisterStandardInvoiceHooks(standardInvoiceEventHandler)
+
+	return svc, nil
 }
 
 var _ charges.Service = (*service)(nil)
