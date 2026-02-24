@@ -6,25 +6,11 @@ import "../common/error.tsp";
 import "../common/parameters.tsp";
 import "../shared/index.tsp";
 import "./currency.tsp";
-import "./custom.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
 
 namespace Currencies;
-
-/**
- * Response model for listing currencies.
- * It contains a list of currencies supported by the billing system.
- * Each currency in the list includes details such as its name, symbol, code, and whether it is a custom currency or a standard currency. This response is used when clients request to retrieve all supported currencies from the billing system.
- */
-@friendlyName("CurrenciesResponse")
-model CurrenciesResponse {
-  @Http.statusCode _: 200;
-
-  @pageItems
-  data: Currency[];
-}
 
 interface CurrenciesOperations {
   /**
@@ -37,7 +23,9 @@ interface CurrenciesOperations {
   @get
   @operationId("list-currencies")
   @summary("List currencies")
-  list(): CurrenciesResponse | Common.ErrorResponses;
+  list(
+    ...Common.PagePaginationQuery,
+  ): Shared.PagePaginatedResponse<Currency> | Common.ErrorResponses;
 
   /**
    * Create a custom currency. This operation allows users to define their own custom currency for billing purposes.
@@ -51,7 +39,6 @@ interface CurrenciesOperations {
   @operationId("create-custom-currency")
   @summary("Create custom currency")
   create(
-    @header contentType: "application/json",
-    @body body: Currencies.CustomCurrency,
-  ): Shared.CreateResponse<CustomCurrency> | Common.ErrorResponses;
+    @body body: Shared.CreateRequest<CurrencyCustom>,
+  ): Shared.CreateResponse<CurrencyCustom> | Common.ErrorResponses;
 }
