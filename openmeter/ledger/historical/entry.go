@@ -10,25 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type EntryInput struct {
-	amount  alpacadecimal.Decimal
-	address ledger.PostingAddress
-}
-
-// ----------------------------------------------------------------------------
-// Let's implement ledger.EntryInput interface
-// ----------------------------------------------------------------------------
-
-var _ ledger.EntryInput = (*EntryInput)(nil)
-
-func (e *EntryInput) PostingAddress() ledger.PostingAddress {
-	return e.address
-}
-
-func (e *EntryInput) Amount() alpacadecimal.Decimal {
-	return e.amount
-}
-
 type EntryData struct {
 	ID          string
 	Namespace   string

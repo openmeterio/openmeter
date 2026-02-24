@@ -4,18 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/account"
-	"github.com/openmeterio/openmeter/openmeter/ledger/subaccounts"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 // Ledger represents a historical ledger for settled balances.
@@ -50,52 +47,8 @@ func (l *Ledger) ListTransactions(ctx context.Context, params ledger.ListTransac
 	}, nil
 }
 
-// SetUpTransactionInput sets up a transaction input and runs validations
-func (l *Ledger) SetUpTransactionInput(ctx context.Context, at time.Time, entries []ledger.EntryInput) (ledger.TransactionInput, error) {
-	if len(entries) < 2 {
-		return nil, errors.New("at least two entries are required")
-	}
-
-	// Let's validate the entries
-	for idx, entry := range entries {
-		if err := ledger.ValidateEntryInput(ctx, entry); err != nil {
-			return nil, fmt.Errorf("invalid entry at index %d: %w", idx, err)
-		}
-	}
-
-	entryInputs, err := slicesx.MapWithErr(entries, func(e ledger.EntryInput) (*EntryInput, error) {
-		return &EntryInput{
-			amount:  e.Amount(),
-			address: e.PostingAddress(),
-		}, nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to map entry inputs: %w", err)
-	}
-
-	tx := &TransactionInput{
-		bookedAt:    at,
-		entryInputs: entryInputs,
-	}
-
-	if err := tx.Validate(ctx); err != nil {
-		return nil, fmt.Errorf("failed to validate transaction input: %w", err)
-	}
-
-	return tx, nil
-}
-
 func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupInput) (ledger.TransactionGroup, error) {
-	txInputs := make([]*TransactionInput, 0, len(group.Transactions()))
-	for idx, tx := range group.Transactions() {
-		// Let's validate the input transactions use the same implementation
-		inp, err := l.requirePreparedTransactionInput(tx)
-		if err != nil {
-			return nil, fmt.Errorf("transaction %d: %w", idx, err)
-		}
-
-		txInputs = append(txInputs, inp)
-	}
+	txInputs := group.Transactions()
 
 	if len(txInputs) == 0 {
 		return nil, errors.New("no transactions to commit")
@@ -103,7 +56,7 @@ func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupI
 
 	// 1. Validate each transaction sequentially
 	for idx, txInput := range txInputs {
-		if err := txInput.Validate(ctx); err != nil {
+		if err := ledger.ValidateTransactionInput(ctx, txInput); err != nil {
 			return nil, fmt.Errorf("failed to validate transaction at index %d in group: %w", idx, err)
 		}
 	}
@@ -147,8 +100,8 @@ func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupI
 	})
 }
 
-func (l *Ledger) lockAccountsForTransactionInputs(ctx context.Context, namespace string, txInputs []*TransactionInput) error {
-	// Let's collect all subaccounts
+func (l *Ledger) lockAccountsForTransactionInputs(ctx context.Context, namespace string, txInputs []ledger.TransactionInput) error {
+	// 1. Let's collect all accounts
 	subAccountIDs := make(map[string]struct{}, len(txInputs))
 
 	for _, txInput := range txInputs {
@@ -159,7 +112,7 @@ func (l *Ledger) lockAccountsForTransactionInputs(ctx context.Context, namespace
 		}
 	}
 
-	subAccounts := make([]ledger.SubAccount, 0, len(subAccountIDs))
+	subAccounts := make([]*account.SubAccount, 0, len(subAccountIDs))
 	for subAccountID := range subAccountIDs {
 		subAccount, err := l.accountService.GetSubAccountByID(ctx, models.NamespacedID{Namespace: namespace, ID: subAccountID})
 		if err != nil {
@@ -168,17 +121,32 @@ func (l *Ledger) lockAccountsForTransactionInputs(ctx context.Context, namespace
 		subAccounts = append(subAccounts, subAccount)
 	}
 
+	accounts := make(map[string]*account.Account, len(subAccountIDs))
 	for _, subAccount := range subAccounts {
-		switch subAccount.Address().AccountType() {
-		// We need to lock all customer FBO accounts so their balances are stable
-		case ledger.AccountTypeCustomerFBO:
-			customerFBO, err := subaccounts.AsCustomerFBOSubAccount(l.locker, subAccount)
+		accountID := subAccount.AccountID()
+
+		_, ok := accounts[accountID]
+		if !ok {
+			account, err := l.accountService.GetAccountByID(ctx, models.NamespacedID{Namespace: namespace, ID: accountID})
 			if err != nil {
-				return fmt.Errorf("failed to convert sub-account to customer FBO sub-account: %w", err)
+				return fmt.Errorf("failed to get account: %w", err)
 			}
 
-			if err := customerFBO.Lock(ctx, namespace); err != nil {
-				return fmt.Errorf("failed to lock customer FBO sub-account: %w", err)
+			accounts[accountID] = account
+		}
+	}
+
+	// 2. Let's lock all customer accounts affected
+	for _, acc := range accounts {
+		switch acc.Type() {
+		case ledger.AccountTypeCustomerFBO, ledger.AccountTypeCustomerReceivable:
+			cSvc, err := acc.AsCustomerAccount()
+			if err != nil {
+				return fmt.Errorf("failed to convert account to customer account: %w", err)
+			}
+
+			if err := cSvc.Lock(ctx); err != nil {
+				return fmt.Errorf("failed to lock customer account: %w", err)
 			}
 		}
 	}
@@ -186,16 +154,7 @@ func (l *Ledger) lockAccountsForTransactionInputs(ctx context.Context, namespace
 	return nil
 }
 
-func (l *Ledger) requirePreparedTransactionInput(tx ledger.TransactionInput) (*TransactionInput, error) {
-	inp, ok := tx.(*TransactionInput)
-	if !ok {
-		return nil, errors.New("transaction input is not a *historical.TransactionInput")
-	}
-
-	return inp, nil
-}
-
-func (l *Ledger) validateAccountBalancesForTransaction(_ context.Context, _ *TransactionInput) error {
+func (l *Ledger) validateAccountBalancesForTransaction(_ context.Context, _ ledger.TransactionInput) error {
 	// TODO: implement this
 	return nil
 }

@@ -59,3 +59,7 @@ func (s *SubAccount) Dimensions() ledger.SubAccountDimensions {
 		Feature:        s.data.Dimensions.Feature,
 	}
 }
+
+func (s *SubAccount) AccountID() string {
+	return s.data.AccountID
+}

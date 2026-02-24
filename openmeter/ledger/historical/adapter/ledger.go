@@ -18,7 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID, input *ledgerhistorical.TransactionInput) (*ledgerhistorical.Transaction, error) {
+func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID, input ledger.TransactionInput) (*ledgerhistorical.Transaction, error) {
 	if input == nil {
 		return nil, fmt.Errorf("transaction input is required")
 	}

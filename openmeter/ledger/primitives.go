@@ -81,7 +81,7 @@ type TransactionInput interface {
 
 // Transaction represents a list of entries booked at the same time
 type Transaction interface {
-	TransactionInput
+	BookedAt() time.Time
 	Entries() []Entry
 	ID() models.NamespacedID
 }
@@ -103,9 +103,6 @@ type TransactionGroup interface {
 // ----------------------------------------------------------------------------
 
 type Ledger interface {
-	// SetUpTransactionInput is a no-op that runs some validations and returns a TransactionInput object that can be committed later
-	SetUpTransactionInput(ctx context.Context, at time.Time, entries []EntryInput) (TransactionInput, error)
-
 	// CommitGroup commits a list of transactions on the Ledger atomically
 	CommitGroup(ctx context.Context, group TransactionGroupInput) (TransactionGroup, error)
 

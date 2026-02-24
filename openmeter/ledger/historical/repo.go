@@ -19,7 +19,7 @@ type Repo interface {
 	CreateTransactionGroup(ctx context.Context, transactionGroup CreateTransactionGroupInput) (TransactionGroupData, error)
 
 	// Book a transaction
-	BookTransaction(ctx context.Context, groupID models.NamespacedID, transaction *TransactionInput) (*Transaction, error)
+	BookTransaction(ctx context.Context, groupID models.NamespacedID, transaction ledger.TransactionInput) (*Transaction, error)
 
 	// Sum ledger entries for a query result set
 	SumEntries(ctx context.Context, query ledger.Query) (alpacadecimal.Decimal, error)
