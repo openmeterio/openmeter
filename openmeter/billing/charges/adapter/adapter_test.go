@@ -82,7 +82,7 @@ func (s *ChargesAdapterTestSuite) TestCreateAndGetFlatFeeCharge() {
 	s.NoError(err)
 
 	s.Equal(ffCreated.Intent, ffFetched.Intent)
-	s.Equal(charges.ChargeStatusActive, ffFetched.Status)
+	s.Equal(charges.ChargeStatusCreated, ffFetched.Status)
 }
 
 func (s *ChargesAdapterTestSuite) TestCreateAndGetUsageBasedCharge() {
@@ -127,7 +127,7 @@ func (s *ChargesAdapterTestSuite) TestCreateAndGetUsageBasedCharge() {
 	s.NoError(err)
 
 	s.Equal(ubCreated.Intent, ubFetched.Intent)
-	s.Equal(charges.ChargeStatusActive, ubFetched.Status)
+	s.Equal(charges.ChargeStatusCreated, ubFetched.Status)
 }
 
 func (s *ChargesAdapterTestSuite) TestCreateAndGetCreditPurchaseCharge() {
@@ -172,15 +172,8 @@ func (s *ChargesAdapterTestSuite) TestCreateAndGetCreditPurchaseCharge() {
 	s.NoError(err)
 
 	s.Equal(cpCreated.Intent, cpFetched.Intent)
-	s.Equal(charges.ChargeStatusActive, cpFetched.Status)
+	s.Equal(charges.ChargeStatusCreated, cpFetched.Status)
 	s.Equal(cpCreated.State, cpFetched.State)
-}
-
-func newManagedResource(ns string) charges.ManagedResource {
-	mr := charges.ManagedResource{}
-	mr.Namespace = ns
-
-	return mr
 }
 
 func newIntentMeta(customerID string, periodStart, periodEnd time.Time, name string) charges.IntentMeta {

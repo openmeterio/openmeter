@@ -1515,7 +1515,7 @@ var (
 		{Name: "full_service_period_from", Type: field.TypeTime},
 		{Name: "full_service_period_to", Type: field.TypeTime},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"flat_fee", "usage_based", "credit_purchase"}},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"active", "settled", "final"}},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"created", "active", "settled", "final"}},
 		{Name: "unique_reference_id", Type: field.TypeString, Nullable: true},
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "managed_by", Type: field.TypeEnum, Enums: []string{"subscription", "system", "manual"}},
