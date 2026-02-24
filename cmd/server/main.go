@@ -171,6 +171,7 @@ func main() {
 			SubscriptionWorkflowService: app.Subscription.WorkflowService,
 			SubscriptionAddonService:    app.Subscription.SubscriptionAddonService,
 			SubjectService:              app.SubjectService,
+			TaxCodeService:              app.TaxCodeService,
 			StreamingConnector:          app.StreamingConnector,
 		},
 		RouterHooks:         lo.FromPtr(app.RouterHooks),

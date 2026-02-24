@@ -32,6 +32,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/ffx"
@@ -597,6 +598,20 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	taxcodeRepository, err := common.NewTaxCodeAdapter(logger, client)
+	if err != nil {
+		cleanup9()
+		cleanup8()
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	taxcodeService := common.NewTaxCodeService(logger, taxcodeRepository)
 	health := common.NewHealthChecker(logger)
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, telemetryConfig, logger)
 	if err != nil {
@@ -665,6 +680,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		SubjectCustomerHook:              v9,
 		Subscription:                     subscriptionServiceWithWorkflow,
 		StreamingConnector:               connector,
+		TaxCodeService:                   taxcodeService,
 		TelemetryServer:                  v10,
 		TerminationChecker:               terminationChecker,
 		RuntimeMetricsCollector:          runtimeMetricsCollector,
@@ -724,6 +740,7 @@ type Application struct {
 	SubjectCustomerHook              hooks.CustomerSubjectHook
 	Subscription                     common.SubscriptionServiceWithWorkflow
 	StreamingConnector               streaming.Connector
+	TaxCodeService                   taxcode.Service
 	TelemetryServer                  common.TelemetryServer
 	TerminationChecker               *common.TerminationChecker
 	RuntimeMetricsCollector          common.RuntimeMetricsCollector

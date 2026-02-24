@@ -51,6 +51,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
@@ -533,6 +534,7 @@ func getTestServer(t *testing.T) *Server {
 			Portal:                  portal,
 			ProgressManager:         progressmanageradapter.NewNoop(),
 			StreamingConnector:      mockStreamingConnector,
+			TaxCodeService:          &NoopTaxCodeService{},
 			// Use the subscription service
 			SubscriptionService: subscriptionService,
 			// Use the subscription workflow service
@@ -1603,6 +1605,31 @@ func (n NoopBillingService) WithLockedNamespaces(namespaces []string) billing.Se
 // LockableService methods
 func (n NoopBillingService) WithLock(ctx context.Context, customerID customer.CustomerID, fn func(ctx context.Context) error) error {
 	return fn(ctx)
+}
+
+// TaxCodeService methods
+var _ taxcode.Service = (*NoopTaxCodeService)(nil)
+
+type NoopTaxCodeService struct{}
+
+func (n NoopTaxCodeService) CreateTaxCode(ctx context.Context, input taxcode.CreateTaxCodeInput) (taxcode.TaxCode, error) {
+	return taxcode.TaxCode{}, nil
+}
+
+func (n NoopTaxCodeService) UpdateTaxCode(ctx context.Context, input taxcode.UpdateTaxCodeInput) (taxcode.TaxCode, error) {
+	return taxcode.TaxCode{}, nil
+}
+
+func (n NoopTaxCodeService) ListTaxCodes(ctx context.Context, input taxcode.ListTaxCodesInput) (pagination.Result[taxcode.TaxCode], error) {
+	return pagination.Result[taxcode.TaxCode]{}, nil
+}
+
+func (n NoopTaxCodeService) GetTaxCode(ctx context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
+	return taxcode.TaxCode{}, nil
+}
+
+func (n NoopTaxCodeService) DeleteTaxCode(ctx context.Context, input taxcode.DeleteTaxCodeInput) error {
+	return nil
 }
 
 // SubjectService methods
