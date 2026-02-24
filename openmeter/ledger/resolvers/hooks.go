@@ -1,4 +1,4 @@
-package customer
+package resolvers
 
 import (
 	"context"
@@ -30,6 +30,7 @@ type customerLedgerHook struct {
 func NewCustomerLedgerHook(config CustomerLedgerHookConfig) (CustomerLedgerHook, error) {
 	return &customerLedgerHook{
 		NoopCustomerLedgerHook: NoopCustomerLedgerHook{},
+		config:                 config,
 	}, nil
 }
 

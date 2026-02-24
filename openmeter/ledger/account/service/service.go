@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -15,9 +16,9 @@ type service struct {
 }
 
 func New(repo account.Repo) account.Service {
-	return &service{
-		repo: repo,
-	}
+	svc := &service{repo: repo}
+	svc.live = account.AccountLiveServices{SubAccountService: svc}
+	return svc
 }
 
 var _ account.Service = (*service)(nil)
@@ -112,4 +113,26 @@ func (s *service) ListSubAccounts(ctx context.Context, input account.ListSubAcco
 
 func (s *service) GetDimensionByID(ctx context.Context, id models.NamespacedID) (*account.DimensionData, error) {
 	return s.repo.GetDimensionByID(ctx, id)
+}
+
+func (s *service) ListAccounts(ctx context.Context, input account.ListAccountsInput) ([]*account.Account, error) {
+	accDatas, err := s.repo.ListAccounts(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list accounts: %w", err)
+	}
+
+	accounts := make([]*account.Account, 0, len(accDatas))
+	for _, accData := range accDatas {
+		acc, err := account.NewAccountFromData(*accData, s.live)
+		if err != nil {
+			return nil, fmt.Errorf("failed to map account: %w", err)
+		}
+		accounts = append(accounts, acc)
+	}
+
+	return accounts, nil
+}
+
+func (s *service) GetDimensionByKeyAndValue(ctx context.Context, namespace string, key ledger.DimensionKey, value string) (*account.DimensionData, error) {
+	return s.repo.GetDimensionByKeyAndValue(ctx, namespace, key, value)
 }

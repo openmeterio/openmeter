@@ -55,6 +55,7 @@ import (
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgercustomeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
@@ -170,6 +171,8 @@ type Client struct {
 	LLMCostPrice *LLMCostPriceClient
 	// LedgerAccount is the client for interacting with the LedgerAccount builders.
 	LedgerAccount *LedgerAccountClient
+	// LedgerCustomerAccount is the client for interacting with the LedgerCustomerAccount builders.
+	LedgerCustomerAccount *LedgerCustomerAccountClient
 	// LedgerDimension is the client for interacting with the LedgerDimension builders.
 	LedgerDimension *LedgerDimensionClient
 	// LedgerEntry is the client for interacting with the LedgerEntry builders.
@@ -268,6 +271,7 @@ func (c *Client) init() {
 	c.Grant = NewGrantClient(c.config)
 	c.LLMCostPrice = NewLLMCostPriceClient(c.config)
 	c.LedgerAccount = NewLedgerAccountClient(c.config)
+	c.LedgerCustomerAccount = NewLedgerCustomerAccountClient(c.config)
 	c.LedgerDimension = NewLedgerDimensionClient(c.config)
 	c.LedgerEntry = NewLedgerEntryClient(c.config)
 	c.LedgerSubAccount = NewLedgerSubAccountClient(c.config)
@@ -424,6 +428,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Grant:                                            NewGrantClient(cfg),
 		LLMCostPrice:                                     NewLLMCostPriceClient(cfg),
 		LedgerAccount:                                    NewLedgerAccountClient(cfg),
+		LedgerCustomerAccount:                            NewLedgerCustomerAccountClient(cfg),
 		LedgerDimension:                                  NewLedgerDimensionClient(cfg),
 		LedgerEntry:                                      NewLedgerEntryClient(cfg),
 		LedgerSubAccount:                                 NewLedgerSubAccountClient(cfg),
@@ -507,6 +512,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Grant:                                            NewGrantClient(cfg),
 		LLMCostPrice:                                     NewLLMCostPriceClient(cfg),
 		LedgerAccount:                                    NewLedgerAccountClient(cfg),
+		LedgerCustomerAccount:                            NewLedgerCustomerAccountClient(cfg),
 		LedgerDimension:                                  NewLedgerDimensionClient(cfg),
 		LedgerEntry:                                      NewLedgerEntryClient(cfg),
 		LedgerSubAccount:                                 NewLedgerSubAccountClient(cfg),
@@ -573,13 +579,13 @@ func (c *Client) Use(hooks ...Hook) {
 		c.ChargeFlatFee, c.ChargeFlatFeeCreditAllocations,
 		c.ChargeFlatFeeInvoicedUsage, c.ChargeFlatFeePayment, c.CurrencyCostBasis,
 		c.CustomCurrency, c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature,
-		c.Grant, c.LLMCostPrice, c.LedgerAccount, c.LedgerDimension, c.LedgerEntry,
-		c.LedgerSubAccount, c.LedgerTransaction, c.LedgerTransactionGroup, c.Meter,
-		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
-		c.NotificationRule, c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard,
-		c.Subject, c.Subscription, c.SubscriptionAddon, c.SubscriptionAddonQuantity,
-		c.SubscriptionBillingSyncState, c.SubscriptionItem, c.SubscriptionPhase,
-		c.TaxCode, c.UsageReset,
+		c.Grant, c.LLMCostPrice, c.LedgerAccount, c.LedgerCustomerAccount,
+		c.LedgerDimension, c.LedgerEntry, c.LedgerSubAccount, c.LedgerTransaction,
+		c.LedgerTransactionGroup, c.Meter, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanAddon,
+		c.PlanPhase, c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
+		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
+		c.SubscriptionItem, c.SubscriptionPhase, c.TaxCode, c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -603,13 +609,13 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.ChargeFlatFee, c.ChargeFlatFeeCreditAllocations,
 		c.ChargeFlatFeeInvoicedUsage, c.ChargeFlatFeePayment, c.CurrencyCostBasis,
 		c.CustomCurrency, c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature,
-		c.Grant, c.LLMCostPrice, c.LedgerAccount, c.LedgerDimension, c.LedgerEntry,
-		c.LedgerSubAccount, c.LedgerTransaction, c.LedgerTransactionGroup, c.Meter,
-		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
-		c.NotificationRule, c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard,
-		c.Subject, c.Subscription, c.SubscriptionAddon, c.SubscriptionAddonQuantity,
-		c.SubscriptionBillingSyncState, c.SubscriptionItem, c.SubscriptionPhase,
-		c.TaxCode, c.UsageReset,
+		c.Grant, c.LLMCostPrice, c.LedgerAccount, c.LedgerCustomerAccount,
+		c.LedgerDimension, c.LedgerEntry, c.LedgerSubAccount, c.LedgerTransaction,
+		c.LedgerTransactionGroup, c.Meter, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanAddon,
+		c.PlanPhase, c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
+		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
+		c.SubscriptionItem, c.SubscriptionPhase, c.TaxCode, c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -700,6 +706,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.LLMCostPrice.mutate(ctx, m)
 	case *LedgerAccountMutation:
 		return c.LedgerAccount.mutate(ctx, m)
+	case *LedgerCustomerAccountMutation:
+		return c.LedgerCustomerAccount.mutate(ctx, m)
 	case *LedgerDimensionMutation:
 		return c.LedgerDimension.mutate(ctx, m)
 	case *LedgerEntryMutation:
@@ -7996,6 +8004,139 @@ func (c *LedgerAccountClient) mutate(ctx context.Context, m *LedgerAccountMutati
 	}
 }
 
+// LedgerCustomerAccountClient is a client for the LedgerCustomerAccount schema.
+type LedgerCustomerAccountClient struct {
+	config
+}
+
+// NewLedgerCustomerAccountClient returns a client for the LedgerCustomerAccount from the given config.
+func NewLedgerCustomerAccountClient(c config) *LedgerCustomerAccountClient {
+	return &LedgerCustomerAccountClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `ledgercustomeraccount.Hooks(f(g(h())))`.
+func (c *LedgerCustomerAccountClient) Use(hooks ...Hook) {
+	c.hooks.LedgerCustomerAccount = append(c.hooks.LedgerCustomerAccount, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `ledgercustomeraccount.Intercept(f(g(h())))`.
+func (c *LedgerCustomerAccountClient) Intercept(interceptors ...Interceptor) {
+	c.inters.LedgerCustomerAccount = append(c.inters.LedgerCustomerAccount, interceptors...)
+}
+
+// Create returns a builder for creating a LedgerCustomerAccount entity.
+func (c *LedgerCustomerAccountClient) Create() *LedgerCustomerAccountCreate {
+	mutation := newLedgerCustomerAccountMutation(c.config, OpCreate)
+	return &LedgerCustomerAccountCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of LedgerCustomerAccount entities.
+func (c *LedgerCustomerAccountClient) CreateBulk(builders ...*LedgerCustomerAccountCreate) *LedgerCustomerAccountCreateBulk {
+	return &LedgerCustomerAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LedgerCustomerAccountClient) MapCreateBulk(slice any, setFunc func(*LedgerCustomerAccountCreate, int)) *LedgerCustomerAccountCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LedgerCustomerAccountCreateBulk{err: fmt.Errorf("calling to LedgerCustomerAccountClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LedgerCustomerAccountCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &LedgerCustomerAccountCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for LedgerCustomerAccount.
+func (c *LedgerCustomerAccountClient) Update() *LedgerCustomerAccountUpdate {
+	mutation := newLedgerCustomerAccountMutation(c.config, OpUpdate)
+	return &LedgerCustomerAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LedgerCustomerAccountClient) UpdateOne(_m *LedgerCustomerAccount) *LedgerCustomerAccountUpdateOne {
+	mutation := newLedgerCustomerAccountMutation(c.config, OpUpdateOne, withLedgerCustomerAccount(_m))
+	return &LedgerCustomerAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LedgerCustomerAccountClient) UpdateOneID(id string) *LedgerCustomerAccountUpdateOne {
+	mutation := newLedgerCustomerAccountMutation(c.config, OpUpdateOne, withLedgerCustomerAccountID(id))
+	return &LedgerCustomerAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for LedgerCustomerAccount.
+func (c *LedgerCustomerAccountClient) Delete() *LedgerCustomerAccountDelete {
+	mutation := newLedgerCustomerAccountMutation(c.config, OpDelete)
+	return &LedgerCustomerAccountDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LedgerCustomerAccountClient) DeleteOne(_m *LedgerCustomerAccount) *LedgerCustomerAccountDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *LedgerCustomerAccountClient) DeleteOneID(id string) *LedgerCustomerAccountDeleteOne {
+	builder := c.Delete().Where(ledgercustomeraccount.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LedgerCustomerAccountDeleteOne{builder}
+}
+
+// Query returns a query builder for LedgerCustomerAccount.
+func (c *LedgerCustomerAccountClient) Query() *LedgerCustomerAccountQuery {
+	return &LedgerCustomerAccountQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLedgerCustomerAccount},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a LedgerCustomerAccount entity by its id.
+func (c *LedgerCustomerAccountClient) Get(ctx context.Context, id string) (*LedgerCustomerAccount, error) {
+	return c.Query().Where(ledgercustomeraccount.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LedgerCustomerAccountClient) GetX(ctx context.Context, id string) *LedgerCustomerAccount {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *LedgerCustomerAccountClient) Hooks() []Hook {
+	return c.hooks.LedgerCustomerAccount
+}
+
+// Interceptors returns the client interceptors.
+func (c *LedgerCustomerAccountClient) Interceptors() []Interceptor {
+	return c.inters.LedgerCustomerAccount
+}
+
+func (c *LedgerCustomerAccountClient) mutate(ctx context.Context, m *LedgerCustomerAccountMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LedgerCustomerAccountCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LedgerCustomerAccountUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LedgerCustomerAccountUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LedgerCustomerAccountDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown LedgerCustomerAccount mutation op: %q", m.Op())
+	}
+}
+
 // LedgerDimensionClient is a client for the LedgerDimension schema.
 type LedgerDimensionClient struct {
 	config
@@ -11951,10 +12092,10 @@ type (
 		ChargeFlatFee, ChargeFlatFeeCreditAllocations, ChargeFlatFeeInvoicedUsage,
 		ChargeFlatFeePayment, CurrencyCostBasis, CustomCurrency, Customer,
 		CustomerSubjects, Entitlement, Feature, Grant, LLMCostPrice, LedgerAccount,
-		LedgerDimension, LedgerEntry, LedgerSubAccount, LedgerTransaction,
-		LedgerTransactionGroup, Meter, NotificationChannel, NotificationEvent,
-		NotificationEventDeliveryStatus, NotificationRule, Plan, PlanAddon, PlanPhase,
-		PlanRateCard, Subject, Subscription, SubscriptionAddon,
+		LedgerCustomerAccount, LedgerDimension, LedgerEntry, LedgerSubAccount,
+		LedgerTransaction, LedgerTransactionGroup, Meter, NotificationChannel,
+		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
+		PlanAddon, PlanPhase, PlanRateCard, Subject, Subscription, SubscriptionAddon,
 		SubscriptionAddonQuantity, SubscriptionBillingSyncState, SubscriptionItem,
 		SubscriptionPhase, TaxCode, UsageReset []ent.Hook
 	}
@@ -11972,10 +12113,10 @@ type (
 		ChargeFlatFee, ChargeFlatFeeCreditAllocations, ChargeFlatFeeInvoicedUsage,
 		ChargeFlatFeePayment, CurrencyCostBasis, CustomCurrency, Customer,
 		CustomerSubjects, Entitlement, Feature, Grant, LLMCostPrice, LedgerAccount,
-		LedgerDimension, LedgerEntry, LedgerSubAccount, LedgerTransaction,
-		LedgerTransactionGroup, Meter, NotificationChannel, NotificationEvent,
-		NotificationEventDeliveryStatus, NotificationRule, Plan, PlanAddon, PlanPhase,
-		PlanRateCard, Subject, Subscription, SubscriptionAddon,
+		LedgerCustomerAccount, LedgerDimension, LedgerEntry, LedgerSubAccount,
+		LedgerTransaction, LedgerTransactionGroup, Meter, NotificationChannel,
+		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
+		PlanAddon, PlanPhase, PlanRateCard, Subject, Subscription, SubscriptionAddon,
 		SubscriptionAddonQuantity, SubscriptionBillingSyncState, SubscriptionItem,
 		SubscriptionPhase, TaxCode, UsageReset []ent.Interceptor
 	}
