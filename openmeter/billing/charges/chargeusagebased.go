@@ -51,7 +51,7 @@ type UsageBasedIntent struct {
 	InvoiceAt      time.Time                     `json:"invoiceAt"`
 	SettlementMode productcatalog.SettlementMode `json:"settlementMode"`
 
-	Discounts *productcatalog.Discounts `json:"rateCardDiscounts"`
+	Discounts *productcatalog.Discounts `json:"discounts"`
 }
 
 func (i UsageBasedIntent) Validate() error {
@@ -62,7 +62,7 @@ func (i UsageBasedIntent) Validate() error {
 	}
 
 	if i.InvoiceAt.IsZero() || i.InvoiceAt.Before(i.ServicePeriod.From) {
-		errs = append(errs, fmt.Errorf("invoice at must be after service period from"))
+		errs = append(errs, fmt.Errorf("invoice at must be equal or after service period from"))
 	}
 
 	if err := i.Price.Validate(); err != nil {

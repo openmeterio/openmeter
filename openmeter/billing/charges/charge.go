@@ -146,6 +146,7 @@ const (
 
 func (s ChargeStatus) Values() []string {
 	return []string{
+		string(ChargeStatusCreated),
 		string(ChargeStatusActive),
 		string(ChargeStatusSettled),
 		string(ChargeStatusFinal),
@@ -198,10 +199,10 @@ type ChargeIntent struct {
 
 func NewChargeIntent[T FlatFeeIntent | UsageBasedIntent | CreditPurchaseIntent](ch T) ChargeIntent {
 	switch v := any(ch).(type) {
-	case FlatFeeCharge:
+	case FlatFeeIntent:
 		return ChargeIntent{
 			t:       ChargeTypeFlatFee,
-			flatFee: &v.Intent,
+			flatFee: &v,
 		}
 	case UsageBasedIntent:
 		return ChargeIntent{
