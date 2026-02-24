@@ -72,6 +72,12 @@ type Tx struct {
 	ChargeFlatFee *ChargeFlatFeeClient
 	// ChargeUsageBased is the client for interacting with the ChargeUsageBased builders.
 	ChargeUsageBased *ChargeUsageBasedClient
+	// CurrencyCostBasis is the client for interacting with the CurrencyCostBasis builders.
+	CurrencyCostBasis *CurrencyCostBasisClient
+	// CurrencyCostBasisEffectiveFrom is the client for interacting with the CurrencyCostBasisEffectiveFrom builders.
+	CurrencyCostBasisEffectiveFrom *CurrencyCostBasisEffectiveFromClient
+	// CustomCurrency is the client for interacting with the CustomCurrency builders.
+	CustomCurrency *CustomCurrencyClient
 	// Customer is the client for interacting with the Customer builders.
 	Customer *CustomerClient
 	// CustomerSubjects is the client for interacting with the CustomerSubjects builders.
@@ -280,6 +286,9 @@ func (tx *Tx) init() {
 	tx.ChargeCreditPurchase = NewChargeCreditPurchaseClient(tx.config)
 	tx.ChargeFlatFee = NewChargeFlatFeeClient(tx.config)
 	tx.ChargeUsageBased = NewChargeUsageBasedClient(tx.config)
+	tx.CurrencyCostBasis = NewCurrencyCostBasisClient(tx.config)
+	tx.CurrencyCostBasisEffectiveFrom = NewCurrencyCostBasisEffectiveFromClient(tx.config)
+	tx.CustomCurrency = NewCustomCurrencyClient(tx.config)
 	tx.Customer = NewCustomerClient(tx.config)
 	tx.CustomerSubjects = NewCustomerSubjectsClient(tx.config)
 	tx.Entitlement = NewEntitlementClient(tx.config)

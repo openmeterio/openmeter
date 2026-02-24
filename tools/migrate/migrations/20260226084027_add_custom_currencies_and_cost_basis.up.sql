@@ -81,7 +81,7 @@ CREATE TABLE "charges" (
   PRIMARY KEY ("id")
 );
 -- create index "charge_annotations" to table: "charges"
-CREATE INDEX "charge_annotations" ON "charges" USING gin ("annotations");
+CREATE INDEX "charge_annotations" ON "charges" USING GIN ("annotations");
 -- create index "charge_id" to table: "charges"
 CREATE UNIQUE INDEX "charge_id" ON "charges" ("id");
 -- create index "charge_namespace" to table: "charges"
@@ -90,6 +90,42 @@ CREATE INDEX "charge_namespace" ON "charges" ("namespace");
 CREATE UNIQUE INDEX "charge_namespace_customer_id_unique_reference_id" ON "charges" ("namespace", "customer_id", "unique_reference_id") WHERE ((unique_reference_id IS NOT NULL) AND (deleted_at IS NULL));
 -- create index "charge_namespace_id" to table: "charges"
 CREATE UNIQUE INDEX "charge_namespace_id" ON "charges" ("namespace", "id");
+-- create "currency_cost_bases" table
+CREATE TABLE "currency_cost_bases" (
+  "id" character(26) NOT NULL,
+  "created_at" timestamptz NOT NULL,
+  "fiat_code" character varying NOT NULL,
+  "rate" numeric NOT NULL,
+  "custom_currency_cost_basis_history" character(26) NOT NULL,
+  PRIMARY KEY ("id")
+);
+-- create index "currencycostbasis_fiat_code_custom_currency_cost_basis_history" to table: "currency_cost_bases"
+CREATE UNIQUE INDEX "currencycostbasis_fiat_code_custom_currency_cost_basis_history" ON "currency_cost_bases" ("fiat_code", "custom_currency_cost_basis_history");
+-- create index "currencycostbasis_id" to table: "currency_cost_bases"
+CREATE UNIQUE INDEX "currencycostbasis_id" ON "currency_cost_bases" ("id");
+-- create "currency_cost_basis_effective_froms" table
+CREATE TABLE "currency_cost_basis_effective_froms" (
+  "id" character(26) NOT NULL,
+  "created_at" timestamptz NOT NULL,
+  "effective_from" timestamptz NOT NULL,
+  "currency_cost_basis_effective_from_history" character(26) NOT NULL,
+  PRIMARY KEY ("id")
+);
+-- create index "currencycostbasiseffectivefrom_id" to table: "currency_cost_basis_effective_froms"
+CREATE UNIQUE INDEX "currencycostbasiseffectivefrom_id" ON "currency_cost_basis_effective_froms" ("id");
+-- create "custom_currencies" table
+CREATE TABLE "custom_currencies" (
+  "id" character(26) NOT NULL,
+  "created_at" timestamptz NOT NULL,
+  "code" character varying NOT NULL,
+  "name" character varying NOT NULL,
+  "symbol" character varying NOT NULL,
+  PRIMARY KEY ("id")
+);
+-- create index "custom_currencies_code_key" to table: "custom_currencies"
+CREATE UNIQUE INDEX "custom_currencies_code_key" ON "custom_currencies" ("code");
+-- create index "customcurrency_id" to table: "custom_currencies"
+CREATE UNIQUE INDEX "customcurrency_id" ON "custom_currencies" ("id");
 -- create "standard_invoice_settlements" table
 CREATE TABLE "standard_invoice_settlements" (
   "id" character(26) NOT NULL,
@@ -115,7 +151,7 @@ CREATE TABLE "standard_invoice_settlements" (
   PRIMARY KEY ("id")
 );
 -- create index "standardinvoicesettlement_annotations" to table: "standard_invoice_settlements"
-CREATE INDEX "standardinvoicesettlement_annotations" ON "standard_invoice_settlements" USING gin ("annotations");
+CREATE INDEX "standardinvoicesettlement_annotations" ON "standard_invoice_settlements" USING GIN ("annotations");
 -- create index "standardinvoicesettlement_id" to table: "standard_invoice_settlements"
 CREATE UNIQUE INDEX "standardinvoicesettlement_id" ON "standard_invoice_settlements" ("id");
 -- create index "standardinvoicesettlement_namespace" to table: "standard_invoice_settlements"
@@ -134,5 +170,9 @@ ALTER TABLE "charge_flat_fees" ADD CONSTRAINT "charge_flat_fees_charges_flat_fee
 ALTER TABLE "charge_usage_baseds" ADD CONSTRAINT "charge_usage_baseds_charges_usage_based" FOREIGN KEY ("id") REFERENCES "charges" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
 -- modify "charges" table
 ALTER TABLE "charges" ADD CONSTRAINT "charges_customers_charge_intents" FOREIGN KEY ("customer_id") REFERENCES "customers" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION, ADD CONSTRAINT "charges_subscription_items_charge_intents" FOREIGN KEY ("subscription_item_id") REFERENCES "subscription_items" ("id") ON UPDATE NO ACTION ON DELETE SET NULL, ADD CONSTRAINT "charges_subscription_phases_charge_intents" FOREIGN KEY ("subscription_phase_id") REFERENCES "subscription_phases" ("id") ON UPDATE NO ACTION ON DELETE SET NULL, ADD CONSTRAINT "charges_subscriptions_charge_intents" FOREIGN KEY ("subscription_id") REFERENCES "subscriptions" ("id") ON UPDATE NO ACTION ON DELETE SET NULL;
+-- modify "currency_cost_bases" table
+ALTER TABLE "currency_cost_bases" ADD CONSTRAINT "currency_cost_bases_custom_currencies_cost_basis_history" FOREIGN KEY ("custom_currency_cost_basis_history") REFERENCES "custom_currencies" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION;
+-- modify "currency_cost_basis_effective_froms" table
+ALTER TABLE "currency_cost_basis_effective_froms" ADD CONSTRAINT "currency_cost_basis_effective_froms_currency_cost_bases_effecti" FOREIGN KEY ("currency_cost_basis_effective_from_history") REFERENCES "currency_cost_bases" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION;
 -- modify "standard_invoice_settlements" table
 ALTER TABLE "standard_invoice_settlements" ADD CONSTRAINT "standard_invoice_settlements_billing_invoice_lines_billing_invo" FOREIGN KEY ("line_id") REFERENCES "billing_invoice_lines" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION, ADD CONSTRAINT "standard_invoice_settlements_charges_standard_invoice_settlment" FOREIGN KEY ("charge_id") REFERENCES "charges" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION;
