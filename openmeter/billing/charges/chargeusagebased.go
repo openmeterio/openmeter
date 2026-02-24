@@ -94,6 +94,10 @@ func (i UsageBasedIntent) Validate() error {
 		}
 	}
 
+	if err := i.SettlementMode.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("settlement mode: %w", err))
+	}
+
 	return errors.Join(errs...)
 }
 
