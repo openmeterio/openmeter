@@ -80,7 +80,7 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 	s.NotNil(defaultProfile)
 
 	// Given we have another non-default profile pinned to a different app
-	appTypeOther := app.AppType("test-app-type-other")
+	appTypeOther := app.AppTypeCustomInvoicing
 
 	appFactoryOther, err := appsandbox.NewMockableFactory(s.T(), appsandbox.Config{
 		AppService:     s.AppService,
