@@ -17,7 +17,7 @@ tags:
   - name: OpenMeter Tax
     description: Tax codes are used to calculate taxes for customers.
   - name: OpenMeter Billing
-    description: Billing manages the billing profiles, and invoices for customers.
+    description: Billing manages the billing profiles, currencies, cost bases, and invoices for customers.
   - name: OpenMeter Apps
     description: Apps enable you to extend and customize billing and usage workflows by integrating with external systems and services. Apps can automate and enhance your billing ecosystem by supporting capabilities such as synchronizing usage data with third-party platforms, calculating taxes, generating and delivering invoices, handling payment collection, and other billing-related tasks.
   - name: OpenMeter Entitlements
@@ -81,6 +81,146 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Apps
+  /openmeter/currencies:
+    get:
+      operationId: list-currencies
+      summary: List currencies
+      description: List currencies supported by the billing system.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter currencies returned in the response.
+
+            To filter currencies by type add the following query param: filter[type]=custom
+          schema:
+            $ref: '#/components/schemas/ListCurrenciesParamsFilter'
+          style: deepObject
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrencyPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Billing
+      x-unstable: true
+      x-private: true
+  /openmeter/currencies/custom:
+    post:
+      operationId: create-custom-currency
+      summary: Create custom currency
+      description: |-
+        Create a custom currency.
+        This operation allows defining your own custom currency for billing purposes.
+      responses:
+        '201':
+          description: CurrencyCustom created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCurrencyCustom'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Billing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCurrencyCustomRequest'
+      x-unstable: true
+      x-private: true
+  /openmeter/currencies/custom/{currencyId}/cost-bases:
+    get:
+      operationId: list-cost-bases
+      summary: List cost bases
+      description: |-
+        List cost bases for a currency.
+        For custom currencies, there can be multiple cost bases with different `effective_from` dates.
+      parameters:
+        - name: currencyId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter cost bases returned in the response.
+
+            To filter cost bases by fiat currency code add the following query param: filter[fiat_code]=USD
+          schema:
+            $ref: '#/components/schemas/ListCostBasesParamsFilter'
+          style: deepObject
+        - $ref: '#/components/parameters/PagePaginationQuery'
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostBasisPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Billing
+      x-unstable: true
+      x-private: true
+    post:
+      operationId: create-cost-basis
+      summary: Create cost basis
+      description: Create a cost basis for a currency.
+      parameters:
+        - name: currencyId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '201':
+          description: CostBasis created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCostBasis'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Billing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCostBasisRequest'
+      x-unstable: true
+      x-private: true
   /openmeter/customers:
     post:
       operationId: create-customer
@@ -1938,6 +2078,140 @@ components:
         - stripe
         - external_invoicing
       description: The type of the app.
+    BillingCostBasis:
+      type: object
+      required:
+        - id
+        - fiat_code
+        - rate
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        fiat_code:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The fiat currency code for the cost basis.
+        rate:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The cost rate for the currency.
+        effective_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            An ISO-8601 timestamp representation of the date from which the cost basis is effective.
+            If not provided, it will be effective immediately and will set to `now` by the system.
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+      description: Describes currency basis supported by billing system.
+    BillingCurrency:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingCurrencyFiat'
+        - $ref: '#/components/schemas/BillingCurrencyCustom'
+      discriminator:
+        propertyName: type
+        mapping:
+          fiat: '#/components/schemas/BillingCurrencyFiat'
+          custom: '#/components/schemas/BillingCurrencyCustom'
+      description: Fiat or custom currency.
+    BillingCurrencyCodeCustom:
+      type: string
+      minLength: 3
+      maxLength: 24
+      description: |-
+        Custom currency code.
+        It should be a unique code but not conflicting with any existing fiat currency codes.
+    BillingCurrencyCustom:
+      type: object
+      required:
+        - id
+        - type
+        - name
+        - code
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - custom
+          description: The type of the currency.
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".
+        description:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Description of the currency.
+        symbol:
+          type: string
+          minLength: 1
+          description: The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.
+        code:
+          $ref: '#/components/schemas/BillingCurrencyCodeCustom'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of the custom currency creation date.
+          readOnly: true
+      description: Describes custom currency.
+    BillingCurrencyFiat:
+      type: object
+      required:
+        - id
+        - type
+        - name
+        - code
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - fiat
+          description: The type of the currency.
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".
+        description:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Description of the currency.
+        symbol:
+          type: string
+          minLength: 1
+          description: The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.
+        code:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          readOnly: true
+      description: Currency describes a currency supported by the billing system.
+    BillingCurrencyType:
+      type: string
+      enum:
+        - fiat
+        - custom
+      description: |-
+        Currency type for custom currencies.
+        It should be a unique code but not conflicting with any existing standard currency codes.
     BillingCustomer:
       type: object
       required:
@@ -2831,6 +3105,19 @@ components:
           description: Default tax configuration to apply to the invoices for line items.
       description: Tax settings for a billing workflow.
       title: Workflow tax settings
+    CostBasisPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingCostBasis'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      description: Page paginated response.
     CountryCode:
       type: string
       minLength: 2
@@ -2882,6 +3169,50 @@ components:
           type: boolean
           description: Whether this is the default profile.
       description: BillingProfile create request.
+    CreateCostBasisRequest:
+      type: object
+      required:
+        - fiat_code
+        - rate
+      properties:
+        fiat_code:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The fiat currency code for the cost basis.
+        rate:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The cost rate for the currency.
+        effective_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            An ISO-8601 timestamp representation of the date from which the cost basis is effective.
+            If not provided, it will be effective immediately and will set to `now` by the system.
+      description: CostBasis create request.
+    CreateCurrencyCustomRequest:
+      type: object
+      required:
+        - name
+        - code
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".
+        description:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Description of the currency.
+        symbol:
+          type: string
+          minLength: 1
+          description: The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.
+        code:
+          $ref: '#/components/schemas/BillingCurrencyCodeCustom'
+      description: CurrencyCustom create request.
     CreateCustomerRequest:
       type: object
       required:
@@ -3037,6 +3368,19 @@ components:
         Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
         Custom three-letter currency codes are also supported for convenience.
       example: USD
+    CurrencyPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingCurrency'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      description: Page paginated response.
     CustomerPagePaginatedResponse:
       type: object
       required:
@@ -3070,6 +3414,22 @@ components:
       title: ISO 8601 Duration
       example: P1Y
       format: ISO8601
+    ListCostBasesParamsFilter:
+      type: object
+      properties:
+        fiat_code:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: Filter cost bases by fiat currency code.
+      description: Filter options for listing cost bases.
+    ListCurrenciesParamsFilter:
+      type: object
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingCurrencyType'
+          description: Filter currencies by type.
+      description: Filter options for listing currencies.
     ListCustomerEntitlementAccessResponseData:
       type: object
       required:
@@ -3290,6 +3650,10 @@ components:
           tokens: 100
           model: gpt-4o
           type: input
+    Numeric:
+      type: string
+      pattern: ^\-?[0-9]+(\.[0-9]+)?$
+      description: Numeric represents an arbitrary precision number.
     RecurringPeriod:
       type: object
       required:

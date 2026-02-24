@@ -9,6 +9,7 @@ import "./customers/index.tsp";
 import "./subscriptions/index.tsp";
 import "./apps/index.tsp";
 import "./billing/index.tsp";
+import "./currencies/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -81,3 +82,17 @@ interface BillingProfilesEndpoints extends Billing.BillingProfilesOperations {}
 @route("/openmeter/tax-codes")
 @tag(Shared.TaxTag)
 interface TaxCodesEndpoints extends Tax.TaxCodesOperations {}
+
+@route("/openmeter/currencies")
+@tag(Shared.BillingTag)
+interface CurrenciesEndpoints extends Currencies.CurrenciesOperations {}
+
+@route("/openmeter/currencies/custom")
+@tag(Shared.BillingTag)
+interface CurrenciesCustomEndpoints
+  extends Currencies.CurrenciesCustomOperations {}
+
+@route("/openmeter/currencies/custom/{currencyId}/cost-bases")
+@tag(Shared.BillingTag)
+interface CurrenciesCustomCostBasesEndpoints
+  extends Currencies.CurrenciesCustomCostBasesOperations {}

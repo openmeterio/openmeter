@@ -87,6 +87,20 @@ interface BillingProfilesEndpoints extends Billing.BillingProfilesOperations {}
 @tag(Shared.TaxTag)
 interface TaxCodesEndpoints extends Tax.TaxCodesOperations {}
 
+@route("/openmeter/currencies")
+@tag(Shared.BillingTag)
+interface CurrenciesEndpoints extends Currencies.CurrenciesOperations {}
+
+@route("/openmeter/currencies/custom")
+@tag(Shared.BillingTag)
+interface CurrenciesCustomEndpoints
+  extends Currencies.CurrenciesCustomOperations {}
+
+@route("/openmeter/currencies/custom/{currencyId}/cost-bases")
+@tag(Shared.BillingTag)
+interface CurrenciesCustomCostBasesEndpoints
+  extends Currencies.CurrenciesCustomCostBasesOperations {}
+
 /**
  * The system account access token is meant for automations and integrations that are not directly associated with a human identity.
  */
