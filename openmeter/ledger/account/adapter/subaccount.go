@@ -3,9 +3,11 @@ package adapter
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbledgersubaccount "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -60,6 +62,54 @@ func (r *repo) GetSubAccountByID(ctx context.Context, id models.NamespacedID) (*
 		}
 
 		return &subAccountData, nil
+	})
+}
+
+func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubAccountsInput) ([]*ledgeraccount.SubAccountData, error) {
+	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) ([]*ledgeraccount.SubAccountData, error) {
+		predicates := []predicate.LedgerSubAccount{
+			dbledgersubaccount.Namespace(input.Namespace),
+			dbledgersubaccount.AccountID(input.AccountID),
+		}
+
+		if input.Dimensions.CurrencyID != "" {
+			predicates = append(predicates, dbledgersubaccount.CurrencyDimensionID(input.Dimensions.CurrencyID))
+		}
+
+		if input.Dimensions.TaxCodeID != nil {
+			predicates = append(predicates, dbledgersubaccount.TaxCodeDimensionID(*input.Dimensions.TaxCodeID))
+		}
+
+		if len(input.Dimensions.FeatureIDs) > 0 {
+			predicates = append(predicates, dbledgersubaccount.FeaturesDimensionID(input.Dimensions.FeatureIDs[0]))
+		}
+
+		if input.Dimensions.CreditPriority != nil {
+			predicates = append(predicates, dbledgersubaccount.CreditPriorityDimensionID(strconv.Itoa(*input.Dimensions.CreditPriority)))
+		}
+
+		entities, err := r.db.LedgerSubAccount.Query().
+			Where(predicates...).
+			WithCurrencyDimension().
+			WithTaxCodeDimension().
+			WithFeaturesDimension().
+			WithCreditPriorityDimension().
+			WithAccount().
+			All(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list ledger sub-accounts: %w", err)
+		}
+
+		out := make([]*ledgeraccount.SubAccountData, 0, len(entities))
+		for _, entity := range entities {
+			subAccountData, err := MapSubAccountData(entity)
+			if err != nil {
+				return nil, fmt.Errorf("failed to map sub-account data: %w", err)
+			}
+			out = append(out, &subAccountData)
+		}
+
+		return out, nil
 	})
 }
 

@@ -22,6 +22,9 @@ type Repo interface {
 	// GetSubAccountByID returns the sub-account by its ID
 	GetSubAccountByID(ctx context.Context, id models.NamespacedID) (*SubAccountData, error)
 
+	// ListSubAccounts returns sub-accounts for account + dimension filters
+	ListSubAccounts(ctx context.Context, input ListSubAccountsInput) ([]*SubAccountData, error)
+
 	// CreateDimension creates a new dimension
 	CreateDimension(ctx context.Context, input CreateDimensionInput) (*DimensionData, error)
 

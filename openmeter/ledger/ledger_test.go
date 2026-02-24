@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
+	"github.com/openmeterio/openmeter/openmeter/ledger/transactions/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -35,47 +37,59 @@ func TestTwoAccountTransaction(t *testing.T) {
 	var a1, a2 ledger.SubAccount
 
 	// Let's create a TX between two accounts
-	tx, err := l.SetUpTransactionInput(t.Context(), time.Now(), []ledger.EntryInput{
-		exampleEntryInput{
-			account: a1.Address(),
-			amount:  alpacadecimal.NewFromInt(-100),
+	txTpl := &testutils.AnyOrgTemplate{
+		TransactionInput: &testutils.AnyTransactionInput{
+			BookedAtValue: time.Now(),
+			EntryInputsValues: []*testutils.AnyEntryInput{
+				{
+					Address:     a1.Address(),
+					AmountValue: alpacadecimal.NewFromInt(-100),
+				},
+				{
+					Address:     a2.Address(),
+					AmountValue: alpacadecimal.NewFromInt(100),
+				},
+			},
 		},
-		exampleEntryInput{
-			account: a2.Address(),
-			amount:  alpacadecimal.NewFromInt(100),
-		},
-	})
-
+	}
+	txInput, err := txTpl.Resolve(t.Context(), "namespace", transactions.Resolvers{})
 	require.NoError(t, err)
-	require.NotNil(t, tx)
 
-	_, err = l.CommitGroup(t.Context(), tx.AsGroupInput("default-ns", nil))
+	_, err = l.CommitGroup(t.Context(), txInput.AsGroupInput("namespace", nil))
 	require.NoError(t, err)
 }
 
 func TestMultiAccountTransaction(t *testing.T) {
 	t.Skipf("This is just to assert the types, it would fail on unimplemented")
 
-	var l ledger.Ledger
 	var a1, a2, a3 ledger.SubAccount
 
 	// Let's create a TX between multiple
-	tx, err := l.SetUpTransactionInput(t.Context(), time.Now(), []ledger.EntryInput{
-		exampleEntryInput{
-			account: a1.Address(),
-			amount:  alpacadecimal.NewFromInt(-100),
+	txTpl := &testutils.AnyOrgTemplate{
+		TransactionInput: &testutils.AnyTransactionInput{
+			BookedAtValue: time.Now(),
+			EntryInputsValues: []*testutils.AnyEntryInput{
+				{
+					Address:     a1.Address(),
+					AmountValue: alpacadecimal.NewFromInt(-100),
+				},
+				{
+					Address:     a2.Address(),
+					AmountValue: alpacadecimal.NewFromInt(50),
+				},
+				{
+					Address:     a3.Address(),
+					AmountValue: alpacadecimal.NewFromInt(49),
+				},
+			},
 		},
-		exampleEntryInput{
-			account: a2.Address(),
-			amount:  alpacadecimal.NewFromInt(50),
-		},
-		exampleEntryInput{
-			account: a3.Address(),
-			amount:  alpacadecimal.NewFromInt(49),
-		},
-	})
+	}
 
-	require.Nil(t, tx)
+	txInput, err := txTpl.Resolve(t.Context(), "namespace", transactions.Resolvers{})
+	require.NoError(t, err)
+
+	err = ledger.ValidateTransactionInput(t.Context(), txInput)
+	require.NoError(t, err)
 
 	// Just an example on checking errors... 99 - 100 <> 0
 	found := false

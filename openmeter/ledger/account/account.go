@@ -7,6 +7,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -28,6 +29,11 @@ func (b *Balance) Pending() alpacadecimal.Decimal {
 	return b.pending
 }
 
+type AccountLiveServices struct {
+	Querier ledger.Querier
+	Locker  *lockr.Locker
+}
+
 // AccountData is a simple data transfer object for the Account entity.
 type AccountData struct {
 	ID          models.NamespacedID
@@ -36,10 +42,10 @@ type AccountData struct {
 	AccountType ledger.AccountType
 }
 
-func NewAccountFromData(querier ledger.Querier, data AccountData) (*Account, error) {
+func NewAccountFromData(data AccountData, services AccountLiveServices) (*Account, error) {
 	return &Account{
-		data:    data,
-		querier: querier,
+		data:     data,
+		services: services,
 	}, nil
 }
 
@@ -47,9 +53,7 @@ func NewAccountFromData(querier ledger.Querier, data AccountData) (*Account, err
 type Account struct {
 	data AccountData
 
-	dimensions map[ledger.DimensionKey]*DimensionData
-
-	querier ledger.Querier
+	services AccountLiveServices
 }
 
 // ----------------------------------------------------------------------------
@@ -73,7 +77,7 @@ func (a *Account) GetBalance(ctx context.Context, query ledger.QueryDimensions) 
 		},
 	}
 
-	res, err := a.querier.SumEntries(ctx, ledgerQuery)
+	res, err := a.services.Querier.SumEntries(ctx, ledgerQuery)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sum entries for query %+v: %w", query, err)
 	}
