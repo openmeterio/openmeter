@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -41,42 +42,30 @@ func ValidateEntryInput(ctx context.Context, entry EntryInput) error {
 }
 
 func ValidateAddress(ctx context.Context, address PostingAddress) error {
-	// Let's validate address dimensions
-	// dimKeys := make(map[DimensionKey]bool)
-	// for _, dim := range address.Dimensions() {
-	// 	if err := ValidateDimensionByKey(dim); err != nil {
-	// 		return fmt.Errorf("invalid dimension: %w", err)
-	// 	}
-
-	// 	if _, ok := dimKeys[dim.Key()]; ok {
-	// 		return fmt.Errorf("dimension key %s is present multiple times", dim.Key())
-	// 	}
-	// 	dimKeys[dim.Key()] = true
-	// }
-
 	return nil
 }
 
-// TODO: We need to validate somehow that credit priority is correct...
-// // ValidateCreditAccountBalance validates that
-// // - customer accounts representing issued credits (either FIAT or CR)
-// // don't go below 0. This is to enforce on the ledger level that priority calculations are correct.
-// func ValidateCreditAccountBalance(ctx context.Context, acc Account) error {
-// 	if acc.Address().Type() == AccountTypeCustomerFBO {
-// 		bal, err := acc.GetBalance(ctx)
-// 		if err != nil {
-// 			return fmt.Errorf("failed to get balance for credit account %s: %w", acc.Address(), err)
-// 		}
+func ValidateTransactionInput(ctx context.Context, transaction TransactionInput) error {
+	// Let's validate that the entries add up
+	if err := ValidateInvariance(ctx, lo.Map(transaction.EntryInputs(), func(e EntryInput, _ int) EntryInput {
+		return e
+	})); err != nil {
+		return err
+	}
 
-// 		// If the balance is negative, we need to return an error
-// 		if bal.Settled().IsNegative() {
-// 			return ErrCreditAccountBalanceIsNegative.WithAttrs(models.Attributes{
-// 				"settled": bal.Settled(),
-// 				"pending": bal.Pending(),
-// 				"account": acc.Address(),
-// 			})
-// 		}
-// 	}
+	// Let's validate routing
+	if err := ValidateRouting(ctx, lo.Map(transaction.EntryInputs(), func(e EntryInput, _ int) EntryInput {
+		return e
+	})); err != nil {
+		return err
+	}
 
-// 	return nil
-// }
+	// Let's validate the entries themselves
+	for _, entry := range transaction.EntryInputs() {
+		if err := ValidateEntryInput(ctx, entry); err != nil {
+			return fmt.Errorf("invalid entry: %w", err)
+		}
+	}
+
+	return nil
+}

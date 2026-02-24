@@ -1,6 +1,8 @@
 package ledger
 
 import (
+	"context"
+
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -58,6 +60,10 @@ type (
 	DimensionCreditPriority Dimension[int]
 )
 
+type DimensionResolver interface {
+	GetCurrencyDimension(ctx context.Context, value string) (DimensionCurrency, error)
+}
+
 // ----------------------------------------------------------------------------
 // SubAccountDimensions
 // ----------------------------------------------------------------------------
@@ -68,12 +74,4 @@ type SubAccountDimensions struct {
 	TaxCode        mo.Option[DimensionTaxCode]
 	CreditPriority mo.Option[DimensionCreditPriority]
 	Feature        mo.Option[DimensionFeature]
-}
-
-// CustomerSubAccountDimensions are dimensions specific to customer sub-accounts.
-type CustomerSubAccountDimensions struct {
-	Currency       DimensionCurrency
-	TaxCode        DimensionTaxCode
-	CreditPriority DimensionCreditPriority
-	Features       mo.Option[DimensionFeature]
 }

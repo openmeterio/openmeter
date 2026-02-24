@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type service struct {
-	repo    account.Repo
-	querier ledger.Querier
+	repo account.Repo
+
+	live account.AccountLiveServices
 }
 
 func New(repo account.Repo) account.Service {
@@ -32,7 +32,7 @@ func (s *service) CreateAccount(ctx context.Context, input account.CreateAccount
 		return nil, fmt.Errorf("failed to create account: %w", err)
 	}
 
-	return account.NewAccountFromData(s.querier, *accData)
+	return account.NewAccountFromData(*accData, s.live)
 }
 
 func (s *service) CreateDimension(ctx context.Context, input account.CreateDimensionInput) (*account.DimensionData, error) {
@@ -80,7 +80,7 @@ func (s *service) GetAccountByID(ctx context.Context, id models.NamespacedID) (*
 		return nil, fmt.Errorf("failed to get account: %w", err)
 	}
 
-	return account.NewAccountFromData(s.querier, *accData)
+	return account.NewAccountFromData(*accData, s.live)
 }
 
 func (s *service) GetSubAccountByID(ctx context.Context, id models.NamespacedID) (*account.SubAccount, error) {
@@ -90,6 +90,24 @@ func (s *service) GetSubAccountByID(ctx context.Context, id models.NamespacedID)
 	}
 
 	return account.NewSubAccountFromData(*subAccountData)
+}
+
+func (s *service) ListSubAccounts(ctx context.Context, input account.ListSubAccountsInput) ([]*account.SubAccount, error) {
+	subAccountDatas, err := s.repo.ListSubAccounts(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list sub-accounts: %w", err)
+	}
+
+	subAccounts := make([]*account.SubAccount, 0, len(subAccountDatas))
+	for _, subAccountData := range subAccountDatas {
+		subAccount, err := account.NewSubAccountFromData(*subAccountData)
+		if err != nil {
+			return nil, fmt.Errorf("failed to map sub-account: %w", err)
+		}
+		subAccounts = append(subAccounts, subAccount)
+	}
+
+	return subAccounts, nil
 }
 
 func (s *service) GetDimensionByID(ctx context.Context, id models.NamespacedID) (*account.DimensionData, error) {

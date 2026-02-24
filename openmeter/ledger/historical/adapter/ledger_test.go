@@ -16,26 +16,12 @@ import (
 	ledger "github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
+	transactionstestutils "github.com/openmeterio/openmeter/openmeter/ledger/transactions/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
-
-type testEntryInput struct {
-	address ledger.PostingAddress
-	amount  alpacadecimal.Decimal
-}
-
-func (e testEntryInput) PostingAddress() ledger.PostingAddress {
-	return e.address
-}
-
-func (e testEntryInput) Amount() alpacadecimal.Decimal {
-	return e.amount
-}
-
-var _ ledger.EntryInput = (*testEntryInput)(nil)
 
 func TestRepo_CreateTransactionGroup(t *testing.T) {
 	env := NewTestEnv(t)
@@ -78,27 +64,22 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 	subAccountA := env.createSubAccount(t, namespace, "acc-a")
 	subAccountB := env.createSubAccount(t, namespace, "acc-b")
 
-	hLedger := &ledgerhistorical.Ledger{}
-	txInputIntf, err := hLedger.SetUpTransactionInput(ctx, time.Now().UTC(), []ledger.EntryInput{
-		testEntryInput{
-			address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
+	txInput := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		{
+			Address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
 				SubAccountID: subAccountA,
 				AccountType:  ledger.AccountTypeCustomerFBO,
 			}),
-			amount: alpacadecimal.NewFromInt(-100),
+			AmountValue: alpacadecimal.NewFromInt(-100),
 		},
-		testEntryInput{
-			address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
+		{
+			Address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
 				SubAccountID: subAccountB,
 				AccountType:  ledger.AccountTypeCustomerFBO,
 			}),
-			amount: alpacadecimal.NewFromInt(100),
+			AmountValue: alpacadecimal.NewFromInt(100),
 		},
 	})
-	require.NoError(t, err)
-
-	txInput, ok := txInputIntf.(*ledgerhistorical.TransactionInput)
-	require.True(t, ok)
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
 		Namespace: namespace,
@@ -176,48 +157,44 @@ func TestRepo_ListTransactions_PaginatesAndFilters(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	hLedger := &ledgerhistorical.Ledger{}
-
-	txInput1Intf, err := hLedger.SetUpTransactionInput(ctx, time.Now().UTC(), []ledger.EntryInput{
-		testEntryInput{
-			address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
+	txInput1 := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		{
+			Address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
 				SubAccountID: subAccountA,
 				AccountType:  ledger.AccountTypeCustomerFBO,
 			}),
-			amount: alpacadecimal.NewFromInt(-10),
+			AmountValue: alpacadecimal.NewFromInt(-10),
 		},
-		testEntryInput{
-			address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
+		{
+			Address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
 				SubAccountID: subAccountB,
 				AccountType:  ledger.AccountTypeCustomerFBO,
 			}),
-			amount: alpacadecimal.NewFromInt(10),
+			AmountValue: alpacadecimal.NewFromInt(10),
 		},
 	})
-	require.NoError(t, err)
-	tx1, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInput1Intf.(*ledgerhistorical.TransactionInput))
+	tx1, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInput1)
 	require.NoError(t, err)
 
 	time.Sleep(5 * time.Millisecond)
 
-	txInput2Intf, err := hLedger.SetUpTransactionInput(ctx, time.Now().UTC(), []ledger.EntryInput{
-		testEntryInput{
-			address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
+	txInput2 := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		{
+			Address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
 				SubAccountID: subAccountA,
 				AccountType:  ledger.AccountTypeCustomerFBO,
 			}),
-			amount: alpacadecimal.NewFromInt(-20),
+			AmountValue: alpacadecimal.NewFromInt(-20),
 		},
-		testEntryInput{
-			address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
+		{
+			Address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
 				SubAccountID: subAccountB,
 				AccountType:  ledger.AccountTypeCustomerFBO,
 			}),
-			amount: alpacadecimal.NewFromInt(20),
+			AmountValue: alpacadecimal.NewFromInt(20),
 		},
 	})
-	require.NoError(t, err)
-	tx2, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInput2Intf.(*ledgerhistorical.TransactionInput))
+	tx2, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInput2)
 	require.NoError(t, err)
 
 	page1, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
@@ -277,35 +254,32 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{Namespace: namespace})
 	require.NoError(t, err)
 
-	hLedger := &ledgerhistorical.Ledger{}
 	bookedAtEarly := time.Now().UTC().Add(-2 * time.Hour)
-	txInputEarlyIntf, err := hLedger.SetUpTransactionInput(ctx, bookedAtEarly, []ledger.EntryInput{
-		testEntryInput{
-			address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{SubAccountID: subAccountA, AccountType: ledger.AccountTypeCustomerFBO}),
-			amount:  alpacadecimal.NewFromInt(100),
+	txInputEarly := mustSetUpHistoricalTransactionInput(t, bookedAtEarly, []*transactionstestutils.AnyEntryInput{
+		{
+			Address:     ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{SubAccountID: subAccountA, AccountType: ledger.AccountTypeCustomerFBO}),
+			AmountValue: alpacadecimal.NewFromInt(100),
 		},
-		testEntryInput{
-			address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{SubAccountID: subAccountB, AccountType: ledger.AccountTypeCustomerFBO}),
-			amount:  alpacadecimal.NewFromInt(-100),
+		{
+			Address:     ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{SubAccountID: subAccountB, AccountType: ledger.AccountTypeCustomerFBO}),
+			AmountValue: alpacadecimal.NewFromInt(-100),
 		},
 	})
-	require.NoError(t, err)
-	txEarly, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInputEarlyIntf.(*ledgerhistorical.TransactionInput))
+	txEarly, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInputEarly)
 	require.NoError(t, err)
 
 	bookedAtLate := time.Now().UTC().Add(-30 * time.Minute)
-	txInputLateIntf, err := hLedger.SetUpTransactionInput(ctx, bookedAtLate, []ledger.EntryInput{
-		testEntryInput{
-			address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{SubAccountID: subAccountA, AccountType: ledger.AccountTypeCustomerFBO}),
-			amount:  alpacadecimal.NewFromInt(50),
+	txInputLate := mustSetUpHistoricalTransactionInput(t, bookedAtLate, []*transactionstestutils.AnyEntryInput{
+		{
+			Address:     ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{SubAccountID: subAccountA, AccountType: ledger.AccountTypeCustomerFBO}),
+			AmountValue: alpacadecimal.NewFromInt(50),
 		},
-		testEntryInput{
-			address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{SubAccountID: subAccountC, AccountType: ledger.AccountTypeCustomerFBO}),
-			amount:  alpacadecimal.NewFromInt(-50),
+		{
+			Address:     ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{SubAccountID: subAccountC, AccountType: ledger.AccountTypeCustomerFBO}),
+			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 	})
-	require.NoError(t, err)
-	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInputLateIntf.(*ledgerhistorical.TransactionInput))
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInputLate)
 	require.NoError(t, err)
 
 	sumUSD, err := env.repo.SumEntries(ctx, ledger.Query{
@@ -507,4 +481,11 @@ func (e *TestEnv) createDimension(t *testing.T, namespace, key, value, displayVa
 
 func testNamespace() string {
 	return fmt.Sprintf("ledger-historical-adapter-%d", time.Now().UnixNano())
+}
+
+func mustSetUpHistoricalTransactionInput(_ *testing.T, bookedAt time.Time, entries []*transactionstestutils.AnyEntryInput) ledger.TransactionInput {
+	return &transactionstestutils.AnyTransactionInput{
+		BookedAtValue:     bookedAt,
+		EntryInputsValues: entries,
+	}
 }
