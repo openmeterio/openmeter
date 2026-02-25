@@ -1654,7 +1654,7 @@ func (n NoopIngestService) IngestEvents(ctx context.Context, request ingest.Inge
 	return true, nil
 }
 
-// NoopCurrencyService implements currency.Service with no-op operations
+// NoopCurrencyService implements currencies.CurrencyService with no-op operations
 // for use in testing
 var _ currencies.CurrencyService = (*NoopCurrencyService)(nil)
 

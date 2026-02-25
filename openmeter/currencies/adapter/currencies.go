@@ -107,8 +107,13 @@ func (a *adapter) CreateCurrency(ctx context.Context, params currencies.CreateCu
 func (a *adapter) CreateCostBasis(ctx context.Context, params currencies.CreateCostBasisInput) (*currencies.CostBasis, error) {
 	effectiveFrom := time.Now()
 	if params.EffectiveFrom != nil {
-		if params.EffectiveFrom.Before(time.Now()) {
-			return nil, models.NewGenericConflictError(fmt.Errorf("effective from must be in the future"))
+		now := time.Now()
+		if !params.EffectiveFrom.After(now) {
+			return nil, models.NewGenericValidationError(fmt.Errorf(
+				"effective_from %s must be in the future (current time: %s)",
+				params.EffectiveFrom.UTC().Format(time.RFC3339),
+				now.UTC().Format(time.RFC3339),
+			))
 		}
 		effectiveFrom = *params.EffectiveFrom
 	}
