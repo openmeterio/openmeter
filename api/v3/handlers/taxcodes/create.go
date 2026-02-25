@@ -44,12 +44,7 @@ func (h *handler) CreateTaxCode() CreateTaxCodeHandler {
 				return CreateTaxCodeResponse{}, err
 			}
 
-			resp, err := ConvertTaxCodeToAPITaxCode(t)
-			if err != nil {
-				return CreateTaxCodeResponse{}, err
-			}
-
-			return resp, nil
+			return ConvertTaxCodeToAPITaxCode(t)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateTaxCodeResponse](http.StatusCreated),
 		httptransport.AppendOptions(

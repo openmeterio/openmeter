@@ -9,7 +9,7 @@ import (
 
 type Handler interface {
 	// ListTaxCodes() ListTaxCodesHandler
-	// GetTaxCode() GetTaxCodeHandler
+	GetTaxCode() GetTaxCodeHandler
 	CreateTaxCode() CreateTaxCodeHandler
 	// UpdateTaxCode() UpdateTaxCodeHandler
 	// DeleteTaxCode() DeleteTaxCodeHandler
