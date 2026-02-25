@@ -5,7 +5,6 @@ package taxcodes
 
 import (
 	v3 "github.com/openmeterio/openmeter/api/v3"
-	app "github.com/openmeterio/openmeter/openmeter/app"
 	taxcode "github.com/openmeterio/openmeter/openmeter/taxcode"
 	models "github.com/openmeterio/openmeter/pkg/models"
 	"time"
@@ -21,6 +20,15 @@ func init() {
 		taxcodeCreateTaxCodeInput.AppMappings = v3BillingTaxCodeAppMappingListToTaxcodeTaxCodeAppMappings(source.AppMappings)
 		taxcodeCreateTaxCodeInput.Metadata = pV3LabelsToModelsMetadata(source.Labels)
 		return taxcodeCreateTaxCodeInput, nil
+	}
+	ConvertFromUpsertTaxCodeRequestToUpdateTaxCodeInput = func(context models.NamespacedID, source v3.UpsertTaxCodeRequest) (taxcode.UpdateTaxCodeInput, error) {
+		var taxcodeUpdateTaxCodeInput taxcode.UpdateTaxCodeInput
+		taxcodeUpdateTaxCodeInput.NamespacedID = ResolveNamespacedIDFromContext(context)
+		taxcodeUpdateTaxCodeInput.Name = source.Name
+		taxcodeUpdateTaxCodeInput.Description = source.Description
+		taxcodeUpdateTaxCodeInput.AppMappings = v3BillingTaxCodeAppMappingListToTaxcodeTaxCodeAppMappings(source.AppMappings)
+		taxcodeUpdateTaxCodeInput.Metadata = pV3LabelsToModelsMetadata(source.Labels)
+		return taxcodeUpdateTaxCodeInput, nil
 	}
 	ConvertTaxCodeToAPITaxCode = func(source taxcode.TaxCode) (v3.BillingTaxCode, error) {
 		var v3BillingTaxCode v3.BillingTaxCode
@@ -45,7 +53,7 @@ func pV3LabelsToModelsMetadata(source *v3.Labels) models.Metadata {
 }
 func taxcodeTaxCodeAppMappingToV3BillingTaxCodeAppMapping(source taxcode.TaxCodeAppMapping) v3.BillingTaxCodeAppMapping {
 	var v3BillingTaxCodeAppMapping v3.BillingTaxCodeAppMapping
-	v3BillingTaxCodeAppMapping.AppType = v3.BillingAppType(source.AppType)
+	v3BillingTaxCodeAppMapping.AppType = ConvertDomainAppTypeToAPIAppType(source.AppType)
 	v3BillingTaxCodeAppMapping.TaxCode = source.TaxCode
 	return v3BillingTaxCodeAppMapping
 }
@@ -74,7 +82,7 @@ func v3BillingTaxCodeAppMappingListToTaxcodeTaxCodeAppMappings(source []v3.Billi
 }
 func v3BillingTaxCodeAppMappingToTaxcodeTaxCodeAppMapping(source v3.BillingTaxCodeAppMapping) taxcode.TaxCodeAppMapping {
 	var taxcodeTaxCodeAppMapping taxcode.TaxCodeAppMapping
-	taxcodeTaxCodeAppMapping.AppType = app.AppType(source.AppType)
+	taxcodeTaxCodeAppMapping.AppType = ConvertAPIAppTypeToDomainAppType(source.AppType)
 	taxcodeTaxCodeAppMapping.TaxCode = source.TaxCode
 	return taxcodeTaxCodeAppMapping
 }

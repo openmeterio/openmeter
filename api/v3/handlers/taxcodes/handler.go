@@ -11,7 +11,7 @@ type Handler interface {
 	ListTaxCodes() ListTaxCodesHandler
 	GetTaxCode() GetTaxCodeHandler
 	CreateTaxCode() CreateTaxCodeHandler
-	// UpdateTaxCode() UpdateTaxCodeHandler
+	UpdateTaxCode() UpdateTaxCodeHandler
 	DeleteTaxCode() DeleteTaxCodeHandler
 }
 

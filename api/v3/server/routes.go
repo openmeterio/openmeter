@@ -159,7 +159,7 @@ func (s *Server) GetTaxCode(w http.ResponseWriter, r *http.Request, taxCodeId ap
 }
 
 func (s *Server) UpsertTaxCode(w http.ResponseWriter, r *http.Request, taxCodeId api.ULID) {
-	unimplemented.UpsertTaxCode(w, r, taxCodeId)
+	s.taxcodesHandler.UpdateTaxCode().With(taxCodeId).ServeHTTP(w, r)
 }
 
 // Currencies
