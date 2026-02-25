@@ -24,18 +24,16 @@ model FilterString {
   /**
    * The field must be in the provided list of values.
    */
-  // Not supported for nullable types
-  // @minItems(1)
-  // @maxItems(100)
+  @minItems(1)
+  @maxItems(100)
   @extension("x-omitempty", true)
   $in?: string[] | null;
 
   /**
    * The field must not be in the provided list of values.
    */
-  // Not supported for nullable types
-  // @minItems(1)
-  // @maxItems(100)
+  @minItems(1)
+  @maxItems(100)
   @extension("x-omitempty", true)
   $nin?: string[] | null;
 
@@ -90,18 +88,16 @@ model FilterString {
   /**
    * Provide a list of filters to be combined with a logical AND.
    */
-  // Not supported for nullable types
-  // @minItems(1)
-  // @maxItems(10)
+  @minItems(1)
+  @maxItems(10)
   @extension("x-omitempty", true)
   $and?: FilterString[] | null;
 
   /**
    * Provide a list of filters to be combined with a logical OR.
    */
-  // Not supported for nullable types
-  // @minItems(1)
-  // @maxItems(10)
+  @minItems(1)
+  @maxItems(10)
   @extension("x-omitempty", true)
   $or?: FilterString[] | null;
 }
@@ -115,9 +111,8 @@ model FilterIDExact {
   /**
    * The field must be in the provided list of values.
    */
-  // Not supported for nullable types
-  // @minItems(1)
-  // @maxItems(100)
+  @minItems(1)
+  @maxItems(100)
   @extension("x-omitempty", true)
   $in?: ULID[] | null;
 }
@@ -166,18 +161,16 @@ model FilterInteger {
   /**
    * Provide a list of filters to be combined with a logical AND.
    */
-  // Not supported for nullable types
-  // @minItems(1)
-  // @maxItems(10)
+  @minItems(1)
+  @maxItems(10)
   @extension("x-omitempty", true)
   $and?: FilterInteger[] | null;
 
   /**
    * Provide a list of filters to be combined with a logical OR.
    */
-  // Not supported for nullable types
-  // @minItems(1)
-  // @maxItems(10)
+  @minItems(1)
+  @maxItems(10)
   @extension("x-omitempty", true)
   $or?: FilterInteger[] | null;
 }
@@ -226,18 +219,16 @@ model FilterFloat {
   /**
    * Provide a list of filters to be combined with a logical AND.
    */
-  // Not supported for nullable types
-  // @minItems(1)
-  // @maxItems(10)
+  @minItems(1)
+  @maxItems(10)
   @extension("x-omitempty", true)
   $and?: FilterFloat[] | null;
 
   /**
    * Provide a list of filters to be combined with a logical OR.
    */
-  // Not supported for nullable types
-  // @minItems(1)
-  // @maxItems(10)
+  @minItems(1)
+  @maxItems(10)
   @extension("x-omitempty", true)
   $or?: FilterFloat[] | null;
 }
@@ -286,18 +277,16 @@ model FilterTime {
   /**
    * Provide a list of filters to be combined with a logical AND.
    */
-  // Not supported for nullable types
-  // @minItems(1)
-  // @maxItems(10)
+  @minItems(1)
+  @maxItems(10)
   @extension("x-omitempty", true)
   $and?: FilterTime[] | null;
 
   /**
    * Provide a list of filters to be combined with a logical OR.
    */
-  // Not supported for nullable types
-  // @minItems(1)
-  // @maxItems(10)
+  @minItems(1)
+  @maxItems(10)
   @extension("x-omitempty", true)
   $or?: FilterTime[] | null;
 }
