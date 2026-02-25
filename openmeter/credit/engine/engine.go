@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+// TODO(galexi): we could consolidate this better with the optimizedengine Config...
 type RunParams struct {
 	// Meter for the current run.
 	Meter meter.Meter
