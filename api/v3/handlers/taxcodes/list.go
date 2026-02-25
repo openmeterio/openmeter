@@ -57,23 +57,19 @@ func (h *handler) ListTaxCodes() ListTaxCodesHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request ListTaxCodesRequest) (ListTaxCodesResponse, error) {
-			resp, err := h.service.ListTaxCodes(ctx, taxcode.ListTaxCodesInput{
-				Namespace:      request.Namespace,
-				Page:           request.Page,
-				IncludeDeleted: request.IncludeDeleted,
-			})
+			resp, err := h.service.ListTaxCodes(ctx, request)
 			if err != nil {
 				return ListTaxCodesResponse{}, err
 			}
 
-			taxcodes := lo.Map(resp.Items, func(item taxcode.TaxCode, _ int) api.BillingTaxCode {
+			taxcodes := make([]api.BillingTaxCode, 0, len(resp.Items))
+			for _, item := range resp.Items {
 				apiTaxCode, err := ConvertTaxCodeToAPITaxCode(item)
 				if err != nil {
-					// This should never happen, but if it does, we can skip the problematic tax code
-					return api.BillingTaxCode{}
+					return ListTaxCodesResponse{}, err
 				}
-				return apiTaxCode
-			})
+				taxcodes = append(taxcodes, apiTaxCode)
+			}
 
 			r := response.NewPagePaginationResponse(taxcodes, response.PageMetaPage{
 				Size:   request.Page.PageSize,
