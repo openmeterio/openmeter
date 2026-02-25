@@ -3,9 +3,9 @@ package adapter
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
-	"entgo.io/ent/dialect/sql"
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
@@ -144,14 +144,7 @@ func (a *adapter) CreateCostBasis(ctx context.Context, params currencies.CreateC
 
 func (a *adapter) ListCostBases(ctx context.Context, params currencies.ListCostBasesInput) ([]currencies.CostBasis, int, error) {
 	q := a.db.CurrencyCostBasis.Query().
-		Where(currencycostbasis.HasCurrencyWith(customcurrency.ID(params.CurrencyID))).
-		Order(currencycostbasis.ByEffectiveFromHistory(
-			sql.OrderByField(currencycostbasiseffectivefrom.FieldEffectiveFrom, sql.OrderDesc()),
-		)).
-		WithCurrency().
-		WithEffectiveFromHistory(func(q *entdb.CurrencyCostBasisEffectiveFromQuery) {
-			q.Order(entdb.Desc(currencycostbasiseffectivefrom.FieldEffectiveFrom))
-		})
+		Where(currencycostbasis.HasCurrencyWith(customcurrency.ID(params.CurrencyID)))
 
 	if params.FilterFiatCode != nil {
 		q = q.Where(currencycostbasis.FiatCode(*params.FilterFiatCode))
@@ -162,6 +155,10 @@ func (a *adapter) ListCostBases(ctx context.Context, params currencies.ListCostB
 		return nil, 0, fmt.Errorf("failed to count cost bases: %w", err)
 	}
 
+	q = q.WithEffectiveFromHistory(func(q *entdb.CurrencyCostBasisEffectiveFromQuery) {
+		q.Order(entdb.Desc(currencycostbasiseffectivefrom.FieldEffectiveFrom))
+	})
+
 	if params.Page.PageSize > 0 && params.Page.PageNumber > 0 {
 		q = q.Offset((params.Page.PageNumber - 1) * params.Page.PageSize).Limit(params.Page.PageSize)
 	}
@@ -171,6 +168,17 @@ func (a *adapter) ListCostBases(ctx context.Context, params currencies.ListCostB
 		return nil, 0, fmt.Errorf("failed to list cost bases: %w", err)
 	}
 
+	sort.Slice(costBases, func(i, j int) bool {
+		var ti, tj time.Time
+		if len(costBases[i].Edges.EffectiveFromHistory) > 0 {
+			ti = costBases[i].Edges.EffectiveFromHistory[0].EffectiveFrom
+		}
+		if len(costBases[j].Edges.EffectiveFromHistory) > 0 {
+			tj = costBases[j].Edges.EffectiveFromHistory[0].EffectiveFrom
+		}
+		return ti.After(tj)
+	})
+
 	return lo.Map(costBases, func(costBasis *entdb.CurrencyCostBasis, _ int) currencies.CostBasis {
 		var effectiveFrom time.Time
 		if len(costBasis.Edges.EffectiveFromHistory) > 0 {
@@ -178,7 +186,7 @@ func (a *adapter) ListCostBases(ctx context.Context, params currencies.ListCostB
 		}
 		return currencies.CostBasis{
 			ID:            costBasis.ID,
-			CurrencyID:    costBasis.Edges.Currency.ID,
+			CurrencyID:    params.CurrencyID,
 			FiatCode:      costBasis.FiatCode,
 			Rate:          costBasis.Rate,
 			EffectiveFrom: effectiveFrom,

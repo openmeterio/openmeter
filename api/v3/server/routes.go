@@ -165,7 +165,6 @@ func (s *Server) UpsertTaxCode(w http.ResponseWriter, r *http.Request, taxCodeId
 // Currencies
 
 func (s *Server) ListCurrencies(w http.ResponseWriter, r *http.Request, params api.ListCurrenciesParams) {
-	unimplemented.ListCurrencies(w, r, params)
 	s.currenciesHandler.ListCurrencies().With(params).ServeHTTP(w, r)
 }
 

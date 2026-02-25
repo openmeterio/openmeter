@@ -1739,7 +1739,7 @@ var (
 			},
 			{
 				Name:    "currencycostbasis_fiat_code_custom_currency_cost_basis_history",
-				Unique:  true,
+				Unique:  false,
 				Columns: []*schema.Column{CurrencyCostBasesColumns[2], CurrencyCostBasesColumns[4]},
 			},
 		},

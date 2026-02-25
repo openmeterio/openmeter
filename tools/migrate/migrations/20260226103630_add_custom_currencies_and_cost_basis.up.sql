@@ -100,7 +100,7 @@ CREATE TABLE "currency_cost_bases" (
   PRIMARY KEY ("id")
 );
 -- create index "currencycostbasis_fiat_code_custom_currency_cost_basis_history" to table: "currency_cost_bases"
-CREATE UNIQUE INDEX "currencycostbasis_fiat_code_custom_currency_cost_basis_history" ON "currency_cost_bases" ("fiat_code", "custom_currency_cost_basis_history");
+CREATE INDEX "currencycostbasis_fiat_code_custom_currency_cost_basis_history" ON "currency_cost_bases" ("fiat_code", "custom_currency_cost_basis_history");
 -- create index "currencycostbasis_id" to table: "currency_cost_bases"
 CREATE UNIQUE INDEX "currencycostbasis_id" ON "currency_cost_bases" ("id");
 -- create "currency_cost_basis_effective_froms" table
