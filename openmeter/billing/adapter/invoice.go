@@ -733,6 +733,7 @@ func (a *adapter) mapStandardInvoiceFromDB(ctx context.Context, invoice *db.Bill
 			TaxesTotal:          invoice.TaxesTotal,
 			TaxesExclusiveTotal: invoice.TaxesExclusiveTotal,
 			TaxesInclusiveTotal: invoice.TaxesInclusiveTotal,
+			CreditsTotal:        invoice.CreditsTotal,
 			Total:               invoice.Total,
 		},
 

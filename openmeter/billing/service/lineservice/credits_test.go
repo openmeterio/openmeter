@@ -84,6 +84,61 @@ func TestCreditsMutator(t *testing.T) {
 		})
 	})
 
+	t.Run("credits mutator, tier 1 + 2 paid fully in credits", func(t *testing.T) {
+		runUBPTest(t, ubpCalculationTestCase{
+			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode:  productcatalog.GraduatedTieredPrice,
+				Tiers: testTiers,
+			}),
+			lineMode: singlePerPeriodLineMode,
+			usage: featureUsageResponse{
+				LinePeriodQty: alpacadecimal.NewFromFloat(15),
+			},
+			creditsApplied: billing.CreditsApplied{
+				{
+					Amount:      alpacadecimal.NewFromFloat(150),
+					Description: testCredit1Description,
+				},
+			},
+
+			expect: newDetailedLinesInput{
+				{
+					Name:                   "feature: flat price for tier 1",
+					PerUnitAmount:          alpacadecimal.NewFromFloat(100),
+					Quantity:               alpacadecimal.NewFromFloat(1),
+					ChildUniqueReferenceID: "graduated-tiered-1-flat-price",
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+					CreditsApplied: []billing.CreditApplied{
+						{
+							Amount:      alpacadecimal.NewFromFloat(100),
+							Description: testCredit1Description,
+						},
+					},
+				},
+				{
+					Name:                   "feature: flat price for tier 2",
+					PerUnitAmount:          alpacadecimal.NewFromFloat(50),
+					Quantity:               alpacadecimal.NewFromFloat(1),
+					ChildUniqueReferenceID: "graduated-tiered-2-flat-price",
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+					CreditsApplied: []billing.CreditApplied{
+						{
+							Amount:      alpacadecimal.NewFromFloat(50),
+							Description: testCredit1Description,
+						},
+					},
+				},
+				{
+					Name:                   "feature: usage price for tier 3",
+					PerUnitAmount:          alpacadecimal.NewFromFloat(1),
+					Quantity:               alpacadecimal.NewFromFloat(5),
+					ChildUniqueReferenceID: "graduated-tiered-3-price-usage",
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+				},
+			},
+		})
+	})
+
 	t.Run("credits mutator, paid fully from multiple credits", func(t *testing.T) {
 		runUBPTest(t, ubpCalculationTestCase{
 			price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{

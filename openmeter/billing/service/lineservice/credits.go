@@ -15,6 +15,10 @@ func (m *creditsMutator) Mutate(i PricerCalculateInput, pricerResult newDetailed
 		creditValueRemaining := i.currency.RoundToPrecision(creditToApply.Amount)
 
 		for idx := range pricerResult {
+			if creditValueRemaining.IsZero() {
+				break
+			}
+
 			totalAmount := pricerResult[idx].TotalAmount(i.currency)
 
 			if totalAmount.LessThanOrEqual(creditValueRemaining) {

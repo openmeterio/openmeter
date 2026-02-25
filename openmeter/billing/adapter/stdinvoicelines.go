@@ -396,6 +396,7 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 					})).
 				UpdateQuantity().
 				UpdateChildUniqueReferenceID().
+				UpdateCreditsApplied().
 				Exec(ctx)
 		},
 		MarkDeleted: func(ctx context.Context, line detailedLineWithParent) (detailedLineWithParent, error) {

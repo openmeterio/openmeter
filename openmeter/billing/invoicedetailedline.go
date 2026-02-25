@@ -117,6 +117,10 @@ func (l DetailedLineBase) Clone() DetailedLineBase {
 		l.TaxConfig = &taxConfig
 	}
 
+	if len(l.CreditsApplied) > 0 {
+		l.CreditsApplied = l.CreditsApplied.Clone()
+	}
+
 	return l
 }
 

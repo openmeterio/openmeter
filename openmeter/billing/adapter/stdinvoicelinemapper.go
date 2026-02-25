@@ -92,6 +92,7 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 			CreditsApplied:    creditsApplied,
 			Totals: billing.Totals{
 				Amount:              dbLine.Amount,
+				CreditsTotal:        dbLine.CreditsTotal,
 				ChargesTotal:        dbLine.ChargesTotal,
 				DiscountsTotal:      dbLine.DiscountsTotal,
 				TaxesInclusiveTotal: dbLine.TaxesInclusiveTotal,

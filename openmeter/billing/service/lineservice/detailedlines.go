@@ -153,10 +153,11 @@ func newDetailedLines(line *billing.StandardLine, inputs ...newDetailedLineInput
 				ChildUniqueReferenceID: &in.ChildUniqueReferenceID,
 				TaxConfig:              line.TaxConfig,
 
-				PaymentTerm:   lo.CoalesceOrEmpty(in.PaymentTerm, productcatalog.InArrearsPaymentTerm),
-				PerUnitAmount: in.PerUnitAmount,
-				Quantity:      in.Quantity,
-				Category:      in.Category,
+				PaymentTerm:    lo.CoalesceOrEmpty(in.PaymentTerm, productcatalog.InArrearsPaymentTerm),
+				PerUnitAmount:  in.PerUnitAmount,
+				Quantity:       in.Quantity,
+				Category:       in.Category,
+				CreditsApplied: in.CreditsApplied,
 			},
 			AmountDiscounts: in.AmountDiscounts,
 		}

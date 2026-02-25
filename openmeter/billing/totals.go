@@ -57,6 +57,10 @@ func (t Totals) Validate() error {
 		return errors.New("total is negative")
 	}
 
+	if t.CreditsTotal.IsNegative() {
+		return errors.New("credits total is negative")
+	}
+
 	return nil
 }
 
