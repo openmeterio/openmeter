@@ -2,8 +2,10 @@ package server
 
 import "net/http"
 
-const poweredByHeader = "X-Powered-By"
-const poweredByValue = "OpenMeter by Kong, Inc."
+const (
+	poweredByHeader = "X-Powered-By"
+	poweredByValue  = "OpenMeter by Kong, Inc."
+)
 
 // NewPoweredByMiddleware returns a middleware that adds the X-Powered-By header
 // to every response.
