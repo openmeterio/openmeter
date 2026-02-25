@@ -49,8 +49,9 @@ func (h *handler) ListTaxCodes() ListTaxCodesHandler {
 			}
 
 			req := ListTaxCodesRequest{
-				Namespace: ns,
-				Page:      page,
+				Namespace:      ns,
+				Page:           page,
+				IncludeDeleted: lo.FromPtrOr(params.IncludeDeleted, false),
 			}
 
 			return req, nil

@@ -151,7 +151,7 @@ func (s *Server) CreateTaxCode(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) DeleteTaxCode(w http.ResponseWriter, r *http.Request, taxCodeId api.ULID) {
-	unimplemented.DeleteTaxCode(w, r, taxCodeId)
+	s.taxcodesHandler.DeleteTaxCode().With(taxCodeId).ServeHTTP(w, r)
 }
 
 func (s *Server) GetTaxCode(w http.ResponseWriter, r *http.Request, taxCodeId api.ULID) {

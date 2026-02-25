@@ -12,7 +12,7 @@ type Handler interface {
 	GetTaxCode() GetTaxCodeHandler
 	CreateTaxCode() CreateTaxCodeHandler
 	// UpdateTaxCode() UpdateTaxCodeHandler
-	// DeleteTaxCode() DeleteTaxCodeHandler
+	DeleteTaxCode() DeleteTaxCodeHandler
 }
 
 type handler struct {
