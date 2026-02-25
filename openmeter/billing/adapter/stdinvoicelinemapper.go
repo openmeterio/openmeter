@@ -163,6 +163,11 @@ func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoice
 		return billing.DetailedLine{}, fmt.Errorf("detailed line parent line ID is required [detailed_line_id=%s]", dbLine.ID)
 	}
 
+	creditsApplied := lo.FromPtr(dbLine.CreditsApplied)
+	if len(creditsApplied) == 0 {
+		creditsApplied = nil
+	}
+
 	detailedLineBase := billing.DetailedLineBase{
 		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 			Namespace:   dbLine.Namespace,
@@ -190,9 +195,11 @@ func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoice
 
 		Currency: dbLine.Currency,
 
-		TaxConfig: lo.EmptyableToPtr(dbLine.TaxConfig),
+		CreditsApplied: creditsApplied,
+		TaxConfig:      lo.EmptyableToPtr(dbLine.TaxConfig),
 		Totals: billing.Totals{
 			Amount:              dbLine.Amount,
+			CreditsTotal:        dbLine.CreditsTotal,
 			ChargesTotal:        dbLine.ChargesTotal,
 			DiscountsTotal:      dbLine.DiscountsTotal,
 			TaxesInclusiveTotal: dbLine.TaxesInclusiveTotal,
@@ -217,6 +224,11 @@ func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoice
 }
 
 func (a *adapter) mapStandardInvoiceDetailedLineV2FromDB(dbLine *db.BillingStandardInvoiceDetailedLine) (billing.DetailedLine, error) {
+	creditsApplied := lo.FromPtr(dbLine.CreditsApplied)
+	if len(creditsApplied) == 0 {
+		creditsApplied = nil
+	}
+
 	detailedLineBase := billing.DetailedLineBase{
 		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 			Namespace:   dbLine.Namespace,
@@ -243,10 +255,12 @@ func (a *adapter) mapStandardInvoiceDetailedLineV2FromDB(dbLine *db.BillingStand
 
 		Currency: dbLine.Currency,
 
-		TaxConfig: lo.EmptyableToPtr(dbLine.TaxConfig),
+		CreditsApplied: creditsApplied,
+		TaxConfig:      lo.EmptyableToPtr(dbLine.TaxConfig),
 		Totals: billing.Totals{
 			Amount:              dbLine.Amount,
 			ChargesTotal:        dbLine.ChargesTotal,
+			CreditsTotal:        dbLine.CreditsTotal,
 			DiscountsTotal:      dbLine.DiscountsTotal,
 			TaxesInclusiveTotal: dbLine.TaxesInclusiveTotal,
 			TaxesExclusiveTotal: dbLine.TaxesExclusiveTotal,
