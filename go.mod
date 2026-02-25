@@ -118,7 +118,7 @@ require (
 	github.com/bmatcuk/doublestar/v4 v4.8.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/certifi/gocertifi v0.0.0-20210507211836-431795d63e8d // indirect
-	github.com/cloudflare/circl v1.6.1 // indirect
+	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/cncf/xds/go v0.0.0-20251022180443-0feb69152e9f // indirect
 	github.com/containerd/containerd/api v1.9.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.4.1 // indirect
@@ -463,7 +463,7 @@ require (
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
-	github.com/shopspring/decimal v1.4.0 // indirect
+	github.com/shopspring/decimal v1.4.0
 	github.com/sijms/go-ora/v2 v2.9.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/smira/go-statsd v1.3.4 // indirect
