@@ -18,6 +18,7 @@ import (
 // goverter:extend IntToFloat32
 // goverter:extend ConvertAPIAppTypeToDomainAppType
 // goverter:extend ConvertDomainAppTypeToAPIAppType
+// goverter:extend ConvertAppMappingsToAPIAppMappings
 var (
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
@@ -34,6 +35,7 @@ var (
 	// goverter:map ManagedModel.CreatedAt CreatedAt
 	// goverter:map ManagedModel.UpdatedAt UpdatedAt
 	// goverter:map ManagedModel.DeletedAt DeletedAt
+	// goverter:map AppMappings | ConvertAppMappingsToAPIAppMappings
 	ConvertTaxCodeToAPITaxCode func(taxcode.TaxCode) (api.BillingTaxCode, error)
 )
 
@@ -67,6 +69,23 @@ func ConvertDomainAppTypeToAPIAppType(source app.AppType) api.BillingAppType {
 		return "external_invoicing"
 	}
 	return api.BillingAppType(source)
+}
+
+// ConvertAppMappingsToAPIAppMappings converts domain app mappings to API app mappings.
+// Ensures that nil is converted to an empty array instead of null.
+func ConvertAppMappingsToAPIAppMappings(source taxcode.TaxCodeAppMappings) []api.BillingTaxCodeAppMapping {
+	if source == nil {
+		return []api.BillingTaxCodeAppMapping{}
+	}
+
+	result := make([]api.BillingTaxCodeAppMapping, len(source))
+	for i, mapping := range source {
+		result[i] = api.BillingTaxCodeAppMapping{
+			AppType: ConvertDomainAppTypeToAPIAppType(mapping.AppType),
+			TaxCode: mapping.TaxCode,
+		}
+	}
+	return result
 }
 
 // ConvertMetadataToLabels converts models.Metadata to api.Labels.

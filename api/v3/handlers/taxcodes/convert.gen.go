@@ -32,7 +32,7 @@ func init() {
 	}
 	ConvertTaxCodeToAPITaxCode = func(source taxcode.TaxCode) (v3.BillingTaxCode, error) {
 		var v3BillingTaxCode v3.BillingTaxCode
-		v3BillingTaxCode.AppMappings = taxcodeTaxCodeAppMappingsToV3BillingTaxCodeAppMappingList(source.AppMappings)
+		v3BillingTaxCode.AppMappings = ConvertAppMappingsToAPIAppMappings(source.AppMappings)
 		v3BillingTaxCode.CreatedAt = timeTimeToPTimeTime(source.ManagedModel.CreatedAt)
 		v3BillingTaxCode.DeletedAt = source.ManagedModel.DeletedAt
 		v3BillingTaxCode.Description = source.Description
@@ -50,22 +50,6 @@ func pV3LabelsToModelsMetadata(source *v3.Labels) models.Metadata {
 		modelsMetadata = v3LabelsToModelsMetadata((*source))
 	}
 	return modelsMetadata
-}
-func taxcodeTaxCodeAppMappingToV3BillingTaxCodeAppMapping(source taxcode.TaxCodeAppMapping) v3.BillingTaxCodeAppMapping {
-	var v3BillingTaxCodeAppMapping v3.BillingTaxCodeAppMapping
-	v3BillingTaxCodeAppMapping.AppType = ConvertDomainAppTypeToAPIAppType(source.AppType)
-	v3BillingTaxCodeAppMapping.TaxCode = source.TaxCode
-	return v3BillingTaxCodeAppMapping
-}
-func taxcodeTaxCodeAppMappingsToV3BillingTaxCodeAppMappingList(source taxcode.TaxCodeAppMappings) []v3.BillingTaxCodeAppMapping {
-	var v3BillingTaxCodeAppMappingList []v3.BillingTaxCodeAppMapping
-	if source != nil {
-		v3BillingTaxCodeAppMappingList = make([]v3.BillingTaxCodeAppMapping, len(source))
-		for i := 0; i < len(source); i++ {
-			v3BillingTaxCodeAppMappingList[i] = taxcodeTaxCodeAppMappingToV3BillingTaxCodeAppMapping(source[i])
-		}
-	}
-	return v3BillingTaxCodeAppMappingList
 }
 func timeTimeToPTimeTime(source time.Time) *time.Time {
 	return &source
