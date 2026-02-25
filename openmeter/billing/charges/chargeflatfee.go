@@ -1,6 +1,7 @@
 package charges
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"slices"
@@ -106,4 +107,27 @@ func (s FlatFeeState) Validate() error {
 	var errs []error
 
 	return errors.Join(errs...)
+}
+
+type OnFlatFeeAssignedToInvoiceInput struct {
+	Charge            FlatFeeCharge         `json:"charge"`
+	PreTaxTotalAmount alpacadecimal.Decimal `json:"totalAmount"`
+}
+
+type FlatFeeHandler interface {
+	// OnFlatFeeAssignedToInvoice is called when a flat fee is being assigned to an invoice
+	OnFlatFeeAssignedToInvoice(ctx context.Context, input OnFlatFeeAssignedToInvoiceInput) ([]CreditRealizationCreateInput, error)
+
+	// OnFlatFeeLineDeleted is called when a flat fee line is deleted before the invoice has been issued, should revert
+	// the credit realizations that were created.
+	OnFlatFeeLineDeleted(ctx context.Context, charge FlatFeeCharge) ([]ReversedCreditRealization, error)
+
+	// OnFlatFeePaymentAuthorized is called when a flat fee payment is authorized
+	OnFlatFeePaymentAuthorized(ctx context.Context, charge FlatFeeCharge) (LedgerTransactionGroupReference, error)
+
+	// OnFlatFeePaymentSettled is called when a flat fee payment is settled
+	OnFlatFeePaymentSettled(ctx context.Context, charge FlatFeeCharge) (LedgerTransactionGroupReference, error)
+
+	// OnFlatFeePaymentUncollectible is called when a flat fee payment is uncollectible
+	OnFlatFeePaymentUncollectible(ctx context.Context, charge FlatFeeCharge) (LedgerTransactionGroupReference, error)
 }
