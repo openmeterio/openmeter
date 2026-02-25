@@ -76,6 +76,8 @@ type BillingInvoice struct {
 	ChargesTotal alpacadecimal.Decimal `json:"charges_total,omitempty"`
 	// DiscountsTotal holds the value of the "discounts_total" field.
 	DiscountsTotal alpacadecimal.Decimal `json:"discounts_total,omitempty"`
+	// CreditsTotal holds the value of the "credits_total" field.
+	CreditsTotal alpacadecimal.Decimal `json:"credits_total,omitempty"`
 	// Total holds the value of the "total" field.
 	Total alpacadecimal.Decimal `json:"total,omitempty"`
 	// SupplierName holds the value of the "supplier_name" field.
@@ -271,7 +273,7 @@ func (*BillingInvoice) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case billinginvoice.FieldMetadata, billinginvoice.FieldCustomerUsageAttribution, billinginvoice.FieldStatusDetailsCache:
 			values[i] = new([]byte)
-		case billinginvoice.FieldAmount, billinginvoice.FieldTaxesTotal, billinginvoice.FieldTaxesInclusiveTotal, billinginvoice.FieldTaxesExclusiveTotal, billinginvoice.FieldChargesTotal, billinginvoice.FieldDiscountsTotal, billinginvoice.FieldTotal:
+		case billinginvoice.FieldAmount, billinginvoice.FieldTaxesTotal, billinginvoice.FieldTaxesInclusiveTotal, billinginvoice.FieldTaxesExclusiveTotal, billinginvoice.FieldChargesTotal, billinginvoice.FieldDiscountsTotal, billinginvoice.FieldCreditsTotal, billinginvoice.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
 		case billinginvoice.FieldSchemaLevel:
 			values[i] = new(sql.NullInt64)
@@ -466,6 +468,12 @@ func (_m *BillingInvoice) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field discounts_total", values[i])
 			} else if value != nil {
 				_m.DiscountsTotal = *value
+			}
+		case billinginvoice.FieldCreditsTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field credits_total", values[i])
+			} else if value != nil {
+				_m.CreditsTotal = *value
 			}
 		case billinginvoice.FieldTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -863,6 +871,9 @@ func (_m *BillingInvoice) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("discounts_total=")
 	builder.WriteString(fmt.Sprintf("%v", _m.DiscountsTotal))
+	builder.WriteString(", ")
+	builder.WriteString("credits_total=")
+	builder.WriteString(fmt.Sprintf("%v", _m.CreditsTotal))
 	builder.WriteString(", ")
 	builder.WriteString("total=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Total))

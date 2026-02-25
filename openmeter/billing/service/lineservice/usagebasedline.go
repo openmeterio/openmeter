@@ -117,6 +117,7 @@ func newPricerFor(line PriceAccessor) (Pricer, error) {
 			&discountPercentageMutator{},
 			&maxAmountCommitmentMutator{},
 			&minAmountCommitmentMutator{},
+			&creditsMutator{},
 		},
 	}, nil
 }

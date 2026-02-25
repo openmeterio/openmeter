@@ -437,6 +437,20 @@ func (_u *BillingInvoiceUpdate) SetNillableDiscountsTotal(v *alpacadecimal.Decim
 	return _u
 }
 
+// SetCreditsTotal sets the "credits_total" field.
+func (_u *BillingInvoiceUpdate) SetCreditsTotal(v alpacadecimal.Decimal) *BillingInvoiceUpdate {
+	_u.mutation.SetCreditsTotal(v)
+	return _u
+}
+
+// SetNillableCreditsTotal sets the "credits_total" field if the given value is not nil.
+func (_u *BillingInvoiceUpdate) SetNillableCreditsTotal(v *alpacadecimal.Decimal) *BillingInvoiceUpdate {
+	if v != nil {
+		_u.SetCreditsTotal(*v)
+	}
+	return _u
+}
+
 // SetTotal sets the "total" field.
 func (_u *BillingInvoiceUpdate) SetTotal(v alpacadecimal.Decimal) *BillingInvoiceUpdate {
 	_u.mutation.SetTotal(v)
@@ -1261,6 +1275,9 @@ func (_u *BillingInvoiceUpdate) sqlSave(ctx context.Context) (_node int, err err
 	if value, ok := _u.mutation.DiscountsTotal(); ok {
 		_spec.SetField(billinginvoice.FieldDiscountsTotal, field.TypeOther, value)
 	}
+	if value, ok := _u.mutation.CreditsTotal(); ok {
+		_spec.SetField(billinginvoice.FieldCreditsTotal, field.TypeOther, value)
+	}
 	if value, ok := _u.mutation.Total(); ok {
 		_spec.SetField(billinginvoice.FieldTotal, field.TypeOther, value)
 	}
@@ -1975,6 +1992,20 @@ func (_u *BillingInvoiceUpdateOne) SetDiscountsTotal(v alpacadecimal.Decimal) *B
 func (_u *BillingInvoiceUpdateOne) SetNillableDiscountsTotal(v *alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
 	if v != nil {
 		_u.SetDiscountsTotal(*v)
+	}
+	return _u
+}
+
+// SetCreditsTotal sets the "credits_total" field.
+func (_u *BillingInvoiceUpdateOne) SetCreditsTotal(v alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
+	_u.mutation.SetCreditsTotal(v)
+	return _u
+}
+
+// SetNillableCreditsTotal sets the "credits_total" field if the given value is not nil.
+func (_u *BillingInvoiceUpdateOne) SetNillableCreditsTotal(v *alpacadecimal.Decimal) *BillingInvoiceUpdateOne {
+	if v != nil {
+		_u.SetCreditsTotal(*v)
 	}
 	return _u
 }
@@ -2832,6 +2863,9 @@ func (_u *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *BillingI
 	}
 	if value, ok := _u.mutation.DiscountsTotal(); ok {
 		_spec.SetField(billinginvoice.FieldDiscountsTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.CreditsTotal(); ok {
+		_spec.SetField(billinginvoice.FieldCreditsTotal, field.TypeOther, value)
 	}
 	if value, ok := _u.mutation.Total(); ok {
 		_spec.SetField(billinginvoice.FieldTotal, field.TypeOther, value)

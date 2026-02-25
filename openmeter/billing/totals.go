@@ -21,6 +21,9 @@ type Totals struct {
 	// TaxesTotal is the total amount of taxes that are included in the line
 	TaxesTotal alpacadecimal.Decimal `json:"taxesTotal"`
 
+	// CreditsTotal is the total amount of credits that are applied to the line (credits are pre-tax)
+	CreditsTotal alpacadecimal.Decimal `json:"creditsTotal"`
+
 	// Total is the total amount value of the line after taxes, discounts and commitments
 	Total alpacadecimal.Decimal `json:"total"`
 }
@@ -67,6 +70,7 @@ func (t Totals) Add(others ...Totals) Totals {
 		res.TaxesInclusiveTotal = res.TaxesInclusiveTotal.Add(other.TaxesInclusiveTotal)
 		res.TaxesExclusiveTotal = res.TaxesExclusiveTotal.Add(other.TaxesExclusiveTotal)
 		res.TaxesTotal = res.TaxesTotal.Add(other.TaxesTotal)
+		res.CreditsTotal = res.CreditsTotal.Add(other.CreditsTotal)
 		res.Total = res.Total.Add(other.Total)
 	}
 
@@ -78,5 +82,6 @@ func (t Totals) CalculateTotal() alpacadecimal.Decimal {
 		t.Amount,
 		t.ChargesTotal,
 		t.TaxesExclusiveTotal,
-		t.DiscountsTotal.Neg())
+		t.DiscountsTotal.Neg(),
+		t.CreditsTotal.Neg())
 }

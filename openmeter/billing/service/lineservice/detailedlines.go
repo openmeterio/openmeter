@@ -24,6 +24,7 @@ type newDetailedLineInput struct {
 	Category    billing.FlatFeeCategory        `json:"category,omitempty"`
 
 	AmountDiscounts billing.AmountLineDiscountsManaged `json:"amountDiscounts,omitempty"`
+	CreditsApplied  billing.CreditsApplied             `json:"creditsApplied,omitempty"`
 }
 
 func (i newDetailedLineInput) Validate() error {
@@ -52,6 +53,7 @@ func (i newDetailedLineInput) TotalAmount(currency currencyx.Calculator) alpacad
 		PerUnitAmount:   i.PerUnitAmount,
 		Quantity:        i.Quantity,
 		AmountDiscounts: i.AmountDiscounts,
+		CreditsApplied:  i.CreditsApplied,
 	})
 }
 
@@ -60,12 +62,15 @@ type getTotalAmountInput struct {
 	PerUnitAmount   alpacadecimal.Decimal
 	Quantity        alpacadecimal.Decimal
 	AmountDiscounts billing.AmountLineDiscountsManaged
+	CreditsApplied  billing.CreditsApplied
 }
 
 func TotalAmount(in getTotalAmountInput) alpacadecimal.Decimal {
 	total := in.Currency.RoundToPrecision(in.PerUnitAmount.Mul(in.Quantity))
 
 	total = total.Sub(in.AmountDiscounts.SumAmount(in.Currency))
+
+	total = total.Sub(in.CreditsApplied.SumAmount(in.Currency))
 
 	return total
 }
@@ -202,6 +207,7 @@ func calculateDetailedLineTotals(line billing.DetailedLine) (billing.Totals, err
 	// Calculate the line totals
 	totals := billing.Totals{
 		DiscountsTotal: line.AmountDiscounts.SumAmount(calc),
+		CreditsTotal:   line.CreditsApplied.SumAmount(calc),
 
 		// TODO[OM-979]: implement taxes
 		TaxesInclusiveTotal: alpacadecimal.Zero,

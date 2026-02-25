@@ -176,6 +176,12 @@ func (_c *BillingInvoiceLineCreate) SetDiscountsTotal(v alpacadecimal.Decimal) *
 	return _c
 }
 
+// SetCreditsTotal sets the "credits_total" field.
+func (_c *BillingInvoiceLineCreate) SetCreditsTotal(v alpacadecimal.Decimal) *BillingInvoiceLineCreate {
+	_c.mutation.SetCreditsTotal(v)
+	return _c
+}
+
 // SetTotal sets the "total" field.
 func (_c *BillingInvoiceLineCreate) SetTotal(v alpacadecimal.Decimal) *BillingInvoiceLineCreate {
 	_c.mutation.SetTotal(v)
@@ -395,6 +401,12 @@ func (_c *BillingInvoiceLineCreate) SetNillableLineIds(v *string) *BillingInvoic
 	if v != nil {
 		_c.SetLineIds(*v)
 	}
+	return _c
+}
+
+// SetCreditsApplied sets the "credits_applied" field.
+func (_c *BillingInvoiceLineCreate) SetCreditsApplied(v *billing.CreditsApplied) *BillingInvoiceLineCreate {
+	_c.mutation.SetCreditsApplied(v)
 	return _c
 }
 
@@ -669,6 +681,9 @@ func (_c *BillingInvoiceLineCreate) check() error {
 	if _, ok := _c.mutation.DiscountsTotal(); !ok {
 		return &ValidationError{Name: "discounts_total", err: errors.New(`db: missing required field "BillingInvoiceLine.discounts_total"`)}
 	}
+	if _, ok := _c.mutation.CreditsTotal(); !ok {
+		return &ValidationError{Name: "credits_total", err: errors.New(`db: missing required field "BillingInvoiceLine.credits_total"`)}
+	}
 	if _, ok := _c.mutation.Total(); !ok {
 		return &ValidationError{Name: "total", err: errors.New(`db: missing required field "BillingInvoiceLine.total"`)}
 	}
@@ -706,6 +721,11 @@ func (_c *BillingInvoiceLineCreate) check() error {
 	if v, ok := _c.mutation.Status(); ok {
 		if err := billinginvoiceline.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.CreditsApplied(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "credits_applied", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.credits_applied": %w`, err)}
 		}
 	}
 	if len(_c.mutation.BillingInvoiceIDs()) == 0 {
@@ -814,6 +834,10 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 		_spec.SetField(billinginvoiceline.FieldDiscountsTotal, field.TypeOther, value)
 		_node.DiscountsTotal = value
 	}
+	if value, ok := _c.mutation.CreditsTotal(); ok {
+		_spec.SetField(billinginvoiceline.FieldCreditsTotal, field.TypeOther, value)
+		_node.CreditsTotal = value
+	}
 	if value, ok := _c.mutation.Total(); ok {
 		_spec.SetField(billinginvoiceline.FieldTotal, field.TypeOther, value)
 		_node.Total = value
@@ -873,6 +897,14 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 	if value, ok := _c.mutation.LineIds(); ok {
 		_spec.SetField(billinginvoiceline.FieldLineIds, field.TypeString, value)
 		_node.LineIds = &value
+	}
+	if value, ok := _c.mutation.CreditsApplied(); ok {
+		vv, err := billinginvoiceline.ValueScanner.CreditsApplied.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(billinginvoiceline.FieldCreditsApplied, field.TypeString, vv)
+		_node.CreditsApplied = value
 	}
 	if nodes := _c.mutation.BillingInvoiceIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -1346,6 +1378,18 @@ func (u *BillingInvoiceLineUpsert) UpdateDiscountsTotal() *BillingInvoiceLineUps
 	return u
 }
 
+// SetCreditsTotal sets the "credits_total" field.
+func (u *BillingInvoiceLineUpsert) SetCreditsTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldCreditsTotal, v)
+	return u
+}
+
+// UpdateCreditsTotal sets the "credits_total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateCreditsTotal() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldCreditsTotal)
+	return u
+}
+
 // SetTotal sets the "total" field.
 func (u *BillingInvoiceLineUpsert) SetTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsert {
 	u.Set(billinginvoiceline.FieldTotal, v)
@@ -1664,6 +1708,24 @@ func (u *BillingInvoiceLineUpsert) ClearLineIds() *BillingInvoiceLineUpsert {
 	return u
 }
 
+// SetCreditsApplied sets the "credits_applied" field.
+func (u *BillingInvoiceLineUpsert) SetCreditsApplied(v *billing.CreditsApplied) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldCreditsApplied, v)
+	return u
+}
+
+// UpdateCreditsApplied sets the "credits_applied" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateCreditsApplied() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldCreditsApplied)
+	return u
+}
+
+// ClearCreditsApplied clears the value of the "credits_applied" field.
+func (u *BillingInvoiceLineUpsert) ClearCreditsApplied() *BillingInvoiceLineUpsert {
+	u.SetNull(billinginvoiceline.FieldCreditsApplied)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -1938,6 +2000,20 @@ func (u *BillingInvoiceLineUpsertOne) SetDiscountsTotal(v alpacadecimal.Decimal)
 func (u *BillingInvoiceLineUpsertOne) UpdateDiscountsTotal() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.UpdateDiscountsTotal()
+	})
+}
+
+// SetCreditsTotal sets the "credits_total" field.
+func (u *BillingInvoiceLineUpsertOne) SetCreditsTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetCreditsTotal(v)
+	})
+}
+
+// UpdateCreditsTotal sets the "credits_total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateCreditsTotal() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateCreditsTotal()
 	})
 }
 
@@ -2309,6 +2385,27 @@ func (u *BillingInvoiceLineUpsertOne) UpdateLineIds() *BillingInvoiceLineUpsertO
 func (u *BillingInvoiceLineUpsertOne) ClearLineIds() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearLineIds()
+	})
+}
+
+// SetCreditsApplied sets the "credits_applied" field.
+func (u *BillingInvoiceLineUpsertOne) SetCreditsApplied(v *billing.CreditsApplied) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetCreditsApplied(v)
+	})
+}
+
+// UpdateCreditsApplied sets the "credits_applied" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateCreditsApplied() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateCreditsApplied()
+	})
+}
+
+// ClearCreditsApplied clears the value of the "credits_applied" field.
+func (u *BillingInvoiceLineUpsertOne) ClearCreditsApplied() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearCreditsApplied()
 	})
 }
 
@@ -2759,6 +2856,20 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateDiscountsTotal() *BillingInvoiceLin
 	})
 }
 
+// SetCreditsTotal sets the "credits_total" field.
+func (u *BillingInvoiceLineUpsertBulk) SetCreditsTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetCreditsTotal(v)
+	})
+}
+
+// UpdateCreditsTotal sets the "credits_total" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateCreditsTotal() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateCreditsTotal()
+	})
+}
+
 // SetTotal sets the "total" field.
 func (u *BillingInvoiceLineUpsertBulk) SetTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
@@ -3127,6 +3238,27 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateLineIds() *BillingInvoiceLineUpsert
 func (u *BillingInvoiceLineUpsertBulk) ClearLineIds() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearLineIds()
+	})
+}
+
+// SetCreditsApplied sets the "credits_applied" field.
+func (u *BillingInvoiceLineUpsertBulk) SetCreditsApplied(v *billing.CreditsApplied) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetCreditsApplied(v)
+	})
+}
+
+// UpdateCreditsApplied sets the "credits_applied" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateCreditsApplied() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateCreditsApplied()
+	})
+}
+
+// ClearCreditsApplied clears the value of the "credits_applied" field.
+func (u *BillingInvoiceLineUpsertBulk) ClearCreditsApplied() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearCreditsApplied()
 	})
 }
 

@@ -42,6 +42,7 @@ type StandardLineBase struct {
 
 	TaxConfig         *productcatalog.TaxConfig `json:"taxOverrides,omitempty"`
 	RateCardDiscounts Discounts                 `json:"rateCardDiscounts,omitempty"`
+	CreditsApplied    CreditsApplied            `json:"creditsApplied,omitempty"`
 
 	ExternalIDs  LineExternalIDs        `json:"externalIDs,omitempty"`
 	Subscription *SubscriptionReference `json:"subscription,omitempty"`
@@ -99,6 +100,10 @@ func (i StandardLineBase) Validate() error {
 		}
 	}
 
+	if err := i.CreditsApplied.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("creditsApplied: %w", err))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -123,6 +128,10 @@ func (i StandardLineBase) Clone() StandardLineBase {
 	if i.TaxConfig != nil {
 		tc := *i.TaxConfig
 		out.TaxConfig = &tc
+	}
+
+	if len(i.CreditsApplied) > 0 {
+		out.CreditsApplied = i.CreditsApplied.Clone()
 	}
 
 	out.RateCardDiscounts = i.RateCardDiscounts.Clone()

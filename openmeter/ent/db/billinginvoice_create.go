@@ -320,6 +320,12 @@ func (_c *BillingInvoiceCreate) SetDiscountsTotal(v alpacadecimal.Decimal) *Bill
 	return _c
 }
 
+// SetCreditsTotal sets the "credits_total" field.
+func (_c *BillingInvoiceCreate) SetCreditsTotal(v alpacadecimal.Decimal) *BillingInvoiceCreate {
+	_c.mutation.SetCreditsTotal(v)
+	return _c
+}
+
 // SetTotal sets the "total" field.
 func (_c *BillingInvoiceCreate) SetTotal(v alpacadecimal.Decimal) *BillingInvoiceCreate {
 	_c.mutation.SetTotal(v)
@@ -858,6 +864,9 @@ func (_c *BillingInvoiceCreate) check() error {
 	if _, ok := _c.mutation.DiscountsTotal(); !ok {
 		return &ValidationError{Name: "discounts_total", err: errors.New(`db: missing required field "BillingInvoice.discounts_total"`)}
 	}
+	if _, ok := _c.mutation.CreditsTotal(); !ok {
+		return &ValidationError{Name: "credits_total", err: errors.New(`db: missing required field "BillingInvoice.credits_total"`)}
+	}
 	if _, ok := _c.mutation.Total(); !ok {
 		return &ValidationError{Name: "total", err: errors.New(`db: missing required field "BillingInvoice.total"`)}
 	}
@@ -1093,6 +1102,10 @@ func (_c *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.CreateS
 	if value, ok := _c.mutation.DiscountsTotal(); ok {
 		_spec.SetField(billinginvoice.FieldDiscountsTotal, field.TypeOther, value)
 		_node.DiscountsTotal = value
+	}
+	if value, ok := _c.mutation.CreditsTotal(); ok {
+		_spec.SetField(billinginvoice.FieldCreditsTotal, field.TypeOther, value)
+		_node.CreditsTotal = value
 	}
 	if value, ok := _c.mutation.Total(); ok {
 		_spec.SetField(billinginvoice.FieldTotal, field.TypeOther, value)
@@ -1769,6 +1782,18 @@ func (u *BillingInvoiceUpsert) SetDiscountsTotal(v alpacadecimal.Decimal) *Billi
 // UpdateDiscountsTotal sets the "discounts_total" field to the value that was provided on create.
 func (u *BillingInvoiceUpsert) UpdateDiscountsTotal() *BillingInvoiceUpsert {
 	u.SetExcluded(billinginvoice.FieldDiscountsTotal)
+	return u
+}
+
+// SetCreditsTotal sets the "credits_total" field.
+func (u *BillingInvoiceUpsert) SetCreditsTotal(v alpacadecimal.Decimal) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldCreditsTotal, v)
+	return u
+}
+
+// UpdateCreditsTotal sets the "credits_total" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateCreditsTotal() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldCreditsTotal)
 	return u
 }
 
@@ -2701,6 +2726,20 @@ func (u *BillingInvoiceUpsertOne) SetDiscountsTotal(v alpacadecimal.Decimal) *Bi
 func (u *BillingInvoiceUpsertOne) UpdateDiscountsTotal() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.UpdateDiscountsTotal()
+	})
+}
+
+// SetCreditsTotal sets the "credits_total" field.
+func (u *BillingInvoiceUpsertOne) SetCreditsTotal(v alpacadecimal.Decimal) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCreditsTotal(v)
+	})
+}
+
+// UpdateCreditsTotal sets the "credits_total" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateCreditsTotal() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCreditsTotal()
 	})
 }
 
@@ -3871,6 +3910,20 @@ func (u *BillingInvoiceUpsertBulk) SetDiscountsTotal(v alpacadecimal.Decimal) *B
 func (u *BillingInvoiceUpsertBulk) UpdateDiscountsTotal() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.UpdateDiscountsTotal()
+	})
+}
+
+// SetCreditsTotal sets the "credits_total" field.
+func (u *BillingInvoiceUpsertBulk) SetCreditsTotal(v alpacadecimal.Decimal) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetCreditsTotal(v)
+	})
+}
+
+// UpdateCreditsTotal sets the "credits_total" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateCreditsTotal() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateCreditsTotal()
 	})
 }
 

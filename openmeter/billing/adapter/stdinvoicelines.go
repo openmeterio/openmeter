@@ -102,6 +102,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					// Totals
 					SetAmount(line.Totals.Amount).
 					SetChargesTotal(line.Totals.ChargesTotal).
+					SetCreditsTotal(line.Totals.CreditsTotal).
 					SetDiscountsTotal(line.Totals.DiscountsTotal).
 					SetTaxesTotal(line.Totals.TaxesTotal).
 					SetTaxesInclusiveTotal(line.Totals.TaxesInclusiveTotal).
@@ -109,6 +110,10 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					SetTotal(line.Totals.Total).
 					// ExternalIDs
 					SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(line.ExternalIDs.Invoicing))
+
+				if len(line.CreditsApplied) > 0 {
+					create = create.SetCreditsApplied(&line.CreditsApplied)
+				}
 
 				if line.Subscription != nil {
 					create = create.SetSubscriptionID(line.Subscription.SubscriptionID).
@@ -144,6 +149,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					// TODO[OM-1416]: all nillable fileds must be listed explicitly
 					UpdateQuantity().
 					UpdateChildUniqueReferenceID().
+					UpdateCreditsApplied().
 					Exec(ctx)
 			},
 			MarkDeleted: func(ctx context.Context, line *billing.StandardLine) (*billing.StandardLine, error) {
@@ -357,6 +363,7 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 				// Totals
 				SetAmount(line.Totals.Amount).
 				SetChargesTotal(line.Totals.ChargesTotal).
+				SetCreditsTotal(line.Totals.CreditsTotal).
 				SetDiscountsTotal(line.Totals.DiscountsTotal).
 				SetTaxesTotal(line.Totals.TaxesTotal).
 				SetTaxesInclusiveTotal(line.Totals.TaxesInclusiveTotal).
@@ -367,6 +374,10 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 
 			if line.TaxConfig != nil {
 				create = create.SetTaxConfig(*line.TaxConfig)
+			}
+
+			if len(line.CreditsApplied) > 0 {
+				create = create.SetCreditsApplied(&line.CreditsApplied)
 			}
 
 			create = create.SetQuantity(line.Quantity).
@@ -469,6 +480,7 @@ func (a *adapter) upsertDetailedLinesV2(ctx context.Context, in detailedLineDiff
 				// Totals
 				SetAmount(line.Totals.Amount).
 				SetChargesTotal(line.Totals.ChargesTotal).
+				SetCreditsTotal(line.Totals.CreditsTotal).
 				SetDiscountsTotal(line.Totals.DiscountsTotal).
 				SetTaxesTotal(line.Totals.TaxesTotal).
 				SetTaxesInclusiveTotal(line.Totals.TaxesInclusiveTotal).
@@ -477,6 +489,10 @@ func (a *adapter) upsertDetailedLinesV2(ctx context.Context, in detailedLineDiff
 
 				// ExternalIDs
 				SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(line.ExternalIDs.Invoicing))
+
+			if len(line.CreditsApplied) > 0 {
+				create = create.SetCreditsApplied(&line.CreditsApplied)
+			}
 
 			if line.TaxConfig != nil {
 				create = create.SetTaxConfig(*line.TaxConfig)
@@ -586,7 +602,8 @@ func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs entitydi
 				OnConflict(
 					sql.ConflictColumns(billinginvoiceusagebasedlineconfig.FieldID),
 					sql.ResolveWithNewValues(),
-				).Exec(ctx)
+				).
+				Exec(ctx)
 		},
 	})
 }

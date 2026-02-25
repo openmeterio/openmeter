@@ -52,6 +52,11 @@ func (a *adapter) mapStandardInvoiceLinesFromDB(schemaLevelByInvoiceID map[strin
 }
 
 func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvoiceLine) (*billing.StandardLine, error) {
+	creditsApplied := lo.FromPtr(dbLine.CreditsApplied)
+	if len(creditsApplied) == 0 {
+		creditsApplied = nil
+	}
+
 	invoiceLine := &billing.StandardLine{
 		StandardLineBase: billing.StandardLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -84,6 +89,7 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 
 			TaxConfig:         lo.EmptyableToPtr(dbLine.TaxConfig),
 			RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
+			CreditsApplied:    creditsApplied,
 			Totals: billing.Totals{
 				Amount:              dbLine.Amount,
 				ChargesTotal:        dbLine.ChargesTotal,

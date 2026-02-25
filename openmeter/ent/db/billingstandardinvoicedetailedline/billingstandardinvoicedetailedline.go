@@ -8,6 +8,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
@@ -49,6 +50,8 @@ const (
 	FieldChargesTotal = "charges_total"
 	// FieldDiscountsTotal holds the string denoting the discounts_total field in the database.
 	FieldDiscountsTotal = "discounts_total"
+	// FieldCreditsTotal holds the string denoting the credits_total field in the database.
+	FieldCreditsTotal = "credits_total"
 	// FieldTotal holds the string denoting the total field in the database.
 	FieldTotal = "total"
 	// FieldServicePeriodStart holds the string denoting the service_period_start field in the database.
@@ -73,6 +76,8 @@ const (
 	FieldPaymentTerm = "payment_term"
 	// FieldIndex holds the string denoting the index field in the database.
 	FieldIndex = "index"
+	// FieldCreditsApplied holds the string denoting the credits_applied field in the database.
+	FieldCreditsApplied = "credits_applied"
 	// EdgeBillingInvoice holds the string denoting the billing_invoice edge name in mutations.
 	EdgeBillingInvoice = "billing_invoice"
 	// EdgeBillingInvoiceLine holds the string denoting the billing_invoice_line edge name in mutations.
@@ -123,6 +128,7 @@ var Columns = []string{
 	FieldTaxesExclusiveTotal,
 	FieldChargesTotal,
 	FieldDiscountsTotal,
+	FieldCreditsTotal,
 	FieldTotal,
 	FieldServicePeriodStart,
 	FieldServicePeriodEnd,
@@ -135,6 +141,7 @@ var Columns = []string{
 	FieldCategory,
 	FieldPaymentTerm,
 	FieldIndex,
+	FieldCreditsApplied,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -160,6 +167,10 @@ var (
 	CurrencyValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
+	// ValueScanner of all BillingStandardInvoiceDetailedLine fields.
+	ValueScanner struct {
+		CreditsApplied field.TypeValueScanner[*billing.CreditsApplied]
+	}
 )
 
 const DefaultCategory billing.FlatFeeCategory = "regular"
@@ -259,6 +270,11 @@ func ByDiscountsTotal(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDiscountsTotal, opts...).ToFunc()
 }
 
+// ByCreditsTotal orders the results by the credits_total field.
+func ByCreditsTotal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreditsTotal, opts...).ToFunc()
+}
+
 // ByTotal orders the results by the total field.
 func ByTotal(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTotal, opts...).ToFunc()
@@ -317,6 +333,11 @@ func ByPaymentTerm(opts ...sql.OrderTermOption) OrderOption {
 // ByIndex orders the results by the index field.
 func ByIndex(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIndex, opts...).ToFunc()
+}
+
+// ByCreditsApplied orders the results by the credits_applied field.
+func ByCreditsApplied(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreditsApplied, opts...).ToFunc()
 }
 
 // ByBillingInvoiceField orders the results by billing_invoice field.

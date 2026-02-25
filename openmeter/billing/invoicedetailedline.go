@@ -65,6 +65,9 @@ type DetailedLineBase struct {
 	// FeeLineConfigID contains the ID of the fee configuration in the DB, this should go away
 	// as soon as we split the ubp/flatfee db parts
 	FeeLineConfigID string `json:"feeLineConfigID,omitempty"`
+
+	// CreditsApplied is the list of credits that are applied to the line (credits are pre-tax)
+	CreditsApplied CreditsApplied `json:"creditsApplied,omitempty"`
 }
 
 var _ models.Validator = (*DetailedLineBase)(nil)
@@ -98,6 +101,10 @@ func (l DetailedLineBase) Validate() error {
 
 	if err := l.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
+	}
+
+	if err := l.CreditsApplied.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("credits applied: %w", err))
 	}
 
 	return errors.Join(errs...)

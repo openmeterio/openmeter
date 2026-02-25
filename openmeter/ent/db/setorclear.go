@@ -1290,6 +1290,20 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearLineIds(value *string) *BillingI
 	return u.SetLineIds(*value)
 }
 
+func (u *BillingInvoiceLineUpdate) SetOrClearCreditsApplied(value **billing.CreditsApplied) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearCreditsApplied()
+	}
+	return u.SetCreditsApplied(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearCreditsApplied(value **billing.CreditsApplied) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearCreditsApplied()
+	}
+	return u.SetCreditsApplied(*value)
+}
+
 func (u *BillingInvoiceLineDiscountUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceLineDiscountUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
@@ -1960,6 +1974,20 @@ func (u *BillingStandardInvoiceDetailedLineUpdateOne) SetOrClearIndex(value *int
 		return u.ClearIndex()
 	}
 	return u.SetIndex(*value)
+}
+
+func (u *BillingStandardInvoiceDetailedLineUpdate) SetOrClearCreditsApplied(value **billing.CreditsApplied) *BillingStandardInvoiceDetailedLineUpdate {
+	if value == nil {
+		return u.ClearCreditsApplied()
+	}
+	return u.SetCreditsApplied(*value)
+}
+
+func (u *BillingStandardInvoiceDetailedLineUpdateOne) SetOrClearCreditsApplied(value **billing.CreditsApplied) *BillingStandardInvoiceDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearCreditsApplied()
+	}
+	return u.SetCreditsApplied(*value)
 }
 
 func (u *BillingStandardInvoiceDetailedLineAmountDiscountUpdate) SetOrClearDeletedAt(value *time.Time) *BillingStandardInvoiceDetailedLineAmountDiscountUpdate {
