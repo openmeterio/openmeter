@@ -89,7 +89,7 @@ func (s *Service) GetCustomerAccounts(ctx context.Context, customerID customer.C
 
 	receivableID, ok := accountIDs[ledger.AccountTypeCustomerReceivable]
 	if !ok {
-		return ledger.CustomerAccounts{}, fmt.Errorf("Receivable account not found for customer %s", customerID.ID)
+		return ledger.CustomerAccounts{}, fmt.Errorf("receivable account not found for customer %s", customerID.ID)
 	}
 
 	fboAcc, err := s.AccountService.GetAccountByID(ctx, models.NamespacedID{Namespace: ns, ID: fboID})
