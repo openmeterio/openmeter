@@ -86,7 +86,7 @@ func ResolveTransactions(
 				return nil, err
 			}
 
-			tx, err := typ.resolve(ctx, scope.CustomerID.Namespace, deps)
+			tx, err := typ.resolve(ctx, scope.Namespace, deps)
 			if err != nil {
 				return nil, err
 			}

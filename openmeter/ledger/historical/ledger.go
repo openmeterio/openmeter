@@ -23,6 +23,15 @@ type Ledger struct {
 	locker *lockr.Locker
 }
 
+// NewLedger constructs a Ledger with the given repo, account service and locker.
+func NewLedger(repo Repo, accountService account.Service, locker *lockr.Locker) *Ledger {
+	return &Ledger{
+		repo:           repo,
+		accountService: accountService,
+		locker:         locker,
+	}
+}
+
 // ----------------------------------------------------------------------------
 // Let's implement ledger.Ledger interface
 // ----------------------------------------------------------------------------
