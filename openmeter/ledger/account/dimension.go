@@ -40,8 +40,10 @@ type currencyDimension struct {
 	data DimensionData
 }
 
-var _ ledger.DimensionCurrency = (*currencyDimension)(nil)
-var _ dimensionIDer = (*currencyDimension)(nil)
+var (
+	_ ledger.DimensionCurrency = (*currencyDimension)(nil)
+	_ dimensionIDer            = (*currencyDimension)(nil)
+)
 
 func (d *currencyDimension) dimensionID() string { return d.data.ID }
 
