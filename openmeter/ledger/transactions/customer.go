@@ -20,9 +20,13 @@ type IssueCustomerReceivableTemplate struct {
 	// TaxCode  string // TBD
 }
 
+func (t IssueCustomerReceivableTemplate) typeGuard() guard {
+	return true
+}
+
 var _ CustomerTransactionTemplate = (IssueCustomerReceivableTemplate{})
 
-func (t IssueCustomerReceivableTemplate) Resolve(ctx context.Context, customerID customer.CustomerID, resolvers Resolvers) (ledger.TransactionInput, error) {
+func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	// Let's resolve the dimensions
 	currency, err := resolvers.DimensionService.GetCurrencyDimension(ctx, string(t.Currency))
 	if err != nil {
@@ -75,7 +79,11 @@ type FundCustomerReceivableTemplate struct {
 
 var _ CustomerTransactionTemplate = (FundCustomerReceivableTemplate{})
 
-func (t FundCustomerReceivableTemplate) Resolve(ctx context.Context, customerID customer.CustomerID, resolvers Resolvers) (ledger.TransactionInput, error) {
+func (t FundCustomerReceivableTemplate) typeGuard() guard {
+	return true
+}
+
+func (t FundCustomerReceivableTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	// Let's resolve the dimensions
 	currency, err := resolvers.DimensionService.GetCurrencyDimension(ctx, string(t.Currency))
 	if err != nil {
@@ -131,9 +139,13 @@ type CoverCustomerReceivableTemplate struct {
 	// TaxCode  string // TBD
 }
 
+func (t CoverCustomerReceivableTemplate) typeGuard() guard {
+	return true
+}
+
 var _ CustomerTransactionTemplate = (CoverCustomerReceivableTemplate{})
 
-func (t CoverCustomerReceivableTemplate) Resolve(ctx context.Context, customerID customer.CustomerID, resolvers Resolvers) (ledger.TransactionInput, error) {
+func (t CoverCustomerReceivableTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	// Let's resolve the dimensions
 	currency, err := resolvers.DimensionService.GetCurrencyDimension(ctx, string(t.Currency))
 	if err != nil {
@@ -184,9 +196,13 @@ type RecognizeEarningsFromCreditsTemplate struct {
 	// TaxCode  string // TBD
 }
 
+func (t RecognizeEarningsFromCreditsTemplate) typeGuard() guard {
+	return true
+}
+
 var _ CustomerTransactionTemplate = (RecognizeEarningsFromCreditsTemplate{})
 
-func (t RecognizeEarningsFromCreditsTemplate) Resolve(ctx context.Context, customerID customer.CustomerID, resolvers Resolvers) (ledger.TransactionInput, error) {
+func (t RecognizeEarningsFromCreditsTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	panic("not implemented")
 }
 
@@ -198,8 +214,12 @@ type RecognizeEarningsFromAccruedTemplate struct {
 	// TaxCode  string // TBD
 }
 
+func (t RecognizeEarningsFromAccruedTemplate) typeGuard() guard {
+	return true
+}
+
 var _ CustomerTransactionTemplate = (RecognizeEarningsFromAccruedTemplate{})
 
-func (t RecognizeEarningsFromAccruedTemplate) Resolve(ctx context.Context, customerID customer.CustomerID, resolvers Resolvers) (ledger.TransactionInput, error) {
+func (t RecognizeEarningsFromAccruedTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	panic("not implemented")
 }

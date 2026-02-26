@@ -33,7 +33,7 @@ type AnyTransactionInput struct {
 var _ ledger.TransactionInput = (*AnyTransactionInput)(nil)
 
 func (a *AnyTransactionInput) BookedAt() time.Time {
-	return time.Now()
+	return a.BookedAtValue
 }
 
 func (a *AnyTransactionInput) EntryInputs() []ledger.EntryInput {
