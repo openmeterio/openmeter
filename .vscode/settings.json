@@ -25,5 +25,8 @@
   },
   "typespec.tsp-server.path": "${workspaceFolder}/api/spec/node_modules/@typespec/compiler",
   // dynamic forces confluent-kafka-go to build against local librdkafka
-  "go.buildTags": "wireinject,dynamic"
+  // wireinject is kept for gopls so it can analyse wire.go injection files
+  "go.buildTags": "wireinject,dynamic",
+  // Tests must NOT include wireinject — it causes wire stubs to run instead of wire_gen.go
+  "go.testTags": "dynamic"
 }

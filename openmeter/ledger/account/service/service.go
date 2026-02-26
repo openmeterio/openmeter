@@ -15,9 +15,12 @@ type service struct {
 	live account.AccountLiveServices
 }
 
-func New(repo account.Repo) account.Service {
+// New constructs an account Service. live carries the external runtime dependencies
+// (Locker, Querier); SubAccountService is always self-wired and will be overwritten.
+func New(repo account.Repo, live account.AccountLiveServices) account.Service {
 	svc := &service{repo: repo}
-	svc.live = account.AccountLiveServices{SubAccountService: svc}
+	live.SubAccountService = svc
+	svc.live = live
 	return svc
 }
 
