@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/samber/lo"
+	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
@@ -21,6 +23,20 @@ import (
 func (s *service) AddAddon(ctx context.Context, subscriptionID models.NamespacedID, addonInp subscriptionworkflow.AddAddonWorkflowInput) (subscription.SubscriptionView, subscriptionaddon.SubscriptionAddon, error) {
 	var def1 subscription.SubscriptionView
 	var def2 subscriptionaddon.SubscriptionAddon
+
+	setSpanAttrs(ctx,
+		attribute.String("subscription.namespace", subscriptionID.Namespace),
+		attribute.String("subscription.id", subscriptionID.ID),
+		attribute.String("workflow.operation", "add_addon"),
+		attribute.String("addon.id", addonInp.AddonID),
+		attribute.Int("addon.initial_quantity", addonInp.InitialQuantity),
+		attribute.Bool("subscription.timing.has_custom", addonInp.Timing.Custom != nil),
+		attribute.String("subscription.timing.enum", lo.TernaryF(addonInp.Timing.Enum != nil, func() string {
+			return string(*addonInp.Timing.Enum)
+		}, func() string {
+			return ""
+		})),
+	)
 
 	if err := addonInp.Validate(); err != nil {
 		return def1, def2, models.NewGenericValidationError(err)
@@ -60,6 +76,7 @@ func (s *service) AddAddon(ctx context.Context, subscriptionID models.Namespaced
 		if err != nil {
 			return def, fmt.Errorf("failed to resolve timing: %w", err)
 		}
+		setSpanAttrs(ctx, attribute.String("subscription.edit_time", editTime.UTC().Format(time.RFC3339Nano)))
 
 		if !subView.Subscription.IsActiveAt(editTime) {
 			return def, models.NewGenericValidationError(fmt.Errorf("subscription is not active at the time of adding the addon"))
@@ -69,6 +86,13 @@ func (s *service) AddAddon(ctx context.Context, subscriptionID models.Namespaced
 		if err != nil {
 			return def, fmt.Errorf("failed to get diffable from addons: %w", err)
 		}
+		setSpanAttrs(ctx,
+			addSubscriptionViewAttrs([]attribute.KeyValue{}, "subscription.view.before", subView)...,
+		)
+		setSpanAttrs(ctx,
+			addSubscriptionAddonsAttrs([]attribute.KeyValue{}, "subscription.addons.before", subsAdds.Items)...,
+		)
+		setSpanAttrs(ctx, attribute.Int("subscription.addons.before.diffables.count", len(diffs)))
 
 		if len(diffs) != len(subsAdds.Items) {
 			return def, fmt.Errorf("failed to get diffable from addons, got %d addons but %d diffs", len(subsAdds.Items), len(diffs))
@@ -119,6 +143,20 @@ func (s *service) ChangeAddonQuantity(ctx context.Context, subscriptionID models
 	var def1 subscription.SubscriptionView
 	var def2 subscriptionaddon.SubscriptionAddon
 
+	setSpanAttrs(ctx,
+		attribute.String("subscription.namespace", subscriptionID.Namespace),
+		attribute.String("subscription.id", subscriptionID.ID),
+		attribute.String("workflow.operation", "change_addon_quantity"),
+		attribute.String("subscription_addon.id", changeInp.SubscriptionAddonID.ID),
+		attribute.Int("addon.quantity.new", changeInp.Quantity),
+		attribute.Bool("subscription.timing.has_custom", changeInp.Timing.Custom != nil),
+		attribute.String("subscription.timing.enum", lo.TernaryF(changeInp.Timing.Enum != nil, func() string {
+			return string(*changeInp.Timing.Enum)
+		}, func() string {
+			return ""
+		})),
+	)
+
 	if subscriptionID.Namespace != changeInp.SubscriptionAddonID.Namespace {
 		return def1, def2, models.NewGenericValidationError(fmt.Errorf("subscription and subscription addon are in different namespaces"))
 	}
@@ -156,6 +194,7 @@ func (s *service) ChangeAddonQuantity(ctx context.Context, subscriptionID models
 		if err != nil {
 			return def, fmt.Errorf("failed to resolve timing: %w", err)
 		}
+		setSpanAttrs(ctx, attribute.String("subscription.edit_time", editTime.UTC().Format(time.RFC3339Nano)))
 
 		subsAdd, err := s.AddonService.ChangeQuantity(ctx, changeInp.SubscriptionAddonID, subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 			Quantity:   changeInp.Quantity,
@@ -171,6 +210,15 @@ func (s *service) ChangeAddonQuantity(ctx context.Context, subscriptionID models
 		if err != nil {
 			return def, err
 		}
+		setSpanAttrs(ctx,
+			addSubscriptionViewAttrs([]attribute.KeyValue{}, "subscription.view.before", subView)...,
+		)
+		setSpanAttrs(ctx,
+			addSubscriptionAddonsAttrs([]attribute.KeyValue{}, "subscription.addons.before", subsAddsBefore.Items)...,
+		)
+		setSpanAttrs(ctx,
+			addSubscriptionAddonsAttrs([]attribute.KeyValue{}, "subscription.addons.after", subsAddsAfter.Items)...,
+		)
 
 		subView, err = s.syncWithAddons(ctx, subView, subsAddsBefore.Items, subsAddsAfter.Items, editTime)
 		if err != nil {
@@ -193,6 +241,18 @@ func (s *service) syncWithAddons(
 	after []subscriptionaddon.SubscriptionAddon,
 	currentTime time.Time,
 ) (subscription.SubscriptionView, error) {
+	setSpanAttrs(ctx,
+		attribute.String("workflow.operation", "sync_with_addons"),
+		attribute.String("subscription.namespace", view.Subscription.Namespace),
+		attribute.String("subscription.id", view.Subscription.ID),
+		attribute.String("subscription.sync.current_time", currentTime.UTC().Format(time.RFC3339Nano)),
+	)
+	setSpanAttrs(ctx, addSubscriptionViewAttrs([]attribute.KeyValue{}, "subscription.view.input", view)...)
+	setSpanAttrs(ctx, addSubscriptionAddonsAttrs([]attribute.KeyValue{}, "subscription.addons.before", before)...)
+	setSpanAttrs(ctx, addSubscriptionAddonsAttrs([]attribute.KeyValue{}, "subscription.addons.after", after)...)
+	emitAddonApplyPlanEvents(ctx, "restore", view, before)
+	emitAddonApplyPlanEvents(ctx, "apply", view, after)
+
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionView, error) {
 		var def subscription.SubscriptionView
 
@@ -228,11 +288,13 @@ func (s *service) syncWithAddons(
 		if err != nil {
 			return def, fmt.Errorf("failed to get diffable from addons: %w", err)
 		}
+		setSpanAttrs(ctx, attribute.Int("subscription.addons.before.diffables.count", len(restores)))
 
 		applies, err := asDiffs(view, after)
 		if err != nil {
 			return def, fmt.Errorf("failed to get diffable from addons: %w", err)
 		}
+		setSpanAttrs(ctx, attribute.Int("subscription.addons.after.diffables.count", len(applies)))
 
 		if err := spec.ApplyMany(lo.Map(restores, func(d addondiff.Diffable, _ int) subscription.AppliesToSpec {
 			return d.GetRestores()
@@ -259,9 +321,73 @@ func (s *service) syncWithAddons(
 
 			return def, fmt.Errorf("failed to update subscription: %w", err)
 		}
+		updated, err := s.Service.GetView(ctx, view.Subscription.NamespacedID)
+		if err != nil {
+			return def, err
+		}
+		setSpanAttrs(ctx, addSubscriptionViewAttrs([]attribute.KeyValue{}, "subscription.view.output", updated)...)
+		setSpanAttrs(ctx, addSubscriptionSpecAttrs([]attribute.KeyValue{}, "subscription.spec.output", updated.Spec)...)
 
-		return s.Service.GetView(ctx, view.Subscription.NamespacedID)
+		return updated, nil
 	})
+}
+
+func emitAddonApplyPlanEvents(ctx context.Context, source string, view subscription.SubscriptionView, addons []subscriptionaddon.SubscriptionAddon) {
+	order := 0
+
+	for addonOrder, add := range addons {
+		affectedByRateCardKey := addondiff.GetAffectedItemIDs(view, add)
+		affectedRateCardKeys := lo.Keys(affectedByRateCardKey)
+		slices.Sort(affectedRateCardKeys)
+
+		addSpanEvent(ctx, "subscription.addon.apply.plan",
+			attribute.String("apply.source", source),
+			attribute.Int("apply.order", order),
+			attribute.Int("apply.addon_order", addonOrder),
+			attribute.String("subscription.namespace", add.Namespace),
+			attribute.String("subscription.id", add.SubscriptionID),
+			attribute.String("subscription_addon.id", add.ID),
+			attribute.String("addon.id", add.Addon.ID),
+			attribute.StringSlice("addon.affected_ratecard_keys", affectedRateCardKeys),
+		)
+		order++
+
+		for _, rateCardKey := range affectedRateCardKeys {
+			addSpanEvent(ctx, "subscription.addon.apply.plan",
+				attribute.String("apply.source", source),
+				attribute.Int("apply.order", order),
+				attribute.String("subscription_addon.id", add.ID),
+				attribute.String("addon.id", add.Addon.ID),
+				attribute.String("addon.ratecard_key", rateCardKey),
+				attribute.StringSlice("subscription.item_ids", affectedByRateCardKey[rateCardKey]),
+			)
+			order++
+		}
+
+		instances := add.GetInstances()
+		for instanceOrder, inst := range instances {
+			rateCardKeys := lo.Map(inst.RateCards, func(rc subscriptionaddon.SubscriptionAddonRateCard, _ int) string {
+				return rc.AddonRateCard.Key()
+			})
+
+			addSpanEvent(ctx, "subscription.addon.apply.plan",
+				attribute.String("apply.source", source),
+				attribute.Int("apply.order", order),
+				attribute.Int("apply.instance_order", instanceOrder),
+				attribute.String("subscription_addon.id", inst.ID),
+				attribute.String("addon.id", inst.Addon.ID),
+				attribute.Int("addon.quantity", inst.Quantity),
+				attribute.String("addon.instance_active_from", inst.ActiveFrom.UTC().Format(time.RFC3339Nano)),
+				attribute.String("addon.instance_active_to", lo.TernaryF(inst.ActiveTo != nil, func() string {
+					return inst.ActiveTo.UTC().Format(time.RFC3339Nano)
+				}, func() string {
+					return ""
+				})),
+				attribute.StringSlice("addon.instance_ratecard_keys", rateCardKeys),
+			)
+			order++
+		}
+	}
 }
 
 // The sub has addons if it has a non-0 quantity on any of them during its cadence
@@ -289,7 +415,9 @@ func asDiffs(view subscription.SubscriptionView, subsAdds []subscriptionaddon.Su
 		return nil, fmt.Errorf("failed to get diffable from addon: %w", err)
 	}
 
-	return lo.Filter(diffs, func(d addondiff.Diffable, _ int) bool {
+	filtered := lo.Filter(diffs, func(d addondiff.Diffable, _ int) bool {
 		return d != nil
-	}), nil
+	})
+
+	return filtered, nil
 }
