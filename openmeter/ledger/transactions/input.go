@@ -53,14 +53,22 @@ func (t *TransactionInput) EntryInputs() []ledger.EntryInput {
 func (t *TransactionInput) AsGroupInput(namespace string, annotations models.Annotations) ledger.TransactionGroupInput {
 	return &TransactionGroupInput{
 		namespace:    namespace,
-		transactions: []*TransactionInput{t},
+		transactions: []ledger.TransactionInput{t},
+		annotations:  annotations,
+	}
+}
+
+func GroupInputs(namespace string, annotations models.Annotations, inputs ...ledger.TransactionInput) ledger.TransactionGroupInput {
+	return &TransactionGroupInput{
+		namespace:    namespace,
+		transactions: inputs,
 		annotations:  annotations,
 	}
 }
 
 type TransactionGroupInput struct {
 	namespace    string
-	transactions []*TransactionInput
+	transactions []ledger.TransactionInput
 	annotations  models.Annotations
 }
 
@@ -71,9 +79,7 @@ var _ ledger.TransactionGroupInput = (*TransactionGroupInput)(nil)
 // ----------------------------------------------------------------------------
 
 func (t *TransactionGroupInput) Transactions() []ledger.TransactionInput {
-	return lo.Map(t.transactions, func(t *TransactionInput, _ int) ledger.TransactionInput {
-		return t
-	})
+	return t.transactions
 }
 
 func (t *TransactionGroupInput) Annotations() models.Annotations {

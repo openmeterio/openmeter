@@ -7,7 +7,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -33,10 +32,6 @@ func (t testTransactionGroupInput) Annotations() models.Annotations {
 	return nil
 }
 
-func asTxGroupInput(transactions []ledger.TransactionInput) ledger.TransactionGroupInput {
-	return testTransactionGroupInput{transactions: transactions}
-}
-
 func TestFXOnInvoiceIssued(t *testing.T) {
 	t.Skipf("This is just to assert the types, it would fail on unimplemented")
 	// We're simulating the scenario where we're effective converting an outstanding CRD balance to an outstanding FIAT balance
@@ -57,35 +52,36 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 
 		bookedAt := time.Now()
 
-		var resolvers transactions.Resolvers
+		var resolvers transactions.ResolverDependencies
+		var scope transactions.ResolutionScope
 		// Step 1: Outstanding USD for Customer
-		tx1, err := transactions.IssueCustomerReceivableTemplate{
+		tx1 := transactions.IssueCustomerReceivableTemplate{
 			At:       bookedAt,
 			Amount:   amountUSD,
 			Currency: "USD",
-		}.Resolve(t.Context(), customer.CustomerID{ID: "123", Namespace: "test"}, resolvers)
-		require.NoError(t, err)
+		}
 
 		// Step 2: Convert USD to CRD into customer account
-		tx2, err := transactions.ConvertCurrencyTemplate{
+		tx2 := transactions.ConvertCurrencyTemplate{
 			At:             bookedAt,
 			TargetAmount:   amountUSD,
 			CostBasis:      costBasis,
 			SourceCurrency: "USD",
 			TargetCurrency: "CRD",
-		}.Resolve(t.Context(), customer.CustomerID{ID: "123", Namespace: "test"}, resolvers)
-		require.NoError(t, err)
+		}
 
 		// Step 3: Cover outstanding CRD from customer account
-		tx3, err := transactions.CoverCustomerReceivableTemplate{
+		tx3 := transactions.CoverCustomerReceivableTemplate{
 			At:       bookedAt,
 			Amount:   amountUSD,
 			Currency: "CRD",
-		}.Resolve(t.Context(), customer.CustomerID{ID: "123", Namespace: "test"}, resolvers)
+		}
+
+		inputs, err := transactions.ResolveTransactions(t.Context(), resolvers, scope, tx1, tx2, tx3)
 		require.NoError(t, err)
 
 		// tx1, tx2 & tx3 should be written to the ledger AT THE SAME TIME
-		_, err = l.CommitGroup(t.Context(), asTxGroupInput([]ledger.TransactionInput{tx1, tx2, tx3}))
+		_, err = l.CommitGroup(t.Context(), transactions.GroupInputs("default-ns", nil, inputs...))
 		require.NoError(t, err)
 	})
 }
