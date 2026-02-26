@@ -24,7 +24,11 @@ type ConvertCurrencyTemplate struct {
 
 var _ CustomerTransactionTemplate = (ConvertCurrencyTemplate{})
 
-func (t ConvertCurrencyTemplate) Resolve(ctx context.Context, customerID customer.CustomerID, resolvers Resolvers) (ledger.TransactionInput, error) {
+func (t ConvertCurrencyTemplate) typeGuard() guard {
+	return true
+}
+
+func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	// Let's resolve the dimensions
 	sourceCurrency, err := resolvers.DimensionService.GetCurrencyDimension(ctx, string(t.SourceCurrency))
 	if err != nil {

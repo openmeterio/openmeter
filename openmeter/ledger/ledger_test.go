@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -37,25 +36,21 @@ func TestTwoAccountTransaction(t *testing.T) {
 	var a1, a2 ledger.SubAccount
 
 	// Let's create a TX between two accounts
-	txTpl := &testutils.AnyOrgTemplate{
-		TransactionInput: &testutils.AnyTransactionInput{
-			BookedAtValue: time.Now(),
-			EntryInputsValues: []*testutils.AnyEntryInput{
-				{
-					Address:     a1.Address(),
-					AmountValue: alpacadecimal.NewFromInt(-100),
-				},
-				{
-					Address:     a2.Address(),
-					AmountValue: alpacadecimal.NewFromInt(100),
-				},
+	txInput := &testutils.AnyTransactionInput{
+		BookedAtValue: time.Now(),
+		EntryInputsValues: []*testutils.AnyEntryInput{
+			{
+				Address:     a1.Address(),
+				AmountValue: alpacadecimal.NewFromInt(-100),
+			},
+			{
+				Address:     a2.Address(),
+				AmountValue: alpacadecimal.NewFromInt(100),
 			},
 		},
 	}
-	txInput, err := txTpl.Resolve(t.Context(), "namespace", transactions.Resolvers{})
-	require.NoError(t, err)
 
-	_, err = l.CommitGroup(t.Context(), txInput.AsGroupInput("namespace", nil))
+	_, err := l.CommitGroup(t.Context(), txInput.AsGroupInput("namespace", nil))
 	require.NoError(t, err)
 }
 
@@ -65,30 +60,25 @@ func TestMultiAccountTransaction(t *testing.T) {
 	var a1, a2, a3 ledger.SubAccount
 
 	// Let's create a TX between multiple
-	txTpl := &testutils.AnyOrgTemplate{
-		TransactionInput: &testutils.AnyTransactionInput{
-			BookedAtValue: time.Now(),
-			EntryInputsValues: []*testutils.AnyEntryInput{
-				{
-					Address:     a1.Address(),
-					AmountValue: alpacadecimal.NewFromInt(-100),
-				},
-				{
-					Address:     a2.Address(),
-					AmountValue: alpacadecimal.NewFromInt(50),
-				},
-				{
-					Address:     a3.Address(),
-					AmountValue: alpacadecimal.NewFromInt(49),
-				},
+	txInput := &testutils.AnyTransactionInput{
+		BookedAtValue: time.Now(),
+		EntryInputsValues: []*testutils.AnyEntryInput{
+			{
+				Address:     a1.Address(),
+				AmountValue: alpacadecimal.NewFromInt(-100),
+			},
+			{
+				Address:     a2.Address(),
+				AmountValue: alpacadecimal.NewFromInt(50),
+			},
+			{
+				Address:     a3.Address(),
+				AmountValue: alpacadecimal.NewFromInt(49),
 			},
 		},
 	}
 
-	txInput, err := txTpl.Resolve(t.Context(), "namespace", transactions.Resolvers{})
-	require.NoError(t, err)
-
-	err = ledger.ValidateTransactionInput(t.Context(), txInput)
+	err := ledger.ValidateTransactionInput(t.Context(), txInput)
 	require.NoError(t, err)
 
 	// Just an example on checking errors... 99 - 100 <> 0
