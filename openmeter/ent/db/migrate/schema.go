@@ -1710,6 +1710,89 @@ var (
 			},
 		},
 	}
+	// CurrencyCostBasesColumns holds the columns for the "currency_cost_bases" table.
+	CurrencyCostBasesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "fiat_code", Type: field.TypeString, Size: 3},
+		{Name: "rate", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "custom_currency_cost_basis_history", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// CurrencyCostBasesTable holds the schema information for the "currency_cost_bases" table.
+	CurrencyCostBasesTable = &schema.Table{
+		Name:       "currency_cost_bases",
+		Columns:    CurrencyCostBasesColumns,
+		PrimaryKey: []*schema.Column{CurrencyCostBasesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "currency_cost_bases_custom_currencies_cost_basis_history",
+				Columns:    []*schema.Column{CurrencyCostBasesColumns[4]},
+				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "currencycostbasis_id",
+				Unique:  true,
+				Columns: []*schema.Column{CurrencyCostBasesColumns[0]},
+			},
+			{
+				Name:    "currencycostbasis_fiat_code_custom_currency_cost_basis_history",
+				Unique:  true,
+				Columns: []*schema.Column{CurrencyCostBasesColumns[2], CurrencyCostBasesColumns[4]},
+			},
+		},
+	}
+	// CurrencyCostBasisEffectiveFromsColumns holds the columns for the "currency_cost_basis_effective_froms" table.
+	CurrencyCostBasisEffectiveFromsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "effective_from", Type: field.TypeTime},
+		{Name: "currency_cost_basis_effective_from_history", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// CurrencyCostBasisEffectiveFromsTable holds the schema information for the "currency_cost_basis_effective_froms" table.
+	CurrencyCostBasisEffectiveFromsTable = &schema.Table{
+		Name:       "currency_cost_basis_effective_froms",
+		Columns:    CurrencyCostBasisEffectiveFromsColumns,
+		PrimaryKey: []*schema.Column{CurrencyCostBasisEffectiveFromsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "currency_cost_basis_effective_froms_currency_cost_bases_effective_from_history",
+				Columns:    []*schema.Column{CurrencyCostBasisEffectiveFromsColumns[3]},
+				RefColumns: []*schema.Column{CurrencyCostBasesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "currencycostbasiseffectivefrom_id",
+				Unique:  true,
+				Columns: []*schema.Column{CurrencyCostBasisEffectiveFromsColumns[0]},
+			},
+		},
+	}
+	// CustomCurrenciesColumns holds the columns for the "custom_currencies" table.
+	CustomCurrenciesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "code", Type: field.TypeString, Unique: true, Size: 24},
+		{Name: "name", Type: field.TypeString, Size: 100},
+		{Name: "symbol", Type: field.TypeString, Size: 10},
+	}
+	// CustomCurrenciesTable holds the schema information for the "custom_currencies" table.
+	CustomCurrenciesTable = &schema.Table{
+		Name:       "custom_currencies",
+		Columns:    CustomCurrenciesColumns,
+		PrimaryKey: []*schema.Column{CustomCurrenciesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "customcurrency_id",
+				Unique:  true,
+				Columns: []*schema.Column{CustomCurrenciesColumns[0]},
+			},
+		},
+	}
 	// CustomersColumns holds the columns for the "customers" table.
 	CustomersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -3271,6 +3354,9 @@ var (
 		ChargeCreditPurchasesTable,
 		ChargeFlatFeesTable,
 		ChargeUsageBasedsTable,
+		CurrencyCostBasesTable,
+		CurrencyCostBasisEffectiveFromsTable,
+		CustomCurrenciesTable,
 		CustomersTable,
 		CustomerSubjectsTable,
 		EntitlementsTable,
@@ -3351,6 +3437,8 @@ func init() {
 	ChargeCreditPurchasesTable.ForeignKeys[0].RefTable = ChargesTable
 	ChargeFlatFeesTable.ForeignKeys[0].RefTable = ChargesTable
 	ChargeUsageBasedsTable.ForeignKeys[0].RefTable = ChargesTable
+	CurrencyCostBasesTable.ForeignKeys[0].RefTable = CustomCurrenciesTable
+	CurrencyCostBasisEffectiveFromsTable.ForeignKeys[0].RefTable = CurrencyCostBasesTable
 	CustomerSubjectsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[1].RefTable = FeaturesTable

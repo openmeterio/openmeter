@@ -1,5 +1,9 @@
 -- reverse: modify "standard_invoice_settlements" table
 ALTER TABLE "standard_invoice_settlements" DROP CONSTRAINT "standard_invoice_settlements_charges_standard_invoice_settlment", DROP CONSTRAINT "standard_invoice_settlements_billing_invoice_lines_billing_invo";
+-- reverse: modify "currency_cost_basis_effective_froms" table
+ALTER TABLE "currency_cost_basis_effective_froms" DROP CONSTRAINT "currency_cost_basis_effective_froms_currency_cost_bases_effecti";
+-- reverse: modify "currency_cost_bases" table
+ALTER TABLE "currency_cost_bases" DROP CONSTRAINT "currency_cost_bases_custom_currencies_cost_basis_history";
 -- reverse: modify "charges" table
 ALTER TABLE "charges" DROP CONSTRAINT "charges_subscriptions_charge_intents", DROP CONSTRAINT "charges_subscription_phases_charge_intents", DROP CONSTRAINT "charges_subscription_items_charge_intents", DROP CONSTRAINT "charges_customers_charge_intents";
 -- reverse: modify "charge_usage_baseds" table
@@ -22,6 +26,22 @@ DROP INDEX "standardinvoicesettlement_id";
 DROP INDEX "standardinvoicesettlement_annotations";
 -- reverse: create "standard_invoice_settlements" table
 DROP TABLE "standard_invoice_settlements";
+-- reverse: create index "customcurrency_id" to table: "custom_currencies"
+DROP INDEX "customcurrency_id";
+-- reverse: create index "custom_currencies_code_key" to table: "custom_currencies"
+DROP INDEX "custom_currencies_code_key";
+-- reverse: create "custom_currencies" table
+DROP TABLE "custom_currencies";
+-- reverse: create index "currencycostbasiseffectivefrom_id" to table: "currency_cost_basis_effective_froms"
+DROP INDEX "currencycostbasiseffectivefrom_id";
+-- reverse: create "currency_cost_basis_effective_froms" table
+DROP TABLE "currency_cost_basis_effective_froms";
+-- reverse: create index "currencycostbasis_id" to table: "currency_cost_bases"
+DROP INDEX "currencycostbasis_id";
+-- reverse: create index "currencycostbasis_fiat_code_custom_currency_cost_basis_history" to table: "currency_cost_bases"
+DROP INDEX "currencycostbasis_fiat_code_custom_currency_cost_basis_history";
+-- reverse: create "currency_cost_bases" table
+DROP TABLE "currency_cost_bases";
 -- reverse: create index "charge_namespace_id" to table: "charges"
 DROP INDEX "charge_namespace_id";
 -- reverse: create index "charge_namespace_customer_id_unique_reference_id" to table: "charges"

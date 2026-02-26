@@ -147,6 +147,12 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		ChargeUsageBased: NewChargeUsageBasedClient(config),
 
+		CurrencyCostBasis: NewCurrencyCostBasisClient(config),
+
+		CurrencyCostBasisEffectiveFrom: NewCurrencyCostBasisEffectiveFromClient(config),
+
+		CustomCurrency: NewCustomCurrencyClient(config),
+
 		Customer: NewCustomerClient(config),
 
 		CustomerSubjects: NewCustomerSubjectsClient(config),

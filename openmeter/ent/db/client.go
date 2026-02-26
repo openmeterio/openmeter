@@ -44,6 +44,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasiseffectivefrom"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
@@ -135,6 +138,12 @@ type Client struct {
 	ChargeFlatFee *ChargeFlatFeeClient
 	// ChargeUsageBased is the client for interacting with the ChargeUsageBased builders.
 	ChargeUsageBased *ChargeUsageBasedClient
+	// CurrencyCostBasis is the client for interacting with the CurrencyCostBasis builders.
+	CurrencyCostBasis *CurrencyCostBasisClient
+	// CurrencyCostBasisEffectiveFrom is the client for interacting with the CurrencyCostBasisEffectiveFrom builders.
+	CurrencyCostBasisEffectiveFrom *CurrencyCostBasisEffectiveFromClient
+	// CustomCurrency is the client for interacting with the CustomCurrency builders.
+	CustomCurrency *CustomCurrencyClient
 	// Customer is the client for interacting with the Customer builders.
 	Customer *CustomerClient
 	// CustomerSubjects is the client for interacting with the CustomerSubjects builders.
@@ -223,6 +232,9 @@ func (c *Client) init() {
 	c.ChargeCreditPurchase = NewChargeCreditPurchaseClient(c.config)
 	c.ChargeFlatFee = NewChargeFlatFeeClient(c.config)
 	c.ChargeUsageBased = NewChargeUsageBasedClient(c.config)
+	c.CurrencyCostBasis = NewCurrencyCostBasisClient(c.config)
+	c.CurrencyCostBasisEffectiveFrom = NewCurrencyCostBasisEffectiveFromClient(c.config)
+	c.CustomCurrency = NewCustomCurrencyClient(c.config)
 	c.Customer = NewCustomerClient(c.config)
 	c.CustomerSubjects = NewCustomerSubjectsClient(c.config)
 	c.Entitlement = NewEntitlementClient(c.config)
@@ -368,6 +380,9 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ChargeCreditPurchase:                             NewChargeCreditPurchaseClient(cfg),
 		ChargeFlatFee:                                    NewChargeFlatFeeClient(cfg),
 		ChargeUsageBased:                                 NewChargeUsageBasedClient(cfg),
+		CurrencyCostBasis:                                NewCurrencyCostBasisClient(cfg),
+		CurrencyCostBasisEffectiveFrom:                   NewCurrencyCostBasisEffectiveFromClient(cfg),
+		CustomCurrency:                                   NewCustomCurrencyClient(cfg),
 		Customer:                                         NewCustomerClient(cfg),
 		CustomerSubjects:                                 NewCustomerSubjectsClient(cfg),
 		Entitlement:                                      NewEntitlementClient(cfg),
@@ -440,6 +455,9 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ChargeCreditPurchase:                             NewChargeCreditPurchaseClient(cfg),
 		ChargeFlatFee:                                    NewChargeFlatFeeClient(cfg),
 		ChargeUsageBased:                                 NewChargeUsageBasedClient(cfg),
+		CurrencyCostBasis:                                NewCurrencyCostBasisClient(cfg),
+		CurrencyCostBasisEffectiveFrom:                   NewCurrencyCostBasisEffectiveFromClient(cfg),
+		CustomCurrency:                                   NewCustomCurrencyClient(cfg),
 		Customer:                                         NewCustomerClient(cfg),
 		CustomerSubjects:                                 NewCustomerSubjectsClient(cfg),
 		Entitlement:                                      NewEntitlementClient(cfg),
@@ -504,6 +522,7 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
 		c.Charge, c.ChargeCreditPurchase, c.ChargeFlatFee, c.ChargeUsageBased,
+		c.CurrencyCostBasis, c.CurrencyCostBasisEffectiveFrom, c.CustomCurrency,
 		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.Meter,
 		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
 		c.NotificationRule, c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard,
@@ -530,6 +549,7 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
 		c.Charge, c.ChargeCreditPurchase, c.ChargeFlatFee, c.ChargeUsageBased,
+		c.CurrencyCostBasis, c.CurrencyCostBasisEffectiveFrom, c.CustomCurrency,
 		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.Meter,
 		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
 		c.NotificationRule, c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard,
@@ -602,6 +622,12 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ChargeFlatFee.mutate(ctx, m)
 	case *ChargeUsageBasedMutation:
 		return c.ChargeUsageBased.mutate(ctx, m)
+	case *CurrencyCostBasisMutation:
+		return c.CurrencyCostBasis.mutate(ctx, m)
+	case *CurrencyCostBasisEffectiveFromMutation:
+		return c.CurrencyCostBasisEffectiveFrom.mutate(ctx, m)
+	case *CustomCurrencyMutation:
+		return c.CustomCurrency.mutate(ctx, m)
 	case *CustomerMutation:
 		return c.Customer.mutate(ctx, m)
 	case *CustomerSubjectsMutation:
@@ -5808,6 +5834,469 @@ func (c *ChargeUsageBasedClient) mutate(ctx context.Context, m *ChargeUsageBased
 	}
 }
 
+// CurrencyCostBasisClient is a client for the CurrencyCostBasis schema.
+type CurrencyCostBasisClient struct {
+	config
+}
+
+// NewCurrencyCostBasisClient returns a client for the CurrencyCostBasis from the given config.
+func NewCurrencyCostBasisClient(c config) *CurrencyCostBasisClient {
+	return &CurrencyCostBasisClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `currencycostbasis.Hooks(f(g(h())))`.
+func (c *CurrencyCostBasisClient) Use(hooks ...Hook) {
+	c.hooks.CurrencyCostBasis = append(c.hooks.CurrencyCostBasis, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `currencycostbasis.Intercept(f(g(h())))`.
+func (c *CurrencyCostBasisClient) Intercept(interceptors ...Interceptor) {
+	c.inters.CurrencyCostBasis = append(c.inters.CurrencyCostBasis, interceptors...)
+}
+
+// Create returns a builder for creating a CurrencyCostBasis entity.
+func (c *CurrencyCostBasisClient) Create() *CurrencyCostBasisCreate {
+	mutation := newCurrencyCostBasisMutation(c.config, OpCreate)
+	return &CurrencyCostBasisCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of CurrencyCostBasis entities.
+func (c *CurrencyCostBasisClient) CreateBulk(builders ...*CurrencyCostBasisCreate) *CurrencyCostBasisCreateBulk {
+	return &CurrencyCostBasisCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *CurrencyCostBasisClient) MapCreateBulk(slice any, setFunc func(*CurrencyCostBasisCreate, int)) *CurrencyCostBasisCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &CurrencyCostBasisCreateBulk{err: fmt.Errorf("calling to CurrencyCostBasisClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*CurrencyCostBasisCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &CurrencyCostBasisCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for CurrencyCostBasis.
+func (c *CurrencyCostBasisClient) Update() *CurrencyCostBasisUpdate {
+	mutation := newCurrencyCostBasisMutation(c.config, OpUpdate)
+	return &CurrencyCostBasisUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *CurrencyCostBasisClient) UpdateOne(_m *CurrencyCostBasis) *CurrencyCostBasisUpdateOne {
+	mutation := newCurrencyCostBasisMutation(c.config, OpUpdateOne, withCurrencyCostBasis(_m))
+	return &CurrencyCostBasisUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *CurrencyCostBasisClient) UpdateOneID(id string) *CurrencyCostBasisUpdateOne {
+	mutation := newCurrencyCostBasisMutation(c.config, OpUpdateOne, withCurrencyCostBasisID(id))
+	return &CurrencyCostBasisUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for CurrencyCostBasis.
+func (c *CurrencyCostBasisClient) Delete() *CurrencyCostBasisDelete {
+	mutation := newCurrencyCostBasisMutation(c.config, OpDelete)
+	return &CurrencyCostBasisDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *CurrencyCostBasisClient) DeleteOne(_m *CurrencyCostBasis) *CurrencyCostBasisDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *CurrencyCostBasisClient) DeleteOneID(id string) *CurrencyCostBasisDeleteOne {
+	builder := c.Delete().Where(currencycostbasis.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &CurrencyCostBasisDeleteOne{builder}
+}
+
+// Query returns a query builder for CurrencyCostBasis.
+func (c *CurrencyCostBasisClient) Query() *CurrencyCostBasisQuery {
+	return &CurrencyCostBasisQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeCurrencyCostBasis},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a CurrencyCostBasis entity by its id.
+func (c *CurrencyCostBasisClient) Get(ctx context.Context, id string) (*CurrencyCostBasis, error) {
+	return c.Query().Where(currencycostbasis.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *CurrencyCostBasisClient) GetX(ctx context.Context, id string) *CurrencyCostBasis {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCurrency queries the currency edge of a CurrencyCostBasis.
+func (c *CurrencyCostBasisClient) QueryCurrency(_m *CurrencyCostBasis) *CustomCurrencyQuery {
+	query := (&CustomCurrencyClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(currencycostbasis.Table, currencycostbasis.FieldID, id),
+			sqlgraph.To(customcurrency.Table, customcurrency.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, currencycostbasis.CurrencyTable, currencycostbasis.CurrencyColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryEffectiveFromHistory queries the effective_from_history edge of a CurrencyCostBasis.
+func (c *CurrencyCostBasisClient) QueryEffectiveFromHistory(_m *CurrencyCostBasis) *CurrencyCostBasisEffectiveFromQuery {
+	query := (&CurrencyCostBasisEffectiveFromClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(currencycostbasis.Table, currencycostbasis.FieldID, id),
+			sqlgraph.To(currencycostbasiseffectivefrom.Table, currencycostbasiseffectivefrom.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, currencycostbasis.EffectiveFromHistoryTable, currencycostbasis.EffectiveFromHistoryColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *CurrencyCostBasisClient) Hooks() []Hook {
+	return c.hooks.CurrencyCostBasis
+}
+
+// Interceptors returns the client interceptors.
+func (c *CurrencyCostBasisClient) Interceptors() []Interceptor {
+	return c.inters.CurrencyCostBasis
+}
+
+func (c *CurrencyCostBasisClient) mutate(ctx context.Context, m *CurrencyCostBasisMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&CurrencyCostBasisCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&CurrencyCostBasisUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&CurrencyCostBasisUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&CurrencyCostBasisDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown CurrencyCostBasis mutation op: %q", m.Op())
+	}
+}
+
+// CurrencyCostBasisEffectiveFromClient is a client for the CurrencyCostBasisEffectiveFrom schema.
+type CurrencyCostBasisEffectiveFromClient struct {
+	config
+}
+
+// NewCurrencyCostBasisEffectiveFromClient returns a client for the CurrencyCostBasisEffectiveFrom from the given config.
+func NewCurrencyCostBasisEffectiveFromClient(c config) *CurrencyCostBasisEffectiveFromClient {
+	return &CurrencyCostBasisEffectiveFromClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `currencycostbasiseffectivefrom.Hooks(f(g(h())))`.
+func (c *CurrencyCostBasisEffectiveFromClient) Use(hooks ...Hook) {
+	c.hooks.CurrencyCostBasisEffectiveFrom = append(c.hooks.CurrencyCostBasisEffectiveFrom, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `currencycostbasiseffectivefrom.Intercept(f(g(h())))`.
+func (c *CurrencyCostBasisEffectiveFromClient) Intercept(interceptors ...Interceptor) {
+	c.inters.CurrencyCostBasisEffectiveFrom = append(c.inters.CurrencyCostBasisEffectiveFrom, interceptors...)
+}
+
+// Create returns a builder for creating a CurrencyCostBasisEffectiveFrom entity.
+func (c *CurrencyCostBasisEffectiveFromClient) Create() *CurrencyCostBasisEffectiveFromCreate {
+	mutation := newCurrencyCostBasisEffectiveFromMutation(c.config, OpCreate)
+	return &CurrencyCostBasisEffectiveFromCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of CurrencyCostBasisEffectiveFrom entities.
+func (c *CurrencyCostBasisEffectiveFromClient) CreateBulk(builders ...*CurrencyCostBasisEffectiveFromCreate) *CurrencyCostBasisEffectiveFromCreateBulk {
+	return &CurrencyCostBasisEffectiveFromCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *CurrencyCostBasisEffectiveFromClient) MapCreateBulk(slice any, setFunc func(*CurrencyCostBasisEffectiveFromCreate, int)) *CurrencyCostBasisEffectiveFromCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &CurrencyCostBasisEffectiveFromCreateBulk{err: fmt.Errorf("calling to CurrencyCostBasisEffectiveFromClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*CurrencyCostBasisEffectiveFromCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &CurrencyCostBasisEffectiveFromCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for CurrencyCostBasisEffectiveFrom.
+func (c *CurrencyCostBasisEffectiveFromClient) Update() *CurrencyCostBasisEffectiveFromUpdate {
+	mutation := newCurrencyCostBasisEffectiveFromMutation(c.config, OpUpdate)
+	return &CurrencyCostBasisEffectiveFromUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *CurrencyCostBasisEffectiveFromClient) UpdateOne(_m *CurrencyCostBasisEffectiveFrom) *CurrencyCostBasisEffectiveFromUpdateOne {
+	mutation := newCurrencyCostBasisEffectiveFromMutation(c.config, OpUpdateOne, withCurrencyCostBasisEffectiveFrom(_m))
+	return &CurrencyCostBasisEffectiveFromUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *CurrencyCostBasisEffectiveFromClient) UpdateOneID(id string) *CurrencyCostBasisEffectiveFromUpdateOne {
+	mutation := newCurrencyCostBasisEffectiveFromMutation(c.config, OpUpdateOne, withCurrencyCostBasisEffectiveFromID(id))
+	return &CurrencyCostBasisEffectiveFromUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for CurrencyCostBasisEffectiveFrom.
+func (c *CurrencyCostBasisEffectiveFromClient) Delete() *CurrencyCostBasisEffectiveFromDelete {
+	mutation := newCurrencyCostBasisEffectiveFromMutation(c.config, OpDelete)
+	return &CurrencyCostBasisEffectiveFromDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *CurrencyCostBasisEffectiveFromClient) DeleteOne(_m *CurrencyCostBasisEffectiveFrom) *CurrencyCostBasisEffectiveFromDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *CurrencyCostBasisEffectiveFromClient) DeleteOneID(id string) *CurrencyCostBasisEffectiveFromDeleteOne {
+	builder := c.Delete().Where(currencycostbasiseffectivefrom.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &CurrencyCostBasisEffectiveFromDeleteOne{builder}
+}
+
+// Query returns a query builder for CurrencyCostBasisEffectiveFrom.
+func (c *CurrencyCostBasisEffectiveFromClient) Query() *CurrencyCostBasisEffectiveFromQuery {
+	return &CurrencyCostBasisEffectiveFromQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeCurrencyCostBasisEffectiveFrom},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a CurrencyCostBasisEffectiveFrom entity by its id.
+func (c *CurrencyCostBasisEffectiveFromClient) Get(ctx context.Context, id string) (*CurrencyCostBasisEffectiveFrom, error) {
+	return c.Query().Where(currencycostbasiseffectivefrom.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *CurrencyCostBasisEffectiveFromClient) GetX(ctx context.Context, id string) *CurrencyCostBasisEffectiveFrom {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCostBasis queries the cost_basis edge of a CurrencyCostBasisEffectiveFrom.
+func (c *CurrencyCostBasisEffectiveFromClient) QueryCostBasis(_m *CurrencyCostBasisEffectiveFrom) *CurrencyCostBasisQuery {
+	query := (&CurrencyCostBasisClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(currencycostbasiseffectivefrom.Table, currencycostbasiseffectivefrom.FieldID, id),
+			sqlgraph.To(currencycostbasis.Table, currencycostbasis.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, currencycostbasiseffectivefrom.CostBasisTable, currencycostbasiseffectivefrom.CostBasisColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *CurrencyCostBasisEffectiveFromClient) Hooks() []Hook {
+	return c.hooks.CurrencyCostBasisEffectiveFrom
+}
+
+// Interceptors returns the client interceptors.
+func (c *CurrencyCostBasisEffectiveFromClient) Interceptors() []Interceptor {
+	return c.inters.CurrencyCostBasisEffectiveFrom
+}
+
+func (c *CurrencyCostBasisEffectiveFromClient) mutate(ctx context.Context, m *CurrencyCostBasisEffectiveFromMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&CurrencyCostBasisEffectiveFromCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&CurrencyCostBasisEffectiveFromUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&CurrencyCostBasisEffectiveFromUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&CurrencyCostBasisEffectiveFromDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown CurrencyCostBasisEffectiveFrom mutation op: %q", m.Op())
+	}
+}
+
+// CustomCurrencyClient is a client for the CustomCurrency schema.
+type CustomCurrencyClient struct {
+	config
+}
+
+// NewCustomCurrencyClient returns a client for the CustomCurrency from the given config.
+func NewCustomCurrencyClient(c config) *CustomCurrencyClient {
+	return &CustomCurrencyClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `customcurrency.Hooks(f(g(h())))`.
+func (c *CustomCurrencyClient) Use(hooks ...Hook) {
+	c.hooks.CustomCurrency = append(c.hooks.CustomCurrency, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `customcurrency.Intercept(f(g(h())))`.
+func (c *CustomCurrencyClient) Intercept(interceptors ...Interceptor) {
+	c.inters.CustomCurrency = append(c.inters.CustomCurrency, interceptors...)
+}
+
+// Create returns a builder for creating a CustomCurrency entity.
+func (c *CustomCurrencyClient) Create() *CustomCurrencyCreate {
+	mutation := newCustomCurrencyMutation(c.config, OpCreate)
+	return &CustomCurrencyCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of CustomCurrency entities.
+func (c *CustomCurrencyClient) CreateBulk(builders ...*CustomCurrencyCreate) *CustomCurrencyCreateBulk {
+	return &CustomCurrencyCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *CustomCurrencyClient) MapCreateBulk(slice any, setFunc func(*CustomCurrencyCreate, int)) *CustomCurrencyCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &CustomCurrencyCreateBulk{err: fmt.Errorf("calling to CustomCurrencyClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*CustomCurrencyCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &CustomCurrencyCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for CustomCurrency.
+func (c *CustomCurrencyClient) Update() *CustomCurrencyUpdate {
+	mutation := newCustomCurrencyMutation(c.config, OpUpdate)
+	return &CustomCurrencyUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *CustomCurrencyClient) UpdateOne(_m *CustomCurrency) *CustomCurrencyUpdateOne {
+	mutation := newCustomCurrencyMutation(c.config, OpUpdateOne, withCustomCurrency(_m))
+	return &CustomCurrencyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *CustomCurrencyClient) UpdateOneID(id string) *CustomCurrencyUpdateOne {
+	mutation := newCustomCurrencyMutation(c.config, OpUpdateOne, withCustomCurrencyID(id))
+	return &CustomCurrencyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for CustomCurrency.
+func (c *CustomCurrencyClient) Delete() *CustomCurrencyDelete {
+	mutation := newCustomCurrencyMutation(c.config, OpDelete)
+	return &CustomCurrencyDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *CustomCurrencyClient) DeleteOne(_m *CustomCurrency) *CustomCurrencyDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *CustomCurrencyClient) DeleteOneID(id string) *CustomCurrencyDeleteOne {
+	builder := c.Delete().Where(customcurrency.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &CustomCurrencyDeleteOne{builder}
+}
+
+// Query returns a query builder for CustomCurrency.
+func (c *CustomCurrencyClient) Query() *CustomCurrencyQuery {
+	return &CustomCurrencyQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeCustomCurrency},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a CustomCurrency entity by its id.
+func (c *CustomCurrencyClient) Get(ctx context.Context, id string) (*CustomCurrency, error) {
+	return c.Query().Where(customcurrency.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *CustomCurrencyClient) GetX(ctx context.Context, id string) *CustomCurrency {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCostBasisHistory queries the cost_basis_history edge of a CustomCurrency.
+func (c *CustomCurrencyClient) QueryCostBasisHistory(_m *CustomCurrency) *CurrencyCostBasisQuery {
+	query := (&CurrencyCostBasisClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customcurrency.Table, customcurrency.FieldID, id),
+			sqlgraph.To(currencycostbasis.Table, currencycostbasis.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customcurrency.CostBasisHistoryTable, customcurrency.CostBasisHistoryColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *CustomCurrencyClient) Hooks() []Hook {
+	return c.hooks.CustomCurrency
+}
+
+// Interceptors returns the client interceptors.
+func (c *CustomCurrencyClient) Interceptors() []Interceptor {
+	return c.inters.CustomCurrency
+}
+
+func (c *CustomCurrencyClient) mutate(ctx context.Context, m *CustomCurrencyMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&CustomCurrencyCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&CustomCurrencyUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&CustomCurrencyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&CustomCurrencyDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown CustomCurrency mutation op: %q", m.Op())
+	}
+}
+
 // CustomerClient is a client for the Customer schema.
 type CustomerClient struct {
 	config
@@ -9956,7 +10445,8 @@ type (
 		BillingInvoiceValidationIssue, BillingInvoiceWriteSchemaLevel, BillingProfile,
 		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
-		Charge, ChargeCreditPurchase, ChargeFlatFee, ChargeUsageBased, Customer,
+		Charge, ChargeCreditPurchase, ChargeFlatFee, ChargeUsageBased,
+		CurrencyCostBasis, CurrencyCostBasisEffectiveFrom, CustomCurrency, Customer,
 		CustomerSubjects, Entitlement, Feature, Grant, Meter, NotificationChannel,
 		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
 		PlanAddon, PlanPhase, PlanRateCard, StandardInvoiceSettlement, Subject,
@@ -9974,7 +10464,8 @@ type (
 		BillingInvoiceValidationIssue, BillingInvoiceWriteSchemaLevel, BillingProfile,
 		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
-		Charge, ChargeCreditPurchase, ChargeFlatFee, ChargeUsageBased, Customer,
+		Charge, ChargeCreditPurchase, ChargeFlatFee, ChargeUsageBased,
+		CurrencyCostBasis, CurrencyCostBasisEffectiveFrom, CustomCurrency, Customer,
 		CustomerSubjects, Entitlement, Feature, Grant, Meter, NotificationChannel,
 		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
 		PlanAddon, PlanPhase, PlanRateCard, StandardInvoiceSettlement, Subject,

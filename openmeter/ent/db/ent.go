@@ -42,6 +42,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasiseffectivefrom"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
@@ -159,6 +162,9 @@ func checkColumn(t, c string) error {
 			chargecreditpurchase.Table:                             chargecreditpurchase.ValidColumn,
 			chargeflatfee.Table:                                    chargeflatfee.ValidColumn,
 			chargeusagebased.Table:                                 chargeusagebased.ValidColumn,
+			currencycostbasis.Table:                                currencycostbasis.ValidColumn,
+			currencycostbasiseffectivefrom.Table:                   currencycostbasiseffectivefrom.ValidColumn,
+			customcurrency.Table:                                   customcurrency.ValidColumn,
 			customer.Table:                                         customer.ValidColumn,
 			customersubjects.Table:                                 customersubjects.ValidColumn,
 			entitlement.Table:                                      entitlement.ValidColumn,
