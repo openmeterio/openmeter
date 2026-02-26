@@ -60,6 +60,8 @@ var (
 	ErrInvoiceDiscountNoWildcardDiscountOnGatheringInvoices = NewValidationError("invoice_discount_no_wildcard_discount_on_gathering_invoices", "wildcard discount on gathering invoices is not allowed")
 
 	ErrNamespaceLocked = NewValidationError("namespace_locked", "namespace is locked")
+
+	ErrInvoiceLineCreditsNotConsumedFully = NewValidationError("invoice_line_credits_not_consumed_fully", "credits not consumed fully")
 )
 
 const (

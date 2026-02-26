@@ -64,6 +64,8 @@ type BillingInvoiceLine struct {
 	ChargesTotal alpacadecimal.Decimal `json:"charges_total,omitempty"`
 	// DiscountsTotal holds the value of the "discounts_total" field.
 	DiscountsTotal alpacadecimal.Decimal `json:"discounts_total,omitempty"`
+	// CreditsTotal holds the value of the "credits_total" field.
+	CreditsTotal alpacadecimal.Decimal `json:"credits_total,omitempty"`
 	// Total holds the value of the "total" field.
 	Total alpacadecimal.Decimal `json:"total,omitempty"`
 	// PeriodStart holds the value of the "period_start" field.
@@ -108,6 +110,8 @@ type BillingInvoiceLine struct {
 	//
 	// Deprecated: invoice discounts are deprecated, use line_discounts instead
 	LineIds *string `json:"line_ids,omitempty"`
+	// CreditsApplied holds the value of the "credits_applied" field.
+	CreditsApplied *billing.CreditsApplied `json:"credits_applied,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceLineQuery when eager-loading is set.
 	Edges                                            BillingInvoiceLineEdges `json:"edges"`
@@ -307,7 +311,7 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case billinginvoiceline.FieldAnnotations, billinginvoiceline.FieldMetadata, billinginvoiceline.FieldTaxConfig:
 			values[i] = new([]byte)
-		case billinginvoiceline.FieldAmount, billinginvoiceline.FieldTaxesTotal, billinginvoiceline.FieldTaxesInclusiveTotal, billinginvoiceline.FieldTaxesExclusiveTotal, billinginvoiceline.FieldChargesTotal, billinginvoiceline.FieldDiscountsTotal, billinginvoiceline.FieldTotal:
+		case billinginvoiceline.FieldAmount, billinginvoiceline.FieldTaxesTotal, billinginvoiceline.FieldTaxesInclusiveTotal, billinginvoiceline.FieldTaxesExclusiveTotal, billinginvoiceline.FieldChargesTotal, billinginvoiceline.FieldDiscountsTotal, billinginvoiceline.FieldCreditsTotal, billinginvoiceline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
 		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldSplitLineGroupID, billinginvoiceline.FieldChargeID, billinginvoiceline.FieldLineIds:
 			values[i] = new(sql.NullString)
@@ -315,6 +319,8 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullTime)
 		case billinginvoiceline.FieldRatecardDiscounts:
 			values[i] = billinginvoiceline.ValueScanner.RatecardDiscounts.ScanValue()
+		case billinginvoiceline.FieldCreditsApplied:
+			values[i] = billinginvoiceline.ValueScanner.CreditsApplied.ScanValue()
 		case billinginvoiceline.ForeignKeys[0]: // fee_line_config_id
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.ForeignKeys[1]: // usage_based_line_config_id
@@ -445,6 +451,12 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 				return fmt.Errorf("unexpected type %T for field discounts_total", values[i])
 			} else if value != nil {
 				_m.DiscountsTotal = *value
+			}
+		case billinginvoiceline.FieldCreditsTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field credits_total", values[i])
+			} else if value != nil {
+				_m.CreditsTotal = *value
 			}
 		case billinginvoiceline.FieldTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -583,6 +595,12 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 			} else if value.Valid {
 				_m.LineIds = new(string)
 				*_m.LineIds = value.String
+			}
+		case billinginvoiceline.FieldCreditsApplied:
+			if value, err := billinginvoiceline.ValueScanner.CreditsApplied.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.CreditsApplied = value
 			}
 		case billinginvoiceline.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -763,6 +781,9 @@ func (_m *BillingInvoiceLine) String() string {
 	builder.WriteString("discounts_total=")
 	builder.WriteString(fmt.Sprintf("%v", _m.DiscountsTotal))
 	builder.WriteString(", ")
+	builder.WriteString("credits_total=")
+	builder.WriteString(fmt.Sprintf("%v", _m.CreditsTotal))
+	builder.WriteString(", ")
 	builder.WriteString("total=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Total))
 	builder.WriteString(", ")
@@ -850,6 +871,11 @@ func (_m *BillingInvoiceLine) String() string {
 	if v := _m.LineIds; v != nil {
 		builder.WriteString("line_ids=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.CreditsApplied; v != nil {
+		builder.WriteString("credits_applied=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteByte(')')
 	return builder.String()

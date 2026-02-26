@@ -11462,6 +11462,7 @@ type BillingInvoiceMutation struct {
 	taxes_exclusive_total                    *alpacadecimal.Decimal
 	charges_total                            *alpacadecimal.Decimal
 	discounts_total                          *alpacadecimal.Decimal
+	credits_total                            *alpacadecimal.Decimal
 	total                                    *alpacadecimal.Decimal
 	supplier_name                            *string
 	supplier_tax_code                        *string
@@ -12726,6 +12727,42 @@ func (m *BillingInvoiceMutation) OldDiscountsTotal(ctx context.Context) (v alpac
 // ResetDiscountsTotal resets all changes to the "discounts_total" field.
 func (m *BillingInvoiceMutation) ResetDiscountsTotal() {
 	m.discounts_total = nil
+}
+
+// SetCreditsTotal sets the "credits_total" field.
+func (m *BillingInvoiceMutation) SetCreditsTotal(a alpacadecimal.Decimal) {
+	m.credits_total = &a
+}
+
+// CreditsTotal returns the value of the "credits_total" field in the mutation.
+func (m *BillingInvoiceMutation) CreditsTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.credits_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreditsTotal returns the old "credits_total" field's value of the BillingInvoice entity.
+// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceMutation) OldCreditsTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreditsTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreditsTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreditsTotal: %w", err)
+	}
+	return oldValue.CreditsTotal, nil
+}
+
+// ResetCreditsTotal resets all changes to the "credits_total" field.
+func (m *BillingInvoiceMutation) ResetCreditsTotal() {
+	m.credits_total = nil
 }
 
 // SetTotal sets the "total" field.
@@ -14518,7 +14555,7 @@ func (m *BillingInvoiceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceMutation) Fields() []string {
-	fields := make([]string, 0, 57)
+	fields := make([]string, 0, 58)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoice.FieldNamespace)
 	}
@@ -14593,6 +14630,9 @@ func (m *BillingInvoiceMutation) Fields() []string {
 	}
 	if m.discounts_total != nil {
 		fields = append(fields, billinginvoice.FieldDiscountsTotal)
+	}
+	if m.credits_total != nil {
+		fields = append(fields, billinginvoice.FieldCreditsTotal)
 	}
 	if m.total != nil {
 		fields = append(fields, billinginvoice.FieldTotal)
@@ -14748,6 +14788,8 @@ func (m *BillingInvoiceMutation) Field(name string) (ent.Value, bool) {
 		return m.ChargesTotal()
 	case billinginvoice.FieldDiscountsTotal:
 		return m.DiscountsTotal()
+	case billinginvoice.FieldCreditsTotal:
+		return m.CreditsTotal()
 	case billinginvoice.FieldTotal:
 		return m.Total()
 	case billinginvoice.FieldSupplierName:
@@ -14871,6 +14913,8 @@ func (m *BillingInvoiceMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldChargesTotal(ctx)
 	case billinginvoice.FieldDiscountsTotal:
 		return m.OldDiscountsTotal(ctx)
+	case billinginvoice.FieldCreditsTotal:
+		return m.OldCreditsTotal(ctx)
 	case billinginvoice.FieldTotal:
 		return m.OldTotal(ctx)
 	case billinginvoice.FieldSupplierName:
@@ -15118,6 +15162,13 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDiscountsTotal(v)
+		return nil
+	case billinginvoice.FieldCreditsTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreditsTotal(v)
 		return nil
 	case billinginvoice.FieldTotal:
 		v, ok := value.(alpacadecimal.Decimal)
@@ -15688,6 +15739,9 @@ func (m *BillingInvoiceMutation) ResetField(name string) error {
 		return nil
 	case billinginvoice.FieldDiscountsTotal:
 		m.ResetDiscountsTotal()
+		return nil
+	case billinginvoice.FieldCreditsTotal:
+		m.ResetCreditsTotal()
 		return nil
 	case billinginvoice.FieldTotal:
 		m.ResetTotal()
@@ -16662,6 +16716,7 @@ type BillingInvoiceLineMutation struct {
 	taxes_exclusive_total              *alpacadecimal.Decimal
 	charges_total                      *alpacadecimal.Decimal
 	discounts_total                    *alpacadecimal.Decimal
+	credits_total                      *alpacadecimal.Decimal
 	total                              *alpacadecimal.Decimal
 	period_start                       *time.Time
 	period_end                         *time.Time
@@ -16676,6 +16731,7 @@ type BillingInvoiceLineMutation struct {
 	subscription_billing_period_from   *time.Time
 	subscription_billing_period_to     *time.Time
 	line_ids                           *string
+	credits_applied                    **billing.CreditsApplied
 	clearedFields                      map[string]struct{}
 	billing_invoice                    *string
 	clearedbilling_invoice             bool
@@ -17457,6 +17513,42 @@ func (m *BillingInvoiceLineMutation) OldDiscountsTotal(ctx context.Context) (v a
 // ResetDiscountsTotal resets all changes to the "discounts_total" field.
 func (m *BillingInvoiceLineMutation) ResetDiscountsTotal() {
 	m.discounts_total = nil
+}
+
+// SetCreditsTotal sets the "credits_total" field.
+func (m *BillingInvoiceLineMutation) SetCreditsTotal(a alpacadecimal.Decimal) {
+	m.credits_total = &a
+}
+
+// CreditsTotal returns the value of the "credits_total" field in the mutation.
+func (m *BillingInvoiceLineMutation) CreditsTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.credits_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreditsTotal returns the old "credits_total" field's value of the BillingInvoiceLine entity.
+// If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceLineMutation) OldCreditsTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreditsTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreditsTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreditsTotal: %w", err)
+	}
+	return oldValue.CreditsTotal, nil
+}
+
+// ResetCreditsTotal resets all changes to the "credits_total" field.
+func (m *BillingInvoiceLineMutation) ResetCreditsTotal() {
+	m.credits_total = nil
 }
 
 // SetTotal sets the "total" field.
@@ -18384,6 +18476,55 @@ func (m *BillingInvoiceLineMutation) ResetLineIds() {
 	delete(m.clearedFields, billinginvoiceline.FieldLineIds)
 }
 
+// SetCreditsApplied sets the "credits_applied" field.
+func (m *BillingInvoiceLineMutation) SetCreditsApplied(ba *billing.CreditsApplied) {
+	m.credits_applied = &ba
+}
+
+// CreditsApplied returns the value of the "credits_applied" field in the mutation.
+func (m *BillingInvoiceLineMutation) CreditsApplied() (r *billing.CreditsApplied, exists bool) {
+	v := m.credits_applied
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreditsApplied returns the old "credits_applied" field's value of the BillingInvoiceLine entity.
+// If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceLineMutation) OldCreditsApplied(ctx context.Context) (v *billing.CreditsApplied, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreditsApplied is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreditsApplied requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreditsApplied: %w", err)
+	}
+	return oldValue.CreditsApplied, nil
+}
+
+// ClearCreditsApplied clears the value of the "credits_applied" field.
+func (m *BillingInvoiceLineMutation) ClearCreditsApplied() {
+	m.credits_applied = nil
+	m.clearedFields[billinginvoiceline.FieldCreditsApplied] = struct{}{}
+}
+
+// CreditsAppliedCleared returns if the "credits_applied" field was cleared in this mutation.
+func (m *BillingInvoiceLineMutation) CreditsAppliedCleared() bool {
+	_, ok := m.clearedFields[billinginvoiceline.FieldCreditsApplied]
+	return ok
+}
+
+// ResetCreditsApplied resets all changes to the "credits_applied" field.
+func (m *BillingInvoiceLineMutation) ResetCreditsApplied() {
+	m.credits_applied = nil
+	delete(m.clearedFields, billinginvoiceline.FieldCreditsApplied)
+}
+
 // SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by id.
 func (m *BillingInvoiceLineMutation) SetBillingInvoiceID(id string) {
 	m.billing_invoice = &id
@@ -18953,7 +19094,7 @@ func (m *BillingInvoiceLineMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceLineMutation) Fields() []string {
-	fields := make([]string, 0, 37)
+	fields := make([]string, 0, 39)
 	if m.annotations != nil {
 		fields = append(fields, billinginvoiceline.FieldAnnotations)
 	}
@@ -19001,6 +19142,9 @@ func (m *BillingInvoiceLineMutation) Fields() []string {
 	}
 	if m.discounts_total != nil {
 		fields = append(fields, billinginvoiceline.FieldDiscountsTotal)
+	}
+	if m.credits_total != nil {
+		fields = append(fields, billinginvoiceline.FieldCreditsTotal)
 	}
 	if m.total != nil {
 		fields = append(fields, billinginvoiceline.FieldTotal)
@@ -19065,6 +19209,9 @@ func (m *BillingInvoiceLineMutation) Fields() []string {
 	if m.line_ids != nil {
 		fields = append(fields, billinginvoiceline.FieldLineIds)
 	}
+	if m.credits_applied != nil {
+		fields = append(fields, billinginvoiceline.FieldCreditsApplied)
+	}
 	return fields
 }
 
@@ -19105,6 +19252,8 @@ func (m *BillingInvoiceLineMutation) Field(name string) (ent.Value, bool) {
 		return m.ChargesTotal()
 	case billinginvoiceline.FieldDiscountsTotal:
 		return m.DiscountsTotal()
+	case billinginvoiceline.FieldCreditsTotal:
+		return m.CreditsTotal()
 	case billinginvoiceline.FieldTotal:
 		return m.Total()
 	case billinginvoiceline.FieldPeriodStart:
@@ -19147,6 +19296,8 @@ func (m *BillingInvoiceLineMutation) Field(name string) (ent.Value, bool) {
 		return m.ChargeID()
 	case billinginvoiceline.FieldLineIds:
 		return m.LineIds()
+	case billinginvoiceline.FieldCreditsApplied:
+		return m.CreditsApplied()
 	}
 	return nil, false
 }
@@ -19188,6 +19339,8 @@ func (m *BillingInvoiceLineMutation) OldField(ctx context.Context, name string) 
 		return m.OldChargesTotal(ctx)
 	case billinginvoiceline.FieldDiscountsTotal:
 		return m.OldDiscountsTotal(ctx)
+	case billinginvoiceline.FieldCreditsTotal:
+		return m.OldCreditsTotal(ctx)
 	case billinginvoiceline.FieldTotal:
 		return m.OldTotal(ctx)
 	case billinginvoiceline.FieldPeriodStart:
@@ -19230,6 +19383,8 @@ func (m *BillingInvoiceLineMutation) OldField(ctx context.Context, name string) 
 		return m.OldChargeID(ctx)
 	case billinginvoiceline.FieldLineIds:
 		return m.OldLineIds(ctx)
+	case billinginvoiceline.FieldCreditsApplied:
+		return m.OldCreditsApplied(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingInvoiceLine field %s", name)
 }
@@ -19350,6 +19505,13 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDiscountsTotal(v)
+		return nil
+	case billinginvoiceline.FieldCreditsTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreditsTotal(v)
 		return nil
 	case billinginvoiceline.FieldTotal:
 		v, ok := value.(alpacadecimal.Decimal)
@@ -19498,6 +19660,13 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 		}
 		m.SetLineIds(v)
 		return nil
+	case billinginvoiceline.FieldCreditsApplied:
+		v, ok := value.(*billing.CreditsApplied)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreditsApplied(v)
+		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceLine field %s", name)
 }
@@ -19582,6 +19751,9 @@ func (m *BillingInvoiceLineMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoiceline.FieldLineIds) {
 		fields = append(fields, billinginvoiceline.FieldLineIds)
 	}
+	if m.FieldCleared(billinginvoiceline.FieldCreditsApplied) {
+		fields = append(fields, billinginvoiceline.FieldCreditsApplied)
+	}
 	return fields
 }
 
@@ -19650,6 +19822,9 @@ func (m *BillingInvoiceLineMutation) ClearField(name string) error {
 	case billinginvoiceline.FieldLineIds:
 		m.ClearLineIds()
 		return nil
+	case billinginvoiceline.FieldCreditsApplied:
+		m.ClearCreditsApplied()
+		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceLine nullable field %s", name)
 }
@@ -19705,6 +19880,9 @@ func (m *BillingInvoiceLineMutation) ResetField(name string) error {
 		return nil
 	case billinginvoiceline.FieldDiscountsTotal:
 		m.ResetDiscountsTotal()
+		return nil
+	case billinginvoiceline.FieldCreditsTotal:
+		m.ResetCreditsTotal()
 		return nil
 	case billinginvoiceline.FieldTotal:
 		m.ResetTotal()
@@ -19768,6 +19946,9 @@ func (m *BillingInvoiceLineMutation) ResetField(name string) error {
 		return nil
 	case billinginvoiceline.FieldLineIds:
 		m.ResetLineIds()
+		return nil
+	case billinginvoiceline.FieldCreditsApplied:
+		m.ResetCreditsApplied()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceLine field %s", name)
@@ -29035,6 +29216,7 @@ type BillingStandardInvoiceDetailedLineMutation struct {
 	taxes_exclusive_total       *alpacadecimal.Decimal
 	charges_total               *alpacadecimal.Decimal
 	discounts_total             *alpacadecimal.Decimal
+	credits_total               *alpacadecimal.Decimal
 	total                       *alpacadecimal.Decimal
 	service_period_start        *time.Time
 	service_period_end          *time.Time
@@ -29046,6 +29228,7 @@ type BillingStandardInvoiceDetailedLineMutation struct {
 	payment_term                *productcatalog.PaymentTermType
 	index                       *int
 	addindex                    *int
+	credits_applied             **billing.CreditsApplied
 	clearedFields               map[string]struct{}
 	billing_invoice             *string
 	clearedbilling_invoice      bool
@@ -29804,6 +29987,42 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ResetDiscountsTotal() {
 	m.discounts_total = nil
 }
 
+// SetCreditsTotal sets the "credits_total" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) SetCreditsTotal(a alpacadecimal.Decimal) {
+	m.credits_total = &a
+}
+
+// CreditsTotal returns the value of the "credits_total" field in the mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) CreditsTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.credits_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreditsTotal returns the old "credits_total" field's value of the BillingStandardInvoiceDetailedLine entity.
+// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingStandardInvoiceDetailedLineMutation) OldCreditsTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreditsTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreditsTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreditsTotal: %w", err)
+	}
+	return oldValue.CreditsTotal, nil
+}
+
+// ResetCreditsTotal resets all changes to the "credits_total" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ResetCreditsTotal() {
+	m.credits_total = nil
+}
+
 // SetTotal sets the "total" field.
 func (m *BillingStandardInvoiceDetailedLineMutation) SetTotal(a alpacadecimal.Decimal) {
 	m.total = &a
@@ -30296,6 +30515,55 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ResetIndex() {
 	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldIndex)
 }
 
+// SetCreditsApplied sets the "credits_applied" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) SetCreditsApplied(ba *billing.CreditsApplied) {
+	m.credits_applied = &ba
+}
+
+// CreditsApplied returns the value of the "credits_applied" field in the mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) CreditsApplied() (r *billing.CreditsApplied, exists bool) {
+	v := m.credits_applied
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreditsApplied returns the old "credits_applied" field's value of the BillingStandardInvoiceDetailedLine entity.
+// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingStandardInvoiceDetailedLineMutation) OldCreditsApplied(ctx context.Context) (v *billing.CreditsApplied, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreditsApplied is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreditsApplied requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreditsApplied: %w", err)
+	}
+	return oldValue.CreditsApplied, nil
+}
+
+// ClearCreditsApplied clears the value of the "credits_applied" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ClearCreditsApplied() {
+	m.credits_applied = nil
+	m.clearedFields[billingstandardinvoicedetailedline.FieldCreditsApplied] = struct{}{}
+}
+
+// CreditsAppliedCleared returns if the "credits_applied" field was cleared in this mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) CreditsAppliedCleared() bool {
+	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldCreditsApplied]
+	return ok
+}
+
+// ResetCreditsApplied resets all changes to the "credits_applied" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ResetCreditsApplied() {
+	m.credits_applied = nil
+	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldCreditsApplied)
+}
+
 // SetBillingInvoiceID sets the "billing_invoice" edge to the BillingInvoice entity by id.
 func (m *BillingStandardInvoiceDetailedLineMutation) SetBillingInvoiceID(id string) {
 	m.billing_invoice = &id
@@ -30464,7 +30732,7 @@ func (m *BillingStandardInvoiceDetailedLineMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingStandardInvoiceDetailedLineMutation) Fields() []string {
-	fields := make([]string, 0, 28)
+	fields := make([]string, 0, 30)
 	if m.annotations != nil {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldAnnotations)
 	}
@@ -30513,6 +30781,9 @@ func (m *BillingStandardInvoiceDetailedLineMutation) Fields() []string {
 	if m.discounts_total != nil {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldDiscountsTotal)
 	}
+	if m.credits_total != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldCreditsTotal)
+	}
 	if m.total != nil {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldTotal)
 	}
@@ -30548,6 +30819,9 @@ func (m *BillingStandardInvoiceDetailedLineMutation) Fields() []string {
 	}
 	if m.index != nil {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldIndex)
+	}
+	if m.credits_applied != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldCreditsApplied)
 	}
 	return fields
 }
@@ -30589,6 +30863,8 @@ func (m *BillingStandardInvoiceDetailedLineMutation) Field(name string) (ent.Val
 		return m.ChargesTotal()
 	case billingstandardinvoicedetailedline.FieldDiscountsTotal:
 		return m.DiscountsTotal()
+	case billingstandardinvoicedetailedline.FieldCreditsTotal:
+		return m.CreditsTotal()
 	case billingstandardinvoicedetailedline.FieldTotal:
 		return m.Total()
 	case billingstandardinvoicedetailedline.FieldServicePeriodStart:
@@ -30613,6 +30889,8 @@ func (m *BillingStandardInvoiceDetailedLineMutation) Field(name string) (ent.Val
 		return m.PaymentTerm()
 	case billingstandardinvoicedetailedline.FieldIndex:
 		return m.Index()
+	case billingstandardinvoicedetailedline.FieldCreditsApplied:
+		return m.CreditsApplied()
 	}
 	return nil, false
 }
@@ -30654,6 +30932,8 @@ func (m *BillingStandardInvoiceDetailedLineMutation) OldField(ctx context.Contex
 		return m.OldChargesTotal(ctx)
 	case billingstandardinvoicedetailedline.FieldDiscountsTotal:
 		return m.OldDiscountsTotal(ctx)
+	case billingstandardinvoicedetailedline.FieldCreditsTotal:
+		return m.OldCreditsTotal(ctx)
 	case billingstandardinvoicedetailedline.FieldTotal:
 		return m.OldTotal(ctx)
 	case billingstandardinvoicedetailedline.FieldServicePeriodStart:
@@ -30678,6 +30958,8 @@ func (m *BillingStandardInvoiceDetailedLineMutation) OldField(ctx context.Contex
 		return m.OldPaymentTerm(ctx)
 	case billingstandardinvoicedetailedline.FieldIndex:
 		return m.OldIndex(ctx)
+	case billingstandardinvoicedetailedline.FieldCreditsApplied:
+		return m.OldCreditsApplied(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingStandardInvoiceDetailedLine field %s", name)
 }
@@ -30799,6 +31081,13 @@ func (m *BillingStandardInvoiceDetailedLineMutation) SetField(name string, value
 		}
 		m.SetDiscountsTotal(v)
 		return nil
+	case billingstandardinvoicedetailedline.FieldCreditsTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreditsTotal(v)
+		return nil
 	case billingstandardinvoicedetailedline.FieldTotal:
 		v, ok := value.(alpacadecimal.Decimal)
 		if !ok {
@@ -30883,6 +31172,13 @@ func (m *BillingStandardInvoiceDetailedLineMutation) SetField(name string, value
 		}
 		m.SetIndex(v)
 		return nil
+	case billingstandardinvoicedetailedline.FieldCreditsApplied:
+		v, ok := value.(*billing.CreditsApplied)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreditsApplied(v)
+		return nil
 	}
 	return fmt.Errorf("unknown BillingStandardInvoiceDetailedLine field %s", name)
 }
@@ -30952,6 +31248,9 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ClearedFields() []string {
 	if m.FieldCleared(billingstandardinvoicedetailedline.FieldIndex) {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldIndex)
 	}
+	if m.FieldCleared(billingstandardinvoicedetailedline.FieldCreditsApplied) {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldCreditsApplied)
+	}
 	return fields
 }
 
@@ -30989,6 +31288,9 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ClearField(name string) err
 		return nil
 	case billingstandardinvoicedetailedline.FieldIndex:
 		m.ClearIndex()
+		return nil
+	case billingstandardinvoicedetailedline.FieldCreditsApplied:
+		m.ClearCreditsApplied()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingStandardInvoiceDetailedLine nullable field %s", name)
@@ -31046,6 +31348,9 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ResetField(name string) err
 	case billingstandardinvoicedetailedline.FieldDiscountsTotal:
 		m.ResetDiscountsTotal()
 		return nil
+	case billingstandardinvoicedetailedline.FieldCreditsTotal:
+		m.ResetCreditsTotal()
+		return nil
 	case billingstandardinvoicedetailedline.FieldTotal:
 		m.ResetTotal()
 		return nil
@@ -31081,6 +31386,9 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ResetField(name string) err
 		return nil
 	case billingstandardinvoicedetailedline.FieldIndex:
 		m.ResetIndex()
+		return nil
+	case billingstandardinvoicedetailedline.FieldCreditsApplied:
+		m.ResetCreditsApplied()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingStandardInvoiceDetailedLine field %s", name)
@@ -55895,6 +56203,7 @@ type StandardInvoiceSettlementMutation struct {
 	taxes_exclusive_total               *alpacadecimal.Decimal
 	charges_total                       *alpacadecimal.Decimal
 	discounts_total                     *alpacadecimal.Decimal
+	credits_total                       *alpacadecimal.Decimal
 	total                               *alpacadecimal.Decimal
 	service_period_from                 *time.Time
 	service_period_to                   *time.Time
@@ -56437,6 +56746,42 @@ func (m *StandardInvoiceSettlementMutation) ResetDiscountsTotal() {
 	m.discounts_total = nil
 }
 
+// SetCreditsTotal sets the "credits_total" field.
+func (m *StandardInvoiceSettlementMutation) SetCreditsTotal(a alpacadecimal.Decimal) {
+	m.credits_total = &a
+}
+
+// CreditsTotal returns the value of the "credits_total" field in the mutation.
+func (m *StandardInvoiceSettlementMutation) CreditsTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.credits_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreditsTotal returns the old "credits_total" field's value of the StandardInvoiceSettlement entity.
+// If the StandardInvoiceSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StandardInvoiceSettlementMutation) OldCreditsTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreditsTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreditsTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreditsTotal: %w", err)
+	}
+	return oldValue.CreditsTotal, nil
+}
+
+// ResetCreditsTotal resets all changes to the "credits_total" field.
+func (m *StandardInvoiceSettlementMutation) ResetCreditsTotal() {
+	m.credits_total = nil
+}
+
 // SetTotal sets the "total" field.
 func (m *StandardInvoiceSettlementMutation) SetTotal(a alpacadecimal.Decimal) {
 	m.total = &a
@@ -56826,7 +57171,7 @@ func (m *StandardInvoiceSettlementMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *StandardInvoiceSettlementMutation) Fields() []string {
-	fields := make([]string, 0, 19)
+	fields := make([]string, 0, 20)
 	if m.namespace != nil {
 		fields = append(fields, standardinvoicesettlement.FieldNamespace)
 	}
@@ -56859,6 +57204,9 @@ func (m *StandardInvoiceSettlementMutation) Fields() []string {
 	}
 	if m.discounts_total != nil {
 		fields = append(fields, standardinvoicesettlement.FieldDiscountsTotal)
+	}
+	if m.credits_total != nil {
+		fields = append(fields, standardinvoicesettlement.FieldCreditsTotal)
 	}
 	if m.total != nil {
 		fields = append(fields, standardinvoicesettlement.FieldTotal)
@@ -56914,6 +57262,8 @@ func (m *StandardInvoiceSettlementMutation) Field(name string) (ent.Value, bool)
 		return m.ChargesTotal()
 	case standardinvoicesettlement.FieldDiscountsTotal:
 		return m.DiscountsTotal()
+	case standardinvoicesettlement.FieldCreditsTotal:
+		return m.CreditsTotal()
 	case standardinvoicesettlement.FieldTotal:
 		return m.Total()
 	case standardinvoicesettlement.FieldLineID:
@@ -56961,6 +57311,8 @@ func (m *StandardInvoiceSettlementMutation) OldField(ctx context.Context, name s
 		return m.OldChargesTotal(ctx)
 	case standardinvoicesettlement.FieldDiscountsTotal:
 		return m.OldDiscountsTotal(ctx)
+	case standardinvoicesettlement.FieldCreditsTotal:
+		return m.OldCreditsTotal(ctx)
 	case standardinvoicesettlement.FieldTotal:
 		return m.OldTotal(ctx)
 	case standardinvoicesettlement.FieldLineID:
@@ -57062,6 +57414,13 @@ func (m *StandardInvoiceSettlementMutation) SetField(name string, value ent.Valu
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDiscountsTotal(v)
+		return nil
+	case standardinvoicesettlement.FieldCreditsTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreditsTotal(v)
 		return nil
 	case standardinvoicesettlement.FieldTotal:
 		v, ok := value.(alpacadecimal.Decimal)
@@ -57215,6 +57574,9 @@ func (m *StandardInvoiceSettlementMutation) ResetField(name string) error {
 		return nil
 	case standardinvoicesettlement.FieldDiscountsTotal:
 		m.ResetDiscountsTotal()
+		return nil
+	case standardinvoicesettlement.FieldCreditsTotal:
+		m.ResetCreditsTotal()
 		return nil
 	case standardinvoicesettlement.FieldTotal:
 		m.ResetTotal()

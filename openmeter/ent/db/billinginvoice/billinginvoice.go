@@ -66,6 +66,8 @@ const (
 	FieldChargesTotal = "charges_total"
 	// FieldDiscountsTotal holds the string denoting the discounts_total field in the database.
 	FieldDiscountsTotal = "discounts_total"
+	// FieldCreditsTotal holds the string denoting the credits_total field in the database.
+	FieldCreditsTotal = "credits_total"
 	// FieldTotal holds the string denoting the total field in the database.
 	FieldTotal = "total"
 	// FieldSupplierName holds the string denoting the supplier_name field in the database.
@@ -243,6 +245,7 @@ var Columns = []string{
 	FieldTaxesExclusiveTotal,
 	FieldChargesTotal,
 	FieldDiscountsTotal,
+	FieldCreditsTotal,
 	FieldTotal,
 	FieldSupplierName,
 	FieldSupplierTaxCode,
@@ -464,6 +467,11 @@ func ByChargesTotal(opts ...sql.OrderTermOption) OrderOption {
 // ByDiscountsTotal orders the results by the discounts_total field.
 func ByDiscountsTotal(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDiscountsTotal, opts...).ToFunc()
+}
+
+// ByCreditsTotal orders the results by the credits_total field.
+func ByCreditsTotal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreditsTotal, opts...).ToFunc()
 }
 
 // ByTotal orders the results by the total field.

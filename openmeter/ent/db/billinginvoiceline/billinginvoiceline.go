@@ -49,6 +49,8 @@ const (
 	FieldChargesTotal = "charges_total"
 	// FieldDiscountsTotal holds the string denoting the discounts_total field in the database.
 	FieldDiscountsTotal = "discounts_total"
+	// FieldCreditsTotal holds the string denoting the credits_total field in the database.
+	FieldCreditsTotal = "credits_total"
 	// FieldTotal holds the string denoting the total field in the database.
 	FieldTotal = "total"
 	// FieldPeriodStart holds the string denoting the period_start field in the database.
@@ -91,6 +93,8 @@ const (
 	FieldChargeID = "charge_id"
 	// FieldLineIds holds the string denoting the line_ids field in the database.
 	FieldLineIds = "line_ids"
+	// FieldCreditsApplied holds the string denoting the credits_applied field in the database.
+	FieldCreditsApplied = "credits_applied"
 	// EdgeBillingInvoice holds the string denoting the billing_invoice edge name in mutations.
 	EdgeBillingInvoice = "billing_invoice"
 	// EdgeSplitLineGroup holds the string denoting the split_line_group edge name in mutations.
@@ -234,6 +238,7 @@ var Columns = []string{
 	FieldTaxesExclusiveTotal,
 	FieldChargesTotal,
 	FieldDiscountsTotal,
+	FieldCreditsTotal,
 	FieldTotal,
 	FieldPeriodStart,
 	FieldPeriodEnd,
@@ -254,6 +259,7 @@ var Columns = []string{
 	FieldSubscriptionBillingPeriodTo,
 	FieldSplitLineGroupID,
 	FieldChargeID,
+	FieldCreditsApplied,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "billing_invoice_lines"
@@ -300,6 +306,7 @@ var (
 	// ValueScanner of all BillingInvoiceLine fields.
 	ValueScanner struct {
 		RatecardDiscounts field.TypeValueScanner[*billing.Discounts]
+		CreditsApplied    field.TypeValueScanner[*billing.CreditsApplied]
 	}
 )
 
@@ -406,6 +413,11 @@ func ByDiscountsTotal(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDiscountsTotal, opts...).ToFunc()
 }
 
+// ByCreditsTotal orders the results by the credits_total field.
+func ByCreditsTotal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreditsTotal, opts...).ToFunc()
+}
+
 // ByTotal orders the results by the total field.
 func ByTotal(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTotal, opts...).ToFunc()
@@ -509,6 +521,11 @@ func ByChargeID(opts ...sql.OrderTermOption) OrderOption {
 // ByLineIds orders the results by the line_ids field.
 func ByLineIds(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLineIds, opts...).ToFunc()
+}
+
+// ByCreditsApplied orders the results by the credits_applied field.
+func ByCreditsApplied(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreditsApplied, opts...).ToFunc()
 }
 
 // ByBillingInvoiceField orders the results by billing_invoice field.

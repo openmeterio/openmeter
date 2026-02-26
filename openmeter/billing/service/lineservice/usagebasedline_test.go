@@ -40,7 +40,9 @@ type ubpCalculationTestCase struct {
 	lineMode             testLineMode
 	usage                featureUsageResponse
 	expect               newDetailedLinesInput
+	expectErrorIs        error
 	previousBilledAmount alpacadecimal.Decimal
+	creditsApplied       billing.CreditsApplied
 }
 
 type ubpLineCalculator interface {
@@ -61,6 +63,7 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 			}),
 			Currency:          "USD",
 			RateCardDiscounts: tc.discounts,
+			CreditsApplied:    tc.creditsApplied,
 		},
 		UsageBased: &billing.UsageBasedLine{
 			Price: lo.ToPtr(tc.price),
@@ -139,7 +142,16 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 
 	res, err := lineImpl.calculateDetailedLines()
 	if err != nil {
+		if tc.expectErrorIs != nil {
+			require.ErrorIs(t, err, tc.expectErrorIs)
+			return
+		}
+
 		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if tc.expectErrorIs != nil {
+		t.Fatalf("expected error: %v", tc.expectErrorIs)
 	}
 
 	// let's get around nil slices

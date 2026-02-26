@@ -57,6 +57,8 @@ type BillingStandardInvoiceDetailedLine struct {
 	ChargesTotal alpacadecimal.Decimal `json:"charges_total,omitempty"`
 	// DiscountsTotal holds the value of the "discounts_total" field.
 	DiscountsTotal alpacadecimal.Decimal `json:"discounts_total,omitempty"`
+	// CreditsTotal holds the value of the "credits_total" field.
+	CreditsTotal alpacadecimal.Decimal `json:"credits_total,omitempty"`
 	// Total holds the value of the "total" field.
 	Total alpacadecimal.Decimal `json:"total,omitempty"`
 	// ServicePeriodStart holds the value of the "service_period_start" field.
@@ -81,6 +83,8 @@ type BillingStandardInvoiceDetailedLine struct {
 	PaymentTerm productcatalog.PaymentTermType `json:"payment_term,omitempty"`
 	// Index holds the value of the "index" field.
 	Index *int `json:"index,omitempty"`
+	// CreditsApplied holds the value of the "credits_applied" field.
+	CreditsApplied *billing.CreditsApplied `json:"credits_applied,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingStandardInvoiceDetailedLineQuery when eager-loading is set.
 	Edges        BillingStandardInvoiceDetailedLineEdges `json:"edges"`
@@ -138,7 +142,7 @@ func (*BillingStandardInvoiceDetailedLine) scanValues(columns []string) ([]any, 
 		switch columns[i] {
 		case billingstandardinvoicedetailedline.FieldAnnotations, billingstandardinvoicedetailedline.FieldMetadata, billingstandardinvoicedetailedline.FieldTaxConfig:
 			values[i] = new([]byte)
-		case billingstandardinvoicedetailedline.FieldAmount, billingstandardinvoicedetailedline.FieldTaxesTotal, billingstandardinvoicedetailedline.FieldTaxesInclusiveTotal, billingstandardinvoicedetailedline.FieldTaxesExclusiveTotal, billingstandardinvoicedetailedline.FieldChargesTotal, billingstandardinvoicedetailedline.FieldDiscountsTotal, billingstandardinvoicedetailedline.FieldTotal, billingstandardinvoicedetailedline.FieldQuantity, billingstandardinvoicedetailedline.FieldPerUnitAmount:
+		case billingstandardinvoicedetailedline.FieldAmount, billingstandardinvoicedetailedline.FieldTaxesTotal, billingstandardinvoicedetailedline.FieldTaxesInclusiveTotal, billingstandardinvoicedetailedline.FieldTaxesExclusiveTotal, billingstandardinvoicedetailedline.FieldChargesTotal, billingstandardinvoicedetailedline.FieldDiscountsTotal, billingstandardinvoicedetailedline.FieldCreditsTotal, billingstandardinvoicedetailedline.FieldTotal, billingstandardinvoicedetailedline.FieldQuantity, billingstandardinvoicedetailedline.FieldPerUnitAmount:
 			values[i] = new(alpacadecimal.Decimal)
 		case billingstandardinvoicedetailedline.FieldIndex:
 			values[i] = new(sql.NullInt64)
@@ -146,6 +150,8 @@ func (*BillingStandardInvoiceDetailedLine) scanValues(columns []string) ([]any, 
 			values[i] = new(sql.NullString)
 		case billingstandardinvoicedetailedline.FieldCreatedAt, billingstandardinvoicedetailedline.FieldUpdatedAt, billingstandardinvoicedetailedline.FieldDeletedAt, billingstandardinvoicedetailedline.FieldServicePeriodStart, billingstandardinvoicedetailedline.FieldServicePeriodEnd:
 			values[i] = new(sql.NullTime)
+		case billingstandardinvoicedetailedline.FieldCreditsApplied:
+			values[i] = billingstandardinvoicedetailedline.ValueScanner.CreditsApplied.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -271,6 +277,12 @@ func (_m *BillingStandardInvoiceDetailedLine) assignValues(columns []string, val
 			} else if value != nil {
 				_m.DiscountsTotal = *value
 			}
+		case billingstandardinvoicedetailedline.FieldCreditsTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field credits_total", values[i])
+			} else if value != nil {
+				_m.CreditsTotal = *value
+			}
 		case billingstandardinvoicedetailedline.FieldTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field total", values[i])
@@ -345,6 +357,12 @@ func (_m *BillingStandardInvoiceDetailedLine) assignValues(columns []string, val
 			} else if value.Valid {
 				_m.Index = new(int)
 				*_m.Index = int(value.Int64)
+			}
+		case billingstandardinvoicedetailedline.FieldCreditsApplied:
+			if value, err := billingstandardinvoicedetailedline.ValueScanner.CreditsApplied.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.CreditsApplied = value
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -449,6 +467,9 @@ func (_m *BillingStandardInvoiceDetailedLine) String() string {
 	builder.WriteString("discounts_total=")
 	builder.WriteString(fmt.Sprintf("%v", _m.DiscountsTotal))
 	builder.WriteString(", ")
+	builder.WriteString("credits_total=")
+	builder.WriteString(fmt.Sprintf("%v", _m.CreditsTotal))
+	builder.WriteString(", ")
 	builder.WriteString("total=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Total))
 	builder.WriteString(", ")
@@ -488,6 +509,11 @@ func (_m *BillingStandardInvoiceDetailedLine) String() string {
 	builder.WriteString(", ")
 	if v := _m.Index; v != nil {
 		builder.WriteString("index=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.CreditsApplied; v != nil {
+		builder.WriteString("credits_applied=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteByte(')')

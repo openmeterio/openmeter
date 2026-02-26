@@ -202,6 +202,7 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 				// Totals
 				SetAmount(alpacadecimal.Zero).
 				SetChargesTotal(alpacadecimal.Zero).
+				SetCreditsTotal(alpacadecimal.Zero).
 				SetDiscountsTotal(alpacadecimal.Zero).
 				SetTaxesTotal(alpacadecimal.Zero).
 				SetTaxesInclusiveTotal(alpacadecimal.Zero).
