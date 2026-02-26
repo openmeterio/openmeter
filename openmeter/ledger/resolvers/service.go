@@ -16,6 +16,20 @@ type Service struct {
 	Repo           Repo
 }
 
+// ServiceConfig holds the dependencies for constructing a Service.
+type ServiceConfig struct {
+	AccountService ledgeraccount.Service
+	Repo           Repo
+}
+
+// NewService constructs a resolvers Service from the given config.
+func NewService(cfg ServiceConfig) *Service {
+	return &Service{
+		AccountService: cfg.AccountService,
+		Repo:           cfg.Repo,
+	}
+}
+
 var _ ledger.AccountResolver = (*Service)(nil)
 
 // CreateCustomerAccounts creates FBO and Receivable ledger accounts for a new customer

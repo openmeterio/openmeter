@@ -1064,6 +1064,22 @@ func (e *LedgerAccount) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
+func (e *LedgerCustomerAccount) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *LedgerCustomerAccount) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *LedgerCustomerAccount) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *LedgerCustomerAccount) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
 func (e *LedgerDimension) GetNamespace() string {
 	return e.Namespace
 }
