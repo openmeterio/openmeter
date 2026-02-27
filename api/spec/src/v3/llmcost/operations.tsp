@@ -24,6 +24,9 @@ model ListPricesParamsFilter {
   model_id?: string;
 }
 
+/**
+ * Operations for managing global LLM cost prices.
+ */
 interface LLMCostPricesOperations {
   /**
    * List global LLM cost prices.
@@ -78,6 +81,9 @@ interface LLMCostPricesOperations {
   ): Price | Common.NotFound | Common.ErrorResponses;
 }
 
+/**
+ * Operations for managing per-namespace price overrides.
+ */
 interface LLMCostOverridesOperations {
   /**
    * List per-namespace price overrides.

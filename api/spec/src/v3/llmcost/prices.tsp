@@ -8,10 +8,10 @@ namespace LLMCost;
 @friendlyName("LLMCostPriceSource")
 enum PriceSource {
   /** Price was manually configured by a user. */
-  manual,
+  Manual: "manual",
 
   /** Price was automatically synced from external pricing sources. */
-  system,
+  System: "system",
 }
 
 /**
