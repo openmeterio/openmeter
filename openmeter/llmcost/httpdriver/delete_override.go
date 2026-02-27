@@ -26,7 +26,7 @@ func (h *handler) DeleteOverride() DeleteOverrideHandler {
 			}
 
 			return DeleteOverrideRequest{
-				ID:        string(overrideID),
+				ID:        overrideID,
 				Namespace: ns,
 			}, nil
 		},

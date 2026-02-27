@@ -296,7 +296,8 @@ func TestAveragePrices(t *testing.T) {
 			makePrice("source_a", "openai", "gpt-4", 0.01, 0.03),
 		}
 
-		avg := averagePrices(prices)
+		avg, err := averagePrices(prices)
+		require.NoError(t, err)
 		assert.True(t, avg.Pricing.InputPerToken.Equal(alpacadecimal.NewFromFloat(0.01)))
 		assert.True(t, avg.Pricing.OutputPerToken.Equal(alpacadecimal.NewFromFloat(0.03)))
 	})
@@ -307,7 +308,8 @@ func TestAveragePrices(t *testing.T) {
 			makePrice("source_b", "openai", "gpt-4", 0.02, 0.04),
 		}
 
-		avg := averagePrices(prices)
+		avg, err := averagePrices(prices)
+		require.NoError(t, err)
 		assert.True(t, avg.Pricing.InputPerToken.Equal(alpacadecimal.NewFromFloat(0.015)))
 		assert.True(t, avg.Pricing.OutputPerToken.Equal(alpacadecimal.NewFromFloat(0.035)))
 	})
@@ -336,7 +338,8 @@ func TestAveragePrices(t *testing.T) {
 			},
 		}
 
-		avg := averagePrices(prices)
+		avg, err := averagePrices(prices)
+		require.NoError(t, err)
 		assert.Equal(t, "GPT-4", avg.ModelName)
 	})
 }

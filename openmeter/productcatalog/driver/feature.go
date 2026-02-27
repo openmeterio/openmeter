@@ -383,8 +383,8 @@ func (h *featureHandlers) QueryFeatureCost() QueryFeatureCostHandler {
 
 			// Compute cost for each row
 			type unitCostResult struct {
-				resolved    *feature.ResolvedUnitCost
-				costDetail  string
+				resolved   *feature.ResolvedUnitCost
+				costDetail string
 			}
 			unitCostCache := make(map[string]unitCostResult)
 
@@ -413,7 +413,6 @@ func (h *featureHandlers) QueryFeatureCost() QueryFeatureCostHandler {
 						FeatureIDOrKey: req.FeatureID,
 						GroupByValues:  groupByValues,
 					})
-
 					// If the LLM cost price is not found, emit a row with null amount and detail
 					if err != nil {
 						var vi models.ValidationIssue
@@ -434,7 +433,7 @@ func (h *featureHandlers) QueryFeatureCost() QueryFeatureCostHandler {
 				usage := alpacadecimal.NewFromFloat(row.Value)
 
 				costRow := api.FeatureCostQueryRow{
-					Usage:       api.Numeric(usage.String()),
+					Usage:       usage.String(),
 					WindowStart: row.WindowStart,
 					WindowEnd:   row.WindowEnd,
 					Subject:     row.Subject,
@@ -447,14 +446,14 @@ func (h *featureHandlers) QueryFeatureCost() QueryFeatureCostHandler {
 
 				if resolved != nil {
 					currency = resolved.Currency
-					costRow.Currency = api.CurrencyCode(resolved.Currency)
+					costRow.Currency = resolved.Currency
 
-					unitCost := api.Numeric(resolved.Amount.String())
+					unitCost := resolved.Amount.String()
 					costRow.UnitCost = &unitCost
 
 					// cost = usage × unit cost
 					cost := usage.Mul(resolved.Amount)
-					amount := api.Numeric(cost.String())
+					amount := cost.String()
 					costRow.Cost = &amount
 				}
 				if len(row.GroupBy) > 0 {
@@ -472,7 +471,7 @@ func (h *featureHandlers) QueryFeatureCost() QueryFeatureCostHandler {
 				From:       req.Params.From,
 				To:         req.Params.To,
 				WindowSize: req.Params.WindowSize,
-				Currency:   api.CurrencyCode(currency),
+				Currency:   currency,
 				Data:       costRows,
 			}
 

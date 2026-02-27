@@ -2,7 +2,7 @@ package sync
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -95,7 +95,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, prices []llmcost.SourcePrice
 		}
 
 		// Average the agreeing prices for the canonical price
-		avg := averagePrices(agreeing)
+		avg, err := averagePrices(agreeing)
+		if err != nil {
+			return err
+		}
 
 		price := llmcost.Price{
 			Provider:      llmcost.Provider(key.Provider),
@@ -184,9 +187,9 @@ func decimalsAgree(a, b, tolerance alpacadecimal.Decimal) bool {
 }
 
 // averagePrices computes the average of agreeing source prices.
-func averagePrices(prices []llmcost.SourcePrice) llmcost.SourcePrice {
+func averagePrices(prices []llmcost.SourcePrice) (llmcost.SourcePrice, error) {
 	if len(prices) == 0 {
-		panic(fmt.Sprintf("averagePrices called with empty slice"))
+		return llmcost.SourcePrice{}, errors.New("averagePrices called with empty slice")
 	}
 
 	count := alpacadecimal.NewFromInt(int64(len(prices)))
@@ -202,5 +205,5 @@ func averagePrices(prices []llmcost.SourcePrice) llmcost.SourcePrice {
 	result.Pricing.InputPerToken = sumInput.Div(count)
 	result.Pricing.OutputPerToken = sumOutput.Div(count)
 
-	return result
+	return result, nil
 }

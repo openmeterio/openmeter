@@ -21,7 +21,7 @@ func (h *handler) GetPrice() GetPriceHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, priceID api.ULID) (GetPriceRequest, error) {
 			return GetPriceRequest{
-				ID: string(priceID),
+				ID: priceID,
 			}, nil
 		},
 		func(ctx context.Context, request GetPriceRequest) (GetPriceResponse, error) {

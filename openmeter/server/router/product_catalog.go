@@ -35,7 +35,7 @@ func (a *Router) GetFeature(w http.ResponseWriter, r *http.Request, featureId st
 // (GET /api/v1/features/{featureId}/cost)
 func (a *Router) QueryFeatureCost(w http.ResponseWriter, r *http.Request, featureId string, params api.QueryFeatureCostParams) {
 	a.featureHandler.QueryFeatureCost().With(productcatalog_httpdriver.QueryFeatureCostHandlerParams{
-		FeatureID:             featureId,
+		FeatureID:              featureId,
 		QueryFeatureCostParams: params,
 	}).ServeHTTP(w, r)
 }

@@ -71,10 +71,10 @@ func TestNormalizerVersionSuffix(t *testing.T) {
 		expected string
 	}{
 		{"strips date suffix", "gpt-4o-2024-08-06", "gpt-4o-2024-08-06"},                  // Not 8-digit, kept
-		{"strips 8-digit date suffix", "claude-3-5-sonnet-20241022", "claude-3-5-sonnet"},  // 8-digit, stripped
-		{"strips another date suffix", "gpt-4-turbo-20240409", "gpt-4-turbo"},              // 8-digit, stripped
+		{"strips 8-digit date suffix", "claude-3-5-sonnet-20241022", "claude-3-5-sonnet"}, // 8-digit, stripped
+		{"strips another date suffix", "gpt-4-turbo-20240409", "gpt-4-turbo"},             // 8-digit, stripped
 		{"no suffix unchanged", "gpt-4o", "gpt-4o"},
-		{"suffix in middle unchanged", "model-20241022-beta", "model-20241022-beta"},       // Not at end
+		{"suffix in middle unchanged", "model-20241022-beta", "model-20241022-beta"}, // Not at end
 	}
 
 	for _, tt := range tests {

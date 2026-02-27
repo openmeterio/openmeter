@@ -110,7 +110,7 @@ func apiUnitCostToDomain(u *api.FeatureUnitCost) *feature.UnitCost {
 			return nil
 		}
 
-		amount, _ := alpacadecimal.NewFromString(string(manual.Amount))
+		amount, _ := alpacadecimal.NewFromString(manual.Amount)
 
 		return &feature.UnitCost{
 			Type: feature.UnitCostTypeManual,
@@ -206,22 +206,22 @@ func enrichFeatureResponseWithPricing(resp *api.Feature, pricing *llmcost.ModelP
 	}
 
 	apiPricing := api.FeatureLLMUnitCostPricing{
-		InputPerToken:  api.Numeric(pricing.InputPerToken.String()),
-		OutputPerToken: api.Numeric(pricing.OutputPerToken.String()),
+		InputPerToken:  pricing.InputPerToken.String(),
+		OutputPerToken: pricing.OutputPerToken.String(),
 	}
 
 	if pricing.InputCachedPerToken != nil {
-		v := api.Numeric(pricing.InputCachedPerToken.String())
+		v := pricing.InputCachedPerToken.String()
 		apiPricing.InputCachedPerToken = &v
 	}
 
 	if pricing.ReasoningPerToken != nil {
-		v := api.Numeric(pricing.ReasoningPerToken.String())
+		v := pricing.ReasoningPerToken.String()
 		apiPricing.ReasoningPerToken = &v
 	}
 
 	if pricing.CacheWritePerToken != nil {
-		v := api.Numeric(pricing.CacheWritePerToken.String())
+		v := pricing.CacheWritePerToken.String()
 		apiPricing.CacheWritePerToken = &v
 	}
 

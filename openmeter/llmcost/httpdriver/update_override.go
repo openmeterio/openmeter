@@ -32,7 +32,7 @@ func (h *handler) UpdateOverride() UpdateOverrideHandler {
 				return UpdateOverrideRequest{}, err
 			}
 
-			return apiUpdateOverrideToDomain(ns, string(overrideID), body), nil
+			return apiUpdateOverrideToDomain(ns, overrideID, body), nil
 		},
 		func(ctx context.Context, req UpdateOverrideRequest) (UpdateOverrideResponse, error) {
 			price, err := h.service.UpdateOverride(ctx, req)
