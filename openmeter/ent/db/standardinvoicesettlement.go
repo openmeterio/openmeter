@@ -45,6 +45,8 @@ type StandardInvoiceSettlement struct {
 	ChargesTotal alpacadecimal.Decimal `json:"charges_total,omitempty"`
 	// DiscountsTotal holds the value of the "discounts_total" field.
 	DiscountsTotal alpacadecimal.Decimal `json:"discounts_total,omitempty"`
+	// CreditsTotal holds the value of the "credits_total" field.
+	CreditsTotal alpacadecimal.Decimal `json:"credits_total,omitempty"`
 	// Total holds the value of the "total" field.
 	Total alpacadecimal.Decimal `json:"total,omitempty"`
 	// LineID holds the value of the "line_id" field.
@@ -107,7 +109,7 @@ func (*StandardInvoiceSettlement) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case standardinvoicesettlement.FieldAnnotations:
 			values[i] = new([]byte)
-		case standardinvoicesettlement.FieldAmount, standardinvoicesettlement.FieldTaxesTotal, standardinvoicesettlement.FieldTaxesInclusiveTotal, standardinvoicesettlement.FieldTaxesExclusiveTotal, standardinvoicesettlement.FieldChargesTotal, standardinvoicesettlement.FieldDiscountsTotal, standardinvoicesettlement.FieldTotal, standardinvoicesettlement.FieldMeteredServicePeriodQuantity, standardinvoicesettlement.FieldMeteredPreServicePeriodQuantity:
+		case standardinvoicesettlement.FieldAmount, standardinvoicesettlement.FieldTaxesTotal, standardinvoicesettlement.FieldTaxesInclusiveTotal, standardinvoicesettlement.FieldTaxesExclusiveTotal, standardinvoicesettlement.FieldChargesTotal, standardinvoicesettlement.FieldDiscountsTotal, standardinvoicesettlement.FieldCreditsTotal, standardinvoicesettlement.FieldTotal, standardinvoicesettlement.FieldMeteredServicePeriodQuantity, standardinvoicesettlement.FieldMeteredPreServicePeriodQuantity:
 			values[i] = new(alpacadecimal.Decimal)
 		case standardinvoicesettlement.FieldID, standardinvoicesettlement.FieldNamespace, standardinvoicesettlement.FieldLineID, standardinvoicesettlement.FieldChargeID, standardinvoicesettlement.FieldStatus:
 			values[i] = new(sql.NullString)
@@ -202,6 +204,12 @@ func (_m *StandardInvoiceSettlement) assignValues(columns []string, values []any
 				return fmt.Errorf("unexpected type %T for field discounts_total", values[i])
 			} else if value != nil {
 				_m.DiscountsTotal = *value
+			}
+		case standardinvoicesettlement.FieldCreditsTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field credits_total", values[i])
+			} else if value != nil {
+				_m.CreditsTotal = *value
 			}
 		case standardinvoicesettlement.FieldTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -331,6 +339,9 @@ func (_m *StandardInvoiceSettlement) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("discounts_total=")
 	builder.WriteString(fmt.Sprintf("%v", _m.DiscountsTotal))
+	builder.WriteString(", ")
+	builder.WriteString("credits_total=")
+	builder.WriteString(fmt.Sprintf("%v", _m.CreditsTotal))
 	builder.WriteString(", ")
 	builder.WriteString("total=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Total))

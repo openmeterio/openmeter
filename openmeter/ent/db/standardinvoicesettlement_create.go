@@ -118,6 +118,12 @@ func (_c *StandardInvoiceSettlementCreate) SetDiscountsTotal(v alpacadecimal.Dec
 	return _c
 }
 
+// SetCreditsTotal sets the "credits_total" field.
+func (_c *StandardInvoiceSettlementCreate) SetCreditsTotal(v alpacadecimal.Decimal) *StandardInvoiceSettlementCreate {
+	_c.mutation.SetCreditsTotal(v)
+	return _c
+}
+
 // SetTotal sets the "total" field.
 func (_c *StandardInvoiceSettlementCreate) SetTotal(v alpacadecimal.Decimal) *StandardInvoiceSettlementCreate {
 	_c.mutation.SetTotal(v)
@@ -279,6 +285,9 @@ func (_c *StandardInvoiceSettlementCreate) check() error {
 	if _, ok := _c.mutation.DiscountsTotal(); !ok {
 		return &ValidationError{Name: "discounts_total", err: errors.New(`db: missing required field "StandardInvoiceSettlement.discounts_total"`)}
 	}
+	if _, ok := _c.mutation.CreditsTotal(); !ok {
+		return &ValidationError{Name: "credits_total", err: errors.New(`db: missing required field "StandardInvoiceSettlement.credits_total"`)}
+	}
 	if _, ok := _c.mutation.Total(); !ok {
 		return &ValidationError{Name: "total", err: errors.New(`db: missing required field "StandardInvoiceSettlement.total"`)}
 	}
@@ -393,6 +402,10 @@ func (_c *StandardInvoiceSettlementCreate) createSpec() (*StandardInvoiceSettlem
 	if value, ok := _c.mutation.DiscountsTotal(); ok {
 		_spec.SetField(standardinvoicesettlement.FieldDiscountsTotal, field.TypeOther, value)
 		_node.DiscountsTotal = value
+	}
+	if value, ok := _c.mutation.CreditsTotal(); ok {
+		_spec.SetField(standardinvoicesettlement.FieldCreditsTotal, field.TypeOther, value)
+		_node.CreditsTotal = value
 	}
 	if value, ok := _c.mutation.Total(); ok {
 		_spec.SetField(standardinvoicesettlement.FieldTotal, field.TypeOther, value)
@@ -621,6 +634,18 @@ func (u *StandardInvoiceSettlementUpsert) SetDiscountsTotal(v alpacadecimal.Deci
 // UpdateDiscountsTotal sets the "discounts_total" field to the value that was provided on create.
 func (u *StandardInvoiceSettlementUpsert) UpdateDiscountsTotal() *StandardInvoiceSettlementUpsert {
 	u.SetExcluded(standardinvoicesettlement.FieldDiscountsTotal)
+	return u
+}
+
+// SetCreditsTotal sets the "credits_total" field.
+func (u *StandardInvoiceSettlementUpsert) SetCreditsTotal(v alpacadecimal.Decimal) *StandardInvoiceSettlementUpsert {
+	u.Set(standardinvoicesettlement.FieldCreditsTotal, v)
+	return u
+}
+
+// UpdateCreditsTotal sets the "credits_total" field to the value that was provided on create.
+func (u *StandardInvoiceSettlementUpsert) UpdateCreditsTotal() *StandardInvoiceSettlementUpsert {
+	u.SetExcluded(standardinvoicesettlement.FieldCreditsTotal)
 	return u
 }
 
@@ -893,6 +918,20 @@ func (u *StandardInvoiceSettlementUpsertOne) SetDiscountsTotal(v alpacadecimal.D
 func (u *StandardInvoiceSettlementUpsertOne) UpdateDiscountsTotal() *StandardInvoiceSettlementUpsertOne {
 	return u.Update(func(s *StandardInvoiceSettlementUpsert) {
 		s.UpdateDiscountsTotal()
+	})
+}
+
+// SetCreditsTotal sets the "credits_total" field.
+func (u *StandardInvoiceSettlementUpsertOne) SetCreditsTotal(v alpacadecimal.Decimal) *StandardInvoiceSettlementUpsertOne {
+	return u.Update(func(s *StandardInvoiceSettlementUpsert) {
+		s.SetCreditsTotal(v)
+	})
+}
+
+// UpdateCreditsTotal sets the "credits_total" field to the value that was provided on create.
+func (u *StandardInvoiceSettlementUpsertOne) UpdateCreditsTotal() *StandardInvoiceSettlementUpsertOne {
+	return u.Update(func(s *StandardInvoiceSettlementUpsert) {
+		s.UpdateCreditsTotal()
 	})
 }
 
@@ -1344,6 +1383,20 @@ func (u *StandardInvoiceSettlementUpsertBulk) SetDiscountsTotal(v alpacadecimal.
 func (u *StandardInvoiceSettlementUpsertBulk) UpdateDiscountsTotal() *StandardInvoiceSettlementUpsertBulk {
 	return u.Update(func(s *StandardInvoiceSettlementUpsert) {
 		s.UpdateDiscountsTotal()
+	})
+}
+
+// SetCreditsTotal sets the "credits_total" field.
+func (u *StandardInvoiceSettlementUpsertBulk) SetCreditsTotal(v alpacadecimal.Decimal) *StandardInvoiceSettlementUpsertBulk {
+	return u.Update(func(s *StandardInvoiceSettlementUpsert) {
+		s.SetCreditsTotal(v)
+	})
+}
+
+// UpdateCreditsTotal sets the "credits_total" field to the value that was provided on create.
+func (u *StandardInvoiceSettlementUpsertBulk) UpdateCreditsTotal() *StandardInvoiceSettlementUpsertBulk {
+	return u.Update(func(s *StandardInvoiceSettlementUpsert) {
+		s.UpdateCreditsTotal()
 	})
 }
 

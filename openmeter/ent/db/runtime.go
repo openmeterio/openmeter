@@ -549,6 +549,9 @@ func init() {
 	// billinginvoicelineDescRatecardDiscounts is the schema descriptor for ratecard_discounts field.
 	billinginvoicelineDescRatecardDiscounts := billinginvoicelineFields[9].Descriptor()
 	billinginvoiceline.ValueScanner.RatecardDiscounts = billinginvoicelineDescRatecardDiscounts.ValueScanner.(field.TypeValueScanner[*billing.Discounts])
+	// billinginvoicelineDescCreditsApplied is the schema descriptor for credits_applied field.
+	billinginvoicelineDescCreditsApplied := billinginvoicelineFields[20].Descriptor()
+	billinginvoiceline.ValueScanner.CreditsApplied = billinginvoicelineDescCreditsApplied.ValueScanner.(field.TypeValueScanner[*billing.CreditsApplied])
 	// billinginvoicelineDescID is the schema descriptor for id field.
 	billinginvoicelineDescID := billinginvoicelineMixinFields1[0].Descriptor()
 	// billinginvoiceline.DefaultID holds the default value on creation for the id field.
@@ -814,6 +817,9 @@ func init() {
 	billingstandardinvoicedetailedlineDescCurrency := billingstandardinvoicedetailedlineMixinFields2[0].Descriptor()
 	// billingstandardinvoicedetailedline.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	billingstandardinvoicedetailedline.CurrencyValidator = billingstandardinvoicedetailedlineDescCurrency.Validators[0].(func(string) error)
+	// billingstandardinvoicedetailedlineDescCreditsApplied is the schema descriptor for credits_applied field.
+	billingstandardinvoicedetailedlineDescCreditsApplied := billingstandardinvoicedetailedlineFields[11].Descriptor()
+	billingstandardinvoicedetailedline.ValueScanner.CreditsApplied = billingstandardinvoicedetailedlineDescCreditsApplied.ValueScanner.(field.TypeValueScanner[*billing.CreditsApplied])
 	// billingstandardinvoicedetailedlineDescID is the schema descriptor for id field.
 	billingstandardinvoicedetailedlineDescID := billingstandardinvoicedetailedlineMixinFields1[0].Descriptor()
 	// billingstandardinvoicedetailedline.DefaultID holds the default value on creation for the id field.

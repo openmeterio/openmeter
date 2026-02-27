@@ -296,6 +296,10 @@ func (m TotalsMixin) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
 			}),
+		field.Other("credits_total", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
 		field.Other("total", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
@@ -442,6 +446,15 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 				dialect.Postgres: "char(26)",
 			}).
 			Deprecated("invoice discounts are deprecated, use line_discounts instead"),
+
+		field.String("credits_applied").
+			GoType(&billing.CreditsApplied{}).
+			ValueScanner(BillingCreditsAppliedValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable(),
 	}
 }
 
@@ -928,6 +941,15 @@ func (BillingStandardInvoiceDetailedLine) Fields() []ent.Field {
 		field.Int("index").
 			Optional().
 			Nillable(),
+
+		field.String("credits_applied").
+			GoType(&billing.CreditsApplied{}).
+			ValueScanner(BillingCreditsAppliedValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable(),
 	}
 }
 
@@ -1399,3 +1421,5 @@ func (BillingInvoiceWriteSchemaLevel) Indexes() []ent.Index {
 		index.Fields("id").Unique(),
 	}
 }
+
+var BillingCreditsAppliedValueScanner = entutils.JSONStringValueScanner[*billing.CreditsApplied]()

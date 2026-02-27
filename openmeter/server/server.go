@@ -88,6 +88,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	r := chi.NewRouter()
+	r.Use(server.NewPoweredByMiddleware())
 
 	v3Middlewares := []server.MiddlewareFunc{
 		middleware.RealIP,

@@ -232,6 +232,20 @@ func (_u *BillingInvoiceLineUpdate) SetNillableDiscountsTotal(v *alpacadecimal.D
 	return _u
 }
 
+// SetCreditsTotal sets the "credits_total" field.
+func (_u *BillingInvoiceLineUpdate) SetCreditsTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
+	_u.mutation.SetCreditsTotal(v)
+	return _u
+}
+
+// SetNillableCreditsTotal sets the "credits_total" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdate) SetNillableCreditsTotal(v *alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
+	if v != nil {
+		_u.SetCreditsTotal(*v)
+	}
+	return _u
+}
+
 // SetTotal sets the "total" field.
 func (_u *BillingInvoiceLineUpdate) SetTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
 	_u.mutation.SetTotal(v)
@@ -579,6 +593,18 @@ func (_u *BillingInvoiceLineUpdate) SetNillableLineIds(v *string) *BillingInvoic
 // ClearLineIds clears the value of the "line_ids" field.
 func (_u *BillingInvoiceLineUpdate) ClearLineIds() *BillingInvoiceLineUpdate {
 	_u.mutation.ClearLineIds()
+	return _u
+}
+
+// SetCreditsApplied sets the "credits_applied" field.
+func (_u *BillingInvoiceLineUpdate) SetCreditsApplied(v *billing.CreditsApplied) *BillingInvoiceLineUpdate {
+	_u.mutation.SetCreditsApplied(v)
+	return _u
+}
+
+// ClearCreditsApplied clears the value of the "credits_applied" field.
+func (_u *BillingInvoiceLineUpdate) ClearCreditsApplied() *BillingInvoiceLineUpdate {
+	_u.mutation.ClearCreditsApplied()
 	return _u
 }
 
@@ -942,6 +968,11 @@ func (_u *BillingInvoiceLineUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.CreditsApplied(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "credits_applied", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.credits_applied": %w`, err)}
+		}
+	}
 	if _u.mutation.BillingInvoiceCleared() && len(_u.mutation.BillingInvoiceIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingInvoiceLine.billing_invoice"`)
 	}
@@ -1014,6 +1045,9 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 	if value, ok := _u.mutation.DiscountsTotal(); ok {
 		_spec.SetField(billinginvoiceline.FieldDiscountsTotal, field.TypeOther, value)
 	}
+	if value, ok := _u.mutation.CreditsTotal(); ok {
+		_spec.SetField(billinginvoiceline.FieldCreditsTotal, field.TypeOther, value)
+	}
 	if value, ok := _u.mutation.Total(); ok {
 		_spec.SetField(billinginvoiceline.FieldTotal, field.TypeOther, value)
 	}
@@ -1077,6 +1111,16 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 	}
 	if _u.mutation.LineIdsCleared() {
 		_spec.ClearField(billinginvoiceline.FieldLineIds, field.TypeString)
+	}
+	if value, ok := _u.mutation.CreditsApplied(); ok {
+		vv, err := billinginvoiceline.ValueScanner.CreditsApplied.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(billinginvoiceline.FieldCreditsApplied, field.TypeString, vv)
+	}
+	if _u.mutation.CreditsAppliedCleared() {
+		_spec.ClearField(billinginvoiceline.FieldCreditsApplied, field.TypeString)
 	}
 	if _u.mutation.BillingInvoiceCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1756,6 +1800,20 @@ func (_u *BillingInvoiceLineUpdateOne) SetNillableDiscountsTotal(v *alpacadecima
 	return _u
 }
 
+// SetCreditsTotal sets the "credits_total" field.
+func (_u *BillingInvoiceLineUpdateOne) SetCreditsTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
+	_u.mutation.SetCreditsTotal(v)
+	return _u
+}
+
+// SetNillableCreditsTotal sets the "credits_total" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdateOne) SetNillableCreditsTotal(v *alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
+	if v != nil {
+		_u.SetCreditsTotal(*v)
+	}
+	return _u
+}
+
 // SetTotal sets the "total" field.
 func (_u *BillingInvoiceLineUpdateOne) SetTotal(v alpacadecimal.Decimal) *BillingInvoiceLineUpdateOne {
 	_u.mutation.SetTotal(v)
@@ -2103,6 +2161,18 @@ func (_u *BillingInvoiceLineUpdateOne) SetNillableLineIds(v *string) *BillingInv
 // ClearLineIds clears the value of the "line_ids" field.
 func (_u *BillingInvoiceLineUpdateOne) ClearLineIds() *BillingInvoiceLineUpdateOne {
 	_u.mutation.ClearLineIds()
+	return _u
+}
+
+// SetCreditsApplied sets the "credits_applied" field.
+func (_u *BillingInvoiceLineUpdateOne) SetCreditsApplied(v *billing.CreditsApplied) *BillingInvoiceLineUpdateOne {
+	_u.mutation.SetCreditsApplied(v)
+	return _u
+}
+
+// ClearCreditsApplied clears the value of the "credits_applied" field.
+func (_u *BillingInvoiceLineUpdateOne) ClearCreditsApplied() *BillingInvoiceLineUpdateOne {
+	_u.mutation.ClearCreditsApplied()
 	return _u
 }
 
@@ -2479,6 +2549,11 @@ func (_u *BillingInvoiceLineUpdateOne) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.CreditsApplied(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "credits_applied", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.credits_applied": %w`, err)}
+		}
+	}
 	if _u.mutation.BillingInvoiceCleared() && len(_u.mutation.BillingInvoiceIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingInvoiceLine.billing_invoice"`)
 	}
@@ -2568,6 +2643,9 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 	if value, ok := _u.mutation.DiscountsTotal(); ok {
 		_spec.SetField(billinginvoiceline.FieldDiscountsTotal, field.TypeOther, value)
 	}
+	if value, ok := _u.mutation.CreditsTotal(); ok {
+		_spec.SetField(billinginvoiceline.FieldCreditsTotal, field.TypeOther, value)
+	}
 	if value, ok := _u.mutation.Total(); ok {
 		_spec.SetField(billinginvoiceline.FieldTotal, field.TypeOther, value)
 	}
@@ -2631,6 +2709,16 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 	}
 	if _u.mutation.LineIdsCleared() {
 		_spec.ClearField(billinginvoiceline.FieldLineIds, field.TypeString)
+	}
+	if value, ok := _u.mutation.CreditsApplied(); ok {
+		vv, err := billinginvoiceline.ValueScanner.CreditsApplied.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(billinginvoiceline.FieldCreditsApplied, field.TypeString, vv)
+	}
+	if _u.mutation.CreditsAppliedCleared() {
+		_spec.ClearField(billinginvoiceline.FieldCreditsApplied, field.TypeString)
 	}
 	if _u.mutation.BillingInvoiceCleared() {
 		edge := &sqlgraph.EdgeSpec{

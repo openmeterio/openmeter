@@ -65,6 +65,7 @@ func (a *adapter) CreateGatheringInvoice(ctx context.Context, input billing.Crea
 			// Totals
 			SetAmount(alpacadecimal.Zero).
 			SetChargesTotal(alpacadecimal.Zero).
+			SetCreditsTotal(alpacadecimal.Zero).
 			SetDiscountsTotal(alpacadecimal.Zero).
 			SetTaxesTotal(alpacadecimal.Zero).
 			SetTaxesExclusiveTotal(alpacadecimal.Zero).
@@ -129,6 +130,7 @@ func (a *adapter) UpdateGatheringInvoice(ctx context.Context, in billing.Gatheri
 			// Totals
 			SetAmount(alpacadecimal.Zero).
 			SetChargesTotal(alpacadecimal.Zero).
+			SetCreditsTotal(alpacadecimal.Zero).
 			SetDiscountsTotal(alpacadecimal.Zero).
 			SetTaxesTotal(alpacadecimal.Zero).
 			SetTaxesExclusiveTotal(alpacadecimal.Zero).

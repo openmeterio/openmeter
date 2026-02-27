@@ -339,6 +339,7 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			// Totals
 			SetAmount(input.Totals.Amount).
 			SetChargesTotal(input.Totals.ChargesTotal).
+			SetCreditsTotal(input.Totals.CreditsTotal).
 			SetDiscountsTotal(input.Totals.DiscountsTotal).
 			SetTaxesTotal(input.Totals.TaxesTotal).
 			SetTaxesExclusiveTotal(input.Totals.TaxesExclusiveTotal).
@@ -490,6 +491,7 @@ func (a *adapter) UpdateStandardInvoice(ctx context.Context, in billing.UpdateSt
 			// Totals
 			SetAmount(in.Totals.Amount).
 			SetChargesTotal(in.Totals.ChargesTotal).
+			SetCreditsTotal(in.Totals.CreditsTotal).
 			SetDiscountsTotal(in.Totals.DiscountsTotal).
 			SetTaxesTotal(in.Totals.TaxesTotal).
 			SetTaxesExclusiveTotal(in.Totals.TaxesExclusiveTotal).
@@ -731,6 +733,7 @@ func (a *adapter) mapStandardInvoiceFromDB(ctx context.Context, invoice *db.Bill
 			TaxesTotal:          invoice.TaxesTotal,
 			TaxesExclusiveTotal: invoice.TaxesExclusiveTotal,
 			TaxesInclusiveTotal: invoice.TaxesInclusiveTotal,
+			CreditsTotal:        invoice.CreditsTotal,
 			Total:               invoice.Total,
 		},
 

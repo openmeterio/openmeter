@@ -153,6 +153,20 @@ func (_u *StandardInvoiceSettlementUpdate) SetNillableDiscountsTotal(v *alpacade
 	return _u
 }
 
+// SetCreditsTotal sets the "credits_total" field.
+func (_u *StandardInvoiceSettlementUpdate) SetCreditsTotal(v alpacadecimal.Decimal) *StandardInvoiceSettlementUpdate {
+	_u.mutation.SetCreditsTotal(v)
+	return _u
+}
+
+// SetNillableCreditsTotal sets the "credits_total" field if the given value is not nil.
+func (_u *StandardInvoiceSettlementUpdate) SetNillableCreditsTotal(v *alpacadecimal.Decimal) *StandardInvoiceSettlementUpdate {
+	if v != nil {
+		_u.SetCreditsTotal(*v)
+	}
+	return _u
+}
+
 // SetTotal sets the "total" field.
 func (_u *StandardInvoiceSettlementUpdate) SetTotal(v alpacadecimal.Decimal) *StandardInvoiceSettlementUpdate {
 	_u.mutation.SetTotal(v)
@@ -339,6 +353,9 @@ func (_u *StandardInvoiceSettlementUpdate) sqlSave(ctx context.Context) (_node i
 	if value, ok := _u.mutation.DiscountsTotal(); ok {
 		_spec.SetField(standardinvoicesettlement.FieldDiscountsTotal, field.TypeOther, value)
 	}
+	if value, ok := _u.mutation.CreditsTotal(); ok {
+		_spec.SetField(standardinvoicesettlement.FieldCreditsTotal, field.TypeOther, value)
+	}
 	if value, ok := _u.mutation.Total(); ok {
 		_spec.SetField(standardinvoicesettlement.FieldTotal, field.TypeOther, value)
 	}
@@ -495,6 +512,20 @@ func (_u *StandardInvoiceSettlementUpdateOne) SetDiscountsTotal(v alpacadecimal.
 func (_u *StandardInvoiceSettlementUpdateOne) SetNillableDiscountsTotal(v *alpacadecimal.Decimal) *StandardInvoiceSettlementUpdateOne {
 	if v != nil {
 		_u.SetDiscountsTotal(*v)
+	}
+	return _u
+}
+
+// SetCreditsTotal sets the "credits_total" field.
+func (_u *StandardInvoiceSettlementUpdateOne) SetCreditsTotal(v alpacadecimal.Decimal) *StandardInvoiceSettlementUpdateOne {
+	_u.mutation.SetCreditsTotal(v)
+	return _u
+}
+
+// SetNillableCreditsTotal sets the "credits_total" field if the given value is not nil.
+func (_u *StandardInvoiceSettlementUpdateOne) SetNillableCreditsTotal(v *alpacadecimal.Decimal) *StandardInvoiceSettlementUpdateOne {
+	if v != nil {
+		_u.SetCreditsTotal(*v)
 	}
 	return _u
 }
@@ -714,6 +745,9 @@ func (_u *StandardInvoiceSettlementUpdateOne) sqlSave(ctx context.Context) (_nod
 	}
 	if value, ok := _u.mutation.DiscountsTotal(); ok {
 		_spec.SetField(standardinvoicesettlement.FieldDiscountsTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.CreditsTotal(); ok {
+		_spec.SetField(standardinvoicesettlement.FieldCreditsTotal, field.TypeOther, value)
 	}
 	if value, ok := _u.mutation.Total(); ok {
 		_spec.SetField(standardinvoicesettlement.FieldTotal, field.TypeOther, value)
