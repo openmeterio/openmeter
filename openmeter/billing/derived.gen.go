@@ -204,5 +204,6 @@ func deriveEqual_5(this, that *CreditApplied) bool {
 	return (this == nil && that == nil) ||
 		this != nil && that != nil &&
 			this.Amount.Equal(that.Amount) &&
-			this.Description == that.Description
+			this.Description == that.Description &&
+			this.CreditRealizationID == that.CreditRealizationID
 }

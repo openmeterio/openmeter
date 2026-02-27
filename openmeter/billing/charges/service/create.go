@@ -5,12 +5,13 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
-	"github.com/samber/lo"
 )
 
 func (s *service) CreateCharges(ctx context.Context, input charges.CreateChargeInputs) (charges.Charges, error) {

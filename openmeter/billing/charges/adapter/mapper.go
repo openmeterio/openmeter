@@ -7,7 +7,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
-	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -57,7 +56,7 @@ func MapFlatFeeChargeFromDB(entity *entdb.Charge) (charges.FlatFeeCharge, error)
 		percentageDiscounts = ff.Discounts.Percentage
 	}
 
-	creditRealizations := lo.Map(entity.Edges.CreditRealizations, func(entity *db.ChargeCreditRealization, _ int) charges.CreditRealization {
+	creditRealizations := lo.Map(entity.Edges.CreditRealizations, func(entity *entdb.ChargeCreditRealization, _ int) charges.CreditRealization {
 		return mapCreditRealizationFromDB(entity)
 	})
 
@@ -227,7 +226,7 @@ func proRatingConfigToDB(pc productcatalog.ProRatingConfig) (charges.ProRatingMo
 	return "", fmt.Errorf("invalid pro rating mode: %s", pc.Mode)
 }
 
-func mapCreditRealizationFromDB(entity *db.ChargeCreditRealization) charges.CreditRealization {
+func mapCreditRealizationFromDB(entity *entdb.ChargeCreditRealization) charges.CreditRealization {
 	return charges.CreditRealization{
 		NamespacedID: models.NamespacedID{
 			Namespace: entity.Namespace,

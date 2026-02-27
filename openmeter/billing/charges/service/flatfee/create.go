@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
-	"github.com/samber/lo"
 )
 
 func (s *service) PostCreate(ctx context.Context, charge charges.FlatFeeCharge) (charges.PostCreateFlatFeeResult, error) {
