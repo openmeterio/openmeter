@@ -1086,6 +1086,14 @@ paths:
       summary: List tax codes
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: include_deleted
+          in: query
+          required: false
+          description: Include deleted tax codes in the response.
+          schema:
+            type: boolean
+          explode: false
+          style: form
       responses:
         '200':
           description: Page paginated response.
