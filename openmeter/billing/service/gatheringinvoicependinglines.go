@@ -13,7 +13,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -866,7 +865,7 @@ func (s *Service) convertGatheringLinesToStandardLines(ctx context.Context, in c
 	}
 
 	newStandardLines, err := slicesx.MapWithErr(in.GatheringLinesToConvert, func(gatheringLine billing.GatheringLine) (*billing.StandardLine, error) {
-		newStandardLine, err := convertGatheringLineToNewStandardLine(gatheringLine, in.TargetInvoice.ID)
+		newStandardLine, err := gatheringLine.AsNewStandardLine(in.TargetInvoice.ID)
 		if err != nil {
 			return nil, fmt.Errorf("converting gathering line to new standard line: %w", err)
 		}
@@ -888,54 +887,6 @@ func (s *Service) convertGatheringLinesToStandardLines(ctx context.Context, in c
 		TargetInvoice:   in.TargetInvoice,
 		LinesAssociated: newStandardLines,
 	}, nil
-}
-
-func convertGatheringLineToNewStandardLine(line billing.GatheringLine, invoiceID string) (*billing.StandardLine, error) {
-	clonedAnnotations, err := line.Annotations.Clone()
-	if err != nil {
-		return nil, fmt.Errorf("cloning annotations: %w", err)
-	}
-
-	var taxConfig *productcatalog.TaxConfig
-	if line.TaxConfig != nil {
-		taxConfig = lo.ToPtr(line.TaxConfig.Clone())
-	}
-
-	var subscription *billing.SubscriptionReference
-	if line.Subscription != nil {
-		subscription = line.Subscription.Clone()
-	}
-
-	convertedLine := &billing.StandardLine{
-		StandardLineBase: billing.StandardLineBase{
-			ManagedResource: line.ManagedResource,
-			Metadata:        line.Metadata.Clone(),
-			Annotations:     clonedAnnotations,
-			ManagedBy:       line.ManagedBy,
-			InvoiceID:       invoiceID,
-			Currency:        line.Currency,
-
-			Period: billing.Period{
-				Start: line.ServicePeriod.From,
-				End:   line.ServicePeriod.To,
-			},
-			InvoiceAt: line.InvoiceAt,
-
-			TaxConfig:              taxConfig,
-			RateCardDiscounts:      line.RateCardDiscounts.Clone(),
-			ChildUniqueReferenceID: line.ChildUniqueReferenceID,
-			Subscription:           subscription,
-			SplitLineGroupID:       line.SplitLineGroupID,
-		},
-		UsageBased: &billing.UsageBasedLine{
-			Price:      lo.ToPtr(line.Price),
-			FeatureKey: line.FeatureKey,
-		},
-
-		DBState: nil, // We don't want to reuse the state from the gathering line (so let's make it explicit)
-	}
-
-	return convertedLine, nil
 }
 
 // updateGatheringInvoice updates the gathering invoice's state and if it contains no lines, it will be deleted.
