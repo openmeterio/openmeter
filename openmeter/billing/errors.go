@@ -62,6 +62,7 @@ var (
 	ErrNamespaceLocked = NewValidationError("namespace_locked", "namespace is locked")
 
 	ErrInvoiceLineCreditsNotConsumedFully = NewValidationError("invoice_line_credits_not_consumed_fully", "credits not consumed fully")
+	ErrCannotUpdateChargeManagedLine      = NewValidationError("cannot_update_charge_managed_line", "cannot update charge managed lines, please update the charge instead")
 )
 
 const (

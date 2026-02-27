@@ -39,3 +39,12 @@ var ErrChargeInvalid = models.NewValidationIssue(
 	models.WithCriticalSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
+
+const ErrCodeUnsupported models.ErrorCode = "unsupported"
+
+var ErrUnsupported = models.NewValidationIssue(
+	ErrCodeUnsupported,
+	"unsupported",
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusInternalServerError),
+)

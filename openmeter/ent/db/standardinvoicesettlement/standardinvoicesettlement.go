@@ -60,6 +60,8 @@ const (
 	EdgeCharge = "charge"
 	// EdgeBillingInvoiceLine holds the string denoting the billing_invoice_line edge name in mutations.
 	EdgeBillingInvoiceLine = "billing_invoice_line"
+	// EdgeCreditRealizations holds the string denoting the credit_realizations edge name in mutations.
+	EdgeCreditRealizations = "credit_realizations"
 	// Table holds the table name of the standardinvoicesettlement in the database.
 	Table = "standard_invoice_settlements"
 	// ChargeTable is the table that holds the charge relation/edge.
@@ -76,6 +78,13 @@ const (
 	BillingInvoiceLineInverseTable = "billing_invoice_lines"
 	// BillingInvoiceLineColumn is the table column denoting the billing_invoice_line relation/edge.
 	BillingInvoiceLineColumn = "line_id"
+	// CreditRealizationsTable is the table that holds the credit_realizations relation/edge.
+	CreditRealizationsTable = "charge_credit_realizations"
+	// CreditRealizationsInverseTable is the table name for the ChargeCreditRealization entity.
+	// It exists in this package in order to avoid circular dependency with the "chargecreditrealization" package.
+	CreditRealizationsInverseTable = "charge_credit_realizations"
+	// CreditRealizationsColumn is the table column denoting the credit_realizations relation/edge.
+	CreditRealizationsColumn = "std_realization_id"
 )
 
 // Columns holds all SQL columns for standardinvoicesettlement fields.
@@ -252,6 +261,20 @@ func ByBillingInvoiceLineField(field string, opts ...sql.OrderTermOption) OrderO
 		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceLineStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByCreditRealizationsCount orders the results by credit_realizations count.
+func ByCreditRealizationsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newCreditRealizationsStep(), opts...)
+	}
+}
+
+// ByCreditRealizations orders the results by credit_realizations terms.
+func ByCreditRealizations(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCreditRealizationsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newChargeStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -264,5 +287,12 @@ func newBillingInvoiceLineStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingInvoiceLineInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, false, BillingInvoiceLineTable, BillingInvoiceLineColumn),
+	)
+}
+func newCreditRealizationsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CreditRealizationsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CreditRealizationsTable, CreditRealizationsColumn),
 	)
 }

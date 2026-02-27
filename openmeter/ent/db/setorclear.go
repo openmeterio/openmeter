@@ -2186,6 +2186,48 @@ func (u *ChargeUpdateOne) SetOrClearUniqueReferenceID(value *string) *ChargeUpda
 	return u.SetUniqueReferenceID(*value)
 }
 
+func (u *ChargeCreditRealizationUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeCreditRealizationUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeCreditRealizationUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeCreditRealizationUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeCreditRealizationUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeCreditRealizationUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeCreditRealizationUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeCreditRealizationUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeCreditRealizationUpdate) SetOrClearStdRealizationID(value *string) *ChargeCreditRealizationUpdate {
+	if value == nil {
+		return u.ClearStdRealizationID()
+	}
+	return u.SetStdRealizationID(*value)
+}
+
+func (u *ChargeCreditRealizationUpdateOne) SetOrClearStdRealizationID(value *string) *ChargeCreditRealizationUpdateOne {
+	if value == nil {
+		return u.ClearStdRealizationID()
+	}
+	return u.SetStdRealizationID(*value)
+}
+
 func (u *ChargeFlatFeeUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *ChargeFlatFeeUpdate {
 	if value == nil {
 		return u.ClearDiscounts()
@@ -2212,6 +2254,34 @@ func (u *ChargeFlatFeeUpdateOne) SetOrClearFeatureKey(value *string) *ChargeFlat
 		return u.ClearFeatureKey()
 	}
 	return u.SetFeatureKey(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearAuthorizedTransactionGroupID(value *string) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearAuthorizedTransactionGroupID()
+	}
+	return u.SetAuthorizedTransactionGroupID(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearAuthorizedTransactionGroupID(value *string) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearAuthorizedTransactionGroupID()
+	}
+	return u.SetAuthorizedTransactionGroupID(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearSettledTransactionGroupID(value *string) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearSettledTransactionGroupID()
+	}
+	return u.SetSettledTransactionGroupID(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearSettledTransactionGroupID(value *string) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearSettledTransactionGroupID()
+	}
+	return u.SetSettledTransactionGroupID(*value)
 }
 
 func (u *ChargeUsageBasedUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *ChargeUsageBasedUpdate {
