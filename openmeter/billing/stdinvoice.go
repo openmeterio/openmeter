@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/expand"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -993,8 +994,15 @@ type CreateStandardInvoiceFromGatheringLinesInput struct {
 	Customer customer.CustomerID
 	Currency currencyx.Code
 
-	Lines GatheringLines
+	Lines                       GatheringLines
+	PostCreationCalculationHook PostCreationCalculationHook
 }
+
+type (
+	PostCreationCalculationHook func(StandardInvoice, StandardLine) (LineMutators, error)
+	LineMutator                 func(*StandardLine) error
+	LineMutators                = []LineMutator
+)
 
 func (i CreateStandardInvoiceFromGatheringLinesInput) Validate() error {
 	var errs []error
@@ -1026,4 +1034,16 @@ func (i CreateStandardInvoiceFromGatheringLinesInput) Validate() error {
 	}
 
 	return errors.Join(errs...)
+}
+
+type (
+	StandardInvoiceHook  = models.ServiceHook[StandardInvoice]
+	StandardInvoiceHooks = models.ServiceHookRegistry[StandardInvoice]
+)
+
+func NewSetCreditsAppliedOperation(creditsApplied CreditsApplied) LineMutator {
+	return func(line *StandardLine) error {
+		line.CreditsApplied = creditsApplied
+		return nil
+	}
 }

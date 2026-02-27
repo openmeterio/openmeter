@@ -5,10 +5,9 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func (s *service) GetChargeByID(ctx context.Context, input models.NamespacedID) (charges.Charge, error) {
+func (s *service) GetChargeByID(ctx context.Context, input charges.ChargeID) (charges.Charge, error) {
 	if err := input.Validate(); err != nil {
 		return charges.Charge{}, err
 	}

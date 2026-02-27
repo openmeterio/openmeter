@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/standardinvoicesettlement"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -251,9 +252,45 @@ func (_u *StandardInvoiceSettlementUpdate) SetNillableMeteredPreServicePeriodQua
 	return _u
 }
 
+// AddCreditRealizationIDs adds the "credit_realizations" edge to the ChargeCreditRealization entity by IDs.
+func (_u *StandardInvoiceSettlementUpdate) AddCreditRealizationIDs(ids ...string) *StandardInvoiceSettlementUpdate {
+	_u.mutation.AddCreditRealizationIDs(ids...)
+	return _u
+}
+
+// AddCreditRealizations adds the "credit_realizations" edges to the ChargeCreditRealization entity.
+func (_u *StandardInvoiceSettlementUpdate) AddCreditRealizations(v ...*ChargeCreditRealization) *StandardInvoiceSettlementUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCreditRealizationIDs(ids...)
+}
+
 // Mutation returns the StandardInvoiceSettlementMutation object of the builder.
 func (_u *StandardInvoiceSettlementUpdate) Mutation() *StandardInvoiceSettlementMutation {
 	return _u.mutation
+}
+
+// ClearCreditRealizations clears all "credit_realizations" edges to the ChargeCreditRealization entity.
+func (_u *StandardInvoiceSettlementUpdate) ClearCreditRealizations() *StandardInvoiceSettlementUpdate {
+	_u.mutation.ClearCreditRealizations()
+	return _u
+}
+
+// RemoveCreditRealizationIDs removes the "credit_realizations" edge to ChargeCreditRealization entities by IDs.
+func (_u *StandardInvoiceSettlementUpdate) RemoveCreditRealizationIDs(ids ...string) *StandardInvoiceSettlementUpdate {
+	_u.mutation.RemoveCreditRealizationIDs(ids...)
+	return _u
+}
+
+// RemoveCreditRealizations removes "credit_realizations" edges to ChargeCreditRealization entities.
+func (_u *StandardInvoiceSettlementUpdate) RemoveCreditRealizations(v ...*ChargeCreditRealization) *StandardInvoiceSettlementUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCreditRealizationIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -373,6 +410,51 @@ func (_u *StandardInvoiceSettlementUpdate) sqlSave(ctx context.Context) (_node i
 	}
 	if value, ok := _u.mutation.MeteredPreServicePeriodQuantity(); ok {
 		_spec.SetField(standardinvoicesettlement.FieldMeteredPreServicePeriodQuantity, field.TypeOther, value)
+	}
+	if _u.mutation.CreditRealizationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   standardinvoicesettlement.CreditRealizationsTable,
+			Columns: []string{standardinvoicesettlement.CreditRealizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditrealization.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCreditRealizationsIDs(); len(nodes) > 0 && !_u.mutation.CreditRealizationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   standardinvoicesettlement.CreditRealizationsTable,
+			Columns: []string{standardinvoicesettlement.CreditRealizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditrealization.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CreditRealizationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   standardinvoicesettlement.CreditRealizationsTable,
+			Columns: []string{standardinvoicesettlement.CreditRealizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditrealization.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -614,9 +696,45 @@ func (_u *StandardInvoiceSettlementUpdateOne) SetNillableMeteredPreServicePeriod
 	return _u
 }
 
+// AddCreditRealizationIDs adds the "credit_realizations" edge to the ChargeCreditRealization entity by IDs.
+func (_u *StandardInvoiceSettlementUpdateOne) AddCreditRealizationIDs(ids ...string) *StandardInvoiceSettlementUpdateOne {
+	_u.mutation.AddCreditRealizationIDs(ids...)
+	return _u
+}
+
+// AddCreditRealizations adds the "credit_realizations" edges to the ChargeCreditRealization entity.
+func (_u *StandardInvoiceSettlementUpdateOne) AddCreditRealizations(v ...*ChargeCreditRealization) *StandardInvoiceSettlementUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCreditRealizationIDs(ids...)
+}
+
 // Mutation returns the StandardInvoiceSettlementMutation object of the builder.
 func (_u *StandardInvoiceSettlementUpdateOne) Mutation() *StandardInvoiceSettlementMutation {
 	return _u.mutation
+}
+
+// ClearCreditRealizations clears all "credit_realizations" edges to the ChargeCreditRealization entity.
+func (_u *StandardInvoiceSettlementUpdateOne) ClearCreditRealizations() *StandardInvoiceSettlementUpdateOne {
+	_u.mutation.ClearCreditRealizations()
+	return _u
+}
+
+// RemoveCreditRealizationIDs removes the "credit_realizations" edge to ChargeCreditRealization entities by IDs.
+func (_u *StandardInvoiceSettlementUpdateOne) RemoveCreditRealizationIDs(ids ...string) *StandardInvoiceSettlementUpdateOne {
+	_u.mutation.RemoveCreditRealizationIDs(ids...)
+	return _u
+}
+
+// RemoveCreditRealizations removes "credit_realizations" edges to ChargeCreditRealization entities.
+func (_u *StandardInvoiceSettlementUpdateOne) RemoveCreditRealizations(v ...*ChargeCreditRealization) *StandardInvoiceSettlementUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCreditRealizationIDs(ids...)
 }
 
 // Where appends a list predicates to the StandardInvoiceSettlementUpdate builder.
@@ -766,6 +884,51 @@ func (_u *StandardInvoiceSettlementUpdateOne) sqlSave(ctx context.Context) (_nod
 	}
 	if value, ok := _u.mutation.MeteredPreServicePeriodQuantity(); ok {
 		_spec.SetField(standardinvoicesettlement.FieldMeteredPreServicePeriodQuantity, field.TypeOther, value)
+	}
+	if _u.mutation.CreditRealizationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   standardinvoicesettlement.CreditRealizationsTable,
+			Columns: []string{standardinvoicesettlement.CreditRealizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditrealization.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCreditRealizationsIDs(); len(nodes) > 0 && !_u.mutation.CreditRealizationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   standardinvoicesettlement.CreditRealizationsTable,
+			Columns: []string{standardinvoicesettlement.CreditRealizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditrealization.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CreditRealizationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   standardinvoicesettlement.CreditRealizationsTable,
+			Columns: []string{standardinvoicesettlement.CreditRealizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditrealization.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &StandardInvoiceSettlement{config: _u.config}
 	_spec.Assign = _node.assignValues

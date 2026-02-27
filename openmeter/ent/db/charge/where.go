@@ -1385,6 +1385,29 @@ func HasStandardInvoiceSettlmentsWith(preds ...predicate.StandardInvoiceSettleme
 	})
 }
 
+// HasCreditRealizations applies the HasEdge predicate on the "credit_realizations" edge.
+func HasCreditRealizations() predicate.Charge {
+	return predicate.Charge(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, CreditRealizationsTable, CreditRealizationsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCreditRealizationsWith applies the HasEdge predicate on the "credit_realizations" edge with a given conditions (other predicates).
+func HasCreditRealizationsWith(preds ...predicate.ChargeCreditRealization) predicate.Charge {
+	return predicate.Charge(func(s *sql.Selector) {
+		step := newCreditRealizationsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasBillingInvoiceLines applies the HasEdge predicate on the "billing_invoice_lines" edge.
 func HasBillingInvoiceLines() predicate.Charge {
 	return predicate.Charge(func(s *sql.Selector) {

@@ -372,6 +372,7 @@ type GatheringLineBase struct {
 	ChildUniqueReferenceID *string                `json:"childUniqueReferenceID,omitempty"`
 	Subscription           *SubscriptionReference `json:"subscription,omitempty"`
 	SplitLineGroupID       *string                `json:"splitLineGroupID,omitempty"`
+	ChargeID               *string                `json:"chargeId,omitempty"`
 
 	// TODO: Remove once we have dedicated db field for gathering invoice lines
 	UBPConfigID string `json:"ubpConfigID"`
@@ -660,33 +661,57 @@ func (g *GatheringLine) SetSplitLineHierarchy(hierarchy *SplitLineHierarchy) {
 	g.SplitLineHierarchy = hierarchy
 }
 
-func (g GatheringLine) AsStandardLine() StandardLine {
-	return StandardLine{
+func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error) {
+	clonedAnnotations, err := g.Annotations.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("cloning annotations: %w", err)
+	}
+
+	if invoiceID == "" {
+		return nil, errors.New("invoice ID is required")
+	}
+
+	var taxConfig *productcatalog.TaxConfig
+	if g.TaxConfig != nil {
+		taxConfig = lo.ToPtr(g.TaxConfig.Clone())
+	}
+
+	var subscription *SubscriptionReference
+	if g.Subscription != nil {
+		subscription = g.Subscription.Clone()
+	}
+
+	convertedLine := &StandardLine{
 		StandardLineBase: StandardLineBase{
 			ManagedResource: g.ManagedResource,
-			Metadata:        g.Metadata,
-			Annotations:     g.Annotations,
+			Metadata:        g.Metadata.Clone(),
+			Annotations:     clonedAnnotations,
 			ManagedBy:       g.ManagedBy,
-			InvoiceID:       g.InvoiceID,
+			InvoiceID:       invoiceID,
 			Currency:        g.Currency,
+
 			Period: Period{
 				Start: g.ServicePeriod.From,
 				End:   g.ServicePeriod.To,
 			},
-			InvoiceAt:              g.InvoiceAt,
-			SplitLineGroupID:       g.SplitLineGroupID,
+			InvoiceAt: g.InvoiceAt,
+
+			TaxConfig:              taxConfig,
+			RateCardDiscounts:      g.RateCardDiscounts.Clone(),
 			ChildUniqueReferenceID: g.ChildUniqueReferenceID,
-			TaxConfig:              g.TaxConfig,
-			RateCardDiscounts:      g.RateCardDiscounts,
-			Subscription:           g.Subscription,
+			Subscription:           subscription,
+			SplitLineGroupID:       g.SplitLineGroupID,
+			ChargeID:               g.ChargeID,
 		},
 		UsageBased: &UsageBasedLine{
-			Price:      &g.Price,
+			Price:      lo.ToPtr(g.Price),
 			FeatureKey: g.FeatureKey,
 		},
 
-		SplitLineHierarchy: g.SplitLineHierarchy,
+		DBState: nil, // We don't want to reuse the state from the gathering line (so let's make it explicit)
 	}
+
+	return convertedLine, nil
 }
 
 type CreatePendingInvoiceLinesInput struct {

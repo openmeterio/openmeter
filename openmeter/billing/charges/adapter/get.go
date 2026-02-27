@@ -8,11 +8,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbcharge "github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func (a *adapter) GetChargeByID(ctx context.Context, input models.NamespacedID) (charges.Charge, error) {
+func (a *adapter) GetChargeByID(ctx context.Context, input charges.ChargeID) (charges.Charge, error) {
 	if err := input.Validate(); err != nil {
 		return charges.Charge{}, err
 	}
@@ -45,6 +44,7 @@ func (a *adapter) GetChargesByIDs(ctx context.Context, namespace string, ids []s
 			WithFlatFee().
 			WithUsageBased().
 			WithCreditPurchase().
+			WithCreditRealizations().
 			All(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("querying charges: %w", err)

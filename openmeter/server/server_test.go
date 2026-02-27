@@ -1544,6 +1544,9 @@ func (n NoopBillingService) RecalculateGatheringInvoices(ctx context.Context, in
 	return nil
 }
 
+func (n NoopBillingService) RegisterStandardInvoiceHooks(hooks ...billing.StandardInvoiceHook) {
+}
+
 // GatheringInvoiceService methods
 func (n NoopBillingService) InvoicePendingLines(ctx context.Context, input billing.InvoicePendingLinesInput) ([]billing.StandardInvoice, error) {
 	return []billing.StandardInvoice{}, nil
