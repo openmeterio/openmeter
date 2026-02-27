@@ -14,6 +14,8 @@ servers:
     description: Cloud
     variables: {}
 tags:
+  - name: OpenMeter LLM Cost
+    description: LLM cost database providing normalized pricing data for language models across providers. Prices are synced from multiple external sources and auto-confirmed when they agree.
   - name: OpenMeter Tax
     description: Tax codes are used to calculate taxes for customers.
   - name: OpenMeter Billing
@@ -618,6 +620,239 @@ paths:
                 - type: array
                   items:
                     $ref: '#/components/schemas/MeteringEvent'
+  /openmeter/llm-cost/overrides:
+    get:
+      operationId: list-llm-cost-overrides
+      summary: List LLM cost overrides
+      description: List per-namespace price overrides.
+      parameters:
+        - name: filter
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/ListLLMCostPricesParamsFilter'
+          style: deepObject
+        - $ref: '#/components/parameters/PagePaginationQuery'
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PricePagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter LLM Cost
+      x-unstable: true
+    post:
+      operationId: create-llm-cost-override
+      summary: Create LLM cost override
+      description: Create a per-namespace price override.
+      responses:
+        '201':
+          description: Price created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LLMCostPrice'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter LLM Cost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LLMCostOverrideCreate'
+      x-unstable: true
+  /openmeter/llm-cost/overrides/{overrideId}:
+    put:
+      operationId: update-llm-cost-override
+      summary: Update LLM cost override
+      description: Update a per-namespace price override.
+      parameters:
+        - name: overrideId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LLMCostPrice'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter LLM Cost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LLMCostOverrideUpdate'
+      x-unstable: true
+    delete:
+      operationId: delete-llm-cost-override
+      summary: Delete LLM cost override
+      description: Delete a per-namespace price override.
+      parameters:
+        - name: overrideId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter LLM Cost
+      x-unstable: true
+  /openmeter/llm-cost/prices:
+    get:
+      operationId: list-llm-cost-prices
+      summary: List LLM cost prices
+      description: |-
+        List global LLM cost prices.
+        Returns the global (synced) price database of LLM model costs.
+      parameters:
+        - name: filter
+          in: query
+          required: false
+          description: Filter prices.
+          schema:
+            $ref: '#/components/schemas/ListLLMCostPricesParamsFilter'
+          style: deepObject
+        - name: at
+          in: query
+          required: false
+          description: 'Point-in-time query: return prices effective at this time.'
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          explode: false
+          style: form
+        - $ref: '#/components/parameters/PagePaginationQuery'
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PricePagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter LLM Cost
+      x-unstable: true
+  /openmeter/llm-cost/prices/resolve:
+    get:
+      operationId: resolve-llm-cost-price
+      summary: Resolve LLM cost price
+      description: |-
+        Resolve the effective price for a model in the current namespace.
+        Returns namespace override if available, otherwise the global price.
+      parameters:
+        - name: provider
+          in: query
+          required: true
+          description: Provider to resolve price for.
+          schema:
+            type: string
+          explode: false
+          style: form
+        - name: model_id
+          in: query
+          required: true
+          description: Model ID to resolve price for.
+          schema:
+            type: string
+          explode: false
+          style: form
+        - name: at
+          in: query
+          required: false
+          description: 'Point-in-time: resolve price effective at this time.'
+          schema:
+            $ref: '#/components/schemas/DateTime'
+          explode: false
+          style: form
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LLMCostPrice'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter LLM Cost
+      x-unstable: true
+  /openmeter/llm-cost/prices/{priceId}:
+    get:
+      operationId: get-llm-cost-price
+      summary: Get LLM cost price
+      description: Get a specific LLM cost price by ID.
+      parameters:
+        - name: priceId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LLMCostPrice'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter LLM Cost
+      x-unstable: true
   /openmeter/meters:
     post:
       operationId: create-meter
@@ -3414,6 +3649,147 @@ components:
       title: ISO 8601 Duration
       example: P1Y
       format: ISO8601
+    LLMCostModelPricing:
+      type: object
+      required:
+        - input_per_token
+        - output_per_token
+      properties:
+        input_per_token:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Input price per token (USD).
+        output_per_token:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Output price per token (USD).
+        input_cached_per_token:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Cached input price per token (USD).
+        reasoning_per_token:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Reasoning output price per token (USD).
+        cache_write_per_token:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Cache write price per token (USD).
+      description: Token pricing for an LLM model, denominated in USD per token.
+    LLMCostOverrideCreate:
+      type: object
+      required:
+        - provider
+        - model_id
+        - pricing
+        - effective_from
+      properties:
+        provider:
+          type: string
+          description: Provider/vendor of the model.
+        model_id:
+          type: string
+          description: Canonical model identifier.
+        model_name:
+          type: string
+          description: Human-readable model name.
+        pricing:
+          allOf:
+            - $ref: '#/components/schemas/LLMCostModelPricing'
+          description: Token pricing data.
+        effective_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When this override becomes effective.
+        effective_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When this override expires.
+      description: Input for creating a per-namespace price override.
+    LLMCostOverrideUpdate:
+      type: object
+      properties:
+        pricing:
+          allOf:
+            - $ref: '#/components/schemas/LLMCostModelPricing'
+          description: Updated token pricing data.
+        effective_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Updated expiry time.
+      description: Input for updating a per-namespace price override.
+    LLMCostPrice:
+      type: object
+      required:
+        - id
+        - provider
+        - model_id
+        - model_name
+        - pricing
+        - currency
+        - source
+        - effective_from
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: Unique identifier.
+          readOnly: true
+        provider:
+          type: string
+          description: Provider/vendor of the model (e.g., "openai", "anthropic").
+          readOnly: true
+        model_id:
+          type: string
+          description: Canonical model identifier (e.g., "gpt-4", "claude-3-5-sonnet").
+          readOnly: true
+        model_name:
+          type: string
+          description: Human-readable model name.
+          readOnly: true
+        pricing:
+          allOf:
+            - $ref: '#/components/schemas/LLMCostModelPricing'
+          description: Token pricing data.
+          readOnly: true
+        currency:
+          type: string
+          description: Currency code (currently always "USD").
+          readOnly: true
+        source:
+          allOf:
+            - $ref: '#/components/schemas/LLMCostPriceSource'
+          description: Where this price came from.
+          readOnly: true
+        effective_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When this price becomes effective.
+          readOnly: true
+        effective_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: When this price expires (null = current).
+          readOnly: true
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Creation timestamp.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Last update timestamp.
+          readOnly: true
+      description: |-
+        An LLM cost price record, representing the cost per token
+        for a specific model from a specific provider.
+    LLMCostPriceSource:
+      type: string
+      enum:
+        - manual
+        - system
+      description: Identifies where an LLM cost price came from.
     ListCostBasesParamsFilter:
       type: object
       properties:
@@ -3452,6 +3828,16 @@ components:
             Filter customers by key.
             Case-insensitive partial match.
       description: Filter options for listing customers.
+    ListLLMCostPricesParamsFilter:
+      type: object
+      properties:
+        provider:
+          type: string
+          description: Filter by provider.
+        model_id:
+          type: string
+          description: Filter by model ID.
+      description: Filter options for listing LLM cost prices.
     Meter:
       type: object
       required:
@@ -3654,6 +4040,19 @@ components:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?$
       description: Numeric represents an arbitrary precision number.
+    PricePagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/LLMCostPrice'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      description: Page paginated response.
     RecurringPeriod:
       type: object
       required:

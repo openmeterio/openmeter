@@ -34,6 +34,22 @@ const (
 	FieldMeterGroupByFilters = "meter_group_by_filters"
 	// FieldAdvancedMeterGroupByFilters holds the string denoting the advanced_meter_group_by_filters field in the database.
 	FieldAdvancedMeterGroupByFilters = "advanced_meter_group_by_filters"
+	// FieldUnitCostType holds the string denoting the unit_cost_type field in the database.
+	FieldUnitCostType = "unit_cost_type"
+	// FieldUnitCostManualAmount holds the string denoting the unit_cost_manual_amount field in the database.
+	FieldUnitCostManualAmount = "unit_cost_manual_amount"
+	// FieldUnitCostLlmProviderProperty holds the string denoting the unit_cost_llm_provider_property field in the database.
+	FieldUnitCostLlmProviderProperty = "unit_cost_llm_provider_property"
+	// FieldUnitCostLlmProvider holds the string denoting the unit_cost_llm_provider field in the database.
+	FieldUnitCostLlmProvider = "unit_cost_llm_provider"
+	// FieldUnitCostLlmModelProperty holds the string denoting the unit_cost_llm_model_property field in the database.
+	FieldUnitCostLlmModelProperty = "unit_cost_llm_model_property"
+	// FieldUnitCostLlmModel holds the string denoting the unit_cost_llm_model field in the database.
+	FieldUnitCostLlmModel = "unit_cost_llm_model"
+	// FieldUnitCostLlmTokenTypeProperty holds the string denoting the unit_cost_llm_token_type_property field in the database.
+	FieldUnitCostLlmTokenTypeProperty = "unit_cost_llm_token_type_property"
+	// FieldUnitCostLlmTokenType holds the string denoting the unit_cost_llm_token_type field in the database.
+	FieldUnitCostLlmTokenType = "unit_cost_llm_token_type"
 	// FieldArchivedAt holds the string denoting the archived_at field in the database.
 	FieldArchivedAt = "archived_at"
 	// EdgeEntitlement holds the string denoting the entitlement edge name in mutations.
@@ -80,6 +96,14 @@ var Columns = []string{
 	FieldMeterSlug,
 	FieldMeterGroupByFilters,
 	FieldAdvancedMeterGroupByFilters,
+	FieldUnitCostType,
+	FieldUnitCostManualAmount,
+	FieldUnitCostLlmProviderProperty,
+	FieldUnitCostLlmProvider,
+	FieldUnitCostLlmModelProperty,
+	FieldUnitCostLlmModel,
+	FieldUnitCostLlmTokenTypeProperty,
+	FieldUnitCostLlmTokenType,
 	FieldArchivedAt,
 }
 
@@ -151,6 +175,46 @@ func ByKey(opts ...sql.OrderTermOption) OrderOption {
 // ByMeterSlug orders the results by the meter_slug field.
 func ByMeterSlug(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMeterSlug, opts...).ToFunc()
+}
+
+// ByUnitCostType orders the results by the unit_cost_type field.
+func ByUnitCostType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUnitCostType, opts...).ToFunc()
+}
+
+// ByUnitCostManualAmount orders the results by the unit_cost_manual_amount field.
+func ByUnitCostManualAmount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUnitCostManualAmount, opts...).ToFunc()
+}
+
+// ByUnitCostLlmProviderProperty orders the results by the unit_cost_llm_provider_property field.
+func ByUnitCostLlmProviderProperty(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUnitCostLlmProviderProperty, opts...).ToFunc()
+}
+
+// ByUnitCostLlmProvider orders the results by the unit_cost_llm_provider field.
+func ByUnitCostLlmProvider(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUnitCostLlmProvider, opts...).ToFunc()
+}
+
+// ByUnitCostLlmModelProperty orders the results by the unit_cost_llm_model_property field.
+func ByUnitCostLlmModelProperty(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUnitCostLlmModelProperty, opts...).ToFunc()
+}
+
+// ByUnitCostLlmModel orders the results by the unit_cost_llm_model field.
+func ByUnitCostLlmModel(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUnitCostLlmModel, opts...).ToFunc()
+}
+
+// ByUnitCostLlmTokenTypeProperty orders the results by the unit_cost_llm_token_type_property field.
+func ByUnitCostLlmTokenTypeProperty(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUnitCostLlmTokenTypeProperty, opts...).ToFunc()
+}
+
+// ByUnitCostLlmTokenType orders the results by the unit_cost_llm_token_type field.
+func ByUnitCostLlmTokenType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUnitCostLlmTokenType, opts...).ToFunc()
 }
 
 // ByArchivedAt orders the results by the archived_at field.

@@ -49,6 +49,7 @@ import (
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/llmcostprice"
 
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
@@ -164,6 +165,7 @@ func checkColumn(t, c string) error {
 			entitlement.Table:                                      entitlement.ValidColumn,
 			dbfeature.Table:                                        dbfeature.ValidColumn,
 			dbgrant.Table:                                          dbgrant.ValidColumn,
+			llmcostprice.Table:                                     llmcostprice.ValidColumn,
 			dbmeter.Table:                                          dbmeter.ValidColumn,
 			notificationchannel.Table:                              notificationchannel.ValidColumn,
 			notificationevent.Table:                                notificationevent.ValidColumn,

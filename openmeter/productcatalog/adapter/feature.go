@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
@@ -48,6 +50,26 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feat feature.Creat
 		query = query.
 			SetAdvancedMeterGroupByFilters(feat.MeterGroupByFilters).
 			SetMeterGroupByFilters(feature.ConvertMeterGroupByFiltersToMapString(feat.MeterGroupByFilters))
+	}
+
+	if feat.UnitCost != nil {
+		query = query.SetUnitCostType(string(feat.UnitCost.Type))
+		switch feat.UnitCost.Type {
+		case feature.UnitCostTypeManual:
+			if feat.UnitCost.Manual != nil {
+				query = query.SetUnitCostManualAmount(feat.UnitCost.Manual.Amount)
+			}
+		case feature.UnitCostTypeLLM:
+			if feat.UnitCost.LLM != nil {
+				query = query.
+					SetNillableUnitCostLlmProviderProperty(lo.EmptyableToPtr(feat.UnitCost.LLM.ProviderProperty)).
+					SetNillableUnitCostLlmProvider(lo.EmptyableToPtr(feat.UnitCost.LLM.Provider)).
+					SetNillableUnitCostLlmModelProperty(lo.EmptyableToPtr(feat.UnitCost.LLM.ModelProperty)).
+					SetNillableUnitCostLlmModel(lo.EmptyableToPtr(feat.UnitCost.LLM.Model)).
+					SetNillableUnitCostLlmTokenTypeProperty(lo.EmptyableToPtr(feat.UnitCost.LLM.TokenTypeProperty)).
+					SetNillableUnitCostLlmTokenType(lo.EmptyableToPtr(feat.UnitCost.LLM.TokenType))
+			}
+		}
 	}
 
 	entity, err := query.
@@ -268,6 +290,34 @@ func MapFeatureEntity(entity *db.Feature) feature.Feature {
 		f.MeterGroupByFilters = entity.AdvancedMeterGroupByFilters
 	} else if len(entity.MeterGroupByFilters) > 0 {
 		f.MeterGroupByFilters = feature.ConvertMapStringToMeterGroupByFilters(entity.MeterGroupByFilters)
+	}
+
+	if entity.UnitCostType != nil {
+		switch feature.UnitCostType(*entity.UnitCostType) {
+		case feature.UnitCostTypeManual:
+			var amount alpacadecimal.Decimal
+			if entity.UnitCostManualAmount != nil {
+				amount = *entity.UnitCostManualAmount
+			}
+			f.UnitCost = &feature.UnitCost{
+				Type: feature.UnitCostTypeManual,
+				Manual: &feature.ManualUnitCost{
+					Amount: amount,
+				},
+			}
+		case feature.UnitCostTypeLLM:
+			f.UnitCost = &feature.UnitCost{
+				Type: feature.UnitCostTypeLLM,
+				LLM: &feature.LLMUnitCost{
+					ProviderProperty:  lo.FromPtrOr(entity.UnitCostLlmProviderProperty, ""),
+					Provider:          lo.FromPtrOr(entity.UnitCostLlmProvider, ""),
+					ModelProperty:     lo.FromPtrOr(entity.UnitCostLlmModelProperty, ""),
+					Model:             lo.FromPtrOr(entity.UnitCostLlmModel, ""),
+					TokenTypeProperty: lo.FromPtrOr(entity.UnitCostLlmTokenTypeProperty, ""),
+					TokenType:         lo.FromPtrOr(entity.UnitCostLlmTokenType, ""),
+				},
+			}
+		}
 	}
 
 	return f

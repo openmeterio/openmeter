@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
@@ -105,6 +106,166 @@ func (_u *FeatureUpdate) SetAdvancedMeterGroupByFilters(v feature.MeterGroupByFi
 // ClearAdvancedMeterGroupByFilters clears the value of the "advanced_meter_group_by_filters" field.
 func (_u *FeatureUpdate) ClearAdvancedMeterGroupByFilters() *FeatureUpdate {
 	_u.mutation.ClearAdvancedMeterGroupByFilters()
+	return _u
+}
+
+// SetUnitCostType sets the "unit_cost_type" field.
+func (_u *FeatureUpdate) SetUnitCostType(v string) *FeatureUpdate {
+	_u.mutation.SetUnitCostType(v)
+	return _u
+}
+
+// SetNillableUnitCostType sets the "unit_cost_type" field if the given value is not nil.
+func (_u *FeatureUpdate) SetNillableUnitCostType(v *string) *FeatureUpdate {
+	if v != nil {
+		_u.SetUnitCostType(*v)
+	}
+	return _u
+}
+
+// ClearUnitCostType clears the value of the "unit_cost_type" field.
+func (_u *FeatureUpdate) ClearUnitCostType() *FeatureUpdate {
+	_u.mutation.ClearUnitCostType()
+	return _u
+}
+
+// SetUnitCostManualAmount sets the "unit_cost_manual_amount" field.
+func (_u *FeatureUpdate) SetUnitCostManualAmount(v alpacadecimal.Decimal) *FeatureUpdate {
+	_u.mutation.SetUnitCostManualAmount(v)
+	return _u
+}
+
+// SetNillableUnitCostManualAmount sets the "unit_cost_manual_amount" field if the given value is not nil.
+func (_u *FeatureUpdate) SetNillableUnitCostManualAmount(v *alpacadecimal.Decimal) *FeatureUpdate {
+	if v != nil {
+		_u.SetUnitCostManualAmount(*v)
+	}
+	return _u
+}
+
+// ClearUnitCostManualAmount clears the value of the "unit_cost_manual_amount" field.
+func (_u *FeatureUpdate) ClearUnitCostManualAmount() *FeatureUpdate {
+	_u.mutation.ClearUnitCostManualAmount()
+	return _u
+}
+
+// SetUnitCostLlmProviderProperty sets the "unit_cost_llm_provider_property" field.
+func (_u *FeatureUpdate) SetUnitCostLlmProviderProperty(v string) *FeatureUpdate {
+	_u.mutation.SetUnitCostLlmProviderProperty(v)
+	return _u
+}
+
+// SetNillableUnitCostLlmProviderProperty sets the "unit_cost_llm_provider_property" field if the given value is not nil.
+func (_u *FeatureUpdate) SetNillableUnitCostLlmProviderProperty(v *string) *FeatureUpdate {
+	if v != nil {
+		_u.SetUnitCostLlmProviderProperty(*v)
+	}
+	return _u
+}
+
+// ClearUnitCostLlmProviderProperty clears the value of the "unit_cost_llm_provider_property" field.
+func (_u *FeatureUpdate) ClearUnitCostLlmProviderProperty() *FeatureUpdate {
+	_u.mutation.ClearUnitCostLlmProviderProperty()
+	return _u
+}
+
+// SetUnitCostLlmProvider sets the "unit_cost_llm_provider" field.
+func (_u *FeatureUpdate) SetUnitCostLlmProvider(v string) *FeatureUpdate {
+	_u.mutation.SetUnitCostLlmProvider(v)
+	return _u
+}
+
+// SetNillableUnitCostLlmProvider sets the "unit_cost_llm_provider" field if the given value is not nil.
+func (_u *FeatureUpdate) SetNillableUnitCostLlmProvider(v *string) *FeatureUpdate {
+	if v != nil {
+		_u.SetUnitCostLlmProvider(*v)
+	}
+	return _u
+}
+
+// ClearUnitCostLlmProvider clears the value of the "unit_cost_llm_provider" field.
+func (_u *FeatureUpdate) ClearUnitCostLlmProvider() *FeatureUpdate {
+	_u.mutation.ClearUnitCostLlmProvider()
+	return _u
+}
+
+// SetUnitCostLlmModelProperty sets the "unit_cost_llm_model_property" field.
+func (_u *FeatureUpdate) SetUnitCostLlmModelProperty(v string) *FeatureUpdate {
+	_u.mutation.SetUnitCostLlmModelProperty(v)
+	return _u
+}
+
+// SetNillableUnitCostLlmModelProperty sets the "unit_cost_llm_model_property" field if the given value is not nil.
+func (_u *FeatureUpdate) SetNillableUnitCostLlmModelProperty(v *string) *FeatureUpdate {
+	if v != nil {
+		_u.SetUnitCostLlmModelProperty(*v)
+	}
+	return _u
+}
+
+// ClearUnitCostLlmModelProperty clears the value of the "unit_cost_llm_model_property" field.
+func (_u *FeatureUpdate) ClearUnitCostLlmModelProperty() *FeatureUpdate {
+	_u.mutation.ClearUnitCostLlmModelProperty()
+	return _u
+}
+
+// SetUnitCostLlmModel sets the "unit_cost_llm_model" field.
+func (_u *FeatureUpdate) SetUnitCostLlmModel(v string) *FeatureUpdate {
+	_u.mutation.SetUnitCostLlmModel(v)
+	return _u
+}
+
+// SetNillableUnitCostLlmModel sets the "unit_cost_llm_model" field if the given value is not nil.
+func (_u *FeatureUpdate) SetNillableUnitCostLlmModel(v *string) *FeatureUpdate {
+	if v != nil {
+		_u.SetUnitCostLlmModel(*v)
+	}
+	return _u
+}
+
+// ClearUnitCostLlmModel clears the value of the "unit_cost_llm_model" field.
+func (_u *FeatureUpdate) ClearUnitCostLlmModel() *FeatureUpdate {
+	_u.mutation.ClearUnitCostLlmModel()
+	return _u
+}
+
+// SetUnitCostLlmTokenTypeProperty sets the "unit_cost_llm_token_type_property" field.
+func (_u *FeatureUpdate) SetUnitCostLlmTokenTypeProperty(v string) *FeatureUpdate {
+	_u.mutation.SetUnitCostLlmTokenTypeProperty(v)
+	return _u
+}
+
+// SetNillableUnitCostLlmTokenTypeProperty sets the "unit_cost_llm_token_type_property" field if the given value is not nil.
+func (_u *FeatureUpdate) SetNillableUnitCostLlmTokenTypeProperty(v *string) *FeatureUpdate {
+	if v != nil {
+		_u.SetUnitCostLlmTokenTypeProperty(*v)
+	}
+	return _u
+}
+
+// ClearUnitCostLlmTokenTypeProperty clears the value of the "unit_cost_llm_token_type_property" field.
+func (_u *FeatureUpdate) ClearUnitCostLlmTokenTypeProperty() *FeatureUpdate {
+	_u.mutation.ClearUnitCostLlmTokenTypeProperty()
+	return _u
+}
+
+// SetUnitCostLlmTokenType sets the "unit_cost_llm_token_type" field.
+func (_u *FeatureUpdate) SetUnitCostLlmTokenType(v string) *FeatureUpdate {
+	_u.mutation.SetUnitCostLlmTokenType(v)
+	return _u
+}
+
+// SetNillableUnitCostLlmTokenType sets the "unit_cost_llm_token_type" field if the given value is not nil.
+func (_u *FeatureUpdate) SetNillableUnitCostLlmTokenType(v *string) *FeatureUpdate {
+	if v != nil {
+		_u.SetUnitCostLlmTokenType(*v)
+	}
+	return _u
+}
+
+// ClearUnitCostLlmTokenType clears the value of the "unit_cost_llm_token_type" field.
+func (_u *FeatureUpdate) ClearUnitCostLlmTokenType() *FeatureUpdate {
+	_u.mutation.ClearUnitCostLlmTokenType()
 	return _u
 }
 
@@ -331,6 +492,54 @@ func (_u *FeatureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.AdvancedMeterGroupByFiltersCleared() {
 		_spec.ClearField(dbfeature.FieldAdvancedMeterGroupByFilters, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.UnitCostType(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostType, field.TypeString, value)
+	}
+	if _u.mutation.UnitCostTypeCleared() {
+		_spec.ClearField(dbfeature.FieldUnitCostType, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitCostManualAmount(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostManualAmount, field.TypeOther, value)
+	}
+	if _u.mutation.UnitCostManualAmountCleared() {
+		_spec.ClearField(dbfeature.FieldUnitCostManualAmount, field.TypeOther)
+	}
+	if value, ok := _u.mutation.UnitCostLlmProviderProperty(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostLlmProviderProperty, field.TypeString, value)
+	}
+	if _u.mutation.UnitCostLlmProviderPropertyCleared() {
+		_spec.ClearField(dbfeature.FieldUnitCostLlmProviderProperty, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitCostLlmProvider(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostLlmProvider, field.TypeString, value)
+	}
+	if _u.mutation.UnitCostLlmProviderCleared() {
+		_spec.ClearField(dbfeature.FieldUnitCostLlmProvider, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitCostLlmModelProperty(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostLlmModelProperty, field.TypeString, value)
+	}
+	if _u.mutation.UnitCostLlmModelPropertyCleared() {
+		_spec.ClearField(dbfeature.FieldUnitCostLlmModelProperty, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitCostLlmModel(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostLlmModel, field.TypeString, value)
+	}
+	if _u.mutation.UnitCostLlmModelCleared() {
+		_spec.ClearField(dbfeature.FieldUnitCostLlmModel, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitCostLlmTokenTypeProperty(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostLlmTokenTypeProperty, field.TypeString, value)
+	}
+	if _u.mutation.UnitCostLlmTokenTypePropertyCleared() {
+		_spec.ClearField(dbfeature.FieldUnitCostLlmTokenTypeProperty, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitCostLlmTokenType(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostLlmTokenType, field.TypeString, value)
+	}
+	if _u.mutation.UnitCostLlmTokenTypeCleared() {
+		_spec.ClearField(dbfeature.FieldUnitCostLlmTokenType, field.TypeString)
 	}
 	if value, ok := _u.mutation.ArchivedAt(); ok {
 		_spec.SetField(dbfeature.FieldArchivedAt, field.TypeTime, value)
@@ -566,6 +775,166 @@ func (_u *FeatureUpdateOne) SetAdvancedMeterGroupByFilters(v feature.MeterGroupB
 // ClearAdvancedMeterGroupByFilters clears the value of the "advanced_meter_group_by_filters" field.
 func (_u *FeatureUpdateOne) ClearAdvancedMeterGroupByFilters() *FeatureUpdateOne {
 	_u.mutation.ClearAdvancedMeterGroupByFilters()
+	return _u
+}
+
+// SetUnitCostType sets the "unit_cost_type" field.
+func (_u *FeatureUpdateOne) SetUnitCostType(v string) *FeatureUpdateOne {
+	_u.mutation.SetUnitCostType(v)
+	return _u
+}
+
+// SetNillableUnitCostType sets the "unit_cost_type" field if the given value is not nil.
+func (_u *FeatureUpdateOne) SetNillableUnitCostType(v *string) *FeatureUpdateOne {
+	if v != nil {
+		_u.SetUnitCostType(*v)
+	}
+	return _u
+}
+
+// ClearUnitCostType clears the value of the "unit_cost_type" field.
+func (_u *FeatureUpdateOne) ClearUnitCostType() *FeatureUpdateOne {
+	_u.mutation.ClearUnitCostType()
+	return _u
+}
+
+// SetUnitCostManualAmount sets the "unit_cost_manual_amount" field.
+func (_u *FeatureUpdateOne) SetUnitCostManualAmount(v alpacadecimal.Decimal) *FeatureUpdateOne {
+	_u.mutation.SetUnitCostManualAmount(v)
+	return _u
+}
+
+// SetNillableUnitCostManualAmount sets the "unit_cost_manual_amount" field if the given value is not nil.
+func (_u *FeatureUpdateOne) SetNillableUnitCostManualAmount(v *alpacadecimal.Decimal) *FeatureUpdateOne {
+	if v != nil {
+		_u.SetUnitCostManualAmount(*v)
+	}
+	return _u
+}
+
+// ClearUnitCostManualAmount clears the value of the "unit_cost_manual_amount" field.
+func (_u *FeatureUpdateOne) ClearUnitCostManualAmount() *FeatureUpdateOne {
+	_u.mutation.ClearUnitCostManualAmount()
+	return _u
+}
+
+// SetUnitCostLlmProviderProperty sets the "unit_cost_llm_provider_property" field.
+func (_u *FeatureUpdateOne) SetUnitCostLlmProviderProperty(v string) *FeatureUpdateOne {
+	_u.mutation.SetUnitCostLlmProviderProperty(v)
+	return _u
+}
+
+// SetNillableUnitCostLlmProviderProperty sets the "unit_cost_llm_provider_property" field if the given value is not nil.
+func (_u *FeatureUpdateOne) SetNillableUnitCostLlmProviderProperty(v *string) *FeatureUpdateOne {
+	if v != nil {
+		_u.SetUnitCostLlmProviderProperty(*v)
+	}
+	return _u
+}
+
+// ClearUnitCostLlmProviderProperty clears the value of the "unit_cost_llm_provider_property" field.
+func (_u *FeatureUpdateOne) ClearUnitCostLlmProviderProperty() *FeatureUpdateOne {
+	_u.mutation.ClearUnitCostLlmProviderProperty()
+	return _u
+}
+
+// SetUnitCostLlmProvider sets the "unit_cost_llm_provider" field.
+func (_u *FeatureUpdateOne) SetUnitCostLlmProvider(v string) *FeatureUpdateOne {
+	_u.mutation.SetUnitCostLlmProvider(v)
+	return _u
+}
+
+// SetNillableUnitCostLlmProvider sets the "unit_cost_llm_provider" field if the given value is not nil.
+func (_u *FeatureUpdateOne) SetNillableUnitCostLlmProvider(v *string) *FeatureUpdateOne {
+	if v != nil {
+		_u.SetUnitCostLlmProvider(*v)
+	}
+	return _u
+}
+
+// ClearUnitCostLlmProvider clears the value of the "unit_cost_llm_provider" field.
+func (_u *FeatureUpdateOne) ClearUnitCostLlmProvider() *FeatureUpdateOne {
+	_u.mutation.ClearUnitCostLlmProvider()
+	return _u
+}
+
+// SetUnitCostLlmModelProperty sets the "unit_cost_llm_model_property" field.
+func (_u *FeatureUpdateOne) SetUnitCostLlmModelProperty(v string) *FeatureUpdateOne {
+	_u.mutation.SetUnitCostLlmModelProperty(v)
+	return _u
+}
+
+// SetNillableUnitCostLlmModelProperty sets the "unit_cost_llm_model_property" field if the given value is not nil.
+func (_u *FeatureUpdateOne) SetNillableUnitCostLlmModelProperty(v *string) *FeatureUpdateOne {
+	if v != nil {
+		_u.SetUnitCostLlmModelProperty(*v)
+	}
+	return _u
+}
+
+// ClearUnitCostLlmModelProperty clears the value of the "unit_cost_llm_model_property" field.
+func (_u *FeatureUpdateOne) ClearUnitCostLlmModelProperty() *FeatureUpdateOne {
+	_u.mutation.ClearUnitCostLlmModelProperty()
+	return _u
+}
+
+// SetUnitCostLlmModel sets the "unit_cost_llm_model" field.
+func (_u *FeatureUpdateOne) SetUnitCostLlmModel(v string) *FeatureUpdateOne {
+	_u.mutation.SetUnitCostLlmModel(v)
+	return _u
+}
+
+// SetNillableUnitCostLlmModel sets the "unit_cost_llm_model" field if the given value is not nil.
+func (_u *FeatureUpdateOne) SetNillableUnitCostLlmModel(v *string) *FeatureUpdateOne {
+	if v != nil {
+		_u.SetUnitCostLlmModel(*v)
+	}
+	return _u
+}
+
+// ClearUnitCostLlmModel clears the value of the "unit_cost_llm_model" field.
+func (_u *FeatureUpdateOne) ClearUnitCostLlmModel() *FeatureUpdateOne {
+	_u.mutation.ClearUnitCostLlmModel()
+	return _u
+}
+
+// SetUnitCostLlmTokenTypeProperty sets the "unit_cost_llm_token_type_property" field.
+func (_u *FeatureUpdateOne) SetUnitCostLlmTokenTypeProperty(v string) *FeatureUpdateOne {
+	_u.mutation.SetUnitCostLlmTokenTypeProperty(v)
+	return _u
+}
+
+// SetNillableUnitCostLlmTokenTypeProperty sets the "unit_cost_llm_token_type_property" field if the given value is not nil.
+func (_u *FeatureUpdateOne) SetNillableUnitCostLlmTokenTypeProperty(v *string) *FeatureUpdateOne {
+	if v != nil {
+		_u.SetUnitCostLlmTokenTypeProperty(*v)
+	}
+	return _u
+}
+
+// ClearUnitCostLlmTokenTypeProperty clears the value of the "unit_cost_llm_token_type_property" field.
+func (_u *FeatureUpdateOne) ClearUnitCostLlmTokenTypeProperty() *FeatureUpdateOne {
+	_u.mutation.ClearUnitCostLlmTokenTypeProperty()
+	return _u
+}
+
+// SetUnitCostLlmTokenType sets the "unit_cost_llm_token_type" field.
+func (_u *FeatureUpdateOne) SetUnitCostLlmTokenType(v string) *FeatureUpdateOne {
+	_u.mutation.SetUnitCostLlmTokenType(v)
+	return _u
+}
+
+// SetNillableUnitCostLlmTokenType sets the "unit_cost_llm_token_type" field if the given value is not nil.
+func (_u *FeatureUpdateOne) SetNillableUnitCostLlmTokenType(v *string) *FeatureUpdateOne {
+	if v != nil {
+		_u.SetUnitCostLlmTokenType(*v)
+	}
+	return _u
+}
+
+// ClearUnitCostLlmTokenType clears the value of the "unit_cost_llm_token_type" field.
+func (_u *FeatureUpdateOne) ClearUnitCostLlmTokenType() *FeatureUpdateOne {
+	_u.mutation.ClearUnitCostLlmTokenType()
 	return _u
 }
 
@@ -822,6 +1191,54 @@ func (_u *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err er
 	}
 	if _u.mutation.AdvancedMeterGroupByFiltersCleared() {
 		_spec.ClearField(dbfeature.FieldAdvancedMeterGroupByFilters, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.UnitCostType(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostType, field.TypeString, value)
+	}
+	if _u.mutation.UnitCostTypeCleared() {
+		_spec.ClearField(dbfeature.FieldUnitCostType, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitCostManualAmount(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostManualAmount, field.TypeOther, value)
+	}
+	if _u.mutation.UnitCostManualAmountCleared() {
+		_spec.ClearField(dbfeature.FieldUnitCostManualAmount, field.TypeOther)
+	}
+	if value, ok := _u.mutation.UnitCostLlmProviderProperty(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostLlmProviderProperty, field.TypeString, value)
+	}
+	if _u.mutation.UnitCostLlmProviderPropertyCleared() {
+		_spec.ClearField(dbfeature.FieldUnitCostLlmProviderProperty, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitCostLlmProvider(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostLlmProvider, field.TypeString, value)
+	}
+	if _u.mutation.UnitCostLlmProviderCleared() {
+		_spec.ClearField(dbfeature.FieldUnitCostLlmProvider, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitCostLlmModelProperty(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostLlmModelProperty, field.TypeString, value)
+	}
+	if _u.mutation.UnitCostLlmModelPropertyCleared() {
+		_spec.ClearField(dbfeature.FieldUnitCostLlmModelProperty, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitCostLlmModel(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostLlmModel, field.TypeString, value)
+	}
+	if _u.mutation.UnitCostLlmModelCleared() {
+		_spec.ClearField(dbfeature.FieldUnitCostLlmModel, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitCostLlmTokenTypeProperty(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostLlmTokenTypeProperty, field.TypeString, value)
+	}
+	if _u.mutation.UnitCostLlmTokenTypePropertyCleared() {
+		_spec.ClearField(dbfeature.FieldUnitCostLlmTokenTypeProperty, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitCostLlmTokenType(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostLlmTokenType, field.TypeString, value)
+	}
+	if _u.mutation.UnitCostLlmTokenTypeCleared() {
+		_spec.ClearField(dbfeature.FieldUnitCostLlmTokenType, field.TypeString)
 	}
 	if value, ok := _u.mutation.ArchivedAt(); ok {
 		_spec.SetField(dbfeature.FieldArchivedAt, field.TypeTime, value)

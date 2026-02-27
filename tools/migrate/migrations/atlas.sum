@@ -1,4 +1,4 @@
-h1:UTPi4brb5xCveFpueJdjYAqBO7lobDwQHbdUie9iMG4=
+h1:i8AdV+WN5vU7crno9VyF0wah+1M20A63htJy51vLKi8=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -150,3 +150,4 @@ h1:UTPi4brb5xCveFpueJdjYAqBO7lobDwQHbdUie9iMG4=
 20260220092326_tax-code.up.sql h1:fvRTl+bfTT934G0VYRpkdH6UsRS4/VWI7ajdar9E2ao=
 20260224121149_charges.up.sql h1:DiQXB9fUv0fUuzFNqnKqMSOQa58glm0Z+cyaG7AJ+44=
 20260225160541_billing-credits.up.sql h1:dmC7lIPESsyxKD2qMRAQFl4Xjj5j6cI4nt7WCswAIu4=
+20260227205801_llmcost_add.up.sql h1:xg1ct0bA6GJ7cnAVoVlLgPHa7fhZr985nDLRnRkFuY4=

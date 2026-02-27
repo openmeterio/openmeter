@@ -1011,6 +1011,29 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/v1/features/{featureId}/cost': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Query feature cost
+     * @description Query the cost of a feature based on its unit cost configuration and underlying meter usage.
+     *     For features with manual unit cost, the cost is usage × fixed amount.
+     *     For features with LLM unit cost, the cost is resolved per row from the LLM cost database.
+     *     The feature must have a meter and unit cost configured.
+     */
+    get: operations['queryFeatureCost']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/v1/grants': {
     parameters: {
       query?: never
@@ -6048,10 +6071,71 @@ export interface components {
         [key: string]: components['schemas']['FilterString']
       }
       /**
+       * Unit cost
+       * @description Optional per-unit cost configuration.
+       *     Use "manual" for a fixed per-unit cost, or "llm" to look up cost
+       *     from the LLM cost database based on meter group-by properties.
+       */
+      unitCost?: components['schemas']['FeatureUnitCost']
+      /**
        * @description Readonly unique ULID identifier.
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
       readonly id: string
+    }
+    /** @description Result of a feature cost query. */
+    FeatureCostQueryResult: {
+      /**
+       * Format: date-time
+       * @description Start of the queried period.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      from?: Date
+      /**
+       * Format: date-time
+       * @description End of the queried period.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      to?: Date
+      /** @description The window size that the cost is aggregated. */
+      windowSize?: components['schemas']['WindowSize']
+      /** @description The currency code of the cost amounts. */
+      currency: components['schemas']['CurrencyCode']
+      /** @description The cost data rows. */
+      data: components['schemas']['FeatureCostQueryRow'][]
+    }
+    /** @description A row in the result of a feature cost query. */
+    FeatureCostQueryRow: {
+      /** @description The metered usage value for the period. */
+      usage: components['schemas']['Numeric']
+      /** @description The unit cost used for cost computation. Null when pricing is not available for the group-by combination. */
+      unitCost: (string & components['schemas']['Numeric']) | null
+      /** @description The computed cost amount (usage × unit cost). Null when pricing is not available for the group-by combination. */
+      cost: (string & components['schemas']['Numeric']) | null
+      /** @description The currency code of the cost amount. */
+      currency: components['schemas']['CurrencyCode']
+      /** @description Detail message when cost amount is null, explaining why the cost could not be resolved. */
+      detail?: string
+      /**
+       * Format: date-time
+       * @description The start of the window the value is aggregated over.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      windowStart: Date
+      /**
+       * Format: date-time
+       * @description The end of the window the value is aggregated over.
+       * @example 2023-01-01T01:01:01.001Z
+       */
+      windowEnd: Date
+      /** @description The subject the value is aggregated over. */
+      subject?: string
+      /** @description The customer ID the value is aggregated over. */
+      customerId?: string
+      /** @description The group by values the value is aggregated over. */
+      groupBy?: {
+        [key: string]: string | null
+      }
     }
     /**
      * @description Represents a feature that can be enabled or disabled for a plan.
@@ -6114,6 +6198,112 @@ export interface components {
       advancedMeterGroupByFilters?: {
         [key: string]: components['schemas']['FilterString']
       }
+      /**
+       * Unit cost
+       * @description Optional per-unit cost configuration.
+       *     Use "manual" for a fixed per-unit cost, or "llm" to look up cost
+       *     from the LLM cost database based on meter group-by properties.
+       */
+      unitCost?: components['schemas']['FeatureUnitCost']
+    }
+    /**
+     * @description LLM cost lookup configuration.
+     *     Maps meter group-by dimensions to LLM cost database fields.
+     */
+    FeatureLLMUnitCost: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      type: 'llm'
+      /**
+       * Provider property
+       * @description Meter group-by property that holds the LLM provider.
+       *     Use this when the meter has a group-by dimension for provider.
+       *     Mutually exclusive with `provider`.
+       */
+      providerProperty?: string
+      /**
+       * Provider
+       * @description Static LLM provider value (e.g., "openai", "anthropic").
+       *     Use this when the feature tracks a single provider.
+       *     Mutually exclusive with `providerProperty`.
+       */
+      provider?: string
+      /**
+       * Model property
+       * @description Meter group-by property that holds the model ID.
+       *     Use this when the meter has a group-by dimension for model.
+       *     Mutually exclusive with `model`.
+       */
+      modelProperty?: string
+      /**
+       * Model
+       * @description Static model ID value (e.g., "gpt-4", "claude-3-5-sonnet").
+       *     Use this when the feature tracks a single model.
+       *     Mutually exclusive with `modelProperty`.
+       */
+      model?: string
+      /**
+       * Token type property
+       * @description Meter group-by property that holds the token type.
+       *     Use this when the meter has a group-by dimension for token type.
+       *     Mutually exclusive with `tokenType`.
+       */
+      tokenTypeProperty?: string
+      /**
+       * Token type
+       * @description Static token type value.
+       *     Use this when the feature tracks a single token type (e.g., only input tokens).
+       *     Expected values: input, output, input_cached, reasoning, cache_write.
+       *     Mutually exclusive with `tokenTypeProperty`.
+       */
+      tokenType?: string
+      /**
+       * Resolved pricing
+       * @description Resolved per-token pricing from the LLM cost database.
+       *     Only populated in responses when the feature's meter group-by filters
+       *     specify exact provider and model values.
+       */
+      readonly pricing?: components['schemas']['FeatureLLMUnitCostPricing']
+    }
+    /** @description Resolved per-token pricing from the LLM cost database. */
+    FeatureLLMUnitCostPricing: {
+      /**
+       * Input per token
+       * @description Cost per input token in USD.
+       */
+      inputPerToken: components['schemas']['Numeric']
+      /**
+       * Output per token
+       * @description Cost per output token in USD.
+       */
+      outputPerToken: components['schemas']['Numeric']
+      /**
+       * Input cached per token
+       * @description Cost per cached input token in USD.
+       */
+      inputCachedPerToken?: components['schemas']['Numeric']
+      /**
+       * Reasoning per token
+       * @description Cost per reasoning token in USD.
+       */
+      reasoningPerToken?: components['schemas']['Numeric']
+      /**
+       * Cache write per token
+       * @description Cost per cache write token in USD.
+       */
+      cacheWritePerToken?: components['schemas']['Numeric']
+    }
+    /** @description A fixed per-unit cost amount. */
+    FeatureManualUnitCost: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      type: 'manual'
+      /** @description Fixed per-unit cost amount in USD. */
+      amount: components['schemas']['Numeric']
     }
     /** @description Limited representation of a feature resource which includes only its unique identifiers (id, key). */
     FeatureMeta: {
@@ -6156,6 +6346,13 @@ export interface components {
       /** @description The items in the current page. */
       items: components['schemas']['Feature'][]
     }
+    /**
+     * @description Per-unit cost configuration for a feature.
+     *     Either a fixed manual amount or a dynamic LLM cost lookup.
+     */
+    FeatureUnitCost:
+      | components['schemas']['FeatureManualUnitCost']
+      | components['schemas']['FeatureLLMUnitCost']
     /** @description A filter for a ID (ULID) field allowing only equality or inclusion. */
     FilterIDExact: {
       /** @description The field must be in the provided list of values. */
@@ -12375,11 +12572,20 @@ export type EventDeliveryAttemptResponse =
 export type ExpirationDuration = components['schemas']['ExpirationDuration']
 export type ExpirationPeriod = components['schemas']['ExpirationPeriod']
 export type Feature = components['schemas']['Feature']
+export type FeatureCostQueryResult =
+  components['schemas']['FeatureCostQueryResult']
+export type FeatureCostQueryRow = components['schemas']['FeatureCostQueryRow']
 export type FeatureCreateInputs = components['schemas']['FeatureCreateInputs']
+export type FeatureLlmUnitCost = components['schemas']['FeatureLLMUnitCost']
+export type FeatureLlmUnitCostPricing =
+  components['schemas']['FeatureLLMUnitCostPricing']
+export type FeatureManualUnitCost =
+  components['schemas']['FeatureManualUnitCost']
 export type FeatureMeta = components['schemas']['FeatureMeta']
 export type FeatureOrderBy = components['schemas']['FeatureOrderBy']
 export type FeaturePaginatedResponse =
   components['schemas']['FeaturePaginatedResponse']
+export type FeatureUnitCost = components['schemas']['FeatureUnitCost']
 export type FilterIdExact = components['schemas']['FilterIDExact']
 export type FilterString = components['schemas']['FilterString']
 export type FilterTime = components['schemas']['FilterTime']
@@ -18804,6 +19010,168 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
+      }
+      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['BadRequestProblemResponse']
+        }
+      }
+      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
+        }
+      }
+      /** @description The server understood the request but refuses to authorize it. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
+        }
+      }
+      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['NotFoundProblemResponse']
+        }
+      }
+      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
+      412: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
+        }
+      }
+      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
+        }
+      }
+      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
+        }
+      }
+      /** @description An unexpected error response. */
+      default: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
+        }
+      }
+    }
+  }
+  queryFeatureCost: {
+    parameters: {
+      query?: {
+        /**
+         * @description Client ID
+         *     Useful to track progress of a query.
+         */
+        clientId?: components['parameters']['MeterQuery.clientId']
+        /**
+         * @description Start date-time in RFC 3339 format.
+         *
+         *     Inclusive.
+         *
+         *     For example: ?from=2025-01-01T00%3A00%3A00.000Z
+         */
+        from?: components['parameters']['MeterQuery.from']
+        /**
+         * @description End date-time in RFC 3339 format.
+         *
+         *     Inclusive.
+         *
+         *     For example: ?to=2025-02-01T00%3A00%3A00.000Z
+         */
+        to?: components['parameters']['MeterQuery.to']
+        /**
+         * @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
+         *
+         *     For example: ?windowSize=DAY
+         */
+        windowSize?: components['parameters']['MeterQuery.windowSize']
+        /**
+         * @description The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+         *     If not specified, the UTC timezone will be used.
+         *
+         *     For example: ?windowTimeZone=UTC
+         */
+        windowTimeZone?: components['parameters']['MeterQuery.windowTimeZone']
+        /**
+         * @description Filtering by multiple subjects.
+         *
+         *     For example: ?subject=subject-1&subject=subject-2
+         */
+        subject?: components['parameters']['MeterQuery.subject']
+        /**
+         * @description Filtering by multiple customers.
+         *
+         *     For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2
+         */
+        filterCustomerId?: components['parameters']['MeterQuery.filterCustomerId']
+        /**
+         * @deprecated
+         * @description Simple filter for group bys with exact match.
+         *
+         *     For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo
+         *
+         *     ⚠️ __Deprecated__: Use `advancedMeterGroupByFilters` instead
+         */
+        filterGroupBy?: components['parameters']['MeterQuery.filterGroupBy']
+        /**
+         * @description Optional advanced meter group by filters.
+         *     You can use this to filter for values of the meter groupBy fields.
+         */
+        advancedMeterGroupByFilters?: components['parameters']['MeterQuery.advancedMeterGroupByFilters']
+        /**
+         * @description If not specified a single aggregate will be returned for each subject and time window.
+         *     `subject` is a reserved group by value.
+         *
+         *     For example: ?groupBy=subject&groupBy=model
+         */
+        groupBy?: components['parameters']['MeterQuery.groupBy']
+      }
+      header?: never
+      path: {
+        featureId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description The request has succeeded. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['FeatureCostQueryResult']
+        }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {

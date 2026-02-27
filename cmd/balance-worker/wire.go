@@ -35,6 +35,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Customer,
 		common.Database,
 		common.Feature,
+		common.NewLLMCostService,
 		common.Framework,
 		common.Meter,
 		common.Namespace,

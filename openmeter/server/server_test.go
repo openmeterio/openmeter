@@ -700,6 +700,10 @@ func (n NoopFeatureConnector) ResolveFeatureMeters(ctx context.Context, namespac
 	return feature.FeatureMeterCollection{}, nil
 }
 
+func (n NoopFeatureConnector) ResolveUnitCost(ctx context.Context, input feature.ResolveUnitCostInput) (*feature.ResolvedUnitCost, error) {
+	return nil, nil
+}
+
 // NoopEntitlementConnector
 var _ entitlement.Service = (*NoopEntitlementConnector)(nil)
 

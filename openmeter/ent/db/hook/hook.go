@@ -417,6 +417,18 @@ func (f GrantFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.GrantMutation", m)
 }
 
+// The LLMCostPriceFunc type is an adapter to allow the use of ordinary
+// function as LLMCostPrice mutator.
+type LLMCostPriceFunc func(context.Context, *db.LLMCostPriceMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LLMCostPriceFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.LLMCostPriceMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.LLMCostPriceMutation", m)
+}
+
 // The MeterFunc type is an adapter to allow the use of ordinary
 // function as Meter mutator.
 type MeterFunc func(context.Context, *db.MeterMutation) (db.Value, error)

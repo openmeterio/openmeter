@@ -1967,6 +1967,14 @@ var (
 		{Name: "meter_slug", Type: field.TypeString, Nullable: true},
 		{Name: "meter_group_by_filters", Type: field.TypeJSON, Nullable: true},
 		{Name: "advanced_meter_group_by_filters", Type: field.TypeJSON, Nullable: true},
+		{Name: "unit_cost_type", Type: field.TypeString, Nullable: true},
+		{Name: "unit_cost_manual_amount", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "unit_cost_llm_provider_property", Type: field.TypeString, Nullable: true},
+		{Name: "unit_cost_llm_provider", Type: field.TypeString, Nullable: true},
+		{Name: "unit_cost_llm_model_property", Type: field.TypeString, Nullable: true},
+		{Name: "unit_cost_llm_model", Type: field.TypeString, Nullable: true},
+		{Name: "unit_cost_llm_token_type_property", Type: field.TypeString, Nullable: true},
+		{Name: "unit_cost_llm_token_type", Type: field.TypeString, Nullable: true},
 		{Name: "archived_at", Type: field.TypeTime, Nullable: true},
 	}
 	// FeaturesTable holds the schema information for the "features" table.
@@ -2067,6 +2075,65 @@ var (
 				Name:    "grant_effective_at_expires_at",
 				Unique:  false,
 				Columns: []*schema.Column{GrantsColumns[9], GrantsColumns[11]},
+			},
+		},
+	}
+	// LlmCostPricesColumns holds the columns for the "llm_cost_prices" table.
+	LlmCostPricesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "namespace", Type: field.TypeString, Nullable: true},
+		{Name: "provider", Type: field.TypeString},
+		{Name: "model_id", Type: field.TypeString},
+		{Name: "model_name", Type: field.TypeString, Default: ""},
+		{Name: "input_per_token", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "output_per_token", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "input_cached_per_token", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "reasoning_per_token", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "cache_write_per_token", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "currency", Type: field.TypeString, Default: "USD"},
+		{Name: "source", Type: field.TypeString},
+		{Name: "source_prices", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "effective_from", Type: field.TypeTime},
+		{Name: "effective_to", Type: field.TypeTime, Nullable: true},
+	}
+	// LlmCostPricesTable holds the schema information for the "llm_cost_prices" table.
+	LlmCostPricesTable = &schema.Table{
+		Name:       "llm_cost_prices",
+		Columns:    LlmCostPricesColumns,
+		PrimaryKey: []*schema.Column{LlmCostPricesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "llmcostprice_id",
+				Unique:  true,
+				Columns: []*schema.Column{LlmCostPricesColumns[0]},
+			},
+			{
+				Name:    "llmcostprice_provider_model_id_namespace_effective_from",
+				Unique:  true,
+				Columns: []*schema.Column{LlmCostPricesColumns[6], LlmCostPricesColumns[7], LlmCostPricesColumns[5], LlmCostPricesColumns[17]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+			{
+				Name:    "llmcostprice_namespace_provider_model_id",
+				Unique:  false,
+				Columns: []*schema.Column{LlmCostPricesColumns[5], LlmCostPricesColumns[6], LlmCostPricesColumns[7]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+			{
+				Name:    "llmcostprice_provider_model_id",
+				Unique:  false,
+				Columns: []*schema.Column{LlmCostPricesColumns[6], LlmCostPricesColumns[7]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL AND namespace IS NULL",
+				},
 			},
 		},
 	}
@@ -3282,6 +3349,7 @@ var (
 		EntitlementsTable,
 		FeaturesTable,
 		GrantsTable,
+		LlmCostPricesTable,
 		MetersTable,
 		NotificationChannelsTable,
 		NotificationEventsTable,

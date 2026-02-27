@@ -35,6 +35,7 @@ import (
 	infohttpdriver "github.com/openmeterio/openmeter/openmeter/info/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	ingesthttpdriver "github.com/openmeterio/openmeter/openmeter/ingest/httpdriver"
+	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterhttphandler "github.com/openmeterio/openmeter/openmeter/meter/httphandler"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
@@ -102,6 +103,7 @@ type Config struct {
 	GrantConnector              credit.GrantConnector
 	GrantRepo                   grant.Repo
 	IngestService               ingest.Service
+	LLMCostService              llmcost.Service
 	Logger                      *slog.Logger
 	MeterManageService          meter.ManageService
 	MeterEventService           meterevent.Service
@@ -269,6 +271,10 @@ func NewRouter(config Config) (*Router, error) {
 	router.featureHandler = productcatalog_httpdriver.NewFeatureHandler(
 		config.FeatureConnector,
 		staticNamespaceDecoder,
+		config.LLMCostService,
+		config.StreamingConnector,
+		config.MeterManageService,
+		config.Customer,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

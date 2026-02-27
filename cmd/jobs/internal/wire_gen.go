@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/reconciler"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/llmcost/sync"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -178,7 +179,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	meterService := common.NewMeterService(adapterAdapter)
-	featureConnector := common.NewFeatureConnector(logger, client, meterService, eventbusPublisher)
+	llmcostService, err := common.NewLLMCostService(logger, client)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	featureConnector := common.NewFeatureConnector(logger, client, meterService, eventbusPublisher, llmcostService)
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
 	tracer := common.NewTracer(tracerProvider, commonMetadata)
@@ -502,6 +513,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	syncJob, err := common.NewLLMCostSyncJob(logger, client)
+	if err != nil {
+		cleanup8()
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	application := Application{
 		GlobalInitializer:             globalInitializer,
 		Migrator:                      migrator,
@@ -529,6 +552,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Subscription:                  subscriptionServiceWithWorkflow,
 		Subject:                       subjectService,
 		StreamingConnector:            connector,
+		LLMCostSyncJob:                syncJob,
 	}
 	return application, func() {
 		cleanup8()
@@ -572,6 +596,7 @@ type Application struct {
 	Subscription                  common.SubscriptionServiceWithWorkflow
 	Subject                       subject.Service
 	StreamingConnector            streaming.Connector
+	LLMCostSyncJob                *sync.SyncJob
 }
 
 func metadata(conf config.Configuration) common.Metadata {

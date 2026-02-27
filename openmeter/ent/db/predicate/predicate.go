@@ -251,6 +251,20 @@ type Feature func(*sql.Selector)
 // Grant is the predicate function for dbgrant builders.
 type Grant func(*sql.Selector)
 
+// LLMCostPrice is the predicate function for llmcostprice builders.
+type LLMCostPrice func(*sql.Selector)
+
+// LLMCostPriceOrErr calls the predicate only if the error is not nit.
+func LLMCostPriceOrErr(p LLMCostPrice, err error) LLMCostPrice {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // Meter is the predicate function for dbmeter builders.
 type Meter func(*sql.Selector)
 

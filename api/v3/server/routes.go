@@ -179,3 +179,35 @@ func (s *Server) CreateCostBasis(w http.ResponseWriter, r *http.Request, currenc
 func (s *Server) ListCostBases(w http.ResponseWriter, r *http.Request, currencyId api.ULID, params api.ListCostBasesParams) {
 	unimplemented.ListCostBases(w, r, currencyId, params)
 }
+
+// LLM Cost Prices
+
+func (s *Server) ListLlmCostPrices(w http.ResponseWriter, r *http.Request, params api.ListLlmCostPricesParams) {
+	s.llmcostHandler.ListPrices().With(params).ServeHTTP(w, r)
+}
+
+func (s *Server) GetLlmCostPrice(w http.ResponseWriter, r *http.Request, priceId api.ULID) {
+	s.llmcostHandler.GetPrice().With(priceId).ServeHTTP(w, r)
+}
+
+func (s *Server) ResolveLlmCostPrice(w http.ResponseWriter, r *http.Request, params api.ResolveLlmCostPriceParams) {
+	s.llmcostHandler.ResolvePrice().With(params).ServeHTTP(w, r)
+}
+
+// LLM Cost Overrides
+
+func (s *Server) ListLlmCostOverrides(w http.ResponseWriter, r *http.Request, params api.ListLlmCostOverridesParams) {
+	s.llmcostHandler.ListOverrides().With(params).ServeHTTP(w, r)
+}
+
+func (s *Server) CreateLlmCostOverride(w http.ResponseWriter, r *http.Request) {
+	s.llmcostHandler.CreateOverride().ServeHTTP(w, r)
+}
+
+func (s *Server) UpdateLlmCostOverride(w http.ResponseWriter, r *http.Request, overrideId api.ULID) {
+	s.llmcostHandler.UpdateOverride().With(overrideId).ServeHTTP(w, r)
+}
+
+func (s *Server) DeleteLlmCostOverride(w http.ResponseWriter, r *http.Request, overrideId api.ULID) {
+	s.llmcostHandler.DeleteOverride().With(overrideId).ServeHTTP(w, r)
+}
