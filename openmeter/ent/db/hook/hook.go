@@ -333,6 +333,18 @@ func (f ChargeCreditPurchaseFunc) Mutate(ctx context.Context, m db.Mutation) (db
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeCreditPurchaseMutation", m)
 }
 
+// The ChargeCreditRealizationFunc type is an adapter to allow the use of ordinary
+// function as ChargeCreditRealization mutator.
+type ChargeCreditRealizationFunc func(context.Context, *db.ChargeCreditRealizationMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeCreditRealizationFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeCreditRealizationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeCreditRealizationMutation", m)
+}
+
 // The ChargeFlatFeeFunc type is an adapter to allow the use of ordinary
 // function as ChargeFlatFee mutator.
 type ChargeFlatFeeFunc func(context.Context, *db.ChargeFlatFeeMutation) (db.Value, error)

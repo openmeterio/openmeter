@@ -87,6 +87,7 @@ func newPricerFor(line PriceAccessor) (Pricer, error) {
 			Pricer: flatPricer{},
 			PostCalculation: []PostCalculationMutator{
 				&discountPercentageMutator{},
+				&creditsMutator{},
 			},
 		}, nil
 	}

@@ -22,6 +22,9 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appadapter "github.com/openmeterio/openmeter/openmeter/app/adapter"
+	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
+	"github.com/openmeterio/openmeter/openmeter/app/custominvoicing/adapter"
+	"github.com/openmeterio/openmeter/openmeter/app/custominvoicing/service"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -572,6 +575,12 @@ func WithCollectionInterval(period datetime.ISODuration) BillingProfileProvision
 	})
 }
 
+func WithManualApproval() BillingProfileProvisionOption {
+	return WithBillingProfileEditFn(func(p *billing.CreateProfileInput) {
+		p.WorkflowConfig.Invoicing.AutoAdvance = false
+	})
+}
+
 func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, appID app.AppID, opts ...BillingProfileProvisionOption) *billing.Profile {
 	provisionOpts := BillingProfileProvisionOptions{}
 
@@ -590,6 +599,78 @@ func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, appI
 	s.NoError(err)
 
 	return profile
+}
+
+type setupCustomInvoicingResponse struct {
+	Service appcustominvoicing.Service
+	App     app.App
+}
+type setupCustomInvoicingOptions struct {
+	config appcustominvoicing.Configuration
+}
+
+type setupCustomInvoicingOption func(*setupCustomInvoicingOptions)
+
+func WithCustomInvoicingConfig(config appcustominvoicing.Configuration) setupCustomInvoicingOption {
+	return func(opts *setupCustomInvoicingOptions) {
+		opts.config = config
+	}
+}
+
+func (s *BaseSuite) SetupCustomInvoicing(namespace string, opts ...setupCustomInvoicingOption) setupCustomInvoicingResponse {
+	ctx := s.T().Context()
+
+	provisionOpts := setupCustomInvoicingOptions{}
+
+	for _, opt := range opts {
+		opt(&provisionOpts)
+	}
+
+	customInvoicingAdapter, err := adapter.New(adapter.Config{
+		Client: s.DBClient,
+		Logger: slog.Default(),
+	})
+	s.NoError(err, "failed to create custom invoicing adapter")
+
+	svc, err := service.New(service.Config{
+		Adapter:        customInvoicingAdapter,
+		Logger:         slog.Default(),
+		AppService:     s.AppService,
+		BillingService: s.BillingService,
+	})
+	s.NoError(err, "failed to create custom invoicing service")
+
+	// Let's register the app
+
+	_, err = appcustominvoicing.NewFactory(appcustominvoicing.FactoryConfig{
+		AppService:             s.AppService,
+		CustomInvoicingService: svc,
+		BillingService:         s.BillingService,
+	})
+	s.NoError(err, "failed to create custom invoicing factory")
+
+	// Install custom invoicing app
+	customInvoicingApp, err := s.AppService.InstallMarketplaceListing(ctx, app.InstallAppInput{
+		MarketplaceListingID: app.MarketplaceListingID{
+			Type: app.AppTypeCustomInvoicing,
+		},
+		Namespace: namespace,
+		Name:      "Custom Invoicing",
+	})
+	s.NoError(err, "failed to install custom invoicing app")
+
+	// Let's set up the custom invoicing config
+	_, err = s.AppService.UpdateApp(ctx, app.UpdateAppInput{
+		AppID:           customInvoicingApp.GetID(),
+		Name:            customInvoicingApp.GetName(),
+		AppConfigUpdate: provisionOpts.config,
+	})
+	s.NoError(err, "failed to upsert custom invoicing config")
+
+	return setupCustomInvoicingResponse{
+		Service: svc,
+		App:     customInvoicingApp,
+	}
 }
 
 func ExpectJSONEqual(t *testing.T, exp, actual any) {

@@ -2,12 +2,15 @@ package adapter
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -54,7 +57,11 @@ func MapFlatFeeChargeFromDB(entity *entdb.Charge) (charges.FlatFeeCharge, error)
 		percentageDiscounts = ff.Discounts.Percentage
 	}
 
-	return charges.FlatFeeCharge{
+	creditRealizations := lo.Map(entity.Edges.CreditRealizations, func(entity *db.ChargeCreditRealization, _ int) charges.CreditRealization {
+		return mapCreditRealizationFromDB(entity)
+	})
+
+	charge := charges.FlatFeeCharge{
 		ManagedResource: mapManagedResourceFromDB(entity),
 		Status:          entity.Status,
 		Intent: charges.FlatFeeIntent{
@@ -68,8 +75,24 @@ func MapFlatFeeChargeFromDB(entity *entdb.Charge) (charges.FlatFeeCharge, error)
 			AmountBeforeProration: ff.AmountBeforeProration,
 			AmountAfterProration:  ff.AmountAfterProration,
 		},
-		State: charges.FlatFeeState{},
-	}, nil
+		State: charges.FlatFeeState{
+			CreditRealizations:    creditRealizations,
+			AuthorizedTransaction: mapLedgerTransactionGroupReferenceFromDB(ff.AuthorizedTransactionGroupID),
+			SettledTransaction:    mapLedgerTransactionGroupReferenceFromDB(ff.SettledTransactionGroupID),
+		},
+	}
+
+	return charge, nil
+}
+
+func mapLedgerTransactionGroupReferenceFromDB(entity *string) *charges.LedgerTransactionGroupReference {
+	if entity == nil {
+		return nil
+	}
+
+	return &charges.LedgerTransactionGroupReference{
+		TransactionGroupID: *entity,
+	}
 }
 
 // MapUsageBasedChargeFromDB converts a DB Charge entity (with loaded UsageBased edge) to a UsageBasedCharge.
@@ -139,6 +162,7 @@ func mapManagedResourceFromDB(entity *entdb.Charge) charges.ManagedResource {
 // mapIntentMetaFromDB extracts the IntentMeta from a DB Charge entity.
 func mapIntentMetaFromDB(entity *entdb.Charge) charges.IntentMeta {
 	return charges.IntentMeta{
+		Name:        entity.Name,
 		Metadata:    entity.Metadata,
 		Annotations: entity.Annotations,
 		ManagedBy:   entity.ManagedBy,
@@ -201,4 +225,27 @@ func proRatingConfigToDB(pc productcatalog.ProRatingConfig) (charges.ProRatingMo
 	}
 
 	return "", fmt.Errorf("invalid pro rating mode: %s", pc.Mode)
+}
+
+func mapCreditRealizationFromDB(entity *db.ChargeCreditRealization) charges.CreditRealization {
+	return charges.CreditRealization{
+		NamespacedID: models.NamespacedID{
+			Namespace: entity.Namespace,
+			ID:        entity.ID,
+		},
+		ManagedModel: models.ManagedModel{
+			CreatedAt: entity.CreatedAt.In(time.UTC),
+			UpdatedAt: entity.UpdatedAt.In(time.UTC),
+			DeletedAt: convert.TimePtrIn(entity.DeletedAt, time.UTC),
+		},
+		CreditRealizationCreateInput: charges.CreditRealizationCreateInput{
+			Annotations: entity.Annotations,
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: entity.ServicePeriodFrom.In(time.UTC),
+				To:   entity.ServicePeriodTo.In(time.UTC),
+			},
+			Amount: entity.Amount,
+		},
+		AllocatedToStandardInvoiceRealizationID: entity.StdRealizationID,
+	}
 }

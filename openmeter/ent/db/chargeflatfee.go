@@ -39,6 +39,10 @@ type ChargeFlatFee struct {
 	AmountBeforeProration alpacadecimal.Decimal `json:"amount_before_proration,omitempty"`
 	// AmountAfterProration holds the value of the "amount_after_proration" field.
 	AmountAfterProration alpacadecimal.Decimal `json:"amount_after_proration,omitempty"`
+	// AuthorizedTransactionGroupID holds the value of the "authorized_transaction_group_id" field.
+	AuthorizedTransactionGroupID *string `json:"authorized_transaction_group_id,omitempty"`
+	// SettledTransactionGroupID holds the value of the "settled_transaction_group_id" field.
+	SettledTransactionGroupID *string `json:"settled_transaction_group_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeFlatFeeQuery when eager-loading is set.
 	Edges        ChargeFlatFeeEdges `json:"edges"`
@@ -72,7 +76,7 @@ func (*ChargeFlatFee) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargeflatfee.FieldAmountBeforeProration, chargeflatfee.FieldAmountAfterProration:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeflatfee.FieldID, chargeflatfee.FieldNamespace, chargeflatfee.FieldPaymentTerm, chargeflatfee.FieldSettlementMode, chargeflatfee.FieldProRating, chargeflatfee.FieldFeatureKey:
+		case chargeflatfee.FieldID, chargeflatfee.FieldNamespace, chargeflatfee.FieldPaymentTerm, chargeflatfee.FieldSettlementMode, chargeflatfee.FieldProRating, chargeflatfee.FieldFeatureKey, chargeflatfee.FieldAuthorizedTransactionGroupID, chargeflatfee.FieldSettledTransactionGroupID:
 			values[i] = new(sql.NullString)
 		case chargeflatfee.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
@@ -154,6 +158,20 @@ func (_m *ChargeFlatFee) assignValues(columns []string, values []any) error {
 			} else if value != nil {
 				_m.AmountAfterProration = *value
 			}
+		case chargeflatfee.FieldAuthorizedTransactionGroupID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field authorized_transaction_group_id", values[i])
+			} else if value.Valid {
+				_m.AuthorizedTransactionGroupID = new(string)
+				*_m.AuthorizedTransactionGroupID = value.String
+			}
+		case chargeflatfee.FieldSettledTransactionGroupID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field settled_transaction_group_id", values[i])
+			} else if value.Valid {
+				_m.SettledTransactionGroupID = new(string)
+				*_m.SettledTransactionGroupID = value.String
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -225,6 +243,16 @@ func (_m *ChargeFlatFee) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("amount_after_proration=")
 	builder.WriteString(fmt.Sprintf("%v", _m.AmountAfterProration))
+	builder.WriteString(", ")
+	if v := _m.AuthorizedTransactionGroupID; v != nil {
+		builder.WriteString("authorized_transaction_group_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.SettledTransactionGroupID; v != nil {
+		builder.WriteString("settled_transaction_group_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

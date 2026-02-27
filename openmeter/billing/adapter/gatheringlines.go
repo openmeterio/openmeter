@@ -188,6 +188,7 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 				SetPeriodStart(line.ServicePeriod.From.In(time.UTC)).
 				SetPeriodEnd(line.ServicePeriod.To.In(time.UTC)).
 				SetNillableSplitLineGroupID(line.SplitLineGroupID).
+				SetNillableChargeID(line.ChargeID).
 				SetNillableDeletedAt(line.DeletedAt).
 				SetInvoiceAt(line.InvoiceAt.In(time.UTC)).
 				SetStatus(billing.InvoiceLineStatusValid).
@@ -293,6 +294,7 @@ func (a *adapter) mapGatheringInvoiceLineFromDB(schemaLevel int, dbLine *db.Bill
 			},
 
 			SplitLineGroupID:       dbLine.SplitLineGroupID,
+			ChargeID:               dbLine.ChargeID,
 			ChildUniqueReferenceID: dbLine.ChildUniqueReferenceID,
 
 			InvoiceAt: dbLine.InvoiceAt.In(time.UTC),

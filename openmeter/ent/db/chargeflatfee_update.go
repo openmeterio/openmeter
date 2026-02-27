@@ -134,6 +134,46 @@ func (_u *ChargeFlatFeeUpdate) SetNillableAmountAfterProration(v *alpacadecimal.
 	return _u
 }
 
+// SetAuthorizedTransactionGroupID sets the "authorized_transaction_group_id" field.
+func (_u *ChargeFlatFeeUpdate) SetAuthorizedTransactionGroupID(v string) *ChargeFlatFeeUpdate {
+	_u.mutation.SetAuthorizedTransactionGroupID(v)
+	return _u
+}
+
+// SetNillableAuthorizedTransactionGroupID sets the "authorized_transaction_group_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableAuthorizedTransactionGroupID(v *string) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetAuthorizedTransactionGroupID(*v)
+	}
+	return _u
+}
+
+// ClearAuthorizedTransactionGroupID clears the value of the "authorized_transaction_group_id" field.
+func (_u *ChargeFlatFeeUpdate) ClearAuthorizedTransactionGroupID() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearAuthorizedTransactionGroupID()
+	return _u
+}
+
+// SetSettledTransactionGroupID sets the "settled_transaction_group_id" field.
+func (_u *ChargeFlatFeeUpdate) SetSettledTransactionGroupID(v string) *ChargeFlatFeeUpdate {
+	_u.mutation.SetSettledTransactionGroupID(v)
+	return _u
+}
+
+// SetNillableSettledTransactionGroupID sets the "settled_transaction_group_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableSettledTransactionGroupID(v *string) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetSettledTransactionGroupID(*v)
+	}
+	return _u
+}
+
+// ClearSettledTransactionGroupID clears the value of the "settled_transaction_group_id" field.
+func (_u *ChargeFlatFeeUpdate) ClearSettledTransactionGroupID() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearSettledTransactionGroupID()
+	return _u
+}
+
 // SetChargeID sets the "charge" edge to the Charge entity by ID.
 func (_u *ChargeFlatFeeUpdate) SetChargeID(id string) *ChargeFlatFeeUpdate {
 	_u.mutation.SetChargeID(id)
@@ -205,6 +245,16 @@ func (_u *ChargeFlatFeeUpdate) check() error {
 			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.feature_key": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.AuthorizedTransactionGroupID(); ok {
+		if err := chargeflatfee.AuthorizedTransactionGroupIDValidator(v); err != nil {
+			return &ValidationError{Name: "authorized_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.authorized_transaction_group_id": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.SettledTransactionGroupID(); ok {
+		if err := chargeflatfee.SettledTransactionGroupIDValidator(v); err != nil {
+			return &ValidationError{Name: "settled_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.settled_transaction_group_id": %w`, err)}
+		}
+	}
 	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeFlatFee.charge"`)
 	}
@@ -253,6 +303,18 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	}
 	if value, ok := _u.mutation.AmountAfterProration(); ok {
 		_spec.SetField(chargeflatfee.FieldAmountAfterProration, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.AuthorizedTransactionGroupID(); ok {
+		_spec.SetField(chargeflatfee.FieldAuthorizedTransactionGroupID, field.TypeString, value)
+	}
+	if _u.mutation.AuthorizedTransactionGroupIDCleared() {
+		_spec.ClearField(chargeflatfee.FieldAuthorizedTransactionGroupID, field.TypeString)
+	}
+	if value, ok := _u.mutation.SettledTransactionGroupID(); ok {
+		_spec.SetField(chargeflatfee.FieldSettledTransactionGroupID, field.TypeString, value)
+	}
+	if _u.mutation.SettledTransactionGroupIDCleared() {
+		_spec.ClearField(chargeflatfee.FieldSettledTransactionGroupID, field.TypeString)
 	}
 	if _u.mutation.ChargeCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -405,6 +467,46 @@ func (_u *ChargeFlatFeeUpdateOne) SetNillableAmountAfterProration(v *alpacadecim
 	return _u
 }
 
+// SetAuthorizedTransactionGroupID sets the "authorized_transaction_group_id" field.
+func (_u *ChargeFlatFeeUpdateOne) SetAuthorizedTransactionGroupID(v string) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetAuthorizedTransactionGroupID(v)
+	return _u
+}
+
+// SetNillableAuthorizedTransactionGroupID sets the "authorized_transaction_group_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableAuthorizedTransactionGroupID(v *string) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetAuthorizedTransactionGroupID(*v)
+	}
+	return _u
+}
+
+// ClearAuthorizedTransactionGroupID clears the value of the "authorized_transaction_group_id" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearAuthorizedTransactionGroupID() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearAuthorizedTransactionGroupID()
+	return _u
+}
+
+// SetSettledTransactionGroupID sets the "settled_transaction_group_id" field.
+func (_u *ChargeFlatFeeUpdateOne) SetSettledTransactionGroupID(v string) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetSettledTransactionGroupID(v)
+	return _u
+}
+
+// SetNillableSettledTransactionGroupID sets the "settled_transaction_group_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableSettledTransactionGroupID(v *string) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetSettledTransactionGroupID(*v)
+	}
+	return _u
+}
+
+// ClearSettledTransactionGroupID clears the value of the "settled_transaction_group_id" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearSettledTransactionGroupID() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearSettledTransactionGroupID()
+	return _u
+}
+
 // SetChargeID sets the "charge" edge to the Charge entity by ID.
 func (_u *ChargeFlatFeeUpdateOne) SetChargeID(id string) *ChargeFlatFeeUpdateOne {
 	_u.mutation.SetChargeID(id)
@@ -489,6 +591,16 @@ func (_u *ChargeFlatFeeUpdateOne) check() error {
 			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.feature_key": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.AuthorizedTransactionGroupID(); ok {
+		if err := chargeflatfee.AuthorizedTransactionGroupIDValidator(v); err != nil {
+			return &ValidationError{Name: "authorized_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.authorized_transaction_group_id": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.SettledTransactionGroupID(); ok {
+		if err := chargeflatfee.SettledTransactionGroupIDValidator(v); err != nil {
+			return &ValidationError{Name: "settled_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.settled_transaction_group_id": %w`, err)}
+		}
+	}
 	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeFlatFee.charge"`)
 	}
@@ -554,6 +666,18 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 	}
 	if value, ok := _u.mutation.AmountAfterProration(); ok {
 		_spec.SetField(chargeflatfee.FieldAmountAfterProration, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.AuthorizedTransactionGroupID(); ok {
+		_spec.SetField(chargeflatfee.FieldAuthorizedTransactionGroupID, field.TypeString, value)
+	}
+	if _u.mutation.AuthorizedTransactionGroupIDCleared() {
+		_spec.ClearField(chargeflatfee.FieldAuthorizedTransactionGroupID, field.TypeString)
+	}
+	if value, ok := _u.mutation.SettledTransactionGroupID(); ok {
+		_spec.SetField(chargeflatfee.FieldSettledTransactionGroupID, field.TypeString, value)
+	}
+	if _u.mutation.SettledTransactionGroupIDCleared() {
+		_spec.ClearField(chargeflatfee.FieldSettledTransactionGroupID, field.TypeString)
 	}
 	if _u.mutation.ChargeCleared() {
 		edge := &sqlgraph.EdgeSpec{

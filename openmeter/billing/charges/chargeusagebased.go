@@ -8,6 +8,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
+var _ ChargeAccessor = (*UsageBasedCharge)(nil)
+
 type UsageBasedCharge struct {
 	ManagedResource
 
@@ -40,6 +42,13 @@ func (c UsageBasedCharge) AsCharge() Charge {
 	return Charge{
 		t:          ChargeTypeUsageBased,
 		usageBased: &c,
+	}
+}
+
+func (c UsageBasedCharge) GetChargeID() ChargeID {
+	return ChargeID{
+		Namespace: c.Namespace,
+		ID:        c.ID,
 	}
 }
 

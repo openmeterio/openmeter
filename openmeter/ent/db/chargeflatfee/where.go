@@ -99,6 +99,16 @@ func AmountAfterProration(v alpacadecimal.Decimal) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldEQ(FieldAmountAfterProration, v))
 }
 
+// AuthorizedTransactionGroupID applies equality check predicate on the "authorized_transaction_group_id" field. It's identical to AuthorizedTransactionGroupIDEQ.
+func AuthorizedTransactionGroupID(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldAuthorizedTransactionGroupID, v))
+}
+
+// SettledTransactionGroupID applies equality check predicate on the "settled_transaction_group_id" field. It's identical to SettledTransactionGroupIDEQ.
+func SettledTransactionGroupID(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldSettledTransactionGroupID, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldEQ(FieldNamespace, v))
@@ -511,6 +521,156 @@ func AmountAfterProrationLT(v alpacadecimal.Decimal) predicate.ChargeFlatFee {
 // AmountAfterProrationLTE applies the LTE predicate on the "amount_after_proration" field.
 func AmountAfterProrationLTE(v alpacadecimal.Decimal) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldLTE(FieldAmountAfterProration, v))
+}
+
+// AuthorizedTransactionGroupIDEQ applies the EQ predicate on the "authorized_transaction_group_id" field.
+func AuthorizedTransactionGroupIDEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldAuthorizedTransactionGroupID, v))
+}
+
+// AuthorizedTransactionGroupIDNEQ applies the NEQ predicate on the "authorized_transaction_group_id" field.
+func AuthorizedTransactionGroupIDNEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldAuthorizedTransactionGroupID, v))
+}
+
+// AuthorizedTransactionGroupIDIn applies the In predicate on the "authorized_transaction_group_id" field.
+func AuthorizedTransactionGroupIDIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldAuthorizedTransactionGroupID, vs...))
+}
+
+// AuthorizedTransactionGroupIDNotIn applies the NotIn predicate on the "authorized_transaction_group_id" field.
+func AuthorizedTransactionGroupIDNotIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldAuthorizedTransactionGroupID, vs...))
+}
+
+// AuthorizedTransactionGroupIDGT applies the GT predicate on the "authorized_transaction_group_id" field.
+func AuthorizedTransactionGroupIDGT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldAuthorizedTransactionGroupID, v))
+}
+
+// AuthorizedTransactionGroupIDGTE applies the GTE predicate on the "authorized_transaction_group_id" field.
+func AuthorizedTransactionGroupIDGTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldAuthorizedTransactionGroupID, v))
+}
+
+// AuthorizedTransactionGroupIDLT applies the LT predicate on the "authorized_transaction_group_id" field.
+func AuthorizedTransactionGroupIDLT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldAuthorizedTransactionGroupID, v))
+}
+
+// AuthorizedTransactionGroupIDLTE applies the LTE predicate on the "authorized_transaction_group_id" field.
+func AuthorizedTransactionGroupIDLTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldAuthorizedTransactionGroupID, v))
+}
+
+// AuthorizedTransactionGroupIDContains applies the Contains predicate on the "authorized_transaction_group_id" field.
+func AuthorizedTransactionGroupIDContains(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContains(FieldAuthorizedTransactionGroupID, v))
+}
+
+// AuthorizedTransactionGroupIDHasPrefix applies the HasPrefix predicate on the "authorized_transaction_group_id" field.
+func AuthorizedTransactionGroupIDHasPrefix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasPrefix(FieldAuthorizedTransactionGroupID, v))
+}
+
+// AuthorizedTransactionGroupIDHasSuffix applies the HasSuffix predicate on the "authorized_transaction_group_id" field.
+func AuthorizedTransactionGroupIDHasSuffix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasSuffix(FieldAuthorizedTransactionGroupID, v))
+}
+
+// AuthorizedTransactionGroupIDIsNil applies the IsNil predicate on the "authorized_transaction_group_id" field.
+func AuthorizedTransactionGroupIDIsNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIsNull(FieldAuthorizedTransactionGroupID))
+}
+
+// AuthorizedTransactionGroupIDNotNil applies the NotNil predicate on the "authorized_transaction_group_id" field.
+func AuthorizedTransactionGroupIDNotNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotNull(FieldAuthorizedTransactionGroupID))
+}
+
+// AuthorizedTransactionGroupIDEqualFold applies the EqualFold predicate on the "authorized_transaction_group_id" field.
+func AuthorizedTransactionGroupIDEqualFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEqualFold(FieldAuthorizedTransactionGroupID, v))
+}
+
+// AuthorizedTransactionGroupIDContainsFold applies the ContainsFold predicate on the "authorized_transaction_group_id" field.
+func AuthorizedTransactionGroupIDContainsFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContainsFold(FieldAuthorizedTransactionGroupID, v))
+}
+
+// SettledTransactionGroupIDEQ applies the EQ predicate on the "settled_transaction_group_id" field.
+func SettledTransactionGroupIDEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldSettledTransactionGroupID, v))
+}
+
+// SettledTransactionGroupIDNEQ applies the NEQ predicate on the "settled_transaction_group_id" field.
+func SettledTransactionGroupIDNEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldSettledTransactionGroupID, v))
+}
+
+// SettledTransactionGroupIDIn applies the In predicate on the "settled_transaction_group_id" field.
+func SettledTransactionGroupIDIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldSettledTransactionGroupID, vs...))
+}
+
+// SettledTransactionGroupIDNotIn applies the NotIn predicate on the "settled_transaction_group_id" field.
+func SettledTransactionGroupIDNotIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldSettledTransactionGroupID, vs...))
+}
+
+// SettledTransactionGroupIDGT applies the GT predicate on the "settled_transaction_group_id" field.
+func SettledTransactionGroupIDGT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldSettledTransactionGroupID, v))
+}
+
+// SettledTransactionGroupIDGTE applies the GTE predicate on the "settled_transaction_group_id" field.
+func SettledTransactionGroupIDGTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldSettledTransactionGroupID, v))
+}
+
+// SettledTransactionGroupIDLT applies the LT predicate on the "settled_transaction_group_id" field.
+func SettledTransactionGroupIDLT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldSettledTransactionGroupID, v))
+}
+
+// SettledTransactionGroupIDLTE applies the LTE predicate on the "settled_transaction_group_id" field.
+func SettledTransactionGroupIDLTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldSettledTransactionGroupID, v))
+}
+
+// SettledTransactionGroupIDContains applies the Contains predicate on the "settled_transaction_group_id" field.
+func SettledTransactionGroupIDContains(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContains(FieldSettledTransactionGroupID, v))
+}
+
+// SettledTransactionGroupIDHasPrefix applies the HasPrefix predicate on the "settled_transaction_group_id" field.
+func SettledTransactionGroupIDHasPrefix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasPrefix(FieldSettledTransactionGroupID, v))
+}
+
+// SettledTransactionGroupIDHasSuffix applies the HasSuffix predicate on the "settled_transaction_group_id" field.
+func SettledTransactionGroupIDHasSuffix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasSuffix(FieldSettledTransactionGroupID, v))
+}
+
+// SettledTransactionGroupIDIsNil applies the IsNil predicate on the "settled_transaction_group_id" field.
+func SettledTransactionGroupIDIsNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIsNull(FieldSettledTransactionGroupID))
+}
+
+// SettledTransactionGroupIDNotNil applies the NotNil predicate on the "settled_transaction_group_id" field.
+func SettledTransactionGroupIDNotNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotNull(FieldSettledTransactionGroupID))
+}
+
+// SettledTransactionGroupIDEqualFold applies the EqualFold predicate on the "settled_transaction_group_id" field.
+func SettledTransactionGroupIDEqualFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEqualFold(FieldSettledTransactionGroupID, v))
+}
+
+// SettledTransactionGroupIDContainsFold applies the ContainsFold predicate on the "settled_transaction_group_id" field.
+func SettledTransactionGroupIDContainsFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContainsFold(FieldSettledTransactionGroupID, v))
 }
 
 // HasCharge applies the HasEdge predicate on the "charge" edge.

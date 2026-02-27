@@ -994,8 +994,15 @@ type CreateStandardInvoiceFromGatheringLinesInput struct {
 	Customer customer.CustomerID
 	Currency currencyx.Code
 
-	Lines GatheringLines
+	Lines                       GatheringLines
+	PostCreationCalculationHook PostCreationCalculationHook
 }
+
+type (
+	PostCreationCalculationHook func(StandardInvoice, StandardLine) (LineMutators, error)
+	LineMutator                 func(*StandardLine) error
+	LineMutators                = []LineMutator
+)
 
 func (i CreateStandardInvoiceFromGatheringLinesInput) Validate() error {
 	var errs []error
@@ -1033,3 +1040,10 @@ type (
 	StandardInvoiceHook  = models.ServiceHook[StandardInvoice]
 	StandardInvoiceHooks = models.ServiceHookRegistry[StandardInvoice]
 )
+
+func NewSetCreditsAppliedOperation(creditsApplied CreditsApplied) LineMutator {
+	return func(line *StandardLine) error {
+		line.CreditsApplied = creditsApplied
+		return nil
+	}
+}

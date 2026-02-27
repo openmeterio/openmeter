@@ -771,6 +771,12 @@ func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLin
 
 	wasChange := !oldBase.Equal(existing.StandardLineBase) || !oldUBP.Equal(existing.UsageBased)
 	if wasChange {
+		if oldBase.ChargeID != nil {
+			return nil, false, billing.ValidationError{
+				Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrCannotUpdateChargeManagedLine),
+			}
+		}
+
 		existing.ManagedBy = billing.ManuallyManagedLine
 	}
 
@@ -852,6 +858,11 @@ func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLi
 	existing.RateCardDiscounts = rateCardParsed.Discounts
 
 	if !old.Equal(existing) {
+		if old.ChargeID != nil {
+			return billing.GatheringLine{}, billing.ValidationError{
+				Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrCannotUpdateChargeManagedLine),
+			}
+		}
 		existing.ManagedBy = billing.ManuallyManagedLine
 	}
 

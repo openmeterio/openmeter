@@ -35,6 +35,10 @@ const (
 	FieldAmountBeforeProration = "amount_before_proration"
 	// FieldAmountAfterProration holds the string denoting the amount_after_proration field in the database.
 	FieldAmountAfterProration = "amount_after_proration"
+	// FieldAuthorizedTransactionGroupID holds the string denoting the authorized_transaction_group_id field in the database.
+	FieldAuthorizedTransactionGroupID = "authorized_transaction_group_id"
+	// FieldSettledTransactionGroupID holds the string denoting the settled_transaction_group_id field in the database.
+	FieldSettledTransactionGroupID = "settled_transaction_group_id"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
 	EdgeCharge = "charge"
 	// Table holds the table name of the chargeflatfee in the database.
@@ -60,6 +64,8 @@ var Columns = []string{
 	FieldFeatureKey,
 	FieldAmountBeforeProration,
 	FieldAmountAfterProration,
+	FieldAuthorizedTransactionGroupID,
+	FieldSettledTransactionGroupID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -79,6 +85,10 @@ var (
 	PaymentTermValidator func(string) error
 	// FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
 	FeatureKeyValidator func(string) error
+	// AuthorizedTransactionGroupIDValidator is a validator for the "authorized_transaction_group_id" field. It is called by the builders before save.
+	AuthorizedTransactionGroupIDValidator func(string) error
+	// SettledTransactionGroupIDValidator is a validator for the "settled_transaction_group_id" field. It is called by the builders before save.
+	SettledTransactionGroupIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all ChargeFlatFee fields.
@@ -158,6 +168,16 @@ func ByAmountBeforeProration(opts ...sql.OrderTermOption) OrderOption {
 // ByAmountAfterProration orders the results by the amount_after_proration field.
 func ByAmountAfterProration(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmountAfterProration, opts...).ToFunc()
+}
+
+// ByAuthorizedTransactionGroupID orders the results by the authorized_transaction_group_id field.
+func ByAuthorizedTransactionGroupID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAuthorizedTransactionGroupID, opts...).ToFunc()
+}
+
+// BySettledTransactionGroupID orders the results by the settled_transaction_group_id field.
+func BySettledTransactionGroupID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSettledTransactionGroupID, opts...).ToFunc()
 }
 
 // ByChargeField orders the results by charge field.

@@ -42,10 +42,16 @@ func (c CreditsApplied) SumAmount(currency currencyx.Calculator) alpacadecimal.D
 }
 
 type CreditApplied struct {
-	Amount      alpacadecimal.Decimal `json:"amount"`
-	Description string                `json:"description"`
+	Amount              alpacadecimal.Decimal `json:"amount"`
+	Description         string                `json:"description"`
+	CreditRealizationID string                `json:"creditRealizationID"`
 
 	// TODO[later]: Once we see the overall structure we might want to add references
+}
+
+func (c CreditApplied) CloneWithAmount(amount alpacadecimal.Decimal) CreditApplied {
+	c.Amount = amount
+	return c
 }
 
 func (c CreditApplied) Validate() error {

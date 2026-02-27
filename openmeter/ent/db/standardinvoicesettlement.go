@@ -75,9 +75,11 @@ type StandardInvoiceSettlementEdges struct {
 	Charge *Charge `json:"charge,omitempty"`
 	// BillingInvoiceLine holds the value of the billing_invoice_line edge.
 	BillingInvoiceLine *BillingInvoiceLine `json:"billing_invoice_line,omitempty"`
+	// CreditRealizations holds the value of the credit_realizations edge.
+	CreditRealizations []*ChargeCreditRealization `json:"credit_realizations,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // ChargeOrErr returns the Charge value or an error if the edge
@@ -100,6 +102,15 @@ func (e StandardInvoiceSettlementEdges) BillingInvoiceLineOrErr() (*BillingInvoi
 		return nil, &NotFoundError{label: billinginvoiceline.Label}
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice_line"}
+}
+
+// CreditRealizationsOrErr returns the CreditRealizations value or an error if the edge
+// was not loaded in eager-loading.
+func (e StandardInvoiceSettlementEdges) CreditRealizationsOrErr() ([]*ChargeCreditRealization, error) {
+	if e.loadedTypes[2] {
+		return e.CreditRealizations, nil
+	}
+	return nil, &NotLoadedError{edge: "credit_realizations"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -280,6 +291,11 @@ func (_m *StandardInvoiceSettlement) QueryCharge() *ChargeQuery {
 // QueryBillingInvoiceLine queries the "billing_invoice_line" edge of the StandardInvoiceSettlement entity.
 func (_m *StandardInvoiceSettlement) QueryBillingInvoiceLine() *BillingInvoiceLineQuery {
 	return NewStandardInvoiceSettlementClient(_m.config).QueryBillingInvoiceLine(_m)
+}
+
+// QueryCreditRealizations queries the "credit_realizations" edge of the StandardInvoiceSettlement entity.
+func (_m *StandardInvoiceSettlement) QueryCreditRealizations() *ChargeCreditRealizationQuery {
+	return NewStandardInvoiceSettlementClient(_m.config).QueryCreditRealizations(_m)
 }
 
 // Update returns a builder for updating this StandardInvoiceSettlement.

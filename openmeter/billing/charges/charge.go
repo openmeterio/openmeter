@@ -33,6 +33,16 @@ func (t ChargeType) Validate() error {
 	return nil
 }
 
+type ChargeID models.NamespacedID
+
+func (i ChargeID) Validate() error {
+	return models.NamespacedID(i).Validate()
+}
+
+type ChargeAccessor interface {
+	GetChargeID() ChargeID
+}
+
 type Charge struct {
 	t ChargeType
 
@@ -126,6 +136,31 @@ func (c Charge) AsCreditPurchaseCharge() (CreditPurchaseCharge, error) {
 	}
 
 	return *c.creditPurchase, nil
+}
+
+func (c Charge) GetChargeID() (ChargeID, error) {
+	switch c.t {
+	case ChargeTypeFlatFee:
+		if c.flatFee == nil {
+			return ChargeID{}, fmt.Errorf("flat fee charge is nil")
+		}
+
+		return c.flatFee.GetChargeID(), nil
+	case ChargeTypeUsageBased:
+		if c.usageBased == nil {
+			return ChargeID{}, fmt.Errorf("usage based charge is nil")
+		}
+
+		return c.usageBased.GetChargeID(), nil
+	case ChargeTypeCreditPurchase:
+		if c.creditPurchase == nil {
+			return ChargeID{}, fmt.Errorf("credit purchase charge is nil")
+		}
+
+		return c.creditPurchase.GetChargeID(), nil
+	}
+
+	return ChargeID{}, fmt.Errorf("invalid charge type: %s", c.t)
 }
 
 type ChargeStatus string

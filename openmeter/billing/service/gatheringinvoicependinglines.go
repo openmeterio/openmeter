@@ -761,6 +761,18 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 				return fmt.Errorf("activating invoice state machine: %w", err)
 			}
 
+			if in.PostCreationCalculationHook != nil {
+				err := s.invokePostCreationHooks(sm.Invoice, in.PostCreationCalculationHook)
+				if err != nil {
+					return fmt.Errorf("invoking post creation calculation hook: %w", err)
+				}
+
+				// Let's recalculate the invoice so that any adjustments made in the hook are respresented in the calculations.
+				if err := sm.calculateInvoice(ctx); err != nil {
+					return fmt.Errorf("activating invoice state machine: %w", err)
+				}
+			}
+
 			// If the invoice has critical validation issues => trigger a failed state
 			if sm.Invoice.HasCriticalValidationIssues() {
 				return sm.TriggerFailed(ctx)
@@ -804,6 +816,27 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 	}
 
 	return &invoice, nil
+}
+
+func (s *Service) invokePostCreationHooks(invoice billing.StandardInvoice, hook billing.PostCreationCalculationHook) error {
+	for _, line := range invoice.Lines.OrEmpty() {
+		ops, err := hook(invoice, lo.FromPtr(line))
+		if err != nil {
+			return fmt.Errorf("invoking post creation hook: %w", err)
+		}
+
+		if len(ops) == 0 {
+			continue
+		}
+
+		for _, op := range ops {
+			if err := op(line); err != nil {
+				return fmt.Errorf("invoking post creation hook: %w", err)
+			}
+		}
+	}
+
+	return nil
 }
 
 type convertGatheringLinesToStandardLinesInput struct {

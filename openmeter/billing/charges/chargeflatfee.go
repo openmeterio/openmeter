@@ -1,6 +1,7 @@
 package charges
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"slices"
@@ -8,8 +9,12 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+var _ ChargeAccessor = (*FlatFeeCharge)(nil)
 
 type FlatFeeCharge struct {
 	ManagedResource
@@ -43,6 +48,13 @@ func (c FlatFeeCharge) Validate() error {
 	}
 
 	return errors.Join(errs...)
+}
+
+func (c FlatFeeCharge) GetChargeID() ChargeID {
+	return ChargeID{
+		Namespace: c.Namespace,
+		ID:        c.ID,
+	}
 }
 
 type FlatFeeIntent struct {
@@ -100,10 +112,70 @@ func (i FlatFeeIntent) Validate() error {
 	return errors.Join(errs...)
 }
 
-type FlatFeeState struct{}
+type FlatFeeState struct {
+	CreditRealizations    CreditRealizations               `json:"creditRealizations"`
+	SettledTransaction    *LedgerTransactionGroupReference `json:"settledTransaction"`
+	AuthorizedTransaction *LedgerTransactionGroupReference `json:"authorizedTransaction"`
+}
 
 func (s FlatFeeState) Validate() error {
 	var errs []error
 
+	for _, realization := range s.CreditRealizations {
+		if err := realization.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("credit realization: %w", err))
+		}
+	}
+
 	return errors.Join(errs...)
+}
+
+type FlatFeeService interface {
+	PostCreate(ctx context.Context, charge FlatFeeCharge) (PostCreateFlatFeeResult, error)
+	PostLineAssignedToInvoice(ctx context.Context, charge FlatFeeCharge, line billing.GatheringLine) (CreditRealizations, error)
+	PostPaymentAuthorized(ctx context.Context, charge FlatFeeCharge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
+	PostPaymentSettled(ctx context.Context, charge FlatFeeCharge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
+}
+
+type PostCreateFlatFeeResult struct {
+	Charge                FlatFeeCharge
+	GatheringLineToCreate *billing.GatheringLine
+}
+
+type OnFlatFeeAssignedToInvoiceInput struct {
+	Charge            FlatFeeCharge         `json:"charge"`
+	ServicePeriod     timeutil.ClosedPeriod `json:"servicePeriod"`
+	PreTaxTotalAmount alpacadecimal.Decimal `json:"totalAmount"`
+}
+
+func (i OnFlatFeeAssignedToInvoiceInput) Validate() error {
+	var errs []error
+
+	if err := i.Charge.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+
+	if err := i.ServicePeriod.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("service period: %w", err))
+	}
+
+	if i.PreTaxTotalAmount.IsNegative() {
+		errs = append(errs, fmt.Errorf("pre tax total amount cannot be negative"))
+	}
+
+	return errors.Join(errs...)
+}
+
+type FlatFeeHandler interface {
+	// OnFlatFeeAssignedToInvoice is called when a flat fee is being assigned to an invoice
+	OnFlatFeeAssignedToInvoice(ctx context.Context, input OnFlatFeeAssignedToInvoiceInput) ([]CreditRealizationCreateInput, error)
+
+	// OnFlatFeePaymentAuthorized is called when a flat fee payment is authorized
+	OnFlatFeePaymentAuthorized(ctx context.Context, charge FlatFeeCharge) (LedgerTransactionGroupReference, error)
+
+	// OnFlatFeePaymentSettled is called when a flat fee payment is settled
+	OnFlatFeePaymentSettled(ctx context.Context, charge FlatFeeCharge) (LedgerTransactionGroupReference, error)
+
+	// OnFlatFeePaymentUncollectible is called when a flat fee payment is uncollectible
+	OnFlatFeePaymentUncollectible(ctx context.Context, charge FlatFeeCharge) (LedgerTransactionGroupReference, error)
 }
