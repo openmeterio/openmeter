@@ -44,7 +44,7 @@ interface TaxCodesOperations {
     /**
      * Include deleted tax codes in the response.
      */
-    @query
+    @query("include_deleted")
     includeDeleted?: boolean,
   ): Shared.PagePaginatedResponse<TaxCode> | Common.ErrorResponses;
 

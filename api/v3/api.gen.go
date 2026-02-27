@@ -2256,7 +2256,7 @@ type ListTaxCodesParams struct {
 	Page *PagePaginationQuery `json:"page,omitempty"`
 
 	// IncludeDeleted Include deleted tax codes in the response.
-	IncludeDeleted *bool `form:"includeDeleted,omitempty" json:"includeDeleted,omitempty"`
+	IncludeDeleted *bool `form:"include_deleted,omitempty" json:"include_deleted,omitempty"`
 }
 
 // CreateCustomCurrencyJSONRequestBody defines body for CreateCustomCurrency for application/json ContentType.
@@ -4101,11 +4101,11 @@ func (siw *ServerInterfaceWrapper) ListTaxCodes(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// ------------- Optional query parameter "includeDeleted" -------------
+	// ------------- Optional query parameter "include_deleted" -------------
 
-	err = runtime.BindQueryParameter("form", false, false, "includeDeleted", r.URL.Query(), &params.IncludeDeleted)
+	err = runtime.BindQueryParameter("form", false, false, "include_deleted", r.URL.Query(), &params.IncludeDeleted)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "includeDeleted", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "include_deleted", Err: err})
 		return
 	}
 
@@ -4718,19 +4718,19 @@ var swaggerSpec = []string{
 	"8OzPoUJM9Y62nWzaFIWFQnisiHXAh9lt2Xk6ixnaoMUXcTQ+z1Vi9uthxPy1jue3Lenf8SqBXdz20Qbf",
 	"5QVHO+MS4llEwSALaCXGA7PUHEdpTZycEYSThIvUllMAllBx8Rpo8qyEjxT5ROCUyC5K+Q1zf+ux8wwz",
 	"ZECMZRSFD3+hY2326uGPtQFkkSpyAcE7gBUoVCaLJCEkJenjAQ8OuIkb2O4BL5i7PHvBRdl+4N/79s37",
-	"PLxqI1a0+EyPMujjJdd+Bkpya6W0Dc6Ewrc9qF6z2BhWNtuOIeyUJVmRBo9qrqhOI4veivn+qBnQPjdV",
-	"rGbNmonVFH/bPBQLK+Z+sz4VfjejBHqBb9fNLBs1Rjka3apbQK3W1MPYoHyx44g4YWtdffWOAI5m7kYy",
-	"Lcxu509l8LRaTryAspbf0H7kx/f0rbyn3w9hLMiX96Xs9u4DsI2/iBHwvmhoUSa9BySjbb2Rb3L5PQQV",
-	"P2adWZRF755uVj00EdeOqBvGsCKtFP+LFe7DOd25PgCJ20ISKd1p9QAsiE8HnuAsKTIrJdhyJGUWmPJU",
-	"VZfV1DqcD67JWiBjzqqyWyloUhZK6AaldFcCwbkkNME4znOJCNPIddUYya0iLA2SFNA/SMUR2NR8dIW2",
-	"4W2eMkUmmg+xiamr4mv0m6pgJrjX1kiUfShGBs6MuFB8Br4VLEWETbVCaTK/uBlJws0Yeh5bfAzeJXCO",
-	"RzSjyhQlS6YIS+SCD+kfuokBNMUKG6DUlIq0l2Oh5ijPsNI6l0as3VIwhupN7XrXZrvilGT02kT/Oax3",
-	"0RSzNAuTBLm8QZyZDTJvJM5fSWhFGdRLeRXfJajQ1tyiMOy3SorGIdsnruBlKPVykqgEE0cS+ldedsJZ",
-	"lcDJlUUtH5u9ygVPiwRiil3Vz6ru7xxXKUvpNU0LnEndOPQYl8abVTe0NoYRVKDNM8wM+YAnanOx0eVV",
-	"LQ/N9fmcAButrez9uddV5jJorulNNXZ1o5W9Lru2xfS6un9GqugiCe8HczTDc3A01ugok1QhfI1pBvxF",
-	"EyWYSmz5b7u4emBty8Kkr8Qw5TfgxjyZCDLRvMOHr1cDFjDD2VzRRJb1zpAdym5bwtmYTgpBUsMgfKyC",
-	"G5ty5lLIwJATwQsozdtHb1zbWXVIq/y6xGMSz1z9aTXPSdcwWw3iOCO3dJQF1XNlQhgWlMs6dmTn0+Wn",
-	"/xMAAP//EBFf02jCAQA=",
+	"PLxqI1a0+EyPMujjJdd+Bkpya6W0Dc6Ewrc9qF6z2BhWNtuOIeyUJVmRBo9qrqhOI4veivn+qBlwaAes",
+	"mM2aRROrOf62eSoWlsz9Zp0q/HZGKfQC366bWjZqjXJEulW/gFqxqYcxQvlqxxF5wha7+uo9ARzN3I1k",
+	"Wrjdzp/K4Gm1pHgBZS2/ov3Ijw/qW3lQvx/CWJAw70vZ7d0HYBt/ESvgfdHQolR6D0hG23ok3+Tyewgq",
+	"fkw7syiN3j3drHpoIq4dUTesYUVaqf4Xq9yHc7pzfQASt4UkUrvTKgJYEJ8PPMFZUmRWSrD1SMo0MOWp",
+	"qi6rqXY4J1yTtkDGvFVlt1LRpKyU0A1q6a4EgvNJaIJxnOcSEaaR68oxkltFWBpkKaB/kIonsCn66Cpt",
+	"w+M8ZYpMNB9iE1NYxRfpN2XBTHSvLZIo+1CNDLwZcaH4DJwrWIoIm2qN0qR+cTOShJsx9Dy2+hg8TOAc",
+	"j2hGlalKlkwRlshFH9I/dBMDaIoVNkCpKRVpL8dCzVGeYaV1Lo1Yu6VgDdWb2vW+zXbFKcnotQn/c1jv",
+	"oilmaRZmCXKJgzgzG2QeSZzDktCaMuiX8iq+S1CirblFYdxvlRSNR7bPXMHLWOrlJFGJJo5k9K887YSz",
+	"KoGTK4taPjZ7lQueFgkEFbuyn1Xl33muUpbSa5oWOJO6cegyLo07q25ojQwjKEGbZ5gZ8gFX1OZio8ur",
+	"mh6a6/NJATZaW9n7c6+rTGbQXNObavDqRit7XXZtC+p1hf+MVNFFEh4Q5miG5+BprNFRZqlC+BrTDPiL",
+	"Jkqwldj633Zx9cjaloVJX4phym/Aj3kyEWSieYePX69GLGCGs7miiSwLniE7lN22hLMxnRSCpIZB+GAF",
+	"NzblzOWQgSEnghdQm7eP3ri2s+qQVvl1mccknrkC1Gqek65hthrEcUZu6SgLyufKhDAsKJd17MjOp8tP",
+	"/ycAAP//D5moamnCAQA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
