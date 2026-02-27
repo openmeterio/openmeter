@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )

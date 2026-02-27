@@ -4,10 +4,11 @@ import (
 	"context"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/samber/lo"
 )
 
 func (a *adapter) CreateCreditRealizations(ctx context.Context, chargeID charges.ChargeID, realizations []charges.CreditRealizationCreateInput) (charges.CreditRealizations, error) {

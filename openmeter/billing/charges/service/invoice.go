@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
-	"github.com/samber/lo"
 )
 
 type paymentPostProcessorFn[T charges.FlatFeeCharge | charges.UsageBasedCharge | charges.CreditPurchaseCharge] func(ctx context.Context, charge T, lineWithHeader billing.StandardLineWithInvoiceHeader) error

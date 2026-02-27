@@ -3,12 +3,13 @@ package adapter
 import (
 	"context"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	dbcharge "github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	dbchargeflatfee "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/samber/lo"
 )
 
 func (a *adapter) UpdateFlatFeeCharge(ctx context.Context, charge charges.FlatFeeCharge) (charges.FlatFeeCharge, error) {
