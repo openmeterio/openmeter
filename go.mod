@@ -1,6 +1,6 @@
 module github.com/openmeterio/openmeter
 
-go 1.25.0
+go 1.25.5
 
 // ee: https://github.com/oklog/run/pull/35
 replace github.com/oklog/run => github.com/openmeterio/run v0.0.0-20250217124527-c72029d4b634
@@ -45,7 +45,7 @@ require (
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/oklog/run v1.1.1-0.20240127200640-eee6e044b77c
 	github.com/oklog/ulid/v2 v2.1.1
-	github.com/oliveagle/jsonpath v0.1.0
+	github.com/oliveagle/jsonpath v0.1.4
 	github.com/peterbourgon/ctxdata/v4 v4.0.0
 	github.com/peterldowns/pgtestdb v0.1.1
 	github.com/prometheus/client_golang v1.23.2
@@ -463,7 +463,7 @@ require (
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
-	github.com/shopspring/decimal v1.4.0 // indirect
+	github.com/shopspring/decimal v1.4.0
 	github.com/sijms/go-ora/v2 v2.9.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/smira/go-statsd v1.3.4 // indirect
