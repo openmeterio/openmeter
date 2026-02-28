@@ -3833,10 +3833,13 @@ components:
       properties:
         provider:
           type: string
-          description: Filter by provider.
+          description: Filter by provider (case-insensitive, partial match).
         model_id:
           type: string
           description: Filter by model ID.
+        model_name:
+          type: string
+          description: Filter by model name (case-insensitive, partial match).
       description: Filter options for listing LLM cost prices.
     Meter:
       type: object

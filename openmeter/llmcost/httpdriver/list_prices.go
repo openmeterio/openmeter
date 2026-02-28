@@ -58,6 +58,9 @@ func (h *handler) ListPrices() ListPricesHandler {
 				if params.Filter.ModelId != nil {
 					req.ModelID = params.Filter.ModelId
 				}
+				if params.Filter.ModelName != nil {
+					req.ModelName = params.Filter.ModelName
+				}
 			}
 
 			if params.At != nil {

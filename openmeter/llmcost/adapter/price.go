@@ -26,11 +26,15 @@ func (a *adapter) ListPrices(ctx context.Context, input llmcost.ListPricesInput)
 			Where(pricedb.NamespaceIsNil()) // Global prices only
 
 		if input.Provider != nil {
-			query = query.Where(pricedb.ProviderEQ(string(*input.Provider)))
+			query = query.Where(pricedb.ProviderContainsFold(string(*input.Provider)))
 		}
 
 		if input.ModelID != nil {
 			query = query.Where(pricedb.ModelIDEQ(*input.ModelID))
+		}
+
+		if input.ModelName != nil {
+			query = query.Where(pricedb.ModelNameContainsFold(*input.ModelName))
 		}
 
 		if input.At != nil {
@@ -260,11 +264,15 @@ func (a *adapter) ListOverrides(ctx context.Context, input llmcost.ListOverrides
 			Where(pricedb.SourceEQ(string(llmcost.PriceSourceManual)))
 
 		if input.Provider != nil {
-			query = query.Where(pricedb.ProviderEQ(string(*input.Provider)))
+			query = query.Where(pricedb.ProviderContainsFold(string(*input.Provider)))
 		}
 
 		if input.ModelID != nil {
 			query = query.Where(pricedb.ModelIDEQ(*input.ModelID))
+		}
+
+		if input.ModelName != nil {
+			query = query.Where(pricedb.ModelNameContainsFold(*input.ModelName))
 		}
 
 		query = query.Order(pricedb.ByProvider(), pricedb.ByModelID())

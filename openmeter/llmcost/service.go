@@ -59,6 +59,9 @@ type ListPricesInput struct {
 	// ModelID filters by canonical model identifier.
 	ModelID *string `json:"model_id,omitempty"`
 
+	// ModelName filters by model display name (case-insensitive, partial match).
+	ModelName *string `json:"model_name,omitempty"`
+
 	// At queries prices effective at a specific point in time.
 	At *time.Time `json:"at,omitempty"`
 }
@@ -202,8 +205,9 @@ type ListOverridesInput struct {
 	Namespace string
 	pagination.Page
 
-	Provider *Provider `json:"provider,omitempty"`
-	ModelID  *string   `json:"model_id,omitempty"`
+	Provider  *Provider `json:"provider,omitempty"`
+	ModelID   *string   `json:"model_id,omitempty"`
+	ModelName *string   `json:"model_name,omitempty"`
 }
 
 func (i ListOverridesInput) Validate() error {

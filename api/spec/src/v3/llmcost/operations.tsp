@@ -17,11 +17,14 @@ namespace LLMCost;
  */
 @friendlyName("ListLLMCostPricesParamsFilter")
 model ListPricesParamsFilter {
-  /** Filter by provider. */
+  /** Filter by provider (case-insensitive, partial match). */
   provider?: string;
 
   /** Filter by model ID. */
   model_id?: string;
+
+  /** Filter by model name (case-insensitive, partial match). */
+  model_name?: string;
 }
 
 /**

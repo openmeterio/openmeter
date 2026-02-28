@@ -38,6 +38,7 @@ func (s *service) ListPrices(ctx context.Context, input llmcost.ListPricesInput)
 			Namespace: input.Namespace,
 			Provider:  input.Provider,
 			ModelID:   input.ModelID,
+			ModelName: input.ModelName,
 		})
 		if err != nil {
 			return pagination.Result[llmcost.Price]{}, err
