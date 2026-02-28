@@ -163,6 +163,69 @@ func TestSyncJobRun(t *testing.T) {
 		assert.Equal(t, "openai", string(adapter.upsertedPrices[0].Provider))
 	})
 
+	t.Run("filter excludes prices", func(t *testing.T) {
+		adapter.upsertedPrices = nil
+
+		fetcher1 := &mockFetcher{
+			source: "source_a",
+			prices: []llmcost.SourcePrice{
+				makePrice("source_a", "openai", "gpt-4", 0.01, 0.03),
+				makePrice("source_a", "anthropic", "claude-3-5-sonnet", 0.003, 0.015),
+			},
+		}
+		fetcher2 := &mockFetcher{
+			source: "source_b",
+			prices: []llmcost.SourcePrice{
+				makePrice("source_b", "openai", "gpt-4", 0.01, 0.03),
+				makePrice("source_b", "anthropic", "claude-3-5-sonnet", 0.003, 0.015),
+			},
+		}
+
+		// Only include openai models
+		job := NewSyncJob(SyncJobConfig{
+			Repo:     adapter,
+			Logger:   logger,
+			Fetchers: []Fetcher{fetcher1, fetcher2},
+			Filter: func(p llmcost.SourcePrice) bool {
+				return p.Provider == "openai"
+			},
+		})
+
+		err := job.Run(context.Background())
+		require.NoError(t, err)
+		require.Len(t, adapter.upsertedPrices, 1)
+		assert.Equal(t, "openai", string(adapter.upsertedPrices[0].Provider))
+	})
+
+	t.Run("nil filter includes all prices", func(t *testing.T) {
+		adapter.upsertedPrices = nil
+
+		fetcher1 := &mockFetcher{
+			source: "source_a",
+			prices: []llmcost.SourcePrice{
+				makePrice("source_a", "openai", "gpt-4", 0.01, 0.03),
+				makePrice("source_a", "anthropic", "claude-3-5-sonnet", 0.003, 0.015),
+			},
+		}
+		fetcher2 := &mockFetcher{
+			source: "source_b",
+			prices: []llmcost.SourcePrice{
+				makePrice("source_b", "openai", "gpt-4", 0.01, 0.03),
+				makePrice("source_b", "anthropic", "claude-3-5-sonnet", 0.003, 0.015),
+			},
+		}
+
+		job := NewSyncJob(SyncJobConfig{
+			Repo:     adapter,
+			Logger:   logger,
+			Fetchers: []Fetcher{fetcher1, fetcher2},
+		})
+
+		err := job.Run(context.Background())
+		require.NoError(t, err)
+		assert.Len(t, adapter.upsertedPrices, 2)
+	})
+
 	t.Run("configurable min source agreement", func(t *testing.T) {
 		adapter.upsertedPrices = nil
 
