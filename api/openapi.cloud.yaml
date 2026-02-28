@@ -4676,6 +4676,88 @@ paths:
                 $ref: '#/components/schemas/UnexpectedProblemResponse'
       tags:
         - Product Catalog
+  /api/v1/features/{featureId}/cost:
+    get:
+      operationId: queryFeatureCost
+      summary: Query feature cost
+      description: |-
+        Query the cost of a feature based on its unit cost configuration and underlying meter usage.
+        For features with manual unit cost, the cost is usage × fixed amount.
+        For features with LLM unit cost, the cost is resolved per row from the LLM cost database.
+        The feature must have a meter and unit cost configured.
+      parameters:
+        - name: featureId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/MeterQuery.clientId'
+        - $ref: '#/components/parameters/MeterQuery.from'
+        - $ref: '#/components/parameters/MeterQuery.to'
+        - $ref: '#/components/parameters/MeterQuery.windowSize'
+        - $ref: '#/components/parameters/MeterQuery.windowTimeZone'
+        - $ref: '#/components/parameters/MeterQuery.subject'
+        - $ref: '#/components/parameters/MeterQuery.filterCustomerId'
+        - $ref: '#/components/parameters/MeterQuery.filterGroupBy'
+        - $ref: '#/components/parameters/MeterQuery.advancedMeterGroupByFilters'
+        - $ref: '#/components/parameters/MeterQuery.groupBy'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureCostQueryResult'
+        '400':
+          description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/BadRequestProblemResponse'
+        '401':
+          description: The request has not been applied because it lacks valid authentication credentials for the target resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedProblemResponse'
+        '403':
+          description: The server understood the request but refuses to authorize it.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenProblemResponse'
+        '404':
+          description: The origin server did not find a current representation for the target resource or is not willing to disclose that one exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/NotFoundProblemResponse'
+        '412':
+          description: One or more conditions given in the request header fields evaluated to false when tested on the server.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PreconditionFailedProblemResponse'
+        '500':
+          description: The server encountered an unexpected condition that prevented it from fulfilling the request.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorProblemResponse'
+        '503':
+          description: The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableProblemResponse'
+        default:
+          description: An unexpected error response.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedProblemResponse'
+      tags:
+        - Product Catalog
   /api/v1/grants:
     get:
       operationId: listGrants
@@ -17390,6 +17472,14 @@ components:
                 - gpt-4o
             type:
               $eq: input
+        unitCost:
+          allOf:
+            - $ref: '#/components/schemas/FeatureUnitCost'
+          description: |-
+            Optional per-unit cost configuration.
+            Use "manual" for a fixed per-unit cost, or "llm" to look up cost
+            from the LLM cost database based on meter group-by properties.
+          title: Unit cost
         id:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
@@ -17399,6 +17489,92 @@ components:
       description: |-
         Represents a feature that can be enabled or disabled for a plan.
         Used both for product catalog and entitlements.
+    FeatureCostQueryResult:
+      type: object
+      required:
+        - currency
+        - data
+      properties:
+        from:
+          type: string
+          format: date-time
+          description: Start of the queried period.
+          example: '2023-01-01T01:01:01.001Z'
+        to:
+          type: string
+          format: date-time
+          description: End of the queried period.
+          example: '2023-01-01T01:01:01.001Z'
+        windowSize:
+          allOf:
+            - $ref: '#/components/schemas/WindowSize'
+          description: The window size that the cost is aggregated.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency code of the cost amounts.
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureCostQueryRow'
+          description: The cost data rows.
+      description: Result of a feature cost query.
+    FeatureCostQueryRow:
+      type: object
+      required:
+        - usage
+        - unitCost
+        - cost
+        - currency
+        - windowStart
+        - windowEnd
+      properties:
+        usage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The metered usage value for the period.
+        unitCost:
+          type: string
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          nullable: true
+          description: The unit cost used for cost computation. Null when pricing is not available for the group-by combination.
+        cost:
+          type: string
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          nullable: true
+          description: The computed cost amount (usage × unit cost). Null when pricing is not available for the group-by combination.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency code of the cost amount.
+        detail:
+          type: string
+          description: Detail message when cost amount is null, explaining why the cost could not be resolved.
+        windowStart:
+          type: string
+          format: date-time
+          description: The start of the window the value is aggregated over.
+          example: '2023-01-01T01:01:01.001Z'
+        windowEnd:
+          type: string
+          format: date-time
+          description: The end of the window the value is aggregated over.
+          example: '2023-01-01T01:01:01.001Z'
+        subject:
+          type: string
+          description: The subject the value is aggregated over.
+        customerId:
+          type: string
+          description: The customer ID the value is aggregated over.
+        groupBy:
+          type: object
+          additionalProperties:
+            type: string
+            nullable: true
+          description: The group by values the value is aggregated over.
+      description: A row in the result of a feature cost query.
     FeatureCreateInputs:
       type: object
       required:
@@ -17460,9 +17636,128 @@ components:
                 - gpt-4o
             type:
               $eq: input
+        unitCost:
+          allOf:
+            - $ref: '#/components/schemas/FeatureUnitCost'
+          description: |-
+            Optional per-unit cost configuration.
+            Use "manual" for a fixed per-unit cost, or "llm" to look up cost
+            from the LLM cost database based on meter group-by properties.
+          title: Unit cost
       description: |-
         Represents a feature that can be enabled or disabled for a plan.
         Used both for product catalog and entitlements.
+    FeatureLLMUnitCost:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - llm
+        providerProperty:
+          type: string
+          description: |-
+            Meter group-by property that holds the LLM provider.
+            Use this when the meter has a group-by dimension for provider.
+            Mutually exclusive with `provider`.
+          title: Provider property
+        provider:
+          type: string
+          description: |-
+            Static LLM provider value (e.g., "openai", "anthropic").
+            Use this when the feature tracks a single provider.
+            Mutually exclusive with `providerProperty`.
+          title: Provider
+        modelProperty:
+          type: string
+          description: |-
+            Meter group-by property that holds the model ID.
+            Use this when the meter has a group-by dimension for model.
+            Mutually exclusive with `model`.
+          title: Model property
+        model:
+          type: string
+          description: |-
+            Static model ID value (e.g., "gpt-4", "claude-3-5-sonnet").
+            Use this when the feature tracks a single model.
+            Mutually exclusive with `modelProperty`.
+          title: Model
+        tokenTypeProperty:
+          type: string
+          description: |-
+            Meter group-by property that holds the token type.
+            Use this when the meter has a group-by dimension for token type.
+            Mutually exclusive with `tokenType`.
+          title: Token type property
+        tokenType:
+          type: string
+          description: |-
+            Static token type value.
+            Use this when the feature tracks a single token type (e.g., only input tokens).
+            Expected values: input, output, input_cached, reasoning, cache_write.
+            Mutually exclusive with `tokenTypeProperty`.
+          title: Token type
+        pricing:
+          allOf:
+            - $ref: '#/components/schemas/FeatureLLMUnitCostPricing'
+          description: |-
+            Resolved per-token pricing from the LLM cost database.
+            Only populated in responses when the feature's meter group-by filters
+            specify exact provider and model values.
+          title: Resolved pricing
+          readOnly: true
+      description: |-
+        LLM cost lookup configuration.
+        Maps meter group-by dimensions to LLM cost database fields.
+    FeatureLLMUnitCostPricing:
+      type: object
+      required:
+        - inputPerToken
+        - outputPerToken
+      properties:
+        inputPerToken:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Cost per input token in USD.
+          title: Input per token
+        outputPerToken:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Cost per output token in USD.
+          title: Output per token
+        inputCachedPerToken:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Cost per cached input token in USD.
+          title: Input cached per token
+        reasoningPerToken:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Cost per reasoning token in USD.
+          title: Reasoning per token
+        cacheWritePerToken:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Cost per cache write token in USD.
+          title: Cache write per token
+      description: Resolved per-token pricing from the LLM cost database.
+    FeatureManualUnitCost:
+      type: object
+      required:
+        - type
+        - amount
+      properties:
+        type:
+          type: string
+          enum:
+            - manual
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Fixed per-unit cost amount in USD.
+      description: A fixed per-unit cost amount.
     FeatureMeta:
       type: object
       required:
@@ -17518,6 +17813,19 @@ components:
             $ref: '#/components/schemas/Feature'
           description: The items in the current page.
       description: Paginated response
+    FeatureUnitCost:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/FeatureManualUnitCost'
+        - $ref: '#/components/schemas/FeatureLLMUnitCost'
+      discriminator:
+        propertyName: type
+        mapping:
+          manual: '#/components/schemas/FeatureManualUnitCost'
+          llm: '#/components/schemas/FeatureLLMUnitCost'
+      description: |-
+        Per-unit cost configuration for a feature.
+        Either a fixed manual amount or a dynamic LLM cost lookup.
     FilterIDExact:
       type: object
       properties:

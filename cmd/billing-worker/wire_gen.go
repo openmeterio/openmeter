@@ -171,7 +171,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	meterService := common.NewMeterService(adapterAdapter)
-	featureConnector := common.NewFeatureConnector(logger, client, meterService, eventbusPublisher)
+	llmcostService, err := common.NewLLMCostService(logger, client)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	featureConnector := common.NewFeatureConnector(logger, client, meterService, eventbusPublisher, llmcostService)
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
 	v3, cleanup7, err := common.NewClickHouse(ctx, clickHouseAggregationConfiguration, tracer, meter, logger)

@@ -286,6 +286,13 @@ class FeatureOrderBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     UPDATED_AT = "updatedAt"
 
 
+class FeatureUnitCostType(str, Enum, metaclass=CaseInsensitiveEnumMeta):
+    """The type of unit cost."""
+
+    LLM = "llm"
+    MANUAL = "manual"
+
+
 class GrantOrderBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Order by options for grants."""
 

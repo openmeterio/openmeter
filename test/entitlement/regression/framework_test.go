@@ -118,7 +118,7 @@ func setupDependencies(t *testing.T) Dependencies {
 		t.Fatalf("failed to create meter adapter: %v", err)
 	}
 
-	featureConnector := feature.NewFeatureConnector(featureRepo, meterAdapter, eventbus.NewMock(t)) // TODO: meter repo is needed
+	featureConnector := feature.NewFeatureConnector(featureRepo, meterAdapter, eventbus.NewMock(t), nil) // TODO: meter repo is needed
 
 	// Init grants/credit
 	grantRepo := grantrepo.NewPostgresGrantRepo(dbClient)

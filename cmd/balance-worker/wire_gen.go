@@ -266,7 +266,19 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	featureConnector := common.NewFeatureConnector(logger, client, meterService, eventbusPublisher)
+	llmcostService, err := common.NewLLMCostService(logger, client)
+	if err != nil {
+		cleanup8()
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	featureConnector := common.NewFeatureConnector(logger, client, meterService, eventbusPublisher, llmcostService)
 	notificationService, err := common.NewNotificationService(logger, repository, handler, eventHandler, featureConnector)
 	if err != nil {
 		cleanup8()

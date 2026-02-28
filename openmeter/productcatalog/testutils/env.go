@@ -93,7 +93,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 
 	// Init feature service
 	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(client, logger)
-	featureService := feature.NewFeatureConnector(featureAdapter, meterAdapter, publisher)
+	featureService := feature.NewFeatureConnector(featureAdapter, meterAdapter, publisher, nil)
 
 	// Init plan service
 	planAdapter, err := planadapter.New(planadapter.Config{

@@ -128,6 +128,11 @@ notification-service: ## Run notification-service
 	$(call print-target)
 	air -c ./cmd/notification-service/.air.toml
 
+.PHONY: llm-cost-sync
+llm-cost-sync: ## Sync LLM cost prices from external sources
+	$(call print-target)
+	go run ./cmd/jobs llm-cost sync
+
 .PHONY: etoe
 etoe: ## Run e2e tests
 	$(call print-target)

@@ -72,6 +72,21 @@ interface FeaturesEndpoints {
   delete(@path featureId: string): {
     @statusCode _: 204;
   } | NotFoundError | CommonErrors;
+
+  /**
+   * Query the cost of a feature based on its unit cost configuration and underlying meter usage.
+   * For features with manual unit cost, the cost is usage × fixed amount.
+   * For features with LLM unit cost, the cost is resolved per row from the LLM cost database.
+   * The feature must have a meter and unit cost configured.
+   */
+  @get
+  @route("/{featureId}/cost")
+  @operationId("queryFeatureCost")
+  @summary("Query feature cost")
+  queryFeatureCost(
+    @path featureId: string,
+    ...MeterQuery,
+  ): FeatureCostQueryResult | NotFoundError | CommonErrors;
 }
 
 @route("/api/v1/plans")

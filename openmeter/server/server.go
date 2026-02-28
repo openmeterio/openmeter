@@ -114,6 +114,7 @@ func NewServer(config *Config) (*Server, error) {
 		CustomerService:         config.RouterConfig.Customer,
 		EntitlementService:      config.RouterConfig.EntitlementConnector,
 		IngestService:           config.RouterConfig.IngestService,
+		LLMCostService:          config.RouterConfig.LLMCostService,
 		MeterService:            config.RouterConfig.MeterManageService,
 		PlanService:             config.RouterConfig.Plan,
 		PlanSubscriptionService: config.RouterConfig.PlanSubscriptionService,

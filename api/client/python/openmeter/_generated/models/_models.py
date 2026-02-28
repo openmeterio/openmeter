@@ -12,6 +12,7 @@ from ._enums import (
     DiscountReasonType,
     EditOp,
     EntitlementType,
+    FeatureUnitCostType,
     InvoiceDocumentRefType,
     InvoiceLineTypes,
     NotificationChannelType,
@@ -6390,6 +6391,10 @@ class Feature(_Model):
     :vartype meter_group_by_filters: dict[str, str]
     :ivar advanced_meter_group_by_filters: Advanced meter group by filters.
     :vartype advanced_meter_group_by_filters: dict[str, ~openmeter._generated.models.FilterString]
+    :ivar unit_cost: Unit cost. Is either a FeatureManualUnitCost type or a FeatureLLMUnitCost
+     type.
+    :vartype unit_cost: ~openmeter._generated.models.FeatureManualUnitCost or
+     ~openmeter._generated.models.FeatureLLMUnitCost
     :ivar id: Readonly unique ULID identifier. Required.
     :vartype id: str
     """
@@ -6418,6 +6423,10 @@ class Feature(_Model):
         name="advancedMeterGroupByFilters", visibility=["read", "create", "update", "delete", "query"]
     )
     """Advanced meter group by filters."""
+    unit_cost: Optional["_types.FeatureUnitCost"] = rest_field(
+        name="unitCost", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Unit cost. Is either a FeatureManualUnitCost type or a FeatureLLMUnitCost type."""
     id: str = rest_field(visibility=["read"])
     """Readonly unique ULID identifier. Required."""
 
@@ -6431,6 +6440,149 @@ class Feature(_Model):
         meter_slug: Optional[str] = None,
         meter_group_by_filters: Optional[dict[str, str]] = None,
         advanced_meter_group_by_filters: Optional[dict[str, "_models.FilterString"]] = None,
+        unit_cost: Optional["_types.FeatureUnitCost"] = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(self, mapping: Mapping[str, Any]) -> None:
+        """
+        :param mapping: raw JSON to initialize the model.
+        :type mapping: Mapping[str, Any]
+        """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+
+class FeatureCostQueryResult(_Model):
+    """Result of a feature cost query.
+
+    :ivar from_property: Start of the queried period.
+    :vartype from_property: ~datetime.datetime
+    :ivar to: End of the queried period.
+    :vartype to: ~datetime.datetime
+    :ivar window_size: The window size that the cost is aggregated. Known values are: "MINUTE",
+     "HOUR", "DAY", and "MONTH".
+    :vartype window_size: str or ~openmeter.models.WindowSize
+    :ivar currency: The currency code of the cost amounts. Required.
+    :vartype currency: str
+    :ivar data: The cost data rows. Required.
+    :vartype data: list[~openmeter._generated.models.FeatureCostQueryRow]
+    """
+
+    from_property: Optional[datetime.datetime] = rest_field(
+        name="from", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
+    """Start of the queried period."""
+    to: Optional[datetime.datetime] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
+    """End of the queried period."""
+    window_size: Optional[Union[str, "_models.WindowSize"]] = rest_field(
+        name="windowSize", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """The window size that the cost is aggregated. Known values are: \"MINUTE\", \"HOUR\", \"DAY\",
+     and \"MONTH\"."""
+    currency: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """The currency code of the cost amounts. Required."""
+    data: list["_models.FeatureCostQueryRow"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """The cost data rows. Required."""
+
+    @overload
+    def __init__(
+        self,
+        *,
+        currency: str,
+        data: list["_models.FeatureCostQueryRow"],
+        from_property: Optional[datetime.datetime] = None,
+        to: Optional[datetime.datetime] = None,
+        window_size: Optional[Union[str, "_models.WindowSize"]] = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(self, mapping: Mapping[str, Any]) -> None:
+        """
+        :param mapping: raw JSON to initialize the model.
+        :type mapping: Mapping[str, Any]
+        """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+
+class FeatureCostQueryRow(_Model):
+    """A row in the result of a feature cost query.
+
+    :ivar usage: The metered usage value for the period. Required.
+    :vartype usage: str
+    :ivar unit_cost: The unit cost used for cost computation. Null when pricing is not available
+     for the group-by combination. Required.
+    :vartype unit_cost: str
+    :ivar cost: The computed cost amount (usage × unit cost). Null when pricing is not available
+     for the group-by combination. Required.
+    :vartype cost: str
+    :ivar currency: The currency code of the cost amount. Required.
+    :vartype currency: str
+    :ivar detail: Detail message when cost amount is null, explaining why the cost could not be
+     resolved.
+    :vartype detail: str
+    :ivar window_start: The start of the window the value is aggregated over. Required.
+    :vartype window_start: ~datetime.datetime
+    :ivar window_end: The end of the window the value is aggregated over. Required.
+    :vartype window_end: ~datetime.datetime
+    :ivar subject: The subject the value is aggregated over.
+    :vartype subject: str
+    :ivar customer_id: The customer ID the value is aggregated over.
+    :vartype customer_id: str
+    :ivar group_by: The group by values the value is aggregated over.
+    :vartype group_by: dict[str, str]
+    """
+
+    usage: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """The metered usage value for the period. Required."""
+    unit_cost: str = rest_field(name="unitCost", visibility=["read", "create", "update", "delete", "query"])
+    """The unit cost used for cost computation. Null when pricing is not available for the group-by
+     combination. Required."""
+    cost: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """The computed cost amount (usage × unit cost). Null when pricing is not available for the
+     group-by combination. Required."""
+    currency: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """The currency code of the cost amount. Required."""
+    detail: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """Detail message when cost amount is null, explaining why the cost could not be resolved."""
+    window_start: datetime.datetime = rest_field(
+        name="windowStart", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
+    """The start of the window the value is aggregated over. Required."""
+    window_end: datetime.datetime = rest_field(
+        name="windowEnd", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
+    """The end of the window the value is aggregated over. Required."""
+    subject: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """The subject the value is aggregated over."""
+    customer_id: Optional[str] = rest_field(
+        name="customerId", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """The customer ID the value is aggregated over."""
+    group_by: Optional[dict[str, str]] = rest_field(
+        name="groupBy", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """The group by values the value is aggregated over."""
+
+    @overload
+    def __init__(
+        self,
+        *,
+        usage: str,
+        unit_cost: str,
+        cost: str,
+        currency: str,
+        window_start: datetime.datetime,
+        window_end: datetime.datetime,
+        detail: Optional[str] = None,
+        subject: Optional[str] = None,
+        customer_id: Optional[str] = None,
+        group_by: Optional[dict[str, str]] = None,
     ) -> None: ...
 
     @overload
@@ -6460,6 +6612,10 @@ class FeatureCreateInputs(_Model):
     :vartype meter_group_by_filters: dict[str, str]
     :ivar advanced_meter_group_by_filters: Advanced meter group by filters.
     :vartype advanced_meter_group_by_filters: dict[str, ~openmeter._generated.models.FilterString]
+    :ivar unit_cost: Unit cost. Is either a FeatureManualUnitCost type or a FeatureLLMUnitCost
+     type.
+    :vartype unit_cost: ~openmeter._generated.models.FeatureManualUnitCost or
+     ~openmeter._generated.models.FeatureLLMUnitCost
     """
 
     key: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -6478,6 +6634,10 @@ class FeatureCreateInputs(_Model):
         name="advancedMeterGroupByFilters", visibility=["read", "create", "update", "delete", "query"]
     )
     """Advanced meter group by filters."""
+    unit_cost: Optional["_types.FeatureUnitCost"] = rest_field(
+        name="unitCost", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Unit cost. Is either a FeatureManualUnitCost type or a FeatureLLMUnitCost type."""
 
     @overload
     def __init__(
@@ -6489,6 +6649,165 @@ class FeatureCreateInputs(_Model):
         meter_slug: Optional[str] = None,
         meter_group_by_filters: Optional[dict[str, str]] = None,
         advanced_meter_group_by_filters: Optional[dict[str, "_models.FilterString"]] = None,
+        unit_cost: Optional["_types.FeatureUnitCost"] = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(self, mapping: Mapping[str, Any]) -> None:
+        """
+        :param mapping: raw JSON to initialize the model.
+        :type mapping: Mapping[str, Any]
+        """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+
+class FeatureLLMUnitCost(_Model):
+    """LLM cost lookup configuration.
+    Maps meter group-by dimensions to LLM cost database fields.
+
+    :ivar type: Required.
+    :vartype type: str or ~openmeter._generated.models.LLM
+    :ivar provider_property: Provider property.
+    :vartype provider_property: str
+    :ivar provider: Provider.
+    :vartype provider: str
+    :ivar model_property: Model property.
+    :vartype model_property: str
+    :ivar model: Model.
+    :vartype model: str
+    :ivar token_type_property: Token type property.
+    :vartype token_type_property: str
+    :ivar token_type: Token type.
+    :vartype token_type: str
+    :ivar pricing: Resolved pricing.
+    :vartype pricing: ~openmeter._generated.models.FeatureLLMUnitCostPricing
+    """
+
+    type: Literal[FeatureUnitCostType.LLM] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """Required."""
+    provider_property: Optional[str] = rest_field(
+        name="providerProperty", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Provider property."""
+    provider: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """Provider."""
+    model_property: Optional[str] = rest_field(
+        name="modelProperty", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Model property."""
+    model: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """Model."""
+    token_type_property: Optional[str] = rest_field(
+        name="tokenTypeProperty", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Token type property."""
+    token_type: Optional[str] = rest_field(name="tokenType", visibility=["read", "create", "update", "delete", "query"])
+    """Token type."""
+    pricing: Optional["_models.FeatureLLMUnitCostPricing"] = rest_field(visibility=["read"])
+    """Resolved pricing."""
+
+    @overload
+    def __init__(
+        self,
+        *,
+        type: Literal[FeatureUnitCostType.LLM],
+        provider_property: Optional[str] = None,
+        provider: Optional[str] = None,
+        model_property: Optional[str] = None,
+        model: Optional[str] = None,
+        token_type_property: Optional[str] = None,
+        token_type: Optional[str] = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(self, mapping: Mapping[str, Any]) -> None:
+        """
+        :param mapping: raw JSON to initialize the model.
+        :type mapping: Mapping[str, Any]
+        """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+
+class FeatureLLMUnitCostPricing(_Model):
+    """Resolved per-token pricing from the LLM cost database.
+
+    :ivar input_per_token: Input per token. Required.
+    :vartype input_per_token: str
+    :ivar output_per_token: Output per token. Required.
+    :vartype output_per_token: str
+    :ivar input_cached_per_token: Input cached per token.
+    :vartype input_cached_per_token: str
+    :ivar reasoning_per_token: Reasoning per token.
+    :vartype reasoning_per_token: str
+    :ivar cache_write_per_token: Cache write per token.
+    :vartype cache_write_per_token: str
+    """
+
+    input_per_token: str = rest_field(name="inputPerToken", visibility=["read", "create", "update", "delete", "query"])
+    """Input per token. Required."""
+    output_per_token: str = rest_field(
+        name="outputPerToken", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Output per token. Required."""
+    input_cached_per_token: Optional[str] = rest_field(
+        name="inputCachedPerToken", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Input cached per token."""
+    reasoning_per_token: Optional[str] = rest_field(
+        name="reasoningPerToken", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Reasoning per token."""
+    cache_write_per_token: Optional[str] = rest_field(
+        name="cacheWritePerToken", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Cache write per token."""
+
+    @overload
+    def __init__(
+        self,
+        *,
+        input_per_token: str,
+        output_per_token: str,
+        input_cached_per_token: Optional[str] = None,
+        reasoning_per_token: Optional[str] = None,
+        cache_write_per_token: Optional[str] = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(self, mapping: Mapping[str, Any]) -> None:
+        """
+        :param mapping: raw JSON to initialize the model.
+        :type mapping: Mapping[str, Any]
+        """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+
+class FeatureManualUnitCost(_Model):
+    """A fixed per-unit cost amount.
+
+    :ivar type: Required.
+    :vartype type: str or ~openmeter._generated.models.MANUAL
+    :ivar amount: Fixed per-unit cost amount in USD. Required.
+    :vartype amount: str
+    """
+
+    type: Literal[FeatureUnitCostType.MANUAL] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """Required."""
+    amount: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """Fixed per-unit cost amount in USD. Required."""
+
+    @overload
+    def __init__(
+        self,
+        *,
+        type: Literal[FeatureUnitCostType.MANUAL],
+        amount: str,
     ) -> None: ...
 
     @overload

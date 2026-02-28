@@ -35,6 +35,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 
 		metadata,
 		common.BillingWorker,
+		common.NewLLMCostService,
 		common.ClickHouse,
 		common.Config,
 		common.Database,

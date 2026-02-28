@@ -93,6 +93,7 @@ from ...operations._operations import (
     build_features_delete_request,
     build_features_get_request,
     build_features_list_request,
+    build_features_query_feature_cost_request,
     build_grants_delete_request,
     build_grants_list_request,
     build_grants_v2_list_request,
@@ -2605,6 +2606,163 @@ class FeaturesOperations:
 
         if cls:
             return cls(pipeline_response, None, {})  # type: ignore
+
+    async def query_feature_cost(
+        self,
+        feature_id: str,
+        *,
+        client_id: Optional[str] = None,
+        from_parameter: Optional[datetime.datetime] = None,
+        to: Optional[datetime.datetime] = None,
+        window_size: Optional[Union[str, _models.WindowSize]] = None,
+        window_time_zone: Optional[str] = None,
+        subject: Optional[List[str]] = None,
+        filter_customer_id: Optional[List[str]] = None,
+        filter_group_by: Optional[dict[str, str]] = None,
+        advanced_meter_group_by_filters: Optional[dict[str, _models.FilterString]] = None,
+        group_by: Optional[List[str]] = None,
+        **kwargs: Any
+    ) -> _models.FeatureCostQueryResult:
+        """Query feature cost.
+
+        Query the cost of a feature based on its unit cost configuration and underlying meter usage.
+        For features with manual unit cost, the cost is usage × fixed amount.
+        For features with LLM unit cost, the cost is resolved per row from the LLM cost database.
+        The feature must have a meter and unit cost configured.
+
+        :param feature_id: Required.
+        :type feature_id: str
+        :keyword client_id: Client ID
+         Useful to track progress of a query. Default value is None.
+        :paramtype client_id: str
+        :keyword from_parameter: Start date-time in RFC 3339 format.
+
+         Inclusive.
+
+         For example: ?from=2025-01-01T00%3A00%3A00.000Z. Default value is None.
+        :paramtype from_parameter: ~datetime.datetime
+        :keyword to: End date-time in RFC 3339 format.
+
+         Inclusive.
+
+         For example: ?to=2025-02-01T00%3A00%3A00.000Z. Default value is None.
+        :paramtype to: ~datetime.datetime
+        :keyword window_size: If not specified, a single usage aggregate will be returned for the
+         entirety of the specified period for each subject and group.
+
+         For example: ?windowSize=DAY. Known values are: "MINUTE", "HOUR", "DAY", and "MONTH". Default
+         value is None.
+        :paramtype window_size: str or ~openmeter.models.WindowSize
+        :keyword window_time_zone: The value is the name of the time zone as defined in the IANA Time
+         Zone Database (`http://www.iana.org/time-zones <http://www.iana.org/time-zones>`_).
+         If not specified, the UTC timezone will be used.
+
+         For example: ?windowTimeZone=UTC. Default value is None.
+        :paramtype window_time_zone: str
+        :keyword subject: Filtering by multiple subjects.
+
+         For example: ?subject=subject-1&subject=subject-2. Default value is None.
+        :paramtype subject: list[str]
+        :keyword filter_customer_id: Filtering by multiple customers.
+
+         For example: ?filterCustomerId=customer-1&filterCustomerId=customer-2. Default value is None.
+        :paramtype filter_customer_id: list[str]
+        :keyword filter_group_by: Simple filter for group bys with exact match.
+
+         For example: ?filterGroupBy[vendor]=openai&filterGroupBy[model]=gpt-4-turbo
+
+         ⚠️ **Deprecated**: Use ``advancedMeterGroupByFilters`` instead. Default value is None.
+        :paramtype filter_group_by: dict[str, str]
+        :keyword advanced_meter_group_by_filters: Advanced meter group by filters. Default value is
+         None.
+        :paramtype advanced_meter_group_by_filters: dict[str,
+         ~openmeter._generated.models.FilterString]
+        :keyword group_by: If not specified a single aggregate will be returned for each subject and
+         time window.
+         ``subject`` is a reserved group by value.
+
+         For example: ?groupBy=subject&groupBy=model. Default value is None.
+        :paramtype group_by: list[str]
+        :return: FeatureCostQueryResult. The FeatureCostQueryResult is compatible with MutableMapping
+        :rtype: ~openmeter._generated.models.FeatureCostQueryResult
+        :raises ~corehttp.exceptions.HttpResponseError:
+        """
+        error_map: MutableMapping = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[_models.FeatureCostQueryResult] = kwargs.pop("cls", None)
+
+        _request = build_features_query_feature_cost_request(
+            feature_id=feature_id,
+            client_id=client_id,
+            from_parameter=from_parameter,
+            to=to,
+            window_size=window_size,
+            window_time_zone=window_time_zone,
+            subject=subject,
+            filter_customer_id=filter_customer_id,
+            filter_group_by=filter_group_by,
+            advanced_meter_group_by_filters=advanced_meter_group_by_filters,
+            group_by=group_by,
+            headers=_headers,
+            params=_params,
+        )
+        path_format_arguments = {
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
+        }
+        _request.url = self._client.format_url(_request.url, **path_format_arguments)
+
+        _stream = kwargs.pop("stream", False)
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                try:
+                    await response.read()  # Load the body in memory and close the socket
+                except (StreamConsumedError, StreamClosedError):
+                    pass
+            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            error = None
+            if response.status_code == 404:
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
+                raise ResourceNotFoundError(response=response, model=error)
+            if response.status_code == 400:
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
+            elif response.status_code == 401:
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
+                raise ClientAuthenticationError(response=response, model=error)
+            if response.status_code == 403:
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
+            elif response.status_code == 500:
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
+            elif response.status_code == 503:
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
+            elif response.status_code == 412:
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
+            else:
+                error = _failsafe_deserialize(
+                    _models.UnexpectedProblemResponse,
+                    response,
+                )
+            raise HttpResponseError(response=response, model=error)
+
+        if _stream:
+            deserialized = response.iter_bytes()
+        else:
+            deserialized = _deserialize(_models.FeatureCostQueryResult, response.json())
+
+        if cls:
+            return cls(pipeline_response, deserialized, {})  # type: ignore
+
+        return deserialized  # type: ignore
 
 
 class PlansOperations:

@@ -9,6 +9,7 @@ App = Union["_models.StripeApp", "_models.SandboxApp", "_models.CustomInvoicingA
 CustomerAppData = Union[
     "_models.StripeCustomerAppData", "_models.SandboxCustomerAppData", "_models.CustomInvoicingCustomerAppData"
 ]
+FeatureUnitCost = Union["_models.FeatureManualUnitCost", "_models.FeatureLLMUnitCost"]
 RateCardEntitlement = Union[
     "_models.RateCardMeteredEntitlement", "_models.RateCardStaticEntitlement", "_models.RateCardBooleanEntitlement"
 ]

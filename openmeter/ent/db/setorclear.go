@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -2606,6 +2607,118 @@ func (u *FeatureUpdateOne) SetOrClearAdvancedMeterGroupByFilters(value *feature.
 	return u.SetAdvancedMeterGroupByFilters(*value)
 }
 
+func (u *FeatureUpdate) SetOrClearUnitCostType(value *string) *FeatureUpdate {
+	if value == nil {
+		return u.ClearUnitCostType()
+	}
+	return u.SetUnitCostType(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearUnitCostType(value *string) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearUnitCostType()
+	}
+	return u.SetUnitCostType(*value)
+}
+
+func (u *FeatureUpdate) SetOrClearUnitCostManualAmount(value *alpacadecimal.Decimal) *FeatureUpdate {
+	if value == nil {
+		return u.ClearUnitCostManualAmount()
+	}
+	return u.SetUnitCostManualAmount(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearUnitCostManualAmount(value *alpacadecimal.Decimal) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearUnitCostManualAmount()
+	}
+	return u.SetUnitCostManualAmount(*value)
+}
+
+func (u *FeatureUpdate) SetOrClearUnitCostLlmProviderProperty(value *string) *FeatureUpdate {
+	if value == nil {
+		return u.ClearUnitCostLlmProviderProperty()
+	}
+	return u.SetUnitCostLlmProviderProperty(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearUnitCostLlmProviderProperty(value *string) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearUnitCostLlmProviderProperty()
+	}
+	return u.SetUnitCostLlmProviderProperty(*value)
+}
+
+func (u *FeatureUpdate) SetOrClearUnitCostLlmProvider(value *string) *FeatureUpdate {
+	if value == nil {
+		return u.ClearUnitCostLlmProvider()
+	}
+	return u.SetUnitCostLlmProvider(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearUnitCostLlmProvider(value *string) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearUnitCostLlmProvider()
+	}
+	return u.SetUnitCostLlmProvider(*value)
+}
+
+func (u *FeatureUpdate) SetOrClearUnitCostLlmModelProperty(value *string) *FeatureUpdate {
+	if value == nil {
+		return u.ClearUnitCostLlmModelProperty()
+	}
+	return u.SetUnitCostLlmModelProperty(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearUnitCostLlmModelProperty(value *string) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearUnitCostLlmModelProperty()
+	}
+	return u.SetUnitCostLlmModelProperty(*value)
+}
+
+func (u *FeatureUpdate) SetOrClearUnitCostLlmModel(value *string) *FeatureUpdate {
+	if value == nil {
+		return u.ClearUnitCostLlmModel()
+	}
+	return u.SetUnitCostLlmModel(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearUnitCostLlmModel(value *string) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearUnitCostLlmModel()
+	}
+	return u.SetUnitCostLlmModel(*value)
+}
+
+func (u *FeatureUpdate) SetOrClearUnitCostLlmTokenTypeProperty(value *string) *FeatureUpdate {
+	if value == nil {
+		return u.ClearUnitCostLlmTokenTypeProperty()
+	}
+	return u.SetUnitCostLlmTokenTypeProperty(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearUnitCostLlmTokenTypeProperty(value *string) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearUnitCostLlmTokenTypeProperty()
+	}
+	return u.SetUnitCostLlmTokenTypeProperty(*value)
+}
+
+func (u *FeatureUpdate) SetOrClearUnitCostLlmTokenType(value *string) *FeatureUpdate {
+	if value == nil {
+		return u.ClearUnitCostLlmTokenType()
+	}
+	return u.SetUnitCostLlmTokenType(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearUnitCostLlmTokenType(value *string) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearUnitCostLlmTokenType()
+	}
+	return u.SetUnitCostLlmTokenType(*value)
+}
+
 func (u *FeatureUpdate) SetOrClearArchivedAt(value *time.Time) *FeatureUpdate {
 	if value == nil {
 		return u.ClearArchivedAt()
@@ -2674,6 +2787,76 @@ func (u *GrantUpdateOne) SetOrClearVoidedAt(value *time.Time) *GrantUpdateOne {
 		return u.ClearVoidedAt()
 	}
 	return u.SetVoidedAt(*value)
+}
+
+func (u *LLMCostPriceUpdate) SetOrClearMetadata(value *map[string]string) *LLMCostPriceUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *LLMCostPriceUpdateOne) SetOrClearMetadata(value *map[string]string) *LLMCostPriceUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *LLMCostPriceUpdate) SetOrClearDeletedAt(value *time.Time) *LLMCostPriceUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LLMCostPriceUpdateOne) SetOrClearDeletedAt(value *time.Time) *LLMCostPriceUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LLMCostPriceUpdate) SetOrClearNamespace(value *string) *LLMCostPriceUpdate {
+	if value == nil {
+		return u.ClearNamespace()
+	}
+	return u.SetNamespace(*value)
+}
+
+func (u *LLMCostPriceUpdateOne) SetOrClearNamespace(value *string) *LLMCostPriceUpdateOne {
+	if value == nil {
+		return u.ClearNamespace()
+	}
+	return u.SetNamespace(*value)
+}
+
+func (u *LLMCostPriceUpdate) SetOrClearSourcePrices(value *llmcost.SourcePricesMap) *LLMCostPriceUpdate {
+	if value == nil {
+		return u.ClearSourcePrices()
+	}
+	return u.SetSourcePrices(*value)
+}
+
+func (u *LLMCostPriceUpdateOne) SetOrClearSourcePrices(value *llmcost.SourcePricesMap) *LLMCostPriceUpdateOne {
+	if value == nil {
+		return u.ClearSourcePrices()
+	}
+	return u.SetSourcePrices(*value)
+}
+
+func (u *LLMCostPriceUpdate) SetOrClearEffectiveTo(value *time.Time) *LLMCostPriceUpdate {
+	if value == nil {
+		return u.ClearEffectiveTo()
+	}
+	return u.SetEffectiveTo(*value)
+}
+
+func (u *LLMCostPriceUpdateOne) SetOrClearEffectiveTo(value *time.Time) *LLMCostPriceUpdateOne {
+	if value == nil {
+		return u.ClearEffectiveTo()
+	}
+	return u.SetEffectiveTo(*value)
 }
 
 func (u *MeterUpdate) SetOrClearMetadata(value *map[string]string) *MeterUpdate {

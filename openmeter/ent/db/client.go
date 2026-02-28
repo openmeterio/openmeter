@@ -49,6 +49,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/llmcostprice"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
@@ -145,6 +146,8 @@ type Client struct {
 	Feature *FeatureClient
 	// Grant is the client for interacting with the Grant builders.
 	Grant *GrantClient
+	// LLMCostPrice is the client for interacting with the LLMCostPrice builders.
+	LLMCostPrice *LLMCostPriceClient
 	// Meter is the client for interacting with the Meter builders.
 	Meter *MeterClient
 	// NotificationChannel is the client for interacting with the NotificationChannel builders.
@@ -228,6 +231,7 @@ func (c *Client) init() {
 	c.Entitlement = NewEntitlementClient(c.config)
 	c.Feature = NewFeatureClient(c.config)
 	c.Grant = NewGrantClient(c.config)
+	c.LLMCostPrice = NewLLMCostPriceClient(c.config)
 	c.Meter = NewMeterClient(c.config)
 	c.NotificationChannel = NewNotificationChannelClient(c.config)
 	c.NotificationEvent = NewNotificationEventClient(c.config)
@@ -373,6 +377,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Entitlement:                                      NewEntitlementClient(cfg),
 		Feature:                                          NewFeatureClient(cfg),
 		Grant:                                            NewGrantClient(cfg),
+		LLMCostPrice:                                     NewLLMCostPriceClient(cfg),
 		Meter:                                            NewMeterClient(cfg),
 		NotificationChannel:                              NewNotificationChannelClient(cfg),
 		NotificationEvent:                                NewNotificationEventClient(cfg),
@@ -445,6 +450,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Entitlement:                                      NewEntitlementClient(cfg),
 		Feature:                                          NewFeatureClient(cfg),
 		Grant:                                            NewGrantClient(cfg),
+		LLMCostPrice:                                     NewLLMCostPriceClient(cfg),
 		Meter:                                            NewMeterClient(cfg),
 		NotificationChannel:                              NewNotificationChannelClient(cfg),
 		NotificationEvent:                                NewNotificationEventClient(cfg),
@@ -504,12 +510,13 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
 		c.Charge, c.ChargeCreditPurchase, c.ChargeFlatFee, c.ChargeUsageBased,
-		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.Meter,
-		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
-		c.NotificationRule, c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard,
-		c.StandardInvoiceSettlement, c.Subject, c.Subscription, c.SubscriptionAddon,
-		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
-		c.SubscriptionItem, c.SubscriptionPhase, c.TaxCode, c.UsageReset,
+		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
+		c.LLMCostPrice, c.Meter, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanAddon,
+		c.PlanPhase, c.PlanRateCard, c.StandardInvoiceSettlement, c.Subject,
+		c.Subscription, c.SubscriptionAddon, c.SubscriptionAddonQuantity,
+		c.SubscriptionBillingSyncState, c.SubscriptionItem, c.SubscriptionPhase,
+		c.TaxCode, c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -530,12 +537,13 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
 		c.Charge, c.ChargeCreditPurchase, c.ChargeFlatFee, c.ChargeUsageBased,
-		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.Meter,
-		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
-		c.NotificationRule, c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard,
-		c.StandardInvoiceSettlement, c.Subject, c.Subscription, c.SubscriptionAddon,
-		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
-		c.SubscriptionItem, c.SubscriptionPhase, c.TaxCode, c.UsageReset,
+		c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant,
+		c.LLMCostPrice, c.Meter, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanAddon,
+		c.PlanPhase, c.PlanRateCard, c.StandardInvoiceSettlement, c.Subject,
+		c.Subscription, c.SubscriptionAddon, c.SubscriptionAddonQuantity,
+		c.SubscriptionBillingSyncState, c.SubscriptionItem, c.SubscriptionPhase,
+		c.TaxCode, c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -612,6 +620,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Feature.mutate(ctx, m)
 	case *GrantMutation:
 		return c.Grant.mutate(ctx, m)
+	case *LLMCostPriceMutation:
+		return c.LLMCostPrice.mutate(ctx, m)
 	case *MeterMutation:
 		return c.Meter.mutate(ctx, m)
 	case *NotificationChannelMutation:
@@ -6761,6 +6771,139 @@ func (c *GrantClient) mutate(ctx context.Context, m *GrantMutation) (Value, erro
 	}
 }
 
+// LLMCostPriceClient is a client for the LLMCostPrice schema.
+type LLMCostPriceClient struct {
+	config
+}
+
+// NewLLMCostPriceClient returns a client for the LLMCostPrice from the given config.
+func NewLLMCostPriceClient(c config) *LLMCostPriceClient {
+	return &LLMCostPriceClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `llmcostprice.Hooks(f(g(h())))`.
+func (c *LLMCostPriceClient) Use(hooks ...Hook) {
+	c.hooks.LLMCostPrice = append(c.hooks.LLMCostPrice, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `llmcostprice.Intercept(f(g(h())))`.
+func (c *LLMCostPriceClient) Intercept(interceptors ...Interceptor) {
+	c.inters.LLMCostPrice = append(c.inters.LLMCostPrice, interceptors...)
+}
+
+// Create returns a builder for creating a LLMCostPrice entity.
+func (c *LLMCostPriceClient) Create() *LLMCostPriceCreate {
+	mutation := newLLMCostPriceMutation(c.config, OpCreate)
+	return &LLMCostPriceCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of LLMCostPrice entities.
+func (c *LLMCostPriceClient) CreateBulk(builders ...*LLMCostPriceCreate) *LLMCostPriceCreateBulk {
+	return &LLMCostPriceCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *LLMCostPriceClient) MapCreateBulk(slice any, setFunc func(*LLMCostPriceCreate, int)) *LLMCostPriceCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &LLMCostPriceCreateBulk{err: fmt.Errorf("calling to LLMCostPriceClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*LLMCostPriceCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &LLMCostPriceCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for LLMCostPrice.
+func (c *LLMCostPriceClient) Update() *LLMCostPriceUpdate {
+	mutation := newLLMCostPriceMutation(c.config, OpUpdate)
+	return &LLMCostPriceUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *LLMCostPriceClient) UpdateOne(_m *LLMCostPrice) *LLMCostPriceUpdateOne {
+	mutation := newLLMCostPriceMutation(c.config, OpUpdateOne, withLLMCostPrice(_m))
+	return &LLMCostPriceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *LLMCostPriceClient) UpdateOneID(id string) *LLMCostPriceUpdateOne {
+	mutation := newLLMCostPriceMutation(c.config, OpUpdateOne, withLLMCostPriceID(id))
+	return &LLMCostPriceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for LLMCostPrice.
+func (c *LLMCostPriceClient) Delete() *LLMCostPriceDelete {
+	mutation := newLLMCostPriceMutation(c.config, OpDelete)
+	return &LLMCostPriceDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *LLMCostPriceClient) DeleteOne(_m *LLMCostPrice) *LLMCostPriceDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *LLMCostPriceClient) DeleteOneID(id string) *LLMCostPriceDeleteOne {
+	builder := c.Delete().Where(llmcostprice.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &LLMCostPriceDeleteOne{builder}
+}
+
+// Query returns a query builder for LLMCostPrice.
+func (c *LLMCostPriceClient) Query() *LLMCostPriceQuery {
+	return &LLMCostPriceQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeLLMCostPrice},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a LLMCostPrice entity by its id.
+func (c *LLMCostPriceClient) Get(ctx context.Context, id string) (*LLMCostPrice, error) {
+	return c.Query().Where(llmcostprice.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *LLMCostPriceClient) GetX(ctx context.Context, id string) *LLMCostPrice {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *LLMCostPriceClient) Hooks() []Hook {
+	return c.hooks.LLMCostPrice
+}
+
+// Interceptors returns the client interceptors.
+func (c *LLMCostPriceClient) Interceptors() []Interceptor {
+	return c.inters.LLMCostPrice
+}
+
+func (c *LLMCostPriceClient) mutate(ctx context.Context, m *LLMCostPriceMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&LLMCostPriceCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&LLMCostPriceUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&LLMCostPriceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&LLMCostPriceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown LLMCostPrice mutation op: %q", m.Op())
+	}
+}
+
 // MeterClient is a client for the Meter schema.
 type MeterClient struct {
 	config
@@ -9957,12 +10100,12 @@ type (
 		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
 		Charge, ChargeCreditPurchase, ChargeFlatFee, ChargeUsageBased, Customer,
-		CustomerSubjects, Entitlement, Feature, Grant, Meter, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
-		PlanAddon, PlanPhase, PlanRateCard, StandardInvoiceSettlement, Subject,
-		Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
-		SubscriptionBillingSyncState, SubscriptionItem, SubscriptionPhase, TaxCode,
-		UsageReset []ent.Hook
+		CustomerSubjects, Entitlement, Feature, Grant, LLMCostPrice, Meter,
+		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
+		NotificationRule, Plan, PlanAddon, PlanPhase, PlanRateCard,
+		StandardInvoiceSettlement, Subject, Subscription, SubscriptionAddon,
+		SubscriptionAddonQuantity, SubscriptionBillingSyncState, SubscriptionItem,
+		SubscriptionPhase, TaxCode, UsageReset []ent.Hook
 	}
 	inters struct {
 		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
@@ -9975,12 +10118,12 @@ type (
 		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
 		Charge, ChargeCreditPurchase, ChargeFlatFee, ChargeUsageBased, Customer,
-		CustomerSubjects, Entitlement, Feature, Grant, Meter, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
-		PlanAddon, PlanPhase, PlanRateCard, StandardInvoiceSettlement, Subject,
-		Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
-		SubscriptionBillingSyncState, SubscriptionItem, SubscriptionPhase, TaxCode,
-		UsageReset []ent.Interceptor
+		CustomerSubjects, Entitlement, Feature, Grant, LLMCostPrice, Meter,
+		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
+		NotificationRule, Plan, PlanAddon, PlanPhase, PlanRateCard,
+		StandardInvoiceSettlement, Subject, Subscription, SubscriptionAddon,
+		SubscriptionAddonQuantity, SubscriptionBillingSyncState, SubscriptionItem,
+		SubscriptionPhase, TaxCode, UsageReset []ent.Interceptor
 	}
 )
 

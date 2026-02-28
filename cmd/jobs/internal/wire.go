@@ -21,6 +21,7 @@ import (
 	billingworkersubscriptionreconciler "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/reconciler"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	llmcostsync "github.com/openmeterio/openmeter/openmeter/llmcost/sync"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -62,6 +63,7 @@ type Application struct {
 	Subscription                  common.SubscriptionServiceWithWorkflow
 	Subject                       subject.Service
 	StreamingConnector            streaming.Connector
+	LLMCostSyncJob                *llmcostsync.SyncJob
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
@@ -77,6 +79,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Entitlement,
 		common.Framework,
 		common.Kafka,
+		common.LLMCost,
 		common.Meter,
 		common.FFX,
 		common.Namespace,

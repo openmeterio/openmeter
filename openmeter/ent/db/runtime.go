@@ -5,6 +5,7 @@ package db
 import (
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
@@ -41,6 +42,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/llmcostprice"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
@@ -61,6 +63,7 @@ import (
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/openmeter/ent/schema"
+	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -1183,6 +1186,62 @@ func init() {
 	dbgrantDescID := dbgrantMixinFields0[0].Descriptor()
 	// dbgrant.DefaultID holds the default value on creation for the id field.
 	dbgrant.DefaultID = dbgrantDescID.Default.(func() string)
+	llmcostpriceMixin := schema.LLMCostPrice{}.Mixin()
+	llmcostpriceMixinFields0 := llmcostpriceMixin[0].Fields()
+	_ = llmcostpriceMixinFields0
+	llmcostpriceMixinFields2 := llmcostpriceMixin[2].Fields()
+	_ = llmcostpriceMixinFields2
+	llmcostpriceFields := schema.LLMCostPrice{}.Fields()
+	_ = llmcostpriceFields
+	// llmcostpriceDescCreatedAt is the schema descriptor for created_at field.
+	llmcostpriceDescCreatedAt := llmcostpriceMixinFields2[0].Descriptor()
+	// llmcostprice.DefaultCreatedAt holds the default value on creation for the created_at field.
+	llmcostprice.DefaultCreatedAt = llmcostpriceDescCreatedAt.Default.(func() time.Time)
+	// llmcostpriceDescUpdatedAt is the schema descriptor for updated_at field.
+	llmcostpriceDescUpdatedAt := llmcostpriceMixinFields2[1].Descriptor()
+	// llmcostprice.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	llmcostprice.DefaultUpdatedAt = llmcostpriceDescUpdatedAt.Default.(func() time.Time)
+	// llmcostprice.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	llmcostprice.UpdateDefaultUpdatedAt = llmcostpriceDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// llmcostpriceDescProvider is the schema descriptor for provider field.
+	llmcostpriceDescProvider := llmcostpriceFields[1].Descriptor()
+	// llmcostprice.ProviderValidator is a validator for the "provider" field. It is called by the builders before save.
+	llmcostprice.ProviderValidator = llmcostpriceDescProvider.Validators[0].(func(string) error)
+	// llmcostpriceDescModelID is the schema descriptor for model_id field.
+	llmcostpriceDescModelID := llmcostpriceFields[2].Descriptor()
+	// llmcostprice.ModelIDValidator is a validator for the "model_id" field. It is called by the builders before save.
+	llmcostprice.ModelIDValidator = llmcostpriceDescModelID.Validators[0].(func(string) error)
+	// llmcostpriceDescModelName is the schema descriptor for model_name field.
+	llmcostpriceDescModelName := llmcostpriceFields[3].Descriptor()
+	// llmcostprice.DefaultModelName holds the default value on creation for the model_name field.
+	llmcostprice.DefaultModelName = llmcostpriceDescModelName.Default.(string)
+	// llmcostpriceDescInputCachedPerToken is the schema descriptor for input_cached_per_token field.
+	llmcostpriceDescInputCachedPerToken := llmcostpriceFields[6].Descriptor()
+	// llmcostprice.DefaultInputCachedPerToken holds the default value on creation for the input_cached_per_token field.
+	llmcostprice.DefaultInputCachedPerToken = llmcostpriceDescInputCachedPerToken.Default.(alpacadecimal.Decimal)
+	// llmcostpriceDescReasoningPerToken is the schema descriptor for reasoning_per_token field.
+	llmcostpriceDescReasoningPerToken := llmcostpriceFields[7].Descriptor()
+	// llmcostprice.DefaultReasoningPerToken holds the default value on creation for the reasoning_per_token field.
+	llmcostprice.DefaultReasoningPerToken = llmcostpriceDescReasoningPerToken.Default.(alpacadecimal.Decimal)
+	// llmcostpriceDescCacheWritePerToken is the schema descriptor for cache_write_per_token field.
+	llmcostpriceDescCacheWritePerToken := llmcostpriceFields[8].Descriptor()
+	// llmcostprice.DefaultCacheWritePerToken holds the default value on creation for the cache_write_per_token field.
+	llmcostprice.DefaultCacheWritePerToken = llmcostpriceDescCacheWritePerToken.Default.(alpacadecimal.Decimal)
+	// llmcostpriceDescCurrency is the schema descriptor for currency field.
+	llmcostpriceDescCurrency := llmcostpriceFields[9].Descriptor()
+	// llmcostprice.DefaultCurrency holds the default value on creation for the currency field.
+	llmcostprice.DefaultCurrency = llmcostpriceDescCurrency.Default.(string)
+	// llmcostpriceDescSource is the schema descriptor for source field.
+	llmcostpriceDescSource := llmcostpriceFields[10].Descriptor()
+	// llmcostprice.SourceValidator is a validator for the "source" field. It is called by the builders before save.
+	llmcostprice.SourceValidator = llmcostpriceDescSource.Validators[0].(func(string) error)
+	// llmcostpriceDescSourcePrices is the schema descriptor for source_prices field.
+	llmcostpriceDescSourcePrices := llmcostpriceFields[11].Descriptor()
+	llmcostprice.ValueScanner.SourcePrices = llmcostpriceDescSourcePrices.ValueScanner.(field.TypeValueScanner[llmcost.SourcePricesMap])
+	// llmcostpriceDescID is the schema descriptor for id field.
+	llmcostpriceDescID := llmcostpriceMixinFields0[0].Descriptor()
+	// llmcostprice.DefaultID holds the default value on creation for the id field.
+	llmcostprice.DefaultID = llmcostpriceDescID.Default.(func() string)
 	dbmeterMixin := schema.Meter{}.Mixin()
 	dbmeterMixinFields0 := dbmeterMixin[0].Fields()
 	_ = dbmeterMixinFields0

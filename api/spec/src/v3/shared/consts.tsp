@@ -26,6 +26,9 @@ const BillingDescription = "Billing manages the billing profiles, currencies, co
 const TaxTag = "OpenMeter Tax";
 const TaxDescription = "Tax codes are used to calculate taxes for customers.";
 
+const LLMCostTag = "OpenMeter LLM Cost";
+const LLMCostDescription = "LLM cost database providing normalized pricing data for language models across providers. Prices are synced from multiple external sources and auto-confirmed when they agree.";
+
 const UnstableExtension = "x-unstable";
 const InternalExtension = "x-internal";
 const PrivateExtension = "x-private";

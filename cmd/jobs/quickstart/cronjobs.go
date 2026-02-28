@@ -82,6 +82,22 @@ var Cron = &cobra.Command{
 			return err
 		}
 
+		// Sync LLM cost prices every 6 hours
+		_, err = s.NewJob(
+			gocron.DurationJob(6*time.Hour),
+			gocron.NewTask(func() {
+				slog.Info("Syncing LLM cost prices")
+
+				err := internal.App.LLMCostSyncJob.Run(cmd.Context())
+				if err != nil {
+					slog.Error("Error syncing LLM cost prices", "error", err)
+				}
+			}),
+		)
+		if err != nil {
+			return err
+		}
+
 		s.Start()
 
 		<-cmd.Context().Done()

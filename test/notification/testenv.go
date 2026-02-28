@@ -138,7 +138,7 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 	}
 
 	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(entClient, logger.WithGroup("feature.postgres"))
-	featureConnector := feature.NewFeatureConnector(featureAdapter, meterService, eventbus.NewMock(t))
+	featureConnector := feature.NewFeatureConnector(featureAdapter, meterService, eventbus.NewMock(t), nil)
 
 	adapter, err := notificationadapter.New(notificationadapter.Config{
 		Client: entClient,
