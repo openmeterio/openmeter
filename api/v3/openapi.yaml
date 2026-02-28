@@ -2082,12 +2082,18 @@ components:
       type: object
       required:
         - id
+        - currency_id
         - fiat_code
         - rate
       properties:
         id:
           allOf:
             - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        currency_id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The ID of the custom currency this cost basis belongs to.
           readOnly: true
         fiat_code:
           allOf:

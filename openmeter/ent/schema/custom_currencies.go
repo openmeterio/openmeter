@@ -82,7 +82,7 @@ func (CurrencyCostBasis) Edges() []ent.Edge {
 
 func (CurrencyCostBasis) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Edges("currency").Fields("fiat_code").Unique(),
+		index.Edges("currency").Fields("fiat_code"),
 	}
 }
 

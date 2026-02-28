@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
@@ -50,6 +51,7 @@ type Application struct {
 	CustomerSubjectHook              common.CustomerSubjectHook
 	CustomerEntitlementValidatorHook common.CustomerEntitlementValidatorHook
 	Billing                          billing.Service
+	CurrencyService                  currencies.CurrencyService
 	EntClient                        *db.Client
 	EventPublisher                   eventbus.Publisher
 	EntitlementRegistry              *registry.Entitlement
@@ -91,6 +93,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Billing,
 		common.ClickHouse,
 		common.Config,
+		common.Currency,
 		common.Customer,
 		common.NewCustomerSubjectServiceHook,
 		common.NewCustomerEntitlementValidatorServiceHook,

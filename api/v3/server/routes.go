@@ -165,17 +165,17 @@ func (s *Server) UpsertTaxCode(w http.ResponseWriter, r *http.Request, taxCodeId
 // Currencies
 
 func (s *Server) ListCurrencies(w http.ResponseWriter, r *http.Request, params api.ListCurrenciesParams) {
-	unimplemented.ListCurrencies(w, r, params)
+	s.currenciesHandler.ListCurrencies().With(params).ServeHTTP(w, r)
 }
 
 func (s *Server) CreateCustomCurrency(w http.ResponseWriter, r *http.Request) {
-	unimplemented.CreateCustomCurrency(w, r)
+	s.currenciesHandler.CreateCurrency().ServeHTTP(w, r)
 }
 
 func (s *Server) CreateCostBasis(w http.ResponseWriter, r *http.Request, currencyId api.ULID) {
-	unimplemented.CreateCostBasis(w, r, currencyId)
+	s.currenciesHandler.CreateCostBasis().With(currencyId).ServeHTTP(w, r)
 }
 
 func (s *Server) ListCostBases(w http.ResponseWriter, r *http.Request, currencyId api.ULID, params api.ListCostBasesParams) {
-	unimplemented.ListCostBases(w, r, currencyId, params)
+	s.currenciesHandler.ListCostBases().With(currencyId, params).ServeHTTP(w, r)
 }

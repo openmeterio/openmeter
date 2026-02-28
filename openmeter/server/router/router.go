@@ -12,6 +12,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 
 	"github.com/openmeterio/openmeter/api"
+	currencyHandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
@@ -24,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	creditdriver "github.com/openmeterio/openmeter/openmeter/credit/driver"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/debug"
@@ -93,6 +95,7 @@ type Config struct {
 	AppCustomInvoicing          appcustominvoicing.SyncService
 	Billing                     billing.Service
 	BillingFeatureSwitches      config.BillingFeatureSwitchesConfiguration
+	CurrencyService             currencies.CurrencyService
 	Customer                    customer.Service
 	DebugConnector              debug.DebugConnector
 	EntitlementConnector        entitlement.Service
@@ -152,6 +155,10 @@ func (c Config) Validate() error {
 
 	if c.Customer == nil {
 		return errors.New("customer service is required")
+	}
+
+	if c.CurrencyService == nil {
+		return errors.New("currency service is required")
 	}
 
 	if c.Billing == nil {
@@ -225,6 +232,7 @@ type Router struct {
 	appStripeHandler          appstripehttpdriver.AppStripeHandler
 	appCustomInvoicingHandler appcustominvoicinghttpdriver.Handler
 	billingHandler            billinghttpdriver.Handler
+	currencyHandler           currencyHandler.Handler
 	featureHandler            productcatalog_httpdriver.FeatureHandler
 	planHandler               planhttpdriver.Handler
 	planAddonHandler          planaddonhttpdriver.Handler
@@ -459,6 +467,12 @@ func NewRouter(config Config) (*Router, error) {
 		staticNamespaceDecoder,
 		config.Portal,
 		config.MeterManageService,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
+
+	// Currencies
+	router.currencyHandler = currencyHandler.New(
+		config.CurrencyService,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

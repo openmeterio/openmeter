@@ -12,6 +12,12 @@ model CostBasis {
   id: Shared.ULID;
 
   /**
+   * The ID of the custom currency this cost basis belongs to.
+   */
+  @visibility(Lifecycle.Read)
+  currency_id: Shared.ULID;
+
+  /**
    * The fiat currency code for the cost basis.
    */
   @visibility(Lifecycle.Create, Lifecycle.Read)
