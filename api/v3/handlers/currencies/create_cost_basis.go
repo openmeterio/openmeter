@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	v3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -11,7 +12,7 @@ import (
 
 type (
 	CreateCostBasisRequest  = currencies.CreateCostBasisInput
-	CreateCostBasisResponse = struct{}
+	CreateCostBasisResponse = v3.BillingCostBasis
 	CreateCostBasisHandler  = httptransport.HandlerWithArgs[CreateCostBasisRequest, CreateCostBasisResponse, string]
 )
 
@@ -28,11 +29,11 @@ func (h *handler) CreateCostBasis() CreateCostBasisHandler {
 			return *body, nil
 		},
 		func(ctx context.Context, request CreateCostBasisRequest) (CreateCostBasisResponse, error) {
-			_, err := h.currencyService.CreateCostBasis(ctx, request)
+			resp, err := h.currencyService.CreateCostBasis(ctx, request)
 			if err != nil {
 				return CreateCostBasisResponse{}, err
 			}
-			return CreateCostBasisResponse{}, nil
+			return resp, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCostBasisResponse](http.StatusCreated),
 		httptransport.AppendOptions(

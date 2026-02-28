@@ -61,9 +61,7 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 			}
 
 			return response.NewPagePaginationResponse(
-				lo.Map(items, func(def currencies.Currency, _ int) v3.BillingCurrency {
-					return MapCurrencyToAPI(def)
-				}),
+				items,
 				response.PageMetaPage{
 					Size:   request.Page.PageSize,
 					Number: request.Page.PageNumber,

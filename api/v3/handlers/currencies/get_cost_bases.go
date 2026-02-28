@@ -81,9 +81,7 @@ func (h *handler) ListCostBases() ListCostBasesHandler {
 			}
 
 			return response.NewPagePaginationResponse(
-				lo.Map(items, func(cb currencies.CostBasis, _ int) v3.BillingCostBasis {
-					return MapCostBasisToAPI(cb)
-				}),
+				items,
 				response.PageMetaPage{
 					Size:   req.Page.PageSize,
 					Number: req.Page.PageNumber,

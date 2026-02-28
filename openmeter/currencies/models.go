@@ -23,26 +23,10 @@ const (
 	CurrencyTypeFiat   CurrencyType = "fiat"
 )
 
-type Currency struct {
-	ID       string
-	Code     string `json:"code"`
-	Name     string `json:"name"`
-	Symbol   string `json:"symbol,omitempty"`
-	IsCustom bool
-}
-
 type CreateCurrencyInput struct {
 	Code   string `json:"code"`
 	Name   string `json:"name"`
 	Symbol string `json:"symbol"`
-}
-
-type CostBasis struct {
-	ID            string                `json:"id"`
-	CurrencyID    string                `json:"currency_id"`
-	FiatCode      string                `json:"fiat_code"`
-	Rate          alpacadecimal.Decimal `json:"rate"`
-	EffectiveFrom time.Time             `json:"effective_from"`
 }
 
 type CreateCostBasisInput struct {
@@ -60,5 +44,3 @@ type ListCostBasesInput struct {
 	// FilterFiatCode filters cost bases by fiat currency code. Nil means no filter.
 	FilterFiatCode *string
 }
-
-type CostBases = []CostBasis

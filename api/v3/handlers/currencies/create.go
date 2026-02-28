@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	v3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -12,7 +13,7 @@ import (
 
 type (
 	CreateCurrencyRequest  = currencies.CreateCurrencyInput
-	CreateCurrencyResponse = struct{}
+	CreateCurrencyResponse = v3.BillingCurrencyCustom
 	CreateCurrencyHandler  = httptransport.Handler[CreateCurrencyRequest, CreateCurrencyResponse]
 )
 
@@ -26,11 +27,11 @@ func (h *handler) CreateCurrency() CreateCurrencyHandler {
 			return *body, nil
 		},
 		func(ctx context.Context, request CreateCurrencyRequest) (CreateCurrencyResponse, error) {
-			_, err := h.currencyService.CreateCurrency(ctx, request)
+			resp, err := h.currencyService.CreateCurrency(ctx, request)
 			if err != nil {
 				return CreateCurrencyResponse{}, apierrors.NewConflictError(ctx, err, "Currency already exists")
 			}
-			return CreateCurrencyResponse{}, nil
+			return resp, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCurrencyResponse](http.StatusCreated),
 		httptransport.AppendOptions(
