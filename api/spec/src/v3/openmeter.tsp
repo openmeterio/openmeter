@@ -10,6 +10,7 @@ import "./subscriptions/index.tsp";
 import "./apps/index.tsp";
 import "./billing/index.tsp";
 import "./currencies/index.tsp";
+import "./llmcost/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -42,6 +43,7 @@ using TypeSpec.OpenAPI;
 @tagMetadata(Shared.AppsTag, #{ description: Shared.AppsDescription })
 @tagMetadata(Shared.BillingTag, #{ description: Shared.BillingDescription })
 @tagMetadata(Shared.TaxTag, #{ description: Shared.TaxDescription })
+@tagMetadata(Shared.LLMCostTag, #{ description: Shared.LLMCostDescription })
 namespace OpenMeter;
 
 @route("/openmeter/events")
@@ -96,3 +98,12 @@ interface CurrenciesCustomEndpoints
 @tag(Shared.BillingTag)
 interface CurrenciesCustomCostBasesEndpoints
   extends Currencies.CurrenciesCustomCostBasesOperations {}
+
+@route("/openmeter/llm-cost/prices")
+@tag(Shared.LLMCostTag)
+interface LLMCostPricesEndpoints extends LLMCost.LLMCostPricesOperations {}
+
+@route("/openmeter/llm-cost/overrides")
+@tag(Shared.LLMCostTag)
+interface LLMCostOverridesEndpoints
+  extends LLMCost.LLMCostOverridesOperations {}
