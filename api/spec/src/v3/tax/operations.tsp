@@ -40,6 +40,12 @@ interface TaxCodesOperations {
   @extension(Shared.UnstableExtension, true)
   list(
     ...Common.PagePaginationQuery,
+
+    /**
+     * Include deleted tax codes in the response.
+     */
+    @query
+    include_deleted?: boolean,
   ): Shared.PagePaginatedResponse<TaxCode> | Common.ErrorResponses;
 
   @put

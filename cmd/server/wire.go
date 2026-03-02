@@ -35,6 +35,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	subjecthooks "github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/ffx"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
@@ -78,6 +79,7 @@ type Application struct {
 	SubjectCustomerHook              subjecthooks.CustomerSubjectHook
 	Subscription                     common.SubscriptionServiceWithWorkflow
 	StreamingConnector               streaming.Connector
+	TaxCodeService                   taxcode.Service
 	TelemetryServer                  common.TelemetryServer
 	TerminationChecker               *common.TerminationChecker
 	RuntimeMetricsCollector          common.RuntimeMetricsCollector
@@ -116,6 +118,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.ProductCatalog,
 		common.ProgressManager,
 		common.Server,
+		common.TaxCode,
 		common.Subscription,
 		common.Lockr,
 		common.Secret,

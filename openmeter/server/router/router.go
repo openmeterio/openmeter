@@ -64,6 +64,7 @@ import (
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptionaddonhttpdriver "github.com/openmeterio/openmeter/openmeter/subscription/addon/http"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -118,6 +119,7 @@ type Config struct {
 	SubscriptionAddonService    subscriptionaddon.Service
 	SubscriptionWorkflowService subscriptionworkflow.Service
 	SubjectService              subject.Service
+	TaxCodeService              taxcode.Service
 }
 
 func (c Config) Validate() error {
@@ -212,6 +214,10 @@ func (c Config) Validate() error {
 
 	if c.SubjectService == nil {
 		return errors.New("subject service is required")
+	}
+
+	if c.TaxCodeService == nil {
+		return errors.New("tax code service is required")
 	}
 
 	return nil

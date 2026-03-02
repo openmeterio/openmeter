@@ -143,23 +143,23 @@ func (s *Server) CreateCustomerStripePortalSession(w http.ResponseWriter, r *htt
 // Tax Codes
 
 func (s *Server) ListTaxCodes(w http.ResponseWriter, r *http.Request, params api.ListTaxCodesParams) {
-	unimplemented.ListTaxCodes(w, r, params)
+	s.taxcodesHandler.ListTaxCodes().With(params).ServeHTTP(w, r)
 }
 
 func (s *Server) CreateTaxCode(w http.ResponseWriter, r *http.Request) {
-	unimplemented.CreateTaxCode(w, r)
+	s.taxcodesHandler.CreateTaxCode().ServeHTTP(w, r)
 }
 
 func (s *Server) DeleteTaxCode(w http.ResponseWriter, r *http.Request, taxCodeId api.ULID) {
-	unimplemented.DeleteTaxCode(w, r, taxCodeId)
+	s.taxcodesHandler.DeleteTaxCode().With(taxCodeId).ServeHTTP(w, r)
 }
 
 func (s *Server) GetTaxCode(w http.ResponseWriter, r *http.Request, taxCodeId api.ULID) {
-	unimplemented.GetTaxCode(w, r, taxCodeId)
+	s.taxcodesHandler.GetTaxCode().With(taxCodeId).ServeHTTP(w, r)
 }
 
 func (s *Server) UpsertTaxCode(w http.ResponseWriter, r *http.Request, taxCodeId api.ULID) {
-	unimplemented.UpsertTaxCode(w, r, taxCodeId)
+	s.taxcodesHandler.UpdateTaxCode().With(taxCodeId).ServeHTTP(w, r)
 }
 
 // Currencies

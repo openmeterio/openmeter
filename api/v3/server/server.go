@@ -22,6 +22,7 @@ import (
 	eventshandler "github.com/openmeterio/openmeter/api/v3/handlers/events"
 	metershandler "github.com/openmeterio/openmeter/api/v3/handlers/meters"
 	subscriptionshandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
+	taxcodeshandler "github.com/openmeterio/openmeter/api/v3/handlers/taxcodes"
 	"github.com/openmeterio/openmeter/api/v3/oasmiddleware"
 	"github.com/openmeterio/openmeter/api/v3/render"
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -35,6 +36,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/server"
@@ -58,6 +60,7 @@ type Config struct {
 	PlanSubscriptionService plansubscription.PlanSubscriptionService
 	StripeService           appstripe.Service
 	SubscriptionService     subscription.Service
+	TaxCodeService          taxcode.Service
 }
 
 func (c *Config) Validate() error {
@@ -115,6 +118,10 @@ func (c *Config) Validate() error {
 		errs = append(errs, errors.New("subscription service is required"))
 	}
 
+	if c.TaxCodeService == nil {
+		errs = append(errs, errors.New("tax code service is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -132,6 +139,7 @@ type Server struct {
 	metersHandler               metershandler.Handler
 	subscriptionsHandler        subscriptionshandler.Handler
 	billingProfilesHandler      billingprofileshandler.Handler
+	taxcodesHandler             taxcodeshandler.Handler
 }
 
 // Make sure we conform to ServerInterface
@@ -173,6 +181,7 @@ func NewServer(config *Config) (*Server, error) {
 	metersHandler := metershandler.New(resolveNamespace, config.MeterService, httptransport.WithErrorHandler(config.ErrorHandler))
 	subscriptionsHandler := subscriptionshandler.New(resolveNamespace, config.CustomerService, config.PlanService, config.PlanSubscriptionService, config.SubscriptionService, httptransport.WithErrorHandler(config.ErrorHandler))
 	billingProfilesHandler := billingprofileshandler.New(resolveNamespace, config.BillingService, httptransport.WithErrorHandler(config.ErrorHandler))
+	taxcodesHandler := taxcodeshandler.New(resolveNamespace, config.TaxCodeService, httptransport.WithErrorHandler(config.ErrorHandler))
 
 	return &Server{
 		Config:                      config,
@@ -185,6 +194,7 @@ func NewServer(config *Config) (*Server, error) {
 		metersHandler:               metersHandler,
 		subscriptionsHandler:        subscriptionsHandler,
 		billingProfilesHandler:      billingProfilesHandler,
+		taxcodesHandler:             taxcodesHandler,
 	}, nil
 }
 
