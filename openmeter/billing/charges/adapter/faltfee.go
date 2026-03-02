@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -67,7 +68,7 @@ func (a *adapter) UpdateFlatFeeCharge(ctx context.Context, charge charges.FlatFe
 		flatFee, err := tx.db.ChargeFlatFee.UpdateOneID(charge.ID).
 			Where(dbchargeflatfee.NamespaceEQ(charge.Namespace)).
 			SetPaymentTerm(intent.PaymentTerm).
-			SetInvoiceAt(intent.InvoiceAt).
+			SetInvoiceAt(intent.InvoiceAt.In(time.UTC)).
 			SetDiscounts(discounts).
 			SetProRating(proRating).
 			SetAmountBeforeProration(intent.AmountBeforeProration).

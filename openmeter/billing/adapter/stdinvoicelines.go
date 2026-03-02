@@ -151,6 +151,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					UpdateQuantity().
 					UpdateChildUniqueReferenceID().
 					UpdateCreditsApplied().
+					UpdateChargeID().
 					Exec(ctx)
 			},
 			MarkDeleted: func(ctx context.Context, line *billing.StandardLine) (*billing.StandardLine, error) {

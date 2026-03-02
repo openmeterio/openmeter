@@ -56,10 +56,14 @@ func MapFlatFeeChargeFromDB(entity *entdb.Charge) (charges.FlatFeeCharge, error)
 		percentageDiscounts = ff.Discounts.Percentage
 	}
 
-	creditRealizations := lo.Map(entity.Edges.CreditRealizations, func(entity *entdb.ChargeCreditRealization, _ int) charges.CreditRealization {
+	creditRealizationsDB, err := entity.Edges.CreditRealizationsOrErr()
+	if err != nil {
+		return charges.FlatFeeCharge{}, fmt.Errorf("mapping flat fee charge [id=%s]: %w", entity.ID, err)
+	}
+
+	creditRealizations := lo.Map(creditRealizationsDB, func(entity *entdb.ChargeCreditRealization, _ int) charges.CreditRealization {
 		return mapCreditRealizationFromDB(entity)
 	})
-
 	charge := charges.FlatFeeCharge{
 		ManagedResource: mapManagedResourceFromDB(entity),
 		Status:          entity.Status,

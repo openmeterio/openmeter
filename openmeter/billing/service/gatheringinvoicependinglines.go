@@ -769,7 +769,7 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 
 				// Let's recalculate the invoice so that any adjustments made in the hook are respresented in the calculations.
 				if err := sm.calculateInvoice(ctx); err != nil {
-					return fmt.Errorf("activating invoice state machine: %w", err)
+					return fmt.Errorf("recalculating invoice: %w", err)
 				}
 			}
 
