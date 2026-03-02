@@ -101,18 +101,10 @@ func (i UsageBasedIntent) Validate() error {
 	return errors.Join(errs...)
 }
 
-type UsageBasedState struct {
-	StandardInvoiceSettlements []StandardInvoiceSettlement `json:"standardInvoiceSettlements"`
-}
+type UsageBasedState struct{}
 
 func (s UsageBasedState) Validate() error {
 	var errs []error
-
-	for idx, si := range s.StandardInvoiceSettlements {
-		if err := si.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("standard invoice settlement [%s/%d]: %w", si.ID, idx, err))
-		}
-	}
 
 	return errors.Join(errs...)
 }

@@ -22,7 +22,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/standardinvoicesettlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -309,21 +308,6 @@ func (_c *ChargeCreate) SetNillableCreditPurchaseID(id *string) *ChargeCreate {
 // SetCreditPurchase sets the "credit_purchase" edge to the ChargeCreditPurchase entity.
 func (_c *ChargeCreate) SetCreditPurchase(v *ChargeCreditPurchase) *ChargeCreate {
 	return _c.SetCreditPurchaseID(v.ID)
-}
-
-// AddStandardInvoiceSettlmentIDs adds the "standard_invoice_settlments" edge to the StandardInvoiceSettlement entity by IDs.
-func (_c *ChargeCreate) AddStandardInvoiceSettlmentIDs(ids ...string) *ChargeCreate {
-	_c.mutation.AddStandardInvoiceSettlmentIDs(ids...)
-	return _c
-}
-
-// AddStandardInvoiceSettlments adds the "standard_invoice_settlments" edges to the StandardInvoiceSettlement entity.
-func (_c *ChargeCreate) AddStandardInvoiceSettlments(v ...*StandardInvoiceSettlement) *ChargeCreate {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _c.AddStandardInvoiceSettlmentIDs(ids...)
 }
 
 // AddCreditRealizationIDs adds the "credit_realizations" edge to the ChargeCreditRealization entity by IDs.
@@ -673,22 +657,6 @@ func (_c *ChargeCreate) createSpec() (*Charge, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.StandardInvoiceSettlmentsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   charge.StandardInvoiceSettlmentsTable,
-			Columns: []string{charge.StandardInvoiceSettlmentsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(standardinvoicesettlement.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

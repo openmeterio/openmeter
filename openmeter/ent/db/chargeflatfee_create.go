@@ -16,6 +16,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoiceaccruedusage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicepaymentsettlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -89,34 +91,6 @@ func (_c *ChargeFlatFeeCreate) SetAmountAfterProration(v alpacadecimal.Decimal) 
 	return _c
 }
 
-// SetAuthorizedTransactionGroupID sets the "authorized_transaction_group_id" field.
-func (_c *ChargeFlatFeeCreate) SetAuthorizedTransactionGroupID(v string) *ChargeFlatFeeCreate {
-	_c.mutation.SetAuthorizedTransactionGroupID(v)
-	return _c
-}
-
-// SetNillableAuthorizedTransactionGroupID sets the "authorized_transaction_group_id" field if the given value is not nil.
-func (_c *ChargeFlatFeeCreate) SetNillableAuthorizedTransactionGroupID(v *string) *ChargeFlatFeeCreate {
-	if v != nil {
-		_c.SetAuthorizedTransactionGroupID(*v)
-	}
-	return _c
-}
-
-// SetSettledTransactionGroupID sets the "settled_transaction_group_id" field.
-func (_c *ChargeFlatFeeCreate) SetSettledTransactionGroupID(v string) *ChargeFlatFeeCreate {
-	_c.mutation.SetSettledTransactionGroupID(v)
-	return _c
-}
-
-// SetNillableSettledTransactionGroupID sets the "settled_transaction_group_id" field if the given value is not nil.
-func (_c *ChargeFlatFeeCreate) SetNillableSettledTransactionGroupID(v *string) *ChargeFlatFeeCreate {
-	if v != nil {
-		_c.SetSettledTransactionGroupID(*v)
-	}
-	return _c
-}
-
 // SetID sets the "id" field.
 func (_c *ChargeFlatFeeCreate) SetID(v string) *ChargeFlatFeeCreate {
 	_c.mutation.SetID(v)
@@ -140,6 +114,44 @@ func (_c *ChargeFlatFeeCreate) SetChargeID(id string) *ChargeFlatFeeCreate {
 // SetCharge sets the "charge" edge to the Charge entity.
 func (_c *ChargeFlatFeeCreate) SetCharge(v *Charge) *ChargeFlatFeeCreate {
 	return _c.SetChargeID(v.ID)
+}
+
+// SetChargeStandardInvoicePaymentSettlementID sets the "charge_standard_invoice_payment_settlement" edge to the ChargeStandardInvoicePaymentSettlement entity by ID.
+func (_c *ChargeFlatFeeCreate) SetChargeStandardInvoicePaymentSettlementID(id string) *ChargeFlatFeeCreate {
+	_c.mutation.SetChargeStandardInvoicePaymentSettlementID(id)
+	return _c
+}
+
+// SetNillableChargeStandardInvoicePaymentSettlementID sets the "charge_standard_invoice_payment_settlement" edge to the ChargeStandardInvoicePaymentSettlement entity by ID if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableChargeStandardInvoicePaymentSettlementID(id *string) *ChargeFlatFeeCreate {
+	if id != nil {
+		_c = _c.SetChargeStandardInvoicePaymentSettlementID(*id)
+	}
+	return _c
+}
+
+// SetChargeStandardInvoicePaymentSettlement sets the "charge_standard_invoice_payment_settlement" edge to the ChargeStandardInvoicePaymentSettlement entity.
+func (_c *ChargeFlatFeeCreate) SetChargeStandardInvoicePaymentSettlement(v *ChargeStandardInvoicePaymentSettlement) *ChargeFlatFeeCreate {
+	return _c.SetChargeStandardInvoicePaymentSettlementID(v.ID)
+}
+
+// SetChargeStandardInvoiceAccruedUsageID sets the "charge_standard_invoice_accrued_usage" edge to the ChargeStandardInvoiceAccruedUsage entity by ID.
+func (_c *ChargeFlatFeeCreate) SetChargeStandardInvoiceAccruedUsageID(id string) *ChargeFlatFeeCreate {
+	_c.mutation.SetChargeStandardInvoiceAccruedUsageID(id)
+	return _c
+}
+
+// SetNillableChargeStandardInvoiceAccruedUsageID sets the "charge_standard_invoice_accrued_usage" edge to the ChargeStandardInvoiceAccruedUsage entity by ID if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableChargeStandardInvoiceAccruedUsageID(id *string) *ChargeFlatFeeCreate {
+	if id != nil {
+		_c = _c.SetChargeStandardInvoiceAccruedUsageID(*id)
+	}
+	return _c
+}
+
+// SetChargeStandardInvoiceAccruedUsage sets the "charge_standard_invoice_accrued_usage" edge to the ChargeStandardInvoiceAccruedUsage entity.
+func (_c *ChargeFlatFeeCreate) SetChargeStandardInvoiceAccruedUsage(v *ChargeStandardInvoiceAccruedUsage) *ChargeFlatFeeCreate {
+	return _c.SetChargeStandardInvoiceAccruedUsageID(v.ID)
 }
 
 // Mutation returns the ChargeFlatFeeMutation object of the builder.
@@ -236,16 +248,6 @@ func (_c *ChargeFlatFeeCreate) check() error {
 	if _, ok := _c.mutation.AmountAfterProration(); !ok {
 		return &ValidationError{Name: "amount_after_proration", err: errors.New(`db: missing required field "ChargeFlatFee.amount_after_proration"`)}
 	}
-	if v, ok := _c.mutation.AuthorizedTransactionGroupID(); ok {
-		if err := chargeflatfee.AuthorizedTransactionGroupIDValidator(v); err != nil {
-			return &ValidationError{Name: "authorized_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.authorized_transaction_group_id": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.SettledTransactionGroupID(); ok {
-		if err := chargeflatfee.SettledTransactionGroupIDValidator(v); err != nil {
-			return &ValidationError{Name: "settled_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.settled_transaction_group_id": %w`, err)}
-		}
-	}
 	if len(_c.mutation.ChargeIDs()) == 0 {
 		return &ValidationError{Name: "charge", err: errors.New(`db: missing required edge "ChargeFlatFee.charge"`)}
 	}
@@ -328,14 +330,6 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 		_spec.SetField(chargeflatfee.FieldAmountAfterProration, field.TypeOther, value)
 		_node.AmountAfterProration = value
 	}
-	if value, ok := _c.mutation.AuthorizedTransactionGroupID(); ok {
-		_spec.SetField(chargeflatfee.FieldAuthorizedTransactionGroupID, field.TypeString, value)
-		_node.AuthorizedTransactionGroupID = &value
-	}
-	if value, ok := _c.mutation.SettledTransactionGroupID(); ok {
-		_spec.SetField(chargeflatfee.FieldSettledTransactionGroupID, field.TypeString, value)
-		_node.SettledTransactionGroupID = &value
-	}
 	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
@@ -351,6 +345,38 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.ID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargeStandardInvoicePaymentSettlementIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeflatfee.ChargeStandardInvoicePaymentSettlementTable,
+			Columns: []string{chargeflatfee.ChargeStandardInvoicePaymentSettlementColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargestandardinvoicepaymentsettlement.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargeStandardInvoiceAccruedUsageIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeflatfee.ChargeStandardInvoiceAccruedUsageTable,
+			Columns: []string{chargeflatfee.ChargeStandardInvoiceAccruedUsageColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargestandardinvoiceaccruedusage.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -498,42 +524,6 @@ func (u *ChargeFlatFeeUpsert) SetAmountAfterProration(v alpacadecimal.Decimal) *
 // UpdateAmountAfterProration sets the "amount_after_proration" field to the value that was provided on create.
 func (u *ChargeFlatFeeUpsert) UpdateAmountAfterProration() *ChargeFlatFeeUpsert {
 	u.SetExcluded(chargeflatfee.FieldAmountAfterProration)
-	return u
-}
-
-// SetAuthorizedTransactionGroupID sets the "authorized_transaction_group_id" field.
-func (u *ChargeFlatFeeUpsert) SetAuthorizedTransactionGroupID(v string) *ChargeFlatFeeUpsert {
-	u.Set(chargeflatfee.FieldAuthorizedTransactionGroupID, v)
-	return u
-}
-
-// UpdateAuthorizedTransactionGroupID sets the "authorized_transaction_group_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsert) UpdateAuthorizedTransactionGroupID() *ChargeFlatFeeUpsert {
-	u.SetExcluded(chargeflatfee.FieldAuthorizedTransactionGroupID)
-	return u
-}
-
-// ClearAuthorizedTransactionGroupID clears the value of the "authorized_transaction_group_id" field.
-func (u *ChargeFlatFeeUpsert) ClearAuthorizedTransactionGroupID() *ChargeFlatFeeUpsert {
-	u.SetNull(chargeflatfee.FieldAuthorizedTransactionGroupID)
-	return u
-}
-
-// SetSettledTransactionGroupID sets the "settled_transaction_group_id" field.
-func (u *ChargeFlatFeeUpsert) SetSettledTransactionGroupID(v string) *ChargeFlatFeeUpsert {
-	u.Set(chargeflatfee.FieldSettledTransactionGroupID, v)
-	return u
-}
-
-// UpdateSettledTransactionGroupID sets the "settled_transaction_group_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsert) UpdateSettledTransactionGroupID() *ChargeFlatFeeUpsert {
-	u.SetExcluded(chargeflatfee.FieldSettledTransactionGroupID)
-	return u
-}
-
-// ClearSettledTransactionGroupID clears the value of the "settled_transaction_group_id" field.
-func (u *ChargeFlatFeeUpsert) ClearSettledTransactionGroupID() *ChargeFlatFeeUpsert {
-	u.SetNull(chargeflatfee.FieldSettledTransactionGroupID)
 	return u
 }
 
@@ -700,48 +690,6 @@ func (u *ChargeFlatFeeUpsertOne) SetAmountAfterProration(v alpacadecimal.Decimal
 func (u *ChargeFlatFeeUpsertOne) UpdateAmountAfterProration() *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.UpdateAmountAfterProration()
-	})
-}
-
-// SetAuthorizedTransactionGroupID sets the "authorized_transaction_group_id" field.
-func (u *ChargeFlatFeeUpsertOne) SetAuthorizedTransactionGroupID(v string) *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetAuthorizedTransactionGroupID(v)
-	})
-}
-
-// UpdateAuthorizedTransactionGroupID sets the "authorized_transaction_group_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertOne) UpdateAuthorizedTransactionGroupID() *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateAuthorizedTransactionGroupID()
-	})
-}
-
-// ClearAuthorizedTransactionGroupID clears the value of the "authorized_transaction_group_id" field.
-func (u *ChargeFlatFeeUpsertOne) ClearAuthorizedTransactionGroupID() *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.ClearAuthorizedTransactionGroupID()
-	})
-}
-
-// SetSettledTransactionGroupID sets the "settled_transaction_group_id" field.
-func (u *ChargeFlatFeeUpsertOne) SetSettledTransactionGroupID(v string) *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetSettledTransactionGroupID(v)
-	})
-}
-
-// UpdateSettledTransactionGroupID sets the "settled_transaction_group_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertOne) UpdateSettledTransactionGroupID() *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateSettledTransactionGroupID()
-	})
-}
-
-// ClearSettledTransactionGroupID clears the value of the "settled_transaction_group_id" field.
-func (u *ChargeFlatFeeUpsertOne) ClearSettledTransactionGroupID() *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.ClearSettledTransactionGroupID()
 	})
 }
 
@@ -1078,48 +1026,6 @@ func (u *ChargeFlatFeeUpsertBulk) SetAmountAfterProration(v alpacadecimal.Decima
 func (u *ChargeFlatFeeUpsertBulk) UpdateAmountAfterProration() *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.UpdateAmountAfterProration()
-	})
-}
-
-// SetAuthorizedTransactionGroupID sets the "authorized_transaction_group_id" field.
-func (u *ChargeFlatFeeUpsertBulk) SetAuthorizedTransactionGroupID(v string) *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetAuthorizedTransactionGroupID(v)
-	})
-}
-
-// UpdateAuthorizedTransactionGroupID sets the "authorized_transaction_group_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertBulk) UpdateAuthorizedTransactionGroupID() *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateAuthorizedTransactionGroupID()
-	})
-}
-
-// ClearAuthorizedTransactionGroupID clears the value of the "authorized_transaction_group_id" field.
-func (u *ChargeFlatFeeUpsertBulk) ClearAuthorizedTransactionGroupID() *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.ClearAuthorizedTransactionGroupID()
-	})
-}
-
-// SetSettledTransactionGroupID sets the "settled_transaction_group_id" field.
-func (u *ChargeFlatFeeUpsertBulk) SetSettledTransactionGroupID(v string) *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetSettledTransactionGroupID(v)
-	})
-}
-
-// UpdateSettledTransactionGroupID sets the "settled_transaction_group_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertBulk) UpdateSettledTransactionGroupID() *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateSettledTransactionGroupID()
-	})
-}
-
-// ClearSettledTransactionGroupID clears the value of the "settled_transaction_group_id" field.
-func (u *ChargeFlatFeeUpsertBulk) ClearSettledTransactionGroupID() *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.ClearSettledTransactionGroupID()
 	})
 }
 

@@ -72,6 +72,10 @@ type Tx struct {
 	ChargeCreditRealization *ChargeCreditRealizationClient
 	// ChargeFlatFee is the client for interacting with the ChargeFlatFee builders.
 	ChargeFlatFee *ChargeFlatFeeClient
+	// ChargeStandardInvoiceAccruedUsage is the client for interacting with the ChargeStandardInvoiceAccruedUsage builders.
+	ChargeStandardInvoiceAccruedUsage *ChargeStandardInvoiceAccruedUsageClient
+	// ChargeStandardInvoicePaymentSettlement is the client for interacting with the ChargeStandardInvoicePaymentSettlement builders.
+	ChargeStandardInvoicePaymentSettlement *ChargeStandardInvoicePaymentSettlementClient
 	// ChargeUsageBased is the client for interacting with the ChargeUsageBased builders.
 	ChargeUsageBased *ChargeUsageBasedClient
 	// CurrencyCostBasis is the client for interacting with the CurrencyCostBasis builders.
@@ -106,8 +110,6 @@ type Tx struct {
 	PlanPhase *PlanPhaseClient
 	// PlanRateCard is the client for interacting with the PlanRateCard builders.
 	PlanRateCard *PlanRateCardClient
-	// StandardInvoiceSettlement is the client for interacting with the StandardInvoiceSettlement builders.
-	StandardInvoiceSettlement *StandardInvoiceSettlementClient
 	// Subject is the client for interacting with the Subject builders.
 	Subject *SubjectClient
 	// Subscription is the client for interacting with the Subscription builders.
@@ -286,6 +288,8 @@ func (tx *Tx) init() {
 	tx.ChargeCreditPurchase = NewChargeCreditPurchaseClient(tx.config)
 	tx.ChargeCreditRealization = NewChargeCreditRealizationClient(tx.config)
 	tx.ChargeFlatFee = NewChargeFlatFeeClient(tx.config)
+	tx.ChargeStandardInvoiceAccruedUsage = NewChargeStandardInvoiceAccruedUsageClient(tx.config)
+	tx.ChargeStandardInvoicePaymentSettlement = NewChargeStandardInvoicePaymentSettlementClient(tx.config)
 	tx.ChargeUsageBased = NewChargeUsageBasedClient(tx.config)
 	tx.CurrencyCostBasis = NewCurrencyCostBasisClient(tx.config)
 	tx.CustomCurrency = NewCustomCurrencyClient(tx.config)
@@ -303,7 +307,6 @@ func (tx *Tx) init() {
 	tx.PlanAddon = NewPlanAddonClient(tx.config)
 	tx.PlanPhase = NewPlanPhaseClient(tx.config)
 	tx.PlanRateCard = NewPlanRateCardClient(tx.config)
-	tx.StandardInvoiceSettlement = NewStandardInvoiceSettlementClient(tx.config)
 	tx.Subject = NewSubjectClient(tx.config)
 	tx.Subscription = NewSubscriptionClient(tx.config)
 	tx.SubscriptionAddon = NewSubscriptionAddonClient(tx.config)

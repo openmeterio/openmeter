@@ -12,9 +12,9 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/standardinvoicesettlement"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -69,23 +69,23 @@ func (_u *ChargeCreditRealizationUpdate) ClearAnnotations() *ChargeCreditRealiza
 	return _u
 }
 
-// SetStdRealizationID sets the "std_realization_id" field.
-func (_u *ChargeCreditRealizationUpdate) SetStdRealizationID(v string) *ChargeCreditRealizationUpdate {
-	_u.mutation.SetStdRealizationID(v)
+// SetLineID sets the "line_id" field.
+func (_u *ChargeCreditRealizationUpdate) SetLineID(v string) *ChargeCreditRealizationUpdate {
+	_u.mutation.SetLineID(v)
 	return _u
 }
 
-// SetNillableStdRealizationID sets the "std_realization_id" field if the given value is not nil.
-func (_u *ChargeCreditRealizationUpdate) SetNillableStdRealizationID(v *string) *ChargeCreditRealizationUpdate {
+// SetNillableLineID sets the "line_id" field if the given value is not nil.
+func (_u *ChargeCreditRealizationUpdate) SetNillableLineID(v *string) *ChargeCreditRealizationUpdate {
 	if v != nil {
-		_u.SetStdRealizationID(*v)
+		_u.SetLineID(*v)
 	}
 	return _u
 }
 
-// ClearStdRealizationID clears the value of the "std_realization_id" field.
-func (_u *ChargeCreditRealizationUpdate) ClearStdRealizationID() *ChargeCreditRealizationUpdate {
-	_u.mutation.ClearStdRealizationID()
+// ClearLineID clears the value of the "line_id" field.
+func (_u *ChargeCreditRealizationUpdate) ClearLineID() *ChargeCreditRealizationUpdate {
+	_u.mutation.ClearLineID()
 	return _u
 }
 
@@ -131,23 +131,23 @@ func (_u *ChargeCreditRealizationUpdate) SetNillableServicePeriodTo(v *time.Time
 	return _u
 }
 
-// SetStandardInvoiceSettlementID sets the "standard_invoice_settlement" edge to the StandardInvoiceSettlement entity by ID.
-func (_u *ChargeCreditRealizationUpdate) SetStandardInvoiceSettlementID(id string) *ChargeCreditRealizationUpdate {
-	_u.mutation.SetStandardInvoiceSettlementID(id)
+// SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
+func (_u *ChargeCreditRealizationUpdate) SetBillingInvoiceLineID(id string) *ChargeCreditRealizationUpdate {
+	_u.mutation.SetBillingInvoiceLineID(id)
 	return _u
 }
 
-// SetNillableStandardInvoiceSettlementID sets the "standard_invoice_settlement" edge to the StandardInvoiceSettlement entity by ID if the given value is not nil.
-func (_u *ChargeCreditRealizationUpdate) SetNillableStandardInvoiceSettlementID(id *string) *ChargeCreditRealizationUpdate {
+// SetNillableBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID if the given value is not nil.
+func (_u *ChargeCreditRealizationUpdate) SetNillableBillingInvoiceLineID(id *string) *ChargeCreditRealizationUpdate {
 	if id != nil {
-		_u = _u.SetStandardInvoiceSettlementID(*id)
+		_u = _u.SetBillingInvoiceLineID(*id)
 	}
 	return _u
 }
 
-// SetStandardInvoiceSettlement sets the "standard_invoice_settlement" edge to the StandardInvoiceSettlement entity.
-func (_u *ChargeCreditRealizationUpdate) SetStandardInvoiceSettlement(v *StandardInvoiceSettlement) *ChargeCreditRealizationUpdate {
-	return _u.SetStandardInvoiceSettlementID(v.ID)
+// SetBillingInvoiceLine sets the "billing_invoice_line" edge to the BillingInvoiceLine entity.
+func (_u *ChargeCreditRealizationUpdate) SetBillingInvoiceLine(v *BillingInvoiceLine) *ChargeCreditRealizationUpdate {
+	return _u.SetBillingInvoiceLineID(v.ID)
 }
 
 // Mutation returns the ChargeCreditRealizationMutation object of the builder.
@@ -155,9 +155,9 @@ func (_u *ChargeCreditRealizationUpdate) Mutation() *ChargeCreditRealizationMuta
 	return _u.mutation
 }
 
-// ClearStandardInvoiceSettlement clears the "standard_invoice_settlement" edge to the StandardInvoiceSettlement entity.
-func (_u *ChargeCreditRealizationUpdate) ClearStandardInvoiceSettlement() *ChargeCreditRealizationUpdate {
-	_u.mutation.ClearStandardInvoiceSettlement()
+// ClearBillingInvoiceLine clears the "billing_invoice_line" edge to the BillingInvoiceLine entity.
+func (_u *ChargeCreditRealizationUpdate) ClearBillingInvoiceLine() *ChargeCreditRealizationUpdate {
+	_u.mutation.ClearBillingInvoiceLine()
 	return _u
 }
 
@@ -199,9 +199,9 @@ func (_u *ChargeCreditRealizationUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeCreditRealizationUpdate) check() error {
-	if v, ok := _u.mutation.StdRealizationID(); ok {
-		if err := chargecreditrealization.StdRealizationIDValidator(v); err != nil {
-			return &ValidationError{Name: "std_realization_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditRealization.std_realization_id": %w`, err)}
+	if v, ok := _u.mutation.LineID(); ok {
+		if err := chargecreditrealization.LineIDValidator(v); err != nil {
+			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditRealization.line_id": %w`, err)}
 		}
 	}
 	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
@@ -246,28 +246,28 @@ func (_u *ChargeCreditRealizationUpdate) sqlSave(ctx context.Context) (_node int
 	if value, ok := _u.mutation.ServicePeriodTo(); ok {
 		_spec.SetField(chargecreditrealization.FieldServicePeriodTo, field.TypeTime, value)
 	}
-	if _u.mutation.StandardInvoiceSettlementCleared() {
+	if _u.mutation.BillingInvoiceLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   chargecreditrealization.StandardInvoiceSettlementTable,
-			Columns: []string{chargecreditrealization.StandardInvoiceSettlementColumn},
+			Table:   chargecreditrealization.BillingInvoiceLineTable,
+			Columns: []string{chargecreditrealization.BillingInvoiceLineColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(standardinvoicesettlement.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.StandardInvoiceSettlementIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   chargecreditrealization.StandardInvoiceSettlementTable,
-			Columns: []string{chargecreditrealization.StandardInvoiceSettlementColumn},
+			Table:   chargecreditrealization.BillingInvoiceLineTable,
+			Columns: []string{chargecreditrealization.BillingInvoiceLineColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(standardinvoicesettlement.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -333,23 +333,23 @@ func (_u *ChargeCreditRealizationUpdateOne) ClearAnnotations() *ChargeCreditReal
 	return _u
 }
 
-// SetStdRealizationID sets the "std_realization_id" field.
-func (_u *ChargeCreditRealizationUpdateOne) SetStdRealizationID(v string) *ChargeCreditRealizationUpdateOne {
-	_u.mutation.SetStdRealizationID(v)
+// SetLineID sets the "line_id" field.
+func (_u *ChargeCreditRealizationUpdateOne) SetLineID(v string) *ChargeCreditRealizationUpdateOne {
+	_u.mutation.SetLineID(v)
 	return _u
 }
 
-// SetNillableStdRealizationID sets the "std_realization_id" field if the given value is not nil.
-func (_u *ChargeCreditRealizationUpdateOne) SetNillableStdRealizationID(v *string) *ChargeCreditRealizationUpdateOne {
+// SetNillableLineID sets the "line_id" field if the given value is not nil.
+func (_u *ChargeCreditRealizationUpdateOne) SetNillableLineID(v *string) *ChargeCreditRealizationUpdateOne {
 	if v != nil {
-		_u.SetStdRealizationID(*v)
+		_u.SetLineID(*v)
 	}
 	return _u
 }
 
-// ClearStdRealizationID clears the value of the "std_realization_id" field.
-func (_u *ChargeCreditRealizationUpdateOne) ClearStdRealizationID() *ChargeCreditRealizationUpdateOne {
-	_u.mutation.ClearStdRealizationID()
+// ClearLineID clears the value of the "line_id" field.
+func (_u *ChargeCreditRealizationUpdateOne) ClearLineID() *ChargeCreditRealizationUpdateOne {
+	_u.mutation.ClearLineID()
 	return _u
 }
 
@@ -395,23 +395,23 @@ func (_u *ChargeCreditRealizationUpdateOne) SetNillableServicePeriodTo(v *time.T
 	return _u
 }
 
-// SetStandardInvoiceSettlementID sets the "standard_invoice_settlement" edge to the StandardInvoiceSettlement entity by ID.
-func (_u *ChargeCreditRealizationUpdateOne) SetStandardInvoiceSettlementID(id string) *ChargeCreditRealizationUpdateOne {
-	_u.mutation.SetStandardInvoiceSettlementID(id)
+// SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
+func (_u *ChargeCreditRealizationUpdateOne) SetBillingInvoiceLineID(id string) *ChargeCreditRealizationUpdateOne {
+	_u.mutation.SetBillingInvoiceLineID(id)
 	return _u
 }
 
-// SetNillableStandardInvoiceSettlementID sets the "standard_invoice_settlement" edge to the StandardInvoiceSettlement entity by ID if the given value is not nil.
-func (_u *ChargeCreditRealizationUpdateOne) SetNillableStandardInvoiceSettlementID(id *string) *ChargeCreditRealizationUpdateOne {
+// SetNillableBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID if the given value is not nil.
+func (_u *ChargeCreditRealizationUpdateOne) SetNillableBillingInvoiceLineID(id *string) *ChargeCreditRealizationUpdateOne {
 	if id != nil {
-		_u = _u.SetStandardInvoiceSettlementID(*id)
+		_u = _u.SetBillingInvoiceLineID(*id)
 	}
 	return _u
 }
 
-// SetStandardInvoiceSettlement sets the "standard_invoice_settlement" edge to the StandardInvoiceSettlement entity.
-func (_u *ChargeCreditRealizationUpdateOne) SetStandardInvoiceSettlement(v *StandardInvoiceSettlement) *ChargeCreditRealizationUpdateOne {
-	return _u.SetStandardInvoiceSettlementID(v.ID)
+// SetBillingInvoiceLine sets the "billing_invoice_line" edge to the BillingInvoiceLine entity.
+func (_u *ChargeCreditRealizationUpdateOne) SetBillingInvoiceLine(v *BillingInvoiceLine) *ChargeCreditRealizationUpdateOne {
+	return _u.SetBillingInvoiceLineID(v.ID)
 }
 
 // Mutation returns the ChargeCreditRealizationMutation object of the builder.
@@ -419,9 +419,9 @@ func (_u *ChargeCreditRealizationUpdateOne) Mutation() *ChargeCreditRealizationM
 	return _u.mutation
 }
 
-// ClearStandardInvoiceSettlement clears the "standard_invoice_settlement" edge to the StandardInvoiceSettlement entity.
-func (_u *ChargeCreditRealizationUpdateOne) ClearStandardInvoiceSettlement() *ChargeCreditRealizationUpdateOne {
-	_u.mutation.ClearStandardInvoiceSettlement()
+// ClearBillingInvoiceLine clears the "billing_invoice_line" edge to the BillingInvoiceLine entity.
+func (_u *ChargeCreditRealizationUpdateOne) ClearBillingInvoiceLine() *ChargeCreditRealizationUpdateOne {
+	_u.mutation.ClearBillingInvoiceLine()
 	return _u
 }
 
@@ -476,9 +476,9 @@ func (_u *ChargeCreditRealizationUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeCreditRealizationUpdateOne) check() error {
-	if v, ok := _u.mutation.StdRealizationID(); ok {
-		if err := chargecreditrealization.StdRealizationIDValidator(v); err != nil {
-			return &ValidationError{Name: "std_realization_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditRealization.std_realization_id": %w`, err)}
+	if v, ok := _u.mutation.LineID(); ok {
+		if err := chargecreditrealization.LineIDValidator(v); err != nil {
+			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditRealization.line_id": %w`, err)}
 		}
 	}
 	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
@@ -540,28 +540,28 @@ func (_u *ChargeCreditRealizationUpdateOne) sqlSave(ctx context.Context) (_node 
 	if value, ok := _u.mutation.ServicePeriodTo(); ok {
 		_spec.SetField(chargecreditrealization.FieldServicePeriodTo, field.TypeTime, value)
 	}
-	if _u.mutation.StandardInvoiceSettlementCleared() {
+	if _u.mutation.BillingInvoiceLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   chargecreditrealization.StandardInvoiceSettlementTable,
-			Columns: []string{chargecreditrealization.StandardInvoiceSettlementColumn},
+			Table:   chargecreditrealization.BillingInvoiceLineTable,
+			Columns: []string{chargecreditrealization.BillingInvoiceLineColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(standardinvoicesettlement.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.StandardInvoiceSettlementIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   chargecreditrealization.StandardInvoiceSettlementTable,
-			Columns: []string{chargecreditrealization.StandardInvoiceSettlementColumn},
+			Table:   chargecreditrealization.BillingInvoiceLineTable,
+			Columns: []string{chargecreditrealization.BillingInvoiceLineColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(standardinvoicesettlement.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -13,9 +13,9 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/standardinvoicesettlement"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -87,16 +87,16 @@ func (_c *ChargeCreditRealizationCreate) SetChargeID(v string) *ChargeCreditReal
 	return _c
 }
 
-// SetStdRealizationID sets the "std_realization_id" field.
-func (_c *ChargeCreditRealizationCreate) SetStdRealizationID(v string) *ChargeCreditRealizationCreate {
-	_c.mutation.SetStdRealizationID(v)
+// SetLineID sets the "line_id" field.
+func (_c *ChargeCreditRealizationCreate) SetLineID(v string) *ChargeCreditRealizationCreate {
+	_c.mutation.SetLineID(v)
 	return _c
 }
 
-// SetNillableStdRealizationID sets the "std_realization_id" field if the given value is not nil.
-func (_c *ChargeCreditRealizationCreate) SetNillableStdRealizationID(v *string) *ChargeCreditRealizationCreate {
+// SetNillableLineID sets the "line_id" field if the given value is not nil.
+func (_c *ChargeCreditRealizationCreate) SetNillableLineID(v *string) *ChargeCreditRealizationCreate {
 	if v != nil {
-		_c.SetStdRealizationID(*v)
+		_c.SetLineID(*v)
 	}
 	return _c
 }
@@ -138,23 +138,23 @@ func (_c *ChargeCreditRealizationCreate) SetCharge(v *Charge) *ChargeCreditReali
 	return _c.SetChargeID(v.ID)
 }
 
-// SetStandardInvoiceSettlementID sets the "standard_invoice_settlement" edge to the StandardInvoiceSettlement entity by ID.
-func (_c *ChargeCreditRealizationCreate) SetStandardInvoiceSettlementID(id string) *ChargeCreditRealizationCreate {
-	_c.mutation.SetStandardInvoiceSettlementID(id)
+// SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
+func (_c *ChargeCreditRealizationCreate) SetBillingInvoiceLineID(id string) *ChargeCreditRealizationCreate {
+	_c.mutation.SetBillingInvoiceLineID(id)
 	return _c
 }
 
-// SetNillableStandardInvoiceSettlementID sets the "standard_invoice_settlement" edge to the StandardInvoiceSettlement entity by ID if the given value is not nil.
-func (_c *ChargeCreditRealizationCreate) SetNillableStandardInvoiceSettlementID(id *string) *ChargeCreditRealizationCreate {
+// SetNillableBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID if the given value is not nil.
+func (_c *ChargeCreditRealizationCreate) SetNillableBillingInvoiceLineID(id *string) *ChargeCreditRealizationCreate {
 	if id != nil {
-		_c = _c.SetStandardInvoiceSettlementID(*id)
+		_c = _c.SetBillingInvoiceLineID(*id)
 	}
 	return _c
 }
 
-// SetStandardInvoiceSettlement sets the "standard_invoice_settlement" edge to the StandardInvoiceSettlement entity.
-func (_c *ChargeCreditRealizationCreate) SetStandardInvoiceSettlement(v *StandardInvoiceSettlement) *ChargeCreditRealizationCreate {
-	return _c.SetStandardInvoiceSettlementID(v.ID)
+// SetBillingInvoiceLine sets the "billing_invoice_line" edge to the BillingInvoiceLine entity.
+func (_c *ChargeCreditRealizationCreate) SetBillingInvoiceLine(v *BillingInvoiceLine) *ChargeCreditRealizationCreate {
+	return _c.SetBillingInvoiceLineID(v.ID)
 }
 
 // Mutation returns the ChargeCreditRealizationMutation object of the builder.
@@ -225,9 +225,9 @@ func (_c *ChargeCreditRealizationCreate) check() error {
 	if _, ok := _c.mutation.ChargeID(); !ok {
 		return &ValidationError{Name: "charge_id", err: errors.New(`db: missing required field "ChargeCreditRealization.charge_id"`)}
 	}
-	if v, ok := _c.mutation.StdRealizationID(); ok {
-		if err := chargecreditrealization.StdRealizationIDValidator(v); err != nil {
-			return &ValidationError{Name: "std_realization_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditRealization.std_realization_id": %w`, err)}
+	if v, ok := _c.mutation.LineID(); ok {
+		if err := chargecreditrealization.LineIDValidator(v); err != nil {
+			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditRealization.line_id": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Amount(); !ok {
@@ -327,21 +327,21 @@ func (_c *ChargeCreditRealizationCreate) createSpec() (*ChargeCreditRealization,
 		_node.ChargeID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.StandardInvoiceSettlementIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   chargecreditrealization.StandardInvoiceSettlementTable,
-			Columns: []string{chargecreditrealization.StandardInvoiceSettlementColumn},
+			Table:   chargecreditrealization.BillingInvoiceLineTable,
+			Columns: []string{chargecreditrealization.BillingInvoiceLineColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(standardinvoicesettlement.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.StdRealizationID = &nodes[0]
+		_node.LineID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -444,21 +444,21 @@ func (u *ChargeCreditRealizationUpsert) ClearAnnotations() *ChargeCreditRealizat
 	return u
 }
 
-// SetStdRealizationID sets the "std_realization_id" field.
-func (u *ChargeCreditRealizationUpsert) SetStdRealizationID(v string) *ChargeCreditRealizationUpsert {
-	u.Set(chargecreditrealization.FieldStdRealizationID, v)
+// SetLineID sets the "line_id" field.
+func (u *ChargeCreditRealizationUpsert) SetLineID(v string) *ChargeCreditRealizationUpsert {
+	u.Set(chargecreditrealization.FieldLineID, v)
 	return u
 }
 
-// UpdateStdRealizationID sets the "std_realization_id" field to the value that was provided on create.
-func (u *ChargeCreditRealizationUpsert) UpdateStdRealizationID() *ChargeCreditRealizationUpsert {
-	u.SetExcluded(chargecreditrealization.FieldStdRealizationID)
+// UpdateLineID sets the "line_id" field to the value that was provided on create.
+func (u *ChargeCreditRealizationUpsert) UpdateLineID() *ChargeCreditRealizationUpsert {
+	u.SetExcluded(chargecreditrealization.FieldLineID)
 	return u
 }
 
-// ClearStdRealizationID clears the value of the "std_realization_id" field.
-func (u *ChargeCreditRealizationUpsert) ClearStdRealizationID() *ChargeCreditRealizationUpsert {
-	u.SetNull(chargecreditrealization.FieldStdRealizationID)
+// ClearLineID clears the value of the "line_id" field.
+func (u *ChargeCreditRealizationUpsert) ClearLineID() *ChargeCreditRealizationUpsert {
+	u.SetNull(chargecreditrealization.FieldLineID)
 	return u
 }
 
@@ -611,24 +611,24 @@ func (u *ChargeCreditRealizationUpsertOne) ClearAnnotations() *ChargeCreditReali
 	})
 }
 
-// SetStdRealizationID sets the "std_realization_id" field.
-func (u *ChargeCreditRealizationUpsertOne) SetStdRealizationID(v string) *ChargeCreditRealizationUpsertOne {
+// SetLineID sets the "line_id" field.
+func (u *ChargeCreditRealizationUpsertOne) SetLineID(v string) *ChargeCreditRealizationUpsertOne {
 	return u.Update(func(s *ChargeCreditRealizationUpsert) {
-		s.SetStdRealizationID(v)
+		s.SetLineID(v)
 	})
 }
 
-// UpdateStdRealizationID sets the "std_realization_id" field to the value that was provided on create.
-func (u *ChargeCreditRealizationUpsertOne) UpdateStdRealizationID() *ChargeCreditRealizationUpsertOne {
+// UpdateLineID sets the "line_id" field to the value that was provided on create.
+func (u *ChargeCreditRealizationUpsertOne) UpdateLineID() *ChargeCreditRealizationUpsertOne {
 	return u.Update(func(s *ChargeCreditRealizationUpsert) {
-		s.UpdateStdRealizationID()
+		s.UpdateLineID()
 	})
 }
 
-// ClearStdRealizationID clears the value of the "std_realization_id" field.
-func (u *ChargeCreditRealizationUpsertOne) ClearStdRealizationID() *ChargeCreditRealizationUpsertOne {
+// ClearLineID clears the value of the "line_id" field.
+func (u *ChargeCreditRealizationUpsertOne) ClearLineID() *ChargeCreditRealizationUpsertOne {
 	return u.Update(func(s *ChargeCreditRealizationUpsert) {
-		s.ClearStdRealizationID()
+		s.ClearLineID()
 	})
 }
 
@@ -954,24 +954,24 @@ func (u *ChargeCreditRealizationUpsertBulk) ClearAnnotations() *ChargeCreditReal
 	})
 }
 
-// SetStdRealizationID sets the "std_realization_id" field.
-func (u *ChargeCreditRealizationUpsertBulk) SetStdRealizationID(v string) *ChargeCreditRealizationUpsertBulk {
+// SetLineID sets the "line_id" field.
+func (u *ChargeCreditRealizationUpsertBulk) SetLineID(v string) *ChargeCreditRealizationUpsertBulk {
 	return u.Update(func(s *ChargeCreditRealizationUpsert) {
-		s.SetStdRealizationID(v)
+		s.SetLineID(v)
 	})
 }
 
-// UpdateStdRealizationID sets the "std_realization_id" field to the value that was provided on create.
-func (u *ChargeCreditRealizationUpsertBulk) UpdateStdRealizationID() *ChargeCreditRealizationUpsertBulk {
+// UpdateLineID sets the "line_id" field to the value that was provided on create.
+func (u *ChargeCreditRealizationUpsertBulk) UpdateLineID() *ChargeCreditRealizationUpsertBulk {
 	return u.Update(func(s *ChargeCreditRealizationUpsert) {
-		s.UpdateStdRealizationID()
+		s.UpdateLineID()
 	})
 }
 
-// ClearStdRealizationID clears the value of the "std_realization_id" field.
-func (u *ChargeCreditRealizationUpsertBulk) ClearStdRealizationID() *ChargeCreditRealizationUpsertBulk {
+// ClearLineID clears the value of the "line_id" field.
+func (u *ChargeCreditRealizationUpsertBulk) ClearLineID() *ChargeCreditRealizationUpsertBulk {
 	return u.Update(func(s *ChargeCreditRealizationUpsert) {
-		s.ClearStdRealizationID()
+		s.ClearLineID()
 	})
 }
 

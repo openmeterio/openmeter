@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	dbcharge "github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	dbchargeflatfee "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
@@ -55,16 +53,6 @@ func (a *adapter) UpdateFlatFeeCharge(ctx context.Context, charge charges.FlatFe
 			return charges.FlatFeeCharge{}, err
 		}
 
-		var authorizedTransactionGroupID *string
-		if charge.State.AuthorizedTransaction != nil {
-			authorizedTransactionGroupID = lo.EmptyableToPtr(charge.State.AuthorizedTransaction.TransactionGroupID)
-		}
-
-		var settledTransactionGroupID *string
-		if charge.State.SettledTransaction != nil {
-			settledTransactionGroupID = lo.EmptyableToPtr(charge.State.SettledTransaction.TransactionGroupID)
-		}
-
 		flatFee, err := tx.db.ChargeFlatFee.UpdateOneID(charge.ID).
 			Where(dbchargeflatfee.NamespaceEQ(charge.Namespace)).
 			SetPaymentTerm(intent.PaymentTerm).
@@ -73,8 +61,6 @@ func (a *adapter) UpdateFlatFeeCharge(ctx context.Context, charge charges.FlatFe
 			SetProRating(proRating).
 			SetAmountBeforeProration(intent.AmountBeforeProration).
 			SetAmountAfterProration(intent.AmountAfterProration).
-			SetNillableAuthorizedTransactionGroupID(authorizedTransactionGroupID).
-			SetNillableSettledTransactionGroupID(settledTransactionGroupID).
 			Save(ctx)
 		if err != nil {
 			return charges.FlatFeeCharge{}, err

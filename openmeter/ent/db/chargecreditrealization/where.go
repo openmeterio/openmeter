@@ -91,9 +91,9 @@ func ChargeID(v string) predicate.ChargeCreditRealization {
 	return predicate.ChargeCreditRealization(sql.FieldEQ(FieldChargeID, v))
 }
 
-// StdRealizationID applies equality check predicate on the "std_realization_id" field. It's identical to StdRealizationIDEQ.
-func StdRealizationID(v string) predicate.ChargeCreditRealization {
-	return predicate.ChargeCreditRealization(sql.FieldEQ(FieldStdRealizationID, v))
+// LineID applies equality check predicate on the "line_id" field. It's identical to LineIDEQ.
+func LineID(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldEQ(FieldLineID, v))
 }
 
 // Amount applies equality check predicate on the "amount" field. It's identical to AmountEQ.
@@ -381,79 +381,79 @@ func ChargeIDContainsFold(v string) predicate.ChargeCreditRealization {
 	return predicate.ChargeCreditRealization(sql.FieldContainsFold(FieldChargeID, v))
 }
 
-// StdRealizationIDEQ applies the EQ predicate on the "std_realization_id" field.
-func StdRealizationIDEQ(v string) predicate.ChargeCreditRealization {
-	return predicate.ChargeCreditRealization(sql.FieldEQ(FieldStdRealizationID, v))
+// LineIDEQ applies the EQ predicate on the "line_id" field.
+func LineIDEQ(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldEQ(FieldLineID, v))
 }
 
-// StdRealizationIDNEQ applies the NEQ predicate on the "std_realization_id" field.
-func StdRealizationIDNEQ(v string) predicate.ChargeCreditRealization {
-	return predicate.ChargeCreditRealization(sql.FieldNEQ(FieldStdRealizationID, v))
+// LineIDNEQ applies the NEQ predicate on the "line_id" field.
+func LineIDNEQ(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldNEQ(FieldLineID, v))
 }
 
-// StdRealizationIDIn applies the In predicate on the "std_realization_id" field.
-func StdRealizationIDIn(vs ...string) predicate.ChargeCreditRealization {
-	return predicate.ChargeCreditRealization(sql.FieldIn(FieldStdRealizationID, vs...))
+// LineIDIn applies the In predicate on the "line_id" field.
+func LineIDIn(vs ...string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldIn(FieldLineID, vs...))
 }
 
-// StdRealizationIDNotIn applies the NotIn predicate on the "std_realization_id" field.
-func StdRealizationIDNotIn(vs ...string) predicate.ChargeCreditRealization {
-	return predicate.ChargeCreditRealization(sql.FieldNotIn(FieldStdRealizationID, vs...))
+// LineIDNotIn applies the NotIn predicate on the "line_id" field.
+func LineIDNotIn(vs ...string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldNotIn(FieldLineID, vs...))
 }
 
-// StdRealizationIDGT applies the GT predicate on the "std_realization_id" field.
-func StdRealizationIDGT(v string) predicate.ChargeCreditRealization {
-	return predicate.ChargeCreditRealization(sql.FieldGT(FieldStdRealizationID, v))
+// LineIDGT applies the GT predicate on the "line_id" field.
+func LineIDGT(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldGT(FieldLineID, v))
 }
 
-// StdRealizationIDGTE applies the GTE predicate on the "std_realization_id" field.
-func StdRealizationIDGTE(v string) predicate.ChargeCreditRealization {
-	return predicate.ChargeCreditRealization(sql.FieldGTE(FieldStdRealizationID, v))
+// LineIDGTE applies the GTE predicate on the "line_id" field.
+func LineIDGTE(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldGTE(FieldLineID, v))
 }
 
-// StdRealizationIDLT applies the LT predicate on the "std_realization_id" field.
-func StdRealizationIDLT(v string) predicate.ChargeCreditRealization {
-	return predicate.ChargeCreditRealization(sql.FieldLT(FieldStdRealizationID, v))
+// LineIDLT applies the LT predicate on the "line_id" field.
+func LineIDLT(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldLT(FieldLineID, v))
 }
 
-// StdRealizationIDLTE applies the LTE predicate on the "std_realization_id" field.
-func StdRealizationIDLTE(v string) predicate.ChargeCreditRealization {
-	return predicate.ChargeCreditRealization(sql.FieldLTE(FieldStdRealizationID, v))
+// LineIDLTE applies the LTE predicate on the "line_id" field.
+func LineIDLTE(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldLTE(FieldLineID, v))
 }
 
-// StdRealizationIDContains applies the Contains predicate on the "std_realization_id" field.
-func StdRealizationIDContains(v string) predicate.ChargeCreditRealization {
-	return predicate.ChargeCreditRealization(sql.FieldContains(FieldStdRealizationID, v))
+// LineIDContains applies the Contains predicate on the "line_id" field.
+func LineIDContains(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldContains(FieldLineID, v))
 }
 
-// StdRealizationIDHasPrefix applies the HasPrefix predicate on the "std_realization_id" field.
-func StdRealizationIDHasPrefix(v string) predicate.ChargeCreditRealization {
-	return predicate.ChargeCreditRealization(sql.FieldHasPrefix(FieldStdRealizationID, v))
+// LineIDHasPrefix applies the HasPrefix predicate on the "line_id" field.
+func LineIDHasPrefix(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldHasPrefix(FieldLineID, v))
 }
 
-// StdRealizationIDHasSuffix applies the HasSuffix predicate on the "std_realization_id" field.
-func StdRealizationIDHasSuffix(v string) predicate.ChargeCreditRealization {
-	return predicate.ChargeCreditRealization(sql.FieldHasSuffix(FieldStdRealizationID, v))
+// LineIDHasSuffix applies the HasSuffix predicate on the "line_id" field.
+func LineIDHasSuffix(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldHasSuffix(FieldLineID, v))
 }
 
-// StdRealizationIDIsNil applies the IsNil predicate on the "std_realization_id" field.
-func StdRealizationIDIsNil() predicate.ChargeCreditRealization {
-	return predicate.ChargeCreditRealization(sql.FieldIsNull(FieldStdRealizationID))
+// LineIDIsNil applies the IsNil predicate on the "line_id" field.
+func LineIDIsNil() predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldIsNull(FieldLineID))
 }
 
-// StdRealizationIDNotNil applies the NotNil predicate on the "std_realization_id" field.
-func StdRealizationIDNotNil() predicate.ChargeCreditRealization {
-	return predicate.ChargeCreditRealization(sql.FieldNotNull(FieldStdRealizationID))
+// LineIDNotNil applies the NotNil predicate on the "line_id" field.
+func LineIDNotNil() predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldNotNull(FieldLineID))
 }
 
-// StdRealizationIDEqualFold applies the EqualFold predicate on the "std_realization_id" field.
-func StdRealizationIDEqualFold(v string) predicate.ChargeCreditRealization {
-	return predicate.ChargeCreditRealization(sql.FieldEqualFold(FieldStdRealizationID, v))
+// LineIDEqualFold applies the EqualFold predicate on the "line_id" field.
+func LineIDEqualFold(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldEqualFold(FieldLineID, v))
 }
 
-// StdRealizationIDContainsFold applies the ContainsFold predicate on the "std_realization_id" field.
-func StdRealizationIDContainsFold(v string) predicate.ChargeCreditRealization {
-	return predicate.ChargeCreditRealization(sql.FieldContainsFold(FieldStdRealizationID, v))
+// LineIDContainsFold applies the ContainsFold predicate on the "line_id" field.
+func LineIDContainsFold(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldContainsFold(FieldLineID, v))
 }
 
 // AmountEQ applies the EQ predicate on the "amount" field.
@@ -599,21 +599,21 @@ func HasChargeWith(preds ...predicate.Charge) predicate.ChargeCreditRealization 
 	})
 }
 
-// HasStandardInvoiceSettlement applies the HasEdge predicate on the "standard_invoice_settlement" edge.
-func HasStandardInvoiceSettlement() predicate.ChargeCreditRealization {
+// HasBillingInvoiceLine applies the HasEdge predicate on the "billing_invoice_line" edge.
+func HasBillingInvoiceLine() predicate.ChargeCreditRealization {
 	return predicate.ChargeCreditRealization(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, StandardInvoiceSettlementTable, StandardInvoiceSettlementColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, BillingInvoiceLineTable, BillingInvoiceLineColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasStandardInvoiceSettlementWith applies the HasEdge predicate on the "standard_invoice_settlement" edge with a given conditions (other predicates).
-func HasStandardInvoiceSettlementWith(preds ...predicate.StandardInvoiceSettlement) predicate.ChargeCreditRealization {
+// HasBillingInvoiceLineWith applies the HasEdge predicate on the "billing_invoice_line" edge with a given conditions (other predicates).
+func HasBillingInvoiceLineWith(preds ...predicate.BillingInvoiceLine) predicate.ChargeCreditRealization {
 	return predicate.ChargeCreditRealization(func(s *sql.Selector) {
-		step := newStandardInvoiceSettlementStep()
+		step := newBillingInvoiceLineStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

@@ -21,7 +21,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/standardinvoicesettlement"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -311,21 +310,6 @@ func (_u *ChargeUpdate) SetCreditPurchase(v *ChargeCreditPurchase) *ChargeUpdate
 	return _u.SetCreditPurchaseID(v.ID)
 }
 
-// AddStandardInvoiceSettlmentIDs adds the "standard_invoice_settlments" edge to the StandardInvoiceSettlement entity by IDs.
-func (_u *ChargeUpdate) AddStandardInvoiceSettlmentIDs(ids ...string) *ChargeUpdate {
-	_u.mutation.AddStandardInvoiceSettlmentIDs(ids...)
-	return _u
-}
-
-// AddStandardInvoiceSettlments adds the "standard_invoice_settlments" edges to the StandardInvoiceSettlement entity.
-func (_u *ChargeUpdate) AddStandardInvoiceSettlments(v ...*StandardInvoiceSettlement) *ChargeUpdate {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddStandardInvoiceSettlmentIDs(ids...)
-}
-
 // AddCreditRealizationIDs adds the "credit_realizations" edge to the ChargeCreditRealization entity by IDs.
 func (_u *ChargeUpdate) AddCreditRealizationIDs(ids ...string) *ChargeUpdate {
 	_u.mutation.AddCreditRealizationIDs(ids...)
@@ -392,27 +376,6 @@ func (_u *ChargeUpdate) ClearUsageBased() *ChargeUpdate {
 func (_u *ChargeUpdate) ClearCreditPurchase() *ChargeUpdate {
 	_u.mutation.ClearCreditPurchase()
 	return _u
-}
-
-// ClearStandardInvoiceSettlments clears all "standard_invoice_settlments" edges to the StandardInvoiceSettlement entity.
-func (_u *ChargeUpdate) ClearStandardInvoiceSettlments() *ChargeUpdate {
-	_u.mutation.ClearStandardInvoiceSettlments()
-	return _u
-}
-
-// RemoveStandardInvoiceSettlmentIDs removes the "standard_invoice_settlments" edge to StandardInvoiceSettlement entities by IDs.
-func (_u *ChargeUpdate) RemoveStandardInvoiceSettlmentIDs(ids ...string) *ChargeUpdate {
-	_u.mutation.RemoveStandardInvoiceSettlmentIDs(ids...)
-	return _u
-}
-
-// RemoveStandardInvoiceSettlments removes "standard_invoice_settlments" edges to StandardInvoiceSettlement entities.
-func (_u *ChargeUpdate) RemoveStandardInvoiceSettlments(v ...*StandardInvoiceSettlement) *ChargeUpdate {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.RemoveStandardInvoiceSettlmentIDs(ids...)
 }
 
 // ClearCreditRealizations clears all "credit_realizations" edges to the ChargeCreditRealization entity.
@@ -684,51 +647,6 @@ func (_u *ChargeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.StandardInvoiceSettlmentsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   charge.StandardInvoiceSettlmentsTable,
-			Columns: []string{charge.StandardInvoiceSettlmentsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(standardinvoicesettlement.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.RemovedStandardInvoiceSettlmentsIDs(); len(nodes) > 0 && !_u.mutation.StandardInvoiceSettlmentsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   charge.StandardInvoiceSettlmentsTable,
-			Columns: []string{charge.StandardInvoiceSettlmentsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(standardinvoicesettlement.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.StandardInvoiceSettlmentsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   charge.StandardInvoiceSettlmentsTable,
-			Columns: []string{charge.StandardInvoiceSettlmentsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(standardinvoicesettlement.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1164,21 +1082,6 @@ func (_u *ChargeUpdateOne) SetCreditPurchase(v *ChargeCreditPurchase) *ChargeUpd
 	return _u.SetCreditPurchaseID(v.ID)
 }
 
-// AddStandardInvoiceSettlmentIDs adds the "standard_invoice_settlments" edge to the StandardInvoiceSettlement entity by IDs.
-func (_u *ChargeUpdateOne) AddStandardInvoiceSettlmentIDs(ids ...string) *ChargeUpdateOne {
-	_u.mutation.AddStandardInvoiceSettlmentIDs(ids...)
-	return _u
-}
-
-// AddStandardInvoiceSettlments adds the "standard_invoice_settlments" edges to the StandardInvoiceSettlement entity.
-func (_u *ChargeUpdateOne) AddStandardInvoiceSettlments(v ...*StandardInvoiceSettlement) *ChargeUpdateOne {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddStandardInvoiceSettlmentIDs(ids...)
-}
-
 // AddCreditRealizationIDs adds the "credit_realizations" edge to the ChargeCreditRealization entity by IDs.
 func (_u *ChargeUpdateOne) AddCreditRealizationIDs(ids ...string) *ChargeUpdateOne {
 	_u.mutation.AddCreditRealizationIDs(ids...)
@@ -1245,27 +1148,6 @@ func (_u *ChargeUpdateOne) ClearUsageBased() *ChargeUpdateOne {
 func (_u *ChargeUpdateOne) ClearCreditPurchase() *ChargeUpdateOne {
 	_u.mutation.ClearCreditPurchase()
 	return _u
-}
-
-// ClearStandardInvoiceSettlments clears all "standard_invoice_settlments" edges to the StandardInvoiceSettlement entity.
-func (_u *ChargeUpdateOne) ClearStandardInvoiceSettlments() *ChargeUpdateOne {
-	_u.mutation.ClearStandardInvoiceSettlments()
-	return _u
-}
-
-// RemoveStandardInvoiceSettlmentIDs removes the "standard_invoice_settlments" edge to StandardInvoiceSettlement entities by IDs.
-func (_u *ChargeUpdateOne) RemoveStandardInvoiceSettlmentIDs(ids ...string) *ChargeUpdateOne {
-	_u.mutation.RemoveStandardInvoiceSettlmentIDs(ids...)
-	return _u
-}
-
-// RemoveStandardInvoiceSettlments removes "standard_invoice_settlments" edges to StandardInvoiceSettlement entities.
-func (_u *ChargeUpdateOne) RemoveStandardInvoiceSettlments(v ...*StandardInvoiceSettlement) *ChargeUpdateOne {
-	ids := make([]string, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.RemoveStandardInvoiceSettlmentIDs(ids...)
 }
 
 // ClearCreditRealizations clears all "credit_realizations" edges to the ChargeCreditRealization entity.
@@ -1567,51 +1449,6 @@ func (_u *ChargeUpdateOne) sqlSave(ctx context.Context) (_node *Charge, err erro
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.StandardInvoiceSettlmentsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   charge.StandardInvoiceSettlmentsTable,
-			Columns: []string{charge.StandardInvoiceSettlmentsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(standardinvoicesettlement.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.RemovedStandardInvoiceSettlmentsIDs(); len(nodes) > 0 && !_u.mutation.StandardInvoiceSettlmentsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   charge.StandardInvoiceSettlmentsTable,
-			Columns: []string{charge.StandardInvoiceSettlmentsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(standardinvoicesettlement.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.StandardInvoiceSettlmentsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   charge.StandardInvoiceSettlmentsTable,
-			Columns: []string{charge.StandardInvoiceSettlmentsColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(standardinvoicesettlement.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

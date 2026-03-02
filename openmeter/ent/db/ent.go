@@ -42,6 +42,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoiceaccruedusage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicepaymentsettlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
@@ -62,7 +64,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/standardinvoicesettlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
@@ -162,6 +163,8 @@ func checkColumn(t, c string) error {
 			chargecreditpurchase.Table:                             chargecreditpurchase.ValidColumn,
 			chargecreditrealization.Table:                          chargecreditrealization.ValidColumn,
 			chargeflatfee.Table:                                    chargeflatfee.ValidColumn,
+			chargestandardinvoiceaccruedusage.Table:                chargestandardinvoiceaccruedusage.ValidColumn,
+			chargestandardinvoicepaymentsettlement.Table:           chargestandardinvoicepaymentsettlement.ValidColumn,
 			chargeusagebased.Table:                                 chargeusagebased.ValidColumn,
 			currencycostbasis.Table:                                currencycostbasis.ValidColumn,
 			customcurrency.Table:                                   customcurrency.ValidColumn,
@@ -179,7 +182,6 @@ func checkColumn(t, c string) error {
 			planaddon.Table:                                        planaddon.ValidColumn,
 			planphase.Table:                                        planphase.ValidColumn,
 			planratecard.Table:                                     planratecard.ValidColumn,
-			standardinvoicesettlement.Table:                        standardinvoicesettlement.ValidColumn,
 			subject.Table:                                          subject.ValidColumn,
 			subscription.Table:                                     subscription.ValidColumn,
 			subscriptionaddon.Table:                                subscriptionaddon.ValidColumn,

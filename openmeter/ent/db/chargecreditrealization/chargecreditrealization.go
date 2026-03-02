@@ -26,8 +26,8 @@ const (
 	FieldAnnotations = "annotations"
 	// FieldChargeID holds the string denoting the charge_id field in the database.
 	FieldChargeID = "charge_id"
-	// FieldStdRealizationID holds the string denoting the std_realization_id field in the database.
-	FieldStdRealizationID = "std_realization_id"
+	// FieldLineID holds the string denoting the line_id field in the database.
+	FieldLineID = "line_id"
 	// FieldAmount holds the string denoting the amount field in the database.
 	FieldAmount = "amount"
 	// FieldServicePeriodFrom holds the string denoting the service_period_from field in the database.
@@ -36,8 +36,8 @@ const (
 	FieldServicePeriodTo = "service_period_to"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
 	EdgeCharge = "charge"
-	// EdgeStandardInvoiceSettlement holds the string denoting the standard_invoice_settlement edge name in mutations.
-	EdgeStandardInvoiceSettlement = "standard_invoice_settlement"
+	// EdgeBillingInvoiceLine holds the string denoting the billing_invoice_line edge name in mutations.
+	EdgeBillingInvoiceLine = "billing_invoice_line"
 	// Table holds the table name of the chargecreditrealization in the database.
 	Table = "charge_credit_realizations"
 	// ChargeTable is the table that holds the charge relation/edge.
@@ -47,13 +47,13 @@ const (
 	ChargeInverseTable = "charges"
 	// ChargeColumn is the table column denoting the charge relation/edge.
 	ChargeColumn = "charge_id"
-	// StandardInvoiceSettlementTable is the table that holds the standard_invoice_settlement relation/edge.
-	StandardInvoiceSettlementTable = "charge_credit_realizations"
-	// StandardInvoiceSettlementInverseTable is the table name for the StandardInvoiceSettlement entity.
-	// It exists in this package in order to avoid circular dependency with the "standardinvoicesettlement" package.
-	StandardInvoiceSettlementInverseTable = "standard_invoice_settlements"
-	// StandardInvoiceSettlementColumn is the table column denoting the standard_invoice_settlement relation/edge.
-	StandardInvoiceSettlementColumn = "std_realization_id"
+	// BillingInvoiceLineTable is the table that holds the billing_invoice_line relation/edge.
+	BillingInvoiceLineTable = "charge_credit_realizations"
+	// BillingInvoiceLineInverseTable is the table name for the BillingInvoiceLine entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoiceline" package.
+	BillingInvoiceLineInverseTable = "billing_invoice_lines"
+	// BillingInvoiceLineColumn is the table column denoting the billing_invoice_line relation/edge.
+	BillingInvoiceLineColumn = "line_id"
 )
 
 // Columns holds all SQL columns for chargecreditrealization fields.
@@ -65,7 +65,7 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldAnnotations,
 	FieldChargeID,
-	FieldStdRealizationID,
+	FieldLineID,
 	FieldAmount,
 	FieldServicePeriodFrom,
 	FieldServicePeriodTo,
@@ -90,8 +90,8 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// StdRealizationIDValidator is a validator for the "std_realization_id" field. It is called by the builders before save.
-	StdRealizationIDValidator func(string) error
+	// LineIDValidator is a validator for the "line_id" field. It is called by the builders before save.
+	LineIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -129,9 +129,9 @@ func ByChargeID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldChargeID, opts...).ToFunc()
 }
 
-// ByStdRealizationID orders the results by the std_realization_id field.
-func ByStdRealizationID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldStdRealizationID, opts...).ToFunc()
+// ByLineID orders the results by the line_id field.
+func ByLineID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLineID, opts...).ToFunc()
 }
 
 // ByAmount orders the results by the amount field.
@@ -156,10 +156,10 @@ func ByChargeField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
-// ByStandardInvoiceSettlementField orders the results by standard_invoice_settlement field.
-func ByStandardInvoiceSettlementField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByBillingInvoiceLineField orders the results by billing_invoice_line field.
+func ByBillingInvoiceLineField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newStandardInvoiceSettlementStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceLineStep(), sql.OrderByField(field, opts...))
 	}
 }
 func newChargeStep() *sqlgraph.Step {
@@ -169,10 +169,10 @@ func newChargeStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.M2O, true, ChargeTable, ChargeColumn),
 	)
 }
-func newStandardInvoiceSettlementStep() *sqlgraph.Step {
+func newBillingInvoiceLineStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(StandardInvoiceSettlementInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, StandardInvoiceSettlementTable, StandardInvoiceSettlementColumn),
+		sqlgraph.To(BillingInvoiceLineInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, BillingInvoiceLineTable, BillingInvoiceLineColumn),
 	)
 }

@@ -18,7 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/standardinvoicesettlement"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicepaymentsettlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -114,11 +114,10 @@ type BillingInvoiceLine struct {
 	CreditsApplied *billing.CreditsApplied `json:"credits_applied,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceLineQuery when eager-loading is set.
-	Edges                                            BillingInvoiceLineEdges `json:"edges"`
-	fee_line_config_id                               *string
-	usage_based_line_config_id                       *string
-	billing_invoice_line_standard_invoice_settlments *string
-	selectValues                                     sql.SelectValues
+	Edges                      BillingInvoiceLineEdges `json:"edges"`
+	fee_line_config_id         *string
+	usage_based_line_config_id *string
+	selectValues               sql.SelectValues
 }
 
 // BillingInvoiceLineEdges holds the relations/edges for other nodes in the graph.
@@ -149,11 +148,15 @@ type BillingInvoiceLineEdges struct {
 	SubscriptionItem *SubscriptionItem `json:"subscription_item,omitempty"`
 	// Charge holds the value of the charge edge.
 	Charge *Charge `json:"charge,omitempty"`
-	// StandardInvoiceSettlments holds the value of the standard_invoice_settlments edge.
-	StandardInvoiceSettlments *StandardInvoiceSettlement `json:"standard_invoice_settlments,omitempty"`
+	// ChargeStandardInvoicePaymentSettlement holds the value of the charge_standard_invoice_payment_settlement edge.
+	ChargeStandardInvoicePaymentSettlement *ChargeStandardInvoicePaymentSettlement `json:"charge_standard_invoice_payment_settlement,omitempty"`
+	// ChargeCreditRealization holds the value of the charge_credit_realization edge.
+	ChargeCreditRealization []*ChargeCreditRealization `json:"charge_credit_realization,omitempty"`
+	// ChargeStandardInvoiceAccruedUsage holds the value of the charge_standard_invoice_accrued_usage edge.
+	ChargeStandardInvoiceAccruedUsage []*ChargeStandardInvoiceAccruedUsage `json:"charge_standard_invoice_accrued_usage,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [14]bool
+	loadedTypes [16]bool
 }
 
 // BillingInvoiceOrErr returns the BillingInvoice value or an error if the edge
@@ -291,15 +294,33 @@ func (e BillingInvoiceLineEdges) ChargeOrErr() (*Charge, error) {
 	return nil, &NotLoadedError{edge: "charge"}
 }
 
-// StandardInvoiceSettlmentsOrErr returns the StandardInvoiceSettlments value or an error if the edge
+// ChargeStandardInvoicePaymentSettlementOrErr returns the ChargeStandardInvoicePaymentSettlement value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e BillingInvoiceLineEdges) StandardInvoiceSettlmentsOrErr() (*StandardInvoiceSettlement, error) {
-	if e.StandardInvoiceSettlments != nil {
-		return e.StandardInvoiceSettlments, nil
+func (e BillingInvoiceLineEdges) ChargeStandardInvoicePaymentSettlementOrErr() (*ChargeStandardInvoicePaymentSettlement, error) {
+	if e.ChargeStandardInvoicePaymentSettlement != nil {
+		return e.ChargeStandardInvoicePaymentSettlement, nil
 	} else if e.loadedTypes[13] {
-		return nil, &NotFoundError{label: standardinvoicesettlement.Label}
+		return nil, &NotFoundError{label: chargestandardinvoicepaymentsettlement.Label}
 	}
-	return nil, &NotLoadedError{edge: "standard_invoice_settlments"}
+	return nil, &NotLoadedError{edge: "charge_standard_invoice_payment_settlement"}
+}
+
+// ChargeCreditRealizationOrErr returns the ChargeCreditRealization value or an error if the edge
+// was not loaded in eager-loading.
+func (e BillingInvoiceLineEdges) ChargeCreditRealizationOrErr() ([]*ChargeCreditRealization, error) {
+	if e.loadedTypes[14] {
+		return e.ChargeCreditRealization, nil
+	}
+	return nil, &NotLoadedError{edge: "charge_credit_realization"}
+}
+
+// ChargeStandardInvoiceAccruedUsageOrErr returns the ChargeStandardInvoiceAccruedUsage value or an error if the edge
+// was not loaded in eager-loading.
+func (e BillingInvoiceLineEdges) ChargeStandardInvoiceAccruedUsageOrErr() ([]*ChargeStandardInvoiceAccruedUsage, error) {
+	if e.loadedTypes[15] {
+		return e.ChargeStandardInvoiceAccruedUsage, nil
+	}
+	return nil, &NotLoadedError{edge: "charge_standard_invoice_accrued_usage"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -324,8 +345,6 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 		case billinginvoiceline.ForeignKeys[0]: // fee_line_config_id
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.ForeignKeys[1]: // usage_based_line_config_id
-			values[i] = new(sql.NullString)
-		case billinginvoiceline.ForeignKeys[2]: // billing_invoice_line_standard_invoice_settlments
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -616,13 +635,6 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 				_m.usage_based_line_config_id = new(string)
 				*_m.usage_based_line_config_id = value.String
 			}
-		case billinginvoiceline.ForeignKeys[2]:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field billing_invoice_line_standard_invoice_settlments", values[i])
-			} else if value.Valid {
-				_m.billing_invoice_line_standard_invoice_settlments = new(string)
-				*_m.billing_invoice_line_standard_invoice_settlments = value.String
-			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -701,9 +713,19 @@ func (_m *BillingInvoiceLine) QueryCharge() *ChargeQuery {
 	return NewBillingInvoiceLineClient(_m.config).QueryCharge(_m)
 }
 
-// QueryStandardInvoiceSettlments queries the "standard_invoice_settlments" edge of the BillingInvoiceLine entity.
-func (_m *BillingInvoiceLine) QueryStandardInvoiceSettlments() *StandardInvoiceSettlementQuery {
-	return NewBillingInvoiceLineClient(_m.config).QueryStandardInvoiceSettlments(_m)
+// QueryChargeStandardInvoicePaymentSettlement queries the "charge_standard_invoice_payment_settlement" edge of the BillingInvoiceLine entity.
+func (_m *BillingInvoiceLine) QueryChargeStandardInvoicePaymentSettlement() *ChargeStandardInvoicePaymentSettlementQuery {
+	return NewBillingInvoiceLineClient(_m.config).QueryChargeStandardInvoicePaymentSettlement(_m)
+}
+
+// QueryChargeCreditRealization queries the "charge_credit_realization" edge of the BillingInvoiceLine entity.
+func (_m *BillingInvoiceLine) QueryChargeCreditRealization() *ChargeCreditRealizationQuery {
+	return NewBillingInvoiceLineClient(_m.config).QueryChargeCreditRealization(_m)
+}
+
+// QueryChargeStandardInvoiceAccruedUsage queries the "charge_standard_invoice_accrued_usage" edge of the BillingInvoiceLine entity.
+func (_m *BillingInvoiceLine) QueryChargeStandardInvoiceAccruedUsage() *ChargeStandardInvoiceAccruedUsageQuery {
+	return NewBillingInvoiceLineClient(_m.config).QueryChargeStandardInvoiceAccruedUsage(_m)
 }
 
 // Update returns a builder for updating this BillingInvoiceLine.

@@ -113,9 +113,9 @@ func (i FlatFeeIntent) Validate() error {
 }
 
 type FlatFeeState struct {
-	CreditRealizations    CreditRealizations               `json:"creditRealizations"`
-	SettledTransaction    *LedgerTransactionGroupReference `json:"settledTransaction"`
-	AuthorizedTransaction *LedgerTransactionGroupReference `json:"authorizedTransaction"`
+	CreditRealizations CreditRealizations                `json:"creditRealizations"`
+	AccruedUsage       *StandardInvoiceAccruedUsage      `json:"accruedUsage"`
+	Payment            *StandardInvoicePaymentSettlement `json:"payment"`
 }
 
 func (s FlatFeeState) Validate() error {
@@ -124,6 +124,18 @@ func (s FlatFeeState) Validate() error {
 	for _, realization := range s.CreditRealizations {
 		if err := realization.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("credit realization: %w", err))
+		}
+	}
+
+	if s.Payment != nil {
+		if err := s.Payment.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("payment: %w", err))
+		}
+	}
+
+	if s.AccruedUsage != nil {
+		if err := s.AccruedUsage.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("accrued usage: %w", err))
 		}
 	}
 

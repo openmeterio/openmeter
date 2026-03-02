@@ -357,6 +357,30 @@ func (f ChargeFlatFeeFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value,
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeeMutation", m)
 }
 
+// The ChargeStandardInvoiceAccruedUsageFunc type is an adapter to allow the use of ordinary
+// function as ChargeStandardInvoiceAccruedUsage mutator.
+type ChargeStandardInvoiceAccruedUsageFunc func(context.Context, *db.ChargeStandardInvoiceAccruedUsageMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeStandardInvoiceAccruedUsageFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeStandardInvoiceAccruedUsageMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeStandardInvoiceAccruedUsageMutation", m)
+}
+
+// The ChargeStandardInvoicePaymentSettlementFunc type is an adapter to allow the use of ordinary
+// function as ChargeStandardInvoicePaymentSettlement mutator.
+type ChargeStandardInvoicePaymentSettlementFunc func(context.Context, *db.ChargeStandardInvoicePaymentSettlementMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeStandardInvoicePaymentSettlementFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeStandardInvoicePaymentSettlementMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeStandardInvoicePaymentSettlementMutation", m)
+}
+
 // The ChargeUsageBasedFunc type is an adapter to allow the use of ordinary
 // function as ChargeUsageBased mutator.
 type ChargeUsageBasedFunc func(context.Context, *db.ChargeUsageBasedMutation) (db.Value, error)
@@ -559,18 +583,6 @@ func (f PlanRateCardFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, 
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.PlanRateCardMutation", m)
-}
-
-// The StandardInvoiceSettlementFunc type is an adapter to allow the use of ordinary
-// function as StandardInvoiceSettlement mutator.
-type StandardInvoiceSettlementFunc func(context.Context, *db.StandardInvoiceSettlementMutation) (db.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f StandardInvoiceSettlementFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
-	if mv, ok := m.(*db.StandardInvoiceSettlementMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.StandardInvoiceSettlementMutation", m)
 }
 
 // The SubjectFunc type is an adapter to allow the use of ordinary

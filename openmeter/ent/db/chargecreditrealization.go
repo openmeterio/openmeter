@@ -11,9 +11,9 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/standardinvoicesettlement"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -34,8 +34,8 @@ type ChargeCreditRealization struct {
 	Annotations models.Annotations `json:"annotations,omitempty"`
 	// ChargeID holds the value of the "charge_id" field.
 	ChargeID string `json:"charge_id,omitempty"`
-	// StdRealizationID holds the value of the "std_realization_id" field.
-	StdRealizationID *string `json:"std_realization_id,omitempty"`
+	// LineID holds the value of the "line_id" field.
+	LineID *string `json:"line_id,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
 	// ServicePeriodFrom holds the value of the "service_period_from" field.
@@ -52,8 +52,8 @@ type ChargeCreditRealization struct {
 type ChargeCreditRealizationEdges struct {
 	// Charge holds the value of the charge edge.
 	Charge *Charge `json:"charge,omitempty"`
-	// StandardInvoiceSettlement holds the value of the standard_invoice_settlement edge.
-	StandardInvoiceSettlement *StandardInvoiceSettlement `json:"standard_invoice_settlement,omitempty"`
+	// BillingInvoiceLine holds the value of the billing_invoice_line edge.
+	BillingInvoiceLine *BillingInvoiceLine `json:"billing_invoice_line,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [2]bool
@@ -70,15 +70,15 @@ func (e ChargeCreditRealizationEdges) ChargeOrErr() (*Charge, error) {
 	return nil, &NotLoadedError{edge: "charge"}
 }
 
-// StandardInvoiceSettlementOrErr returns the StandardInvoiceSettlement value or an error if the edge
+// BillingInvoiceLineOrErr returns the BillingInvoiceLine value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeCreditRealizationEdges) StandardInvoiceSettlementOrErr() (*StandardInvoiceSettlement, error) {
-	if e.StandardInvoiceSettlement != nil {
-		return e.StandardInvoiceSettlement, nil
+func (e ChargeCreditRealizationEdges) BillingInvoiceLineOrErr() (*BillingInvoiceLine, error) {
+	if e.BillingInvoiceLine != nil {
+		return e.BillingInvoiceLine, nil
 	} else if e.loadedTypes[1] {
-		return nil, &NotFoundError{label: standardinvoicesettlement.Label}
+		return nil, &NotFoundError{label: billinginvoiceline.Label}
 	}
-	return nil, &NotLoadedError{edge: "standard_invoice_settlement"}
+	return nil, &NotLoadedError{edge: "billing_invoice_line"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -90,7 +90,7 @@ func (*ChargeCreditRealization) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case chargecreditrealization.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargecreditrealization.FieldID, chargecreditrealization.FieldNamespace, chargecreditrealization.FieldChargeID, chargecreditrealization.FieldStdRealizationID:
+		case chargecreditrealization.FieldID, chargecreditrealization.FieldNamespace, chargecreditrealization.FieldChargeID, chargecreditrealization.FieldLineID:
 			values[i] = new(sql.NullString)
 		case chargecreditrealization.FieldCreatedAt, chargecreditrealization.FieldUpdatedAt, chargecreditrealization.FieldDeletedAt, chargecreditrealization.FieldServicePeriodFrom, chargecreditrealization.FieldServicePeriodTo:
 			values[i] = new(sql.NullTime)
@@ -154,12 +154,12 @@ func (_m *ChargeCreditRealization) assignValues(columns []string, values []any) 
 			} else if value.Valid {
 				_m.ChargeID = value.String
 			}
-		case chargecreditrealization.FieldStdRealizationID:
+		case chargecreditrealization.FieldLineID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field std_realization_id", values[i])
+				return fmt.Errorf("unexpected type %T for field line_id", values[i])
 			} else if value.Valid {
-				_m.StdRealizationID = new(string)
-				*_m.StdRealizationID = value.String
+				_m.LineID = new(string)
+				*_m.LineID = value.String
 			}
 		case chargecreditrealization.FieldAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -197,9 +197,9 @@ func (_m *ChargeCreditRealization) QueryCharge() *ChargeQuery {
 	return NewChargeCreditRealizationClient(_m.config).QueryCharge(_m)
 }
 
-// QueryStandardInvoiceSettlement queries the "standard_invoice_settlement" edge of the ChargeCreditRealization entity.
-func (_m *ChargeCreditRealization) QueryStandardInvoiceSettlement() *StandardInvoiceSettlementQuery {
-	return NewChargeCreditRealizationClient(_m.config).QueryStandardInvoiceSettlement(_m)
+// QueryBillingInvoiceLine queries the "billing_invoice_line" edge of the ChargeCreditRealization entity.
+func (_m *ChargeCreditRealization) QueryBillingInvoiceLine() *BillingInvoiceLineQuery {
+	return NewChargeCreditRealizationClient(_m.config).QueryBillingInvoiceLine(_m)
 }
 
 // Update returns a builder for updating this ChargeCreditRealization.
@@ -245,8 +245,8 @@ func (_m *ChargeCreditRealization) String() string {
 	builder.WriteString("charge_id=")
 	builder.WriteString(_m.ChargeID)
 	builder.WriteString(", ")
-	if v := _m.StdRealizationID; v != nil {
-		builder.WriteString("std_realization_id=")
+	if v := _m.LineID; v != nil {
+		builder.WriteString("line_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
