@@ -27,6 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
@@ -512,6 +513,7 @@ func getTestServer(t *testing.T) *Server {
 			AppCustomInvoicing:          appCustomInvoicingService,
 			Billing:                     billingService,
 			Customer:                    customerService,
+			CurrencyService:             &NoopCurrencyService{},
 			DebugConnector:              MockDebugHandler{},
 			EntitlementConnector:        &NoopEntitlementConnector{},
 			EntitlementBalanceConnector: &NoopEntitlementBalanceConnector{},
@@ -1677,4 +1679,26 @@ type NoopIngestService struct{}
 
 func (n NoopIngestService) IngestEvents(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {
 	return true, nil
+}
+
+// NoopCurrencyService implements currencies.CurrencyService with no-op operations
+// for use in testing
+var _ currencies.CurrencyService = (*NoopCurrencyService)(nil)
+
+type NoopCurrencyService struct{}
+
+func (n NoopCurrencyService) ListCurrencies(ctx context.Context, params currencies.ListCurrenciesInput) (pagination.Result[currencies.Currency], error) {
+	return pagination.Result[currencies.Currency]{}, nil
+}
+
+func (n NoopCurrencyService) CreateCurrency(ctx context.Context, params currencies.CreateCurrencyInput) (currencies.Currency, error) {
+	return currencies.Currency{}, nil
+}
+
+func (n NoopCurrencyService) CreateCostBasis(ctx context.Context, params currencies.CreateCostBasisInput) (currencies.CostBasis, error) {
+	return currencies.CostBasis{}, nil
+}
+
+func (n NoopCurrencyService) ListCostBases(ctx context.Context, params currencies.ListCostBasesInput) (pagination.Result[currencies.CostBasis], error) {
+	return pagination.Result[currencies.CostBasis]{}, nil
 }
