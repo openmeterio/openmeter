@@ -198,6 +198,6 @@ func (s *Server) CreateLlmCostOverride(w http.ResponseWriter, r *http.Request) {
 	unimplemented.CreateLlmCostOverride(w, r)
 }
 
-func (s *Server) DeleteLlmCostOverride(w http.ResponseWriter, r *http.Request, overrideId api.ULID) {
-	unimplemented.DeleteLlmCostOverride(w, r, overrideId)
+func (s *Server) DeleteLlmCostOverride(w http.ResponseWriter, r *http.Request, priceId api.ULID) {
+	unimplemented.DeleteLlmCostOverride(w, r, priceId)
 }

@@ -677,13 +677,13 @@ paths:
               $ref: '#/components/schemas/LLMCostOverrideCreate'
       x-unstable: true
       x-private: true
-  /openmeter/llm-cost/overrides/{overrideId}:
+  /openmeter/llm-cost/overrides/{priceId}:
     delete:
       operationId: delete-llm-cost-override
       summary: Delete LLM cost override
       description: Delete a per-namespace price override.
       parameters:
-        - name: overrideId
+        - name: priceId
           in: path
           required: true
           schema:
@@ -3755,6 +3755,9 @@ components:
         provider:
           type: string
           description: Filter by provider (case-insensitive, partial match).
+        model_id:
+          type: string
+          description: Filter by model ID (case-insensitive, partial match).
         model_name:
           type: string
           description: Filter by model name (case-insensitive, partial match).

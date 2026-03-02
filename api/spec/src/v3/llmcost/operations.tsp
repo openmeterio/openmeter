@@ -20,6 +20,9 @@ model ListPricesParamsFilter {
   /** Filter by provider (case-insensitive, partial match). */
   provider?: string;
 
+  /** Filter by model ID (case-insensitive, partial match). */
+  model_id?: string;
+
   /** Filter by model name (case-insensitive, partial match). */
   model_name?: string;
 
@@ -104,6 +107,6 @@ interface LLMCostOverridesOperations {
   @operationId("delete-llm-cost-override")
   @summary("Delete LLM cost override")
   delete_override(
-    @path overrideId: Shared.ULID,
+    @path priceId: Shared.ULID,
   ): void | Common.NotFound | Common.ErrorResponses;
 }
