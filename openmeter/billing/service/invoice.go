@@ -186,9 +186,19 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 		return nil, fmt.Errorf("resolving feature meters: %w", err)
 	}
 
-	inScopeLines := lo.FilterMap(invoice.Lines.OrEmpty(), func(line billing.GatheringLine, _ int) (*billing.StandardLine, bool) {
-		return lo.ToPtr(line.AsStandardLine()), line.DeletedAt == nil
-	})
+	inScopeLines := make([]*billing.StandardLine, 0, len(invoice.Lines.OrEmpty()))
+	for _, line := range invoice.Lines.OrEmpty() {
+		if line.DeletedAt != nil {
+			continue
+		}
+
+		newStandardLine, err := line.AsNewStandardLine(out.ID)
+		if err != nil {
+			return nil, fmt.Errorf("converting gathering line to standard line: %w", err)
+		}
+
+		inScopeLines = append(inScopeLines, newStandardLine)
+	}
 
 	if err := s.snapshotLineQuantitiesInParallel(ctx, out.Customer, inScopeLines, featureMeters); err != nil {
 		return nil, fmt.Errorf("snapshotting lines: %w", err)
