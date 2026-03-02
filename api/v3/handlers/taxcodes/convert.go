@@ -15,7 +15,6 @@ import (
 // goverter:useUnderlyingTypeMethods
 // goverter:matchIgnoreCase
 // goverter:extend ConvertMetadataToLabels
-// goverter:extend IntToFloat32
 // goverter:extend ConvertAPIAppTypeToDomainAppType
 // goverter:extend ConvertDomainAppTypeToAPIAppType
 // goverter:extend ConvertAppMappingsToAPIAppMappings
@@ -47,10 +46,6 @@ func NamespaceFromContext(namespace string) string {
 // goverter:context namespacedID
 func ResolveNamespacedIDFromContext(namespacedID models.NamespacedID) models.NamespacedID {
 	return namespacedID
-}
-
-func IntToFloat32(i int) float32 {
-	return float32(i)
 }
 
 // ConvertAPIAppTypeToDomainAppType maps API app types to domain app types.
