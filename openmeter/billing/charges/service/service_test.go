@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"testing"
 	"time"
@@ -31,8 +32,9 @@ const USD = currencyx.Code(currency.USD)
 type ChargesServiceTestSuite struct {
 	billingtest.BaseSuite
 
-	Charges            *service
-	FlatFeeTestHandler *flatFeeTestHandler
+	Charges                   *service
+	FlatFeeTestHandler        *flatFeeTestHandler
+	CreditPurchaseTestHandler *creditPurchaseTestHandler
 }
 
 func TestChargesService(t *testing.T) {
@@ -49,12 +51,14 @@ func (s *ChargesServiceTestSuite) SetupSuite() {
 	s.NoError(err)
 
 	s.FlatFeeTestHandler = newFlatFeeTestHandler()
+	s.CreditPurchaseTestHandler = newCreditPurchaseTestHandler()
 
 	chargesService, err := New(Config{
 		Adapter:        chargesAdapter,
 		BillingService: s.BillingService,
 		Handlers: Handlers{
-			FlatFee: s.FlatFeeTestHandler,
+			FlatFee:        s.FlatFeeTestHandler,
+			CreditPurchase: s.CreditPurchaseTestHandler,
 		},
 	})
 	s.NoError(err)
@@ -407,4 +411,102 @@ func (s *ChargesServiceTestSuite) mustGetChargeByID(chargeID charges.ChargeID) c
 	})
 	s.NoError(err)
 	return charge
+}
+
+func (s *ChargesServiceTestSuite) TestPromotionalCreditPurchase() {
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("charges-service-promotional-credit-purchase")
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	intent := CreateCreditPurchaseIntent(s.T(),
+		createPromotionalCreditPurchaseIntentInput{
+			customer: cust.GetID(),
+			currency: USD,
+			amount:   alpacadecimal.NewFromFloat(100),
+			servicePeriod: timeutil.ClosedPeriod{
+				From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+				To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+			},
+		},
+		charges.PromotionalCreditPurchaseSettlement{},
+	)
+
+	promotionalCreditTransactionGroupID := ulid.Make().String()
+	nrPromotionalCreditPurchaseInvocations := 0
+	s.CreditPurchaseTestHandler.onPromotionalCreditPurchase = func(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.LedgerTransactionGroupReference, error) {
+		nrPromotionalCreditPurchaseInvocations++
+		return charges.LedgerTransactionGroupReference{
+			TransactionGroupID: promotionalCreditTransactionGroupID,
+		}, nil
+	}
+
+	res, err := s.Charges.CreateCharges(ctx, charges.CreateChargeInputs{
+		Namespace: ns,
+		Intents: []charges.ChargeIntent{
+			intent,
+		},
+	})
+	s.NoError(err)
+	s.Len(res, 1)
+	s.Equal(charges.ChargeTypeCreditPurchase, res[0].Type())
+
+	s.Equal(1, nrPromotionalCreditPurchaseInvocations)
+	cpCharge, err := res[0].AsCreditPurchaseCharge()
+	s.NoError(err)
+	s.NotNil(cpCharge.State.CreditGrantRealization)
+	s.Equal(promotionalCreditTransactionGroupID, cpCharge.State.CreditGrantRealization.LedgerTransactionGroupReference.TransactionGroupID)
+	s.Equal(charges.ChargeStatusFinal, cpCharge.Status)
+
+	charge := s.mustGetChargeByID(cpCharge.GetChargeID())
+	updatedCPCharge, err := charge.AsCreditPurchaseCharge()
+	s.NoError(err)
+	s.Equal(promotionalCreditTransactionGroupID, updatedCPCharge.State.CreditGrantRealization.LedgerTransactionGroupReference.TransactionGroupID)
+	s.Equal(charges.ChargeStatusFinal, updatedCPCharge.Status)
+}
+
+type createPromotionalCreditPurchaseIntentInput struct {
+	customer      customer.CustomerID
+	currency      currencyx.Code
+	amount        alpacadecimal.Decimal
+	servicePeriod timeutil.ClosedPeriod
+}
+
+func (i createPromotionalCreditPurchaseIntentInput) Validate() error {
+	if err := i.customer.Validate(); err != nil {
+		return fmt.Errorf("customer: %w", err)
+	}
+
+	if i.currency == "" {
+		return errors.New("currency is required")
+	}
+
+	if !i.amount.IsPositive() {
+		return errors.New("amount must be positive")
+	}
+
+	if err := i.servicePeriod.Validate(); err != nil {
+		return fmt.Errorf("service period: %w", err)
+	}
+
+	return nil
+}
+
+func CreateCreditPurchaseIntent[T charges.ExternalAuthorizedCreditPurchaseSettlement | charges.PromotionalCreditPurchaseSettlement](t *testing.T, input createPromotionalCreditPurchaseIntentInput, settlement T) charges.ChargeIntent {
+	t.Helper()
+
+	return charges.NewChargeIntent(charges.CreditPurchaseIntent{
+		IntentMeta: charges.IntentMeta{
+			Name:              "Promotional Credit Purchase",
+			ManagedBy:         billing.ManuallyManagedLine,
+			CustomerID:        input.customer.ID,
+			Currency:          input.currency,
+			ServicePeriod:     input.servicePeriod,
+			BillingPeriod:     input.servicePeriod,
+			FullServicePeriod: input.servicePeriod,
+		},
+		CreditAmount: input.amount,
+		Settlement:   charges.NewCreditPurchaseSettlement(settlement),
+	})
 }

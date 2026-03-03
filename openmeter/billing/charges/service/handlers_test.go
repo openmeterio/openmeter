@@ -64,3 +64,25 @@ func (h *flatFeeTestHandler) OnFlatFeePaymentUncollectible(ctx context.Context, 
 func (h *flatFeeTestHandler) Reset() {
 	*h = flatFeeTestHandler{}
 }
+
+var _ charges.CreditPurchaseHandler = (*creditPurchaseTestHandler)(nil)
+
+type creditPurchaseTestHandler struct {
+	onPromotionalCreditPurchase func(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.LedgerTransactionGroupReference, error)
+}
+
+func newCreditPurchaseTestHandler() *creditPurchaseTestHandler {
+	return &creditPurchaseTestHandler{}
+}
+
+func (h *creditPurchaseTestHandler) OnPromotionalCreditPurchase(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.LedgerTransactionGroupReference, error) {
+	if h.onPromotionalCreditPurchase == nil {
+		return charges.LedgerTransactionGroupReference{}, errors.New("onPromotionalCreditPurchase is not set")
+	}
+
+	return h.onPromotionalCreditPurchase(ctx, charge)
+}
+
+func (h *creditPurchaseTestHandler) Reset() {
+	*h = creditPurchaseTestHandler{}
+}

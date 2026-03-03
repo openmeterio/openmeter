@@ -9,6 +9,7 @@ import (
 type Adapter interface {
 	ChargeAdapter
 	CreditRealizationAdapter
+	CreditPurchaseAdapter
 	StandardInvoiceRealizationAdapter
 
 	entutils.TxCreator
@@ -30,4 +31,8 @@ type StandardInvoiceRealizationAdapter interface {
 	UpdateStandardInvoicePaymentSettlement(ctx context.Context, paymentState StandardInvoicePaymentSettlement) (StandardInvoicePaymentSettlement, error)
 
 	CreateStandardInvoiceAccruedUsage(ctx context.Context, chargeID ChargeID, accruedUsage StandardInvoiceAccruedUsage) (StandardInvoiceAccruedUsage, error)
+}
+
+type CreditPurchaseAdapter interface {
+	UpdateCreditPurchaseCharge(ctx context.Context, charge CreditPurchaseCharge) (CreditPurchaseCharge, error)
 }

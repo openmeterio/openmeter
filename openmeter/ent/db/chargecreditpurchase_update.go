@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -58,17 +59,43 @@ func (_u *ChargeCreditPurchaseUpdate) SetNillableSettlement(v *charges.CreditPur
 	return _u
 }
 
-// SetStatus sets the "status" field.
-func (_u *ChargeCreditPurchaseUpdate) SetStatus(v charges.PaymentSettlementStatus) *ChargeCreditPurchaseUpdate {
-	_u.mutation.SetStatus(v)
+// SetCreditGrantTransactionGroupID sets the "credit_grant_transaction_group_id" field.
+func (_u *ChargeCreditPurchaseUpdate) SetCreditGrantTransactionGroupID(v string) *ChargeCreditPurchaseUpdate {
+	_u.mutation.SetCreditGrantTransactionGroupID(v)
 	return _u
 }
 
-// SetNillableStatus sets the "status" field if the given value is not nil.
-func (_u *ChargeCreditPurchaseUpdate) SetNillableStatus(v *charges.PaymentSettlementStatus) *ChargeCreditPurchaseUpdate {
+// SetNillableCreditGrantTransactionGroupID sets the "credit_grant_transaction_group_id" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdate) SetNillableCreditGrantTransactionGroupID(v *string) *ChargeCreditPurchaseUpdate {
 	if v != nil {
-		_u.SetStatus(*v)
+		_u.SetCreditGrantTransactionGroupID(*v)
 	}
+	return _u
+}
+
+// ClearCreditGrantTransactionGroupID clears the value of the "credit_grant_transaction_group_id" field.
+func (_u *ChargeCreditPurchaseUpdate) ClearCreditGrantTransactionGroupID() *ChargeCreditPurchaseUpdate {
+	_u.mutation.ClearCreditGrantTransactionGroupID()
+	return _u
+}
+
+// SetCreditGrantedAt sets the "credit_granted_at" field.
+func (_u *ChargeCreditPurchaseUpdate) SetCreditGrantedAt(v time.Time) *ChargeCreditPurchaseUpdate {
+	_u.mutation.SetCreditGrantedAt(v)
+	return _u
+}
+
+// SetNillableCreditGrantedAt sets the "credit_granted_at" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdate) SetNillableCreditGrantedAt(v *time.Time) *ChargeCreditPurchaseUpdate {
+	if v != nil {
+		_u.SetCreditGrantedAt(*v)
+	}
+	return _u
+}
+
+// ClearCreditGrantedAt clears the value of the "credit_granted_at" field.
+func (_u *ChargeCreditPurchaseUpdate) ClearCreditGrantedAt() *ChargeCreditPurchaseUpdate {
+	_u.mutation.ClearCreditGrantedAt()
 	return _u
 }
 
@@ -128,9 +155,9 @@ func (_u *ChargeCreditPurchaseUpdate) check() error {
 			return &ValidationError{Name: "settlement", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.settlement": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := chargecreditpurchase.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.status": %w`, err)}
+	if v, ok := _u.mutation.CreditGrantTransactionGroupID(); ok {
+		if err := chargecreditpurchase.CreditGrantTransactionGroupIDValidator(v); err != nil {
+			return &ValidationError{Name: "credit_grant_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.credit_grant_transaction_group_id": %w`, err)}
 		}
 	}
 	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
@@ -161,8 +188,17 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 		}
 		_spec.SetField(chargecreditpurchase.FieldSettlement, field.TypeString, vv)
 	}
-	if value, ok := _u.mutation.Status(); ok {
-		_spec.SetField(chargecreditpurchase.FieldStatus, field.TypeEnum, value)
+	if value, ok := _u.mutation.CreditGrantTransactionGroupID(); ok {
+		_spec.SetField(chargecreditpurchase.FieldCreditGrantTransactionGroupID, field.TypeString, value)
+	}
+	if _u.mutation.CreditGrantTransactionGroupIDCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldCreditGrantTransactionGroupID, field.TypeString)
+	}
+	if value, ok := _u.mutation.CreditGrantedAt(); ok {
+		_spec.SetField(chargecreditpurchase.FieldCreditGrantedAt, field.TypeTime, value)
+	}
+	if _u.mutation.CreditGrantedAtCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldCreditGrantedAt, field.TypeTime)
 	}
 	if _u.mutation.ChargeCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -241,17 +277,43 @@ func (_u *ChargeCreditPurchaseUpdateOne) SetNillableSettlement(v *charges.Credit
 	return _u
 }
 
-// SetStatus sets the "status" field.
-func (_u *ChargeCreditPurchaseUpdateOne) SetStatus(v charges.PaymentSettlementStatus) *ChargeCreditPurchaseUpdateOne {
-	_u.mutation.SetStatus(v)
+// SetCreditGrantTransactionGroupID sets the "credit_grant_transaction_group_id" field.
+func (_u *ChargeCreditPurchaseUpdateOne) SetCreditGrantTransactionGroupID(v string) *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.SetCreditGrantTransactionGroupID(v)
 	return _u
 }
 
-// SetNillableStatus sets the "status" field if the given value is not nil.
-func (_u *ChargeCreditPurchaseUpdateOne) SetNillableStatus(v *charges.PaymentSettlementStatus) *ChargeCreditPurchaseUpdateOne {
+// SetNillableCreditGrantTransactionGroupID sets the "credit_grant_transaction_group_id" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdateOne) SetNillableCreditGrantTransactionGroupID(v *string) *ChargeCreditPurchaseUpdateOne {
 	if v != nil {
-		_u.SetStatus(*v)
+		_u.SetCreditGrantTransactionGroupID(*v)
 	}
+	return _u
+}
+
+// ClearCreditGrantTransactionGroupID clears the value of the "credit_grant_transaction_group_id" field.
+func (_u *ChargeCreditPurchaseUpdateOne) ClearCreditGrantTransactionGroupID() *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ClearCreditGrantTransactionGroupID()
+	return _u
+}
+
+// SetCreditGrantedAt sets the "credit_granted_at" field.
+func (_u *ChargeCreditPurchaseUpdateOne) SetCreditGrantedAt(v time.Time) *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.SetCreditGrantedAt(v)
+	return _u
+}
+
+// SetNillableCreditGrantedAt sets the "credit_granted_at" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdateOne) SetNillableCreditGrantedAt(v *time.Time) *ChargeCreditPurchaseUpdateOne {
+	if v != nil {
+		_u.SetCreditGrantedAt(*v)
+	}
+	return _u
+}
+
+// ClearCreditGrantedAt clears the value of the "credit_granted_at" field.
+func (_u *ChargeCreditPurchaseUpdateOne) ClearCreditGrantedAt() *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ClearCreditGrantedAt()
 	return _u
 }
 
@@ -324,9 +386,9 @@ func (_u *ChargeCreditPurchaseUpdateOne) check() error {
 			return &ValidationError{Name: "settlement", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.settlement": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := chargecreditpurchase.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.status": %w`, err)}
+	if v, ok := _u.mutation.CreditGrantTransactionGroupID(); ok {
+		if err := chargecreditpurchase.CreditGrantTransactionGroupIDValidator(v); err != nil {
+			return &ValidationError{Name: "credit_grant_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.credit_grant_transaction_group_id": %w`, err)}
 		}
 	}
 	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
@@ -374,8 +436,17 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 		}
 		_spec.SetField(chargecreditpurchase.FieldSettlement, field.TypeString, vv)
 	}
-	if value, ok := _u.mutation.Status(); ok {
-		_spec.SetField(chargecreditpurchase.FieldStatus, field.TypeEnum, value)
+	if value, ok := _u.mutation.CreditGrantTransactionGroupID(); ok {
+		_spec.SetField(chargecreditpurchase.FieldCreditGrantTransactionGroupID, field.TypeString, value)
+	}
+	if _u.mutation.CreditGrantTransactionGroupIDCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldCreditGrantTransactionGroupID, field.TypeString)
+	}
+	if value, ok := _u.mutation.CreditGrantedAt(); ok {
+		_spec.SetField(chargecreditpurchase.FieldCreditGrantedAt, field.TypeTime, value)
+	}
+	if _u.mutation.CreditGrantedAtCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldCreditGrantedAt, field.TypeTime)
 	}
 	if _u.mutation.ChargeCleared() {
 		edge := &sqlgraph.EdgeSpec{

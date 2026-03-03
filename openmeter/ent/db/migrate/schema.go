@@ -1595,7 +1595,8 @@ var (
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "credit_amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "settlement", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"initiated", "authorized", "settled"}},
+		{Name: "credit_grant_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "credit_granted_at", Type: field.TypeTime, Nullable: true},
 	}
 	// ChargeCreditPurchasesTable holds the schema information for the "charge_credit_purchases" table.
 	ChargeCreditPurchasesTable = &schema.Table{

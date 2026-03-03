@@ -262,6 +262,5 @@ func (a *adapter) buildCreateCreditPurchaseCharge(ns string, chargeID string, in
 		SetChargeID(chargeID).
 		SetNamespace(ns).
 		SetCreditAmount(in.CreditAmount).
-		SetSettlement(in.Settlement).
-		SetStatus(charges.InitiatedPaymentSettlementStatus)
+		SetSettlement(in.Settlement)
 }
