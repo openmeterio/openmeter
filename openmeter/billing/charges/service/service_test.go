@@ -141,14 +141,22 @@ func (s *ChargesServiceTestSuite) TestFlatFeePartialCreditRealizations() {
 	})
 
 	var stdInvoiceID billing.InvoiceID
+	var stdLineID billing.LineID
 	s.Run("invoice the charge", func() {
 		defer s.FlatFeeTestHandler.Reset()
 
+		testTrnsGroupID := ulid.Make().String()
+		creditRealizationCallbackInvocations := 0
 		s.FlatFeeTestHandler.onFlatFeeAssignedToInvoice = func(ctx context.Context, input charges.OnFlatFeeAssignedToInvoiceInput) ([]charges.CreditRealizationCreateInput, error) {
+			creditRealizationCallbackInvocations++
+
 			return []charges.CreditRealizationCreateInput{
 				{
 					ServicePeriod: input.ServicePeriod,
 					Amount:        input.PreTaxTotalAmount.Mul(alpacadecimal.NewFromFloat(0.3)), // 30% as credits
+					LedgerTransaction: charges.LedgerTransactionGroupReference{
+						TransactionGroupID: testTrnsGroupID,
+					},
 				},
 			}, nil
 		}
@@ -166,9 +174,11 @@ func (s *ChargesServiceTestSuite) TestFlatFeePartialCreditRealizations() {
 		stdLine := invoice.Lines.OrEmpty()[0]
 
 		s.Equal(flatFeeChargeID.ID, *stdLine.ChargeID)
+		stdLineID = stdLine.GetLineID()
 
-		charge, err := s.Charges.GetChargeByID(ctx, flatFeeChargeID)
-		s.NoError(err)
+		s.Equal(1, creditRealizationCallbackInvocations)
+
+		charge := s.mustGetChargeByID(flatFeeChargeID)
 		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
 
@@ -178,6 +188,7 @@ func (s *ChargesServiceTestSuite) TestFlatFeePartialCreditRealizations() {
 		// The charge should have $30 realized as credits
 		s.Len(updatedFlatFeeCharge.State.CreditRealizations, 1)
 		creditRealization := updatedFlatFeeCharge.State.CreditRealizations[0]
+		s.Equal(testTrnsGroupID, creditRealization.LedgerTransaction.TransactionGroupID)
 		s.Equal(servicePeriod.From, creditRealization.ServicePeriod.From)
 		s.Equal(servicePeriod.To, creditRealization.ServicePeriod.To)
 		s.Equal(float64(30), creditRealization.Amount.InexactFloat64())
@@ -217,13 +228,27 @@ func (s *ChargesServiceTestSuite) TestFlatFeePartialCreditRealizations() {
 	s.Run("advance the invoice and authorize payment", func() {
 		defer s.FlatFeeTestHandler.Reset()
 
-		testTrnsGroupID := ulid.Make().String()
+		authorizedTrnsGroupID := ulid.Make().String()
 
 		authorizedCallbackInvocations := 0
 		s.FlatFeeTestHandler.onFlatFeePaymentAuthorized = func(ctx context.Context, charge charges.FlatFeeCharge) (charges.LedgerTransactionGroupReference, error) {
 			authorizedCallbackInvocations++
 			return charges.LedgerTransactionGroupReference{
-				TransactionGroupID: testTrnsGroupID,
+				TransactionGroupID: authorizedTrnsGroupID,
+			}, nil
+		}
+
+		invoiceUsageAccruedTrnsGroupID := ulid.Make().String()
+		invoiceUsageAccruedCallbackInvocations := 0
+		s.FlatFeeTestHandler.onFlatFeeStandardInvoiceUsageAccrued = func(ctx context.Context, input charges.OnFlatFeeStandardInvoiceUsageAccruedInput) (charges.LedgerTransactionGroupReference, error) {
+			invoiceUsageAccruedCallbackInvocations++
+
+			if authorizedCallbackInvocations > 0 {
+				return charges.LedgerTransactionGroupReference{}, errors.New("authorization callback invoked before invoice usage accrued callback")
+			}
+
+			return charges.LedgerTransactionGroupReference{
+				TransactionGroupID: invoiceUsageAccruedTrnsGroupID,
 			}, nil
 		}
 
@@ -232,12 +257,25 @@ func (s *ChargesServiceTestSuite) TestFlatFeePartialCreditRealizations() {
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
 
 		s.Equal(1, authorizedCallbackInvocations)
+		s.Equal(1, invoiceUsageAccruedCallbackInvocations)
 
-		charge, err := s.Charges.GetChargeByID(ctx, flatFeeChargeID)
-		s.NoError(err)
+		charge := s.mustGetChargeByID(flatFeeChargeID)
 		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
-		s.Equal(testTrnsGroupID, updatedFlatFeeCharge.State.AuthorizedTransaction.TransactionGroupID)
+
+		// Invoice usage accrued callback should have been invoked
+		accruedUsage := updatedFlatFeeCharge.State.AccruedUsage
+		s.NotNil(accruedUsage)
+		s.Equal(invoiceUsageAccruedTrnsGroupID, accruedUsage.LedgerTransaction.TransactionGroupID, "ledger transaction gets recorded")
+		s.Equal(servicePeriod, accruedUsage.ServicePeriod, "service period should be the same as the input")
+		s.False(accruedUsage.Mutable, "accrued usage should not be mutable")
+		s.NotNil(accruedUsage.LineID, "line ID should be set")
+		s.Equal(stdLineID.ID, *accruedUsage.LineID, "line ID should be the same as the standard line")
+		s.Equal(float64(70), accruedUsage.Totals.Total.InexactFloat64(), "totals should be the same as the input")
+		s.Equal(float64(30), accruedUsage.Totals.CreditsTotal.InexactFloat64(), "totals should be the same as the input")
+
+		// Authorization callback should have been invoked
+		s.Equal(authorizedTrnsGroupID, updatedFlatFeeCharge.State.Payment.Authorized.TransactionGroupID)
 		s.Equal(charges.ChargeStatusActive, updatedFlatFeeCharge.Status)
 	})
 
@@ -261,11 +299,10 @@ func (s *ChargesServiceTestSuite) TestFlatFeePartialCreditRealizations() {
 		s.NoError(err)
 		s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
 
-		charge, err := s.Charges.GetChargeByID(ctx, flatFeeChargeID)
-		s.NoError(err)
+		charge := s.mustGetChargeByID(flatFeeChargeID)
 		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
-		s.Equal(testTrnsGroupID, updatedFlatFeeCharge.State.SettledTransaction.TransactionGroupID)
+		s.Equal(testTrnsGroupID, updatedFlatFeeCharge.State.Payment.Settled.TransactionGroupID)
 		s.Equal(charges.ChargeStatusFinal, updatedFlatFeeCharge.Status)
 	})
 }
@@ -360,4 +397,14 @@ func (s *ChargesServiceTestSuite) createMockChargeIntent(input createMockChargeI
 	}
 
 	return charges.NewChargeIntent(usageBasedIntent)
+}
+
+func (s *ChargesServiceTestSuite) mustGetChargeByID(chargeID charges.ChargeID) charges.Charge {
+	s.T().Helper()
+	charge, err := s.Charges.GetChargeByID(s.T().Context(), charges.GetChargeByIDInput{
+		ChargeID: chargeID,
+		Expands:  charges.Expands{charges.ExpandRealizations},
+	})
+	s.NoError(err)
+	return charge
 }

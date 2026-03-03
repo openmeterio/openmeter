@@ -6,6 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -15,24 +16,24 @@ import (
 )
 
 // MapChargeFromDB dispatches to the type-specific mapper based on the charge's type field.
-func MapChargeFromDB(entity *entdb.Charge) (charges.Charge, error) {
+func MapChargeFromDB(entity *entdb.Charge, expands charges.Expands) (charges.Charge, error) {
 	switch entity.Type {
 	case charges.ChargeTypeFlatFee:
-		ff, err := MapFlatFeeChargeFromDB(entity)
+		ff, err := MapFlatFeeChargeFromDB(entity, expands)
 		if err != nil {
 			return charges.Charge{}, fmt.Errorf("mapping flat fee charge [id=%s]: %w", entity.ID, err)
 		}
 
 		return ff.AsCharge(), nil
 	case charges.ChargeTypeUsageBased:
-		ub, err := MapUsageBasedChargeFromDB(entity)
+		ub, err := MapUsageBasedChargeFromDB(entity, expands)
 		if err != nil {
 			return charges.Charge{}, fmt.Errorf("mapping usage based charge [id=%s]: %w", entity.ID, err)
 		}
 
 		return ub.AsCharge(), nil
 	case charges.ChargeTypeCreditPurchase:
-		cp, err := MapCreditPurchaseChargeFromDB(entity)
+		cp, err := MapCreditPurchaseChargeFromDB(entity, expands)
 		if err != nil {
 			return charges.Charge{}, fmt.Errorf("mapping credit purchase charge [id=%s]: %w", entity.ID, err)
 		}
@@ -44,7 +45,7 @@ func MapChargeFromDB(entity *entdb.Charge) (charges.Charge, error) {
 }
 
 // MapFlatFeeChargeFromDB converts a DB Charge entity (with loaded FlatFee edge) to a FlatFeeCharge.
-func MapFlatFeeChargeFromDB(entity *entdb.Charge) (charges.FlatFeeCharge, error) {
+func MapFlatFeeChargeFromDB(entity *entdb.Charge, expands charges.Expands) (charges.FlatFeeCharge, error) {
 	if entity.Edges.FlatFee == nil {
 		return charges.FlatFeeCharge{}, fmt.Errorf("flat_fee edge not loaded for charge [id=%s]", entity.ID)
 	}
@@ -56,14 +57,6 @@ func MapFlatFeeChargeFromDB(entity *entdb.Charge) (charges.FlatFeeCharge, error)
 		percentageDiscounts = ff.Discounts.Percentage
 	}
 
-	creditRealizationsDB, err := entity.Edges.CreditRealizationsOrErr()
-	if err != nil {
-		return charges.FlatFeeCharge{}, fmt.Errorf("mapping flat fee charge [id=%s]: %w", entity.ID, err)
-	}
-
-	creditRealizations := lo.Map(creditRealizationsDB, func(entity *entdb.ChargeCreditRealization, _ int) charges.CreditRealization {
-		return mapCreditRealizationFromDB(entity)
-	})
 	charge := charges.FlatFeeCharge{
 		ManagedResource: mapManagedResourceFromDB(entity),
 		Status:          entity.Status,
@@ -78,11 +71,36 @@ func MapFlatFeeChargeFromDB(entity *entdb.Charge) (charges.FlatFeeCharge, error)
 			AmountBeforeProration: ff.AmountBeforeProration,
 			AmountAfterProration:  ff.AmountAfterProration,
 		},
-		State: charges.FlatFeeState{
-			CreditRealizations:    creditRealizations,
-			AuthorizedTransaction: mapLedgerTransactionGroupReferenceFromDB(ff.AuthorizedTransactionGroupID),
-			SettledTransaction:    mapLedgerTransactionGroupReferenceFromDB(ff.SettledTransactionGroupID),
-		},
+	}
+
+	if expands.Has(charges.ExpandRealizations) {
+		dbCreditRealizations, err := ff.Edges.ChargeCreditRealizationsOrErr()
+		if err != nil {
+			return charges.FlatFeeCharge{}, fmt.Errorf("mapping flat fee charge [id=%s]: %w", entity.ID, err)
+		}
+
+		charge.State.CreditRealizations = lo.Map(dbCreditRealizations, func(entity *entdb.ChargeCreditRealization, _ int) charges.CreditRealization {
+			return mapCreditRealizationFromDB(entity)
+		})
+
+		dbPaymentState, err := ff.Edges.ChargeStandardInvoicePaymentSettlementOrErr()
+		if _, ok := lo.ErrorsAs[*entdb.NotLoadedError](err); ok {
+			return charges.FlatFeeCharge{}, fmt.Errorf("payment state not loaded for flat fee charge [id=%s]", entity.ID)
+		}
+
+		if dbPaymentState != nil {
+			charge.State.Payment = lo.ToPtr(mapStandardInvoicePaymentSettlementFromDB(dbPaymentState))
+		}
+
+		dbAccruedUsage, err := ff.Edges.ChargeStandardInvoiceAccruedUsageOrErr()
+		if _, ok := lo.ErrorsAs[*entdb.NotLoadedError](err); ok {
+			return charges.FlatFeeCharge{}, fmt.Errorf("accrued usage not loaded for flat fee charge [id=%s]", entity.ID)
+		}
+
+		if dbAccruedUsage != nil {
+			charge.State.AccruedUsage = lo.ToPtr(mapStandardInvoiceAccruedUsageFromDB(dbAccruedUsage))
+		}
+
 	}
 
 	return charge, nil
@@ -99,7 +117,7 @@ func mapLedgerTransactionGroupReferenceFromDB(entity *string) *charges.LedgerTra
 }
 
 // MapUsageBasedChargeFromDB converts a DB Charge entity (with loaded UsageBased edge) to a UsageBasedCharge.
-func MapUsageBasedChargeFromDB(entity *entdb.Charge) (charges.UsageBasedCharge, error) {
+func MapUsageBasedChargeFromDB(entity *entdb.Charge, expands charges.Expands) (charges.UsageBasedCharge, error) {
 	if entity.Edges.UsageBased == nil {
 		return charges.UsageBasedCharge{}, fmt.Errorf("usage_based edge not loaded for charge [id=%s]", entity.ID)
 	}
@@ -126,7 +144,7 @@ func MapUsageBasedChargeFromDB(entity *entdb.Charge) (charges.UsageBasedCharge, 
 }
 
 // MapCreditPurchaseChargeFromDB converts a DB Charge entity (with loaded CreditPurchase edge) to a CreditPurchaseCharge.
-func MapCreditPurchaseChargeFromDB(entity *entdb.Charge) (charges.CreditPurchaseCharge, error) {
+func MapCreditPurchaseChargeFromDB(entity *entdb.Charge, expands charges.Expands) (charges.CreditPurchaseCharge, error) {
 	if entity.Edges.CreditPurchase == nil {
 		return charges.CreditPurchaseCharge{}, fmt.Errorf("credit_purchase edge not loaded for charge [id=%s]", entity.ID)
 	}
@@ -248,7 +266,86 @@ func mapCreditRealizationFromDB(entity *entdb.ChargeCreditRealization) charges.C
 				To:   entity.ServicePeriodTo.In(time.UTC),
 			},
 			Amount: entity.Amount,
+			LedgerTransaction: charges.LedgerTransactionGroupReference{
+				TransactionGroupID: entity.LedgerTransactionGroupID,
+			},
 		},
-		AllocatedToStandardInvoiceRealizationID: entity.StdRealizationID,
+		LineID: entity.LineID,
+	}
+}
+
+func mapStandardInvoicePaymentSettlementFromDB(entity *entdb.ChargeStandardInvoicePaymentSettlement) charges.StandardInvoicePaymentSettlement {
+	return charges.StandardInvoicePaymentSettlement{
+		NamespacedID: models.NamespacedID{
+			Namespace: entity.Namespace,
+			ID:        entity.ID,
+		},
+		ManagedModel: models.ManagedModel{
+			CreatedAt: entity.CreatedAt.In(time.UTC),
+			UpdatedAt: entity.UpdatedAt.In(time.UTC),
+			DeletedAt: convert.TimePtrIn(entity.DeletedAt, time.UTC),
+		},
+		Annotations: entity.Annotations,
+		LineID:      entity.LineID,
+		ServicePeriod: timeutil.ClosedPeriod{
+			From: entity.ServicePeriodFrom.In(time.UTC),
+			To:   entity.ServicePeriodTo.In(time.UTC),
+		},
+		Status:     entity.Status,
+		Amount:     entity.Amount,
+		Authorized: mapTimedLedgerTransactionGroupReferenceFromDB(entity.AuthorizedTransactionGroupID, entity.AuthorizedAt),
+		Settled:    mapTimedLedgerTransactionGroupReferenceFromDB(entity.SettledTransactionGroupID, entity.SettledAt),
+	}
+}
+
+func mapTimedLedgerTransactionGroupReferenceFromDB(reference *string, at *time.Time) *charges.TimedLedgerTransactionGroupReference {
+	if reference == nil || at == nil {
+		return nil
+	}
+
+	return &charges.TimedLedgerTransactionGroupReference{
+		LedgerTransactionGroupReference: charges.LedgerTransactionGroupReference{
+			TransactionGroupID: *reference,
+		},
+		Time: at.In(time.UTC),
+	}
+}
+
+func mapStandardInvoiceAccruedUsageFromDB(entity *entdb.ChargeStandardInvoiceAccruedUsage) charges.StandardInvoiceAccruedUsage {
+	var ledgerTransaction *charges.LedgerTransactionGroupReference
+	if entity.LedgerTransactionGroupID != nil {
+		ledgerTransaction = &charges.LedgerTransactionGroupReference{
+			TransactionGroupID: *entity.LedgerTransactionGroupID,
+		}
+	}
+
+	return charges.StandardInvoiceAccruedUsage{
+		NamespacedID: models.NamespacedID{
+			Namespace: entity.Namespace,
+			ID:        entity.ID,
+		},
+		ManagedModel: models.ManagedModel{
+			CreatedAt: entity.CreatedAt.In(time.UTC),
+			UpdatedAt: entity.UpdatedAt.In(time.UTC),
+			DeletedAt: convert.TimePtrIn(entity.DeletedAt, time.UTC),
+		},
+		Annotations: entity.Annotations,
+		LineID:      entity.LineID,
+		ServicePeriod: timeutil.ClosedPeriod{
+			From: entity.ServicePeriodFrom.In(time.UTC),
+			To:   entity.ServicePeriodTo.In(time.UTC),
+		},
+		Mutable:           entity.Mutable,
+		LedgerTransaction: ledgerTransaction,
+		Totals: billing.Totals{
+			Amount:              entity.Amount,
+			TaxesTotal:          entity.TaxesTotal,
+			TaxesInclusiveTotal: entity.TaxesInclusiveTotal,
+			TaxesExclusiveTotal: entity.TaxesExclusiveTotal,
+			ChargesTotal:        entity.ChargesTotal,
+			DiscountsTotal:      entity.DiscountsTotal,
+			CreditsTotal:        entity.CreditsTotal,
+			Total:               entity.Total,
+		},
 	}
 }

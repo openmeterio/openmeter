@@ -14,7 +14,7 @@ type CreditRealizationCreateInput struct {
 	Annotations   models.Annotations    `json:"annotations"`
 	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
 
-	// TODO: let's add ledger transaction id(s) here
+	LedgerTransaction LedgerTransactionGroupReference `json:"ledgerTransaction"`
 
 	Amount alpacadecimal.Decimal `json:"amount"`
 }
@@ -30,6 +30,10 @@ func (i CreditRealizationCreateInput) Validate() error {
 		errs = append(errs, fmt.Errorf("amount must be positive"))
 	}
 
+	if err := i.LedgerTransaction.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("ledger transaction: %w", err))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -38,10 +42,10 @@ type CreditRealization struct {
 	models.ManagedModel
 	CreditRealizationCreateInput
 
-	// AllocatedToStandardInvoiceRealizationID is the standard invoice realization ID that the credit was allocated to.
+	// LineID is the standard invoice line ID that the credit was allocated to.
 	// If nil, the credit is not allocated to any invoice line (e.g. line is still in gathering,
 	// credit_only mode without invoicing, etc.)
-	AllocatedToStandardInvoiceRealizationID *string `json:"allocatedToStandardInvoiceRealizationID"`
+	LineID *string `json:"lineID"`
 }
 
 func (r CreditRealization) Validate() error {
@@ -51,8 +55,8 @@ func (r CreditRealization) Validate() error {
 		errs = append(errs, fmt.Errorf("credit realization input: %w", err))
 	}
 
-	if r.AllocatedToStandardInvoiceRealizationID != nil && *r.AllocatedToStandardInvoiceRealizationID == "" {
-		errs = append(errs, fmt.Errorf("allocated to standard invoice realization ID must be set"))
+	if r.LineID != nil && *r.LineID == "" {
+		errs = append(errs, fmt.Errorf("line ID must be non-empty"))
 	}
 
 	return errors.Join(errs...)

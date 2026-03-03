@@ -15,6 +15,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoiceaccruedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicepaymentsettlement"
@@ -152,6 +153,21 @@ func (_c *ChargeFlatFeeCreate) SetNillableChargeStandardInvoiceAccruedUsageID(id
 // SetChargeStandardInvoiceAccruedUsage sets the "charge_standard_invoice_accrued_usage" edge to the ChargeStandardInvoiceAccruedUsage entity.
 func (_c *ChargeFlatFeeCreate) SetChargeStandardInvoiceAccruedUsage(v *ChargeStandardInvoiceAccruedUsage) *ChargeFlatFeeCreate {
 	return _c.SetChargeStandardInvoiceAccruedUsageID(v.ID)
+}
+
+// AddChargeCreditRealizationIDs adds the "charge_credit_realizations" edge to the ChargeCreditRealization entity by IDs.
+func (_c *ChargeFlatFeeCreate) AddChargeCreditRealizationIDs(ids ...string) *ChargeFlatFeeCreate {
+	_c.mutation.AddChargeCreditRealizationIDs(ids...)
+	return _c
+}
+
+// AddChargeCreditRealizations adds the "charge_credit_realizations" edges to the ChargeCreditRealization entity.
+func (_c *ChargeFlatFeeCreate) AddChargeCreditRealizations(v ...*ChargeCreditRealization) *ChargeFlatFeeCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChargeCreditRealizationIDs(ids...)
 }
 
 // Mutation returns the ChargeFlatFeeMutation object of the builder.
@@ -372,6 +388,22 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargestandardinvoiceaccruedusage.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargeCreditRealizationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfee.ChargeCreditRealizationsTable,
+			Columns: []string{chargeflatfee.ChargeCreditRealizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditrealization.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

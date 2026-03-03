@@ -58,6 +58,8 @@ type ChargeStandardInvoiceAccruedUsage struct {
 	ServicePeriodTo time.Time `json:"service_period_to,omitempty"`
 	// Mutable holds the value of the "mutable" field.
 	Mutable bool `json:"mutable,omitempty"`
+	// LedgerTransactionGroupID holds the value of the "ledger_transaction_group_id" field.
+	LedgerTransactionGroupID *string `json:"ledger_transaction_group_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeStandardInvoiceAccruedUsageQuery when eager-loading is set.
 	Edges        ChargeStandardInvoiceAccruedUsageEdges `json:"edges"`
@@ -108,7 +110,7 @@ func (*ChargeStandardInvoiceAccruedUsage) scanValues(columns []string) ([]any, e
 			values[i] = new(alpacadecimal.Decimal)
 		case chargestandardinvoiceaccruedusage.FieldMutable:
 			values[i] = new(sql.NullBool)
-		case chargestandardinvoiceaccruedusage.FieldID, chargestandardinvoiceaccruedusage.FieldNamespace, chargestandardinvoiceaccruedusage.FieldChargeID, chargestandardinvoiceaccruedusage.FieldLineID:
+		case chargestandardinvoiceaccruedusage.FieldID, chargestandardinvoiceaccruedusage.FieldNamespace, chargestandardinvoiceaccruedusage.FieldChargeID, chargestandardinvoiceaccruedusage.FieldLineID, chargestandardinvoiceaccruedusage.FieldLedgerTransactionGroupID:
 			values[i] = new(sql.NullString)
 		case chargestandardinvoiceaccruedusage.FieldCreatedAt, chargestandardinvoiceaccruedusage.FieldUpdatedAt, chargestandardinvoiceaccruedusage.FieldDeletedAt, chargestandardinvoiceaccruedusage.FieldServicePeriodFrom, chargestandardinvoiceaccruedusage.FieldServicePeriodTo:
 			values[i] = new(sql.NullTime)
@@ -245,6 +247,13 @@ func (_m *ChargeStandardInvoiceAccruedUsage) assignValues(columns []string, valu
 			} else if value.Valid {
 				_m.Mutable = value.Bool
 			}
+		case chargestandardinvoiceaccruedusage.FieldLedgerTransactionGroupID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field ledger_transaction_group_id", values[i])
+			} else if value.Valid {
+				_m.LedgerTransactionGroupID = new(string)
+				*_m.LedgerTransactionGroupID = value.String
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -348,6 +357,11 @@ func (_m *ChargeStandardInvoiceAccruedUsage) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("mutable=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Mutable))
+	builder.WriteString(", ")
+	if v := _m.LedgerTransactionGroupID; v != nil {
+		builder.WriteString("ledger_transaction_group_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

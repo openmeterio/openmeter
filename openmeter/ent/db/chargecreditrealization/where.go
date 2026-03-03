@@ -111,6 +111,11 @@ func ServicePeriodTo(v time.Time) predicate.ChargeCreditRealization {
 	return predicate.ChargeCreditRealization(sql.FieldEQ(FieldServicePeriodTo, v))
 }
 
+// LedgerTransactionGroupID applies equality check predicate on the "ledger_transaction_group_id" field. It's identical to LedgerTransactionGroupIDEQ.
+func LedgerTransactionGroupID(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldEQ(FieldLedgerTransactionGroupID, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.ChargeCreditRealization {
 	return predicate.ChargeCreditRealization(sql.FieldEQ(FieldNamespace, v))
@@ -576,21 +581,86 @@ func ServicePeriodToLTE(v time.Time) predicate.ChargeCreditRealization {
 	return predicate.ChargeCreditRealization(sql.FieldLTE(FieldServicePeriodTo, v))
 }
 
-// HasCharge applies the HasEdge predicate on the "charge" edge.
-func HasCharge() predicate.ChargeCreditRealization {
+// LedgerTransactionGroupIDEQ applies the EQ predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDEQ(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldEQ(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDNEQ applies the NEQ predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDNEQ(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldNEQ(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDIn applies the In predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDIn(vs ...string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldIn(FieldLedgerTransactionGroupID, vs...))
+}
+
+// LedgerTransactionGroupIDNotIn applies the NotIn predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDNotIn(vs ...string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldNotIn(FieldLedgerTransactionGroupID, vs...))
+}
+
+// LedgerTransactionGroupIDGT applies the GT predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDGT(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldGT(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDGTE applies the GTE predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDGTE(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldGTE(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDLT applies the LT predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDLT(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldLT(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDLTE applies the LTE predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDLTE(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldLTE(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDContains applies the Contains predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDContains(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldContains(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDHasPrefix applies the HasPrefix predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDHasPrefix(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldHasPrefix(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDHasSuffix applies the HasSuffix predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDHasSuffix(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldHasSuffix(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDEqualFold applies the EqualFold predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDEqualFold(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldEqualFold(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDContainsFold applies the ContainsFold predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDContainsFold(v string) predicate.ChargeCreditRealization {
+	return predicate.ChargeCreditRealization(sql.FieldContainsFold(FieldLedgerTransactionGroupID, v))
+}
+
+// HasChargeFlatFee applies the HasEdge predicate on the "charge_flat_fee" edge.
+func HasChargeFlatFee() predicate.ChargeCreditRealization {
 	return predicate.ChargeCreditRealization(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, ChargeTable, ChargeColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, ChargeFlatFeeTable, ChargeFlatFeeColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasChargeWith applies the HasEdge predicate on the "charge" edge with a given conditions (other predicates).
-func HasChargeWith(preds ...predicate.Charge) predicate.ChargeCreditRealization {
+// HasChargeFlatFeeWith applies the HasEdge predicate on the "charge_flat_fee" edge with a given conditions (other predicates).
+func HasChargeFlatFeeWith(preds ...predicate.ChargeFlatFee) predicate.ChargeCreditRealization {
 	return predicate.ChargeCreditRealization(func(s *sql.Selector) {
-		step := newChargeStep()
+		step := newChargeFlatFeeStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

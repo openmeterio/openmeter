@@ -100,7 +100,13 @@ func (s *service) allocateCreditAmountsToBillableLines(ctx context.Context, name
 		return *line.GatheringLine.ChargeID
 	})
 
-	affectedCharges, err := s.adapter.GetChargesByIDs(ctx, namespace, chargeIDs)
+	affectedCharges, err := s.adapter.GetChargesByIDs(ctx, charges.GetChargesByIDsInput{
+		Namespace: namespace,
+		ChargeIDs: chargeIDs,
+		Expands: charges.Expands{
+			charges.ExpandRealizations,
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("getting charges by IDs: %w", err)
 	}
@@ -135,6 +141,11 @@ func (s *service) allocateCreditAmountsToBillableLines(ctx context.Context, name
 			flatFee, err := charge.AsFlatFeeCharge()
 			if err != nil {
 				return nil, err
+			}
+
+			if len(flatFee.State.CreditRealizations) > 0 {
+				// Lifecycle: we are only allocating credit amounts once for flat fee charges (for now)
+				return nil, charges.ErrCreditRealizationsAlreadyAllocated.WithAttr("chargeID", chargeID.ID)
 			}
 
 			creditAllocations, err := s.flatFeeService.PostLineAssignedToInvoice(ctx, flatFee, gatheringLine.GatheringLine)

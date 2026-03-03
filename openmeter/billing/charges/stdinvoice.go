@@ -41,7 +41,6 @@ type StandardInvoicePaymentSettlement struct {
 
 	Annotations   models.Annotations    `json:"annotations"`
 	LineID        string                `json:"lineID"`
-	ChargeID      string                `json:"chargeID"`
 	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
 
 	Status StandardInvoicePaymentSettlementStatus `json:"status"`
@@ -80,10 +79,6 @@ func (r StandardInvoicePaymentSettlement) Validate() error {
 		errs = append(errs, fmt.Errorf("line ID is required"))
 	}
 
-	if r.ChargeID == "" {
-		errs = append(errs, fmt.Errorf("charge ID is required"))
-	}
-
 	if r.Amount.IsNegative() {
 		errs = append(errs, fmt.Errorf("amount must be positive"))
 	}
@@ -110,21 +105,17 @@ type StandardInvoiceAccruedUsage struct {
 	models.NamespacedID
 	models.ManagedModel
 
-	Annotations   models.Annotations    `json:"annotations"`
-	LineID        *string               `json:"lineID"`
-	ChargeID      string                `json:"chargeID"`
-	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
-	Mutable       bool                  `json:"mutable"`
+	Annotations       models.Annotations               `json:"annotations"`
+	LineID            *string                          `json:"lineID"`
+	ServicePeriod     timeutil.ClosedPeriod            `json:"servicePeriod"`
+	Mutable           bool                             `json:"mutable"`
+	LedgerTransaction *LedgerTransactionGroupReference `json:"ledgerTransaction"`
 
 	Totals billing.Totals `json:"totals"`
 }
 
 func (r StandardInvoiceAccruedUsage) Validate() error {
 	var errs []error
-
-	if r.ChargeID == "" {
-		errs = append(errs, fmt.Errorf("charge ID is required"))
-	}
 
 	if !r.Mutable {
 		if r.LineID == nil {
@@ -143,6 +134,12 @@ func (r StandardInvoiceAccruedUsage) Validate() error {
 	if r.LineID != nil {
 		if *r.LineID == "" {
 			errs = append(errs, fmt.Errorf("line ID is required"))
+		}
+	}
+
+	if r.LedgerTransaction != nil {
+		if err := r.LedgerTransaction.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("ledger transaction: %w", err))
 		}
 	}
 

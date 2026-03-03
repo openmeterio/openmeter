@@ -243,6 +243,26 @@ func (_u *ChargeStandardInvoiceAccruedUsageUpdate) SetNillableMutable(v *bool) *
 	return _u
 }
 
+// SetLedgerTransactionGroupID sets the "ledger_transaction_group_id" field.
+func (_u *ChargeStandardInvoiceAccruedUsageUpdate) SetLedgerTransactionGroupID(v string) *ChargeStandardInvoiceAccruedUsageUpdate {
+	_u.mutation.SetLedgerTransactionGroupID(v)
+	return _u
+}
+
+// SetNillableLedgerTransactionGroupID sets the "ledger_transaction_group_id" field if the given value is not nil.
+func (_u *ChargeStandardInvoiceAccruedUsageUpdate) SetNillableLedgerTransactionGroupID(v *string) *ChargeStandardInvoiceAccruedUsageUpdate {
+	if v != nil {
+		_u.SetLedgerTransactionGroupID(*v)
+	}
+	return _u
+}
+
+// ClearLedgerTransactionGroupID clears the value of the "ledger_transaction_group_id" field.
+func (_u *ChargeStandardInvoiceAccruedUsageUpdate) ClearLedgerTransactionGroupID() *ChargeStandardInvoiceAccruedUsageUpdate {
+	_u.mutation.ClearLedgerTransactionGroupID()
+	return _u
+}
+
 // SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
 func (_u *ChargeStandardInvoiceAccruedUsageUpdate) SetBillingInvoiceLineID(id string) *ChargeStandardInvoiceAccruedUsageUpdate {
 	_u.mutation.SetBillingInvoiceLineID(id)
@@ -316,6 +336,11 @@ func (_u *ChargeStandardInvoiceAccruedUsageUpdate) check() error {
 			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeStandardInvoiceAccruedUsage.line_id": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.LedgerTransactionGroupID(); ok {
+		if err := chargestandardinvoiceaccruedusage.LedgerTransactionGroupIDValidator(v); err != nil {
+			return &ValidationError{Name: "ledger_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeStandardInvoiceAccruedUsage.ledger_transaction_group_id": %w`, err)}
+		}
+	}
 	if _u.mutation.FlatFeeCleared() && len(_u.mutation.FlatFeeIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeStandardInvoiceAccruedUsage.flat_fee"`)
 	}
@@ -381,6 +406,12 @@ func (_u *ChargeStandardInvoiceAccruedUsageUpdate) sqlSave(ctx context.Context) 
 	}
 	if value, ok := _u.mutation.Mutable(); ok {
 		_spec.SetField(chargestandardinvoiceaccruedusage.FieldMutable, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.LedgerTransactionGroupID(); ok {
+		_spec.SetField(chargestandardinvoiceaccruedusage.FieldLedgerTransactionGroupID, field.TypeString, value)
+	}
+	if _u.mutation.LedgerTransactionGroupIDCleared() {
+		_spec.ClearField(chargestandardinvoiceaccruedusage.FieldLedgerTransactionGroupID, field.TypeString)
 	}
 	if _u.mutation.BillingInvoiceLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -643,6 +674,26 @@ func (_u *ChargeStandardInvoiceAccruedUsageUpdateOne) SetNillableMutable(v *bool
 	return _u
 }
 
+// SetLedgerTransactionGroupID sets the "ledger_transaction_group_id" field.
+func (_u *ChargeStandardInvoiceAccruedUsageUpdateOne) SetLedgerTransactionGroupID(v string) *ChargeStandardInvoiceAccruedUsageUpdateOne {
+	_u.mutation.SetLedgerTransactionGroupID(v)
+	return _u
+}
+
+// SetNillableLedgerTransactionGroupID sets the "ledger_transaction_group_id" field if the given value is not nil.
+func (_u *ChargeStandardInvoiceAccruedUsageUpdateOne) SetNillableLedgerTransactionGroupID(v *string) *ChargeStandardInvoiceAccruedUsageUpdateOne {
+	if v != nil {
+		_u.SetLedgerTransactionGroupID(*v)
+	}
+	return _u
+}
+
+// ClearLedgerTransactionGroupID clears the value of the "ledger_transaction_group_id" field.
+func (_u *ChargeStandardInvoiceAccruedUsageUpdateOne) ClearLedgerTransactionGroupID() *ChargeStandardInvoiceAccruedUsageUpdateOne {
+	_u.mutation.ClearLedgerTransactionGroupID()
+	return _u
+}
+
 // SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
 func (_u *ChargeStandardInvoiceAccruedUsageUpdateOne) SetBillingInvoiceLineID(id string) *ChargeStandardInvoiceAccruedUsageUpdateOne {
 	_u.mutation.SetBillingInvoiceLineID(id)
@@ -729,6 +780,11 @@ func (_u *ChargeStandardInvoiceAccruedUsageUpdateOne) check() error {
 			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeStandardInvoiceAccruedUsage.line_id": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.LedgerTransactionGroupID(); ok {
+		if err := chargestandardinvoiceaccruedusage.LedgerTransactionGroupIDValidator(v); err != nil {
+			return &ValidationError{Name: "ledger_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeStandardInvoiceAccruedUsage.ledger_transaction_group_id": %w`, err)}
+		}
+	}
 	if _u.mutation.FlatFeeCleared() && len(_u.mutation.FlatFeeIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeStandardInvoiceAccruedUsage.flat_fee"`)
 	}
@@ -811,6 +867,12 @@ func (_u *ChargeStandardInvoiceAccruedUsageUpdateOne) sqlSave(ctx context.Contex
 	}
 	if value, ok := _u.mutation.Mutable(); ok {
 		_spec.SetField(chargestandardinvoiceaccruedusage.FieldMutable, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.LedgerTransactionGroupID(); ok {
+		_spec.SetField(chargestandardinvoiceaccruedusage.FieldLedgerTransactionGroupID, field.TypeString, value)
+	}
+	if _u.mutation.LedgerTransactionGroupIDCleared() {
+		_spec.ClearField(chargestandardinvoiceaccruedusage.FieldLedgerTransactionGroupID, field.TypeString)
 	}
 	if _u.mutation.BillingInvoiceLineCleared() {
 		edge := &sqlgraph.EdgeSpec{

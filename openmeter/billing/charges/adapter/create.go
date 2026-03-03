@@ -143,7 +143,7 @@ func (a *adapter) CreateCharges(ctx context.Context, in charges.CreateChargeInpu
 
 		// Step 5: Map all created entities back to domain objects.
 		return slicesx.MapWithErr(createdEntities, func(entity *db.Charge) (charges.Charge, error) {
-			return MapChargeFromDB(entity)
+			return MapChargeFromDB(entity, charges.ExpandNone)
 		})
 	})
 }

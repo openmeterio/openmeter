@@ -12,8 +12,8 @@ type Service interface {
 }
 
 type ChargeService interface {
-	GetChargeByID(ctx context.Context, input ChargeID) (Charge, error)
-	GetChargesByIDs(ctx context.Context, namespace string, ids []string) (Charges, error)
+	GetChargeByID(ctx context.Context, input GetChargeByIDInput) (Charge, error)
+	GetChargesByIDs(ctx context.Context, input GetChargesByIDsInput) (Charges, error)
 	CreateCharges(ctx context.Context, input CreateChargeInputs) (Charges, error)
 }
 

@@ -41,6 +41,8 @@ const (
 	EdgeChargeStandardInvoicePaymentSettlement = "charge_standard_invoice_payment_settlement"
 	// EdgeChargeStandardInvoiceAccruedUsage holds the string denoting the charge_standard_invoice_accrued_usage edge name in mutations.
 	EdgeChargeStandardInvoiceAccruedUsage = "charge_standard_invoice_accrued_usage"
+	// EdgeChargeCreditRealizations holds the string denoting the charge_credit_realizations edge name in mutations.
+	EdgeChargeCreditRealizations = "charge_credit_realizations"
 	// Table holds the table name of the chargeflatfee in the database.
 	Table = "charge_flat_fees"
 	// ChargeTable is the table that holds the charge relation/edge.
@@ -64,6 +66,13 @@ const (
 	ChargeStandardInvoiceAccruedUsageInverseTable = "charge_standard_invoice_accrued_usages"
 	// ChargeStandardInvoiceAccruedUsageColumn is the table column denoting the charge_standard_invoice_accrued_usage relation/edge.
 	ChargeStandardInvoiceAccruedUsageColumn = "charge_id"
+	// ChargeCreditRealizationsTable is the table that holds the charge_credit_realizations relation/edge.
+	ChargeCreditRealizationsTable = "charge_credit_realizations"
+	// ChargeCreditRealizationsInverseTable is the table name for the ChargeCreditRealization entity.
+	// It exists in this package in order to avoid circular dependency with the "chargecreditrealization" package.
+	ChargeCreditRealizationsInverseTable = "charge_credit_realizations"
+	// ChargeCreditRealizationsColumn is the table column denoting the charge_credit_realizations relation/edge.
+	ChargeCreditRealizationsColumn = "charge_id"
 )
 
 // Columns holds all SQL columns for chargeflatfee fields.
@@ -198,6 +207,20 @@ func ByChargeStandardInvoiceAccruedUsageField(field string, opts ...sql.OrderTer
 		sqlgraph.OrderByNeighborTerms(s, newChargeStandardInvoiceAccruedUsageStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByChargeCreditRealizationsCount orders the results by charge_credit_realizations count.
+func ByChargeCreditRealizationsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newChargeCreditRealizationsStep(), opts...)
+	}
+}
+
+// ByChargeCreditRealizations orders the results by charge_credit_realizations terms.
+func ByChargeCreditRealizations(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChargeCreditRealizationsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newChargeStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -217,5 +240,12 @@ func newChargeStandardInvoiceAccruedUsageStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ChargeStandardInvoiceAccruedUsageInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, ChargeStandardInvoiceAccruedUsageTable, ChargeStandardInvoiceAccruedUsageColumn),
+	)
+}
+func newChargeCreditRealizationsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChargeCreditRealizationsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ChargeCreditRealizationsTable, ChargeCreditRealizationsColumn),
 	)
 }

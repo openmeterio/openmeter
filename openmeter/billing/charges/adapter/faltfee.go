@@ -67,13 +67,14 @@ func (a *adapter) UpdateFlatFeeCharge(ctx context.Context, charge charges.FlatFe
 		}
 
 		entity.Edges.FlatFee = flatFee
-		mapped, err := MapFlatFeeChargeFromDB(entity)
+		// We are not expanding the relaizations rather reuse the existing ones
+		mapped, err := MapFlatFeeChargeFromDB(entity, charges.ExpandNone)
 		if err != nil {
 			return charges.FlatFeeCharge{}, err
 		}
 
-		// We are not updating the credit realizations here
-		mapped.State.CreditRealizations = charge.State.CreditRealizations
+		// We are just reusing the existing state
+		mapped.State = charge.State
 
 		return mapped, nil
 	})

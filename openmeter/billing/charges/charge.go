@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/expand"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -38,6 +39,22 @@ type ChargeID models.NamespacedID
 func (i ChargeID) Validate() error {
 	return models.NamespacedID(i).Validate()
 }
+
+type Expand string
+
+const (
+	ExpandRealizations Expand = "realizations"
+)
+
+func (e Expand) Values() []Expand {
+	return []Expand{
+		ExpandRealizations,
+	}
+}
+
+var ExpandNone Expands = nil
+
+type Expands = expand.Expand[Expand]
 
 type ChargeAccessor interface {
 	GetChargeID() ChargeID
@@ -355,4 +372,49 @@ type ManagedResource struct {
 	models.NamespacedModel
 	models.ManagedModel
 	ID string `json:"id"`
+}
+
+type GetChargeByIDInput struct {
+	ChargeID ChargeID
+	Expands  Expands
+}
+
+func (i GetChargeByIDInput) Validate() error {
+	var errs []error
+
+	if err := i.ChargeID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge ID: %w", err))
+	}
+
+	if err := i.Expands.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("expands: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+type GetChargesByIDsInput struct {
+	Namespace string
+	ChargeIDs []string
+	Expands   Expands
+}
+
+func (i GetChargesByIDsInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, fmt.Errorf("namespace is required"))
+	}
+
+	for idx, id := range i.ChargeIDs {
+		if id == "" {
+			errs = append(errs, fmt.Errorf("charge ID [%d]: cannot be empty", idx))
+		}
+	}
+
+	if err := i.Expands.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("expands: %w", err))
+	}
+
+	return errors.Join(errs...)
 }

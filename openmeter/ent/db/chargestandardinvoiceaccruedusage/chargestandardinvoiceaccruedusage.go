@@ -50,6 +50,8 @@ const (
 	FieldServicePeriodTo = "service_period_to"
 	// FieldMutable holds the string denoting the mutable field in the database.
 	FieldMutable = "mutable"
+	// FieldLedgerTransactionGroupID holds the string denoting the ledger_transaction_group_id field in the database.
+	FieldLedgerTransactionGroupID = "ledger_transaction_group_id"
 	// EdgeBillingInvoiceLine holds the string denoting the billing_invoice_line edge name in mutations.
 	EdgeBillingInvoiceLine = "billing_invoice_line"
 	// EdgeFlatFee holds the string denoting the flat_fee edge name in mutations.
@@ -93,6 +95,7 @@ var Columns = []string{
 	FieldServicePeriodFrom,
 	FieldServicePeriodTo,
 	FieldMutable,
+	FieldLedgerTransactionGroupID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -116,6 +119,8 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// LineIDValidator is a validator for the "line_id" field. It is called by the builders before save.
 	LineIDValidator func(string) error
+	// LedgerTransactionGroupIDValidator is a validator for the "ledger_transaction_group_id" field. It is called by the builders before save.
+	LedgerTransactionGroupIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -211,6 +216,11 @@ func ByServicePeriodTo(opts ...sql.OrderTermOption) OrderOption {
 // ByMutable orders the results by the mutable field.
 func ByMutable(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMutable, opts...).ToFunc()
+}
+
+// ByLedgerTransactionGroupID orders the results by the ledger_transaction_group_id field.
+func ByLedgerTransactionGroupID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLedgerTransactionGroupID, opts...).ToFunc()
 }
 
 // ByBillingInvoiceLineField orders the results by billing_invoice_line field.

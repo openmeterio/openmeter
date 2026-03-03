@@ -75,7 +75,11 @@ func (s *ChargesAdapterTestSuite) TestCreateAndGetFlatFeeCharge() {
 	s.NoError(err)
 	s.NotEmpty(ffCreated.ManagedResource.ID)
 
-	fetched, err := s.adapter.GetChargesByIDs(ctx, ns, []string{ffCreated.ManagedResource.ID})
+	fetched, err := s.adapter.GetChargesByIDs(ctx, charges.GetChargesByIDsInput{
+		Namespace: ns,
+		ChargeIDs: []string{ffCreated.ManagedResource.ID},
+		Expands:   charges.Expands{charges.ExpandRealizations},
+	})
 	s.NoError(err)
 	s.Len(fetched, 1)
 	ffFetched, err := fetched[0].AsFlatFeeCharge()
@@ -120,7 +124,11 @@ func (s *ChargesAdapterTestSuite) TestCreateAndGetUsageBasedCharge() {
 	s.NoError(err)
 	s.NotEmpty(ubCreated.ManagedResource.ID)
 
-	fetched, err := s.adapter.GetChargesByIDs(ctx, ns, []string{ubCreated.ManagedResource.ID})
+	fetched, err := s.adapter.GetChargesByIDs(ctx, charges.GetChargesByIDsInput{
+		Namespace: ns,
+		ChargeIDs: []string{ubCreated.ManagedResource.ID},
+		Expands:   charges.Expands{charges.ExpandRealizations},
+	})
 	s.NoError(err)
 	s.Len(fetched, 1)
 	ubFetched, err := fetched[0].AsUsageBasedCharge()
@@ -165,7 +173,11 @@ func (s *ChargesAdapterTestSuite) TestCreateAndGetCreditPurchaseCharge() {
 	s.NoError(err)
 	s.NotEmpty(cpCreated.ManagedResource.ID)
 
-	fetched, err := s.adapter.GetChargesByIDs(ctx, ns, []string{cpCreated.ManagedResource.ID})
+	fetched, err := s.adapter.GetChargesByIDs(ctx, charges.GetChargesByIDsInput{
+		Namespace: ns,
+		ChargeIDs: []string{cpCreated.ManagedResource.ID},
+		Expands:   charges.Expands{charges.ExpandRealizations},
+	})
 	s.NoError(err)
 	s.Len(fetched, 1)
 	cpFetched, err := fetched[0].AsCreditPurchaseCharge()

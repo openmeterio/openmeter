@@ -48,3 +48,12 @@ var ErrUnsupported = models.NewValidationIssue(
 	models.WithCriticalSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusInternalServerError),
 )
+
+const ErrCodeCreditRealizationsAlreadyAllocated models.ErrorCode = "credit_realizations_already_allocated"
+
+var ErrCreditRealizationsAlreadyAllocated = models.NewValidationIssue(
+	ErrCodeCreditRealizationsAlreadyAllocated,
+	"credit realizations already allocated",
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)

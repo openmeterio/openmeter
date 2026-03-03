@@ -12,8 +12,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -42,6 +42,8 @@ type ChargeCreditRealization struct {
 	ServicePeriodFrom time.Time `json:"service_period_from,omitempty"`
 	// ServicePeriodTo holds the value of the "service_period_to" field.
 	ServicePeriodTo time.Time `json:"service_period_to,omitempty"`
+	// LedgerTransactionGroupID holds the value of the "ledger_transaction_group_id" field.
+	LedgerTransactionGroupID string `json:"ledger_transaction_group_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeCreditRealizationQuery when eager-loading is set.
 	Edges        ChargeCreditRealizationEdges `json:"edges"`
@@ -50,8 +52,8 @@ type ChargeCreditRealization struct {
 
 // ChargeCreditRealizationEdges holds the relations/edges for other nodes in the graph.
 type ChargeCreditRealizationEdges struct {
-	// Charge holds the value of the charge edge.
-	Charge *Charge `json:"charge,omitempty"`
+	// ChargeFlatFee holds the value of the charge_flat_fee edge.
+	ChargeFlatFee *ChargeFlatFee `json:"charge_flat_fee,omitempty"`
 	// BillingInvoiceLine holds the value of the billing_invoice_line edge.
 	BillingInvoiceLine *BillingInvoiceLine `json:"billing_invoice_line,omitempty"`
 	// loadedTypes holds the information for reporting if a
@@ -59,15 +61,15 @@ type ChargeCreditRealizationEdges struct {
 	loadedTypes [2]bool
 }
 
-// ChargeOrErr returns the Charge value or an error if the edge
+// ChargeFlatFeeOrErr returns the ChargeFlatFee value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeCreditRealizationEdges) ChargeOrErr() (*Charge, error) {
-	if e.Charge != nil {
-		return e.Charge, nil
+func (e ChargeCreditRealizationEdges) ChargeFlatFeeOrErr() (*ChargeFlatFee, error) {
+	if e.ChargeFlatFee != nil {
+		return e.ChargeFlatFee, nil
 	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: charge.Label}
+		return nil, &NotFoundError{label: chargeflatfee.Label}
 	}
-	return nil, &NotLoadedError{edge: "charge"}
+	return nil, &NotLoadedError{edge: "charge_flat_fee"}
 }
 
 // BillingInvoiceLineOrErr returns the BillingInvoiceLine value or an error if the edge
@@ -90,7 +92,7 @@ func (*ChargeCreditRealization) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case chargecreditrealization.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargecreditrealization.FieldID, chargecreditrealization.FieldNamespace, chargecreditrealization.FieldChargeID, chargecreditrealization.FieldLineID:
+		case chargecreditrealization.FieldID, chargecreditrealization.FieldNamespace, chargecreditrealization.FieldChargeID, chargecreditrealization.FieldLineID, chargecreditrealization.FieldLedgerTransactionGroupID:
 			values[i] = new(sql.NullString)
 		case chargecreditrealization.FieldCreatedAt, chargecreditrealization.FieldUpdatedAt, chargecreditrealization.FieldDeletedAt, chargecreditrealization.FieldServicePeriodFrom, chargecreditrealization.FieldServicePeriodTo:
 			values[i] = new(sql.NullTime)
@@ -179,6 +181,12 @@ func (_m *ChargeCreditRealization) assignValues(columns []string, values []any) 
 			} else if value.Valid {
 				_m.ServicePeriodTo = value.Time
 			}
+		case chargecreditrealization.FieldLedgerTransactionGroupID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field ledger_transaction_group_id", values[i])
+			} else if value.Valid {
+				_m.LedgerTransactionGroupID = value.String
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -192,9 +200,9 @@ func (_m *ChargeCreditRealization) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryCharge queries the "charge" edge of the ChargeCreditRealization entity.
-func (_m *ChargeCreditRealization) QueryCharge() *ChargeQuery {
-	return NewChargeCreditRealizationClient(_m.config).QueryCharge(_m)
+// QueryChargeFlatFee queries the "charge_flat_fee" edge of the ChargeCreditRealization entity.
+func (_m *ChargeCreditRealization) QueryChargeFlatFee() *ChargeFlatFeeQuery {
+	return NewChargeCreditRealizationClient(_m.config).QueryChargeFlatFee(_m)
 }
 
 // QueryBillingInvoiceLine queries the "billing_invoice_line" edge of the ChargeCreditRealization entity.
@@ -258,6 +266,9 @@ func (_m *ChargeCreditRealization) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("service_period_to=")
 	builder.WriteString(_m.ServicePeriodTo.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("ledger_transaction_group_id=")
+	builder.WriteString(_m.LedgerTransactionGroupID)
 	builder.WriteByte(')')
 	return builder.String()
 }

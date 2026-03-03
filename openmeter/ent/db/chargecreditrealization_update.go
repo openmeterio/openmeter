@@ -204,8 +204,8 @@ func (_u *ChargeCreditRealizationUpdate) check() error {
 			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditRealization.line_id": %w`, err)}
 		}
 	}
-	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "ChargeCreditRealization.charge"`)
+	if _u.mutation.ChargeFlatFeeCleared() && len(_u.mutation.ChargeFlatFeeIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "ChargeCreditRealization.charge_flat_fee"`)
 	}
 	return nil
 }
@@ -481,8 +481,8 @@ func (_u *ChargeCreditRealizationUpdateOne) check() error {
 			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditRealization.line_id": %w`, err)}
 		}
 	}
-	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "ChargeCreditRealization.charge"`)
+	if _u.mutation.ChargeFlatFeeCleared() && len(_u.mutation.ChargeFlatFeeIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "ChargeCreditRealization.charge_flat_fee"`)
 	}
 	return nil
 }

@@ -167,6 +167,20 @@ func (_c *ChargeStandardInvoiceAccruedUsageCreate) SetMutable(v bool) *ChargeSta
 	return _c
 }
 
+// SetLedgerTransactionGroupID sets the "ledger_transaction_group_id" field.
+func (_c *ChargeStandardInvoiceAccruedUsageCreate) SetLedgerTransactionGroupID(v string) *ChargeStandardInvoiceAccruedUsageCreate {
+	_c.mutation.SetLedgerTransactionGroupID(v)
+	return _c
+}
+
+// SetNillableLedgerTransactionGroupID sets the "ledger_transaction_group_id" field if the given value is not nil.
+func (_c *ChargeStandardInvoiceAccruedUsageCreate) SetNillableLedgerTransactionGroupID(v *string) *ChargeStandardInvoiceAccruedUsageCreate {
+	if v != nil {
+		_c.SetLedgerTransactionGroupID(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ChargeStandardInvoiceAccruedUsageCreate) SetID(v string) *ChargeStandardInvoiceAccruedUsageCreate {
 	_c.mutation.SetID(v)
@@ -317,6 +331,11 @@ func (_c *ChargeStandardInvoiceAccruedUsageCreate) check() error {
 	if _, ok := _c.mutation.Mutable(); !ok {
 		return &ValidationError{Name: "mutable", err: errors.New(`db: missing required field "ChargeStandardInvoiceAccruedUsage.mutable"`)}
 	}
+	if v, ok := _c.mutation.LedgerTransactionGroupID(); ok {
+		if err := chargestandardinvoiceaccruedusage.LedgerTransactionGroupIDValidator(v); err != nil {
+			return &ValidationError{Name: "ledger_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeStandardInvoiceAccruedUsage.ledger_transaction_group_id": %w`, err)}
+		}
+	}
 	if len(_c.mutation.FlatFeeIDs()) == 0 {
 		return &ValidationError{Name: "flat_fee", err: errors.New(`db: missing required edge "ChargeStandardInvoiceAccruedUsage.flat_fee"`)}
 	}
@@ -419,6 +438,10 @@ func (_c *ChargeStandardInvoiceAccruedUsageCreate) createSpec() (*ChargeStandard
 	if value, ok := _c.mutation.Mutable(); ok {
 		_spec.SetField(chargestandardinvoiceaccruedusage.FieldMutable, field.TypeBool, value)
 		_node.Mutable = value
+	}
+	if value, ok := _c.mutation.LedgerTransactionGroupID(); ok {
+		_spec.SetField(chargestandardinvoiceaccruedusage.FieldLedgerTransactionGroupID, field.TypeString, value)
+		_node.LedgerTransactionGroupID = &value
 	}
 	if nodes := _c.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -701,6 +724,24 @@ func (u *ChargeStandardInvoiceAccruedUsageUpsert) SetMutable(v bool) *ChargeStan
 // UpdateMutable sets the "mutable" field to the value that was provided on create.
 func (u *ChargeStandardInvoiceAccruedUsageUpsert) UpdateMutable() *ChargeStandardInvoiceAccruedUsageUpsert {
 	u.SetExcluded(chargestandardinvoiceaccruedusage.FieldMutable)
+	return u
+}
+
+// SetLedgerTransactionGroupID sets the "ledger_transaction_group_id" field.
+func (u *ChargeStandardInvoiceAccruedUsageUpsert) SetLedgerTransactionGroupID(v string) *ChargeStandardInvoiceAccruedUsageUpsert {
+	u.Set(chargestandardinvoiceaccruedusage.FieldLedgerTransactionGroupID, v)
+	return u
+}
+
+// UpdateLedgerTransactionGroupID sets the "ledger_transaction_group_id" field to the value that was provided on create.
+func (u *ChargeStandardInvoiceAccruedUsageUpsert) UpdateLedgerTransactionGroupID() *ChargeStandardInvoiceAccruedUsageUpsert {
+	u.SetExcluded(chargestandardinvoiceaccruedusage.FieldLedgerTransactionGroupID)
+	return u
+}
+
+// ClearLedgerTransactionGroupID clears the value of the "ledger_transaction_group_id" field.
+func (u *ChargeStandardInvoiceAccruedUsageUpsert) ClearLedgerTransactionGroupID() *ChargeStandardInvoiceAccruedUsageUpsert {
+	u.SetNull(chargestandardinvoiceaccruedusage.FieldLedgerTransactionGroupID)
 	return u
 }
 
@@ -989,6 +1030,27 @@ func (u *ChargeStandardInvoiceAccruedUsageUpsertOne) SetMutable(v bool) *ChargeS
 func (u *ChargeStandardInvoiceAccruedUsageUpsertOne) UpdateMutable() *ChargeStandardInvoiceAccruedUsageUpsertOne {
 	return u.Update(func(s *ChargeStandardInvoiceAccruedUsageUpsert) {
 		s.UpdateMutable()
+	})
+}
+
+// SetLedgerTransactionGroupID sets the "ledger_transaction_group_id" field.
+func (u *ChargeStandardInvoiceAccruedUsageUpsertOne) SetLedgerTransactionGroupID(v string) *ChargeStandardInvoiceAccruedUsageUpsertOne {
+	return u.Update(func(s *ChargeStandardInvoiceAccruedUsageUpsert) {
+		s.SetLedgerTransactionGroupID(v)
+	})
+}
+
+// UpdateLedgerTransactionGroupID sets the "ledger_transaction_group_id" field to the value that was provided on create.
+func (u *ChargeStandardInvoiceAccruedUsageUpsertOne) UpdateLedgerTransactionGroupID() *ChargeStandardInvoiceAccruedUsageUpsertOne {
+	return u.Update(func(s *ChargeStandardInvoiceAccruedUsageUpsert) {
+		s.UpdateLedgerTransactionGroupID()
+	})
+}
+
+// ClearLedgerTransactionGroupID clears the value of the "ledger_transaction_group_id" field.
+func (u *ChargeStandardInvoiceAccruedUsageUpsertOne) ClearLedgerTransactionGroupID() *ChargeStandardInvoiceAccruedUsageUpsertOne {
+	return u.Update(func(s *ChargeStandardInvoiceAccruedUsageUpsert) {
+		s.ClearLedgerTransactionGroupID()
 	})
 }
 
@@ -1444,6 +1506,27 @@ func (u *ChargeStandardInvoiceAccruedUsageUpsertBulk) SetMutable(v bool) *Charge
 func (u *ChargeStandardInvoiceAccruedUsageUpsertBulk) UpdateMutable() *ChargeStandardInvoiceAccruedUsageUpsertBulk {
 	return u.Update(func(s *ChargeStandardInvoiceAccruedUsageUpsert) {
 		s.UpdateMutable()
+	})
+}
+
+// SetLedgerTransactionGroupID sets the "ledger_transaction_group_id" field.
+func (u *ChargeStandardInvoiceAccruedUsageUpsertBulk) SetLedgerTransactionGroupID(v string) *ChargeStandardInvoiceAccruedUsageUpsertBulk {
+	return u.Update(func(s *ChargeStandardInvoiceAccruedUsageUpsert) {
+		s.SetLedgerTransactionGroupID(v)
+	})
+}
+
+// UpdateLedgerTransactionGroupID sets the "ledger_transaction_group_id" field to the value that was provided on create.
+func (u *ChargeStandardInvoiceAccruedUsageUpsertBulk) UpdateLedgerTransactionGroupID() *ChargeStandardInvoiceAccruedUsageUpsertBulk {
+	return u.Update(func(s *ChargeStandardInvoiceAccruedUsageUpsert) {
+		s.UpdateLedgerTransactionGroupID()
+	})
+}
+
+// ClearLedgerTransactionGroupID clears the value of the "ledger_transaction_group_id" field.
+func (u *ChargeStandardInvoiceAccruedUsageUpsertBulk) ClearLedgerTransactionGroupID() *ChargeStandardInvoiceAccruedUsageUpsertBulk {
+	return u.Update(func(s *ChargeStandardInvoiceAccruedUsageUpsert) {
+		s.ClearLedgerTransactionGroupID()
 	})
 }
 

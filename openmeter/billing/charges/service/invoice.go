@@ -13,23 +13,29 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-type paymentPostProcessorFn[T charges.FlatFeeCharge | charges.UsageBasedCharge | charges.CreditPurchaseCharge] func(ctx context.Context, charge T, lineWithHeader billing.StandardLineWithInvoiceHeader) error
+type chargeProcessorFn[T charges.FlatFeeCharge | charges.UsageBasedCharge | charges.CreditPurchaseCharge] func(ctx context.Context, charge T, lineWithHeader billing.StandardLineWithInvoiceHeader) error
 
 type processorByType struct {
-	flatFee        paymentPostProcessorFn[charges.FlatFeeCharge]
-	usageBased     paymentPostProcessorFn[charges.UsageBasedCharge]
-	creditPurchase paymentPostProcessorFn[charges.CreditPurchaseCharge]
+	flatFee        chargeProcessorFn[charges.FlatFeeCharge]
+	usageBased     chargeProcessorFn[charges.UsageBasedCharge]
+	creditPurchase chargeProcessorFn[charges.CreditPurchaseCharge]
 }
 
 func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billing.StandardInvoice) error {
+	if invoice.Status == billing.StandardInvoiceStatusIssued {
+		return s.handleChargeEvent(ctx, invoice, processorByType{
+			flatFee: s.flatFeeService.PostInvoiceIssued,
+		})
+	}
+
 	if invoice.Status == billing.StandardInvoiceStatusPaymentProcessingPending {
-		return s.handlePaymentEvent(ctx, invoice, processorByType{
+		return s.handleChargeEvent(ctx, invoice, processorByType{
 			flatFee: s.flatFeeService.PostPaymentAuthorized,
 		})
 	}
 
 	if invoice.Status == billing.StandardInvoiceStatusPaid {
-		return s.handlePaymentEvent(ctx, invoice, processorByType{
+		return s.handleChargeEvent(ctx, invoice, processorByType{
 			flatFee: s.flatFeeService.PostPaymentSettled,
 		})
 	}
@@ -37,7 +43,7 @@ func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billi
 	return nil
 }
 
-func (s *service) handlePaymentEvent(ctx context.Context, invoice billing.StandardInvoice, processorByType processorByType) error {
+func (s *service) handleChargeEvent(ctx context.Context, invoice billing.StandardInvoice, processorByType processorByType) error {
 	linesWithCharges, err := s.getLinesWithChargesForStandardInvoice(ctx, invoice.Namespace, invoice)
 	if err != nil {
 		return err
@@ -101,12 +107,15 @@ func (s *service) getLinesWithChargesForStandardInvoice(ctx context.Context, ns 
 		}, true
 	})
 
-	referencedCharges, err := s.GetChargesByIDs(ctx,
-		ns,
-		lo.Map(linesWithChargeID, func(l billing.StandardLineWithInvoiceHeader, _ int) string {
+	referencedCharges, err := s.GetChargesByIDs(ctx, charges.GetChargesByIDsInput{
+		Namespace: ns,
+		ChargeIDs: lo.Map(linesWithChargeID, func(l billing.StandardLineWithInvoiceHeader, _ int) string {
 			return *l.Line.ChargeID
 		}),
-	)
+		Expands: charges.Expands{
+			charges.ExpandRealizations,
+		},
+	})
 	if err != nil {
 		return nil, err
 	}

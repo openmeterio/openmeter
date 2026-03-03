@@ -1634,6 +1634,7 @@ var (
 		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "service_period_from", Type: field.TypeTime},
 		{Name: "service_period_to", Type: field.TypeTime},
+		{Name: "ledger_transaction_group_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "line_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
@@ -1645,14 +1646,14 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_credit_realizations_billing_invoice_lines_charge_credit_realization",
-				Columns:    []*schema.Column{ChargeCreditRealizationsColumns[9]},
+				Columns:    []*schema.Column{ChargeCreditRealizationsColumns[10]},
 				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
-				Symbol:     "charge_credit_realizations_charges_credit_realizations",
-				Columns:    []*schema.Column{ChargeCreditRealizationsColumns[10]},
-				RefColumns: []*schema.Column{ChargesColumns[0]},
+				Symbol:     "charge_credit_realizations_charge_flat_fees_charge_credit_realizations",
+				Columns:    []*schema.Column{ChargeCreditRealizationsColumns[11]},
+				RefColumns: []*schema.Column{ChargeFlatFeesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 		},
@@ -1742,6 +1743,7 @@ var (
 		{Name: "service_period_from", Type: field.TypeTime},
 		{Name: "service_period_to", Type: field.TypeTime},
 		{Name: "mutable", Type: field.TypeBool},
+		{Name: "ledger_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "line_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "charge_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
@@ -1753,13 +1755,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_standard_invoice_accrued_usages_billing_invoice_lines_charge_standard_invoice_accrued_usage",
-				Columns:    []*schema.Column{ChargeStandardInvoiceAccruedUsagesColumns[17]},
+				Columns:    []*schema.Column{ChargeStandardInvoiceAccruedUsagesColumns[18]},
 				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_standard_invoice_accrued_usages_charge_flat_fees_charge_standard_invoice_accrued_usage",
-				Columns:    []*schema.Column{ChargeStandardInvoiceAccruedUsagesColumns[18]},
+				Columns:    []*schema.Column{ChargeStandardInvoiceAccruedUsagesColumns[19]},
 				RefColumns: []*schema.Column{ChargeFlatFeesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1788,7 +1790,7 @@ var (
 			{
 				Name:    "chargestandardinvoiceaccruedusage_namespace_charge_id_line_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeStandardInvoiceAccruedUsagesColumns[1], ChargeStandardInvoiceAccruedUsagesColumns[18], ChargeStandardInvoiceAccruedUsagesColumns[17]},
+				Columns: []*schema.Column{ChargeStandardInvoiceAccruedUsagesColumns[1], ChargeStandardInvoiceAccruedUsagesColumns[19], ChargeStandardInvoiceAccruedUsagesColumns[18]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "line_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -3566,7 +3568,7 @@ func init() {
 	ChargesTable.ForeignKeys[3].RefTable = SubscriptionPhasesTable
 	ChargeCreditPurchasesTable.ForeignKeys[0].RefTable = ChargesTable
 	ChargeCreditRealizationsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
-	ChargeCreditRealizationsTable.ForeignKeys[1].RefTable = ChargesTable
+	ChargeCreditRealizationsTable.ForeignKeys[1].RefTable = ChargeFlatFeesTable
 	ChargeFlatFeesTable.ForeignKeys[0].RefTable = ChargesTable
 	ChargeStandardInvoiceAccruedUsagesTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	ChargeStandardInvoiceAccruedUsagesTable.ForeignKeys[1].RefTable = ChargeFlatFeesTable

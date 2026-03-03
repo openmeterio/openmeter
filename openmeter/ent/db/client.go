@@ -5292,22 +5292,6 @@ func (c *ChargeClient) QueryCreditPurchase(_m *Charge) *ChargeCreditPurchaseQuer
 	return query
 }
 
-// QueryCreditRealizations queries the credit_realizations edge of a Charge.
-func (c *ChargeClient) QueryCreditRealizations(_m *Charge) *ChargeCreditRealizationQuery {
-	query := (&ChargeCreditRealizationClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(charge.Table, charge.FieldID, id),
-			sqlgraph.To(chargecreditrealization.Table, chargecreditrealization.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, charge.CreditRealizationsTable, charge.CreditRealizationsColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryBillingInvoiceLines queries the billing_invoice_lines edge of a Charge.
 func (c *ChargeClient) QueryBillingInvoiceLines(_m *Charge) *BillingInvoiceLineQuery {
 	query := (&BillingInvoiceLineClient{config: c.config}).Query()
@@ -5686,15 +5670,15 @@ func (c *ChargeCreditRealizationClient) GetX(ctx context.Context, id string) *Ch
 	return obj
 }
 
-// QueryCharge queries the charge edge of a ChargeCreditRealization.
-func (c *ChargeCreditRealizationClient) QueryCharge(_m *ChargeCreditRealization) *ChargeQuery {
-	query := (&ChargeClient{config: c.config}).Query()
+// QueryChargeFlatFee queries the charge_flat_fee edge of a ChargeCreditRealization.
+func (c *ChargeCreditRealizationClient) QueryChargeFlatFee(_m *ChargeCreditRealization) *ChargeFlatFeeQuery {
+	query := (&ChargeFlatFeeClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(chargecreditrealization.Table, chargecreditrealization.FieldID, id),
-			sqlgraph.To(charge.Table, charge.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, chargecreditrealization.ChargeTable, chargecreditrealization.ChargeColumn),
+			sqlgraph.To(chargeflatfee.Table, chargeflatfee.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargecreditrealization.ChargeFlatFeeTable, chargecreditrealization.ChargeFlatFeeColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -5892,6 +5876,22 @@ func (c *ChargeFlatFeeClient) QueryChargeStandardInvoiceAccruedUsage(_m *ChargeF
 			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, id),
 			sqlgraph.To(chargestandardinvoiceaccruedusage.Table, chargestandardinvoiceaccruedusage.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, chargeflatfee.ChargeStandardInvoiceAccruedUsageTable, chargeflatfee.ChargeStandardInvoiceAccruedUsageColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChargeCreditRealizations queries the charge_credit_realizations edge of a ChargeFlatFee.
+func (c *ChargeFlatFeeClient) QueryChargeCreditRealizations(_m *ChargeFlatFee) *ChargeCreditRealizationQuery {
+	query := (&ChargeCreditRealizationClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, id),
+			sqlgraph.To(chargecreditrealization.Table, chargecreditrealization.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, chargeflatfee.ChargeCreditRealizationsTable, chargeflatfee.ChargeCreditRealizationsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil

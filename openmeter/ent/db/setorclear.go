@@ -2298,6 +2298,20 @@ func (u *ChargeStandardInvoiceAccruedUsageUpdateOne) SetOrClearLineID(value *str
 	return u.SetLineID(*value)
 }
 
+func (u *ChargeStandardInvoiceAccruedUsageUpdate) SetOrClearLedgerTransactionGroupID(value *string) *ChargeStandardInvoiceAccruedUsageUpdate {
+	if value == nil {
+		return u.ClearLedgerTransactionGroupID()
+	}
+	return u.SetLedgerTransactionGroupID(*value)
+}
+
+func (u *ChargeStandardInvoiceAccruedUsageUpdateOne) SetOrClearLedgerTransactionGroupID(value *string) *ChargeStandardInvoiceAccruedUsageUpdateOne {
+	if value == nil {
+		return u.ClearLedgerTransactionGroupID()
+	}
+	return u.SetLedgerTransactionGroupID(*value)
+}
+
 func (u *ChargeStandardInvoicePaymentSettlementUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeStandardInvoicePaymentSettlementUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

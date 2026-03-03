@@ -151,6 +151,11 @@ func Mutable(v bool) predicate.ChargeStandardInvoiceAccruedUsage {
 	return predicate.ChargeStandardInvoiceAccruedUsage(sql.FieldEQ(FieldMutable, v))
 }
 
+// LedgerTransactionGroupID applies equality check predicate on the "ledger_transaction_group_id" field. It's identical to LedgerTransactionGroupIDEQ.
+func LedgerTransactionGroupID(v string) predicate.ChargeStandardInvoiceAccruedUsage {
+	return predicate.ChargeStandardInvoiceAccruedUsage(sql.FieldEQ(FieldLedgerTransactionGroupID, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.ChargeStandardInvoiceAccruedUsage {
 	return predicate.ChargeStandardInvoiceAccruedUsage(sql.FieldEQ(FieldNamespace, v))
@@ -904,6 +909,81 @@ func MutableEQ(v bool) predicate.ChargeStandardInvoiceAccruedUsage {
 // MutableNEQ applies the NEQ predicate on the "mutable" field.
 func MutableNEQ(v bool) predicate.ChargeStandardInvoiceAccruedUsage {
 	return predicate.ChargeStandardInvoiceAccruedUsage(sql.FieldNEQ(FieldMutable, v))
+}
+
+// LedgerTransactionGroupIDEQ applies the EQ predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDEQ(v string) predicate.ChargeStandardInvoiceAccruedUsage {
+	return predicate.ChargeStandardInvoiceAccruedUsage(sql.FieldEQ(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDNEQ applies the NEQ predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDNEQ(v string) predicate.ChargeStandardInvoiceAccruedUsage {
+	return predicate.ChargeStandardInvoiceAccruedUsage(sql.FieldNEQ(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDIn applies the In predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDIn(vs ...string) predicate.ChargeStandardInvoiceAccruedUsage {
+	return predicate.ChargeStandardInvoiceAccruedUsage(sql.FieldIn(FieldLedgerTransactionGroupID, vs...))
+}
+
+// LedgerTransactionGroupIDNotIn applies the NotIn predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDNotIn(vs ...string) predicate.ChargeStandardInvoiceAccruedUsage {
+	return predicate.ChargeStandardInvoiceAccruedUsage(sql.FieldNotIn(FieldLedgerTransactionGroupID, vs...))
+}
+
+// LedgerTransactionGroupIDGT applies the GT predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDGT(v string) predicate.ChargeStandardInvoiceAccruedUsage {
+	return predicate.ChargeStandardInvoiceAccruedUsage(sql.FieldGT(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDGTE applies the GTE predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDGTE(v string) predicate.ChargeStandardInvoiceAccruedUsage {
+	return predicate.ChargeStandardInvoiceAccruedUsage(sql.FieldGTE(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDLT applies the LT predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDLT(v string) predicate.ChargeStandardInvoiceAccruedUsage {
+	return predicate.ChargeStandardInvoiceAccruedUsage(sql.FieldLT(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDLTE applies the LTE predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDLTE(v string) predicate.ChargeStandardInvoiceAccruedUsage {
+	return predicate.ChargeStandardInvoiceAccruedUsage(sql.FieldLTE(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDContains applies the Contains predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDContains(v string) predicate.ChargeStandardInvoiceAccruedUsage {
+	return predicate.ChargeStandardInvoiceAccruedUsage(sql.FieldContains(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDHasPrefix applies the HasPrefix predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDHasPrefix(v string) predicate.ChargeStandardInvoiceAccruedUsage {
+	return predicate.ChargeStandardInvoiceAccruedUsage(sql.FieldHasPrefix(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDHasSuffix applies the HasSuffix predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDHasSuffix(v string) predicate.ChargeStandardInvoiceAccruedUsage {
+	return predicate.ChargeStandardInvoiceAccruedUsage(sql.FieldHasSuffix(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDIsNil applies the IsNil predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDIsNil() predicate.ChargeStandardInvoiceAccruedUsage {
+	return predicate.ChargeStandardInvoiceAccruedUsage(sql.FieldIsNull(FieldLedgerTransactionGroupID))
+}
+
+// LedgerTransactionGroupIDNotNil applies the NotNil predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDNotNil() predicate.ChargeStandardInvoiceAccruedUsage {
+	return predicate.ChargeStandardInvoiceAccruedUsage(sql.FieldNotNull(FieldLedgerTransactionGroupID))
+}
+
+// LedgerTransactionGroupIDEqualFold applies the EqualFold predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDEqualFold(v string) predicate.ChargeStandardInvoiceAccruedUsage {
+	return predicate.ChargeStandardInvoiceAccruedUsage(sql.FieldEqualFold(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDContainsFold applies the ContainsFold predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDContainsFold(v string) predicate.ChargeStandardInvoiceAccruedUsage {
+	return predicate.ChargeStandardInvoiceAccruedUsage(sql.FieldContainsFold(FieldLedgerTransactionGroupID, v))
 }
 
 // HasBillingInvoiceLine applies the HasEdge predicate on the "billing_invoice_line" edge.

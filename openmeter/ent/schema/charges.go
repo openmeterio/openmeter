@@ -108,8 +108,6 @@ func (Charge) Edges() []ent.Edge {
 			StorageKey(edge.Column("id")).
 			Annotations(entsql.OnDelete(entsql.Cascade)).
 			Unique(),
-		// Realizations
-		edge.To("credit_realizations", ChargeCreditRealization.Type),
 		// Billing
 		edge.To("billing_invoice_lines", BillingInvoiceLine.Type),
 		edge.To("billing_split_line_groups", BillingInvoiceSplitLineGroup.Type),
@@ -257,6 +255,7 @@ func (ChargeFlatFee) Edges() []ent.Edge {
 			Unique(),
 		edge.To("charge_standard_invoice_accrued_usage", ChargeStandardInvoiceAccruedUsage.Type).
 			Unique(),
+		edge.To("charge_credit_realizations", ChargeCreditRealization.Type),
 	}
 }
 
@@ -435,6 +434,14 @@ func (ChargeStandardInvoiceAccruedUsage) Fields() []ent.Field {
 		// Mutable flag indicates if the accrued usage can be reallocated as credits or if this needs to happen via
 		// the invoicing flow.
 		field.Bool("mutable"),
+
+		field.String("ledger_transaction_group_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			NotEmpty().
+			Nillable(),
 	}
 }
 
@@ -499,13 +506,20 @@ func (ChargeCreditRealization) Fields() []ent.Field {
 
 		field.Time("service_period_from"),
 		field.Time("service_period_to"),
+
+		field.String("ledger_transaction_group_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			NotEmpty().
+			Immutable(),
 	}
 }
 
 func (ChargeCreditRealization) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("charge", Charge.Type).
-			Ref("credit_realizations").
+		edge.From("charge_flat_fee", ChargeFlatFee.Type).
+			Ref("charge_credit_realizations").
 			Field("charge_id").
 			Unique().
 			Required().

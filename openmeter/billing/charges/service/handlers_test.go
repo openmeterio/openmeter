@@ -13,10 +13,11 @@ var _ charges.FlatFeeHandler = (*flatFeeTestHandler)(nil)
 type flatFeeTestHandler struct {
 	t *testing.T
 
-	onFlatFeeAssignedToInvoice    func(ctx context.Context, input charges.OnFlatFeeAssignedToInvoiceInput) ([]charges.CreditRealizationCreateInput, error)
-	onFlatFeePaymentAuthorized    func(ctx context.Context, charge charges.FlatFeeCharge) (charges.LedgerTransactionGroupReference, error)
-	onFlatFeePaymentSettled       func(ctx context.Context, charge charges.FlatFeeCharge) (charges.LedgerTransactionGroupReference, error)
-	onFlatFeePaymentUncollectible func(ctx context.Context, charge charges.FlatFeeCharge) (charges.LedgerTransactionGroupReference, error)
+	onFlatFeeAssignedToInvoice           func(ctx context.Context, input charges.OnFlatFeeAssignedToInvoiceInput) ([]charges.CreditRealizationCreateInput, error)
+	onFlatFeeStandardInvoiceUsageAccrued func(ctx context.Context, input charges.OnFlatFeeStandardInvoiceUsageAccruedInput) (charges.LedgerTransactionGroupReference, error)
+	onFlatFeePaymentAuthorized           func(ctx context.Context, charge charges.FlatFeeCharge) (charges.LedgerTransactionGroupReference, error)
+	onFlatFeePaymentSettled              func(ctx context.Context, charge charges.FlatFeeCharge) (charges.LedgerTransactionGroupReference, error)
+	onFlatFeePaymentUncollectible        func(ctx context.Context, charge charges.FlatFeeCharge) (charges.LedgerTransactionGroupReference, error)
 }
 
 func newFlatFeeTestHandler() *flatFeeTestHandler {
@@ -29,6 +30,14 @@ func (h *flatFeeTestHandler) OnFlatFeeAssignedToInvoice(ctx context.Context, inp
 	}
 
 	return h.onFlatFeeAssignedToInvoice(ctx, input)
+}
+
+func (h *flatFeeTestHandler) OnFlatFeeStandardInvoiceUsageAccrued(ctx context.Context, input charges.OnFlatFeeStandardInvoiceUsageAccruedInput) (charges.LedgerTransactionGroupReference, error) {
+	if h.onFlatFeeStandardInvoiceUsageAccrued == nil {
+		return charges.LedgerTransactionGroupReference{}, errors.New("onFlatFeeStandardInvoiceUsageAccrued is not set")
+	}
+
+	return h.onFlatFeeStandardInvoiceUsageAccrued(ctx, input)
 }
 
 func (h *flatFeeTestHandler) OnFlatFeePaymentAuthorized(ctx context.Context, charge charges.FlatFeeCharge) (charges.LedgerTransactionGroupReference, error) {

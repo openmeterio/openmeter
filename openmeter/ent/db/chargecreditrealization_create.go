@@ -14,8 +14,8 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -119,6 +119,12 @@ func (_c *ChargeCreditRealizationCreate) SetServicePeriodTo(v time.Time) *Charge
 	return _c
 }
 
+// SetLedgerTransactionGroupID sets the "ledger_transaction_group_id" field.
+func (_c *ChargeCreditRealizationCreate) SetLedgerTransactionGroupID(v string) *ChargeCreditRealizationCreate {
+	_c.mutation.SetLedgerTransactionGroupID(v)
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ChargeCreditRealizationCreate) SetID(v string) *ChargeCreditRealizationCreate {
 	_c.mutation.SetID(v)
@@ -133,9 +139,15 @@ func (_c *ChargeCreditRealizationCreate) SetNillableID(v *string) *ChargeCreditR
 	return _c
 }
 
-// SetCharge sets the "charge" edge to the Charge entity.
-func (_c *ChargeCreditRealizationCreate) SetCharge(v *Charge) *ChargeCreditRealizationCreate {
-	return _c.SetChargeID(v.ID)
+// SetChargeFlatFeeID sets the "charge_flat_fee" edge to the ChargeFlatFee entity by ID.
+func (_c *ChargeCreditRealizationCreate) SetChargeFlatFeeID(id string) *ChargeCreditRealizationCreate {
+	_c.mutation.SetChargeFlatFeeID(id)
+	return _c
+}
+
+// SetChargeFlatFee sets the "charge_flat_fee" edge to the ChargeFlatFee entity.
+func (_c *ChargeCreditRealizationCreate) SetChargeFlatFee(v *ChargeFlatFee) *ChargeCreditRealizationCreate {
+	return _c.SetChargeFlatFeeID(v.ID)
 }
 
 // SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
@@ -239,8 +251,16 @@ func (_c *ChargeCreditRealizationCreate) check() error {
 	if _, ok := _c.mutation.ServicePeriodTo(); !ok {
 		return &ValidationError{Name: "service_period_to", err: errors.New(`db: missing required field "ChargeCreditRealization.service_period_to"`)}
 	}
-	if len(_c.mutation.ChargeIDs()) == 0 {
-		return &ValidationError{Name: "charge", err: errors.New(`db: missing required edge "ChargeCreditRealization.charge"`)}
+	if _, ok := _c.mutation.LedgerTransactionGroupID(); !ok {
+		return &ValidationError{Name: "ledger_transaction_group_id", err: errors.New(`db: missing required field "ChargeCreditRealization.ledger_transaction_group_id"`)}
+	}
+	if v, ok := _c.mutation.LedgerTransactionGroupID(); ok {
+		if err := chargecreditrealization.LedgerTransactionGroupIDValidator(v); err != nil {
+			return &ValidationError{Name: "ledger_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditRealization.ledger_transaction_group_id": %w`, err)}
+		}
+	}
+	if len(_c.mutation.ChargeFlatFeeIDs()) == 0 {
+		return &ValidationError{Name: "charge_flat_fee", err: errors.New(`db: missing required edge "ChargeCreditRealization.charge_flat_fee"`)}
 	}
 	return nil
 }
@@ -310,15 +330,19 @@ func (_c *ChargeCreditRealizationCreate) createSpec() (*ChargeCreditRealization,
 		_spec.SetField(chargecreditrealization.FieldServicePeriodTo, field.TypeTime, value)
 		_node.ServicePeriodTo = value
 	}
-	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
+	if value, ok := _c.mutation.LedgerTransactionGroupID(); ok {
+		_spec.SetField(chargecreditrealization.FieldLedgerTransactionGroupID, field.TypeString, value)
+		_node.LedgerTransactionGroupID = value
+	}
+	if nodes := _c.mutation.ChargeFlatFeeIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   chargecreditrealization.ChargeTable,
-			Columns: []string{chargecreditrealization.ChargeColumn},
+			Table:   chargecreditrealization.ChargeFlatFeeTable,
+			Columns: []string{chargecreditrealization.ChargeFlatFeeColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -523,6 +547,9 @@ func (u *ChargeCreditRealizationUpsertOne) UpdateNewValues() *ChargeCreditRealiz
 		}
 		if _, exists := u.create.mutation.ChargeID(); exists {
 			s.SetIgnore(chargecreditrealization.FieldChargeID)
+		}
+		if _, exists := u.create.mutation.LedgerTransactionGroupID(); exists {
+			s.SetIgnore(chargecreditrealization.FieldLedgerTransactionGroupID)
 		}
 	}))
 	return u
@@ -865,6 +892,9 @@ func (u *ChargeCreditRealizationUpsertBulk) UpdateNewValues() *ChargeCreditReali
 			}
 			if _, exists := b.mutation.ChargeID(); exists {
 				s.SetIgnore(chargecreditrealization.FieldChargeID)
+			}
+			if _, exists := b.mutation.LedgerTransactionGroupID(); exists {
+				s.SetIgnore(chargecreditrealization.FieldLedgerTransactionGroupID)
 			}
 		}
 	}))

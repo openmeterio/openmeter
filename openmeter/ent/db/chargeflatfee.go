@@ -55,9 +55,11 @@ type ChargeFlatFeeEdges struct {
 	ChargeStandardInvoicePaymentSettlement *ChargeStandardInvoicePaymentSettlement `json:"charge_standard_invoice_payment_settlement,omitempty"`
 	// ChargeStandardInvoiceAccruedUsage holds the value of the charge_standard_invoice_accrued_usage edge.
 	ChargeStandardInvoiceAccruedUsage *ChargeStandardInvoiceAccruedUsage `json:"charge_standard_invoice_accrued_usage,omitempty"`
+	// ChargeCreditRealizations holds the value of the charge_credit_realizations edge.
+	ChargeCreditRealizations []*ChargeCreditRealization `json:"charge_credit_realizations,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // ChargeOrErr returns the Charge value or an error if the edge
@@ -91,6 +93,15 @@ func (e ChargeFlatFeeEdges) ChargeStandardInvoiceAccruedUsageOrErr() (*ChargeSta
 		return nil, &NotFoundError{label: chargestandardinvoiceaccruedusage.Label}
 	}
 	return nil, &NotLoadedError{edge: "charge_standard_invoice_accrued_usage"}
+}
+
+// ChargeCreditRealizationsOrErr returns the ChargeCreditRealizations value or an error if the edge
+// was not loaded in eager-loading.
+func (e ChargeFlatFeeEdges) ChargeCreditRealizationsOrErr() ([]*ChargeCreditRealization, error) {
+	if e.loadedTypes[3] {
+		return e.ChargeCreditRealizations, nil
+	}
+	return nil, &NotLoadedError{edge: "charge_credit_realizations"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -208,6 +219,11 @@ func (_m *ChargeFlatFee) QueryChargeStandardInvoicePaymentSettlement() *ChargeSt
 // QueryChargeStandardInvoiceAccruedUsage queries the "charge_standard_invoice_accrued_usage" edge of the ChargeFlatFee entity.
 func (_m *ChargeFlatFee) QueryChargeStandardInvoiceAccruedUsage() *ChargeStandardInvoiceAccruedUsageQuery {
 	return NewChargeFlatFeeClient(_m.config).QueryChargeStandardInvoiceAccruedUsage(_m)
+}
+
+// QueryChargeCreditRealizations queries the "charge_credit_realizations" edge of the ChargeFlatFee entity.
+func (_m *ChargeFlatFee) QueryChargeCreditRealizations() *ChargeCreditRealizationQuery {
+	return NewChargeFlatFeeClient(_m.config).QueryChargeCreditRealizations(_m)
 }
 
 // Update returns a builder for updating this ChargeFlatFee.

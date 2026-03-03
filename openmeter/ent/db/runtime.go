@@ -969,6 +969,10 @@ func init() {
 	chargecreditrealizationDescLineID := chargecreditrealizationFields[1].Descriptor()
 	// chargecreditrealization.LineIDValidator is a validator for the "line_id" field. It is called by the builders before save.
 	chargecreditrealization.LineIDValidator = chargecreditrealizationDescLineID.Validators[0].(func(string) error)
+	// chargecreditrealizationDescLedgerTransactionGroupID is the schema descriptor for ledger_transaction_group_id field.
+	chargecreditrealizationDescLedgerTransactionGroupID := chargecreditrealizationFields[5].Descriptor()
+	// chargecreditrealization.LedgerTransactionGroupIDValidator is a validator for the "ledger_transaction_group_id" field. It is called by the builders before save.
+	chargecreditrealization.LedgerTransactionGroupIDValidator = chargecreditrealizationDescLedgerTransactionGroupID.Validators[0].(func(string) error)
 	// chargecreditrealizationDescID is the schema descriptor for id field.
 	chargecreditrealizationDescID := chargecreditrealizationMixinFields1[0].Descriptor()
 	// chargecreditrealization.DefaultID holds the default value on creation for the id field.
@@ -1026,6 +1030,10 @@ func init() {
 	chargestandardinvoiceaccruedusageDescLineID := chargestandardinvoiceaccruedusageFields[1].Descriptor()
 	// chargestandardinvoiceaccruedusage.LineIDValidator is a validator for the "line_id" field. It is called by the builders before save.
 	chargestandardinvoiceaccruedusage.LineIDValidator = chargestandardinvoiceaccruedusageDescLineID.Validators[0].(func(string) error)
+	// chargestandardinvoiceaccruedusageDescLedgerTransactionGroupID is the schema descriptor for ledger_transaction_group_id field.
+	chargestandardinvoiceaccruedusageDescLedgerTransactionGroupID := chargestandardinvoiceaccruedusageFields[5].Descriptor()
+	// chargestandardinvoiceaccruedusage.LedgerTransactionGroupIDValidator is a validator for the "ledger_transaction_group_id" field. It is called by the builders before save.
+	chargestandardinvoiceaccruedusage.LedgerTransactionGroupIDValidator = chargestandardinvoiceaccruedusageDescLedgerTransactionGroupID.Validators[0].(func(string) error)
 	// chargestandardinvoiceaccruedusageDescID is the schema descriptor for id field.
 	chargestandardinvoiceaccruedusageDescID := chargestandardinvoiceaccruedusageMixinFields1[0].Descriptor()
 	// chargestandardinvoiceaccruedusage.DefaultID holds the default value on creation for the id field.

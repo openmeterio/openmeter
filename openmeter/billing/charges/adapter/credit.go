@@ -20,7 +20,8 @@ func (a *adapter) CreateCreditRealizations(ctx context.Context, chargeID charges
 				SetAnnotations(realization.Annotations).
 				SetServicePeriodFrom(realization.ServicePeriod.From.In(time.UTC)).
 				SetServicePeriodTo(realization.ServicePeriod.To.In(time.UTC)).
-				SetAmount(realization.Amount)
+				SetAmount(realization.Amount).
+				SetLedgerTransactionGroupID(realization.LedgerTransaction.TransactionGroupID)
 		})
 
 		entities, err := tx.db.ChargeCreditRealization.CreateBulk(creates...).Save(ctx)

@@ -145,6 +145,7 @@ func (s FlatFeeState) Validate() error {
 type FlatFeeService interface {
 	PostCreate(ctx context.Context, charge FlatFeeCharge) (PostCreateFlatFeeResult, error)
 	PostLineAssignedToInvoice(ctx context.Context, charge FlatFeeCharge, line billing.GatheringLine) (CreditRealizations, error)
+	PostInvoiceIssued(ctx context.Context, charge FlatFeeCharge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
 	PostPaymentAuthorized(ctx context.Context, charge FlatFeeCharge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
 	PostPaymentSettled(ctx context.Context, charge FlatFeeCharge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
 }
@@ -178,9 +179,36 @@ func (i OnFlatFeeAssignedToInvoiceInput) Validate() error {
 	return errors.Join(errs...)
 }
 
+type OnFlatFeeStandardInvoiceUsageAccruedInput struct {
+	Charge        FlatFeeCharge         `json:"charge"`
+	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
+	Totals        billing.Totals        `json:"totals"`
+}
+
+func (i OnFlatFeeStandardInvoiceUsageAccruedInput) Validate() error {
+	var errs []error
+
+	if err := i.Charge.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge: %w", err))
+	}
+
+	if err := i.ServicePeriod.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("service period: %w", err))
+	}
+
+	if err := i.Totals.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("totals: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
 type FlatFeeHandler interface {
 	// OnFlatFeeAssignedToInvoice is called when a flat fee is being assigned to an invoice
 	OnFlatFeeAssignedToInvoice(ctx context.Context, input OnFlatFeeAssignedToInvoiceInput) ([]CreditRealizationCreateInput, error)
+
+	// OnFlatFeeStandardInvoiceUsageAccrued is called when the remaining usage is sent to the customer on a standard invoice.
+	OnFlatFeeStandardInvoiceUsageAccrued(ctx context.Context, input OnFlatFeeStandardInvoiceUsageAccruedInput) (LedgerTransactionGroupReference, error)
 
 	// OnFlatFeePaymentAuthorized is called when a flat fee payment is authorized
 	OnFlatFeePaymentAuthorized(ctx context.Context, charge FlatFeeCharge) (LedgerTransactionGroupReference, error)
