@@ -13,21 +13,46 @@ using TypeSpec.OpenAPI;
 namespace LLMCost;
 
 /**
+ * A filter for a single string field.
+ * TODO: This is a temporary solution to support the filter API.
+ */
+@friendlyName("FilterSingleString")
+model FilterSingleString {
+  /**
+   * The field must match the provided value.
+   */
+  @extension("x-omitempty", true)
+  eq?: string;
+
+  /**
+   * The field must not match the provided value.
+   */
+  @extension("x-omitempty", true)
+  neq?: string;
+
+  /**
+   * The field must contain the provided value.
+   */
+  @extension("x-omitempty", true)
+  contains?: string;
+}
+
+/**
  * Filter options for listing LLM cost prices.
  */
 @friendlyName("ListLLMCostPricesParamsFilter")
 model ListPricesParamsFilter {
-  /** Filter by provider (case-insensitive, partial match). */
-  provider?: string;
+  /** Filter by provider. e.g. ?filter[provider][eq]=openai */
+  provider?: FilterSingleString;
 
-  /** Filter by model ID (case-insensitive, partial match). */
-  model_id?: string;
+  /** Filter by model ID. e.g. ?filter[model_id][eq]=gpt-4 */
+  model_id?: FilterSingleString;
 
-  /** Filter by model name (case-insensitive, partial match). */
-  model_name?: string;
+  /** Filter by model name. e.g. ?filter[model_name][contains]=gpt */
+  model_name?: FilterSingleString;
 
-  /** Filter by currency code (case-insensitive, partial match). */
-  currency?: Shared.CurrencyCode;
+  /** Filter by currency code. e.g. ?filter[currency][eq]=USD */
+  currency?: FilterSingleString;
 }
 
 /**

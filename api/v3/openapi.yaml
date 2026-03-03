@@ -3565,6 +3565,24 @@ components:
       description: ExternalResourceKey is a unique string that is used to identify a resource in an external system.
       title: External Resource Key
       example: 019ae40f-4258-7f15-9491-842f42a7d6ac
+    FilterSingleString:
+      type: object
+      properties:
+        eq:
+          type: string
+          description: The field must match the provided value.
+          x-omitempty: true
+        neq:
+          type: string
+          description: The field must not match the provided value.
+          x-omitempty: true
+        contains:
+          type: string
+          description: The field must contain the provided value.
+          x-omitempty: true
+      description: |-
+        A filter for a single string field.
+        TODO: This is a temporary solution to support the filter API.
     ISO8601Duration:
       type: string
       pattern: ^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$
@@ -3753,18 +3771,21 @@ components:
       type: object
       properties:
         provider:
-          type: string
-          description: Filter by provider (case-insensitive, partial match).
+          allOf:
+            - $ref: '#/components/schemas/FilterSingleString'
+          description: Filter by provider. e.g. ?filter[provider][eq]=openai
         model_id:
-          type: string
-          description: Filter by model ID (case-insensitive, partial match).
+          allOf:
+            - $ref: '#/components/schemas/FilterSingleString'
+          description: Filter by model ID. e.g. ?filter[model_id][eq]=gpt-4
         model_name:
-          type: string
-          description: Filter by model name (case-insensitive, partial match).
+          allOf:
+            - $ref: '#/components/schemas/FilterSingleString'
+          description: Filter by model name. e.g. ?filter[model_name][contains]=gpt
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          description: Filter by currency code (case-insensitive, partial match).
+            - $ref: '#/components/schemas/FilterSingleString'
+          description: Filter by currency code. e.g. ?filter[currency][eq]=USD
       description: Filter options for listing LLM cost prices.
     Meter:
       type: object
