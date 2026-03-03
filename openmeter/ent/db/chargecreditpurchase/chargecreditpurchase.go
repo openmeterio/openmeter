@@ -3,8 +3,6 @@
 package chargecreditpurchase
 
 import (
-	"fmt"
-
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -22,8 +20,10 @@ const (
 	FieldCreditAmount = "credit_amount"
 	// FieldSettlement holds the string denoting the settlement field in the database.
 	FieldSettlement = "settlement"
-	// FieldStatus holds the string denoting the status field in the database.
-	FieldStatus = "status"
+	// FieldCreditGrantTransactionGroupID holds the string denoting the credit_grant_transaction_group_id field in the database.
+	FieldCreditGrantTransactionGroupID = "credit_grant_transaction_group_id"
+	// FieldCreditGrantedAt holds the string denoting the credit_granted_at field in the database.
+	FieldCreditGrantedAt = "credit_granted_at"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
 	EdgeCharge = "charge"
 	// Table holds the table name of the chargecreditpurchase in the database.
@@ -43,7 +43,8 @@ var Columns = []string{
 	FieldNamespace,
 	FieldCreditAmount,
 	FieldSettlement,
-	FieldStatus,
+	FieldCreditGrantTransactionGroupID,
+	FieldCreditGrantedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -59,6 +60,8 @@ func ValidColumn(column string) bool {
 var (
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	NamespaceValidator func(string) error
+	// CreditGrantTransactionGroupIDValidator is a validator for the "credit_grant_transaction_group_id" field. It is called by the builders before save.
+	CreditGrantTransactionGroupIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all ChargeCreditPurchase fields.
@@ -66,16 +69,6 @@ var (
 		Settlement field.TypeValueScanner[charges.CreditPurchaseSettlement]
 	}
 )
-
-// StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
-func StatusValidator(s charges.PaymentSettlementStatus) error {
-	switch s {
-	case "initiated", "authorized", "settled":
-		return nil
-	default:
-		return fmt.Errorf("chargecreditpurchase: invalid enum value for status field: %q", s)
-	}
-}
 
 // OrderOption defines the ordering options for the ChargeCreditPurchase queries.
 type OrderOption func(*sql.Selector)
@@ -100,9 +93,14 @@ func BySettlement(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSettlement, opts...).ToFunc()
 }
 
-// ByStatus orders the results by the status field.
-func ByStatus(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+// ByCreditGrantTransactionGroupID orders the results by the credit_grant_transaction_group_id field.
+func ByCreditGrantTransactionGroupID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreditGrantTransactionGroupID, opts...).ToFunc()
+}
+
+// ByCreditGrantedAt orders the results by the credit_granted_at field.
+func ByCreditGrantedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreditGrantedAt, opts...).ToFunc()
 }
 
 // ByChargeField orders the results by charge field.

@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 func (s *service) CreateCharges(ctx context.Context, input charges.CreateChargeInputs) (charges.Charges, error) {
@@ -22,7 +23,7 @@ func (s *service) CreateCharges(ctx context.Context, input charges.CreateChargeI
 	// Let's validate for unsupported charge types while we are building out the service
 	for _, charge := range input.Intents {
 		switch charge.Type() {
-		case charges.ChargeTypeUsageBased, charges.ChargeTypeCreditPurchase:
+		case charges.ChargeTypeUsageBased:
 			return nil, fmt.Errorf("unsupported charge type %s: %w", charge.Type(), charges.ErrUnsupported)
 		}
 	}
@@ -38,8 +39,10 @@ func (s *service) CreateCharges(ctx context.Context, input charges.CreateChargeI
 			return nil, err
 		}
 
+		resultsByChargeID := make(map[charges.ChargeID]charges.Charge)
+
 		if len(createdChargesByType.usageBased) > 0 || len(createdChargesByType.flatFees) > 0 {
-			err := s.invoiceChargePostCreate(ctx, invoiceChargePostCreateInput{
+			result, err := s.invoiceChargePostCreate(ctx, invoiceChargePostCreateInput{
 				namespace:  input.Namespace,
 				flatFees:   createdChargesByType.flatFees,
 				usageBased: createdChargesByType.usageBased,
@@ -47,9 +50,46 @@ func (s *service) CreateCharges(ctx context.Context, input charges.CreateChargeI
 			if err != nil {
 				return nil, err
 			}
+
+			if result != nil {
+				for _, flatFee := range result.flatFees {
+					resultsByChargeID[flatFee.GetChargeID()] = charges.NewCharge(flatFee)
+				}
+				for _, usageBased := range result.usageBased {
+					resultsByChargeID[usageBased.GetChargeID()] = charges.NewCharge(usageBased)
+				}
+			}
 		}
 
-		return createdCharges, nil
+		if len(createdChargesByType.creditPurchase) > 0 {
+			for _, creditPurchase := range createdChargesByType.creditPurchase {
+				result, err := s.creditPurchaseService.PostCreate(ctx, creditPurchase)
+				if err != nil {
+					return nil, err
+				}
+
+				resultsByChargeID[result.GetChargeID()] = charges.NewCharge(result)
+			}
+		}
+
+		out, err := slicesx.MapWithErr(createdCharges, func(charge charges.Charge) (charges.Charge, error) {
+			chargeID, err := charge.GetChargeID()
+			if err != nil {
+				return charges.Charge{}, err
+			}
+
+			updatedCharge, ok := resultsByChargeID[chargeID]
+			if !ok {
+				return charges.Charge{}, fmt.Errorf("charge %s not found", chargeID)
+			}
+
+			return updatedCharge, nil
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		return out, nil
 	})
 }
 
@@ -79,22 +119,34 @@ type gatheringLineWithCustomerID struct {
 	customerID    string
 }
 
-func (s *service) invoiceChargePostCreate(ctx context.Context, in invoiceChargePostCreateInput) error {
+type invoiceChargePostCreateResult struct {
+	flatFees   []charges.FlatFeeCharge
+	usageBased []charges.UsageBasedCharge
+}
+
+func (s *service) invoiceChargePostCreate(ctx context.Context, in invoiceChargePostCreateInput) (*invoiceChargePostCreateResult, error) {
+	result := invoiceChargePostCreateResult{
+		flatFees:   make([]charges.FlatFeeCharge, 0, len(in.flatFees)),
+		usageBased: make([]charges.UsageBasedCharge, 0, len(in.usageBased)),
+	}
+
 	// Let's execute the post create hooks for all the charges
 	gatheringLinesToCreate := make([]gatheringLineWithCustomerID, 0, len(in.flatFees)+len(in.usageBased))
 	for _, flatFee := range in.flatFees {
 		res, err := s.flatFeeService.PostCreate(ctx, flatFee)
 		if err != nil {
-			return err
+			return nil, err
 		}
+
+		result.flatFees = append(result.flatFees, res.Charge)
 
 		if res.GatheringLineToCreate != nil {
 			if res.GatheringLineToCreate.ChargeID == nil {
-				return fmt.Errorf("gathering line charge ID is nil")
+				return nil, fmt.Errorf("gathering line charge ID is nil")
 			}
 
 			if *res.GatheringLineToCreate.ChargeID != flatFee.ID {
-				return fmt.Errorf("gathering line charge ID %s does not match charge ID %s", *res.GatheringLineToCreate.ChargeID, flatFee.ID)
+				return nil, fmt.Errorf("gathering line charge ID %s does not match charge ID %s", *res.GatheringLineToCreate.ChargeID, flatFee.ID)
 			}
 
 			gatheringLinesToCreate = append(gatheringLinesToCreate, gatheringLineWithCustomerID{
@@ -105,7 +157,7 @@ func (s *service) invoiceChargePostCreate(ctx context.Context, in invoiceChargeP
 	}
 
 	if len(gatheringLinesToCreate) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	uniqueCurrencyAndCustomerIDs := lo.Uniq(
@@ -136,9 +188,9 @@ func (s *service) invoiceChargePostCreate(ctx context.Context, in invoiceChargeP
 			Lines:    gatheringLinesForCurrencyAndCustomer,
 		})
 		if err != nil {
-			return fmt.Errorf("creating pending invoice lines for charges: %w", err)
+			return nil, fmt.Errorf("creating pending invoice lines for charges: %w", err)
 		}
 	}
 
-	return nil
+	return nil, nil
 }

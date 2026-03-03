@@ -294,10 +294,15 @@ func (ChargeCreditPurchase) Fields() []ent.Field {
 				dialect.Postgres: "jsonb",
 			}),
 
-		// State fields
+		field.String("credit_grant_transaction_group_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			NotEmpty().
+			Nillable(),
 
-		field.Enum("status").
-			GoType(charges.PaymentSettlementStatus("")),
+		field.Time("credit_granted_at").Optional().Nillable(),
 	}
 }
 

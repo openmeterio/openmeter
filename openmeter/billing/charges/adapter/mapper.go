@@ -150,6 +150,16 @@ func MapCreditPurchaseChargeFromDB(entity *entdb.Charge, expands charges.Expands
 
 	cp := entity.Edges.CreditPurchase
 
+	var grantLedgerTransactionReference *charges.TimedLedgerTransactionGroupReference
+	if cp.CreditGrantTransactionGroupID != nil {
+		grantLedgerTransactionReference = &charges.TimedLedgerTransactionGroupReference{
+			LedgerTransactionGroupReference: charges.LedgerTransactionGroupReference{
+				TransactionGroupID: *cp.CreditGrantTransactionGroupID,
+			},
+			Time: cp.CreditGrantedAt.In(time.UTC),
+		}
+	}
+
 	return charges.CreditPurchaseCharge{
 		ManagedResource: mapManagedResourceFromDB(entity),
 		Status:          entity.Status,
@@ -159,7 +169,7 @@ func MapCreditPurchaseChargeFromDB(entity *entdb.Charge, expands charges.Expands
 			Settlement:   cp.Settlement,
 		},
 		State: charges.CreditPurchaseState{
-			Status: cp.Status,
+			CreditGrantRealization: grantLedgerTransactionReference,
 		},
 	}, nil
 }

@@ -2187,6 +2187,34 @@ func (u *ChargeUpdateOne) SetOrClearUniqueReferenceID(value *string) *ChargeUpda
 	return u.SetUniqueReferenceID(*value)
 }
 
+func (u *ChargeCreditPurchaseUpdate) SetOrClearCreditGrantTransactionGroupID(value *string) *ChargeCreditPurchaseUpdate {
+	if value == nil {
+		return u.ClearCreditGrantTransactionGroupID()
+	}
+	return u.SetCreditGrantTransactionGroupID(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdateOne) SetOrClearCreditGrantTransactionGroupID(value *string) *ChargeCreditPurchaseUpdateOne {
+	if value == nil {
+		return u.ClearCreditGrantTransactionGroupID()
+	}
+	return u.SetCreditGrantTransactionGroupID(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdate) SetOrClearCreditGrantedAt(value *time.Time) *ChargeCreditPurchaseUpdate {
+	if value == nil {
+		return u.ClearCreditGrantedAt()
+	}
+	return u.SetCreditGrantedAt(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdateOne) SetOrClearCreditGrantedAt(value *time.Time) *ChargeCreditPurchaseUpdateOne {
+	if value == nil {
+		return u.ClearCreditGrantedAt()
+	}
+	return u.SetCreditGrantedAt(*value)
+}
+
 func (u *ChargeCreditRealizationUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeCreditRealizationUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

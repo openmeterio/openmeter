@@ -6,18 +6,21 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/service/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/service/flatfee"
 )
 
 type service struct {
-	adapter        charges.Adapter
-	billingService billing.Service
-	handlers       Handlers
-	flatFeeService charges.FlatFeeService
+	adapter               charges.Adapter
+	billingService        billing.Service
+	handlers              Handlers
+	flatFeeService        charges.FlatFeeService
+	creditPurchaseService charges.CreditPurchaseService
 }
 
 type Handlers struct {
-	FlatFee charges.FlatFeeHandler
+	FlatFee        charges.FlatFeeHandler
+	CreditPurchase charges.CreditPurchaseHandler
 }
 
 func (h Handlers) Validate() error {
@@ -67,11 +70,20 @@ func New(config Config) (*service, error) {
 		return nil, err
 	}
 
+	creditPurchaseService, err := creditpurchase.New(creditpurchase.Config{
+		Adapter:               config.Adapter,
+		CreditPurchaseHandler: config.Handlers.CreditPurchase,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	svc := &service{
-		adapter:        config.Adapter,
-		billingService: config.BillingService,
-		handlers:       config.Handlers,
-		flatFeeService: flatFeeService,
+		adapter:               config.Adapter,
+		billingService:        config.BillingService,
+		handlers:              config.Handlers,
+		flatFeeService:        flatFeeService,
+		creditPurchaseService: creditPurchaseService,
 	}
 
 	standardInvoiceEventHandler := &standardInvoiceEventHandler{

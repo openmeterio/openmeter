@@ -5,6 +5,7 @@ package db
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -25,8 +26,10 @@ type ChargeCreditPurchase struct {
 	CreditAmount alpacadecimal.Decimal `json:"credit_amount,omitempty"`
 	// Settlement holds the value of the "settlement" field.
 	Settlement charges.CreditPurchaseSettlement `json:"settlement,omitempty"`
-	// Status holds the value of the "status" field.
-	Status charges.PaymentSettlementStatus `json:"status,omitempty"`
+	// CreditGrantTransactionGroupID holds the value of the "credit_grant_transaction_group_id" field.
+	CreditGrantTransactionGroupID *string `json:"credit_grant_transaction_group_id,omitempty"`
+	// CreditGrantedAt holds the value of the "credit_granted_at" field.
+	CreditGrantedAt *time.Time `json:"credit_granted_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeCreditPurchaseQuery when eager-loading is set.
 	Edges        ChargeCreditPurchaseEdges `json:"edges"`
@@ -60,8 +63,10 @@ func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargecreditpurchase.FieldCreditAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldStatus:
+		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldCreditGrantTransactionGroupID:
 			values[i] = new(sql.NullString)
+		case chargecreditpurchase.FieldCreditGrantedAt:
+			values[i] = new(sql.NullTime)
 		case chargecreditpurchase.FieldSettlement:
 			values[i] = chargecreditpurchase.ValueScanner.Settlement.ScanValue()
 		default:
@@ -103,11 +108,19 @@ func (_m *ChargeCreditPurchase) assignValues(columns []string, values []any) err
 			} else {
 				_m.Settlement = value
 			}
-		case chargecreditpurchase.FieldStatus:
+		case chargecreditpurchase.FieldCreditGrantTransactionGroupID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field status", values[i])
+				return fmt.Errorf("unexpected type %T for field credit_grant_transaction_group_id", values[i])
 			} else if value.Valid {
-				_m.Status = charges.PaymentSettlementStatus(value.String)
+				_m.CreditGrantTransactionGroupID = new(string)
+				*_m.CreditGrantTransactionGroupID = value.String
+			}
+		case chargecreditpurchase.FieldCreditGrantedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field credit_granted_at", values[i])
+			} else if value.Valid {
+				_m.CreditGrantedAt = new(time.Time)
+				*_m.CreditGrantedAt = value.Time
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -159,8 +172,15 @@ func (_m *ChargeCreditPurchase) String() string {
 	builder.WriteString("settlement=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Settlement))
 	builder.WriteString(", ")
-	builder.WriteString("status=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Status))
+	if v := _m.CreditGrantTransactionGroupID; v != nil {
+		builder.WriteString("credit_grant_transaction_group_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.CreditGrantedAt; v != nil {
+		builder.WriteString("credit_granted_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }
