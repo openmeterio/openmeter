@@ -6,7 +6,6 @@ namespace Customers;
 /**
  * Billing customer data.
  */
-#suppress "@openmeter/api-spec/repeated-prefix-grouping" "Read and write properties"
 @friendlyName("BillingCustomerData")
 model CustomerBillingData {
   /**

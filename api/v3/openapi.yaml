@@ -115,6 +115,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Billing
+      x-internal: true
       x-unstable: true
       x-private: true
   /openmeter/currencies/custom:
@@ -145,6 +146,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateCurrencyCustomRequest'
+      x-internal: true
       x-unstable: true
       x-private: true
   /openmeter/currencies/custom/{currencyId}/cost-bases:
@@ -188,6 +190,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Billing
+      x-internal: true
       x-unstable: true
       x-private: true
     post:
@@ -221,6 +224,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateCostBasisRequest'
+      x-internal: true
       x-unstable: true
       x-private: true
   /openmeter/customers:
@@ -648,6 +652,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter LLM Cost
+      x-internal: true
       x-unstable: true
       x-private: true
     post:
@@ -675,6 +680,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/LLMCostOverrideCreate'
+      x-internal: true
       x-unstable: true
       x-private: true
   /openmeter/llm-cost/overrides/{priceId}:
@@ -701,6 +707,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter LLM Cost
+      x-internal: true
       x-unstable: true
       x-private: true
   /openmeter/llm-cost/prices:
@@ -734,6 +741,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter LLM Cost
+      x-internal: true
       x-unstable: true
       x-private: true
   /openmeter/llm-cost/prices/{priceId}:
@@ -766,6 +774,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter LLM Cost
+      x-internal: true
       x-unstable: true
       x-private: true
   /openmeter/meters:
@@ -866,6 +875,42 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - Meters
+    post:
+      operationId: query-meter
+      summary: Query meter
+      description: Query a meter for usage.
+      parameters:
+        - name: meterId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterQueryResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - Meters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeterQueryRequest'
+      x-internal: true
+      x-unstable: true
+      x-private: true
   /openmeter/profiles:
     get:
       operationId: list-billing-profiles
@@ -1229,6 +1274,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateTaxCodeRequest'
+      x-internal: true
       x-unstable: true
       x-private: true
     get:
@@ -1259,6 +1305,7 @@ paths:
           $ref: '#/components/responses/Forbidden'
       tags:
         - OpenMeter Tax
+      x-internal: true
       x-unstable: true
       x-private: true
   /openmeter/tax-codes/{taxCodeId}:
@@ -1288,6 +1335,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Tax
+      x-internal: true
       x-unstable: true
       x-private: true
     put:
@@ -1324,6 +1372,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpsertTaxCodeRequest'
+      x-internal: true
       x-unstable: true
       x-private: true
     delete:
@@ -1348,6 +1397,7 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Tax
+      x-internal: true
       x-unstable: true
       x-private: true
 components:
@@ -3908,6 +3958,156 @@ components:
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
       description: Page paginated response.
+    MeterQueryFilters:
+      type: object
+      properties:
+        subject_key:
+          allOf:
+            - $ref: '#/components/schemas/QueryFilterString'
+          description: |-
+            Filters to apply to the subject key of the query.
+            Only equals ("eq", "in") comparisons are supported.
+        customer_id:
+          allOf:
+            - $ref: '#/components/schemas/QueryFilterString'
+          description: |-
+            Filters to apply to the customer ID of the query.
+            Only equals ("eq", "in") comparisons are supported.
+        dimensions:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/QueryFilterStringMapItem'
+          maxProperties: 10
+          description: Filters to apply to the dimensions of the query.
+      description: Filters to apply to a meter query.
+    MeterQueryGranularity:
+      type: string
+      enum:
+        - PT1M
+        - PT1H
+        - P1D
+        - P1M
+      description: |-
+        The granularity of the time grouping.
+        Time durations are specified in ISO 8601 format.
+    MeterQueryRequest:
+      type: object
+      properties:
+        from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The start of the period the usage is queried from.
+        to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The end of the period the usage is queried to.
+        granularity:
+          allOf:
+            - $ref: '#/components/schemas/MeterQueryGranularity'
+          description: |-
+            The size of the time buckets to group the usage into.
+            If not specified, the usage is aggregated over the entire period.
+        time_zone:
+          type: string
+          description: |-
+            The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+            The time zone is used to determine the start and end of the time buckets.
+            If not specified, the UTC timezone will be used.
+          default: UTC
+        group_by_dimensions:
+          type: array
+          items:
+            type: string
+          maxItems: 100
+          description: The dimensions to group the results by.
+          example:
+            - model
+            - type
+        filters:
+          allOf:
+            - $ref: '#/components/schemas/MeterQueryFilters'
+          description: Filters to apply to the query.
+      description: A meter query request.
+      example:
+        from: '2023-01-01T00:00:00Z'
+        to: '2023-01-02T00:00:00Z'
+        granularity: P1D
+        time_zone: UTC
+    MeterQueryResult:
+      type: object
+      required:
+        - data
+      properties:
+        from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The start of the period the usage is queried from.
+        to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The end of the period the usage is queried to.
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MeterQueryRow'
+          description: |-
+            The usage data.
+            If no data is available, an empty array is returned.
+      description: Meter query result.
+      example:
+        from: '2023-01-01T00:00:00Z'
+        to: '2023-01-02T00:00:00Z'
+        data:
+          - value: '12.3456'
+            from: '2023-01-01T00:00:00Z'
+            to: '2023-01-02T00:00:00Z'
+            subject_key: 83d489bd-13a5-4a3d-a886-44c385b5c43b
+            dimensions:
+              model: gpt-4-turbo
+              type: input
+    MeterQueryRow:
+      type: object
+      required:
+        - value
+        - from
+        - to
+        - dimensions
+      properties:
+        value:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The aggregated value.
+        from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The start of the time bucket the value is aggregated over.
+        to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The end of the time bucket the value is aggregated over.
+        subject_key:
+          type: string
+          description: |-
+            The subject key the value is aggregated over.
+            If not specified, the value is aggregated over all subjects.
+        customer_id:
+          type: string
+          description: The customer ID the value is aggregated over.
+        dimensions:
+          type: object
+          additionalProperties:
+            type: string
+            nullable: true
+          description: The dimensions the value is aggregated over.
+      description: A row in the result of a meter query.
+      example:
+        value: '12.3456'
+        from: '2023-01-01T00:00:00Z'
+        to: '2023-01-02T00:00:00Z'
+        subject_key: 83d489bd-13a5-4a3d-a886-44c385b5c43b
+        dimensions:
+          model: gpt-4-turbo
+          type: input
     MeteringEvent:
       type: object
       required:
@@ -4002,6 +4202,106 @@ components:
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
       description: Page paginated response.
+    QueryFilterString:
+      type: object
+      properties:
+        eq:
+          type: string
+          description: The attribute equals the provided value.
+        neq:
+          type: string
+          description: The attribute does not equal the provided value.
+        in:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 100
+          description: The attribute is one of the provided values.
+        nin:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 100
+          description: The attribute is not one of the provided values.
+        contains:
+          type: string
+          description: The attribute contains the provided value.
+        ncontains:
+          type: string
+          description: The attribute does not contain the provided value.
+        and:
+          type: array
+          items:
+            $ref: '#/components/schemas/QueryFilterString'
+          minItems: 1
+          maxItems: 10
+          description: Combines the provided filters with a logical AND.
+        or:
+          type: array
+          items:
+            $ref: '#/components/schemas/QueryFilterString'
+          minItems: 1
+          maxItems: 10
+          description: Combines the provided filters with a logical OR.
+      description: |-
+        A query filter for a string attribute.
+        Operators are mutually exclusive, only one operator is allowed at a time.
+      title: Query String Filter
+    QueryFilterStringMapItem:
+      type: object
+      properties:
+        exists:
+          type: boolean
+          description: The attribute exists.
+        nexists:
+          type: boolean
+          description: The attribute does not exist.
+        eq:
+          type: string
+          description: The attribute equals the provided value.
+        neq:
+          type: string
+          description: The attribute does not equal the provided value.
+        in:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 100
+          description: The attribute is one of the provided values.
+        nin:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 100
+          description: The attribute is not one of the provided values.
+        contains:
+          type: string
+          description: The attribute contains the provided value.
+        ncontains:
+          type: string
+          description: The attribute does not contain the provided value.
+        and:
+          type: array
+          items:
+            $ref: '#/components/schemas/QueryFilterString'
+          minItems: 1
+          maxItems: 10
+          description: Combines the provided filters with a logical AND.
+        or:
+          type: array
+          items:
+            $ref: '#/components/schemas/QueryFilterString'
+          minItems: 1
+          maxItems: 10
+          description: Combines the provided filters with a logical OR.
+      description: |-
+        A query filter for an item in a string map attribute.
+        Operators are mutually exclusive, only one operator is allowed at a time.
+      title: Query String Map Item Filter
     RecurringPeriod:
       type: object
       required:

@@ -46,12 +46,15 @@ importers:
       '@typespec/http-client-python':
         specifier: 0.27.2
         version: 0.27.2(patch_hash=1845bbe65cf72d3bd9a24c653c12b7c28846e8ae1203cf8457fc4ce78aec6c60)(a6c40c843b7fc66fd7c2f4e59cd37cbd)
+      '@typespec/json-schema':
+        specifier: 1.9.0
+        version: 1.9.0(@typespec/compiler@1.9.0(patch_hash=f74b38df4ba7ce4f026d36410a2def115804aae7c81214b84587c29b4697112d)(@types/node@25.3.3))
       '@typespec/openapi':
         specifier: 1.9.0
         version: 1.9.0(patch_hash=88818496413cc49112ddd08bc18f9826b06a4656bdd835123bc3257321b6b91d)(@typespec/compiler@1.9.0(patch_hash=f74b38df4ba7ce4f026d36410a2def115804aae7c81214b84587c29b4697112d)(@types/node@25.3.3))(@typespec/http@1.9.1(patch_hash=74effecc1e57e6cfe636b5e200ceff69051bf838384722886a07ef828b6262d8)(@typespec/compiler@1.9.0(patch_hash=f74b38df4ba7ce4f026d36410a2def115804aae7c81214b84587c29b4697112d)(@types/node@25.3.3))(@typespec/streams@0.75.0(@typespec/compiler@1.9.0(patch_hash=f74b38df4ba7ce4f026d36410a2def115804aae7c81214b84587c29b4697112d)(@types/node@25.3.3))))
       '@typespec/openapi3':
         specifier: 1.9.0
-        version: 1.9.0(patch_hash=1b6f5b44033fb3745d5f6c31a38c15c38aa0a3f089819e15154f8080b83859f2)(35a39d77defa2021ae83a9e4aed2304b)
+        version: 1.9.0(patch_hash=1b6f5b44033fb3745d5f6c31a38c15c38aa0a3f089819e15154f8080b83859f2)(688aa6f60d36fd7aaeeef59176d47e01)
       '@typespec/prettier-plugin-typespec':
         specifier: 1.9.0
         version: 1.9.0
@@ -696,6 +699,12 @@ packages:
     peerDependenciesMeta:
       '@typespec/streams':
         optional: true
+
+  '@typespec/json-schema@1.9.0':
+    resolution: {integrity: sha512-splP6YL1CWPtBDenOeaVEs058TBqSzMDZyX4h9A39Q5qwmhyQ00DPXdnmJWRP96IWVAlHnN806GJWc/yttzSVg==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      '@typespec/compiler': ^1.9.0
 
   '@typespec/openapi3@1.9.0':
     resolution: {integrity: sha512-htwhrGHQxuoNwAljeJE8CBt5yfKOv48T9Ugv91Y+4yNnlevJfDT29yrfD2mXYMujVOr3Kte1qilazClafkUIgg==}
@@ -2252,7 +2261,13 @@ snapshots:
     optionalDependencies:
       '@typespec/streams': 0.75.0(@typespec/compiler@1.9.0(patch_hash=f74b38df4ba7ce4f026d36410a2def115804aae7c81214b84587c29b4697112d)(@types/node@25.3.3))
 
-  '@typespec/openapi3@1.9.0(patch_hash=1b6f5b44033fb3745d5f6c31a38c15c38aa0a3f089819e15154f8080b83859f2)(35a39d77defa2021ae83a9e4aed2304b)':
+  '@typespec/json-schema@1.9.0(@typespec/compiler@1.9.0(patch_hash=f74b38df4ba7ce4f026d36410a2def115804aae7c81214b84587c29b4697112d)(@types/node@25.3.3))':
+    dependencies:
+      '@typespec/asset-emitter': 0.79.0(@typespec/compiler@1.9.0(patch_hash=f74b38df4ba7ce4f026d36410a2def115804aae7c81214b84587c29b4697112d)(@types/node@25.3.3))
+      '@typespec/compiler': 1.9.0(patch_hash=f74b38df4ba7ce4f026d36410a2def115804aae7c81214b84587c29b4697112d)(@types/node@25.3.3)
+      yaml: 2.8.2
+
+  '@typespec/openapi3@1.9.0(patch_hash=1b6f5b44033fb3745d5f6c31a38c15c38aa0a3f089819e15154f8080b83859f2)(688aa6f60d36fd7aaeeef59176d47e01)':
     dependencies:
       '@scalar/json-magic': 0.9.6
       '@scalar/openapi-parser': 0.24.17
@@ -2264,6 +2279,7 @@ snapshots:
       yaml: 2.8.2
     optionalDependencies:
       '@typespec/events': 0.76.0(@typespec/compiler@1.9.0(patch_hash=f74b38df4ba7ce4f026d36410a2def115804aae7c81214b84587c29b4697112d)(@types/node@25.3.3))
+      '@typespec/json-schema': 1.9.0(@typespec/compiler@1.9.0(patch_hash=f74b38df4ba7ce4f026d36410a2def115804aae7c81214b84587c29b4697112d)(@types/node@25.3.3))
       '@typespec/sse': 0.76.0(@typespec/compiler@1.9.0(patch_hash=f74b38df4ba7ce4f026d36410a2def115804aae7c81214b84587c29b4697112d)(@types/node@25.3.3))(@typespec/events@0.76.0(@typespec/compiler@1.9.0(patch_hash=f74b38df4ba7ce4f026d36410a2def115804aae7c81214b84587c29b4697112d)(@types/node@25.3.3)))(@typespec/http@1.9.1(patch_hash=74effecc1e57e6cfe636b5e200ceff69051bf838384722886a07ef828b6262d8)(@typespec/compiler@1.9.0(patch_hash=f74b38df4ba7ce4f026d36410a2def115804aae7c81214b84587c29b4697112d)(@types/node@25.3.3))(@typespec/streams@0.75.0(@typespec/compiler@1.9.0(patch_hash=f74b38df4ba7ce4f026d36410a2def115804aae7c81214b84587c29b4697112d)(@types/node@25.3.3))))(@typespec/streams@0.75.0(@typespec/compiler@1.9.0(patch_hash=f74b38df4ba7ce4f026d36410a2def115804aae7c81214b84587c29b4697112d)(@types/node@25.3.3)))
       '@typespec/streams': 0.75.0(@typespec/compiler@1.9.0(patch_hash=f74b38df4ba7ce4f026d36410a2def115804aae7c81214b84587c29b4697112d)(@types/node@25.3.3))
       '@typespec/versioning': 0.79.0(@typespec/compiler@1.9.0(patch_hash=f74b38df4ba7ce4f026d36410a2def115804aae7c81214b84587c29b4697112d)(@types/node@25.3.3))

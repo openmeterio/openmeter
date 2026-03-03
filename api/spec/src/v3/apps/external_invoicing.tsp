@@ -19,7 +19,6 @@ namespace Apps;
  * State synchronization is controlled by hooks that pause invoice progression until the
  * external system confirms synchronization via API callbacks.
  */
-#suppress "@openmeter/api-spec/repeated-prefix-grouping" "Hooks are conceptually separate settings"
 @friendlyName("BillingAppExternalInvoicing")
 model AppExternalInvoicing {
   ...AppBase<AppType.ExternalInvoicing>;

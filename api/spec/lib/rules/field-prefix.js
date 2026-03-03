@@ -1,5 +1,20 @@
 import { createRule, paramMessage } from '@typespec/compiler'
 
+// List of prefixes that are excluded from the rule.
+// These prefixes are defined in the AIP.
+const EXCLUDED_PREFIXES = [
+  'allow',
+  'custom',
+  'default',
+  'disable',
+  'enable',
+  'include_in',
+  'initial',
+  'is',
+  'last',
+  'primary',
+]
+
 export const repeatedPrefixGroupingRule = createRule({
   name: 'repeated-prefix-grouping',
   severity: 'warning',
@@ -35,6 +50,10 @@ export const repeatedPrefixGroupingRule = createRule({
         }
 
         for (const [prefix, fields] of byPrefix.entries()) {
+          if (EXCLUDED_PREFIXES.includes(prefix)) {
+            continue
+          }
+
           if (fields.length <= 1) {
             continue
           }

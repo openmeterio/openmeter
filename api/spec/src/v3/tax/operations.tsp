@@ -19,6 +19,7 @@ interface TaxCodesOperations {
   @summary("Create tax code")
   @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   create(
     @body
     tax_code: Shared.CreateRequest<TaxCode>,
@@ -29,6 +30,7 @@ interface TaxCodesOperations {
   @summary("Get tax code")
   @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   get(
     @path taxCodeId: Shared.ULID,
   ): Shared.GetResponse<TaxCode> | Common.NotFound | Common.ErrorResponses;
@@ -38,6 +40,7 @@ interface TaxCodesOperations {
   @summary("List tax codes")
   @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   list(
     ...Common.PagePaginationQuery,
 
@@ -53,6 +56,7 @@ interface TaxCodesOperations {
   @summary("Upsert tax code")
   @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   upsert(
     @path taxCodeId: Shared.ULID,
 
@@ -69,6 +73,7 @@ interface TaxCodesOperations {
   @summary("Delete tax code")
   @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   delete(
     @path taxCodeId: Shared.ULID,
   ): Shared.DeleteResponse | Common.NotFound | Common.ErrorResponses;
