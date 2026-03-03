@@ -6,8 +6,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 )
 
-// DimensionResolver implements ledger.DimensionResolver for a given namespace,
-// looking up concrete dimension objects by key+value via the account Service.
+// DimensionResolver implements ledger.DimensionResolver for a given namespace.
+// Dimension lifecycle is externally owned; ledger only resolves local dimension
+// references used for routing and transactional integrity.
 type DimensionResolver struct {
 	Namespace string
 	Service   Service

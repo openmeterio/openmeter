@@ -73,14 +73,13 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 	histLedger := deps.HistoricalLedger
 
 	// === Provision currency dimensions ===
-	_, err = acctSvc.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
+	usdDim1, err := acctSvc.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
 		Namespace:    namespace,
 		Key:          string(ledger.DimensionKeyCurrency),
 		Value:        "USD",
 		DisplayValue: "US Dollar",
 	})
 	require.NoError(t, err)
-
 	_, err = acctSvc.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
 		Namespace:    namespace,
 		Key:          string(ledger.DimensionKeyCurrency),
@@ -94,8 +93,23 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 		Namespace: namespace,
 		ID:        "test-customer-01",
 	}
-	_, err = resolversSvc.CreateCustomerAccounts(ctx, customerID)
+	customerAccounts1, err := resolversSvc.CreateCustomerAccounts(ctx, customerID)
 	require.NoError(t, err)
+	customerAccounts2, err := resolversSvc.CreateCustomerAccounts(ctx, customerID)
+	require.NoError(t, err)
+
+	usdCurrency, err := usdDim1.AsCurrencyDimension()
+	require.NoError(t, err)
+
+	fboSub1, err := customerAccounts1.FBOAccount.GetSubAccountForDimensions(ctx, ledger.CustomerFBOSubAccountDimensions{
+		Currency: usdCurrency,
+	})
+	require.NoError(t, err)
+	fboSub2, err := customerAccounts2.FBOAccount.GetSubAccountForDimensions(ctx, ledger.CustomerFBOSubAccountDimensions{
+		Currency: usdCurrency,
+	})
+	require.NoError(t, err)
+	require.Equal(t, fboSub1.Address().SubAccountID(), fboSub2.Address().SubAccountID())
 
 	// We're simulating the scenario where we're effectively converting
 	// an outstanding CRD balance to an outstanding FIAT balance.

@@ -63,7 +63,8 @@ func (d *currencyDimension) DisplayValue() string {
 	return d.data.DimensionDisplayValue
 }
 
-// TODO: Implement other dimension types
+// DEFERRED: tax/feature/credit-priority not active yet.
+// Currency is the only enforced dimension in current provisioning model.
 func (d *DimensionData) AsTaxCodeDimension() (ledger.DimensionTaxCode, error) {
 	return nil, ledger.ErrInvalidDimensionKey
 }

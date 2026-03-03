@@ -42,6 +42,9 @@ type SubAccount interface {
 type QueryDimensions struct {
 	CurrencyID string
 
+	// DEFERRED: tax/feature/credit-priority not active yet.
+	// Currency is the only enforced dimension in current provisioning model.
+	// Non-currency fields are retained for near-future expansion.
 	// TaxCodeID is the ID of the tax code that the sub-account uses.
 	TaxCodeID *string
 

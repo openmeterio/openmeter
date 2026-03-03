@@ -22,6 +22,30 @@ func (r *repo) CreateDimension(ctx context.Context, input ledgeraccount.CreateDi
 			SetDimensionDisplayValue(input.DisplayValue).
 			Save(ctx)
 		if err != nil {
+			if db.IsConstraintError(err) {
+				existingEntity, getErr := r.db.LedgerDimension.Query().
+					Where(
+						ledgerdimensiondb.Namespace(input.Namespace),
+						ledgerdimensiondb.DimensionKey(input.Key),
+						ledgerdimensiondb.DimensionValue(input.Value),
+					).
+					Only(ctx)
+				if getErr != nil {
+					return nil, fmt.Errorf("failed to resolve existing ledger dimension after conflict: %w", getErr)
+				}
+
+				existing, mapErr := MapDimensionData(existingEntity)
+				if mapErr != nil {
+					return nil, fmt.Errorf("failed to map existing ledger dimension: %w", mapErr)
+				}
+
+				if existing == nil {
+					return nil, fmt.Errorf("failed to map existing ledger dimension as its nil")
+				}
+
+				return nil, ledgeraccount.NewDimensionAlreadyExistsError(input.Namespace, input.Key, input.Value, *existing)
+			}
+
 			return nil, fmt.Errorf("failed to create ledger dimension: %w", err)
 		}
 

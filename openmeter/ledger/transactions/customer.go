@@ -27,7 +27,8 @@ func (t IssueCustomerReceivableTemplate) typeGuard() guard {
 var _ CustomerTransactionTemplate = (IssueCustomerReceivableTemplate{})
 
 func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
-	// Let's resolve the dimensions
+	// DEFERRED: tax/feature/credit-priority not active yet.
+	// Currency is the only enforced dimension in current provisioning model.
 	currency, err := resolvers.DimensionService.GetCurrencyDimension(ctx, string(t.Currency))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get currency dimension: %w", err)
