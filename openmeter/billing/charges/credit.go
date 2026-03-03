@@ -26,7 +26,7 @@ func (i CreditRealizationCreateInput) Validate() error {
 		errs = append(errs, fmt.Errorf("service period: %w", err))
 	}
 
-	if i.Amount.IsNegative() {
+	if !i.Amount.IsPositive() {
 		errs = append(errs, fmt.Errorf("amount must be positive"))
 	}
 

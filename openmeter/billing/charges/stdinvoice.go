@@ -28,7 +28,7 @@ func (o StandardInvoicePaymentSettlementStatus) Values() []string {
 
 func (o StandardInvoicePaymentSettlementStatus) Validate() error {
 	if !slices.Contains(o.Values(), string(o)) {
-		return fmt.Errorf("invalid standard invoice settlement status: %s", o)
+		return fmt.Errorf("invalid standard invoice payment settlement status: %s", o)
 	}
 	return nil
 }
@@ -77,7 +77,7 @@ func (r StandardInvoicePaymentSettlement) Validate() error {
 		errs = append(errs, fmt.Errorf("line ID is required"))
 	}
 
-	if r.Amount.IsNegative() {
+	if !r.Amount.IsPositive() {
 		errs = append(errs, fmt.Errorf("amount must be positive"))
 	}
 

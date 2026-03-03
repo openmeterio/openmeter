@@ -153,10 +153,6 @@ func withBillingTransactionForInvoiceManipulation[T any](ctx context.Context, s 
 	err := s.billingService.WithLock(ctx, customerID, func(ctx context.Context) error {
 		var err error
 		out, err = fn(ctx)
-		if err != nil {
-			return err
-		}
-
 		return err
 	})
 	if err != nil {

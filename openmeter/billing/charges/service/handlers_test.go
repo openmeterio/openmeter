@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"testing"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 )
@@ -11,8 +10,6 @@ import (
 var _ charges.FlatFeeHandler = (*flatFeeTestHandler)(nil)
 
 type flatFeeTestHandler struct {
-	t *testing.T
-
 	onFlatFeeAssignedToInvoice           func(ctx context.Context, input charges.OnFlatFeeAssignedToInvoiceInput) ([]charges.CreditRealizationCreateInput, error)
 	onFlatFeeStandardInvoiceUsageAccrued func(ctx context.Context, input charges.OnFlatFeeStandardInvoiceUsageAccruedInput) (charges.LedgerTransactionGroupReference, error)
 	onFlatFeePaymentAuthorized           func(ctx context.Context, charge charges.FlatFeeCharge) (charges.LedgerTransactionGroupReference, error)

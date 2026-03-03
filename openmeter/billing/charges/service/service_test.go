@@ -356,7 +356,7 @@ func (s *ChargesServiceTestSuite) createMockChargeIntent(input createMockChargeI
 		case productcatalog.InArrearsPaymentTerm:
 			invoiceAt = input.servicePeriod.To
 		default:
-			s.Fail("invalid payment term: %s", price.PaymentTerm)
+			s.T().Fatalf("invalid payment term: %s", price.PaymentTerm)
 		}
 	}
 

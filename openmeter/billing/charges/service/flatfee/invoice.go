@@ -12,6 +12,10 @@ import (
 
 // TODO: Once we have proper UBP handling this should happen on the already converted StandardLine but for now we should be fine with this approach.
 func (s *service) PostLineAssignedToInvoice(ctx context.Context, charge charges.FlatFeeCharge, line billing.GatheringLine) (charges.CreditRealizations, error) {
+	if charge.Intent.AmountAfterProration.IsZero() {
+		return nil, nil
+	}
+
 	creditAllocations, err := s.flatFeeHandler.OnFlatFeeAssignedToInvoice(ctx, charges.OnFlatFeeAssignedToInvoiceInput{
 		Charge:            charge,
 		ServicePeriod:     line.ServicePeriod,
@@ -19,6 +23,10 @@ func (s *service) PostLineAssignedToInvoice(ctx context.Context, charge charges.
 	})
 	if err != nil {
 		return nil, fmt.Errorf("on flat fee assigned to invoice: %w", err)
+	}
+
+	if len(creditAllocations) == 0 {
+		return nil, nil
 	}
 
 	// TODO: If we want we can bulk insert these into the database for better performance (for now it's fine)
@@ -34,6 +42,10 @@ func (s *service) PostInvoiceIssued(ctx context.Context, charge charges.FlatFeeC
 	if charge.State.AccruedUsage != nil {
 		// Lifecycle violation: this should not happen as we should not be able to issue an invoice if the charge already has an accrued usage.
 		return fmt.Errorf("accrued invoice usage already exists for charge %s", charge.GetChargeID())
+	}
+
+	if lineWithHeader.Line == nil {
+		return fmt.Errorf("postInvoiceIssued: line is nil")
 	}
 
 	ledgerTransactionRef, err := s.flatFeeHandler.OnFlatFeeStandardInvoiceUsageAccrued(ctx, charges.OnFlatFeeStandardInvoiceUsageAccruedInput{

@@ -70,8 +70,7 @@ type gatheringLineWithCreditAllocations struct {
 }
 
 type gatheringLinesWithCreditAllocationsResult struct {
-	chargesManagedLines          map[billing.LineID]gatheringLineWithCreditAllocations
-	gatheringLinesWithoutCharges billing.GatheringLines
+	chargesManagedLines map[billing.LineID]gatheringLineWithCreditAllocations
 }
 
 func (s *service) allocateCreditAmountsToBillableLines(ctx context.Context, namespace string, billableLines billing.GatheringLines) (*gatheringLinesWithCreditAllocationsResult, error) {
@@ -89,10 +88,6 @@ func (s *service) allocateCreditAmountsToBillableLines(ctx context.Context, name
 			GatheringLine: line,
 			Realizations:  nil,
 		}, true
-	})
-
-	unmanagedLines := lo.Filter(billableLines, func(line billing.GatheringLine, _ int) bool {
-		return line.ChargeID == nil
 	})
 
 	// Let's get all the charges that are managed by the lines
@@ -169,8 +164,7 @@ func (s *service) allocateCreditAmountsToBillableLines(ctx context.Context, name
 	}
 
 	return &gatheringLinesWithCreditAllocationsResult{
-		chargesManagedLines:          chargesManagedGatheringLines,
-		gatheringLinesWithoutCharges: unmanagedLines,
+		chargesManagedLines: chargesManagedGatheringLines,
 	}, nil
 }
 

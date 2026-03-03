@@ -12,6 +12,10 @@ import (
 )
 
 func (a *adapter) CreateCreditRealizations(ctx context.Context, chargeID charges.ChargeID, realizations []charges.CreditRealizationCreateInput) (charges.CreditRealizations, error) {
+	if len(realizations) == 0 {
+		return nil, nil
+	}
+
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (charges.CreditRealizations, error) {
 		creates := lo.Map(realizations, func(realization charges.CreditRealizationCreateInput, _ int) *db.ChargeCreditRealizationCreate {
 			return tx.db.ChargeCreditRealization.Create().
