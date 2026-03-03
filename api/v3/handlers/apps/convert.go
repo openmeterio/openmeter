@@ -4,6 +4,7 @@ package apps
 import (
 	"errors"
 	"fmt"
+	"maps"
 
 	"github.com/samber/lo"
 
@@ -42,11 +43,10 @@ var (
 // ConvertMetadataToLabels converts metadata to api.Labels.
 // Always returns an initialized map (never nil) so JSON serializes to {} instead of null.
 func ConvertMetadataToLabels(source models.Metadata) *api.Labels {
-	labels := make(api.Labels)
-	for k, v := range source {
-		labels[k] = v
+	if len(source) == 0 {
+		return &api.Labels{}
 	}
-	return &labels
+	return lo.ToPtr((api.Labels)(maps.Clone(source)))
 }
 
 func IntToFloat32(i int) float32 {

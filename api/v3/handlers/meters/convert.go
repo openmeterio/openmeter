@@ -2,6 +2,10 @@
 package meters
 
 import (
+	"maps"
+
+	"github.com/samber/lo"
+
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -94,9 +98,8 @@ func IntToFloat32(i int) float32 {
 // ConvertMetadataToLabels converts models.Metadata to api.Labels.
 // Always returns an initialized map (never nil) so JSON serializes to {} instead of null.
 func ConvertMetadataToLabels(source models.Metadata) *api.Labels {
-	labels := make(api.Labels)
-	for k, v := range source {
-		labels[k] = v
+	if len(source) == 0 {
+		return &api.Labels{}
 	}
-	return &labels
+	return lo.ToPtr((api.Labels)(maps.Clone(source)))
 }
