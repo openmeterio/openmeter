@@ -6863,7 +6863,7 @@ class GrantsOperations:
 
         return deserialized  # type: ignore
 
-    async def delete(self, grant_id: str, **kwargs: Any) -> None:
+    async def delete(self, grant_id: str, *, at: Optional[datetime.datetime] = None, **kwargs: Any) -> None:
         """Void grant.
 
         Voiding a grant means it is no longer valid, it doesn't take part in further balance
@@ -6877,6 +6877,10 @@ class GrantsOperations:
 
         :param grant_id: Required.
         :type grant_id: str
+        :keyword at: The time at which the grant should be voided.
+         Must not be in the future and must be within the current usage period of the entitlement.
+         Defaults to the current time if not specified. Default value is None.
+        :paramtype at: ~datetime.datetime
         :return: None
         :rtype: None
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -6893,6 +6897,7 @@ class GrantsOperations:
 
         _request = build_grants_delete_request(
             grant_id=grant_id,
+            at=at,
             headers=_headers,
             params=_params,
         )

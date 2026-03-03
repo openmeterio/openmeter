@@ -4795,6 +4795,18 @@ paths:
           required: true
           schema:
             type: string
+        - name: at
+          in: query
+          required: false
+          description: |-
+            The time at which the grant should be voided.
+            Must not be in the future and must be within the current usage period of the entitlement.
+            Defaults to the current time if not specified.
+          schema:
+            type: string
+            format: date-time
+            example: '2023-01-01T01:01:01.001Z'
+          style: form
       responses:
         '204':
           description: 'There is no content to send for this request, but the headers may be useful. '

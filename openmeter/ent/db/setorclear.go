@@ -2228,6 +2228,34 @@ func (u *ChargeUsageBasedUpdateOne) SetOrClearDiscounts(value **productcatalog.D
 	return u.SetDiscounts(*value)
 }
 
+func (u *CurrencyCostBasisUpdate) SetOrClearDeletedAt(value *time.Time) *CurrencyCostBasisUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *CurrencyCostBasisUpdateOne) SetOrClearDeletedAt(value *time.Time) *CurrencyCostBasisUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *CustomCurrencyUpdate) SetOrClearDeletedAt(value *time.Time) *CustomCurrencyUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *CustomCurrencyUpdateOne) SetOrClearDeletedAt(value *time.Time) *CustomCurrencyUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *CustomerUpdate) SetOrClearMetadata(value *map[string]string) *CustomerUpdate {
 	if value == nil {
 		return u.ClearMetadata()

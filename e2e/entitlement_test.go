@@ -364,6 +364,121 @@ func TestEntitlementWithUniqueCountAggregation(t *testing.T) {
 	})
 }
 
+func TestVoidGrantAtParam(t *testing.T) {
+	client := initClient(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	meterSlug := "entitlement_uc_meter"
+	customer := fmt.Sprintf("void_at_customer_%d", time.Now().UnixNano())
+	subject := customer + "-subject"
+
+	CreateCustomerWithSubject(t, client, customer, subject)
+
+	apiMONTH := &api.RecurringPeriodInterval{}
+	require.NoError(t, apiMONTH.FromRecurringPeriodIntervalEnum(api.RecurringPeriodIntervalEnumMONTH))
+
+	// Create feature
+	var featureId string
+	{
+		randKey := fmt.Sprintf("void_at_feature_%d", time.Now().UnixNano())
+		resp, err := client.CreateFeatureWithResponse(ctx, api.CreateFeatureJSONRequestBody{
+			Name:      "Void At Test Feature",
+			MeterSlug: convert.ToPointer(meterSlug),
+			Key:       randKey,
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "body: %s", resp.Body)
+		featureId = resp.JSON201.Id
+	}
+
+	// Create entitlement
+	var entitlementId string
+	{
+		meteredEntitlement := api.EntitlementMeteredCreateInputs{
+			Type:      "metered",
+			FeatureId: &featureId,
+			UsagePeriod: api.RecurringPeriodCreateInput{
+				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
+				Interval: *apiMONTH,
+			},
+		}
+		body := &api.CreateEntitlementJSONRequestBody{}
+		require.NoError(t, body.FromEntitlementMeteredCreateInputs(meteredEntitlement))
+		resp, err := client.CreateEntitlementWithResponse(ctx, subject, *body)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "body: %s", resp.Body)
+
+		metered, err := resp.JSON201.AsEntitlementMetered()
+		require.NoError(t, err)
+		entitlementId = metered.Id
+	}
+
+	// Helper: create a grant and return its ID
+	createGrant := func(t *testing.T) string {
+		t.Helper()
+		effectiveAt := time.Now().Truncate(time.Minute)
+		priority := uint8(1)
+		resp, err := client.CreateGrantWithResponse(ctx, subject, entitlementId, api.EntitlementGrantCreateInput{
+			Amount:      100,
+			EffectiveAt: effectiveAt,
+			Expiration: api.ExpirationPeriod{
+				Duration: "MONTH",
+				Count:    1,
+			},
+			Priority: &priority,
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "body: %s", resp.Body)
+		return resp.JSON201.Id
+	}
+
+	t.Run("Void grant without at param (default behavior)", func(t *testing.T) {
+		grantId := createGrant(t)
+
+		resp, err := client.VoidGrantWithResponse(ctx, grantId, nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, resp.StatusCode(), "body: %s", resp.Body)
+	})
+
+	t.Run("Void grant with at param in current period", func(t *testing.T) {
+		grantId := createGrant(t)
+
+		// Use current time which is within the current usage period
+		at := time.Now().Truncate(time.Minute)
+		resp, err := client.VoidGrantWithResponse(ctx, grantId, &api.VoidGrantParams{
+			At: &at,
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, resp.StatusCode(), "body: %s", resp.Body)
+	})
+
+	t.Run("Void grant with future at param returns 400", func(t *testing.T) {
+		grantId := createGrant(t)
+
+		futureTime := time.Now().Add(1 * time.Hour)
+		resp, err := client.VoidGrantWithResponse(ctx, grantId, &api.VoidGrantParams{
+			At: &futureTime,
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode(), "body: %s", resp.Body)
+	})
+
+	t.Run("Void grant with at before usage period returns 400", func(t *testing.T) {
+		grantId := createGrant(t)
+
+		// Usage period anchor is 2024-01-01 with monthly recurrence,
+		// so a time well before the current period start should fail.
+		oldTime := time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
+		resp, err := client.VoidGrantWithResponse(ctx, grantId, &api.VoidGrantParams{
+			At: &oldTime,
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode(), "body: %s", resp.Body)
+	})
+}
+
 func TestEntitlementISOUsagePeriod(t *testing.T) {
 	t.Run("Should create entitlement with ISO usage period", func(t *testing.T) {
 		client := initClient(t)

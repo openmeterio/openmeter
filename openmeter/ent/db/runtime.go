@@ -36,6 +36,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
@@ -989,6 +991,91 @@ func init() {
 	chargeusagebasedDescID := chargeusagebasedMixinFields1[0].Descriptor()
 	// chargeusagebased.DefaultID holds the default value on creation for the id field.
 	chargeusagebased.DefaultID = chargeusagebasedDescID.Default.(func() string)
+	currencycostbasisMixin := schema.CurrencyCostBasis{}.Mixin()
+	currencycostbasisMixinFields0 := currencycostbasisMixin[0].Fields()
+	_ = currencycostbasisMixinFields0
+	currencycostbasisMixinFields1 := currencycostbasisMixin[1].Fields()
+	_ = currencycostbasisMixinFields1
+	currencycostbasisMixinFields2 := currencycostbasisMixin[2].Fields()
+	_ = currencycostbasisMixinFields2
+	currencycostbasisFields := schema.CurrencyCostBasis{}.Fields()
+	_ = currencycostbasisFields
+	// currencycostbasisDescNamespace is the schema descriptor for namespace field.
+	currencycostbasisDescNamespace := currencycostbasisMixinFields0[0].Descriptor()
+	// currencycostbasis.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	currencycostbasis.NamespaceValidator = currencycostbasisDescNamespace.Validators[0].(func(string) error)
+	// currencycostbasisDescCreatedAt is the schema descriptor for created_at field.
+	currencycostbasisDescCreatedAt := currencycostbasisMixinFields2[0].Descriptor()
+	// currencycostbasis.DefaultCreatedAt holds the default value on creation for the created_at field.
+	currencycostbasis.DefaultCreatedAt = currencycostbasisDescCreatedAt.Default.(func() time.Time)
+	// currencycostbasisDescUpdatedAt is the schema descriptor for updated_at field.
+	currencycostbasisDescUpdatedAt := currencycostbasisMixinFields2[1].Descriptor()
+	// currencycostbasis.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	currencycostbasis.DefaultUpdatedAt = currencycostbasisDescUpdatedAt.Default.(func() time.Time)
+	// currencycostbasis.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	currencycostbasis.UpdateDefaultUpdatedAt = currencycostbasisDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// currencycostbasisDescFiatCode is the schema descriptor for fiat_code field.
+	currencycostbasisDescFiatCode := currencycostbasisFields[1].Descriptor()
+	// currencycostbasis.FiatCodeValidator is a validator for the "fiat_code" field. It is called by the builders before save.
+	currencycostbasis.FiatCodeValidator = currencycostbasisDescFiatCode.Validators[0].(func(string) error)
+	// currencycostbasisDescID is the schema descriptor for id field.
+	currencycostbasisDescID := currencycostbasisMixinFields1[0].Descriptor()
+	// currencycostbasis.DefaultID holds the default value on creation for the id field.
+	currencycostbasis.DefaultID = currencycostbasisDescID.Default.(func() string)
+	customcurrencyMixin := schema.CustomCurrency{}.Mixin()
+	customcurrencyMixinFields0 := customcurrencyMixin[0].Fields()
+	_ = customcurrencyMixinFields0
+	customcurrencyMixinFields1 := customcurrencyMixin[1].Fields()
+	_ = customcurrencyMixinFields1
+	customcurrencyMixinFields2 := customcurrencyMixin[2].Fields()
+	_ = customcurrencyMixinFields2
+	customcurrencyFields := schema.CustomCurrency{}.Fields()
+	_ = customcurrencyFields
+	// customcurrencyDescNamespace is the schema descriptor for namespace field.
+	customcurrencyDescNamespace := customcurrencyMixinFields0[0].Descriptor()
+	// customcurrency.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	customcurrency.NamespaceValidator = customcurrencyDescNamespace.Validators[0].(func(string) error)
+	// customcurrencyDescCreatedAt is the schema descriptor for created_at field.
+	customcurrencyDescCreatedAt := customcurrencyMixinFields2[0].Descriptor()
+	// customcurrency.DefaultCreatedAt holds the default value on creation for the created_at field.
+	customcurrency.DefaultCreatedAt = customcurrencyDescCreatedAt.Default.(func() time.Time)
+	// customcurrencyDescUpdatedAt is the schema descriptor for updated_at field.
+	customcurrencyDescUpdatedAt := customcurrencyMixinFields2[1].Descriptor()
+	// customcurrency.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	customcurrency.DefaultUpdatedAt = customcurrencyDescUpdatedAt.Default.(func() time.Time)
+	// customcurrency.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	customcurrency.UpdateDefaultUpdatedAt = customcurrencyDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// customcurrencyDescCode is the schema descriptor for code field.
+	customcurrencyDescCode := customcurrencyFields[0].Descriptor()
+	// customcurrency.CodeValidator is a validator for the "code" field. It is called by the builders before save.
+	customcurrency.CodeValidator = func() func(string) error {
+		validators := customcurrencyDescCode.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+			validators[2].(func(string) error),
+		}
+		return func(code string) error {
+			for _, fn := range fns {
+				if err := fn(code); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// customcurrencyDescName is the schema descriptor for name field.
+	customcurrencyDescName := customcurrencyFields[1].Descriptor()
+	// customcurrency.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	customcurrency.NameValidator = customcurrencyDescName.Validators[0].(func(string) error)
+	// customcurrencyDescSymbol is the schema descriptor for symbol field.
+	customcurrencyDescSymbol := customcurrencyFields[2].Descriptor()
+	// customcurrency.SymbolValidator is a validator for the "symbol" field. It is called by the builders before save.
+	customcurrency.SymbolValidator = customcurrencyDescSymbol.Validators[0].(func(string) error)
+	// customcurrencyDescID is the schema descriptor for id field.
+	customcurrencyDescID := customcurrencyMixinFields1[0].Descriptor()
+	// customcurrency.DefaultID holds the default value on creation for the id field.
+	customcurrency.DefaultID = customcurrencyDescID.Default.(func() string)
 	customerMixin := schema.Customer{}.Mixin()
 	customerMixinFields0 := customerMixin[0].Fields()
 	_ = customerMixinFields0

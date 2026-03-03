@@ -17,9 +17,10 @@ func (a *Router) ListGrants(w http.ResponseWriter, r *http.Request, params api.L
 
 // Delete a grant
 // (DELETE /api/v1/grants/{grantId})
-func (a *Router) VoidGrant(w http.ResponseWriter, r *http.Request, grantId string) {
+func (a *Router) VoidGrant(w http.ResponseWriter, r *http.Request, grantId string, params api.VoidGrantParams) {
 	a.creditHandler.VoidGrant().With(creditdriver.VoidGrantHandlerParams{
-		ID: grantId,
+		ID:     grantId,
+		Params: params,
 	}).ServeHTTP(w, r)
 }
 

@@ -661,13 +661,13 @@ func (g *GatheringLine) SetSplitLineHierarchy(hierarchy *SplitLineHierarchy) {
 }
 
 func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error) {
+	if invoiceID == "" {
+		return nil, errors.New("invoice ID is required")
+	}
+
 	clonedAnnotations, err := g.Annotations.Clone()
 	if err != nil {
 		return nil, fmt.Errorf("cloning annotations: %w", err)
-	}
-
-	if invoiceID == "" {
-		return nil, errors.New("invoice ID is required")
 	}
 
 	var taxConfig *productcatalog.TaxConfig
