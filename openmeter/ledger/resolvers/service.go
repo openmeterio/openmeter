@@ -7,6 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -35,56 +36,49 @@ var _ ledger.AccountResolver = (*Service)(nil)
 // CreateCustomerAccounts creates FBO and Receivable ledger accounts for a new customer
 // and stores the mappings in the linking table.
 func (s *Service) CreateCustomerAccounts(ctx context.Context, customerID customer.CustomerID) (ledger.CustomerAccounts, error) {
-	ns := customerID.Namespace
+	return transaction.Run(ctx, s.Repo, func(ctx context.Context) (ledger.CustomerAccounts, error) {
+		ns := customerID.Namespace
 
-	// Create FBO account
-	fboAcc, err := s.AccountService.CreateAccount(ctx, ledgeraccount.CreateAccountInput{
-		Namespace: ns,
-		Type:      ledger.AccountTypeCustomerFBO,
+		accountIDs, err := s.Repo.GetCustomerAccountIDs(ctx, customerID)
+		if err != nil {
+			return ledger.CustomerAccounts{}, fmt.Errorf("failed to get customer account IDs: %w", err)
+		}
+
+		requiredTypes := []ledger.AccountType{
+			ledger.AccountTypeCustomerFBO,
+			ledger.AccountTypeCustomerReceivable,
+		}
+
+		for _, accountType := range requiredTypes {
+			if _, ok := accountIDs[accountType]; ok {
+				continue
+			}
+
+			acc, err := s.AccountService.CreateAccount(ctx, ledgeraccount.CreateAccountInput{
+				Namespace: ns,
+				Type:      accountType,
+			})
+			if err != nil {
+				return ledger.CustomerAccounts{}, fmt.Errorf("failed to create %s account: %w", accountType, err)
+			}
+
+			if err := s.Repo.CreateCustomerAccount(ctx, CreateCustomerAccountInput{
+				CustomerID:  customerID,
+				AccountType: accountType,
+				AccountID:   acc.ID().ID,
+			}); err != nil {
+				if existingErr, ok := AsCustomerAccountAlreadyExistsError(err); ok {
+					// Idempotent create semantics: if mapping already exists, use it.
+					accountIDs[accountType] = existingErr.AccountID
+					continue
+				}
+
+				return ledger.CustomerAccounts{}, fmt.Errorf("failed to create %s account mapping: %w", accountType, err)
+			}
+		}
+
+		return s.GetCustomerAccounts(ctx, customerID)
 	})
-	if err != nil {
-		return ledger.CustomerAccounts{}, fmt.Errorf("failed to create FBO account: %w", err)
-	}
-
-	if err := s.Repo.CreateCustomerAccount(ctx, CreateCustomerAccountInput{
-		CustomerID:  customerID,
-		AccountType: ledger.AccountTypeCustomerFBO,
-		AccountID:   fboAcc.ID().ID,
-	}); err != nil {
-		return ledger.CustomerAccounts{}, fmt.Errorf("failed to store FBO account mapping: %w", err)
-	}
-
-	// Create Receivable account
-	receivableAcc, err := s.AccountService.CreateAccount(ctx, ledgeraccount.CreateAccountInput{
-		Namespace: ns,
-		Type:      ledger.AccountTypeCustomerReceivable,
-	})
-	if err != nil {
-		return ledger.CustomerAccounts{}, fmt.Errorf("failed to create Receivable account: %w", err)
-	}
-
-	if err := s.Repo.CreateCustomerAccount(ctx, CreateCustomerAccountInput{
-		CustomerID:  customerID,
-		AccountType: ledger.AccountTypeCustomerReceivable,
-		AccountID:   receivableAcc.ID().ID,
-	}); err != nil {
-		return ledger.CustomerAccounts{}, fmt.Errorf("failed to store Receivable account mapping: %w", err)
-	}
-
-	fboAccount, err := fboAcc.AsCustomerFBOAccount()
-	if err != nil {
-		return ledger.CustomerAccounts{}, err
-	}
-
-	receivableAccount, err := receivableAcc.AsCustomerReceivableAccount()
-	if err != nil {
-		return ledger.CustomerAccounts{}, err
-	}
-
-	return ledger.CustomerAccounts{
-		FBOAccount:        fboAccount,
-		ReceivableAccount: receivableAccount,
-	}, nil
 }
 
 // GetCustomerAccounts retrieves the FBO and Receivable accounts for a customer.

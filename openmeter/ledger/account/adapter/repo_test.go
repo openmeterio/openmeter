@@ -132,6 +132,43 @@ func TestRepo_CreateDimension_InvalidKey(t *testing.T) {
 	require.ErrorContains(t, err, "invalid dimension key")
 }
 
+func TestRepo_CreateDimension_AlreadyExists(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+	env.DBSchemaMigrate(t)
+
+	ctx := t.Context()
+	namespace := testNamespace()
+
+	created, err := env.repo.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
+		Namespace:    namespace,
+		Key:          string(ledger.DimensionKeyCurrency),
+		Value:        "USD",
+		DisplayValue: "US Dollar",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, created)
+
+	_, err = env.repo.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
+		Namespace:    namespace,
+		Key:          string(ledger.DimensionKeyCurrency),
+		Value:        "USD",
+		DisplayValue: "US Dollar",
+	})
+	require.Error(t, err)
+
+	issues, mapErr := models.AsValidationIssues(err)
+	require.NoError(t, mapErr)
+	require.NotEmpty(t, issues)
+	require.Equal(t, ledgeraccount.ErrCodeDimensionConflict, issues[0].Code())
+	require.Equal(t, namespace, issues[0].Attributes()["namespace"])
+	require.Equal(t, string(ledger.DimensionKeyCurrency), issues[0].Attributes()["key"])
+	require.Equal(t, "USD", issues[0].Attributes()["value"])
+	require.Equal(t, *created, issues[0].Attributes()["existing"])
+}
+
 func TestRepo_ListSubAccounts(t *testing.T) {
 	env := NewTestEnv(t)
 	t.Cleanup(func() {
@@ -207,14 +244,21 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 	})
 
 	t.Run("filters by dimensions", func(t *testing.T) {
+		tax := ulid.Make().String()
+		priority := 7
 		items, err := env.repo.ListSubAccounts(ctx, ledgeraccount.ListSubAccountsInput{
 			Namespace: namespace,
 			AccountID: accountA.ID.ID,
 			Dimensions: ledger.QueryDimensions{
-				CurrencyID: currencyA.ID,
+				CurrencyID:     currencyA.ID,
+				TaxCodeID:      &tax,
+				FeatureIDs:     []string{ulid.Make().String()},
+				CreditPriority: &priority,
 			},
 		})
 		require.NoError(t, err)
+		// DEFERRED: tax/feature/credit-priority not active yet.
+		// Currency is the only enforced dimension in current provisioning model.
 		require.Len(t, items, 1)
 		require.Equal(t, subA1.ID, items[0].ID)
 	})

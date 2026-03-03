@@ -14,3 +14,12 @@ var ErrDimensionConflict = models.NewValidationIssue(
 	"dimension conflict, a dimension with the same key and value already exists",
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusConflict),
 )
+
+func NewDimensionAlreadyExistsError(namespace string, key string, value string, existing DimensionData) error {
+	return ErrDimensionConflict.WithAttrs(models.Attributes{
+		"namespace": namespace,
+		"key":       key,
+		"value":     value,
+		"existing":  existing,
+	})
+}

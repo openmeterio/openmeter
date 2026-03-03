@@ -91,14 +91,15 @@ type CustomerFBOAccountImpl struct {
 var _ ledger.CustomerFBOAccount = (*CustomerFBOAccountImpl)(nil)
 
 // GetSubAccountForDimensions finds or creates a sub-account for the given dimensions.
-// For now only Currency is used for filtering; TaxCode/CreditPriority/Features are TBD.
+// DEFERRED: tax/feature/credit-priority not active yet.
+// Currency is the only enforced dimension in current provisioning model.
 func (a *CustomerFBOAccountImpl) GetSubAccountForDimensions(ctx context.Context, dimensions ledger.CustomerFBOSubAccountDimensions) (ledger.SubAccount, error) {
 	currDimID, err := extractDimensionID(dimensions.Currency)
 	if err != nil {
 		return nil, fmt.Errorf("currency dimension: %w", err)
 	}
 
-	return findOrCreateSubAccount(ctx, a.services.SubAccountService, a.data.ID.Namespace, a.data.ID.ID, currDimID)
+	return ensureSubAccountForCurrency(ctx, a.services.SubAccountService, a.data.ID.Namespace, a.data.ID.ID, currDimID)
 }
 
 // ----------------------------------------------------------------------------
@@ -119,7 +120,7 @@ func (a *CustomerReceivableAccountImpl) GetSubAccountForDimensions(ctx context.C
 		return nil, fmt.Errorf("currency dimension: %w", err)
 	}
 
-	return findOrCreateSubAccount(ctx, a.services.SubAccountService, a.data.ID.Namespace, a.data.ID.ID, currDimID)
+	return ensureSubAccountForCurrency(ctx, a.services.SubAccountService, a.data.ID.Namespace, a.data.ID.ID, currDimID)
 }
 
 // ----------------------------------------------------------------------------
@@ -140,7 +141,7 @@ func (a *BusinessAccountImpl) GetSubAccountForDimensions(ctx context.Context, di
 		return nil, fmt.Errorf("currency dimension: %w", err)
 	}
 
-	return findOrCreateSubAccount(ctx, a.services.SubAccountService, a.data.ID.Namespace, a.data.ID.ID, currDimID)
+	return ensureSubAccountForCurrency(ctx, a.services.SubAccountService, a.data.ID.Namespace, a.data.ID.ID, currDimID)
 }
 
 // ----------------------------------------------------------------------------
@@ -156,7 +157,7 @@ func extractDimensionID(dim ledger.DimensionCurrency) (string, error) {
 	return ider.dimensionID(), nil
 }
 
-func findOrCreateSubAccount(
+func ensureSubAccountForCurrency(
 	ctx context.Context,
 	svc SubAccountCreatorLister,
 	namespace, accountID, currencyDimID string,

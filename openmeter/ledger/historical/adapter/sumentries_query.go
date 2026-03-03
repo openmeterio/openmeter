@@ -1,13 +1,10 @@
 package adapter
 
 import (
-	"strconv"
-
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	ledgerdimensiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
 	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	ledgersubaccountdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
@@ -67,25 +64,12 @@ func (b *sumEntriesQuery) entryPredicates() []predicate.LedgerEntry {
 }
 
 func (b *sumEntriesQuery) subAccountPredicates() []predicate.LedgerSubAccount {
-	subAccountPredicates := make([]predicate.LedgerSubAccount, 0, 4)
+	subAccountPredicates := make([]predicate.LedgerSubAccount, 0, 1)
 	if b.query.Filters.Dimensions.CurrencyID != "" {
 		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.CurrencyDimensionID(b.query.Filters.Dimensions.CurrencyID))
 	}
-
-	if b.query.Filters.Dimensions.TaxCodeID != nil {
-		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.TaxCodeDimensionID(*b.query.Filters.Dimensions.TaxCodeID))
-	}
-
-	if len(b.query.Filters.Dimensions.FeatureIDs) > 0 {
-		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.FeaturesDimensionIDIn(b.query.Filters.Dimensions.FeatureIDs...))
-	}
-
-	if b.query.Filters.Dimensions.CreditPriority != nil {
-		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.HasCreditPriorityDimensionWith(
-			ledgerdimensiondb.DimensionKey(string(ledger.DimensionKeyCreditPriority)),
-			ledgerdimensiondb.DimensionValue(strconv.Itoa(*b.query.Filters.Dimensions.CreditPriority)),
-		))
-	}
+	// DEFERRED: tax/feature/credit-priority not active yet.
+	// Currency is the only enforced dimension in current provisioning model.
 
 	return subAccountPredicates
 }

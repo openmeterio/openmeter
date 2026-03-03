@@ -10,7 +10,9 @@ import (
 
 // ResolverDependencies are the dependencies required to resolve transactions
 type ResolverDependencies struct {
-	AccountService   ledger.AccountResolver
+	AccountService ledger.AccountResolver
+	// DimensionService resolves locally stored ledger dimensions that are
+	// externally owned by upstream domain services.
 	DimensionService ledger.DimensionResolver
 }
 

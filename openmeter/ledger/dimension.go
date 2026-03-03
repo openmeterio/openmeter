@@ -12,8 +12,9 @@ import (
 // Dimension type definitions
 // ----------------------------------------------------------------------------
 
-// Dimension is a generic key-value pair that can be used to filter and roll-up balance of sub-accounts
-// SubAccount-s reference Dimensions in their definitions so that the ledger is a self-contained system. In practice Dimensions translate to external resources (e.g. Currency, Features...) and should be managed & provisioned separately.
+// Dimension is a generic key-value pair that can be used to filter and roll-up balance of sub-accounts.
+// Dimension lifecycle is externally owned; ledger stores local references used for
+// transactional routing and referential integrity.
 type Dimension[V any] interface {
 	models.Equaler[Dimension[any]]
 

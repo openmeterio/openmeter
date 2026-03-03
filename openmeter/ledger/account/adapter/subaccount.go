@@ -3,7 +3,6 @@ package adapter
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbledgersubaccount "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
@@ -75,18 +74,8 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 		if input.Dimensions.CurrencyID != "" {
 			predicates = append(predicates, dbledgersubaccount.CurrencyDimensionID(input.Dimensions.CurrencyID))
 		}
-
-		if input.Dimensions.TaxCodeID != nil {
-			predicates = append(predicates, dbledgersubaccount.TaxCodeDimensionID(*input.Dimensions.TaxCodeID))
-		}
-
-		if len(input.Dimensions.FeatureIDs) > 0 {
-			predicates = append(predicates, dbledgersubaccount.FeaturesDimensionID(input.Dimensions.FeatureIDs[0]))
-		}
-
-		if input.Dimensions.CreditPriority != nil {
-			predicates = append(predicates, dbledgersubaccount.CreditPriorityDimensionID(strconv.Itoa(*input.Dimensions.CreditPriority)))
-		}
+		// DEFERRED: tax/feature/credit-priority not active yet.
+		// Currency is the only enforced dimension in current provisioning model.
 
 		entities, err := r.db.LedgerSubAccount.Query().
 			Where(predicates...).

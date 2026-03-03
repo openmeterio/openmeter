@@ -29,7 +29,8 @@ func (t ConvertCurrencyTemplate) typeGuard() guard {
 }
 
 func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
-	// Let's resolve the dimensions
+	// DEFERRED: tax/feature/credit-priority not active yet.
+	// Currency is the only enforced dimension in current provisioning model.
 	sourceCurrency, err := resolvers.DimensionService.GetCurrencyDimension(ctx, string(t.SourceCurrency))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get source currency dimension: %w", err)

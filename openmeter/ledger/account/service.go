@@ -33,7 +33,9 @@ type ListSubAccountsInput struct {
 	Namespace string
 	AccountID string
 
-	// How should we do this? Dimensions are a mess
+	// DEFERRED: tax/feature/credit-priority not active yet.
+	// Currency is the only enforced dimension in current provisioning model.
+	// Non-currency filters are accepted for forward compatibility and ignored.
 	Dimensions ledger.QueryDimensions
 }
 
@@ -75,7 +77,9 @@ func (c CreateSubAccountInput) Validate() error {
 }
 
 type SubAccountDimensionInput struct {
-	CurrencyDimensionID       string
+	CurrencyDimensionID string
+	// DEFERRED: tax/feature/credit-priority not active yet.
+	// Currency is the only enforced dimension in current provisioning model.
 	TaxCodeDimensionID        *string
 	FeaturesDimensionID       *string
 	CreditPriorityDimensionID *string
@@ -101,8 +105,10 @@ func (d SubAccountDimensionInput) ValidateForAccountType(accountType ledger.Acco
 }
 
 type CreateDimensionInput struct {
-	Namespace    string
-	Annotations  models.Annotations
+	Namespace   string
+	Annotations models.Annotations
+	// Dimensions are externally owned (tax/currency/feature systems).
+	// Ledger stores local dimension rows for routing and referential integrity.
 	Key          string
 	Value        string
 	DisplayValue string
