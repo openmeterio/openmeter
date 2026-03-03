@@ -123,19 +123,19 @@ func (s FlatFeeState) Validate() error {
 
 	for _, realization := range s.CreditRealizations {
 		if err := realization.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("credit realization: %w", err))
+			errs = append(errs, fmt.Errorf("credit realization[id=%s]: %w", realization.ID, err))
 		}
 	}
 
 	if s.Payment != nil {
 		if err := s.Payment.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("payment: %w", err))
+			errs = append(errs, fmt.Errorf("payment[id=%s]: %w", s.Payment.ID, err))
 		}
 	}
 
 	if s.AccruedUsage != nil {
 		if err := s.AccruedUsage.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("accrued usage: %w", err))
+			errs = append(errs, fmt.Errorf("accrued usage[id=%s]: %w", s.AccruedUsage.ID, err))
 		}
 	}
 

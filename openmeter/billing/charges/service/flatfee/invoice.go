@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
-	"github.com/samber/lo"
 )
 
 // TODO: Once we have proper UBP handling this should happen on the already converted StandardLine but for now we should be fine with this approach.

@@ -100,7 +100,6 @@ func MapFlatFeeChargeFromDB(entity *entdb.Charge, expands charges.Expands) (char
 		if dbAccruedUsage != nil {
 			charge.State.AccruedUsage = lo.ToPtr(mapStandardInvoiceAccruedUsageFromDB(dbAccruedUsage))
 		}
-
 	}
 
 	return charge, nil

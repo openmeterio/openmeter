@@ -68,10 +68,8 @@ func (r StandardInvoicePaymentSettlement) Validate() error {
 	}
 
 	if r.Settled != nil {
-		if r.Settled != nil {
-			if err := r.Settled.Validate(); err != nil {
-				errs = append(errs, fmt.Errorf("settled: %w", err))
-			}
+		if err := r.Settled.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("settled: %w", err))
 		}
 	}
 
@@ -86,15 +84,15 @@ func (r StandardInvoicePaymentSettlement) Validate() error {
 	switch r.Status {
 	case StandardInvoicePaymentSettlementStatusAuthorized:
 		if r.Authorized == nil {
-			errs = append(errs, fmt.Errorf("authorized is required"))
+			errs = append(errs, fmt.Errorf("authorization transaction data is missing for authorized status"))
 		}
 	case StandardInvoicePaymentSettlementStatusSettled:
 		if r.Settled == nil {
-			errs = append(errs, fmt.Errorf("settled is required"))
+			errs = append(errs, fmt.Errorf("settlement transaction data is missing for settled status"))
 		}
 
 		if r.Authorized == nil {
-			errs = append(errs, fmt.Errorf("authorized is required"))
+			errs = append(errs, fmt.Errorf("authorization transaction data is missing for settled status"))
 		}
 	}
 
