@@ -70,7 +70,16 @@ interface GrantsEndpoints {
   @delete
   @operationId("voidGrant")
   @summary("Void grant")
-  delete(@path grantId: string):
+  delete(
+    @path grantId: string,
+
+    /**
+     * The time at which the grant should be voided.
+     * Must not be in the future and must be within the current usage period of the entitlement.
+     * Defaults to the current time if not specified.
+     */
+    @query(#{ explode: true }) at?: DateTime,
+  ):
     | {
         @statusCode _: 204;
       }

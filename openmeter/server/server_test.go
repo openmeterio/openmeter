@@ -817,7 +817,7 @@ func (n NoopGrantConnector) CreateGrant(ctx context.Context, owner models.Namesp
 	return &grant.Grant{}, nil
 }
 
-func (n NoopGrantConnector) VoidGrant(ctx context.Context, grantID models.NamespacedID) error {
+func (n NoopGrantConnector) VoidGrant(ctx context.Context, grantID models.NamespacedID, at *time.Time) error {
 	return nil
 }
 

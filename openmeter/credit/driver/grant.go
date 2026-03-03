@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"slices"
+	"time"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/credit"
@@ -154,11 +155,13 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 
 type VoidGrantHandlerRequest struct {
 	ID models.NamespacedID
+	At *time.Time
 }
 type (
 	VoidGrantHandlerResponse = interface{}
 	VoidGrantHandlerParams   struct {
-		ID string
+		ID     string
+		Params api.VoidGrantParams
 	}
 )
 type VoidGrantHandler httptransport.HandlerWithArgs[VoidGrantHandlerRequest, VoidGrantHandlerResponse, VoidGrantHandlerParams]
@@ -176,10 +179,11 @@ func (h *grantHandler) VoidGrant() VoidGrantHandler {
 					Namespace: ns,
 					ID:        params.ID,
 				},
+				At: params.Params.At,
 			}, nil
 		},
 		func(ctx context.Context, request VoidGrantHandlerRequest) (interface{}, error) {
-			err := h.grantConnector.VoidGrant(ctx, request.ID)
+			err := h.grantConnector.VoidGrant(ctx, request.ID, request.At)
 			if err != nil {
 				return nil, err
 			}
