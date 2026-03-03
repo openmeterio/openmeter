@@ -19009,7 +19009,14 @@ export interface operations {
   }
   voidGrant: {
     parameters: {
-      query?: never
+      query?: {
+        /**
+         * @description The time at which the grant should be voided.
+         *     Must not be in the future and must be within the current usage period of the entitlement.
+         *     Defaults to the current time if not specified.
+         */
+        at?: Date | string
+      }
       header?: never
       path: {
         grantId: string
