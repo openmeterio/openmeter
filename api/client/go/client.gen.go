@@ -20890,7 +20890,7 @@ func NewVoidGrantRequest(server string, grantId string, params *VoidGrantParams)
 
 		if params.At != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "at", runtime.ParamLocationQuery, *params.At); err != nil {
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "at", *params.At, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err

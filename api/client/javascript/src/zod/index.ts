@@ -8390,6 +8390,15 @@ export const VoidGrantParams = zod.object({
   grantId: zod.coerce.string(),
 })
 
+export const VoidGrantQueryParams = zod.object({
+  at: zod.coerce
+    .date()
+    .optional()
+    .describe(
+      'The time at which the grant should be voided.\nMust not be in the future and must be within the current usage period of the entitlement.\nDefaults to the current time if not specified.',
+    ),
+})
+
 /**
  * Get progress
  * @summary Get progress

@@ -18398,7 +18398,7 @@ func (siw *ServerInterfaceWrapper) VoidGrant(w http.ResponseWriter, r *http.Requ
 
 	// ------------- Optional query parameter "at" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "at", r.URL.Query(), &params.At)
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "at", r.URL.Query(), &params.At, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "at", Err: err})
 		return
