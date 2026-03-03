@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
+	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
@@ -63,6 +64,7 @@ type Application struct {
 	KafkaProducer                    *kafka.Producer
 	KafkaMetrics                     *kafkametrics.Metrics
 	KafkaIngestNamespaceHandler      *kafkaingest.NamespaceHandler
+	LLMCostService                   llmcost.Service
 	Logger                           *slog.Logger
 	MetricMeter                      metric.Meter
 	MeterConfigInitializer           common.MeterConfigInitializer
@@ -105,6 +107,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.FFX,
 		common.Kafka,
 		common.KafkaIngest,
+		common.LLMCost,
 		common.KafkaNamespaceResolver,
 		common.MeterManageWithConfigMeters,
 		common.MeterEvent,

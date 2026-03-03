@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
+	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
@@ -496,6 +497,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	llmcostService, err := common.NewLLMCostService(logger, client)
+	if err != nil {
+		cleanup8()
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	v4 := conf.Meters
 	v5 := conf.ReservedEventTypes
 	v6, err := common.NewReservedEventTypePatterns(v5)
@@ -675,6 +688,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		KafkaProducer:                    producer,
 		KafkaMetrics:                     metrics,
 		KafkaIngestNamespaceHandler:      namespaceHandler,
+		LLMCostService:                   llmcostService,
 		Logger:                           logger,
 		MetricMeter:                      meter,
 		MeterConfigInitializer:           v7,
@@ -736,6 +750,7 @@ type Application struct {
 	KafkaProducer                    *kafka2.Producer
 	KafkaMetrics                     *metrics.Metrics
 	KafkaIngestNamespaceHandler      *kafkaingest.NamespaceHandler
+	LLMCostService                   llmcost.Service
 	Logger                           *slog.Logger
 	MetricMeter                      metric.Meter
 	MeterConfigInitializer           common.MeterConfigInitializer

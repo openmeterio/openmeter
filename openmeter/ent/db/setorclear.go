@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -2884,6 +2885,76 @@ func (u *GrantUpdateOne) SetOrClearVoidedAt(value *time.Time) *GrantUpdateOne {
 		return u.ClearVoidedAt()
 	}
 	return u.SetVoidedAt(*value)
+}
+
+func (u *LLMCostPriceUpdate) SetOrClearMetadata(value *map[string]string) *LLMCostPriceUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *LLMCostPriceUpdateOne) SetOrClearMetadata(value *map[string]string) *LLMCostPriceUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *LLMCostPriceUpdate) SetOrClearDeletedAt(value *time.Time) *LLMCostPriceUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LLMCostPriceUpdateOne) SetOrClearDeletedAt(value *time.Time) *LLMCostPriceUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LLMCostPriceUpdate) SetOrClearNamespace(value *string) *LLMCostPriceUpdate {
+	if value == nil {
+		return u.ClearNamespace()
+	}
+	return u.SetNamespace(*value)
+}
+
+func (u *LLMCostPriceUpdateOne) SetOrClearNamespace(value *string) *LLMCostPriceUpdateOne {
+	if value == nil {
+		return u.ClearNamespace()
+	}
+	return u.SetNamespace(*value)
+}
+
+func (u *LLMCostPriceUpdate) SetOrClearSourcePrices(value *llmcost.SourcePricesMap) *LLMCostPriceUpdate {
+	if value == nil {
+		return u.ClearSourcePrices()
+	}
+	return u.SetSourcePrices(*value)
+}
+
+func (u *LLMCostPriceUpdateOne) SetOrClearSourcePrices(value *llmcost.SourcePricesMap) *LLMCostPriceUpdateOne {
+	if value == nil {
+		return u.ClearSourcePrices()
+	}
+	return u.SetSourcePrices(*value)
+}
+
+func (u *LLMCostPriceUpdate) SetOrClearEffectiveTo(value *time.Time) *LLMCostPriceUpdate {
+	if value == nil {
+		return u.ClearEffectiveTo()
+	}
+	return u.SetEffectiveTo(*value)
+}
+
+func (u *LLMCostPriceUpdateOne) SetOrClearEffectiveTo(value *time.Time) *LLMCostPriceUpdateOne {
+	if value == nil {
+		return u.ClearEffectiveTo()
+	}
+	return u.SetEffectiveTo(*value)
 }
 
 func (u *MeterUpdate) SetOrClearMetadata(value *map[string]string) *MeterUpdate {

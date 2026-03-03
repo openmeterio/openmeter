@@ -157,6 +157,7 @@ func main() {
 			GrantConnector:              app.EntitlementRegistry.Grant,
 			GrantRepo:                   app.EntitlementRegistry.GrantRepo,
 			IngestService:               app.IngestService,
+			LLMCostService:              app.LLMCostService,
 			Logger:                      logger,
 			MeterManageService:          app.MeterManageService,
 			MeterEventService:           app.MeterEventService,
