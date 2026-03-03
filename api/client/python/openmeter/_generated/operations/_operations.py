@@ -1378,7 +1378,9 @@ def build_grants_list_request(
     return HttpRequest(method="GET", url=_url, params=_params, headers=_headers, **kwargs)
 
 
-def build_grants_delete_request(grant_id: str, **kwargs: Any) -> HttpRequest:
+def build_grants_delete_request(grant_id: str, *, at: Optional[datetime.datetime] = None, **kwargs: Any) -> HttpRequest:
+    _params = case_insensitive_dict(kwargs.pop("params", {}) or {})
+
     # Construct URL
     _url = "/api/v1/grants/{grantId}"
     path_format_arguments = {
@@ -1387,7 +1389,11 @@ def build_grants_delete_request(grant_id: str, **kwargs: Any) -> HttpRequest:
 
     _url: str = _url.format(**path_format_arguments)  # type: ignore
 
-    return HttpRequest(method="DELETE", url=_url, **kwargs)
+    # Construct parameters
+    if at is not None:
+        _params["at"] = _SERIALIZER.query("at", at, "iso-8601")
+
+    return HttpRequest(method="DELETE", url=_url, params=_params, **kwargs)
 
 
 def build_subjects_post_request(subject_id_or_key: str, **kwargs: Any) -> HttpRequest:
@@ -11006,7 +11012,9 @@ class GrantsOperations:
 
         return deserialized  # type: ignore
 
-    def delete(self, grant_id: str, **kwargs: Any) -> None:  # pylint: disable=inconsistent-return-statements
+    def delete(  # pylint: disable=inconsistent-return-statements
+        self, grant_id: str, *, at: Optional[datetime.datetime] = None, **kwargs: Any
+    ) -> None:
         """Void grant.
 
         Voiding a grant means it is no longer valid, it doesn't take part in further balance
@@ -11020,6 +11028,10 @@ class GrantsOperations:
 
         :param grant_id: Required.
         :type grant_id: str
+        :keyword at: The time at which the grant should be voided.
+         Must not be in the future and must be within the current usage period of the entitlement.
+         Defaults to the current time if not specified. Default value is None.
+        :paramtype at: ~datetime.datetime
         :return: None
         :rtype: None
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -11036,6 +11048,7 @@ class GrantsOperations:
 
         _request = build_grants_delete_request(
             grant_id=grant_id,
+            at=at,
             headers=_headers,
             params=_params,
         )

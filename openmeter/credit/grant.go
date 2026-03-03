@@ -17,7 +17,7 @@ import (
 
 type GrantConnector interface {
 	CreateGrant(ctx context.Context, owner models.NamespacedID, grant CreateGrantInput) (*grant.Grant, error)
-	VoidGrant(ctx context.Context, grantID models.NamespacedID) error
+	VoidGrant(ctx context.Context, grantID models.NamespacedID, at *time.Time) error
 }
 
 var _ GrantConnector = &connector{}
@@ -122,7 +122,7 @@ func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID
 	})
 }
 
-func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) error {
+func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID, at *time.Time) error {
 	ctx, span := m.Tracer.Start(ctx, "credit.VoidGrant", cTrace.WithOwner(grantID))
 	defer span.End()
 
@@ -136,7 +136,28 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) 
 		return models.NewGenericValidationError(fmt.Errorf("grant already voided"))
 	}
 
+	// Resolve the void time: use provided `at` or default to now.
+	voidAt := clock.Now()
+	if at != nil {
+		voidAt = *at
+	}
+	voidAt = voidAt.Truncate(m.Granularity)
+
+	// Validate: at must not be in the future
+	if voidAt.After(clock.Now()) {
+		return models.NewGenericValidationError(fmt.Errorf("void time %s must not be in the future", voidAt))
+	}
+
 	ownerID := models.NamespacedID{Namespace: grantID.Namespace, ID: g.OwnerID}
+
+	// Validate: at must be within the current usage period
+	periodStart, err := m.OwnerConnector.GetUsagePeriodStartAt(ctx, ownerID, clock.Now())
+	if err != nil {
+		return err
+	}
+	if voidAt.Before(periodStart) {
+		return models.NewGenericValidationError(fmt.Errorf("void time %s is before the current usage period start %s", voidAt, periodStart))
+	}
 
 	_, err = transaction.Run(ctx, m.GrantRepo, func(ctx context.Context) (*interface{}, error) {
 		tx, err := entutils.GetDriverFromContext(ctx)
@@ -154,19 +175,18 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) 
 			return nil, err
 		}
 
-		now := clock.Now().Truncate(m.Granularity)
-		err = m.GrantRepo.WithTx(ctx, tx).VoidGrant(ctx, grantID, now)
+		err = m.GrantRepo.WithTx(ctx, tx).VoidGrant(ctx, grantID, voidAt)
 		if err != nil {
 			return nil, err
 		}
 
 		// invalidate snapshots
-		err = m.BalanceSnapshotService.InvalidateAfter(ctx, ownerID, now)
+		err = m.BalanceSnapshotService.InvalidateAfter(ctx, ownerID, voidAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to invalidate snapshots after %s: %w", g.EffectiveAt, err)
 		}
 
-		return nil, m.Publisher.Publish(ctx, grant.NewVoidedEventV2FromGrant(g, owner.StreamingCustomer, now))
+		return nil, m.Publisher.Publish(ctx, grant.NewVoidedEventV2FromGrant(g, owner.StreamingCustomer, voidAt))
 	})
 	return err
 }

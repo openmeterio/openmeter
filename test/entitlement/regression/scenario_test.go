@@ -366,7 +366,7 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 	err = deps.GrantConnector.VoidGrant(ctx, models.NamespacedID{
 		Namespace: "namespace-1",
 		ID:        grant2.ID,
-	})
+	}, nil)
 	assert.NoError(err)
 
 	// Let's query the usage
