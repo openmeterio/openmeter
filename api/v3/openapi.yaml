@@ -690,7 +690,7 @@ paths:
             $ref: '#/components/schemas/ULID'
       responses:
         '204':
-          description: 'There is no content to send for this request, but the headers may be useful. '
+          description: Deleted response.
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':

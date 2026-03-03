@@ -108,5 +108,5 @@ interface LLMCostOverridesOperations {
   @summary("Delete LLM cost override")
   delete_override(
     @path priceId: Shared.ULID,
-  ): void | Common.NotFound | Common.ErrorResponses;
+  ): Shared.DeleteResponse | Common.NotFound | Common.ErrorResponses;
 }
