@@ -1715,6 +1715,94 @@ var (
 			},
 		},
 	}
+	// CurrencyCostBasesColumns holds the columns for the "currency_cost_bases" table.
+	CurrencyCostBasesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "fiat_code", Type: field.TypeString},
+		{Name: "rate", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "effective_from", Type: field.TypeTime},
+		{Name: "custom_currency_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// CurrencyCostBasesTable holds the schema information for the "currency_cost_bases" table.
+	CurrencyCostBasesTable = &schema.Table{
+		Name:       "currency_cost_bases",
+		Columns:    CurrencyCostBasesColumns,
+		PrimaryKey: []*schema.Column{CurrencyCostBasesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "currency_cost_bases_custom_currencies_cost_basis_history",
+				Columns:    []*schema.Column{CurrencyCostBasesColumns[8]},
+				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "currencycostbasis_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{CurrencyCostBasesColumns[1]},
+			},
+			{
+				Name:    "currencycostbasis_id",
+				Unique:  true,
+				Columns: []*schema.Column{CurrencyCostBasesColumns[0]},
+			},
+			{
+				Name:    "currencycostbasis_namespace_custom_currency_id_fiat_code_effective_from",
+				Unique:  true,
+				Columns: []*schema.Column{CurrencyCostBasesColumns[1], CurrencyCostBasesColumns[8], CurrencyCostBasesColumns[5], CurrencyCostBasesColumns[7]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+		},
+	}
+	// CustomCurrenciesColumns holds the columns for the "custom_currencies" table.
+	CustomCurrenciesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "code", Type: field.TypeString, Size: 24},
+		{Name: "name", Type: field.TypeString},
+		{Name: "symbol", Type: field.TypeString},
+	}
+	// CustomCurrenciesTable holds the schema information for the "custom_currencies" table.
+	CustomCurrenciesTable = &schema.Table{
+		Name:       "custom_currencies",
+		Columns:    CustomCurrenciesColumns,
+		PrimaryKey: []*schema.Column{CustomCurrenciesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "customcurrency_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{CustomCurrenciesColumns[1]},
+			},
+			{
+				Name:    "customcurrency_id",
+				Unique:  true,
+				Columns: []*schema.Column{CustomCurrenciesColumns[0]},
+			},
+			{
+				Name:    "customcurrency_namespace_code",
+				Unique:  true,
+				Columns: []*schema.Column{CustomCurrenciesColumns[1], CustomCurrenciesColumns[5]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+			{
+				Name:    "customcurrency_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{CustomCurrenciesColumns[1], CustomCurrenciesColumns[0]},
+			},
+		},
+	}
 	// CustomersColumns holds the columns for the "customers" table.
 	CustomersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -3277,6 +3365,8 @@ var (
 		ChargeCreditPurchasesTable,
 		ChargeFlatFeesTable,
 		ChargeUsageBasedsTable,
+		CurrencyCostBasesTable,
+		CustomCurrenciesTable,
 		CustomersTable,
 		CustomerSubjectsTable,
 		EntitlementsTable,
@@ -3357,6 +3447,7 @@ func init() {
 	ChargeCreditPurchasesTable.ForeignKeys[0].RefTable = ChargesTable
 	ChargeFlatFeesTable.ForeignKeys[0].RefTable = ChargesTable
 	ChargeUsageBasedsTable.ForeignKeys[0].RefTable = ChargesTable
+	CurrencyCostBasesTable.ForeignKeys[0].RefTable = CustomCurrenciesTable
 	CustomerSubjectsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[1].RefTable = FeaturesTable

@@ -225,6 +225,12 @@ func ChargeUsageBasedOrErr(p ChargeUsageBased, err error) ChargeUsageBased {
 	}
 }
 
+// CurrencyCostBasis is the predicate function for currencycostbasis builders.
+type CurrencyCostBasis func(*sql.Selector)
+
+// CustomCurrency is the predicate function for customcurrency builders.
+type CustomCurrency func(*sql.Selector)
+
 // Customer is the predicate function for customer builders.
 type Customer func(*sql.Selector)
 
