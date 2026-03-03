@@ -53,6 +53,8 @@ func (CustomCurrency) Indexes() []ent.Index {
 				entsql.IndexWhere("deleted_at IS NULL"),
 			).
 			Unique(),
+		index.Fields("namespace", "id").
+			Unique(),
 	}
 }
 
@@ -71,6 +73,9 @@ func (CurrencyCostBasis) Mixin() []ent.Mixin {
 func (CurrencyCostBasis) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("custom_currency_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
 			Immutable(),
 		field.String("fiat_code").
 			GoType(currencyx.Code("")).

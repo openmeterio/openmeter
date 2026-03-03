@@ -16,6 +16,8 @@ CREATE UNIQUE INDEX "customcurrency_id" ON "custom_currencies" ("id");
 CREATE INDEX "customcurrency_namespace" ON "custom_currencies" ("namespace");
 -- create index "customcurrency_namespace_code" to table: "custom_currencies"
 CREATE UNIQUE INDEX "customcurrency_namespace_code" ON "custom_currencies" ("namespace", "code") WHERE (deleted_at IS NULL);
+-- create index "customcurrency_namespace_id" to table: "custom_currencies"
+CREATE UNIQUE INDEX "customcurrency_namespace_id" ON "custom_currencies" ("namespace", "id");
 -- create "currency_cost_bases" table
 CREATE TABLE "currency_cost_bases" (
   "id" character(26) NOT NULL,

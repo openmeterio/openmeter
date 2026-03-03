@@ -6,6 +6,8 @@ DROP INDEX "currencycostbasis_namespace";
 DROP INDEX "currencycostbasis_id";
 -- reverse: create "currency_cost_bases" table
 DROP TABLE "currency_cost_bases";
+-- reverse: create index "customcurrency_namespace_id" to table: "custom_currencies"
+DROP INDEX "customcurrency_namespace_id";
 -- reverse: create index "customcurrency_namespace_code" to table: "custom_currencies"
 DROP INDEX "customcurrency_namespace_code";
 -- reverse: create index "customcurrency_namespace" to table: "custom_currencies"

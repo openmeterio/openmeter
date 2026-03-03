@@ -1796,6 +1796,11 @@ var (
 					Where: "deleted_at IS NULL",
 				},
 			},
+			{
+				Name:    "customcurrency_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{CustomCurrenciesColumns[1], CustomCurrenciesColumns[0]},
+			},
 		},
 	}
 	// CustomersColumns holds the columns for the "customers" table.
