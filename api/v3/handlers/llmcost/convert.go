@@ -66,7 +66,9 @@ func domainPricingToAPI(p llmcost.ModelPricing) api.LLMCostModelPricing {
 func apiPricingToDomain(p api.LLMCostModelPricing) (llmcost.ModelPricing, error) {
 	inputPerToken, err := decimalFromString(p.InputPerToken)
 	if err != nil {
-		return llmcost.ModelPricing{}, fmt.Errorf("invalid input_per_token: %w", err)
+		return llmcost.ModelPricing{}, models.NewGenericValidationError(
+			fmt.Errorf("invalid input_per_token: %w", err),
+		)
 	}
 
 	outputPerToken, err := decimalFromString(p.OutputPerToken)
