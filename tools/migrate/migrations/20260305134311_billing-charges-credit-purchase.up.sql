@@ -25,10 +25,10 @@ CREATE UNIQUE INDEX "charge_external_payment_settlements_charge_id_key" ON "char
 -- create index "chargeexternalpaymentsettlement_annotations" to table: "charge_external_payment_settlements"
 CREATE INDEX "chargeexternalpaymentsettlement_annotations" ON "charge_external_payment_settlements" USING gin ("annotations");
 -- create index "chargeexternalpaymentsettlement_charge_id" to table: "charge_external_payment_settlements"
-CREATE INDEX "chargeexternalpaymentsettlement_charge_id" ON "charge_external_payment_settlements" ("charge_id") WHERE (deleted_at IS NULL);
+CREATE INDEX "chargeexternalpaymentsettlement_charge_id" ON "charge_external_payment_settlements" ("charge_id");
 -- create index "chargeexternalpaymentsettlement_id" to table: "charge_external_payment_settlements"
 CREATE UNIQUE INDEX "chargeexternalpaymentsettlement_id" ON "charge_external_payment_settlements" ("id");
 -- create index "chargeexternalpaymentsettlement_namespace" to table: "charge_external_payment_settlements"
 CREATE INDEX "chargeexternalpaymentsettlement_namespace" ON "charge_external_payment_settlements" ("namespace");
 -- create index "chargeexternalpaymentsettlement_namespace_charge_id" to table: "charge_external_payment_settlements"
-CREATE UNIQUE INDEX "chargeexternalpaymentsettlement_namespace_charge_id" ON "charge_external_payment_settlements" ("namespace", "charge_id") WHERE (deleted_at IS NULL);
+CREATE INDEX "chargeexternalpaymentsettlement_namespace_charge_id" ON "charge_external_payment_settlements" ("namespace", "charge_id");
