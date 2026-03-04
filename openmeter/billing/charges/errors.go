@@ -84,3 +84,12 @@ var ErrCannotSettleNotAuthorizedPayment = models.NewValidationIssue(
 	models.WithCriticalSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
+
+const ErrCodeCannotAdvanceCreditPurchaseCharge models.ErrorCode = "cannot_advance_credit_purchase_charge"
+
+var ErrCannotAdvanceCreditPurchaseCharge = models.NewValidationIssue(
+	ErrCodeCannotAdvanceCreditPurchaseCharge,
+	"cannot advance credit purchase charge",
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)

@@ -21,6 +21,7 @@ type ChargeAdapter interface {
 	GetChargesByIDs(ctx context.Context, input GetChargesByIDsInput) (Charges, error)
 	CreateCharges(ctx context.Context, input CreateChargeInputs) (Charges, error)
 	UpdateFlatFeeCharge(ctx context.Context, charge FlatFeeCharge) (FlatFeeCharge, error)
+	ListCharges(ctx context.Context, input ListChargesInput) (Charges, error)
 }
 
 type CreditRealizationAdapter interface {
