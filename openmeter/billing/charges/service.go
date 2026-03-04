@@ -16,6 +16,8 @@ type ChargeService interface {
 	GetChargeByID(ctx context.Context, input GetChargeByIDInput) (Charge, error)
 	GetChargesByIDs(ctx context.Context, input GetChargesByIDsInput) (Charges, error)
 	CreateCharges(ctx context.Context, input CreateChargeInputs) (Charges, error)
+
+	AdvanceCreditOnlyCharges(ctx context.Context, input AdvanceCreditOnlyChargesInput) (Charges, error)
 }
 
 // InvoiceService contains methods that are over time deprecate the current billing methods.

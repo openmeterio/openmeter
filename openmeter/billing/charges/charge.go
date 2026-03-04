@@ -419,3 +419,18 @@ func (i GetChargesByIDsInput) Validate() error {
 
 	return errors.Join(errs...)
 }
+
+type AdvanceCreditOnlyChargesInput struct {
+	Namespace string
+	ChargeIDs []string
+}
+
+func (i AdvanceCreditOnlyChargesInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, fmt.Errorf("namespace is required"))
+	}
+
+	return errors.Join(errs...)
+}

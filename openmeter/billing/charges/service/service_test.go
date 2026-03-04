@@ -289,6 +289,169 @@ func (s *ChargesServiceTestSuite) TestFlatFeePartialCreditRealizations() {
 	})
 }
 
+func (s *ChargesServiceTestSuite) TestFlatFeeCreditOnlyFutureInvoiceAt() {
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-only-future-invoice-at")
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	const (
+		flatFeeName = "flat-fee"
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	clock.SetTime(servicePeriod.From.Add(-time.Hour * 24))
+
+	flatFeeChargeID := charges.ChargeID{}
+
+	s.Run("create new upcoming charges", func() {
+		res, err := s.Charges.CreateCharges(ctx, charges.CreateChargeInputs{
+			Namespace: ns,
+			Intents: []charges.ChargeIntent{
+				s.createMockChargeIntent(createMockChargeIntentInput{
+					customer:       cust.GetID(),
+					currency:       USD,
+					servicePeriod:  servicePeriod,
+					settlementMode: productcatalog.CreditOnlySettlementMode,
+					price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromFloat(100),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					name:              flatFeeName,
+					managedBy:         billing.SubscriptionManagedLine,
+					uniqueReferenceID: flatFeeName,
+				}),
+			},
+		})
+		s.NoError(err)
+
+		s.Len(res, 1)
+		s.Equal(res[0].Type(), charges.ChargeTypeFlatFee)
+		flatFeeCharge, err := res[0].AsFlatFeeCharge()
+		s.NoError(err)
+
+		s.Equal(charges.ChargeStatusActive, flatFeeCharge.Status)
+
+		flatFeeChargeID = flatFeeCharge.GetChargeID()
+	})
+
+	s.Run("advance the charge", func() {
+		clock.SetTime(servicePeriod.From)
+		defer s.FlatFeeTestHandler.Reset()
+
+		s.FlatFeeTestHandler.onFlatFeeAssignedToInvoice = func(ctx context.Context, input charges.OnFlatFeeAssignedToInvoiceInput) ([]charges.CreditRealizationCreateInput, error) {
+			return []charges.CreditRealizationCreateInput{
+				{
+					ServicePeriod: input.ServicePeriod,
+					Amount:        input.PreTaxTotalAmount.Mul(alpacadecimal.NewFromFloat(0.3)), // 30% as credits
+					LedgerTransaction: charges.LedgerTransactionGroupReference{
+						TransactionGroupID: ulid.Make().String(),
+					},
+				},
+				{
+					ServicePeriod: input.ServicePeriod,
+					Amount:        input.PreTaxTotalAmount.Mul(alpacadecimal.NewFromFloat(0.7)), // 70% as credits
+					LedgerTransaction: charges.LedgerTransactionGroupReference{
+						TransactionGroupID: ulid.Make().String(),
+					},
+				},
+			}, nil
+		}
+
+		res, err := s.Charges.AdvanceCreditOnlyCharges(ctx, charges.AdvanceCreditOnlyChargesInput{
+			Namespace: ns,
+			ChargeIDs: []string{flatFeeChargeID.ID},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+		s.Equal(res[0].Type(), charges.ChargeTypeFlatFee)
+		updatedFlatFeeCharge, err := res[0].AsFlatFeeCharge()
+		s.NoError(err)
+		s.Equal(charges.ChargeStatusFinal, updatedFlatFeeCharge.Status)
+
+		// Validate the realizations
+		s.Len(updatedFlatFeeCharge.State.CreditRealizations, 2)
+	})
+}
+
+func (s *ChargesServiceTestSuite) TestFlatFeeCreditOnlyPastInvoiceAt() {
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-only-past-invoice-at")
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	const (
+		flatFeeName = "flat-fee"
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	clock.SetTime(servicePeriod.From)
+
+	s.Run("create new upcoming charges", func() {
+		defer s.FlatFeeTestHandler.Reset()
+
+		s.FlatFeeTestHandler.onFlatFeeAssignedToInvoice = func(ctx context.Context, input charges.OnFlatFeeAssignedToInvoiceInput) ([]charges.CreditRealizationCreateInput, error) {
+			return []charges.CreditRealizationCreateInput{
+				{
+					ServicePeriod: input.ServicePeriod,
+					Amount:        input.PreTaxTotalAmount.Mul(alpacadecimal.NewFromFloat(0.3)), // 30% as credits
+					LedgerTransaction: charges.LedgerTransactionGroupReference{
+						TransactionGroupID: ulid.Make().String(),
+					},
+				},
+				{
+					ServicePeriod: input.ServicePeriod,
+					Amount:        input.PreTaxTotalAmount.Mul(alpacadecimal.NewFromFloat(0.7)), // 70% as credits
+					LedgerTransaction: charges.LedgerTransactionGroupReference{
+						TransactionGroupID: ulid.Make().String(),
+					},
+				},
+			}, nil
+		}
+
+		res, err := s.Charges.CreateCharges(ctx, charges.CreateChargeInputs{
+			Namespace: ns,
+			Intents: []charges.ChargeIntent{
+				s.createMockChargeIntent(createMockChargeIntentInput{
+					customer:       cust.GetID(),
+					currency:       USD,
+					servicePeriod:  servicePeriod,
+					settlementMode: productcatalog.CreditOnlySettlementMode,
+					price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromFloat(100),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					name:              flatFeeName,
+					managedBy:         billing.SubscriptionManagedLine,
+					uniqueReferenceID: flatFeeName,
+				}),
+			},
+		})
+		s.NoError(err)
+
+		s.Len(res, 1)
+		s.Equal(res[0].Type(), charges.ChargeTypeFlatFee)
+		flatFeeCharge, err := res[0].AsFlatFeeCharge()
+		s.NoError(err)
+
+		s.Equal(charges.ChargeStatusFinal, flatFeeCharge.Status)
+
+		s.Len(flatFeeCharge.State.CreditRealizations, 2)
+		s.Equal(float64(30), flatFeeCharge.State.CreditRealizations[0].Amount.InexactFloat64())
+		s.Equal(float64(70), flatFeeCharge.State.CreditRealizations[1].Amount.InexactFloat64())
+	})
+}
+
 type createMockChargeIntentInput struct {
 	customer          customer.CustomerID
 	currency          currencyx.Code
