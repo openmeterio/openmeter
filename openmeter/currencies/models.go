@@ -39,7 +39,7 @@ func (i ListCurrenciesInput) Validate() error {
 
 	if i.FilterType != nil {
 		if err := i.FilterType.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid filter_type: %w", err))
+			errs = append(errs, fmt.Errorf("filter_type: %w", err))
 		}
 	}
 
@@ -54,7 +54,7 @@ func (t CurrencyType) Validate() error {
 	case CurrencyTypeCustom, CurrencyTypeFiat:
 		return nil
 	default:
-		return fmt.Errorf("invalid currency type: %s", t)
+		return fmt.Errorf("currency type: %s", t)
 	}
 }
 
@@ -128,8 +128,8 @@ func (i CreateCostBasisInput) Validate() error {
 		errs = append(errs, errors.New("fiat_code is required"))
 	}
 
-	if i.Rate.IsNegative() {
-		errs = append(errs, errors.New("rate must be non-negative"))
+	if !i.Rate.IsPositive() {
+		errs = append(errs, errors.New("rate must be positive"))
 	}
 
 	return errors.Join(errs...)

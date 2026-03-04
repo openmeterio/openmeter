@@ -116,34 +116,18 @@ func (a *adapter) ListCostBases(ctx context.Context, params currencies.ListCostB
 			Where(
 				currencycostbasis.Namespace(params.Namespace),
 				currencycostbasis.CustomCurrencyID(params.CurrencyID),
-			)
+			).
+			Order(currencycostbasis.ByEffectiveFrom(sql.OrderDesc()))
 
 		if params.FilterFiatCode != nil {
 			q = q.Where(currencycostbasis.FiatCode(currencyx.Code(*params.FilterFiatCode)))
 		}
 
-		total, err := q.Count(ctx)
-		if err != nil {
-			return pagination.Result[currencies.CostBasis]{}, fmt.Errorf("failed to count cost bases: %w", err)
-		}
-
-		q = q.Order(currencycostbasis.ByEffectiveFrom(sql.OrderDesc()))
-
-		if params.Page.PageSize > 0 && params.Page.PageNumber > 0 {
-			q = q.Offset((params.Page.PageNumber - 1) * params.Page.PageSize).Limit(params.Page.PageSize)
-		}
-
-		costBases, err := q.All(ctx)
+		paged, err := q.Paginate(ctx, params.Page)
 		if err != nil {
 			return pagination.Result[currencies.CostBasis]{}, fmt.Errorf("failed to list cost bases: %w", err)
 		}
 
-		return pagination.Result[currencies.CostBasis]{
-			Page:       params.Page,
-			TotalCount: total,
-			Items: lo.Map(costBases, func(cb *entdb.CurrencyCostBasis, _ int) currencies.CostBasis {
-				return mapCostBasisFromDB(cb)
-			}),
-		}, nil
+		return pagination.MapResult(paged, mapCostBasisFromDB), nil
 	})
 }
