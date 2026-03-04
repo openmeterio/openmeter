@@ -5,31 +5,40 @@ from corehttp.utils import CaseInsensitiveEnumMeta
 
 
 class AddonInstanceType(str, Enum, metaclass=CaseInsensitiveEnumMeta):
-    """The instanceType of the add-on.
-    Single instance add-ons can be added to subscription only once while add-ons with multiple type
-    can be added more then once.
+    """The instanceType of the add-on. Single instance add-ons can be added to subscription only once
+    while add-ons with multiple type can be added more then once.
     """
 
     SINGLE = "single"
+    """SINGLE."""
     MULTIPLE = "multiple"
+    """MULTIPLE."""
 
 
 class AddonOrderBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Order by options for add-ons."""
 
     ID = "id"
+    """ID."""
     KEY = "key"
+    """KEY."""
     VERSION = "version"
+    """VERSION."""
     CREATED_AT = "created_at"
+    """CREATED_AT."""
     UPDATED_AT = "updated_at"
+    """UPDATED_AT."""
 
 
 class AddonStatus(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """The status of the add-on defined by the effectiveFrom and effectiveTo properties."""
 
     DRAFT = "draft"
+    """DRAFT."""
     ACTIVE = "active"
+    """ACTIVE."""
     ARCHIVED = "archived"
+    """ARCHIVED."""
 
 
 class AppCapabilityType(str, Enum, metaclass=CaseInsensitiveEnumMeta):
@@ -53,17 +62,19 @@ class AppStatus(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     READY = "ready"
     """The app is ready to be used."""
     UNAUTHORIZED = "unauthorized"
-    """The app is unauthorized.
-    This usually happens when the app's credentials are revoked or expired.
-    To resolve this, the user must re-authorize the app."""
+    """The app is unauthorized. This usually happens when the app's credentials are revoked or
+    expired. To resolve this, the user must re-authorize the app."""
 
 
 class AppType(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Type of the app."""
 
     STRIPE = "stripe"
+    """STRIPE."""
     SANDBOX = "sandbox"
+    """SANDBOX."""
     CUSTOM_INVOICING = "custom_invoicing"
+    """CUSTOM_INVOICING."""
 
 
 class BillingCollectionAlignment(str, Enum, metaclass=CaseInsensitiveEnumMeta):
@@ -79,71 +90,90 @@ class BillingProfileCustomerOverrideExpand(str, Enum, metaclass=CaseInsensitiveE
     """CustomerOverrideExpand specifies the parts of the profile to expand."""
 
     APPS = "apps"
+    """APPS."""
     CUSTOMER = "customer"
+    """CUSTOMER."""
 
 
 class BillingProfileCustomerOverrideOrderBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Order by options for customers."""
 
     CUSTOMER_ID = "customerId"
+    """CUSTOMER_ID."""
     CUSTOMER_NAME = "customerName"
+    """CUSTOMER_NAME."""
     CUSTOMER_KEY = "customerKey"
+    """CUSTOMER_KEY."""
     CUSTOMER_PRIMARY_EMAIL = "customerPrimaryEmail"
+    """CUSTOMER_PRIMARY_EMAIL."""
     CUSTOMER_CREATED_AT = "customerCreatedAt"
+    """CUSTOMER_CREATED_AT."""
 
 
 class BillingProfileExpand(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """BillingProfileExpand details what profile fields to expand."""
 
     APPS = "apps"
+    """APPS."""
 
 
 class BillingProfileOrderBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """BillingProfileOrderBy specifies the ordering options for profiles."""
 
     CREATED_AT = "createdAt"
+    """CREATED_AT."""
     UPDATED_AT = "updatedAt"
+    """UPDATED_AT."""
     DEFAULT = "default"
+    """DEFAULT."""
     NAME = "name"
+    """NAME."""
 
 
 class CheckoutSessionUIMode(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Stripe CheckoutSession.ui_mode."""
 
     EMBEDDED = "embedded"
+    """EMBEDDED."""
     HOSTED = "hosted"
+    """HOSTED."""
 
 
 class CollectionMethod(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Collection method."""
 
     CHARGE_AUTOMATICALLY = "charge_automatically"
+    """CHARGE_AUTOMATICALLY."""
     SEND_INVOICE = "send_invoice"
+    """SEND_INVOICE."""
 
 
-class CreateCheckoutSessionTaxIdCollectionRequired(str, Enum, metaclass=CaseInsensitiveEnumMeta):
+class CreateCheckoutSessionTaxIdCollectionRequired(  # pylint: disable=name-too-long
+    str, Enum, metaclass=CaseInsensitiveEnumMeta
+):
     """Create Stripe checkout session tax ID collection required."""
 
     IF_SUPPORTED = "if_supported"
     """A tax ID will be required if collection is supported for the selected billing address country.
     See: `https://docs.stripe.com/tax/checkout/tax-ids#supported-types
-    <https://docs.stripe.com/tax/checkout/tax-ids#supported-types>`_"""
+    <https://docs.stripe.com/tax/checkout/tax-ids#supported-types>`_."""
     NEVER = "never"
     """Tax ID collection is never required."""
 
 
-class CreateStripeCheckoutSessionBillingAddressCollection(str, Enum, metaclass=CaseInsensitiveEnumMeta):
+class CreateStripeCheckoutSessionBillingAddressCollection(  # pylint: disable=name-too-long
+    str, Enum, metaclass=CaseInsensitiveEnumMeta
+):
     """Specify whether Checkout should collect the customer’s billing address."""
 
     AUTO = "auto"
-    """Checkout will only collect the billing address when necessary.
-    When using automatic_tax, Checkout will collect the minimum number of fields required for tax
-    calculation."""
+    """Checkout will only collect the billing address when necessary. When using automatic_tax,
+    Checkout will collect the minimum number of fields required for tax calculation."""
     REQUIRED = "required"
     """Checkout will always collect the customer’s billing address."""
 
 
-class CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition(
+class CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPosition(  # pylint: disable=name-too-long
     str, Enum, metaclass=CaseInsensitiveEnumMeta
 ):
     """Create Stripe checkout session consent collection agreement position."""
@@ -155,20 +185,23 @@ class CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreementPos
     """Hides the payment method reuse agreement."""
 
 
-class CreateStripeCheckoutSessionConsentCollectionPromotions(str, Enum, metaclass=CaseInsensitiveEnumMeta):
+class CreateStripeCheckoutSessionConsentCollectionPromotions(  # pylint: disable=name-too-long
+    str, Enum, metaclass=CaseInsensitiveEnumMeta
+):
     """Create Stripe checkout session consent collection promotions."""
 
     AUTO = "auto"
-    """Enable the collection of customer consent for promotional communications.
-    The Checkout Session will determine whether to display an option to opt into promotional
-    communication from the merchant depending on if a customer is provided,
-    and if that customer has consented to receiving promotional communications from the merchant in
-    the past."""
+    """Enable the collection of customer consent for promotional communications. The Checkout Session
+    will determine whether to display an option to opt into promotional communication from the
+    merchant depending on if a customer is provided, and if that customer has consented to
+    receiving promotional communications from the merchant in the past."""
     NONE = "none"
     """Checkout will not collect customer consent for promotional communications."""
 
 
-class CreateStripeCheckoutSessionConsentCollectionTermsOfService(str, Enum, metaclass=CaseInsensitiveEnumMeta):
+class CreateStripeCheckoutSessionConsentCollectionTermsOfService(  # pylint: disable=name-too-long
+    str, Enum, metaclass=CaseInsensitiveEnumMeta
+):
     """Create Stripe checkout session consent collection terms of service."""
 
     NONE = "none"
@@ -178,7 +211,9 @@ class CreateStripeCheckoutSessionConsentCollectionTermsOfService(str, Enum, meta
     being able to pay."""
 
 
-class CreateStripeCheckoutSessionCustomerUpdateBehavior(str, Enum, metaclass=CaseInsensitiveEnumMeta):
+class CreateStripeCheckoutSessionCustomerUpdateBehavior(  # pylint: disable=name-too-long
+    str, Enum, metaclass=CaseInsensitiveEnumMeta
+):
     """Create Stripe checkout session customer update behavior."""
 
     AUTO = "auto"
@@ -188,7 +223,9 @@ class CreateStripeCheckoutSessionCustomerUpdateBehavior(str, Enum, metaclass=Cas
     """Checkout will never update the provided Customer object."""
 
 
-class CreateStripeCheckoutSessionRedirectOnCompletion(str, Enum, metaclass=CaseInsensitiveEnumMeta):
+class CreateStripeCheckoutSessionRedirectOnCompletion(  # pylint: disable=name-too-long
+    str, Enum, metaclass=CaseInsensitiveEnumMeta
+):
     """Create Stripe checkout session redirect on completion."""
 
     ALWAYS = "always"
@@ -204,102 +241,144 @@ class CustomerExpand(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """CustomerExpand specifies the parts of the customer to expand in the list output."""
 
     SUBSCRIPTIONS = "subscriptions"
+    """SUBSCRIPTIONS."""
 
 
 class CustomerOrderBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Order by options for customers."""
 
     ID = "id"
+    """ID."""
     NAME = "name"
+    """NAME."""
     CREATED_AT = "createdAt"
+    """CREATED_AT."""
 
 
 class CustomerSubscriptionOrderBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Order by options for customer subscriptions."""
 
     ACTIVE_FROM = "activeFrom"
+    """ACTIVE_FROM."""
     ACTIVE_TO = "activeTo"
+    """ACTIVE_TO."""
 
 
 class CustomInvoicingPaymentTrigger(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Payment trigger to execute on a finalized invoice."""
 
     PAID = "paid"
+    """PAID."""
     PAYMENT_FAILED = "payment_failed"
+    """PAYMENT_FAILED."""
     PAYMENT_UNCOLLECTIBLE = "payment_uncollectible"
+    """PAYMENT_UNCOLLECTIBLE."""
     PAYMENT_OVERDUE = "payment_overdue"
+    """PAYMENT_OVERDUE."""
     ACTION_REQUIRED = "action_required"
+    """ACTION_REQUIRED."""
     VOID = "void"
+    """VOID."""
 
 
 class DiscountReasonType(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """The type of the discount reason."""
 
     MAXIMUM_SPEND = "maximum_spend"
+    """MAXIMUM_SPEND."""
     RATECARD_PERCENTAGE = "ratecard_percentage"
+    """RATECARD_PERCENTAGE."""
     RATECARD_USAGE = "ratecard_usage"
+    """RATECARD_USAGE."""
 
 
 class EditOp(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Enum listing the different operation types."""
 
     ADD_ITEM = "add_item"
+    """ADD_ITEM."""
     REMOVE_ITEM = "remove_item"
+    """REMOVE_ITEM."""
     UNSCHEDULE_EDIT = "unschedule_edit"
+    """UNSCHEDULE_EDIT."""
     ADD_PHASE = "add_phase"
+    """ADD_PHASE."""
     REMOVE_PHASE = "remove_phase"
+    """REMOVE_PHASE."""
     STRETCH_PHASE = "stretch_phase"
+    """STRETCH_PHASE."""
 
 
 class EntitlementOrderBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Order by options for entitlements."""
 
     CREATED_AT = "createdAt"
+    """CREATED_AT."""
     UPDATED_AT = "updatedAt"
+    """UPDATED_AT."""
 
 
 class EntitlementType(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Type of the entitlement."""
 
     METERED = "metered"
+    """METERED."""
     BOOLEAN = "boolean"
+    """BOOLEAN."""
     STATIC = "static"
+    """STATIC."""
 
 
 class ExpirationDuration(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """The expiration duration enum."""
 
     HOUR = "HOUR"
+    """HOUR."""
     DAY = "DAY"
+    """DAY."""
     WEEK = "WEEK"
+    """WEEK."""
     MONTH = "MONTH"
+    """MONTH."""
     YEAR = "YEAR"
+    """YEAR."""
 
 
 class FeatureOrderBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Order by options for features."""
 
     ID = "id"
+    """ID."""
     KEY = "key"
+    """KEY."""
     NAME = "name"
+    """NAME."""
     CREATED_AT = "createdAt"
+    """CREATED_AT."""
     UPDATED_AT = "updatedAt"
+    """UPDATED_AT."""
 
 
 class GrantOrderBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Order by options for grants."""
 
     ID = "id"
+    """ID."""
     CREATED_AT = "createdAt"
+    """CREATED_AT."""
     UPDATED_AT = "updatedAt"
+    """UPDATED_AT."""
 
 
 class InstallMethod(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Install method of the application."""
 
     WITH_O_AUTH2 = "with_oauth2"
+    """WITH_O_AUTH2."""
     WITH_API_KEY = "with_api_key"
+    """WITH_API_KEY."""
     NO_CREDENTIALS_REQUIRED = "no_credentials_required"
+    """NO_CREDENTIALS_REQUIRED."""
 
 
 class InvoiceDetailedLineCostCategory(str, Enum, metaclass=CaseInsensitiveEnumMeta):
@@ -317,14 +396,18 @@ class InvoiceDocumentRefType(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """InvoiceDocumentRefType defines the type of document that is being referenced."""
 
     CREDIT_NOTE_ORIGINAL_INVOICE = "credit_note_original_invoice"
+    """CREDIT_NOTE_ORIGINAL_INVOICE."""
 
 
 class InvoiceExpand(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """InvoiceExpand specifies the parts of the invoice to expand in the list output."""
 
     LINES = "lines"
+    """LINES."""
     PRECEDING = "preceding"
+    """PRECEDING."""
     WORKFLOW_APPS = "workflow.apps"
+    """WORKFLOW_APPS."""
 
 
 class InvoiceLineManagedBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
@@ -356,11 +439,10 @@ class InvoiceLineStatus(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     VALID = "valid"
     """The line is valid and can be used in the invoice."""
     DETAILED = "detailed"
-    """The line is a detail line which is used to detail the individual
-    charges and discounts of a valid line."""
+    """The line is a detail line which is used to detail the individual charges and discounts of a
+    valid line."""
     SPLIT = "split"
-    """The line has been split into multiple valid lines due to progressive
-    billing."""
+    """The line has been split into multiple valid lines due to progressive billing."""
 
 
 class InvoiceLineTaxBehavior(str, Enum, metaclass=CaseInsensitiveEnumMeta):
@@ -380,18 +462,26 @@ class InvoiceLineTypes(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """LineTypes represents the different types of lines that can be used in an invoice."""
 
     FLAT_FEE = "flat_fee"
+    """FLAT_FEE."""
     USAGE_BASED = "usage_based"
+    """USAGE_BASED."""
 
 
 class InvoiceOrderBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """InvoiceOrderBy specifies the ordering options for invoice listing."""
 
     CUSTOMER_NAME = "customer.name"
+    """CUSTOMER_NAME."""
     ISSUED_AT = "issuedAt"
+    """ISSUED_AT."""
     STATUS = "status"
+    """STATUS."""
     CREATED_AT = "createdAt"
+    """CREATED_AT."""
     UPDATED_AT = "updatedAt"
+    """UPDATED_AT."""
     PERIOD_START = "periodStart"
+    """PERIOD_START."""
 
 
 class InvoiceStatus(str, Enum, metaclass=CaseInsensitiveEnumMeta):
@@ -434,97 +524,138 @@ class MeasureUsageFromPreset(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Start of measurement options."""
 
     CURRENT_PERIOD_START = "CURRENT_PERIOD_START"
+    """CURRENT_PERIOD_START."""
     NOW = "NOW"
+    """NOW."""
 
 
 class MeterAggregation(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """The aggregation type to use for the meter."""
 
     SUM = "SUM"
+    """SUM."""
     COUNT = "COUNT"
+    """COUNT."""
     UNIQUE_COUNT = "UNIQUE_COUNT"
+    """UNIQUE_COUNT."""
     AVG = "AVG"
+    """AVG."""
     MIN = "MIN"
+    """MIN."""
     MAX = "MAX"
+    """MAX."""
     LATEST = "LATEST"
+    """LATEST."""
 
 
 class MeterOrderBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Order by options for meters."""
 
     KEY = "key"
+    """KEY."""
     NAME = "name"
+    """NAME."""
     AGGREGATION = "aggregation"
+    """AGGREGATION."""
     CREATED_AT = "createdAt"
+    """CREATED_AT."""
     UPDATED_AT = "updatedAt"
+    """UPDATED_AT."""
 
 
 class NotificationChannelOrderBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Order by options for notification channels."""
 
     ID = "id"
+    """ID."""
     TYPE = "type"
+    """TYPE."""
     CREATED_AT = "createdAt"
+    """CREATED_AT."""
     UPDATED_AT = "updatedAt"
+    """UPDATED_AT."""
 
 
 class NotificationChannelType(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Type of the notification channel."""
 
     WEBHOOK = "WEBHOOK"
+    """WEBHOOK."""
 
 
 class NotificationEventDeliveryStatusState(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Delivery State."""
 
     SUCCESS = "SUCCESS"
+    """SUCCESS."""
     FAILED = "FAILED"
+    """FAILED."""
     SENDING = "SENDING"
+    """SENDING."""
     PENDING = "PENDING"
+    """PENDING."""
     RESENDING = "RESENDING"
+    """RESENDING."""
 
 
 class NotificationEventOrderBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Order by options for notification channels."""
 
     ID = "id"
+    """ID."""
     CREATED_AT = "createdAt"
+    """CREATED_AT."""
 
 
 class NotificationEventType(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Type of the notification event."""
 
     ENTITLEMENTS_BALANCE_THRESHOLD = "entitlements.balance.threshold"
+    """ENTITLEMENTS_BALANCE_THRESHOLD."""
     ENTITLEMENTS_RESET = "entitlements.reset"
+    """ENTITLEMENTS_RESET."""
     INVOICE_CREATED = "invoice.created"
+    """INVOICE_CREATED."""
     INVOICE_UPDATED = "invoice.updated"
+    """INVOICE_UPDATED."""
 
 
-class NotificationRuleBalanceThresholdValueType(str, Enum, metaclass=CaseInsensitiveEnumMeta):
+class NotificationRuleBalanceThresholdValueType(  # pylint: disable=name-too-long
+    str, Enum, metaclass=CaseInsensitiveEnumMeta
+):
     """Notification balance threshold type."""
 
     PERCENT = "PERCENT"
+    """PERCENT."""
     NUMBER = "NUMBER"
+    """NUMBER."""
     BALANCE_VALUE = "balance_value"
+    """BALANCE_VALUE."""
     USAGE_PERCENTAGE = "usage_percentage"
+    """USAGE_PERCENTAGE."""
     USAGE_VALUE = "usage_value"
+    """USAGE_VALUE."""
 
 
 class NotificationRuleOrderBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Order by options for notification channels."""
 
     ID = "id"
+    """ID."""
     TYPE = "type"
+    """TYPE."""
     CREATED_AT = "createdAt"
+    """CREATED_AT."""
     UPDATED_AT = "updatedAt"
+    """UPDATED_AT."""
 
 
 class OAuth2AuthorizationCodeGrantErrorType(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """OAuth2 authorization code grant error types."""
 
     INVALID_REQUEST = "invalid_request"
-    """The request is missing a required parameter, includes an invalid parameter value,
-    includes a parameter more than once, or is otherwise malformed."""
+    """The request is missing a required parameter, includes an invalid parameter value, includes a
+    parameter more than once, or is otherwise malformed."""
     UNAUTHORIZED_CLIENT = "unauthorized_client"
     """The client is not authorized to request an authorization code using this method."""
     ACCESS_DENIED = "access_denied"
@@ -547,42 +678,54 @@ class PaymentTermType(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     DUE_DATE = "due_date"
     """Due on a specific date."""
     INSTANT = "instant"
-    """On receipt of invoice"""
+    """On receipt of invoice."""
 
 
 class PlanAddonOrderBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Order by options for plan add-on assignments."""
 
     ID = "id"
+    """ID."""
     KEY = "key"
+    """KEY."""
     VERSION = "version"
+    """VERSION."""
     CREATED_AT = "created_at"
+    """CREATED_AT."""
     UPDATED_AT = "updated_at"
+    """UPDATED_AT."""
 
 
 class PlanOrderBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Order by options for plans."""
 
     ID = "id"
+    """ID."""
     KEY = "key"
+    """KEY."""
     VERSION = "version"
+    """VERSION."""
     CREATED_AT = "created_at"
+    """CREATED_AT."""
     UPDATED_AT = "updated_at"
+    """UPDATED_AT."""
 
 
 class PlanStatus(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """The status of a plan."""
 
     DRAFT = "draft"
+    """DRAFT."""
     ACTIVE = "active"
+    """ACTIVE."""
     ARCHIVED = "archived"
+    """ARCHIVED."""
     SCHEDULED = "scheduled"
+    """SCHEDULED."""
 
 
 class PricePaymentTerm(str, Enum, metaclass=CaseInsensitiveEnumMeta):
-    """The payment term of a flat price.
-    One of: in_advance or in_arrears.
-    """
+    """The payment term of a flat price. One of: in_advance or in_arrears."""
 
     IN_ADVANCE = "in_advance"
     """If in_advance, the rate card will be invoiced in the previous billing cycle."""
@@ -594,10 +737,15 @@ class PriceType(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """The type of the price."""
 
     FLAT = "flat"
+    """FLAT."""
     UNIT = "unit"
+    """UNIT."""
     TIERED = "tiered"
+    """TIERED."""
     DYNAMIC = "dynamic"
+    """DYNAMIC."""
     PACKAGE = "package"
+    """PACKAGE."""
 
 
 class ProRatingMode(str, Enum, metaclass=CaseInsensitiveEnumMeta):
@@ -611,59 +759,71 @@ class RateCardType(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """The type of the rate card."""
 
     FLAT_FEE = "flat_fee"
+    """FLAT_FEE."""
     USAGE_BASED = "usage_based"
+    """USAGE_BASED."""
 
 
 class RecurringPeriodIntervalEnum(str, Enum, metaclass=CaseInsensitiveEnumMeta):
-    """The unit of time for the interval.
-    One of: ``day``, ``week``, ``month``, or ``year``.
-    """
+    """The unit of time for the interval. One of: ``day``, ``week``, ``month``, or ``year``."""
 
     DAY = "DAY"
+    """DAY."""
     WEEK = "WEEK"
+    """WEEK."""
     MONTH = "MONTH"
+    """MONTH."""
     YEAR = "YEAR"
+    """YEAR."""
 
 
 class RemovePhaseShifting(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """The direction of the phase shift when a phase is removed."""
 
     NEXT = "next"
-    """Shifts all subsequent phases to start sooner by the deleted phase's length"""
+    """Shifts all subsequent phases to start sooner by the deleted phase's length."""
     PREV = "prev"
-    """Extends the previous phase to end later by the deleted phase's length"""
+    """Extends the previous phase to end later by the deleted phase's length."""
 
 
 class SortOrder(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """The order direction."""
 
     ASC = "ASC"
+    """ASC."""
     DESC = "DESC"
+    """DESC."""
 
 
 class StripeCheckoutSessionMode(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Stripe CheckoutSession.mode."""
 
     SETUP = "setup"
+    """SETUP."""
 
 
 class SubscriptionStatus(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Subscription status."""
 
     ACTIVE = "active"
+    """ACTIVE."""
     INACTIVE = "inactive"
+    """INACTIVE."""
     CANCELED = "canceled"
+    """CANCELED."""
     SCHEDULED = "scheduled"
+    """SCHEDULED."""
 
 
 class SubscriptionTimingEnum(str, Enum, metaclass=CaseInsensitiveEnumMeta):
-    """Subscription edit timing.
-    When immediate, the requested changes take effect immediately.
-    When nextBillingCycle, the requested changes take effect at the next billing cycle.
+    """Subscription edit timing. When immediate, the requested changes take effect immediately. When
+    nextBillingCycle, the requested changes take effect at the next billing cycle.
     """
 
     IMMEDIATE = "immediate"
+    """IMMEDIATE."""
     NEXT_BILLING_CYCLE = "next_billing_cycle"
+    """NEXT_BILLING_CYCLE."""
 
 
 class TaxBehavior(str, Enum, metaclass=CaseInsensitiveEnumMeta):
@@ -682,7 +842,9 @@ class TieredPriceMode(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """The mode of the tiered price."""
 
     VOLUME = "volume"
+    """VOLUME."""
     GRADUATED = "graduated"
+    """GRADUATED."""
 
 
 class ValidationIssueSeverity(str, Enum, metaclass=CaseInsensitiveEnumMeta):
@@ -692,23 +854,29 @@ class ValidationIssueSeverity(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """
 
     CRITICAL = "critical"
+    """CRITICAL."""
     WARNING = "warning"
+    """WARNING."""
 
 
 class VoidInvoiceLineActionType(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """VoidInvoiceLineActionType describes how to handle the voidied line item in the invoice."""
 
     DISCARD = "discard"
-    """The line items will never be charged for again"""
+    """The line items will never be charged for again."""
     PENDING = "pending"
     """Queue the line items into the pending state, they will be included in the next invoice. (We
-    want to generate an invoice right now)"""
+    want to generate an invoice right now)."""
 
 
 class WindowSize(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Aggregation window size."""
 
     MINUTE = "MINUTE"
+    """MINUTE."""
     HOUR = "HOUR"
+    """HOUR."""
     DAY = "DAY"
+    """DAY."""
     MONTH = "MONTH"
+    """MONTH."""

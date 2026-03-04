@@ -9049,7 +9049,8 @@ paths:
           in: query
           required: false
           schema:
-            $ref: '#/components/schemas/GrantOrderBy'
+            allOf:
+              - $ref: '#/components/schemas/GrantOrderBy'
             default: updatedAt
           explode: false
           style: form
@@ -12036,7 +12037,8 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/SortOrder'
+        allOf:
+          - $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
       style: form
@@ -12055,7 +12057,8 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/SortOrder'
+        allOf:
+          - $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
       style: form
@@ -12159,7 +12162,8 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/SortOrder'
+        allOf:
+          - $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
       style: form
@@ -12199,7 +12203,8 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/SortOrder'
+        allOf:
+          - $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
       style: form
@@ -12218,7 +12223,8 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/SortOrder'
+        allOf:
+          - $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
       style: form
@@ -12237,7 +12243,8 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/SortOrder'
+        allOf:
+          - $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
       style: form
@@ -12256,7 +12263,8 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/SortOrder'
+        allOf:
+          - $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
       style: form
@@ -12275,7 +12283,8 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/SortOrder'
+        allOf:
+          - $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
       style: form
@@ -12418,7 +12427,8 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/SortOrder'
+        allOf:
+          - $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
       style: form
@@ -12487,7 +12497,8 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/SortOrder'
+        allOf:
+          - $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
       style: form
@@ -12646,7 +12657,8 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/SortOrder'
+        allOf:
+          - $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
       style: form
@@ -12665,7 +12677,8 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/SortOrder'
+        allOf:
+          - $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
       style: form
@@ -12684,7 +12697,8 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/SortOrder'
+        allOf:
+          - $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
       style: form
@@ -12791,7 +12805,8 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/SortOrder'
+        allOf:
+          - $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
       style: form
@@ -12810,7 +12825,8 @@ components:
       required: false
       description: The order direction.
       schema:
-        $ref: '#/components/schemas/SortOrder'
+        allOf:
+          - $ref: '#/components/schemas/SortOrder'
         default: ASC
       explode: false
       style: form

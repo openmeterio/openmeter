@@ -80,6 +80,12 @@ using TypeSpec.OpenAPI;
   #{ description: "Lookup information for static data like currencies" }
 )
 @tagMetadata(
+  "Meters",
+  #{
+    description: "Meters specify how to aggregate events for billing and analytics purposes. Meters can be configured with multiple aggregation methods and groupings. Multiple meters can be created for the same event type, enabling flexible metering scenarios.",
+  }
+)
+@tagMetadata(
   "Notifications",
   #{
     description: "Notifications provide automated triggers when specific entitlement balances and usage thresholds are reached, ensuring that your customers and sales teams are always informed. Notify customers and internal teams when specific conditions are met, like reaching 75%, 100%, and 150% of their monthly usage allowance. [Read more](https://openmeter.io/docs/guides/notifications/overview).",

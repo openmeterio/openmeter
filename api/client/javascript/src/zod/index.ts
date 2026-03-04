@@ -27,6 +27,8 @@ export const listAddonsQueryPageDefault = 1 as const
 export const listAddonsQueryPageSizeDefault = 100 as const
 export const listAddonsQueryPageSizeMax = 1000 as const
 
+export const listAddonsQueryOrderDefault = 'ASC' as const
+
 export const ListAddonsQueryParams = zod.object({
   currency: zod
     .array(
@@ -75,7 +77,11 @@ export const ListAddonsQueryParams = zod.object({
     .record(zod.string(), zod.array(zod.coerce.number()))
     .optional()
     .describe('Filter by addon.key and addon.version attributes'),
-  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  order: zod
+    .enum(['ASC', 'DESC'])
+    .describe('The order direction.')
+    .default(listAddonsQueryOrderDefault)
+    .describe('The order direction.'),
   orderBy: zod
     .enum(['id', 'key', 'version', 'created_at', 'updated_at'])
     .optional()
@@ -2400,6 +2406,8 @@ export const listBillingProfileCustomerOverridesQueryIncludeAllCustomersDefault 
   true as const
 export const listBillingProfileCustomerOverridesQueryCustomerIdItemRegExp =
   /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/
+export const listBillingProfileCustomerOverridesQueryOrderDefault =
+  'ASC' as const
 export const listBillingProfileCustomerOverridesQueryPageDefault = 1 as const
 
 export const listBillingProfileCustomerOverridesQueryPageSizeDefault =
@@ -2463,7 +2471,11 @@ export const ListBillingProfileCustomerOverridesQueryParams = zod.object({
     .describe(
       'Include customers without customer overrides.\n\nIf set to false only the customers specifically associated with a billing profile will be returned.\n\nIf set to true, in case of the default billing profile, all customers will be returned.',
     ),
-  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  order: zod
+    .enum(['ASC', 'DESC'])
+    .describe('The order direction.')
+    .default(listBillingProfileCustomerOverridesQueryOrderDefault)
+    .describe('The order direction.'),
   orderBy: zod
     .enum([
       'customerId',
@@ -4353,6 +4365,8 @@ export const listInvoicesQueryPageDefault = 1 as const
 export const listInvoicesQueryPageSizeDefault = 100 as const
 export const listInvoicesQueryPageSizeMax = 1000 as const
 
+export const listInvoicesQueryOrderDefault = 'ASC' as const
+
 export const ListInvoicesQueryParams = zod.object({
   createdAfter: zod.coerce
     .date()
@@ -4399,7 +4413,11 @@ export const ListInvoicesQueryParams = zod.object({
     .date()
     .optional()
     .describe('Filter by invoice issued time.\nInclusive.'),
-  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  order: zod
+    .enum(['ASC', 'DESC'])
+    .describe('The order direction.')
+    .default(listInvoicesQueryOrderDefault)
+    .describe('The order direction.'),
   orderBy: zod
     .enum([
       'customer.name',
@@ -5940,6 +5958,8 @@ export const listBillingProfilesQueryPageDefault = 1 as const
 export const listBillingProfilesQueryPageSizeDefault = 100 as const
 export const listBillingProfilesQueryPageSizeMax = 1000 as const
 
+export const listBillingProfilesQueryOrderDefault = 'ASC' as const
+
 export const ListBillingProfilesQueryParams = zod.object({
   expand: zod
     .array(
@@ -5951,7 +5971,11 @@ export const ListBillingProfilesQueryParams = zod.object({
   includeArchived: zod.coerce
     .boolean()
     .default(listBillingProfilesQueryIncludeArchivedDefault),
-  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  order: zod
+    .enum(['ASC', 'DESC'])
+    .describe('The order direction.')
+    .default(listBillingProfilesQueryOrderDefault)
+    .describe('The order direction.'),
   orderBy: zod
     .enum(['createdAt', 'updatedAt', 'default', 'name'])
     .optional()
@@ -6903,6 +6927,7 @@ export const listCustomersQueryPageDefault = 1 as const
 export const listCustomersQueryPageSizeDefault = 100 as const
 export const listCustomersQueryPageSizeMax = 1000 as const
 
+export const listCustomersQueryOrderDefault = 'ASC' as const
 export const listCustomersQueryIncludeDeletedDefault = false as const
 
 export const ListCustomersQueryParams = zod.object({
@@ -6928,7 +6953,11 @@ export const ListCustomersQueryParams = zod.object({
     .string()
     .optional()
     .describe('Filter customers by name.\nCase-insensitive partial match.'),
-  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  order: zod
+    .enum(['ASC', 'DESC'])
+    .describe('The order direction.')
+    .default(listCustomersQueryOrderDefault)
+    .describe('The order direction.'),
   orderBy: zod
     .enum(['id', 'name', 'createdAt'])
     .optional()
@@ -7797,13 +7826,18 @@ export const ListCustomerSubscriptionsParams = zod.object({
   ]),
 })
 
+export const listCustomerSubscriptionsQueryOrderDefault = 'ASC' as const
 export const listCustomerSubscriptionsQueryPageDefault = 1 as const
 
 export const listCustomerSubscriptionsQueryPageSizeDefault = 100 as const
 export const listCustomerSubscriptionsQueryPageSizeMax = 1000 as const
 
 export const ListCustomerSubscriptionsQueryParams = zod.object({
-  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  order: zod
+    .enum(['ASC', 'DESC'])
+    .describe('The order direction.')
+    .default(listCustomerSubscriptionsQueryOrderDefault)
+    .describe('The order direction.'),
   orderBy: zod
     .enum(['activeFrom', 'activeTo'])
     .optional()
@@ -7849,6 +7883,8 @@ export const listEntitlementsQueryOffsetMin = 0 as const
 export const listEntitlementsQueryLimitDefault = 100 as const
 export const listEntitlementsQueryLimitMax = 1000 as const
 
+export const listEntitlementsQueryOrderDefault = 'ASC' as const
+
 export const ListEntitlementsQueryParams = zod.object({
   entitlementType: zod
     .array(
@@ -7883,7 +7919,11 @@ export const ListEntitlementsQueryParams = zod.object({
     .min(listEntitlementsQueryOffsetMin)
     .default(listEntitlementsQueryOffsetDefault)
     .describe('Number of items to skip.\n\nDefault is 0.'),
-  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  order: zod
+    .enum(['ASC', 'DESC'])
+    .describe('The order direction.')
+    .default(listEntitlementsQueryOrderDefault)
+    .describe('The order direction.'),
   orderBy: zod
     .enum(['createdAt', 'updatedAt'])
     .optional()
@@ -8124,6 +8164,8 @@ export const listFeaturesQueryOffsetMin = 0 as const
 export const listFeaturesQueryLimitDefault = 100 as const
 export const listFeaturesQueryLimitMax = 1000 as const
 
+export const listFeaturesQueryOrderDefault = 'ASC' as const
+
 export const ListFeaturesQueryParams = zod.object({
   includeArchived: zod.coerce
     .boolean()
@@ -8144,7 +8186,11 @@ export const ListFeaturesQueryParams = zod.object({
     .min(listFeaturesQueryOffsetMin)
     .default(listFeaturesQueryOffsetDefault)
     .describe('Number of items to skip.\n\nDefault is 0.'),
-  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  order: zod
+    .enum(['ASC', 'DESC'])
+    .describe('The order direction.')
+    .default(listFeaturesQueryOrderDefault)
+    .describe('The order direction.'),
   orderBy: zod
     .enum(['id', 'key', 'name', 'createdAt', 'updatedAt'])
     .optional()
@@ -8335,6 +8381,8 @@ export const listGrantsQueryOffsetMin = 0 as const
 export const listGrantsQueryLimitDefault = 100 as const
 export const listGrantsQueryLimitMax = 1000 as const
 
+export const listGrantsQueryOrderDefault = 'ASC' as const
+
 export const ListGrantsQueryParams = zod.object({
   feature: zod
     .array(zod.coerce.string())
@@ -8357,7 +8405,11 @@ export const ListGrantsQueryParams = zod.object({
     .min(listGrantsQueryOffsetMin)
     .default(listGrantsQueryOffsetDefault)
     .describe('Number of items to skip.\n\nDefault is 0.'),
-  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  order: zod
+    .enum(['ASC', 'DESC'])
+    .describe('The order direction.')
+    .default(listGrantsQueryOrderDefault)
+    .describe('The order direction.'),
   orderBy: zod
     .enum(['id', 'createdAt', 'updatedAt'])
     .optional()
@@ -8569,6 +8621,7 @@ export const listMetersQueryPageDefault = 1 as const
 export const listMetersQueryPageSizeDefault = 100 as const
 export const listMetersQueryPageSizeMax = 1000 as const
 
+export const listMetersQueryOrderDefault = 'ASC' as const
 export const listMetersQueryIncludeDeletedDefault = false as const
 
 export const ListMetersQueryParams = zod.object({
@@ -8576,7 +8629,11 @@ export const ListMetersQueryParams = zod.object({
     .boolean()
     .default(listMetersQueryIncludeDeletedDefault)
     .describe('Include deleted meters.'),
-  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  order: zod
+    .enum(['ASC', 'DESC'])
+    .describe('The order direction.')
+    .default(listMetersQueryOrderDefault)
+    .describe('The order direction.'),
   orderBy: zod
     .enum(['key', 'name', 'aggregation', 'createdAt', 'updatedAt'])
     .optional()
@@ -9075,6 +9132,8 @@ export const listNotificationChannelsQueryPageDefault = 1 as const
 export const listNotificationChannelsQueryPageSizeDefault = 100 as const
 export const listNotificationChannelsQueryPageSizeMax = 1000 as const
 
+export const listNotificationChannelsQueryOrderDefault = 'ASC' as const
+
 export const ListNotificationChannelsQueryParams = zod.object({
   includeDeleted: zod.coerce
     .boolean()
@@ -9088,7 +9147,11 @@ export const ListNotificationChannelsQueryParams = zod.object({
     .describe(
       'Include disabled notification channels in response.\n\nUsage: `?includeDisabled=false`',
     ),
-  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  order: zod
+    .enum(['ASC', 'DESC'])
+    .describe('The order direction.')
+    .default(listNotificationChannelsQueryOrderDefault)
+    .describe('The order direction.'),
   orderBy: zod
     .enum(['id', 'type', 'createdAt', 'updatedAt'])
     .optional()
@@ -9258,6 +9321,8 @@ export const listNotificationEventsQueryPageDefault = 1 as const
 export const listNotificationEventsQueryPageSizeDefault = 100 as const
 export const listNotificationEventsQueryPageSizeMax = 1000 as const
 
+export const listNotificationEventsQueryOrderDefault = 'ASC' as const
+
 export const ListNotificationEventsQueryParams = zod.object({
   channel: zod
     .array(
@@ -9282,7 +9347,11 @@ export const ListNotificationEventsQueryParams = zod.object({
     .date()
     .optional()
     .describe('Start date-time in RFC 3339 format.\nInclusive.'),
-  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  order: zod
+    .enum(['ASC', 'DESC'])
+    .describe('The order direction.')
+    .default(listNotificationEventsQueryOrderDefault)
+    .describe('The order direction.'),
   orderBy: zod
     .enum(['id', 'createdAt'])
     .optional()
@@ -9375,6 +9444,8 @@ export const listNotificationRulesQueryPageDefault = 1 as const
 export const listNotificationRulesQueryPageSizeDefault = 100 as const
 export const listNotificationRulesQueryPageSizeMax = 1000 as const
 
+export const listNotificationRulesQueryOrderDefault = 'ASC' as const
+
 export const ListNotificationRulesQueryParams = zod.object({
   channel: zod
     .array(zod.coerce.string())
@@ -9409,7 +9480,11 @@ export const ListNotificationRulesQueryParams = zod.object({
     .describe(
       'Include disabled notification rules in response.\n\nUsage: `?includeDisabled=false`',
     ),
-  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  order: zod
+    .enum(['ASC', 'DESC'])
+    .describe('The order direction.')
+    .default(listNotificationRulesQueryOrderDefault)
+    .describe('The order direction.'),
   orderBy: zod
     .enum(['id', 'type', 'createdAt', 'updatedAt'])
     .optional()
@@ -9964,6 +10039,8 @@ export const listPlansQueryPageDefault = 1 as const
 export const listPlansQueryPageSizeDefault = 100 as const
 export const listPlansQueryPageSizeMax = 1000 as const
 
+export const listPlansQueryOrderDefault = 'ASC' as const
+
 export const ListPlansQueryParams = zod.object({
   currency: zod
     .array(
@@ -10012,7 +10089,11 @@ export const ListPlansQueryParams = zod.object({
     .record(zod.string(), zod.array(zod.coerce.number()))
     .optional()
     .describe('Filter by plan.key and plan.version attributes'),
-  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  order: zod
+    .enum(['ASC', 'DESC'])
+    .describe('The order direction.')
+    .default(listPlansQueryOrderDefault)
+    .describe('The order direction.'),
   orderBy: zod
     .enum(['id', 'key', 'version', 'created_at', 'updated_at'])
     .optional()
@@ -12212,6 +12293,8 @@ export const listPlanAddonsQueryPageDefault = 1 as const
 export const listPlanAddonsQueryPageSizeDefault = 100 as const
 export const listPlanAddonsQueryPageSizeMax = 1000 as const
 
+export const listPlanAddonsQueryOrderDefault = 'ASC' as const
+
 export const ListPlanAddonsQueryParams = zod.object({
   id: zod
     .array(
@@ -12247,7 +12330,11 @@ export const ListPlanAddonsQueryParams = zod.object({
     .record(zod.string(), zod.array(zod.coerce.number()))
     .optional()
     .describe('Filter by addon.key and addon.version attributes.'),
-  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  order: zod
+    .enum(['ASC', 'DESC'])
+    .describe('The order direction.')
+    .default(listPlanAddonsQueryOrderDefault)
+    .describe('The order direction.'),
   orderBy: zod
     .enum(['id', 'key', 'version', 'created_at', 'updated_at'])
     .optional()
@@ -13346,12 +13433,16 @@ export const ListEntitlementGrantsParams = zod.object({
 })
 
 export const listEntitlementGrantsQueryIncludeDeletedDefault = false as const
+export const listEntitlementGrantsQueryOrderByDefault = 'updatedAt' as const
 
 export const ListEntitlementGrantsQueryParams = zod.object({
   includeDeleted: zod.coerce
     .boolean()
     .default(listEntitlementGrantsQueryIncludeDeletedDefault),
-  orderBy: zod.enum(['id', 'createdAt', 'updatedAt']).optional(),
+  orderBy: zod
+    .enum(['id', 'createdAt', 'updatedAt'])
+    .describe('Order by options for grants.')
+    .default(listEntitlementGrantsQueryOrderByDefault),
 })
 
 /**
@@ -18286,11 +18377,17 @@ export const listCustomerEntitlementsV2QueryPageDefault = 1 as const
 export const listCustomerEntitlementsV2QueryPageSizeDefault = 100 as const
 export const listCustomerEntitlementsV2QueryPageSizeMax = 1000 as const
 
+export const listCustomerEntitlementsV2QueryOrderDefault = 'ASC' as const
+
 export const ListCustomerEntitlementsV2QueryParams = zod.object({
   includeDeleted: zod.coerce
     .boolean()
     .default(listCustomerEntitlementsV2QueryIncludeDeletedDefault),
-  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  order: zod
+    .enum(['ASC', 'DESC'])
+    .describe('The order direction.')
+    .default(listCustomerEntitlementsV2QueryOrderDefault)
+    .describe('The order direction.'),
   orderBy: zod
     .enum(['createdAt', 'updatedAt'])
     .optional()
@@ -18429,6 +18526,8 @@ export const listCustomerEntitlementGrantsV2QueryOffsetMin = 0 as const
 export const listCustomerEntitlementGrantsV2QueryLimitDefault = 100 as const
 export const listCustomerEntitlementGrantsV2QueryLimitMax = 1000 as const
 
+export const listCustomerEntitlementGrantsV2QueryOrderDefault = 'ASC' as const
+
 export const ListCustomerEntitlementGrantsV2QueryParams = zod.object({
   includeDeleted: zod.coerce
     .boolean()
@@ -18444,7 +18543,11 @@ export const ListCustomerEntitlementGrantsV2QueryParams = zod.object({
     .min(listCustomerEntitlementGrantsV2QueryOffsetMin)
     .default(listCustomerEntitlementGrantsV2QueryOffsetDefault)
     .describe('Number of items to skip.\n\nDefault is 0.'),
-  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  order: zod
+    .enum(['ASC', 'DESC'])
+    .describe('The order direction.')
+    .default(listCustomerEntitlementGrantsV2QueryOrderDefault)
+    .describe('The order direction.'),
   orderBy: zod
     .enum(['id', 'createdAt', 'updatedAt'])
     .optional()
@@ -19232,6 +19335,8 @@ export const listEntitlementsV2QueryOffsetMin = 0 as const
 export const listEntitlementsV2QueryLimitDefault = 100 as const
 export const listEntitlementsV2QueryLimitMax = 1000 as const
 
+export const listEntitlementsV2QueryOrderDefault = 'ASC' as const
+
 export const ListEntitlementsV2QueryParams = zod.object({
   customerIds: zod
     .array(zod.coerce.string())
@@ -19278,7 +19383,11 @@ export const ListEntitlementsV2QueryParams = zod.object({
     .min(listEntitlementsV2QueryOffsetMin)
     .default(listEntitlementsV2QueryOffsetDefault)
     .describe('Number of items to skip.\n\nDefault is 0.'),
-  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  order: zod
+    .enum(['ASC', 'DESC'])
+    .describe('The order direction.')
+    .default(listEntitlementsV2QueryOrderDefault)
+    .describe('The order direction.'),
   orderBy: zod
     .enum(['createdAt', 'updatedAt'])
     .optional()
@@ -19359,6 +19468,8 @@ export const listGrantsV2QueryOffsetMin = 0 as const
 export const listGrantsV2QueryLimitDefault = 100 as const
 export const listGrantsV2QueryLimitMax = 1000 as const
 
+export const listGrantsV2QueryOrderDefault = 'ASC' as const
+
 export const ListGrantsV2QueryParams = zod.object({
   customer: zod
     .array(
@@ -19405,7 +19516,11 @@ export const ListGrantsV2QueryParams = zod.object({
     .min(listGrantsV2QueryOffsetMin)
     .default(listGrantsV2QueryOffsetDefault)
     .describe('Number of items to skip.\n\nDefault is 0.'),
-  order: zod.enum(['ASC', 'DESC']).optional().describe('The order direction.'),
+  order: zod
+    .enum(['ASC', 'DESC'])
+    .describe('The order direction.')
+    .default(listGrantsV2QueryOrderDefault)
+    .describe('The order direction.'),
   orderBy: zod
     .enum(['id', 'createdAt', 'updatedAt'])
     .optional()

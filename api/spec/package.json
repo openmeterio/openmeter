@@ -25,36 +25,37 @@
     }
   },
   "devDependencies": {
-    "@redocly/cli": "2.19.1",
-    "@types/node": "24.10.1",
-    "@typespec/compiler": "1.6.0",
-    "@typespec/http": "1.6.0",
-    "@typespec/http-client-python": "0.20.3",
-    "@typespec/openapi": "1.6.0",
-    "@typespec/openapi3": "1.6.0",
-    "@typespec/prettier-plugin-typespec": "1.6.0",
-    "@typespec/rest": "0.76.0",
-    "@typespec/versioning": "0.76.0",
+    "@azure-tools/typespec-client-generator-core": "0.65.4",
+    "@redocly/cli": "2.20.3",
+    "@types/node": "25.3.3",
+    "@typespec/compiler": "1.9.0",
+    "@typespec/http": "1.9.1",
+    "@typespec/http-client-python": "0.27.2",
+    "@typespec/openapi": "1.9.0",
+    "@typespec/openapi3": "1.9.0",
+    "@typespec/prettier-plugin-typespec": "1.9.0",
+    "@typespec/rest": "0.79.0",
+    "@typespec/versioning": "0.79.0",
     "prettier": "3.8.1",
     "yaml": "2.8.2"
   },
   "private": true,
   "packageManager": "pnpm@10.28.0+sha512.05df71d1421f21399e053fde567cea34d446fa02c76571441bfc1c7956e98e363088982d940465fd34480d4d90a0668bc12362f8aa88000a64e83d0b0e47be48",
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "@typespec/http-client-python",
-      "esbuild"
-    ],
     "patchedDependencies": {
-      "@typespec/compiler": "patches/@typespec__compiler.patch",
       "@typespec/http": "patches/@typespec__http.patch",
       "@typespec/openapi": "patches/@typespec__openapi.patch",
       "@typespec/openapi3": "patches/@typespec__openapi3.patch",
-      "@typespec/http-client-python": "patches/@typespec__http-client-python.patch"
+      "@typespec/http-client-python": "patches/@typespec__http-client-python.patch",
+      "@typespec/compiler": "patches/@typespec__compiler.patch"
     },
+    "onlyBuiltDependencies": [
+      "@typespec/http-client-python",
+      "core-js",
+      "esbuild",
+      "protobufjs"
+    ],
     "overrides": {
-      "minimatch@<10.2.1": ">=10.2.1",
-      "tar@<7.5.8": ">=7.5.8",
       "ajv@>=7.0.0-alpha.0 <8.18.0": ">=8.18.0"
     }
   }

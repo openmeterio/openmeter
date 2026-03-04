@@ -309,16 +309,16 @@ class Address(_Model):
 class Alignment(_Model):
     """Alignment configuration for a plan or subscription.
 
-    :ivar billables_must_align: Whether all Billable items and RateCards must align.
-     Alignment means the Price's BillingCadence must align for both duration and anchor time.
+    :ivar billables_must_align: Whether all Billable items and RateCards must align. Alignment
+     means the Price's BillingCadence must align for both duration and anchor time.
     :vartype billables_must_align: bool
     """
 
     billables_must_align: Optional[bool] = rest_field(
         name="billablesMustAlign", visibility=["read", "create", "update"]
     )
-    """Whether all Billable items and RateCards must align.
-     Alignment means the Price's BillingCadence must align for both duration and anchor time."""
+    """Whether all Billable items and RateCards must align. Alignment means the Price's BillingCadence
+     must align for both duration and anchor time."""
 
     @overload
     def __init__(
@@ -412,7 +412,7 @@ class AppPaginatedResponse(_Model):
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
     items_property: list["_types.App"] = rest_field(
-        name="items", visibility=["read", "create", "update", "delete", "query"]
+        name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
 
@@ -468,8 +468,8 @@ class AppReference(_Model):
 
 
 class UnexpectedProblemResponse(_Model):
-    """A Problem Details object (RFC 7807).
-    Additional properties specific to the problem type may be present.
+    """A Problem Details object (RFC 7807). Additional properties specific to the problem type may be
+    present.
 
     :ivar type: Type contains a URI that identifies the problem type. Required.
     :vartype type: str
@@ -781,8 +781,8 @@ class BillingInvoiceCustomerExtendedDetails(_Model):
     :vartype key: str
     :ivar name: Legal name or representation of the organization.
     :vartype name: str
-    :ivar tax_id: The entity's legal ID code used for tax purposes. They may have
-     other numbers, but we're only interested in those valid for tax purposes.
+    :ivar tax_id: The entity's legal ID code used for tax purposes. They may have other numbers,
+     but we're only interested in those valid for tax purposes.
     :vartype tax_id: ~openmeter._generated.models.BillingPartyTaxIdentity
     :ivar addresses: Regular post addresses for where information should be sent if needed.
     :vartype addresses: list[~openmeter._generated.models.Address]
@@ -799,8 +799,8 @@ class BillingInvoiceCustomerExtendedDetails(_Model):
     tax_id: Optional["_models.BillingPartyTaxIdentity"] = rest_field(
         name="taxId", visibility=["read", "create", "update"]
     )
-    """The entity's legal ID code used for tax purposes. They may have
-     other numbers, but we're only interested in those valid for tax purposes."""
+    """The entity's legal ID code used for tax purposes. They may have other numbers, but we're only
+     interested in those valid for tax purposes."""
     addresses: Optional[list["_models.Address"]] = rest_field(visibility=["read", "create", "update"])
     """Regular post addresses for where information should be sent if needed."""
     usage_attribution: "_models.CustomerUsageAttribution" = rest_field(
@@ -839,8 +839,8 @@ class BillingParty(_Model):
     :vartype key: str
     :ivar name: Legal name or representation of the organization.
     :vartype name: str
-    :ivar tax_id: The entity's legal ID code used for tax purposes. They may have
-     other numbers, but we're only interested in those valid for tax purposes.
+    :ivar tax_id: The entity's legal ID code used for tax purposes. They may have other numbers,
+     but we're only interested in those valid for tax purposes.
     :vartype tax_id: ~openmeter._generated.models.BillingPartyTaxIdentity
     :ivar addresses: Regular post addresses for where information should be sent if needed.
     :vartype addresses: list[~openmeter._generated.models.Address]
@@ -855,8 +855,8 @@ class BillingParty(_Model):
     tax_id: Optional["_models.BillingPartyTaxIdentity"] = rest_field(
         name="taxId", visibility=["read", "create", "update"]
     )
-    """The entity's legal ID code used for tax purposes. They may have
-     other numbers, but we're only interested in those valid for tax purposes."""
+    """The entity's legal ID code used for tax purposes. They may have other numbers, but we're only
+     interested in those valid for tax purposes."""
     addresses: Optional[list["_models.Address"]] = rest_field(visibility=["read", "create", "update"])
     """Regular post addresses for where information should be sent if needed."""
 
@@ -888,8 +888,8 @@ class BillingPartyReplaceUpdate(_Model):
     :vartype key: str
     :ivar name: Legal name or representation of the organization.
     :vartype name: str
-    :ivar tax_id: The entity's legal ID code used for tax purposes. They may have
-     other numbers, but we're only interested in those valid for tax purposes.
+    :ivar tax_id: The entity's legal ID code used for tax purposes. They may have other numbers,
+     but we're only interested in those valid for tax purposes.
     :vartype tax_id: ~openmeter._generated.models.BillingPartyTaxIdentity
     :ivar addresses: Regular post addresses for where information should be sent if needed.
     :vartype addresses: list[~openmeter._generated.models.Address]
@@ -902,8 +902,8 @@ class BillingPartyReplaceUpdate(_Model):
     tax_id: Optional["_models.BillingPartyTaxIdentity"] = rest_field(
         name="taxId", visibility=["read", "create", "update"]
     )
-    """The entity's legal ID code used for tax purposes. They may have
-     other numbers, but we're only interested in those valid for tax purposes."""
+    """The entity's legal ID code used for tax purposes. They may have other numbers, but we're only
+     interested in those valid for tax purposes."""
     addresses: Optional[list["_models.Address"]] = rest_field(visibility=["read", "create", "update"])
     """Regular post addresses for where information should be sent if needed."""
 
@@ -1344,7 +1344,7 @@ class BillingProfileCustomerOverrideWithDetailsPaginatedResponse(_Model):  # pyl
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
     items_property: list["_models.BillingProfileCustomerOverrideWithDetails"] = rest_field(
-        name="items", visibility=["read", "create", "update", "delete", "query"]
+        name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
 
@@ -1389,7 +1389,7 @@ class BillingProfilePaginatedResponse(_Model):
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
     items_property: list["_models.BillingProfile"] = rest_field(
-        name="items", visibility=["read", "create", "update", "delete", "query"]
+        name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
 
@@ -1520,8 +1520,7 @@ class BillingWorkflow(_Model):
 
 class BillingWorkflowCollectionAlignmentAnchored(_Model):  # pylint: disable=name-too-long
     """BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending
-    line items
-    into an invoice.
+    line items into an invoice.
 
     :ivar type: The type of alignment. Required. Align the collection to the anchor time and
      cadence.
@@ -1558,8 +1557,7 @@ class BillingWorkflowCollectionAlignmentAnchored(_Model):  # pylint: disable=nam
 
 class BillingWorkflowCollectionAlignmentSubscription(_Model):  # pylint: disable=name-too-long
     """BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the
-    pending line items
-    into an invoice.
+    pending line items into an invoice.
 
     :ivar type: The type of alignment. Required. Align the collection to the start of the
      subscription period.
@@ -1693,8 +1691,8 @@ class BillingWorkflowInvoicingSettings(_Model):
     :vartype auto_advance: bool
     :ivar draft_period: The period for the invoice to be kept in draft status for manual reviews.
     :vartype draft_period: str
-    :ivar due_after: The period after which the invoice is due.
-     With some payment solutions it's only applicable for manual collection method.
+    :ivar due_after: The period after which the invoice is due. With some payment solutions it's
+     only applicable for manual collection method.
     :vartype due_after: str
     :ivar progressive_billing: Should progressive billing be allowed for this workflow?.
     :vartype progressive_billing: bool
@@ -1707,8 +1705,8 @@ class BillingWorkflowInvoicingSettings(_Model):
     draft_period: Optional[str] = rest_field(name="draftPeriod", visibility=["read", "create", "update"])
     """The period for the invoice to be kept in draft status for manual reviews."""
     due_after: Optional[str] = rest_field(name="dueAfter", visibility=["read", "create", "update"])
-    """The period after which the invoice is due.
-     With some payment solutions it's only applicable for manual collection method."""
+    """The period after which the invoice is due. With some payment solutions it's only applicable for
+     manual collection method."""
     progressive_billing: Optional[bool] = rest_field(name="progressiveBilling", visibility=["read", "create", "update"])
     """Should progressive billing be allowed for this workflow?."""
     default_tax_config: Optional["_models.TaxConfig"] = rest_field(
@@ -1773,24 +1771,23 @@ class BillingWorkflowPaymentSettings(_Model):
 class BillingWorkflowTaxSettings(_Model):
     """Workflow tax settings.
 
-    :ivar enabled: Enable automatic tax calculation when tax is supported by the app.
-     For example, with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
+    :ivar enabled: Enable automatic tax calculation when tax is supported by the app. For example,
+     with Stripe Invoicing when enabled, tax is calculated via Stripe Tax.
     :vartype enabled: bool
-    :ivar enforced: Enforce tax calculation when tax is supported by the app.
-     When enabled, OpenMeter will not allow to create an invoice without tax calculation.
-     Enforcement is different per apps, for example, Stripe app requires customer
-     to have a tax location when starting a paid subscription.
+    :ivar enforced: Enforce tax calculation when tax is supported by the app. When enabled,
+     OpenMeter will not allow to create an invoice without tax calculation. Enforcement is different
+     per apps, for example, Stripe app requires customer to have a tax location when starting a paid
+     subscription.
     :vartype enforced: bool
     """
 
     enabled: Optional[bool] = rest_field(visibility=["read", "create", "update"])
-    """Enable automatic tax calculation when tax is supported by the app.
-     For example, with Stripe Invoicing when enabled, tax is calculated via Stripe Tax."""
+    """Enable automatic tax calculation when tax is supported by the app. For example, with Stripe
+     Invoicing when enabled, tax is calculated via Stripe Tax."""
     enforced: Optional[bool] = rest_field(visibility=["read", "create", "update"])
-    """Enforce tax calculation when tax is supported by the app.
-     When enabled, OpenMeter will not allow to create an invoice without tax calculation.
-     Enforcement is different per apps, for example, Stripe app requires customer
-     to have a tax location when starting a paid subscription."""
+    """Enforce tax calculation when tax is supported by the app. When enabled, OpenMeter will not
+     allow to create an invoice without tax calculation. Enforcement is different per apps, for
+     example, Stripe app requires customer to have a tax location when starting a paid subscription."""
 
     @overload
     def __init__(
@@ -2149,23 +2146,20 @@ class CreateStripeCheckoutSessionConsentCollection(_Model):  # pylint: disable=n
     """Configure fields for the Checkout Session to gather active consent from customers.
 
     :ivar payment_method_reuse_agreement: Determines the position and visibility of the payment
-     method reuse agreement in the UI.
-     When set to auto, Stripe’s defaults will be used. When set to hidden, the payment method reuse
-     agreement text will always be hidden in the UI.
+     method reuse agreement in the UI. When set to auto, Stripe’s defaults will be used. When set to
+     hidden, the payment method reuse agreement text will always be hidden in the UI.
     :vartype payment_method_reuse_agreement:
      ~openmeter._generated.models.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement
     :ivar promotions: If set to auto, enables the collection of customer consent for promotional
-     communications.
-     The Checkout Session will determine whether to display an option to opt into promotional
-     communication from the merchant depending on the customer’s locale. Only available to US
-     merchants. Known values are: "auto" and "none".
+     communications. The Checkout Session will determine whether to display an option to opt into
+     promotional communication from the merchant depending on the customer’s locale. Only available
+     to US merchants. Known values are: "auto" and "none".
     :vartype promotions: str or
      ~openmeter.models.CreateStripeCheckoutSessionConsentCollectionPromotions
     :ivar terms_of_service: If set to required, it requires customers to check a terms of service
-     checkbox before being able to pay.
-     There must be a valid terms of service URL set in your Stripe Dashboard settings.
-     `https://dashboard.stripe.com/settings/public <https://dashboard.stripe.com/settings/public>`_.
-     Known values are: "none" and "required".
+     checkbox before being able to pay. There must be a valid terms of service URL set in your
+     Stripe Dashboard settings. `https://dashboard.stripe.com/settings/public
+     <https://dashboard.stripe.com/settings/public>`_. Known values are: "none" and "required".
     :vartype terms_of_service: str or
      ~openmeter.models.CreateStripeCheckoutSessionConsentCollectionTermsOfService
     """
@@ -2173,22 +2167,21 @@ class CreateStripeCheckoutSessionConsentCollection(_Model):  # pylint: disable=n
     payment_method_reuse_agreement: Optional[
         "_models.CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement"
     ] = rest_field(name="paymentMethodReuseAgreement", visibility=["read", "create", "update", "delete", "query"])
-    """Determines the position and visibility of the payment method reuse agreement in the UI.
-     When set to auto, Stripe’s defaults will be used. When set to hidden, the payment method reuse
+    """Determines the position and visibility of the payment method reuse agreement in the UI. When
+     set to auto, Stripe’s defaults will be used. When set to hidden, the payment method reuse
      agreement text will always be hidden in the UI."""
     promotions: Optional[Union[str, "_models.CreateStripeCheckoutSessionConsentCollectionPromotions"]] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """If set to auto, enables the collection of customer consent for promotional communications.
-     The Checkout Session will determine whether to display an option to opt into promotional
+    """If set to auto, enables the collection of customer consent for promotional communications. The
+     Checkout Session will determine whether to display an option to opt into promotional
      communication from the merchant depending on the customer’s locale. Only available to US
      merchants. Known values are: \"auto\" and \"none\"."""
     terms_of_service: Optional[Union[str, "_models.CreateStripeCheckoutSessionConsentCollectionTermsOfService"]] = (
         rest_field(name="termsOfService", visibility=["read", "create", "update", "delete", "query"])
     )
     """If set to required, it requires customers to check a terms of service checkbox before being
-     able to pay.
-     There must be a valid terms of service URL set in your Stripe Dashboard settings.
+     able to pay. There must be a valid terms of service URL set in your Stripe Dashboard settings.
      `https://dashboard.stripe.com/settings/public <https://dashboard.stripe.com/settings/public>`_.
      Known values are: \"none\" and \"required\"."""
 
@@ -2252,36 +2245,36 @@ class CreateStripeCheckoutSessionConsentCollectionPaymentMethodReuseAgreement(_M
 class CreateStripeCheckoutSessionCustomerUpdate(_Model):  # pylint: disable=name-too-long
     """Controls what fields on Customer can be updated by the Checkout Session.
 
-    :ivar address: Describes whether Checkout saves the billing address onto customer.address.
-     To always collect a full billing address, use billing_address_collection.
-     Defaults to never. Known values are: "auto" and "never".
+    :ivar address: Describes whether Checkout saves the billing address onto customer.address. To
+     always collect a full billing address, use billing_address_collection. Defaults to never. Known
+     values are: "auto" and "never".
     :vartype address: str or ~openmeter.models.CreateStripeCheckoutSessionCustomerUpdateBehavior
-    :ivar name: Describes whether Checkout saves the name onto customer.name.
-     Defaults to never. Known values are: "auto" and "never".
+    :ivar name: Describes whether Checkout saves the name onto customer.name. Defaults to never.
+     Known values are: "auto" and "never".
     :vartype name: str or ~openmeter.models.CreateStripeCheckoutSessionCustomerUpdateBehavior
     :ivar shipping: Describes whether Checkout saves shipping information onto customer.shipping.
-     To collect shipping information, use shipping_address_collection.
-     Defaults to never. Known values are: "auto" and "never".
+     To collect shipping information, use shipping_address_collection. Defaults to never. Known
+     values are: "auto" and "never".
     :vartype shipping: str or ~openmeter.models.CreateStripeCheckoutSessionCustomerUpdateBehavior
     """
 
     address: Optional[Union[str, "_models.CreateStripeCheckoutSessionCustomerUpdateBehavior"]] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """Describes whether Checkout saves the billing address onto customer.address.
-     To always collect a full billing address, use billing_address_collection.
-     Defaults to never. Known values are: \"auto\" and \"never\"."""
+    """Describes whether Checkout saves the billing address onto customer.address. To always collect a
+     full billing address, use billing_address_collection. Defaults to never. Known values are:
+     \"auto\" and \"never\"."""
     name: Optional[Union[str, "_models.CreateStripeCheckoutSessionCustomerUpdateBehavior"]] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """Describes whether Checkout saves the name onto customer.name.
-     Defaults to never. Known values are: \"auto\" and \"never\"."""
+    """Describes whether Checkout saves the name onto customer.name. Defaults to never. Known values
+     are: \"auto\" and \"never\"."""
     shipping: Optional[Union[str, "_models.CreateStripeCheckoutSessionCustomerUpdateBehavior"]] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """Describes whether Checkout saves shipping information onto customer.shipping.
-     To collect shipping information, use shipping_address_collection.
-     Defaults to never. Known values are: \"auto\" and \"never\"."""
+    """Describes whether Checkout saves shipping information onto customer.shipping. To collect
+     shipping information, use shipping_address_collection. Defaults to never. Known values are:
+     \"auto\" and \"never\"."""
 
     @overload
     def __init__(
@@ -2308,14 +2301,13 @@ class CreateStripeCheckoutSessionRequest(_Model):
 
     :ivar app_id: If not provided, the default Stripe app is used if any.
     :vartype app_id: str
-    :ivar customer: Provide a customer ID or key to use an existing OpenMeter customer.
-     or provide a customer object to create a new customer. Required. Is one of the following types:
+    :ivar customer: Provide a customer ID or key to use an existing OpenMeter customer. or provide
+     a customer object to create a new customer. Required. Is one of the following types:
      CustomerId, CustomerKey, CustomerCreate
     :vartype customer: ~openmeter._generated.models.CustomerId or
      ~openmeter._generated.models.CustomerKey or ~openmeter._generated.models.CustomerCreate
-    :ivar stripe_customer_id: Stripe customer ID.
-     If not provided OpenMeter creates a new Stripe customer or
-     uses the OpenMeter customer's default Stripe customer ID.
+    :ivar stripe_customer_id: Stripe customer ID. If not provided OpenMeter creates a new Stripe
+     customer or uses the OpenMeter customer's default Stripe customer ID.
     :vartype stripe_customer_id: str
     :ivar options: Options passed to Stripe when creating the checkout session. Required.
     :vartype options: ~openmeter._generated.models.CreateStripeCheckoutSessionRequestOptions
@@ -2326,15 +2318,14 @@ class CreateStripeCheckoutSessionRequest(_Model):
     customer: Union["_models.CustomerId", "_models.CustomerKey", "_models.CustomerCreate"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """Provide a customer ID or key to use an existing OpenMeter customer.
-     or provide a customer object to create a new customer. Required. Is one of the following types:
-     CustomerId, CustomerKey, CustomerCreate"""
+    """Provide a customer ID or key to use an existing OpenMeter customer. or provide a customer
+     object to create a new customer. Required. Is one of the following types: CustomerId,
+     CustomerKey, CustomerCreate"""
     stripe_customer_id: Optional[str] = rest_field(
         name="stripeCustomerId", visibility=["read", "create", "update", "delete", "query"]
     )
-    """Stripe customer ID.
-     If not provided OpenMeter creates a new Stripe customer or
-     uses the OpenMeter customer's default Stripe customer ID."""
+    """Stripe customer ID. If not provided OpenMeter creates a new Stripe customer or uses the
+     OpenMeter customer's default Stripe customer ID."""
     options: "_models.CreateStripeCheckoutSessionRequestOptions" = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
@@ -2362,8 +2353,8 @@ class CreateStripeCheckoutSessionRequest(_Model):
 
 
 class CreateStripeCheckoutSessionRequestOptions(_Model):  # pylint: disable=name-too-long
-    """Create Stripe checkout session options
-    See `https://docs.stripe.com/api/checkout/sessions/create
+    """Create Stripe checkout session options See
+    `https://docs.stripe.com/api/checkout/sessions/create
     <https://docs.stripe.com/api/checkout/sessions/create>`_.
 
     :ivar billing_address_collection: Specify whether Checkout should collect the customer’s
@@ -2371,8 +2362,8 @@ class CreateStripeCheckoutSessionRequestOptions(_Model):  # pylint: disable=name
     :vartype billing_address_collection: str or
      ~openmeter.models.CreateStripeCheckoutSessionBillingAddressCollection
     :ivar cancel_url: If set, Checkout displays a back button and customers will be directed to
-     this URL if they decide to cancel payment and return to your website.
-     This parameter is not allowed if ui_mode is embedded.
+     this URL if they decide to cancel payment and return to your website. This parameter is not
+     allowed if ui_mode is embedded.
     :vartype cancel_url: str
     :ivar client_reference_id: A unique string to reference the Checkout Session. This can be a
      customer ID, a cart ID, or similar, and can be used to reconcile the session with your internal
@@ -2389,28 +2380,25 @@ class CreateStripeCheckoutSessionRequestOptions(_Model):  # pylint: disable=name
     :vartype currency: str
     :ivar custom_text: Display additional text for your customers using custom text.
     :vartype custom_text: ~openmeter._generated.models.CheckoutSessionCustomTextAfterSubmitParams
-    :ivar expires_at: The Epoch time in seconds at which the Checkout Session will expire.
-     It can be anywhere from 30 minutes to 24 hours after Checkout Session creation. By default,
-     this value is 24 hours from creation.
+    :ivar expires_at: The Epoch time in seconds at which the Checkout Session will expire. It can
+     be anywhere from 30 minutes to 24 hours after Checkout Session creation. By default, this value
+     is 24 hours from creation.
     :vartype expires_at: int
     :ivar locale:
     :vartype locale: str
-    :ivar metadata: Set of key-value pairs that you can attach to an object.
-     This can be useful for storing additional information about the object in a structured format.
-     Individual keys can be unset by posting an empty value to them.
-     All keys can be unset by posting an empty value to metadata.
+    :ivar metadata: Set of key-value pairs that you can attach to an object. This can be useful for
+     storing additional information about the object in a structured format. Individual keys can be
+     unset by posting an empty value to them. All keys can be unset by posting an empty value to
+     metadata.
     :vartype metadata: dict[str, str]
     :ivar return_url: The URL to redirect your customer back to after they authenticate or cancel
-     their payment on the payment method’s app or site.
-     This parameter is required if ui_mode is embedded and redirect-based payment methods are
-     enabled on the session.
+     their payment on the payment method’s app or site. This parameter is required if ui_mode is
+     embedded and redirect-based payment methods are enabled on the session.
     :vartype return_url: str
     :ivar success_url: The URL to which Stripe should send customers when payment or setup is
-     complete.
-     This parameter is not allowed if ui_mode is embedded.
-     If you’d like to use information from the successful Checkout Session on your page, read the
-     guide on customizing your success page:
-     `https://docs.stripe.com/payments/checkout/custom-success-page
+     complete. This parameter is not allowed if ui_mode is embedded. If you’d like to use
+     information from the successful Checkout Session on your page, read the guide on customizing
+     your success page: `https://docs.stripe.com/payments/checkout/custom-success-page
      <https://docs.stripe.com/payments/checkout/custom-success-page>`_.
     :vartype success_url: str
     :ivar ui_mode: The UI mode of the Session. Defaults to hosted. Known values are: "embedded" and
@@ -2437,8 +2425,8 @@ class CreateStripeCheckoutSessionRequestOptions(_Model):  # pylint: disable=name
      values are: \"auto\" and \"required\"."""
     cancel_url: Optional[str] = rest_field(name="cancelURL", visibility=["read", "create", "update", "delete", "query"])
     """If set, Checkout displays a back button and customers will be directed to this URL if they
-     decide to cancel payment and return to your website.
-     This parameter is not allowed if ui_mode is embedded."""
+     decide to cancel payment and return to your website. This parameter is not allowed if ui_mode
+     is embedded."""
     client_reference_id: Optional[str] = rest_field(
         name="clientReferenceID", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -2459,27 +2447,24 @@ class CreateStripeCheckoutSessionRequestOptions(_Model):  # pylint: disable=name
     )
     """Display additional text for your customers using custom text."""
     expires_at: Optional[int] = rest_field(name="expiresAt", visibility=["read", "create", "update", "delete", "query"])
-    """The Epoch time in seconds at which the Checkout Session will expire.
-     It can be anywhere from 30 minutes to 24 hours after Checkout Session creation. By default,
-     this value is 24 hours from creation."""
+    """The Epoch time in seconds at which the Checkout Session will expire. It can be anywhere from 30
+     minutes to 24 hours after Checkout Session creation. By default, this value is 24 hours from
+     creation."""
     locale: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     metadata: Optional[dict[str, str]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Set of key-value pairs that you can attach to an object.
-     This can be useful for storing additional information about the object in a structured format.
-     Individual keys can be unset by posting an empty value to them.
-     All keys can be unset by posting an empty value to metadata."""
+    """Set of key-value pairs that you can attach to an object. This can be useful for storing
+     additional information about the object in a structured format. Individual keys can be unset by
+     posting an empty value to them. All keys can be unset by posting an empty value to metadata."""
     return_url: Optional[str] = rest_field(name="returnURL", visibility=["read", "create", "update", "delete", "query"])
     """The URL to redirect your customer back to after they authenticate or cancel their payment on
-     the payment method’s app or site.
-     This parameter is required if ui_mode is embedded and redirect-based payment methods are
-     enabled on the session."""
+     the payment method’s app or site. This parameter is required if ui_mode is embedded and
+     redirect-based payment methods are enabled on the session."""
     success_url: Optional[str] = rest_field(
         name="successURL", visibility=["read", "create", "update", "delete", "query"]
     )
-    """The URL to which Stripe should send customers when payment or setup is complete.
-     This parameter is not allowed if ui_mode is embedded.
-     If you’d like to use information from the successful Checkout Session on your page, read the
-     guide on customizing your success page:
+    """The URL to which Stripe should send customers when payment or setup is complete. This parameter
+     is not allowed if ui_mode is embedded. If you’d like to use information from the successful
+     Checkout Session on your page, read the guide on customizing your success page:
      `https://docs.stripe.com/payments/checkout/custom-success-page
      <https://docs.stripe.com/payments/checkout/custom-success-page>`_."""
     ui_mode: Optional[Union[str, "_models.CheckoutSessionUIMode"]] = rest_field(
@@ -2493,8 +2478,8 @@ class CreateStripeCheckoutSessionRequestOptions(_Model):  # pylint: disable=name
     redirect_on_completion: Optional[Union[str, "_models.CreateStripeCheckoutSessionRedirectOnCompletion"]] = (
         rest_field(name="redirectOnCompletion", visibility=["read", "create", "update", "delete", "query"])
     )
-    """This parameter applies to ui_mode: embedded. Defaults to always.
-     Learn more about the redirect behavior of embedded sessions at
+    """This parameter applies to ui_mode: embedded. Defaults to always. Learn more about the redirect
+     behavior of embedded sessions at
      `https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form
      <https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form>`_.
      Known values are: \"always\", \"if_required\", and \"never\"."""
@@ -2549,12 +2534,12 @@ class CreateStripeCheckoutSessionResult(_Model):
     :vartype session_id: str
     :ivar setup_intent_id: The checkout session setup intent ID. Required.
     :vartype setup_intent_id: str
-    :ivar client_secret: The client secret of the checkout session.
-     This can be used to initialize Stripe.js for your client-side implementation.
+    :ivar client_secret: The client secret of the checkout session. This can be used to initialize
+     Stripe.js for your client-side implementation.
     :vartype client_secret: str
-    :ivar client_reference_id: A unique string to reference the Checkout Session.
-     This can be a customer ID, a cart ID, or similar, and can be used to reconcile the session with
-     your internal systems.
+    :ivar client_reference_id: A unique string to reference the Checkout Session. This can be a
+     customer ID, a cart ID, or similar, and can be used to reconcile the session with your internal
+     systems.
     :vartype client_reference_id: str
     :ivar customer_email: Customer's email address provided to Stripe.
     :vartype customer_email: str
@@ -2570,8 +2555,7 @@ class CreateStripeCheckoutSessionResult(_Model):
     :vartype status: str
     :ivar url: URL to show the checkout session.
     :vartype url: str
-    :ivar mode: Mode
-     Always ``setup`` for now. Required. "setup"
+    :ivar mode: Mode Always ``setup`` for now. Required. "setup"
     :vartype mode: str or ~openmeter.models.StripeCheckoutSessionMode
     :ivar cancel_url: Cancel URL.
     :vartype cancel_url: str
@@ -2594,14 +2578,13 @@ class CreateStripeCheckoutSessionResult(_Model):
     client_secret: Optional[str] = rest_field(
         name="clientSecret", visibility=["read", "create", "update", "delete", "query"]
     )
-    """The client secret of the checkout session.
-     This can be used to initialize Stripe.js for your client-side implementation."""
+    """The client secret of the checkout session. This can be used to initialize Stripe.js for your
+     client-side implementation."""
     client_reference_id: Optional[str] = rest_field(
         name="clientReferenceId", visibility=["read", "create", "update", "delete", "query"]
     )
-    """A unique string to reference the Checkout Session.
-     This can be a customer ID, a cart ID, or similar, and can be used to reconcile the session with
-     your internal systems."""
+    """A unique string to reference the Checkout Session. This can be a customer ID, a cart ID, or
+     similar, and can be used to reconcile the session with your internal systems."""
     customer_email: Optional[str] = rest_field(
         name="customerEmail", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -2625,8 +2608,7 @@ class CreateStripeCheckoutSessionResult(_Model):
     mode: Union[str, "_models.StripeCheckoutSessionMode"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """Mode
-     Always ``setup`` for now. Required. \"setup\""""
+    """Mode Always ``setup`` for now. Required. \"setup\""""
     cancel_url: Optional[str] = rest_field(name="cancelURL", visibility=["read", "create", "update", "delete", "query"])
     """Cancel URL."""
     success_url: Optional[str] = rest_field(
@@ -2738,7 +2720,7 @@ class CreditNoteOriginalInvoiceRef(InvoiceGenericDocumentRef):
     :vartype reason: str
     :ivar description: Additional details about the document.
     :vartype description: str
-    :ivar type: Type of the invoice. Required.
+    :ivar type: Type of the invoice. Required. CREDIT_NOTE_ORIGINAL_INVOICE.
     :vartype type: str or ~openmeter._generated.models.CREDIT_NOTE_ORIGINAL_INVOICE
     :ivar issued_at: IssueAt reflects the time the document was issued.
     :vartype issued_at: ~datetime.datetime
@@ -2751,7 +2733,7 @@ class CreditNoteOriginalInvoiceRef(InvoiceGenericDocumentRef):
     type: Literal[InvoiceDocumentRefType.CREDIT_NOTE_ORIGINAL_INVOICE] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """Type of the invoice. Required."""
+    """Type of the invoice. Required. CREDIT_NOTE_ORIGINAL_INVOICE."""
     issued_at: Optional[datetime.datetime] = rest_field(name="issuedAt", visibility=["read"], format="rfc3339")
     """IssueAt reflects the time the document was issued."""
     number: Optional[str] = rest_field(visibility=["read"])
@@ -2920,14 +2902,14 @@ class Customer(_Model):
 class CustomerAccess(_Model):
     """CustomerAccess describes what features the customer has access to.
 
-    :ivar entitlements: Map of entitlements the customer has access to.
-     The key is the feature key, the value is the entitlement value + the entitlement ID. Required.
+    :ivar entitlements: Map of entitlements the customer has access to. The key is the feature key,
+     the value is the entitlement value + the entitlement ID. Required.
     :vartype entitlements: dict[str, ~openmeter._generated.models.EntitlementValue]
     """
 
     entitlements: dict[str, "_models.EntitlementValue"] = rest_field(visibility=["read"])
-    """Map of entitlements the customer has access to.
-     The key is the feature key, the value is the entitlement value + the entitlement ID. Required."""
+    """Map of entitlements the customer has access to. The key is the feature key, the value is the
+     entitlement value + the entitlement ID. Required."""
 
 
 class CustomerAppDataPaginatedResponse(_Model):
@@ -2952,7 +2934,7 @@ class CustomerAppDataPaginatedResponse(_Model):
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
     items_property: list["_types.CustomerAppData"] = rest_field(
-        name="items", visibility=["read", "create", "update", "delete", "query"]
+        name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
 
@@ -3122,7 +3104,7 @@ class CustomerPaginatedResponse(_Model):
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
     items_property: list["_models.Customer"] = rest_field(
-        name="items", visibility=["read", "create", "update", "delete", "query"]
+        name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
 
@@ -3217,9 +3199,8 @@ class CustomerReplaceUpdate(_Model):
 
 
 class CustomerUsageAttribution(_Model):
-    """Mapping to attribute metered usage to the customer.
-    One customer can have zero or more subjects,
-    but one subject can only belong to one customer.
+    """Mapping to attribute metered usage to the customer. One customer can have zero or more
+    subjects, but one subject can only belong to one customer.
 
     :ivar subject_keys: SubjectKeys. Required.
     :vartype subject_keys: list[str]
@@ -3271,7 +3252,7 @@ class CustomInvoicingApp(_Model):
     :ivar status: Status of the app connection. Required. Known values are: "ready" and
      "unauthorized".
     :vartype status: str or ~openmeter.models.AppStatus
-    :ivar type: The app's type is CustomInvoicing. Required.
+    :ivar type: The app's type is CustomInvoicing. Required. CUSTOM_INVOICING.
     :vartype type: str or ~openmeter._generated.models.CUSTOM_INVOICING
     :ivar enable_draft_sync_hook: Enable draft.sync hook.
 
@@ -3304,7 +3285,7 @@ class CustomInvoicingApp(_Model):
     status: Union[str, "_models.AppStatus"] = rest_field(visibility=["read"])
     """Status of the app connection. Required. Known values are: \"ready\" and \"unauthorized\"."""
     type: Literal[AppType.CUSTOM_INVOICING] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """The app's type is CustomInvoicing. Required."""
+    """The app's type is CustomInvoicing. Required. CUSTOM_INVOICING."""
     enable_draft_sync_hook: bool = rest_field(
         name="enableDraftSyncHook", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -3352,7 +3333,7 @@ class CustomInvoicingAppReplaceUpdate(_Model):
     :vartype description: str
     :ivar metadata: Metadata.
     :vartype metadata: ~openmeter._generated.models.Metadata
-    :ivar type: The app's type is CustomInvoicing. Required.
+    :ivar type: The app's type is CustomInvoicing. Required. CUSTOM_INVOICING.
     :vartype type: str or ~openmeter._generated.models.CUSTOM_INVOICING
     :ivar enable_draft_sync_hook: Enable draft.sync hook.
 
@@ -3373,7 +3354,7 @@ class CustomInvoicingAppReplaceUpdate(_Model):
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Metadata."""
     type: Literal[AppType.CUSTOM_INVOICING] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """The app's type is CustomInvoicing. Required."""
+    """The app's type is CustomInvoicing. Required. CUSTOM_INVOICING."""
     enable_draft_sync_hook: bool = rest_field(
         name="enableDraftSyncHook", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -3419,7 +3400,7 @@ class CustomInvoicingCustomerAppData(_Model):
     :vartype app: ~openmeter._generated.models.CustomInvoicingApp
     :ivar id: App ID.
     :vartype id: str
-    :ivar type: App Type. Required.
+    :ivar type: App Type. Required. CUSTOM_INVOICING.
     :vartype type: str or ~openmeter._generated.models.CUSTOM_INVOICING
     :ivar metadata: Metadata to be used by the custom invoicing provider.
     :vartype metadata: ~openmeter._generated.models.Metadata
@@ -3430,7 +3411,7 @@ class CustomInvoicingCustomerAppData(_Model):
     id: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """App ID."""
     type: Literal[AppType.CUSTOM_INVOICING] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """App Type. Required."""
+    """App Type. Required. CUSTOM_INVOICING."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Metadata to be used by the custom invoicing provider."""
 
@@ -3904,8 +3885,8 @@ class CustomPlanInput(OmitPropertiesResourceCreateModel):
 class CustomSubscriptionChange(_Model):
     """Change a custom subscription.
 
-    :ivar timing: Timing configuration for the change, when the change should take effect.
-     For changing a subscription, the accepted values depend on the subscription configuration.
+    :ivar timing: Timing configuration for the change, when the change should take effect. For
+     changing a subscription, the accepted values depend on the subscription configuration.
      Required. Is either a Union[str, "_models.SubscriptionTimingEnum"] type or a datetime.datetime
      type.
     :vartype timing: str or ~openmeter.models.SubscriptionTimingEnum or ~datetime.datetime
@@ -3918,10 +3899,9 @@ class CustomSubscriptionChange(_Model):
     """
 
     timing: "_types.SubscriptionTiming" = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Timing configuration for the change, when the change should take effect.
-     For changing a subscription, the accepted values depend on the subscription configuration.
-     Required. Is either a Union[str, \"_models.SubscriptionTimingEnum\"] type or a
-     datetime.datetime type."""
+    """Timing configuration for the change, when the change should take effect. For changing a
+     subscription, the accepted values depend on the subscription configuration. Required. Is either
+     a Union[str, \"_models.SubscriptionTimingEnum\"] type or a datetime.datetime type."""
     billing_anchor: Optional[datetime.datetime] = rest_field(
         name="billingAnchor", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
     )
@@ -3958,8 +3938,8 @@ class CustomSubscriptionCreate(_Model):
 
     :ivar custom_plan: The custom plan description which defines the Subscription. Required.
     :vartype custom_plan: ~openmeter._generated.models.CustomPlanInput
-    :ivar timing: Timing configuration for the change, when the change should take effect.
-     The default is immediate. Is either a Union[str, "_models.SubscriptionTimingEnum"] type or a
+    :ivar timing: Timing configuration for the change, when the change should take effect. The
+     default is immediate. Is either a Union[str, "_models.SubscriptionTimingEnum"] type or a
      datetime.datetime type.
     :vartype timing: str or ~openmeter.models.SubscriptionTimingEnum or ~datetime.datetime
     :ivar customer_id: The ID of the customer. Provide either the key or ID. Has presedence over
@@ -3980,8 +3960,8 @@ class CustomSubscriptionCreate(_Model):
     timing: Optional["_types.SubscriptionTiming"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """Timing configuration for the change, when the change should take effect.
-     The default is immediate. Is either a Union[str, \"_models.SubscriptionTimingEnum\"] type or a
+    """Timing configuration for the change, when the change should take effect. The default is
+     immediate. Is either a Union[str, \"_models.SubscriptionTimingEnum\"] type or a
      datetime.datetime type."""
     customer_id: Optional[str] = rest_field(
         name="customerId", visibility=["read", "create", "update", "delete", "query"]
@@ -4051,14 +4031,14 @@ class DiscountPercentage(_Model):
 class DiscountReasonMaximumSpend(_Model):
     """The reason for the discount is a maximum spend.
 
-    :ivar type: Required.
+    :ivar type: Required. MAXIMUM_SPEND.
     :vartype type: str or ~openmeter._generated.models.MAXIMUM_SPEND
     """
 
     type: Literal[DiscountReasonType.MAXIMUM_SPEND] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """Required."""
+    """Required. MAXIMUM_SPEND."""
 
     @overload
     def __init__(
@@ -4081,7 +4061,7 @@ class DiscountReasonMaximumSpend(_Model):
 class DiscountReasonRatecardPercentage(_Model):
     """The reason for the discount is a ratecard percentage.
 
-    :ivar type: Required.
+    :ivar type: Required. RATECARD_PERCENTAGE.
     :vartype type: str or ~openmeter._generated.models.RATECARD_PERCENTAGE
     :ivar percentage: Percentage. Required.
     :vartype percentage: float
@@ -4098,7 +4078,7 @@ class DiscountReasonRatecardPercentage(_Model):
     type: Literal[DiscountReasonType.RATECARD_PERCENTAGE] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """Required."""
+    """Required. RATECARD_PERCENTAGE."""
     percentage: float = rest_field(visibility=["read", "create", "update"])
     """Percentage. Required."""
     correlation_id: Optional[str] = rest_field(
@@ -4135,7 +4115,7 @@ class DiscountReasonRatecardPercentage(_Model):
 class DiscountReasonRatecardUsage(_Model):
     """The reason for the discount is a ratecard usage.
 
-    :ivar type: Required.
+    :ivar type: Required. RATECARD_USAGE.
     :vartype type: str or ~openmeter._generated.models.RATECARD_USAGE
     :ivar quantity: Usage. Required.
     :vartype quantity: str
@@ -4152,7 +4132,7 @@ class DiscountReasonRatecardUsage(_Model):
     type: Literal[DiscountReasonType.RATECARD_USAGE] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """Required."""
+    """Required. RATECARD_USAGE."""
     quantity: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Usage. Required."""
     correlation_id: Optional[str] = rest_field(
@@ -4256,7 +4236,7 @@ class DiscountUsage(_Model):
 class DynamicPriceWithCommitments(_Model):
     """Dynamic price with spend commitments.
 
-    :ivar type: The type of the price. Required.
+    :ivar type: The type of the price. Required. DYNAMIC.
     :vartype type: str or ~openmeter._generated.models.DYNAMIC
     :ivar multiplier: The multiplier to apply to the base price to get the dynamic price.
     :vartype multiplier: str
@@ -4267,7 +4247,7 @@ class DynamicPriceWithCommitments(_Model):
     """
 
     type: Literal[PriceType.DYNAMIC] = rest_field(visibility=["read", "create", "update"])
-    """The type of the price. Required."""
+    """The type of the price. Required. DYNAMIC."""
     multiplier: Optional[str] = rest_field(visibility=["read", "create", "update"])
     """The multiplier to apply to the base price to get the dynamic price."""
     minimum_amount: Optional[str] = rest_field(name="minimumAmount", visibility=["read", "create", "update"])
@@ -4299,7 +4279,7 @@ class DynamicPriceWithCommitments(_Model):
 class EditSubscriptionAddItem(_Model):
     """Add a new item to a phase.
 
-    :ivar op: Required.
+    :ivar op: Required. ADD_ITEM.
     :vartype op: str or ~openmeter._generated.models.ADD_ITEM
     :ivar phase_key: Required.
     :vartype phase_key: str
@@ -4309,7 +4289,7 @@ class EditSubscriptionAddItem(_Model):
     """
 
     op: Literal[EditOp.ADD_ITEM] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Required."""
+    """Required. ADD_ITEM."""
     phase_key: str = rest_field(name="phaseKey", visibility=["read", "create", "update", "delete", "query"])
     """Required."""
     rate_card: "_types.RateCard" = rest_field(
@@ -4340,14 +4320,14 @@ class EditSubscriptionAddItem(_Model):
 class EditSubscriptionAddPhase(_Model):
     """Add a new phase.
 
-    :ivar op: Required.
+    :ivar op: Required. ADD_PHASE.
     :vartype op: str or ~openmeter._generated.models.ADD_PHASE
     :ivar phase: Required.
     :vartype phase: ~openmeter._generated.models.SubscriptionPhaseCreate
     """
 
     op: Literal[EditOp.ADD_PHASE] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Required."""
+    """Required. ADD_PHASE."""
     phase: "_models.SubscriptionPhaseCreate" = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Required."""
 
@@ -4373,7 +4353,7 @@ class EditSubscriptionAddPhase(_Model):
 class EditSubscriptionRemoveItem(_Model):
     """Remove an item from a phase.
 
-    :ivar op: Required.
+    :ivar op: Required. REMOVE_ITEM.
     :vartype op: str or ~openmeter._generated.models.REMOVE_ITEM
     :ivar phase_key: Required.
     :vartype phase_key: str
@@ -4382,7 +4362,7 @@ class EditSubscriptionRemoveItem(_Model):
     """
 
     op: Literal[EditOp.REMOVE_ITEM] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Required."""
+    """Required. REMOVE_ITEM."""
     phase_key: str = rest_field(name="phaseKey", visibility=["read", "create", "update", "delete", "query"])
     """Required."""
     item_key: str = rest_field(name="itemKey", visibility=["read", "create", "update", "delete", "query"])
@@ -4411,7 +4391,7 @@ class EditSubscriptionRemoveItem(_Model):
 class EditSubscriptionRemovePhase(_Model):
     """Remove a phase.
 
-    :ivar op: Required.
+    :ivar op: Required. REMOVE_PHASE.
     :vartype op: str or ~openmeter._generated.models.REMOVE_PHASE
     :ivar phase_key: Required.
     :vartype phase_key: str
@@ -4420,7 +4400,7 @@ class EditSubscriptionRemovePhase(_Model):
     """
 
     op: Literal[EditOp.REMOVE_PHASE] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Required."""
+    """Required. REMOVE_PHASE."""
     phase_key: str = rest_field(name="phaseKey", visibility=["read", "create", "update", "delete", "query"])
     """Required."""
     shift: Union[str, "_models.RemovePhaseShifting"] = rest_field(
@@ -4451,7 +4431,7 @@ class EditSubscriptionRemovePhase(_Model):
 class EditSubscriptionStretchPhase(_Model):
     """Stretch a phase.
 
-    :ivar op: Required.
+    :ivar op: Required. STRETCH_PHASE.
     :vartype op: str or ~openmeter._generated.models.STRETCH_PHASE
     :ivar phase_key: Required.
     :vartype phase_key: str
@@ -4460,7 +4440,7 @@ class EditSubscriptionStretchPhase(_Model):
     """
 
     op: Literal[EditOp.STRETCH_PHASE] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Required."""
+    """Required. STRETCH_PHASE."""
     phase_key: str = rest_field(name="phaseKey", visibility=["read", "create", "update", "delete", "query"])
     """Required."""
     extend_by: datetime.timedelta = rest_field(
@@ -4491,12 +4471,12 @@ class EditSubscriptionStretchPhase(_Model):
 class EditSubscriptionUnscheduleEdit(_Model):
     """Unschedules any edits from the current phase.
 
-    :ivar op: Required.
+    :ivar op: Required. UNSCHEDULE_EDIT.
     :vartype op: str or ~openmeter._generated.models.UNSCHEDULE_EDIT
     """
 
     op: Literal[EditOp.UNSCHEDULE_EDIT] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Required."""
+    """Required. UNSCHEDULE_EDIT."""
 
     @overload
     def __init__(
@@ -4519,7 +4499,7 @@ class EditSubscriptionUnscheduleEdit(_Model):
 class EntitlementBoolean(_Model):
     """Entitlement template of a boolean entitlement.
 
-    :ivar type: Required.
+    :ivar type: Required. BOOLEAN.
     :vartype type: str or ~openmeter._generated.models.BOOLEAN
     :ivar created_at: Creation Time. Required.
     :vartype created_at: ~datetime.datetime
@@ -4537,8 +4517,8 @@ class EntitlementBoolean(_Model):
     :vartype annotations: ~openmeter._generated.models.Annotations
     :ivar id: Readonly unique ULID identifier. Required.
     :vartype id: str
-    :ivar subject_key: The identifier key unique to the subject.
-     NOTE: Subjects are being deprecated, please use the new customer APIs. Required.
+    :ivar subject_key: The identifier key unique to the subject. NOTE: Subjects are being
+     deprecated, please use the new customer APIs. Required.
     :vartype subject_key: str
     :ivar feature_key: The feature the subject is entitled to use. Required.
     :vartype feature_key: str
@@ -4551,7 +4531,7 @@ class EntitlementBoolean(_Model):
     """
 
     type: Literal[EntitlementType.BOOLEAN] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Required."""
+    """Required. BOOLEAN."""
     created_at: datetime.datetime = rest_field(name="createdAt", visibility=["read"], format="rfc3339")
     """Creation Time. Required."""
     updated_at: datetime.datetime = rest_field(name="updatedAt", visibility=["read"], format="rfc3339")
@@ -4573,8 +4553,8 @@ class EntitlementBoolean(_Model):
     id: str = rest_field(visibility=["read"])
     """Readonly unique ULID identifier. Required."""
     subject_key: str = rest_field(name="subjectKey", visibility=["read", "create", "update", "delete", "query"])
-    """The identifier key unique to the subject.
-     NOTE: Subjects are being deprecated, please use the new customer APIs. Required."""
+    """The identifier key unique to the subject. NOTE: Subjects are being deprecated, please use the
+     new customer APIs. Required."""
     feature_key: str = rest_field(name="featureKey", visibility=["read", "create", "update", "delete", "query"])
     """The feature the subject is entitled to use. Required."""
     feature_id: str = rest_field(name="featureId", visibility=["read", "create", "update", "delete", "query"])
@@ -4617,28 +4597,26 @@ class EntitlementBoolean(_Model):
 class EntitlementBooleanCreateInputs(_Model):
     """Create inputs for boolean entitlement.
 
-    :ivar feature_key: The feature the subject is entitled to use.
-     Either featureKey or featureId is required.
+    :ivar feature_key: The feature the subject is entitled to use. Either featureKey or featureId
+     is required.
     :vartype feature_key: str
-    :ivar feature_id: The feature the subject is entitled to use.
-     Either featureKey or featureId is required.
+    :ivar feature_id: The feature the subject is entitled to use. Either featureKey or featureId is
+     required.
     :vartype feature_id: str
     :ivar metadata: Additional metadata for the feature.
     :vartype metadata: ~openmeter._generated.models.Metadata
     :ivar usage_period: The usage period associated with the entitlement.
     :vartype usage_period: ~openmeter._generated.models.RecurringPeriodCreateInput
-    :ivar type: Required.
+    :ivar type: Required. BOOLEAN.
     :vartype type: str or ~openmeter._generated.models.BOOLEAN
     """
 
     feature_key: Optional[str] = rest_field(
         name="featureKey", visibility=["read", "create", "update", "delete", "query"]
     )
-    """The feature the subject is entitled to use.
-     Either featureKey or featureId is required."""
+    """The feature the subject is entitled to use. Either featureKey or featureId is required."""
     feature_id: Optional[str] = rest_field(name="featureId", visibility=["read", "create", "update", "delete", "query"])
-    """The feature the subject is entitled to use.
-     Either featureKey or featureId is required."""
+    """The feature the subject is entitled to use. Either featureKey or featureId is required."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Additional metadata for the feature."""
     usage_period: Optional["_models.RecurringPeriodCreateInput"] = rest_field(
@@ -4646,7 +4624,7 @@ class EntitlementBooleanCreateInputs(_Model):
     )
     """The usage period associated with the entitlement."""
     type: Literal[EntitlementType.BOOLEAN] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Required."""
+    """Required. BOOLEAN."""
 
     @overload
     def __init__(
@@ -4673,7 +4651,7 @@ class EntitlementBooleanCreateInputs(_Model):
 class EntitlementBooleanV2(_Model):
     """Entitlement template of a boolean entitlement.
 
-    :ivar type: Required.
+    :ivar type: Required. BOOLEAN.
     :vartype type: str or ~openmeter._generated.models.BOOLEAN
     :ivar created_at: Creation Time. Required.
     :vartype created_at: ~datetime.datetime
@@ -4706,7 +4684,7 @@ class EntitlementBooleanV2(_Model):
     """
 
     type: Literal[EntitlementType.BOOLEAN] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Required."""
+    """Required. BOOLEAN."""
     created_at: datetime.datetime = rest_field(name="createdAt", visibility=["read"], format="rfc3339")
     """Creation Time. Required."""
     updated_at: datetime.datetime = rest_field(name="updatedAt", visibility=["read"], format="rfc3339")
@@ -4785,14 +4763,12 @@ class EntitlementGrant(_Model):
     :ivar amount: The amount to grant. Should be a positive number. Required.
     :vartype amount: float
     :ivar priority: The priority of the grant. Grants with higher priority are applied first.
-     Priority is a positive decimal numbers. With lower numbers indicating higher importance.
-     For example, a priority of 1 is more urgent than a priority of 2.
-     When there are several grants available for the same subject, the system selects the grant with
-     the highest priority.
-     In cases where grants share the same priority level, the grant closest to its expiration will
-     be used first.
-     In the case of two grants have identical priorities and expiration dates, the system will use
-     the grant that was created first.
+     Priority is a positive decimal numbers. With lower numbers indicating higher importance. For
+     example, a priority of 1 is more urgent than a priority of 2. When there are several grants
+     available for the same subject, the system selects the grant with the highest priority. In
+     cases where grants share the same priority level, the grant closest to its expiration will be
+     used first. In the case of two grants have identical priorities and expiration dates, the
+     system will use the grant that was created first.
     :vartype priority: int
     :ivar effective_at: Effective date for grants and anchor for recurring grants. Provided value
      will be ceiled to metering windowSize (minute). Required.
@@ -4800,14 +4776,14 @@ class EntitlementGrant(_Model):
     :ivar expiration: The grant expiration definition. Required.
     :vartype expiration: ~openmeter._generated.models.ExpirationPeriod
     :ivar max_rollover_amount: Grants are rolled over at reset, after which they can have a
-     different balance compared to what they had before the reset.
-     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
-     MAX(Balance_Before_Reset, MinRolloverAmount)).
+     different balance compared to what they had before the reset. Balance after the reset is
+     calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+     MinRolloverAmount)).
     :vartype max_rollover_amount: float
     :ivar min_rollover_amount: Grants are rolled over at reset, after which they can have a
-     different balance compared to what they had before the reset.
-     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
-     MAX(Balance_Before_Reset, MinRolloverAmount)).
+     different balance compared to what they had before the reset. Balance after the reset is
+     calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+     MinRolloverAmount)).
     :vartype min_rollover_amount: float
     :ivar metadata: The grant metadata.
     :vartype metadata: ~openmeter._generated.models.Metadata
@@ -4836,15 +4812,13 @@ class EntitlementGrant(_Model):
     amount: float = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The amount to grant. Should be a positive number. Required."""
     priority: Optional[int] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """The priority of the grant. Grants with higher priority are applied first.
-     Priority is a positive decimal numbers. With lower numbers indicating higher importance.
-     For example, a priority of 1 is more urgent than a priority of 2.
-     When there are several grants available for the same subject, the system selects the grant with
-     the highest priority.
-     In cases where grants share the same priority level, the grant closest to its expiration will
-     be used first.
-     In the case of two grants have identical priorities and expiration dates, the system will use
-     the grant that was created first."""
+    """The priority of the grant. Grants with higher priority are applied first. Priority is a
+     positive decimal numbers. With lower numbers indicating higher importance. For example, a
+     priority of 1 is more urgent than a priority of 2. When there are several grants available for
+     the same subject, the system selects the grant with the highest priority. In cases where grants
+     share the same priority level, the grant closest to its expiration will be used first. In the
+     case of two grants have identical priorities and expiration dates, the system will use the
+     grant that was created first."""
     effective_at: datetime.datetime = rest_field(
         name="effectiveAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
     )
@@ -4856,16 +4830,14 @@ class EntitlementGrant(_Model):
         name="maxRolloverAmount", visibility=["read", "create", "update", "delete", "query"]
     )
     """Grants are rolled over at reset, after which they can have a different balance compared to what
-     they had before the reset.
-     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
-     MAX(Balance_Before_Reset, MinRolloverAmount))."""
+     they had before the reset. Balance after the reset is calculated as: Balance_After_Reset =
+     MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))."""
     min_rollover_amount: Optional[float] = rest_field(
         name="minRolloverAmount", visibility=["read", "create", "update", "delete", "query"]
     )
     """Grants are rolled over at reset, after which they can have a different balance compared to what
-     they had before the reset.
-     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
-     MAX(Balance_Before_Reset, MinRolloverAmount))."""
+     they had before the reset. Balance after the reset is calculated as: Balance_After_Reset =
+     MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The grant metadata."""
     id: str = rest_field(visibility=["read"])
@@ -4925,14 +4897,12 @@ class EntitlementGrantCreateInput(_Model):
     :ivar amount: The amount to grant. Should be a positive number. Required.
     :vartype amount: float
     :ivar priority: The priority of the grant. Grants with higher priority are applied first.
-     Priority is a positive decimal numbers. With lower numbers indicating higher importance.
-     For example, a priority of 1 is more urgent than a priority of 2.
-     When there are several grants available for the same subject, the system selects the grant with
-     the highest priority.
-     In cases where grants share the same priority level, the grant closest to its expiration will
-     be used first.
-     In the case of two grants have identical priorities and expiration dates, the system will use
-     the grant that was created first.
+     Priority is a positive decimal numbers. With lower numbers indicating higher importance. For
+     example, a priority of 1 is more urgent than a priority of 2. When there are several grants
+     available for the same subject, the system selects the grant with the highest priority. In
+     cases where grants share the same priority level, the grant closest to its expiration will be
+     used first. In the case of two grants have identical priorities and expiration dates, the
+     system will use the grant that was created first.
     :vartype priority: int
     :ivar effective_at: Effective date for grants and anchor for recurring grants. Provided value
      will be ceiled to metering windowSize (minute). Required.
@@ -4940,14 +4910,14 @@ class EntitlementGrantCreateInput(_Model):
     :ivar expiration: The grant expiration definition. Required.
     :vartype expiration: ~openmeter._generated.models.ExpirationPeriod
     :ivar max_rollover_amount: Grants are rolled over at reset, after which they can have a
-     different balance compared to what they had before the reset.
-     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
-     MAX(Balance_Before_Reset, MinRolloverAmount)).
+     different balance compared to what they had before the reset. Balance after the reset is
+     calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+     MinRolloverAmount)).
     :vartype max_rollover_amount: float
     :ivar min_rollover_amount: Grants are rolled over at reset, after which they can have a
-     different balance compared to what they had before the reset.
-     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
-     MAX(Balance_Before_Reset, MinRolloverAmount)).
+     different balance compared to what they had before the reset. Balance after the reset is
+     calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+     MinRolloverAmount)).
     :vartype min_rollover_amount: float
     :ivar metadata: The grant metadata.
     :vartype metadata: ~openmeter._generated.models.Metadata
@@ -4958,15 +4928,13 @@ class EntitlementGrantCreateInput(_Model):
     amount: float = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The amount to grant. Should be a positive number. Required."""
     priority: Optional[int] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """The priority of the grant. Grants with higher priority are applied first.
-     Priority is a positive decimal numbers. With lower numbers indicating higher importance.
-     For example, a priority of 1 is more urgent than a priority of 2.
-     When there are several grants available for the same subject, the system selects the grant with
-     the highest priority.
-     In cases where grants share the same priority level, the grant closest to its expiration will
-     be used first.
-     In the case of two grants have identical priorities and expiration dates, the system will use
-     the grant that was created first."""
+    """The priority of the grant. Grants with higher priority are applied first. Priority is a
+     positive decimal numbers. With lower numbers indicating higher importance. For example, a
+     priority of 1 is more urgent than a priority of 2. When there are several grants available for
+     the same subject, the system selects the grant with the highest priority. In cases where grants
+     share the same priority level, the grant closest to its expiration will be used first. In the
+     case of two grants have identical priorities and expiration dates, the system will use the
+     grant that was created first."""
     effective_at: datetime.datetime = rest_field(
         name="effectiveAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
     )
@@ -4978,16 +4946,14 @@ class EntitlementGrantCreateInput(_Model):
         name="maxRolloverAmount", visibility=["read", "create", "update", "delete", "query"]
     )
     """Grants are rolled over at reset, after which they can have a different balance compared to what
-     they had before the reset.
-     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
-     MAX(Balance_Before_Reset, MinRolloverAmount))."""
+     they had before the reset. Balance after the reset is calculated as: Balance_After_Reset =
+     MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))."""
     min_rollover_amount: Optional[float] = rest_field(
         name="minRolloverAmount", visibility=["read", "create", "update", "delete", "query"]
     )
     """Grants are rolled over at reset, after which they can have a different balance compared to what
-     they had before the reset.
-     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
-     MAX(Balance_Before_Reset, MinRolloverAmount))."""
+     they had before the reset. Balance after the reset is calculated as: Balance_After_Reset =
+     MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The grant metadata."""
     recurrence: Optional["_models.RecurringPeriodCreateInput"] = rest_field(
@@ -5026,22 +4992,20 @@ class EntitlementGrantCreateInputV2(_Model):
     :ivar amount: The amount to grant. Should be a positive number. Required.
     :vartype amount: float
     :ivar priority: The priority of the grant. Grants with higher priority are applied first.
-     Priority is a positive decimal numbers. With lower numbers indicating higher importance.
-     For example, a priority of 1 is more urgent than a priority of 2.
-     When there are several grants available for the same subject, the system selects the grant with
-     the highest priority.
-     In cases where grants share the same priority level, the grant closest to its expiration will
-     be used first.
-     In the case of two grants have identical priorities and expiration dates, the system will use
-     the grant that was created first.
+     Priority is a positive decimal numbers. With lower numbers indicating higher importance. For
+     example, a priority of 1 is more urgent than a priority of 2. When there are several grants
+     available for the same subject, the system selects the grant with the highest priority. In
+     cases where grants share the same priority level, the grant closest to its expiration will be
+     used first. In the case of two grants have identical priorities and expiration dates, the
+     system will use the grant that was created first.
     :vartype priority: int
     :ivar effective_at: Effective date for grants and anchor for recurring grants. Provided value
      will be ceiled to metering windowSize (minute). Required.
     :vartype effective_at: ~datetime.datetime
     :ivar min_rollover_amount: Grants are rolled over at reset, after which they can have a
-     different balance compared to what they had before the reset.
-     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
-     MAX(Balance_Before_Reset, MinRolloverAmount)).
+     different balance compared to what they had before the reset. Balance after the reset is
+     calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+     MinRolloverAmount)).
     :vartype min_rollover_amount: float
     :ivar metadata: The grant metadata.
     :vartype metadata: ~openmeter._generated.models.Metadata
@@ -5049,8 +5013,7 @@ class EntitlementGrantCreateInputV2(_Model):
     :vartype recurrence: ~openmeter._generated.models.RecurringPeriodCreateInput
     :ivar max_rollover_amount: Grants are rolled over at reset, after which they can have a
      different balance compared to what they had before the reset. The default value equals grant
-     amount.
-     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
+     amount. Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
      MAX(Balance_Before_Reset, MinRolloverAmount)).
     :vartype max_rollover_amount: float
     :ivar expiration: The grant expiration definition. If no expiration is provided, the grant can
@@ -5063,15 +5026,13 @@ class EntitlementGrantCreateInputV2(_Model):
     amount: float = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The amount to grant. Should be a positive number. Required."""
     priority: Optional[int] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """The priority of the grant. Grants with higher priority are applied first.
-     Priority is a positive decimal numbers. With lower numbers indicating higher importance.
-     For example, a priority of 1 is more urgent than a priority of 2.
-     When there are several grants available for the same subject, the system selects the grant with
-     the highest priority.
-     In cases where grants share the same priority level, the grant closest to its expiration will
-     be used first.
-     In the case of two grants have identical priorities and expiration dates, the system will use
-     the grant that was created first."""
+    """The priority of the grant. Grants with higher priority are applied first. Priority is a
+     positive decimal numbers. With lower numbers indicating higher importance. For example, a
+     priority of 1 is more urgent than a priority of 2. When there are several grants available for
+     the same subject, the system selects the grant with the highest priority. In cases where grants
+     share the same priority level, the grant closest to its expiration will be used first. In the
+     case of two grants have identical priorities and expiration dates, the system will use the
+     grant that was created first."""
     effective_at: datetime.datetime = rest_field(
         name="effectiveAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
     )
@@ -5081,9 +5042,8 @@ class EntitlementGrantCreateInputV2(_Model):
         name="minRolloverAmount", visibility=["read", "create", "update", "delete", "query"]
     )
     """Grants are rolled over at reset, after which they can have a different balance compared to what
-     they had before the reset.
-     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
-     MAX(Balance_Before_Reset, MinRolloverAmount))."""
+     they had before the reset. Balance after the reset is calculated as: Balance_After_Reset =
+     MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The grant metadata."""
     recurrence: Optional["_models.RecurringPeriodCreateInput"] = rest_field(
@@ -5094,9 +5054,9 @@ class EntitlementGrantCreateInputV2(_Model):
         name="maxRolloverAmount", visibility=["read", "create", "update", "delete", "query"]
     )
     """Grants are rolled over at reset, after which they can have a different balance compared to what
-     they had before the reset. The default value equals grant amount.
-     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
-     MAX(Balance_Before_Reset, MinRolloverAmount))."""
+     they had before the reset. The default value equals grant amount. Balance after the reset is
+     calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+     MinRolloverAmount))."""
     expiration: Optional["_models.ExpirationPeriod"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
@@ -5145,29 +5105,26 @@ class EntitlementGrantV2(_Model):
     :ivar amount: The amount to grant. Should be a positive number. Required.
     :vartype amount: float
     :ivar priority: The priority of the grant. Grants with higher priority are applied first.
-     Priority is a positive decimal numbers. With lower numbers indicating higher importance.
-     For example, a priority of 1 is more urgent than a priority of 2.
-     When there are several grants available for the same subject, the system selects the grant with
-     the highest priority.
-     In cases where grants share the same priority level, the grant closest to its expiration will
-     be used first.
-     In the case of two grants have identical priorities and expiration dates, the system will use
-     the grant that was created first.
+     Priority is a positive decimal numbers. With lower numbers indicating higher importance. For
+     example, a priority of 1 is more urgent than a priority of 2. When there are several grants
+     available for the same subject, the system selects the grant with the highest priority. In
+     cases where grants share the same priority level, the grant closest to its expiration will be
+     used first. In the case of two grants have identical priorities and expiration dates, the
+     system will use the grant that was created first.
     :vartype priority: int
     :ivar effective_at: Effective date for grants and anchor for recurring grants. Provided value
      will be ceiled to metering windowSize (minute). Required.
     :vartype effective_at: ~datetime.datetime
     :ivar min_rollover_amount: Grants are rolled over at reset, after which they can have a
-     different balance compared to what they had before the reset.
-     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
-     MAX(Balance_Before_Reset, MinRolloverAmount)).
+     different balance compared to what they had before the reset. Balance after the reset is
+     calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+     MinRolloverAmount)).
     :vartype min_rollover_amount: float
     :ivar metadata: The grant metadata.
     :vartype metadata: ~openmeter._generated.models.Metadata
     :ivar max_rollover_amount: Grants are rolled over at reset, after which they can have a
      different balance compared to what they had before the reset. The default value equals grant
-     amount.
-     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
+     amount. Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
      MAX(Balance_Before_Reset, MinRolloverAmount)).
     :vartype max_rollover_amount: float
     :ivar expiration: The grant expiration definition. If no expiration is provided, the grant can
@@ -5198,15 +5155,13 @@ class EntitlementGrantV2(_Model):
     amount: float = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The amount to grant. Should be a positive number. Required."""
     priority: Optional[int] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """The priority of the grant. Grants with higher priority are applied first.
-     Priority is a positive decimal numbers. With lower numbers indicating higher importance.
-     For example, a priority of 1 is more urgent than a priority of 2.
-     When there are several grants available for the same subject, the system selects the grant with
-     the highest priority.
-     In cases where grants share the same priority level, the grant closest to its expiration will
-     be used first.
-     In the case of two grants have identical priorities and expiration dates, the system will use
-     the grant that was created first."""
+    """The priority of the grant. Grants with higher priority are applied first. Priority is a
+     positive decimal numbers. With lower numbers indicating higher importance. For example, a
+     priority of 1 is more urgent than a priority of 2. When there are several grants available for
+     the same subject, the system selects the grant with the highest priority. In cases where grants
+     share the same priority level, the grant closest to its expiration will be used first. In the
+     case of two grants have identical priorities and expiration dates, the system will use the
+     grant that was created first."""
     effective_at: datetime.datetime = rest_field(
         name="effectiveAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
     )
@@ -5216,18 +5171,17 @@ class EntitlementGrantV2(_Model):
         name="minRolloverAmount", visibility=["read", "create", "update", "delete", "query"]
     )
     """Grants are rolled over at reset, after which they can have a different balance compared to what
-     they had before the reset.
-     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
-     MAX(Balance_Before_Reset, MinRolloverAmount))."""
+     they had before the reset. Balance after the reset is calculated as: Balance_After_Reset =
+     MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The grant metadata."""
     max_rollover_amount: Optional[float] = rest_field(
         name="maxRolloverAmount", visibility=["read", "create", "update", "delete", "query"]
     )
     """Grants are rolled over at reset, after which they can have a different balance compared to what
-     they had before the reset. The default value equals grant amount.
-     Balance after the reset is calculated as: Balance_After_Reset = MIN(MaxRolloverAmount,
-     MAX(Balance_Before_Reset, MinRolloverAmount))."""
+     they had before the reset. The default value equals grant amount. Balance after the reset is
+     calculated as: Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+     MinRolloverAmount))."""
     expiration: Optional["_models.ExpirationPeriod"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
@@ -5286,11 +5240,11 @@ class EntitlementGrantV2(_Model):
 
 class EntitlementMetered(_Model):
     """Metered entitlements are useful for many different use cases, from setting up usage based
-    access to implementing complex credit systems.
-    Access is determined based on feature usage using a balance calculation (the "usage allowance"
-    provided by the issued grants is "burnt down" by the usage).
+    access to implementing complex credit systems. Access is determined based on feature usage
+    using a balance calculation (the "usage allowance" provided by the issued grants is "burnt
+    down" by the usage).
 
-    :ivar type: Required.
+    :ivar type: Required. METERED.
     :vartype type: str or ~openmeter._generated.models.METERED
     :ivar is_soft_limit: Soft limit.
     :vartype is_soft_limit: bool
@@ -5319,8 +5273,8 @@ class EntitlementMetered(_Model):
     :vartype annotations: ~openmeter._generated.models.Annotations
     :ivar id: Readonly unique ULID identifier. Required.
     :vartype id: str
-    :ivar subject_key: The identifier key unique to the subject.
-     NOTE: Subjects are being deprecated, please use the new customer APIs. Required.
+    :ivar subject_key: The identifier key unique to the subject. NOTE: Subjects are being
+     deprecated, please use the new customer APIs. Required.
     :vartype subject_key: str
     :ivar feature_key: The feature the subject is entitled to use. Required.
     :vartype feature_key: str
@@ -5338,7 +5292,7 @@ class EntitlementMetered(_Model):
     """
 
     type: Literal[EntitlementType.METERED] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Required."""
+    """Required. METERED."""
     is_soft_limit: Optional[bool] = rest_field(
         name="isSoftLimit", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -5381,8 +5335,8 @@ class EntitlementMetered(_Model):
     id: str = rest_field(visibility=["read"])
     """Readonly unique ULID identifier. Required."""
     subject_key: str = rest_field(name="subjectKey", visibility=["read", "create", "update", "delete", "query"])
-    """The identifier key unique to the subject.
-     NOTE: Subjects are being deprecated, please use the new customer APIs. Required."""
+    """The identifier key unique to the subject. NOTE: Subjects are being deprecated, please use the
+     new customer APIs. Required."""
     feature_key: str = rest_field(name="featureKey", visibility=["read", "create", "update", "delete", "query"])
     """The feature the subject is entitled to use. Required."""
     feature_id: str = rest_field(name="featureId", visibility=["read", "create", "update", "delete", "query"])
@@ -5429,15 +5383,15 @@ class EntitlementMetered(_Model):
 class EntitlementMeteredCreateInputs(_Model):
     """Create inpurs for metered entitlement.
 
-    :ivar feature_key: The feature the subject is entitled to use.
-     Either featureKey or featureId is required.
+    :ivar feature_key: The feature the subject is entitled to use. Either featureKey or featureId
+     is required.
     :vartype feature_key: str
-    :ivar feature_id: The feature the subject is entitled to use.
-     Either featureKey or featureId is required.
+    :ivar feature_id: The feature the subject is entitled to use. Either featureKey or featureId is
+     required.
     :vartype feature_id: str
     :ivar metadata: Additional metadata for the feature.
     :vartype metadata: ~openmeter._generated.models.Metadata
-    :ivar type: Required.
+    :ivar type: Required. METERED.
     :vartype type: str or ~openmeter._generated.models.METERED
     :ivar is_soft_limit: Soft limit.
     :vartype is_soft_limit: bool
@@ -5462,15 +5416,13 @@ class EntitlementMeteredCreateInputs(_Model):
     feature_key: Optional[str] = rest_field(
         name="featureKey", visibility=["read", "create", "update", "delete", "query"]
     )
-    """The feature the subject is entitled to use.
-     Either featureKey or featureId is required."""
+    """The feature the subject is entitled to use. Either featureKey or featureId is required."""
     feature_id: Optional[str] = rest_field(name="featureId", visibility=["read", "create", "update", "delete", "query"])
-    """The feature the subject is entitled to use.
-     Either featureKey or featureId is required."""
+    """The feature the subject is entitled to use. Either featureKey or featureId is required."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Additional metadata for the feature."""
     type: Literal[EntitlementType.METERED] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Required."""
+    """Required. METERED."""
     is_soft_limit: Optional[bool] = rest_field(
         name="isSoftLimit", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -5533,11 +5485,11 @@ class EntitlementMeteredCreateInputs(_Model):
 
 class EntitlementMeteredV2(_Model):
     """Metered entitlements are useful for many different use cases, from setting up usage based
-    access to implementing complex credit systems.
-    Access is determined based on feature usage using a balance calculation (the "usage allowance"
-    provided by the issued grants is "burnt down" by the usage).
+    access to implementing complex credit systems. Access is determined based on feature usage
+    using a balance calculation (the "usage allowance" provided by the issued grants is "burnt
+    down" by the usage).
 
-    :ivar type: Required.
+    :ivar type: Required. METERED.
     :vartype type: str or ~openmeter._generated.models.METERED
     :ivar is_soft_limit: Soft limit.
     :vartype is_soft_limit: bool
@@ -5585,7 +5537,7 @@ class EntitlementMeteredV2(_Model):
     """
 
     type: Literal[EntitlementType.METERED] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Required."""
+    """Required. METERED."""
     is_soft_limit: Optional[bool] = rest_field(
         name="isSoftLimit", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -5677,15 +5629,15 @@ class EntitlementMeteredV2(_Model):
 class EntitlementMeteredV2CreateInputs(_Model):
     """Create inputs for metered entitlement.
 
-    :ivar feature_key: The feature the subject is entitled to use.
-     Either featureKey or featureId is required.
+    :ivar feature_key: The feature the subject is entitled to use. Either featureKey or featureId
+     is required.
     :vartype feature_key: str
-    :ivar feature_id: The feature the subject is entitled to use.
-     Either featureKey or featureId is required.
+    :ivar feature_id: The feature the subject is entitled to use. Either featureKey or featureId is
+     required.
     :vartype feature_id: str
     :ivar metadata: Additional metadata for the feature.
     :vartype metadata: ~openmeter._generated.models.Metadata
-    :ivar type: Required.
+    :ivar type: Required. METERED.
     :vartype type: str or ~openmeter._generated.models.METERED
     :ivar is_soft_limit: Soft limit.
     :vartype is_soft_limit: bool
@@ -5711,15 +5663,13 @@ class EntitlementMeteredV2CreateInputs(_Model):
     feature_key: Optional[str] = rest_field(
         name="featureKey", visibility=["read", "create", "update", "delete", "query"]
     )
-    """The feature the subject is entitled to use.
-     Either featureKey or featureId is required."""
+    """The feature the subject is entitled to use. Either featureKey or featureId is required."""
     feature_id: Optional[str] = rest_field(name="featureId", visibility=["read", "create", "update", "delete", "query"])
-    """The feature the subject is entitled to use.
-     Either featureKey or featureId is required."""
+    """The feature the subject is entitled to use. Either featureKey or featureId is required."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Additional metadata for the feature."""
     type: Literal[EntitlementType.METERED] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Required."""
+    """Required. METERED."""
     is_soft_limit: Optional[bool] = rest_field(
         name="isSoftLimit", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -5804,7 +5754,7 @@ class EntitlementPaginatedResponse(_Model):
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
     items_property: list["_types.Entitlement"] = rest_field(
-        name="items", visibility=["read", "create", "update", "delete", "query"]
+        name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
 
@@ -5832,7 +5782,7 @@ class EntitlementPaginatedResponse(_Model):
 class EntitlementStatic(_Model):
     """A static entitlement.
 
-    :ivar type: Required.
+    :ivar type: Required. STATIC.
     :vartype type: str or ~openmeter._generated.models.STATIC
     :ivar config: The JSON parsable config of the entitlement. This value is also returned when
      checking entitlement access and it is useful for configuring fine-grained access settings to
@@ -5854,8 +5804,8 @@ class EntitlementStatic(_Model):
     :vartype annotations: ~openmeter._generated.models.Annotations
     :ivar id: Readonly unique ULID identifier. Required.
     :vartype id: str
-    :ivar subject_key: The identifier key unique to the subject.
-     NOTE: Subjects are being deprecated, please use the new customer APIs. Required.
+    :ivar subject_key: The identifier key unique to the subject. NOTE: Subjects are being
+     deprecated, please use the new customer APIs. Required.
     :vartype subject_key: str
     :ivar feature_key: The feature the subject is entitled to use. Required.
     :vartype feature_key: str
@@ -5868,7 +5818,7 @@ class EntitlementStatic(_Model):
     """
 
     type: Literal[EntitlementType.STATIC] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Required."""
+    """Required. STATIC."""
     config: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The JSON parsable config of the entitlement. This value is also returned when checking
      entitlement access and it is useful for configuring fine-grained access settings to the
@@ -5894,8 +5844,8 @@ class EntitlementStatic(_Model):
     id: str = rest_field(visibility=["read"])
     """Readonly unique ULID identifier. Required."""
     subject_key: str = rest_field(name="subjectKey", visibility=["read", "create", "update", "delete", "query"])
-    """The identifier key unique to the subject.
-     NOTE: Subjects are being deprecated, please use the new customer APIs. Required."""
+    """The identifier key unique to the subject. NOTE: Subjects are being deprecated, please use the
+     new customer APIs. Required."""
     feature_key: str = rest_field(name="featureKey", visibility=["read", "create", "update", "delete", "query"])
     """The feature the subject is entitled to use. Required."""
     feature_id: str = rest_field(name="featureId", visibility=["read", "create", "update", "delete", "query"])
@@ -5939,17 +5889,17 @@ class EntitlementStatic(_Model):
 class EntitlementStaticCreateInputs(_Model):
     """Create inputs for static entitlement.
 
-    :ivar feature_key: The feature the subject is entitled to use.
-     Either featureKey or featureId is required.
+    :ivar feature_key: The feature the subject is entitled to use. Either featureKey or featureId
+     is required.
     :vartype feature_key: str
-    :ivar feature_id: The feature the subject is entitled to use.
-     Either featureKey or featureId is required.
+    :ivar feature_id: The feature the subject is entitled to use. Either featureKey or featureId is
+     required.
     :vartype feature_id: str
     :ivar metadata: Additional metadata for the feature.
     :vartype metadata: ~openmeter._generated.models.Metadata
     :ivar usage_period: The usage period associated with the entitlement.
     :vartype usage_period: ~openmeter._generated.models.RecurringPeriodCreateInput
-    :ivar type: Required.
+    :ivar type: Required. STATIC.
     :vartype type: str or ~openmeter._generated.models.STATIC
     :ivar config: The JSON parsable config of the entitlement. This value is also returned when
      checking entitlement access and it is useful for configuring fine-grained access settings to
@@ -5960,11 +5910,9 @@ class EntitlementStaticCreateInputs(_Model):
     feature_key: Optional[str] = rest_field(
         name="featureKey", visibility=["read", "create", "update", "delete", "query"]
     )
-    """The feature the subject is entitled to use.
-     Either featureKey or featureId is required."""
+    """The feature the subject is entitled to use. Either featureKey or featureId is required."""
     feature_id: Optional[str] = rest_field(name="featureId", visibility=["read", "create", "update", "delete", "query"])
-    """The feature the subject is entitled to use.
-     Either featureKey or featureId is required."""
+    """The feature the subject is entitled to use. Either featureKey or featureId is required."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Additional metadata for the feature."""
     usage_period: Optional["_models.RecurringPeriodCreateInput"] = rest_field(
@@ -5972,7 +5920,7 @@ class EntitlementStaticCreateInputs(_Model):
     )
     """The usage period associated with the entitlement."""
     type: Literal[EntitlementType.STATIC] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Required."""
+    """Required. STATIC."""
     config: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The JSON parsable config of the entitlement. This value is also returned when checking
      entitlement access and it is useful for configuring fine-grained access settings to the
@@ -6004,7 +5952,7 @@ class EntitlementStaticCreateInputs(_Model):
 class EntitlementStaticV2(_Model):
     """A static entitlement.
 
-    :ivar type: Required.
+    :ivar type: Required. STATIC.
     :vartype type: str or ~openmeter._generated.models.STATIC
     :ivar config: The JSON parsable config of the entitlement. This value is also returned when
      checking entitlement access and it is useful for configuring fine-grained access settings to
@@ -6041,7 +5989,7 @@ class EntitlementStaticV2(_Model):
     """
 
     type: Literal[EntitlementType.STATIC] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Required."""
+    """Required. STATIC."""
     config: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The JSON parsable config of the entitlement. This value is also returned when checking
      entitlement access and it is useful for configuring fine-grained access settings to the
@@ -6135,7 +6083,7 @@ class EntitlementV2PaginatedResponse(_Model):
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
     items_property: list["_types.EntitlementV2"] = rest_field(
-        name="items", visibility=["read", "create", "update", "delete", "query"]
+        name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
 
@@ -6249,8 +6197,7 @@ class Event(_Model):
     :vartype subject: str
     :ivar time: Timestamp of when the occurrence happened. Must adhere to RFC 3339.
     :vartype time: ~datetime.datetime
-    :ivar data: The event payload.
-     Optional, if present it must be a JSON object.
+    :ivar data: The event payload. Optional, if present it must be a JSON object.
     :vartype data: dict[str, any]
     """
 
@@ -6277,8 +6224,7 @@ class Event(_Model):
     )
     """Timestamp of when the occurrence happened. Must adhere to RFC 3339."""
     data: Optional[dict[str, Any]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """The event payload.
-     Optional, if present it must be a JSON object."""
+    """The event payload. Optional, if present it must be a JSON object."""
 
     @overload
     def __init__(
@@ -6367,8 +6313,8 @@ class ExpirationPeriod(_Model):
 
 
 class Feature(_Model):
-    """Represents a feature that can be enabled or disabled for a plan.
-    Used both for product catalog and entitlements.
+    """Represents a feature that can be enabled or disabled for a plan. Used both for product catalog
+    and entitlements.
 
     :ivar created_at: Creation Time. Required.
     :vartype created_at: ~datetime.datetime
@@ -6445,8 +6391,8 @@ class Feature(_Model):
 
 
 class FeatureCreateInputs(_Model):
-    """Represents a feature that can be enabled or disabled for a plan.
-    Used both for product catalog and entitlements.
+    """Represents a feature that can be enabled or disabled for a plan. Used both for product catalog
+    and entitlements.
 
     :ivar key: The unique key of the feature. Required.
     :vartype key: str
@@ -6556,7 +6502,7 @@ class FeaturePaginatedResponse(_Model):
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
     items_property: list["_models.Feature"] = rest_field(
-        name="items", visibility=["read", "create", "update", "delete", "query"]
+        name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
 
@@ -6778,14 +6724,14 @@ class FilterTime(_Model):
 class FlatPrice(_Model):
     """Flat price.
 
-    :ivar type: The type of the price. Required.
+    :ivar type: The type of the price. Required. FLAT.
     :vartype type: str or ~openmeter._generated.models.FLAT
     :ivar amount: The amount of the flat price. Required.
     :vartype amount: str
     """
 
     type: Literal[PriceType.FLAT] = rest_field(visibility=["read", "create", "update"])
-    """The type of the price. Required."""
+    """The type of the price. Required. FLAT."""
     amount: str = rest_field(visibility=["read", "create", "update"])
     """The amount of the flat price. Required."""
 
@@ -6811,24 +6757,24 @@ class FlatPrice(_Model):
 class FlatPriceWithPaymentTerm(_Model):
     """Flat price with payment term.
 
-    :ivar type: The type of the price. Required.
+    :ivar type: The type of the price. Required. FLAT.
     :vartype type: str or ~openmeter._generated.models.FLAT
     :ivar amount: The amount of the flat price. Required.
     :vartype amount: str
-    :ivar payment_term: The payment term of the flat price.
-     Defaults to in advance. Known values are: "in_advance" and "in_arrears".
+    :ivar payment_term: The payment term of the flat price. Defaults to in advance. Known values
+     are: "in_advance" and "in_arrears".
     :vartype payment_term: str or ~openmeter.models.PricePaymentTerm
     """
 
     type: Literal[PriceType.FLAT] = rest_field(visibility=["read", "create", "update"])
-    """The type of the price. Required."""
+    """The type of the price. Required. FLAT."""
     amount: str = rest_field(visibility=["read", "create", "update"])
     """The amount of the flat price. Required."""
     payment_term: Optional[Union[str, "_models.PricePaymentTerm"]] = rest_field(
         name="paymentTerm", visibility=["read", "create", "update"]
     )
-    """The payment term of the flat price.
-     Defaults to in advance. Known values are: \"in_advance\" and \"in_arrears\"."""
+    """The payment term of the flat price. Defaults to in advance. Known values are: \"in_advance\"
+     and \"in_arrears\"."""
 
     @overload
     def __init__(
@@ -6977,7 +6923,7 @@ class GrantPaginatedResponse(_Model):
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
     items_property: list["_models.EntitlementGrant"] = rest_field(
-        name="items", visibility=["read", "create", "update", "delete", "query"]
+        name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
 
@@ -7055,7 +7001,7 @@ class GrantV2PaginatedResponse(_Model):
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
     items_property: list["_models.EntitlementGrantV2"] = rest_field(
-        name="items", visibility=["read", "create", "update", "delete", "query"]
+        name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
 
@@ -7154,12 +7100,11 @@ class InstallWithApiKeyRequest(_Model):
 
      If name is not provided defaults to the marketplace listing's name.
     :vartype name: str
-    :ivar create_billing_profile: If true, a billing profile will be created for the app.
-     The Stripe app will be also set as the default billing profile if the current default is a
-     Sandbox app.
+    :ivar create_billing_profile: If true, a billing profile will be created for the app. The
+     Stripe app will be also set as the default billing profile if the current default is a Sandbox
+     app.
     :vartype create_billing_profile: bool
-    :ivar api_key: The API key for the provider.
-     For example, the Stripe API key. Required.
+    :ivar api_key: The API key for the provider. For example, the Stripe API key. Required.
     :vartype api_key: str
     """
 
@@ -7170,12 +7115,10 @@ class InstallWithApiKeyRequest(_Model):
     create_billing_profile: Optional[bool] = rest_field(
         name="createBillingProfile", visibility=["read", "create", "update", "delete", "query"]
     )
-    """If true, a billing profile will be created for the app.
-     The Stripe app will be also set as the default billing profile if the current default is a
-     Sandbox app."""
+    """If true, a billing profile will be created for the app. The Stripe app will be also set as the
+     default billing profile if the current default is a Sandbox app."""
     api_key: str = rest_field(name="apiKey", visibility=["read", "create", "update", "delete", "query"])
-    """The API key for the provider.
-     For example, the Stripe API key. Required."""
+    """The API key for the provider. For example, the Stripe API key. Required."""
 
     @overload
     def __init__(
@@ -7243,101 +7186,97 @@ class InternalServerErrorProblemResponse(UnexpectedProblemResponse):
 class Invoice(_Model):
     """Invoice represents an invoice in the system.
 
-        :ivar id: ID. Required.
-        :vartype id: str
-        :ivar description: Description.
-        :vartype description: str
-        :ivar metadata: Metadata.
-        :vartype metadata: ~openmeter._generated.models.Metadata
-        :ivar created_at: Creation Time. Required.
-        :vartype created_at: ~datetime.datetime
-        :ivar updated_at: Last Update Time. Required.
-        :vartype updated_at: ~datetime.datetime
-        :ivar deleted_at: Deletion Time.
-        :vartype deleted_at: ~datetime.datetime
-        :ivar type: Type of the invoice.
+    :ivar id: ID. Required.
+    :vartype id: str
+    :ivar description: Description.
+    :vartype description: str
+    :ivar metadata: Metadata.
+    :vartype metadata: ~openmeter._generated.models.Metadata
+    :ivar created_at: Creation Time. Required.
+    :vartype created_at: ~datetime.datetime
+    :ivar updated_at: Last Update Time. Required.
+    :vartype updated_at: ~datetime.datetime
+    :ivar deleted_at: Deletion Time.
+    :vartype deleted_at: ~datetime.datetime
+    :ivar type: Type of the invoice. The type of invoice determines the purpose of the invoice and
+     how it should be handled. Supported types:
 
-    The type of invoice determines the purpose of the invoice and how it should be handled.
+     * standard: A regular commercial invoice document between a supplier and customer.
+     * credit_note: Reflects a refund either partial or complete of the preceding document. A
+       credit note effectively *extends* the previous document. Required. Known values are: "standard"
+       and "credit_note".
+    :vartype type: str or ~openmeter.models.InvoiceType
+    :ivar supplier: The taxable entity supplying the goods or services. Required.
+    :vartype supplier: ~openmeter._generated.models.BillingParty
+    :ivar customer: Legal entity receiving the goods or services. Required.
+    :vartype customer: ~openmeter._generated.models.BillingInvoiceCustomerExtendedDetails
+    :ivar number: Number specifies the human readable key used to reference this Invoice.
 
-    Supported types:
+     The invoice number can change in the draft phases, as we are allocating temporary draft
+     invoice numbers, but it's final as soon as the invoice gets finalized (issued state).
 
-         * standard: A regular commercial invoice document between a supplier and customer.
-         * credit_note: Reflects a refund either partial or complete of the preceding document. A
-           credit note effectively *extends* the previous document. Required. Known values are: "standard"
-           and "credit_note".
-        :vartype type: str or ~openmeter.models.InvoiceType
-        :ivar supplier: The taxable entity supplying the goods or services. Required.
-        :vartype supplier: ~openmeter._generated.models.BillingParty
-        :ivar customer: Legal entity receiving the goods or services. Required.
-        :vartype customer: ~openmeter._generated.models.BillingInvoiceCustomerExtendedDetails
-        :ivar number: Number specifies the human readable key used to reference this Invoice.
+     Please note that the number is (depending on the upstream settings) either unique for the
+     whole organization or unique for the customer, or in multi (stripe) account setups unique for
+     the
+     account. Required.
+    :vartype number: str
+    :ivar currency: Currency for all invoice line items.
 
-         The invoice number can change in the draft phases, as we are allocating temporary draft
-         invoice numbers, but it's final as soon as the invoice gets finalized (issued state).
+     Multi currency invoices are not supported yet. Required.
+    :vartype currency: str
+    :ivar preceding: Key information regarding previous invoices and potentially details as to why
+     they were corrected.
+    :vartype preceding: list[~openmeter._generated.models.CreditNoteOriginalInvoiceRef]
+    :ivar totals: Summary of all the invoice totals, including taxes (calculated). Required.
+    :vartype totals: ~openmeter._generated.models.InvoiceTotals
+    :ivar status: The status of the invoice.
 
-         Please note that the number is (depending on the upstream settings) either unique for the
-         whole organization or unique for the customer, or in multi (stripe) account setups unique for
-         the
-         account. Required.
-        :vartype number: str
-        :ivar currency: Currency for all invoice line items.
+     This field only conatins a simplified status, for more detailed information use the
+     statusDetails field. Required. Known values are: "gathering", "draft", "issuing", "issued",
+     "payment_processing", "overdue", "paid", "uncollectible", and "voided".
+    :vartype status: str or ~openmeter.models.InvoiceStatus
+    :ivar status_details: The details of the current invoice status. Required.
+    :vartype status_details: ~openmeter._generated.models.InvoiceStatusDetails
+    :ivar issued_at: The time the invoice was issued. Depending on the status of the invoice this
+     can mean multiple things:
 
-         Multi currency invoices are not supported yet. Required.
-        :vartype currency: str
-        :ivar preceding: Key information regarding previous invoices and potentially details as to why
-         they were corrected.
-        :vartype preceding: list[~openmeter._generated.models.CreditNoteOriginalInvoiceRef]
-        :ivar totals: Summary of all the invoice totals, including taxes (calculated). Required.
-        :vartype totals: ~openmeter._generated.models.InvoiceTotals
-        :ivar status: The status of the invoice.
+     * draft, gathering: The time the invoice will be issued based on the workflow settings.
+     * issued: The time the invoice was issued.
+    :vartype issued_at: ~datetime.datetime
+    :ivar draft_until: The time until the invoice is in draft status.
 
-         This field only conatins a simplified status, for more detailed information use the
-         statusDetails field. Required. Known values are: "gathering", "draft", "issuing", "issued",
-         "payment_processing", "overdue", "paid", "uncollectible", and "voided".
-        :vartype status: str or ~openmeter.models.InvoiceStatus
-        :ivar status_details: The details of the current invoice status. Required.
-        :vartype status_details: ~openmeter._generated.models.InvoiceStatusDetails
-        :ivar issued_at: The time the invoice was issued.
+     On draft invoice creation it is calculated from the workflow settings.
 
-    Depending on the status of the invoice this can mean multiple things:
+     If manual approval is required, the draftUntil time is set.
+    :vartype draft_until: ~datetime.datetime
+    :ivar quantity_snapshoted_at: The time when the quantity snapshots on the invoice lines were
+     taken.
+    :vartype quantity_snapshoted_at: ~datetime.datetime
+    :ivar collection_at: The time when the invoice will be/has been collected.
+    :vartype collection_at: ~datetime.datetime
+    :ivar due_at: Due time of the fulfillment of the invoice (if available).
+    :vartype due_at: ~datetime.datetime
+    :ivar period: The period the invoice covers. If the invoice has no line items, it's not set.
+    :vartype period: ~openmeter._generated.models.Period
+    :ivar voided_at: The time the invoice was voided.
 
-         * draft, gathering: The time the invoice will be issued based on the workflow settings.
-         * issued: The time the invoice was issued.
-        :vartype issued_at: ~datetime.datetime
-        :ivar draft_until: The time until the invoice is in draft status.
+     If the invoice was voided, this field will be set to the time the invoice was voided.
+    :vartype voided_at: ~datetime.datetime
+    :ivar sent_to_customer_at: The time the invoice was sent to customer.
+    :vartype sent_to_customer_at: ~datetime.datetime
+    :ivar workflow: The workflow associated with the invoice.
 
-         On draft invoice creation it is calculated from the workflow settings.
-
-         If manual approval is required, the draftUntil time is set.
-        :vartype draft_until: ~datetime.datetime
-        :ivar quantity_snapshoted_at: The time when the quantity snapshots on the invoice lines were
-         taken.
-        :vartype quantity_snapshoted_at: ~datetime.datetime
-        :ivar collection_at: The time when the invoice will be/has been collected.
-        :vartype collection_at: ~datetime.datetime
-        :ivar due_at: Due time of the fulfillment of the invoice (if available).
-        :vartype due_at: ~datetime.datetime
-        :ivar period: The period the invoice covers. If the invoice has no line items, it's not set.
-        :vartype period: ~openmeter._generated.models.Period
-        :ivar voided_at: The time the invoice was voided.
-
-         If the invoice was voided, this field will be set to the time the invoice was voided.
-        :vartype voided_at: ~datetime.datetime
-        :ivar sent_to_customer_at: The time the invoice was sent to customer.
-        :vartype sent_to_customer_at: ~datetime.datetime
-        :ivar workflow: The workflow associated with the invoice.
-
-         It is always a snapshot of the workflow settings at the time of invoice creation. The
-         field is optional as it should be explicitly requested with expand options. Required.
-        :vartype workflow: ~openmeter._generated.models.InvoiceWorkflowSettings
-        :ivar lines: List of invoice lines representing each of the items sold to the customer.
-        :vartype lines: list[~openmeter._generated.models.InvoiceLine]
-        :ivar payment: Information on when, how, and to whom the invoice should be paid.
-        :vartype payment: ~openmeter._generated.models.InvoicePaymentTerms
-        :ivar validation_issues: Validation issues reported by the invoice workflow.
-        :vartype validation_issues: list[~openmeter._generated.models.ValidationIssue]
-        :ivar external_ids: External IDs of the invoice in other apps such as Stripe.
-        :vartype external_ids: ~openmeter._generated.models.InvoiceAppExternalIds
+     It is always a snapshot of the workflow settings at the time of invoice creation. The
+     field is optional as it should be explicitly requested with expand options. Required.
+    :vartype workflow: ~openmeter._generated.models.InvoiceWorkflowSettings
+    :ivar lines: List of invoice lines representing each of the items sold to the customer.
+    :vartype lines: list[~openmeter._generated.models.InvoiceLine]
+    :ivar payment: Information on when, how, and to whom the invoice should be paid.
+    :vartype payment: ~openmeter._generated.models.InvoicePaymentTerms
+    :ivar validation_issues: Validation issues reported by the invoice workflow.
+    :vartype validation_issues: list[~openmeter._generated.models.ValidationIssue]
+    :ivar external_ids: External IDs of the invoice in other apps such as Stripe.
+    :vartype external_ids: ~openmeter._generated.models.InvoiceAppExternalIds
     """
 
     id: str = rest_field(visibility=["read"])
@@ -7353,11 +7292,8 @@ class Invoice(_Model):
     deleted_at: Optional[datetime.datetime] = rest_field(name="deletedAt", visibility=["read"], format="rfc3339")
     """Deletion Time."""
     type: Union[str, "_models.InvoiceType"] = rest_field(visibility=["read"])
-    """Type of the invoice.
- 
- The type of invoice determines the purpose of the invoice and how it should be handled.
- 
- Supported types:
+    """Type of the invoice. The type of invoice determines the purpose of the invoice and how it
+      should be handled. Supported types:
  
       * standard: A regular commercial invoice document between a supplier and customer.
       * credit_note: Reflects a refund either partial or complete of the preceding document. A
@@ -7395,9 +7331,8 @@ class Invoice(_Model):
     status_details: "_models.InvoiceStatusDetails" = rest_field(name="statusDetails", visibility=["read"])
     """The details of the current invoice status. Required."""
     issued_at: Optional[datetime.datetime] = rest_field(name="issuedAt", visibility=["read"], format="rfc3339")
-    """The time the invoice was issued.
- 
- Depending on the status of the invoice this can mean multiple things:
+    """The time the invoice was issued. Depending on the status of the invoice this can mean multiple
+      things:
  
       * draft, gathering: The time the invoice will be issued based on the workflow settings.
       * issued: The time the invoice was issued."""
@@ -7509,8 +7444,8 @@ class InvoiceAvailableActionDetails(_Model):
 
 
 class InvoiceAvailableActionInvoiceDetails(_Model):
-    """InvoiceAvailableActionInvoiceDetails represents the details of the invoice action for
-    gathering invoices.
+    """InvoiceAvailableActionInvoiceDetails represents the details of the invoice action for gathering
+    invoices.
 
     """
 
@@ -7604,7 +7539,7 @@ class InvoiceDetailedLine(_Model):
     :vartype subscription: ~openmeter._generated.models.InvoiceLineSubscriptionReference
     :ivar invoice_at: The time this line item should be invoiced. Required.
     :vartype invoice_at: ~datetime.datetime
-    :ivar type: Type of the line. Required.
+    :ivar type: Type of the line. Required. FLAT_FEE.
     :vartype type: str or ~openmeter._generated.models.FLAT_FEE
     :ivar per_unit_amount: Price of the item being sold.
     :vartype per_unit_amount: str
@@ -7669,7 +7604,7 @@ class InvoiceDetailedLine(_Model):
     )
     """The time this line item should be invoiced. Required."""
     type: Literal[InvoiceLineTypes.FLAT_FEE] = rest_field(visibility=["read"])
-    """Type of the line. Required."""
+    """Type of the line. Required. FLAT_FEE."""
     per_unit_amount: Optional[str] = rest_field(name="perUnitAmount", visibility=["read", "create", "update"])
     """Price of the item being sold."""
     payment_term: Optional[Union[str, "_models.PricePaymentTerm"]] = rest_field(
@@ -7686,7 +7621,7 @@ class InvoiceDetailedLine(_Model):
     """Category of the flat fee. Known values are: \"regular\" and \"commitment\"."""
 
     @overload
-    def __init__(  # pylint: disable=too-many-locals
+    def __init__(
         self,
         *,
         name: str,
@@ -7813,7 +7748,7 @@ class InvoiceLine(_Model):
     :ivar subscription: Subscription are the references to the subscritpions that this line is
      related to.
     :vartype subscription: ~openmeter._generated.models.InvoiceLineSubscriptionReference
-    :ivar type: Type of the line. Required.
+    :ivar type: Type of the line. Required. USAGE_BASED.
     :vartype type: str or ~openmeter._generated.models.USAGE_BASED
     :ivar price: Price of the usage-based item being sold. Is one of the following types:
      FlatPriceWithPaymentTerm, UnitPriceWithCommitments, TieredPriceWithCommitments,
@@ -7904,7 +7839,7 @@ class InvoiceLine(_Model):
     subscription: Optional["_models.InvoiceLineSubscriptionReference"] = rest_field(visibility=["read"])
     """Subscription are the references to the subscritpions that this line is related to."""
     type: Literal[InvoiceLineTypes.USAGE_BASED] = rest_field(visibility=["read"])
-    """Type of the line. Required."""
+    """Type of the line. Required. USAGE_BASED."""
     price: Optional["_types.RateCardUsageBasedPrice"] = rest_field(visibility=["read", "create", "update"])
     """Price of the usage-based item being sold. Is one of the following types:
      FlatPriceWithPaymentTerm, UnitPriceWithCommitments, TieredPriceWithCommitments,
@@ -8175,28 +8110,25 @@ class InvoiceLineReplaceUpdate(_Model):
 
 class InvoiceLineSubscriptionReference(_Model):
     """InvoiceLineSubscriptionReference contains the references to the subscription that this line is
-        related to.
+    related to.
 
-        :ivar subscription: The subscription. Required.
-        :vartype subscription: ~openmeter._generated.models.IDResource
-        :ivar phase: The phase of the subscription. Required.
-        :vartype phase: ~openmeter._generated.models.IDResource
-        :ivar item: The item this line is related to. Required.
-        :vartype item: ~openmeter._generated.models.IDResource
-        :ivar billing_period: The billing period of the subscription. In case the subscription item's
-        billing period is different
-    from the subscription's billing period, this field will contain the billing period of the
-        subscription itself.
+    :ivar subscription: The subscription. Required.
+    :vartype subscription: ~openmeter._generated.models.IDResource
+    :ivar phase: The phase of the subscription. Required.
+    :vartype phase: ~openmeter._generated.models.IDResource
+    :ivar item: The item this line is related to. Required.
+    :vartype item: ~openmeter._generated.models.IDResource
+    :ivar billing_period: The billing period of the subscription. In case the subscription item's
+     billing period is different from the subscription's billing period, this field will contain the
+     billing period of the subscription itself. For example, in case of:
 
-    For example, in case of:
+     * A monthly billed subscription anchored to 2025-01-01
+     * A subscription item billed daily
 
-         * A monthly billed subscription anchored to 2025-01-01
-         * A subscription item billed daily
-
-    An example line would have the period of 2025-01-02 to 2025-01-03 as the item is billed daily,
-        but the subscription's billing period
-    will be 2025-01-01 to 2025-01-31. Required.
-        :vartype billing_period: ~openmeter._generated.models.Period
+     An example line would have the period of 2025-01-02 to 2025-01-03 as the item is billed
+     daily, but the subscription's billing period
+     will be 2025-01-01 to 2025-01-31. Required.
+    :vartype billing_period: ~openmeter._generated.models.Period
     """
 
     subscription: "_models.IDResource" = rest_field(visibility=["read"])
@@ -8207,18 +8139,15 @@ class InvoiceLineSubscriptionReference(_Model):
     """The item this line is related to. Required."""
     billing_period: "_models.Period" = rest_field(name="billingPeriod", visibility=["read"])
     """The billing period of the subscription. In case the subscription item's billing period is
-     different
- from the subscription's billing period, this field will contain the billing period of the
-     subscription itself.
- 
- For example, in case of:
+      different from the subscription's billing period, this field will contain the billing period of
+      the subscription itself. For example, in case of:
  
       * A monthly billed subscription anchored to 2025-01-01
       * A subscription item billed daily
  
- An example line would have the period of 2025-01-02 to 2025-01-03 as the item is billed daily,
-     but the subscription's billing period
- will be 2025-01-01 to 2025-01-31. Required."""
+      An example line would have the period of 2025-01-02 to 2025-01-03 as the item is billed
+      daily, but the subscription's billing period
+      will be 2025-01-01 to 2025-01-31. Required."""
 
 
 class InvoiceLineTaxItem(_Model):
@@ -8226,9 +8155,9 @@ class InvoiceLineTaxItem(_Model):
 
     :ivar config: Tax provider configuration.
     :vartype config: ~openmeter._generated.models.TaxConfig
-    :ivar percent: Percent defines the percentage set manually or determined from
-     the rate key (calculated if rate present). A nil percent implies that
-     this tax combo is **exempt** from tax.").
+    :ivar percent: Percent defines the percentage set manually or determined from the rate key
+     (calculated if rate present). A nil percent implies that this tax combo is **exempt** from
+     tax.").
     :vartype percent: float
     :ivar surcharge: Some countries require an additional surcharge (calculated if rate present).
     :vartype surcharge: str
@@ -8240,9 +8169,8 @@ class InvoiceLineTaxItem(_Model):
     config: Optional["_models.TaxConfig"] = rest_field(visibility=["read"])
     """Tax provider configuration."""
     percent: Optional[float] = rest_field(visibility=["read"])
-    """Percent defines the percentage set manually or determined from
-     the rate key (calculated if rate present). A nil percent implies that
-     this tax combo is **exempt** from tax.\")."""
+    """Percent defines the percentage set manually or determined from the rate key (calculated if rate
+     present). A nil percent implies that this tax combo is **exempt** from tax.\")."""
     surcharge: Optional[str] = rest_field(visibility=["read"])
     """Some countries require an additional surcharge (calculated if rate present)."""
     behavior: Optional[Union[str, "_models.InvoiceLineTaxBehavior"]] = rest_field(visibility=["read"])
@@ -8319,7 +8247,7 @@ class InvoicePaginatedResponse(_Model):
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
     items_property: list["_models.Invoice"] = rest_field(
-        name="items", visibility=["read", "create", "update", "delete", "query"]
+        name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
 
@@ -8519,15 +8447,15 @@ class InvoicePendingLineCreateResponse(_Model):
 class InvoicePendingLinesActionFiltersInput(_Model):
     """InvoicePendingLinesActionFiltersInput specifies which lines to include in the invoice.
 
-        :ivar line_ids: The pending line items to include in the invoice, if not provided:
+    :ivar line_ids: The pending line items to include in the invoice, if not provided:
 
-         * all line items that have invoice_at < asOf will be included
-         * [progressive billing only] all usage based line items will be included up to asOf, new
-    usage-based line items will be staged for the rest of the billing cycle
+     * all line items that have invoice_at < asOf will be included
+     * [progressive billing only] all usage based line items will be included up to asOf, new
+     usage-based line items will be staged for the rest of the billing cycle
 
-    All lineIDs present in the list, must exists and must be invoicable as of asOf, or the action
-        will fail.
-        :vartype line_ids: list[str]
+     All lineIDs present in the list, must exists and must be invoicable as of asOf, or the
+     action will fail.
+    :vartype line_ids: list[str]
     """
 
     line_ids: Optional[list[str]] = rest_field(name="lineIds", visibility=["create"])
@@ -8535,10 +8463,10 @@ class InvoicePendingLinesActionFiltersInput(_Model):
  
       * all line items that have invoice_at < asOf will be included
       * [progressive billing only] all usage based line items will be included up to asOf, new
- usage-based line items will be staged for the rest of the billing cycle
+      usage-based line items will be staged for the rest of the billing cycle
  
- All lineIDs present in the list, must exists and must be invoicable as of asOf, or the action
-     will fail."""
+      All lineIDs present in the list, must exists and must be invoicable as of asOf, or the
+      action will fail."""
 
     @overload
     def __init__(
@@ -8924,10 +8852,9 @@ class InvoiceUsageBasedRateCard(_Model):
     :vartype feature_key: str
     :ivar tax_config: Tax config.
     :vartype tax_config: ~openmeter._generated.models.TaxConfig
-    :ivar price: The price of the rate card.
-     When null, the feature or service is free. Required. Is one of the following types:
-     FlatPriceWithPaymentTerm, UnitPriceWithCommitments, TieredPriceWithCommitments,
-     DynamicPriceWithCommitments, PackagePriceWithCommitments
+    :ivar price: The price of the rate card. When null, the feature or service is free. Required.
+     Is one of the following types: FlatPriceWithPaymentTerm, UnitPriceWithCommitments,
+     TieredPriceWithCommitments, DynamicPriceWithCommitments, PackagePriceWithCommitments
     :vartype price: ~openmeter._generated.models.FlatPriceWithPaymentTerm or
      ~openmeter._generated.models.UnitPriceWithCommitments or
      ~openmeter._generated.models.TieredPriceWithCommitments or
@@ -8942,10 +8869,9 @@ class InvoiceUsageBasedRateCard(_Model):
     tax_config: Optional["_models.TaxConfig"] = rest_field(name="taxConfig", visibility=["read", "create", "update"])
     """Tax config."""
     price: "_types.RateCardUsageBasedPrice" = rest_field(visibility=["read", "create", "update"])
-    """The price of the rate card.
-     When null, the feature or service is free. Required. Is one of the following types:
-     FlatPriceWithPaymentTerm, UnitPriceWithCommitments, TieredPriceWithCommitments,
-     DynamicPriceWithCommitments, PackagePriceWithCommitments"""
+    """The price of the rate card. When null, the feature or service is free. Required. Is one of the
+     following types: FlatPriceWithPaymentTerm, UnitPriceWithCommitments,
+     TieredPriceWithCommitments, DynamicPriceWithCommitments, PackagePriceWithCommitments"""
     discounts: Optional["_models.BillingDiscounts"] = rest_field(visibility=["read", "create", "update"])
     """The discounts that are applied to the line."""
 
@@ -8979,8 +8905,8 @@ class InvoiceWorkflowInvoicingSettingsReplaceUpdate(_Model):  # pylint: disable=
     :vartype auto_advance: bool
     :ivar draft_period: The period for the invoice to be kept in draft status for manual reviews.
     :vartype draft_period: str
-    :ivar due_after: The period after which the invoice is due.
-     With some payment solutions it's only applicable for manual collection method.
+    :ivar due_after: The period after which the invoice is due. With some payment solutions it's
+     only applicable for manual collection method.
     :vartype due_after: str
     :ivar default_tax_config: Default tax configuration to apply to the invoices.
     :vartype default_tax_config: ~openmeter._generated.models.TaxConfig
@@ -8991,8 +8917,8 @@ class InvoiceWorkflowInvoicingSettingsReplaceUpdate(_Model):  # pylint: disable=
     draft_period: Optional[str] = rest_field(name="draftPeriod", visibility=["read", "create", "update"])
     """The period for the invoice to be kept in draft status for manual reviews."""
     due_after: Optional[str] = rest_field(name="dueAfter", visibility=["read", "create", "update"])
-    """The period after which the invoice is due.
-     With some payment solutions it's only applicable for manual collection method."""
+    """The period after which the invoice is due. With some payment solutions it's only applicable for
+     manual collection method."""
     default_tax_config: Optional["_models.TaxConfig"] = rest_field(
         name="defaultTaxConfig", visibility=["read", "create", "update"]
     )
@@ -9233,9 +9159,9 @@ class MarketplaceInstallRequestPayload(_Model):
 
      If name is not provided defaults to the marketplace listing's name.
     :vartype name: str
-    :ivar create_billing_profile: If true, a billing profile will be created for the app.
-     The Stripe app will be also set as the default billing profile if the current default is a
-     Sandbox app.
+    :ivar create_billing_profile: If true, a billing profile will be created for the app. The
+     Stripe app will be also set as the default billing profile if the current default is a Sandbox
+     app.
     :vartype create_billing_profile: bool
     """
 
@@ -9246,9 +9172,8 @@ class MarketplaceInstallRequestPayload(_Model):
     create_billing_profile: Optional[bool] = rest_field(
         name="createBillingProfile", visibility=["read", "create", "update", "delete", "query"]
     )
-    """If true, a billing profile will be created for the app.
-     The Stripe app will be also set as the default billing profile if the current default is a
-     Sandbox app."""
+    """If true, a billing profile will be created for the app. The Stripe app will be also set as the
+     default billing profile if the current default is a Sandbox app."""
 
     @overload
     def __init__(
@@ -9383,7 +9308,7 @@ class MarketplaceListingPaginatedResponse(_Model):
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
     items_property: list["_models.MarketplaceListing"] = rest_field(
-        name="items", visibility=["read", "create", "update", "delete", "query"]
+        name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
 
@@ -9409,10 +9334,7 @@ class MarketplaceListingPaginatedResponse(_Model):
 
 
 class Metadata(_Model):
-    """Set of key-value pairs.
-    Metadata can be used to store additional information about a resource.
-
-    """
+    """Set of key-value pairs. Metadata can be used to store additional information about a resource."""
 
 
 class Meter(_Model):
@@ -9432,17 +9354,16 @@ class Meter(_Model):
     :vartype deleted_at: ~datetime.datetime
     :ivar name: Display name.
     :vartype name: str
-    :ivar slug: A unique, human-readable identifier for the meter.
-     Must consist only alphanumeric and underscore characters. Required.
+    :ivar slug: A unique, human-readable identifier for the meter. Must consist only alphanumeric
+     and underscore characters. Required.
     :vartype slug: str
     :ivar aggregation: The aggregation type to use for the meter. Required. Known values are:
      "SUM", "COUNT", "UNIQUE_COUNT", "AVG", "MIN", "MAX", and "LATEST".
     :vartype aggregation: str or ~openmeter.models.MeterAggregation
     :ivar event_type: The event type to aggregate. Required.
     :vartype event_type: str
-    :ivar event_from: The date since the meter should include events.
-     Useful to skip old events.
-     If not specified, all historical events are included.
+    :ivar event_from: The date since the meter should include events. Useful to skip old events. If
+     not specified, all historical events are included.
     :vartype event_from: ~datetime.datetime
     :ivar value_property: JSONPath expression to extract the value from the ingested event's data
      property.
@@ -9476,8 +9397,8 @@ class Meter(_Model):
     name: Optional[str] = rest_field(visibility=["read", "create", "update"])
     """Display name."""
     slug: str = rest_field(visibility=["read", "create"])
-    """A unique, human-readable identifier for the meter.
-     Must consist only alphanumeric and underscore characters. Required."""
+    """A unique, human-readable identifier for the meter. Must consist only alphanumeric and
+     underscore characters. Required."""
     aggregation: Union[str, "_models.MeterAggregation"] = rest_field(visibility=["read", "create"])
     """The aggregation type to use for the meter. Required. Known values are: \"SUM\", \"COUNT\",
      \"UNIQUE_COUNT\", \"AVG\", \"MIN\", \"MAX\", and \"LATEST\"."""
@@ -9486,9 +9407,8 @@ class Meter(_Model):
     event_from: Optional[datetime.datetime] = rest_field(
         name="eventFrom", visibility=["read", "create"], format="rfc3339"
     )
-    """The date since the meter should include events.
-     Useful to skip old events.
-     If not specified, all historical events are included."""
+    """The date since the meter should include events. Useful to skip old events. If not specified,
+     all historical events are included."""
     value_property: Optional[str] = rest_field(name="valueProperty", visibility=["read", "create"])
     """JSONPath expression to extract the value from the ingested event's data property.
      
@@ -9539,17 +9459,16 @@ class MeterCreate(_Model):
     :vartype metadata: ~openmeter._generated.models.Metadata
     :ivar name: Display name.
     :vartype name: str
-    :ivar slug: A unique, human-readable identifier for the meter.
-     Must consist only alphanumeric and underscore characters. Required.
+    :ivar slug: A unique, human-readable identifier for the meter. Must consist only alphanumeric
+     and underscore characters. Required.
     :vartype slug: str
     :ivar aggregation: The aggregation type to use for the meter. Required. Known values are:
      "SUM", "COUNT", "UNIQUE_COUNT", "AVG", "MIN", "MAX", and "LATEST".
     :vartype aggregation: str or ~openmeter.models.MeterAggregation
     :ivar event_type: The event type to aggregate. Required.
     :vartype event_type: str
-    :ivar event_from: The date since the meter should include events.
-     Useful to skip old events.
-     If not specified, all historical events are included.
+    :ivar event_from: The date since the meter should include events. Useful to skip old events. If
+     not specified, all historical events are included.
     :vartype event_from: ~datetime.datetime
     :ivar value_property: JSONPath expression to extract the value from the ingested event's data
      property.
@@ -9573,8 +9492,8 @@ class MeterCreate(_Model):
     name: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Display name."""
     slug: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """A unique, human-readable identifier for the meter.
-     Must consist only alphanumeric and underscore characters. Required."""
+    """A unique, human-readable identifier for the meter. Must consist only alphanumeric and
+     underscore characters. Required."""
     aggregation: Union[str, "_models.MeterAggregation"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
@@ -9585,9 +9504,8 @@ class MeterCreate(_Model):
     event_from: Optional[datetime.datetime] = rest_field(
         name="eventFrom", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
     )
-    """The date since the meter should include events.
-     Useful to skip old events.
-     If not specified, all historical events are included."""
+    """The date since the meter should include events. Useful to skip old events. If not specified,
+     all historical events are included."""
     value_property: Optional[str] = rest_field(
         name="valueProperty", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -9634,8 +9552,7 @@ class MeterCreate(_Model):
 class MeterQueryRequest(_Model):
     """A meter query request.
 
-    :ivar client_id: Client ID
-     Useful to track progress of a query.
+    :ivar client_id: Client ID Useful to track progress of a query.
     :vartype client_id: str
     :ivar from_property: Start date-time in RFC 3339 format.
 
@@ -9650,8 +9567,8 @@ class MeterQueryRequest(_Model):
      and "MONTH".
     :vartype window_size: str or ~openmeter.models.WindowSize
     :ivar window_time_zone: The value is the name of the time zone as defined in the IANA Time Zone
-     Database (`http://www.iana.org/time-zones <http://www.iana.org/time-zones>`_).
-     If not specified, the UTC timezone will be used.
+     Database (`http://www.iana.org/time-zones <http://www.iana.org/time-zones>`_). If not
+     specified, the UTC timezone will be used.
     :vartype window_time_zone: str
     :ivar subject: Filtering by multiple subjects.
     :vartype subject: list[str]
@@ -9659,18 +9576,16 @@ class MeterQueryRequest(_Model):
     :vartype filter_customer_id: list[str]
     :ivar filter_group_by: Simple filter for group bys with exact match.
     :vartype filter_group_by: dict[str, list[str]]
-    :ivar advanced_meter_group_by_filters: Optional advanced meter group by filters.
-     You can use this to filter for values of the meter groupBy fields.
+    :ivar advanced_meter_group_by_filters: Optional advanced meter group by filters. You can use
+     this to filter for values of the meter groupBy fields.
     :vartype advanced_meter_group_by_filters: dict[str, ~openmeter._generated.models.FilterString]
     :ivar group_by: If not specified a single aggregate will be returned for each subject and time
-     window.
-     ``subject`` is a reserved group by value.
+     window. ``subject`` is a reserved group by value.
     :vartype group_by: list[str]
     """
 
     client_id: Optional[str] = rest_field(name="clientId", visibility=["read", "create", "update", "delete", "query"])
-    """Client ID
-     Useful to track progress of a query."""
+    """Client ID Useful to track progress of a query."""
     from_property: Optional[datetime.datetime] = rest_field(
         name="from", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
     )
@@ -9693,8 +9608,8 @@ class MeterQueryRequest(_Model):
         name="windowTimeZone", visibility=["read", "create", "update", "delete", "query"]
     )
     """The value is the name of the time zone as defined in the IANA Time Zone Database
-     (`http://www.iana.org/time-zones <http://www.iana.org/time-zones>`_).
-     If not specified, the UTC timezone will be used."""
+     (`http://www.iana.org/time-zones <http://www.iana.org/time-zones>`_). If not specified, the UTC
+     timezone will be used."""
     subject: Optional[list[str]] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Filtering by multiple subjects."""
     filter_customer_id: Optional[list[str]] = rest_field(
@@ -9708,8 +9623,8 @@ class MeterQueryRequest(_Model):
     advanced_meter_group_by_filters: Optional[dict[str, "_models.FilterString"]] = rest_field(
         name="advancedMeterGroupByFilters", visibility=["read", "create", "update", "delete", "query"]
     )
-    """Optional advanced meter group by filters.
-     You can use this to filter for values of the meter groupBy fields."""
+    """Optional advanced meter group by filters. You can use this to filter for values of the meter
+     groupBy fields."""
     group_by: Optional[list[str]] = rest_field(
         name="groupBy", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -9746,40 +9661,36 @@ class MeterQueryRequest(_Model):
 class MeterQueryResult(_Model):
     """The result of a meter query.
 
-    :ivar from_property: The start of the period the usage is queried from.
-     If not specified, the usage is queried from the beginning of time.
+    :ivar from_property: The start of the period the usage is queried from. If not specified, the
+     usage is queried from the beginning of time.
     :vartype from_property: ~datetime.datetime
-    :ivar to: The end of the period the usage is queried to.
-     If not specified, the usage is queried up to the current time.
+    :ivar to: The end of the period the usage is queried to. If not specified, the usage is queried
+     up to the current time.
     :vartype to: ~datetime.datetime
-    :ivar window_size: The window size that the usage is aggregated.
-     If not specified, the usage is aggregated over the entire period. Known values are: "MINUTE",
-     "HOUR", "DAY", and "MONTH".
+    :ivar window_size: The window size that the usage is aggregated. If not specified, the usage is
+     aggregated over the entire period. Known values are: "MINUTE", "HOUR", "DAY", and "MONTH".
     :vartype window_size: str or ~openmeter.models.WindowSize
-    :ivar data: The usage data.
-     If no data is available, an empty array is returned. Required.
+    :ivar data: The usage data. If no data is available, an empty array is returned. Required.
     :vartype data: list[~openmeter._generated.models.MeterQueryRow]
     """
 
     from_property: Optional[datetime.datetime] = rest_field(
         name="from", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
     )
-    """The start of the period the usage is queried from.
-     If not specified, the usage is queried from the beginning of time."""
+    """The start of the period the usage is queried from. If not specified, the usage is queried from
+     the beginning of time."""
     to: Optional[datetime.datetime] = rest_field(
         visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
     )
-    """The end of the period the usage is queried to.
-     If not specified, the usage is queried up to the current time."""
+    """The end of the period the usage is queried to. If not specified, the usage is queried up to the
+     current time."""
     window_size: Optional[Union[str, "_models.WindowSize"]] = rest_field(
         name="windowSize", visibility=["read", "create", "update", "delete", "query"]
     )
-    """The window size that the usage is aggregated.
-     If not specified, the usage is aggregated over the entire period. Known values are: \"MINUTE\",
-     \"HOUR\", \"DAY\", and \"MONTH\"."""
+    """The window size that the usage is aggregated. If not specified, the usage is aggregated over
+     the entire period. Known values are: \"MINUTE\", \"HOUR\", \"DAY\", and \"MONTH\"."""
     data: list["_models.MeterQueryRow"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """The usage data.
-     If no data is available, an empty array is returned. Required."""
+    """The usage data. If no data is available, an empty array is returned. Required."""
 
     @overload
     def __init__(
@@ -9811,8 +9722,8 @@ class MeterQueryRow(_Model):
     :vartype window_start: ~datetime.datetime
     :ivar window_end: The end of the window the value is aggregated over. Required.
     :vartype window_end: ~datetime.datetime
-    :ivar subject: The subject the value is aggregated over.
-     If not specified, the value is aggregated over all subjects. Required.
+    :ivar subject: The subject the value is aggregated over. If not specified, the value is
+     aggregated over all subjects. Required.
     :vartype subject: str
     :ivar customer_id: The customer ID the value is aggregated over.
     :vartype customer_id: str
@@ -9831,8 +9742,8 @@ class MeterQueryRow(_Model):
     )
     """The end of the window the value is aggregated over. Required."""
     subject: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """The subject the value is aggregated over.
-     If not specified, the value is aggregated over all subjects. Required."""
+    """The subject the value is aggregated over. If not specified, the value is aggregated over all
+     subjects. Required."""
     customer_id: Optional[str] = rest_field(
         name="customerId", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -9916,15 +9827,15 @@ class MeterUpdate(_Model):
 class MigrateRequest(_Model):
     """MigrateRequest.
 
-    :ivar timing: Timing configuration for the migration, when the migration should take effect.
-     If not supported by the subscription, 400 will be returned. Is either a Union[str,
+    :ivar timing: Timing configuration for the migration, when the migration should take effect. If
+     not supported by the subscription, 400 will be returned. Is either a Union[str,
      "_models.SubscriptionTimingEnum"] type or a datetime.datetime type.
     :vartype timing: str or ~openmeter.models.SubscriptionTimingEnum or ~datetime.datetime
-    :ivar target_version: The version of the plan to migrate to.
-     If not provided, the subscription will migrate to the latest version of the current plan.
+    :ivar target_version: The version of the plan to migrate to. If not provided, the subscription
+     will migrate to the latest version of the current plan.
     :vartype target_version: int
-    :ivar starting_phase: The key of the phase to start the subscription in.
-     If not provided, the subscription will start in the first phase of the plan.
+    :ivar starting_phase: The key of the phase to start the subscription in. If not provided, the
+     subscription will start in the first phase of the plan.
     :vartype starting_phase: str
     :ivar billing_anchor: The billing anchor of the subscription. The provided date will be
      normalized according to the billing cadence to the nearest recurrence before start time. If not
@@ -9935,19 +9846,19 @@ class MigrateRequest(_Model):
     timing: Optional["_types.SubscriptionTiming"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """Timing configuration for the migration, when the migration should take effect.
-     If not supported by the subscription, 400 will be returned. Is either a Union[str,
+    """Timing configuration for the migration, when the migration should take effect. If not supported
+     by the subscription, 400 will be returned. Is either a Union[str,
      \"_models.SubscriptionTimingEnum\"] type or a datetime.datetime type."""
     target_version: Optional[int] = rest_field(
         name="targetVersion", visibility=["read", "create", "update", "delete", "query"]
     )
-    """The version of the plan to migrate to.
-     If not provided, the subscription will migrate to the latest version of the current plan."""
+    """The version of the plan to migrate to. If not provided, the subscription will migrate to the
+     latest version of the current plan."""
     starting_phase: Optional[str] = rest_field(
         name="startingPhase", visibility=["read", "create", "update", "delete", "query"]
     )
-    """The key of the phase to start the subscription in.
-     If not provided, the subscription will start in the first phase of the plan."""
+    """The key of the phase to start the subscription in. If not provided, the subscription will start
+     in the first phase of the plan."""
     billing_anchor: Optional[datetime.datetime] = rest_field(
         name="billingAnchor", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
     )
@@ -10072,7 +9983,7 @@ class NotificationChannelPaginatedResponse(_Model):
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
     items_property: list["_types.NotificationChannel"] = rest_field(
-        name="items", visibility=["read", "create", "update", "delete", "query"]
+        name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
 
@@ -10108,7 +10019,7 @@ class NotificationChannelWebhook(_Model):
     :vartype deleted_at: ~datetime.datetime
     :ivar id: Channel Unique Identifier. Required.
     :vartype id: str
-    :ivar type: Channel Type. Required.
+    :ivar type: Channel Type. Required. WEBHOOK.
     :vartype type: str or ~openmeter._generated.models.WEBHOOK
     :ivar name: Channel Name. Required.
     :vartype name: str
@@ -10135,7 +10046,7 @@ class NotificationChannelWebhook(_Model):
     id: str = rest_field(visibility=["read"])
     """Channel Unique Identifier. Required."""
     type: Literal[NotificationChannelType.WEBHOOK] = rest_field(visibility=["read", "create"])
-    """Channel Type. Required."""
+    """Channel Type. Required. WEBHOOK."""
     name: str = rest_field(visibility=["read", "create", "update"])
     """Channel Name. Required."""
     disabled: Optional[bool] = rest_field(visibility=["read", "create", "update"])
@@ -10178,7 +10089,7 @@ class NotificationChannelWebhook(_Model):
 class NotificationChannelWebhookCreateRequest(_Model):
     """Request with input parameters for creating new notification channel with webhook type.
 
-    :ivar type: Channel Type. Required.
+    :ivar type: Channel Type. Required. WEBHOOK.
     :vartype type: str or ~openmeter._generated.models.WEBHOOK
     :ivar name: Channel Name. Required.
     :vartype name: str
@@ -10197,7 +10108,7 @@ class NotificationChannelWebhookCreateRequest(_Model):
     type: Literal[NotificationChannelType.WEBHOOK] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """Channel Type. Required."""
+    """Channel Type. Required. WEBHOOK."""
     name: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Channel Name. Required."""
     disabled: Optional[bool] = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -10298,7 +10209,7 @@ class NotificationEventBalanceThresholdPayload(_Model):
 
     :ivar id: Notification Event Identifier. Required.
     :vartype id: str
-    :ivar type: Notification Event Type. Required.
+    :ivar type: Notification Event Type. Required. ENTITLEMENTS_BALANCE_THRESHOLD.
     :vartype type: str or ~openmeter._generated.models.ENTITLEMENTS_BALANCE_THRESHOLD
     :ivar timestamp: Creation Time. Required.
     :vartype timestamp: ~datetime.datetime
@@ -10309,7 +10220,7 @@ class NotificationEventBalanceThresholdPayload(_Model):
     id: str = rest_field(visibility=["read"])
     """Notification Event Identifier. Required."""
     type: Literal[NotificationEventType.ENTITLEMENTS_BALANCE_THRESHOLD] = rest_field(visibility=["read"])
-    """Notification Event Type. Required."""
+    """Notification Event Type. Required. ENTITLEMENTS_BALANCE_THRESHOLD."""
     timestamp: datetime.datetime = rest_field(visibility=["read"], format="rfc3339")
     """Creation Time. Required."""
     data: "_models.NotificationEventBalanceThresholdPayloadData" = rest_field(visibility=["read"])
@@ -10437,7 +10348,7 @@ class NotificationEventInvoiceCreatedPayload(_Model):
 
     :ivar id: Notification Event Identifier. Required.
     :vartype id: str
-    :ivar type: Notification Event Type. Required.
+    :ivar type: Notification Event Type. Required. INVOICE_CREATED.
     :vartype type: str or ~openmeter._generated.models.INVOICE_CREATED
     :ivar timestamp: Creation Time. Required.
     :vartype timestamp: ~datetime.datetime
@@ -10448,7 +10359,7 @@ class NotificationEventInvoiceCreatedPayload(_Model):
     id: str = rest_field(visibility=["read"])
     """Notification Event Identifier. Required."""
     type: Literal[NotificationEventType.INVOICE_CREATED] = rest_field(visibility=["read"])
-    """Notification Event Type. Required."""
+    """Notification Event Type. Required. INVOICE_CREATED."""
     timestamp: datetime.datetime = rest_field(visibility=["read"], format="rfc3339")
     """Creation Time. Required."""
     data: "_models.Invoice" = rest_field(visibility=["read"])
@@ -10460,7 +10371,7 @@ class NotificationEventInvoiceUpdatedPayload(_Model):
 
     :ivar id: Notification Event Identifier. Required.
     :vartype id: str
-    :ivar type: Notification Event Type. Required.
+    :ivar type: Notification Event Type. Required. INVOICE_UPDATED.
     :vartype type: str or ~openmeter._generated.models.INVOICE_UPDATED
     :ivar timestamp: Creation Time. Required.
     :vartype timestamp: ~datetime.datetime
@@ -10471,7 +10382,7 @@ class NotificationEventInvoiceUpdatedPayload(_Model):
     id: str = rest_field(visibility=["read"])
     """Notification Event Identifier. Required."""
     type: Literal[NotificationEventType.INVOICE_UPDATED] = rest_field(visibility=["read"])
-    """Notification Event Type. Required."""
+    """Notification Event Type. Required. INVOICE_UPDATED."""
     timestamp: datetime.datetime = rest_field(visibility=["read"], format="rfc3339")
     """Creation Time. Required."""
     data: "_models.Invoice" = rest_field(visibility=["read"])
@@ -10498,7 +10409,7 @@ class NotificationEventPaginatedResponse(_Model):
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
     items_property: list["_models.NotificationEvent"] = rest_field(
-        name="items", visibility=["read", "create", "update", "delete", "query"]
+        name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
 
@@ -10556,7 +10467,7 @@ class NotificationEventResetPayload(_Model):
 
     :ivar id: Notification Event Identifier. Required.
     :vartype id: str
-    :ivar type: Notification Event Type. Required.
+    :ivar type: Notification Event Type. Required. ENTITLEMENTS_RESET.
     :vartype type: str or ~openmeter._generated.models.ENTITLEMENTS_RESET
     :ivar timestamp: Creation Time. Required.
     :vartype timestamp: ~datetime.datetime
@@ -10567,7 +10478,7 @@ class NotificationEventResetPayload(_Model):
     id: str = rest_field(visibility=["read"])
     """Notification Event Identifier. Required."""
     type: Literal[NotificationEventType.ENTITLEMENTS_RESET] = rest_field(visibility=["read"])
-    """Notification Event Type. Required."""
+    """Notification Event Type. Required. ENTITLEMENTS_RESET."""
     timestamp: datetime.datetime = rest_field(visibility=["read"], format="rfc3339")
     """Creation Time. Required."""
     data: "_models.NotificationEventEntitlementValuePayloadBase" = rest_field(visibility=["read"])
@@ -10585,7 +10496,7 @@ class NotificationRuleBalanceThreshold(_Model):
     :vartype deleted_at: ~datetime.datetime
     :ivar id: Rule Unique Identifier. Required.
     :vartype id: str
-    :ivar type: Rule Type. Required.
+    :ivar type: Rule Type. Required. ENTITLEMENTS_BALANCE_THRESHOLD.
     :vartype type: str or ~openmeter._generated.models.ENTITLEMENTS_BALANCE_THRESHOLD
     :ivar name: Rule Name. Required.
     :vartype name: str
@@ -10614,7 +10525,7 @@ class NotificationRuleBalanceThreshold(_Model):
     type: Literal[NotificationEventType.ENTITLEMENTS_BALANCE_THRESHOLD] = rest_field(
         visibility=["read", "create", "update"]
     )
-    """Rule Type. Required."""
+    """Rule Type. Required. ENTITLEMENTS_BALANCE_THRESHOLD."""
     name: str = rest_field(visibility=["read", "create", "update"])
     """Rule Name. Required."""
     disabled: Optional[bool] = rest_field(visibility=["read", "create", "update"])
@@ -10660,7 +10571,7 @@ class NotificationRuleBalanceThresholdCreateRequest(_Model):  # pylint: disable=
     """Request with input parameters for creating new notification rule with
     entitlements.balance.threshold type.
 
-    :ivar type: Rule Type. Required.
+    :ivar type: Rule Type. Required. ENTITLEMENTS_BALANCE_THRESHOLD.
     :vartype type: str or ~openmeter._generated.models.ENTITLEMENTS_BALANCE_THRESHOLD
     :ivar name: Rule Name. Required.
     :vartype name: str
@@ -10679,7 +10590,7 @@ class NotificationRuleBalanceThresholdCreateRequest(_Model):  # pylint: disable=
     type: Literal[NotificationEventType.ENTITLEMENTS_BALANCE_THRESHOLD] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """Rule Type. Required."""
+    """Rule Type. Required. ENTITLEMENTS_BALANCE_THRESHOLD."""
     name: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Rule Name. Required."""
     disabled: Optional[bool] = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -10767,7 +10678,7 @@ class NotificationRuleEntitlementReset(_Model):
     :vartype deleted_at: ~datetime.datetime
     :ivar id: Rule Unique Identifier. Required.
     :vartype id: str
-    :ivar type: Rule Type. Required.
+    :ivar type: Rule Type. Required. ENTITLEMENTS_RESET.
     :vartype type: str or ~openmeter._generated.models.ENTITLEMENTS_RESET
     :ivar name: Rule Name. Required.
     :vartype name: str
@@ -10792,7 +10703,7 @@ class NotificationRuleEntitlementReset(_Model):
     id: str = rest_field(visibility=["read"])
     """Rule Unique Identifier. Required."""
     type: Literal[NotificationEventType.ENTITLEMENTS_RESET] = rest_field(visibility=["read", "create", "update"])
-    """Rule Type. Required."""
+    """Rule Type. Required. ENTITLEMENTS_RESET."""
     name: str = rest_field(visibility=["read", "create", "update"])
     """Rule Name. Required."""
     disabled: Optional[bool] = rest_field(visibility=["read", "create", "update"])
@@ -10832,7 +10743,7 @@ class NotificationRuleEntitlementReset(_Model):
 class NotificationRuleEntitlementResetCreateRequest(_Model):  # pylint: disable=name-too-long
     """Request with input parameters for creating new notification rule with entitlements.reset type.
 
-    :ivar type: Rule Type. Required.
+    :ivar type: Rule Type. Required. ENTITLEMENTS_RESET.
     :vartype type: str or ~openmeter._generated.models.ENTITLEMENTS_RESET
     :ivar name: Rule Name. Required.
     :vartype name: str
@@ -10849,7 +10760,7 @@ class NotificationRuleEntitlementResetCreateRequest(_Model):  # pylint: disable=
     type: Literal[NotificationEventType.ENTITLEMENTS_RESET] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """Rule Type. Required."""
+    """Rule Type. Required. ENTITLEMENTS_RESET."""
     name: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Rule Name. Required."""
     disabled: Optional[bool] = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -10895,7 +10806,7 @@ class NotificationRuleInvoiceCreated(_Model):
     :vartype deleted_at: ~datetime.datetime
     :ivar id: Rule Unique Identifier. Required.
     :vartype id: str
-    :ivar type: Rule Type. Required.
+    :ivar type: Rule Type. Required. INVOICE_CREATED.
     :vartype type: str or ~openmeter._generated.models.INVOICE_CREATED
     :ivar name: Rule Name. Required.
     :vartype name: str
@@ -10918,7 +10829,7 @@ class NotificationRuleInvoiceCreated(_Model):
     id: str = rest_field(visibility=["read"])
     """Rule Unique Identifier. Required."""
     type: Literal[NotificationEventType.INVOICE_CREATED] = rest_field(visibility=["read", "create", "update"])
-    """Rule Type. Required."""
+    """Rule Type. Required. INVOICE_CREATED."""
     name: str = rest_field(visibility=["read", "create", "update"])
     """Rule Name. Required."""
     disabled: Optional[bool] = rest_field(visibility=["read", "create", "update"])
@@ -10955,7 +10866,7 @@ class NotificationRuleInvoiceCreated(_Model):
 class NotificationRuleInvoiceCreatedCreateRequest(_Model):  # pylint: disable=name-too-long
     """Request with input parameters for creating new notification rule with invoice.created type.
 
-    :ivar type: Rule Type. Required.
+    :ivar type: Rule Type. Required. INVOICE_CREATED.
     :vartype type: str or ~openmeter._generated.models.INVOICE_CREATED
     :ivar name: Rule Name. Required.
     :vartype name: str
@@ -10970,7 +10881,7 @@ class NotificationRuleInvoiceCreatedCreateRequest(_Model):  # pylint: disable=na
     type: Literal[NotificationEventType.INVOICE_CREATED] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """Rule Type. Required."""
+    """Rule Type. Required. INVOICE_CREATED."""
     name: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Rule Name. Required."""
     disabled: Optional[bool] = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -11013,7 +10924,7 @@ class NotificationRuleInvoiceUpdated(_Model):
     :vartype deleted_at: ~datetime.datetime
     :ivar id: Rule Unique Identifier. Required.
     :vartype id: str
-    :ivar type: Rule Type. Required.
+    :ivar type: Rule Type. Required. INVOICE_UPDATED.
     :vartype type: str or ~openmeter._generated.models.INVOICE_UPDATED
     :ivar name: Rule Name. Required.
     :vartype name: str
@@ -11036,7 +10947,7 @@ class NotificationRuleInvoiceUpdated(_Model):
     id: str = rest_field(visibility=["read"])
     """Rule Unique Identifier. Required."""
     type: Literal[NotificationEventType.INVOICE_UPDATED] = rest_field(visibility=["read", "create", "update"])
-    """Rule Type. Required."""
+    """Rule Type. Required. INVOICE_UPDATED."""
     name: str = rest_field(visibility=["read", "create", "update"])
     """Rule Name. Required."""
     disabled: Optional[bool] = rest_field(visibility=["read", "create", "update"])
@@ -11073,7 +10984,7 @@ class NotificationRuleInvoiceUpdated(_Model):
 class NotificationRuleInvoiceUpdatedCreateRequest(_Model):  # pylint: disable=name-too-long
     """Request with input parameters for creating new notification rule with invoice.updated  type.
 
-    :ivar type: Rule Type. Required.
+    :ivar type: Rule Type. Required. INVOICE_UPDATED.
     :vartype type: str or ~openmeter._generated.models.INVOICE_UPDATED
     :ivar name: Rule Name. Required.
     :vartype name: str
@@ -11088,7 +10999,7 @@ class NotificationRuleInvoiceUpdatedCreateRequest(_Model):  # pylint: disable=na
     type: Literal[NotificationEventType.INVOICE_UPDATED] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """Rule Type. Required."""
+    """Rule Type. Required. INVOICE_UPDATED."""
     name: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Rule Name. Required."""
     disabled: Optional[bool] = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -11143,7 +11054,7 @@ class NotificationRulePaginatedResponse(_Model):
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
     items_property: list["_types.NotificationRule"] = rest_field(
-        name="items", visibility=["read", "create", "update", "delete", "query"]
+        name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
 
@@ -11171,7 +11082,7 @@ class NotificationRulePaginatedResponse(_Model):
 class PackagePriceWithCommitments(_Model):
     """Package price with spend commitments.
 
-    :ivar type: The type of the price. Required.
+    :ivar type: The type of the price. Required. PACKAGE.
     :vartype type: str or ~openmeter._generated.models.PACKAGE
     :ivar amount: Amount. Required.
     :vartype amount: str
@@ -11184,7 +11095,7 @@ class PackagePriceWithCommitments(_Model):
     """
 
     type: Literal[PriceType.PACKAGE] = rest_field(visibility=["read", "create", "update"])
-    """The type of the price. Required."""
+    """The type of the price. Required. PACKAGE."""
     amount: str = rest_field(visibility=["read", "create", "update"])
     """Amount. Required."""
     quantity_per_package: str = rest_field(name="quantityPerPackage", visibility=["read", "create", "update"])
@@ -11286,7 +11197,7 @@ class PaymentTermDueDate(_Model):
 class PaymentTermInstant(_Model):
     """PaymentTermInstant defines the terms for payment on receipt of invoice.
 
-    :ivar type: Type of terms to be applied. Required. On receipt of invoice
+    :ivar type: Type of terms to be applied. Required. On receipt of invoice.
     :vartype type: str or ~openmeter._generated.models.INSTANT
     :ivar detail: Text detail of the chosen payment terms.
     :vartype detail: str
@@ -11295,7 +11206,7 @@ class PaymentTermInstant(_Model):
     """
 
     type: Literal[PaymentTermType.INSTANT] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Type of terms to be applied. Required. On receipt of invoice"""
+    """Type of terms to be applied. Required. On receipt of invoice."""
     detail: Optional[str] = rest_field(visibility=["read"])
     """Text detail of the chosen payment terms."""
     notes: Optional[str] = rest_field(visibility=["read"])
@@ -11590,7 +11501,7 @@ class PlanAddonPaginatedResponse(_Model):
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
     items_property: list["_models.PlanAddon"] = rest_field(
-        name="items", visibility=["read", "create", "update", "delete", "query"]
+        name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
 
@@ -11914,8 +11825,8 @@ class PlanReplaceUpdate(_Model):
 class PlanSubscriptionChange(_Model):
     """Change subscription based on plan.
 
-    :ivar timing: Timing configuration for the change, when the change should take effect.
-     For changing a subscription, the accepted values depend on the subscription configuration.
+    :ivar timing: Timing configuration for the change, when the change should take effect. For
+     changing a subscription, the accepted values depend on the subscription configuration.
      Required. Is either a Union[str, "_models.SubscriptionTimingEnum"] type or a datetime.datetime
      type.
     :vartype timing: str or ~openmeter.models.SubscriptionTimingEnum or ~datetime.datetime
@@ -11925,8 +11836,8 @@ class PlanSubscriptionChange(_Model):
     :vartype metadata: ~openmeter._generated.models.Metadata
     :ivar plan: The plan reference to change to. Required.
     :vartype plan: ~openmeter._generated.models.PlanReferenceInput
-    :ivar starting_phase: The key of the phase to start the subscription in.
-     If not provided, the subscription will start in the first phase of the plan.
+    :ivar starting_phase: The key of the phase to start the subscription in. If not provided, the
+     subscription will start in the first phase of the plan.
     :vartype starting_phase: str
     :ivar name: The name of the Subscription. If not provided the plan name is used.
     :vartype name: str
@@ -11939,10 +11850,9 @@ class PlanSubscriptionChange(_Model):
     """
 
     timing: "_types.SubscriptionTiming" = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Timing configuration for the change, when the change should take effect.
-     For changing a subscription, the accepted values depend on the subscription configuration.
-     Required. Is either a Union[str, \"_models.SubscriptionTimingEnum\"] type or a
-     datetime.datetime type."""
+    """Timing configuration for the change, when the change should take effect. For changing a
+     subscription, the accepted values depend on the subscription configuration. Required. Is either
+     a Union[str, \"_models.SubscriptionTimingEnum\"] type or a datetime.datetime type."""
     alignment: Optional["_models.Alignment"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """What alignment settings the subscription should have."""
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -11952,8 +11862,8 @@ class PlanSubscriptionChange(_Model):
     starting_phase: Optional[str] = rest_field(
         name="startingPhase", visibility=["read", "create", "update", "delete", "query"]
     )
-    """The key of the phase to start the subscription in.
-     If not provided, the subscription will start in the first phase of the plan."""
+    """The key of the phase to start the subscription in. If not provided, the subscription will start
+     in the first phase of the plan."""
     name: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The name of the Subscription. If not provided the plan name is used."""
     description: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -11999,15 +11909,15 @@ class PlanSubscriptionCreate(_Model):
     :vartype metadata: ~openmeter._generated.models.Metadata
     :ivar plan: The plan reference to change to. Required.
     :vartype plan: ~openmeter._generated.models.PlanReferenceInput
-    :ivar starting_phase: The key of the phase to start the subscription in.
-     If not provided, the subscription will start in the first phase of the plan.
+    :ivar starting_phase: The key of the phase to start the subscription in. If not provided, the
+     subscription will start in the first phase of the plan.
     :vartype starting_phase: str
     :ivar name: The name of the Subscription. If not provided the plan name is used.
     :vartype name: str
     :ivar description: Description for the Subscription.
     :vartype description: str
-    :ivar timing: Timing configuration for the change, when the change should take effect.
-     The default is immediate. Is either a Union[str, "_models.SubscriptionTimingEnum"] type or a
+    :ivar timing: Timing configuration for the change, when the change should take effect. The
+     default is immediate. Is either a Union[str, "_models.SubscriptionTimingEnum"] type or a
      datetime.datetime type.
     :vartype timing: str or ~openmeter.models.SubscriptionTimingEnum or ~datetime.datetime
     :ivar customer_id: The ID of the customer. Provide either the key or ID. Has presedence over
@@ -12030,8 +11940,8 @@ class PlanSubscriptionCreate(_Model):
     starting_phase: Optional[str] = rest_field(
         name="startingPhase", visibility=["read", "create", "update", "delete", "query"]
     )
-    """The key of the phase to start the subscription in.
-     If not provided, the subscription will start in the first phase of the plan."""
+    """The key of the phase to start the subscription in. If not provided, the subscription will start
+     in the first phase of the plan."""
     name: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The name of the Subscription. If not provided the plan name is used."""
     description: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -12039,8 +11949,8 @@ class PlanSubscriptionCreate(_Model):
     timing: Optional["_types.SubscriptionTiming"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """Timing configuration for the change, when the change should take effect.
-     The default is immediate. Is either a Union[str, \"_models.SubscriptionTimingEnum\"] type or a
+    """Timing configuration for the change, when the change should take effect. The default is
+     immediate. Is either a Union[str, \"_models.SubscriptionTimingEnum\"] type or a
      datetime.datetime type."""
     customer_id: Optional[str] = rest_field(
         name="customerId", visibility=["read", "create", "update", "delete", "query"]
@@ -12184,8 +12094,7 @@ class PreconditionFailedProblemResponse(UnexpectedProblemResponse):
 
 
 class PriceTier(_Model):
-    """A price tier.
-    At least one price component is required in each tier.
+    """A price tier. At least one price component is required in each tier.
 
     :ivar up_to_amount: Up to quantity.
     :vartype up_to_amount: str
@@ -12305,14 +12214,14 @@ class RateCardBooleanEntitlement(_Model):
 
     :ivar metadata: Additional metadata for the feature.
     :vartype metadata: ~openmeter._generated.models.Metadata
-    :ivar type: Required.
+    :ivar type: Required. BOOLEAN.
     :vartype type: str or ~openmeter._generated.models.BOOLEAN
     """
 
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Additional metadata for the feature."""
     type: Literal[EntitlementType.BOOLEAN] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Required."""
+    """Required. BOOLEAN."""
 
     @overload
     def __init__(
@@ -12336,7 +12245,7 @@ class RateCardBooleanEntitlement(_Model):
 class RateCardFlatFee(_Model):
     """A flat fee rate card defines a one-time purchase or a recurring fee.
 
-    :ivar type: RateCard type. Required.
+    :ivar type: RateCard type. Required. FLAT_FEE.
     :vartype type: str or ~openmeter._generated.models.FLAT_FEE
     :ivar key: Key. Required.
     :vartype key: str
@@ -12348,9 +12257,9 @@ class RateCardFlatFee(_Model):
     :vartype metadata: ~openmeter._generated.models.Metadata
     :ivar feature_key: Feature key.
     :vartype feature_key: str
-    :ivar entitlement_template: The entitlement of the rate card.
-     Only available when featureKey is set. Is one of the following types:
-     RateCardMeteredEntitlement, RateCardStaticEntitlement, RateCardBooleanEntitlement
+    :ivar entitlement_template: The entitlement of the rate card. Only available when featureKey is
+     set. Is one of the following types: RateCardMeteredEntitlement, RateCardStaticEntitlement,
+     RateCardBooleanEntitlement
     :vartype entitlement_template: ~openmeter._generated.models.RateCardMeteredEntitlement or
      ~openmeter._generated.models.RateCardStaticEntitlement or
      ~openmeter._generated.models.RateCardBooleanEntitlement
@@ -12365,7 +12274,7 @@ class RateCardFlatFee(_Model):
     """
 
     type: Literal[RateCardType.FLAT_FEE] = rest_field(visibility=["read", "create", "update"])
-    """RateCard type. Required."""
+    """RateCard type. Required. FLAT_FEE."""
     key: str = rest_field(visibility=["read", "create"])
     """Key. Required."""
     name: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -12379,9 +12288,9 @@ class RateCardFlatFee(_Model):
     entitlement_template: Optional["_types.RateCardEntitlement"] = rest_field(
         name="entitlementTemplate", visibility=["read", "create", "update"]
     )
-    """The entitlement of the rate card.
-     Only available when featureKey is set. Is one of the following types:
-     RateCardMeteredEntitlement, RateCardStaticEntitlement, RateCardBooleanEntitlement"""
+    """The entitlement of the rate card. Only available when featureKey is set. Is one of the
+     following types: RateCardMeteredEntitlement, RateCardStaticEntitlement,
+     RateCardBooleanEntitlement"""
     tax_config: Optional["_models.TaxConfig"] = rest_field(name="taxConfig", visibility=["read", "create", "update"])
     """Tax config."""
     billing_cadence: datetime.timedelta = rest_field(name="billingCadence", visibility=["read", "create", "update"])
@@ -12424,7 +12333,7 @@ class RateCardMeteredEntitlement(_Model):
 
     :ivar metadata: Additional metadata for the feature.
     :vartype metadata: ~openmeter._generated.models.Metadata
-    :ivar type: Required.
+    :ivar type: Required. METERED.
     :vartype type: str or ~openmeter._generated.models.METERED
     :ivar is_soft_limit: Soft limit.
     :vartype is_soft_limit: bool
@@ -12441,7 +12350,7 @@ class RateCardMeteredEntitlement(_Model):
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Additional metadata for the feature."""
     type: Literal[EntitlementType.METERED] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Required."""
+    """Required. METERED."""
     is_soft_limit: Optional[bool] = rest_field(
         name="isSoftLimit", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -12490,7 +12399,7 @@ class RateCardStaticEntitlement(_Model):
 
     :ivar metadata: Additional metadata for the feature.
     :vartype metadata: ~openmeter._generated.models.Metadata
-    :ivar type: Required.
+    :ivar type: Required. STATIC.
     :vartype type: str or ~openmeter._generated.models.STATIC
     :ivar config: The JSON parsable config of the entitlement. This value is also returned when
      checking entitlement access and it is useful for configuring fine-grained access settings to
@@ -12501,7 +12410,7 @@ class RateCardStaticEntitlement(_Model):
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Additional metadata for the feature."""
     type: Literal[EntitlementType.STATIC] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """Required."""
+    """Required. STATIC."""
     config: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """The JSON parsable config of the entitlement. This value is also returned when checking
      entitlement access and it is useful for configuring fine-grained access settings to the
@@ -12530,7 +12439,7 @@ class RateCardStaticEntitlement(_Model):
 class RateCardUsageBased(_Model):
     """A usage-based rate card defines a price based on usage.
 
-    :ivar type: RateCard type. Required.
+    :ivar type: RateCard type. Required. USAGE_BASED.
     :vartype type: str or ~openmeter._generated.models.USAGE_BASED
     :ivar key: Key. Required.
     :vartype key: str
@@ -12542,9 +12451,9 @@ class RateCardUsageBased(_Model):
     :vartype metadata: ~openmeter._generated.models.Metadata
     :ivar feature_key: Feature key.
     :vartype feature_key: str
-    :ivar entitlement_template: The entitlement of the rate card.
-     Only available when featureKey is set. Is one of the following types:
-     RateCardMeteredEntitlement, RateCardStaticEntitlement, RateCardBooleanEntitlement
+    :ivar entitlement_template: The entitlement of the rate card. Only available when featureKey is
+     set. Is one of the following types: RateCardMeteredEntitlement, RateCardStaticEntitlement,
+     RateCardBooleanEntitlement
     :vartype entitlement_template: ~openmeter._generated.models.RateCardMeteredEntitlement or
      ~openmeter._generated.models.RateCardStaticEntitlement or
      ~openmeter._generated.models.RateCardBooleanEntitlement
@@ -12552,10 +12461,9 @@ class RateCardUsageBased(_Model):
     :vartype tax_config: ~openmeter._generated.models.TaxConfig
     :ivar billing_cadence: Billing cadence. Required.
     :vartype billing_cadence: ~datetime.timedelta
-    :ivar price: The price of the rate card.
-     When null, the feature or service is free. Required. Is one of the following types:
-     FlatPriceWithPaymentTerm, UnitPriceWithCommitments, TieredPriceWithCommitments,
-     DynamicPriceWithCommitments, PackagePriceWithCommitments
+    :ivar price: The price of the rate card. When null, the feature or service is free. Required.
+     Is one of the following types: FlatPriceWithPaymentTerm, UnitPriceWithCommitments,
+     TieredPriceWithCommitments, DynamicPriceWithCommitments, PackagePriceWithCommitments
     :vartype price: ~openmeter._generated.models.FlatPriceWithPaymentTerm or
      ~openmeter._generated.models.UnitPriceWithCommitments or
      ~openmeter._generated.models.TieredPriceWithCommitments or
@@ -12566,7 +12474,7 @@ class RateCardUsageBased(_Model):
     """
 
     type: Literal[RateCardType.USAGE_BASED] = rest_field(visibility=["read", "create", "update"])
-    """RateCard type. Required."""
+    """RateCard type. Required. USAGE_BASED."""
     key: str = rest_field(visibility=["read", "create"])
     """Key. Required."""
     name: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -12580,18 +12488,17 @@ class RateCardUsageBased(_Model):
     entitlement_template: Optional["_types.RateCardEntitlement"] = rest_field(
         name="entitlementTemplate", visibility=["read", "create", "update"]
     )
-    """The entitlement of the rate card.
-     Only available when featureKey is set. Is one of the following types:
-     RateCardMeteredEntitlement, RateCardStaticEntitlement, RateCardBooleanEntitlement"""
+    """The entitlement of the rate card. Only available when featureKey is set. Is one of the
+     following types: RateCardMeteredEntitlement, RateCardStaticEntitlement,
+     RateCardBooleanEntitlement"""
     tax_config: Optional["_models.TaxConfig"] = rest_field(name="taxConfig", visibility=["read", "create", "update"])
     """Tax config."""
     billing_cadence: datetime.timedelta = rest_field(name="billingCadence", visibility=["read", "create", "update"])
     """Billing cadence. Required."""
     price: "_types.RateCardUsageBasedPrice" = rest_field(visibility=["read", "create", "update"])
-    """The price of the rate card.
-     When null, the feature or service is free. Required. Is one of the following types:
-     FlatPriceWithPaymentTerm, UnitPriceWithCommitments, TieredPriceWithCommitments,
-     DynamicPriceWithCommitments, PackagePriceWithCommitments"""
+    """The price of the rate card. When null, the feature or service is free. Required. Is one of the
+     following types: FlatPriceWithPaymentTerm, UnitPriceWithCommitments,
+     TieredPriceWithCommitments, DynamicPriceWithCommitments, PackagePriceWithCommitments"""
     discounts: Optional["_models.Discounts"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Discounts."""
 
@@ -12745,13 +12652,13 @@ class ResetEntitlementUsageInput(_Model):
      data is stored.
     :vartype effective_at: ~datetime.datetime
     :ivar retain_anchor: Determines whether the usage period anchor is retained or reset to the
-    effectiveAt time.
+     effectiveAt time.
 
      * If true, the usage period anchor is retained.
      * If false, the usage period anchor is reset to the effectiveAt time.
     :vartype retain_anchor: bool
     :ivar preserve_overage: Determines whether the overage is preserved or forgiven, overriding the
-    entitlement's default behavior.
+     entitlement's default behavior.
 
      * If true, the overage is preserved.
      * If false, the overage is forgiven.
@@ -12774,7 +12681,7 @@ class ResetEntitlementUsageInput(_Model):
         name="preserveOverage", visibility=["read", "create", "update", "delete", "query"]
     )
     """Determines whether the overage is preserved or forgiven, overriding the entitlement's default
-     behavior.
+      behavior.
  
       * If true, the overage is preserved.
       * If false, the overage is forgiven."""
@@ -12824,7 +12731,7 @@ class SandboxApp(_Model):
     :ivar status: Status of the app connection. Required. Known values are: "ready" and
      "unauthorized".
     :vartype status: str or ~openmeter.models.AppStatus
-    :ivar type: The app's type is Sandbox. Required.
+    :ivar type: The app's type is Sandbox. Required. SANDBOX.
     :vartype type: str or ~openmeter._generated.models.SANDBOX
     """
 
@@ -12847,7 +12754,7 @@ class SandboxApp(_Model):
     status: Union[str, "_models.AppStatus"] = rest_field(visibility=["read"])
     """Status of the app connection. Required. Known values are: \"ready\" and \"unauthorized\"."""
     type: Literal[AppType.SANDBOX] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """The app's type is Sandbox. Required."""
+    """The app's type is Sandbox. Required. SANDBOX."""
 
     @overload
     def __init__(
@@ -12879,7 +12786,7 @@ class SandboxAppReplaceUpdate(_Model):
     :vartype description: str
     :ivar metadata: Metadata.
     :vartype metadata: ~openmeter._generated.models.Metadata
-    :ivar type: The app's type is Sandbox. Required.
+    :ivar type: The app's type is Sandbox. Required. SANDBOX.
     :vartype type: str or ~openmeter._generated.models.SANDBOX
     """
 
@@ -12890,7 +12797,7 @@ class SandboxAppReplaceUpdate(_Model):
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Metadata."""
     type: Literal[AppType.SANDBOX] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """The app's type is Sandbox. Required."""
+    """The app's type is Sandbox. Required. SANDBOX."""
 
     @overload
     def __init__(
@@ -12920,7 +12827,7 @@ class SandboxCustomerAppData(_Model):
     :vartype app: ~openmeter._generated.models.SandboxApp
     :ivar id: App ID.
     :vartype id: str
-    :ivar type: App Type. Required.
+    :ivar type: App Type. Required. SANDBOX.
     :vartype type: str or ~openmeter._generated.models.SANDBOX
     """
 
@@ -12929,7 +12836,7 @@ class SandboxCustomerAppData(_Model):
     id: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """App ID."""
     type: Literal[AppType.SANDBOX] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """App Type. Required."""
+    """App Type. Required. SANDBOX."""
 
     @overload
     def __init__(
@@ -12995,8 +12902,7 @@ class ServiceUnavailableProblemResponse(UnexpectedProblemResponse):
 
 
 class StripeAPIKeyInput(_Model):
-    """The Stripe API key input.
-    Used to authenticate with the Stripe API.
+    """The Stripe API key input. Used to authenticate with the Stripe API.
 
     :ivar secret_api_key: Required.
     :vartype secret_api_key: str
@@ -13045,14 +12951,14 @@ class StripeApp(_Model):
     :ivar status: Status of the app connection. Required. Known values are: "ready" and
      "unauthorized".
     :vartype status: str or ~openmeter.models.AppStatus
-    :ivar type: The app's type is Stripe. Required.
+    :ivar type: The app's type is Stripe. Required. STRIPE.
     :vartype type: str or ~openmeter._generated.models.STRIPE
     :ivar stripe_account_id: The Stripe account ID. Required.
     :vartype stripe_account_id: str
     :ivar livemode: Livemode, true if the app is in production mode. Required.
     :vartype livemode: bool
-    :ivar masked_api_key: The masked API key.
-     Only shows the first 8 and last 3 characters. Required.
+    :ivar masked_api_key: The masked API key. Only shows the first 8 and last 3 characters.
+     Required.
     :vartype masked_api_key: str
     :ivar secret_api_key: The Stripe API key.
     :vartype secret_api_key: str
@@ -13077,14 +12983,13 @@ class StripeApp(_Model):
     status: Union[str, "_models.AppStatus"] = rest_field(visibility=["read"])
     """Status of the app connection. Required. Known values are: \"ready\" and \"unauthorized\"."""
     type: Literal[AppType.STRIPE] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """The app's type is Stripe. Required."""
+    """The app's type is Stripe. Required. STRIPE."""
     stripe_account_id: str = rest_field(name="stripeAccountId", visibility=["read"])
     """The Stripe account ID. Required."""
     livemode: bool = rest_field(visibility=["read"])
     """Livemode, true if the app is in production mode. Required."""
     masked_api_key: str = rest_field(name="maskedAPIKey", visibility=["read"])
-    """The masked API key.
-     Only shows the first 8 and last 3 characters. Required."""
+    """The masked API key. Only shows the first 8 and last 3 characters. Required."""
     secret_api_key: Optional[str] = rest_field(name="secretAPIKey", visibility=["create", "update"])
     """The Stripe API key."""
 
@@ -13119,7 +13024,7 @@ class StripeAppReplaceUpdate(_Model):
     :vartype description: str
     :ivar metadata: Metadata.
     :vartype metadata: ~openmeter._generated.models.Metadata
-    :ivar type: The app's type is Stripe. Required.
+    :ivar type: The app's type is Stripe. Required. STRIPE.
     :vartype type: str or ~openmeter._generated.models.STRIPE
     :ivar secret_api_key: The Stripe API key.
     :vartype secret_api_key: str
@@ -13132,7 +13037,7 @@ class StripeAppReplaceUpdate(_Model):
     metadata: Optional["_models.Metadata"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Metadata."""
     type: Literal[AppType.STRIPE] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """The app's type is Stripe. Required."""
+    """The app's type is Stripe. Required. STRIPE."""
     secret_api_key: Optional[str] = rest_field(name="secretAPIKey", visibility=["create", "update"])
     """The Stripe API key."""
 
@@ -13163,7 +13068,7 @@ class StripeCustomerAppData(_Model):
 
     :ivar id: App ID.
     :vartype id: str
-    :ivar type: App Type. Required.
+    :ivar type: App Type. Required. STRIPE.
     :vartype type: str or ~openmeter._generated.models.STRIPE
     :ivar stripe_customer_id: The Stripe customer ID. Required.
     :vartype stripe_customer_id: str
@@ -13176,7 +13081,7 @@ class StripeCustomerAppData(_Model):
     id: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """App ID."""
     type: Literal[AppType.STRIPE] = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """App Type. Required."""
+    """App Type. Required. STRIPE."""
     stripe_customer_id: str = rest_field(
         name="stripeCustomerId", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -13295,9 +13200,8 @@ class StripeCustomerPortalSession(_Model):
      <https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-locale>`_.
      Required.
     :vartype locale: str
-    :ivar url: /**
-     The ID of the customer.The URL to redirect the customer to after they have completed
-     their requested actions. Required.
+    :ivar url: /** The ID of the customer.The URL to redirect the customer to after they have
+     completed their requested actions. Required.
     :vartype url: str
     """
 
@@ -13351,9 +13255,8 @@ class StripeCustomerPortalSession(_Model):
      <https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-locale>`_.
      Required."""
     url: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """/**
-     The ID of the customer.The URL to redirect the customer to after they have completed
-     their requested actions. Required."""
+    """/** The ID of the customer.The URL to redirect the customer to after they have completed their
+     requested actions. Required."""
 
     @overload
     def __init__(
@@ -13547,8 +13450,8 @@ class Subject(_Model):
     :vartype deleted_at: ~datetime.datetime
     :ivar id: A unique identifier for the subject. Required.
     :vartype id: str
-    :ivar key: A unique, human-readable identifier for the subject.
-     This is typically a database ID or a customer key. Required.
+    :ivar key: A unique, human-readable identifier for the subject. This is typically a database ID
+     or a customer key. Required.
     :vartype key: str
     :ivar display_name: A human-readable display name for the subject.
     :vartype display_name: str
@@ -13571,8 +13474,8 @@ class Subject(_Model):
     id: str = rest_field(visibility=["read"])
     """A unique identifier for the subject. Required."""
     key: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """A unique, human-readable identifier for the subject.
-     This is typically a database ID or a customer key. Required."""
+    """A unique, human-readable identifier for the subject. This is typically a database ID or a
+     customer key. Required."""
     display_name: Optional[str] = rest_field(
         name="displayName", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -13621,8 +13524,8 @@ class SubjectUpsert(_Model):
     ⚠️ **Deprecated**: Subjects as managable entities are being depracated, use customers with
     subject key usage attribution instead.
 
-    :ivar key: A unique, human-readable identifier for the subject.
-     This is typically a database ID or a customer key. Required.
+    :ivar key: A unique, human-readable identifier for the subject. This is typically a database ID
+     or a customer key. Required.
     :vartype key: str
     :ivar display_name: A human-readable display name for the subject.
     :vartype display_name: str
@@ -13637,8 +13540,8 @@ class SubjectUpsert(_Model):
     """
 
     key: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
-    """A unique, human-readable identifier for the subject.
-     This is typically a database ID or a customer key. Required."""
+    """A unique, human-readable identifier for the subject. This is typically a database ID or a
+     customer key. Required."""
     display_name: Optional[str] = rest_field(
         name="displayName", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -14141,8 +14044,8 @@ class SubscriptionAddonUpdate(_Model):
 class SubscriptionAlignment(_Model):
     """Alignment details enriched with the current billing period.
 
-    :ivar billables_must_align: Whether all Billable items and RateCards must align.
-     Alignment means the Price's BillingCadence must align for both duration and anchor time.
+    :ivar billables_must_align: Whether all Billable items and RateCards must align. Alignment
+     means the Price's BillingCadence must align for both duration and anchor time.
     :vartype billables_must_align: bool
     :ivar current_aligned_billing_period: The current billing period. Only has value if the
      subscription is aligned and active.
@@ -14152,8 +14055,8 @@ class SubscriptionAlignment(_Model):
     billables_must_align: Optional[bool] = rest_field(
         name="billablesMustAlign", visibility=["read", "create", "update"]
     )
-    """Whether all Billable items and RateCards must align.
-     Alignment means the Price's BillingCadence must align for both duration and anchor time."""
+    """Whether all Billable items and RateCards must align. Alignment means the Price's BillingCadence
+     must align for both duration and anchor time."""
     current_aligned_billing_period: Optional["_models.Period"] = rest_field(
         name="currentAlignedBillingPeriod", visibility=["read", "create", "update", "delete", "query"]
     )
@@ -14275,8 +14178,7 @@ class SubscriptionChangeResponseBody(_Model):
 
 class SubscriptionConflictErrorResponse(_Model):
     """The request could not be completed due to a conflict with the current state of the target
-    resource.
-    Variants with ErrorExtensions specific to subscriptions.
+    resource. Variants with ErrorExtensions specific to subscriptions.
 
     :ivar type: Type contains a URI that identifies the problem type. Required.
     :vartype type: str
@@ -14338,8 +14240,8 @@ class SubscriptionConflictErrorResponse(_Model):
 class SubscriptionEdit(_Model):
     """Subscription edit input.
 
-    :ivar customizations: Batch processing commands for manipulating running subscriptions.
-     The key format is ``/phases/{phaseKey}`` or ``/phases/{phaseKey}/items/{itemKey}``. Required.
+    :ivar customizations: Batch processing commands for manipulating running subscriptions. The key
+     format is ``/phases/{phaseKey}`` or ``/phases/{phaseKey}/items/{itemKey}``. Required.
     :vartype customizations: list[~openmeter._generated.models.EditSubscriptionAddItem or
      ~openmeter._generated.models.EditSubscriptionRemoveItem or
      ~openmeter._generated.models.EditSubscriptionAddPhase or
@@ -14355,8 +14257,8 @@ class SubscriptionEdit(_Model):
     customizations: list["_types.SubscriptionEditOperation"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """Batch processing commands for manipulating running subscriptions.
-     The key format is ``/phases/{phaseKey}`` or ``/phases/{phaseKey}/items/{itemKey}``. Required."""
+    """Batch processing commands for manipulating running subscriptions. The key format is
+     ``/phases/{phaseKey}`` or ``/phases/{phaseKey}/items/{itemKey}``. Required."""
     timing: Optional["_types.SubscriptionTiming"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
@@ -14706,7 +14608,7 @@ class SubscriptionPaginatedResponse(_Model):
     page_size: int = rest_field(name="pageSize", visibility=["read", "create", "update", "delete", "query"])
     """The maximum number of items per page. Required."""
     items_property: list["_models.Subscription"] = rest_field(
-        name="items", visibility=["read", "create", "update", "delete", "query"]
+        name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
     """The items in the current page. Required."""
 
@@ -14789,40 +14691,39 @@ class SubscriptionPhaseCreate(_Model):
 class SubscriptionPhaseExpanded(_Model):
     """Expanded subscription phase.
 
-        :ivar id: ID. Required.
-        :vartype id: str
-        :ivar name: Display name. Required.
-        :vartype name: str
-        :ivar description: Description.
-        :vartype description: str
-        :ivar metadata: Metadata.
-        :vartype metadata: ~openmeter._generated.models.Metadata
-        :ivar created_at: Creation Time. Required.
-        :vartype created_at: ~datetime.datetime
-        :ivar updated_at: Last Update Time. Required.
-        :vartype updated_at: ~datetime.datetime
-        :ivar deleted_at: Deletion Time.
-        :vartype deleted_at: ~datetime.datetime
-        :ivar key: A locally unique identifier for the resource. Required.
-        :vartype key: str
-        :ivar discounts: Discounts.
-        :vartype discounts: ~openmeter._generated.models.Discounts
-        :ivar active_from: The time from which the phase is active. Required.
-        :vartype active_from: ~datetime.datetime
-        :ivar active_to: The until which the Phase is active.
-        :vartype active_to: ~datetime.datetime
-        :ivar items_property: The items of the phase. The structure is flattened to better conform to
-        the Plan API.
-    The timelines are flattened according to the following rules:
+    :ivar id: ID. Required.
+    :vartype id: str
+    :ivar name: Display name. Required.
+    :vartype name: str
+    :ivar description: Description.
+    :vartype description: str
+    :ivar metadata: Metadata.
+    :vartype metadata: ~openmeter._generated.models.Metadata
+    :ivar created_at: Creation Time. Required.
+    :vartype created_at: ~datetime.datetime
+    :ivar updated_at: Last Update Time. Required.
+    :vartype updated_at: ~datetime.datetime
+    :ivar deleted_at: Deletion Time.
+    :vartype deleted_at: ~datetime.datetime
+    :ivar key: A locally unique identifier for the resource. Required.
+    :vartype key: str
+    :ivar discounts: Discounts.
+    :vartype discounts: ~openmeter._generated.models.Discounts
+    :ivar active_from: The time from which the phase is active. Required.
+    :vartype active_from: ~datetime.datetime
+    :ivar active_to: The until which the Phase is active.
+    :vartype active_to: ~datetime.datetime
+    :ivar items_property: The items of the phase. The structure is flattened to better conform to
+     the Plan API. The timelines are flattened according to the following rules:
 
-         * for the current phase, the `items` contains only the active item for each key
-         * for past phases, the `items` contains only the last item for each key
-         * for future phases, the `items` contains only the first version of the item for each key.
-           Required.
-        :vartype items_property: list[~openmeter._generated.models.SubscriptionItem]
-        :ivar item_timelines: Includes all versions of the items on each key, including all edits,
-         scheduled changes, etc... Required.
-        :vartype item_timelines: dict[str, list[~openmeter._generated.models.SubscriptionItem]]
+     * for the current phase, the `items` contains only the active item for each key
+     * for past phases, the `items` contains only the last item for each key
+     * for future phases, the `items` contains only the first version of the item for each key.
+       Required.
+    :vartype items_property: list[~openmeter._generated.models.SubscriptionItem]
+    :ivar item_timelines: Includes all versions of the items on each key, including all edits,
+     scheduled changes, etc... Required.
+    :vartype item_timelines: dict[str, list[~openmeter._generated.models.SubscriptionItem]]
     """
 
     id: str = rest_field(visibility=["read"])
@@ -14852,10 +14753,10 @@ class SubscriptionPhaseExpanded(_Model):
     )
     """The until which the Phase is active."""
     items_property: list["_models.SubscriptionItem"] = rest_field(
-        name="items", visibility=["read", "create", "update", "delete", "query"]
+        name="items", visibility=["read", "create", "update", "delete", "query"], original_tsp_name="items"
     )
-    """The items of the phase. The structure is flattened to better conform to the Plan API.
- The timelines are flattened according to the following rules:
+    """The items of the phase. The structure is flattened to better conform to the Plan API. The
+      timelines are flattened according to the following rules:
  
       * for the current phase, the `items` contains only the active item for each key
       * for past phases, the `items` contains only the last item for each key
@@ -14940,7 +14841,7 @@ class TieredPriceWithCommitments(_Model):
 
     :ivar type: The type of the price.
 
-     One of: flat, unit, or tiered. Required.
+     One of: flat, unit, or tiered. Required. TIERED.
     :vartype type: str or ~openmeter._generated.models.TIERED
     :ivar mode: Mode. Required. Known values are: "volume" and "graduated".
     :vartype mode: str or ~openmeter.models.TieredPriceMode
@@ -14955,7 +14856,7 @@ class TieredPriceWithCommitments(_Model):
     type: Literal[PriceType.TIERED] = rest_field(visibility=["read", "create", "update"])
     """The type of the price.
      
-     One of: flat, unit, or tiered. Required."""
+     One of: flat, unit, or tiered. Required. TIERED."""
     mode: Union[str, "_models.TieredPriceMode"] = rest_field(visibility=["read", "create", "update"])
     """Mode. Required. Known values are: \"volume\" and \"graduated\"."""
     tiers: list["_models.PriceTier"] = rest_field(visibility=["read", "create", "update"])
@@ -15034,14 +14935,14 @@ class UnauthorizedProblemResponse(UnexpectedProblemResponse):
 class UnitPrice(_Model):
     """Unit price.
 
-    :ivar type: The type of the price. Required.
+    :ivar type: The type of the price. Required. UNIT.
     :vartype type: str or ~openmeter._generated.models.UNIT
     :ivar amount: The amount of the unit price. Required.
     :vartype amount: str
     """
 
     type: Literal[PriceType.UNIT] = rest_field(visibility=["read", "create", "update"])
-    """The type of the price. Required."""
+    """The type of the price. Required. UNIT."""
     amount: str = rest_field(visibility=["read", "create", "update"])
     """The amount of the unit price. Required."""
 
@@ -15067,7 +14968,7 @@ class UnitPrice(_Model):
 class UnitPriceWithCommitments(_Model):
     """Unit price with spend commitments.
 
-    :ivar type: The type of the price. Required.
+    :ivar type: The type of the price. Required. UNIT.
     :vartype type: str or ~openmeter._generated.models.UNIT
     :ivar amount: The amount of the unit price. Required.
     :vartype amount: str
@@ -15078,7 +14979,7 @@ class UnitPriceWithCommitments(_Model):
     """
 
     type: Literal[PriceType.UNIT] = rest_field(visibility=["read", "create", "update"])
-    """The type of the price. Required."""
+    """The type of the price. Required. UNIT."""
     amount: str = rest_field(visibility=["read", "create", "update"])
     """The amount of the unit price. Required."""
     minimum_amount: Optional[str] = rest_field(name="minimumAmount", visibility=["read", "create", "update"])
@@ -15298,14 +15199,14 @@ class VoidInvoiceLineDiscardAction(_Model):
     """VoidInvoiceLineDiscardAction describes how to handle the voidied line item in the invoice.
 
     :ivar type: The action to take on the line item. Required. The line items will never be charged
-     for again
+     for again.
     :vartype type: str or ~openmeter._generated.models.DISCARD
     """
 
     type: Literal[VoidInvoiceLineActionType.DISCARD] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
-    """The action to take on the line item. Required. The line items will never be charged for again"""
+    """The action to take on the line item. Required. The line items will never be charged for again."""
 
     @overload
     def __init__(
@@ -15330,7 +15231,7 @@ class VoidInvoiceLinePendingAction(_Model):
 
     :ivar type: The action to take on the line item. Required. Queue the line items into the
      pending state, they will be included in the next invoice. (We want to generate an invoice right
-     now)
+     now).
     :vartype type: str or ~openmeter._generated.models.PENDING
     :ivar next_invoice_at: The time at which the line item should be invoiced again.
 
@@ -15342,7 +15243,7 @@ class VoidInvoiceLinePendingAction(_Model):
         visibility=["read", "create", "update", "delete", "query"]
     )
     """The action to take on the line item. Required. Queue the line items into the pending state,
-     they will be included in the next invoice. (We want to generate an invoice right now)"""
+     they will be included in the next invoice. (We want to generate an invoice right now)."""
     next_invoice_at: Optional[datetime.datetime] = rest_field(
         name="nextInvoiceAt", visibility=["create"], format="rfc3339"
     )
