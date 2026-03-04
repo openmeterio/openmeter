@@ -9,6 +9,7 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func domainPriceToAPI(p llmcost.Price) api.LLMCostPrice {
@@ -73,7 +74,9 @@ func apiPricingToDomain(p api.LLMCostModelPricing) (llmcost.ModelPricing, error)
 
 	outputPerToken, err := decimalFromString(p.OutputPerToken)
 	if err != nil {
-		return llmcost.ModelPricing{}, fmt.Errorf("invalid output_per_token: %w", err)
+		return llmcost.ModelPricing{}, models.NewGenericValidationError(
+			fmt.Errorf("invalid output_per_token: %w", err),
+		)
 	}
 
 	out := llmcost.ModelPricing{
@@ -84,7 +87,9 @@ func apiPricingToDomain(p api.LLMCostModelPricing) (llmcost.ModelPricing, error)
 	if p.CacheReadPerToken != nil {
 		d, err := decimalFromString(*p.CacheReadPerToken)
 		if err != nil {
-			return llmcost.ModelPricing{}, fmt.Errorf("invalid cache_read_per_token: %w", err)
+			return llmcost.ModelPricing{}, models.NewGenericValidationError(
+				fmt.Errorf("invalid cache_read_per_token: %w", err),
+			)
 		}
 		out.CacheReadPerToken = &d
 	}
@@ -92,7 +97,9 @@ func apiPricingToDomain(p api.LLMCostModelPricing) (llmcost.ModelPricing, error)
 	if p.ReasoningPerToken != nil {
 		d, err := decimalFromString(*p.ReasoningPerToken)
 		if err != nil {
-			return llmcost.ModelPricing{}, fmt.Errorf("invalid reasoning_per_token: %w", err)
+			return llmcost.ModelPricing{}, models.NewGenericValidationError(
+				fmt.Errorf("invalid reasoning_per_token: %w", err),
+			)
 		}
 		out.ReasoningPerToken = &d
 	}
@@ -100,7 +107,9 @@ func apiPricingToDomain(p api.LLMCostModelPricing) (llmcost.ModelPricing, error)
 	if p.CacheWritePerToken != nil {
 		d, err := decimalFromString(*p.CacheWritePerToken)
 		if err != nil {
-			return llmcost.ModelPricing{}, fmt.Errorf("invalid cache_write_per_token: %w", err)
+			return llmcost.ModelPricing{}, models.NewGenericValidationError(
+				fmt.Errorf("invalid cache_write_per_token: %w", err),
+			)
 		}
 		out.CacheWritePerToken = &d
 	}

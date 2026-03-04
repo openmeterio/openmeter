@@ -112,7 +112,6 @@ func (a *adapter) ResolvePrice(ctx context.Context, input llmcost.ResolvePriceIn
 			pricedb.ByEffectiveFrom(sql.OrderDesc()),
 		).
 		First(ctx)
-
 	if err != nil {
 		if entdb.IsNotFound(err) {
 			return llmcost.Price{}, llmcost.NewPriceNotFoundError(input.ModelID)
