@@ -25,7 +25,7 @@ func (c Config) Validate() error {
 	return errors.Join(errs...)
 }
 
-func New(config Config) (charges.FlatFeeService, error) {
+func New(config Config) (charges.FlatFeeOrchestrator, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}

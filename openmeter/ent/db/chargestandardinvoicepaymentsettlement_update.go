@@ -98,13 +98,13 @@ func (_u *ChargeStandardInvoicePaymentSettlementUpdate) SetNillableServicePeriod
 }
 
 // SetStatus sets the "status" field.
-func (_u *ChargeStandardInvoicePaymentSettlementUpdate) SetStatus(v charges.StandardInvoicePaymentSettlementStatus) *ChargeStandardInvoicePaymentSettlementUpdate {
+func (_u *ChargeStandardInvoicePaymentSettlementUpdate) SetStatus(v charges.PaymentSettlementStatus) *ChargeStandardInvoicePaymentSettlementUpdate {
 	_u.mutation.SetStatus(v)
 	return _u
 }
 
 // SetNillableStatus sets the "status" field if the given value is not nil.
-func (_u *ChargeStandardInvoicePaymentSettlementUpdate) SetNillableStatus(v *charges.StandardInvoicePaymentSettlementStatus) *ChargeStandardInvoicePaymentSettlementUpdate {
+func (_u *ChargeStandardInvoicePaymentSettlementUpdate) SetNillableStatus(v *charges.PaymentSettlementStatus) *ChargeStandardInvoicePaymentSettlementUpdate {
 	if v != nil {
 		_u.SetStatus(*v)
 	}
@@ -422,13 +422,13 @@ func (_u *ChargeStandardInvoicePaymentSettlementUpdateOne) SetNillableServicePer
 }
 
 // SetStatus sets the "status" field.
-func (_u *ChargeStandardInvoicePaymentSettlementUpdateOne) SetStatus(v charges.StandardInvoicePaymentSettlementStatus) *ChargeStandardInvoicePaymentSettlementUpdateOne {
+func (_u *ChargeStandardInvoicePaymentSettlementUpdateOne) SetStatus(v charges.PaymentSettlementStatus) *ChargeStandardInvoicePaymentSettlementUpdateOne {
 	_u.mutation.SetStatus(v)
 	return _u
 }
 
 // SetNillableStatus sets the "status" field if the given value is not nil.
-func (_u *ChargeStandardInvoicePaymentSettlementUpdateOne) SetNillableStatus(v *charges.StandardInvoicePaymentSettlementStatus) *ChargeStandardInvoicePaymentSettlementUpdateOne {
+func (_u *ChargeStandardInvoicePaymentSettlementUpdateOne) SetNillableStatus(v *charges.PaymentSettlementStatus) *ChargeStandardInvoicePaymentSettlementUpdateOne {
 	if v != nil {
 		_u.SetStatus(*v)
 	}

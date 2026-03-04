@@ -3,100 +3,41 @@ package charges
 import (
 	"errors"
 	"fmt"
-	"slices"
-
-	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-type StandardInvoicePaymentSettlementStatus string
-
-const (
-	StandardInvoicePaymentSettlementStatusAuthorized StandardInvoicePaymentSettlementStatus = "authorized"
-	StandardInvoicePaymentSettlementStatusSettled    StandardInvoicePaymentSettlementStatus = "settled"
-)
-
-func (o StandardInvoicePaymentSettlementStatus) Values() []string {
-	return []string{
-		string(StandardInvoicePaymentSettlementStatusAuthorized),
-		string(StandardInvoicePaymentSettlementStatusSettled),
-	}
-}
-
-func (o StandardInvoicePaymentSettlementStatus) Validate() error {
-	if !slices.Contains(o.Values(), string(o)) {
-		return fmt.Errorf("invalid standard invoice payment settlement status: %s", o)
-	}
-	return nil
-}
-
 // StandardInvoicePaymentSettlement represents a payment settlement using a standard invoice managed
 // by the OpenMeter platform.
 type StandardInvoicePaymentSettlement struct {
-	models.NamespacedID
-	models.ManagedModel
+	PaymentSettlementBase
 
-	Annotations   models.Annotations    `json:"annotations"`
-	LineID        string                `json:"lineID"`
-	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
-
-	Status StandardInvoicePaymentSettlementStatus `json:"status"`
-	Amount alpacadecimal.Decimal                  `json:"amount"`
-
-	Authorized *TimedLedgerTransactionGroupReference `json:"authorized"`
-	Settled    *TimedLedgerTransactionGroupReference `json:"settled"`
+	LineID string `json:"lineID"`
 }
+
+var _ models.Validator = (*StandardInvoicePaymentSettlement)(nil)
 
 func (r StandardInvoicePaymentSettlement) Validate() error {
 	var errs []error
-
-	if err := r.Status.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("status: %w", err))
-	}
-
-	if err := r.ServicePeriod.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("service period: %w", err))
-	}
-
-	if r.Authorized != nil {
-		if err := r.Authorized.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("authorized: %w", err))
-		}
-	}
-
-	if r.Settled != nil {
-		if err := r.Settled.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("settled: %w", err))
-		}
-	}
 
 	if r.LineID == "" {
 		errs = append(errs, fmt.Errorf("line ID is required"))
 	}
 
-	if !r.Amount.IsPositive() {
-		errs = append(errs, fmt.Errorf("amount must be positive"))
-	}
-
-	switch r.Status {
-	case StandardInvoicePaymentSettlementStatusAuthorized:
-		if r.Authorized == nil {
-			errs = append(errs, fmt.Errorf("authorization transaction data is missing for authorized status"))
-		}
-	case StandardInvoicePaymentSettlementStatusSettled:
-		if r.Settled == nil {
-			errs = append(errs, fmt.Errorf("settlement transaction data is missing for settled status"))
-		}
-
-		if r.Authorized == nil {
-			errs = append(errs, fmt.Errorf("authorization transaction data is missing for settled status"))
-		}
+	if err := r.PaymentSettlementBase.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	return errors.Join(errs...)
+}
+
+func (r StandardInvoicePaymentSettlement) ErrorAttributes() models.Attributes {
+	return models.Attributes{
+		PaymentSettlementStatusAttributeKey: string(r.Status),
+		PaymentSettlementTypeAttributeKey:   string(PaymentSettlementTypeStandardInvoice),
+	}
 }
 
 type StandardInvoiceAccruedUsage struct {

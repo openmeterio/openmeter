@@ -3,7 +3,9 @@ package service
 import (
 	"context"
 	"errors"
+	"testing"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 )
 
@@ -68,7 +70,10 @@ func (h *flatFeeTestHandler) Reset() {
 var _ charges.CreditPurchaseHandler = (*creditPurchaseTestHandler)(nil)
 
 type creditPurchaseTestHandler struct {
-	onPromotionalCreditPurchase func(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.LedgerTransactionGroupReference, error)
+	onPromotionalCreditPurchase       func(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.LedgerTransactionGroupReference, error)
+	onCreditPurchaseInitiated         func(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.LedgerTransactionGroupReference, error)
+	onCreditPurchasePaymentAuthorized func(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.LedgerTransactionGroupReference, error)
+	onCreditPurchasePaymentSettled    func(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.LedgerTransactionGroupReference, error)
 }
 
 func newCreditPurchaseTestHandler() *creditPurchaseTestHandler {
@@ -83,6 +88,58 @@ func (h *creditPurchaseTestHandler) OnPromotionalCreditPurchase(ctx context.Cont
 	return h.onPromotionalCreditPurchase(ctx, charge)
 }
 
+func (h *creditPurchaseTestHandler) OnCreditPurchaseInitiated(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.LedgerTransactionGroupReference, error) {
+	if h.onCreditPurchaseInitiated == nil {
+		return charges.LedgerTransactionGroupReference{}, errors.New("onCreditPurchaseInitiated is not set")
+	}
+
+	return h.onCreditPurchaseInitiated(ctx, charge)
+}
+
+func (h *creditPurchaseTestHandler) OnCreditPurchasePaymentAuthorized(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.LedgerTransactionGroupReference, error) {
+	if h.onCreditPurchasePaymentAuthorized == nil {
+		return charges.LedgerTransactionGroupReference{}, errors.New("onCreditPurchasePaymentAuthorized is not set")
+	}
+
+	return h.onCreditPurchasePaymentAuthorized(ctx, charge)
+}
+
+func (h *creditPurchaseTestHandler) OnCreditPurchasePaymentSettled(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.LedgerTransactionGroupReference, error) {
+	if h.onCreditPurchasePaymentSettled == nil {
+		return charges.LedgerTransactionGroupReference{}, errors.New("onCreditPurchasePaymentSettled is not set")
+	}
+
+	return h.onCreditPurchasePaymentSettled(ctx, charge)
+}
+
 func (h *creditPurchaseTestHandler) Reset() {
 	*h = creditPurchaseTestHandler{}
+}
+
+// helpers
+
+type countedLedgerTransactionCallback[T any] struct {
+	nrInvocations int
+	id            string
+}
+
+type assertFunc[T any] func(*testing.T, T)
+
+func newCountedLedgerTransactionCallback[T any]() *countedLedgerTransactionCallback[T] {
+	return &countedLedgerTransactionCallback[T]{
+		nrInvocations: 0,
+		id:            ulid.Make().String(),
+	}
+}
+
+func (c *countedLedgerTransactionCallback[T]) Handler(t *testing.T, asserts ...assertFunc[T]) func(ctx context.Context, t T) (charges.LedgerTransactionGroupReference, error) {
+	return func(ctx context.Context, arg T) (charges.LedgerTransactionGroupReference, error) {
+		c.nrInvocations++
+		for _, assert := range asserts {
+			assert(t, arg)
+		}
+		return charges.LedgerTransactionGroupReference{
+			TransactionGroupID: c.id,
+		}, nil
+	}
 }

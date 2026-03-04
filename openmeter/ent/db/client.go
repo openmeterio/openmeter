@@ -43,6 +43,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeexternalpaymentsettlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoiceaccruedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicepaymentsettlement"
@@ -138,6 +139,8 @@ type Client struct {
 	ChargeCreditPurchase *ChargeCreditPurchaseClient
 	// ChargeCreditRealization is the client for interacting with the ChargeCreditRealization builders.
 	ChargeCreditRealization *ChargeCreditRealizationClient
+	// ChargeExternalPaymentSettlement is the client for interacting with the ChargeExternalPaymentSettlement builders.
+	ChargeExternalPaymentSettlement *ChargeExternalPaymentSettlementClient
 	// ChargeFlatFee is the client for interacting with the ChargeFlatFee builders.
 	ChargeFlatFee *ChargeFlatFeeClient
 	// ChargeStandardInvoiceAccruedUsage is the client for interacting with the ChargeStandardInvoiceAccruedUsage builders.
@@ -237,6 +240,7 @@ func (c *Client) init() {
 	c.Charge = NewChargeClient(c.config)
 	c.ChargeCreditPurchase = NewChargeCreditPurchaseClient(c.config)
 	c.ChargeCreditRealization = NewChargeCreditRealizationClient(c.config)
+	c.ChargeExternalPaymentSettlement = NewChargeExternalPaymentSettlementClient(c.config)
 	c.ChargeFlatFee = NewChargeFlatFeeClient(c.config)
 	c.ChargeStandardInvoiceAccruedUsage = NewChargeStandardInvoiceAccruedUsageClient(c.config)
 	c.ChargeStandardInvoicePaymentSettlement = NewChargeStandardInvoicePaymentSettlementClient(c.config)
@@ -387,6 +391,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Charge:                                           NewChargeClient(cfg),
 		ChargeCreditPurchase:                             NewChargeCreditPurchaseClient(cfg),
 		ChargeCreditRealization:                          NewChargeCreditRealizationClient(cfg),
+		ChargeExternalPaymentSettlement:                  NewChargeExternalPaymentSettlementClient(cfg),
 		ChargeFlatFee:                                    NewChargeFlatFeeClient(cfg),
 		ChargeStandardInvoiceAccruedUsage:                NewChargeStandardInvoiceAccruedUsageClient(cfg),
 		ChargeStandardInvoicePaymentSettlement:           NewChargeStandardInvoicePaymentSettlementClient(cfg),
@@ -464,6 +469,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Charge:                                           NewChargeClient(cfg),
 		ChargeCreditPurchase:                             NewChargeCreditPurchaseClient(cfg),
 		ChargeCreditRealization:                          NewChargeCreditRealizationClient(cfg),
+		ChargeExternalPaymentSettlement:                  NewChargeExternalPaymentSettlementClient(cfg),
 		ChargeFlatFee:                                    NewChargeFlatFeeClient(cfg),
 		ChargeStandardInvoiceAccruedUsage:                NewChargeStandardInvoiceAccruedUsageClient(cfg),
 		ChargeStandardInvoicePaymentSettlement:           NewChargeStandardInvoicePaymentSettlementClient(cfg),
@@ -533,7 +539,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BillingProfile, c.BillingSequenceNumbers,
 		c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
-		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditRealization, c.ChargeFlatFee,
+		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditRealization,
+		c.ChargeExternalPaymentSettlement, c.ChargeFlatFee,
 		c.ChargeStandardInvoiceAccruedUsage, c.ChargeStandardInvoicePaymentSettlement,
 		c.ChargeUsageBased, c.CurrencyCostBasis, c.CustomCurrency, c.Customer,
 		c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.LLMCostPrice, c.Meter,
@@ -561,7 +568,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BillingProfile, c.BillingSequenceNumbers,
 		c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
-		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditRealization, c.ChargeFlatFee,
+		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditRealization,
+		c.ChargeExternalPaymentSettlement, c.ChargeFlatFee,
 		c.ChargeStandardInvoiceAccruedUsage, c.ChargeStandardInvoicePaymentSettlement,
 		c.ChargeUsageBased, c.CurrencyCostBasis, c.CustomCurrency, c.Customer,
 		c.CustomerSubjects, c.Entitlement, c.Feature, c.Grant, c.LLMCostPrice, c.Meter,
@@ -634,6 +642,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ChargeCreditPurchase.mutate(ctx, m)
 	case *ChargeCreditRealizationMutation:
 		return c.ChargeCreditRealization.mutate(ctx, m)
+	case *ChargeExternalPaymentSettlementMutation:
+		return c.ChargeExternalPaymentSettlement.mutate(ctx, m)
 	case *ChargeFlatFeeMutation:
 		return c.ChargeFlatFee.mutate(ctx, m)
 	case *ChargeStandardInvoiceAccruedUsageMutation:
@@ -5545,6 +5555,22 @@ func (c *ChargeCreditPurchaseClient) QueryCharge(_m *ChargeCreditPurchase) *Char
 	return query
 }
 
+// QueryChargeExternalPaymentSettlement queries the charge_external_payment_settlement edge of a ChargeCreditPurchase.
+func (c *ChargeCreditPurchaseClient) QueryChargeExternalPaymentSettlement(_m *ChargeCreditPurchase) *ChargeExternalPaymentSettlementQuery {
+	query := (&ChargeExternalPaymentSettlementClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargecreditpurchase.Table, chargecreditpurchase.FieldID, id),
+			sqlgraph.To(chargeexternalpaymentsettlement.Table, chargeexternalpaymentsettlement.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, chargecreditpurchase.ChargeExternalPaymentSettlementTable, chargecreditpurchase.ChargeExternalPaymentSettlementColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ChargeCreditPurchaseClient) Hooks() []Hook {
 	return c.hooks.ChargeCreditPurchase
@@ -5732,6 +5758,155 @@ func (c *ChargeCreditRealizationClient) mutate(ctx context.Context, m *ChargeCre
 		return (&ChargeCreditRealizationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown ChargeCreditRealization mutation op: %q", m.Op())
+	}
+}
+
+// ChargeExternalPaymentSettlementClient is a client for the ChargeExternalPaymentSettlement schema.
+type ChargeExternalPaymentSettlementClient struct {
+	config
+}
+
+// NewChargeExternalPaymentSettlementClient returns a client for the ChargeExternalPaymentSettlement from the given config.
+func NewChargeExternalPaymentSettlementClient(c config) *ChargeExternalPaymentSettlementClient {
+	return &ChargeExternalPaymentSettlementClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `chargeexternalpaymentsettlement.Hooks(f(g(h())))`.
+func (c *ChargeExternalPaymentSettlementClient) Use(hooks ...Hook) {
+	c.hooks.ChargeExternalPaymentSettlement = append(c.hooks.ChargeExternalPaymentSettlement, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `chargeexternalpaymentsettlement.Intercept(f(g(h())))`.
+func (c *ChargeExternalPaymentSettlementClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ChargeExternalPaymentSettlement = append(c.inters.ChargeExternalPaymentSettlement, interceptors...)
+}
+
+// Create returns a builder for creating a ChargeExternalPaymentSettlement entity.
+func (c *ChargeExternalPaymentSettlementClient) Create() *ChargeExternalPaymentSettlementCreate {
+	mutation := newChargeExternalPaymentSettlementMutation(c.config, OpCreate)
+	return &ChargeExternalPaymentSettlementCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ChargeExternalPaymentSettlement entities.
+func (c *ChargeExternalPaymentSettlementClient) CreateBulk(builders ...*ChargeExternalPaymentSettlementCreate) *ChargeExternalPaymentSettlementCreateBulk {
+	return &ChargeExternalPaymentSettlementCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ChargeExternalPaymentSettlementClient) MapCreateBulk(slice any, setFunc func(*ChargeExternalPaymentSettlementCreate, int)) *ChargeExternalPaymentSettlementCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ChargeExternalPaymentSettlementCreateBulk{err: fmt.Errorf("calling to ChargeExternalPaymentSettlementClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ChargeExternalPaymentSettlementCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ChargeExternalPaymentSettlementCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ChargeExternalPaymentSettlement.
+func (c *ChargeExternalPaymentSettlementClient) Update() *ChargeExternalPaymentSettlementUpdate {
+	mutation := newChargeExternalPaymentSettlementMutation(c.config, OpUpdate)
+	return &ChargeExternalPaymentSettlementUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ChargeExternalPaymentSettlementClient) UpdateOne(_m *ChargeExternalPaymentSettlement) *ChargeExternalPaymentSettlementUpdateOne {
+	mutation := newChargeExternalPaymentSettlementMutation(c.config, OpUpdateOne, withChargeExternalPaymentSettlement(_m))
+	return &ChargeExternalPaymentSettlementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ChargeExternalPaymentSettlementClient) UpdateOneID(id string) *ChargeExternalPaymentSettlementUpdateOne {
+	mutation := newChargeExternalPaymentSettlementMutation(c.config, OpUpdateOne, withChargeExternalPaymentSettlementID(id))
+	return &ChargeExternalPaymentSettlementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ChargeExternalPaymentSettlement.
+func (c *ChargeExternalPaymentSettlementClient) Delete() *ChargeExternalPaymentSettlementDelete {
+	mutation := newChargeExternalPaymentSettlementMutation(c.config, OpDelete)
+	return &ChargeExternalPaymentSettlementDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ChargeExternalPaymentSettlementClient) DeleteOne(_m *ChargeExternalPaymentSettlement) *ChargeExternalPaymentSettlementDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ChargeExternalPaymentSettlementClient) DeleteOneID(id string) *ChargeExternalPaymentSettlementDeleteOne {
+	builder := c.Delete().Where(chargeexternalpaymentsettlement.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ChargeExternalPaymentSettlementDeleteOne{builder}
+}
+
+// Query returns a query builder for ChargeExternalPaymentSettlement.
+func (c *ChargeExternalPaymentSettlementClient) Query() *ChargeExternalPaymentSettlementQuery {
+	return &ChargeExternalPaymentSettlementQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeChargeExternalPaymentSettlement},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ChargeExternalPaymentSettlement entity by its id.
+func (c *ChargeExternalPaymentSettlementClient) Get(ctx context.Context, id string) (*ChargeExternalPaymentSettlement, error) {
+	return c.Query().Where(chargeexternalpaymentsettlement.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ChargeExternalPaymentSettlementClient) GetX(ctx context.Context, id string) *ChargeExternalPaymentSettlement {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryChargeCreditPurchase queries the charge_credit_purchase edge of a ChargeExternalPaymentSettlement.
+func (c *ChargeExternalPaymentSettlementClient) QueryChargeCreditPurchase(_m *ChargeExternalPaymentSettlement) *ChargeCreditPurchaseQuery {
+	query := (&ChargeCreditPurchaseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeexternalpaymentsettlement.Table, chargeexternalpaymentsettlement.FieldID, id),
+			sqlgraph.To(chargecreditpurchase.Table, chargecreditpurchase.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, chargeexternalpaymentsettlement.ChargeCreditPurchaseTable, chargeexternalpaymentsettlement.ChargeCreditPurchaseColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ChargeExternalPaymentSettlementClient) Hooks() []Hook {
+	return c.hooks.ChargeExternalPaymentSettlement
+}
+
+// Interceptors returns the client interceptors.
+func (c *ChargeExternalPaymentSettlementClient) Interceptors() []Interceptor {
+	return c.inters.ChargeExternalPaymentSettlement
+}
+
+func (c *ChargeExternalPaymentSettlementClient) mutate(ctx context.Context, m *ChargeExternalPaymentSettlementMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ChargeExternalPaymentSettlementCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ChargeExternalPaymentSettlementUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ChargeExternalPaymentSettlementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ChargeExternalPaymentSettlementDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown ChargeExternalPaymentSettlement mutation op: %q", m.Op())
 	}
 }
 
@@ -10825,7 +11000,8 @@ type (
 		BillingInvoiceValidationIssue, BillingInvoiceWriteSchemaLevel, BillingProfile,
 		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
-		Charge, ChargeCreditPurchase, ChargeCreditRealization, ChargeFlatFee,
+		Charge, ChargeCreditPurchase, ChargeCreditRealization,
+		ChargeExternalPaymentSettlement, ChargeFlatFee,
 		ChargeStandardInvoiceAccruedUsage, ChargeStandardInvoicePaymentSettlement,
 		ChargeUsageBased, CurrencyCostBasis, CustomCurrency, Customer,
 		CustomerSubjects, Entitlement, Feature, Grant, LLMCostPrice, Meter,
@@ -10845,7 +11021,8 @@ type (
 		BillingInvoiceValidationIssue, BillingInvoiceWriteSchemaLevel, BillingProfile,
 		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
-		Charge, ChargeCreditPurchase, ChargeCreditRealization, ChargeFlatFee,
+		Charge, ChargeCreditPurchase, ChargeCreditRealization,
+		ChargeExternalPaymentSettlement, ChargeFlatFee,
 		ChargeStandardInvoiceAccruedUsage, ChargeStandardInvoicePaymentSettlement,
 		ChargeUsageBased, CurrencyCostBasis, CustomCurrency, Customer,
 		CustomerSubjects, Entitlement, Feature, Grant, LLMCostPrice, Meter,

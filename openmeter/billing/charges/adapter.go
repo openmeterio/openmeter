@@ -11,6 +11,7 @@ type Adapter interface {
 	CreditRealizationAdapter
 	CreditPurchaseAdapter
 	StandardInvoiceRealizationAdapter
+	ExternalPaymentSettlementAdapter
 
 	entutils.TxCreator
 }
@@ -35,4 +36,9 @@ type StandardInvoiceRealizationAdapter interface {
 
 type CreditPurchaseAdapter interface {
 	UpdateCreditPurchaseCharge(ctx context.Context, charge CreditPurchaseCharge) (CreditPurchaseCharge, error)
+}
+
+type ExternalPaymentSettlementAdapter interface {
+	CreateExternalPaymentSettlement(ctx context.Context, chargeID ChargeID, paymentSettlement ExternalPaymentSettlement) (ExternalPaymentSettlement, error)
+	UpdateExternalPaymentSettlement(ctx context.Context, paymentSettlement ExternalPaymentSettlement) (ExternalPaymentSettlement, error)
 }

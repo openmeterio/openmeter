@@ -312,6 +312,8 @@ func (ChargeCreditPurchase) Edges() []ent.Edge {
 			Ref("credit_purchase").
 			Unique().
 			Required(),
+		edge.To("charge_external_payment_settlement", ChargeExternalPaymentSettlement.Type).
+			Unique(),
 	}
 }
 
@@ -346,7 +348,7 @@ func (ChargeStandardInvoicePaymentSettlement) Fields() []ent.Field {
 		field.Time("service_period_to"),
 
 		field.Enum("status").
-			GoType(charges.StandardInvoicePaymentSettlementStatus("")),
+			GoType(charges.PaymentSettlementStatus("")),
 
 		field.Other("amount", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
@@ -533,5 +535,84 @@ func (ChargeCreditRealization) Edges() []ent.Edge {
 			Ref("charge_credit_realization").
 			Field("line_id").
 			Unique(),
+	}
+}
+
+type ChargeExternalPaymentSettlement struct {
+	ent.Schema
+}
+
+func (ChargeExternalPaymentSettlement) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.NamespaceMixin{},
+		entutils.IDMixin{},
+		entutils.TimeMixin{},
+		entutils.AnnotationsMixin{},
+	}
+}
+
+func (ChargeExternalPaymentSettlement) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("charge_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Immutable(),
+
+		field.Time("service_period_from"),
+		field.Time("service_period_to"),
+
+		field.Enum("status").
+			GoType(charges.PaymentSettlementStatus("")),
+
+		field.Other("amount", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
+
+		// TODO: Let's add edges to ledger
+		field.String("authorized_transaction_group_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			NotEmpty().
+			Nillable(),
+
+		field.Time("authorized_at").Optional().Nillable(),
+
+		field.String("settled_transaction_group_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			NotEmpty().
+			Nillable(),
+
+		field.Time("settled_at").Optional().Nillable(),
+	}
+}
+
+func (ChargeExternalPaymentSettlement) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "charge_id").
+			Annotations(
+				entsql.IndexWhere("deleted_at IS NULL"),
+			).
+			Unique(),
+		index.Fields("charge_id").Annotations(
+			entsql.IndexWhere("deleted_at IS NULL"),
+		),
+	}
+}
+
+func (ChargeExternalPaymentSettlement) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("charge_credit_purchase", ChargeCreditPurchase.Type).
+			Ref("charge_external_payment_settlement").
+			Field("charge_id").
+			Unique().
+			Required().
+			Immutable(),
 	}
 }

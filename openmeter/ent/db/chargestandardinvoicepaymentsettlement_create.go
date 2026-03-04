@@ -107,7 +107,7 @@ func (_c *ChargeStandardInvoicePaymentSettlementCreate) SetServicePeriodTo(v tim
 }
 
 // SetStatus sets the "status" field.
-func (_c *ChargeStandardInvoicePaymentSettlementCreate) SetStatus(v charges.StandardInvoicePaymentSettlementStatus) *ChargeStandardInvoicePaymentSettlementCreate {
+func (_c *ChargeStandardInvoicePaymentSettlementCreate) SetStatus(v charges.PaymentSettlementStatus) *ChargeStandardInvoicePaymentSettlementCreate {
 	_c.mutation.SetStatus(v)
 	return _c
 }
@@ -561,7 +561,7 @@ func (u *ChargeStandardInvoicePaymentSettlementUpsert) UpdateServicePeriodTo() *
 }
 
 // SetStatus sets the "status" field.
-func (u *ChargeStandardInvoicePaymentSettlementUpsert) SetStatus(v charges.StandardInvoicePaymentSettlementStatus) *ChargeStandardInvoicePaymentSettlementUpsert {
+func (u *ChargeStandardInvoicePaymentSettlementUpsert) SetStatus(v charges.PaymentSettlementStatus) *ChargeStandardInvoicePaymentSettlementUpsert {
 	u.Set(chargestandardinvoicepaymentsettlement.FieldStatus, v)
 	return u
 }
@@ -801,7 +801,7 @@ func (u *ChargeStandardInvoicePaymentSettlementUpsertOne) UpdateServicePeriodTo(
 }
 
 // SetStatus sets the "status" field.
-func (u *ChargeStandardInvoicePaymentSettlementUpsertOne) SetStatus(v charges.StandardInvoicePaymentSettlementStatus) *ChargeStandardInvoicePaymentSettlementUpsertOne {
+func (u *ChargeStandardInvoicePaymentSettlementUpsertOne) SetStatus(v charges.PaymentSettlementStatus) *ChargeStandardInvoicePaymentSettlementUpsertOne {
 	return u.Update(func(s *ChargeStandardInvoicePaymentSettlementUpsert) {
 		s.SetStatus(v)
 	})
@@ -1224,7 +1224,7 @@ func (u *ChargeStandardInvoicePaymentSettlementUpsertBulk) UpdateServicePeriodTo
 }
 
 // SetStatus sets the "status" field.
-func (u *ChargeStandardInvoicePaymentSettlementUpsertBulk) SetStatus(v charges.StandardInvoicePaymentSettlementStatus) *ChargeStandardInvoicePaymentSettlementUpsertBulk {
+func (u *ChargeStandardInvoicePaymentSettlementUpsertBulk) SetStatus(v charges.PaymentSettlementStatus) *ChargeStandardInvoicePaymentSettlementUpsertBulk {
 	return u.Update(func(s *ChargeStandardInvoicePaymentSettlementUpsert) {
 		s.SetStatus(v)
 	})

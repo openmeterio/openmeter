@@ -63,7 +63,7 @@ func (s *service) CreateCharges(ctx context.Context, input charges.CreateChargeI
 
 		if len(createdChargesByType.creditPurchase) > 0 {
 			for _, creditPurchase := range createdChargesByType.creditPurchase {
-				result, err := s.creditPurchaseService.PostCreate(ctx, creditPurchase)
+				result, err := s.creditPurchaseOrchestrator.PostCreate(ctx, creditPurchase)
 				if err != nil {
 					return nil, err
 				}
@@ -133,7 +133,7 @@ func (s *service) invoiceChargePostCreate(ctx context.Context, in invoiceChargeP
 	// Let's execute the post create hooks for all the charges
 	gatheringLinesToCreate := make([]gatheringLineWithCustomerID, 0, len(in.flatFees)+len(in.usageBased))
 	for _, flatFee := range in.flatFees {
-		res, err := s.flatFeeService.PostCreate(ctx, flatFee)
+		res, err := s.flatFeeOrchestrator.PostCreate(ctx, flatFee)
 		if err != nil {
 			return nil, err
 		}
@@ -157,7 +157,7 @@ func (s *service) invoiceChargePostCreate(ctx context.Context, in invoiceChargeP
 	}
 
 	if len(gatheringLinesToCreate) == 0 {
-		return nil, nil
+		return &result, nil
 	}
 
 	uniqueCurrencyAndCustomerIDs := lo.Uniq(
@@ -192,5 +192,5 @@ func (s *service) invoiceChargePostCreate(ctx context.Context, in invoiceChargeP
 		}
 	}
 
-	return nil, nil
+	return &result, nil
 }
