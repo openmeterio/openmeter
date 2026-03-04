@@ -73,6 +73,20 @@ func (_c *ChargeCreditPurchaseCreate) SetNillableCreditGrantedAt(v *time.Time) *
 	return _c
 }
 
+// SetExternalPaymentSettlementID sets the "external_payment_settlement_id" field.
+func (_c *ChargeCreditPurchaseCreate) SetExternalPaymentSettlementID(v string) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetExternalPaymentSettlementID(v)
+	return _c
+}
+
+// SetNillableExternalPaymentSettlementID sets the "external_payment_settlement_id" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableExternalPaymentSettlementID(v *string) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetExternalPaymentSettlementID(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ChargeCreditPurchaseCreate) SetID(v string) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetID(v)
@@ -184,6 +198,11 @@ func (_c *ChargeCreditPurchaseCreate) check() error {
 			return &ValidationError{Name: "credit_grant_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.credit_grant_transaction_group_id": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.ExternalPaymentSettlementID(); ok {
+		if err := chargecreditpurchase.ExternalPaymentSettlementIDValidator(v); err != nil {
+			return &ValidationError{Name: "external_payment_settlement_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.external_payment_settlement_id": %w`, err)}
+		}
+	}
 	if len(_c.mutation.ChargeIDs()) == 0 {
 		return &ValidationError{Name: "charge", err: errors.New(`db: missing required edge "ChargeCreditPurchase.charge"`)}
 	}
@@ -270,7 +289,7 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 	if nodes := _c.mutation.ChargeExternalPaymentSettlementIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
-			Inverse: false,
+			Inverse: true,
 			Table:   chargecreditpurchase.ChargeExternalPaymentSettlementTable,
 			Columns: []string{chargecreditpurchase.ChargeExternalPaymentSettlementColumn},
 			Bidi:    false,
@@ -281,6 +300,7 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_node.ExternalPaymentSettlementID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -392,6 +412,24 @@ func (u *ChargeCreditPurchaseUpsert) UpdateCreditGrantedAt() *ChargeCreditPurcha
 // ClearCreditGrantedAt clears the value of the "credit_granted_at" field.
 func (u *ChargeCreditPurchaseUpsert) ClearCreditGrantedAt() *ChargeCreditPurchaseUpsert {
 	u.SetNull(chargecreditpurchase.FieldCreditGrantedAt)
+	return u
+}
+
+// SetExternalPaymentSettlementID sets the "external_payment_settlement_id" field.
+func (u *ChargeCreditPurchaseUpsert) SetExternalPaymentSettlementID(v string) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldExternalPaymentSettlementID, v)
+	return u
+}
+
+// UpdateExternalPaymentSettlementID sets the "external_payment_settlement_id" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateExternalPaymentSettlementID() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldExternalPaymentSettlementID)
+	return u
+}
+
+// ClearExternalPaymentSettlementID clears the value of the "external_payment_settlement_id" field.
+func (u *ChargeCreditPurchaseUpsert) ClearExternalPaymentSettlementID() *ChargeCreditPurchaseUpsert {
+	u.SetNull(chargecreditpurchase.FieldExternalPaymentSettlementID)
 	return u
 }
 
@@ -513,6 +551,27 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateCreditGrantedAt() *ChargeCreditPur
 func (u *ChargeCreditPurchaseUpsertOne) ClearCreditGrantedAt() *ChargeCreditPurchaseUpsertOne {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
 		s.ClearCreditGrantedAt()
+	})
+}
+
+// SetExternalPaymentSettlementID sets the "external_payment_settlement_id" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetExternalPaymentSettlementID(v string) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetExternalPaymentSettlementID(v)
+	})
+}
+
+// UpdateExternalPaymentSettlementID sets the "external_payment_settlement_id" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateExternalPaymentSettlementID() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateExternalPaymentSettlementID()
+	})
+}
+
+// ClearExternalPaymentSettlementID clears the value of the "external_payment_settlement_id" field.
+func (u *ChargeCreditPurchaseUpsertOne) ClearExternalPaymentSettlementID() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearExternalPaymentSettlementID()
 	})
 }
 
@@ -804,6 +863,27 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateCreditGrantedAt() *ChargeCreditPu
 func (u *ChargeCreditPurchaseUpsertBulk) ClearCreditGrantedAt() *ChargeCreditPurchaseUpsertBulk {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
 		s.ClearCreditGrantedAt()
+	})
+}
+
+// SetExternalPaymentSettlementID sets the "external_payment_settlement_id" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetExternalPaymentSettlementID(v string) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetExternalPaymentSettlementID(v)
+	})
+}
+
+// UpdateExternalPaymentSettlementID sets the "external_payment_settlement_id" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateExternalPaymentSettlementID() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateExternalPaymentSettlementID()
+	})
+}
+
+// ClearExternalPaymentSettlementID clears the value of the "external_payment_settlement_id" field.
+func (u *ChargeCreditPurchaseUpsertBulk) ClearExternalPaymentSettlementID() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearExternalPaymentSettlementID()
 	})
 }
 

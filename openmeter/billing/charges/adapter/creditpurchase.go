@@ -35,6 +35,14 @@ func (a *adapter) UpdateCreditPurchaseCharge(ctx context.Context, charge charges
 				SetCreditGrantedAt(charge.State.CreditGrantRealization.Time.In(time.UTC))
 		}
 
+		if charge.State.ExternalPaymentSettlement != nil {
+			creditPurchaseUpdate = creditPurchaseUpdate.
+				SetChargeExternalPaymentSettlementID(charge.State.ExternalPaymentSettlement.ID)
+		} else {
+			creditPurchaseUpdate = creditPurchaseUpdate.
+				ClearExternalPaymentSettlementID()
+		}
+
 		dbCreditPurchase, err := creditPurchaseUpdate.Save(ctx)
 		if err != nil {
 			return charges.CreditPurchaseCharge{}, err

@@ -14,6 +14,7 @@ import (
 const (
 	PaymentSettlementStatusAttributeKey = "payment_settlement_status"
 	PaymentSettlementTypeAttributeKey   = "payment_settlement_type"
+	paymentSettlementIDAttributeKey     = "payment_settlement_id"
 
 	PaymentSettlementTypeExternal        = CreditPurchaseSettlementTypeExternal
 	PaymentSettlementTypeStandardInvoice = CreditPurchaseSettlementTypeInvoice
@@ -42,9 +43,6 @@ func (o PaymentSettlementStatus) Validate() error {
 
 // PaymentSettlementBase the generic payment settlement properties that are common to all payment settlements.
 type PaymentSettlementBase struct {
-	models.NamespacedID
-	models.ManagedModel
-
 	Annotations   models.Annotations    `json:"annotations"`
 	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
 
@@ -102,15 +100,55 @@ func (r PaymentSettlementBase) Validate() error {
 
 var _ models.Validator = (*ExternalPaymentSettlement)(nil)
 
-type ExternalPaymentSettlement PaymentSettlementBase
+type ExternalPaymentSettlementCreateInput struct {
+	PaymentSettlementBase
+
+	Namespace string `json:"namespace"`
+}
+
+func (i ExternalPaymentSettlementCreateInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, fmt.Errorf("namespace is required"))
+	}
+
+	if err := i.PaymentSettlementBase.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("payment settlement base: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+type ExternalPaymentSettlement struct {
+	models.NamespacedID
+	models.ManagedModel
+
+	PaymentSettlementBase
+}
 
 func (r ExternalPaymentSettlement) Validate() error {
-	return PaymentSettlementBase(r).Validate()
+	var errs []error
+
+	if err := r.NamespacedID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("namespaced ID: %w", err))
+	}
+
+	if err := r.ManagedModel.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("managed model: %w", err))
+	}
+
+	if err := r.PaymentSettlementBase.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("payment settlement base: %w", err))
+	}
+
+	return errors.Join(errs...)
 }
 
 func (r ExternalPaymentSettlement) ErrorAttributes() models.Attributes {
 	return models.Attributes{
 		PaymentSettlementStatusAttributeKey: string(r.Status),
 		PaymentSettlementTypeAttributeKey:   string(PaymentSettlementTypeExternal),
+		paymentSettlementIDAttributeKey:     r.ID,
 	}
 }

@@ -87,11 +87,6 @@ func DeletedAt(v time.Time) predicate.ChargeExternalPaymentSettlement {
 	return predicate.ChargeExternalPaymentSettlement(sql.FieldEQ(FieldDeletedAt, v))
 }
 
-// ChargeID applies equality check predicate on the "charge_id" field. It's identical to ChargeIDEQ.
-func ChargeID(v string) predicate.ChargeExternalPaymentSettlement {
-	return predicate.ChargeExternalPaymentSettlement(sql.FieldEQ(FieldChargeID, v))
-}
-
 // ServicePeriodFrom applies equality check predicate on the "service_period_from" field. It's identical to ServicePeriodFromEQ.
 func ServicePeriodFrom(v time.Time) predicate.ChargeExternalPaymentSettlement {
 	return predicate.ChargeExternalPaymentSettlement(sql.FieldEQ(FieldServicePeriodFrom, v))
@@ -330,71 +325,6 @@ func AnnotationsIsNil() predicate.ChargeExternalPaymentSettlement {
 // AnnotationsNotNil applies the NotNil predicate on the "annotations" field.
 func AnnotationsNotNil() predicate.ChargeExternalPaymentSettlement {
 	return predicate.ChargeExternalPaymentSettlement(sql.FieldNotNull(FieldAnnotations))
-}
-
-// ChargeIDEQ applies the EQ predicate on the "charge_id" field.
-func ChargeIDEQ(v string) predicate.ChargeExternalPaymentSettlement {
-	return predicate.ChargeExternalPaymentSettlement(sql.FieldEQ(FieldChargeID, v))
-}
-
-// ChargeIDNEQ applies the NEQ predicate on the "charge_id" field.
-func ChargeIDNEQ(v string) predicate.ChargeExternalPaymentSettlement {
-	return predicate.ChargeExternalPaymentSettlement(sql.FieldNEQ(FieldChargeID, v))
-}
-
-// ChargeIDIn applies the In predicate on the "charge_id" field.
-func ChargeIDIn(vs ...string) predicate.ChargeExternalPaymentSettlement {
-	return predicate.ChargeExternalPaymentSettlement(sql.FieldIn(FieldChargeID, vs...))
-}
-
-// ChargeIDNotIn applies the NotIn predicate on the "charge_id" field.
-func ChargeIDNotIn(vs ...string) predicate.ChargeExternalPaymentSettlement {
-	return predicate.ChargeExternalPaymentSettlement(sql.FieldNotIn(FieldChargeID, vs...))
-}
-
-// ChargeIDGT applies the GT predicate on the "charge_id" field.
-func ChargeIDGT(v string) predicate.ChargeExternalPaymentSettlement {
-	return predicate.ChargeExternalPaymentSettlement(sql.FieldGT(FieldChargeID, v))
-}
-
-// ChargeIDGTE applies the GTE predicate on the "charge_id" field.
-func ChargeIDGTE(v string) predicate.ChargeExternalPaymentSettlement {
-	return predicate.ChargeExternalPaymentSettlement(sql.FieldGTE(FieldChargeID, v))
-}
-
-// ChargeIDLT applies the LT predicate on the "charge_id" field.
-func ChargeIDLT(v string) predicate.ChargeExternalPaymentSettlement {
-	return predicate.ChargeExternalPaymentSettlement(sql.FieldLT(FieldChargeID, v))
-}
-
-// ChargeIDLTE applies the LTE predicate on the "charge_id" field.
-func ChargeIDLTE(v string) predicate.ChargeExternalPaymentSettlement {
-	return predicate.ChargeExternalPaymentSettlement(sql.FieldLTE(FieldChargeID, v))
-}
-
-// ChargeIDContains applies the Contains predicate on the "charge_id" field.
-func ChargeIDContains(v string) predicate.ChargeExternalPaymentSettlement {
-	return predicate.ChargeExternalPaymentSettlement(sql.FieldContains(FieldChargeID, v))
-}
-
-// ChargeIDHasPrefix applies the HasPrefix predicate on the "charge_id" field.
-func ChargeIDHasPrefix(v string) predicate.ChargeExternalPaymentSettlement {
-	return predicate.ChargeExternalPaymentSettlement(sql.FieldHasPrefix(FieldChargeID, v))
-}
-
-// ChargeIDHasSuffix applies the HasSuffix predicate on the "charge_id" field.
-func ChargeIDHasSuffix(v string) predicate.ChargeExternalPaymentSettlement {
-	return predicate.ChargeExternalPaymentSettlement(sql.FieldHasSuffix(FieldChargeID, v))
-}
-
-// ChargeIDEqualFold applies the EqualFold predicate on the "charge_id" field.
-func ChargeIDEqualFold(v string) predicate.ChargeExternalPaymentSettlement {
-	return predicate.ChargeExternalPaymentSettlement(sql.FieldEqualFold(FieldChargeID, v))
-}
-
-// ChargeIDContainsFold applies the ContainsFold predicate on the "charge_id" field.
-func ChargeIDContainsFold(v string) predicate.ChargeExternalPaymentSettlement {
-	return predicate.ChargeExternalPaymentSettlement(sql.FieldContainsFold(FieldChargeID, v))
 }
 
 // ServicePeriodFromEQ applies the EQ predicate on the "service_period_from" field.
@@ -802,7 +732,7 @@ func HasChargeCreditPurchase() predicate.ChargeExternalPaymentSettlement {
 	return predicate.ChargeExternalPaymentSettlement(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, ChargeCreditPurchaseTable, ChargeCreditPurchaseColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, ChargeCreditPurchaseTable, ChargeCreditPurchaseColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

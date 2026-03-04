@@ -6,16 +6,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func (s *service) PostPaymentAuthorized(ctx context.Context, charge charges.FlatFeeCharge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
-	paymentSettlement, paymentSettlementExists := s.getPaymentSettlementOrEmpty(charge, lineWithHeader.Line)
-
-	if paymentSettlementExists {
+	if charge.State.Payment != nil {
 		return charges.ErrPaymentAlreadyAuthorized.
 			WithAttrs(charge.ErrorAttributes()).
-			WithAttrs(paymentSettlement.ErrorAttributes())
+			WithAttrs(charge.State.Payment.ErrorAttributes())
 	}
 
 	ledgerTransactionGroupReference, err := s.flatFeeHandler.OnFlatFeePaymentAuthorized(ctx, charge)
@@ -23,26 +20,39 @@ func (s *service) PostPaymentAuthorized(ctx context.Context, charge charges.Flat
 		return err
 	}
 
-	paymentSettlement.Authorized = &charges.TimedLedgerTransactionGroupReference{
-		LedgerTransactionGroupReference: charges.LedgerTransactionGroupReference{
-			TransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
+	newPaymentSettlement := charges.StandardInvoicePaymentSettlementCreateInput{
+		Namespace: charge.Namespace,
+		LineID:    lineWithHeader.Line.ID,
+		PaymentSettlementBase: charges.PaymentSettlementBase{
+			ServicePeriod: charge.Intent.ServicePeriod,
+			Amount:        lineWithHeader.Line.Totals.Total,
+			Authorized: &charges.TimedLedgerTransactionGroupReference{
+				LedgerTransactionGroupReference: charges.LedgerTransactionGroupReference{
+					TransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
+				},
+				Time: clock.Now(),
+			},
+			Status: charges.PaymentSettlementStatusAuthorized,
 		},
-		Time: clock.Now(),
 	}
 
-	paymentSettlement.Status = charges.PaymentSettlementStatusAuthorized
+	paymentSettlement, err := s.adapter.CreateStandardInvoicePaymentSettlement(ctx, newPaymentSettlement)
+	if err != nil {
+		return err
+	}
 
-	_, err = s.adapter.CreateStandardInvoicePaymentSettlement(ctx, charge.GetChargeID(), paymentSettlement)
+	charge.State.Payment = &paymentSettlement
+	_, err = s.adapter.UpdateFlatFeeCharge(ctx, charge)
 
 	return err
 }
 
 func (s *service) PostPaymentSettled(ctx context.Context, charge charges.FlatFeeCharge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
-	paymentSettlement, paymentSettlementExists := s.getPaymentSettlementOrEmpty(charge, lineWithHeader.Line)
-
-	if !paymentSettlementExists {
+	if charge.State.Payment == nil {
 		return charges.ErrCannotSettleNotAuthorizedPayment.WithAttrs(charge.ErrorAttributes())
 	}
+
+	paymentSettlement := *charge.State.Payment
 
 	if paymentSettlement.Status != charges.PaymentSettlementStatusAuthorized {
 		return charges.ErrPaymentAlreadySettled.WithAttrs(charge.ErrorAttributes())
@@ -67,6 +77,7 @@ func (s *service) PostPaymentSettled(ctx context.Context, charge charges.FlatFee
 		return err
 	}
 
+	charge.State.Payment = &paymentSettlement
 	charge.Status = charges.ChargeStatusFinal
 
 	_, err = s.adapter.UpdateFlatFeeCharge(ctx, charge)
@@ -75,21 +86,4 @@ func (s *service) PostPaymentSettled(ctx context.Context, charge charges.FlatFee
 	}
 
 	return nil
-}
-
-func (s *service) getPaymentSettlementOrEmpty(charge charges.FlatFeeCharge, line *billing.StandardLine) (charges.StandardInvoicePaymentSettlement, bool) {
-	if charge.State.Payment != nil {
-		return *charge.State.Payment, true
-	}
-
-	return charges.StandardInvoicePaymentSettlement{
-		PaymentSettlementBase: charges.PaymentSettlementBase{
-			NamespacedID: models.NamespacedID{
-				Namespace: charge.Namespace,
-			},
-			ServicePeriod: charge.Intent.ServicePeriod,
-			Amount:        line.Totals.Total,
-		},
-		LineID: line.ID,
-	}, false
 }

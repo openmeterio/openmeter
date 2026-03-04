@@ -28,8 +28,6 @@ const (
 	FieldAnnotations = "annotations"
 	// FieldLineID holds the string denoting the line_id field in the database.
 	FieldLineID = "line_id"
-	// FieldChargeID holds the string denoting the charge_id field in the database.
-	FieldChargeID = "charge_id"
 	// FieldServicePeriodFrom holds the string denoting the service_period_from field in the database.
 	FieldServicePeriodFrom = "service_period_from"
 	// FieldServicePeriodTo holds the string denoting the service_period_to field in the database.
@@ -48,8 +46,8 @@ const (
 	FieldSettledAt = "settled_at"
 	// EdgeBillingInvoiceLine holds the string denoting the billing_invoice_line edge name in mutations.
 	EdgeBillingInvoiceLine = "billing_invoice_line"
-	// EdgeFlatFee holds the string denoting the flat_fee edge name in mutations.
-	EdgeFlatFee = "flat_fee"
+	// EdgeChargeFlatFee holds the string denoting the charge_flat_fee edge name in mutations.
+	EdgeChargeFlatFee = "charge_flat_fee"
 	// Table holds the table name of the chargestandardinvoicepaymentsettlement in the database.
 	Table = "charge_standard_invoice_payment_settlements"
 	// BillingInvoiceLineTable is the table that holds the billing_invoice_line relation/edge.
@@ -59,13 +57,13 @@ const (
 	BillingInvoiceLineInverseTable = "billing_invoice_lines"
 	// BillingInvoiceLineColumn is the table column denoting the billing_invoice_line relation/edge.
 	BillingInvoiceLineColumn = "line_id"
-	// FlatFeeTable is the table that holds the flat_fee relation/edge.
-	FlatFeeTable = "charge_standard_invoice_payment_settlements"
-	// FlatFeeInverseTable is the table name for the ChargeFlatFee entity.
+	// ChargeFlatFeeTable is the table that holds the charge_flat_fee relation/edge.
+	ChargeFlatFeeTable = "charge_flat_fees"
+	// ChargeFlatFeeInverseTable is the table name for the ChargeFlatFee entity.
 	// It exists in this package in order to avoid circular dependency with the "chargeflatfee" package.
-	FlatFeeInverseTable = "charge_flat_fees"
-	// FlatFeeColumn is the table column denoting the flat_fee relation/edge.
-	FlatFeeColumn = "charge_id"
+	ChargeFlatFeeInverseTable = "charge_flat_fees"
+	// ChargeFlatFeeColumn is the table column denoting the charge_flat_fee relation/edge.
+	ChargeFlatFeeColumn = "std_invoice_payment_settlement_id"
 )
 
 // Columns holds all SQL columns for chargestandardinvoicepaymentsettlement fields.
@@ -77,7 +75,6 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldAnnotations,
 	FieldLineID,
-	FieldChargeID,
 	FieldServicePeriodFrom,
 	FieldServicePeriodTo,
 	FieldStatus,
@@ -158,11 +155,6 @@ func ByLineID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLineID, opts...).ToFunc()
 }
 
-// ByChargeID orders the results by the charge_id field.
-func ByChargeID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldChargeID, opts...).ToFunc()
-}
-
 // ByServicePeriodFrom orders the results by the service_period_from field.
 func ByServicePeriodFrom(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldServicePeriodFrom, opts...).ToFunc()
@@ -210,10 +202,10 @@ func ByBillingInvoiceLineField(field string, opts ...sql.OrderTermOption) OrderO
 	}
 }
 
-// ByFlatFeeField orders the results by flat_fee field.
-func ByFlatFeeField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByChargeFlatFeeField orders the results by charge_flat_fee field.
+func ByChargeFlatFeeField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newFlatFeeStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newChargeFlatFeeStep(), sql.OrderByField(field, opts...))
 	}
 }
 func newBillingInvoiceLineStep() *sqlgraph.Step {
@@ -223,10 +215,10 @@ func newBillingInvoiceLineStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2O, true, BillingInvoiceLineTable, BillingInvoiceLineColumn),
 	)
 }
-func newFlatFeeStep() *sqlgraph.Step {
+func newChargeFlatFeeStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(FlatFeeInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, true, FlatFeeTable, FlatFeeColumn),
+		sqlgraph.To(ChargeFlatFeeInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, ChargeFlatFeeTable, ChargeFlatFeeColumn),
 	)
 }

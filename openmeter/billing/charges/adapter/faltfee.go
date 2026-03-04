@@ -37,15 +37,22 @@ func (a *adapter) UpdateFlatFeeCharge(ctx context.Context, charge charges.FlatFe
 			return charges.FlatFeeCharge{}, err
 		}
 
-		dbFlatFee, err := tx.db.ChargeFlatFee.UpdateOneID(charge.ID).
+		create := tx.db.ChargeFlatFee.UpdateOneID(charge.ID).
 			Where(dbchargeflatfee.NamespaceEQ(charge.Namespace)).
 			SetPaymentTerm(intent.PaymentTerm).
 			SetInvoiceAt(intent.InvoiceAt.In(time.UTC)).
 			SetDiscounts(discounts).
 			SetProRating(proRating).
 			SetAmountBeforeProration(intent.AmountBeforeProration).
-			SetAmountAfterProration(intent.AmountAfterProration).
-			Save(ctx)
+			SetAmountAfterProration(intent.AmountAfterProration)
+
+		if charge.State.Payment != nil {
+			create = create.SetStdInvoicePaymentSettlementID(charge.State.Payment.ID)
+		} else {
+			create = create.ClearStdInvoicePaymentSettlementID()
+		}
+
+		dbFlatFee, err := create.Save(ctx)
 		if err != nil {
 			return charges.FlatFeeCharge{}, err
 		}

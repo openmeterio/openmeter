@@ -105,7 +105,7 @@ func (_q *ChargeFlatFeeQuery) QueryChargeStandardInvoicePaymentSettlement() *Cha
 		step := sqlgraph.NewStep(
 			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, selector),
 			sqlgraph.To(chargestandardinvoicepaymentsettlement.Table, chargestandardinvoicepaymentsettlement.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, chargeflatfee.ChargeStandardInvoicePaymentSettlementTable, chargeflatfee.ChargeStandardInvoicePaymentSettlementColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, chargeflatfee.ChargeStandardInvoicePaymentSettlementTable, chargeflatfee.ChargeStandardInvoicePaymentSettlementColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -573,29 +573,34 @@ func (_q *ChargeFlatFeeQuery) loadCharge(ctx context.Context, query *ChargeQuery
 	return nil
 }
 func (_q *ChargeFlatFeeQuery) loadChargeStandardInvoicePaymentSettlement(ctx context.Context, query *ChargeStandardInvoicePaymentSettlementQuery, nodes []*ChargeFlatFee, init func(*ChargeFlatFee), assign func(*ChargeFlatFee, *ChargeStandardInvoicePaymentSettlement)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[string]*ChargeFlatFee)
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*ChargeFlatFee)
 	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
+		if nodes[i].StdInvoicePaymentSettlementID == nil {
+			continue
+		}
+		fk := *nodes[i].StdInvoicePaymentSettlementID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(chargestandardinvoicepaymentsettlement.FieldChargeID)
+	if len(ids) == 0 {
+		return nil
 	}
-	query.Where(predicate.ChargeStandardInvoicePaymentSettlement(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(chargeflatfee.ChargeStandardInvoicePaymentSettlementColumn), fks...))
-	}))
+	query.Where(chargestandardinvoicepaymentsettlement.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.ChargeID
-		node, ok := nodeids[fk]
+		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "charge_id" returned %v for node %v`, fk, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "std_invoice_payment_settlement_id" returned %v`, n.ID)
 		}
-		assign(node, n)
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }
@@ -684,6 +689,9 @@ func (_q *ChargeFlatFeeQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != chargeflatfee.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withChargeStandardInvoicePaymentSettlement != nil {
+			_spec.Node.AddColumnOnce(chargeflatfee.FieldStdInvoicePaymentSettlementID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

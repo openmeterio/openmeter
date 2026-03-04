@@ -81,12 +81,6 @@ func (_c *ChargeExternalPaymentSettlementCreate) SetAnnotations(v models.Annotat
 	return _c
 }
 
-// SetChargeID sets the "charge_id" field.
-func (_c *ChargeExternalPaymentSettlementCreate) SetChargeID(v string) *ChargeExternalPaymentSettlementCreate {
-	_c.mutation.SetChargeID(v)
-	return _c
-}
-
 // SetServicePeriodFrom sets the "service_period_from" field.
 func (_c *ChargeExternalPaymentSettlementCreate) SetServicePeriodFrom(v time.Time) *ChargeExternalPaymentSettlementCreate {
 	_c.mutation.SetServicePeriodFrom(v)
@@ -187,6 +181,14 @@ func (_c *ChargeExternalPaymentSettlementCreate) SetChargeCreditPurchaseID(id st
 	return _c
 }
 
+// SetNillableChargeCreditPurchaseID sets the "charge_credit_purchase" edge to the ChargeCreditPurchase entity by ID if the given value is not nil.
+func (_c *ChargeExternalPaymentSettlementCreate) SetNillableChargeCreditPurchaseID(id *string) *ChargeExternalPaymentSettlementCreate {
+	if id != nil {
+		_c = _c.SetChargeCreditPurchaseID(*id)
+	}
+	return _c
+}
+
 // SetChargeCreditPurchase sets the "charge_credit_purchase" edge to the ChargeCreditPurchase entity.
 func (_c *ChargeExternalPaymentSettlementCreate) SetChargeCreditPurchase(v *ChargeCreditPurchase) *ChargeExternalPaymentSettlementCreate {
 	return _c.SetChargeCreditPurchaseID(v.ID)
@@ -257,9 +259,6 @@ func (_c *ChargeExternalPaymentSettlementCreate) check() error {
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "ChargeExternalPaymentSettlement.updated_at"`)}
 	}
-	if _, ok := _c.mutation.ChargeID(); !ok {
-		return &ValidationError{Name: "charge_id", err: errors.New(`db: missing required field "ChargeExternalPaymentSettlement.charge_id"`)}
-	}
 	if _, ok := _c.mutation.ServicePeriodFrom(); !ok {
 		return &ValidationError{Name: "service_period_from", err: errors.New(`db: missing required field "ChargeExternalPaymentSettlement.service_period_from"`)}
 	}
@@ -286,9 +285,6 @@ func (_c *ChargeExternalPaymentSettlementCreate) check() error {
 		if err := chargeexternalpaymentsettlement.SettledTransactionGroupIDValidator(v); err != nil {
 			return &ValidationError{Name: "settled_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeExternalPaymentSettlement.settled_transaction_group_id": %w`, err)}
 		}
-	}
-	if len(_c.mutation.ChargeCreditPurchaseIDs()) == 0 {
-		return &ValidationError{Name: "charge_credit_purchase", err: errors.New(`db: missing required edge "ChargeExternalPaymentSettlement.charge_credit_purchase"`)}
 	}
 	return nil
 }
@@ -381,7 +377,7 @@ func (_c *ChargeExternalPaymentSettlementCreate) createSpec() (*ChargeExternalPa
 	if nodes := _c.mutation.ChargeCreditPurchaseIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
-			Inverse: true,
+			Inverse: false,
 			Table:   chargeexternalpaymentsettlement.ChargeCreditPurchaseTable,
 			Columns: []string{chargeexternalpaymentsettlement.ChargeCreditPurchaseColumn},
 			Bidi:    false,
@@ -392,7 +388,6 @@ func (_c *ChargeExternalPaymentSettlementCreate) createSpec() (*ChargeExternalPa
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.ChargeID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -637,9 +632,6 @@ func (u *ChargeExternalPaymentSettlementUpsertOne) UpdateNewValues() *ChargeExte
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(chargeexternalpaymentsettlement.FieldCreatedAt)
-		}
-		if _, exists := u.create.mutation.ChargeID(); exists {
-			s.SetIgnore(chargeexternalpaymentsettlement.FieldChargeID)
 		}
 	}))
 	return u
@@ -1056,9 +1048,6 @@ func (u *ChargeExternalPaymentSettlementUpsertBulk) UpdateNewValues() *ChargeExt
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(chargeexternalpaymentsettlement.FieldCreatedAt)
-			}
-			if _, exists := b.mutation.ChargeID(); exists {
-				s.SetIgnore(chargeexternalpaymentsettlement.FieldChargeID)
 			}
 		}
 	}))

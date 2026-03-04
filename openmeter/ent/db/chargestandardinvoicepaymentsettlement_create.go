@@ -88,12 +88,6 @@ func (_c *ChargeStandardInvoicePaymentSettlementCreate) SetLineID(v string) *Cha
 	return _c
 }
 
-// SetChargeID sets the "charge_id" field.
-func (_c *ChargeStandardInvoicePaymentSettlementCreate) SetChargeID(v string) *ChargeStandardInvoicePaymentSettlementCreate {
-	_c.mutation.SetChargeID(v)
-	return _c
-}
-
 // SetServicePeriodFrom sets the "service_period_from" field.
 func (_c *ChargeStandardInvoicePaymentSettlementCreate) SetServicePeriodFrom(v time.Time) *ChargeStandardInvoicePaymentSettlementCreate {
 	_c.mutation.SetServicePeriodFrom(v)
@@ -199,15 +193,23 @@ func (_c *ChargeStandardInvoicePaymentSettlementCreate) SetBillingInvoiceLine(v 
 	return _c.SetBillingInvoiceLineID(v.ID)
 }
 
-// SetFlatFeeID sets the "flat_fee" edge to the ChargeFlatFee entity by ID.
-func (_c *ChargeStandardInvoicePaymentSettlementCreate) SetFlatFeeID(id string) *ChargeStandardInvoicePaymentSettlementCreate {
-	_c.mutation.SetFlatFeeID(id)
+// SetChargeFlatFeeID sets the "charge_flat_fee" edge to the ChargeFlatFee entity by ID.
+func (_c *ChargeStandardInvoicePaymentSettlementCreate) SetChargeFlatFeeID(id string) *ChargeStandardInvoicePaymentSettlementCreate {
+	_c.mutation.SetChargeFlatFeeID(id)
 	return _c
 }
 
-// SetFlatFee sets the "flat_fee" edge to the ChargeFlatFee entity.
-func (_c *ChargeStandardInvoicePaymentSettlementCreate) SetFlatFee(v *ChargeFlatFee) *ChargeStandardInvoicePaymentSettlementCreate {
-	return _c.SetFlatFeeID(v.ID)
+// SetNillableChargeFlatFeeID sets the "charge_flat_fee" edge to the ChargeFlatFee entity by ID if the given value is not nil.
+func (_c *ChargeStandardInvoicePaymentSettlementCreate) SetNillableChargeFlatFeeID(id *string) *ChargeStandardInvoicePaymentSettlementCreate {
+	if id != nil {
+		_c = _c.SetChargeFlatFeeID(*id)
+	}
+	return _c
+}
+
+// SetChargeFlatFee sets the "charge_flat_fee" edge to the ChargeFlatFee entity.
+func (_c *ChargeStandardInvoicePaymentSettlementCreate) SetChargeFlatFee(v *ChargeFlatFee) *ChargeStandardInvoicePaymentSettlementCreate {
+	return _c.SetChargeFlatFeeID(v.ID)
 }
 
 // Mutation returns the ChargeStandardInvoicePaymentSettlementMutation object of the builder.
@@ -278,9 +280,6 @@ func (_c *ChargeStandardInvoicePaymentSettlementCreate) check() error {
 	if _, ok := _c.mutation.LineID(); !ok {
 		return &ValidationError{Name: "line_id", err: errors.New(`db: missing required field "ChargeStandardInvoicePaymentSettlement.line_id"`)}
 	}
-	if _, ok := _c.mutation.ChargeID(); !ok {
-		return &ValidationError{Name: "charge_id", err: errors.New(`db: missing required field "ChargeStandardInvoicePaymentSettlement.charge_id"`)}
-	}
 	if _, ok := _c.mutation.ServicePeriodFrom(); !ok {
 		return &ValidationError{Name: "service_period_from", err: errors.New(`db: missing required field "ChargeStandardInvoicePaymentSettlement.service_period_from"`)}
 	}
@@ -310,9 +309,6 @@ func (_c *ChargeStandardInvoicePaymentSettlementCreate) check() error {
 	}
 	if len(_c.mutation.BillingInvoiceLineIDs()) == 0 {
 		return &ValidationError{Name: "billing_invoice_line", err: errors.New(`db: missing required edge "ChargeStandardInvoicePaymentSettlement.billing_invoice_line"`)}
-	}
-	if len(_c.mutation.FlatFeeIDs()) == 0 {
-		return &ValidationError{Name: "flat_fee", err: errors.New(`db: missing required edge "ChargeStandardInvoicePaymentSettlement.flat_fee"`)}
 	}
 	return nil
 }
@@ -419,12 +415,12 @@ func (_c *ChargeStandardInvoicePaymentSettlementCreate) createSpec() (*ChargeSta
 		_node.LineID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.FlatFeeIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.ChargeFlatFeeIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
-			Inverse: true,
-			Table:   chargestandardinvoicepaymentsettlement.FlatFeeTable,
-			Columns: []string{chargestandardinvoicepaymentsettlement.FlatFeeColumn},
+			Inverse: false,
+			Table:   chargestandardinvoicepaymentsettlement.ChargeFlatFeeTable,
+			Columns: []string{chargestandardinvoicepaymentsettlement.ChargeFlatFeeColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
@@ -433,7 +429,6 @@ func (_c *ChargeStandardInvoicePaymentSettlementCreate) createSpec() (*ChargeSta
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.ChargeID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -681,9 +676,6 @@ func (u *ChargeStandardInvoicePaymentSettlementUpsertOne) UpdateNewValues() *Cha
 		}
 		if _, exists := u.create.mutation.LineID(); exists {
 			s.SetIgnore(chargestandardinvoicepaymentsettlement.FieldLineID)
-		}
-		if _, exists := u.create.mutation.ChargeID(); exists {
-			s.SetIgnore(chargestandardinvoicepaymentsettlement.FieldChargeID)
 		}
 	}))
 	return u
@@ -1103,9 +1095,6 @@ func (u *ChargeStandardInvoicePaymentSettlementUpsertBulk) UpdateNewValues() *Ch
 			}
 			if _, exists := b.mutation.LineID(); exists {
 				s.SetIgnore(chargestandardinvoicepaymentsettlement.FieldLineID)
-			}
-			if _, exists := b.mutation.ChargeID(); exists {
-				s.SetIgnore(chargestandardinvoicepaymentsettlement.FieldChargeID)
 			}
 		}
 	}))
