@@ -151,7 +151,7 @@ func MapCreditPurchaseChargeFromDB(entity *entdb.Charge, expands charges.Expands
 	cp := entity.Edges.CreditPurchase
 
 	var grantLedgerTransactionReference *charges.TimedLedgerTransactionGroupReference
-	if cp.CreditGrantTransactionGroupID != nil {
+	if cp.CreditGrantTransactionGroupID != nil && cp.CreditGrantedAt != nil {
 		grantLedgerTransactionReference = &charges.TimedLedgerTransactionGroupReference{
 			LedgerTransactionGroupReference: charges.LedgerTransactionGroupReference{
 				TransactionGroupID: *cp.CreditGrantTransactionGroupID,

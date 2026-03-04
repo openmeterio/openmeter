@@ -275,7 +275,7 @@ func (s *CreditPurchaseSettlement) UnmarshalJSON(bytes []byte) error {
 	case CreditPurchaseSettlementTypeExternal:
 		v := &ExternalCreditPurchaseSettlement{}
 		if err := json.Unmarshal(bytes, v); err != nil {
-			return fmt.Errorf("failed to JSON deserialize ExternalAuthorizedCreditPurchaseSettlement: %w", err)
+			return fmt.Errorf("failed to JSON deserialize ExternalCreditPurchaseSettlement: %w", err)
 		}
 
 		s.external = v
@@ -437,13 +437,13 @@ type CreditPurchaseOrchestrator interface {
 //
 // Promotional credit purchases are handled by the OnPromotionalCreditPurchase method only.
 //
-// Cost basis > 0 credit purchases are handled by the OnCreditPurchase method, which is the initial call.
+// Cost basis > 0 credit purchases are handled by the OnCreditPurchaseInitiated method, which is the initial call.
 // Happy path:
-// - OnCreditPurchase is called
+// - OnCreditPurchaseInitiated is called
 // - OnCreditPurchasePaymentAuthorized is called
 // - OnCreditPurchasePaymentSettled is called
 //
-// Failed payment can occur either after the OnCreditPurchase or after the OnCreditPurchasePaymentAuthorized call.
+// Failed payment can occur either after the OnCreditPurchaseInitiated or after the OnCreditPurchasePaymentAuthorized call.
 
 type CreditPurchaseHandler interface {
 	// Promotional credit handler methods (cost basis == 0)
