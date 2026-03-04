@@ -521,8 +521,8 @@ func (s *ChargesServiceTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettle
 	)
 
 	// First the initiated callback should be called, without any grant realizations or payment settlements
-	initatedCallback := newCountedLedgerTransactionCallback[charges.CreditPurchaseCharge]()
-	s.CreditPurchaseTestHandler.onCreditPurchaseInitiated = initatedCallback.Handler(s.T(), func(t *testing.T, charge charges.CreditPurchaseCharge) {
+	initiatedCallback := newCountedLedgerTransactionCallback[charges.CreditPurchaseCharge]()
+	s.CreditPurchaseTestHandler.onCreditPurchaseInitiated = initiatedCallback.Handler(s.T(), func(t *testing.T, charge charges.CreditPurchaseCharge) {
 		assert.Equal(t, charge.Intent.Settlement.Type(), charges.CreditPurchaseSettlementTypeExternal)
 		assert.Nil(t, charge.State.CreditGrantRealization, "credit grant realization should not be set")
 		assert.Nil(t, charge.State.ExternalPaymentSettlement, "external payment settlement should not be set")
@@ -533,7 +533,7 @@ func (s *ChargesServiceTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettle
 	s.CreditPurchaseTestHandler.onCreditPurchasePaymentAuthorized = authorizedCallback.Handler(s.T(), func(t *testing.T, charge charges.CreditPurchaseCharge) {
 		assert.Equal(t, charge.Intent.Settlement.Type(), charges.CreditPurchaseSettlementTypeExternal)
 		assert.NotNil(t, charge.State.CreditGrantRealization, "credit grant realization should be set")
-		assert.Equal(t, initatedCallback.id, charge.State.CreditGrantRealization.LedgerTransactionGroupReference.TransactionGroupID)
+		assert.Equal(t, initiatedCallback.id, charge.State.CreditGrantRealization.LedgerTransactionGroupReference.TransactionGroupID)
 		assert.Nil(t, charge.State.ExternalPaymentSettlement)
 		assert.Equal(t, charges.ChargeStatusActive, charge.Status, "charge status should be active")
 	})
@@ -560,7 +560,7 @@ func (s *ChargesServiceTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettle
 	s.Equal(charges.ChargeTypeCreditPurchase, res[0].Type())
 
 	// All callback should have been invoked only once
-	s.Equal(1, initatedCallback.nrInvocations)
+	s.Equal(1, initiatedCallback.nrInvocations)
 	s.Equal(1, authorizedCallback.nrInvocations)
 	s.Equal(1, settledCallback.nrInvocations)
 
@@ -580,7 +580,7 @@ func (s *ChargesServiceTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettle
 			s.NoError(err)
 			// Credit grant realization should be set
 			s.NotNil(creditPurchaseCharge.State.CreditGrantRealization)
-			s.Equal(initatedCallback.id, creditPurchaseCharge.State.CreditGrantRealization.LedgerTransactionGroupReference.TransactionGroupID)
+			s.Equal(initiatedCallback.id, creditPurchaseCharge.State.CreditGrantRealization.LedgerTransactionGroupReference.TransactionGroupID)
 
 			// Payment settlement should be set
 			s.NotNil(creditPurchaseCharge.State.ExternalPaymentSettlement, "external payment settlement should be set")
