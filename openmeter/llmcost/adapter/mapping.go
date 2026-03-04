@@ -58,7 +58,7 @@ func mapPriceFromEntity(entity *db.LLMCostPrice) (llmcost.Price, error) {
 // decimalOrZero returns the decimal value or zero if the pointer is nil.
 func decimalOrZero(d *alpacadecimal.Decimal) alpacadecimal.Decimal {
 	if d == nil {
-		return alpacadecimal.Decimal{}
+		return alpacadecimal.Zero
 	}
 
 	return *d

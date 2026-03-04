@@ -61,6 +61,7 @@ func (LLMCostPrice) Fields() []ent.Field {
 			}).
 			Default(alpacadecimal.Decimal{}),
 		field.String("currency").
+			NotEmpty().
 			Default("USD"),
 		field.String("source").
 			NotEmpty(),

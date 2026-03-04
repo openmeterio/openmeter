@@ -27,11 +27,8 @@ func domainPriceToAPI(p llmcost.Price) api.LLMCostPrice {
 		Currency:      p.Currency,
 		Source:        source,
 		EffectiveFrom: p.EffectiveFrom,
+		EffectiveTo:   p.EffectiveTo,
 		Pricing:       domainPricingToAPI(p.Pricing),
-	}
-
-	if p.EffectiveTo != nil {
-		out.EffectiveTo = p.EffectiveTo
 	}
 
 	if !p.CreatedAt.IsZero() {
@@ -144,14 +141,21 @@ func apiCreateOverrideToDomain(ns string, body api.LLMCostOverrideCreate) (llmco
 }
 
 func decimalFromString(s string) (alpacadecimal.Decimal, error) {
-	return alpacadecimal.NewFromString(s)
+	v, err := alpacadecimal.NewFromString(s)
+	if err != nil {
+		return alpacadecimal.Decimal{}, models.NewGenericValidationError(
+			fmt.Errorf("invalid decimal: %w", err),
+		)
+	}
+
+	return v, nil
 }
 
 // filterSingleStringToDomain converts an API FilterSingleString to the domain StringFilter.
 // Returns nil if the input is nil or empty.
-func filterSingleStringToDomain(f *api.FilterSingleString) *filters.StringFilter {
+func filterSingleStringToDomain(f *api.FilterSingleString) (*filters.StringFilter, error) {
 	if f == nil {
-		return nil
+		return nil, nil
 	}
 
 	out := &filters.StringFilter{
@@ -160,9 +164,13 @@ func filterSingleStringToDomain(f *api.FilterSingleString) *filters.StringFilter
 		Contains: f.Contains,
 	}
 
-	if out.IsEmpty() {
-		return nil
+	if err := out.Validate(); err != nil {
+		return nil, models.NewGenericValidationError(err)
 	}
 
-	return out
+	if out.IsEmpty() {
+		return nil, nil
+	}
+
+	return out, nil
 }

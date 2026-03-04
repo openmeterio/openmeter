@@ -1,5 +1,7 @@
 package filters
 
+import "errors"
+
 // StringFilter represents a filter operation on a string field.
 // Exactly one of Eq, Neq, or Contains should be set.
 type StringFilter struct {
@@ -16,4 +18,26 @@ type StringFilter struct {
 // IsEmpty returns true if no filter operator is set.
 func (f StringFilter) IsEmpty() bool {
 	return f.Eq == nil && f.Neq == nil && f.Contains == nil
+}
+
+// Validate validates the filter.
+func (f StringFilter) Validate() error {
+	if f.IsEmpty() {
+		return nil
+	}
+
+	// Check for mutually exclusive filters
+	if f.Eq != nil && f.Neq != nil {
+		return errors.New("eq and neq cannot be set at the same time")
+	}
+
+	if f.Contains != nil && f.Eq != nil {
+		return errors.New("contains and eq cannot be set at the same time")
+	}
+
+	if f.Contains != nil && f.Neq != nil {
+		return errors.New("contains and neq cannot be set at the same time")
+	}
+
+	return nil
 }

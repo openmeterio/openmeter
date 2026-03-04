@@ -341,6 +341,11 @@ func (_c *LLMCostPriceCreate) check() error {
 	if _, ok := _c.mutation.Currency(); !ok {
 		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "LLMCostPrice.currency"`)}
 	}
+	if v, ok := _c.mutation.Currency(); ok {
+		if err := llmcostprice.CurrencyValidator(v); err != nil {
+			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "LLMCostPrice.currency": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Source(); !ok {
 		return &ValidationError{Name: "source", err: errors.New(`db: missing required field "LLMCostPrice.source"`)}
 	}

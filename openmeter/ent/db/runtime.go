@@ -1425,6 +1425,8 @@ func init() {
 	llmcostpriceDescCurrency := llmcostpriceFields[9].Descriptor()
 	// llmcostprice.DefaultCurrency holds the default value on creation for the currency field.
 	llmcostprice.DefaultCurrency = llmcostpriceDescCurrency.Default.(string)
+	// llmcostprice.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	llmcostprice.CurrencyValidator = llmcostpriceDescCurrency.Validators[0].(func(string) error)
 	// llmcostpriceDescSource is the schema descriptor for source field.
 	llmcostpriceDescSource := llmcostpriceFields[10].Descriptor()
 	// llmcostprice.SourceValidator is a validator for the "source" field. It is called by the builders before save.

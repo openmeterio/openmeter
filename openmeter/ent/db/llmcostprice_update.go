@@ -327,6 +327,11 @@ func (_u *LLMCostPriceUpdate) check() error {
 			return &ValidationError{Name: "model_id", err: fmt.Errorf(`db: validator failed for field "LLMCostPrice.model_id": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Currency(); ok {
+		if err := llmcostprice.CurrencyValidator(v); err != nil {
+			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "LLMCostPrice.currency": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Source(); ok {
 		if err := llmcostprice.SourceValidator(v); err != nil {
 			return &ValidationError{Name: "source", err: fmt.Errorf(`db: validator failed for field "LLMCostPrice.source": %w`, err)}
@@ -745,6 +750,11 @@ func (_u *LLMCostPriceUpdateOne) check() error {
 	if v, ok := _u.mutation.ModelID(); ok {
 		if err := llmcostprice.ModelIDValidator(v); err != nil {
 			return &ValidationError{Name: "model_id", err: fmt.Errorf(`db: validator failed for field "LLMCostPrice.model_id": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Currency(); ok {
+		if err := llmcostprice.CurrencyValidator(v); err != nil {
+			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "LLMCostPrice.currency": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Source(); ok {

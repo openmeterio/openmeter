@@ -35,6 +35,9 @@ func (h *handler) ListOverrides() ListOverridesHandler {
 				Namespace: ns,
 			}
 
+			// Pagination
+			req.Page = pagination.NewPage(1, 20)
+
 			if params.Page != nil {
 				req.Page = pagination.NewPage(
 					lo.FromPtrOr(params.Page.Number, 1),
@@ -46,15 +49,33 @@ func (h *handler) ListOverrides() ListOverridesHandler {
 						{Field: "page", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
-			} else {
-				req.Page = pagination.NewPage(1, 20)
 			}
 
+			// Filters
 			if params.Filter != nil {
-				req.Provider = filterSingleStringToDomain(params.Filter.Provider)
-				req.ModelID = filterSingleStringToDomain(params.Filter.ModelId)
-				req.ModelName = filterSingleStringToDomain(params.Filter.ModelName)
-				req.Currency = filterSingleStringToDomain(params.Filter.Currency)
+				provider, err := filterSingleStringToDomain(params.Filter.Provider)
+				if err != nil {
+					return req, err
+				}
+				req.Provider = provider
+
+				modelID, err := filterSingleStringToDomain(params.Filter.ModelId)
+				if err != nil {
+					return req, err
+				}
+				req.ModelID = modelID
+
+				modelName, err := filterSingleStringToDomain(params.Filter.ModelName)
+				if err != nil {
+					return req, err
+				}
+				req.ModelName = modelName
+
+				currency, err := filterSingleStringToDomain(params.Filter.Currency)
+				if err != nil {
+					return req, err
+				}
+				req.Currency = currency
 			}
 
 			return req, nil
