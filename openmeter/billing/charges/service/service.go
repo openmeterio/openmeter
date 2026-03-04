@@ -30,6 +30,10 @@ func (h Handlers) Validate() error {
 		errs = append(errs, errors.New("flat fee handler cannot be null"))
 	}
 
+	if h.CreditPurchase == nil {
+		errs = append(errs, errors.New("credit purchase handler cannot be null"))
+	}
+
 	return errors.Join(errs...)
 }
 
