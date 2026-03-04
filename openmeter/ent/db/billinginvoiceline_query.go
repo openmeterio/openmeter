@@ -22,8 +22,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoiceaccruedusage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicepaymentsettlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/standardinvoicesettlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -32,26 +34,28 @@ import (
 // BillingInvoiceLineQuery is the builder for querying BillingInvoiceLine entities.
 type BillingInvoiceLineQuery struct {
 	config
-	ctx                           *QueryContext
-	order                         []billinginvoiceline.OrderOption
-	inters                        []Interceptor
-	predicates                    []predicate.BillingInvoiceLine
-	withBillingInvoice            *BillingInvoiceQuery
-	withSplitLineGroup            *BillingInvoiceSplitLineGroupQuery
-	withFlatFeeLine               *BillingInvoiceFlatFeeLineConfigQuery
-	withUsageBasedLine            *BillingInvoiceUsageBasedLineConfigQuery
-	withParentLine                *BillingInvoiceLineQuery
-	withDetailedLines             *BillingInvoiceLineQuery
-	withDetailedLinesV2           *BillingStandardInvoiceDetailedLineQuery
-	withLineUsageDiscounts        *BillingInvoiceLineUsageDiscountQuery
-	withLineAmountDiscounts       *BillingInvoiceLineDiscountQuery
-	withSubscription              *SubscriptionQuery
-	withSubscriptionPhase         *SubscriptionPhaseQuery
-	withSubscriptionItem          *SubscriptionItemQuery
-	withCharge                    *ChargeQuery
-	withStandardInvoiceSettlments *StandardInvoiceSettlementQuery
-	withFKs                       bool
-	modifiers                     []func(*sql.Selector)
+	ctx                                        *QueryContext
+	order                                      []billinginvoiceline.OrderOption
+	inters                                     []Interceptor
+	predicates                                 []predicate.BillingInvoiceLine
+	withBillingInvoice                         *BillingInvoiceQuery
+	withSplitLineGroup                         *BillingInvoiceSplitLineGroupQuery
+	withFlatFeeLine                            *BillingInvoiceFlatFeeLineConfigQuery
+	withUsageBasedLine                         *BillingInvoiceUsageBasedLineConfigQuery
+	withParentLine                             *BillingInvoiceLineQuery
+	withDetailedLines                          *BillingInvoiceLineQuery
+	withDetailedLinesV2                        *BillingStandardInvoiceDetailedLineQuery
+	withLineUsageDiscounts                     *BillingInvoiceLineUsageDiscountQuery
+	withLineAmountDiscounts                    *BillingInvoiceLineDiscountQuery
+	withSubscription                           *SubscriptionQuery
+	withSubscriptionPhase                      *SubscriptionPhaseQuery
+	withSubscriptionItem                       *SubscriptionItemQuery
+	withCharge                                 *ChargeQuery
+	withChargeStandardInvoicePaymentSettlement *ChargeStandardInvoicePaymentSettlementQuery
+	withChargeCreditRealization                *ChargeCreditRealizationQuery
+	withChargeStandardInvoiceAccruedUsage      *ChargeStandardInvoiceAccruedUsageQuery
+	withFKs                                    bool
+	modifiers                                  []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -374,9 +378,9 @@ func (_q *BillingInvoiceLineQuery) QueryCharge() *ChargeQuery {
 	return query
 }
 
-// QueryStandardInvoiceSettlments chains the current query on the "standard_invoice_settlments" edge.
-func (_q *BillingInvoiceLineQuery) QueryStandardInvoiceSettlments() *StandardInvoiceSettlementQuery {
-	query := (&StandardInvoiceSettlementClient{config: _q.config}).Query()
+// QueryChargeStandardInvoicePaymentSettlement chains the current query on the "charge_standard_invoice_payment_settlement" edge.
+func (_q *BillingInvoiceLineQuery) QueryChargeStandardInvoicePaymentSettlement() *ChargeStandardInvoicePaymentSettlementQuery {
+	query := (&ChargeStandardInvoicePaymentSettlementClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -387,8 +391,52 @@ func (_q *BillingInvoiceLineQuery) QueryStandardInvoiceSettlments() *StandardInv
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
-			sqlgraph.To(standardinvoicesettlement.Table, standardinvoicesettlement.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, billinginvoiceline.StandardInvoiceSettlmentsTable, billinginvoiceline.StandardInvoiceSettlmentsColumn),
+			sqlgraph.To(chargestandardinvoicepaymentsettlement.Table, chargestandardinvoicepaymentsettlement.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, billinginvoiceline.ChargeStandardInvoicePaymentSettlementTable, billinginvoiceline.ChargeStandardInvoicePaymentSettlementColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryChargeCreditRealization chains the current query on the "charge_credit_realization" edge.
+func (_q *BillingInvoiceLineQuery) QueryChargeCreditRealization() *ChargeCreditRealizationQuery {
+	query := (&ChargeCreditRealizationClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
+			sqlgraph.To(chargecreditrealization.Table, chargecreditrealization.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoiceline.ChargeCreditRealizationTable, billinginvoiceline.ChargeCreditRealizationColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryChargeStandardInvoiceAccruedUsage chains the current query on the "charge_standard_invoice_accrued_usage" edge.
+func (_q *BillingInvoiceLineQuery) QueryChargeStandardInvoiceAccruedUsage() *ChargeStandardInvoiceAccruedUsageQuery {
+	query := (&ChargeStandardInvoiceAccruedUsageClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
+			sqlgraph.To(chargestandardinvoiceaccruedusage.Table, chargestandardinvoiceaccruedusage.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billinginvoiceline.ChargeStandardInvoiceAccruedUsageTable, billinginvoiceline.ChargeStandardInvoiceAccruedUsageColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -583,25 +631,27 @@ func (_q *BillingInvoiceLineQuery) Clone() *BillingInvoiceLineQuery {
 		return nil
 	}
 	return &BillingInvoiceLineQuery{
-		config:                        _q.config,
-		ctx:                           _q.ctx.Clone(),
-		order:                         append([]billinginvoiceline.OrderOption{}, _q.order...),
-		inters:                        append([]Interceptor{}, _q.inters...),
-		predicates:                    append([]predicate.BillingInvoiceLine{}, _q.predicates...),
-		withBillingInvoice:            _q.withBillingInvoice.Clone(),
-		withSplitLineGroup:            _q.withSplitLineGroup.Clone(),
-		withFlatFeeLine:               _q.withFlatFeeLine.Clone(),
-		withUsageBasedLine:            _q.withUsageBasedLine.Clone(),
-		withParentLine:                _q.withParentLine.Clone(),
-		withDetailedLines:             _q.withDetailedLines.Clone(),
-		withDetailedLinesV2:           _q.withDetailedLinesV2.Clone(),
-		withLineUsageDiscounts:        _q.withLineUsageDiscounts.Clone(),
-		withLineAmountDiscounts:       _q.withLineAmountDiscounts.Clone(),
-		withSubscription:              _q.withSubscription.Clone(),
-		withSubscriptionPhase:         _q.withSubscriptionPhase.Clone(),
-		withSubscriptionItem:          _q.withSubscriptionItem.Clone(),
-		withCharge:                    _q.withCharge.Clone(),
-		withStandardInvoiceSettlments: _q.withStandardInvoiceSettlments.Clone(),
+		config:                  _q.config,
+		ctx:                     _q.ctx.Clone(),
+		order:                   append([]billinginvoiceline.OrderOption{}, _q.order...),
+		inters:                  append([]Interceptor{}, _q.inters...),
+		predicates:              append([]predicate.BillingInvoiceLine{}, _q.predicates...),
+		withBillingInvoice:      _q.withBillingInvoice.Clone(),
+		withSplitLineGroup:      _q.withSplitLineGroup.Clone(),
+		withFlatFeeLine:         _q.withFlatFeeLine.Clone(),
+		withUsageBasedLine:      _q.withUsageBasedLine.Clone(),
+		withParentLine:          _q.withParentLine.Clone(),
+		withDetailedLines:       _q.withDetailedLines.Clone(),
+		withDetailedLinesV2:     _q.withDetailedLinesV2.Clone(),
+		withLineUsageDiscounts:  _q.withLineUsageDiscounts.Clone(),
+		withLineAmountDiscounts: _q.withLineAmountDiscounts.Clone(),
+		withSubscription:        _q.withSubscription.Clone(),
+		withSubscriptionPhase:   _q.withSubscriptionPhase.Clone(),
+		withSubscriptionItem:    _q.withSubscriptionItem.Clone(),
+		withCharge:              _q.withCharge.Clone(),
+		withChargeStandardInvoicePaymentSettlement: _q.withChargeStandardInvoicePaymentSettlement.Clone(),
+		withChargeCreditRealization:                _q.withChargeCreditRealization.Clone(),
+		withChargeStandardInvoiceAccruedUsage:      _q.withChargeStandardInvoiceAccruedUsage.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -751,14 +801,36 @@ func (_q *BillingInvoiceLineQuery) WithCharge(opts ...func(*ChargeQuery)) *Billi
 	return _q
 }
 
-// WithStandardInvoiceSettlments tells the query-builder to eager-load the nodes that are connected to
-// the "standard_invoice_settlments" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *BillingInvoiceLineQuery) WithStandardInvoiceSettlments(opts ...func(*StandardInvoiceSettlementQuery)) *BillingInvoiceLineQuery {
-	query := (&StandardInvoiceSettlementClient{config: _q.config}).Query()
+// WithChargeStandardInvoicePaymentSettlement tells the query-builder to eager-load the nodes that are connected to
+// the "charge_standard_invoice_payment_settlement" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BillingInvoiceLineQuery) WithChargeStandardInvoicePaymentSettlement(opts ...func(*ChargeStandardInvoicePaymentSettlementQuery)) *BillingInvoiceLineQuery {
+	query := (&ChargeStandardInvoicePaymentSettlementClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withStandardInvoiceSettlments = query
+	_q.withChargeStandardInvoicePaymentSettlement = query
+	return _q
+}
+
+// WithChargeCreditRealization tells the query-builder to eager-load the nodes that are connected to
+// the "charge_credit_realization" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BillingInvoiceLineQuery) WithChargeCreditRealization(opts ...func(*ChargeCreditRealizationQuery)) *BillingInvoiceLineQuery {
+	query := (&ChargeCreditRealizationClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withChargeCreditRealization = query
+	return _q
+}
+
+// WithChargeStandardInvoiceAccruedUsage tells the query-builder to eager-load the nodes that are connected to
+// the "charge_standard_invoice_accrued_usage" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BillingInvoiceLineQuery) WithChargeStandardInvoiceAccruedUsage(opts ...func(*ChargeStandardInvoiceAccruedUsageQuery)) *BillingInvoiceLineQuery {
+	query := (&ChargeStandardInvoiceAccruedUsageClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withChargeStandardInvoiceAccruedUsage = query
 	return _q
 }
 
@@ -841,7 +913,7 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 		nodes       = []*BillingInvoiceLine{}
 		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
-		loadedTypes = [14]bool{
+		loadedTypes = [16]bool{
 			_q.withBillingInvoice != nil,
 			_q.withSplitLineGroup != nil,
 			_q.withFlatFeeLine != nil,
@@ -855,10 +927,12 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 			_q.withSubscriptionPhase != nil,
 			_q.withSubscriptionItem != nil,
 			_q.withCharge != nil,
-			_q.withStandardInvoiceSettlments != nil,
+			_q.withChargeStandardInvoicePaymentSettlement != nil,
+			_q.withChargeCreditRealization != nil,
+			_q.withChargeStandardInvoiceAccruedUsage != nil,
 		}
 	)
-	if _q.withFlatFeeLine != nil || _q.withUsageBasedLine != nil || _q.withStandardInvoiceSettlments != nil {
+	if _q.withFlatFeeLine != nil || _q.withUsageBasedLine != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -975,9 +1049,31 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 			return nil, err
 		}
 	}
-	if query := _q.withStandardInvoiceSettlments; query != nil {
-		if err := _q.loadStandardInvoiceSettlments(ctx, query, nodes, nil,
-			func(n *BillingInvoiceLine, e *StandardInvoiceSettlement) { n.Edges.StandardInvoiceSettlments = e }); err != nil {
+	if query := _q.withChargeStandardInvoicePaymentSettlement; query != nil {
+		if err := _q.loadChargeStandardInvoicePaymentSettlement(ctx, query, nodes, nil,
+			func(n *BillingInvoiceLine, e *ChargeStandardInvoicePaymentSettlement) {
+				n.Edges.ChargeStandardInvoicePaymentSettlement = e
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withChargeCreditRealization; query != nil {
+		if err := _q.loadChargeCreditRealization(ctx, query, nodes,
+			func(n *BillingInvoiceLine) { n.Edges.ChargeCreditRealization = []*ChargeCreditRealization{} },
+			func(n *BillingInvoiceLine, e *ChargeCreditRealization) {
+				n.Edges.ChargeCreditRealization = append(n.Edges.ChargeCreditRealization, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withChargeStandardInvoiceAccruedUsage; query != nil {
+		if err := _q.loadChargeStandardInvoiceAccruedUsage(ctx, query, nodes,
+			func(n *BillingInvoiceLine) {
+				n.Edges.ChargeStandardInvoiceAccruedUsage = []*ChargeStandardInvoiceAccruedUsage{}
+			},
+			func(n *BillingInvoiceLine, e *ChargeStandardInvoiceAccruedUsage) {
+				n.Edges.ChargeStandardInvoiceAccruedUsage = append(n.Edges.ChargeStandardInvoiceAccruedUsage, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -1393,35 +1489,96 @@ func (_q *BillingInvoiceLineQuery) loadCharge(ctx context.Context, query *Charge
 	}
 	return nil
 }
-func (_q *BillingInvoiceLineQuery) loadStandardInvoiceSettlments(ctx context.Context, query *StandardInvoiceSettlementQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *StandardInvoiceSettlement)) error {
-	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*BillingInvoiceLine)
+func (_q *BillingInvoiceLineQuery) loadChargeStandardInvoicePaymentSettlement(ctx context.Context, query *ChargeStandardInvoicePaymentSettlementQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *ChargeStandardInvoicePaymentSettlement)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*BillingInvoiceLine)
 	for i := range nodes {
-		if nodes[i].billing_invoice_line_standard_invoice_settlments == nil {
-			continue
-		}
-		fk := *nodes[i].billing_invoice_line_standard_invoice_settlments
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
 	}
-	if len(ids) == 0 {
-		return nil
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargestandardinvoicepaymentsettlement.FieldLineID)
 	}
-	query.Where(standardinvoicesettlement.IDIn(ids...))
+	query.Where(predicate.ChargeStandardInvoicePaymentSettlement(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(billinginvoiceline.ChargeStandardInvoicePaymentSettlementColumn), fks...))
+	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
+		fk := n.LineID
+		node, ok := nodeids[fk]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "billing_invoice_line_standard_invoice_settlments" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "line_id" returned %v for node %v`, fk, n.ID)
 		}
-		for i := range nodes {
-			assign(nodes[i], n)
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *BillingInvoiceLineQuery) loadChargeCreditRealization(ctx context.Context, query *ChargeCreditRealizationQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *ChargeCreditRealization)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*BillingInvoiceLine)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
 		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargecreditrealization.FieldLineID)
+	}
+	query.Where(predicate.ChargeCreditRealization(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(billinginvoiceline.ChargeCreditRealizationColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.LineID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "line_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "line_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *BillingInvoiceLineQuery) loadChargeStandardInvoiceAccruedUsage(ctx context.Context, query *ChargeStandardInvoiceAccruedUsageQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *ChargeStandardInvoiceAccruedUsage)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*BillingInvoiceLine)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargestandardinvoiceaccruedusage.FieldLineID)
+	}
+	query.Where(predicate.ChargeStandardInvoiceAccruedUsage(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(billinginvoiceline.ChargeStandardInvoiceAccruedUsageColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.LineID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "line_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "line_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }

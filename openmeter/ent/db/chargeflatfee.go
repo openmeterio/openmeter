@@ -13,6 +13,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoiceaccruedusage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicepaymentsettlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -49,9 +51,15 @@ type ChargeFlatFee struct {
 type ChargeFlatFeeEdges struct {
 	// Charge holds the value of the charge edge.
 	Charge *Charge `json:"charge,omitempty"`
+	// ChargeStandardInvoicePaymentSettlement holds the value of the charge_standard_invoice_payment_settlement edge.
+	ChargeStandardInvoicePaymentSettlement *ChargeStandardInvoicePaymentSettlement `json:"charge_standard_invoice_payment_settlement,omitempty"`
+	// ChargeStandardInvoiceAccruedUsage holds the value of the charge_standard_invoice_accrued_usage edge.
+	ChargeStandardInvoiceAccruedUsage *ChargeStandardInvoiceAccruedUsage `json:"charge_standard_invoice_accrued_usage,omitempty"`
+	// ChargeCreditRealizations holds the value of the charge_credit_realizations edge.
+	ChargeCreditRealizations []*ChargeCreditRealization `json:"charge_credit_realizations,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [4]bool
 }
 
 // ChargeOrErr returns the Charge value or an error if the edge
@@ -63,6 +71,37 @@ func (e ChargeFlatFeeEdges) ChargeOrErr() (*Charge, error) {
 		return nil, &NotFoundError{label: charge.Label}
 	}
 	return nil, &NotLoadedError{edge: "charge"}
+}
+
+// ChargeStandardInvoicePaymentSettlementOrErr returns the ChargeStandardInvoicePaymentSettlement value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeFlatFeeEdges) ChargeStandardInvoicePaymentSettlementOrErr() (*ChargeStandardInvoicePaymentSettlement, error) {
+	if e.ChargeStandardInvoicePaymentSettlement != nil {
+		return e.ChargeStandardInvoicePaymentSettlement, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: chargestandardinvoicepaymentsettlement.Label}
+	}
+	return nil, &NotLoadedError{edge: "charge_standard_invoice_payment_settlement"}
+}
+
+// ChargeStandardInvoiceAccruedUsageOrErr returns the ChargeStandardInvoiceAccruedUsage value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeFlatFeeEdges) ChargeStandardInvoiceAccruedUsageOrErr() (*ChargeStandardInvoiceAccruedUsage, error) {
+	if e.ChargeStandardInvoiceAccruedUsage != nil {
+		return e.ChargeStandardInvoiceAccruedUsage, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: chargestandardinvoiceaccruedusage.Label}
+	}
+	return nil, &NotLoadedError{edge: "charge_standard_invoice_accrued_usage"}
+}
+
+// ChargeCreditRealizationsOrErr returns the ChargeCreditRealizations value or an error if the edge
+// was not loaded in eager-loading.
+func (e ChargeFlatFeeEdges) ChargeCreditRealizationsOrErr() ([]*ChargeCreditRealization, error) {
+	if e.loadedTypes[3] {
+		return e.ChargeCreditRealizations, nil
+	}
+	return nil, &NotLoadedError{edge: "charge_credit_realizations"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -170,6 +209,21 @@ func (_m *ChargeFlatFee) Value(name string) (ent.Value, error) {
 // QueryCharge queries the "charge" edge of the ChargeFlatFee entity.
 func (_m *ChargeFlatFee) QueryCharge() *ChargeQuery {
 	return NewChargeFlatFeeClient(_m.config).QueryCharge(_m)
+}
+
+// QueryChargeStandardInvoicePaymentSettlement queries the "charge_standard_invoice_payment_settlement" edge of the ChargeFlatFee entity.
+func (_m *ChargeFlatFee) QueryChargeStandardInvoicePaymentSettlement() *ChargeStandardInvoicePaymentSettlementQuery {
+	return NewChargeFlatFeeClient(_m.config).QueryChargeStandardInvoicePaymentSettlement(_m)
+}
+
+// QueryChargeStandardInvoiceAccruedUsage queries the "charge_standard_invoice_accrued_usage" edge of the ChargeFlatFee entity.
+func (_m *ChargeFlatFee) QueryChargeStandardInvoiceAccruedUsage() *ChargeStandardInvoiceAccruedUsageQuery {
+	return NewChargeFlatFeeClient(_m.config).QueryChargeStandardInvoiceAccruedUsage(_m)
+}
+
+// QueryChargeCreditRealizations queries the "charge_credit_realizations" edge of the ChargeFlatFee entity.
+func (_m *ChargeFlatFee) QueryChargeCreditRealizations() *ChargeCreditRealizationQuery {
+	return NewChargeFlatFeeClient(_m.config).QueryChargeCreditRealizations(_m)
 }
 
 // Update returns a builder for updating this ChargeFlatFee.

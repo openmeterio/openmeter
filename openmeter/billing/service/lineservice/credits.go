@@ -23,15 +23,9 @@ func (m *creditsMutator) Mutate(i PricerCalculateInput, pricerResult newDetailed
 
 			if totalAmount.LessThanOrEqual(creditValueRemaining) {
 				creditValueRemaining = creditValueRemaining.Sub(totalAmount)
-				pricerResult[idx].CreditsApplied = append(pricerResult[idx].CreditsApplied, billing.CreditApplied{
-					Amount:      totalAmount,
-					Description: creditToApply.Description,
-				})
+				pricerResult[idx].CreditsApplied = append(pricerResult[idx].CreditsApplied, creditToApply.CloneWithAmount(totalAmount))
 			} else {
-				pricerResult[idx].CreditsApplied = append(pricerResult[idx].CreditsApplied, billing.CreditApplied{
-					Amount:      creditValueRemaining,
-					Description: creditToApply.Description,
-				})
+				pricerResult[idx].CreditsApplied = append(pricerResult[idx].CreditsApplied, creditToApply.CloneWithAmount(creditValueRemaining))
 
 				creditValueRemaining = alpacadecimal.Zero
 				break

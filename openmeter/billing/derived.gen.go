@@ -25,6 +25,7 @@ func deriveEqualGatheringLineBase(this, that *GatheringLineBase) bool {
 			((this.ChildUniqueReferenceID == nil && that.ChildUniqueReferenceID == nil) || (this.ChildUniqueReferenceID != nil && that.ChildUniqueReferenceID != nil && *(this.ChildUniqueReferenceID) == *(that.ChildUniqueReferenceID))) &&
 			deriveEqual_1(this.Subscription, that.Subscription) &&
 			((this.SplitLineGroupID == nil && that.SplitLineGroupID == nil) || (this.SplitLineGroupID != nil && that.SplitLineGroupID != nil && *(this.SplitLineGroupID) == *(that.SplitLineGroupID))) &&
+			((this.ChargeID == nil && that.ChargeID == nil) || (this.ChargeID != nil && that.ChargeID != nil && *(this.ChargeID) == *(that.ChargeID))) &&
 			this.UBPConfigID == that.UBPConfigID
 }
 
@@ -107,6 +108,7 @@ func deriveEqualLineBase(this, that *StandardLineBase) bool {
 			this.InvoiceAt.Equal(that.InvoiceAt) &&
 			((this.ParentLineID == nil && that.ParentLineID == nil) || (this.ParentLineID != nil && that.ParentLineID != nil && *(this.ParentLineID) == *(that.ParentLineID))) &&
 			((this.SplitLineGroupID == nil && that.SplitLineGroupID == nil) || (this.SplitLineGroupID != nil && that.SplitLineGroupID != nil && *(this.SplitLineGroupID) == *(that.SplitLineGroupID))) &&
+			((this.ChargeID == nil && that.ChargeID == nil) || (this.ChargeID != nil && that.ChargeID != nil && *(this.ChargeID) == *(that.ChargeID))) &&
 			((this.ChildUniqueReferenceID == nil && that.ChildUniqueReferenceID == nil) || (this.ChildUniqueReferenceID != nil && that.ChildUniqueReferenceID != nil && *(this.ChildUniqueReferenceID) == *(that.ChildUniqueReferenceID))) &&
 			this.TaxConfig.Equal(that.TaxConfig) &&
 			deriveEqual_(&this.RateCardDiscounts, &that.RateCardDiscounts) &&
@@ -202,5 +204,6 @@ func deriveEqual_5(this, that *CreditApplied) bool {
 	return (this == nil && that == nil) ||
 		this != nil && that != nil &&
 			this.Amount.Equal(that.Amount) &&
-			this.Description == that.Description
+			this.Description == that.Description &&
+			this.CreditRealizationID == that.CreditRealizationID
 }

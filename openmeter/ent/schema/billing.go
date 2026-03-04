@@ -516,8 +516,10 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 			Ref("billing_invoice_lines").
 			Field("charge_id").
 			Unique(),
-		edge.To("standard_invoice_settlments", StandardInvoiceSettlement.Type).
+		edge.To("charge_standard_invoice_payment_settlement", ChargeStandardInvoicePaymentSettlement.Type).
 			Unique(),
+		edge.To("charge_credit_realization", ChargeCreditRealization.Type),
+		edge.To("charge_standard_invoice_accrued_usage", ChargeStandardInvoiceAccruedUsage.Type),
 	}
 }
 

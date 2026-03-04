@@ -2186,6 +2186,48 @@ func (u *ChargeUpdateOne) SetOrClearUniqueReferenceID(value *string) *ChargeUpda
 	return u.SetUniqueReferenceID(*value)
 }
 
+func (u *ChargeCreditRealizationUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeCreditRealizationUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeCreditRealizationUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeCreditRealizationUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeCreditRealizationUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeCreditRealizationUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeCreditRealizationUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeCreditRealizationUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeCreditRealizationUpdate) SetOrClearLineID(value *string) *ChargeCreditRealizationUpdate {
+	if value == nil {
+		return u.ClearLineID()
+	}
+	return u.SetLineID(*value)
+}
+
+func (u *ChargeCreditRealizationUpdateOne) SetOrClearLineID(value *string) *ChargeCreditRealizationUpdateOne {
+	if value == nil {
+		return u.ClearLineID()
+	}
+	return u.SetLineID(*value)
+}
+
 func (u *ChargeFlatFeeUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *ChargeFlatFeeUpdate {
 	if value == nil {
 		return u.ClearDiscounts()
@@ -2212,6 +2254,146 @@ func (u *ChargeFlatFeeUpdateOne) SetOrClearFeatureKey(value *string) *ChargeFlat
 		return u.ClearFeatureKey()
 	}
 	return u.SetFeatureKey(*value)
+}
+
+func (u *ChargeStandardInvoiceAccruedUsageUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeStandardInvoiceAccruedUsageUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeStandardInvoiceAccruedUsageUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeStandardInvoiceAccruedUsageUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeStandardInvoiceAccruedUsageUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeStandardInvoiceAccruedUsageUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeStandardInvoiceAccruedUsageUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeStandardInvoiceAccruedUsageUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeStandardInvoiceAccruedUsageUpdate) SetOrClearLineID(value *string) *ChargeStandardInvoiceAccruedUsageUpdate {
+	if value == nil {
+		return u.ClearLineID()
+	}
+	return u.SetLineID(*value)
+}
+
+func (u *ChargeStandardInvoiceAccruedUsageUpdateOne) SetOrClearLineID(value *string) *ChargeStandardInvoiceAccruedUsageUpdateOne {
+	if value == nil {
+		return u.ClearLineID()
+	}
+	return u.SetLineID(*value)
+}
+
+func (u *ChargeStandardInvoiceAccruedUsageUpdate) SetOrClearLedgerTransactionGroupID(value *string) *ChargeStandardInvoiceAccruedUsageUpdate {
+	if value == nil {
+		return u.ClearLedgerTransactionGroupID()
+	}
+	return u.SetLedgerTransactionGroupID(*value)
+}
+
+func (u *ChargeStandardInvoiceAccruedUsageUpdateOne) SetOrClearLedgerTransactionGroupID(value *string) *ChargeStandardInvoiceAccruedUsageUpdateOne {
+	if value == nil {
+		return u.ClearLedgerTransactionGroupID()
+	}
+	return u.SetLedgerTransactionGroupID(*value)
+}
+
+func (u *ChargeStandardInvoicePaymentSettlementUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeStandardInvoicePaymentSettlementUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeStandardInvoicePaymentSettlementUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeStandardInvoicePaymentSettlementUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeStandardInvoicePaymentSettlementUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeStandardInvoicePaymentSettlementUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeStandardInvoicePaymentSettlementUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeStandardInvoicePaymentSettlementUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeStandardInvoicePaymentSettlementUpdate) SetOrClearAuthorizedTransactionGroupID(value *string) *ChargeStandardInvoicePaymentSettlementUpdate {
+	if value == nil {
+		return u.ClearAuthorizedTransactionGroupID()
+	}
+	return u.SetAuthorizedTransactionGroupID(*value)
+}
+
+func (u *ChargeStandardInvoicePaymentSettlementUpdateOne) SetOrClearAuthorizedTransactionGroupID(value *string) *ChargeStandardInvoicePaymentSettlementUpdateOne {
+	if value == nil {
+		return u.ClearAuthorizedTransactionGroupID()
+	}
+	return u.SetAuthorizedTransactionGroupID(*value)
+}
+
+func (u *ChargeStandardInvoicePaymentSettlementUpdate) SetOrClearAuthorizedAt(value *time.Time) *ChargeStandardInvoicePaymentSettlementUpdate {
+	if value == nil {
+		return u.ClearAuthorizedAt()
+	}
+	return u.SetAuthorizedAt(*value)
+}
+
+func (u *ChargeStandardInvoicePaymentSettlementUpdateOne) SetOrClearAuthorizedAt(value *time.Time) *ChargeStandardInvoicePaymentSettlementUpdateOne {
+	if value == nil {
+		return u.ClearAuthorizedAt()
+	}
+	return u.SetAuthorizedAt(*value)
+}
+
+func (u *ChargeStandardInvoicePaymentSettlementUpdate) SetOrClearSettledTransactionGroupID(value *string) *ChargeStandardInvoicePaymentSettlementUpdate {
+	if value == nil {
+		return u.ClearSettledTransactionGroupID()
+	}
+	return u.SetSettledTransactionGroupID(*value)
+}
+
+func (u *ChargeStandardInvoicePaymentSettlementUpdateOne) SetOrClearSettledTransactionGroupID(value *string) *ChargeStandardInvoicePaymentSettlementUpdateOne {
+	if value == nil {
+		return u.ClearSettledTransactionGroupID()
+	}
+	return u.SetSettledTransactionGroupID(*value)
+}
+
+func (u *ChargeStandardInvoicePaymentSettlementUpdate) SetOrClearSettledAt(value *time.Time) *ChargeStandardInvoicePaymentSettlementUpdate {
+	if value == nil {
+		return u.ClearSettledAt()
+	}
+	return u.SetSettledAt(*value)
+}
+
+func (u *ChargeStandardInvoicePaymentSettlementUpdateOne) SetOrClearSettledAt(value *time.Time) *ChargeStandardInvoicePaymentSettlementUpdateOne {
+	if value == nil {
+		return u.ClearSettledAt()
+	}
+	return u.SetSettledAt(*value)
 }
 
 func (u *ChargeUsageBasedUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *ChargeUsageBasedUpdate {
@@ -3304,34 +3486,6 @@ func (u *PlanRateCardUpdateOne) SetOrClearFeatureID(value *string) *PlanRateCard
 		return u.ClearFeatureID()
 	}
 	return u.SetFeatureID(*value)
-}
-
-func (u *StandardInvoiceSettlementUpdate) SetOrClearDeletedAt(value *time.Time) *StandardInvoiceSettlementUpdate {
-	if value == nil {
-		return u.ClearDeletedAt()
-	}
-	return u.SetDeletedAt(*value)
-}
-
-func (u *StandardInvoiceSettlementUpdateOne) SetOrClearDeletedAt(value *time.Time) *StandardInvoiceSettlementUpdateOne {
-	if value == nil {
-		return u.ClearDeletedAt()
-	}
-	return u.SetDeletedAt(*value)
-}
-
-func (u *StandardInvoiceSettlementUpdate) SetOrClearAnnotations(value *models.Annotations) *StandardInvoiceSettlementUpdate {
-	if value == nil {
-		return u.ClearAnnotations()
-	}
-	return u.SetAnnotations(*value)
-}
-
-func (u *StandardInvoiceSettlementUpdateOne) SetOrClearAnnotations(value *models.Annotations) *StandardInvoiceSettlementUpdateOne {
-	if value == nil {
-		return u.ClearAnnotations()
-	}
-	return u.SetAnnotations(*value)
 }
 
 func (u *SubjectUpdate) SetOrClearDeletedAt(value *time.Time) *SubjectUpdate {

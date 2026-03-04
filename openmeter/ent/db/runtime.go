@@ -34,7 +34,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoiceaccruedusage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicepaymentsettlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
@@ -52,7 +55,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/standardinvoicesettlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
@@ -940,6 +942,41 @@ func init() {
 	chargecreditpurchaseDescID := chargecreditpurchaseMixinFields1[0].Descriptor()
 	// chargecreditpurchase.DefaultID holds the default value on creation for the id field.
 	chargecreditpurchase.DefaultID = chargecreditpurchaseDescID.Default.(func() string)
+	chargecreditrealizationMixin := schema.ChargeCreditRealization{}.Mixin()
+	chargecreditrealizationMixinFields0 := chargecreditrealizationMixin[0].Fields()
+	_ = chargecreditrealizationMixinFields0
+	chargecreditrealizationMixinFields1 := chargecreditrealizationMixin[1].Fields()
+	_ = chargecreditrealizationMixinFields1
+	chargecreditrealizationMixinFields2 := chargecreditrealizationMixin[2].Fields()
+	_ = chargecreditrealizationMixinFields2
+	chargecreditrealizationFields := schema.ChargeCreditRealization{}.Fields()
+	_ = chargecreditrealizationFields
+	// chargecreditrealizationDescNamespace is the schema descriptor for namespace field.
+	chargecreditrealizationDescNamespace := chargecreditrealizationMixinFields0[0].Descriptor()
+	// chargecreditrealization.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	chargecreditrealization.NamespaceValidator = chargecreditrealizationDescNamespace.Validators[0].(func(string) error)
+	// chargecreditrealizationDescCreatedAt is the schema descriptor for created_at field.
+	chargecreditrealizationDescCreatedAt := chargecreditrealizationMixinFields2[0].Descriptor()
+	// chargecreditrealization.DefaultCreatedAt holds the default value on creation for the created_at field.
+	chargecreditrealization.DefaultCreatedAt = chargecreditrealizationDescCreatedAt.Default.(func() time.Time)
+	// chargecreditrealizationDescUpdatedAt is the schema descriptor for updated_at field.
+	chargecreditrealizationDescUpdatedAt := chargecreditrealizationMixinFields2[1].Descriptor()
+	// chargecreditrealization.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	chargecreditrealization.DefaultUpdatedAt = chargecreditrealizationDescUpdatedAt.Default.(func() time.Time)
+	// chargecreditrealization.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	chargecreditrealization.UpdateDefaultUpdatedAt = chargecreditrealizationDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chargecreditrealizationDescLineID is the schema descriptor for line_id field.
+	chargecreditrealizationDescLineID := chargecreditrealizationFields[1].Descriptor()
+	// chargecreditrealization.LineIDValidator is a validator for the "line_id" field. It is called by the builders before save.
+	chargecreditrealization.LineIDValidator = chargecreditrealizationDescLineID.Validators[0].(func(string) error)
+	// chargecreditrealizationDescLedgerTransactionGroupID is the schema descriptor for ledger_transaction_group_id field.
+	chargecreditrealizationDescLedgerTransactionGroupID := chargecreditrealizationFields[5].Descriptor()
+	// chargecreditrealization.LedgerTransactionGroupIDValidator is a validator for the "ledger_transaction_group_id" field. It is called by the builders before save.
+	chargecreditrealization.LedgerTransactionGroupIDValidator = chargecreditrealizationDescLedgerTransactionGroupID.Validators[0].(func(string) error)
+	// chargecreditrealizationDescID is the schema descriptor for id field.
+	chargecreditrealizationDescID := chargecreditrealizationMixinFields1[0].Descriptor()
+	// chargecreditrealization.DefaultID holds the default value on creation for the id field.
+	chargecreditrealization.DefaultID = chargecreditrealizationDescID.Default.(func() string)
 	chargeflatfeeMixin := schema.ChargeFlatFee{}.Mixin()
 	chargeflatfeeMixinFields0 := chargeflatfeeMixin[0].Fields()
 	_ = chargeflatfeeMixinFields0
@@ -966,6 +1003,76 @@ func init() {
 	chargeflatfeeDescID := chargeflatfeeMixinFields1[0].Descriptor()
 	// chargeflatfee.DefaultID holds the default value on creation for the id field.
 	chargeflatfee.DefaultID = chargeflatfeeDescID.Default.(func() string)
+	chargestandardinvoiceaccruedusageMixin := schema.ChargeStandardInvoiceAccruedUsage{}.Mixin()
+	chargestandardinvoiceaccruedusageMixinFields0 := chargestandardinvoiceaccruedusageMixin[0].Fields()
+	_ = chargestandardinvoiceaccruedusageMixinFields0
+	chargestandardinvoiceaccruedusageMixinFields1 := chargestandardinvoiceaccruedusageMixin[1].Fields()
+	_ = chargestandardinvoiceaccruedusageMixinFields1
+	chargestandardinvoiceaccruedusageMixinFields2 := chargestandardinvoiceaccruedusageMixin[2].Fields()
+	_ = chargestandardinvoiceaccruedusageMixinFields2
+	chargestandardinvoiceaccruedusageFields := schema.ChargeStandardInvoiceAccruedUsage{}.Fields()
+	_ = chargestandardinvoiceaccruedusageFields
+	// chargestandardinvoiceaccruedusageDescNamespace is the schema descriptor for namespace field.
+	chargestandardinvoiceaccruedusageDescNamespace := chargestandardinvoiceaccruedusageMixinFields0[0].Descriptor()
+	// chargestandardinvoiceaccruedusage.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	chargestandardinvoiceaccruedusage.NamespaceValidator = chargestandardinvoiceaccruedusageDescNamespace.Validators[0].(func(string) error)
+	// chargestandardinvoiceaccruedusageDescCreatedAt is the schema descriptor for created_at field.
+	chargestandardinvoiceaccruedusageDescCreatedAt := chargestandardinvoiceaccruedusageMixinFields2[0].Descriptor()
+	// chargestandardinvoiceaccruedusage.DefaultCreatedAt holds the default value on creation for the created_at field.
+	chargestandardinvoiceaccruedusage.DefaultCreatedAt = chargestandardinvoiceaccruedusageDescCreatedAt.Default.(func() time.Time)
+	// chargestandardinvoiceaccruedusageDescUpdatedAt is the schema descriptor for updated_at field.
+	chargestandardinvoiceaccruedusageDescUpdatedAt := chargestandardinvoiceaccruedusageMixinFields2[1].Descriptor()
+	// chargestandardinvoiceaccruedusage.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	chargestandardinvoiceaccruedusage.DefaultUpdatedAt = chargestandardinvoiceaccruedusageDescUpdatedAt.Default.(func() time.Time)
+	// chargestandardinvoiceaccruedusage.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	chargestandardinvoiceaccruedusage.UpdateDefaultUpdatedAt = chargestandardinvoiceaccruedusageDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chargestandardinvoiceaccruedusageDescLineID is the schema descriptor for line_id field.
+	chargestandardinvoiceaccruedusageDescLineID := chargestandardinvoiceaccruedusageFields[1].Descriptor()
+	// chargestandardinvoiceaccruedusage.LineIDValidator is a validator for the "line_id" field. It is called by the builders before save.
+	chargestandardinvoiceaccruedusage.LineIDValidator = chargestandardinvoiceaccruedusageDescLineID.Validators[0].(func(string) error)
+	// chargestandardinvoiceaccruedusageDescLedgerTransactionGroupID is the schema descriptor for ledger_transaction_group_id field.
+	chargestandardinvoiceaccruedusageDescLedgerTransactionGroupID := chargestandardinvoiceaccruedusageFields[5].Descriptor()
+	// chargestandardinvoiceaccruedusage.LedgerTransactionGroupIDValidator is a validator for the "ledger_transaction_group_id" field. It is called by the builders before save.
+	chargestandardinvoiceaccruedusage.LedgerTransactionGroupIDValidator = chargestandardinvoiceaccruedusageDescLedgerTransactionGroupID.Validators[0].(func(string) error)
+	// chargestandardinvoiceaccruedusageDescID is the schema descriptor for id field.
+	chargestandardinvoiceaccruedusageDescID := chargestandardinvoiceaccruedusageMixinFields1[0].Descriptor()
+	// chargestandardinvoiceaccruedusage.DefaultID holds the default value on creation for the id field.
+	chargestandardinvoiceaccruedusage.DefaultID = chargestandardinvoiceaccruedusageDescID.Default.(func() string)
+	chargestandardinvoicepaymentsettlementMixin := schema.ChargeStandardInvoicePaymentSettlement{}.Mixin()
+	chargestandardinvoicepaymentsettlementMixinFields0 := chargestandardinvoicepaymentsettlementMixin[0].Fields()
+	_ = chargestandardinvoicepaymentsettlementMixinFields0
+	chargestandardinvoicepaymentsettlementMixinFields1 := chargestandardinvoicepaymentsettlementMixin[1].Fields()
+	_ = chargestandardinvoicepaymentsettlementMixinFields1
+	chargestandardinvoicepaymentsettlementMixinFields2 := chargestandardinvoicepaymentsettlementMixin[2].Fields()
+	_ = chargestandardinvoicepaymentsettlementMixinFields2
+	chargestandardinvoicepaymentsettlementFields := schema.ChargeStandardInvoicePaymentSettlement{}.Fields()
+	_ = chargestandardinvoicepaymentsettlementFields
+	// chargestandardinvoicepaymentsettlementDescNamespace is the schema descriptor for namespace field.
+	chargestandardinvoicepaymentsettlementDescNamespace := chargestandardinvoicepaymentsettlementMixinFields0[0].Descriptor()
+	// chargestandardinvoicepaymentsettlement.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	chargestandardinvoicepaymentsettlement.NamespaceValidator = chargestandardinvoicepaymentsettlementDescNamespace.Validators[0].(func(string) error)
+	// chargestandardinvoicepaymentsettlementDescCreatedAt is the schema descriptor for created_at field.
+	chargestandardinvoicepaymentsettlementDescCreatedAt := chargestandardinvoicepaymentsettlementMixinFields2[0].Descriptor()
+	// chargestandardinvoicepaymentsettlement.DefaultCreatedAt holds the default value on creation for the created_at field.
+	chargestandardinvoicepaymentsettlement.DefaultCreatedAt = chargestandardinvoicepaymentsettlementDescCreatedAt.Default.(func() time.Time)
+	// chargestandardinvoicepaymentsettlementDescUpdatedAt is the schema descriptor for updated_at field.
+	chargestandardinvoicepaymentsettlementDescUpdatedAt := chargestandardinvoicepaymentsettlementMixinFields2[1].Descriptor()
+	// chargestandardinvoicepaymentsettlement.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	chargestandardinvoicepaymentsettlement.DefaultUpdatedAt = chargestandardinvoicepaymentsettlementDescUpdatedAt.Default.(func() time.Time)
+	// chargestandardinvoicepaymentsettlement.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	chargestandardinvoicepaymentsettlement.UpdateDefaultUpdatedAt = chargestandardinvoicepaymentsettlementDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chargestandardinvoicepaymentsettlementDescAuthorizedTransactionGroupID is the schema descriptor for authorized_transaction_group_id field.
+	chargestandardinvoicepaymentsettlementDescAuthorizedTransactionGroupID := chargestandardinvoicepaymentsettlementFields[6].Descriptor()
+	// chargestandardinvoicepaymentsettlement.AuthorizedTransactionGroupIDValidator is a validator for the "authorized_transaction_group_id" field. It is called by the builders before save.
+	chargestandardinvoicepaymentsettlement.AuthorizedTransactionGroupIDValidator = chargestandardinvoicepaymentsettlementDescAuthorizedTransactionGroupID.Validators[0].(func(string) error)
+	// chargestandardinvoicepaymentsettlementDescSettledTransactionGroupID is the schema descriptor for settled_transaction_group_id field.
+	chargestandardinvoicepaymentsettlementDescSettledTransactionGroupID := chargestandardinvoicepaymentsettlementFields[8].Descriptor()
+	// chargestandardinvoicepaymentsettlement.SettledTransactionGroupIDValidator is a validator for the "settled_transaction_group_id" field. It is called by the builders before save.
+	chargestandardinvoicepaymentsettlement.SettledTransactionGroupIDValidator = chargestandardinvoicepaymentsettlementDescSettledTransactionGroupID.Validators[0].(func(string) error)
+	// chargestandardinvoicepaymentsettlementDescID is the schema descriptor for id field.
+	chargestandardinvoicepaymentsettlementDescID := chargestandardinvoicepaymentsettlementMixinFields1[0].Descriptor()
+	// chargestandardinvoicepaymentsettlement.DefaultID holds the default value on creation for the id field.
+	chargestandardinvoicepaymentsettlement.DefaultID = chargestandardinvoicepaymentsettlementDescID.Default.(func() string)
 	chargeusagebasedMixin := schema.ChargeUsageBased{}.Mixin()
 	chargeusagebasedMixinFields0 := chargeusagebasedMixin[0].Fields()
 	_ = chargeusagebasedMixinFields0
@@ -1580,33 +1687,6 @@ func init() {
 	planratecardDescID := planratecardMixinFields0[0].Descriptor()
 	// planratecard.DefaultID holds the default value on creation for the id field.
 	planratecard.DefaultID = planratecardDescID.Default.(func() string)
-	standardinvoicesettlementMixin := schema.StandardInvoiceSettlement{}.Mixin()
-	standardinvoicesettlementMixinFields0 := standardinvoicesettlementMixin[0].Fields()
-	_ = standardinvoicesettlementMixinFields0
-	standardinvoicesettlementMixinFields1 := standardinvoicesettlementMixin[1].Fields()
-	_ = standardinvoicesettlementMixinFields1
-	standardinvoicesettlementMixinFields2 := standardinvoicesettlementMixin[2].Fields()
-	_ = standardinvoicesettlementMixinFields2
-	standardinvoicesettlementFields := schema.StandardInvoiceSettlement{}.Fields()
-	_ = standardinvoicesettlementFields
-	// standardinvoicesettlementDescNamespace is the schema descriptor for namespace field.
-	standardinvoicesettlementDescNamespace := standardinvoicesettlementMixinFields0[0].Descriptor()
-	// standardinvoicesettlement.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
-	standardinvoicesettlement.NamespaceValidator = standardinvoicesettlementDescNamespace.Validators[0].(func(string) error)
-	// standardinvoicesettlementDescCreatedAt is the schema descriptor for created_at field.
-	standardinvoicesettlementDescCreatedAt := standardinvoicesettlementMixinFields2[0].Descriptor()
-	// standardinvoicesettlement.DefaultCreatedAt holds the default value on creation for the created_at field.
-	standardinvoicesettlement.DefaultCreatedAt = standardinvoicesettlementDescCreatedAt.Default.(func() time.Time)
-	// standardinvoicesettlementDescUpdatedAt is the schema descriptor for updated_at field.
-	standardinvoicesettlementDescUpdatedAt := standardinvoicesettlementMixinFields2[1].Descriptor()
-	// standardinvoicesettlement.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	standardinvoicesettlement.DefaultUpdatedAt = standardinvoicesettlementDescUpdatedAt.Default.(func() time.Time)
-	// standardinvoicesettlement.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	standardinvoicesettlement.UpdateDefaultUpdatedAt = standardinvoicesettlementDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// standardinvoicesettlementDescID is the schema descriptor for id field.
-	standardinvoicesettlementDescID := standardinvoicesettlementMixinFields1[0].Descriptor()
-	// standardinvoicesettlement.DefaultID holds the default value on creation for the id field.
-	standardinvoicesettlement.DefaultID = standardinvoicesettlementDescID.Default.(func() string)
 	subjectMixin := schema.Subject{}.Mixin()
 	subjectMixinFields0 := subjectMixin[0].Fields()
 	_ = subjectMixinFields0

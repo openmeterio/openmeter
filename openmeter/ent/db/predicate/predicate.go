@@ -197,6 +197,9 @@ func ChargeCreditPurchaseOrErr(p ChargeCreditPurchase, err error) ChargeCreditPu
 	}
 }
 
+// ChargeCreditRealization is the predicate function for chargecreditrealization builders.
+type ChargeCreditRealization func(*sql.Selector)
+
 // ChargeFlatFee is the predicate function for chargeflatfee builders.
 type ChargeFlatFee func(*sql.Selector)
 
@@ -210,6 +213,12 @@ func ChargeFlatFeeOrErr(p ChargeFlatFee, err error) ChargeFlatFee {
 		p(s)
 	}
 }
+
+// ChargeStandardInvoiceAccruedUsage is the predicate function for chargestandardinvoiceaccruedusage builders.
+type ChargeStandardInvoiceAccruedUsage func(*sql.Selector)
+
+// ChargeStandardInvoicePaymentSettlement is the predicate function for chargestandardinvoicepaymentsettlement builders.
+type ChargeStandardInvoicePaymentSettlement func(*sql.Selector)
 
 // ChargeUsageBased is the predicate function for chargeusagebased builders.
 type ChargeUsageBased func(*sql.Selector)
@@ -327,9 +336,6 @@ func PlanRateCardOrErr(p PlanRateCard, err error) PlanRateCard {
 		p(s)
 	}
 }
-
-// StandardInvoiceSettlement is the predicate function for standardinvoicesettlement builders.
-type StandardInvoiceSettlement func(*sql.Selector)
 
 // Subject is the predicate function for subject builders.
 type Subject func(*sql.Selector)

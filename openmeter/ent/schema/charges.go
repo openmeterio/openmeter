@@ -108,8 +108,6 @@ func (Charge) Edges() []ent.Edge {
 			StorageKey(edge.Column("id")).
 			Annotations(entsql.OnDelete(entsql.Cascade)).
 			Unique(),
-		// Realizations
-		edge.To("standard_invoice_settlments", StandardInvoiceSettlement.Type),
 		// Billing
 		edge.To("billing_invoice_lines", BillingInvoiceLine.Type),
 		edge.To("billing_split_line_groups", BillingInvoiceSplitLineGroup.Type),
@@ -253,6 +251,11 @@ func (ChargeFlatFee) Edges() []ent.Edge {
 			Ref("flat_fee").
 			Unique().
 			Required(),
+		edge.To("charge_standard_invoice_payment_settlement", ChargeStandardInvoicePaymentSettlement.Type).
+			Unique(),
+		edge.To("charge_standard_invoice_accrued_usage", ChargeStandardInvoiceAccruedUsage.Type).
+			Unique(),
+		edge.To("charge_credit_realizations", ChargeCreditRealization.Type),
 	}
 }
 
@@ -307,21 +310,20 @@ func (ChargeCreditPurchase) Edges() []ent.Edge {
 	}
 }
 
-type StandardInvoiceSettlement struct {
+type ChargeStandardInvoicePaymentSettlement struct {
 	ent.Schema
 }
 
-func (StandardInvoiceSettlement) Mixin() []ent.Mixin {
+func (ChargeStandardInvoicePaymentSettlement) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.NamespaceMixin{},
 		entutils.IDMixin{},
 		entutils.TimeMixin{},
 		entutils.AnnotationsMixin{},
-		TotalsMixin{},
 	}
 }
 
-func (StandardInvoiceSettlement) Fields() []ent.Field {
+func (ChargeStandardInvoicePaymentSettlement) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("line_id").
 			SchemaType(map[string]string{
@@ -339,39 +341,192 @@ func (StandardInvoiceSettlement) Fields() []ent.Field {
 		field.Time("service_period_to"),
 
 		field.Enum("status").
-			GoType(charges.StandardInvoiceSettlementStatus("")),
+			GoType(charges.StandardInvoicePaymentSettlementStatus("")),
 
-		field.Other("metered_service_period_quantity", alpacadecimal.Decimal{}).
+		field.Other("amount", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
 			}),
 
-		field.Other("metered_pre_service_period_quantity", alpacadecimal.Decimal{}).
+		// TODO: Let's add edges to ledger
+		field.String("authorized_transaction_group_id").
 			SchemaType(map[string]string{
-				dialect.Postgres: "numeric",
-			}),
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			NotEmpty().
+			Nillable(),
+
+		field.Time("authorized_at").Optional().Nillable(),
+
+		field.String("settled_transaction_group_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			NotEmpty().
+			Nillable(),
+
+		field.Time("settled_at").Optional().Nillable(),
 	}
 }
 
-func (StandardInvoiceSettlement) Indexes() []ent.Index {
+func (ChargeStandardInvoicePaymentSettlement) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "charge_id", "line_id").
+			Annotations(
+				entsql.IndexWhere("line_id IS NOT NULL AND deleted_at IS NULL"),
+			).
 			Unique(),
 	}
 }
 
-func (StandardInvoiceSettlement) Edges() []ent.Edge {
+func (ChargeStandardInvoicePaymentSettlement) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("charge", Charge.Type).
-			Ref("standard_invoice_settlments").
-			Field("charge_id").
-			Unique().
-			Required().
-			Immutable(),
-		edge.To("billing_invoice_line", BillingInvoiceLine.Type).
+		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
+			Ref("charge_standard_invoice_payment_settlement").
 			Field("line_id").
 			Unique().
 			Required().
 			Immutable(),
+		edge.From("flat_fee", ChargeFlatFee.Type).
+			Ref("charge_standard_invoice_payment_settlement").
+			Field("charge_id").
+			Unique().
+			Required().
+			Immutable(),
+	}
+}
+
+type ChargeStandardInvoiceAccruedUsage struct {
+	ent.Schema
+}
+
+func (ChargeStandardInvoiceAccruedUsage) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.NamespaceMixin{},
+		entutils.IDMixin{},
+		entutils.TimeMixin{},
+		entutils.AnnotationsMixin{},
+		TotalsMixin{},
+	}
+}
+
+func (ChargeStandardInvoiceAccruedUsage) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("charge_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Immutable(),
+
+		field.String("line_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			NotEmpty().
+			Nillable(),
+
+		field.Time("service_period_from"),
+		field.Time("service_period_to"),
+
+		// Mutable flag indicates if the accrued usage can be reallocated as credits or if this needs to happen via
+		// the invoicing flow.
+		field.Bool("mutable"),
+
+		field.String("ledger_transaction_group_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			NotEmpty().
+			Nillable(),
+	}
+}
+
+func (ChargeStandardInvoiceAccruedUsage) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
+			Ref("charge_standard_invoice_accrued_usage").
+			Field("line_id").
+			Unique(),
+		edge.From("flat_fee", ChargeFlatFee.Type).
+			Ref("charge_standard_invoice_accrued_usage").
+			Field("charge_id").
+			Unique().
+			Required().
+			Immutable(),
+	}
+}
+
+func (ChargeStandardInvoiceAccruedUsage) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "charge_id", "line_id").
+			Annotations(
+				entsql.IndexWhere("line_id IS NOT NULL AND deleted_at IS NULL"),
+			).
+			Unique(),
+	}
+}
+
+type ChargeCreditRealization struct {
+	ent.Schema
+}
+
+func (ChargeCreditRealization) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.NamespaceMixin{},
+		entutils.IDMixin{},
+		entutils.TimeMixin{},
+		entutils.AnnotationsMixin{},
+	}
+}
+
+func (ChargeCreditRealization) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("charge_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Immutable(),
+
+		field.String("line_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			NotEmpty().
+			Nillable(),
+
+		field.Other("amount", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
+
+		field.Time("service_period_from"),
+		field.Time("service_period_to"),
+
+		field.String("ledger_transaction_group_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			NotEmpty().
+			Immutable(),
+	}
+}
+
+func (ChargeCreditRealization) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("charge_flat_fee", ChargeFlatFee.Type).
+			Ref("charge_credit_realizations").
+			Field("charge_id").
+			Unique().
+			Required().
+			Immutable(),
+		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
+			Ref("charge_credit_realization").
+			Field("line_id").
+			Unique(),
 	}
 }

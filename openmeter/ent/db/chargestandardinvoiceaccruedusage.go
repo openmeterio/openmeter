@@ -11,15 +11,14 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/standardinvoicesettlement"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoiceaccruedusage"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// StandardInvoiceSettlement is the model entity for the StandardInvoiceSettlement schema.
-type StandardInvoiceSettlement struct {
+// ChargeStandardInvoiceAccruedUsage is the model entity for the ChargeStandardInvoiceAccruedUsage schema.
+type ChargeStandardInvoiceAccruedUsage struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
@@ -49,71 +48,71 @@ type StandardInvoiceSettlement struct {
 	CreditsTotal alpacadecimal.Decimal `json:"credits_total,omitempty"`
 	// Total holds the value of the "total" field.
 	Total alpacadecimal.Decimal `json:"total,omitempty"`
-	// LineID holds the value of the "line_id" field.
-	LineID string `json:"line_id,omitempty"`
 	// ChargeID holds the value of the "charge_id" field.
 	ChargeID string `json:"charge_id,omitempty"`
+	// LineID holds the value of the "line_id" field.
+	LineID *string `json:"line_id,omitempty"`
 	// ServicePeriodFrom holds the value of the "service_period_from" field.
 	ServicePeriodFrom time.Time `json:"service_period_from,omitempty"`
 	// ServicePeriodTo holds the value of the "service_period_to" field.
 	ServicePeriodTo time.Time `json:"service_period_to,omitempty"`
-	// Status holds the value of the "status" field.
-	Status charges.StandardInvoiceSettlementStatus `json:"status,omitempty"`
-	// MeteredServicePeriodQuantity holds the value of the "metered_service_period_quantity" field.
-	MeteredServicePeriodQuantity alpacadecimal.Decimal `json:"metered_service_period_quantity,omitempty"`
-	// MeteredPreServicePeriodQuantity holds the value of the "metered_pre_service_period_quantity" field.
-	MeteredPreServicePeriodQuantity alpacadecimal.Decimal `json:"metered_pre_service_period_quantity,omitempty"`
+	// Mutable holds the value of the "mutable" field.
+	Mutable bool `json:"mutable,omitempty"`
+	// LedgerTransactionGroupID holds the value of the "ledger_transaction_group_id" field.
+	LedgerTransactionGroupID *string `json:"ledger_transaction_group_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
-	// The values are being populated by the StandardInvoiceSettlementQuery when eager-loading is set.
-	Edges        StandardInvoiceSettlementEdges `json:"edges"`
+	// The values are being populated by the ChargeStandardInvoiceAccruedUsageQuery when eager-loading is set.
+	Edges        ChargeStandardInvoiceAccruedUsageEdges `json:"edges"`
 	selectValues sql.SelectValues
 }
 
-// StandardInvoiceSettlementEdges holds the relations/edges for other nodes in the graph.
-type StandardInvoiceSettlementEdges struct {
-	// Charge holds the value of the charge edge.
-	Charge *Charge `json:"charge,omitempty"`
+// ChargeStandardInvoiceAccruedUsageEdges holds the relations/edges for other nodes in the graph.
+type ChargeStandardInvoiceAccruedUsageEdges struct {
 	// BillingInvoiceLine holds the value of the billing_invoice_line edge.
 	BillingInvoiceLine *BillingInvoiceLine `json:"billing_invoice_line,omitempty"`
+	// FlatFee holds the value of the flat_fee edge.
+	FlatFee *ChargeFlatFee `json:"flat_fee,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [2]bool
 }
 
-// ChargeOrErr returns the Charge value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e StandardInvoiceSettlementEdges) ChargeOrErr() (*Charge, error) {
-	if e.Charge != nil {
-		return e.Charge, nil
-	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: charge.Label}
-	}
-	return nil, &NotLoadedError{edge: "charge"}
-}
-
 // BillingInvoiceLineOrErr returns the BillingInvoiceLine value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e StandardInvoiceSettlementEdges) BillingInvoiceLineOrErr() (*BillingInvoiceLine, error) {
+func (e ChargeStandardInvoiceAccruedUsageEdges) BillingInvoiceLineOrErr() (*BillingInvoiceLine, error) {
 	if e.BillingInvoiceLine != nil {
 		return e.BillingInvoiceLine, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[0] {
 		return nil, &NotFoundError{label: billinginvoiceline.Label}
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice_line"}
 }
 
+// FlatFeeOrErr returns the FlatFee value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeStandardInvoiceAccruedUsageEdges) FlatFeeOrErr() (*ChargeFlatFee, error) {
+	if e.FlatFee != nil {
+		return e.FlatFee, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: chargeflatfee.Label}
+	}
+	return nil, &NotLoadedError{edge: "flat_fee"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
-func (*StandardInvoiceSettlement) scanValues(columns []string) ([]any, error) {
+func (*ChargeStandardInvoiceAccruedUsage) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case standardinvoicesettlement.FieldAnnotations:
+		case chargestandardinvoiceaccruedusage.FieldAnnotations:
 			values[i] = new([]byte)
-		case standardinvoicesettlement.FieldAmount, standardinvoicesettlement.FieldTaxesTotal, standardinvoicesettlement.FieldTaxesInclusiveTotal, standardinvoicesettlement.FieldTaxesExclusiveTotal, standardinvoicesettlement.FieldChargesTotal, standardinvoicesettlement.FieldDiscountsTotal, standardinvoicesettlement.FieldCreditsTotal, standardinvoicesettlement.FieldTotal, standardinvoicesettlement.FieldMeteredServicePeriodQuantity, standardinvoicesettlement.FieldMeteredPreServicePeriodQuantity:
+		case chargestandardinvoiceaccruedusage.FieldAmount, chargestandardinvoiceaccruedusage.FieldTaxesTotal, chargestandardinvoiceaccruedusage.FieldTaxesInclusiveTotal, chargestandardinvoiceaccruedusage.FieldTaxesExclusiveTotal, chargestandardinvoiceaccruedusage.FieldChargesTotal, chargestandardinvoiceaccruedusage.FieldDiscountsTotal, chargestandardinvoiceaccruedusage.FieldCreditsTotal, chargestandardinvoiceaccruedusage.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
-		case standardinvoicesettlement.FieldID, standardinvoicesettlement.FieldNamespace, standardinvoicesettlement.FieldLineID, standardinvoicesettlement.FieldChargeID, standardinvoicesettlement.FieldStatus:
+		case chargestandardinvoiceaccruedusage.FieldMutable:
+			values[i] = new(sql.NullBool)
+		case chargestandardinvoiceaccruedusage.FieldID, chargestandardinvoiceaccruedusage.FieldNamespace, chargestandardinvoiceaccruedusage.FieldChargeID, chargestandardinvoiceaccruedusage.FieldLineID, chargestandardinvoiceaccruedusage.FieldLedgerTransactionGroupID:
 			values[i] = new(sql.NullString)
-		case standardinvoicesettlement.FieldCreatedAt, standardinvoicesettlement.FieldUpdatedAt, standardinvoicesettlement.FieldDeletedAt, standardinvoicesettlement.FieldServicePeriodFrom, standardinvoicesettlement.FieldServicePeriodTo:
+		case chargestandardinvoiceaccruedusage.FieldCreatedAt, chargestandardinvoiceaccruedusage.FieldUpdatedAt, chargestandardinvoiceaccruedusage.FieldDeletedAt, chargestandardinvoiceaccruedusage.FieldServicePeriodFrom, chargestandardinvoiceaccruedusage.FieldServicePeriodTo:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -123,45 +122,45 @@ func (*StandardInvoiceSettlement) scanValues(columns []string) ([]any, error) {
 }
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
-// to the StandardInvoiceSettlement fields.
-func (_m *StandardInvoiceSettlement) assignValues(columns []string, values []any) error {
+// to the ChargeStandardInvoiceAccruedUsage fields.
+func (_m *ChargeStandardInvoiceAccruedUsage) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
 	for i := range columns {
 		switch columns[i] {
-		case standardinvoicesettlement.FieldID:
+		case chargestandardinvoiceaccruedusage.FieldID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				_m.ID = value.String
 			}
-		case standardinvoicesettlement.FieldNamespace:
+		case chargestandardinvoiceaccruedusage.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
 				_m.Namespace = value.String
 			}
-		case standardinvoicesettlement.FieldCreatedAt:
+		case chargestandardinvoiceaccruedusage.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				_m.CreatedAt = value.Time
 			}
-		case standardinvoicesettlement.FieldUpdatedAt:
+		case chargestandardinvoiceaccruedusage.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
 			}
-		case standardinvoicesettlement.FieldDeletedAt:
+		case chargestandardinvoiceaccruedusage.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
 			}
-		case standardinvoicesettlement.FieldAnnotations:
+		case chargestandardinvoiceaccruedusage.FieldAnnotations:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field annotations", values[i])
 			} else if value != nil && len(*value) > 0 {
@@ -169,95 +168,91 @@ func (_m *StandardInvoiceSettlement) assignValues(columns []string, values []any
 					return fmt.Errorf("unmarshal field annotations: %w", err)
 				}
 			}
-		case standardinvoicesettlement.FieldAmount:
+		case chargestandardinvoiceaccruedusage.FieldAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field amount", values[i])
 			} else if value != nil {
 				_m.Amount = *value
 			}
-		case standardinvoicesettlement.FieldTaxesTotal:
+		case chargestandardinvoiceaccruedusage.FieldTaxesTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field taxes_total", values[i])
 			} else if value != nil {
 				_m.TaxesTotal = *value
 			}
-		case standardinvoicesettlement.FieldTaxesInclusiveTotal:
+		case chargestandardinvoiceaccruedusage.FieldTaxesInclusiveTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field taxes_inclusive_total", values[i])
 			} else if value != nil {
 				_m.TaxesInclusiveTotal = *value
 			}
-		case standardinvoicesettlement.FieldTaxesExclusiveTotal:
+		case chargestandardinvoiceaccruedusage.FieldTaxesExclusiveTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field taxes_exclusive_total", values[i])
 			} else if value != nil {
 				_m.TaxesExclusiveTotal = *value
 			}
-		case standardinvoicesettlement.FieldChargesTotal:
+		case chargestandardinvoiceaccruedusage.FieldChargesTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field charges_total", values[i])
 			} else if value != nil {
 				_m.ChargesTotal = *value
 			}
-		case standardinvoicesettlement.FieldDiscountsTotal:
+		case chargestandardinvoiceaccruedusage.FieldDiscountsTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field discounts_total", values[i])
 			} else if value != nil {
 				_m.DiscountsTotal = *value
 			}
-		case standardinvoicesettlement.FieldCreditsTotal:
+		case chargestandardinvoiceaccruedusage.FieldCreditsTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field credits_total", values[i])
 			} else if value != nil {
 				_m.CreditsTotal = *value
 			}
-		case standardinvoicesettlement.FieldTotal:
+		case chargestandardinvoiceaccruedusage.FieldTotal:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field total", values[i])
 			} else if value != nil {
 				_m.Total = *value
 			}
-		case standardinvoicesettlement.FieldLineID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field line_id", values[i])
-			} else if value.Valid {
-				_m.LineID = value.String
-			}
-		case standardinvoicesettlement.FieldChargeID:
+		case chargestandardinvoiceaccruedusage.FieldChargeID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field charge_id", values[i])
 			} else if value.Valid {
 				_m.ChargeID = value.String
 			}
-		case standardinvoicesettlement.FieldServicePeriodFrom:
+		case chargestandardinvoiceaccruedusage.FieldLineID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field line_id", values[i])
+			} else if value.Valid {
+				_m.LineID = new(string)
+				*_m.LineID = value.String
+			}
+		case chargestandardinvoiceaccruedusage.FieldServicePeriodFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field service_period_from", values[i])
 			} else if value.Valid {
 				_m.ServicePeriodFrom = value.Time
 			}
-		case standardinvoicesettlement.FieldServicePeriodTo:
+		case chargestandardinvoiceaccruedusage.FieldServicePeriodTo:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field service_period_to", values[i])
 			} else if value.Valid {
 				_m.ServicePeriodTo = value.Time
 			}
-		case standardinvoicesettlement.FieldStatus:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field status", values[i])
+		case chargestandardinvoiceaccruedusage.FieldMutable:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field mutable", values[i])
 			} else if value.Valid {
-				_m.Status = charges.StandardInvoiceSettlementStatus(value.String)
+				_m.Mutable = value.Bool
 			}
-		case standardinvoicesettlement.FieldMeteredServicePeriodQuantity:
-			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
-				return fmt.Errorf("unexpected type %T for field metered_service_period_quantity", values[i])
-			} else if value != nil {
-				_m.MeteredServicePeriodQuantity = *value
-			}
-		case standardinvoicesettlement.FieldMeteredPreServicePeriodQuantity:
-			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
-				return fmt.Errorf("unexpected type %T for field metered_pre_service_period_quantity", values[i])
-			} else if value != nil {
-				_m.MeteredPreServicePeriodQuantity = *value
+		case chargestandardinvoiceaccruedusage.FieldLedgerTransactionGroupID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field ledger_transaction_group_id", values[i])
+			} else if value.Valid {
+				_m.LedgerTransactionGroupID = new(string)
+				*_m.LedgerTransactionGroupID = value.String
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -266,44 +261,44 @@ func (_m *StandardInvoiceSettlement) assignValues(columns []string, values []any
 	return nil
 }
 
-// Value returns the ent.Value that was dynamically selected and assigned to the StandardInvoiceSettlement.
+// Value returns the ent.Value that was dynamically selected and assigned to the ChargeStandardInvoiceAccruedUsage.
 // This includes values selected through modifiers, order, etc.
-func (_m *StandardInvoiceSettlement) Value(name string) (ent.Value, error) {
+func (_m *ChargeStandardInvoiceAccruedUsage) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryCharge queries the "charge" edge of the StandardInvoiceSettlement entity.
-func (_m *StandardInvoiceSettlement) QueryCharge() *ChargeQuery {
-	return NewStandardInvoiceSettlementClient(_m.config).QueryCharge(_m)
+// QueryBillingInvoiceLine queries the "billing_invoice_line" edge of the ChargeStandardInvoiceAccruedUsage entity.
+func (_m *ChargeStandardInvoiceAccruedUsage) QueryBillingInvoiceLine() *BillingInvoiceLineQuery {
+	return NewChargeStandardInvoiceAccruedUsageClient(_m.config).QueryBillingInvoiceLine(_m)
 }
 
-// QueryBillingInvoiceLine queries the "billing_invoice_line" edge of the StandardInvoiceSettlement entity.
-func (_m *StandardInvoiceSettlement) QueryBillingInvoiceLine() *BillingInvoiceLineQuery {
-	return NewStandardInvoiceSettlementClient(_m.config).QueryBillingInvoiceLine(_m)
+// QueryFlatFee queries the "flat_fee" edge of the ChargeStandardInvoiceAccruedUsage entity.
+func (_m *ChargeStandardInvoiceAccruedUsage) QueryFlatFee() *ChargeFlatFeeQuery {
+	return NewChargeStandardInvoiceAccruedUsageClient(_m.config).QueryFlatFee(_m)
 }
 
-// Update returns a builder for updating this StandardInvoiceSettlement.
-// Note that you need to call StandardInvoiceSettlement.Unwrap() before calling this method if this StandardInvoiceSettlement
+// Update returns a builder for updating this ChargeStandardInvoiceAccruedUsage.
+// Note that you need to call ChargeStandardInvoiceAccruedUsage.Unwrap() before calling this method if this ChargeStandardInvoiceAccruedUsage
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (_m *StandardInvoiceSettlement) Update() *StandardInvoiceSettlementUpdateOne {
-	return NewStandardInvoiceSettlementClient(_m.config).UpdateOne(_m)
+func (_m *ChargeStandardInvoiceAccruedUsage) Update() *ChargeStandardInvoiceAccruedUsageUpdateOne {
+	return NewChargeStandardInvoiceAccruedUsageClient(_m.config).UpdateOne(_m)
 }
 
-// Unwrap unwraps the StandardInvoiceSettlement entity that was returned from a transaction after it was closed,
+// Unwrap unwraps the ChargeStandardInvoiceAccruedUsage entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (_m *StandardInvoiceSettlement) Unwrap() *StandardInvoiceSettlement {
+func (_m *ChargeStandardInvoiceAccruedUsage) Unwrap() *ChargeStandardInvoiceAccruedUsage {
 	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
-		panic("db: StandardInvoiceSettlement is not a transactional entity")
+		panic("db: ChargeStandardInvoiceAccruedUsage is not a transactional entity")
 	}
 	_m.config.driver = _tx.drv
 	return _m
 }
 
 // String implements the fmt.Stringer.
-func (_m *StandardInvoiceSettlement) String() string {
+func (_m *ChargeStandardInvoiceAccruedUsage) String() string {
 	var builder strings.Builder
-	builder.WriteString("StandardInvoiceSettlement(")
+	builder.WriteString("ChargeStandardInvoiceAccruedUsage(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
 	builder.WriteString(_m.Namespace)
@@ -346,11 +341,13 @@ func (_m *StandardInvoiceSettlement) String() string {
 	builder.WriteString("total=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Total))
 	builder.WriteString(", ")
-	builder.WriteString("line_id=")
-	builder.WriteString(_m.LineID)
-	builder.WriteString(", ")
 	builder.WriteString("charge_id=")
 	builder.WriteString(_m.ChargeID)
+	builder.WriteString(", ")
+	if v := _m.LineID; v != nil {
+		builder.WriteString("line_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("service_period_from=")
 	builder.WriteString(_m.ServicePeriodFrom.Format(time.ANSIC))
@@ -358,17 +355,16 @@ func (_m *StandardInvoiceSettlement) String() string {
 	builder.WriteString("service_period_to=")
 	builder.WriteString(_m.ServicePeriodTo.Format(time.ANSIC))
 	builder.WriteString(", ")
-	builder.WriteString("status=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Status))
+	builder.WriteString("mutable=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Mutable))
 	builder.WriteString(", ")
-	builder.WriteString("metered_service_period_quantity=")
-	builder.WriteString(fmt.Sprintf("%v", _m.MeteredServicePeriodQuantity))
-	builder.WriteString(", ")
-	builder.WriteString("metered_pre_service_period_quantity=")
-	builder.WriteString(fmt.Sprintf("%v", _m.MeteredPreServicePeriodQuantity))
+	if v := _m.LedgerTransactionGroupID; v != nil {
+		builder.WriteString("ledger_transaction_group_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }
 
-// StandardInvoiceSettlements is a parsable slice of StandardInvoiceSettlement.
-type StandardInvoiceSettlements []*StandardInvoiceSettlement
+// ChargeStandardInvoiceAccruedUsages is a parsable slice of ChargeStandardInvoiceAccruedUsage.
+type ChargeStandardInvoiceAccruedUsages []*ChargeStandardInvoiceAccruedUsage

@@ -69,8 +69,6 @@ const (
 	EdgeUsageBased = "usage_based"
 	// EdgeCreditPurchase holds the string denoting the credit_purchase edge name in mutations.
 	EdgeCreditPurchase = "credit_purchase"
-	// EdgeStandardInvoiceSettlments holds the string denoting the standard_invoice_settlments edge name in mutations.
-	EdgeStandardInvoiceSettlments = "standard_invoice_settlments"
 	// EdgeBillingInvoiceLines holds the string denoting the billing_invoice_lines edge name in mutations.
 	EdgeBillingInvoiceLines = "billing_invoice_lines"
 	// EdgeBillingSplitLineGroups holds the string denoting the billing_split_line_groups edge name in mutations.
@@ -106,13 +104,6 @@ const (
 	CreditPurchaseInverseTable = "charge_credit_purchases"
 	// CreditPurchaseColumn is the table column denoting the credit_purchase relation/edge.
 	CreditPurchaseColumn = "id"
-	// StandardInvoiceSettlmentsTable is the table that holds the standard_invoice_settlments relation/edge.
-	StandardInvoiceSettlmentsTable = "standard_invoice_settlements"
-	// StandardInvoiceSettlmentsInverseTable is the table name for the StandardInvoiceSettlement entity.
-	// It exists in this package in order to avoid circular dependency with the "standardinvoicesettlement" package.
-	StandardInvoiceSettlmentsInverseTable = "standard_invoice_settlements"
-	// StandardInvoiceSettlmentsColumn is the table column denoting the standard_invoice_settlments relation/edge.
-	StandardInvoiceSettlmentsColumn = "charge_id"
 	// BillingInvoiceLinesTable is the table that holds the billing_invoice_lines relation/edge.
 	BillingInvoiceLinesTable = "billing_invoice_lines"
 	// BillingInvoiceLinesInverseTable is the table name for the BillingInvoiceLine entity.
@@ -376,20 +367,6 @@ func ByCreditPurchaseField(field string, opts ...sql.OrderTermOption) OrderOptio
 	}
 }
 
-// ByStandardInvoiceSettlmentsCount orders the results by standard_invoice_settlments count.
-func ByStandardInvoiceSettlmentsCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newStandardInvoiceSettlmentsStep(), opts...)
-	}
-}
-
-// ByStandardInvoiceSettlments orders the results by standard_invoice_settlments terms.
-func ByStandardInvoiceSettlments(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newStandardInvoiceSettlmentsStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
 // ByBillingInvoiceLinesCount orders the results by billing_invoice_lines count.
 func ByBillingInvoiceLinesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -464,13 +441,6 @@ func newCreditPurchaseStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CreditPurchaseInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, CreditPurchaseTable, CreditPurchaseColumn),
-	)
-}
-func newStandardInvoiceSettlmentsStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(StandardInvoiceSettlmentsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, StandardInvoiceSettlmentsTable, StandardInvoiceSettlmentsColumn),
 	)
 }
 func newBillingInvoiceLinesStep() *sqlgraph.Step {

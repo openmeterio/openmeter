@@ -14,7 +14,10 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoiceaccruedusage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicepaymentsettlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
@@ -145,6 +148,59 @@ func (_u *ChargeFlatFeeUpdate) SetCharge(v *Charge) *ChargeFlatFeeUpdate {
 	return _u.SetChargeID(v.ID)
 }
 
+// SetChargeStandardInvoicePaymentSettlementID sets the "charge_standard_invoice_payment_settlement" edge to the ChargeStandardInvoicePaymentSettlement entity by ID.
+func (_u *ChargeFlatFeeUpdate) SetChargeStandardInvoicePaymentSettlementID(id string) *ChargeFlatFeeUpdate {
+	_u.mutation.SetChargeStandardInvoicePaymentSettlementID(id)
+	return _u
+}
+
+// SetNillableChargeStandardInvoicePaymentSettlementID sets the "charge_standard_invoice_payment_settlement" edge to the ChargeStandardInvoicePaymentSettlement entity by ID if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableChargeStandardInvoicePaymentSettlementID(id *string) *ChargeFlatFeeUpdate {
+	if id != nil {
+		_u = _u.SetChargeStandardInvoicePaymentSettlementID(*id)
+	}
+	return _u
+}
+
+// SetChargeStandardInvoicePaymentSettlement sets the "charge_standard_invoice_payment_settlement" edge to the ChargeStandardInvoicePaymentSettlement entity.
+func (_u *ChargeFlatFeeUpdate) SetChargeStandardInvoicePaymentSettlement(v *ChargeStandardInvoicePaymentSettlement) *ChargeFlatFeeUpdate {
+	return _u.SetChargeStandardInvoicePaymentSettlementID(v.ID)
+}
+
+// SetChargeStandardInvoiceAccruedUsageID sets the "charge_standard_invoice_accrued_usage" edge to the ChargeStandardInvoiceAccruedUsage entity by ID.
+func (_u *ChargeFlatFeeUpdate) SetChargeStandardInvoiceAccruedUsageID(id string) *ChargeFlatFeeUpdate {
+	_u.mutation.SetChargeStandardInvoiceAccruedUsageID(id)
+	return _u
+}
+
+// SetNillableChargeStandardInvoiceAccruedUsageID sets the "charge_standard_invoice_accrued_usage" edge to the ChargeStandardInvoiceAccruedUsage entity by ID if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableChargeStandardInvoiceAccruedUsageID(id *string) *ChargeFlatFeeUpdate {
+	if id != nil {
+		_u = _u.SetChargeStandardInvoiceAccruedUsageID(*id)
+	}
+	return _u
+}
+
+// SetChargeStandardInvoiceAccruedUsage sets the "charge_standard_invoice_accrued_usage" edge to the ChargeStandardInvoiceAccruedUsage entity.
+func (_u *ChargeFlatFeeUpdate) SetChargeStandardInvoiceAccruedUsage(v *ChargeStandardInvoiceAccruedUsage) *ChargeFlatFeeUpdate {
+	return _u.SetChargeStandardInvoiceAccruedUsageID(v.ID)
+}
+
+// AddChargeCreditRealizationIDs adds the "charge_credit_realizations" edge to the ChargeCreditRealization entity by IDs.
+func (_u *ChargeFlatFeeUpdate) AddChargeCreditRealizationIDs(ids ...string) *ChargeFlatFeeUpdate {
+	_u.mutation.AddChargeCreditRealizationIDs(ids...)
+	return _u
+}
+
+// AddChargeCreditRealizations adds the "charge_credit_realizations" edges to the ChargeCreditRealization entity.
+func (_u *ChargeFlatFeeUpdate) AddChargeCreditRealizations(v ...*ChargeCreditRealization) *ChargeFlatFeeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargeCreditRealizationIDs(ids...)
+}
+
 // Mutation returns the ChargeFlatFeeMutation object of the builder.
 func (_u *ChargeFlatFeeUpdate) Mutation() *ChargeFlatFeeMutation {
 	return _u.mutation
@@ -154,6 +210,39 @@ func (_u *ChargeFlatFeeUpdate) Mutation() *ChargeFlatFeeMutation {
 func (_u *ChargeFlatFeeUpdate) ClearCharge() *ChargeFlatFeeUpdate {
 	_u.mutation.ClearCharge()
 	return _u
+}
+
+// ClearChargeStandardInvoicePaymentSettlement clears the "charge_standard_invoice_payment_settlement" edge to the ChargeStandardInvoicePaymentSettlement entity.
+func (_u *ChargeFlatFeeUpdate) ClearChargeStandardInvoicePaymentSettlement() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearChargeStandardInvoicePaymentSettlement()
+	return _u
+}
+
+// ClearChargeStandardInvoiceAccruedUsage clears the "charge_standard_invoice_accrued_usage" edge to the ChargeStandardInvoiceAccruedUsage entity.
+func (_u *ChargeFlatFeeUpdate) ClearChargeStandardInvoiceAccruedUsage() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearChargeStandardInvoiceAccruedUsage()
+	return _u
+}
+
+// ClearChargeCreditRealizations clears all "charge_credit_realizations" edges to the ChargeCreditRealization entity.
+func (_u *ChargeFlatFeeUpdate) ClearChargeCreditRealizations() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearChargeCreditRealizations()
+	return _u
+}
+
+// RemoveChargeCreditRealizationIDs removes the "charge_credit_realizations" edge to ChargeCreditRealization entities by IDs.
+func (_u *ChargeFlatFeeUpdate) RemoveChargeCreditRealizationIDs(ids ...string) *ChargeFlatFeeUpdate {
+	_u.mutation.RemoveChargeCreditRealizationIDs(ids...)
+	return _u
+}
+
+// RemoveChargeCreditRealizations removes "charge_credit_realizations" edges to ChargeCreditRealization entities.
+func (_u *ChargeFlatFeeUpdate) RemoveChargeCreditRealizations(v ...*ChargeCreditRealization) *ChargeFlatFeeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargeCreditRealizationIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -276,6 +365,109 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeStandardInvoicePaymentSettlementCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeflatfee.ChargeStandardInvoicePaymentSettlementTable,
+			Columns: []string{chargeflatfee.ChargeStandardInvoicePaymentSettlementColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargestandardinvoicepaymentsettlement.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeStandardInvoicePaymentSettlementIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeflatfee.ChargeStandardInvoicePaymentSettlementTable,
+			Columns: []string{chargeflatfee.ChargeStandardInvoicePaymentSettlementColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargestandardinvoicepaymentsettlement.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeStandardInvoiceAccruedUsageCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeflatfee.ChargeStandardInvoiceAccruedUsageTable,
+			Columns: []string{chargeflatfee.ChargeStandardInvoiceAccruedUsageColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargestandardinvoiceaccruedusage.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeStandardInvoiceAccruedUsageIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeflatfee.ChargeStandardInvoiceAccruedUsageTable,
+			Columns: []string{chargeflatfee.ChargeStandardInvoiceAccruedUsageColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargestandardinvoiceaccruedusage.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeCreditRealizationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfee.ChargeCreditRealizationsTable,
+			Columns: []string{chargeflatfee.ChargeCreditRealizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditrealization.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargeCreditRealizationsIDs(); len(nodes) > 0 && !_u.mutation.ChargeCreditRealizationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfee.ChargeCreditRealizationsTable,
+			Columns: []string{chargeflatfee.ChargeCreditRealizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditrealization.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeCreditRealizationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfee.ChargeCreditRealizationsTable,
+			Columns: []string{chargeflatfee.ChargeCreditRealizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditrealization.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -416,6 +608,59 @@ func (_u *ChargeFlatFeeUpdateOne) SetCharge(v *Charge) *ChargeFlatFeeUpdateOne {
 	return _u.SetChargeID(v.ID)
 }
 
+// SetChargeStandardInvoicePaymentSettlementID sets the "charge_standard_invoice_payment_settlement" edge to the ChargeStandardInvoicePaymentSettlement entity by ID.
+func (_u *ChargeFlatFeeUpdateOne) SetChargeStandardInvoicePaymentSettlementID(id string) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetChargeStandardInvoicePaymentSettlementID(id)
+	return _u
+}
+
+// SetNillableChargeStandardInvoicePaymentSettlementID sets the "charge_standard_invoice_payment_settlement" edge to the ChargeStandardInvoicePaymentSettlement entity by ID if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableChargeStandardInvoicePaymentSettlementID(id *string) *ChargeFlatFeeUpdateOne {
+	if id != nil {
+		_u = _u.SetChargeStandardInvoicePaymentSettlementID(*id)
+	}
+	return _u
+}
+
+// SetChargeStandardInvoicePaymentSettlement sets the "charge_standard_invoice_payment_settlement" edge to the ChargeStandardInvoicePaymentSettlement entity.
+func (_u *ChargeFlatFeeUpdateOne) SetChargeStandardInvoicePaymentSettlement(v *ChargeStandardInvoicePaymentSettlement) *ChargeFlatFeeUpdateOne {
+	return _u.SetChargeStandardInvoicePaymentSettlementID(v.ID)
+}
+
+// SetChargeStandardInvoiceAccruedUsageID sets the "charge_standard_invoice_accrued_usage" edge to the ChargeStandardInvoiceAccruedUsage entity by ID.
+func (_u *ChargeFlatFeeUpdateOne) SetChargeStandardInvoiceAccruedUsageID(id string) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetChargeStandardInvoiceAccruedUsageID(id)
+	return _u
+}
+
+// SetNillableChargeStandardInvoiceAccruedUsageID sets the "charge_standard_invoice_accrued_usage" edge to the ChargeStandardInvoiceAccruedUsage entity by ID if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableChargeStandardInvoiceAccruedUsageID(id *string) *ChargeFlatFeeUpdateOne {
+	if id != nil {
+		_u = _u.SetChargeStandardInvoiceAccruedUsageID(*id)
+	}
+	return _u
+}
+
+// SetChargeStandardInvoiceAccruedUsage sets the "charge_standard_invoice_accrued_usage" edge to the ChargeStandardInvoiceAccruedUsage entity.
+func (_u *ChargeFlatFeeUpdateOne) SetChargeStandardInvoiceAccruedUsage(v *ChargeStandardInvoiceAccruedUsage) *ChargeFlatFeeUpdateOne {
+	return _u.SetChargeStandardInvoiceAccruedUsageID(v.ID)
+}
+
+// AddChargeCreditRealizationIDs adds the "charge_credit_realizations" edge to the ChargeCreditRealization entity by IDs.
+func (_u *ChargeFlatFeeUpdateOne) AddChargeCreditRealizationIDs(ids ...string) *ChargeFlatFeeUpdateOne {
+	_u.mutation.AddChargeCreditRealizationIDs(ids...)
+	return _u
+}
+
+// AddChargeCreditRealizations adds the "charge_credit_realizations" edges to the ChargeCreditRealization entity.
+func (_u *ChargeFlatFeeUpdateOne) AddChargeCreditRealizations(v ...*ChargeCreditRealization) *ChargeFlatFeeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargeCreditRealizationIDs(ids...)
+}
+
 // Mutation returns the ChargeFlatFeeMutation object of the builder.
 func (_u *ChargeFlatFeeUpdateOne) Mutation() *ChargeFlatFeeMutation {
 	return _u.mutation
@@ -425,6 +670,39 @@ func (_u *ChargeFlatFeeUpdateOne) Mutation() *ChargeFlatFeeMutation {
 func (_u *ChargeFlatFeeUpdateOne) ClearCharge() *ChargeFlatFeeUpdateOne {
 	_u.mutation.ClearCharge()
 	return _u
+}
+
+// ClearChargeStandardInvoicePaymentSettlement clears the "charge_standard_invoice_payment_settlement" edge to the ChargeStandardInvoicePaymentSettlement entity.
+func (_u *ChargeFlatFeeUpdateOne) ClearChargeStandardInvoicePaymentSettlement() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearChargeStandardInvoicePaymentSettlement()
+	return _u
+}
+
+// ClearChargeStandardInvoiceAccruedUsage clears the "charge_standard_invoice_accrued_usage" edge to the ChargeStandardInvoiceAccruedUsage entity.
+func (_u *ChargeFlatFeeUpdateOne) ClearChargeStandardInvoiceAccruedUsage() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearChargeStandardInvoiceAccruedUsage()
+	return _u
+}
+
+// ClearChargeCreditRealizations clears all "charge_credit_realizations" edges to the ChargeCreditRealization entity.
+func (_u *ChargeFlatFeeUpdateOne) ClearChargeCreditRealizations() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearChargeCreditRealizations()
+	return _u
+}
+
+// RemoveChargeCreditRealizationIDs removes the "charge_credit_realizations" edge to ChargeCreditRealization entities by IDs.
+func (_u *ChargeFlatFeeUpdateOne) RemoveChargeCreditRealizationIDs(ids ...string) *ChargeFlatFeeUpdateOne {
+	_u.mutation.RemoveChargeCreditRealizationIDs(ids...)
+	return _u
+}
+
+// RemoveChargeCreditRealizations removes "charge_credit_realizations" edges to ChargeCreditRealization entities.
+func (_u *ChargeFlatFeeUpdateOne) RemoveChargeCreditRealizations(v ...*ChargeCreditRealization) *ChargeFlatFeeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargeCreditRealizationIDs(ids...)
 }
 
 // Where appends a list predicates to the ChargeFlatFeeUpdate builder.
@@ -577,6 +855,109 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeStandardInvoicePaymentSettlementCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeflatfee.ChargeStandardInvoicePaymentSettlementTable,
+			Columns: []string{chargeflatfee.ChargeStandardInvoicePaymentSettlementColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargestandardinvoicepaymentsettlement.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeStandardInvoicePaymentSettlementIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeflatfee.ChargeStandardInvoicePaymentSettlementTable,
+			Columns: []string{chargeflatfee.ChargeStandardInvoicePaymentSettlementColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargestandardinvoicepaymentsettlement.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeStandardInvoiceAccruedUsageCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeflatfee.ChargeStandardInvoiceAccruedUsageTable,
+			Columns: []string{chargeflatfee.ChargeStandardInvoiceAccruedUsageColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargestandardinvoiceaccruedusage.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeStandardInvoiceAccruedUsageIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeflatfee.ChargeStandardInvoiceAccruedUsageTable,
+			Columns: []string{chargeflatfee.ChargeStandardInvoiceAccruedUsageColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargestandardinvoiceaccruedusage.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeCreditRealizationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfee.ChargeCreditRealizationsTable,
+			Columns: []string{chargeflatfee.ChargeCreditRealizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditrealization.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargeCreditRealizationsIDs(); len(nodes) > 0 && !_u.mutation.ChargeCreditRealizationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfee.ChargeCreditRealizationsTable,
+			Columns: []string{chargeflatfee.ChargeCreditRealizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditrealization.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeCreditRealizationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeflatfee.ChargeCreditRealizationsTable,
+			Columns: []string{chargeflatfee.ChargeCreditRealizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditrealization.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

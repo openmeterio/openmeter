@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/expand"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -31,6 +32,32 @@ func (t ChargeType) Validate() error {
 	}
 
 	return nil
+}
+
+type ChargeID models.NamespacedID
+
+func (i ChargeID) Validate() error {
+	return models.NamespacedID(i).Validate()
+}
+
+type Expand string
+
+const (
+	ExpandRealizations Expand = "realizations"
+)
+
+func (e Expand) Values() []Expand {
+	return []Expand{
+		ExpandRealizations,
+	}
+}
+
+var ExpandNone Expands = nil
+
+type Expands = expand.Expand[Expand]
+
+type ChargeAccessor interface {
+	GetChargeID() ChargeID
 }
 
 type Charge struct {
@@ -126,6 +153,31 @@ func (c Charge) AsCreditPurchaseCharge() (CreditPurchaseCharge, error) {
 	}
 
 	return *c.creditPurchase, nil
+}
+
+func (c Charge) GetChargeID() (ChargeID, error) {
+	switch c.t {
+	case ChargeTypeFlatFee:
+		if c.flatFee == nil {
+			return ChargeID{}, fmt.Errorf("flat fee charge is nil")
+		}
+
+		return c.flatFee.GetChargeID(), nil
+	case ChargeTypeUsageBased:
+		if c.usageBased == nil {
+			return ChargeID{}, fmt.Errorf("usage based charge is nil")
+		}
+
+		return c.usageBased.GetChargeID(), nil
+	case ChargeTypeCreditPurchase:
+		if c.creditPurchase == nil {
+			return ChargeID{}, fmt.Errorf("credit purchase charge is nil")
+		}
+
+		return c.creditPurchase.GetChargeID(), nil
+	}
+
+	return ChargeID{}, fmt.Errorf("invalid charge type: %s", c.t)
 }
 
 type ChargeStatus string
@@ -320,4 +372,49 @@ type ManagedResource struct {
 	models.NamespacedModel
 	models.ManagedModel
 	ID string `json:"id"`
+}
+
+type GetChargeByIDInput struct {
+	ChargeID ChargeID
+	Expands  Expands
+}
+
+func (i GetChargeByIDInput) Validate() error {
+	var errs []error
+
+	if err := i.ChargeID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge ID: %w", err))
+	}
+
+	if err := i.Expands.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("expands: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+type GetChargesByIDsInput struct {
+	Namespace string
+	ChargeIDs []string
+	Expands   Expands
+}
+
+func (i GetChargesByIDsInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, fmt.Errorf("namespace is required"))
+	}
+
+	for idx, id := range i.ChargeIDs {
+		if id == "" {
+			errs = append(errs, fmt.Errorf("charge ID [%d]: cannot be empty", idx))
+		}
+	}
+
+	if err := i.Expands.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("expands: %w", err))
+	}
+
+	return errors.Join(errs...)
 }

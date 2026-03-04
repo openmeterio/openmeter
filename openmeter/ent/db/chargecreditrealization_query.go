@@ -13,19 +13,19 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/standardinvoicesettlement"
 )
 
-// StandardInvoiceSettlementQuery is the builder for querying StandardInvoiceSettlement entities.
-type StandardInvoiceSettlementQuery struct {
+// ChargeCreditRealizationQuery is the builder for querying ChargeCreditRealization entities.
+type ChargeCreditRealizationQuery struct {
 	config
 	ctx                    *QueryContext
-	order                  []standardinvoicesettlement.OrderOption
+	order                  []chargecreditrealization.OrderOption
 	inters                 []Interceptor
-	predicates             []predicate.StandardInvoiceSettlement
-	withCharge             *ChargeQuery
+	predicates             []predicate.ChargeCreditRealization
+	withChargeFlatFee      *ChargeFlatFeeQuery
 	withBillingInvoiceLine *BillingInvoiceLineQuery
 	modifiers              []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
@@ -33,40 +33,40 @@ type StandardInvoiceSettlementQuery struct {
 	path func(context.Context) (*sql.Selector, error)
 }
 
-// Where adds a new predicate for the StandardInvoiceSettlementQuery builder.
-func (_q *StandardInvoiceSettlementQuery) Where(ps ...predicate.StandardInvoiceSettlement) *StandardInvoiceSettlementQuery {
+// Where adds a new predicate for the ChargeCreditRealizationQuery builder.
+func (_q *ChargeCreditRealizationQuery) Where(ps ...predicate.ChargeCreditRealization) *ChargeCreditRealizationQuery {
 	_q.predicates = append(_q.predicates, ps...)
 	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (_q *StandardInvoiceSettlementQuery) Limit(limit int) *StandardInvoiceSettlementQuery {
+func (_q *ChargeCreditRealizationQuery) Limit(limit int) *ChargeCreditRealizationQuery {
 	_q.ctx.Limit = &limit
 	return _q
 }
 
 // Offset to start from.
-func (_q *StandardInvoiceSettlementQuery) Offset(offset int) *StandardInvoiceSettlementQuery {
+func (_q *ChargeCreditRealizationQuery) Offset(offset int) *ChargeCreditRealizationQuery {
 	_q.ctx.Offset = &offset
 	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (_q *StandardInvoiceSettlementQuery) Unique(unique bool) *StandardInvoiceSettlementQuery {
+func (_q *ChargeCreditRealizationQuery) Unique(unique bool) *ChargeCreditRealizationQuery {
 	_q.ctx.Unique = &unique
 	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (_q *StandardInvoiceSettlementQuery) Order(o ...standardinvoicesettlement.OrderOption) *StandardInvoiceSettlementQuery {
+func (_q *ChargeCreditRealizationQuery) Order(o ...chargecreditrealization.OrderOption) *ChargeCreditRealizationQuery {
 	_q.order = append(_q.order, o...)
 	return _q
 }
 
-// QueryCharge chains the current query on the "charge" edge.
-func (_q *StandardInvoiceSettlementQuery) QueryCharge() *ChargeQuery {
-	query := (&ChargeClient{config: _q.config}).Query()
+// QueryChargeFlatFee chains the current query on the "charge_flat_fee" edge.
+func (_q *ChargeCreditRealizationQuery) QueryChargeFlatFee() *ChargeFlatFeeQuery {
+	query := (&ChargeFlatFeeClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -76,9 +76,9 @@ func (_q *StandardInvoiceSettlementQuery) QueryCharge() *ChargeQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(standardinvoicesettlement.Table, standardinvoicesettlement.FieldID, selector),
-			sqlgraph.To(charge.Table, charge.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, standardinvoicesettlement.ChargeTable, standardinvoicesettlement.ChargeColumn),
+			sqlgraph.From(chargecreditrealization.Table, chargecreditrealization.FieldID, selector),
+			sqlgraph.To(chargeflatfee.Table, chargeflatfee.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargecreditrealization.ChargeFlatFeeTable, chargecreditrealization.ChargeFlatFeeColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -87,7 +87,7 @@ func (_q *StandardInvoiceSettlementQuery) QueryCharge() *ChargeQuery {
 }
 
 // QueryBillingInvoiceLine chains the current query on the "billing_invoice_line" edge.
-func (_q *StandardInvoiceSettlementQuery) QueryBillingInvoiceLine() *BillingInvoiceLineQuery {
+func (_q *ChargeCreditRealizationQuery) QueryBillingInvoiceLine() *BillingInvoiceLineQuery {
 	query := (&BillingInvoiceLineClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
@@ -98,9 +98,9 @@ func (_q *StandardInvoiceSettlementQuery) QueryBillingInvoiceLine() *BillingInvo
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(standardinvoicesettlement.Table, standardinvoicesettlement.FieldID, selector),
+			sqlgraph.From(chargecreditrealization.Table, chargecreditrealization.FieldID, selector),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, standardinvoicesettlement.BillingInvoiceLineTable, standardinvoicesettlement.BillingInvoiceLineColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargecreditrealization.BillingInvoiceLineTable, chargecreditrealization.BillingInvoiceLineColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -108,21 +108,21 @@ func (_q *StandardInvoiceSettlementQuery) QueryBillingInvoiceLine() *BillingInvo
 	return query
 }
 
-// First returns the first StandardInvoiceSettlement entity from the query.
-// Returns a *NotFoundError when no StandardInvoiceSettlement was found.
-func (_q *StandardInvoiceSettlementQuery) First(ctx context.Context) (*StandardInvoiceSettlement, error) {
+// First returns the first ChargeCreditRealization entity from the query.
+// Returns a *NotFoundError when no ChargeCreditRealization was found.
+func (_q *ChargeCreditRealizationQuery) First(ctx context.Context) (*ChargeCreditRealization, error) {
 	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{standardinvoicesettlement.Label}
+		return nil, &NotFoundError{chargecreditrealization.Label}
 	}
 	return nodes[0], nil
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (_q *StandardInvoiceSettlementQuery) FirstX(ctx context.Context) *StandardInvoiceSettlement {
+func (_q *ChargeCreditRealizationQuery) FirstX(ctx context.Context) *ChargeCreditRealization {
 	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -130,22 +130,22 @@ func (_q *StandardInvoiceSettlementQuery) FirstX(ctx context.Context) *StandardI
 	return node
 }
 
-// FirstID returns the first StandardInvoiceSettlement ID from the query.
-// Returns a *NotFoundError when no StandardInvoiceSettlement ID was found.
-func (_q *StandardInvoiceSettlementQuery) FirstID(ctx context.Context) (id string, err error) {
+// FirstID returns the first ChargeCreditRealization ID from the query.
+// Returns a *NotFoundError when no ChargeCreditRealization ID was found.
+func (_q *ChargeCreditRealizationQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{standardinvoicesettlement.Label}
+		err = &NotFoundError{chargecreditrealization.Label}
 		return
 	}
 	return ids[0], nil
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *StandardInvoiceSettlementQuery) FirstIDX(ctx context.Context) string {
+func (_q *ChargeCreditRealizationQuery) FirstIDX(ctx context.Context) string {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -153,10 +153,10 @@ func (_q *StandardInvoiceSettlementQuery) FirstIDX(ctx context.Context) string {
 	return id
 }
 
-// Only returns a single StandardInvoiceSettlement entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when more than one StandardInvoiceSettlement entity is found.
-// Returns a *NotFoundError when no StandardInvoiceSettlement entities are found.
-func (_q *StandardInvoiceSettlementQuery) Only(ctx context.Context) (*StandardInvoiceSettlement, error) {
+// Only returns a single ChargeCreditRealization entity found by the query, ensuring it only returns one.
+// Returns a *NotSingularError when more than one ChargeCreditRealization entity is found.
+// Returns a *NotFoundError when no ChargeCreditRealization entities are found.
+func (_q *ChargeCreditRealizationQuery) Only(ctx context.Context) (*ChargeCreditRealization, error) {
 	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
@@ -165,14 +165,14 @@ func (_q *StandardInvoiceSettlementQuery) Only(ctx context.Context) (*StandardIn
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{standardinvoicesettlement.Label}
+		return nil, &NotFoundError{chargecreditrealization.Label}
 	default:
-		return nil, &NotSingularError{standardinvoicesettlement.Label}
+		return nil, &NotSingularError{chargecreditrealization.Label}
 	}
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (_q *StandardInvoiceSettlementQuery) OnlyX(ctx context.Context) *StandardInvoiceSettlement {
+func (_q *ChargeCreditRealizationQuery) OnlyX(ctx context.Context) *ChargeCreditRealization {
 	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
@@ -180,10 +180,10 @@ func (_q *StandardInvoiceSettlementQuery) OnlyX(ctx context.Context) *StandardIn
 	return node
 }
 
-// OnlyID is like Only, but returns the only StandardInvoiceSettlement ID in the query.
-// Returns a *NotSingularError when more than one StandardInvoiceSettlement ID is found.
+// OnlyID is like Only, but returns the only ChargeCreditRealization ID in the query.
+// Returns a *NotSingularError when more than one ChargeCreditRealization ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *StandardInvoiceSettlementQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *ChargeCreditRealizationQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
@@ -192,15 +192,15 @@ func (_q *StandardInvoiceSettlementQuery) OnlyID(ctx context.Context) (id string
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{standardinvoicesettlement.Label}
+		err = &NotFoundError{chargecreditrealization.Label}
 	default:
-		err = &NotSingularError{standardinvoicesettlement.Label}
+		err = &NotSingularError{chargecreditrealization.Label}
 	}
 	return
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *StandardInvoiceSettlementQuery) OnlyIDX(ctx context.Context) string {
+func (_q *ChargeCreditRealizationQuery) OnlyIDX(ctx context.Context) string {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -208,18 +208,18 @@ func (_q *StandardInvoiceSettlementQuery) OnlyIDX(ctx context.Context) string {
 	return id
 }
 
-// All executes the query and returns a list of StandardInvoiceSettlements.
-func (_q *StandardInvoiceSettlementQuery) All(ctx context.Context) ([]*StandardInvoiceSettlement, error) {
+// All executes the query and returns a list of ChargeCreditRealizations.
+func (_q *ChargeCreditRealizationQuery) All(ctx context.Context) ([]*ChargeCreditRealization, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
-	qr := querierAll[[]*StandardInvoiceSettlement, *StandardInvoiceSettlementQuery]()
-	return withInterceptors[[]*StandardInvoiceSettlement](ctx, _q, qr, _q.inters)
+	qr := querierAll[[]*ChargeCreditRealization, *ChargeCreditRealizationQuery]()
+	return withInterceptors[[]*ChargeCreditRealization](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (_q *StandardInvoiceSettlementQuery) AllX(ctx context.Context) []*StandardInvoiceSettlement {
+func (_q *ChargeCreditRealizationQuery) AllX(ctx context.Context) []*ChargeCreditRealization {
 	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
@@ -227,20 +227,20 @@ func (_q *StandardInvoiceSettlementQuery) AllX(ctx context.Context) []*StandardI
 	return nodes
 }
 
-// IDs executes the query and returns a list of StandardInvoiceSettlement IDs.
-func (_q *StandardInvoiceSettlementQuery) IDs(ctx context.Context) (ids []string, err error) {
+// IDs executes the query and returns a list of ChargeCreditRealization IDs.
+func (_q *ChargeCreditRealizationQuery) IDs(ctx context.Context) (ids []string, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
-	if err = _q.Select(standardinvoicesettlement.FieldID).Scan(ctx, &ids); err != nil {
+	if err = _q.Select(chargecreditrealization.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *StandardInvoiceSettlementQuery) IDsX(ctx context.Context) []string {
+func (_q *ChargeCreditRealizationQuery) IDsX(ctx context.Context) []string {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -249,16 +249,16 @@ func (_q *StandardInvoiceSettlementQuery) IDsX(ctx context.Context) []string {
 }
 
 // Count returns the count of the given query.
-func (_q *StandardInvoiceSettlementQuery) Count(ctx context.Context) (int, error) {
+func (_q *ChargeCreditRealizationQuery) Count(ctx context.Context) (int, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, _q, querierCount[*StandardInvoiceSettlementQuery](), _q.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*ChargeCreditRealizationQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (_q *StandardInvoiceSettlementQuery) CountX(ctx context.Context) int {
+func (_q *ChargeCreditRealizationQuery) CountX(ctx context.Context) int {
 	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
@@ -267,7 +267,7 @@ func (_q *StandardInvoiceSettlementQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (_q *StandardInvoiceSettlementQuery) Exist(ctx context.Context) (bool, error) {
+func (_q *ChargeCreditRealizationQuery) Exist(ctx context.Context) (bool, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
 	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
@@ -280,7 +280,7 @@ func (_q *StandardInvoiceSettlementQuery) Exist(ctx context.Context) (bool, erro
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (_q *StandardInvoiceSettlementQuery) ExistX(ctx context.Context) bool {
+func (_q *ChargeCreditRealizationQuery) ExistX(ctx context.Context) bool {
 	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
@@ -288,19 +288,19 @@ func (_q *StandardInvoiceSettlementQuery) ExistX(ctx context.Context) bool {
 	return exist
 }
 
-// Clone returns a duplicate of the StandardInvoiceSettlementQuery builder, including all associated steps. It can be
+// Clone returns a duplicate of the ChargeCreditRealizationQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (_q *StandardInvoiceSettlementQuery) Clone() *StandardInvoiceSettlementQuery {
+func (_q *ChargeCreditRealizationQuery) Clone() *ChargeCreditRealizationQuery {
 	if _q == nil {
 		return nil
 	}
-	return &StandardInvoiceSettlementQuery{
+	return &ChargeCreditRealizationQuery{
 		config:                 _q.config,
 		ctx:                    _q.ctx.Clone(),
-		order:                  append([]standardinvoicesettlement.OrderOption{}, _q.order...),
+		order:                  append([]chargecreditrealization.OrderOption{}, _q.order...),
 		inters:                 append([]Interceptor{}, _q.inters...),
-		predicates:             append([]predicate.StandardInvoiceSettlement{}, _q.predicates...),
-		withCharge:             _q.withCharge.Clone(),
+		predicates:             append([]predicate.ChargeCreditRealization{}, _q.predicates...),
+		withChargeFlatFee:      _q.withChargeFlatFee.Clone(),
 		withBillingInvoiceLine: _q.withBillingInvoiceLine.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
@@ -308,20 +308,20 @@ func (_q *StandardInvoiceSettlementQuery) Clone() *StandardInvoiceSettlementQuer
 	}
 }
 
-// WithCharge tells the query-builder to eager-load the nodes that are connected to
-// the "charge" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *StandardInvoiceSettlementQuery) WithCharge(opts ...func(*ChargeQuery)) *StandardInvoiceSettlementQuery {
-	query := (&ChargeClient{config: _q.config}).Query()
+// WithChargeFlatFee tells the query-builder to eager-load the nodes that are connected to
+// the "charge_flat_fee" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeCreditRealizationQuery) WithChargeFlatFee(opts ...func(*ChargeFlatFeeQuery)) *ChargeCreditRealizationQuery {
+	query := (&ChargeFlatFeeClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withCharge = query
+	_q.withChargeFlatFee = query
 	return _q
 }
 
 // WithBillingInvoiceLine tells the query-builder to eager-load the nodes that are connected to
 // the "billing_invoice_line" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *StandardInvoiceSettlementQuery) WithBillingInvoiceLine(opts ...func(*BillingInvoiceLineQuery)) *StandardInvoiceSettlementQuery {
+func (_q *ChargeCreditRealizationQuery) WithBillingInvoiceLine(opts ...func(*BillingInvoiceLineQuery)) *ChargeCreditRealizationQuery {
 	query := (&BillingInvoiceLineClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
@@ -340,15 +340,15 @@ func (_q *StandardInvoiceSettlementQuery) WithBillingInvoiceLine(opts ...func(*B
 //		Count int `json:"count,omitempty"`
 //	}
 //
-//	client.StandardInvoiceSettlement.Query().
-//		GroupBy(standardinvoicesettlement.FieldNamespace).
+//	client.ChargeCreditRealization.Query().
+//		GroupBy(chargecreditrealization.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (_q *StandardInvoiceSettlementQuery) GroupBy(field string, fields ...string) *StandardInvoiceSettlementGroupBy {
+func (_q *ChargeCreditRealizationQuery) GroupBy(field string, fields ...string) *ChargeCreditRealizationGroupBy {
 	_q.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &StandardInvoiceSettlementGroupBy{build: _q}
+	grbuild := &ChargeCreditRealizationGroupBy{build: _q}
 	grbuild.flds = &_q.ctx.Fields
-	grbuild.label = standardinvoicesettlement.Label
+	grbuild.label = chargecreditrealization.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -362,23 +362,23 @@ func (_q *StandardInvoiceSettlementQuery) GroupBy(field string, fields ...string
 //		Namespace string `json:"namespace,omitempty"`
 //	}
 //
-//	client.StandardInvoiceSettlement.Query().
-//		Select(standardinvoicesettlement.FieldNamespace).
+//	client.ChargeCreditRealization.Query().
+//		Select(chargecreditrealization.FieldNamespace).
 //		Scan(ctx, &v)
-func (_q *StandardInvoiceSettlementQuery) Select(fields ...string) *StandardInvoiceSettlementSelect {
+func (_q *ChargeCreditRealizationQuery) Select(fields ...string) *ChargeCreditRealizationSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
-	sbuild := &StandardInvoiceSettlementSelect{StandardInvoiceSettlementQuery: _q}
-	sbuild.label = standardinvoicesettlement.Label
+	sbuild := &ChargeCreditRealizationSelect{ChargeCreditRealizationQuery: _q}
+	sbuild.label = chargecreditrealization.Label
 	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
-// Aggregate returns a StandardInvoiceSettlementSelect configured with the given aggregations.
-func (_q *StandardInvoiceSettlementQuery) Aggregate(fns ...AggregateFunc) *StandardInvoiceSettlementSelect {
+// Aggregate returns a ChargeCreditRealizationSelect configured with the given aggregations.
+func (_q *ChargeCreditRealizationQuery) Aggregate(fns ...AggregateFunc) *ChargeCreditRealizationSelect {
 	return _q.Select().Aggregate(fns...)
 }
 
-func (_q *StandardInvoiceSettlementQuery) prepareQuery(ctx context.Context) error {
+func (_q *ChargeCreditRealizationQuery) prepareQuery(ctx context.Context) error {
 	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
@@ -390,7 +390,7 @@ func (_q *StandardInvoiceSettlementQuery) prepareQuery(ctx context.Context) erro
 		}
 	}
 	for _, f := range _q.ctx.Fields {
-		if !standardinvoicesettlement.ValidColumn(f) {
+		if !chargecreditrealization.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
@@ -404,20 +404,20 @@ func (_q *StandardInvoiceSettlementQuery) prepareQuery(ctx context.Context) erro
 	return nil
 }
 
-func (_q *StandardInvoiceSettlementQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*StandardInvoiceSettlement, error) {
+func (_q *ChargeCreditRealizationQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*ChargeCreditRealization, error) {
 	var (
-		nodes       = []*StandardInvoiceSettlement{}
+		nodes       = []*ChargeCreditRealization{}
 		_spec       = _q.querySpec()
 		loadedTypes = [2]bool{
-			_q.withCharge != nil,
+			_q.withChargeFlatFee != nil,
 			_q.withBillingInvoiceLine != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
-		return (*StandardInvoiceSettlement).scanValues(nil, columns)
+		return (*ChargeCreditRealization).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &StandardInvoiceSettlement{config: _q.config}
+		node := &ChargeCreditRealization{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
@@ -434,24 +434,24 @@ func (_q *StandardInvoiceSettlementQuery) sqlAll(ctx context.Context, hooks ...q
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withCharge; query != nil {
-		if err := _q.loadCharge(ctx, query, nodes, nil,
-			func(n *StandardInvoiceSettlement, e *Charge) { n.Edges.Charge = e }); err != nil {
+	if query := _q.withChargeFlatFee; query != nil {
+		if err := _q.loadChargeFlatFee(ctx, query, nodes, nil,
+			func(n *ChargeCreditRealization, e *ChargeFlatFee) { n.Edges.ChargeFlatFee = e }); err != nil {
 			return nil, err
 		}
 	}
 	if query := _q.withBillingInvoiceLine; query != nil {
 		if err := _q.loadBillingInvoiceLine(ctx, query, nodes, nil,
-			func(n *StandardInvoiceSettlement, e *BillingInvoiceLine) { n.Edges.BillingInvoiceLine = e }); err != nil {
+			func(n *ChargeCreditRealization, e *BillingInvoiceLine) { n.Edges.BillingInvoiceLine = e }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (_q *StandardInvoiceSettlementQuery) loadCharge(ctx context.Context, query *ChargeQuery, nodes []*StandardInvoiceSettlement, init func(*StandardInvoiceSettlement), assign func(*StandardInvoiceSettlement, *Charge)) error {
+func (_q *ChargeCreditRealizationQuery) loadChargeFlatFee(ctx context.Context, query *ChargeFlatFeeQuery, nodes []*ChargeCreditRealization, init func(*ChargeCreditRealization), assign func(*ChargeCreditRealization, *ChargeFlatFee)) error {
 	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*StandardInvoiceSettlement)
+	nodeids := make(map[string][]*ChargeCreditRealization)
 	for i := range nodes {
 		fk := nodes[i].ChargeID
 		if _, ok := nodeids[fk]; !ok {
@@ -462,7 +462,7 @@ func (_q *StandardInvoiceSettlementQuery) loadCharge(ctx context.Context, query 
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(charge.IDIn(ids...))
+	query.Where(chargeflatfee.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
@@ -478,11 +478,14 @@ func (_q *StandardInvoiceSettlementQuery) loadCharge(ctx context.Context, query 
 	}
 	return nil
 }
-func (_q *StandardInvoiceSettlementQuery) loadBillingInvoiceLine(ctx context.Context, query *BillingInvoiceLineQuery, nodes []*StandardInvoiceSettlement, init func(*StandardInvoiceSettlement), assign func(*StandardInvoiceSettlement, *BillingInvoiceLine)) error {
+func (_q *ChargeCreditRealizationQuery) loadBillingInvoiceLine(ctx context.Context, query *BillingInvoiceLineQuery, nodes []*ChargeCreditRealization, init func(*ChargeCreditRealization), assign func(*ChargeCreditRealization, *BillingInvoiceLine)) error {
 	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*StandardInvoiceSettlement)
+	nodeids := make(map[string][]*ChargeCreditRealization)
 	for i := range nodes {
-		fk := nodes[i].LineID
+		if nodes[i].LineID == nil {
+			continue
+		}
+		fk := *nodes[i].LineID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -508,7 +511,7 @@ func (_q *StandardInvoiceSettlementQuery) loadBillingInvoiceLine(ctx context.Con
 	return nil
 }
 
-func (_q *StandardInvoiceSettlementQuery) sqlCount(ctx context.Context) (int, error) {
+func (_q *ChargeCreditRealizationQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
 	if len(_q.modifiers) > 0 {
 		_spec.Modifiers = _q.modifiers
@@ -520,8 +523,8 @@ func (_q *StandardInvoiceSettlementQuery) sqlCount(ctx context.Context) (int, er
 	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (_q *StandardInvoiceSettlementQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(standardinvoicesettlement.Table, standardinvoicesettlement.Columns, sqlgraph.NewFieldSpec(standardinvoicesettlement.FieldID, field.TypeString))
+func (_q *ChargeCreditRealizationQuery) querySpec() *sqlgraph.QuerySpec {
+	_spec := sqlgraph.NewQuerySpec(chargecreditrealization.Table, chargecreditrealization.Columns, sqlgraph.NewFieldSpec(chargecreditrealization.FieldID, field.TypeString))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -530,17 +533,17 @@ func (_q *StandardInvoiceSettlementQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, standardinvoicesettlement.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, chargecreditrealization.FieldID)
 		for i := range fields {
-			if fields[i] != standardinvoicesettlement.FieldID {
+			if fields[i] != chargecreditrealization.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if _q.withCharge != nil {
-			_spec.Node.AddColumnOnce(standardinvoicesettlement.FieldChargeID)
+		if _q.withChargeFlatFee != nil {
+			_spec.Node.AddColumnOnce(chargecreditrealization.FieldChargeID)
 		}
 		if _q.withBillingInvoiceLine != nil {
-			_spec.Node.AddColumnOnce(standardinvoicesettlement.FieldLineID)
+			_spec.Node.AddColumnOnce(chargecreditrealization.FieldLineID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {
@@ -566,12 +569,12 @@ func (_q *StandardInvoiceSettlementQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (_q *StandardInvoiceSettlementQuery) sqlQuery(ctx context.Context) *sql.Selector {
+func (_q *ChargeCreditRealizationQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(_q.driver.Dialect())
-	t1 := builder.Table(standardinvoicesettlement.Table)
+	t1 := builder.Table(chargecreditrealization.Table)
 	columns := _q.ctx.Fields
 	if len(columns) == 0 {
-		columns = standardinvoicesettlement.Columns
+		columns = chargecreditrealization.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if _q.sql != nil {
@@ -604,7 +607,7 @@ func (_q *StandardInvoiceSettlementQuery) sqlQuery(ctx context.Context) *sql.Sel
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (_q *StandardInvoiceSettlementQuery) ForUpdate(opts ...sql.LockOption) *StandardInvoiceSettlementQuery {
+func (_q *ChargeCreditRealizationQuery) ForUpdate(opts ...sql.LockOption) *ChargeCreditRealizationQuery {
 	if _q.driver.Dialect() == dialect.Postgres {
 		_q.Unique(false)
 	}
@@ -617,7 +620,7 @@ func (_q *StandardInvoiceSettlementQuery) ForUpdate(opts ...sql.LockOption) *Sta
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (_q *StandardInvoiceSettlementQuery) ForShare(opts ...sql.LockOption) *StandardInvoiceSettlementQuery {
+func (_q *ChargeCreditRealizationQuery) ForShare(opts ...sql.LockOption) *ChargeCreditRealizationQuery {
 	if _q.driver.Dialect() == dialect.Postgres {
 		_q.Unique(false)
 	}
@@ -627,28 +630,28 @@ func (_q *StandardInvoiceSettlementQuery) ForShare(opts ...sql.LockOption) *Stan
 	return _q
 }
 
-// StandardInvoiceSettlementGroupBy is the group-by builder for StandardInvoiceSettlement entities.
-type StandardInvoiceSettlementGroupBy struct {
+// ChargeCreditRealizationGroupBy is the group-by builder for ChargeCreditRealization entities.
+type ChargeCreditRealizationGroupBy struct {
 	selector
-	build *StandardInvoiceSettlementQuery
+	build *ChargeCreditRealizationQuery
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (_g *StandardInvoiceSettlementGroupBy) Aggregate(fns ...AggregateFunc) *StandardInvoiceSettlementGroupBy {
+func (_g *ChargeCreditRealizationGroupBy) Aggregate(fns ...AggregateFunc) *ChargeCreditRealizationGroupBy {
 	_g.fns = append(_g.fns, fns...)
 	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_g *StandardInvoiceSettlementGroupBy) Scan(ctx context.Context, v any) error {
+func (_g *ChargeCreditRealizationGroupBy) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
 	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*StandardInvoiceSettlementQuery, *StandardInvoiceSettlementGroupBy](ctx, _g.build, _g, _g.build.inters, v)
+	return scanWithInterceptors[*ChargeCreditRealizationQuery, *ChargeCreditRealizationGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (_g *StandardInvoiceSettlementGroupBy) sqlScan(ctx context.Context, root *StandardInvoiceSettlementQuery, v any) error {
+func (_g *ChargeCreditRealizationGroupBy) sqlScan(ctx context.Context, root *ChargeCreditRealizationQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
 	aggregation := make([]string, 0, len(_g.fns))
 	for _, fn := range _g.fns {
@@ -675,28 +678,28 @@ func (_g *StandardInvoiceSettlementGroupBy) sqlScan(ctx context.Context, root *S
 	return sql.ScanSlice(rows, v)
 }
 
-// StandardInvoiceSettlementSelect is the builder for selecting fields of StandardInvoiceSettlement entities.
-type StandardInvoiceSettlementSelect struct {
-	*StandardInvoiceSettlementQuery
+// ChargeCreditRealizationSelect is the builder for selecting fields of ChargeCreditRealization entities.
+type ChargeCreditRealizationSelect struct {
+	*ChargeCreditRealizationQuery
 	selector
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (_s *StandardInvoiceSettlementSelect) Aggregate(fns ...AggregateFunc) *StandardInvoiceSettlementSelect {
+func (_s *ChargeCreditRealizationSelect) Aggregate(fns ...AggregateFunc) *ChargeCreditRealizationSelect {
 	_s.fns = append(_s.fns, fns...)
 	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_s *StandardInvoiceSettlementSelect) Scan(ctx context.Context, v any) error {
+func (_s *ChargeCreditRealizationSelect) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
 	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*StandardInvoiceSettlementQuery, *StandardInvoiceSettlementSelect](ctx, _s.StandardInvoiceSettlementQuery, _s, _s.inters, v)
+	return scanWithInterceptors[*ChargeCreditRealizationQuery, *ChargeCreditRealizationSelect](ctx, _s.ChargeCreditRealizationQuery, _s, _s.inters, v)
 }
 
-func (_s *StandardInvoiceSettlementSelect) sqlScan(ctx context.Context, root *StandardInvoiceSettlementQuery, v any) error {
+func (_s *ChargeCreditRealizationSelect) sqlScan(ctx context.Context, root *ChargeCreditRealizationQuery, v any) error {
 	selector := root.sqlQuery(ctx)
 	aggregation := make([]string, 0, len(_s.fns))
 	for _, fn := range _s.fns {

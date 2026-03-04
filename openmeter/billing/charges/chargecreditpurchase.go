@@ -12,6 +12,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
+var _ ChargeAccessor = (*CreditPurchaseCharge)(nil)
+
 type CreditPurchaseCharge struct {
 	ManagedResource
 
@@ -37,6 +39,13 @@ func (c CreditPurchaseCharge) Validate() error {
 	}
 
 	return errors.Join(errs...)
+}
+
+func (c CreditPurchaseCharge) GetChargeID() ChargeID {
+	return ChargeID{
+		Namespace: c.Namespace,
+		ID:        c.ID,
+	}
 }
 
 func (c CreditPurchaseCharge) AsCharge() Charge {
