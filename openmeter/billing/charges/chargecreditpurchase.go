@@ -1,6 +1,7 @@
 package charges
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -373,4 +374,45 @@ func (s CreditPurchaseState) Validate() error {
 	}
 
 	return errors.Join(errs...)
+}
+
+// CreditPurchaseHandler is the interface for handling credit purchase charges.
+// It is used to handle the different types of credit purchase charges (promotional, external, invoice).
+//
+// Promotional credit purchases are handled by the OnPromotionalCreditPurchase method only.
+//
+// Cost basis > 0 credit purchases are handled by the OnCreditPurchase method, which is the initial call.
+// Happy path:
+// - OnCreditPurchase is called
+// - OnCreditPurchasePaymentAuthorized is called
+// - OnCreditPurchasePaymentSettled is called
+//
+// Failed payment can occur either after the OnCreditPurchase or after the OnCreditPurchasePaymentAuthorized call.
+
+type CreditPurchaseHandler interface {
+	// Promotional credit handler methods (cost basis == 0)
+	// ----------------------------------------------------
+
+	// OnPromotionalCreditPurchase is called when a promotional credit purchase is created (e.g. costbasis is 0)
+	// For promotional credit purchases we don't call any of the payment handler methods.
+	OnPromotionalCreditPurchase(ctx context.Context, charge CreditPurchaseCharge) ([]CreditRealizationCreateInput, error)
+
+	// Credit purchase handler methods (cost basis > 0)
+	// ------------------------------------------------
+
+	// OnCreditPurchase is called when a credit purchase is initiated that is going to be settled by
+	// a payment (either external or a standard invoice)
+	// Initial call
+	OnCreditPurchase(ctx context.Context, charge CreditPurchaseCharge) ([]CreditRealizationCreateInput, error)
+
+	// OnCreditPurchasePaymentAuthorized is called when a credit purchase payment is authorized for a credit
+	// purchase.
+	OnCreditPurchasePaymentAuthorized(ctx context.Context, charge CreditPurchaseCharge) (LedgerTransactionGroupReference, error)
+
+	// OnCreditPurchasePaymentSettled is called when a credit purchase payment is settled for a credit
+	// purchase.
+	OnCreditPurchasePaymentSettled(ctx context.Context, charge CreditPurchaseCharge) (LedgerTransactionGroupReference, error)
+
+	// OnCreditPurchasePaymentUncollectible is called when a credit purchase payment is uncollectible
+	OnCreditPurchasePaymentUncollectible(ctx context.Context, charge CreditPurchaseCharge) (LedgerTransactionGroupReference, error)
 }
