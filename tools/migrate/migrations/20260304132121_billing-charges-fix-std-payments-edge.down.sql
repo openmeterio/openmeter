@@ -6,3 +6,6 @@ ALTER TABLE "charge_flat_fees" DROP CONSTRAINT "charge_flat_fees_charge_standard
 DROP INDEX "chargestandardinvoicepaymentsettlement_namespace_line_id";
 -- reverse: modify "charge_standard_invoice_payment_settlements" table
 ALTER TABLE "charge_standard_invoice_payment_settlements" ADD COLUMN "charge_id" character(26) NOT NULL;
+
+CREATE UNIQUE INDEX "chargestandardinvoicepaymentsettlement_namespace_charge_id_line" ON "charge_standard_invoice_payment_settlements" ("namespace", "charge_id", "line_id") WHERE ((line_id IS NOT NULL) AND (deleted_at IS NULL));
+CREATE UNIQUE INDEX "charge_standard_invoice_payment_settlements_charge_id_key" ON "charge_standard_invoice_payment_settlements" ("charge_id");
