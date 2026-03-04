@@ -35,7 +35,7 @@ func (o PaymentSettlementStatus) Values() []string {
 
 func (o PaymentSettlementStatus) Validate() error {
 	if !slices.Contains(o.Values(), string(o)) {
-		return fmt.Errorf("invalid standard invoice payment settlement status: %s", o)
+		return fmt.Errorf("invalid payment settlement status: %s", o)
 	}
 	return nil
 }

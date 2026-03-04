@@ -595,14 +595,8 @@ func (ChargeExternalPaymentSettlement) Fields() []ent.Field {
 
 func (ChargeExternalPaymentSettlement) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("namespace", "charge_id").
-			Annotations(
-				entsql.IndexWhere("deleted_at IS NULL"),
-			).
-			Unique(),
-		index.Fields("charge_id").Annotations(
-			entsql.IndexWhere("deleted_at IS NULL"),
-		),
+		index.Fields("namespace", "charge_id"),
+		index.Fields("charge_id"),
 	}
 }
 

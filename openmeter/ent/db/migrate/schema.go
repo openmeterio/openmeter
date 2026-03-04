@@ -1735,19 +1735,13 @@ var (
 			},
 			{
 				Name:    "chargeexternalpaymentsettlement_namespace_charge_id",
-				Unique:  true,
+				Unique:  false,
 				Columns: []*schema.Column{ChargeExternalPaymentSettlementsColumns[1], ChargeExternalPaymentSettlementsColumns[14]},
-				Annotation: &entsql.IndexAnnotation{
-					Where: "deleted_at IS NULL",
-				},
 			},
 			{
 				Name:    "chargeexternalpaymentsettlement_charge_id",
 				Unique:  false,
 				Columns: []*schema.Column{ChargeExternalPaymentSettlementsColumns[14]},
-				Annotation: &entsql.IndexAnnotation{
-					Where: "deleted_at IS NULL",
-				},
 			},
 		},
 	}
