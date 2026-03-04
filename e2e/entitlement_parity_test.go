@@ -322,6 +322,13 @@ func TestEntitlementParitySuite(t *testing.T) {
 		// Value parity (cross-API)
 		t.Run("Value parity (v1 vs v2, cross-api)", func(t *testing.T) {
 			now := time.Now().Truncate(time.Minute)
+			sumGrantBalances := func(balances map[string]float64) float64 {
+				var sum float64
+				for _, balance := range balances {
+					sum += balance
+				}
+				return sum
+			}
 
 			// v1 value for subject entitlement by ID
 			var v1ValueForSubjectByID float64
@@ -350,6 +357,9 @@ func TestEntitlementParitySuite(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, http.StatusOK, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
 				require.NotNil(t, resp.JSON200.Balance)
+				require.NotNil(t, resp.JSON200.GrantBalances)
+				require.GreaterOrEqual(t, len(*resp.JSON200.GrantBalances), 1)
+				assert.Equal(t, *resp.JSON200.Balance, sumGrantBalances(*resp.JSON200.GrantBalances))
 				v2ValueForV1ByKey = *resp.JSON200.Balance
 			}
 
@@ -360,6 +370,9 @@ func TestEntitlementParitySuite(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, http.StatusOK, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
 				require.NotNil(t, resp.JSON200.Balance)
+				require.NotNil(t, resp.JSON200.GrantBalances)
+				require.GreaterOrEqual(t, len(*resp.JSON200.GrantBalances), 1)
+				assert.Equal(t, *resp.JSON200.Balance, sumGrantBalances(*resp.JSON200.GrantBalances))
 				v2ValueForV2ByKey = *resp.JSON200.Balance
 			}
 

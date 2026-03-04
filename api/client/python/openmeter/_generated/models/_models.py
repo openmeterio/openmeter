@@ -6154,6 +6154,57 @@ class EntitlementValue(_Model):
     """Only available for static entitlements. The JSON parsable config of the entitlement."""
 
 
+class EntitlementValueV2(_Model):
+    """EntitlementValueV2 returns entitlement access state and value fields for customer-scoped V2
+    APIs.
+
+    :ivar has_access: Whether the subject has access to the feature. Shared accross all entitlement
+     types. Required.
+    :vartype has_access: bool
+    :ivar balance: Only available for metered entitlements. Metered entitlements are built around a
+     balance calculation where feature usage is deducted from the issued grants. Balance represents
+     the remaining balance of the entitlement, it's value never turns negative.
+    :vartype balance: float
+    :ivar usage: Only available for metered entitlements. Returns the total feature usage in the
+     current period.
+    :vartype usage: float
+    :ivar overage: Only available for metered entitlements. Overage represents the usage that
+     wasn't covered by grants, e.g. if the subject had a total feature usage of 100 in the period
+     but they were only granted 80, there would be 20 overage.
+    :vartype overage: float
+    :ivar total_available_grant_amount: Only available for metered entitlements. The summed amount
+     of all grant active at query time PLUS the used amount of since inactive grants.
+    :vartype total_available_grant_amount: float
+    :ivar config: Only available for static entitlements. The JSON parsable config of the
+     entitlement.
+    :vartype config: str
+    :ivar grant_balances: Only available for metered entitlements. The closing balance of each
+     active grant at query time. The key is the grant ID and the value is the remaining balance.
+    :vartype grant_balances: dict[str, float]
+    """
+
+    has_access: bool = rest_field(name="hasAccess", visibility=["read"])
+    """Whether the subject has access to the feature. Shared accross all entitlement types. Required."""
+    balance: Optional[float] = rest_field(visibility=["read"])
+    """Only available for metered entitlements. Metered entitlements are built around a balance
+     calculation where feature usage is deducted from the issued grants. Balance represents the
+     remaining balance of the entitlement, it's value never turns negative."""
+    usage: Optional[float] = rest_field(visibility=["read"])
+    """Only available for metered entitlements. Returns the total feature usage in the current period."""
+    overage: Optional[float] = rest_field(visibility=["read"])
+    """Only available for metered entitlements. Overage represents the usage that wasn't covered by
+     grants, e.g. if the subject had a total feature usage of 100 in the period but they were only
+     granted 80, there would be 20 overage."""
+    total_available_grant_amount: Optional[float] = rest_field(name="totalAvailableGrantAmount", visibility=["read"])
+    """Only available for metered entitlements. The summed amount of all grant active at query time
+     PLUS the used amount of since inactive grants."""
+    config: Optional[str] = rest_field(visibility=["read"])
+    """Only available for static entitlements. The JSON parsable config of the entitlement."""
+    grant_balances: Optional[dict[str, float]] = rest_field(name="grantBalances", visibility=["read"])
+    """Only available for metered entitlements. The closing balance of each active grant at query
+     time. The key is the grant ID and the value is the remaining balance."""
+
+
 class ErrorExtension(_Model):
     """Generic ErrorExtension as part of HTTPProblem.Extensions.[StatusCode].
 

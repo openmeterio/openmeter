@@ -158,7 +158,7 @@ interface CustomerEntitlementV2Endpoints {
     @path customerIdOrKey: ULIDOrExternalKey,
     @path entitlementIdOrFeatureKey: ULIDOrKey,
     @query(#{ explode: true }) time?: DateTime,
-  ): EntitlementValue | CommonErrors | NotFoundError;
+  ): EntitlementValueV2 | CommonErrors | NotFoundError;
 
   /**
    * Returns historical balance and usage data for the entitlement. The queried history can span accross multiple reset events.
@@ -213,4 +213,59 @@ interface CustomerEntitlementV2Endpoints {
   ): {
     @statusCode _: 204;
   } | CommonErrors | NotFoundError;
+}
+
+/**
+ * EntitlementValueV2 returns entitlement access state and value fields for customer-scoped V2 APIs.
+ */
+@friendlyName("EntitlementValueV2")
+model EntitlementValueV2 {
+  /**
+   * Whether the subject has access to the feature. Shared accross all entitlement types.
+   */
+  @visibility(Lifecycle.Read)
+  @example(true)
+  hasAccess: boolean;
+
+  /**
+   * Only available for metered entitlements. Metered entitlements are built around a balance calculation where feature usage is deducted from the issued grants. Balance represents the remaining balance of the entitlement, it's value never turns negative.
+   */
+  @example(100)
+  @visibility(Lifecycle.Read)
+  balance?: float64;
+
+  /**
+   * Only available for metered entitlements. Returns the total feature usage in the current period.
+   */
+  @example(50)
+  @visibility(Lifecycle.Read)
+  usage?: float64;
+
+  /**
+   * Only available for metered entitlements. Overage represents the usage that wasn't covered by grants, e.g. if the subject had a total feature usage of 100 in the period but they were only granted 80, there would be 20 overage.
+   */
+  @example(0)
+  @visibility(Lifecycle.Read)
+  overage?: float64;
+
+  /**
+   * Only available for metered entitlements. The summed amount of all grant active at query time PLUS the used amount of since inactive grants.
+   */
+  @example(100)
+  @visibility(Lifecycle.Read)
+  totalAvailableGrantAmount?: float64;
+
+  /**
+   * Only available for static entitlements. The JSON parsable config of the entitlement.
+   */
+  @example("{ key: \"value\" }")
+  @visibility(Lifecycle.Read)
+  config?: string;
+
+  /**
+   * Only available for metered entitlements. The closing balance of each active grant at query time.
+   * The key is the grant ID and the value is the remaining balance.
+   */
+  @visibility(Lifecycle.Read)
+  grantBalances?: Record<float64>;
 }

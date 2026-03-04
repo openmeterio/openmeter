@@ -19985,7 +19985,7 @@ class CustomerEntitlementV2Operations:
         *,
         time: Optional[datetime.datetime] = None,
         **kwargs: Any
-    ) -> _models.EntitlementValue:
+    ) -> _models.EntitlementValueV2:
         """Get customer entitlement value.
 
         Checks customer access to a given feature (by key). All entitlement types share the hasAccess
@@ -19998,8 +19998,8 @@ class CustomerEntitlementV2Operations:
         :type entitlement_id_or_feature_key: str
         :keyword time: Default value is None.
         :paramtype time: ~datetime.datetime
-        :return: EntitlementValue. The EntitlementValue is compatible with MutableMapping
-        :rtype: ~openmeter._generated.models.EntitlementValue
+        :return: EntitlementValueV2. The EntitlementValueV2 is compatible with MutableMapping
+        :rtype: ~openmeter._generated.models.EntitlementValueV2
         :raises ~corehttp.exceptions.HttpResponseError:
         """
         error_map: MutableMapping = {
@@ -20011,7 +20011,7 @@ class CustomerEntitlementV2Operations:
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[_models.EntitlementValue] = kwargs.pop("cls", None)
+        cls: ClsType[_models.EntitlementValueV2] = kwargs.pop("cls", None)
 
         _request = build_customer_entitlement_v2_get_customer_entitlement_value_request(
             customer_id_or_key=customer_id_or_key,
@@ -20065,7 +20065,7 @@ class CustomerEntitlementV2Operations:
         if _stream:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
-            deserialized = _deserialize(_models.EntitlementValue, response.json())
+            deserialized = _deserialize(_models.EntitlementValueV2, response.json())
 
         if cls:
             return cls(pipeline_response, deserialized, {})  # type: ignore

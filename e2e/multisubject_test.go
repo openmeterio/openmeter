@@ -256,5 +256,14 @@ func TestMultiSubject(t *testing.T) {
 		require.True(t, ent.HasAccess)
 		require.NotNil(t, ent.Usage)
 		require.Equal(t, float64(len(subjectKeys)), *ent.Usage)
+		require.NotNil(t, ent.Balance)
+		require.NotNil(t, ent.GrantBalances)
+		require.GreaterOrEqual(t, len(*ent.GrantBalances), 1)
+
+		var grantBalancesSum float64
+		for _, grantBalance := range *ent.GrantBalances {
+			grantBalancesSum += grantBalance
+		}
+		assert.Equal(t, *ent.Balance, grantBalancesSum)
 	})
 }

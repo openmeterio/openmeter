@@ -24,7 +24,9 @@ type CustomerHandler interface {
 	GetCustomer() GetCustomerHandler
 	UpdateCustomer() UpdateCustomerHandler
 	GetCustomerEntitlementValue() GetCustomerEntitlementValueHandler
+	GetCustomerEntitlementValueV2() GetCustomerEntitlementValueV2Handler
 	GetCustomerAccess() GetCustomerAccessHandler
+	GetCustomerAccessV2() GetCustomerAccessV2Handler
 }
 
 var _ Handler = (*handler)(nil)

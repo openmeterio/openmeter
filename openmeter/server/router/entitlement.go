@@ -134,7 +134,7 @@ func (a *Router) GetCustomerEntitlementValue(w http.ResponseWriter, r *http.Requ
 // Get customer access
 // (GET /api/v2/customers/{customerId}/access)
 func (a *Router) GetCustomerAccess(w http.ResponseWriter, r *http.Request, customerIdOrKey string) {
-	a.customerHandler.GetCustomerAccess().With(customerdriver.GetCustomerAccessParams{
+	a.customerHandler.GetCustomerAccessV2().With(customerdriver.GetCustomerAccessParams{
 		CustomerIDOrKey: customerIdOrKey,
 	}).ServeHTTP(w, r)
 }
@@ -221,7 +221,7 @@ func (a *Router) CreateCustomerEntitlementGrantV2(w http.ResponseWriter, r *http
 // Get entitlement value
 // (GET /api/v2/customers/{customerId}/entitlements/{featureKey}/value)
 func (a *Router) GetCustomerEntitlementValueV2(w http.ResponseWriter, r *http.Request, customerIdOrKey string, featureKey string, params api.GetCustomerEntitlementValueV2Params) {
-	a.customerHandler.GetCustomerEntitlementValue().With(customerdriver.GetCustomerEntitlementValueParams{
+	a.customerHandler.GetCustomerEntitlementValueV2().With(customerdriver.GetCustomerEntitlementValueParams{
 		CustomerIDOrKey: customerIdOrKey,
 		FeatureKey:      featureKey,
 	}).ServeHTTP(w, r)

@@ -7,11 +7,26 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
+	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	subscriptionhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+type EntitlementValueV2 struct {
+	HasAccess                 bool                `json:"hasAccess,omitempty"`
+	Balance                   *float64            `json:"balance,omitempty"`
+	Config                    *string             `json:"config,omitempty"`
+	Overage                   *float64            `json:"overage,omitempty"`
+	TotalAvailableGrantAmount *float64            `json:"totalAvailableGrantAmount,omitempty"`
+	Usage                     *float64            `json:"usage,omitempty"`
+	GrantBalances             *map[string]float64 `json:"grantBalances,omitempty"`
+}
+
+type CustomerAccessV2 struct {
+	Entitlements map[string]EntitlementValueV2 `json:"entitlements"`
+}
 
 func MapCustomerCreate(body api.CustomerCreate) customer.CustomerMutate {
 	var metadata *models.Metadata
@@ -195,6 +210,49 @@ func MapAccessToAPI(access entitlement.Access) (api.CustomerAccess, error) {
 	}
 
 	return api.CustomerAccess{
+		Entitlements: entitlements,
+	}, nil
+}
+
+func MapEntitlementValueToAPIV2(v entitlement.EntitlementValue) (EntitlementValueV2, error) {
+	base, err := entitlementdriver.MapEntitlementValueToAPI(v)
+	if err != nil {
+		return EntitlementValueV2{}, err
+	}
+
+	result := EntitlementValueV2{
+		HasAccess:                 base.HasAccess,
+		Balance:                   base.Balance,
+		Config:                    base.Config,
+		Overage:                   base.Overage,
+		TotalAvailableGrantAmount: base.TotalAvailableGrantAmount,
+		Usage:                     base.Usage,
+	}
+
+	if metered, ok := v.(*meteredentitlement.MeteredEntitlementValue); ok {
+		copied := make(map[string]float64, len(metered.GrantBalances))
+		for k, val := range metered.GrantBalances {
+			copied[k] = val
+		}
+		result.GrantBalances = &copied
+	}
+
+	return result, nil
+}
+
+func MapAccessToAPIV2(access entitlement.Access) (CustomerAccessV2, error) {
+	entitlements := make(map[string]EntitlementValueV2, len(access.Entitlements))
+
+	for fKey, v := range access.Entitlements {
+		apiVal, err := MapEntitlementValueToAPIV2(v.Value)
+		if err != nil {
+			return CustomerAccessV2{}, err
+		}
+
+		entitlements[fKey] = apiVal
+	}
+
+	return CustomerAccessV2{
 		Entitlements: entitlements,
 	}, nil
 }
