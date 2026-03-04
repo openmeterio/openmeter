@@ -35,6 +35,8 @@ const (
 	FieldAmountBeforeProration = "amount_before_proration"
 	// FieldAmountAfterProration holds the string denoting the amount_after_proration field in the database.
 	FieldAmountAfterProration = "amount_after_proration"
+	// FieldStdInvoicePaymentSettlementID holds the string denoting the std_invoice_payment_settlement_id field in the database.
+	FieldStdInvoicePaymentSettlementID = "std_invoice_payment_settlement_id"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
 	EdgeCharge = "charge"
 	// EdgeChargeStandardInvoicePaymentSettlement holds the string denoting the charge_standard_invoice_payment_settlement edge name in mutations.
@@ -53,12 +55,12 @@ const (
 	// ChargeColumn is the table column denoting the charge relation/edge.
 	ChargeColumn = "id"
 	// ChargeStandardInvoicePaymentSettlementTable is the table that holds the charge_standard_invoice_payment_settlement relation/edge.
-	ChargeStandardInvoicePaymentSettlementTable = "charge_standard_invoice_payment_settlements"
+	ChargeStandardInvoicePaymentSettlementTable = "charge_flat_fees"
 	// ChargeStandardInvoicePaymentSettlementInverseTable is the table name for the ChargeStandardInvoicePaymentSettlement entity.
 	// It exists in this package in order to avoid circular dependency with the "chargestandardinvoicepaymentsettlement" package.
 	ChargeStandardInvoicePaymentSettlementInverseTable = "charge_standard_invoice_payment_settlements"
 	// ChargeStandardInvoicePaymentSettlementColumn is the table column denoting the charge_standard_invoice_payment_settlement relation/edge.
-	ChargeStandardInvoicePaymentSettlementColumn = "charge_id"
+	ChargeStandardInvoicePaymentSettlementColumn = "std_invoice_payment_settlement_id"
 	// ChargeStandardInvoiceAccruedUsageTable is the table that holds the charge_standard_invoice_accrued_usage relation/edge.
 	ChargeStandardInvoiceAccruedUsageTable = "charge_standard_invoice_accrued_usages"
 	// ChargeStandardInvoiceAccruedUsageInverseTable is the table name for the ChargeStandardInvoiceAccruedUsage entity.
@@ -87,6 +89,7 @@ var Columns = []string{
 	FieldFeatureKey,
 	FieldAmountBeforeProration,
 	FieldAmountAfterProration,
+	FieldStdInvoicePaymentSettlementID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -106,6 +109,8 @@ var (
 	PaymentTermValidator func(string) error
 	// FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
 	FeatureKeyValidator func(string) error
+	// StdInvoicePaymentSettlementIDValidator is a validator for the "std_invoice_payment_settlement_id" field. It is called by the builders before save.
+	StdInvoicePaymentSettlementIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all ChargeFlatFee fields.
@@ -187,6 +192,11 @@ func ByAmountAfterProration(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmountAfterProration, opts...).ToFunc()
 }
 
+// ByStdInvoicePaymentSettlementID orders the results by the std_invoice_payment_settlement_id field.
+func ByStdInvoicePaymentSettlementID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStdInvoicePaymentSettlementID, opts...).ToFunc()
+}
+
 // ByChargeField orders the results by charge field.
 func ByChargeField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -232,7 +242,7 @@ func newChargeStandardInvoicePaymentSettlementStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ChargeStandardInvoicePaymentSettlementInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, false, ChargeStandardInvoicePaymentSettlementTable, ChargeStandardInvoicePaymentSettlementColumn),
+		sqlgraph.Edge(sqlgraph.O2O, true, ChargeStandardInvoicePaymentSettlementTable, ChargeStandardInvoicePaymentSettlementColumn),
 	)
 }
 func newChargeStandardInvoiceAccruedUsageStep() *sqlgraph.Step {

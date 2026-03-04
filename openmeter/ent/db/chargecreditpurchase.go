@@ -31,6 +31,8 @@ type ChargeCreditPurchase struct {
 	CreditGrantTransactionGroupID *string `json:"credit_grant_transaction_group_id,omitempty"`
 	// CreditGrantedAt holds the value of the "credit_granted_at" field.
 	CreditGrantedAt *time.Time `json:"credit_granted_at,omitempty"`
+	// ExternalPaymentSettlementID holds the value of the "external_payment_settlement_id" field.
+	ExternalPaymentSettlementID *string `json:"external_payment_settlement_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeCreditPurchaseQuery when eager-loading is set.
 	Edges        ChargeCreditPurchaseEdges `json:"edges"`
@@ -77,7 +79,7 @@ func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargecreditpurchase.FieldCreditAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldCreditGrantTransactionGroupID:
+		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldCreditGrantTransactionGroupID, chargecreditpurchase.FieldExternalPaymentSettlementID:
 			values[i] = new(sql.NullString)
 		case chargecreditpurchase.FieldCreditGrantedAt:
 			values[i] = new(sql.NullTime)
@@ -135,6 +137,13 @@ func (_m *ChargeCreditPurchase) assignValues(columns []string, values []any) err
 			} else if value.Valid {
 				_m.CreditGrantedAt = new(time.Time)
 				*_m.CreditGrantedAt = value.Time
+			}
+		case chargecreditpurchase.FieldExternalPaymentSettlementID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field external_payment_settlement_id", values[i])
+			} else if value.Valid {
+				_m.ExternalPaymentSettlementID = new(string)
+				*_m.ExternalPaymentSettlementID = value.String
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -199,6 +208,11 @@ func (_m *ChargeCreditPurchase) String() string {
 	if v := _m.CreditGrantedAt; v != nil {
 		builder.WriteString("credit_granted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.ExternalPaymentSettlementID; v != nil {
+		builder.WriteString("external_payment_settlement_id=")
+		builder.WriteString(*v)
 	}
 	builder.WriteByte(')')
 	return builder.String()

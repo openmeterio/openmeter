@@ -35,8 +35,6 @@ type ChargeStandardInvoicePaymentSettlement struct {
 	Annotations models.Annotations `json:"annotations,omitempty"`
 	// LineID holds the value of the "line_id" field.
 	LineID string `json:"line_id,omitempty"`
-	// ChargeID holds the value of the "charge_id" field.
-	ChargeID string `json:"charge_id,omitempty"`
 	// ServicePeriodFrom holds the value of the "service_period_from" field.
 	ServicePeriodFrom time.Time `json:"service_period_from,omitempty"`
 	// ServicePeriodTo holds the value of the "service_period_to" field.
@@ -63,8 +61,8 @@ type ChargeStandardInvoicePaymentSettlement struct {
 type ChargeStandardInvoicePaymentSettlementEdges struct {
 	// BillingInvoiceLine holds the value of the billing_invoice_line edge.
 	BillingInvoiceLine *BillingInvoiceLine `json:"billing_invoice_line,omitempty"`
-	// FlatFee holds the value of the flat_fee edge.
-	FlatFee *ChargeFlatFee `json:"flat_fee,omitempty"`
+	// ChargeFlatFee holds the value of the charge_flat_fee edge.
+	ChargeFlatFee *ChargeFlatFee `json:"charge_flat_fee,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [2]bool
@@ -81,15 +79,15 @@ func (e ChargeStandardInvoicePaymentSettlementEdges) BillingInvoiceLineOrErr() (
 	return nil, &NotLoadedError{edge: "billing_invoice_line"}
 }
 
-// FlatFeeOrErr returns the FlatFee value or an error if the edge
+// ChargeFlatFeeOrErr returns the ChargeFlatFee value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeStandardInvoicePaymentSettlementEdges) FlatFeeOrErr() (*ChargeFlatFee, error) {
-	if e.FlatFee != nil {
-		return e.FlatFee, nil
+func (e ChargeStandardInvoicePaymentSettlementEdges) ChargeFlatFeeOrErr() (*ChargeFlatFee, error) {
+	if e.ChargeFlatFee != nil {
+		return e.ChargeFlatFee, nil
 	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: chargeflatfee.Label}
 	}
-	return nil, &NotLoadedError{edge: "flat_fee"}
+	return nil, &NotLoadedError{edge: "charge_flat_fee"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -101,7 +99,7 @@ func (*ChargeStandardInvoicePaymentSettlement) scanValues(columns []string) ([]a
 			values[i] = new([]byte)
 		case chargestandardinvoicepaymentsettlement.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargestandardinvoicepaymentsettlement.FieldID, chargestandardinvoicepaymentsettlement.FieldNamespace, chargestandardinvoicepaymentsettlement.FieldLineID, chargestandardinvoicepaymentsettlement.FieldChargeID, chargestandardinvoicepaymentsettlement.FieldStatus, chargestandardinvoicepaymentsettlement.FieldAuthorizedTransactionGroupID, chargestandardinvoicepaymentsettlement.FieldSettledTransactionGroupID:
+		case chargestandardinvoicepaymentsettlement.FieldID, chargestandardinvoicepaymentsettlement.FieldNamespace, chargestandardinvoicepaymentsettlement.FieldLineID, chargestandardinvoicepaymentsettlement.FieldStatus, chargestandardinvoicepaymentsettlement.FieldAuthorizedTransactionGroupID, chargestandardinvoicepaymentsettlement.FieldSettledTransactionGroupID:
 			values[i] = new(sql.NullString)
 		case chargestandardinvoicepaymentsettlement.FieldCreatedAt, chargestandardinvoicepaymentsettlement.FieldUpdatedAt, chargestandardinvoicepaymentsettlement.FieldDeletedAt, chargestandardinvoicepaymentsettlement.FieldServicePeriodFrom, chargestandardinvoicepaymentsettlement.FieldServicePeriodTo, chargestandardinvoicepaymentsettlement.FieldAuthorizedAt, chargestandardinvoicepaymentsettlement.FieldSettledAt:
 			values[i] = new(sql.NullTime)
@@ -164,12 +162,6 @@ func (_m *ChargeStandardInvoicePaymentSettlement) assignValues(columns []string,
 				return fmt.Errorf("unexpected type %T for field line_id", values[i])
 			} else if value.Valid {
 				_m.LineID = value.String
-			}
-		case chargestandardinvoicepaymentsettlement.FieldChargeID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field charge_id", values[i])
-			} else if value.Valid {
-				_m.ChargeID = value.String
 			}
 		case chargestandardinvoicepaymentsettlement.FieldServicePeriodFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -241,9 +233,9 @@ func (_m *ChargeStandardInvoicePaymentSettlement) QueryBillingInvoiceLine() *Bil
 	return NewChargeStandardInvoicePaymentSettlementClient(_m.config).QueryBillingInvoiceLine(_m)
 }
 
-// QueryFlatFee queries the "flat_fee" edge of the ChargeStandardInvoicePaymentSettlement entity.
-func (_m *ChargeStandardInvoicePaymentSettlement) QueryFlatFee() *ChargeFlatFeeQuery {
-	return NewChargeStandardInvoicePaymentSettlementClient(_m.config).QueryFlatFee(_m)
+// QueryChargeFlatFee queries the "charge_flat_fee" edge of the ChargeStandardInvoicePaymentSettlement entity.
+func (_m *ChargeStandardInvoicePaymentSettlement) QueryChargeFlatFee() *ChargeFlatFeeQuery {
+	return NewChargeStandardInvoicePaymentSettlementClient(_m.config).QueryChargeFlatFee(_m)
 }
 
 // Update returns a builder for updating this ChargeStandardInvoicePaymentSettlement.
@@ -288,9 +280,6 @@ func (_m *ChargeStandardInvoicePaymentSettlement) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("line_id=")
 	builder.WriteString(_m.LineID)
-	builder.WriteString(", ")
-	builder.WriteString("charge_id=")
-	builder.WriteString(_m.ChargeID)
 	builder.WriteString(", ")
 	builder.WriteString("service_period_from=")
 	builder.WriteString(_m.ServicePeriodFrom.Format(time.ANSIC))

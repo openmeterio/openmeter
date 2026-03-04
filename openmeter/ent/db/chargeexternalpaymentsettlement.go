@@ -32,8 +32,6 @@ type ChargeExternalPaymentSettlement struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Annotations holds the value of the "annotations" field.
 	Annotations models.Annotations `json:"annotations,omitempty"`
-	// ChargeID holds the value of the "charge_id" field.
-	ChargeID string `json:"charge_id,omitempty"`
 	// ServicePeriodFrom holds the value of the "service_period_from" field.
 	ServicePeriodFrom time.Time `json:"service_period_from,omitempty"`
 	// ServicePeriodTo holds the value of the "service_period_to" field.
@@ -85,7 +83,7 @@ func (*ChargeExternalPaymentSettlement) scanValues(columns []string) ([]any, err
 			values[i] = new([]byte)
 		case chargeexternalpaymentsettlement.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeexternalpaymentsettlement.FieldID, chargeexternalpaymentsettlement.FieldNamespace, chargeexternalpaymentsettlement.FieldChargeID, chargeexternalpaymentsettlement.FieldStatus, chargeexternalpaymentsettlement.FieldAuthorizedTransactionGroupID, chargeexternalpaymentsettlement.FieldSettledTransactionGroupID:
+		case chargeexternalpaymentsettlement.FieldID, chargeexternalpaymentsettlement.FieldNamespace, chargeexternalpaymentsettlement.FieldStatus, chargeexternalpaymentsettlement.FieldAuthorizedTransactionGroupID, chargeexternalpaymentsettlement.FieldSettledTransactionGroupID:
 			values[i] = new(sql.NullString)
 		case chargeexternalpaymentsettlement.FieldCreatedAt, chargeexternalpaymentsettlement.FieldUpdatedAt, chargeexternalpaymentsettlement.FieldDeletedAt, chargeexternalpaymentsettlement.FieldServicePeriodFrom, chargeexternalpaymentsettlement.FieldServicePeriodTo, chargeexternalpaymentsettlement.FieldAuthorizedAt, chargeexternalpaymentsettlement.FieldSettledAt:
 			values[i] = new(sql.NullTime)
@@ -142,12 +140,6 @@ func (_m *ChargeExternalPaymentSettlement) assignValues(columns []string, values
 				if err := json.Unmarshal(*value, &_m.Annotations); err != nil {
 					return fmt.Errorf("unmarshal field annotations: %w", err)
 				}
-			}
-		case chargeexternalpaymentsettlement.FieldChargeID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field charge_id", values[i])
-			} else if value.Valid {
-				_m.ChargeID = value.String
 			}
 		case chargeexternalpaymentsettlement.FieldServicePeriodFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -258,9 +250,6 @@ func (_m *ChargeExternalPaymentSettlement) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("annotations=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
-	builder.WriteString(", ")
-	builder.WriteString("charge_id=")
-	builder.WriteString(_m.ChargeID)
 	builder.WriteString(", ")
 	builder.WriteString("service_period_from=")
 	builder.WriteString(_m.ServicePeriodFrom.Format(time.ANSIC))

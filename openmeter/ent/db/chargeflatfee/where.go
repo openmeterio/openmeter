@@ -99,6 +99,11 @@ func AmountAfterProration(v alpacadecimal.Decimal) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldEQ(FieldAmountAfterProration, v))
 }
 
+// StdInvoicePaymentSettlementID applies equality check predicate on the "std_invoice_payment_settlement_id" field. It's identical to StdInvoicePaymentSettlementIDEQ.
+func StdInvoicePaymentSettlementID(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldStdInvoicePaymentSettlementID, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldEQ(FieldNamespace, v))
@@ -513,6 +518,81 @@ func AmountAfterProrationLTE(v alpacadecimal.Decimal) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldLTE(FieldAmountAfterProration, v))
 }
 
+// StdInvoicePaymentSettlementIDEQ applies the EQ predicate on the "std_invoice_payment_settlement_id" field.
+func StdInvoicePaymentSettlementIDEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldStdInvoicePaymentSettlementID, v))
+}
+
+// StdInvoicePaymentSettlementIDNEQ applies the NEQ predicate on the "std_invoice_payment_settlement_id" field.
+func StdInvoicePaymentSettlementIDNEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldStdInvoicePaymentSettlementID, v))
+}
+
+// StdInvoicePaymentSettlementIDIn applies the In predicate on the "std_invoice_payment_settlement_id" field.
+func StdInvoicePaymentSettlementIDIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldStdInvoicePaymentSettlementID, vs...))
+}
+
+// StdInvoicePaymentSettlementIDNotIn applies the NotIn predicate on the "std_invoice_payment_settlement_id" field.
+func StdInvoicePaymentSettlementIDNotIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldStdInvoicePaymentSettlementID, vs...))
+}
+
+// StdInvoicePaymentSettlementIDGT applies the GT predicate on the "std_invoice_payment_settlement_id" field.
+func StdInvoicePaymentSettlementIDGT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldStdInvoicePaymentSettlementID, v))
+}
+
+// StdInvoicePaymentSettlementIDGTE applies the GTE predicate on the "std_invoice_payment_settlement_id" field.
+func StdInvoicePaymentSettlementIDGTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldStdInvoicePaymentSettlementID, v))
+}
+
+// StdInvoicePaymentSettlementIDLT applies the LT predicate on the "std_invoice_payment_settlement_id" field.
+func StdInvoicePaymentSettlementIDLT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldStdInvoicePaymentSettlementID, v))
+}
+
+// StdInvoicePaymentSettlementIDLTE applies the LTE predicate on the "std_invoice_payment_settlement_id" field.
+func StdInvoicePaymentSettlementIDLTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldStdInvoicePaymentSettlementID, v))
+}
+
+// StdInvoicePaymentSettlementIDContains applies the Contains predicate on the "std_invoice_payment_settlement_id" field.
+func StdInvoicePaymentSettlementIDContains(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContains(FieldStdInvoicePaymentSettlementID, v))
+}
+
+// StdInvoicePaymentSettlementIDHasPrefix applies the HasPrefix predicate on the "std_invoice_payment_settlement_id" field.
+func StdInvoicePaymentSettlementIDHasPrefix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasPrefix(FieldStdInvoicePaymentSettlementID, v))
+}
+
+// StdInvoicePaymentSettlementIDHasSuffix applies the HasSuffix predicate on the "std_invoice_payment_settlement_id" field.
+func StdInvoicePaymentSettlementIDHasSuffix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasSuffix(FieldStdInvoicePaymentSettlementID, v))
+}
+
+// StdInvoicePaymentSettlementIDIsNil applies the IsNil predicate on the "std_invoice_payment_settlement_id" field.
+func StdInvoicePaymentSettlementIDIsNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIsNull(FieldStdInvoicePaymentSettlementID))
+}
+
+// StdInvoicePaymentSettlementIDNotNil applies the NotNil predicate on the "std_invoice_payment_settlement_id" field.
+func StdInvoicePaymentSettlementIDNotNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotNull(FieldStdInvoicePaymentSettlementID))
+}
+
+// StdInvoicePaymentSettlementIDEqualFold applies the EqualFold predicate on the "std_invoice_payment_settlement_id" field.
+func StdInvoicePaymentSettlementIDEqualFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEqualFold(FieldStdInvoicePaymentSettlementID, v))
+}
+
+// StdInvoicePaymentSettlementIDContainsFold applies the ContainsFold predicate on the "std_invoice_payment_settlement_id" field.
+func StdInvoicePaymentSettlementIDContainsFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContainsFold(FieldStdInvoicePaymentSettlementID, v))
+}
+
 // HasCharge applies the HasEdge predicate on the "charge" edge.
 func HasCharge() predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(func(s *sql.Selector) {
@@ -541,7 +621,7 @@ func HasChargeStandardInvoicePaymentSettlement() predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, ChargeStandardInvoicePaymentSettlementTable, ChargeStandardInvoicePaymentSettlementColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, ChargeStandardInvoicePaymentSettlementTable, ChargeStandardInvoicePaymentSettlementColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

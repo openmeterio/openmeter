@@ -9,9 +9,37 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+type StandardInvoicePaymentSettlementCreateInput struct {
+	PaymentSettlementBase
+
+	Namespace string `json:"namespace"`
+	LineID    string `json:"lineID"`
+}
+
+func (i StandardInvoicePaymentSettlementCreateInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, fmt.Errorf("namespace is required"))
+	}
+
+	if err := i.PaymentSettlementBase.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("payment settlement base: %w", err))
+	}
+
+	if i.LineID == "" {
+		errs = append(errs, fmt.Errorf("line ID is required"))
+	}
+
+	return errors.Join(errs...)
+}
+
 // StandardInvoicePaymentSettlement represents a payment settlement using a standard invoice managed
 // by the OpenMeter platform.
 type StandardInvoicePaymentSettlement struct {
+	models.NamespacedID
+	models.ManagedModel
+
 	PaymentSettlementBase
 
 	LineID string `json:"lineID"`
@@ -30,6 +58,14 @@ func (r StandardInvoicePaymentSettlement) Validate() error {
 		errs = append(errs, err)
 	}
 
+	if err := r.NamespacedID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("namespaced ID: %w", err))
+	}
+
+	if err := r.ManagedModel.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("managed model: %w", err))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -37,6 +73,7 @@ func (r StandardInvoicePaymentSettlement) ErrorAttributes() models.Attributes {
 	return models.Attributes{
 		PaymentSettlementStatusAttributeKey: string(r.Status),
 		PaymentSettlementTypeAttributeKey:   string(PaymentSettlementTypeStandardInvoice),
+		paymentSettlementIDAttributeKey:     r.ID,
 	}
 }
 

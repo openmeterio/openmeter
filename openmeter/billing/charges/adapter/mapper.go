@@ -298,16 +298,17 @@ func mapCreditRealizationFromDB(entity *entdb.ChargeCreditRealization) charges.C
 
 func mapStandardInvoicePaymentSettlementFromDB(entity *entdb.ChargeStandardInvoicePaymentSettlement) charges.StandardInvoicePaymentSettlement {
 	return charges.StandardInvoicePaymentSettlement{
+		NamespacedID: models.NamespacedID{
+			Namespace: entity.Namespace,
+			ID:        entity.ID,
+		},
+		ManagedModel: models.ManagedModel{
+			CreatedAt: entity.CreatedAt.In(time.UTC),
+			UpdatedAt: entity.UpdatedAt.In(time.UTC),
+			DeletedAt: convert.TimePtrIn(entity.DeletedAt, time.UTC),
+		},
+
 		PaymentSettlementBase: charges.PaymentSettlementBase{
-			NamespacedID: models.NamespacedID{
-				Namespace: entity.Namespace,
-				ID:        entity.ID,
-			},
-			ManagedModel: models.ManagedModel{
-				CreatedAt: entity.CreatedAt.In(time.UTC),
-				UpdatedAt: entity.UpdatedAt.In(time.UTC),
-				DeletedAt: convert.TimePtrIn(entity.DeletedAt, time.UTC),
-			},
 			Annotations: entity.Annotations,
 			ServicePeriod: timeutil.ClosedPeriod{
 				From: entity.ServicePeriodFrom.In(time.UTC),
@@ -385,14 +386,16 @@ func mapExternalPaymentSettlementFromDB(entity *entdb.ChargeExternalPaymentSettl
 			UpdatedAt: entity.UpdatedAt.In(time.UTC),
 			DeletedAt: convert.TimePtrIn(entity.DeletedAt, time.UTC),
 		},
-		Annotations: entity.Annotations,
-		ServicePeriod: timeutil.ClosedPeriod{
-			From: entity.ServicePeriodFrom.In(time.UTC),
-			To:   entity.ServicePeriodTo.In(time.UTC),
+		PaymentSettlementBase: charges.PaymentSettlementBase{
+			Annotations: entity.Annotations,
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: entity.ServicePeriodFrom.In(time.UTC),
+				To:   entity.ServicePeriodTo.In(time.UTC),
+			},
+			Status:     entity.Status,
+			Amount:     entity.Amount,
+			Authorized: mapTimedLedgerTransactionGroupReferenceFromDB(entity.AuthorizedTransactionGroupID, entity.AuthorizedAt),
+			Settled:    mapTimedLedgerTransactionGroupReferenceFromDB(entity.SettledTransactionGroupID, entity.SettledAt),
 		},
-		Status:     entity.Status,
-		Amount:     entity.Amount,
-		Authorized: mapTimedLedgerTransactionGroupReferenceFromDB(entity.AuthorizedTransactionGroupID, entity.AuthorizedAt),
-		Settled:    mapTimedLedgerTransactionGroupReferenceFromDB(entity.SettledTransactionGroupID, entity.SettledAt),
 	}
 }

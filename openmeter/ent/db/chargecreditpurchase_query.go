@@ -4,7 +4,6 @@ package db
 
 import (
 	"context"
-	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -101,7 +100,7 @@ func (_q *ChargeCreditPurchaseQuery) QueryChargeExternalPaymentSettlement() *Cha
 		step := sqlgraph.NewStep(
 			sqlgraph.From(chargecreditpurchase.Table, chargecreditpurchase.FieldID, selector),
 			sqlgraph.To(chargeexternalpaymentsettlement.Table, chargeexternalpaymentsettlement.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, chargecreditpurchase.ChargeExternalPaymentSettlementTable, chargecreditpurchase.ChargeExternalPaymentSettlementColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, chargecreditpurchase.ChargeExternalPaymentSettlementTable, chargecreditpurchase.ChargeExternalPaymentSettlementColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -482,29 +481,34 @@ func (_q *ChargeCreditPurchaseQuery) loadCharge(ctx context.Context, query *Char
 	return nil
 }
 func (_q *ChargeCreditPurchaseQuery) loadChargeExternalPaymentSettlement(ctx context.Context, query *ChargeExternalPaymentSettlementQuery, nodes []*ChargeCreditPurchase, init func(*ChargeCreditPurchase), assign func(*ChargeCreditPurchase, *ChargeExternalPaymentSettlement)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[string]*ChargeCreditPurchase)
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*ChargeCreditPurchase)
 	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
+		if nodes[i].ExternalPaymentSettlementID == nil {
+			continue
+		}
+		fk := *nodes[i].ExternalPaymentSettlementID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(chargeexternalpaymentsettlement.FieldChargeID)
+	if len(ids) == 0 {
+		return nil
 	}
-	query.Where(predicate.ChargeExternalPaymentSettlement(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(chargecreditpurchase.ChargeExternalPaymentSettlementColumn), fks...))
-	}))
+	query.Where(chargeexternalpaymentsettlement.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.ChargeID
-		node, ok := nodeids[fk]
+		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "charge_id" returned %v for node %v`, fk, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "external_payment_settlement_id" returned %v`, n.ID)
 		}
-		assign(node, n)
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }
@@ -536,6 +540,9 @@ func (_q *ChargeCreditPurchaseQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != chargecreditpurchase.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withChargeExternalPaymentSettlement != nil {
+			_spec.Node.AddColumnOnce(chargecreditpurchase.FieldExternalPaymentSettlementID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

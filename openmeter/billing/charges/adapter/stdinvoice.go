@@ -10,34 +10,28 @@ import (
 
 var _ charges.StandardInvoiceRealizationAdapter = (*adapter)(nil)
 
-func (a *adapter) CreateStandardInvoicePaymentSettlement(ctx context.Context, chargeID charges.ChargeID, paymentState charges.StandardInvoicePaymentSettlement) (charges.StandardInvoicePaymentSettlement, error) {
-	if err := chargeID.Validate(); err != nil {
-		return charges.StandardInvoicePaymentSettlement{}, err
-	}
-
-	if err := paymentState.Validate(); err != nil {
+func (a *adapter) CreateStandardInvoicePaymentSettlement(ctx context.Context, input charges.StandardInvoicePaymentSettlementCreateInput) (charges.StandardInvoicePaymentSettlement, error) {
+	if err := input.Validate(); err != nil {
 		return charges.StandardInvoicePaymentSettlement{}, err
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (charges.StandardInvoicePaymentSettlement, error) {
 		create := tx.db.ChargeStandardInvoicePaymentSettlement.Create().
-			SetNamespace(chargeID.Namespace).
-			SetChargeID(chargeID.ID).
-			SetAnnotations(paymentState.Annotations).
-			SetNillableDeletedAt(paymentState.DeletedAt).
-			SetLineID(paymentState.LineID).
-			SetServicePeriodFrom(paymentState.ServicePeriod.From).
-			SetServicePeriodTo(paymentState.ServicePeriod.To).
-			SetStatus(paymentState.Status).
-			SetAmount(paymentState.Amount)
+			SetNamespace(input.Namespace).
+			SetAnnotations(input.Annotations).
+			SetLineID(input.LineID).
+			SetServicePeriodFrom(input.ServicePeriod.From).
+			SetServicePeriodTo(input.ServicePeriod.To).
+			SetStatus(input.Status).
+			SetAmount(input.Amount)
 
-		if paymentState.Authorized != nil {
-			create = create.SetAuthorizedTransactionGroupID(paymentState.Authorized.TransactionGroupID).
-				SetAuthorizedAt(paymentState.Authorized.Time)
+		if input.Authorized != nil {
+			create = create.SetAuthorizedTransactionGroupID(input.Authorized.TransactionGroupID).
+				SetAuthorizedAt(input.Authorized.Time)
 		}
-		if paymentState.Settled != nil {
-			create = create.SetSettledTransactionGroupID(paymentState.Settled.TransactionGroupID).
-				SetSettledAt(paymentState.Settled.Time)
+		if input.Settled != nil {
+			create = create.SetSettledTransactionGroupID(input.Settled.TransactionGroupID).
+				SetSettledAt(input.Settled.Time)
 		}
 
 		entity, err := create.Save(ctx)

@@ -137,6 +137,26 @@ func (_u *ChargeFlatFeeUpdate) SetNillableAmountAfterProration(v *alpacadecimal.
 	return _u
 }
 
+// SetStdInvoicePaymentSettlementID sets the "std_invoice_payment_settlement_id" field.
+func (_u *ChargeFlatFeeUpdate) SetStdInvoicePaymentSettlementID(v string) *ChargeFlatFeeUpdate {
+	_u.mutation.SetStdInvoicePaymentSettlementID(v)
+	return _u
+}
+
+// SetNillableStdInvoicePaymentSettlementID sets the "std_invoice_payment_settlement_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableStdInvoicePaymentSettlementID(v *string) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetStdInvoicePaymentSettlementID(*v)
+	}
+	return _u
+}
+
+// ClearStdInvoicePaymentSettlementID clears the value of the "std_invoice_payment_settlement_id" field.
+func (_u *ChargeFlatFeeUpdate) ClearStdInvoicePaymentSettlementID() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearStdInvoicePaymentSettlementID()
+	return _u
+}
+
 // SetChargeID sets the "charge" edge to the Charge entity by ID.
 func (_u *ChargeFlatFeeUpdate) SetChargeID(id string) *ChargeFlatFeeUpdate {
 	_u.mutation.SetChargeID(id)
@@ -294,6 +314,11 @@ func (_u *ChargeFlatFeeUpdate) check() error {
 			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.feature_key": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.StdInvoicePaymentSettlementID(); ok {
+		if err := chargeflatfee.StdInvoicePaymentSettlementIDValidator(v); err != nil {
+			return &ValidationError{Name: "std_invoice_payment_settlement_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.std_invoice_payment_settlement_id": %w`, err)}
+		}
+	}
 	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeFlatFee.charge"`)
 	}
@@ -375,7 +400,7 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	if _u.mutation.ChargeStandardInvoicePaymentSettlementCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
-			Inverse: false,
+			Inverse: true,
 			Table:   chargeflatfee.ChargeStandardInvoicePaymentSettlementTable,
 			Columns: []string{chargeflatfee.ChargeStandardInvoicePaymentSettlementColumn},
 			Bidi:    false,
@@ -388,7 +413,7 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	if nodes := _u.mutation.ChargeStandardInvoicePaymentSettlementIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
-			Inverse: false,
+			Inverse: true,
 			Table:   chargeflatfee.ChargeStandardInvoicePaymentSettlementTable,
 			Columns: []string{chargeflatfee.ChargeStandardInvoicePaymentSettlementColumn},
 			Bidi:    false,
@@ -597,6 +622,26 @@ func (_u *ChargeFlatFeeUpdateOne) SetNillableAmountAfterProration(v *alpacadecim
 	return _u
 }
 
+// SetStdInvoicePaymentSettlementID sets the "std_invoice_payment_settlement_id" field.
+func (_u *ChargeFlatFeeUpdateOne) SetStdInvoicePaymentSettlementID(v string) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetStdInvoicePaymentSettlementID(v)
+	return _u
+}
+
+// SetNillableStdInvoicePaymentSettlementID sets the "std_invoice_payment_settlement_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableStdInvoicePaymentSettlementID(v *string) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetStdInvoicePaymentSettlementID(*v)
+	}
+	return _u
+}
+
+// ClearStdInvoicePaymentSettlementID clears the value of the "std_invoice_payment_settlement_id" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearStdInvoicePaymentSettlementID() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearStdInvoicePaymentSettlementID()
+	return _u
+}
+
 // SetChargeID sets the "charge" edge to the Charge entity by ID.
 func (_u *ChargeFlatFeeUpdateOne) SetChargeID(id string) *ChargeFlatFeeUpdateOne {
 	_u.mutation.SetChargeID(id)
@@ -767,6 +812,11 @@ func (_u *ChargeFlatFeeUpdateOne) check() error {
 			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.feature_key": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.StdInvoicePaymentSettlementID(); ok {
+		if err := chargeflatfee.StdInvoicePaymentSettlementIDValidator(v); err != nil {
+			return &ValidationError{Name: "std_invoice_payment_settlement_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.std_invoice_payment_settlement_id": %w`, err)}
+		}
+	}
 	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeFlatFee.charge"`)
 	}
@@ -865,7 +915,7 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 	if _u.mutation.ChargeStandardInvoicePaymentSettlementCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
-			Inverse: false,
+			Inverse: true,
 			Table:   chargeflatfee.ChargeStandardInvoicePaymentSettlementTable,
 			Columns: []string{chargeflatfee.ChargeStandardInvoicePaymentSettlementColumn},
 			Bidi:    false,
@@ -878,7 +928,7 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 	if nodes := _u.mutation.ChargeStandardInvoicePaymentSettlementIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
-			Inverse: false,
+			Inverse: true,
 			Table:   chargeflatfee.ChargeStandardInvoicePaymentSettlementTable,
 			Columns: []string{chargeflatfee.ChargeStandardInvoicePaymentSettlementColumn},
 			Bidi:    false,

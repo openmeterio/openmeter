@@ -5,7 +5,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func (s *service) onExternalCreditPurchase(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.CreditPurchaseCharge, error) {
@@ -57,12 +56,10 @@ func (s *service) onExternalCreditPurchase(ctx context.Context, charge charges.C
 }
 
 func (s *service) HandleExternalCreditPurchasePaymentAuthorized(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.CreditPurchaseCharge, error) {
-	paymentSettlement, paymentSettlementExists := getExternalPaymentSettlementOrEmpty(charge)
-
-	if paymentSettlementExists {
+	if charge.State.ExternalPaymentSettlement != nil {
 		return charges.CreditPurchaseCharge{}, charges.ErrPaymentAlreadyAuthorized.
 			WithAttrs(charge.ErrorAttributes()).
-			WithAttrs(paymentSettlement.ErrorAttributes())
+			WithAttrs(charge.State.ExternalPaymentSettlement.ErrorAttributes())
 	}
 
 	ledgerTransactionGroupReference, err := s.creditPurchaseHandler.OnCreditPurchasePaymentAuthorized(ctx, charge)
@@ -70,31 +67,41 @@ func (s *service) HandleExternalCreditPurchasePaymentAuthorized(ctx context.Cont
 		return charges.CreditPurchaseCharge{}, err
 	}
 
-	paymentSettlement.Authorized = &charges.TimedLedgerTransactionGroupReference{
-		LedgerTransactionGroupReference: ledgerTransactionGroupReference,
-		Time:                            clock.Now(),
+	newPaymentSettlement := charges.ExternalPaymentSettlementCreateInput{
+		Namespace: charge.Namespace,
+		PaymentSettlementBase: charges.PaymentSettlementBase{
+			ServicePeriod: charge.Intent.ServicePeriod,
+			Amount:        charge.Intent.CreditAmount,
+			Authorized: &charges.TimedLedgerTransactionGroupReference{
+				LedgerTransactionGroupReference: ledgerTransactionGroupReference,
+				Time:                            clock.Now(),
+			},
+			Status: charges.PaymentSettlementStatusAuthorized,
+		},
 	}
 
-	paymentSettlement.Status = charges.PaymentSettlementStatusAuthorized
-
-	paymentSettlement, err = s.adapter.CreateExternalPaymentSettlement(ctx, charge.GetChargeID(), paymentSettlement)
+	paymentSettlement, err := s.adapter.CreateExternalPaymentSettlement(ctx, newPaymentSettlement)
 	if err != nil {
 		return charges.CreditPurchaseCharge{}, err
 	}
 
 	charge.State.ExternalPaymentSettlement = &paymentSettlement
 
+	charge, err = s.adapter.UpdateCreditPurchaseCharge(ctx, charge)
+	if err != nil {
+		return charges.CreditPurchaseCharge{}, err
+	}
+
 	return charge, nil
 }
 
 func (s *service) HandleExternalCreditPurchasePaymentSettled(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.CreditPurchaseCharge, error) {
-	paymentSettlement, paymentSettlementExists := getExternalPaymentSettlementOrEmpty(charge)
-
-	if !paymentSettlementExists {
+	if charge.State.ExternalPaymentSettlement == nil {
 		return charges.CreditPurchaseCharge{}, charges.ErrCannotSettleNotAuthorizedPayment.
-			WithAttrs(charge.ErrorAttributes()).
-			WithAttrs(paymentSettlement.ErrorAttributes())
+			WithAttrs(charge.ErrorAttributes())
 	}
+
+	paymentSettlement := *charge.State.ExternalPaymentSettlement
 
 	if paymentSettlement.Status != charges.PaymentSettlementStatusAuthorized {
 		return charges.CreditPurchaseCharge{}, charges.ErrPaymentAlreadySettled.
@@ -130,18 +137,4 @@ func (s *service) HandleExternalCreditPurchasePaymentSettled(ctx context.Context
 	}
 
 	return charge, nil
-}
-
-func getExternalPaymentSettlementOrEmpty(charge charges.CreditPurchaseCharge) (charges.ExternalPaymentSettlement, bool) {
-	if charge.State.ExternalPaymentSettlement != nil {
-		return *charge.State.ExternalPaymentSettlement, true
-	}
-
-	return charges.ExternalPaymentSettlement{
-		NamespacedID: models.NamespacedID{
-			Namespace: charge.Namespace,
-		},
-		ServicePeriod: charge.Intent.ServicePeriod,
-		Amount:        charge.Intent.CreditAmount,
-	}, false
 }

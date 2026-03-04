@@ -41,6 +41,8 @@ type ChargeFlatFee struct {
 	AmountBeforeProration alpacadecimal.Decimal `json:"amount_before_proration,omitempty"`
 	// AmountAfterProration holds the value of the "amount_after_proration" field.
 	AmountAfterProration alpacadecimal.Decimal `json:"amount_after_proration,omitempty"`
+	// StdInvoicePaymentSettlementID holds the value of the "std_invoice_payment_settlement_id" field.
+	StdInvoicePaymentSettlementID *string `json:"std_invoice_payment_settlement_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeFlatFeeQuery when eager-loading is set.
 	Edges        ChargeFlatFeeEdges `json:"edges"`
@@ -111,7 +113,7 @@ func (*ChargeFlatFee) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargeflatfee.FieldAmountBeforeProration, chargeflatfee.FieldAmountAfterProration:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeflatfee.FieldID, chargeflatfee.FieldNamespace, chargeflatfee.FieldPaymentTerm, chargeflatfee.FieldSettlementMode, chargeflatfee.FieldProRating, chargeflatfee.FieldFeatureKey:
+		case chargeflatfee.FieldID, chargeflatfee.FieldNamespace, chargeflatfee.FieldPaymentTerm, chargeflatfee.FieldSettlementMode, chargeflatfee.FieldProRating, chargeflatfee.FieldFeatureKey, chargeflatfee.FieldStdInvoicePaymentSettlementID:
 			values[i] = new(sql.NullString)
 		case chargeflatfee.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
@@ -192,6 +194,13 @@ func (_m *ChargeFlatFee) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field amount_after_proration", values[i])
 			} else if value != nil {
 				_m.AmountAfterProration = *value
+			}
+		case chargeflatfee.FieldStdInvoicePaymentSettlementID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field std_invoice_payment_settlement_id", values[i])
+			} else if value.Valid {
+				_m.StdInvoicePaymentSettlementID = new(string)
+				*_m.StdInvoicePaymentSettlementID = value.String
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -279,6 +288,11 @@ func (_m *ChargeFlatFee) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("amount_after_proration=")
 	builder.WriteString(fmt.Sprintf("%v", _m.AmountAfterProration))
+	builder.WriteString(", ")
+	if v := _m.StdInvoicePaymentSettlementID; v != nil {
+		builder.WriteString("std_invoice_payment_settlement_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

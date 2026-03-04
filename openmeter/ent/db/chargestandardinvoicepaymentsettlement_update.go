@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicepaymentsettlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -205,9 +206,34 @@ func (_u *ChargeStandardInvoicePaymentSettlementUpdate) ClearSettledAt() *Charge
 	return _u
 }
 
+// SetChargeFlatFeeID sets the "charge_flat_fee" edge to the ChargeFlatFee entity by ID.
+func (_u *ChargeStandardInvoicePaymentSettlementUpdate) SetChargeFlatFeeID(id string) *ChargeStandardInvoicePaymentSettlementUpdate {
+	_u.mutation.SetChargeFlatFeeID(id)
+	return _u
+}
+
+// SetNillableChargeFlatFeeID sets the "charge_flat_fee" edge to the ChargeFlatFee entity by ID if the given value is not nil.
+func (_u *ChargeStandardInvoicePaymentSettlementUpdate) SetNillableChargeFlatFeeID(id *string) *ChargeStandardInvoicePaymentSettlementUpdate {
+	if id != nil {
+		_u = _u.SetChargeFlatFeeID(*id)
+	}
+	return _u
+}
+
+// SetChargeFlatFee sets the "charge_flat_fee" edge to the ChargeFlatFee entity.
+func (_u *ChargeStandardInvoicePaymentSettlementUpdate) SetChargeFlatFee(v *ChargeFlatFee) *ChargeStandardInvoicePaymentSettlementUpdate {
+	return _u.SetChargeFlatFeeID(v.ID)
+}
+
 // Mutation returns the ChargeStandardInvoicePaymentSettlementMutation object of the builder.
 func (_u *ChargeStandardInvoicePaymentSettlementUpdate) Mutation() *ChargeStandardInvoicePaymentSettlementMutation {
 	return _u.mutation
+}
+
+// ClearChargeFlatFee clears the "charge_flat_fee" edge to the ChargeFlatFee entity.
+func (_u *ChargeStandardInvoicePaymentSettlementUpdate) ClearChargeFlatFee() *ChargeStandardInvoicePaymentSettlementUpdate {
+	_u.mutation.ClearChargeFlatFee()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -265,9 +291,6 @@ func (_u *ChargeStandardInvoicePaymentSettlementUpdate) check() error {
 	}
 	if _u.mutation.BillingInvoiceLineCleared() && len(_u.mutation.BillingInvoiceLineIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeStandardInvoicePaymentSettlement.billing_invoice_line"`)
-	}
-	if _u.mutation.FlatFeeCleared() && len(_u.mutation.FlatFeeIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "ChargeStandardInvoicePaymentSettlement.flat_fee"`)
 	}
 	return nil
 }
@@ -334,6 +357,35 @@ func (_u *ChargeStandardInvoicePaymentSettlementUpdate) sqlSave(ctx context.Cont
 	}
 	if _u.mutation.SettledAtCleared() {
 		_spec.ClearField(chargestandardinvoicepaymentsettlement.FieldSettledAt, field.TypeTime)
+	}
+	if _u.mutation.ChargeFlatFeeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargestandardinvoicepaymentsettlement.ChargeFlatFeeTable,
+			Columns: []string{chargestandardinvoicepaymentsettlement.ChargeFlatFeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeFlatFeeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargestandardinvoicepaymentsettlement.ChargeFlatFeeTable,
+			Columns: []string{chargestandardinvoicepaymentsettlement.ChargeFlatFeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -529,9 +581,34 @@ func (_u *ChargeStandardInvoicePaymentSettlementUpdateOne) ClearSettledAt() *Cha
 	return _u
 }
 
+// SetChargeFlatFeeID sets the "charge_flat_fee" edge to the ChargeFlatFee entity by ID.
+func (_u *ChargeStandardInvoicePaymentSettlementUpdateOne) SetChargeFlatFeeID(id string) *ChargeStandardInvoicePaymentSettlementUpdateOne {
+	_u.mutation.SetChargeFlatFeeID(id)
+	return _u
+}
+
+// SetNillableChargeFlatFeeID sets the "charge_flat_fee" edge to the ChargeFlatFee entity by ID if the given value is not nil.
+func (_u *ChargeStandardInvoicePaymentSettlementUpdateOne) SetNillableChargeFlatFeeID(id *string) *ChargeStandardInvoicePaymentSettlementUpdateOne {
+	if id != nil {
+		_u = _u.SetChargeFlatFeeID(*id)
+	}
+	return _u
+}
+
+// SetChargeFlatFee sets the "charge_flat_fee" edge to the ChargeFlatFee entity.
+func (_u *ChargeStandardInvoicePaymentSettlementUpdateOne) SetChargeFlatFee(v *ChargeFlatFee) *ChargeStandardInvoicePaymentSettlementUpdateOne {
+	return _u.SetChargeFlatFeeID(v.ID)
+}
+
 // Mutation returns the ChargeStandardInvoicePaymentSettlementMutation object of the builder.
 func (_u *ChargeStandardInvoicePaymentSettlementUpdateOne) Mutation() *ChargeStandardInvoicePaymentSettlementMutation {
 	return _u.mutation
+}
+
+// ClearChargeFlatFee clears the "charge_flat_fee" edge to the ChargeFlatFee entity.
+func (_u *ChargeStandardInvoicePaymentSettlementUpdateOne) ClearChargeFlatFee() *ChargeStandardInvoicePaymentSettlementUpdateOne {
+	_u.mutation.ClearChargeFlatFee()
+	return _u
 }
 
 // Where appends a list predicates to the ChargeStandardInvoicePaymentSettlementUpdate builder.
@@ -602,9 +679,6 @@ func (_u *ChargeStandardInvoicePaymentSettlementUpdateOne) check() error {
 	}
 	if _u.mutation.BillingInvoiceLineCleared() && len(_u.mutation.BillingInvoiceLineIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeStandardInvoicePaymentSettlement.billing_invoice_line"`)
-	}
-	if _u.mutation.FlatFeeCleared() && len(_u.mutation.FlatFeeIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "ChargeStandardInvoicePaymentSettlement.flat_fee"`)
 	}
 	return nil
 }
@@ -688,6 +762,35 @@ func (_u *ChargeStandardInvoicePaymentSettlementUpdateOne) sqlSave(ctx context.C
 	}
 	if _u.mutation.SettledAtCleared() {
 		_spec.ClearField(chargestandardinvoicepaymentsettlement.FieldSettledAt, field.TypeTime)
+	}
+	if _u.mutation.ChargeFlatFeeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargestandardinvoicepaymentsettlement.ChargeFlatFeeTable,
+			Columns: []string{chargestandardinvoicepaymentsettlement.ChargeFlatFeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeFlatFeeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargestandardinvoicepaymentsettlement.ChargeFlatFeeTable,
+			Columns: []string{chargestandardinvoicepaymentsettlement.ChargeFlatFeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &ChargeStandardInvoicePaymentSettlement{config: _u.config}
 	_spec.Assign = _node.assignValues

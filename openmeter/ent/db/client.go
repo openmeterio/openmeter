@@ -5563,7 +5563,7 @@ func (c *ChargeCreditPurchaseClient) QueryChargeExternalPaymentSettlement(_m *Ch
 		step := sqlgraph.NewStep(
 			sqlgraph.From(chargecreditpurchase.Table, chargecreditpurchase.FieldID, id),
 			sqlgraph.To(chargeexternalpaymentsettlement.Table, chargeexternalpaymentsettlement.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, chargecreditpurchase.ChargeExternalPaymentSettlementTable, chargecreditpurchase.ChargeExternalPaymentSettlementColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, chargecreditpurchase.ChargeExternalPaymentSettlementTable, chargecreditpurchase.ChargeExternalPaymentSettlementColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -5877,7 +5877,7 @@ func (c *ChargeExternalPaymentSettlementClient) QueryChargeCreditPurchase(_m *Ch
 		step := sqlgraph.NewStep(
 			sqlgraph.From(chargeexternalpaymentsettlement.Table, chargeexternalpaymentsettlement.FieldID, id),
 			sqlgraph.To(chargecreditpurchase.Table, chargecreditpurchase.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, chargeexternalpaymentsettlement.ChargeCreditPurchaseTable, chargeexternalpaymentsettlement.ChargeCreditPurchaseColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, chargeexternalpaymentsettlement.ChargeCreditPurchaseTable, chargeexternalpaymentsettlement.ChargeCreditPurchaseColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -6042,7 +6042,7 @@ func (c *ChargeFlatFeeClient) QueryChargeStandardInvoicePaymentSettlement(_m *Ch
 		step := sqlgraph.NewStep(
 			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, id),
 			sqlgraph.To(chargestandardinvoicepaymentsettlement.Table, chargestandardinvoicepaymentsettlement.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, chargeflatfee.ChargeStandardInvoicePaymentSettlementTable, chargeflatfee.ChargeStandardInvoicePaymentSettlementColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, chargeflatfee.ChargeStandardInvoicePaymentSettlementTable, chargeflatfee.ChargeStandardInvoicePaymentSettlementColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -6396,15 +6396,15 @@ func (c *ChargeStandardInvoicePaymentSettlementClient) QueryBillingInvoiceLine(_
 	return query
 }
 
-// QueryFlatFee queries the flat_fee edge of a ChargeStandardInvoicePaymentSettlement.
-func (c *ChargeStandardInvoicePaymentSettlementClient) QueryFlatFee(_m *ChargeStandardInvoicePaymentSettlement) *ChargeFlatFeeQuery {
+// QueryChargeFlatFee queries the charge_flat_fee edge of a ChargeStandardInvoicePaymentSettlement.
+func (c *ChargeStandardInvoicePaymentSettlementClient) QueryChargeFlatFee(_m *ChargeStandardInvoicePaymentSettlement) *ChargeFlatFeeQuery {
 	query := (&ChargeFlatFeeClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(chargestandardinvoicepaymentsettlement.Table, chargestandardinvoicepaymentsettlement.FieldID, id),
 			sqlgraph.To(chargeflatfee.Table, chargeflatfee.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, chargestandardinvoicepaymentsettlement.FlatFeeTable, chargestandardinvoicepaymentsettlement.FlatFeeColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, chargestandardinvoicepaymentsettlement.ChargeFlatFeeTable, chargestandardinvoicepaymentsettlement.ChargeFlatFeeColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil

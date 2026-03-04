@@ -26,8 +26,6 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// FieldAnnotations holds the string denoting the annotations field in the database.
 	FieldAnnotations = "annotations"
-	// FieldChargeID holds the string denoting the charge_id field in the database.
-	FieldChargeID = "charge_id"
 	// FieldServicePeriodFrom holds the string denoting the service_period_from field in the database.
 	FieldServicePeriodFrom = "service_period_from"
 	// FieldServicePeriodTo holds the string denoting the service_period_to field in the database.
@@ -49,12 +47,12 @@ const (
 	// Table holds the table name of the chargeexternalpaymentsettlement in the database.
 	Table = "charge_external_payment_settlements"
 	// ChargeCreditPurchaseTable is the table that holds the charge_credit_purchase relation/edge.
-	ChargeCreditPurchaseTable = "charge_external_payment_settlements"
+	ChargeCreditPurchaseTable = "charge_credit_purchases"
 	// ChargeCreditPurchaseInverseTable is the table name for the ChargeCreditPurchase entity.
 	// It exists in this package in order to avoid circular dependency with the "chargecreditpurchase" package.
 	ChargeCreditPurchaseInverseTable = "charge_credit_purchases"
 	// ChargeCreditPurchaseColumn is the table column denoting the charge_credit_purchase relation/edge.
-	ChargeCreditPurchaseColumn = "charge_id"
+	ChargeCreditPurchaseColumn = "external_payment_settlement_id"
 )
 
 // Columns holds all SQL columns for chargeexternalpaymentsettlement fields.
@@ -65,7 +63,6 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldDeletedAt,
 	FieldAnnotations,
-	FieldChargeID,
 	FieldServicePeriodFrom,
 	FieldServicePeriodTo,
 	FieldStatus,
@@ -141,11 +138,6 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
-// ByChargeID orders the results by the charge_id field.
-func ByChargeID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldChargeID, opts...).ToFunc()
-}
-
 // ByServicePeriodFrom orders the results by the service_period_from field.
 func ByServicePeriodFrom(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldServicePeriodFrom, opts...).ToFunc()
@@ -196,6 +188,6 @@ func newChargeCreditPurchaseStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ChargeCreditPurchaseInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, true, ChargeCreditPurchaseTable, ChargeCreditPurchaseColumn),
+		sqlgraph.Edge(sqlgraph.O2O, false, ChargeCreditPurchaseTable, ChargeCreditPurchaseColumn),
 	)
 }
