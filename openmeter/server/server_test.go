@@ -32,6 +32,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
+	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterhttphandler "github.com/openmeterio/openmeter/openmeter/meter/httphandler"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
@@ -544,6 +545,8 @@ func getTestServer(t *testing.T) *Server {
 			SubscriptionAddonService:    subscriptionAddonService,
 			// Use the subject service
 			SubjectService: subjectService,
+			// Use the llmcost service
+			LLMCostService: &NoopLLMCostService{},
 		},
 		RouterHooks: RouterHooks{},
 	}
@@ -1704,4 +1707,33 @@ func (n NoopCurrencyService) CreateCostBasis(ctx context.Context, params currenc
 
 func (n NoopCurrencyService) ListCostBases(ctx context.Context, params currencies.ListCostBasesInput) (pagination.Result[currencies.CostBasis], error) {
 	return pagination.Result[currencies.CostBasis]{}, nil
+}
+
+// NoopLLMCostService implements llmcost.Service with no-op operations
+var _ llmcost.Service = (*NoopLLMCostService)(nil)
+
+type NoopLLMCostService struct{}
+
+func (n NoopLLMCostService) ListPrices(ctx context.Context, input llmcost.ListPricesInput) (pagination.Result[llmcost.Price], error) {
+	return pagination.Result[llmcost.Price]{}, nil
+}
+
+func (n NoopLLMCostService) GetPrice(ctx context.Context, input llmcost.GetPriceInput) (llmcost.Price, error) {
+	return llmcost.Price{}, nil
+}
+
+func (n NoopLLMCostService) ResolvePrice(ctx context.Context, input llmcost.ResolvePriceInput) (llmcost.Price, error) {
+	return llmcost.Price{}, nil
+}
+
+func (n NoopLLMCostService) CreateOverride(ctx context.Context, input llmcost.CreateOverrideInput) (llmcost.Price, error) {
+	return llmcost.Price{}, nil
+}
+
+func (n NoopLLMCostService) DeleteOverride(ctx context.Context, input llmcost.DeleteOverrideInput) error {
+	return nil
+}
+
+func (n NoopLLMCostService) ListOverrides(ctx context.Context, input llmcost.ListOverridesInput) (pagination.Result[llmcost.Price], error) {
+	return pagination.Result[llmcost.Price]{}, nil
 }

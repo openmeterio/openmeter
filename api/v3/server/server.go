@@ -21,6 +21,7 @@ import (
 	customersbillinghandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/billing"
 	customersentitlementhandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlementaccess"
 	eventshandler "github.com/openmeterio/openmeter/api/v3/handlers/events"
+	llmcosthandler "github.com/openmeterio/openmeter/api/v3/handlers/llmcost"
 	metershandler "github.com/openmeterio/openmeter/api/v3/handlers/meters"
 	subscriptionshandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
 	taxcodeshandler "github.com/openmeterio/openmeter/api/v3/handlers/taxcodes"
@@ -33,6 +34,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
+	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -54,6 +56,7 @@ type Config struct {
 	// services
 	AppService              app.Service
 	BillingService          billing.Service
+	LLMCostService          llmcost.Service
 	MeterService            meter.ManageService
 	IngestService           ingest.Service
 	CustomerService         customer.Service
@@ -140,6 +143,7 @@ type Server struct {
 	// handlers
 	appsHandler                 appshandler.Handler
 	eventsHandler               eventshandler.Handler
+	llmcostHandler              llmcosthandler.Handler
 	customersHandler            customershandler.Handler
 	customersBillingHandler     customersbillinghandler.Handler
 	customersEntitlementHandler customersentitlementhandler.Handler
@@ -192,11 +196,17 @@ func NewServer(config *Config) (*Server, error) {
 	taxcodesHandler := taxcodeshandler.New(resolveNamespace, config.TaxCodeService, httptransport.WithErrorHandler(config.ErrorHandler))
 	currenciesHandler := currencieshandler.New(config.NamespaceDecoder, config.CurrencyService, httptransport.WithErrorHandler(config.ErrorHandler))
 
+	var llmcostH llmcosthandler.Handler
+	if config.LLMCostService != nil {
+		llmcostH = llmcosthandler.New(resolveNamespace, config.LLMCostService, httptransport.WithErrorHandler(config.ErrorHandler))
+	}
+
 	return &Server{
 		Config:                      config,
 		swagger:                     swagger,
 		appsHandler:                 appsHandler,
 		eventsHandler:               eventsHandler,
+		llmcostHandler:              llmcostH,
 		customersHandler:            customersHandler,
 		customersBillingHandler:     customersBillingHandler,
 		customersEntitlementHandler: customersEntitlementHandler,

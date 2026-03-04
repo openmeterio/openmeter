@@ -37,6 +37,7 @@ import (
 	infohttpdriver "github.com/openmeterio/openmeter/openmeter/info/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	ingesthttpdriver "github.com/openmeterio/openmeter/openmeter/ingest/httpdriver"
+	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	meterhttphandler "github.com/openmeterio/openmeter/openmeter/meter/httphandler"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
@@ -106,6 +107,7 @@ type Config struct {
 	GrantConnector              credit.GrantConnector
 	GrantRepo                   grant.Repo
 	IngestService               ingest.Service
+	LLMCostService              llmcost.Service
 	Logger                      *slog.Logger
 	MeterManageService          meter.ManageService
 	MeterEventService           meterevent.Service
@@ -185,6 +187,10 @@ func (c Config) Validate() error {
 
 	if c.GrantConnector == nil {
 		return errors.New("grant connector is required")
+	}
+
+	if c.LLMCostService == nil {
+		return errors.New("llm cost service is required")
 	}
 
 	if c.MeterManageService == nil {
