@@ -9,6 +9,7 @@ import (
 type Service interface {
 	ChargeService
 	InvoiceService
+	CreditPurchaseService
 }
 
 type ChargeService interface {
@@ -20,4 +21,8 @@ type ChargeService interface {
 // InvoiceService contains methods that are over time deprecate the current billing methods.
 type InvoiceService interface {
 	InvoicePendingLines(ctx context.Context, input billing.InvoicePendingLinesInput) ([]billing.StandardInvoice, error)
+}
+
+type CreditPurchaseService interface {
+	UpdateExternalCreditPurchasePaymentState(ctx context.Context, input UpdateExternalCreditPurchasePaymentStateInput) (CreditPurchaseCharge, error)
 }

@@ -11,11 +11,11 @@ import (
 )
 
 type service struct {
-	adapter               charges.Adapter
-	billingService        billing.Service
-	handlers              Handlers
-	flatFeeService        charges.FlatFeeService
-	creditPurchaseService charges.CreditPurchaseService
+	adapter                    charges.Adapter
+	billingService             billing.Service
+	handlers                   Handlers
+	flatFeeOrchestrator        charges.FlatFeeOrchestrator
+	creditPurchaseOrchestrator charges.CreditPurchaseOrchestrator
 }
 
 type Handlers struct {
@@ -62,7 +62,7 @@ func New(config Config) (*service, error) {
 		return nil, err
 	}
 
-	flatFeeService, err := flatfee.New(flatfee.Config{
+	flatFeeOrchestrator, err := flatfee.New(flatfee.Config{
 		Adapter:        config.Adapter,
 		FlatFeeHandler: config.Handlers.FlatFee,
 	})
@@ -70,7 +70,7 @@ func New(config Config) (*service, error) {
 		return nil, err
 	}
 
-	creditPurchaseService, err := creditpurchase.New(creditpurchase.Config{
+	creditPurchaseOrchestrator, err := creditpurchase.New(creditpurchase.Config{
 		Adapter:               config.Adapter,
 		CreditPurchaseHandler: config.Handlers.CreditPurchase,
 	})
@@ -79,11 +79,11 @@ func New(config Config) (*service, error) {
 	}
 
 	svc := &service{
-		adapter:               config.Adapter,
-		billingService:        config.BillingService,
-		handlers:              config.Handlers,
-		flatFeeService:        flatFeeService,
-		creditPurchaseService: creditPurchaseService,
+		adapter:                    config.Adapter,
+		billingService:             config.BillingService,
+		handlers:                   config.Handlers,
+		flatFeeOrchestrator:        flatFeeOrchestrator,
+		creditPurchaseOrchestrator: creditPurchaseOrchestrator,
 	}
 
 	standardInvoiceEventHandler := &standardInvoiceEventHandler{

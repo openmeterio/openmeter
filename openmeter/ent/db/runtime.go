@@ -35,6 +35,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeexternalpaymentsettlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoiceaccruedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicepaymentsettlement"
@@ -981,6 +982,41 @@ func init() {
 	chargecreditrealizationDescID := chargecreditrealizationMixinFields1[0].Descriptor()
 	// chargecreditrealization.DefaultID holds the default value on creation for the id field.
 	chargecreditrealization.DefaultID = chargecreditrealizationDescID.Default.(func() string)
+	chargeexternalpaymentsettlementMixin := schema.ChargeExternalPaymentSettlement{}.Mixin()
+	chargeexternalpaymentsettlementMixinFields0 := chargeexternalpaymentsettlementMixin[0].Fields()
+	_ = chargeexternalpaymentsettlementMixinFields0
+	chargeexternalpaymentsettlementMixinFields1 := chargeexternalpaymentsettlementMixin[1].Fields()
+	_ = chargeexternalpaymentsettlementMixinFields1
+	chargeexternalpaymentsettlementMixinFields2 := chargeexternalpaymentsettlementMixin[2].Fields()
+	_ = chargeexternalpaymentsettlementMixinFields2
+	chargeexternalpaymentsettlementFields := schema.ChargeExternalPaymentSettlement{}.Fields()
+	_ = chargeexternalpaymentsettlementFields
+	// chargeexternalpaymentsettlementDescNamespace is the schema descriptor for namespace field.
+	chargeexternalpaymentsettlementDescNamespace := chargeexternalpaymentsettlementMixinFields0[0].Descriptor()
+	// chargeexternalpaymentsettlement.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	chargeexternalpaymentsettlement.NamespaceValidator = chargeexternalpaymentsettlementDescNamespace.Validators[0].(func(string) error)
+	// chargeexternalpaymentsettlementDescCreatedAt is the schema descriptor for created_at field.
+	chargeexternalpaymentsettlementDescCreatedAt := chargeexternalpaymentsettlementMixinFields2[0].Descriptor()
+	// chargeexternalpaymentsettlement.DefaultCreatedAt holds the default value on creation for the created_at field.
+	chargeexternalpaymentsettlement.DefaultCreatedAt = chargeexternalpaymentsettlementDescCreatedAt.Default.(func() time.Time)
+	// chargeexternalpaymentsettlementDescUpdatedAt is the schema descriptor for updated_at field.
+	chargeexternalpaymentsettlementDescUpdatedAt := chargeexternalpaymentsettlementMixinFields2[1].Descriptor()
+	// chargeexternalpaymentsettlement.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	chargeexternalpaymentsettlement.DefaultUpdatedAt = chargeexternalpaymentsettlementDescUpdatedAt.Default.(func() time.Time)
+	// chargeexternalpaymentsettlement.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	chargeexternalpaymentsettlement.UpdateDefaultUpdatedAt = chargeexternalpaymentsettlementDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chargeexternalpaymentsettlementDescAuthorizedTransactionGroupID is the schema descriptor for authorized_transaction_group_id field.
+	chargeexternalpaymentsettlementDescAuthorizedTransactionGroupID := chargeexternalpaymentsettlementFields[5].Descriptor()
+	// chargeexternalpaymentsettlement.AuthorizedTransactionGroupIDValidator is a validator for the "authorized_transaction_group_id" field. It is called by the builders before save.
+	chargeexternalpaymentsettlement.AuthorizedTransactionGroupIDValidator = chargeexternalpaymentsettlementDescAuthorizedTransactionGroupID.Validators[0].(func(string) error)
+	// chargeexternalpaymentsettlementDescSettledTransactionGroupID is the schema descriptor for settled_transaction_group_id field.
+	chargeexternalpaymentsettlementDescSettledTransactionGroupID := chargeexternalpaymentsettlementFields[7].Descriptor()
+	// chargeexternalpaymentsettlement.SettledTransactionGroupIDValidator is a validator for the "settled_transaction_group_id" field. It is called by the builders before save.
+	chargeexternalpaymentsettlement.SettledTransactionGroupIDValidator = chargeexternalpaymentsettlementDescSettledTransactionGroupID.Validators[0].(func(string) error)
+	// chargeexternalpaymentsettlementDescID is the schema descriptor for id field.
+	chargeexternalpaymentsettlementDescID := chargeexternalpaymentsettlementMixinFields1[0].Descriptor()
+	// chargeexternalpaymentsettlement.DefaultID holds the default value on creation for the id field.
+	chargeexternalpaymentsettlement.DefaultID = chargeexternalpaymentsettlementDescID.Default.(func() string)
 	chargeflatfeeMixin := schema.ChargeFlatFee{}.Mixin()
 	chargeflatfeeMixinFields0 := chargeflatfeeMixin[0].Fields()
 	_ = chargeflatfeeMixinFields0

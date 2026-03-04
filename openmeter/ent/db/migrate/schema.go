@@ -1681,6 +1681,76 @@ var (
 			},
 		},
 	}
+	// ChargeExternalPaymentSettlementsColumns holds the columns for the "charge_external_payment_settlements" table.
+	ChargeExternalPaymentSettlementsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "service_period_from", Type: field.TypeTime},
+		{Name: "service_period_to", Type: field.TypeTime},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"authorized", "settled"}},
+		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "authorized_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "authorized_at", Type: field.TypeTime, Nullable: true},
+		{Name: "settled_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "settled_at", Type: field.TypeTime, Nullable: true},
+		{Name: "charge_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// ChargeExternalPaymentSettlementsTable holds the schema information for the "charge_external_payment_settlements" table.
+	ChargeExternalPaymentSettlementsTable = &schema.Table{
+		Name:       "charge_external_payment_settlements",
+		Columns:    ChargeExternalPaymentSettlementsColumns,
+		PrimaryKey: []*schema.Column{ChargeExternalPaymentSettlementsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "charge_external_payment_settlements_charge_credit_purchases_charge_external_payment_settlement",
+				Columns:    []*schema.Column{ChargeExternalPaymentSettlementsColumns[14]},
+				RefColumns: []*schema.Column{ChargeCreditPurchasesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "chargeexternalpaymentsettlement_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeExternalPaymentSettlementsColumns[1]},
+			},
+			{
+				Name:    "chargeexternalpaymentsettlement_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeExternalPaymentSettlementsColumns[0]},
+			},
+			{
+				Name:    "chargeexternalpaymentsettlement_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeExternalPaymentSettlementsColumns[5]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
+				Name:    "chargeexternalpaymentsettlement_namespace_charge_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeExternalPaymentSettlementsColumns[1], ChargeExternalPaymentSettlementsColumns[14]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+			{
+				Name:    "chargeexternalpaymentsettlement_charge_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeExternalPaymentSettlementsColumns[14]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+		},
+	}
 	// ChargeFlatFeesColumns holds the columns for the "charge_flat_fees" table.
 	ChargeFlatFeesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -3486,6 +3556,7 @@ var (
 		ChargesTable,
 		ChargeCreditPurchasesTable,
 		ChargeCreditRealizationsTable,
+		ChargeExternalPaymentSettlementsTable,
 		ChargeFlatFeesTable,
 		ChargeStandardInvoiceAccruedUsagesTable,
 		ChargeStandardInvoicePaymentSettlementsTable,
@@ -3570,6 +3641,7 @@ func init() {
 	ChargeCreditPurchasesTable.ForeignKeys[0].RefTable = ChargesTable
 	ChargeCreditRealizationsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	ChargeCreditRealizationsTable.ForeignKeys[1].RefTable = ChargeFlatFeesTable
+	ChargeExternalPaymentSettlementsTable.ForeignKeys[0].RefTable = ChargeCreditPurchasesTable
 	ChargeFlatFeesTable.ForeignKeys[0].RefTable = ChargesTable
 	ChargeStandardInvoiceAccruedUsagesTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	ChargeStandardInvoiceAccruedUsagesTable.ForeignKeys[1].RefTable = ChargeFlatFeesTable

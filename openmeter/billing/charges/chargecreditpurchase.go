@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ ChargeAccessor = (*CreditPurchaseCharge)(nil)
@@ -53,6 +54,14 @@ func (c CreditPurchaseCharge) AsCharge() Charge {
 	return Charge{
 		t:              ChargeTypeCreditPurchase,
 		creditPurchase: &c,
+	}
+}
+
+func (c CreditPurchaseCharge) ErrorAttributes() models.Attributes {
+	return models.Attributes{
+		"charge_id":   c.ID,
+		"namespace":   c.Namespace,
+		"charge_type": string(ChargeTypeCreditPurchase),
 	}
 }
 
@@ -146,36 +155,40 @@ func (s InvoiceCreditPurchaseSettlement) Validate() error {
 	return errors.Join(errs...)
 }
 
-type PaymentSettlementStatus string
+type CreditPurchaseInitialPaymentSettlementStatus string
 
 const (
-	InitiatedPaymentSettlementStatus  PaymentSettlementStatus = "initiated"
-	AuthorizedPaymentSettlementStatus PaymentSettlementStatus = "authorized"
-	SettledPaymentSettlementStatus    PaymentSettlementStatus = "settled"
+	CreatedInitialCreditPurchasePaymentSettlementStatus    CreditPurchaseInitialPaymentSettlementStatus = "created"
+	AuthorizedInitialCreditPurchasePaymentSettlementStatus CreditPurchaseInitialPaymentSettlementStatus = "authorized"
+	SettledInitialCreditPurchasePaymentSettlementStatus    CreditPurchaseInitialPaymentSettlementStatus = "settled"
 )
 
-func (s PaymentSettlementStatus) Validate() error {
+func (s CreditPurchaseInitialPaymentSettlementStatus) Validate() error {
 	if !slices.Contains(s.Values(), string(s)) {
 		return fmt.Errorf("invalid payment settlement status: %s", s)
 	}
 	return nil
 }
 
-func (s PaymentSettlementStatus) Values() []string {
+func (s CreditPurchaseInitialPaymentSettlementStatus) Values() []string {
 	return []string{
-		string(InitiatedPaymentSettlementStatus),
-		string(AuthorizedPaymentSettlementStatus),
-		string(SettledPaymentSettlementStatus),
+		string(CreatedInitialCreditPurchasePaymentSettlementStatus),
+		string(AuthorizedInitialCreditPurchasePaymentSettlementStatus),
+		string(SettledInitialCreditPurchasePaymentSettlementStatus),
 	}
 }
 
-type ExternalAuthorizedCreditPurchaseSettlement struct {
-	GenericCreditPurchaseSettlement
-
-	InitialStatus PaymentSettlementStatus `json:"status"`
+func (s CreditPurchaseInitialPaymentSettlementStatus) In(statuses ...CreditPurchaseInitialPaymentSettlementStatus) bool {
+	return slices.Contains(statuses, s)
 }
 
-func (s ExternalAuthorizedCreditPurchaseSettlement) Validate() error {
+type ExternalCreditPurchaseSettlement struct {
+	GenericCreditPurchaseSettlement
+
+	InitialStatus CreditPurchaseInitialPaymentSettlementStatus `json:"status"`
+}
+
+func (s ExternalCreditPurchaseSettlement) Validate() error {
 	var errs []error
 
 	if err := s.InitialStatus.Validate(); err != nil {
@@ -199,7 +212,7 @@ type CreditPurchaseSettlement struct {
 	t CreditPurchaseSettlementType
 
 	invoice     *InvoiceCreditPurchaseSettlement
-	external    *ExternalAuthorizedCreditPurchaseSettlement
+	external    *ExternalCreditPurchaseSettlement
 	promotional *PromotionalCreditPurchaseSettlement
 }
 
@@ -218,10 +231,10 @@ func (s CreditPurchaseSettlement) MarshalJSON() ([]byte, error) {
 	case CreditPurchaseSettlementTypeExternal:
 		serde = struct {
 			Type CreditPurchaseSettlementType `json:"type"`
-			*ExternalAuthorizedCreditPurchaseSettlement
+			*ExternalCreditPurchaseSettlement
 		}{
-			Type: CreditPurchaseSettlementTypeExternal,
-			ExternalAuthorizedCreditPurchaseSettlement: s.external,
+			Type:                             CreditPurchaseSettlementTypeExternal,
+			ExternalCreditPurchaseSettlement: s.external,
 		}
 	case CreditPurchaseSettlementTypePromotional:
 		serde = struct {
@@ -260,7 +273,7 @@ func (s *CreditPurchaseSettlement) UnmarshalJSON(bytes []byte) error {
 		s.invoice = v
 		s.t = CreditPurchaseSettlementTypeInvoice
 	case CreditPurchaseSettlementTypeExternal:
-		v := &ExternalAuthorizedCreditPurchaseSettlement{}
+		v := &ExternalCreditPurchaseSettlement{}
 		if err := json.Unmarshal(bytes, v); err != nil {
 			return fmt.Errorf("failed to JSON deserialize ExternalAuthorizedCreditPurchaseSettlement: %w", err)
 		}
@@ -277,14 +290,14 @@ func (s *CreditPurchaseSettlement) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
-func NewCreditPurchaseSettlement[T InvoiceCreditPurchaseSettlement | ExternalAuthorizedCreditPurchaseSettlement | PromotionalCreditPurchaseSettlement](settlement T) CreditPurchaseSettlement {
+func NewCreditPurchaseSettlement[T InvoiceCreditPurchaseSettlement | ExternalCreditPurchaseSettlement | PromotionalCreditPurchaseSettlement](settlement T) CreditPurchaseSettlement {
 	switch v := any(settlement).(type) {
 	case InvoiceCreditPurchaseSettlement:
 		return CreditPurchaseSettlement{
 			t:       CreditPurchaseSettlementTypeInvoice,
 			invoice: &v,
 		}
-	case ExternalAuthorizedCreditPurchaseSettlement:
+	case ExternalCreditPurchaseSettlement:
 		return CreditPurchaseSettlement{
 			t:        CreditPurchaseSettlementTypeExternal,
 			external: &v,
@@ -347,13 +360,13 @@ func (s CreditPurchaseSettlement) AsInvoiceCreditPurchaseSettlement() (InvoiceCr
 	return *s.invoice, nil
 }
 
-func (s CreditPurchaseSettlement) AsExternalAuthorizedCreditPurchaseSettlement() (ExternalAuthorizedCreditPurchaseSettlement, error) {
+func (s CreditPurchaseSettlement) AsExternalCreditPurchaseSettlement() (ExternalCreditPurchaseSettlement, error) {
 	if s.t != CreditPurchaseSettlementTypeExternal {
-		return ExternalAuthorizedCreditPurchaseSettlement{}, fmt.Errorf("credit purchase settlement is not an external authorized credit purchase settlement")
+		return ExternalCreditPurchaseSettlement{}, fmt.Errorf("credit purchase settlement is not an external credit purchase settlement")
 	}
 
 	if s.external == nil {
-		return ExternalAuthorizedCreditPurchaseSettlement{}, fmt.Errorf("external is nil")
+		return ExternalCreditPurchaseSettlement{}, fmt.Errorf("external is nil")
 	}
 
 	return *s.external, nil
@@ -372,7 +385,8 @@ func (s CreditPurchaseSettlement) AsPromotionalCreditPurchaseSettlement() (Promo
 }
 
 type CreditPurchaseState struct {
-	CreditGrantRealization *TimedLedgerTransactionGroupReference `json:"creditGrantRealization"`
+	CreditGrantRealization    *TimedLedgerTransactionGroupReference `json:"creditGrantRealization"`
+	ExternalPaymentSettlement *ExternalPaymentSettlement            `json:"externalPaymentSettlement"`
 }
 
 func (s CreditPurchaseState) Validate() error {
@@ -384,11 +398,38 @@ func (s CreditPurchaseState) Validate() error {
 		}
 	}
 
+	if s.ExternalPaymentSettlement != nil {
+		if err := s.ExternalPaymentSettlement.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("external payment settlement: %w", err))
+		}
+	}
+
 	return errors.Join(errs...)
 }
 
-type CreditPurchaseService interface {
+type UpdateExternalCreditPurchasePaymentStateInput struct {
+	ChargeID           ChargeID
+	TargetPaymentState PaymentSettlementStatus
+}
+
+func (i UpdateExternalCreditPurchasePaymentStateInput) Validate() error {
+	var errs []error
+
+	if err := i.ChargeID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge ID: %w", err))
+	}
+
+	if err := i.TargetPaymentState.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("target payment state: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+type CreditPurchaseOrchestrator interface {
 	PostCreate(ctx context.Context, charge CreditPurchaseCharge) (CreditPurchaseCharge, error)
+	HandleExternalCreditPurchasePaymentAuthorized(ctx context.Context, charge CreditPurchaseCharge) (CreditPurchaseCharge, error)
+	HandleExternalCreditPurchasePaymentSettled(ctx context.Context, charge CreditPurchaseCharge) (CreditPurchaseCharge, error)
 }
 
 // CreditPurchaseHandler is the interface for handling credit purchase charges.
@@ -411,24 +452,20 @@ type CreditPurchaseHandler interface {
 	// OnPromotionalCreditPurchase is called when a promotional credit purchase is created (e.g. costbasis is 0)
 	// For promotional credit purchases we don't call any of the payment handler methods.
 	OnPromotionalCreditPurchase(ctx context.Context, charge CreditPurchaseCharge) (LedgerTransactionGroupReference, error)
-	/*
-	   // Credit purchase handler methods (cost basis > 0)
-	   // ------------------------------------------------
 
-	   // OnCreditPurchase is called when a credit purchase is initiated that is going to be settled by
-	   // a payment (either external or a standard invoice)
-	   // Initial call
-	   OnCreditPurchase(ctx context.Context, charge CreditPurchaseCharge) ([]CreditRealizationCreateInput, error)
+	// Credit purchase handler methods (cost basis > 0)
+	// ------------------------------------------------
 
-	   // OnCreditPurchasePaymentAuthorized is called when a credit purchase payment is authorized for a credit
-	   // purchase.
-	   OnCreditPurchasePaymentAuthorized(ctx context.Context, charge CreditPurchaseCharge) (LedgerTransactionGroupReference, error)
+	// OnCreditPurchaseInitiated is called when a credit purchase is initiated that is going to be settled by
+	// a payment (either external or a standard invoice)
+	// Initial call
+	OnCreditPurchaseInitiated(ctx context.Context, charge CreditPurchaseCharge) (LedgerTransactionGroupReference, error)
 
-	   // OnCreditPurchasePaymentSettled is called when a credit purchase payment is settled for a credit
-	   // purchase.
-	   OnCreditPurchasePaymentSettled(ctx context.Context, charge CreditPurchaseCharge) (LedgerTransactionGroupReference, error)
+	// OnCreditPurchasePaymentAuthorized is called when a credit purchase payment is authorized for a credit
+	// purchase.
+	OnCreditPurchasePaymentAuthorized(ctx context.Context, charge CreditPurchaseCharge) (LedgerTransactionGroupReference, error)
 
-	   // OnCreditPurchasePaymentUncollectible is called when a credit purchase payment is uncollectible
-	   OnCreditPurchasePaymentUncollectible(ctx context.Context, charge CreditPurchaseCharge) (LedgerTransactionGroupReference, error)
-	*/
+	// OnCreditPurchasePaymentSettled is called when a credit purchase payment is settled for a credit
+	// purchase.
+	OnCreditPurchasePaymentSettled(ctx context.Context, charge CreditPurchaseCharge) (LedgerTransactionGroupReference, error)
 }

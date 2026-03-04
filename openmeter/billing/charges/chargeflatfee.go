@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -112,6 +113,14 @@ func (i FlatFeeIntent) Validate() error {
 	return errors.Join(errs...)
 }
 
+func (c FlatFeeCharge) ErrorAttributes() models.Attributes {
+	return models.Attributes{
+		"charge_id":   c.ID,
+		"namespace":   c.Namespace,
+		"charge_type": string(ChargeTypeFlatFee),
+	}
+}
+
 type FlatFeeState struct {
 	CreditRealizations CreditRealizations                `json:"creditRealizations"`
 	AccruedUsage       *StandardInvoiceAccruedUsage      `json:"accruedUsage"`
@@ -142,7 +151,7 @@ func (s FlatFeeState) Validate() error {
 	return errors.Join(errs...)
 }
 
-type FlatFeeService interface {
+type FlatFeeOrchestrator interface {
 	PostCreate(ctx context.Context, charge FlatFeeCharge) (PostCreateFlatFeeResult, error)
 	PostLineAssignedToInvoice(ctx context.Context, charge FlatFeeCharge, line billing.GatheringLine) (CreditRealizations, error)
 	PostInvoiceIssued(ctx context.Context, charge FlatFeeCharge, lineWithHeader billing.StandardLineWithInvoiceHeader) error

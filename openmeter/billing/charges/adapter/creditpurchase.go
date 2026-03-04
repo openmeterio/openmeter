@@ -47,7 +47,7 @@ func (a *adapter) UpdateCreditPurchaseCharge(ctx context.Context, charge charges
 			return charges.CreditPurchaseCharge{}, err
 		}
 
-		// TODO: add other realizations
+		mapped.State.ExternalPaymentSettlement = charge.State.ExternalPaymentSettlement
 
 		return mapped, nil
 	})

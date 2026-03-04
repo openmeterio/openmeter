@@ -339,6 +339,29 @@ func HasChargeWith(preds ...predicate.Charge) predicate.ChargeCreditPurchase {
 	})
 }
 
+// HasChargeExternalPaymentSettlement applies the HasEdge predicate on the "charge_external_payment_settlement" edge.
+func HasChargeExternalPaymentSettlement() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, ChargeExternalPaymentSettlementTable, ChargeExternalPaymentSettlementColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChargeExternalPaymentSettlementWith applies the HasEdge predicate on the "charge_external_payment_settlement" edge with a given conditions (other predicates).
+func HasChargeExternalPaymentSettlementWith(preds ...predicate.ChargeExternalPaymentSettlement) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(func(s *sql.Selector) {
+		step := newChargeExternalPaymentSettlementStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.ChargeCreditPurchase) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.AndPredicates(predicates...))

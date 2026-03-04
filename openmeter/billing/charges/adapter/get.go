@@ -53,7 +53,9 @@ func (a *adapter) GetChargesByIDs(ctx context.Context, input charges.GetChargesB
 					WithChargeCreditRealizations()
 			}).
 				WithUsageBased().
-				WithCreditPurchase()
+				WithCreditPurchase(func(q *db.ChargeCreditPurchaseQuery) {
+					q.WithChargeExternalPaymentSettlement()
+				})
 		} else {
 			query = query.WithFlatFee().
 				WithUsageBased().

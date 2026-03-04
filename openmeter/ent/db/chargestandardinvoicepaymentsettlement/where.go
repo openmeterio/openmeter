@@ -548,19 +548,19 @@ func ServicePeriodToLTE(v time.Time) predicate.ChargeStandardInvoicePaymentSettl
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.
-func StatusEQ(v charges.StandardInvoicePaymentSettlementStatus) predicate.ChargeStandardInvoicePaymentSettlement {
+func StatusEQ(v charges.PaymentSettlementStatus) predicate.ChargeStandardInvoicePaymentSettlement {
 	vc := v
 	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldEQ(FieldStatus, vc))
 }
 
 // StatusNEQ applies the NEQ predicate on the "status" field.
-func StatusNEQ(v charges.StandardInvoicePaymentSettlementStatus) predicate.ChargeStandardInvoicePaymentSettlement {
+func StatusNEQ(v charges.PaymentSettlementStatus) predicate.ChargeStandardInvoicePaymentSettlement {
 	vc := v
 	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldNEQ(FieldStatus, vc))
 }
 
 // StatusIn applies the In predicate on the "status" field.
-func StatusIn(vs ...charges.StandardInvoicePaymentSettlementStatus) predicate.ChargeStandardInvoicePaymentSettlement {
+func StatusIn(vs ...charges.PaymentSettlementStatus) predicate.ChargeStandardInvoicePaymentSettlement {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -569,7 +569,7 @@ func StatusIn(vs ...charges.StandardInvoicePaymentSettlementStatus) predicate.Ch
 }
 
 // StatusNotIn applies the NotIn predicate on the "status" field.
-func StatusNotIn(vs ...charges.StandardInvoicePaymentSettlementStatus) predicate.ChargeStandardInvoicePaymentSettlement {
+func StatusNotIn(vs ...charges.PaymentSettlementStatus) predicate.ChargeStandardInvoicePaymentSettlement {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]

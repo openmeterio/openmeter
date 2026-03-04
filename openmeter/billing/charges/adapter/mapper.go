@@ -160,6 +160,18 @@ func MapCreditPurchaseChargeFromDB(entity *entdb.Charge, expands charges.Expands
 		}
 	}
 
+	var externalPaymentSettlement *charges.ExternalPaymentSettlement
+	if expands.Has(charges.ExpandRealizations) {
+		dbExternalPaymentSettlement, err := cp.Edges.ChargeExternalPaymentSettlementOrErr()
+		if _, ok := lo.ErrorsAs[*entdb.NotLoadedError](err); ok {
+			return charges.CreditPurchaseCharge{}, fmt.Errorf("external payment settlement not loaded for credit purchase charge [id=%s]: %w", entity.ID, err)
+		}
+
+		if dbExternalPaymentSettlement != nil {
+			externalPaymentSettlement = lo.ToPtr(mapExternalPaymentSettlementFromDB(dbExternalPaymentSettlement))
+		}
+	}
+
 	return charges.CreditPurchaseCharge{
 		ManagedResource: mapManagedResourceFromDB(entity),
 		Status:          entity.Status,
@@ -169,7 +181,8 @@ func MapCreditPurchaseChargeFromDB(entity *entdb.Charge, expands charges.Expands
 			Settlement:   cp.Settlement,
 		},
 		State: charges.CreditPurchaseState{
-			CreditGrantRealization: grantLedgerTransactionReference,
+			CreditGrantRealization:    grantLedgerTransactionReference,
+			ExternalPaymentSettlement: externalPaymentSettlement,
 		},
 	}, nil
 }
@@ -285,25 +298,27 @@ func mapCreditRealizationFromDB(entity *entdb.ChargeCreditRealization) charges.C
 
 func mapStandardInvoicePaymentSettlementFromDB(entity *entdb.ChargeStandardInvoicePaymentSettlement) charges.StandardInvoicePaymentSettlement {
 	return charges.StandardInvoicePaymentSettlement{
-		NamespacedID: models.NamespacedID{
-			Namespace: entity.Namespace,
-			ID:        entity.ID,
+		PaymentSettlementBase: charges.PaymentSettlementBase{
+			NamespacedID: models.NamespacedID{
+				Namespace: entity.Namespace,
+				ID:        entity.ID,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: entity.CreatedAt.In(time.UTC),
+				UpdatedAt: entity.UpdatedAt.In(time.UTC),
+				DeletedAt: convert.TimePtrIn(entity.DeletedAt, time.UTC),
+			},
+			Annotations: entity.Annotations,
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: entity.ServicePeriodFrom.In(time.UTC),
+				To:   entity.ServicePeriodTo.In(time.UTC),
+			},
+			Status:     entity.Status,
+			Amount:     entity.Amount,
+			Authorized: mapTimedLedgerTransactionGroupReferenceFromDB(entity.AuthorizedTransactionGroupID, entity.AuthorizedAt),
+			Settled:    mapTimedLedgerTransactionGroupReferenceFromDB(entity.SettledTransactionGroupID, entity.SettledAt),
 		},
-		ManagedModel: models.ManagedModel{
-			CreatedAt: entity.CreatedAt.In(time.UTC),
-			UpdatedAt: entity.UpdatedAt.In(time.UTC),
-			DeletedAt: convert.TimePtrIn(entity.DeletedAt, time.UTC),
-		},
-		Annotations: entity.Annotations,
-		LineID:      entity.LineID,
-		ServicePeriod: timeutil.ClosedPeriod{
-			From: entity.ServicePeriodFrom.In(time.UTC),
-			To:   entity.ServicePeriodTo.In(time.UTC),
-		},
-		Status:     entity.Status,
-		Amount:     entity.Amount,
-		Authorized: mapTimedLedgerTransactionGroupReferenceFromDB(entity.AuthorizedTransactionGroupID, entity.AuthorizedAt),
-		Settled:    mapTimedLedgerTransactionGroupReferenceFromDB(entity.SettledTransactionGroupID, entity.SettledAt),
+		LineID: entity.LineID,
 	}
 }
 
@@ -356,5 +371,28 @@ func mapStandardInvoiceAccruedUsageFromDB(entity *entdb.ChargeStandardInvoiceAcc
 			CreditsTotal:        entity.CreditsTotal,
 			Total:               entity.Total,
 		},
+	}
+}
+
+func mapExternalPaymentSettlementFromDB(entity *entdb.ChargeExternalPaymentSettlement) charges.ExternalPaymentSettlement {
+	return charges.ExternalPaymentSettlement{
+		NamespacedID: models.NamespacedID{
+			Namespace: entity.Namespace,
+			ID:        entity.ID,
+		},
+		ManagedModel: models.ManagedModel{
+			CreatedAt: entity.CreatedAt.In(time.UTC),
+			UpdatedAt: entity.UpdatedAt.In(time.UTC),
+			DeletedAt: convert.TimePtrIn(entity.DeletedAt, time.UTC),
+		},
+		Annotations: entity.Annotations,
+		ServicePeriod: timeutil.ClosedPeriod{
+			From: entity.ServicePeriodFrom.In(time.UTC),
+			To:   entity.ServicePeriodTo.In(time.UTC),
+		},
+		Status:     entity.Status,
+		Amount:     entity.Amount,
+		Authorized: mapTimedLedgerTransactionGroupReferenceFromDB(entity.AuthorizedTransactionGroupID, entity.AuthorizedAt),
+		Settled:    mapTimedLedgerTransactionGroupReferenceFromDB(entity.SettledTransactionGroupID, entity.SettledAt),
 	}
 }

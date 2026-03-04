@@ -26,6 +26,8 @@ const (
 	FieldCreditGrantedAt = "credit_granted_at"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
 	EdgeCharge = "charge"
+	// EdgeChargeExternalPaymentSettlement holds the string denoting the charge_external_payment_settlement edge name in mutations.
+	EdgeChargeExternalPaymentSettlement = "charge_external_payment_settlement"
 	// Table holds the table name of the chargecreditpurchase in the database.
 	Table = "charge_credit_purchases"
 	// ChargeTable is the table that holds the charge relation/edge.
@@ -35,6 +37,13 @@ const (
 	ChargeInverseTable = "charges"
 	// ChargeColumn is the table column denoting the charge relation/edge.
 	ChargeColumn = "id"
+	// ChargeExternalPaymentSettlementTable is the table that holds the charge_external_payment_settlement relation/edge.
+	ChargeExternalPaymentSettlementTable = "charge_external_payment_settlements"
+	// ChargeExternalPaymentSettlementInverseTable is the table name for the ChargeExternalPaymentSettlement entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeexternalpaymentsettlement" package.
+	ChargeExternalPaymentSettlementInverseTable = "charge_external_payment_settlements"
+	// ChargeExternalPaymentSettlementColumn is the table column denoting the charge_external_payment_settlement relation/edge.
+	ChargeExternalPaymentSettlementColumn = "charge_id"
 )
 
 // Columns holds all SQL columns for chargecreditpurchase fields.
@@ -109,10 +118,24 @@ func ByChargeField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newChargeStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByChargeExternalPaymentSettlementField orders the results by charge_external_payment_settlement field.
+func ByChargeExternalPaymentSettlementField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChargeExternalPaymentSettlementStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newChargeStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ChargeInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, true, ChargeTable, ChargeColumn),
+	)
+}
+func newChargeExternalPaymentSettlementStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChargeExternalPaymentSettlementInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, ChargeExternalPaymentSettlementTable, ChargeExternalPaymentSettlementColumn),
 	)
 }

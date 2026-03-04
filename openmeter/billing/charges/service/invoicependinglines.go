@@ -143,7 +143,7 @@ func (s *service) allocateCreditAmountsToBillableLines(ctx context.Context, name
 				return nil, charges.ErrCreditRealizationsAlreadyAllocated.WithAttr("chargeID", chargeID.ID)
 			}
 
-			creditAllocations, err := s.flatFeeService.PostLineAssignedToInvoice(ctx, flatFee, gatheringLine.GatheringLine)
+			creditAllocations, err := s.flatFeeOrchestrator.PostLineAssignedToInvoice(ctx, flatFee, gatheringLine.GatheringLine)
 			if err != nil {
 				return nil, fmt.Errorf("post line assigned to invoice: %w", err)
 			}

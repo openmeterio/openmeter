@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ ChargeAccessor = (*UsageBasedCharge)(nil)
@@ -49,6 +50,14 @@ func (c UsageBasedCharge) GetChargeID() ChargeID {
 	return ChargeID{
 		Namespace: c.Namespace,
 		ID:        c.ID,
+	}
+}
+
+func (c UsageBasedCharge) ErrorAttributes() models.Attributes {
+	return models.Attributes{
+		"charge_id":   c.ID,
+		"namespace":   c.Namespace,
+		"charge_type": string(ChargeTypeUsageBased),
 	}
 }
 

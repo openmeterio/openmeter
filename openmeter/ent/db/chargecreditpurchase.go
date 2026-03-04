@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeexternalpaymentsettlement"
 )
 
 // ChargeCreditPurchase is the model entity for the ChargeCreditPurchase schema.
@@ -40,9 +41,11 @@ type ChargeCreditPurchase struct {
 type ChargeCreditPurchaseEdges struct {
 	// Charge holds the value of the charge edge.
 	Charge *Charge `json:"charge,omitempty"`
+	// ChargeExternalPaymentSettlement holds the value of the charge_external_payment_settlement edge.
+	ChargeExternalPaymentSettlement *ChargeExternalPaymentSettlement `json:"charge_external_payment_settlement,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // ChargeOrErr returns the Charge value or an error if the edge
@@ -54,6 +57,17 @@ func (e ChargeCreditPurchaseEdges) ChargeOrErr() (*Charge, error) {
 		return nil, &NotFoundError{label: charge.Label}
 	}
 	return nil, &NotLoadedError{edge: "charge"}
+}
+
+// ChargeExternalPaymentSettlementOrErr returns the ChargeExternalPaymentSettlement value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeCreditPurchaseEdges) ChargeExternalPaymentSettlementOrErr() (*ChargeExternalPaymentSettlement, error) {
+	if e.ChargeExternalPaymentSettlement != nil {
+		return e.ChargeExternalPaymentSettlement, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: chargeexternalpaymentsettlement.Label}
+	}
+	return nil, &NotLoadedError{edge: "charge_external_payment_settlement"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -138,6 +152,11 @@ func (_m *ChargeCreditPurchase) Value(name string) (ent.Value, error) {
 // QueryCharge queries the "charge" edge of the ChargeCreditPurchase entity.
 func (_m *ChargeCreditPurchase) QueryCharge() *ChargeQuery {
 	return NewChargeCreditPurchaseClient(_m.config).QueryCharge(_m)
+}
+
+// QueryChargeExternalPaymentSettlement queries the "charge_external_payment_settlement" edge of the ChargeCreditPurchase entity.
+func (_m *ChargeCreditPurchase) QueryChargeExternalPaymentSettlement() *ChargeExternalPaymentSettlementQuery {
+	return NewChargeCreditPurchaseClient(_m.config).QueryChargeExternalPaymentSettlement(_m)
 }
 
 // Update returns a builder for updating this ChargeCreditPurchase.

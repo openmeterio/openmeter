@@ -345,6 +345,18 @@ func (f ChargeCreditRealizationFunc) Mutate(ctx context.Context, m db.Mutation) 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeCreditRealizationMutation", m)
 }
 
+// The ChargeExternalPaymentSettlementFunc type is an adapter to allow the use of ordinary
+// function as ChargeExternalPaymentSettlement mutator.
+type ChargeExternalPaymentSettlementFunc func(context.Context, *db.ChargeExternalPaymentSettlementMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeExternalPaymentSettlementFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeExternalPaymentSettlementMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeExternalPaymentSettlementMutation", m)
+}
+
 // The ChargeFlatFeeFunc type is an adapter to allow the use of ordinary
 // function as ChargeFlatFee mutator.
 type ChargeFlatFeeFunc func(context.Context, *db.ChargeFlatFeeMutation) (db.Value, error)
