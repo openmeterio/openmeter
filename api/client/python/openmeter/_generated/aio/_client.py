@@ -51,8 +51,8 @@ from .operations import (
 
 
 class OpenMeterClient:  # pylint: disable=client-accepts-api-version-keyword,too-many-instance-attributes
-    """OpenMeter is a cloud native usage metering service.
-    The OpenMeter API allows you to ingest events, query meter usage, and manage resources.
+    """OpenMeter is a cloud native usage metering service. The OpenMeter API allows you to ingest
+    events, query meter usage, and manage resources.
 
     :ivar portal: PortalOperations operations
     :vartype portal: openmeter.aio.operations.PortalOperations

@@ -40,6 +40,7 @@ model FilterSingleString {
 /**
  * Filter options for listing LLM cost prices.
  */
+#suppress "@openmeter/api-spec/repeated-prefix-grouping" "model_id and model_name should not be grouped"
 @friendlyName("ListLLMCostPricesParamsFilter")
 model ListPricesParamsFilter {
   /** Filter by provider. e.g. ?filter[provider][eq]=openai */
