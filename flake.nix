@@ -16,9 +16,8 @@
       systems = [ "x86_64-linux" "x86_64-darwin" "aarch64-darwin" "aarch64-linux" ];
 
       perSystem = { config, self', inputs', pkgs, lib, system, ... }: rec {
-        # FIX: Removed the 'system' argument to fix evaluation warnings
         _module.args.pkgs = import inputs.nixpkgs {
-          localSystem = system; # Use localSystem instead of system
+          inherit system;
 
           overlays = [
             (final: prev: {
@@ -39,13 +38,17 @@
               python = {
                 enable = true;
                 package = pkgs.python314;
-                uv.enable = true;
+                uv = {
+                  enable = true;
+                };
               };
 
               javascript = {
                 enable = true;
                 package = pkgs.nodejs_24;
-                corepack.enable = true;
+                corepack = {
+                  enable = true;
+                };
               };
             };
 
@@ -56,7 +59,9 @@
               commitizen-branch = {
                 enable = true;
                 name = "commitizen-branch check";
-                description = "Check whether commit messages on the current HEAD follows committing rules.";
+                description = ''
+                  Check whether commit messages on the current HEAD follows committing rules.
+                '';
                 entry = "${pkgs.commitizen}/bin/cz check --allow-abort --rev-range origin/HEAD..HEAD";
                 pass_filenames = false;
                 stages = [ "manual" ];
@@ -64,12 +69,15 @@
             };
 
             packages = with pkgs; [
-              # --- FIX: ADDED PRE-COMMIT HERE ---
-              pre-commit
-              # ----------------------------------
-
               gnumake
               mage
+
+              # Kafka build dependencies
+              # https://github.com/confluentinc/confluent-kafka-go#librdkafka
+              # Check actual version via:
+              # $ pkg-config --modversion rdkafka++
+              # Getting sha256 hash for git ref:
+              # $ nix-shell -p nix-prefetch-git jq --run "nix hash convert sha256:\$(nix-prefetch-git --url https://github.com/confluentinc/librdkafka.git --quiet --rev v2.13.0 | jq -r '.sha256')"
               (rdkafka.overrideAttrs (_: rec {
                 src = fetchFromGitHub {
                   owner = "confluentinc";
@@ -78,11 +86,15 @@
                   sha256 = "sha256-gxZ20qpG3iXwY21fY2lvafWudcnsqN6hOml1UR9fPKQ=";
                 };
               }))
+
               cyrus_sasl
               pkg-config
+              # confluent-platform
+
               golangci-lint
               goreleaser
               air
+
               curl
               jq
               minikube
@@ -90,75 +102,118 @@
               kubectl
               helm-docs
               kubernetes-helm
+
               benthos
+
+              # We should use a custom light-weight derivation, see this thread https://discourse.nixos.org/t/installing-postgresql-client/948/15
+              # Multi-platform support makes this a bit more difficult
               postgresql
+
+              # node
               corepack_24
+              # We can consider adding a pkgs.buildNpmPackage for spectral-cli if build takes a lot of time, but for now
+              # this is a quick fix to get it working.
               (writeShellScriptBin "spectral" ''
                 exec ${pkgs.nodejs_24}/bin/npx -y @stoplight/spectral-cli@6.13.1 "$@"
               '')
+
+              # python
               poetry
+
               atlasx
+
               just
               semver-tool
+
               dagger
+
               go-migrate
+
               sqlc
             ];
 
             env = {
               KUBECONFIG = "${config.devenv.shells.default.env.DEVENV_STATE}/kube/config";
               KIND_CLUSTER_NAME = "openmeter";
+
               HELM_CACHE_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/cache";
               HELM_CONFIG_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/config";
               HELM_DATA_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/data";
             };
 
             enterShell = lib.optionalString pkgs.stdenv.isDarwin ''
+              # Workaround for XCBUILD.XCRUN cosmetic issue due to incompatible plists (see https://github.com/NixOS/nixpkgs/issues/376958)
+              # 1) Filter out the buggy Nix version of xcbuild/xcrun from PATH
               export PATH=$(echo "$PATH" | tr ':' '\n' | grep -v "xcbuild" | tr '\n' ':')
+
+              # 2) Force the system to use the Apple SDK path if needed
               unset DEVELOPER_DIR
+              # End of workaround
             '';
 
+            # https://github.com/cachix/devenv/issues/528#issuecomment-1556108767
             containers = pkgs.lib.mkForce { };
           };
 
           ci = devenv.shells.default;
 
+          # Lighteweight target to use inside dagger
           dagger = {
-            languages.go = devenv.shells.default.languages.go;
-            packages = with pkgs; [ gnumake git atlasx ];
+            languages = {
+              go = devenv.shells.default.languages.go;
+            };
+            packages = with pkgs; [
+              gnumake
+              git
+              atlasx
+            ];
             containers = devenv.shells.default.containers;
           };
         };
 
-        packages.atlasx =
-          let
-            systemMappings = {
-              x86_64-linux = "linux-amd64";
-              x86_64-darwin = "darwin-amd64";
-              aarch64-darwin = "darwin-arm64";
-              aarch64-linux = "linux-arm64";
+        packages = {
+          atlasx =
+            let
+              systemMappings = {
+                x86_64-linux = "linux-amd64";
+                x86_64-darwin = "darwin-amd64";
+                aarch64-darwin = "darwin-arm64";
+                aarch64-linux = "linux-arm64";
+              };
+              # nix hash convert --hash-algo sha256 --to sri SHA256SUM
+              hashMappings = {
+                # nix hash convert --hash-algo sha256 --to sri "$(curl -sfL 'https://release.ariga.io/atlas/atlas-linux-amd64-v'"${VERSION}"'.sha256')"
+                x86_64-linux = "sha256-2IquGGpV5Yk8MY87Ecg4ozcq302sHi/TvH0rVZRMV5c=";
+                # nix hash convert --hash-algo sha256 --to sri "$(curl -sfL 'https://release.ariga.io/atlas/atlas-darwin-amd64-v'"${VERSION}"'.sha256')"
+                x86_64-darwin = "sha256-yMvFQ32wVAXpzXEN+hC8nTkr+2eqoWBhT92JqXBUusQ=";
+                # nix hash convert --hash-algo sha256 --to sri "$(curl -sfL 'https://release.ariga.io/atlas/atlas-darwin-arm64-v'"${VERSION}"'.sha256')"
+                aarch64-darwin = "sha256-mP7mg4RyqdL5D5FFNEna6aWs/cEsNq/vrmdiX78/EP0=";
+                # nix hash convert --hash-algo sha256 --to sri "$(curl -sfL 'https://release.ariga.io/atlas/atlas-linux-arm64-v'"${VERSION}"'.sha256')"
+                aarch64-linux = "sha256-u4oioIzNmmy5PwoWIFt7vrBn3X/sH2AifGh9jek9YIg=";
+              };
+            in
+            pkgs.stdenv.mkDerivation rec {
+              pname = "atlasx";
+              version = "0.36.0";
+
+              src = pkgs.fetchurl {
+                # License: https://ariga.io/legal/atlas/eula/eula-20240804.pdf
+                url = "https://release.ariga.io/atlas/atlas-${systemMappings."${system}"}-v${version}";
+                hash = hashMappings."${system}";
+              };
+
+              unpackPhase = ''
+                cp $src atlas
+              '';
+
+              installPhase = ''
+                mkdir -p $out/bin
+                cp atlas $out/bin/atlas
+                chmod +x $out/bin/atlas
+              '';
+
             };
-            hashMappings = {
-              x86_64-linux = "sha256-2IquGGpV5Yk8MY87Ecg4ozcq302sHi/TvH0rVZRMV5c=";
-              x86_64-darwin = "sha256-yMvFQ32wVAXpzXEN+hC8nTkr+2eqoWBhT92JqXBUusQ=";
-              aarch64-darwin = "sha256-mP7mg4RyqdL5D5FFNEna6aWs/cEsNq/vrmdiX78/EP0=";
-              aarch64-linux = "sha256-u4oioIzNmmy5PwoWIFt7vrBn3X/sH2AifGh9jek9YIg=";
-            };
-          in
-          pkgs.stdenv.mkDerivation rec {
-            pname = "atlasx";
-            version = "0.36.0";
-            src = pkgs.fetchurl {
-              url = "https://release.ariga.io/atlas/atlas-${systemMappings."${system}"}-v${version}";
-              hash = hashMappings."${system}";
-            };
-            unpackPhase = "cp $src atlas";
-            installPhase = ''
-              mkdir -p $out/bin
-              cp atlas $out/bin/atlas
-              chmod +x $out/bin/atlas
-            '';
-          };
+        };
       };
     };
 }
