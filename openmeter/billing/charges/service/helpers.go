@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type chargesByTypeResult struct {
@@ -48,4 +49,69 @@ func chargesByType(in charges.Charges) (chargesByTypeResult, error) {
 	}
 
 	return result, nil
+}
+
+type handlerByType struct {
+	flatFee        func(charge charges.FlatFeeCharge) (charges.FlatFeeCharge, error)
+	usageBased     func(charge charges.UsageBasedCharge) (charges.UsageBasedCharge, error)
+	creditPurchase func(charge charges.CreditPurchaseCharge) (charges.CreditPurchaseCharge, error)
+}
+
+func mapChargesByType(in charges.Charges, handlerByType handlerByType) (charges.Charges, error) {
+	return slicesx.MapWithErr(in, func(charge charges.Charge) (charges.Charge, error) {
+		switch charge.Type() {
+		case charges.ChargeTypeFlatFee:
+			flatFee, err := charge.AsFlatFeeCharge()
+			if err != nil {
+				return charges.Charge{}, err
+			}
+
+			if handlerByType.flatFee == nil {
+				return charges.Charge{}, fmt.Errorf("cannot handle flat fee charge: %w", charges.ErrUnsupported)
+			}
+
+			flatFee, err = handlerByType.flatFee(flatFee)
+			if err != nil {
+				return charges.Charge{}, err
+			}
+
+			return charges.NewCharge(flatFee), nil
+		case charges.ChargeTypeUsageBased:
+			usageBased, err := charge.AsUsageBasedCharge()
+			if err != nil {
+				return charges.Charge{}, err
+			}
+
+			if handlerByType.usageBased == nil {
+				return charges.Charge{}, fmt.Errorf("cannot handle usage based charge: %w", charges.ErrUnsupported)
+			}
+
+			usageBased, err = handlerByType.usageBased(usageBased)
+			if err != nil {
+				return charges.Charge{}, err
+			}
+
+			return charges.NewCharge(usageBased), nil
+
+		case charges.ChargeTypeCreditPurchase:
+			creditPurchase, err := charge.AsCreditPurchaseCharge()
+			if err != nil {
+				return charges.Charge{}, err
+			}
+
+			if handlerByType.creditPurchase == nil {
+				return charges.Charge{}, fmt.Errorf("cannot handle credit purchase charge: %w", charges.ErrUnsupported)
+			}
+
+			creditPurchase, err = handlerByType.creditPurchase(creditPurchase)
+			if err != nil {
+				return charges.Charge{}, err
+			}
+
+			return charges.NewCharge(creditPurchase), nil
+
+		default:
+			return charges.Charge{}, fmt.Errorf("unsupported charge type: %s", charge.Type())
+		}
+	})
 }

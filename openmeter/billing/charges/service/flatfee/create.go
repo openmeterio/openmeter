@@ -23,8 +23,13 @@ func (s *service) PostCreate(ctx context.Context, charge charges.FlatFeeCharge) 
 
 	// For credit only flat fees we are not relying on the invoicing stack at all, so we can return early.
 	if charge.Intent.SettlementMode == productcatalog.CreditOnlySettlementMode {
+		advancedCharge, err := s.AdvanceCreditOnlyCharge(ctx, charge)
+		if err != nil {
+			return charges.PostCreateFlatFeeResult{}, err
+		}
+
 		return charges.PostCreateFlatFeeResult{
-			Charge: charge,
+			Charge: advancedCharge,
 		}, nil
 	}
 

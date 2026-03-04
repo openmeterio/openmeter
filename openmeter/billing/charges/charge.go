@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/expand"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -410,6 +411,48 @@ func (i GetChargesByIDsInput) Validate() error {
 	for idx, id := range i.ChargeIDs {
 		if id == "" {
 			errs = append(errs, fmt.Errorf("charge ID [%d]: cannot be empty", idx))
+		}
+	}
+
+	if err := i.Expands.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("expands: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+type AdvanceCreditOnlyChargesInput struct {
+	CustomerIDs []customer.CustomerID
+}
+
+func (i AdvanceCreditOnlyChargesInput) Validate() error {
+	var errs []error
+
+	for idx, customerID := range i.CustomerIDs {
+		if err := customerID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("customer ID [%d]: %w", idx, err))
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
+type ListChargesInput struct {
+	Namespace   string
+	CustomerIDs []string
+	Expands     Expands
+}
+
+func (i ListChargesInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, fmt.Errorf("namespace is required"))
+	}
+
+	for idx, customerID := range i.CustomerIDs {
+		if customerID == "" {
+			errs = append(errs, fmt.Errorf("customer ID [%d]: cannot be empty", idx))
 		}
 	}
 

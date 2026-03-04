@@ -157,6 +157,7 @@ type FlatFeeOrchestrator interface {
 	PostInvoiceIssued(ctx context.Context, charge FlatFeeCharge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
 	PostPaymentAuthorized(ctx context.Context, charge FlatFeeCharge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
 	PostPaymentSettled(ctx context.Context, charge FlatFeeCharge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
+	AdvanceCreditOnlyCharge(ctx context.Context, charge FlatFeeCharge) (FlatFeeCharge, error)
 }
 
 type PostCreateFlatFeeResult struct {
