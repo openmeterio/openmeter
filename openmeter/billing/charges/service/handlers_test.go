@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/oklog/ulid/v2"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 )
 
