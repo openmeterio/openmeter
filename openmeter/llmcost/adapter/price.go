@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -114,7 +115,7 @@ func (a *adapter) ResolvePrice(ctx context.Context, input llmcost.ResolvePriceIn
 		First(ctx)
 	if err != nil {
 		if entdb.IsNotFound(err) {
-			return llmcost.Price{}, llmcost.NewPriceNotFoundError(input.ModelID)
+			return llmcost.Price{}, models.NewGenericNotFoundError(llmcost.NewPriceNotFoundError(input.ModelID))
 		}
 
 		return llmcost.Price{}, fmt.Errorf("failed to resolve price: %w", err)
