@@ -112,6 +112,7 @@ func NewServer(config *Config) (*Server, error) {
 		AppService:              config.RouterConfig.App,
 		BillingService:          config.RouterConfig.Billing,
 		CustomerService:         config.RouterConfig.Customer,
+		CurrencyService:         config.RouterConfig.CurrencyService,
 		EntitlementService:      config.RouterConfig.EntitlementConnector,
 		IngestService:           config.RouterConfig.IngestService,
 		MeterService:            config.RouterConfig.MeterManageService,
