@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -26,7 +27,7 @@ type ChargeStandardInvoicePaymentSettlementQuery struct {
 	inters                 []Interceptor
 	predicates             []predicate.ChargeStandardInvoicePaymentSettlement
 	withBillingInvoiceLine *BillingInvoiceLineQuery
-	withFlatFee            *ChargeFlatFeeQuery
+	withChargeFlatFee      *ChargeFlatFeeQuery
 	modifiers              []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -86,8 +87,8 @@ func (_q *ChargeStandardInvoicePaymentSettlementQuery) QueryBillingInvoiceLine()
 	return query
 }
 
-// QueryFlatFee chains the current query on the "flat_fee" edge.
-func (_q *ChargeStandardInvoicePaymentSettlementQuery) QueryFlatFee() *ChargeFlatFeeQuery {
+// QueryChargeFlatFee chains the current query on the "charge_flat_fee" edge.
+func (_q *ChargeStandardInvoicePaymentSettlementQuery) QueryChargeFlatFee() *ChargeFlatFeeQuery {
 	query := (&ChargeFlatFeeClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
@@ -100,7 +101,7 @@ func (_q *ChargeStandardInvoicePaymentSettlementQuery) QueryFlatFee() *ChargeFla
 		step := sqlgraph.NewStep(
 			sqlgraph.From(chargestandardinvoicepaymentsettlement.Table, chargestandardinvoicepaymentsettlement.FieldID, selector),
 			sqlgraph.To(chargeflatfee.Table, chargeflatfee.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, chargestandardinvoicepaymentsettlement.FlatFeeTable, chargestandardinvoicepaymentsettlement.FlatFeeColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, chargestandardinvoicepaymentsettlement.ChargeFlatFeeTable, chargestandardinvoicepaymentsettlement.ChargeFlatFeeColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -301,7 +302,7 @@ func (_q *ChargeStandardInvoicePaymentSettlementQuery) Clone() *ChargeStandardIn
 		inters:                 append([]Interceptor{}, _q.inters...),
 		predicates:             append([]predicate.ChargeStandardInvoicePaymentSettlement{}, _q.predicates...),
 		withBillingInvoiceLine: _q.withBillingInvoiceLine.Clone(),
-		withFlatFee:            _q.withFlatFee.Clone(),
+		withChargeFlatFee:      _q.withChargeFlatFee.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -319,14 +320,14 @@ func (_q *ChargeStandardInvoicePaymentSettlementQuery) WithBillingInvoiceLine(op
 	return _q
 }
 
-// WithFlatFee tells the query-builder to eager-load the nodes that are connected to
-// the "flat_fee" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *ChargeStandardInvoicePaymentSettlementQuery) WithFlatFee(opts ...func(*ChargeFlatFeeQuery)) *ChargeStandardInvoicePaymentSettlementQuery {
+// WithChargeFlatFee tells the query-builder to eager-load the nodes that are connected to
+// the "charge_flat_fee" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeStandardInvoicePaymentSettlementQuery) WithChargeFlatFee(opts ...func(*ChargeFlatFeeQuery)) *ChargeStandardInvoicePaymentSettlementQuery {
 	query := (&ChargeFlatFeeClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withFlatFee = query
+	_q.withChargeFlatFee = query
 	return _q
 }
 
@@ -410,7 +411,7 @@ func (_q *ChargeStandardInvoicePaymentSettlementQuery) sqlAll(ctx context.Contex
 		_spec       = _q.querySpec()
 		loadedTypes = [2]bool{
 			_q.withBillingInvoiceLine != nil,
-			_q.withFlatFee != nil,
+			_q.withChargeFlatFee != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -440,9 +441,9 @@ func (_q *ChargeStandardInvoicePaymentSettlementQuery) sqlAll(ctx context.Contex
 			return nil, err
 		}
 	}
-	if query := _q.withFlatFee; query != nil {
-		if err := _q.loadFlatFee(ctx, query, nodes, nil,
-			func(n *ChargeStandardInvoicePaymentSettlement, e *ChargeFlatFee) { n.Edges.FlatFee = e }); err != nil {
+	if query := _q.withChargeFlatFee; query != nil {
+		if err := _q.loadChargeFlatFee(ctx, query, nodes, nil,
+			func(n *ChargeStandardInvoicePaymentSettlement, e *ChargeFlatFee) { n.Edges.ChargeFlatFee = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -478,32 +479,33 @@ func (_q *ChargeStandardInvoicePaymentSettlementQuery) loadBillingInvoiceLine(ct
 	}
 	return nil
 }
-func (_q *ChargeStandardInvoicePaymentSettlementQuery) loadFlatFee(ctx context.Context, query *ChargeFlatFeeQuery, nodes []*ChargeStandardInvoicePaymentSettlement, init func(*ChargeStandardInvoicePaymentSettlement), assign func(*ChargeStandardInvoicePaymentSettlement, *ChargeFlatFee)) error {
-	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*ChargeStandardInvoicePaymentSettlement)
+func (_q *ChargeStandardInvoicePaymentSettlementQuery) loadChargeFlatFee(ctx context.Context, query *ChargeFlatFeeQuery, nodes []*ChargeStandardInvoicePaymentSettlement, init func(*ChargeStandardInvoicePaymentSettlement), assign func(*ChargeStandardInvoicePaymentSettlement, *ChargeFlatFee)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*ChargeStandardInvoicePaymentSettlement)
 	for i := range nodes {
-		fk := nodes[i].ChargeID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
 	}
-	if len(ids) == 0 {
-		return nil
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargeflatfee.FieldStdInvoicePaymentSettlementID)
 	}
-	query.Where(chargeflatfee.IDIn(ids...))
+	query.Where(predicate.ChargeFlatFee(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(chargestandardinvoicepaymentsettlement.ChargeFlatFeeColumn), fks...))
+	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
+		fk := n.StdInvoicePaymentSettlementID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "std_invoice_payment_settlement_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "charge_id" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "std_invoice_payment_settlement_id" returned %v for node %v`, *fk, n.ID)
 		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
+		assign(node, n)
 	}
 	return nil
 }
@@ -538,9 +540,6 @@ func (_q *ChargeStandardInvoicePaymentSettlementQuery) querySpec() *sqlgraph.Que
 		}
 		if _q.withBillingInvoiceLine != nil {
 			_spec.Node.AddColumnOnce(chargestandardinvoicepaymentsettlement.FieldLineID)
-		}
-		if _q.withFlatFee != nil {
-			_spec.Node.AddColumnOnce(chargestandardinvoicepaymentsettlement.FieldChargeID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

@@ -58,6 +58,7 @@ type Expands = expand.Expand[Expand]
 
 type ChargeAccessor interface {
 	GetChargeID() ChargeID
+	ErrorAttributes() models.Attributes
 }
 
 type Charge struct {

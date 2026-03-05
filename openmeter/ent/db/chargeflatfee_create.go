@@ -92,6 +92,20 @@ func (_c *ChargeFlatFeeCreate) SetAmountAfterProration(v alpacadecimal.Decimal) 
 	return _c
 }
 
+// SetStdInvoicePaymentSettlementID sets the "std_invoice_payment_settlement_id" field.
+func (_c *ChargeFlatFeeCreate) SetStdInvoicePaymentSettlementID(v string) *ChargeFlatFeeCreate {
+	_c.mutation.SetStdInvoicePaymentSettlementID(v)
+	return _c
+}
+
+// SetNillableStdInvoicePaymentSettlementID sets the "std_invoice_payment_settlement_id" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableStdInvoicePaymentSettlementID(v *string) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetStdInvoicePaymentSettlementID(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ChargeFlatFeeCreate) SetID(v string) *ChargeFlatFeeCreate {
 	_c.mutation.SetID(v)
@@ -264,6 +278,11 @@ func (_c *ChargeFlatFeeCreate) check() error {
 	if _, ok := _c.mutation.AmountAfterProration(); !ok {
 		return &ValidationError{Name: "amount_after_proration", err: errors.New(`db: missing required field "ChargeFlatFee.amount_after_proration"`)}
 	}
+	if v, ok := _c.mutation.StdInvoicePaymentSettlementID(); ok {
+		if err := chargeflatfee.StdInvoicePaymentSettlementIDValidator(v); err != nil {
+			return &ValidationError{Name: "std_invoice_payment_settlement_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.std_invoice_payment_settlement_id": %w`, err)}
+		}
+	}
 	if len(_c.mutation.ChargeIDs()) == 0 {
 		return &ValidationError{Name: "charge", err: errors.New(`db: missing required edge "ChargeFlatFee.charge"`)}
 	}
@@ -366,7 +385,7 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 	if nodes := _c.mutation.ChargeStandardInvoicePaymentSettlementIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
-			Inverse: false,
+			Inverse: true,
 			Table:   chargeflatfee.ChargeStandardInvoicePaymentSettlementTable,
 			Columns: []string{chargeflatfee.ChargeStandardInvoicePaymentSettlementColumn},
 			Bidi:    false,
@@ -377,6 +396,7 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_node.StdInvoicePaymentSettlementID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.ChargeStandardInvoiceAccruedUsageIDs(); len(nodes) > 0 {
@@ -559,6 +579,24 @@ func (u *ChargeFlatFeeUpsert) UpdateAmountAfterProration() *ChargeFlatFeeUpsert 
 	return u
 }
 
+// SetStdInvoicePaymentSettlementID sets the "std_invoice_payment_settlement_id" field.
+func (u *ChargeFlatFeeUpsert) SetStdInvoicePaymentSettlementID(v string) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldStdInvoicePaymentSettlementID, v)
+	return u
+}
+
+// UpdateStdInvoicePaymentSettlementID sets the "std_invoice_payment_settlement_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateStdInvoicePaymentSettlementID() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldStdInvoicePaymentSettlementID)
+	return u
+}
+
+// ClearStdInvoicePaymentSettlementID clears the value of the "std_invoice_payment_settlement_id" field.
+func (u *ChargeFlatFeeUpsert) ClearStdInvoicePaymentSettlementID() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldStdInvoicePaymentSettlementID)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -722,6 +760,27 @@ func (u *ChargeFlatFeeUpsertOne) SetAmountAfterProration(v alpacadecimal.Decimal
 func (u *ChargeFlatFeeUpsertOne) UpdateAmountAfterProration() *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.UpdateAmountAfterProration()
+	})
+}
+
+// SetStdInvoicePaymentSettlementID sets the "std_invoice_payment_settlement_id" field.
+func (u *ChargeFlatFeeUpsertOne) SetStdInvoicePaymentSettlementID(v string) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetStdInvoicePaymentSettlementID(v)
+	})
+}
+
+// UpdateStdInvoicePaymentSettlementID sets the "std_invoice_payment_settlement_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateStdInvoicePaymentSettlementID() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateStdInvoicePaymentSettlementID()
+	})
+}
+
+// ClearStdInvoicePaymentSettlementID clears the value of the "std_invoice_payment_settlement_id" field.
+func (u *ChargeFlatFeeUpsertOne) ClearStdInvoicePaymentSettlementID() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearStdInvoicePaymentSettlementID()
 	})
 }
 
@@ -1058,6 +1117,27 @@ func (u *ChargeFlatFeeUpsertBulk) SetAmountAfterProration(v alpacadecimal.Decima
 func (u *ChargeFlatFeeUpsertBulk) UpdateAmountAfterProration() *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.UpdateAmountAfterProration()
+	})
+}
+
+// SetStdInvoicePaymentSettlementID sets the "std_invoice_payment_settlement_id" field.
+func (u *ChargeFlatFeeUpsertBulk) SetStdInvoicePaymentSettlementID(v string) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetStdInvoicePaymentSettlementID(v)
+	})
+}
+
+// UpdateStdInvoicePaymentSettlementID sets the "std_invoice_payment_settlement_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateStdInvoicePaymentSettlementID() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateStdInvoicePaymentSettlementID()
+	})
+}
+
+// ClearStdInvoicePaymentSettlementID clears the value of the "std_invoice_payment_settlement_id" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearStdInvoicePaymentSettlementID() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearStdInvoicePaymentSettlementID()
 	})
 }
 

@@ -45,6 +45,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeexternalpaymentsettlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoiceaccruedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicepaymentsettlement"
@@ -124,6 +125,7 @@ const (
 	TypeCharge                                           = "Charge"
 	TypeChargeCreditPurchase                             = "ChargeCreditPurchase"
 	TypeChargeCreditRealization                          = "ChargeCreditRealization"
+	TypeChargeExternalPaymentSettlement                  = "ChargeExternalPaymentSettlement"
 	TypeChargeFlatFee                                    = "ChargeFlatFee"
 	TypeChargeStandardInvoiceAccruedUsage                = "ChargeStandardInvoiceAccruedUsage"
 	TypeChargeStandardInvoicePaymentSettlement           = "ChargeStandardInvoicePaymentSettlement"
@@ -36290,19 +36292,22 @@ func (m *ChargeMutation) ResetEdge(name string) error {
 // ChargeCreditPurchaseMutation represents an operation that mutates the ChargeCreditPurchase nodes in the graph.
 type ChargeCreditPurchaseMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *string
-	namespace     *string
-	credit_amount *alpacadecimal.Decimal
-	settlement    *charges.CreditPurchaseSettlement
-	status        *charges.PaymentSettlementStatus
-	clearedFields map[string]struct{}
-	charge        *string
-	clearedcharge bool
-	done          bool
-	oldValue      func(context.Context) (*ChargeCreditPurchase, error)
-	predicates    []predicate.ChargeCreditPurchase
+	op                                        Op
+	typ                                       string
+	id                                        *string
+	namespace                                 *string
+	credit_amount                             *alpacadecimal.Decimal
+	settlement                                *charges.CreditPurchaseSettlement
+	credit_grant_transaction_group_id         *string
+	credit_granted_at                         *time.Time
+	clearedFields                             map[string]struct{}
+	charge                                    *string
+	clearedcharge                             bool
+	charge_external_payment_settlement        *string
+	clearedcharge_external_payment_settlement bool
+	done                                      bool
+	oldValue                                  func(context.Context) (*ChargeCreditPurchase, error)
+	predicates                                []predicate.ChargeCreditPurchase
 }
 
 var _ ent.Mutation = (*ChargeCreditPurchaseMutation)(nil)
@@ -36517,40 +36522,151 @@ func (m *ChargeCreditPurchaseMutation) ResetSettlement() {
 	m.settlement = nil
 }
 
-// SetStatus sets the "status" field.
-func (m *ChargeCreditPurchaseMutation) SetStatus(css charges.PaymentSettlementStatus) {
-	m.status = &css
+// SetCreditGrantTransactionGroupID sets the "credit_grant_transaction_group_id" field.
+func (m *ChargeCreditPurchaseMutation) SetCreditGrantTransactionGroupID(s string) {
+	m.credit_grant_transaction_group_id = &s
 }
 
-// Status returns the value of the "status" field in the mutation.
-func (m *ChargeCreditPurchaseMutation) Status() (r charges.PaymentSettlementStatus, exists bool) {
-	v := m.status
+// CreditGrantTransactionGroupID returns the value of the "credit_grant_transaction_group_id" field in the mutation.
+func (m *ChargeCreditPurchaseMutation) CreditGrantTransactionGroupID() (r string, exists bool) {
+	v := m.credit_grant_transaction_group_id
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldStatus returns the old "status" field's value of the ChargeCreditPurchase entity.
+// OldCreditGrantTransactionGroupID returns the old "credit_grant_transaction_group_id" field's value of the ChargeCreditPurchase entity.
 // If the ChargeCreditPurchase object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeCreditPurchaseMutation) OldStatus(ctx context.Context) (v charges.PaymentSettlementStatus, err error) {
+func (m *ChargeCreditPurchaseMutation) OldCreditGrantTransactionGroupID(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+		return v, errors.New("OldCreditGrantTransactionGroupID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldStatus requires an ID field in the mutation")
+		return v, errors.New("OldCreditGrantTransactionGroupID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+		return v, fmt.Errorf("querying old value for OldCreditGrantTransactionGroupID: %w", err)
 	}
-	return oldValue.Status, nil
+	return oldValue.CreditGrantTransactionGroupID, nil
 }
 
-// ResetStatus resets all changes to the "status" field.
-func (m *ChargeCreditPurchaseMutation) ResetStatus() {
-	m.status = nil
+// ClearCreditGrantTransactionGroupID clears the value of the "credit_grant_transaction_group_id" field.
+func (m *ChargeCreditPurchaseMutation) ClearCreditGrantTransactionGroupID() {
+	m.credit_grant_transaction_group_id = nil
+	m.clearedFields[chargecreditpurchase.FieldCreditGrantTransactionGroupID] = struct{}{}
+}
+
+// CreditGrantTransactionGroupIDCleared returns if the "credit_grant_transaction_group_id" field was cleared in this mutation.
+func (m *ChargeCreditPurchaseMutation) CreditGrantTransactionGroupIDCleared() bool {
+	_, ok := m.clearedFields[chargecreditpurchase.FieldCreditGrantTransactionGroupID]
+	return ok
+}
+
+// ResetCreditGrantTransactionGroupID resets all changes to the "credit_grant_transaction_group_id" field.
+func (m *ChargeCreditPurchaseMutation) ResetCreditGrantTransactionGroupID() {
+	m.credit_grant_transaction_group_id = nil
+	delete(m.clearedFields, chargecreditpurchase.FieldCreditGrantTransactionGroupID)
+}
+
+// SetCreditGrantedAt sets the "credit_granted_at" field.
+func (m *ChargeCreditPurchaseMutation) SetCreditGrantedAt(t time.Time) {
+	m.credit_granted_at = &t
+}
+
+// CreditGrantedAt returns the value of the "credit_granted_at" field in the mutation.
+func (m *ChargeCreditPurchaseMutation) CreditGrantedAt() (r time.Time, exists bool) {
+	v := m.credit_granted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreditGrantedAt returns the old "credit_granted_at" field's value of the ChargeCreditPurchase entity.
+// If the ChargeCreditPurchase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditPurchaseMutation) OldCreditGrantedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreditGrantedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreditGrantedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreditGrantedAt: %w", err)
+	}
+	return oldValue.CreditGrantedAt, nil
+}
+
+// ClearCreditGrantedAt clears the value of the "credit_granted_at" field.
+func (m *ChargeCreditPurchaseMutation) ClearCreditGrantedAt() {
+	m.credit_granted_at = nil
+	m.clearedFields[chargecreditpurchase.FieldCreditGrantedAt] = struct{}{}
+}
+
+// CreditGrantedAtCleared returns if the "credit_granted_at" field was cleared in this mutation.
+func (m *ChargeCreditPurchaseMutation) CreditGrantedAtCleared() bool {
+	_, ok := m.clearedFields[chargecreditpurchase.FieldCreditGrantedAt]
+	return ok
+}
+
+// ResetCreditGrantedAt resets all changes to the "credit_granted_at" field.
+func (m *ChargeCreditPurchaseMutation) ResetCreditGrantedAt() {
+	m.credit_granted_at = nil
+	delete(m.clearedFields, chargecreditpurchase.FieldCreditGrantedAt)
+}
+
+// SetExternalPaymentSettlementID sets the "external_payment_settlement_id" field.
+func (m *ChargeCreditPurchaseMutation) SetExternalPaymentSettlementID(s string) {
+	m.charge_external_payment_settlement = &s
+}
+
+// ExternalPaymentSettlementID returns the value of the "external_payment_settlement_id" field in the mutation.
+func (m *ChargeCreditPurchaseMutation) ExternalPaymentSettlementID() (r string, exists bool) {
+	v := m.charge_external_payment_settlement
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExternalPaymentSettlementID returns the old "external_payment_settlement_id" field's value of the ChargeCreditPurchase entity.
+// If the ChargeCreditPurchase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditPurchaseMutation) OldExternalPaymentSettlementID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExternalPaymentSettlementID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExternalPaymentSettlementID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExternalPaymentSettlementID: %w", err)
+	}
+	return oldValue.ExternalPaymentSettlementID, nil
+}
+
+// ClearExternalPaymentSettlementID clears the value of the "external_payment_settlement_id" field.
+func (m *ChargeCreditPurchaseMutation) ClearExternalPaymentSettlementID() {
+	m.charge_external_payment_settlement = nil
+	m.clearedFields[chargecreditpurchase.FieldExternalPaymentSettlementID] = struct{}{}
+}
+
+// ExternalPaymentSettlementIDCleared returns if the "external_payment_settlement_id" field was cleared in this mutation.
+func (m *ChargeCreditPurchaseMutation) ExternalPaymentSettlementIDCleared() bool {
+	_, ok := m.clearedFields[chargecreditpurchase.FieldExternalPaymentSettlementID]
+	return ok
+}
+
+// ResetExternalPaymentSettlementID resets all changes to the "external_payment_settlement_id" field.
+func (m *ChargeCreditPurchaseMutation) ResetExternalPaymentSettlementID() {
+	m.charge_external_payment_settlement = nil
+	delete(m.clearedFields, chargecreditpurchase.FieldExternalPaymentSettlementID)
 }
 
 // SetChargeID sets the "charge" edge to the Charge entity by id.
@@ -36592,6 +36708,46 @@ func (m *ChargeCreditPurchaseMutation) ResetCharge() {
 	m.clearedcharge = false
 }
 
+// SetChargeExternalPaymentSettlementID sets the "charge_external_payment_settlement" edge to the ChargeExternalPaymentSettlement entity by id.
+func (m *ChargeCreditPurchaseMutation) SetChargeExternalPaymentSettlementID(id string) {
+	m.charge_external_payment_settlement = &id
+}
+
+// ClearChargeExternalPaymentSettlement clears the "charge_external_payment_settlement" edge to the ChargeExternalPaymentSettlement entity.
+func (m *ChargeCreditPurchaseMutation) ClearChargeExternalPaymentSettlement() {
+	m.clearedcharge_external_payment_settlement = true
+	m.clearedFields[chargecreditpurchase.FieldExternalPaymentSettlementID] = struct{}{}
+}
+
+// ChargeExternalPaymentSettlementCleared reports if the "charge_external_payment_settlement" edge to the ChargeExternalPaymentSettlement entity was cleared.
+func (m *ChargeCreditPurchaseMutation) ChargeExternalPaymentSettlementCleared() bool {
+	return m.ExternalPaymentSettlementIDCleared() || m.clearedcharge_external_payment_settlement
+}
+
+// ChargeExternalPaymentSettlementID returns the "charge_external_payment_settlement" edge ID in the mutation.
+func (m *ChargeCreditPurchaseMutation) ChargeExternalPaymentSettlementID() (id string, exists bool) {
+	if m.charge_external_payment_settlement != nil {
+		return *m.charge_external_payment_settlement, true
+	}
+	return
+}
+
+// ChargeExternalPaymentSettlementIDs returns the "charge_external_payment_settlement" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ChargeExternalPaymentSettlementID instead. It exists only for internal usage by the builders.
+func (m *ChargeCreditPurchaseMutation) ChargeExternalPaymentSettlementIDs() (ids []string) {
+	if id := m.charge_external_payment_settlement; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetChargeExternalPaymentSettlement resets all changes to the "charge_external_payment_settlement" edge.
+func (m *ChargeCreditPurchaseMutation) ResetChargeExternalPaymentSettlement() {
+	m.charge_external_payment_settlement = nil
+	m.clearedcharge_external_payment_settlement = false
+}
+
 // Where appends a list predicates to the ChargeCreditPurchaseMutation builder.
 func (m *ChargeCreditPurchaseMutation) Where(ps ...predicate.ChargeCreditPurchase) {
 	m.predicates = append(m.predicates, ps...)
@@ -36626,7 +36782,7 @@ func (m *ChargeCreditPurchaseMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeCreditPurchaseMutation) Fields() []string {
-	fields := make([]string, 0, 4)
+	fields := make([]string, 0, 6)
 	if m.namespace != nil {
 		fields = append(fields, chargecreditpurchase.FieldNamespace)
 	}
@@ -36636,8 +36792,14 @@ func (m *ChargeCreditPurchaseMutation) Fields() []string {
 	if m.settlement != nil {
 		fields = append(fields, chargecreditpurchase.FieldSettlement)
 	}
-	if m.status != nil {
-		fields = append(fields, chargecreditpurchase.FieldStatus)
+	if m.credit_grant_transaction_group_id != nil {
+		fields = append(fields, chargecreditpurchase.FieldCreditGrantTransactionGroupID)
+	}
+	if m.credit_granted_at != nil {
+		fields = append(fields, chargecreditpurchase.FieldCreditGrantedAt)
+	}
+	if m.charge_external_payment_settlement != nil {
+		fields = append(fields, chargecreditpurchase.FieldExternalPaymentSettlementID)
 	}
 	return fields
 }
@@ -36653,8 +36815,12 @@ func (m *ChargeCreditPurchaseMutation) Field(name string) (ent.Value, bool) {
 		return m.CreditAmount()
 	case chargecreditpurchase.FieldSettlement:
 		return m.Settlement()
-	case chargecreditpurchase.FieldStatus:
-		return m.Status()
+	case chargecreditpurchase.FieldCreditGrantTransactionGroupID:
+		return m.CreditGrantTransactionGroupID()
+	case chargecreditpurchase.FieldCreditGrantedAt:
+		return m.CreditGrantedAt()
+	case chargecreditpurchase.FieldExternalPaymentSettlementID:
+		return m.ExternalPaymentSettlementID()
 	}
 	return nil, false
 }
@@ -36670,8 +36836,12 @@ func (m *ChargeCreditPurchaseMutation) OldField(ctx context.Context, name string
 		return m.OldCreditAmount(ctx)
 	case chargecreditpurchase.FieldSettlement:
 		return m.OldSettlement(ctx)
-	case chargecreditpurchase.FieldStatus:
-		return m.OldStatus(ctx)
+	case chargecreditpurchase.FieldCreditGrantTransactionGroupID:
+		return m.OldCreditGrantTransactionGroupID(ctx)
+	case chargecreditpurchase.FieldCreditGrantedAt:
+		return m.OldCreditGrantedAt(ctx)
+	case chargecreditpurchase.FieldExternalPaymentSettlementID:
+		return m.OldExternalPaymentSettlementID(ctx)
 	}
 	return nil, fmt.Errorf("unknown ChargeCreditPurchase field %s", name)
 }
@@ -36702,12 +36872,26 @@ func (m *ChargeCreditPurchaseMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetSettlement(v)
 		return nil
-	case chargecreditpurchase.FieldStatus:
-		v, ok := value.(charges.PaymentSettlementStatus)
+	case chargecreditpurchase.FieldCreditGrantTransactionGroupID:
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetStatus(v)
+		m.SetCreditGrantTransactionGroupID(v)
+		return nil
+	case chargecreditpurchase.FieldCreditGrantedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreditGrantedAt(v)
+		return nil
+	case chargecreditpurchase.FieldExternalPaymentSettlementID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExternalPaymentSettlementID(v)
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeCreditPurchase field %s", name)
@@ -36738,7 +36922,17 @@ func (m *ChargeCreditPurchaseMutation) AddField(name string, value ent.Value) er
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *ChargeCreditPurchaseMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(chargecreditpurchase.FieldCreditGrantTransactionGroupID) {
+		fields = append(fields, chargecreditpurchase.FieldCreditGrantTransactionGroupID)
+	}
+	if m.FieldCleared(chargecreditpurchase.FieldCreditGrantedAt) {
+		fields = append(fields, chargecreditpurchase.FieldCreditGrantedAt)
+	}
+	if m.FieldCleared(chargecreditpurchase.FieldExternalPaymentSettlementID) {
+		fields = append(fields, chargecreditpurchase.FieldExternalPaymentSettlementID)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -36751,6 +36945,17 @@ func (m *ChargeCreditPurchaseMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *ChargeCreditPurchaseMutation) ClearField(name string) error {
+	switch name {
+	case chargecreditpurchase.FieldCreditGrantTransactionGroupID:
+		m.ClearCreditGrantTransactionGroupID()
+		return nil
+	case chargecreditpurchase.FieldCreditGrantedAt:
+		m.ClearCreditGrantedAt()
+		return nil
+	case chargecreditpurchase.FieldExternalPaymentSettlementID:
+		m.ClearExternalPaymentSettlementID()
+		return nil
+	}
 	return fmt.Errorf("unknown ChargeCreditPurchase nullable field %s", name)
 }
 
@@ -36767,8 +36972,14 @@ func (m *ChargeCreditPurchaseMutation) ResetField(name string) error {
 	case chargecreditpurchase.FieldSettlement:
 		m.ResetSettlement()
 		return nil
-	case chargecreditpurchase.FieldStatus:
-		m.ResetStatus()
+	case chargecreditpurchase.FieldCreditGrantTransactionGroupID:
+		m.ResetCreditGrantTransactionGroupID()
+		return nil
+	case chargecreditpurchase.FieldCreditGrantedAt:
+		m.ResetCreditGrantedAt()
+		return nil
+	case chargecreditpurchase.FieldExternalPaymentSettlementID:
+		m.ResetExternalPaymentSettlementID()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeCreditPurchase field %s", name)
@@ -36776,9 +36987,12 @@ func (m *ChargeCreditPurchaseMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeCreditPurchaseMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.charge != nil {
 		edges = append(edges, chargecreditpurchase.EdgeCharge)
+	}
+	if m.charge_external_payment_settlement != nil {
+		edges = append(edges, chargecreditpurchase.EdgeChargeExternalPaymentSettlement)
 	}
 	return edges
 }
@@ -36791,13 +37005,17 @@ func (m *ChargeCreditPurchaseMutation) AddedIDs(name string) []ent.Value {
 		if id := m.charge; id != nil {
 			return []ent.Value{*id}
 		}
+	case chargecreditpurchase.EdgeChargeExternalPaymentSettlement:
+		if id := m.charge_external_payment_settlement; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeCreditPurchaseMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	return edges
 }
 
@@ -36809,9 +37027,12 @@ func (m *ChargeCreditPurchaseMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeCreditPurchaseMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedcharge {
 		edges = append(edges, chargecreditpurchase.EdgeCharge)
+	}
+	if m.clearedcharge_external_payment_settlement {
+		edges = append(edges, chargecreditpurchase.EdgeChargeExternalPaymentSettlement)
 	}
 	return edges
 }
@@ -36822,6 +37043,8 @@ func (m *ChargeCreditPurchaseMutation) EdgeCleared(name string) bool {
 	switch name {
 	case chargecreditpurchase.EdgeCharge:
 		return m.clearedcharge
+	case chargecreditpurchase.EdgeChargeExternalPaymentSettlement:
+		return m.clearedcharge_external_payment_settlement
 	}
 	return false
 }
@@ -36833,6 +37056,9 @@ func (m *ChargeCreditPurchaseMutation) ClearEdge(name string) error {
 	case chargecreditpurchase.EdgeCharge:
 		m.ClearCharge()
 		return nil
+	case chargecreditpurchase.EdgeChargeExternalPaymentSettlement:
+		m.ClearChargeExternalPaymentSettlement()
+		return nil
 	}
 	return fmt.Errorf("unknown ChargeCreditPurchase unique edge %s", name)
 }
@@ -36843,6 +37069,9 @@ func (m *ChargeCreditPurchaseMutation) ResetEdge(name string) error {
 	switch name {
 	case chargecreditpurchase.EdgeCharge:
 		m.ResetCharge()
+		return nil
+	case chargecreditpurchase.EdgeChargeExternalPaymentSettlement:
+		m.ResetChargeExternalPaymentSettlement()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeCreditPurchase edge %s", name)
@@ -37906,6 +38135,1170 @@ func (m *ChargeCreditRealizationMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown ChargeCreditRealization edge %s", name)
 }
 
+// ChargeExternalPaymentSettlementMutation represents an operation that mutates the ChargeExternalPaymentSettlement nodes in the graph.
+type ChargeExternalPaymentSettlementMutation struct {
+	config
+	op                              Op
+	typ                             string
+	id                              *string
+	namespace                       *string
+	created_at                      *time.Time
+	updated_at                      *time.Time
+	deleted_at                      *time.Time
+	annotations                     *models.Annotations
+	service_period_from             *time.Time
+	service_period_to               *time.Time
+	status                          *charges.PaymentSettlementStatus
+	amount                          *alpacadecimal.Decimal
+	authorized_transaction_group_id *string
+	authorized_at                   *time.Time
+	settled_transaction_group_id    *string
+	settled_at                      *time.Time
+	clearedFields                   map[string]struct{}
+	charge_credit_purchase          *string
+	clearedcharge_credit_purchase   bool
+	done                            bool
+	oldValue                        func(context.Context) (*ChargeExternalPaymentSettlement, error)
+	predicates                      []predicate.ChargeExternalPaymentSettlement
+}
+
+var _ ent.Mutation = (*ChargeExternalPaymentSettlementMutation)(nil)
+
+// chargeexternalpaymentsettlementOption allows management of the mutation configuration using functional options.
+type chargeexternalpaymentsettlementOption func(*ChargeExternalPaymentSettlementMutation)
+
+// newChargeExternalPaymentSettlementMutation creates new mutation for the ChargeExternalPaymentSettlement entity.
+func newChargeExternalPaymentSettlementMutation(c config, op Op, opts ...chargeexternalpaymentsettlementOption) *ChargeExternalPaymentSettlementMutation {
+	m := &ChargeExternalPaymentSettlementMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeChargeExternalPaymentSettlement,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withChargeExternalPaymentSettlementID sets the ID field of the mutation.
+func withChargeExternalPaymentSettlementID(id string) chargeexternalpaymentsettlementOption {
+	return func(m *ChargeExternalPaymentSettlementMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ChargeExternalPaymentSettlement
+		)
+		m.oldValue = func(ctx context.Context) (*ChargeExternalPaymentSettlement, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ChargeExternalPaymentSettlement.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withChargeExternalPaymentSettlement sets the old ChargeExternalPaymentSettlement of the mutation.
+func withChargeExternalPaymentSettlement(node *ChargeExternalPaymentSettlement) chargeexternalpaymentsettlementOption {
+	return func(m *ChargeExternalPaymentSettlementMutation) {
+		m.oldValue = func(context.Context) (*ChargeExternalPaymentSettlement, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ChargeExternalPaymentSettlementMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ChargeExternalPaymentSettlementMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ChargeExternalPaymentSettlement entities.
+func (m *ChargeExternalPaymentSettlementMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ChargeExternalPaymentSettlementMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ChargeExternalPaymentSettlementMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ChargeExternalPaymentSettlement.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *ChargeExternalPaymentSettlementMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *ChargeExternalPaymentSettlementMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the ChargeExternalPaymentSettlement entity.
+// If the ChargeExternalPaymentSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeExternalPaymentSettlementMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *ChargeExternalPaymentSettlementMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ChargeExternalPaymentSettlementMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ChargeExternalPaymentSettlementMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ChargeExternalPaymentSettlement entity.
+// If the ChargeExternalPaymentSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeExternalPaymentSettlementMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ChargeExternalPaymentSettlementMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ChargeExternalPaymentSettlementMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ChargeExternalPaymentSettlementMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ChargeExternalPaymentSettlement entity.
+// If the ChargeExternalPaymentSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeExternalPaymentSettlementMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ChargeExternalPaymentSettlementMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *ChargeExternalPaymentSettlementMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *ChargeExternalPaymentSettlementMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the ChargeExternalPaymentSettlement entity.
+// If the ChargeExternalPaymentSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeExternalPaymentSettlementMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *ChargeExternalPaymentSettlementMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[chargeexternalpaymentsettlement.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *ChargeExternalPaymentSettlementMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[chargeexternalpaymentsettlement.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *ChargeExternalPaymentSettlementMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, chargeexternalpaymentsettlement.FieldDeletedAt)
+}
+
+// SetAnnotations sets the "annotations" field.
+func (m *ChargeExternalPaymentSettlementMutation) SetAnnotations(value models.Annotations) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *ChargeExternalPaymentSettlementMutation) Annotations() (r models.Annotations, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the ChargeExternalPaymentSettlement entity.
+// If the ChargeExternalPaymentSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeExternalPaymentSettlementMutation) OldAnnotations(ctx context.Context) (v models.Annotations, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *ChargeExternalPaymentSettlementMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[chargeexternalpaymentsettlement.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *ChargeExternalPaymentSettlementMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[chargeexternalpaymentsettlement.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *ChargeExternalPaymentSettlementMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, chargeexternalpaymentsettlement.FieldAnnotations)
+}
+
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (m *ChargeExternalPaymentSettlementMutation) SetServicePeriodFrom(t time.Time) {
+	m.service_period_from = &t
+}
+
+// ServicePeriodFrom returns the value of the "service_period_from" field in the mutation.
+func (m *ChargeExternalPaymentSettlementMutation) ServicePeriodFrom() (r time.Time, exists bool) {
+	v := m.service_period_from
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldServicePeriodFrom returns the old "service_period_from" field's value of the ChargeExternalPaymentSettlement entity.
+// If the ChargeExternalPaymentSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeExternalPaymentSettlementMutation) OldServicePeriodFrom(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldServicePeriodFrom is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldServicePeriodFrom requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldServicePeriodFrom: %w", err)
+	}
+	return oldValue.ServicePeriodFrom, nil
+}
+
+// ResetServicePeriodFrom resets all changes to the "service_period_from" field.
+func (m *ChargeExternalPaymentSettlementMutation) ResetServicePeriodFrom() {
+	m.service_period_from = nil
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (m *ChargeExternalPaymentSettlementMutation) SetServicePeriodTo(t time.Time) {
+	m.service_period_to = &t
+}
+
+// ServicePeriodTo returns the value of the "service_period_to" field in the mutation.
+func (m *ChargeExternalPaymentSettlementMutation) ServicePeriodTo() (r time.Time, exists bool) {
+	v := m.service_period_to
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldServicePeriodTo returns the old "service_period_to" field's value of the ChargeExternalPaymentSettlement entity.
+// If the ChargeExternalPaymentSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeExternalPaymentSettlementMutation) OldServicePeriodTo(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldServicePeriodTo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldServicePeriodTo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldServicePeriodTo: %w", err)
+	}
+	return oldValue.ServicePeriodTo, nil
+}
+
+// ResetServicePeriodTo resets all changes to the "service_period_to" field.
+func (m *ChargeExternalPaymentSettlementMutation) ResetServicePeriodTo() {
+	m.service_period_to = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *ChargeExternalPaymentSettlementMutation) SetStatus(css charges.PaymentSettlementStatus) {
+	m.status = &css
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *ChargeExternalPaymentSettlementMutation) Status() (r charges.PaymentSettlementStatus, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the ChargeExternalPaymentSettlement entity.
+// If the ChargeExternalPaymentSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeExternalPaymentSettlementMutation) OldStatus(ctx context.Context) (v charges.PaymentSettlementStatus, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *ChargeExternalPaymentSettlementMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetAmount sets the "amount" field.
+func (m *ChargeExternalPaymentSettlementMutation) SetAmount(a alpacadecimal.Decimal) {
+	m.amount = &a
+}
+
+// Amount returns the value of the "amount" field in the mutation.
+func (m *ChargeExternalPaymentSettlementMutation) Amount() (r alpacadecimal.Decimal, exists bool) {
+	v := m.amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAmount returns the old "amount" field's value of the ChargeExternalPaymentSettlement entity.
+// If the ChargeExternalPaymentSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeExternalPaymentSettlementMutation) OldAmount(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAmount: %w", err)
+	}
+	return oldValue.Amount, nil
+}
+
+// ResetAmount resets all changes to the "amount" field.
+func (m *ChargeExternalPaymentSettlementMutation) ResetAmount() {
+	m.amount = nil
+}
+
+// SetAuthorizedTransactionGroupID sets the "authorized_transaction_group_id" field.
+func (m *ChargeExternalPaymentSettlementMutation) SetAuthorizedTransactionGroupID(s string) {
+	m.authorized_transaction_group_id = &s
+}
+
+// AuthorizedTransactionGroupID returns the value of the "authorized_transaction_group_id" field in the mutation.
+func (m *ChargeExternalPaymentSettlementMutation) AuthorizedTransactionGroupID() (r string, exists bool) {
+	v := m.authorized_transaction_group_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAuthorizedTransactionGroupID returns the old "authorized_transaction_group_id" field's value of the ChargeExternalPaymentSettlement entity.
+// If the ChargeExternalPaymentSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeExternalPaymentSettlementMutation) OldAuthorizedTransactionGroupID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAuthorizedTransactionGroupID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAuthorizedTransactionGroupID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAuthorizedTransactionGroupID: %w", err)
+	}
+	return oldValue.AuthorizedTransactionGroupID, nil
+}
+
+// ClearAuthorizedTransactionGroupID clears the value of the "authorized_transaction_group_id" field.
+func (m *ChargeExternalPaymentSettlementMutation) ClearAuthorizedTransactionGroupID() {
+	m.authorized_transaction_group_id = nil
+	m.clearedFields[chargeexternalpaymentsettlement.FieldAuthorizedTransactionGroupID] = struct{}{}
+}
+
+// AuthorizedTransactionGroupIDCleared returns if the "authorized_transaction_group_id" field was cleared in this mutation.
+func (m *ChargeExternalPaymentSettlementMutation) AuthorizedTransactionGroupIDCleared() bool {
+	_, ok := m.clearedFields[chargeexternalpaymentsettlement.FieldAuthorizedTransactionGroupID]
+	return ok
+}
+
+// ResetAuthorizedTransactionGroupID resets all changes to the "authorized_transaction_group_id" field.
+func (m *ChargeExternalPaymentSettlementMutation) ResetAuthorizedTransactionGroupID() {
+	m.authorized_transaction_group_id = nil
+	delete(m.clearedFields, chargeexternalpaymentsettlement.FieldAuthorizedTransactionGroupID)
+}
+
+// SetAuthorizedAt sets the "authorized_at" field.
+func (m *ChargeExternalPaymentSettlementMutation) SetAuthorizedAt(t time.Time) {
+	m.authorized_at = &t
+}
+
+// AuthorizedAt returns the value of the "authorized_at" field in the mutation.
+func (m *ChargeExternalPaymentSettlementMutation) AuthorizedAt() (r time.Time, exists bool) {
+	v := m.authorized_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAuthorizedAt returns the old "authorized_at" field's value of the ChargeExternalPaymentSettlement entity.
+// If the ChargeExternalPaymentSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeExternalPaymentSettlementMutation) OldAuthorizedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAuthorizedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAuthorizedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAuthorizedAt: %w", err)
+	}
+	return oldValue.AuthorizedAt, nil
+}
+
+// ClearAuthorizedAt clears the value of the "authorized_at" field.
+func (m *ChargeExternalPaymentSettlementMutation) ClearAuthorizedAt() {
+	m.authorized_at = nil
+	m.clearedFields[chargeexternalpaymentsettlement.FieldAuthorizedAt] = struct{}{}
+}
+
+// AuthorizedAtCleared returns if the "authorized_at" field was cleared in this mutation.
+func (m *ChargeExternalPaymentSettlementMutation) AuthorizedAtCleared() bool {
+	_, ok := m.clearedFields[chargeexternalpaymentsettlement.FieldAuthorizedAt]
+	return ok
+}
+
+// ResetAuthorizedAt resets all changes to the "authorized_at" field.
+func (m *ChargeExternalPaymentSettlementMutation) ResetAuthorizedAt() {
+	m.authorized_at = nil
+	delete(m.clearedFields, chargeexternalpaymentsettlement.FieldAuthorizedAt)
+}
+
+// SetSettledTransactionGroupID sets the "settled_transaction_group_id" field.
+func (m *ChargeExternalPaymentSettlementMutation) SetSettledTransactionGroupID(s string) {
+	m.settled_transaction_group_id = &s
+}
+
+// SettledTransactionGroupID returns the value of the "settled_transaction_group_id" field in the mutation.
+func (m *ChargeExternalPaymentSettlementMutation) SettledTransactionGroupID() (r string, exists bool) {
+	v := m.settled_transaction_group_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSettledTransactionGroupID returns the old "settled_transaction_group_id" field's value of the ChargeExternalPaymentSettlement entity.
+// If the ChargeExternalPaymentSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeExternalPaymentSettlementMutation) OldSettledTransactionGroupID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSettledTransactionGroupID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSettledTransactionGroupID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSettledTransactionGroupID: %w", err)
+	}
+	return oldValue.SettledTransactionGroupID, nil
+}
+
+// ClearSettledTransactionGroupID clears the value of the "settled_transaction_group_id" field.
+func (m *ChargeExternalPaymentSettlementMutation) ClearSettledTransactionGroupID() {
+	m.settled_transaction_group_id = nil
+	m.clearedFields[chargeexternalpaymentsettlement.FieldSettledTransactionGroupID] = struct{}{}
+}
+
+// SettledTransactionGroupIDCleared returns if the "settled_transaction_group_id" field was cleared in this mutation.
+func (m *ChargeExternalPaymentSettlementMutation) SettledTransactionGroupIDCleared() bool {
+	_, ok := m.clearedFields[chargeexternalpaymentsettlement.FieldSettledTransactionGroupID]
+	return ok
+}
+
+// ResetSettledTransactionGroupID resets all changes to the "settled_transaction_group_id" field.
+func (m *ChargeExternalPaymentSettlementMutation) ResetSettledTransactionGroupID() {
+	m.settled_transaction_group_id = nil
+	delete(m.clearedFields, chargeexternalpaymentsettlement.FieldSettledTransactionGroupID)
+}
+
+// SetSettledAt sets the "settled_at" field.
+func (m *ChargeExternalPaymentSettlementMutation) SetSettledAt(t time.Time) {
+	m.settled_at = &t
+}
+
+// SettledAt returns the value of the "settled_at" field in the mutation.
+func (m *ChargeExternalPaymentSettlementMutation) SettledAt() (r time.Time, exists bool) {
+	v := m.settled_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSettledAt returns the old "settled_at" field's value of the ChargeExternalPaymentSettlement entity.
+// If the ChargeExternalPaymentSettlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeExternalPaymentSettlementMutation) OldSettledAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSettledAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSettledAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSettledAt: %w", err)
+	}
+	return oldValue.SettledAt, nil
+}
+
+// ClearSettledAt clears the value of the "settled_at" field.
+func (m *ChargeExternalPaymentSettlementMutation) ClearSettledAt() {
+	m.settled_at = nil
+	m.clearedFields[chargeexternalpaymentsettlement.FieldSettledAt] = struct{}{}
+}
+
+// SettledAtCleared returns if the "settled_at" field was cleared in this mutation.
+func (m *ChargeExternalPaymentSettlementMutation) SettledAtCleared() bool {
+	_, ok := m.clearedFields[chargeexternalpaymentsettlement.FieldSettledAt]
+	return ok
+}
+
+// ResetSettledAt resets all changes to the "settled_at" field.
+func (m *ChargeExternalPaymentSettlementMutation) ResetSettledAt() {
+	m.settled_at = nil
+	delete(m.clearedFields, chargeexternalpaymentsettlement.FieldSettledAt)
+}
+
+// SetChargeCreditPurchaseID sets the "charge_credit_purchase" edge to the ChargeCreditPurchase entity by id.
+func (m *ChargeExternalPaymentSettlementMutation) SetChargeCreditPurchaseID(id string) {
+	m.charge_credit_purchase = &id
+}
+
+// ClearChargeCreditPurchase clears the "charge_credit_purchase" edge to the ChargeCreditPurchase entity.
+func (m *ChargeExternalPaymentSettlementMutation) ClearChargeCreditPurchase() {
+	m.clearedcharge_credit_purchase = true
+}
+
+// ChargeCreditPurchaseCleared reports if the "charge_credit_purchase" edge to the ChargeCreditPurchase entity was cleared.
+func (m *ChargeExternalPaymentSettlementMutation) ChargeCreditPurchaseCleared() bool {
+	return m.clearedcharge_credit_purchase
+}
+
+// ChargeCreditPurchaseID returns the "charge_credit_purchase" edge ID in the mutation.
+func (m *ChargeExternalPaymentSettlementMutation) ChargeCreditPurchaseID() (id string, exists bool) {
+	if m.charge_credit_purchase != nil {
+		return *m.charge_credit_purchase, true
+	}
+	return
+}
+
+// ChargeCreditPurchaseIDs returns the "charge_credit_purchase" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ChargeCreditPurchaseID instead. It exists only for internal usage by the builders.
+func (m *ChargeExternalPaymentSettlementMutation) ChargeCreditPurchaseIDs() (ids []string) {
+	if id := m.charge_credit_purchase; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetChargeCreditPurchase resets all changes to the "charge_credit_purchase" edge.
+func (m *ChargeExternalPaymentSettlementMutation) ResetChargeCreditPurchase() {
+	m.charge_credit_purchase = nil
+	m.clearedcharge_credit_purchase = false
+}
+
+// Where appends a list predicates to the ChargeExternalPaymentSettlementMutation builder.
+func (m *ChargeExternalPaymentSettlementMutation) Where(ps ...predicate.ChargeExternalPaymentSettlement) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ChargeExternalPaymentSettlementMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ChargeExternalPaymentSettlementMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ChargeExternalPaymentSettlement, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ChargeExternalPaymentSettlementMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ChargeExternalPaymentSettlementMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ChargeExternalPaymentSettlement).
+func (m *ChargeExternalPaymentSettlementMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ChargeExternalPaymentSettlementMutation) Fields() []string {
+	fields := make([]string, 0, 13)
+	if m.namespace != nil {
+		fields = append(fields, chargeexternalpaymentsettlement.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, chargeexternalpaymentsettlement.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, chargeexternalpaymentsettlement.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, chargeexternalpaymentsettlement.FieldDeletedAt)
+	}
+	if m.annotations != nil {
+		fields = append(fields, chargeexternalpaymentsettlement.FieldAnnotations)
+	}
+	if m.service_period_from != nil {
+		fields = append(fields, chargeexternalpaymentsettlement.FieldServicePeriodFrom)
+	}
+	if m.service_period_to != nil {
+		fields = append(fields, chargeexternalpaymentsettlement.FieldServicePeriodTo)
+	}
+	if m.status != nil {
+		fields = append(fields, chargeexternalpaymentsettlement.FieldStatus)
+	}
+	if m.amount != nil {
+		fields = append(fields, chargeexternalpaymentsettlement.FieldAmount)
+	}
+	if m.authorized_transaction_group_id != nil {
+		fields = append(fields, chargeexternalpaymentsettlement.FieldAuthorizedTransactionGroupID)
+	}
+	if m.authorized_at != nil {
+		fields = append(fields, chargeexternalpaymentsettlement.FieldAuthorizedAt)
+	}
+	if m.settled_transaction_group_id != nil {
+		fields = append(fields, chargeexternalpaymentsettlement.FieldSettledTransactionGroupID)
+	}
+	if m.settled_at != nil {
+		fields = append(fields, chargeexternalpaymentsettlement.FieldSettledAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ChargeExternalPaymentSettlementMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case chargeexternalpaymentsettlement.FieldNamespace:
+		return m.Namespace()
+	case chargeexternalpaymentsettlement.FieldCreatedAt:
+		return m.CreatedAt()
+	case chargeexternalpaymentsettlement.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case chargeexternalpaymentsettlement.FieldDeletedAt:
+		return m.DeletedAt()
+	case chargeexternalpaymentsettlement.FieldAnnotations:
+		return m.Annotations()
+	case chargeexternalpaymentsettlement.FieldServicePeriodFrom:
+		return m.ServicePeriodFrom()
+	case chargeexternalpaymentsettlement.FieldServicePeriodTo:
+		return m.ServicePeriodTo()
+	case chargeexternalpaymentsettlement.FieldStatus:
+		return m.Status()
+	case chargeexternalpaymentsettlement.FieldAmount:
+		return m.Amount()
+	case chargeexternalpaymentsettlement.FieldAuthorizedTransactionGroupID:
+		return m.AuthorizedTransactionGroupID()
+	case chargeexternalpaymentsettlement.FieldAuthorizedAt:
+		return m.AuthorizedAt()
+	case chargeexternalpaymentsettlement.FieldSettledTransactionGroupID:
+		return m.SettledTransactionGroupID()
+	case chargeexternalpaymentsettlement.FieldSettledAt:
+		return m.SettledAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ChargeExternalPaymentSettlementMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case chargeexternalpaymentsettlement.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case chargeexternalpaymentsettlement.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case chargeexternalpaymentsettlement.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case chargeexternalpaymentsettlement.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case chargeexternalpaymentsettlement.FieldAnnotations:
+		return m.OldAnnotations(ctx)
+	case chargeexternalpaymentsettlement.FieldServicePeriodFrom:
+		return m.OldServicePeriodFrom(ctx)
+	case chargeexternalpaymentsettlement.FieldServicePeriodTo:
+		return m.OldServicePeriodTo(ctx)
+	case chargeexternalpaymentsettlement.FieldStatus:
+		return m.OldStatus(ctx)
+	case chargeexternalpaymentsettlement.FieldAmount:
+		return m.OldAmount(ctx)
+	case chargeexternalpaymentsettlement.FieldAuthorizedTransactionGroupID:
+		return m.OldAuthorizedTransactionGroupID(ctx)
+	case chargeexternalpaymentsettlement.FieldAuthorizedAt:
+		return m.OldAuthorizedAt(ctx)
+	case chargeexternalpaymentsettlement.FieldSettledTransactionGroupID:
+		return m.OldSettledTransactionGroupID(ctx)
+	case chargeexternalpaymentsettlement.FieldSettledAt:
+		return m.OldSettledAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ChargeExternalPaymentSettlement field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ChargeExternalPaymentSettlementMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case chargeexternalpaymentsettlement.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case chargeexternalpaymentsettlement.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case chargeexternalpaymentsettlement.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case chargeexternalpaymentsettlement.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case chargeexternalpaymentsettlement.FieldAnnotations:
+		v, ok := value.(models.Annotations)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
+		return nil
+	case chargeexternalpaymentsettlement.FieldServicePeriodFrom:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetServicePeriodFrom(v)
+		return nil
+	case chargeexternalpaymentsettlement.FieldServicePeriodTo:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetServicePeriodTo(v)
+		return nil
+	case chargeexternalpaymentsettlement.FieldStatus:
+		v, ok := value.(charges.PaymentSettlementStatus)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case chargeexternalpaymentsettlement.FieldAmount:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAmount(v)
+		return nil
+	case chargeexternalpaymentsettlement.FieldAuthorizedTransactionGroupID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAuthorizedTransactionGroupID(v)
+		return nil
+	case chargeexternalpaymentsettlement.FieldAuthorizedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAuthorizedAt(v)
+		return nil
+	case chargeexternalpaymentsettlement.FieldSettledTransactionGroupID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSettledTransactionGroupID(v)
+		return nil
+	case chargeexternalpaymentsettlement.FieldSettledAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSettledAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeExternalPaymentSettlement field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ChargeExternalPaymentSettlementMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ChargeExternalPaymentSettlementMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ChargeExternalPaymentSettlementMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown ChargeExternalPaymentSettlement numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ChargeExternalPaymentSettlementMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(chargeexternalpaymentsettlement.FieldDeletedAt) {
+		fields = append(fields, chargeexternalpaymentsettlement.FieldDeletedAt)
+	}
+	if m.FieldCleared(chargeexternalpaymentsettlement.FieldAnnotations) {
+		fields = append(fields, chargeexternalpaymentsettlement.FieldAnnotations)
+	}
+	if m.FieldCleared(chargeexternalpaymentsettlement.FieldAuthorizedTransactionGroupID) {
+		fields = append(fields, chargeexternalpaymentsettlement.FieldAuthorizedTransactionGroupID)
+	}
+	if m.FieldCleared(chargeexternalpaymentsettlement.FieldAuthorizedAt) {
+		fields = append(fields, chargeexternalpaymentsettlement.FieldAuthorizedAt)
+	}
+	if m.FieldCleared(chargeexternalpaymentsettlement.FieldSettledTransactionGroupID) {
+		fields = append(fields, chargeexternalpaymentsettlement.FieldSettledTransactionGroupID)
+	}
+	if m.FieldCleared(chargeexternalpaymentsettlement.FieldSettledAt) {
+		fields = append(fields, chargeexternalpaymentsettlement.FieldSettledAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ChargeExternalPaymentSettlementMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ChargeExternalPaymentSettlementMutation) ClearField(name string) error {
+	switch name {
+	case chargeexternalpaymentsettlement.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case chargeexternalpaymentsettlement.FieldAnnotations:
+		m.ClearAnnotations()
+		return nil
+	case chargeexternalpaymentsettlement.FieldAuthorizedTransactionGroupID:
+		m.ClearAuthorizedTransactionGroupID()
+		return nil
+	case chargeexternalpaymentsettlement.FieldAuthorizedAt:
+		m.ClearAuthorizedAt()
+		return nil
+	case chargeexternalpaymentsettlement.FieldSettledTransactionGroupID:
+		m.ClearSettledTransactionGroupID()
+		return nil
+	case chargeexternalpaymentsettlement.FieldSettledAt:
+		m.ClearSettledAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeExternalPaymentSettlement nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ChargeExternalPaymentSettlementMutation) ResetField(name string) error {
+	switch name {
+	case chargeexternalpaymentsettlement.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case chargeexternalpaymentsettlement.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case chargeexternalpaymentsettlement.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case chargeexternalpaymentsettlement.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case chargeexternalpaymentsettlement.FieldAnnotations:
+		m.ResetAnnotations()
+		return nil
+	case chargeexternalpaymentsettlement.FieldServicePeriodFrom:
+		m.ResetServicePeriodFrom()
+		return nil
+	case chargeexternalpaymentsettlement.FieldServicePeriodTo:
+		m.ResetServicePeriodTo()
+		return nil
+	case chargeexternalpaymentsettlement.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case chargeexternalpaymentsettlement.FieldAmount:
+		m.ResetAmount()
+		return nil
+	case chargeexternalpaymentsettlement.FieldAuthorizedTransactionGroupID:
+		m.ResetAuthorizedTransactionGroupID()
+		return nil
+	case chargeexternalpaymentsettlement.FieldAuthorizedAt:
+		m.ResetAuthorizedAt()
+		return nil
+	case chargeexternalpaymentsettlement.FieldSettledTransactionGroupID:
+		m.ResetSettledTransactionGroupID()
+		return nil
+	case chargeexternalpaymentsettlement.FieldSettledAt:
+		m.ResetSettledAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeExternalPaymentSettlement field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ChargeExternalPaymentSettlementMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.charge_credit_purchase != nil {
+		edges = append(edges, chargeexternalpaymentsettlement.EdgeChargeCreditPurchase)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ChargeExternalPaymentSettlementMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case chargeexternalpaymentsettlement.EdgeChargeCreditPurchase:
+		if id := m.charge_credit_purchase; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ChargeExternalPaymentSettlementMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ChargeExternalPaymentSettlementMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ChargeExternalPaymentSettlementMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedcharge_credit_purchase {
+		edges = append(edges, chargeexternalpaymentsettlement.EdgeChargeCreditPurchase)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ChargeExternalPaymentSettlementMutation) EdgeCleared(name string) bool {
+	switch name {
+	case chargeexternalpaymentsettlement.EdgeChargeCreditPurchase:
+		return m.clearedcharge_credit_purchase
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ChargeExternalPaymentSettlementMutation) ClearEdge(name string) error {
+	switch name {
+	case chargeexternalpaymentsettlement.EdgeChargeCreditPurchase:
+		m.ClearChargeCreditPurchase()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeExternalPaymentSettlement unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ChargeExternalPaymentSettlementMutation) ResetEdge(name string) error {
+	switch name {
+	case chargeexternalpaymentsettlement.EdgeChargeCreditPurchase:
+		m.ResetChargeCreditPurchase()
+		return nil
+	}
+	return fmt.Errorf("unknown ChargeExternalPaymentSettlement edge %s", name)
+}
+
 // ChargeFlatFeeMutation represents an operation that mutates the ChargeFlatFee nodes in the graph.
 type ChargeFlatFeeMutation struct {
 	config
@@ -38390,6 +39783,55 @@ func (m *ChargeFlatFeeMutation) ResetAmountAfterProration() {
 	m.amount_after_proration = nil
 }
 
+// SetStdInvoicePaymentSettlementID sets the "std_invoice_payment_settlement_id" field.
+func (m *ChargeFlatFeeMutation) SetStdInvoicePaymentSettlementID(s string) {
+	m.charge_standard_invoice_payment_settlement = &s
+}
+
+// StdInvoicePaymentSettlementID returns the value of the "std_invoice_payment_settlement_id" field in the mutation.
+func (m *ChargeFlatFeeMutation) StdInvoicePaymentSettlementID() (r string, exists bool) {
+	v := m.charge_standard_invoice_payment_settlement
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStdInvoicePaymentSettlementID returns the old "std_invoice_payment_settlement_id" field's value of the ChargeFlatFee entity.
+// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeMutation) OldStdInvoicePaymentSettlementID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStdInvoicePaymentSettlementID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStdInvoicePaymentSettlementID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStdInvoicePaymentSettlementID: %w", err)
+	}
+	return oldValue.StdInvoicePaymentSettlementID, nil
+}
+
+// ClearStdInvoicePaymentSettlementID clears the value of the "std_invoice_payment_settlement_id" field.
+func (m *ChargeFlatFeeMutation) ClearStdInvoicePaymentSettlementID() {
+	m.charge_standard_invoice_payment_settlement = nil
+	m.clearedFields[chargeflatfee.FieldStdInvoicePaymentSettlementID] = struct{}{}
+}
+
+// StdInvoicePaymentSettlementIDCleared returns if the "std_invoice_payment_settlement_id" field was cleared in this mutation.
+func (m *ChargeFlatFeeMutation) StdInvoicePaymentSettlementIDCleared() bool {
+	_, ok := m.clearedFields[chargeflatfee.FieldStdInvoicePaymentSettlementID]
+	return ok
+}
+
+// ResetStdInvoicePaymentSettlementID resets all changes to the "std_invoice_payment_settlement_id" field.
+func (m *ChargeFlatFeeMutation) ResetStdInvoicePaymentSettlementID() {
+	m.charge_standard_invoice_payment_settlement = nil
+	delete(m.clearedFields, chargeflatfee.FieldStdInvoicePaymentSettlementID)
+}
+
 // SetChargeID sets the "charge" edge to the Charge entity by id.
 func (m *ChargeFlatFeeMutation) SetChargeID(id string) {
 	m.charge = &id
@@ -38437,11 +39879,12 @@ func (m *ChargeFlatFeeMutation) SetChargeStandardInvoicePaymentSettlementID(id s
 // ClearChargeStandardInvoicePaymentSettlement clears the "charge_standard_invoice_payment_settlement" edge to the ChargeStandardInvoicePaymentSettlement entity.
 func (m *ChargeFlatFeeMutation) ClearChargeStandardInvoicePaymentSettlement() {
 	m.clearedcharge_standard_invoice_payment_settlement = true
+	m.clearedFields[chargeflatfee.FieldStdInvoicePaymentSettlementID] = struct{}{}
 }
 
 // ChargeStandardInvoicePaymentSettlementCleared reports if the "charge_standard_invoice_payment_settlement" edge to the ChargeStandardInvoicePaymentSettlement entity was cleared.
 func (m *ChargeFlatFeeMutation) ChargeStandardInvoicePaymentSettlementCleared() bool {
-	return m.clearedcharge_standard_invoice_payment_settlement
+	return m.StdInvoicePaymentSettlementIDCleared() || m.clearedcharge_standard_invoice_payment_settlement
 }
 
 // ChargeStandardInvoicePaymentSettlementID returns the "charge_standard_invoice_payment_settlement" edge ID in the mutation.
@@ -38595,7 +40038,7 @@ func (m *ChargeFlatFeeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeFlatFeeMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 10)
 	if m.namespace != nil {
 		fields = append(fields, chargeflatfee.FieldNamespace)
 	}
@@ -38623,6 +40066,9 @@ func (m *ChargeFlatFeeMutation) Fields() []string {
 	if m.amount_after_proration != nil {
 		fields = append(fields, chargeflatfee.FieldAmountAfterProration)
 	}
+	if m.charge_standard_invoice_payment_settlement != nil {
+		fields = append(fields, chargeflatfee.FieldStdInvoicePaymentSettlementID)
+	}
 	return fields
 }
 
@@ -38649,6 +40095,8 @@ func (m *ChargeFlatFeeMutation) Field(name string) (ent.Value, bool) {
 		return m.AmountBeforeProration()
 	case chargeflatfee.FieldAmountAfterProration:
 		return m.AmountAfterProration()
+	case chargeflatfee.FieldStdInvoicePaymentSettlementID:
+		return m.StdInvoicePaymentSettlementID()
 	}
 	return nil, false
 }
@@ -38676,6 +40124,8 @@ func (m *ChargeFlatFeeMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldAmountBeforeProration(ctx)
 	case chargeflatfee.FieldAmountAfterProration:
 		return m.OldAmountAfterProration(ctx)
+	case chargeflatfee.FieldStdInvoicePaymentSettlementID:
+		return m.OldStdInvoicePaymentSettlementID(ctx)
 	}
 	return nil, fmt.Errorf("unknown ChargeFlatFee field %s", name)
 }
@@ -38748,6 +40198,13 @@ func (m *ChargeFlatFeeMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetAmountAfterProration(v)
 		return nil
+	case chargeflatfee.FieldStdInvoicePaymentSettlementID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStdInvoicePaymentSettlementID(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFee field %s", name)
 }
@@ -38784,6 +40241,9 @@ func (m *ChargeFlatFeeMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeflatfee.FieldFeatureKey) {
 		fields = append(fields, chargeflatfee.FieldFeatureKey)
 	}
+	if m.FieldCleared(chargeflatfee.FieldStdInvoicePaymentSettlementID) {
+		fields = append(fields, chargeflatfee.FieldStdInvoicePaymentSettlementID)
+	}
 	return fields
 }
 
@@ -38803,6 +40263,9 @@ func (m *ChargeFlatFeeMutation) ClearField(name string) error {
 		return nil
 	case chargeflatfee.FieldFeatureKey:
 		m.ClearFeatureKey()
+		return nil
+	case chargeflatfee.FieldStdInvoicePaymentSettlementID:
+		m.ClearStdInvoicePaymentSettlementID()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFee nullable field %s", name)
@@ -38838,6 +40301,9 @@ func (m *ChargeFlatFeeMutation) ResetField(name string) error {
 		return nil
 	case chargeflatfee.FieldAmountAfterProration:
 		m.ResetAmountAfterProration()
+		return nil
+	case chargeflatfee.FieldStdInvoicePaymentSettlementID:
+		m.ResetStdInvoicePaymentSettlementID()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFee field %s", name)
@@ -40503,7 +41969,7 @@ type ChargeStandardInvoicePaymentSettlementMutation struct {
 	annotations                     *models.Annotations
 	service_period_from             *time.Time
 	service_period_to               *time.Time
-	status                          *charges.StandardInvoicePaymentSettlementStatus
+	status                          *charges.PaymentSettlementStatus
 	amount                          *alpacadecimal.Decimal
 	authorized_transaction_group_id *string
 	authorized_at                   *time.Time
@@ -40512,8 +41978,8 @@ type ChargeStandardInvoicePaymentSettlementMutation struct {
 	clearedFields                   map[string]struct{}
 	billing_invoice_line            *string
 	clearedbilling_invoice_line     bool
-	flat_fee                        *string
-	clearedflat_fee                 bool
+	charge_flat_fee                 *string
+	clearedcharge_flat_fee          bool
 	done                            bool
 	oldValue                        func(context.Context) (*ChargeStandardInvoicePaymentSettlement, error)
 	predicates                      []predicate.ChargeStandardInvoicePaymentSettlement
@@ -40865,42 +42331,6 @@ func (m *ChargeStandardInvoicePaymentSettlementMutation) ResetLineID() {
 	m.billing_invoice_line = nil
 }
 
-// SetChargeID sets the "charge_id" field.
-func (m *ChargeStandardInvoicePaymentSettlementMutation) SetChargeID(s string) {
-	m.flat_fee = &s
-}
-
-// ChargeID returns the value of the "charge_id" field in the mutation.
-func (m *ChargeStandardInvoicePaymentSettlementMutation) ChargeID() (r string, exists bool) {
-	v := m.flat_fee
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldChargeID returns the old "charge_id" field's value of the ChargeStandardInvoicePaymentSettlement entity.
-// If the ChargeStandardInvoicePaymentSettlement object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeStandardInvoicePaymentSettlementMutation) OldChargeID(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldChargeID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldChargeID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldChargeID: %w", err)
-	}
-	return oldValue.ChargeID, nil
-}
-
-// ResetChargeID resets all changes to the "charge_id" field.
-func (m *ChargeStandardInvoicePaymentSettlementMutation) ResetChargeID() {
-	m.flat_fee = nil
-}
-
 // SetServicePeriodFrom sets the "service_period_from" field.
 func (m *ChargeStandardInvoicePaymentSettlementMutation) SetServicePeriodFrom(t time.Time) {
 	m.service_period_from = &t
@@ -40974,12 +42404,12 @@ func (m *ChargeStandardInvoicePaymentSettlementMutation) ResetServicePeriodTo() 
 }
 
 // SetStatus sets the "status" field.
-func (m *ChargeStandardInvoicePaymentSettlementMutation) SetStatus(cipss charges.StandardInvoicePaymentSettlementStatus) {
-	m.status = &cipss
+func (m *ChargeStandardInvoicePaymentSettlementMutation) SetStatus(css charges.PaymentSettlementStatus) {
+	m.status = &css
 }
 
 // Status returns the value of the "status" field in the mutation.
-func (m *ChargeStandardInvoicePaymentSettlementMutation) Status() (r charges.StandardInvoicePaymentSettlementStatus, exists bool) {
+func (m *ChargeStandardInvoicePaymentSettlementMutation) Status() (r charges.PaymentSettlementStatus, exists bool) {
 	v := m.status
 	if v == nil {
 		return
@@ -40990,7 +42420,7 @@ func (m *ChargeStandardInvoicePaymentSettlementMutation) Status() (r charges.Sta
 // OldStatus returns the old "status" field's value of the ChargeStandardInvoicePaymentSettlement entity.
 // If the ChargeStandardInvoicePaymentSettlement object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeStandardInvoicePaymentSettlementMutation) OldStatus(ctx context.Context) (v charges.StandardInvoicePaymentSettlementStatus, err error) {
+func (m *ChargeStandardInvoicePaymentSettlementMutation) OldStatus(ctx context.Context) (v charges.PaymentSettlementStatus, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
 	}
@@ -41281,44 +42711,43 @@ func (m *ChargeStandardInvoicePaymentSettlementMutation) ResetBillingInvoiceLine
 	m.clearedbilling_invoice_line = false
 }
 
-// SetFlatFeeID sets the "flat_fee" edge to the ChargeFlatFee entity by id.
-func (m *ChargeStandardInvoicePaymentSettlementMutation) SetFlatFeeID(id string) {
-	m.flat_fee = &id
+// SetChargeFlatFeeID sets the "charge_flat_fee" edge to the ChargeFlatFee entity by id.
+func (m *ChargeStandardInvoicePaymentSettlementMutation) SetChargeFlatFeeID(id string) {
+	m.charge_flat_fee = &id
 }
 
-// ClearFlatFee clears the "flat_fee" edge to the ChargeFlatFee entity.
-func (m *ChargeStandardInvoicePaymentSettlementMutation) ClearFlatFee() {
-	m.clearedflat_fee = true
-	m.clearedFields[chargestandardinvoicepaymentsettlement.FieldChargeID] = struct{}{}
+// ClearChargeFlatFee clears the "charge_flat_fee" edge to the ChargeFlatFee entity.
+func (m *ChargeStandardInvoicePaymentSettlementMutation) ClearChargeFlatFee() {
+	m.clearedcharge_flat_fee = true
 }
 
-// FlatFeeCleared reports if the "flat_fee" edge to the ChargeFlatFee entity was cleared.
-func (m *ChargeStandardInvoicePaymentSettlementMutation) FlatFeeCleared() bool {
-	return m.clearedflat_fee
+// ChargeFlatFeeCleared reports if the "charge_flat_fee" edge to the ChargeFlatFee entity was cleared.
+func (m *ChargeStandardInvoicePaymentSettlementMutation) ChargeFlatFeeCleared() bool {
+	return m.clearedcharge_flat_fee
 }
 
-// FlatFeeID returns the "flat_fee" edge ID in the mutation.
-func (m *ChargeStandardInvoicePaymentSettlementMutation) FlatFeeID() (id string, exists bool) {
-	if m.flat_fee != nil {
-		return *m.flat_fee, true
+// ChargeFlatFeeID returns the "charge_flat_fee" edge ID in the mutation.
+func (m *ChargeStandardInvoicePaymentSettlementMutation) ChargeFlatFeeID() (id string, exists bool) {
+	if m.charge_flat_fee != nil {
+		return *m.charge_flat_fee, true
 	}
 	return
 }
 
-// FlatFeeIDs returns the "flat_fee" edge IDs in the mutation.
+// ChargeFlatFeeIDs returns the "charge_flat_fee" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// FlatFeeID instead. It exists only for internal usage by the builders.
-func (m *ChargeStandardInvoicePaymentSettlementMutation) FlatFeeIDs() (ids []string) {
-	if id := m.flat_fee; id != nil {
+// ChargeFlatFeeID instead. It exists only for internal usage by the builders.
+func (m *ChargeStandardInvoicePaymentSettlementMutation) ChargeFlatFeeIDs() (ids []string) {
+	if id := m.charge_flat_fee; id != nil {
 		ids = append(ids, *id)
 	}
 	return
 }
 
-// ResetFlatFee resets all changes to the "flat_fee" edge.
-func (m *ChargeStandardInvoicePaymentSettlementMutation) ResetFlatFee() {
-	m.flat_fee = nil
-	m.clearedflat_fee = false
+// ResetChargeFlatFee resets all changes to the "charge_flat_fee" edge.
+func (m *ChargeStandardInvoicePaymentSettlementMutation) ResetChargeFlatFee() {
+	m.charge_flat_fee = nil
+	m.clearedcharge_flat_fee = false
 }
 
 // Where appends a list predicates to the ChargeStandardInvoicePaymentSettlementMutation builder.
@@ -41355,7 +42784,7 @@ func (m *ChargeStandardInvoicePaymentSettlementMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeStandardInvoicePaymentSettlementMutation) Fields() []string {
-	fields := make([]string, 0, 15)
+	fields := make([]string, 0, 14)
 	if m.namespace != nil {
 		fields = append(fields, chargestandardinvoicepaymentsettlement.FieldNamespace)
 	}
@@ -41373,9 +42802,6 @@ func (m *ChargeStandardInvoicePaymentSettlementMutation) Fields() []string {
 	}
 	if m.billing_invoice_line != nil {
 		fields = append(fields, chargestandardinvoicepaymentsettlement.FieldLineID)
-	}
-	if m.flat_fee != nil {
-		fields = append(fields, chargestandardinvoicepaymentsettlement.FieldChargeID)
 	}
 	if m.service_period_from != nil {
 		fields = append(fields, chargestandardinvoicepaymentsettlement.FieldServicePeriodFrom)
@@ -41421,8 +42847,6 @@ func (m *ChargeStandardInvoicePaymentSettlementMutation) Field(name string) (ent
 		return m.Annotations()
 	case chargestandardinvoicepaymentsettlement.FieldLineID:
 		return m.LineID()
-	case chargestandardinvoicepaymentsettlement.FieldChargeID:
-		return m.ChargeID()
 	case chargestandardinvoicepaymentsettlement.FieldServicePeriodFrom:
 		return m.ServicePeriodFrom()
 	case chargestandardinvoicepaymentsettlement.FieldServicePeriodTo:
@@ -41460,8 +42884,6 @@ func (m *ChargeStandardInvoicePaymentSettlementMutation) OldField(ctx context.Co
 		return m.OldAnnotations(ctx)
 	case chargestandardinvoicepaymentsettlement.FieldLineID:
 		return m.OldLineID(ctx)
-	case chargestandardinvoicepaymentsettlement.FieldChargeID:
-		return m.OldChargeID(ctx)
 	case chargestandardinvoicepaymentsettlement.FieldServicePeriodFrom:
 		return m.OldServicePeriodFrom(ctx)
 	case chargestandardinvoicepaymentsettlement.FieldServicePeriodTo:
@@ -41529,13 +42951,6 @@ func (m *ChargeStandardInvoicePaymentSettlementMutation) SetField(name string, v
 		}
 		m.SetLineID(v)
 		return nil
-	case chargestandardinvoicepaymentsettlement.FieldChargeID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetChargeID(v)
-		return nil
 	case chargestandardinvoicepaymentsettlement.FieldServicePeriodFrom:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -41551,7 +42966,7 @@ func (m *ChargeStandardInvoicePaymentSettlementMutation) SetField(name string, v
 		m.SetServicePeriodTo(v)
 		return nil
 	case chargestandardinvoicepaymentsettlement.FieldStatus:
-		v, ok := value.(charges.StandardInvoicePaymentSettlementStatus)
+		v, ok := value.(charges.PaymentSettlementStatus)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -41698,9 +43113,6 @@ func (m *ChargeStandardInvoicePaymentSettlementMutation) ResetField(name string)
 	case chargestandardinvoicepaymentsettlement.FieldLineID:
 		m.ResetLineID()
 		return nil
-	case chargestandardinvoicepaymentsettlement.FieldChargeID:
-		m.ResetChargeID()
-		return nil
 	case chargestandardinvoicepaymentsettlement.FieldServicePeriodFrom:
 		m.ResetServicePeriodFrom()
 		return nil
@@ -41735,8 +43147,8 @@ func (m *ChargeStandardInvoicePaymentSettlementMutation) AddedEdges() []string {
 	if m.billing_invoice_line != nil {
 		edges = append(edges, chargestandardinvoicepaymentsettlement.EdgeBillingInvoiceLine)
 	}
-	if m.flat_fee != nil {
-		edges = append(edges, chargestandardinvoicepaymentsettlement.EdgeFlatFee)
+	if m.charge_flat_fee != nil {
+		edges = append(edges, chargestandardinvoicepaymentsettlement.EdgeChargeFlatFee)
 	}
 	return edges
 }
@@ -41749,8 +43161,8 @@ func (m *ChargeStandardInvoicePaymentSettlementMutation) AddedIDs(name string) [
 		if id := m.billing_invoice_line; id != nil {
 			return []ent.Value{*id}
 		}
-	case chargestandardinvoicepaymentsettlement.EdgeFlatFee:
-		if id := m.flat_fee; id != nil {
+	case chargestandardinvoicepaymentsettlement.EdgeChargeFlatFee:
+		if id := m.charge_flat_fee; id != nil {
 			return []ent.Value{*id}
 		}
 	}
@@ -41775,8 +43187,8 @@ func (m *ChargeStandardInvoicePaymentSettlementMutation) ClearedEdges() []string
 	if m.clearedbilling_invoice_line {
 		edges = append(edges, chargestandardinvoicepaymentsettlement.EdgeBillingInvoiceLine)
 	}
-	if m.clearedflat_fee {
-		edges = append(edges, chargestandardinvoicepaymentsettlement.EdgeFlatFee)
+	if m.clearedcharge_flat_fee {
+		edges = append(edges, chargestandardinvoicepaymentsettlement.EdgeChargeFlatFee)
 	}
 	return edges
 }
@@ -41787,8 +43199,8 @@ func (m *ChargeStandardInvoicePaymentSettlementMutation) EdgeCleared(name string
 	switch name {
 	case chargestandardinvoicepaymentsettlement.EdgeBillingInvoiceLine:
 		return m.clearedbilling_invoice_line
-	case chargestandardinvoicepaymentsettlement.EdgeFlatFee:
-		return m.clearedflat_fee
+	case chargestandardinvoicepaymentsettlement.EdgeChargeFlatFee:
+		return m.clearedcharge_flat_fee
 	}
 	return false
 }
@@ -41800,8 +43212,8 @@ func (m *ChargeStandardInvoicePaymentSettlementMutation) ClearEdge(name string) 
 	case chargestandardinvoicepaymentsettlement.EdgeBillingInvoiceLine:
 		m.ClearBillingInvoiceLine()
 		return nil
-	case chargestandardinvoicepaymentsettlement.EdgeFlatFee:
-		m.ClearFlatFee()
+	case chargestandardinvoicepaymentsettlement.EdgeChargeFlatFee:
+		m.ClearChargeFlatFee()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeStandardInvoicePaymentSettlement unique edge %s", name)
@@ -41814,8 +43226,8 @@ func (m *ChargeStandardInvoicePaymentSettlementMutation) ResetEdge(name string) 
 	case chargestandardinvoicepaymentsettlement.EdgeBillingInvoiceLine:
 		m.ResetBillingInvoiceLine()
 		return nil
-	case chargestandardinvoicepaymentsettlement.EdgeFlatFee:
-		m.ResetFlatFee()
+	case chargestandardinvoicepaymentsettlement.EdgeChargeFlatFee:
+		m.ResetChargeFlatFee()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeStandardInvoicePaymentSettlement edge %s", name)

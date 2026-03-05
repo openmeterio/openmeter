@@ -12,14 +12,13 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicepaymentsettlement"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeexternalpaymentsettlement"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// ChargeStandardInvoicePaymentSettlement is the model entity for the ChargeStandardInvoicePaymentSettlement schema.
-type ChargeStandardInvoicePaymentSettlement struct {
+// ChargeExternalPaymentSettlement is the model entity for the ChargeExternalPaymentSettlement schema.
+type ChargeExternalPaymentSettlement struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
@@ -33,8 +32,6 @@ type ChargeStandardInvoicePaymentSettlement struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Annotations holds the value of the "annotations" field.
 	Annotations models.Annotations `json:"annotations,omitempty"`
-	// LineID holds the value of the "line_id" field.
-	LineID string `json:"line_id,omitempty"`
 	// ServicePeriodFrom holds the value of the "service_period_from" field.
 	ServicePeriodFrom time.Time `json:"service_period_from,omitempty"`
 	// ServicePeriodTo holds the value of the "service_period_to" field.
@@ -52,56 +49,43 @@ type ChargeStandardInvoicePaymentSettlement struct {
 	// SettledAt holds the value of the "settled_at" field.
 	SettledAt *time.Time `json:"settled_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
-	// The values are being populated by the ChargeStandardInvoicePaymentSettlementQuery when eager-loading is set.
-	Edges        ChargeStandardInvoicePaymentSettlementEdges `json:"edges"`
+	// The values are being populated by the ChargeExternalPaymentSettlementQuery when eager-loading is set.
+	Edges        ChargeExternalPaymentSettlementEdges `json:"edges"`
 	selectValues sql.SelectValues
 }
 
-// ChargeStandardInvoicePaymentSettlementEdges holds the relations/edges for other nodes in the graph.
-type ChargeStandardInvoicePaymentSettlementEdges struct {
-	// BillingInvoiceLine holds the value of the billing_invoice_line edge.
-	BillingInvoiceLine *BillingInvoiceLine `json:"billing_invoice_line,omitempty"`
-	// ChargeFlatFee holds the value of the charge_flat_fee edge.
-	ChargeFlatFee *ChargeFlatFee `json:"charge_flat_fee,omitempty"`
+// ChargeExternalPaymentSettlementEdges holds the relations/edges for other nodes in the graph.
+type ChargeExternalPaymentSettlementEdges struct {
+	// ChargeCreditPurchase holds the value of the charge_credit_purchase edge.
+	ChargeCreditPurchase *ChargeCreditPurchase `json:"charge_credit_purchase,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [1]bool
 }
 
-// BillingInvoiceLineOrErr returns the BillingInvoiceLine value or an error if the edge
+// ChargeCreditPurchaseOrErr returns the ChargeCreditPurchase value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeStandardInvoicePaymentSettlementEdges) BillingInvoiceLineOrErr() (*BillingInvoiceLine, error) {
-	if e.BillingInvoiceLine != nil {
-		return e.BillingInvoiceLine, nil
+func (e ChargeExternalPaymentSettlementEdges) ChargeCreditPurchaseOrErr() (*ChargeCreditPurchase, error) {
+	if e.ChargeCreditPurchase != nil {
+		return e.ChargeCreditPurchase, nil
 	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: billinginvoiceline.Label}
+		return nil, &NotFoundError{label: chargecreditpurchase.Label}
 	}
-	return nil, &NotLoadedError{edge: "billing_invoice_line"}
-}
-
-// ChargeFlatFeeOrErr returns the ChargeFlatFee value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeStandardInvoicePaymentSettlementEdges) ChargeFlatFeeOrErr() (*ChargeFlatFee, error) {
-	if e.ChargeFlatFee != nil {
-		return e.ChargeFlatFee, nil
-	} else if e.loadedTypes[1] {
-		return nil, &NotFoundError{label: chargeflatfee.Label}
-	}
-	return nil, &NotLoadedError{edge: "charge_flat_fee"}
+	return nil, &NotLoadedError{edge: "charge_credit_purchase"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
-func (*ChargeStandardInvoicePaymentSettlement) scanValues(columns []string) ([]any, error) {
+func (*ChargeExternalPaymentSettlement) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case chargestandardinvoicepaymentsettlement.FieldAnnotations:
+		case chargeexternalpaymentsettlement.FieldAnnotations:
 			values[i] = new([]byte)
-		case chargestandardinvoicepaymentsettlement.FieldAmount:
+		case chargeexternalpaymentsettlement.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargestandardinvoicepaymentsettlement.FieldID, chargestandardinvoicepaymentsettlement.FieldNamespace, chargestandardinvoicepaymentsettlement.FieldLineID, chargestandardinvoicepaymentsettlement.FieldStatus, chargestandardinvoicepaymentsettlement.FieldAuthorizedTransactionGroupID, chargestandardinvoicepaymentsettlement.FieldSettledTransactionGroupID:
+		case chargeexternalpaymentsettlement.FieldID, chargeexternalpaymentsettlement.FieldNamespace, chargeexternalpaymentsettlement.FieldStatus, chargeexternalpaymentsettlement.FieldAuthorizedTransactionGroupID, chargeexternalpaymentsettlement.FieldSettledTransactionGroupID:
 			values[i] = new(sql.NullString)
-		case chargestandardinvoicepaymentsettlement.FieldCreatedAt, chargestandardinvoicepaymentsettlement.FieldUpdatedAt, chargestandardinvoicepaymentsettlement.FieldDeletedAt, chargestandardinvoicepaymentsettlement.FieldServicePeriodFrom, chargestandardinvoicepaymentsettlement.FieldServicePeriodTo, chargestandardinvoicepaymentsettlement.FieldAuthorizedAt, chargestandardinvoicepaymentsettlement.FieldSettledAt:
+		case chargeexternalpaymentsettlement.FieldCreatedAt, chargeexternalpaymentsettlement.FieldUpdatedAt, chargeexternalpaymentsettlement.FieldDeletedAt, chargeexternalpaymentsettlement.FieldServicePeriodFrom, chargeexternalpaymentsettlement.FieldServicePeriodTo, chargeexternalpaymentsettlement.FieldAuthorizedAt, chargeexternalpaymentsettlement.FieldSettledAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -111,45 +95,45 @@ func (*ChargeStandardInvoicePaymentSettlement) scanValues(columns []string) ([]a
 }
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
-// to the ChargeStandardInvoicePaymentSettlement fields.
-func (_m *ChargeStandardInvoicePaymentSettlement) assignValues(columns []string, values []any) error {
+// to the ChargeExternalPaymentSettlement fields.
+func (_m *ChargeExternalPaymentSettlement) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
 	for i := range columns {
 		switch columns[i] {
-		case chargestandardinvoicepaymentsettlement.FieldID:
+		case chargeexternalpaymentsettlement.FieldID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				_m.ID = value.String
 			}
-		case chargestandardinvoicepaymentsettlement.FieldNamespace:
+		case chargeexternalpaymentsettlement.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
 				_m.Namespace = value.String
 			}
-		case chargestandardinvoicepaymentsettlement.FieldCreatedAt:
+		case chargeexternalpaymentsettlement.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				_m.CreatedAt = value.Time
 			}
-		case chargestandardinvoicepaymentsettlement.FieldUpdatedAt:
+		case chargeexternalpaymentsettlement.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
 			}
-		case chargestandardinvoicepaymentsettlement.FieldDeletedAt:
+		case chargeexternalpaymentsettlement.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
 			}
-		case chargestandardinvoicepaymentsettlement.FieldAnnotations:
+		case chargeexternalpaymentsettlement.FieldAnnotations:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field annotations", values[i])
 			} else if value != nil && len(*value) > 0 {
@@ -157,58 +141,52 @@ func (_m *ChargeStandardInvoicePaymentSettlement) assignValues(columns []string,
 					return fmt.Errorf("unmarshal field annotations: %w", err)
 				}
 			}
-		case chargestandardinvoicepaymentsettlement.FieldLineID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field line_id", values[i])
-			} else if value.Valid {
-				_m.LineID = value.String
-			}
-		case chargestandardinvoicepaymentsettlement.FieldServicePeriodFrom:
+		case chargeexternalpaymentsettlement.FieldServicePeriodFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field service_period_from", values[i])
 			} else if value.Valid {
 				_m.ServicePeriodFrom = value.Time
 			}
-		case chargestandardinvoicepaymentsettlement.FieldServicePeriodTo:
+		case chargeexternalpaymentsettlement.FieldServicePeriodTo:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field service_period_to", values[i])
 			} else if value.Valid {
 				_m.ServicePeriodTo = value.Time
 			}
-		case chargestandardinvoicepaymentsettlement.FieldStatus:
+		case chargeexternalpaymentsettlement.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
 				_m.Status = charges.PaymentSettlementStatus(value.String)
 			}
-		case chargestandardinvoicepaymentsettlement.FieldAmount:
+		case chargeexternalpaymentsettlement.FieldAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field amount", values[i])
 			} else if value != nil {
 				_m.Amount = *value
 			}
-		case chargestandardinvoicepaymentsettlement.FieldAuthorizedTransactionGroupID:
+		case chargeexternalpaymentsettlement.FieldAuthorizedTransactionGroupID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field authorized_transaction_group_id", values[i])
 			} else if value.Valid {
 				_m.AuthorizedTransactionGroupID = new(string)
 				*_m.AuthorizedTransactionGroupID = value.String
 			}
-		case chargestandardinvoicepaymentsettlement.FieldAuthorizedAt:
+		case chargeexternalpaymentsettlement.FieldAuthorizedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field authorized_at", values[i])
 			} else if value.Valid {
 				_m.AuthorizedAt = new(time.Time)
 				*_m.AuthorizedAt = value.Time
 			}
-		case chargestandardinvoicepaymentsettlement.FieldSettledTransactionGroupID:
+		case chargeexternalpaymentsettlement.FieldSettledTransactionGroupID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field settled_transaction_group_id", values[i])
 			} else if value.Valid {
 				_m.SettledTransactionGroupID = new(string)
 				*_m.SettledTransactionGroupID = value.String
 			}
-		case chargestandardinvoicepaymentsettlement.FieldSettledAt:
+		case chargeexternalpaymentsettlement.FieldSettledAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field settled_at", values[i])
 			} else if value.Valid {
@@ -222,44 +200,39 @@ func (_m *ChargeStandardInvoicePaymentSettlement) assignValues(columns []string,
 	return nil
 }
 
-// Value returns the ent.Value that was dynamically selected and assigned to the ChargeStandardInvoicePaymentSettlement.
+// Value returns the ent.Value that was dynamically selected and assigned to the ChargeExternalPaymentSettlement.
 // This includes values selected through modifiers, order, etc.
-func (_m *ChargeStandardInvoicePaymentSettlement) Value(name string) (ent.Value, error) {
+func (_m *ChargeExternalPaymentSettlement) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryBillingInvoiceLine queries the "billing_invoice_line" edge of the ChargeStandardInvoicePaymentSettlement entity.
-func (_m *ChargeStandardInvoicePaymentSettlement) QueryBillingInvoiceLine() *BillingInvoiceLineQuery {
-	return NewChargeStandardInvoicePaymentSettlementClient(_m.config).QueryBillingInvoiceLine(_m)
+// QueryChargeCreditPurchase queries the "charge_credit_purchase" edge of the ChargeExternalPaymentSettlement entity.
+func (_m *ChargeExternalPaymentSettlement) QueryChargeCreditPurchase() *ChargeCreditPurchaseQuery {
+	return NewChargeExternalPaymentSettlementClient(_m.config).QueryChargeCreditPurchase(_m)
 }
 
-// QueryChargeFlatFee queries the "charge_flat_fee" edge of the ChargeStandardInvoicePaymentSettlement entity.
-func (_m *ChargeStandardInvoicePaymentSettlement) QueryChargeFlatFee() *ChargeFlatFeeQuery {
-	return NewChargeStandardInvoicePaymentSettlementClient(_m.config).QueryChargeFlatFee(_m)
-}
-
-// Update returns a builder for updating this ChargeStandardInvoicePaymentSettlement.
-// Note that you need to call ChargeStandardInvoicePaymentSettlement.Unwrap() before calling this method if this ChargeStandardInvoicePaymentSettlement
+// Update returns a builder for updating this ChargeExternalPaymentSettlement.
+// Note that you need to call ChargeExternalPaymentSettlement.Unwrap() before calling this method if this ChargeExternalPaymentSettlement
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (_m *ChargeStandardInvoicePaymentSettlement) Update() *ChargeStandardInvoicePaymentSettlementUpdateOne {
-	return NewChargeStandardInvoicePaymentSettlementClient(_m.config).UpdateOne(_m)
+func (_m *ChargeExternalPaymentSettlement) Update() *ChargeExternalPaymentSettlementUpdateOne {
+	return NewChargeExternalPaymentSettlementClient(_m.config).UpdateOne(_m)
 }
 
-// Unwrap unwraps the ChargeStandardInvoicePaymentSettlement entity that was returned from a transaction after it was closed,
+// Unwrap unwraps the ChargeExternalPaymentSettlement entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (_m *ChargeStandardInvoicePaymentSettlement) Unwrap() *ChargeStandardInvoicePaymentSettlement {
+func (_m *ChargeExternalPaymentSettlement) Unwrap() *ChargeExternalPaymentSettlement {
 	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
-		panic("db: ChargeStandardInvoicePaymentSettlement is not a transactional entity")
+		panic("db: ChargeExternalPaymentSettlement is not a transactional entity")
 	}
 	_m.config.driver = _tx.drv
 	return _m
 }
 
 // String implements the fmt.Stringer.
-func (_m *ChargeStandardInvoicePaymentSettlement) String() string {
+func (_m *ChargeExternalPaymentSettlement) String() string {
 	var builder strings.Builder
-	builder.WriteString("ChargeStandardInvoicePaymentSettlement(")
+	builder.WriteString("ChargeExternalPaymentSettlement(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
 	builder.WriteString(_m.Namespace)
@@ -277,9 +250,6 @@ func (_m *ChargeStandardInvoicePaymentSettlement) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("annotations=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
-	builder.WriteString(", ")
-	builder.WriteString("line_id=")
-	builder.WriteString(_m.LineID)
 	builder.WriteString(", ")
 	builder.WriteString("service_period_from=")
 	builder.WriteString(_m.ServicePeriodFrom.Format(time.ANSIC))
@@ -316,5 +286,5 @@ func (_m *ChargeStandardInvoicePaymentSettlement) String() string {
 	return builder.String()
 }
 
-// ChargeStandardInvoicePaymentSettlements is a parsable slice of ChargeStandardInvoicePaymentSettlement.
-type ChargeStandardInvoicePaymentSettlements []*ChargeStandardInvoicePaymentSettlement
+// ChargeExternalPaymentSettlements is a parsable slice of ChargeExternalPaymentSettlement.
+type ChargeExternalPaymentSettlements []*ChargeExternalPaymentSettlement

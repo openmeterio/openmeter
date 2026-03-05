@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -14,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeexternalpaymentsettlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -58,17 +60,63 @@ func (_u *ChargeCreditPurchaseUpdate) SetNillableSettlement(v *charges.CreditPur
 	return _u
 }
 
-// SetStatus sets the "status" field.
-func (_u *ChargeCreditPurchaseUpdate) SetStatus(v charges.PaymentSettlementStatus) *ChargeCreditPurchaseUpdate {
-	_u.mutation.SetStatus(v)
+// SetCreditGrantTransactionGroupID sets the "credit_grant_transaction_group_id" field.
+func (_u *ChargeCreditPurchaseUpdate) SetCreditGrantTransactionGroupID(v string) *ChargeCreditPurchaseUpdate {
+	_u.mutation.SetCreditGrantTransactionGroupID(v)
 	return _u
 }
 
-// SetNillableStatus sets the "status" field if the given value is not nil.
-func (_u *ChargeCreditPurchaseUpdate) SetNillableStatus(v *charges.PaymentSettlementStatus) *ChargeCreditPurchaseUpdate {
+// SetNillableCreditGrantTransactionGroupID sets the "credit_grant_transaction_group_id" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdate) SetNillableCreditGrantTransactionGroupID(v *string) *ChargeCreditPurchaseUpdate {
 	if v != nil {
-		_u.SetStatus(*v)
+		_u.SetCreditGrantTransactionGroupID(*v)
 	}
+	return _u
+}
+
+// ClearCreditGrantTransactionGroupID clears the value of the "credit_grant_transaction_group_id" field.
+func (_u *ChargeCreditPurchaseUpdate) ClearCreditGrantTransactionGroupID() *ChargeCreditPurchaseUpdate {
+	_u.mutation.ClearCreditGrantTransactionGroupID()
+	return _u
+}
+
+// SetCreditGrantedAt sets the "credit_granted_at" field.
+func (_u *ChargeCreditPurchaseUpdate) SetCreditGrantedAt(v time.Time) *ChargeCreditPurchaseUpdate {
+	_u.mutation.SetCreditGrantedAt(v)
+	return _u
+}
+
+// SetNillableCreditGrantedAt sets the "credit_granted_at" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdate) SetNillableCreditGrantedAt(v *time.Time) *ChargeCreditPurchaseUpdate {
+	if v != nil {
+		_u.SetCreditGrantedAt(*v)
+	}
+	return _u
+}
+
+// ClearCreditGrantedAt clears the value of the "credit_granted_at" field.
+func (_u *ChargeCreditPurchaseUpdate) ClearCreditGrantedAt() *ChargeCreditPurchaseUpdate {
+	_u.mutation.ClearCreditGrantedAt()
+	return _u
+}
+
+// SetExternalPaymentSettlementID sets the "external_payment_settlement_id" field.
+func (_u *ChargeCreditPurchaseUpdate) SetExternalPaymentSettlementID(v string) *ChargeCreditPurchaseUpdate {
+	_u.mutation.SetExternalPaymentSettlementID(v)
+	return _u
+}
+
+// SetNillableExternalPaymentSettlementID sets the "external_payment_settlement_id" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdate) SetNillableExternalPaymentSettlementID(v *string) *ChargeCreditPurchaseUpdate {
+	if v != nil {
+		_u.SetExternalPaymentSettlementID(*v)
+	}
+	return _u
+}
+
+// ClearExternalPaymentSettlementID clears the value of the "external_payment_settlement_id" field.
+func (_u *ChargeCreditPurchaseUpdate) ClearExternalPaymentSettlementID() *ChargeCreditPurchaseUpdate {
+	_u.mutation.ClearExternalPaymentSettlementID()
 	return _u
 }
 
@@ -83,6 +131,25 @@ func (_u *ChargeCreditPurchaseUpdate) SetCharge(v *Charge) *ChargeCreditPurchase
 	return _u.SetChargeID(v.ID)
 }
 
+// SetChargeExternalPaymentSettlementID sets the "charge_external_payment_settlement" edge to the ChargeExternalPaymentSettlement entity by ID.
+func (_u *ChargeCreditPurchaseUpdate) SetChargeExternalPaymentSettlementID(id string) *ChargeCreditPurchaseUpdate {
+	_u.mutation.SetChargeExternalPaymentSettlementID(id)
+	return _u
+}
+
+// SetNillableChargeExternalPaymentSettlementID sets the "charge_external_payment_settlement" edge to the ChargeExternalPaymentSettlement entity by ID if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdate) SetNillableChargeExternalPaymentSettlementID(id *string) *ChargeCreditPurchaseUpdate {
+	if id != nil {
+		_u = _u.SetChargeExternalPaymentSettlementID(*id)
+	}
+	return _u
+}
+
+// SetChargeExternalPaymentSettlement sets the "charge_external_payment_settlement" edge to the ChargeExternalPaymentSettlement entity.
+func (_u *ChargeCreditPurchaseUpdate) SetChargeExternalPaymentSettlement(v *ChargeExternalPaymentSettlement) *ChargeCreditPurchaseUpdate {
+	return _u.SetChargeExternalPaymentSettlementID(v.ID)
+}
+
 // Mutation returns the ChargeCreditPurchaseMutation object of the builder.
 func (_u *ChargeCreditPurchaseUpdate) Mutation() *ChargeCreditPurchaseMutation {
 	return _u.mutation
@@ -91,6 +158,12 @@ func (_u *ChargeCreditPurchaseUpdate) Mutation() *ChargeCreditPurchaseMutation {
 // ClearCharge clears the "charge" edge to the Charge entity.
 func (_u *ChargeCreditPurchaseUpdate) ClearCharge() *ChargeCreditPurchaseUpdate {
 	_u.mutation.ClearCharge()
+	return _u
+}
+
+// ClearChargeExternalPaymentSettlement clears the "charge_external_payment_settlement" edge to the ChargeExternalPaymentSettlement entity.
+func (_u *ChargeCreditPurchaseUpdate) ClearChargeExternalPaymentSettlement() *ChargeCreditPurchaseUpdate {
+	_u.mutation.ClearChargeExternalPaymentSettlement()
 	return _u
 }
 
@@ -128,9 +201,14 @@ func (_u *ChargeCreditPurchaseUpdate) check() error {
 			return &ValidationError{Name: "settlement", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.settlement": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := chargecreditpurchase.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.status": %w`, err)}
+	if v, ok := _u.mutation.CreditGrantTransactionGroupID(); ok {
+		if err := chargecreditpurchase.CreditGrantTransactionGroupIDValidator(v); err != nil {
+			return &ValidationError{Name: "credit_grant_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.credit_grant_transaction_group_id": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.ExternalPaymentSettlementID(); ok {
+		if err := chargecreditpurchase.ExternalPaymentSettlementIDValidator(v); err != nil {
+			return &ValidationError{Name: "external_payment_settlement_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.external_payment_settlement_id": %w`, err)}
 		}
 	}
 	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
@@ -161,8 +239,17 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 		}
 		_spec.SetField(chargecreditpurchase.FieldSettlement, field.TypeString, vv)
 	}
-	if value, ok := _u.mutation.Status(); ok {
-		_spec.SetField(chargecreditpurchase.FieldStatus, field.TypeEnum, value)
+	if value, ok := _u.mutation.CreditGrantTransactionGroupID(); ok {
+		_spec.SetField(chargecreditpurchase.FieldCreditGrantTransactionGroupID, field.TypeString, value)
+	}
+	if _u.mutation.CreditGrantTransactionGroupIDCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldCreditGrantTransactionGroupID, field.TypeString)
+	}
+	if value, ok := _u.mutation.CreditGrantedAt(); ok {
+		_spec.SetField(chargecreditpurchase.FieldCreditGrantedAt, field.TypeTime, value)
+	}
+	if _u.mutation.CreditGrantedAtCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldCreditGrantedAt, field.TypeTime)
 	}
 	if _u.mutation.ChargeCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -186,6 +273,35 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeExternalPaymentSettlementCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.ChargeExternalPaymentSettlementTable,
+			Columns: []string{chargecreditpurchase.ChargeExternalPaymentSettlementColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeexternalpaymentsettlement.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeExternalPaymentSettlementIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.ChargeExternalPaymentSettlementTable,
+			Columns: []string{chargecreditpurchase.ChargeExternalPaymentSettlementColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeexternalpaymentsettlement.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -241,17 +357,63 @@ func (_u *ChargeCreditPurchaseUpdateOne) SetNillableSettlement(v *charges.Credit
 	return _u
 }
 
-// SetStatus sets the "status" field.
-func (_u *ChargeCreditPurchaseUpdateOne) SetStatus(v charges.PaymentSettlementStatus) *ChargeCreditPurchaseUpdateOne {
-	_u.mutation.SetStatus(v)
+// SetCreditGrantTransactionGroupID sets the "credit_grant_transaction_group_id" field.
+func (_u *ChargeCreditPurchaseUpdateOne) SetCreditGrantTransactionGroupID(v string) *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.SetCreditGrantTransactionGroupID(v)
 	return _u
 }
 
-// SetNillableStatus sets the "status" field if the given value is not nil.
-func (_u *ChargeCreditPurchaseUpdateOne) SetNillableStatus(v *charges.PaymentSettlementStatus) *ChargeCreditPurchaseUpdateOne {
+// SetNillableCreditGrantTransactionGroupID sets the "credit_grant_transaction_group_id" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdateOne) SetNillableCreditGrantTransactionGroupID(v *string) *ChargeCreditPurchaseUpdateOne {
 	if v != nil {
-		_u.SetStatus(*v)
+		_u.SetCreditGrantTransactionGroupID(*v)
 	}
+	return _u
+}
+
+// ClearCreditGrantTransactionGroupID clears the value of the "credit_grant_transaction_group_id" field.
+func (_u *ChargeCreditPurchaseUpdateOne) ClearCreditGrantTransactionGroupID() *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ClearCreditGrantTransactionGroupID()
+	return _u
+}
+
+// SetCreditGrantedAt sets the "credit_granted_at" field.
+func (_u *ChargeCreditPurchaseUpdateOne) SetCreditGrantedAt(v time.Time) *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.SetCreditGrantedAt(v)
+	return _u
+}
+
+// SetNillableCreditGrantedAt sets the "credit_granted_at" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdateOne) SetNillableCreditGrantedAt(v *time.Time) *ChargeCreditPurchaseUpdateOne {
+	if v != nil {
+		_u.SetCreditGrantedAt(*v)
+	}
+	return _u
+}
+
+// ClearCreditGrantedAt clears the value of the "credit_granted_at" field.
+func (_u *ChargeCreditPurchaseUpdateOne) ClearCreditGrantedAt() *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ClearCreditGrantedAt()
+	return _u
+}
+
+// SetExternalPaymentSettlementID sets the "external_payment_settlement_id" field.
+func (_u *ChargeCreditPurchaseUpdateOne) SetExternalPaymentSettlementID(v string) *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.SetExternalPaymentSettlementID(v)
+	return _u
+}
+
+// SetNillableExternalPaymentSettlementID sets the "external_payment_settlement_id" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdateOne) SetNillableExternalPaymentSettlementID(v *string) *ChargeCreditPurchaseUpdateOne {
+	if v != nil {
+		_u.SetExternalPaymentSettlementID(*v)
+	}
+	return _u
+}
+
+// ClearExternalPaymentSettlementID clears the value of the "external_payment_settlement_id" field.
+func (_u *ChargeCreditPurchaseUpdateOne) ClearExternalPaymentSettlementID() *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ClearExternalPaymentSettlementID()
 	return _u
 }
 
@@ -266,6 +428,25 @@ func (_u *ChargeCreditPurchaseUpdateOne) SetCharge(v *Charge) *ChargeCreditPurch
 	return _u.SetChargeID(v.ID)
 }
 
+// SetChargeExternalPaymentSettlementID sets the "charge_external_payment_settlement" edge to the ChargeExternalPaymentSettlement entity by ID.
+func (_u *ChargeCreditPurchaseUpdateOne) SetChargeExternalPaymentSettlementID(id string) *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.SetChargeExternalPaymentSettlementID(id)
+	return _u
+}
+
+// SetNillableChargeExternalPaymentSettlementID sets the "charge_external_payment_settlement" edge to the ChargeExternalPaymentSettlement entity by ID if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdateOne) SetNillableChargeExternalPaymentSettlementID(id *string) *ChargeCreditPurchaseUpdateOne {
+	if id != nil {
+		_u = _u.SetChargeExternalPaymentSettlementID(*id)
+	}
+	return _u
+}
+
+// SetChargeExternalPaymentSettlement sets the "charge_external_payment_settlement" edge to the ChargeExternalPaymentSettlement entity.
+func (_u *ChargeCreditPurchaseUpdateOne) SetChargeExternalPaymentSettlement(v *ChargeExternalPaymentSettlement) *ChargeCreditPurchaseUpdateOne {
+	return _u.SetChargeExternalPaymentSettlementID(v.ID)
+}
+
 // Mutation returns the ChargeCreditPurchaseMutation object of the builder.
 func (_u *ChargeCreditPurchaseUpdateOne) Mutation() *ChargeCreditPurchaseMutation {
 	return _u.mutation
@@ -274,6 +455,12 @@ func (_u *ChargeCreditPurchaseUpdateOne) Mutation() *ChargeCreditPurchaseMutatio
 // ClearCharge clears the "charge" edge to the Charge entity.
 func (_u *ChargeCreditPurchaseUpdateOne) ClearCharge() *ChargeCreditPurchaseUpdateOne {
 	_u.mutation.ClearCharge()
+	return _u
+}
+
+// ClearChargeExternalPaymentSettlement clears the "charge_external_payment_settlement" edge to the ChargeExternalPaymentSettlement entity.
+func (_u *ChargeCreditPurchaseUpdateOne) ClearChargeExternalPaymentSettlement() *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ClearChargeExternalPaymentSettlement()
 	return _u
 }
 
@@ -324,9 +511,14 @@ func (_u *ChargeCreditPurchaseUpdateOne) check() error {
 			return &ValidationError{Name: "settlement", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.settlement": %w`, err)}
 		}
 	}
-	if v, ok := _u.mutation.Status(); ok {
-		if err := chargecreditpurchase.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.status": %w`, err)}
+	if v, ok := _u.mutation.CreditGrantTransactionGroupID(); ok {
+		if err := chargecreditpurchase.CreditGrantTransactionGroupIDValidator(v); err != nil {
+			return &ValidationError{Name: "credit_grant_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.credit_grant_transaction_group_id": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.ExternalPaymentSettlementID(); ok {
+		if err := chargecreditpurchase.ExternalPaymentSettlementIDValidator(v); err != nil {
+			return &ValidationError{Name: "external_payment_settlement_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.external_payment_settlement_id": %w`, err)}
 		}
 	}
 	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
@@ -374,8 +566,17 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 		}
 		_spec.SetField(chargecreditpurchase.FieldSettlement, field.TypeString, vv)
 	}
-	if value, ok := _u.mutation.Status(); ok {
-		_spec.SetField(chargecreditpurchase.FieldStatus, field.TypeEnum, value)
+	if value, ok := _u.mutation.CreditGrantTransactionGroupID(); ok {
+		_spec.SetField(chargecreditpurchase.FieldCreditGrantTransactionGroupID, field.TypeString, value)
+	}
+	if _u.mutation.CreditGrantTransactionGroupIDCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldCreditGrantTransactionGroupID, field.TypeString)
+	}
+	if value, ok := _u.mutation.CreditGrantedAt(); ok {
+		_spec.SetField(chargecreditpurchase.FieldCreditGrantedAt, field.TypeTime, value)
+	}
+	if _u.mutation.CreditGrantedAtCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldCreditGrantedAt, field.TypeTime)
 	}
 	if _u.mutation.ChargeCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -399,6 +600,35 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeExternalPaymentSettlementCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.ChargeExternalPaymentSettlementTable,
+			Columns: []string{chargecreditpurchase.ChargeExternalPaymentSettlementColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeexternalpaymentsettlement.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeExternalPaymentSettlementIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.ChargeExternalPaymentSettlementTable,
+			Columns: []string{chargecreditpurchase.ChargeExternalPaymentSettlementColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeexternalpaymentsettlement.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

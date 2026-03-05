@@ -2187,6 +2187,48 @@ func (u *ChargeUpdateOne) SetOrClearUniqueReferenceID(value *string) *ChargeUpda
 	return u.SetUniqueReferenceID(*value)
 }
 
+func (u *ChargeCreditPurchaseUpdate) SetOrClearCreditGrantTransactionGroupID(value *string) *ChargeCreditPurchaseUpdate {
+	if value == nil {
+		return u.ClearCreditGrantTransactionGroupID()
+	}
+	return u.SetCreditGrantTransactionGroupID(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdateOne) SetOrClearCreditGrantTransactionGroupID(value *string) *ChargeCreditPurchaseUpdateOne {
+	if value == nil {
+		return u.ClearCreditGrantTransactionGroupID()
+	}
+	return u.SetCreditGrantTransactionGroupID(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdate) SetOrClearCreditGrantedAt(value *time.Time) *ChargeCreditPurchaseUpdate {
+	if value == nil {
+		return u.ClearCreditGrantedAt()
+	}
+	return u.SetCreditGrantedAt(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdateOne) SetOrClearCreditGrantedAt(value *time.Time) *ChargeCreditPurchaseUpdateOne {
+	if value == nil {
+		return u.ClearCreditGrantedAt()
+	}
+	return u.SetCreditGrantedAt(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdate) SetOrClearExternalPaymentSettlementID(value *string) *ChargeCreditPurchaseUpdate {
+	if value == nil {
+		return u.ClearExternalPaymentSettlementID()
+	}
+	return u.SetExternalPaymentSettlementID(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdateOne) SetOrClearExternalPaymentSettlementID(value *string) *ChargeCreditPurchaseUpdateOne {
+	if value == nil {
+		return u.ClearExternalPaymentSettlementID()
+	}
+	return u.SetExternalPaymentSettlementID(*value)
+}
+
 func (u *ChargeCreditRealizationUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeCreditRealizationUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
@@ -2229,6 +2271,90 @@ func (u *ChargeCreditRealizationUpdateOne) SetOrClearLineID(value *string) *Char
 	return u.SetLineID(*value)
 }
 
+func (u *ChargeExternalPaymentSettlementUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeExternalPaymentSettlementUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeExternalPaymentSettlementUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeExternalPaymentSettlementUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeExternalPaymentSettlementUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeExternalPaymentSettlementUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeExternalPaymentSettlementUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeExternalPaymentSettlementUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeExternalPaymentSettlementUpdate) SetOrClearAuthorizedTransactionGroupID(value *string) *ChargeExternalPaymentSettlementUpdate {
+	if value == nil {
+		return u.ClearAuthorizedTransactionGroupID()
+	}
+	return u.SetAuthorizedTransactionGroupID(*value)
+}
+
+func (u *ChargeExternalPaymentSettlementUpdateOne) SetOrClearAuthorizedTransactionGroupID(value *string) *ChargeExternalPaymentSettlementUpdateOne {
+	if value == nil {
+		return u.ClearAuthorizedTransactionGroupID()
+	}
+	return u.SetAuthorizedTransactionGroupID(*value)
+}
+
+func (u *ChargeExternalPaymentSettlementUpdate) SetOrClearAuthorizedAt(value *time.Time) *ChargeExternalPaymentSettlementUpdate {
+	if value == nil {
+		return u.ClearAuthorizedAt()
+	}
+	return u.SetAuthorizedAt(*value)
+}
+
+func (u *ChargeExternalPaymentSettlementUpdateOne) SetOrClearAuthorizedAt(value *time.Time) *ChargeExternalPaymentSettlementUpdateOne {
+	if value == nil {
+		return u.ClearAuthorizedAt()
+	}
+	return u.SetAuthorizedAt(*value)
+}
+
+func (u *ChargeExternalPaymentSettlementUpdate) SetOrClearSettledTransactionGroupID(value *string) *ChargeExternalPaymentSettlementUpdate {
+	if value == nil {
+		return u.ClearSettledTransactionGroupID()
+	}
+	return u.SetSettledTransactionGroupID(*value)
+}
+
+func (u *ChargeExternalPaymentSettlementUpdateOne) SetOrClearSettledTransactionGroupID(value *string) *ChargeExternalPaymentSettlementUpdateOne {
+	if value == nil {
+		return u.ClearSettledTransactionGroupID()
+	}
+	return u.SetSettledTransactionGroupID(*value)
+}
+
+func (u *ChargeExternalPaymentSettlementUpdate) SetOrClearSettledAt(value *time.Time) *ChargeExternalPaymentSettlementUpdate {
+	if value == nil {
+		return u.ClearSettledAt()
+	}
+	return u.SetSettledAt(*value)
+}
+
+func (u *ChargeExternalPaymentSettlementUpdateOne) SetOrClearSettledAt(value *time.Time) *ChargeExternalPaymentSettlementUpdateOne {
+	if value == nil {
+		return u.ClearSettledAt()
+	}
+	return u.SetSettledAt(*value)
+}
+
 func (u *ChargeFlatFeeUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *ChargeFlatFeeUpdate {
 	if value == nil {
 		return u.ClearDiscounts()
@@ -2255,6 +2381,20 @@ func (u *ChargeFlatFeeUpdateOne) SetOrClearFeatureKey(value *string) *ChargeFlat
 		return u.ClearFeatureKey()
 	}
 	return u.SetFeatureKey(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearStdInvoicePaymentSettlementID(value *string) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearStdInvoicePaymentSettlementID()
+	}
+	return u.SetStdInvoicePaymentSettlementID(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearStdInvoicePaymentSettlementID(value *string) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearStdInvoicePaymentSettlementID()
+	}
+	return u.SetStdInvoicePaymentSettlementID(*value)
 }
 
 func (u *ChargeStandardInvoiceAccruedUsageUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeStandardInvoiceAccruedUsageUpdate {

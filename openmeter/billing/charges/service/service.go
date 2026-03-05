@@ -6,18 +6,21 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/service/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/service/flatfee"
 )
 
 type service struct {
-	adapter        charges.Adapter
-	billingService billing.Service
-	handlers       Handlers
-	flatFeeService charges.FlatFeeService
+	adapter                    charges.Adapter
+	billingService             billing.Service
+	handlers                   Handlers
+	flatFeeOrchestrator        charges.FlatFeeOrchestrator
+	creditPurchaseOrchestrator charges.CreditPurchaseOrchestrator
 }
 
 type Handlers struct {
-	FlatFee charges.FlatFeeHandler
+	FlatFee        charges.FlatFeeHandler
+	CreditPurchase charges.CreditPurchaseHandler
 }
 
 func (h Handlers) Validate() error {
@@ -25,6 +28,10 @@ func (h Handlers) Validate() error {
 
 	if h.FlatFee == nil {
 		errs = append(errs, errors.New("flat fee handler cannot be null"))
+	}
+
+	if h.CreditPurchase == nil {
+		errs = append(errs, errors.New("credit purchase handler cannot be null"))
 	}
 
 	return errors.Join(errs...)
@@ -59,7 +66,7 @@ func New(config Config) (*service, error) {
 		return nil, err
 	}
 
-	flatFeeService, err := flatfee.New(flatfee.Config{
+	flatFeeOrchestrator, err := flatfee.New(flatfee.Config{
 		Adapter:        config.Adapter,
 		FlatFeeHandler: config.Handlers.FlatFee,
 	})
@@ -67,11 +74,20 @@ func New(config Config) (*service, error) {
 		return nil, err
 	}
 
+	creditPurchaseOrchestrator, err := creditpurchase.New(creditpurchase.Config{
+		Adapter:               config.Adapter,
+		CreditPurchaseHandler: config.Handlers.CreditPurchase,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	svc := &service{
-		adapter:        config.Adapter,
-		billingService: config.BillingService,
-		handlers:       config.Handlers,
-		flatFeeService: flatFeeService,
+		adapter:                    config.Adapter,
+		billingService:             config.BillingService,
+		handlers:                   config.Handlers,
+		flatFeeOrchestrator:        flatFeeOrchestrator,
+		creditPurchaseOrchestrator: creditPurchaseOrchestrator,
 	}
 
 	standardInvoiceEventHandler := &standardInvoiceEventHandler{

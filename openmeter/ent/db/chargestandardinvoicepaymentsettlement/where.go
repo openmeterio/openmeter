@@ -92,11 +92,6 @@ func LineID(v string) predicate.ChargeStandardInvoicePaymentSettlement {
 	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldEQ(FieldLineID, v))
 }
 
-// ChargeID applies equality check predicate on the "charge_id" field. It's identical to ChargeIDEQ.
-func ChargeID(v string) predicate.ChargeStandardInvoicePaymentSettlement {
-	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldEQ(FieldChargeID, v))
-}
-
 // ServicePeriodFrom applies equality check predicate on the "service_period_from" field. It's identical to ServicePeriodFromEQ.
 func ServicePeriodFrom(v time.Time) predicate.ChargeStandardInvoicePaymentSettlement {
 	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldEQ(FieldServicePeriodFrom, v))
@@ -402,71 +397,6 @@ func LineIDContainsFold(v string) predicate.ChargeStandardInvoicePaymentSettleme
 	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldContainsFold(FieldLineID, v))
 }
 
-// ChargeIDEQ applies the EQ predicate on the "charge_id" field.
-func ChargeIDEQ(v string) predicate.ChargeStandardInvoicePaymentSettlement {
-	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldEQ(FieldChargeID, v))
-}
-
-// ChargeIDNEQ applies the NEQ predicate on the "charge_id" field.
-func ChargeIDNEQ(v string) predicate.ChargeStandardInvoicePaymentSettlement {
-	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldNEQ(FieldChargeID, v))
-}
-
-// ChargeIDIn applies the In predicate on the "charge_id" field.
-func ChargeIDIn(vs ...string) predicate.ChargeStandardInvoicePaymentSettlement {
-	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldIn(FieldChargeID, vs...))
-}
-
-// ChargeIDNotIn applies the NotIn predicate on the "charge_id" field.
-func ChargeIDNotIn(vs ...string) predicate.ChargeStandardInvoicePaymentSettlement {
-	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldNotIn(FieldChargeID, vs...))
-}
-
-// ChargeIDGT applies the GT predicate on the "charge_id" field.
-func ChargeIDGT(v string) predicate.ChargeStandardInvoicePaymentSettlement {
-	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldGT(FieldChargeID, v))
-}
-
-// ChargeIDGTE applies the GTE predicate on the "charge_id" field.
-func ChargeIDGTE(v string) predicate.ChargeStandardInvoicePaymentSettlement {
-	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldGTE(FieldChargeID, v))
-}
-
-// ChargeIDLT applies the LT predicate on the "charge_id" field.
-func ChargeIDLT(v string) predicate.ChargeStandardInvoicePaymentSettlement {
-	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldLT(FieldChargeID, v))
-}
-
-// ChargeIDLTE applies the LTE predicate on the "charge_id" field.
-func ChargeIDLTE(v string) predicate.ChargeStandardInvoicePaymentSettlement {
-	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldLTE(FieldChargeID, v))
-}
-
-// ChargeIDContains applies the Contains predicate on the "charge_id" field.
-func ChargeIDContains(v string) predicate.ChargeStandardInvoicePaymentSettlement {
-	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldContains(FieldChargeID, v))
-}
-
-// ChargeIDHasPrefix applies the HasPrefix predicate on the "charge_id" field.
-func ChargeIDHasPrefix(v string) predicate.ChargeStandardInvoicePaymentSettlement {
-	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldHasPrefix(FieldChargeID, v))
-}
-
-// ChargeIDHasSuffix applies the HasSuffix predicate on the "charge_id" field.
-func ChargeIDHasSuffix(v string) predicate.ChargeStandardInvoicePaymentSettlement {
-	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldHasSuffix(FieldChargeID, v))
-}
-
-// ChargeIDEqualFold applies the EqualFold predicate on the "charge_id" field.
-func ChargeIDEqualFold(v string) predicate.ChargeStandardInvoicePaymentSettlement {
-	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldEqualFold(FieldChargeID, v))
-}
-
-// ChargeIDContainsFold applies the ContainsFold predicate on the "charge_id" field.
-func ChargeIDContainsFold(v string) predicate.ChargeStandardInvoicePaymentSettlement {
-	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldContainsFold(FieldChargeID, v))
-}
-
 // ServicePeriodFromEQ applies the EQ predicate on the "service_period_from" field.
 func ServicePeriodFromEQ(v time.Time) predicate.ChargeStandardInvoicePaymentSettlement {
 	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldEQ(FieldServicePeriodFrom, v))
@@ -548,19 +478,19 @@ func ServicePeriodToLTE(v time.Time) predicate.ChargeStandardInvoicePaymentSettl
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.
-func StatusEQ(v charges.StandardInvoicePaymentSettlementStatus) predicate.ChargeStandardInvoicePaymentSettlement {
+func StatusEQ(v charges.PaymentSettlementStatus) predicate.ChargeStandardInvoicePaymentSettlement {
 	vc := v
 	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldEQ(FieldStatus, vc))
 }
 
 // StatusNEQ applies the NEQ predicate on the "status" field.
-func StatusNEQ(v charges.StandardInvoicePaymentSettlementStatus) predicate.ChargeStandardInvoicePaymentSettlement {
+func StatusNEQ(v charges.PaymentSettlementStatus) predicate.ChargeStandardInvoicePaymentSettlement {
 	vc := v
 	return predicate.ChargeStandardInvoicePaymentSettlement(sql.FieldNEQ(FieldStatus, vc))
 }
 
 // StatusIn applies the In predicate on the "status" field.
-func StatusIn(vs ...charges.StandardInvoicePaymentSettlementStatus) predicate.ChargeStandardInvoicePaymentSettlement {
+func StatusIn(vs ...charges.PaymentSettlementStatus) predicate.ChargeStandardInvoicePaymentSettlement {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -569,7 +499,7 @@ func StatusIn(vs ...charges.StandardInvoicePaymentSettlementStatus) predicate.Ch
 }
 
 // StatusNotIn applies the NotIn predicate on the "status" field.
-func StatusNotIn(vs ...charges.StandardInvoicePaymentSettlementStatus) predicate.ChargeStandardInvoicePaymentSettlement {
+func StatusNotIn(vs ...charges.PaymentSettlementStatus) predicate.ChargeStandardInvoicePaymentSettlement {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -890,21 +820,21 @@ func HasBillingInvoiceLineWith(preds ...predicate.BillingInvoiceLine) predicate.
 	})
 }
 
-// HasFlatFee applies the HasEdge predicate on the "flat_fee" edge.
-func HasFlatFee() predicate.ChargeStandardInvoicePaymentSettlement {
+// HasChargeFlatFee applies the HasEdge predicate on the "charge_flat_fee" edge.
+func HasChargeFlatFee() predicate.ChargeStandardInvoicePaymentSettlement {
 	return predicate.ChargeStandardInvoicePaymentSettlement(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, FlatFeeTable, FlatFeeColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, ChargeFlatFeeTable, ChargeFlatFeeColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasFlatFeeWith applies the HasEdge predicate on the "flat_fee" edge with a given conditions (other predicates).
-func HasFlatFeeWith(preds ...predicate.ChargeFlatFee) predicate.ChargeStandardInvoicePaymentSettlement {
+// HasChargeFlatFeeWith applies the HasEdge predicate on the "charge_flat_fee" edge with a given conditions (other predicates).
+func HasChargeFlatFeeWith(preds ...predicate.ChargeFlatFee) predicate.ChargeStandardInvoicePaymentSettlement {
 	return predicate.ChargeStandardInvoicePaymentSettlement(func(s *sql.Selector) {
-		step := newFlatFeeStep()
+		step := newChargeFlatFeeStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

@@ -200,6 +200,9 @@ func ChargeCreditPurchaseOrErr(p ChargeCreditPurchase, err error) ChargeCreditPu
 // ChargeCreditRealization is the predicate function for chargecreditrealization builders.
 type ChargeCreditRealization func(*sql.Selector)
 
+// ChargeExternalPaymentSettlement is the predicate function for chargeexternalpaymentsettlement builders.
+type ChargeExternalPaymentSettlement func(*sql.Selector)
+
 // ChargeFlatFee is the predicate function for chargeflatfee builders.
 type ChargeFlatFee func(*sql.Selector)
 

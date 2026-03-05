@@ -3,8 +3,6 @@
 package chargecreditpurchase
 
 import (
-	"fmt"
-
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -22,10 +20,16 @@ const (
 	FieldCreditAmount = "credit_amount"
 	// FieldSettlement holds the string denoting the settlement field in the database.
 	FieldSettlement = "settlement"
-	// FieldStatus holds the string denoting the status field in the database.
-	FieldStatus = "status"
+	// FieldCreditGrantTransactionGroupID holds the string denoting the credit_grant_transaction_group_id field in the database.
+	FieldCreditGrantTransactionGroupID = "credit_grant_transaction_group_id"
+	// FieldCreditGrantedAt holds the string denoting the credit_granted_at field in the database.
+	FieldCreditGrantedAt = "credit_granted_at"
+	// FieldExternalPaymentSettlementID holds the string denoting the external_payment_settlement_id field in the database.
+	FieldExternalPaymentSettlementID = "external_payment_settlement_id"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
 	EdgeCharge = "charge"
+	// EdgeChargeExternalPaymentSettlement holds the string denoting the charge_external_payment_settlement edge name in mutations.
+	EdgeChargeExternalPaymentSettlement = "charge_external_payment_settlement"
 	// Table holds the table name of the chargecreditpurchase in the database.
 	Table = "charge_credit_purchases"
 	// ChargeTable is the table that holds the charge relation/edge.
@@ -35,6 +39,13 @@ const (
 	ChargeInverseTable = "charges"
 	// ChargeColumn is the table column denoting the charge relation/edge.
 	ChargeColumn = "id"
+	// ChargeExternalPaymentSettlementTable is the table that holds the charge_external_payment_settlement relation/edge.
+	ChargeExternalPaymentSettlementTable = "charge_credit_purchases"
+	// ChargeExternalPaymentSettlementInverseTable is the table name for the ChargeExternalPaymentSettlement entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeexternalpaymentsettlement" package.
+	ChargeExternalPaymentSettlementInverseTable = "charge_external_payment_settlements"
+	// ChargeExternalPaymentSettlementColumn is the table column denoting the charge_external_payment_settlement relation/edge.
+	ChargeExternalPaymentSettlementColumn = "external_payment_settlement_id"
 )
 
 // Columns holds all SQL columns for chargecreditpurchase fields.
@@ -43,7 +54,9 @@ var Columns = []string{
 	FieldNamespace,
 	FieldCreditAmount,
 	FieldSettlement,
-	FieldStatus,
+	FieldCreditGrantTransactionGroupID,
+	FieldCreditGrantedAt,
+	FieldExternalPaymentSettlementID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -59,6 +72,10 @@ func ValidColumn(column string) bool {
 var (
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	NamespaceValidator func(string) error
+	// CreditGrantTransactionGroupIDValidator is a validator for the "credit_grant_transaction_group_id" field. It is called by the builders before save.
+	CreditGrantTransactionGroupIDValidator func(string) error
+	// ExternalPaymentSettlementIDValidator is a validator for the "external_payment_settlement_id" field. It is called by the builders before save.
+	ExternalPaymentSettlementIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all ChargeCreditPurchase fields.
@@ -66,16 +83,6 @@ var (
 		Settlement field.TypeValueScanner[charges.CreditPurchaseSettlement]
 	}
 )
-
-// StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
-func StatusValidator(s charges.PaymentSettlementStatus) error {
-	switch s {
-	case "initiated", "authorized", "settled":
-		return nil
-	default:
-		return fmt.Errorf("chargecreditpurchase: invalid enum value for status field: %q", s)
-	}
-}
 
 // OrderOption defines the ordering options for the ChargeCreditPurchase queries.
 type OrderOption func(*sql.Selector)
@@ -100,9 +107,19 @@ func BySettlement(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSettlement, opts...).ToFunc()
 }
 
-// ByStatus orders the results by the status field.
-func ByStatus(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+// ByCreditGrantTransactionGroupID orders the results by the credit_grant_transaction_group_id field.
+func ByCreditGrantTransactionGroupID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreditGrantTransactionGroupID, opts...).ToFunc()
+}
+
+// ByCreditGrantedAt orders the results by the credit_granted_at field.
+func ByCreditGrantedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreditGrantedAt, opts...).ToFunc()
+}
+
+// ByExternalPaymentSettlementID orders the results by the external_payment_settlement_id field.
+func ByExternalPaymentSettlementID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldExternalPaymentSettlementID, opts...).ToFunc()
 }
 
 // ByChargeField orders the results by charge field.
@@ -111,10 +128,24 @@ func ByChargeField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newChargeStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByChargeExternalPaymentSettlementField orders the results by charge_external_payment_settlement field.
+func ByChargeExternalPaymentSettlementField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChargeExternalPaymentSettlementStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newChargeStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ChargeInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, true, ChargeTable, ChargeColumn),
+	)
+}
+func newChargeExternalPaymentSettlementStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChargeExternalPaymentSettlementInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, true, ChargeExternalPaymentSettlementTable, ChargeExternalPaymentSettlementColumn),
 	)
 }

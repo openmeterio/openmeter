@@ -9,7 +9,9 @@ import (
 type Adapter interface {
 	ChargeAdapter
 	CreditRealizationAdapter
+	CreditPurchaseAdapter
 	StandardInvoiceRealizationAdapter
+	ExternalPaymentSettlementAdapter
 
 	entutils.TxCreator
 }
@@ -26,8 +28,17 @@ type CreditRealizationAdapter interface {
 }
 
 type StandardInvoiceRealizationAdapter interface {
-	CreateStandardInvoicePaymentSettlement(ctx context.Context, chargeID ChargeID, paymentState StandardInvoicePaymentSettlement) (StandardInvoicePaymentSettlement, error)
+	CreateStandardInvoicePaymentSettlement(ctx context.Context, input StandardInvoicePaymentSettlementCreateInput) (StandardInvoicePaymentSettlement, error)
 	UpdateStandardInvoicePaymentSettlement(ctx context.Context, paymentState StandardInvoicePaymentSettlement) (StandardInvoicePaymentSettlement, error)
 
 	CreateStandardInvoiceAccruedUsage(ctx context.Context, chargeID ChargeID, accruedUsage StandardInvoiceAccruedUsage) (StandardInvoiceAccruedUsage, error)
+}
+
+type CreditPurchaseAdapter interface {
+	UpdateCreditPurchaseCharge(ctx context.Context, charge CreditPurchaseCharge) (CreditPurchaseCharge, error)
+}
+
+type ExternalPaymentSettlementAdapter interface {
+	CreateExternalPaymentSettlement(ctx context.Context, input ExternalPaymentSettlementCreateInput) (ExternalPaymentSettlement, error)
+	UpdateExternalPaymentSettlement(ctx context.Context, paymentSettlement ExternalPaymentSettlement) (ExternalPaymentSettlement, error)
 }

@@ -70,6 +70,8 @@ type Tx struct {
 	ChargeCreditPurchase *ChargeCreditPurchaseClient
 	// ChargeCreditRealization is the client for interacting with the ChargeCreditRealization builders.
 	ChargeCreditRealization *ChargeCreditRealizationClient
+	// ChargeExternalPaymentSettlement is the client for interacting with the ChargeExternalPaymentSettlement builders.
+	ChargeExternalPaymentSettlement *ChargeExternalPaymentSettlementClient
 	// ChargeFlatFee is the client for interacting with the ChargeFlatFee builders.
 	ChargeFlatFee *ChargeFlatFeeClient
 	// ChargeStandardInvoiceAccruedUsage is the client for interacting with the ChargeStandardInvoiceAccruedUsage builders.
@@ -289,6 +291,7 @@ func (tx *Tx) init() {
 	tx.Charge = NewChargeClient(tx.config)
 	tx.ChargeCreditPurchase = NewChargeCreditPurchaseClient(tx.config)
 	tx.ChargeCreditRealization = NewChargeCreditRealizationClient(tx.config)
+	tx.ChargeExternalPaymentSettlement = NewChargeExternalPaymentSettlementClient(tx.config)
 	tx.ChargeFlatFee = NewChargeFlatFeeClient(tx.config)
 	tx.ChargeStandardInvoiceAccruedUsage = NewChargeStandardInvoiceAccruedUsageClient(tx.config)
 	tx.ChargeStandardInvoicePaymentSettlement = NewChargeStandardInvoicePaymentSettlementClient(tx.config)
