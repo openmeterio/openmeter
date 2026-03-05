@@ -2,10 +2,6 @@
 package taxcodes
 
 import (
-	"maps"
-
-	"github.com/samber/lo"
-
 	api "github.com/openmeterio/openmeter/api/v3"
 	app "github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -18,7 +14,7 @@ import (
 // goverter:useZeroValueOnPointerInconsistency
 // goverter:useUnderlyingTypeMethods
 // goverter:matchIgnoreCase
-// goverter:extend ConvertMetadataToLabels
+// goverter:extend ../common:ConvertMetadataToLabels
 // goverter:extend ConvertAPIAppTypeToDomainAppType
 // goverter:extend ConvertDomainAppTypeToAPIAppType
 // goverter:extend ConvertAppMappingsToAPIAppMappings
@@ -87,11 +83,3 @@ func ConvertAppMappingsToAPIAppMappings(source taxcode.TaxCodeAppMappings) []api
 	return result
 }
 
-// ConvertMetadataToLabels converts models.Metadata to api.Labels.
-// Always returns an initialized map (never nil) so JSON serializes to {} instead of null.
-func ConvertMetadataToLabels(source models.Metadata) *api.Labels {
-	if len(source) == 0 {
-		return &api.Labels{}
-	}
-	return lo.ToPtr((api.Labels)(maps.Clone(source)))
-}

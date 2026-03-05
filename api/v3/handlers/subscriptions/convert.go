@@ -2,11 +2,11 @@ package subscriptions
 
 import (
 	"fmt"
-	"maps"
 
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	handlercommon "github.com/openmeterio/openmeter/api/v3/handlers/common"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
@@ -20,7 +20,7 @@ func ConvertSubscriptionToAPISubscription(subscription subscription.Subscription
 		CustomerId:    subscription.CustomerId,
 		BillingAnchor: subscription.BillingAnchor,
 		Status:        api.BillingSubscriptionStatus(subscription.GetStatusAt(clock.Now())),
-		Labels:        convertMetadataToLabels(subscription.Metadata),
+		Labels:        handlercommon.ConvertMetadataToLabels(subscription.Metadata),
 		CreatedAt:     &subscription.CreatedAt,
 		UpdatedAt:     &subscription.UpdatedAt,
 		DeletedAt:     subscription.DeletedAt,
@@ -87,11 +87,3 @@ func ConvertFromCreateSubscriptionRequestToCreateSubscriptionWorkflowInput(
 	return workflowInput, nil
 }
 
-// convertMetadataToLabels converts models.Metadata to api.Labels.
-// Always returns an initialized map (never nil) so JSON serializes to {} instead of null.
-func convertMetadataToLabels(source models.Metadata) *api.Labels {
-	if len(source) == 0 {
-		return &api.Labels{}
-	}
-	return lo.ToPtr((api.Labels)(maps.Clone(source)))
-}

@@ -5,6 +5,7 @@ package meters
 
 import (
 	v3 "github.com/openmeterio/openmeter/api/v3"
+	common "github.com/openmeterio/openmeter/api/v3/handlers/common"
 	response "github.com/openmeterio/openmeter/api/v3/response"
 	meter "github.com/openmeterio/openmeter/openmeter/meter"
 	models "github.com/openmeterio/openmeter/pkg/models"
@@ -50,7 +51,7 @@ func init() {
 		v3Meter.EventsFrom = source.EventFrom
 		v3Meter.Id = source.ManagedResource.ID
 		v3Meter.Key = source.Key
-		v3Meter.Labels = ConvertMetadataToLabels(source.Metadata)
+		v3Meter.Labels = common.ConvertMetadataToLabels(source.Metadata)
 		v3Meter.Name = source.ManagedResource.Name
 		v3Meter.UpdatedAt = timeTimeToPTimeTime(source.ManagedResource.ManagedModel.UpdatedAt)
 		v3Meter.ValueProperty = source.ValueProperty

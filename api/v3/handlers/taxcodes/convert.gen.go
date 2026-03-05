@@ -5,6 +5,7 @@ package taxcodes
 
 import (
 	v3 "github.com/openmeterio/openmeter/api/v3"
+	common "github.com/openmeterio/openmeter/api/v3/handlers/common"
 	taxcode "github.com/openmeterio/openmeter/openmeter/taxcode"
 	models "github.com/openmeterio/openmeter/pkg/models"
 	"time"
@@ -38,7 +39,7 @@ func init() {
 		v3BillingTaxCode.Description = source.Description
 		v3BillingTaxCode.Id = source.NamespacedID.ID
 		v3BillingTaxCode.Key = source.Key
-		v3BillingTaxCode.Labels = ConvertMetadataToLabels(source.Metadata)
+		v3BillingTaxCode.Labels = common.ConvertMetadataToLabels(source.Metadata)
 		v3BillingTaxCode.Name = source.Name
 		v3BillingTaxCode.UpdatedAt = timeTimeToPTimeTime(source.ManagedModel.UpdatedAt)
 		return v3BillingTaxCode, nil
