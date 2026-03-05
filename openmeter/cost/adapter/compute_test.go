@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/currency"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 func strPtr(s string) *string { return &s }
@@ -65,17 +67,17 @@ func TestComputeCostRows(t *testing.T) {
 		resolver := makeResolver(map[string]*cost.ResolvedUnitCost{
 			fmt.Sprint(map[string]string{"provider": "openai", "model": "gpt-4", "token_type": "input"}): {
 				Amount:   mustDecimal(0.01),
-				Currency: "USD",
+				Currency: currencyx.Code(currency.USD),
 			},
 			fmt.Sprint(map[string]string{"provider": "openai", "model": "gpt-4", "token_type": "output"}): {
 				Amount:   mustDecimal(0.03),
-				Currency: "USD",
+				Currency: currencyx.Code(currency.USD),
 			},
 		})
 
-		costRows, currency, err := computeCostRows(rows, nil, resolver)
+		costRows, currencyExpected, err := computeCostRows(rows, nil, resolver)
 		require.NoError(t, err)
-		assert.Equal(t, "USD", currency)
+		assert.Equal(t, currencyx.Code(currency.USD), currencyExpected)
 		require.Len(t, costRows, 2)
 
 		// Sorted by cost descending: output (1.5) before input (1).
@@ -119,18 +121,18 @@ func TestComputeCostRows(t *testing.T) {
 		resolver := makeResolver(map[string]*cost.ResolvedUnitCost{
 			fmt.Sprint(map[string]string{"provider": "openai", "model": "gpt-4", "token_type": "input"}): {
 				Amount:   mustDecimal(0.01),
-				Currency: "USD",
+				Currency: currencyx.Code(currency.USD),
 			},
 			fmt.Sprint(map[string]string{"provider": "openai", "model": "gpt-4", "token_type": "output"}): {
 				Amount:   mustDecimal(0.03),
-				Currency: "USD",
+				Currency: currencyx.Code(currency.USD),
 			},
 		})
 
 		internalKeys := []string{"provider", "model", "token_type"}
-		costRows, currency, err := computeCostRows(rows, internalKeys, resolver)
+		costRows, currencyExpected, err := computeCostRows(rows, internalKeys, resolver)
 		require.NoError(t, err)
-		assert.Equal(t, "USD", currency)
+		assert.Equal(t, currencyx.Code(currency.USD), currencyExpected)
 		require.Len(t, costRows, 1)
 
 		// usage = 100 + 50 = 150
@@ -160,7 +162,7 @@ func TestComputeCostRows(t *testing.T) {
 
 		resolver := makeResolver(map[string]*cost.ResolvedUnitCost{
 			fmt.Sprint(map[string]string{"model": "gpt-4", "provider": "openai", "token_type": "input"}): {
-				Amount: mustDecimal(0.01), Currency: "USD",
+				Amount: mustDecimal(0.01), Currency: currencyx.Code(currency.USD),
 			},
 		})
 
@@ -203,10 +205,10 @@ func TestComputeCostRows(t *testing.T) {
 		}
 
 		resolver := makeResolver(map[string]*cost.ResolvedUnitCost{
-			fmt.Sprint(map[string]string{"provider": "openai", "model": "gpt-4", "token_type": "input"}):                 {Amount: mustDecimal(0.01), Currency: "USD"},
-			fmt.Sprint(map[string]string{"provider": "openai", "model": "gpt-4", "token_type": "output"}):                {Amount: mustDecimal(0.03), Currency: "USD"},
-			fmt.Sprint(map[string]string{"provider": "anthropic", "model": "claude-3-5-sonnet", "token_type": "input"}):  {Amount: mustDecimal(0.003), Currency: "USD"},
-			fmt.Sprint(map[string]string{"provider": "anthropic", "model": "claude-3-5-sonnet", "token_type": "output"}): {Amount: mustDecimal(0.015), Currency: "USD"},
+			fmt.Sprint(map[string]string{"provider": "openai", "model": "gpt-4", "token_type": "input"}):                 {Amount: mustDecimal(0.01), Currency: currencyx.Code(currency.USD)},
+			fmt.Sprint(map[string]string{"provider": "openai", "model": "gpt-4", "token_type": "output"}):                {Amount: mustDecimal(0.03), Currency: currencyx.Code(currency.USD)},
+			fmt.Sprint(map[string]string{"provider": "anthropic", "model": "claude-3-5-sonnet", "token_type": "input"}):  {Amount: mustDecimal(0.003), Currency: currencyx.Code(currency.USD)},
+			fmt.Sprint(map[string]string{"provider": "anthropic", "model": "claude-3-5-sonnet", "token_type": "output"}): {Amount: mustDecimal(0.015), Currency: currencyx.Code(currency.USD)},
 		})
 
 		internalKeys := []string{"provider", "model", "token_type"}
@@ -245,9 +247,9 @@ func TestComputeCostRows(t *testing.T) {
 		}
 
 		resolver := makeResolver(map[string]*cost.ResolvedUnitCost{
-			fmt.Sprint(map[string]string{"region": "us", "provider": "openai", "token_type": "input"}):  {Amount: mustDecimal(0.01), Currency: "USD"},
-			fmt.Sprint(map[string]string{"region": "us", "provider": "openai", "token_type": "output"}): {Amount: mustDecimal(0.03), Currency: "USD"},
-			fmt.Sprint(map[string]string{"region": "eu", "provider": "openai", "token_type": "input"}):  {Amount: mustDecimal(0.01), Currency: "USD"},
+			fmt.Sprint(map[string]string{"region": "us", "provider": "openai", "token_type": "input"}):  {Amount: mustDecimal(0.01), Currency: currencyx.Code(currency.USD)},
+			fmt.Sprint(map[string]string{"region": "us", "provider": "openai", "token_type": "output"}): {Amount: mustDecimal(0.03), Currency: currencyx.Code(currency.USD)},
+			fmt.Sprint(map[string]string{"region": "eu", "provider": "openai", "token_type": "input"}):  {Amount: mustDecimal(0.01), Currency: currencyx.Code(currency.USD)},
 		})
 
 		internalKeys := []string{"provider", "token_type"}
@@ -292,8 +294,8 @@ func TestComputeCostRows(t *testing.T) {
 		}
 
 		resolver := makeResolver(map[string]*cost.ResolvedUnitCost{
-			fmt.Sprint(map[string]string{"provider": "openai", "token_type": "input"}):  {Amount: mustDecimal(0.01), Currency: "USD"},
-			fmt.Sprint(map[string]string{"provider": "openai", "token_type": "output"}): {Amount: mustDecimal(0.03), Currency: "USD"},
+			fmt.Sprint(map[string]string{"provider": "openai", "token_type": "input"}):  {Amount: mustDecimal(0.01), Currency: currencyx.Code(currency.USD)},
+			fmt.Sprint(map[string]string{"provider": "openai", "token_type": "output"}): {Amount: mustDecimal(0.03), Currency: currencyx.Code(currency.USD)},
 		})
 
 		internalKeys := []string{"provider", "token_type"}
@@ -357,9 +359,9 @@ func TestComputeCostRows(t *testing.T) {
 		resolver := func(groupByValues map[string]string) (*cost.ResolvedUnitCost, string, error) {
 			switch groupByValues["token_type"] {
 			case "input":
-				return &cost.ResolvedUnitCost{Amount: mustDecimal(0.01), Currency: "USD"}, "", nil
+				return &cost.ResolvedUnitCost{Amount: mustDecimal(0.01), Currency: currencyx.Code(currency.USD)}, "", nil
 			case "output":
-				return &cost.ResolvedUnitCost{Amount: mustDecimal(0.03), Currency: "USD"}, "", nil
+				return &cost.ResolvedUnitCost{Amount: mustDecimal(0.03), Currency: currencyx.Code(currency.USD)}, "", nil
 			default:
 				return nil, "no reasoning pricing available", nil
 			}
@@ -418,7 +420,7 @@ func TestComputeCostRows(t *testing.T) {
 
 		resolver := makeResolver(map[string]*cost.ResolvedUnitCost{
 			fmt.Sprint(map[string]string{"provider": "openai", "model": "gpt-4", "token_type": "input"}): {
-				Amount: mustDecimal(0.01), Currency: "USD",
+				Amount: mustDecimal(0.01), Currency: currencyx.Code(currency.USD),
 			},
 		})
 
@@ -454,9 +456,9 @@ func TestComputeCostRows(t *testing.T) {
 		}
 
 		resolver := makeResolver(map[string]*cost.ResolvedUnitCost{
-			fmt.Sprint(map[string]string{"provider": "openai", "token_type": "input"}):    {Amount: mustDecimal(0.01), Currency: "USD"},
-			fmt.Sprint(map[string]string{"provider": "openai", "token_type": "output"}):   {Amount: mustDecimal(0.03), Currency: "USD"},
-			fmt.Sprint(map[string]string{"provider": "anthropic", "token_type": "input"}): {Amount: mustDecimal(0.003), Currency: "USD"},
+			fmt.Sprint(map[string]string{"provider": "openai", "token_type": "input"}):    {Amount: mustDecimal(0.01), Currency: currencyx.Code(currency.USD)},
+			fmt.Sprint(map[string]string{"provider": "openai", "token_type": "output"}):   {Amount: mustDecimal(0.03), Currency: currencyx.Code(currency.USD)},
+			fmt.Sprint(map[string]string{"provider": "anthropic", "token_type": "input"}): {Amount: mustDecimal(0.003), Currency: currencyx.Code(currency.USD)},
 		})
 
 		// Only token_type is internal
@@ -523,8 +525,8 @@ func TestComputeCostRows(t *testing.T) {
 		}
 
 		resolver := makeResolver(map[string]*cost.ResolvedUnitCost{
-			fmt.Sprint(map[string]string{"token_type": "input"}):  {Amount: mustDecimal(0.01), Currency: "USD"},
-			fmt.Sprint(map[string]string{"token_type": "output"}): {Amount: mustDecimal(0.03), Currency: "USD"},
+			fmt.Sprint(map[string]string{"token_type": "input"}):  {Amount: mustDecimal(0.01), Currency: currencyx.Code(currency.USD)},
+			fmt.Sprint(map[string]string{"token_type": "output"}): {Amount: mustDecimal(0.03), Currency: currencyx.Code(currency.USD)},
 		})
 
 		costRows, _, err := computeCostRows(rows, []string{"token_type"}, resolver)
@@ -550,7 +552,7 @@ func TestComputeCostRows(t *testing.T) {
 		callCount := 0
 		resolver := func(groupByValues map[string]string) (*cost.ResolvedUnitCost, string, error) {
 			callCount++
-			return &cost.ResolvedUnitCost{Amount: mustDecimal(0.01), Currency: "USD"}, "", nil
+			return &cost.ResolvedUnitCost{Amount: mustDecimal(0.01), Currency: currencyx.Code(currency.USD)}, "", nil
 		}
 
 		_, _, err := computeCostRows(rows, nil, resolver)

@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // costResolverFunc resolves the per-unit cost for a set of group-by values.
@@ -62,7 +63,7 @@ func (acc *costRowAccumulator) finalize() cost.CostQueryRow {
 // computeCostRows takes meter query rows, resolves per-row unit costs, and optionally
 // aggregates across internalGroupByKeys that were added for cost resolution but not
 // requested by the user.
-func computeCostRows(rows []meter.MeterQueryRow, internalGroupByKeys []string, resolver costResolverFunc) ([]cost.CostQueryRow, string, error) {
+func computeCostRows(rows []meter.MeterQueryRow, internalGroupByKeys []string, resolver costResolverFunc) ([]cost.CostQueryRow, currencyx.Code, error) {
 	type cachedResult struct {
 		resolved *cost.ResolvedUnitCost
 		detail   string
@@ -74,7 +75,7 @@ func computeCostRows(rows []meter.MeterQueryRow, internalGroupByKeys []string, r
 	aggregated := make(map[string]*costRowAccumulator)
 
 	var costRows []cost.CostQueryRow
-	var currency string
+	var currency currencyx.Code
 
 	for _, row := range rows {
 		groupByValues := make(map[string]string, len(row.GroupBy))

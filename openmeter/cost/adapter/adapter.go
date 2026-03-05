@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"slices"
 
+	globlCurrency "github.com/invopop/gobl/currency"
 	"github.com/openmeterio/openmeter/openmeter/cost"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -132,7 +134,7 @@ func (a *adapter) QueryFeatureCost(ctx context.Context, input cost.QueryFeatureC
 
 	// Set default currency if not set
 	if currency == "" {
-		currency = "USD"
+		currency = currencyx.Code(globlCurrency.USD)
 	}
 
 	return &cost.CostQueryResult{
@@ -235,7 +237,7 @@ func (a *adapter) resolveUnitCost(ctx context.Context, feat *feature.Feature, gr
 
 		return &cost.ResolvedUnitCost{
 			Amount:   feat.UnitCost.Manual.Amount,
-			Currency: "USD",
+			Currency: currencyx.Code(globlCurrency.USD),
 		}, nil
 
 	// LLM unit cost
@@ -301,7 +303,7 @@ func (a *adapter) resolveLLMUnitCost(ctx context.Context, feat *feature.Feature,
 
 	return &cost.ResolvedUnitCost{
 		Amount:   amount,
-		Currency: cached.price.Currency,
+		Currency: currencyx.Code(cached.price.Currency),
 	}, nil
 }
 

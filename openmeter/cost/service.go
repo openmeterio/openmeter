@@ -8,6 +8,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -41,7 +42,7 @@ func (i QueryFeatureCostInput) Validate() error {
 type CostQueryRow struct {
 	Usage       alpacadecimal.Decimal
 	Cost        *alpacadecimal.Decimal
-	Currency    string
+	Currency    currencyx.Code
 	Detail      string
 	Subject     *string
 	CustomerID  *string
@@ -52,7 +53,7 @@ type CostQueryRow struct {
 
 // CostQueryResult is the result of querying feature costs.
 type CostQueryResult struct {
-	Currency string
+	Currency currencyx.Code
 	Rows     []CostQueryRow
 }
 
@@ -61,5 +62,5 @@ type ResolvedUnitCost struct {
 	// Amount is the resolved per-unit cost.
 	Amount alpacadecimal.Decimal
 	// Currency is the currency code (always "USD" for now).
-	Currency string
+	Currency currencyx.Code
 }

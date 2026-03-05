@@ -120,7 +120,7 @@ func mapCostQueryResultToAPI(result *cost.CostQueryResult, params api.QueryFeatu
 	for _, row := range result.Rows {
 		apiRow := api.FeatureCostQueryRow{
 			Usage:       row.Usage.String(),
-			Currency:    row.Currency,
+			Currency:    string(row.Currency),
 			WindowStart: row.WindowStart,
 			WindowEnd:   row.WindowEnd,
 			Subject:     row.Subject,
@@ -147,7 +147,7 @@ func mapCostQueryResultToAPI(result *cost.CostQueryResult, params api.QueryFeatu
 		From:       params.From,
 		To:         params.To,
 		WindowSize: params.WindowSize,
-		Currency:   result.Currency,
+		Currency:   string(result.Currency),
 		Data:       apiRows,
 	}
 }
