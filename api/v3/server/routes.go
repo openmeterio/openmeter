@@ -28,7 +28,7 @@ func (s *Server) DeleteMeter(w http.ResponseWriter, r *http.Request, meterId api
 }
 
 func (s *Server) QueryMeter(w http.ResponseWriter, r *http.Request, meterId api.ULID) {
-	unimplemented.QueryMeter(w, r, meterId)
+	s.metersHandler.QueryMeter().With(meterId).ServeHTTP(w, r)
 }
 
 // Events

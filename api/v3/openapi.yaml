@@ -4002,20 +4002,21 @@ components:
     MeterQueryFilters:
       type: object
       properties:
-        subject_key:
-          allOf:
-            - $ref: '#/components/schemas/QueryFilterString'
-          description: |-
-            Filters to apply to the subject key of the query.
-            Only equals ("eq", "in") comparisons are supported.
-        customer_id:
-          allOf:
-            - $ref: '#/components/schemas/QueryFilterString'
-          description: |-
-            Filters to apply to the customer ID of the query.
-            Only equals ("eq", "in") comparisons are supported.
         dimensions:
           type: object
+          properties:
+            subject:
+              allOf:
+                - $ref: '#/components/schemas/QueryFilterString'
+              description: |-
+                Filters to apply to the subject of the query.
+                Only equals ("eq", "in") comparisons are supported.
+            customer_id:
+              allOf:
+                - $ref: '#/components/schemas/QueryFilterString'
+              description: |-
+                Filters to apply to the customer ID of the query.
+                Only equals ("eq", "in") comparisons are supported.
           additionalProperties:
             $ref: '#/components/schemas/QueryFilterStringMapItem'
           maxProperties: 10
@@ -4102,8 +4103,8 @@ components:
           - value: '12.3456'
             from: '2023-01-01T00:00:00Z'
             to: '2023-01-02T00:00:00Z'
-            subject_key: 83d489bd-13a5-4a3d-a886-44c385b5c43b
             dimensions:
+              customer_id: 01G65Z755AFWAKHE12NY0CQ9FH
               model: gpt-4-turbo
               type: input
     MeterQueryRow:
@@ -4126,27 +4127,27 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: The end of the time bucket the value is aggregated over.
-        subject_key:
-          type: string
-          description: |-
-            The subject key the value is aggregated over.
-            If not specified, the value is aggregated over all subjects.
-        customer_id:
-          type: string
-          description: The customer ID the value is aggregated over.
         dimensions:
           type: object
+          properties:
+            subject:
+              type: string
+              description: |-
+                The subject the value is aggregated over.
+                If not specified, the value is aggregated over all subjects.
+            customer_id:
+              type: string
+              description: The customer ID the value is aggregated over.
           additionalProperties:
             type: string
-            nullable: true
           description: The dimensions the value is aggregated over.
       description: A row in the result of a meter query.
       example:
         value: '12.3456'
         from: '2023-01-01T00:00:00Z'
         to: '2023-01-02T00:00:00Z'
-        subject_key: 83d489bd-13a5-4a3d-a886-44c385b5c43b
         dimensions:
+          customer_id: 01G65Z755AFWAKHE12NY0CQ9FH
           model: gpt-4-turbo
           type: input
     MeteringEvent:
@@ -4286,6 +4287,10 @@ components:
           minItems: 1
           maxItems: 10
           description: Combines the provided filters with a logical OR.
+      additionalProperties:
+        not: {}
+      minProperties: 1
+      maxProperties: 1
       description: |-
         A query filter for a string attribute.
         Operators are mutually exclusive, only one operator is allowed at a time.
@@ -4296,9 +4301,6 @@ components:
         exists:
           type: boolean
           description: The attribute exists.
-        nexists:
-          type: boolean
-          description: The attribute does not exist.
         eq:
           type: string
           description: The attribute equals the provided value.
@@ -4339,6 +4341,10 @@ components:
           minItems: 1
           maxItems: 10
           description: Combines the provided filters with a logical OR.
+      additionalProperties:
+        not: {}
+      minProperties: 1
+      maxProperties: 1
       description: |-
         A query filter for an item in a string map attribute.
         Operators are mutually exclusive, only one operator is allowed at a time.

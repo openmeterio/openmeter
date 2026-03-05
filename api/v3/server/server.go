@@ -39,6 +39,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
@@ -58,6 +59,7 @@ type Config struct {
 	BillingService          billing.Service
 	LLMCostService          llmcost.Service
 	MeterService            meter.ManageService
+	StreamingConnector      streaming.Connector
 	IngestService           ingest.Service
 	CustomerService         customer.Service
 	EntitlementService      entitlement.Service
@@ -94,6 +96,10 @@ func (c *Config) Validate() error {
 
 	if c.MeterService == nil {
 		errs = append(errs, errors.New("meter service is required"))
+	}
+
+	if c.StreamingConnector == nil {
+		errs = append(errs, errors.New("streaming connector is required"))
 	}
 
 	if c.IngestService == nil {
@@ -190,7 +196,7 @@ func NewServer(config *Config) (*Server, error) {
 	customersHandler := customershandler.New(resolveNamespace, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersBillingHandler := customersbillinghandler.New(resolveNamespace, config.BillingService, config.CustomerService, config.StripeService, httptransport.WithErrorHandler(config.ErrorHandler))
 	customersEntitlementHandler := customersentitlementhandler.New(resolveNamespace, config.CustomerService, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
-	metersHandler := metershandler.New(resolveNamespace, config.MeterService, httptransport.WithErrorHandler(config.ErrorHandler))
+	metersHandler := metershandler.New(resolveNamespace, config.MeterService, config.StreamingConnector, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
 	subscriptionsHandler := subscriptionshandler.New(resolveNamespace, config.CustomerService, config.PlanService, config.PlanSubscriptionService, config.SubscriptionService, httptransport.WithErrorHandler(config.ErrorHandler))
 	billingProfilesHandler := billingprofileshandler.New(resolveNamespace, config.BillingService, httptransport.WithErrorHandler(config.ErrorHandler))
 	taxcodesHandler := taxcodeshandler.New(resolveNamespace, config.TaxCodeService, httptransport.WithErrorHandler(config.ErrorHandler))

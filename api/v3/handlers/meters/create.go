@@ -27,6 +27,12 @@ func (h *handler) CreateMeter() CreateMeterHandler {
 				return CreateMeterRequest{}, err
 			}
 
+			if body.Dimensions != nil {
+				if err := validateDimensionsWithoutReserved(*body.Dimensions); err != nil {
+					return CreateMeterRequest{}, err
+				}
+			}
+
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return CreateMeterRequest{}, err
