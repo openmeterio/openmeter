@@ -31,6 +31,7 @@
     "@typespec/compiler": "1.9.0",
     "@typespec/http": "1.9.1",
     "@typespec/http-client-python": "0.27.2",
+    "@typespec/json-schema": "1.9.0",
     "@typespec/openapi": "1.9.0",
     "@typespec/openapi3": "1.9.0",
     "@typespec/prettier-plugin-typespec": "1.9.0",

@@ -31,6 +31,7 @@ interface CurrenciesCustomCostBasesOperations {
    */
   @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   @get
   @operationId("list-cost-bases")
   @summary("List cost bases")
@@ -53,6 +54,7 @@ interface CurrenciesCustomCostBasesOperations {
    */
   @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   @post
   @operationId("create-cost-basis")
   @summary("Create cost basis")

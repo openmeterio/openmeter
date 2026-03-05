@@ -29,6 +29,7 @@ interface CurrenciesOperations {
    */
   @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   @get
   @operationId("list-currencies")
   @summary("List currencies")
@@ -52,6 +53,7 @@ interface CurrenciesCustomOperations {
    */
   @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
   @post
   @operationId("create-custom-currency")
   @summary("Create custom currency")

@@ -7,6 +7,7 @@ import "../common/pagination.tsp";
 import "../common/parameters.tsp";
 import "../shared/index.tsp";
 import "./meter.tsp";
+import "./query.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -53,4 +54,18 @@ interface MetersOperations {
   delete(
     @path meterId: Shared.ULID,
   ): Shared.DeleteResponse | Common.NotFound | Common.ErrorResponses;
+
+  /**
+   * Query a meter for usage.
+   */
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @post
+  @operationId("query-meter")
+  @summary("Query meter")
+  query(
+    @path meterId: Shared.ULID,
+    @body request: MeterQueryRequest,
+  ): MeterQueryResult | Common.NotFound | Common.ErrorResponses;
 }

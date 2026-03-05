@@ -2,305 +2,287 @@ import "@typespec/openapi";
 import "@typespec/openapi3";
 import "./properties.tsp";
 
-using TypeSpec.OpenAPI;
-
 namespace Shared;
 
 /**
- * A filter for a string field.
+ * A query filter for a string attribute.
+ * Operators are mutually exclusive, only one operator is allowed at a time.
  */
-@friendlyName("MeteringStringFilter")
-@summary("Metering String Filter")
-model MeteringStringFilter {
+@friendlyName("QueryFilterString")
+@summary("Query String Filter")
+model QueryFilterString {
   /**
-   * The field must be equal to the provided value.
+   * The attribute equals the provided value.
    */
-  @extension("x-omitempty", true)
-  eq?: string | null;
+  eq?: string;
 
   /**
-   * The field must not be equal to the provided value.
+   * The attribute does not equal the provided value.
    */
-  @extension("x-omitempty", true)
-  ne?: string | null;
+  neq?: string;
 
   /**
-   * The field must be in the provided list of values.
+   * The attribute is one of the provided values.
    */
   @minItems(1)
   @maxItems(100)
-  @extension("x-omitempty", true)
-  in?: string[] | null;
+  in?: string[];
 
   /**
-   * The field must not be in the provided list of values.
+   * The attribute is not one of the provided values.
    */
   @minItems(1)
   @maxItems(100)
-  @extension("x-omitempty", true)
-  nin?: string[] | null;
+  nin?: string[];
 
   /**
-   * The field must match the provided value.
+   * The attribute contains the provided value.
    */
-  @extension("x-omitempty", true)
-  like?: string | null;
+  contains?: string;
 
   /**
-   * The field must not match the provided value.
+   * The attribute does not contain the provided value.
    */
-  @extension("x-omitempty", true)
-  nlike?: string | null;
+  ncontains?: string;
 
   /**
-   * The field must match the provided value, ignoring case.
-   */
-  @extension("x-omitempty", true)
-  ilike?: string | null;
-
-  /**
-   * The field must not match the provided value, ignoring case.
-   */
-  @extension("x-omitempty", true)
-  nilike?: string | null;
-
-  /**
-   * The field must be greater than the provided value.
-   */
-  @extension("x-omitempty", true)
-  gt?: string | null;
-
-  /**
-   * The field must be greater than or equal to the provided value.
-   */
-  @extension("x-omitempty", true)
-  gte?: string | null;
-
-  /**
-   * The field must be less than the provided value.
-   */
-  @extension("x-omitempty", true)
-  lt?: string | null;
-
-  /**
-   * The field must be less than or equal to the provided value.
-   */
-  @extension("x-omitempty", true)
-  lte?: string | null;
-
-  /**
-   * Provide a list of filters to be combined with a logical AND.
+   * Combines the provided filters with a logical AND.
    */
   @minItems(1)
   @maxItems(10)
-  @extension("x-omitempty", true)
-  and?: MeteringStringFilter[] | null;
+  and?: QueryFilterString[];
 
   /**
-   * Provide a list of filters to be combined with a logical OR.
+   * Combines the provided filters with a logical OR.
    */
   @minItems(1)
   @maxItems(10)
-  @extension("x-omitempty", true)
-  or?: MeteringStringFilter[] | null;
+  or?: QueryFilterString[];
 }
 
 /**
- * A filter for a ID (ULID) field allowing only equality or inclusion.
+ * A query filter for an item in a string map attribute.
+ * Operators are mutually exclusive, only one operator is allowed at a time.
  */
-#suppress "@openmeter/api-spec/casing-aip" "ID"
-@friendlyName("MeteringULIDExactFilter")
-@summary("Metering ULID Exact Filter")
-model MeteringULIDExactFilter {
+@friendlyName("QueryFilterStringMapItem")
+@summary("Query String Map Item Filter")
+model QueryFilterStringMapItem {
   /**
-   * The field must be equal to the provided value.
+   * The attribute exists.
    */
-  @extension("x-omitempty", true)
-  eq?: ULID | null;
+  exists?: boolean;
 
   /**
-   * The field must be in the provided list of values.
+   * The attribute does not exist.
+   */
+  nexists?: boolean;
+
+  ...QueryFilterString;
+}
+
+alias QueryFilterStringMap = Record<QueryFilterStringMapItem>;
+
+/**
+ * A query filter for an integer attribute.
+ * Operators are mutually exclusive, only one operator is allowed at a time.
+ */
+@friendlyName("QueryFilterInteger")
+@summary("Query Integer Filter")
+model QueryFilterInteger {
+  /**
+   * The attribute equals the provided value.
+   */
+  eq?: integer;
+
+  /**
+   * The attribute does not equal the provided value.
+   */
+  neq?: integer;
+
+  /**
+   * The attribute is one of the provided values.
    */
   @minItems(1)
   @maxItems(100)
-  @extension("x-omitempty", true)
-  in?: ULID[] | null;
+  in?: integer[];
+
+  /**
+   * The attribute is not one of the provided values.
+   */
+  @minItems(1)
+  @maxItems(100)
+  nin?: integer[];
+
+  /**
+   * The attribute is greater than the provided value.
+   */
+  gt?: integer;
+
+  /**
+   * The attribute is greater than or equal to the provided value.
+   */
+  gte?: integer;
+
+  /**
+   * The attribute is less than the provided value.
+   */
+  lt?: integer;
+
+  /**
+   * The attribute is less than or equal to the provided value.
+   */
+  lte?: integer;
+
+  /**
+   * Combines the provided filters with a logical AND.
+   */
+  @minItems(1)
+  @maxItems(10)
+  and?: QueryFilterInteger[];
+
+  /**
+   * Combines the provided filters with a logical OR.
+   */
+  @minItems(1)
+  @maxItems(10)
+  or?: QueryFilterInteger[];
 }
 
 /**
- * A filter for an integer field.
+ * A query filter for a float attribute.
+ * Operators are mutually exclusive, only one operator is allowed at a time.
  */
-@friendlyName("MeteringIntegerFilter")
-@summary("Metering Integer Filter")
-model MeteringIntegerFilter {
+@friendlyName("QueryFilterFloat")
+@summary("Query Float Filter")
+model QueryFilterFloat {
   /**
-   * The field must be equal to the provided value.
+   * The attribute is greater than the provided value.
    */
-  @extension("x-omitempty", true)
-  eq?: integer | null;
+  gt?: float64;
 
   /**
-   * The field must not be equal to the provided value.
+   * The attribute is greater than or equal to the provided value.
    */
-  @extension("x-omitempty", true)
-  ne?: integer | null;
+  gte?: float64;
 
   /**
-   * The field must be greater than the provided value.
+   * The attribute is less than the provided value.
    */
-  @extension("x-omitempty", true)
-  gt?: integer | null;
+  lt?: float64;
 
   /**
-   * The field must be greater than or equal to the provided value.
+   * The attribute is less than or equal to the provided value.
    */
-  @extension("x-omitempty", true)
-  gte?: integer | null;
+  lte?: float64;
 
   /**
-   * The field must be less than the provided value.
-   */
-  @extension("x-omitempty", true)
-  lt?: integer | null;
-
-  /**
-   * The field must be less than or equal to the provided value.
-   */
-  @extension("x-omitempty", true)
-  lte?: integer | null;
-
-  /**
-   * Provide a list of filters to be combined with a logical AND.
+   * Combines the provided filters with a logical AND.
    */
   @minItems(1)
   @maxItems(10)
-  @extension("x-omitempty", true)
-  and?: MeteringIntegerFilter[] | null;
+  and?: QueryFilterFloat[];
 
   /**
-   * Provide a list of filters to be combined with a logical OR.
+   * Combines the provided filters with a logical OR.
    */
   @minItems(1)
   @maxItems(10)
-  @extension("x-omitempty", true)
-  or?: MeteringIntegerFilter[] | null;
+  or?: QueryFilterFloat[];
 }
 
 /**
- * A filter for a float field.
+ * A query filter for a numeric attribute.
+ * Operators are mutually exclusive, only one operator is allowed at a time.
  */
-@friendlyName("MeteringFloatFilter")
-@summary("Metering Float Filter")
-model MeteringFloatFilter {
+@friendlyName("QueryFilterNumeric")
+@summary("Query Numeric Filter")
+model QueryFilterNumeric {
   /**
-   * The field must be equal to the provided value.
+   * The attribute is greater than the provided value.
    */
-  @extension("x-omitempty", true)
-  eq?: float64 | null;
+  gt?: Shared.Numeric;
 
   /**
-   * The field must not be equal to the provided value.
+   * The attribute is greater than or equal to the provided value.
    */
-  @extension("x-omitempty", true)
-  ne?: float64 | null;
+  gte?: Shared.Numeric;
 
   /**
-   * The field must be greater than the provided value.
+   * The attribute is less than the provided value.
    */
-  @extension("x-omitempty", true)
-  gt?: float64 | null;
+  lt?: Shared.Numeric;
 
   /**
-   * The field must be greater than or equal to the provided value.
+   * The attribute is less than or equal to the provided value.
    */
-  @extension("x-omitempty", true)
-  gte?: float64 | null;
+  lte?: Shared.Numeric;
 
   /**
-   * The field must be less than the provided value.
-   */
-  @extension("x-omitempty", true)
-  lt?: float64 | null;
-
-  /**
-   * The field must be less than or equal to the provided value.
-   */
-  @extension("x-omitempty", true)
-  lte?: float64 | null;
-
-  /**
-   * Provide a list of filters to be combined with a logical AND.
+   * Combines the provided filters with a logical AND.
    */
   @minItems(1)
   @maxItems(10)
-  @extension("x-omitempty", true)
-  and?: MeteringFloatFilter[] | null;
+  and?: QueryFilterNumeric[];
 
   /**
-   * Provide a list of filters to be combined with a logical OR.
+   * Combines the provided filters with a logical OR.
    */
   @minItems(1)
   @maxItems(10)
-  @extension("x-omitempty", true)
-  or?: MeteringFloatFilter[] | null;
+  or?: QueryFilterNumeric[];
 }
 
 /**
- * A filter for a boolean field.
+ * A query filter for a boolean attribute.
+ * Operators are mutually exclusive, only one operator is allowed at a time.
  */
-@friendlyName("MeteringBooleanFilter")
-@summary("Metering Boolean Filter")
-model MeteringBooleanFilter {
+@friendlyName("QueryFilterBoolean")
+@summary("Query Boolean Filter")
+model QueryFilterBoolean {
   /**
-   * The field must be equal to the provided value.
+   * The attribute equals the provided value.
    */
-  @extension("x-omitempty", true)
-  eq?: boolean | null;
+  eq?: boolean;
 }
 
 /**
- * A filter for a time field.
+ * A query filter for a time attribute.
+ * Operators are mutually exclusive, only one operator is allowed at a time.
  */
-@friendlyName("MeteringDateTimeFilter")
-@summary("Metering Date-time Filter")
-model MeteringDateTimeFilter {
+@friendlyName("QueryFilterDateTime")
+@summary("Query Date-time Filter")
+model QueryFilterDateTime {
   /**
-   * The field must be greater than the provided value.
+   * The attribute is greater than the provided value.
    */
-  @extension("x-omitempty", true)
-  gt?: utcDateTime | null;
+  gt?: DateTime;
 
   /**
-   * The field must be greater than or equal to the provided value.
+   * The attribute is greater than or equal to the provided value.
    */
-  @extension("x-omitempty", true)
-  gte?: utcDateTime | null;
+  gte?: DateTime;
 
   /**
-   * The field must be less than the provided value.
+   * The attribute is less than the provided value.
    */
-  @extension("x-omitempty", true)
-  lt?: utcDateTime | null;
+  lt?: DateTime;
 
   /**
-   * The field must be less than or equal to the provided value.
+   * The attribute is less than or equal to the provided value.
    */
-  @extension("x-omitempty", true)
-  lte?: utcDateTime | null;
+  lte?: DateTime;
 
   /**
-   * Provide a list of filters to be combined with a logical AND.
+   * Combines the provided filters with a logical AND.
    */
   @minItems(1)
   @maxItems(10)
-  @extension("x-omitempty", true)
-  and?: MeteringDateTimeFilter[] | null;
+  and?: QueryFilterDateTime[];
 
   /**
-   * Provide a list of filters to be combined with a logical OR.
+   * Combines the provided filters with a logical OR.
    */
   @minItems(1)
   @maxItems(10)
-  @extension("x-omitempty", true)
-  or?: MeteringDateTimeFilter[] | null;
+  or?: QueryFilterDateTime[];
 }
