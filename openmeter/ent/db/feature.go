@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/alpacahq/alpacadecimal"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
@@ -39,6 +40,22 @@ type Feature struct {
 	MeterGroupByFilters map[string]string `json:"meter_group_by_filters,omitempty"`
 	// AdvancedMeterGroupByFilters holds the value of the "advanced_meter_group_by_filters" field.
 	AdvancedMeterGroupByFilters feature.MeterGroupByFilters `json:"advanced_meter_group_by_filters,omitempty"`
+	// UnitCostType holds the value of the "unit_cost_type" field.
+	UnitCostType *string `json:"unit_cost_type,omitempty"`
+	// UnitCostManualAmount holds the value of the "unit_cost_manual_amount" field.
+	UnitCostManualAmount *alpacadecimal.Decimal `json:"unit_cost_manual_amount,omitempty"`
+	// UnitCostLlmProviderProperty holds the value of the "unit_cost_llm_provider_property" field.
+	UnitCostLlmProviderProperty *string `json:"unit_cost_llm_provider_property,omitempty"`
+	// UnitCostLlmProvider holds the value of the "unit_cost_llm_provider" field.
+	UnitCostLlmProvider *string `json:"unit_cost_llm_provider,omitempty"`
+	// UnitCostLlmModelProperty holds the value of the "unit_cost_llm_model_property" field.
+	UnitCostLlmModelProperty *string `json:"unit_cost_llm_model_property,omitempty"`
+	// UnitCostLlmModel holds the value of the "unit_cost_llm_model" field.
+	UnitCostLlmModel *string `json:"unit_cost_llm_model,omitempty"`
+	// UnitCostLlmTokenTypeProperty holds the value of the "unit_cost_llm_token_type_property" field.
+	UnitCostLlmTokenTypeProperty *string `json:"unit_cost_llm_token_type_property,omitempty"`
+	// UnitCostLlmTokenType holds the value of the "unit_cost_llm_token_type" field.
+	UnitCostLlmTokenType *string `json:"unit_cost_llm_token_type,omitempty"`
 	// ArchivedAt holds the value of the "archived_at" field.
 	ArchivedAt *time.Time `json:"archived_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -92,9 +109,11 @@ func (*Feature) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case dbfeature.FieldUnitCostManualAmount:
+			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case dbfeature.FieldMetadata, dbfeature.FieldMeterGroupByFilters, dbfeature.FieldAdvancedMeterGroupByFilters:
 			values[i] = new([]byte)
-		case dbfeature.FieldID, dbfeature.FieldNamespace, dbfeature.FieldName, dbfeature.FieldKey, dbfeature.FieldMeterSlug:
+		case dbfeature.FieldID, dbfeature.FieldNamespace, dbfeature.FieldName, dbfeature.FieldKey, dbfeature.FieldMeterSlug, dbfeature.FieldUnitCostType, dbfeature.FieldUnitCostLlmProviderProperty, dbfeature.FieldUnitCostLlmProvider, dbfeature.FieldUnitCostLlmModelProperty, dbfeature.FieldUnitCostLlmModel, dbfeature.FieldUnitCostLlmTokenTypeProperty, dbfeature.FieldUnitCostLlmTokenType:
 			values[i] = new(sql.NullString)
 		case dbfeature.FieldCreatedAt, dbfeature.FieldUpdatedAt, dbfeature.FieldDeletedAt, dbfeature.FieldArchivedAt:
 			values[i] = new(sql.NullTime)
@@ -187,6 +206,62 @@ func (_m *Feature) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field advanced_meter_group_by_filters: %w", err)
 				}
 			}
+		case dbfeature.FieldUnitCostType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field unit_cost_type", values[i])
+			} else if value.Valid {
+				_m.UnitCostType = new(string)
+				*_m.UnitCostType = value.String
+			}
+		case dbfeature.FieldUnitCostManualAmount:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field unit_cost_manual_amount", values[i])
+			} else if value.Valid {
+				_m.UnitCostManualAmount = new(alpacadecimal.Decimal)
+				*_m.UnitCostManualAmount = *value.S.(*alpacadecimal.Decimal)
+			}
+		case dbfeature.FieldUnitCostLlmProviderProperty:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field unit_cost_llm_provider_property", values[i])
+			} else if value.Valid {
+				_m.UnitCostLlmProviderProperty = new(string)
+				*_m.UnitCostLlmProviderProperty = value.String
+			}
+		case dbfeature.FieldUnitCostLlmProvider:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field unit_cost_llm_provider", values[i])
+			} else if value.Valid {
+				_m.UnitCostLlmProvider = new(string)
+				*_m.UnitCostLlmProvider = value.String
+			}
+		case dbfeature.FieldUnitCostLlmModelProperty:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field unit_cost_llm_model_property", values[i])
+			} else if value.Valid {
+				_m.UnitCostLlmModelProperty = new(string)
+				*_m.UnitCostLlmModelProperty = value.String
+			}
+		case dbfeature.FieldUnitCostLlmModel:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field unit_cost_llm_model", values[i])
+			} else if value.Valid {
+				_m.UnitCostLlmModel = new(string)
+				*_m.UnitCostLlmModel = value.String
+			}
+		case dbfeature.FieldUnitCostLlmTokenTypeProperty:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field unit_cost_llm_token_type_property", values[i])
+			} else if value.Valid {
+				_m.UnitCostLlmTokenTypeProperty = new(string)
+				*_m.UnitCostLlmTokenTypeProperty = value.String
+			}
+		case dbfeature.FieldUnitCostLlmTokenType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field unit_cost_llm_token_type", values[i])
+			} else if value.Valid {
+				_m.UnitCostLlmTokenType = new(string)
+				*_m.UnitCostLlmTokenType = value.String
+			}
 		case dbfeature.FieldArchivedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field archived_at", values[i])
@@ -278,6 +353,46 @@ func (_m *Feature) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("advanced_meter_group_by_filters=")
 	builder.WriteString(fmt.Sprintf("%v", _m.AdvancedMeterGroupByFilters))
+	builder.WriteString(", ")
+	if v := _m.UnitCostType; v != nil {
+		builder.WriteString("unit_cost_type=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.UnitCostManualAmount; v != nil {
+		builder.WriteString("unit_cost_manual_amount=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.UnitCostLlmProviderProperty; v != nil {
+		builder.WriteString("unit_cost_llm_provider_property=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.UnitCostLlmProvider; v != nil {
+		builder.WriteString("unit_cost_llm_provider=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.UnitCostLlmModelProperty; v != nil {
+		builder.WriteString("unit_cost_llm_model_property=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.UnitCostLlmModel; v != nil {
+		builder.WriteString("unit_cost_llm_model=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.UnitCostLlmTokenTypeProperty; v != nil {
+		builder.WriteString("unit_cost_llm_token_type_property=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.UnitCostLlmTokenType; v != nil {
+		builder.WriteString("unit_cost_llm_token_type=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	if v := _m.ArchivedAt; v != nil {
 		builder.WriteString("archived_at=")

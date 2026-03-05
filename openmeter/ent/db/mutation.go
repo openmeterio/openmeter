@@ -50460,33 +50460,41 @@ func (m *EntitlementMutation) ResetEdge(name string) error {
 // FeatureMutation represents an operation that mutates the Feature nodes in the graph.
 type FeatureMutation struct {
 	config
-	op                              Op
-	typ                             string
-	id                              *string
-	created_at                      *time.Time
-	updated_at                      *time.Time
-	deleted_at                      *time.Time
-	metadata                        *map[string]string
-	namespace                       *string
-	name                            *string
-	key                             *string
-	meter_slug                      *string
-	meter_group_by_filters          *map[string]string
-	advanced_meter_group_by_filters *feature.MeterGroupByFilters
-	archived_at                     *time.Time
-	clearedFields                   map[string]struct{}
-	entitlement                     map[string]struct{}
-	removedentitlement              map[string]struct{}
-	clearedentitlement              bool
-	ratecard                        map[string]struct{}
-	removedratecard                 map[string]struct{}
-	clearedratecard                 bool
-	addon_ratecard                  map[string]struct{}
-	removedaddon_ratecard           map[string]struct{}
-	clearedaddon_ratecard           bool
-	done                            bool
-	oldValue                        func(context.Context) (*Feature, error)
-	predicates                      []predicate.Feature
+	op                                Op
+	typ                               string
+	id                                *string
+	created_at                        *time.Time
+	updated_at                        *time.Time
+	deleted_at                        *time.Time
+	metadata                          *map[string]string
+	namespace                         *string
+	name                              *string
+	key                               *string
+	meter_slug                        *string
+	meter_group_by_filters            *map[string]string
+	advanced_meter_group_by_filters   *feature.MeterGroupByFilters
+	unit_cost_type                    *string
+	unit_cost_manual_amount           *alpacadecimal.Decimal
+	unit_cost_llm_provider_property   *string
+	unit_cost_llm_provider            *string
+	unit_cost_llm_model_property      *string
+	unit_cost_llm_model               *string
+	unit_cost_llm_token_type_property *string
+	unit_cost_llm_token_type          *string
+	archived_at                       *time.Time
+	clearedFields                     map[string]struct{}
+	entitlement                       map[string]struct{}
+	removedentitlement                map[string]struct{}
+	clearedentitlement                bool
+	ratecard                          map[string]struct{}
+	removedratecard                   map[string]struct{}
+	clearedratecard                   bool
+	addon_ratecard                    map[string]struct{}
+	removedaddon_ratecard             map[string]struct{}
+	clearedaddon_ratecard             bool
+	done                              bool
+	oldValue                          func(context.Context) (*Feature, error)
+	predicates                        []predicate.Feature
 }
 
 var _ ent.Mutation = (*FeatureMutation)(nil)
@@ -51018,6 +51026,398 @@ func (m *FeatureMutation) ResetAdvancedMeterGroupByFilters() {
 	delete(m.clearedFields, dbfeature.FieldAdvancedMeterGroupByFilters)
 }
 
+// SetUnitCostType sets the "unit_cost_type" field.
+func (m *FeatureMutation) SetUnitCostType(s string) {
+	m.unit_cost_type = &s
+}
+
+// UnitCostType returns the value of the "unit_cost_type" field in the mutation.
+func (m *FeatureMutation) UnitCostType() (r string, exists bool) {
+	v := m.unit_cost_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUnitCostType returns the old "unit_cost_type" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FeatureMutation) OldUnitCostType(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUnitCostType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUnitCostType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUnitCostType: %w", err)
+	}
+	return oldValue.UnitCostType, nil
+}
+
+// ClearUnitCostType clears the value of the "unit_cost_type" field.
+func (m *FeatureMutation) ClearUnitCostType() {
+	m.unit_cost_type = nil
+	m.clearedFields[dbfeature.FieldUnitCostType] = struct{}{}
+}
+
+// UnitCostTypeCleared returns if the "unit_cost_type" field was cleared in this mutation.
+func (m *FeatureMutation) UnitCostTypeCleared() bool {
+	_, ok := m.clearedFields[dbfeature.FieldUnitCostType]
+	return ok
+}
+
+// ResetUnitCostType resets all changes to the "unit_cost_type" field.
+func (m *FeatureMutation) ResetUnitCostType() {
+	m.unit_cost_type = nil
+	delete(m.clearedFields, dbfeature.FieldUnitCostType)
+}
+
+// SetUnitCostManualAmount sets the "unit_cost_manual_amount" field.
+func (m *FeatureMutation) SetUnitCostManualAmount(a alpacadecimal.Decimal) {
+	m.unit_cost_manual_amount = &a
+}
+
+// UnitCostManualAmount returns the value of the "unit_cost_manual_amount" field in the mutation.
+func (m *FeatureMutation) UnitCostManualAmount() (r alpacadecimal.Decimal, exists bool) {
+	v := m.unit_cost_manual_amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUnitCostManualAmount returns the old "unit_cost_manual_amount" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FeatureMutation) OldUnitCostManualAmount(ctx context.Context) (v *alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUnitCostManualAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUnitCostManualAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUnitCostManualAmount: %w", err)
+	}
+	return oldValue.UnitCostManualAmount, nil
+}
+
+// ClearUnitCostManualAmount clears the value of the "unit_cost_manual_amount" field.
+func (m *FeatureMutation) ClearUnitCostManualAmount() {
+	m.unit_cost_manual_amount = nil
+	m.clearedFields[dbfeature.FieldUnitCostManualAmount] = struct{}{}
+}
+
+// UnitCostManualAmountCleared returns if the "unit_cost_manual_amount" field was cleared in this mutation.
+func (m *FeatureMutation) UnitCostManualAmountCleared() bool {
+	_, ok := m.clearedFields[dbfeature.FieldUnitCostManualAmount]
+	return ok
+}
+
+// ResetUnitCostManualAmount resets all changes to the "unit_cost_manual_amount" field.
+func (m *FeatureMutation) ResetUnitCostManualAmount() {
+	m.unit_cost_manual_amount = nil
+	delete(m.clearedFields, dbfeature.FieldUnitCostManualAmount)
+}
+
+// SetUnitCostLlmProviderProperty sets the "unit_cost_llm_provider_property" field.
+func (m *FeatureMutation) SetUnitCostLlmProviderProperty(s string) {
+	m.unit_cost_llm_provider_property = &s
+}
+
+// UnitCostLlmProviderProperty returns the value of the "unit_cost_llm_provider_property" field in the mutation.
+func (m *FeatureMutation) UnitCostLlmProviderProperty() (r string, exists bool) {
+	v := m.unit_cost_llm_provider_property
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUnitCostLlmProviderProperty returns the old "unit_cost_llm_provider_property" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FeatureMutation) OldUnitCostLlmProviderProperty(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUnitCostLlmProviderProperty is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUnitCostLlmProviderProperty requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUnitCostLlmProviderProperty: %w", err)
+	}
+	return oldValue.UnitCostLlmProviderProperty, nil
+}
+
+// ClearUnitCostLlmProviderProperty clears the value of the "unit_cost_llm_provider_property" field.
+func (m *FeatureMutation) ClearUnitCostLlmProviderProperty() {
+	m.unit_cost_llm_provider_property = nil
+	m.clearedFields[dbfeature.FieldUnitCostLlmProviderProperty] = struct{}{}
+}
+
+// UnitCostLlmProviderPropertyCleared returns if the "unit_cost_llm_provider_property" field was cleared in this mutation.
+func (m *FeatureMutation) UnitCostLlmProviderPropertyCleared() bool {
+	_, ok := m.clearedFields[dbfeature.FieldUnitCostLlmProviderProperty]
+	return ok
+}
+
+// ResetUnitCostLlmProviderProperty resets all changes to the "unit_cost_llm_provider_property" field.
+func (m *FeatureMutation) ResetUnitCostLlmProviderProperty() {
+	m.unit_cost_llm_provider_property = nil
+	delete(m.clearedFields, dbfeature.FieldUnitCostLlmProviderProperty)
+}
+
+// SetUnitCostLlmProvider sets the "unit_cost_llm_provider" field.
+func (m *FeatureMutation) SetUnitCostLlmProvider(s string) {
+	m.unit_cost_llm_provider = &s
+}
+
+// UnitCostLlmProvider returns the value of the "unit_cost_llm_provider" field in the mutation.
+func (m *FeatureMutation) UnitCostLlmProvider() (r string, exists bool) {
+	v := m.unit_cost_llm_provider
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUnitCostLlmProvider returns the old "unit_cost_llm_provider" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FeatureMutation) OldUnitCostLlmProvider(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUnitCostLlmProvider is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUnitCostLlmProvider requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUnitCostLlmProvider: %w", err)
+	}
+	return oldValue.UnitCostLlmProvider, nil
+}
+
+// ClearUnitCostLlmProvider clears the value of the "unit_cost_llm_provider" field.
+func (m *FeatureMutation) ClearUnitCostLlmProvider() {
+	m.unit_cost_llm_provider = nil
+	m.clearedFields[dbfeature.FieldUnitCostLlmProvider] = struct{}{}
+}
+
+// UnitCostLlmProviderCleared returns if the "unit_cost_llm_provider" field was cleared in this mutation.
+func (m *FeatureMutation) UnitCostLlmProviderCleared() bool {
+	_, ok := m.clearedFields[dbfeature.FieldUnitCostLlmProvider]
+	return ok
+}
+
+// ResetUnitCostLlmProvider resets all changes to the "unit_cost_llm_provider" field.
+func (m *FeatureMutation) ResetUnitCostLlmProvider() {
+	m.unit_cost_llm_provider = nil
+	delete(m.clearedFields, dbfeature.FieldUnitCostLlmProvider)
+}
+
+// SetUnitCostLlmModelProperty sets the "unit_cost_llm_model_property" field.
+func (m *FeatureMutation) SetUnitCostLlmModelProperty(s string) {
+	m.unit_cost_llm_model_property = &s
+}
+
+// UnitCostLlmModelProperty returns the value of the "unit_cost_llm_model_property" field in the mutation.
+func (m *FeatureMutation) UnitCostLlmModelProperty() (r string, exists bool) {
+	v := m.unit_cost_llm_model_property
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUnitCostLlmModelProperty returns the old "unit_cost_llm_model_property" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FeatureMutation) OldUnitCostLlmModelProperty(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUnitCostLlmModelProperty is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUnitCostLlmModelProperty requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUnitCostLlmModelProperty: %w", err)
+	}
+	return oldValue.UnitCostLlmModelProperty, nil
+}
+
+// ClearUnitCostLlmModelProperty clears the value of the "unit_cost_llm_model_property" field.
+func (m *FeatureMutation) ClearUnitCostLlmModelProperty() {
+	m.unit_cost_llm_model_property = nil
+	m.clearedFields[dbfeature.FieldUnitCostLlmModelProperty] = struct{}{}
+}
+
+// UnitCostLlmModelPropertyCleared returns if the "unit_cost_llm_model_property" field was cleared in this mutation.
+func (m *FeatureMutation) UnitCostLlmModelPropertyCleared() bool {
+	_, ok := m.clearedFields[dbfeature.FieldUnitCostLlmModelProperty]
+	return ok
+}
+
+// ResetUnitCostLlmModelProperty resets all changes to the "unit_cost_llm_model_property" field.
+func (m *FeatureMutation) ResetUnitCostLlmModelProperty() {
+	m.unit_cost_llm_model_property = nil
+	delete(m.clearedFields, dbfeature.FieldUnitCostLlmModelProperty)
+}
+
+// SetUnitCostLlmModel sets the "unit_cost_llm_model" field.
+func (m *FeatureMutation) SetUnitCostLlmModel(s string) {
+	m.unit_cost_llm_model = &s
+}
+
+// UnitCostLlmModel returns the value of the "unit_cost_llm_model" field in the mutation.
+func (m *FeatureMutation) UnitCostLlmModel() (r string, exists bool) {
+	v := m.unit_cost_llm_model
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUnitCostLlmModel returns the old "unit_cost_llm_model" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FeatureMutation) OldUnitCostLlmModel(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUnitCostLlmModel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUnitCostLlmModel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUnitCostLlmModel: %w", err)
+	}
+	return oldValue.UnitCostLlmModel, nil
+}
+
+// ClearUnitCostLlmModel clears the value of the "unit_cost_llm_model" field.
+func (m *FeatureMutation) ClearUnitCostLlmModel() {
+	m.unit_cost_llm_model = nil
+	m.clearedFields[dbfeature.FieldUnitCostLlmModel] = struct{}{}
+}
+
+// UnitCostLlmModelCleared returns if the "unit_cost_llm_model" field was cleared in this mutation.
+func (m *FeatureMutation) UnitCostLlmModelCleared() bool {
+	_, ok := m.clearedFields[dbfeature.FieldUnitCostLlmModel]
+	return ok
+}
+
+// ResetUnitCostLlmModel resets all changes to the "unit_cost_llm_model" field.
+func (m *FeatureMutation) ResetUnitCostLlmModel() {
+	m.unit_cost_llm_model = nil
+	delete(m.clearedFields, dbfeature.FieldUnitCostLlmModel)
+}
+
+// SetUnitCostLlmTokenTypeProperty sets the "unit_cost_llm_token_type_property" field.
+func (m *FeatureMutation) SetUnitCostLlmTokenTypeProperty(s string) {
+	m.unit_cost_llm_token_type_property = &s
+}
+
+// UnitCostLlmTokenTypeProperty returns the value of the "unit_cost_llm_token_type_property" field in the mutation.
+func (m *FeatureMutation) UnitCostLlmTokenTypeProperty() (r string, exists bool) {
+	v := m.unit_cost_llm_token_type_property
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUnitCostLlmTokenTypeProperty returns the old "unit_cost_llm_token_type_property" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FeatureMutation) OldUnitCostLlmTokenTypeProperty(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUnitCostLlmTokenTypeProperty is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUnitCostLlmTokenTypeProperty requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUnitCostLlmTokenTypeProperty: %w", err)
+	}
+	return oldValue.UnitCostLlmTokenTypeProperty, nil
+}
+
+// ClearUnitCostLlmTokenTypeProperty clears the value of the "unit_cost_llm_token_type_property" field.
+func (m *FeatureMutation) ClearUnitCostLlmTokenTypeProperty() {
+	m.unit_cost_llm_token_type_property = nil
+	m.clearedFields[dbfeature.FieldUnitCostLlmTokenTypeProperty] = struct{}{}
+}
+
+// UnitCostLlmTokenTypePropertyCleared returns if the "unit_cost_llm_token_type_property" field was cleared in this mutation.
+func (m *FeatureMutation) UnitCostLlmTokenTypePropertyCleared() bool {
+	_, ok := m.clearedFields[dbfeature.FieldUnitCostLlmTokenTypeProperty]
+	return ok
+}
+
+// ResetUnitCostLlmTokenTypeProperty resets all changes to the "unit_cost_llm_token_type_property" field.
+func (m *FeatureMutation) ResetUnitCostLlmTokenTypeProperty() {
+	m.unit_cost_llm_token_type_property = nil
+	delete(m.clearedFields, dbfeature.FieldUnitCostLlmTokenTypeProperty)
+}
+
+// SetUnitCostLlmTokenType sets the "unit_cost_llm_token_type" field.
+func (m *FeatureMutation) SetUnitCostLlmTokenType(s string) {
+	m.unit_cost_llm_token_type = &s
+}
+
+// UnitCostLlmTokenType returns the value of the "unit_cost_llm_token_type" field in the mutation.
+func (m *FeatureMutation) UnitCostLlmTokenType() (r string, exists bool) {
+	v := m.unit_cost_llm_token_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUnitCostLlmTokenType returns the old "unit_cost_llm_token_type" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FeatureMutation) OldUnitCostLlmTokenType(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUnitCostLlmTokenType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUnitCostLlmTokenType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUnitCostLlmTokenType: %w", err)
+	}
+	return oldValue.UnitCostLlmTokenType, nil
+}
+
+// ClearUnitCostLlmTokenType clears the value of the "unit_cost_llm_token_type" field.
+func (m *FeatureMutation) ClearUnitCostLlmTokenType() {
+	m.unit_cost_llm_token_type = nil
+	m.clearedFields[dbfeature.FieldUnitCostLlmTokenType] = struct{}{}
+}
+
+// UnitCostLlmTokenTypeCleared returns if the "unit_cost_llm_token_type" field was cleared in this mutation.
+func (m *FeatureMutation) UnitCostLlmTokenTypeCleared() bool {
+	_, ok := m.clearedFields[dbfeature.FieldUnitCostLlmTokenType]
+	return ok
+}
+
+// ResetUnitCostLlmTokenType resets all changes to the "unit_cost_llm_token_type" field.
+func (m *FeatureMutation) ResetUnitCostLlmTokenType() {
+	m.unit_cost_llm_token_type = nil
+	delete(m.clearedFields, dbfeature.FieldUnitCostLlmTokenType)
+}
+
 // SetArchivedAt sets the "archived_at" field.
 func (m *FeatureMutation) SetArchivedAt(t time.Time) {
 	m.archived_at = &t
@@ -51263,7 +51663,7 @@ func (m *FeatureMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *FeatureMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 19)
 	if m.created_at != nil {
 		fields = append(fields, dbfeature.FieldCreatedAt)
 	}
@@ -51293,6 +51693,30 @@ func (m *FeatureMutation) Fields() []string {
 	}
 	if m.advanced_meter_group_by_filters != nil {
 		fields = append(fields, dbfeature.FieldAdvancedMeterGroupByFilters)
+	}
+	if m.unit_cost_type != nil {
+		fields = append(fields, dbfeature.FieldUnitCostType)
+	}
+	if m.unit_cost_manual_amount != nil {
+		fields = append(fields, dbfeature.FieldUnitCostManualAmount)
+	}
+	if m.unit_cost_llm_provider_property != nil {
+		fields = append(fields, dbfeature.FieldUnitCostLlmProviderProperty)
+	}
+	if m.unit_cost_llm_provider != nil {
+		fields = append(fields, dbfeature.FieldUnitCostLlmProvider)
+	}
+	if m.unit_cost_llm_model_property != nil {
+		fields = append(fields, dbfeature.FieldUnitCostLlmModelProperty)
+	}
+	if m.unit_cost_llm_model != nil {
+		fields = append(fields, dbfeature.FieldUnitCostLlmModel)
+	}
+	if m.unit_cost_llm_token_type_property != nil {
+		fields = append(fields, dbfeature.FieldUnitCostLlmTokenTypeProperty)
+	}
+	if m.unit_cost_llm_token_type != nil {
+		fields = append(fields, dbfeature.FieldUnitCostLlmTokenType)
 	}
 	if m.archived_at != nil {
 		fields = append(fields, dbfeature.FieldArchivedAt)
@@ -51325,6 +51749,22 @@ func (m *FeatureMutation) Field(name string) (ent.Value, bool) {
 		return m.MeterGroupByFilters()
 	case dbfeature.FieldAdvancedMeterGroupByFilters:
 		return m.AdvancedMeterGroupByFilters()
+	case dbfeature.FieldUnitCostType:
+		return m.UnitCostType()
+	case dbfeature.FieldUnitCostManualAmount:
+		return m.UnitCostManualAmount()
+	case dbfeature.FieldUnitCostLlmProviderProperty:
+		return m.UnitCostLlmProviderProperty()
+	case dbfeature.FieldUnitCostLlmProvider:
+		return m.UnitCostLlmProvider()
+	case dbfeature.FieldUnitCostLlmModelProperty:
+		return m.UnitCostLlmModelProperty()
+	case dbfeature.FieldUnitCostLlmModel:
+		return m.UnitCostLlmModel()
+	case dbfeature.FieldUnitCostLlmTokenTypeProperty:
+		return m.UnitCostLlmTokenTypeProperty()
+	case dbfeature.FieldUnitCostLlmTokenType:
+		return m.UnitCostLlmTokenType()
 	case dbfeature.FieldArchivedAt:
 		return m.ArchivedAt()
 	}
@@ -51356,6 +51796,22 @@ func (m *FeatureMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldMeterGroupByFilters(ctx)
 	case dbfeature.FieldAdvancedMeterGroupByFilters:
 		return m.OldAdvancedMeterGroupByFilters(ctx)
+	case dbfeature.FieldUnitCostType:
+		return m.OldUnitCostType(ctx)
+	case dbfeature.FieldUnitCostManualAmount:
+		return m.OldUnitCostManualAmount(ctx)
+	case dbfeature.FieldUnitCostLlmProviderProperty:
+		return m.OldUnitCostLlmProviderProperty(ctx)
+	case dbfeature.FieldUnitCostLlmProvider:
+		return m.OldUnitCostLlmProvider(ctx)
+	case dbfeature.FieldUnitCostLlmModelProperty:
+		return m.OldUnitCostLlmModelProperty(ctx)
+	case dbfeature.FieldUnitCostLlmModel:
+		return m.OldUnitCostLlmModel(ctx)
+	case dbfeature.FieldUnitCostLlmTokenTypeProperty:
+		return m.OldUnitCostLlmTokenTypeProperty(ctx)
+	case dbfeature.FieldUnitCostLlmTokenType:
+		return m.OldUnitCostLlmTokenType(ctx)
 	case dbfeature.FieldArchivedAt:
 		return m.OldArchivedAt(ctx)
 	}
@@ -51437,6 +51893,62 @@ func (m *FeatureMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetAdvancedMeterGroupByFilters(v)
 		return nil
+	case dbfeature.FieldUnitCostType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUnitCostType(v)
+		return nil
+	case dbfeature.FieldUnitCostManualAmount:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUnitCostManualAmount(v)
+		return nil
+	case dbfeature.FieldUnitCostLlmProviderProperty:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUnitCostLlmProviderProperty(v)
+		return nil
+	case dbfeature.FieldUnitCostLlmProvider:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUnitCostLlmProvider(v)
+		return nil
+	case dbfeature.FieldUnitCostLlmModelProperty:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUnitCostLlmModelProperty(v)
+		return nil
+	case dbfeature.FieldUnitCostLlmModel:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUnitCostLlmModel(v)
+		return nil
+	case dbfeature.FieldUnitCostLlmTokenTypeProperty:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUnitCostLlmTokenTypeProperty(v)
+		return nil
+	case dbfeature.FieldUnitCostLlmTokenType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUnitCostLlmTokenType(v)
+		return nil
 	case dbfeature.FieldArchivedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -51489,6 +52001,30 @@ func (m *FeatureMutation) ClearedFields() []string {
 	if m.FieldCleared(dbfeature.FieldAdvancedMeterGroupByFilters) {
 		fields = append(fields, dbfeature.FieldAdvancedMeterGroupByFilters)
 	}
+	if m.FieldCleared(dbfeature.FieldUnitCostType) {
+		fields = append(fields, dbfeature.FieldUnitCostType)
+	}
+	if m.FieldCleared(dbfeature.FieldUnitCostManualAmount) {
+		fields = append(fields, dbfeature.FieldUnitCostManualAmount)
+	}
+	if m.FieldCleared(dbfeature.FieldUnitCostLlmProviderProperty) {
+		fields = append(fields, dbfeature.FieldUnitCostLlmProviderProperty)
+	}
+	if m.FieldCleared(dbfeature.FieldUnitCostLlmProvider) {
+		fields = append(fields, dbfeature.FieldUnitCostLlmProvider)
+	}
+	if m.FieldCleared(dbfeature.FieldUnitCostLlmModelProperty) {
+		fields = append(fields, dbfeature.FieldUnitCostLlmModelProperty)
+	}
+	if m.FieldCleared(dbfeature.FieldUnitCostLlmModel) {
+		fields = append(fields, dbfeature.FieldUnitCostLlmModel)
+	}
+	if m.FieldCleared(dbfeature.FieldUnitCostLlmTokenTypeProperty) {
+		fields = append(fields, dbfeature.FieldUnitCostLlmTokenTypeProperty)
+	}
+	if m.FieldCleared(dbfeature.FieldUnitCostLlmTokenType) {
+		fields = append(fields, dbfeature.FieldUnitCostLlmTokenType)
+	}
 	if m.FieldCleared(dbfeature.FieldArchivedAt) {
 		fields = append(fields, dbfeature.FieldArchivedAt)
 	}
@@ -51520,6 +52056,30 @@ func (m *FeatureMutation) ClearField(name string) error {
 		return nil
 	case dbfeature.FieldAdvancedMeterGroupByFilters:
 		m.ClearAdvancedMeterGroupByFilters()
+		return nil
+	case dbfeature.FieldUnitCostType:
+		m.ClearUnitCostType()
+		return nil
+	case dbfeature.FieldUnitCostManualAmount:
+		m.ClearUnitCostManualAmount()
+		return nil
+	case dbfeature.FieldUnitCostLlmProviderProperty:
+		m.ClearUnitCostLlmProviderProperty()
+		return nil
+	case dbfeature.FieldUnitCostLlmProvider:
+		m.ClearUnitCostLlmProvider()
+		return nil
+	case dbfeature.FieldUnitCostLlmModelProperty:
+		m.ClearUnitCostLlmModelProperty()
+		return nil
+	case dbfeature.FieldUnitCostLlmModel:
+		m.ClearUnitCostLlmModel()
+		return nil
+	case dbfeature.FieldUnitCostLlmTokenTypeProperty:
+		m.ClearUnitCostLlmTokenTypeProperty()
+		return nil
+	case dbfeature.FieldUnitCostLlmTokenType:
+		m.ClearUnitCostLlmTokenType()
 		return nil
 	case dbfeature.FieldArchivedAt:
 		m.ClearArchivedAt()
@@ -51561,6 +52121,30 @@ func (m *FeatureMutation) ResetField(name string) error {
 		return nil
 	case dbfeature.FieldAdvancedMeterGroupByFilters:
 		m.ResetAdvancedMeterGroupByFilters()
+		return nil
+	case dbfeature.FieldUnitCostType:
+		m.ResetUnitCostType()
+		return nil
+	case dbfeature.FieldUnitCostManualAmount:
+		m.ResetUnitCostManualAmount()
+		return nil
+	case dbfeature.FieldUnitCostLlmProviderProperty:
+		m.ResetUnitCostLlmProviderProperty()
+		return nil
+	case dbfeature.FieldUnitCostLlmProvider:
+		m.ResetUnitCostLlmProvider()
+		return nil
+	case dbfeature.FieldUnitCostLlmModelProperty:
+		m.ResetUnitCostLlmModelProperty()
+		return nil
+	case dbfeature.FieldUnitCostLlmModel:
+		m.ResetUnitCostLlmModel()
+		return nil
+	case dbfeature.FieldUnitCostLlmTokenTypeProperty:
+		m.ResetUnitCostLlmTokenTypeProperty()
+		return nil
+	case dbfeature.FieldUnitCostLlmTokenType:
+		m.ResetUnitCostLlmTokenType()
 		return nil
 	case dbfeature.FieldArchivedAt:
 		m.ResetArchivedAt()

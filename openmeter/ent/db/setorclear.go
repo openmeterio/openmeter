@@ -2957,6 +2957,118 @@ func (u *FeatureUpdateOne) SetOrClearAdvancedMeterGroupByFilters(value *feature.
 	return u.SetAdvancedMeterGroupByFilters(*value)
 }
 
+func (u *FeatureUpdate) SetOrClearUnitCostType(value *string) *FeatureUpdate {
+	if value == nil {
+		return u.ClearUnitCostType()
+	}
+	return u.SetUnitCostType(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearUnitCostType(value *string) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearUnitCostType()
+	}
+	return u.SetUnitCostType(*value)
+}
+
+func (u *FeatureUpdate) SetOrClearUnitCostManualAmount(value *alpacadecimal.Decimal) *FeatureUpdate {
+	if value == nil {
+		return u.ClearUnitCostManualAmount()
+	}
+	return u.SetUnitCostManualAmount(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearUnitCostManualAmount(value *alpacadecimal.Decimal) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearUnitCostManualAmount()
+	}
+	return u.SetUnitCostManualAmount(*value)
+}
+
+func (u *FeatureUpdate) SetOrClearUnitCostLlmProviderProperty(value *string) *FeatureUpdate {
+	if value == nil {
+		return u.ClearUnitCostLlmProviderProperty()
+	}
+	return u.SetUnitCostLlmProviderProperty(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearUnitCostLlmProviderProperty(value *string) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearUnitCostLlmProviderProperty()
+	}
+	return u.SetUnitCostLlmProviderProperty(*value)
+}
+
+func (u *FeatureUpdate) SetOrClearUnitCostLlmProvider(value *string) *FeatureUpdate {
+	if value == nil {
+		return u.ClearUnitCostLlmProvider()
+	}
+	return u.SetUnitCostLlmProvider(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearUnitCostLlmProvider(value *string) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearUnitCostLlmProvider()
+	}
+	return u.SetUnitCostLlmProvider(*value)
+}
+
+func (u *FeatureUpdate) SetOrClearUnitCostLlmModelProperty(value *string) *FeatureUpdate {
+	if value == nil {
+		return u.ClearUnitCostLlmModelProperty()
+	}
+	return u.SetUnitCostLlmModelProperty(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearUnitCostLlmModelProperty(value *string) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearUnitCostLlmModelProperty()
+	}
+	return u.SetUnitCostLlmModelProperty(*value)
+}
+
+func (u *FeatureUpdate) SetOrClearUnitCostLlmModel(value *string) *FeatureUpdate {
+	if value == nil {
+		return u.ClearUnitCostLlmModel()
+	}
+	return u.SetUnitCostLlmModel(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearUnitCostLlmModel(value *string) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearUnitCostLlmModel()
+	}
+	return u.SetUnitCostLlmModel(*value)
+}
+
+func (u *FeatureUpdate) SetOrClearUnitCostLlmTokenTypeProperty(value *string) *FeatureUpdate {
+	if value == nil {
+		return u.ClearUnitCostLlmTokenTypeProperty()
+	}
+	return u.SetUnitCostLlmTokenTypeProperty(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearUnitCostLlmTokenTypeProperty(value *string) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearUnitCostLlmTokenTypeProperty()
+	}
+	return u.SetUnitCostLlmTokenTypeProperty(*value)
+}
+
+func (u *FeatureUpdate) SetOrClearUnitCostLlmTokenType(value *string) *FeatureUpdate {
+	if value == nil {
+		return u.ClearUnitCostLlmTokenType()
+	}
+	return u.SetUnitCostLlmTokenType(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearUnitCostLlmTokenType(value *string) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearUnitCostLlmTokenType()
+	}
+	return u.SetUnitCostLlmTokenType(*value)
+}
+
 func (u *FeatureUpdate) SetOrClearArchivedAt(value *time.Time) *FeatureUpdate {
 	if value == nil {
 		return u.ClearArchivedAt()

@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -33,17 +34,20 @@ type featureHandlers struct {
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
 	connector        feature.FeatureConnector
+	llmcostService   llmcost.Service
 }
 
 func NewFeatureHandler(
 	connector feature.FeatureConnector,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
+	llmcostService llmcost.Service,
 	options ...httptransport.HandlerOption,
 ) FeatureHandler {
 	return &featureHandlers{
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
 		connector:        connector,
+		llmcostService:   llmcostService,
 	}
 }
 
@@ -69,12 +73,22 @@ func (h *featureHandlers) GetFeature() GetFeatureHandler {
 			}, nil
 		},
 		func(ctx context.Context, featureId GetFeatureHandlerRequest) (GetFeatureHandlerResponse, error) {
-			feature, err := h.connector.GetFeature(ctx, featureId.Namespace, featureId.ID, feature.IncludeArchivedFeatureFalse)
+			feat, err := h.connector.GetFeature(ctx, featureId.Namespace, featureId.ID, feature.IncludeArchivedFeatureFalse)
 			if err != nil {
 				return api.Feature{}, err
 			}
 
-			return MapFeatureToResponse(*feature), nil
+			resp := MapFeatureToResponse(*feat)
+
+			// Resolve LLM pricing if the feature has LLM unit cost
+			if feat.UnitCost != nil && feat.UnitCost.Type == feature.UnitCostTypeLLM && h.llmcostService != nil {
+				pricing := resolveLLMPricing(ctx, h.llmcostService, feat)
+				if pricing != nil {
+					enrichFeatureResponseWithPricing(&resp, pricing)
+				}
+			}
+
+			return resp, nil
 		},
 		commonhttp.JSONResponseEncoder,
 		httptransport.AppendOptions(

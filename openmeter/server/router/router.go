@@ -22,6 +22,8 @@ import (
 	appstripehttpdriver "github.com/openmeterio/openmeter/openmeter/app/stripe/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billinghttpdriver "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
+	"github.com/openmeterio/openmeter/openmeter/cost"
+	costhttpdriver "github.com/openmeterio/openmeter/openmeter/cost/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	creditdriver "github.com/openmeterio/openmeter/openmeter/credit/driver"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -98,6 +100,7 @@ type Config struct {
 	Billing                     billing.Service
 	BillingFeatureSwitches      config.BillingFeatureSwitchesConfiguration
 	CurrencyService             currencies.CurrencyService
+	CostService                 cost.Service
 	Customer                    customer.Service
 	DebugConnector              debug.DebugConnector
 	EntitlementConnector        entitlement.Service
@@ -245,6 +248,7 @@ type Router struct {
 	appCustomInvoicingHandler appcustominvoicinghttpdriver.Handler
 	billingHandler            billinghttpdriver.Handler
 	currencyHandler           currencyhandler.Handler
+	costHandler               costhttpdriver.CostHandler
 	featureHandler            productcatalog_httpdriver.FeatureHandler
 	planHandler               planhttpdriver.Handler
 	planAddonHandler          planaddonhttpdriver.Handler
@@ -289,6 +293,14 @@ func NewRouter(config Config) (*Router, error) {
 	router.featureHandler = productcatalog_httpdriver.NewFeatureHandler(
 		config.FeatureConnector,
 		staticNamespaceDecoder,
+		config.LLMCostService,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
+
+	router.costHandler = costhttpdriver.NewCostHandler(
+		config.CostService,
+		staticNamespaceDecoder,
+		config.Customer,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
