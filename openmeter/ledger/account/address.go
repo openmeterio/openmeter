@@ -1,6 +1,9 @@
 package account
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 )
 
@@ -13,9 +16,34 @@ type AddressData struct {
 }
 
 func NewAddressFromData(data AddressData) *Address {
+	if err := validateAddressData(data); err != nil {
+		panic(err)
+	}
+
 	return &Address{
 		data: data,
 	}
+}
+
+func validateAddressData(data AddressData) error {
+	if data.SubAccountID == "" {
+		return errors.New("sub-account id is required")
+	}
+	if err := data.AccountType.Validate(); err != nil {
+		return fmt.Errorf("account type: %w", err)
+	}
+	if data.RouteID == "" {
+		return errors.New("route id is required")
+	}
+	routingKey, err := ledger.NewRoutingKey(data.RoutingKeyVersion, data.RoutingKey)
+	if err != nil {
+		return fmt.Errorf("routing key: %w", err)
+	}
+	if _, err := ledger.NewSubAccountRoute(data.RouteID, routingKey); err != nil {
+		return fmt.Errorf("route: %w", err)
+	}
+
+	return nil
 }
 
 type Address struct {

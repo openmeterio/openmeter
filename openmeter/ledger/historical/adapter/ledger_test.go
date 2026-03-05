@@ -11,6 +11,7 @@ import (
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
+	ledgersubaccountdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	ledgertransactiongroupdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	ledger "github.com/openmeterio/openmeter/openmeter/ledger"
@@ -70,7 +71,7 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 	txInput := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
 		{
 			Address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
-				SubAccountID:      subAccountA,
+				SubAccountID:      subAccountA.ID,
 				AccountType:       ledger.AccountTypeCustomerFBO,
 				RouteID:           "r-a",
 				RoutingKeyVersion: routeVersion,
@@ -80,7 +81,7 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 		},
 		{
 			Address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
-				SubAccountID:      subAccountB,
+				SubAccountID:      subAccountB.ID,
 				AccountType:       ledger.AccountTypeCustomerFBO,
 				RouteID:           "r-b",
 				RoutingKeyVersion: routeVersion,
@@ -123,8 +124,8 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 	subAccountIDs := lo.Map(entries, func(e *entdb.LedgerEntry, _ int) string {
 		return e.SubAccountID
 	})
-	require.Contains(t, subAccountIDs, subAccountA)
-	require.Contains(t, subAccountIDs, subAccountB)
+	require.Contains(t, subAccountIDs, subAccountA.ID)
+	require.Contains(t, subAccountIDs, subAccountB.ID)
 
 	require.Len(t, tx.Entries(), 2)
 	addressesBySubAccount := map[string]ledger.PostingAddress{}
@@ -132,10 +133,10 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 		addr := entry.PostingAddress()
 		addressesBySubAccount[addr.SubAccountID()] = addr
 	}
-	require.Equal(t, routeA, addressesBySubAccount[subAccountA].Route().RoutingKey().Value())
-	require.Equal(t, routeVersion, addressesBySubAccount[subAccountA].Route().RoutingKey().Version())
-	require.Equal(t, routeB, addressesBySubAccount[subAccountB].Route().RoutingKey().Value())
-	require.Equal(t, routeVersion, addressesBySubAccount[subAccountB].Route().RoutingKey().Version())
+	require.Equal(t, routeA, addressesBySubAccount[subAccountA.ID].Route().RoutingKey().Value())
+	require.Equal(t, routeVersion, addressesBySubAccount[subAccountA.ID].Route().RoutingKey().Version())
+	require.Equal(t, routeB, addressesBySubAccount[subAccountB.ID].Route().RoutingKey().Value())
+	require.Equal(t, routeVersion, addressesBySubAccount[subAccountB.ID].Route().RoutingKey().Version())
 }
 
 func TestRepo_BookTransaction_NilInput(t *testing.T) {
@@ -179,17 +180,11 @@ func TestRepo_ListTransactions_PaginatesAndFilters(t *testing.T) {
 
 	txInput1 := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
 		{
-			Address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
-				SubAccountID: subAccountA,
-				AccountType:  ledger.AccountTypeCustomerFBO,
-			}),
+			Address:     testAddress(subAccountA),
 			AmountValue: alpacadecimal.NewFromInt(-10),
 		},
 		{
-			Address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
-				SubAccountID: subAccountB,
-				AccountType:  ledger.AccountTypeCustomerFBO,
-			}),
+			Address:     testAddress(subAccountB),
 			AmountValue: alpacadecimal.NewFromInt(10),
 		},
 	})
@@ -200,17 +195,11 @@ func TestRepo_ListTransactions_PaginatesAndFilters(t *testing.T) {
 
 	txInput2 := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
 		{
-			Address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
-				SubAccountID: subAccountA,
-				AccountType:  ledger.AccountTypeCustomerFBO,
-			}),
+			Address:     testAddress(subAccountA),
 			AmountValue: alpacadecimal.NewFromInt(-20),
 		},
 		{
-			Address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
-				SubAccountID: subAccountB,
-				AccountType:  ledger.AccountTypeCustomerFBO,
-			}),
+			Address:     testAddress(subAccountB),
 			AmountValue: alpacadecimal.NewFromInt(20),
 		},
 	})
@@ -277,11 +266,11 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	bookedAtEarly := time.Now().UTC().Add(-2 * time.Hour)
 	txInputEarly := mustSetUpHistoricalTransactionInput(t, bookedAtEarly, []*transactionstestutils.AnyEntryInput{
 		{
-			Address:     ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{SubAccountID: subAccountA, AccountType: ledger.AccountTypeCustomerFBO}),
+			Address:     testAddress(subAccountA),
 			AmountValue: alpacadecimal.NewFromInt(100),
 		},
 		{
-			Address:     ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{SubAccountID: subAccountB, AccountType: ledger.AccountTypeCustomerFBO}),
+			Address:     testAddress(subAccountB),
 			AmountValue: alpacadecimal.NewFromInt(-100),
 		},
 	})
@@ -291,11 +280,11 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	bookedAtLate := time.Now().UTC().Add(-30 * time.Minute)
 	txInputLate := mustSetUpHistoricalTransactionInput(t, bookedAtLate, []*transactionstestutils.AnyEntryInput{
 		{
-			Address:     ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{SubAccountID: subAccountA, AccountType: ledger.AccountTypeCustomerFBO}),
+			Address:     testAddress(subAccountA),
 			AmountValue: alpacadecimal.NewFromInt(50),
 		},
 		{
-			Address:     ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{SubAccountID: subAccountC, AccountType: ledger.AccountTypeCustomerFBO}),
+			Address:     testAddress(subAccountC),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 	})
@@ -453,14 +442,15 @@ func (e *TestEnv) Close(t *testing.T) {
 	require.NoError(t, e.db.PGDriver.Close())
 }
 
-func (e *TestEnv) createSubAccount(t *testing.T, namespace string, accountID string) string {
+func (e *TestEnv) createSubAccount(t *testing.T, namespace string, accountID string) *entdb.LedgerSubAccount {
 	t.Helper()
 
 	currencyID := e.createDimension(t, namespace, string(ledger.DimensionKeyCurrency), fmt.Sprintf("currency-%d", time.Now().UnixNano()), "USD")
-	return e.createSubAccountWithDimensions(t, namespace, accountID, currencyID, nil, nil, nil)
+	subAccount := e.createSubAccountWithDimensions(t, namespace, accountID, currencyID, nil, nil, nil)
+	return subAccount
 }
 
-func (e *TestEnv) createSubAccountWithDimensions(t *testing.T, namespace string, accountID string, currencyDimensionID string, taxCodeDimensionID *string, featuresDimensionID *string, creditPriorityDimensionID *string) string {
+func (e *TestEnv) createSubAccountWithDimensions(t *testing.T, namespace string, accountID string, currencyDimensionID string, taxCodeDimensionID *string, featuresDimensionID *string, creditPriorityDimensionID *string) *entdb.LedgerSubAccount {
 	t.Helper()
 
 	account, err := e.client.LedgerAccount.Create().
@@ -477,7 +467,21 @@ func (e *TestEnv) createSubAccountWithDimensions(t *testing.T, namespace string,
 		Save(t.Context())
 	require.NoError(t, err)
 
-	return subAccount.ID
+	subAccount, err = e.client.LedgerSubAccount.Query().
+		Where(
+			ledgersubaccountdb.Namespace(namespace),
+			ledgersubaccountdb.ID(subAccount.ID),
+		).
+		WithRoute(func(query *entdb.LedgerSubAccountRouteQuery) {
+			query.WithCurrencyDimension()
+			query.WithTaxCodeDimension()
+			query.WithFeaturesDimension()
+			query.WithCreditPriorityDimension()
+		}).
+		Only(t.Context())
+	require.NoError(t, err)
+
+	return subAccount
 }
 
 func mustCreateRoute(
@@ -538,4 +542,14 @@ func mustSetUpHistoricalTransactionInput(_ *testing.T, bookedAt time.Time, entri
 		BookedAtValue:     bookedAt,
 		EntryInputsValues: entries,
 	}
+}
+
+func testAddress(subAccount *entdb.LedgerSubAccount) ledger.PostingAddress {
+	return ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
+		SubAccountID:      subAccount.ID,
+		AccountType:       ledger.AccountTypeCustomerFBO,
+		RouteID:           subAccount.RouteID,
+		RoutingKeyVersion: ledger.RoutingKeyVersionV1,
+		RoutingKey:        subAccount.Edges.Route.RoutingKey,
+	})
 }
