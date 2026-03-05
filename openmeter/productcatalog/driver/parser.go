@@ -2,6 +2,7 @@ package productcatalogdriver
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -14,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/filter"
 )
 
-func MapFeatureToResponse(f feature.Feature) api.Feature {
+func MapFeatureToResponse(f feature.Feature) (api.Feature, error) {
 	meterGroupByFilters := feature.ConvertMeterGroupByFiltersToMapString(f.MeterGroupByFilters)
 
 	resp := api.Feature{
@@ -32,14 +33,17 @@ func MapFeatureToResponse(f feature.Feature) api.Feature {
 	}
 
 	if f.UnitCost != nil {
-		apiUnitCost := domainUnitCostToAPI(f.UnitCost)
+		apiUnitCost, err := domainUnitCostToAPI(f.UnitCost)
+		if err != nil {
+			return api.Feature{}, fmt.Errorf("failed to convert unit cost: %w", err)
+		}
 		resp.UnitCost = &apiUnitCost
 	}
 
-	return resp
+	return resp, nil
 }
 
-func MapFeatureCreateInputsRequest(namespace string, f api.FeatureCreateInputs) feature.CreateFeatureInputs {
+func MapFeatureCreateInputsRequest(namespace string, f api.FeatureCreateInputs) (feature.CreateFeatureInputs, error) {
 	// if advancedMeterGroupByFilters is set, use it
 	// otherwise, use legacy meterGroupByFilters
 	meterGroupByFilters := lo.FromPtrOr(apiconverter.ConvertStringMapPtr(f.AdvancedMeterGroupByFilters), map[string]filter.FilterString{})
@@ -57,20 +61,26 @@ func MapFeatureCreateInputsRequest(namespace string, f api.FeatureCreateInputs) 
 	}
 
 	if f.UnitCost != nil {
-		inputs.UnitCost = apiUnitCostToDomain(f.UnitCost)
+		unitCost, err := apiUnitCostToDomain(f.UnitCost)
+		if err != nil {
+			return feature.CreateFeatureInputs{}, fmt.Errorf("invalid unit cost: %w", err)
+		}
+		inputs.UnitCost = unitCost
 	}
 
-	return inputs
+	return inputs, nil
 }
 
-func domainUnitCostToAPI(u *feature.UnitCost) api.FeatureUnitCost {
+func domainUnitCostToAPI(u *feature.UnitCost) (api.FeatureUnitCost, error) {
 	var out api.FeatureUnitCost
 
 	switch u.Type {
 	case feature.UnitCostTypeManual:
-		_ = out.FromFeatureManualUnitCost(api.FeatureManualUnitCost{
+		if err := out.FromFeatureManualUnitCost(api.FeatureManualUnitCost{
 			Amount: u.Manual.Amount.String(),
-		})
+		}); err != nil {
+			return out, fmt.Errorf("failed to convert manual unit cost: %w", err)
+		}
 	case feature.UnitCostTypeLLM:
 		llmCost := api.FeatureLLMUnitCost{}
 		if u.LLM.ProviderProperty != "" {
@@ -91,37 +101,44 @@ func domainUnitCostToAPI(u *feature.UnitCost) api.FeatureUnitCost {
 		if u.LLM.TokenType != "" {
 			llmCost.TokenType = lo.ToPtr(u.LLM.TokenType)
 		}
-		_ = out.FromFeatureLLMUnitCost(llmCost)
+		if err := out.FromFeatureLLMUnitCost(llmCost); err != nil {
+			return out, fmt.Errorf("failed to convert LLM unit cost: %w", err)
+		}
+	default:
+		return out, fmt.Errorf("unknown unit cost type: %s", u.Type)
 	}
 
-	return out
+	return out, nil
 }
 
-func apiUnitCostToDomain(u *api.FeatureUnitCost) *feature.UnitCost {
+func apiUnitCostToDomain(u *api.FeatureUnitCost) (*feature.UnitCost, error) {
 	discriminator, err := u.Discriminator()
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("failed to determine unit cost type: %w", err)
 	}
 
 	switch discriminator {
 	case "manual":
 		manual, err := u.AsFeatureManualUnitCost()
 		if err != nil {
-			return nil
+			return nil, fmt.Errorf("failed to parse manual unit cost: %w", err)
 		}
 
-		amount, _ := alpacadecimal.NewFromString(manual.Amount)
+		amount, err := alpacadecimal.NewFromString(manual.Amount)
+		if err != nil {
+			return nil, fmt.Errorf("invalid manual unit cost amount %q: %w", manual.Amount, err)
+		}
 
 		return &feature.UnitCost{
 			Type: feature.UnitCostTypeManual,
 			Manual: &feature.ManualUnitCost{
 				Amount: amount,
 			},
-		}
+		}, nil
 	case "llm":
 		llm, err := u.AsFeatureLLMUnitCost()
 		if err != nil {
-			return nil
+			return nil, fmt.Errorf("failed to parse LLM unit cost: %w", err)
 		}
 
 		return &feature.UnitCost{
@@ -134,10 +151,10 @@ func apiUnitCostToDomain(u *api.FeatureUnitCost) *feature.UnitCost {
 				TokenTypeProperty: lo.FromPtrOr(llm.TokenTypeProperty, ""),
 				TokenType:         lo.FromPtrOr(llm.TokenType, ""),
 			},
-		}
+		}, nil
+	default:
+		return nil, fmt.Errorf("unknown unit cost type: %s", discriminator)
 	}
-
-	return nil
 }
 
 // resolveLLMPricing extracts provider and model from the feature's meterGroupByFilters

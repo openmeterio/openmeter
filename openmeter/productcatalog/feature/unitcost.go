@@ -77,6 +77,10 @@ func (u *UnitCost) Validate() error {
 			return errors.New("manual unit cost configuration is required when type is manual")
 		}
 
+		if u.LLM != nil {
+			return errors.New("llm configuration must not be set when type is manual")
+		}
+
 		if u.Manual.Amount.IsNegative() {
 			return errors.New("manual unit cost amount must be non-negative")
 		}
@@ -86,6 +90,10 @@ func (u *UnitCost) Validate() error {
 	case UnitCostTypeLLM:
 		if u.LLM == nil {
 			return errors.New("LLM unit cost configuration is required when type is llm")
+		}
+
+		if u.Manual != nil {
+			return errors.New("manual configuration must not be set when type is llm")
 		}
 
 		var errs []error

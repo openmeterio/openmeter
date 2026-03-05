@@ -86,15 +86,15 @@ func (a *adapter) QueryFeatureCost(ctx context.Context, input cost.QueryFeatureC
 	params.GroupBy = slices.Clone(params.GroupBy)
 
 	// Merge feature's MeterGroupByFilters into query.
+	// Feature filters take precedence over request filters to prevent
+	// callers from querying usage outside the feature's filter scope.
 	if feat.MeterGroupByFilters != nil {
 		merged := make(map[string]filter.FilterString, len(params.FilterGroupBy)+len(feat.MeterGroupByFilters))
 		for k, v := range params.FilterGroupBy {
 			merged[k] = v
 		}
 		for k, v := range feat.MeterGroupByFilters {
-			if _, exists := merged[k]; !exists {
-				merged[k] = v
-			}
+			merged[k] = v
 		}
 		params.FilterGroupBy = merged
 	}

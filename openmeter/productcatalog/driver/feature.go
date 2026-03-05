@@ -78,7 +78,10 @@ func (h *featureHandlers) GetFeature() GetFeatureHandler {
 				return api.Feature{}, err
 			}
 
-			resp := MapFeatureToResponse(*feat)
+			resp, err := MapFeatureToResponse(*feat)
+			if err != nil {
+				return api.Feature{}, err
+			}
 
 			// Resolve LLM pricing if the feature has LLM unit cost
 			if feat.UnitCost != nil && feat.UnitCost.Type == feature.UnitCostTypeLLM && h.llmcostService != nil {
@@ -120,14 +123,14 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 				return emptyFeature, err
 			}
 
-			return MapFeatureCreateInputsRequest(ns, parsedBody), nil
+			return MapFeatureCreateInputsRequest(ns, parsedBody)
 		},
 		func(ctx context.Context, feature feature.CreateFeatureInputs) (api.Feature, error) {
 			createdFeature, err := h.connector.CreateFeature(ctx, feature)
 			if err != nil {
 				return api.Feature{}, err
 			}
-			return MapFeatureToResponse(createdFeature), nil
+			return MapFeatureToResponse(createdFeature)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[api.Feature](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -199,7 +202,11 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 
 			mapped := make([]api.Feature, 0, len(paged.Items))
 			for _, f := range paged.Items {
-				mapped = append(mapped, MapFeatureToResponse(f))
+				resp, err := MapFeatureToResponse(f)
+				if err != nil {
+					return response, err
+				}
+				mapped = append(mapped, resp)
 			}
 
 			if params.Page.IsZero() {
