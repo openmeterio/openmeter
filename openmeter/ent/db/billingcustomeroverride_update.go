@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
@@ -250,9 +251,34 @@ func (_u *BillingCustomerOverrideUpdate) ClearInvoiceDefaultTaxConfig() *Billing
 	return _u
 }
 
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *BillingCustomerOverrideUpdate) SetTaxCodeID(v string) *BillingCustomerOverrideUpdate {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *BillingCustomerOverrideUpdate) SetNillableTaxCodeID(v *string) *BillingCustomerOverrideUpdate {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *BillingCustomerOverrideUpdate) ClearTaxCodeID() *BillingCustomerOverrideUpdate {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
 // SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
 func (_u *BillingCustomerOverrideUpdate) SetBillingProfile(v *BillingProfile) *BillingCustomerOverrideUpdate {
 	return _u.SetBillingProfileID(v.ID)
+}
+
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_u *BillingCustomerOverrideUpdate) SetTaxCode(v *TaxCode) *BillingCustomerOverrideUpdate {
+	return _u.SetTaxCodeID(v.ID)
 }
 
 // Mutation returns the BillingCustomerOverrideMutation object of the builder.
@@ -263,6 +289,12 @@ func (_u *BillingCustomerOverrideUpdate) Mutation() *BillingCustomerOverrideMuta
 // ClearBillingProfile clears the "billing_profile" edge to the BillingProfile entity.
 func (_u *BillingCustomerOverrideUpdate) ClearBillingProfile() *BillingCustomerOverrideUpdate {
 	_u.mutation.ClearBillingProfile()
+	return _u
+}
+
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (_u *BillingCustomerOverrideUpdate) ClearTaxCode() *BillingCustomerOverrideUpdate {
+	_u.mutation.ClearTaxCode()
 	return _u
 }
 
@@ -427,6 +459,35 @@ func (_u *BillingCustomerOverrideUpdate) sqlSave(ctx context.Context) (_node int
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TaxCodeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingcustomeroverride.TaxCodeTable,
+			Columns: []string{billingcustomeroverride.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingcustomeroverride.TaxCodeTable,
+			Columns: []string{billingcustomeroverride.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -672,9 +733,34 @@ func (_u *BillingCustomerOverrideUpdateOne) ClearInvoiceDefaultTaxConfig() *Bill
 	return _u
 }
 
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *BillingCustomerOverrideUpdateOne) SetTaxCodeID(v string) *BillingCustomerOverrideUpdateOne {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *BillingCustomerOverrideUpdateOne) SetNillableTaxCodeID(v *string) *BillingCustomerOverrideUpdateOne {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *BillingCustomerOverrideUpdateOne) ClearTaxCodeID() *BillingCustomerOverrideUpdateOne {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
 // SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
 func (_u *BillingCustomerOverrideUpdateOne) SetBillingProfile(v *BillingProfile) *BillingCustomerOverrideUpdateOne {
 	return _u.SetBillingProfileID(v.ID)
+}
+
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_u *BillingCustomerOverrideUpdateOne) SetTaxCode(v *TaxCode) *BillingCustomerOverrideUpdateOne {
+	return _u.SetTaxCodeID(v.ID)
 }
 
 // Mutation returns the BillingCustomerOverrideMutation object of the builder.
@@ -685,6 +771,12 @@ func (_u *BillingCustomerOverrideUpdateOne) Mutation() *BillingCustomerOverrideM
 // ClearBillingProfile clears the "billing_profile" edge to the BillingProfile entity.
 func (_u *BillingCustomerOverrideUpdateOne) ClearBillingProfile() *BillingCustomerOverrideUpdateOne {
 	_u.mutation.ClearBillingProfile()
+	return _u
+}
+
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (_u *BillingCustomerOverrideUpdateOne) ClearTaxCode() *BillingCustomerOverrideUpdateOne {
+	_u.mutation.ClearTaxCode()
 	return _u
 }
 
@@ -879,6 +971,35 @@ func (_u *BillingCustomerOverrideUpdateOne) sqlSave(ctx context.Context) (_node 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TaxCodeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingcustomeroverride.TaxCodeTable,
+			Columns: []string{billingcustomeroverride.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingcustomeroverride.TaxCodeTable,
+			Columns: []string{billingcustomeroverride.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

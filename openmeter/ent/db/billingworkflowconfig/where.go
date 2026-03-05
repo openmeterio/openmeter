@@ -115,6 +115,11 @@ func InvoiceProgressiveBilling(v bool) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldInvoiceProgressiveBilling, v))
 }
 
+// TaxCodeID applies equality check predicate on the "tax_code_id" field. It's identical to TaxCodeIDEQ.
+func TaxCodeID(v string) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldTaxCodeID, v))
+}
+
 // TaxEnabled applies equality check predicate on the "tax_enabled" field. It's identical to TaxEnabledEQ.
 func TaxEnabled(v bool) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldTaxEnabled, v))
@@ -672,6 +677,81 @@ func InvoiceDefaultTaxSettingsNotNil() predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldNotNull(FieldInvoiceDefaultTaxSettings))
 }
 
+// TaxCodeIDEQ applies the EQ predicate on the "tax_code_id" field.
+func TaxCodeIDEQ(v string) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDNEQ applies the NEQ predicate on the "tax_code_id" field.
+func TaxCodeIDNEQ(v string) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDIn applies the In predicate on the "tax_code_id" field.
+func TaxCodeIDIn(vs ...string) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldIn(FieldTaxCodeID, vs...))
+}
+
+// TaxCodeIDNotIn applies the NotIn predicate on the "tax_code_id" field.
+func TaxCodeIDNotIn(vs ...string) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldNotIn(FieldTaxCodeID, vs...))
+}
+
+// TaxCodeIDGT applies the GT predicate on the "tax_code_id" field.
+func TaxCodeIDGT(v string) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldGT(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDGTE applies the GTE predicate on the "tax_code_id" field.
+func TaxCodeIDGTE(v string) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldGTE(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDLT applies the LT predicate on the "tax_code_id" field.
+func TaxCodeIDLT(v string) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldLT(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDLTE applies the LTE predicate on the "tax_code_id" field.
+func TaxCodeIDLTE(v string) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldLTE(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDContains applies the Contains predicate on the "tax_code_id" field.
+func TaxCodeIDContains(v string) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldContains(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDHasPrefix applies the HasPrefix predicate on the "tax_code_id" field.
+func TaxCodeIDHasPrefix(v string) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldHasPrefix(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDHasSuffix applies the HasSuffix predicate on the "tax_code_id" field.
+func TaxCodeIDHasSuffix(v string) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldHasSuffix(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDIsNil applies the IsNil predicate on the "tax_code_id" field.
+func TaxCodeIDIsNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldIsNull(FieldTaxCodeID))
+}
+
+// TaxCodeIDNotNil applies the NotNil predicate on the "tax_code_id" field.
+func TaxCodeIDNotNil() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldNotNull(FieldTaxCodeID))
+}
+
+// TaxCodeIDEqualFold applies the EqualFold predicate on the "tax_code_id" field.
+func TaxCodeIDEqualFold(v string) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldEqualFold(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDContainsFold applies the ContainsFold predicate on the "tax_code_id" field.
+func TaxCodeIDContainsFold(v string) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(sql.FieldContainsFold(FieldTaxCodeID, v))
+}
+
 // TaxEnabledEQ applies the EQ predicate on the "tax_enabled" field.
 func TaxEnabledEQ(v bool) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldTaxEnabled, v))
@@ -730,6 +810,29 @@ func HasBillingProfile() predicate.BillingWorkflowConfig {
 func HasBillingProfileWith(preds ...predicate.BillingProfile) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(func(s *sql.Selector) {
 		step := newBillingProfileStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasTaxCode applies the HasEdge predicate on the "tax_code" edge.
+func HasTaxCode() predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTaxCodeWith applies the HasEdge predicate on the "tax_code" edge with a given conditions (other predicates).
+func HasTaxCodeWith(preds ...predicate.TaxCode) predicate.BillingWorkflowConfig {
+	return predicate.BillingWorkflowConfig(func(s *sql.Selector) {
+		step := newTaxCodeStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

@@ -105,6 +105,11 @@ func Currency(v currencyx.Code) predicate.BillingStandardInvoiceDetailedLine {
 	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldEQ(FieldCurrency, vc))
 }
 
+// TaxCodeID applies equality check predicate on the "tax_code_id" field. It's identical to TaxCodeIDEQ.
+func TaxCodeID(v string) predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldEQ(FieldTaxCodeID, v))
+}
+
 // Amount applies equality check predicate on the "amount" field. It's identical to AmountEQ.
 func Amount(v alpacadecimal.Decimal) predicate.BillingStandardInvoiceDetailedLine {
 	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldEQ(FieldAmount, v))
@@ -637,6 +642,81 @@ func TaxConfigIsNil() predicate.BillingStandardInvoiceDetailedLine {
 // TaxConfigNotNil applies the NotNil predicate on the "tax_config" field.
 func TaxConfigNotNil() predicate.BillingStandardInvoiceDetailedLine {
 	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldNotNull(FieldTaxConfig))
+}
+
+// TaxCodeIDEQ applies the EQ predicate on the "tax_code_id" field.
+func TaxCodeIDEQ(v string) predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldEQ(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDNEQ applies the NEQ predicate on the "tax_code_id" field.
+func TaxCodeIDNEQ(v string) predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldNEQ(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDIn applies the In predicate on the "tax_code_id" field.
+func TaxCodeIDIn(vs ...string) predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldIn(FieldTaxCodeID, vs...))
+}
+
+// TaxCodeIDNotIn applies the NotIn predicate on the "tax_code_id" field.
+func TaxCodeIDNotIn(vs ...string) predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldNotIn(FieldTaxCodeID, vs...))
+}
+
+// TaxCodeIDGT applies the GT predicate on the "tax_code_id" field.
+func TaxCodeIDGT(v string) predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldGT(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDGTE applies the GTE predicate on the "tax_code_id" field.
+func TaxCodeIDGTE(v string) predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldGTE(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDLT applies the LT predicate on the "tax_code_id" field.
+func TaxCodeIDLT(v string) predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldLT(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDLTE applies the LTE predicate on the "tax_code_id" field.
+func TaxCodeIDLTE(v string) predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldLTE(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDContains applies the Contains predicate on the "tax_code_id" field.
+func TaxCodeIDContains(v string) predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldContains(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDHasPrefix applies the HasPrefix predicate on the "tax_code_id" field.
+func TaxCodeIDHasPrefix(v string) predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldHasPrefix(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDHasSuffix applies the HasSuffix predicate on the "tax_code_id" field.
+func TaxCodeIDHasSuffix(v string) predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldHasSuffix(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDIsNil applies the IsNil predicate on the "tax_code_id" field.
+func TaxCodeIDIsNil() predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldIsNull(FieldTaxCodeID))
+}
+
+// TaxCodeIDNotNil applies the NotNil predicate on the "tax_code_id" field.
+func TaxCodeIDNotNil() predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldNotNull(FieldTaxCodeID))
+}
+
+// TaxCodeIDEqualFold applies the EqualFold predicate on the "tax_code_id" field.
+func TaxCodeIDEqualFold(v string) predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldEqualFold(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDContainsFold applies the ContainsFold predicate on the "tax_code_id" field.
+func TaxCodeIDContainsFold(v string) predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldContainsFold(FieldTaxCodeID, v))
 }
 
 // AmountEQ applies the EQ predicate on the "amount" field.
@@ -1557,6 +1637,29 @@ func HasBillingInvoiceLine() predicate.BillingStandardInvoiceDetailedLine {
 func HasBillingInvoiceLineWith(preds ...predicate.BillingInvoiceLine) predicate.BillingStandardInvoiceDetailedLine {
 	return predicate.BillingStandardInvoiceDetailedLine(func(s *sql.Selector) {
 		step := newBillingInvoiceLineStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasTaxCode applies the HasEdge predicate on the "tax_code" edge.
+func HasTaxCode() predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTaxCodeWith applies the HasEdge predicate on the "tax_code" edge with a given conditions (other predicates).
+func HasTaxCodeWith(preds ...predicate.TaxCode) predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(func(s *sql.Selector) {
+		step := newTaxCodeStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

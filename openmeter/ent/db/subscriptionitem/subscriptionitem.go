@@ -55,6 +55,8 @@ const (
 	FieldEntitlementTemplate = "entitlement_template"
 	// FieldTaxConfig holds the string denoting the tax_config field in the database.
 	FieldTaxConfig = "tax_config"
+	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
+	FieldTaxCodeID = "tax_code_id"
 	// FieldBillingCadence holds the string denoting the billing_cadence field in the database.
 	FieldBillingCadence = "billing_cadence"
 	// FieldPrice holds the string denoting the price field in the database.
@@ -71,6 +73,8 @@ const (
 	EdgeBillingSplitLineGroups = "billing_split_line_groups"
 	// EdgeChargeIntents holds the string denoting the charge_intents edge name in mutations.
 	EdgeChargeIntents = "charge_intents"
+	// EdgeTaxCode holds the string denoting the tax_code edge name in mutations.
+	EdgeTaxCode = "tax_code"
 	// Table holds the table name of the subscriptionitem in the database.
 	Table = "subscription_items"
 	// PhaseTable is the table that holds the phase relation/edge.
@@ -108,6 +112,13 @@ const (
 	ChargeIntentsInverseTable = "charges"
 	// ChargeIntentsColumn is the table column denoting the charge_intents relation/edge.
 	ChargeIntentsColumn = "subscription_item_id"
+	// TaxCodeTable is the table that holds the tax_code relation/edge.
+	TaxCodeTable = "subscription_items"
+	// TaxCodeInverseTable is the table name for the TaxCode entity.
+	// It exists in this package in order to avoid circular dependency with the "dbtaxcode" package.
+	TaxCodeInverseTable = "tax_codes"
+	// TaxCodeColumn is the table column denoting the tax_code relation/edge.
+	TaxCodeColumn = "tax_code_id"
 )
 
 // Columns holds all SQL columns for subscriptionitem fields.
@@ -132,6 +143,7 @@ var Columns = []string{
 	FieldFeatureKey,
 	FieldEntitlementTemplate,
 	FieldTaxConfig,
+	FieldTaxCodeID,
 	FieldBillingCadence,
 	FieldPrice,
 	FieldDiscounts,
@@ -272,6 +284,11 @@ func ByTaxConfig(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTaxConfig, opts...).ToFunc()
 }
 
+// ByTaxCodeID orders the results by the tax_code_id field.
+func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
+}
+
 // ByBillingCadence orders the results by the billing_cadence field.
 func ByBillingCadence(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBillingCadence, opts...).ToFunc()
@@ -342,6 +359,13 @@ func ByChargeIntents(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newChargeIntentsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByTaxCodeField orders the results by tax_code field.
+func ByTaxCodeField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTaxCodeStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newPhaseStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -375,5 +399,12 @@ func newChargeIntentsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ChargeIntentsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, ChargeIntentsTable, ChargeIntentsColumn),
+	)
+}
+func newTaxCodeStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TaxCodeInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
 	)
 }

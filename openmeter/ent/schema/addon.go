@@ -121,6 +121,10 @@ func (AddonRateCard) Edges() []ent.Edge {
 			Ref("addon_ratecard").
 			Field("feature_id").
 			Unique(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("addon_rate_cards").
+			Field("tax_code_id").
+			Unique(),
 	}
 }
 

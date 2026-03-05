@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 )
 
 // BillingWorkflowConfigQuery is the builder for querying BillingWorkflowConfig entities.
@@ -28,6 +29,7 @@ type BillingWorkflowConfigQuery struct {
 	predicates          []predicate.BillingWorkflowConfig
 	withBillingInvoices *BillingInvoiceQuery
 	withBillingProfile  *BillingProfileQuery
+	withTaxCode         *TaxCodeQuery
 	modifiers           []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -102,6 +104,28 @@ func (_q *BillingWorkflowConfigQuery) QueryBillingProfile() *BillingProfileQuery
 			sqlgraph.From(billingworkflowconfig.Table, billingworkflowconfig.FieldID, selector),
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, billingworkflowconfig.BillingProfileTable, billingworkflowconfig.BillingProfileColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryTaxCode chains the current query on the "tax_code" edge.
+func (_q *BillingWorkflowConfigQuery) QueryTaxCode() *TaxCodeQuery {
+	query := (&TaxCodeClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingworkflowconfig.Table, billingworkflowconfig.FieldID, selector),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billingworkflowconfig.TaxCodeTable, billingworkflowconfig.TaxCodeColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -303,6 +327,7 @@ func (_q *BillingWorkflowConfigQuery) Clone() *BillingWorkflowConfigQuery {
 		predicates:          append([]predicate.BillingWorkflowConfig{}, _q.predicates...),
 		withBillingInvoices: _q.withBillingInvoices.Clone(),
 		withBillingProfile:  _q.withBillingProfile.Clone(),
+		withTaxCode:         _q.withTaxCode.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -328,6 +353,17 @@ func (_q *BillingWorkflowConfigQuery) WithBillingProfile(opts ...func(*BillingPr
 		opt(query)
 	}
 	_q.withBillingProfile = query
+	return _q
+}
+
+// WithTaxCode tells the query-builder to eager-load the nodes that are connected to
+// the "tax_code" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BillingWorkflowConfigQuery) WithTaxCode(opts ...func(*TaxCodeQuery)) *BillingWorkflowConfigQuery {
+	query := (&TaxCodeClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withTaxCode = query
 	return _q
 }
 
@@ -409,9 +445,10 @@ func (_q *BillingWorkflowConfigQuery) sqlAll(ctx context.Context, hooks ...query
 	var (
 		nodes       = []*BillingWorkflowConfig{}
 		_spec       = _q.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			_q.withBillingInvoices != nil,
 			_q.withBillingProfile != nil,
+			_q.withTaxCode != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -444,6 +481,12 @@ func (_q *BillingWorkflowConfigQuery) sqlAll(ctx context.Context, hooks ...query
 	if query := _q.withBillingProfile; query != nil {
 		if err := _q.loadBillingProfile(ctx, query, nodes, nil,
 			func(n *BillingWorkflowConfig, e *BillingProfile) { n.Edges.BillingProfile = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withTaxCode; query != nil {
+		if err := _q.loadTaxCode(ctx, query, nodes, nil,
+			func(n *BillingWorkflowConfig, e *TaxCode) { n.Edges.TaxCode = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -504,6 +547,38 @@ func (_q *BillingWorkflowConfigQuery) loadBillingProfile(ctx context.Context, qu
 	}
 	return nil
 }
+func (_q *BillingWorkflowConfigQuery) loadTaxCode(ctx context.Context, query *TaxCodeQuery, nodes []*BillingWorkflowConfig, init func(*BillingWorkflowConfig), assign func(*BillingWorkflowConfig, *TaxCode)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*BillingWorkflowConfig)
+	for i := range nodes {
+		if nodes[i].TaxCodeID == nil {
+			continue
+		}
+		fk := *nodes[i].TaxCodeID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(dbtaxcode.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "tax_code_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (_q *BillingWorkflowConfigQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
@@ -532,6 +607,9 @@ func (_q *BillingWorkflowConfigQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != billingworkflowconfig.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withTaxCode != nil {
+			_spec.Node.AddColumnOnce(billingworkflowconfig.FieldTaxCodeID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {
