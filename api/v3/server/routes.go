@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	currencieshandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
 )
 
 var unimplemented = api.Unimplemented{}
@@ -177,7 +178,7 @@ func (s *Server) CreateCostBasis(w http.ResponseWriter, r *http.Request, currenc
 }
 
 func (s *Server) ListCostBases(w http.ResponseWriter, r *http.Request, currencyId api.ULID, params api.ListCostBasesParams) {
-	s.currenciesHandler.ListCostBases().With(currencyId, params).ServeHTTP(w, r)
+	s.currenciesHandler.ListCostBases().With(currencieshandler.ListCostBasesArgs{CurrencyID: currencyId, Params: params}).ServeHTTP(w, r)
 }
 
 // LLM Cost Prices

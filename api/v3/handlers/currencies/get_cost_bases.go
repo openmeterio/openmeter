@@ -20,30 +20,16 @@ type (
 	ListCostBasesRequest  = currencies.ListCostBasesInput
 	ListCostBasesResponse = response.PagePaginationResponse[v3.BillingCostBasis]
 	ListCostBasesParams   = v3.ListCostBasesParams
+	ListCostBasesHandler  = httptransport.HandlerWithArgs[ListCostBasesRequest, ListCostBasesResponse, ListCostBasesArgs]
 )
 
-// ListCostBasesArgs bundles the path parameter and query parameters for ListCostBases.
 type ListCostBasesArgs struct {
 	CurrencyID string
 	Params     ListCostBasesParams
 }
 
-// ListCostBasesHandler is a handler for ListCostBases that accepts two arguments
-// (currencyId path param + query params) via a custom With method.
-type ListCostBasesHandler interface {
-	With(currencyID string, params ListCostBasesParams) httptransport.Handler[ListCostBasesRequest, ListCostBasesResponse]
-}
-
-type listCostBasesHandler struct {
-	inner httptransport.HandlerWithArgs[ListCostBasesRequest, ListCostBasesResponse, ListCostBasesArgs]
-}
-
-func (h listCostBasesHandler) With(currencyID string, params ListCostBasesParams) httptransport.Handler[ListCostBasesRequest, ListCostBasesResponse] {
-	return h.inner.With(ListCostBasesArgs{CurrencyID: currencyID, Params: params})
-}
-
 func (h *handler) ListCostBases() ListCostBasesHandler {
-	inner := httptransport.NewHandlerWithArgs(
+	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, args ListCostBasesArgs) (ListCostBasesRequest, error) {
 			ns, ok := h.namespaceDecoder.GetNamespace(ctx)
 			if !ok {
@@ -107,5 +93,4 @@ func (h *handler) ListCostBases() ListCostBasesHandler {
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
-	return listCostBasesHandler{inner: inner}
 }
