@@ -7,7 +7,11 @@ import (
 	"github.com/google/wire"
 
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/cost"
+	costadapter "github.com/openmeterio/openmeter/openmeter/cost/adapter"
+	costservice "github.com/openmeterio/openmeter/openmeter/cost/service"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	productcatalogpgadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -20,11 +24,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	planaddonadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/adapter"
 	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
 var ProductCatalog = wire.NewSet(
 	Feature,
+	Cost,
 	Plan,
 	Addon,
 	PlanAddon,
@@ -32,6 +38,10 @@ var ProductCatalog = wire.NewSet(
 
 var Feature = wire.NewSet(
 	NewFeatureConnector,
+)
+
+var Cost = wire.NewSet(
+	NewCostService,
 )
 
 var Plan = wire.NewSet(
@@ -54,6 +64,19 @@ func NewFeatureConnector(
 ) feature.FeatureConnector {
 	featureRepo := productcatalogpgadapter.NewPostgresFeatureRepo(db, logger)
 	return feature.NewFeatureConnector(featureRepo, meterService, publisher)
+}
+
+func NewCostService(
+	featureConnector feature.FeatureConnector,
+	meterService meter.Service,
+	streamingConnector streaming.Connector,
+	llmcostService llmcost.Service,
+) (cost.Service, error) {
+	adapter := costadapter.New(featureConnector, meterService, streamingConnector, llmcostService)
+
+	return costservice.New(costservice.Config{
+		Adapter: adapter,
+	})
 }
 
 func NewPlanService(

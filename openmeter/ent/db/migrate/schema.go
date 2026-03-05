@@ -2305,6 +2305,14 @@ var (
 		{Name: "meter_slug", Type: field.TypeString, Nullable: true},
 		{Name: "meter_group_by_filters", Type: field.TypeJSON, Nullable: true},
 		{Name: "advanced_meter_group_by_filters", Type: field.TypeJSON, Nullable: true},
+		{Name: "unit_cost_type", Type: field.TypeString, Nullable: true},
+		{Name: "unit_cost_manual_amount", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "unit_cost_llm_provider_property", Type: field.TypeString, Nullable: true},
+		{Name: "unit_cost_llm_provider", Type: field.TypeString, Nullable: true},
+		{Name: "unit_cost_llm_model_property", Type: field.TypeString, Nullable: true},
+		{Name: "unit_cost_llm_model", Type: field.TypeString, Nullable: true},
+		{Name: "unit_cost_llm_token_type_property", Type: field.TypeString, Nullable: true},
+		{Name: "unit_cost_llm_token_type", Type: field.TypeString, Nullable: true},
 		{Name: "archived_at", Type: field.TypeTime, Nullable: true},
 	}
 	// FeaturesTable holds the schema information for the "features" table.
@@ -3699,6 +3707,12 @@ func init() {
 	CustomerSubjectsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[1].RefTable = FeaturesTable
+	FeaturesTable.Annotation = &entsql.Annotation{}
+	FeaturesTable.Annotation.Checks = map[string]string{
+		"unit_cost_llm_model_mutual_exclusive":      "NOT (unit_cost_llm_model_property IS NOT NULL AND unit_cost_llm_model IS NOT NULL)",
+		"unit_cost_llm_provider_mutual_exclusive":   "NOT (unit_cost_llm_provider_property IS NOT NULL AND unit_cost_llm_provider IS NOT NULL)",
+		"unit_cost_llm_token_type_mutual_exclusive": "NOT (unit_cost_llm_token_type_property IS NOT NULL AND unit_cost_llm_token_type IS NOT NULL)",
+	}
 	GrantsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	NotificationEventsTable.ForeignKeys[0].RefTable = NotificationRulesTable
 	PlanAddonsTable.ForeignKeys[0].RefTable = AddonsTable

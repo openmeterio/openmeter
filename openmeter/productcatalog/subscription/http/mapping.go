@@ -212,7 +212,10 @@ func MapSubscriptionItemToAPI(item subscription.SubscriptionItemView) (api.Subsc
 	var included *api.SubscriptionItemIncluded
 
 	if item.Feature != nil {
-		feature := productcatalogdriver.MapFeatureToResponse(*item.Feature)
+		feature, err := productcatalogdriver.MapFeatureToResponse(*item.Feature)
+		if err != nil {
+			return api.SubscriptionItem{}, fmt.Errorf("failed to map feature to API: %w", err)
+		}
 		included = &api.SubscriptionItemIncluded{
 			Feature: feature,
 		}

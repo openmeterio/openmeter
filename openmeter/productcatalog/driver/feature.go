@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -33,17 +34,20 @@ type featureHandlers struct {
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
 	connector        feature.FeatureConnector
+	llmcostService   llmcost.Service
 }
 
 func NewFeatureHandler(
 	connector feature.FeatureConnector,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
+	llmcostService llmcost.Service,
 	options ...httptransport.HandlerOption,
 ) FeatureHandler {
 	return &featureHandlers{
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
 		connector:        connector,
+		llmcostService:   llmcostService,
 	}
 }
 
@@ -69,12 +73,25 @@ func (h *featureHandlers) GetFeature() GetFeatureHandler {
 			}, nil
 		},
 		func(ctx context.Context, featureId GetFeatureHandlerRequest) (GetFeatureHandlerResponse, error) {
-			feature, err := h.connector.GetFeature(ctx, featureId.Namespace, featureId.ID, feature.IncludeArchivedFeatureFalse)
+			feat, err := h.connector.GetFeature(ctx, featureId.Namespace, featureId.ID, feature.IncludeArchivedFeatureFalse)
 			if err != nil {
 				return api.Feature{}, err
 			}
 
-			return MapFeatureToResponse(*feature), nil
+			resp, err := MapFeatureToResponse(*feat)
+			if err != nil {
+				return api.Feature{}, err
+			}
+
+			// Resolve LLM pricing if the feature has LLM unit cost
+			if feat.UnitCost != nil && feat.UnitCost.Type == feature.UnitCostTypeLLM && h.llmcostService != nil {
+				pricing := resolveLLMPricing(ctx, h.llmcostService, feat)
+				if pricing != nil {
+					enrichFeatureResponseWithPricing(&resp, pricing)
+				}
+			}
+
+			return resp, nil
 		},
 		commonhttp.JSONResponseEncoder,
 		httptransport.AppendOptions(
@@ -106,14 +123,14 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 				return emptyFeature, err
 			}
 
-			return MapFeatureCreateInputsRequest(ns, parsedBody), nil
+			return MapFeatureCreateInputsRequest(ns, parsedBody)
 		},
 		func(ctx context.Context, feature feature.CreateFeatureInputs) (api.Feature, error) {
 			createdFeature, err := h.connector.CreateFeature(ctx, feature)
 			if err != nil {
 				return api.Feature{}, err
 			}
-			return MapFeatureToResponse(createdFeature), nil
+			return MapFeatureToResponse(createdFeature)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[api.Feature](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -185,7 +202,11 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 
 			mapped := make([]api.Feature, 0, len(paged.Items))
 			for _, f := range paged.Items {
-				mapped = append(mapped, MapFeatureToResponse(f))
+				resp, err := MapFeatureToResponse(f)
+				if err != nil {
+					return response, err
+				}
+				mapped = append(mapped, resp)
 			}
 
 			if params.Page.IsZero() {

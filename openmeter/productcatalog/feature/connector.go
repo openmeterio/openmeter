@@ -22,6 +22,7 @@ type CreateFeatureInputs struct {
 	Namespace           string              `json:"namespace"`
 	MeterSlug           *string             `json:"meterSlug"`
 	MeterGroupByFilters MeterGroupByFilters `json:"meterGroupByFilters"`
+	UnitCost            *UnitCost           `json:"unitCost"`
 	Metadata            map[string]string   `json:"metadata"`
 }
 
@@ -109,6 +110,8 @@ func NewFeatureConnector(
 // CreateFeature creates a new feature
 func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeatureInputs) (Feature, error) {
 	// Validate meter configuration
+	var resolvedMeter *meterpkg.Meter
+
 	if feature.MeterSlug != nil {
 		slug := *feature.MeterSlug
 
@@ -120,6 +123,8 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 		if err != nil {
 			return Feature{}, meterpkg.NewMeterNotFoundError(slug)
 		}
+
+		resolvedMeter = &meter
 
 		if !slices.Contains(c.validMeterAggregations, meter.Aggregation) {
 			return Feature{}, &FeatureInvalidMeterAggregationError{Aggregation: meter.Aggregation, MeterSlug: meter.Key, ValidAggregations: c.validMeterAggregations}
@@ -133,6 +138,25 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 		}
 		if err != nil {
 			return Feature{}, err
+		}
+	}
+
+	// Validate unit cost
+	if feature.UnitCost != nil {
+		if err := feature.UnitCost.Validate(); err != nil {
+			return Feature{}, models.NewGenericValidationError(err)
+		}
+
+		if feature.UnitCost.Type == UnitCostTypeLLM {
+			if resolvedMeter == nil {
+				return Feature{}, models.NewGenericValidationError(
+					fmt.Errorf("LLM unit cost requires a meter to be associated with the feature"),
+				)
+			}
+
+			if err := feature.UnitCost.ValidateWithMeter(*resolvedMeter); err != nil {
+				return Feature{}, models.NewGenericValidationError(err)
+			}
 		}
 	}
 

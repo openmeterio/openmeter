@@ -1,6 +1,7 @@
 package llmcost
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -19,6 +20,12 @@ var ErrPriceNotFound = models.NewValidationIssue(
 
 func NewPriceNotFoundError(id string) error {
 	return ErrPriceNotFound.WithAttr("id", id)
+}
+
+// IsPriceNotFoundError returns true if the error is a ValidationIssue with ErrCodePriceNotFound.
+func IsPriceNotFoundError(err error) bool {
+	var vi models.ValidationIssue
+	return errors.As(err, &vi) && vi.Code() == ErrCodePriceNotFound
 }
 
 const ErrCodeProviderEmpty models.ErrorCode = "llm_cost_provider_empty"

@@ -2,10 +2,13 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -31,7 +34,27 @@ func (Feature) Fields() []ent.Field {
 		field.String("meter_slug").Optional().Nillable().Immutable(),
 		field.JSON("meter_group_by_filters", map[string]string{}).Optional(),
 		field.JSON("advanced_meter_group_by_filters", feature.MeterGroupByFilters{}).Optional(),
+		field.String("unit_cost_type").Optional().Nillable(),
+		field.Other("unit_cost_manual_amount", alpacadecimal.Decimal{}).
+			Optional().Nillable().
+			SchemaType(map[string]string{dialect.Postgres: "numeric"}),
+		field.String("unit_cost_llm_provider_property").Optional().Nillable(),
+		field.String("unit_cost_llm_provider").Optional().Nillable(),
+		field.String("unit_cost_llm_model_property").Optional().Nillable(),
+		field.String("unit_cost_llm_model").Optional().Nillable(),
+		field.String("unit_cost_llm_token_type_property").Optional().Nillable(),
+		field.String("unit_cost_llm_token_type").Optional().Nillable(),
 		field.Time("archived_at").Optional().Nillable(),
+	}
+}
+
+func (Feature) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Checks(map[string]string{
+			"unit_cost_llm_provider_mutual_exclusive":   "NOT (unit_cost_llm_provider_property IS NOT NULL AND unit_cost_llm_provider IS NOT NULL)",
+			"unit_cost_llm_model_mutual_exclusive":      "NOT (unit_cost_llm_model_property IS NOT NULL AND unit_cost_llm_model IS NOT NULL)",
+			"unit_cost_llm_token_type_mutual_exclusive": "NOT (unit_cost_llm_token_type_property IS NOT NULL AND unit_cost_llm_token_type IS NOT NULL)",
+		}),
 	}
 }
 

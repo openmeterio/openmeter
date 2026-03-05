@@ -7,6 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -98,6 +99,46 @@ func Key(v string) predicate.Feature {
 // MeterSlug applies equality check predicate on the "meter_slug" field. It's identical to MeterSlugEQ.
 func MeterSlug(v string) predicate.Feature {
 	return predicate.Feature(sql.FieldEQ(FieldMeterSlug, v))
+}
+
+// UnitCostType applies equality check predicate on the "unit_cost_type" field. It's identical to UnitCostTypeEQ.
+func UnitCostType(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldUnitCostType, v))
+}
+
+// UnitCostManualAmount applies equality check predicate on the "unit_cost_manual_amount" field. It's identical to UnitCostManualAmountEQ.
+func UnitCostManualAmount(v alpacadecimal.Decimal) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldUnitCostManualAmount, v))
+}
+
+// UnitCostLlmProviderProperty applies equality check predicate on the "unit_cost_llm_provider_property" field. It's identical to UnitCostLlmProviderPropertyEQ.
+func UnitCostLlmProviderProperty(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldUnitCostLlmProviderProperty, v))
+}
+
+// UnitCostLlmProvider applies equality check predicate on the "unit_cost_llm_provider" field. It's identical to UnitCostLlmProviderEQ.
+func UnitCostLlmProvider(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldUnitCostLlmProvider, v))
+}
+
+// UnitCostLlmModelProperty applies equality check predicate on the "unit_cost_llm_model_property" field. It's identical to UnitCostLlmModelPropertyEQ.
+func UnitCostLlmModelProperty(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldUnitCostLlmModelProperty, v))
+}
+
+// UnitCostLlmModel applies equality check predicate on the "unit_cost_llm_model" field. It's identical to UnitCostLlmModelEQ.
+func UnitCostLlmModel(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldUnitCostLlmModel, v))
+}
+
+// UnitCostLlmTokenTypeProperty applies equality check predicate on the "unit_cost_llm_token_type_property" field. It's identical to UnitCostLlmTokenTypePropertyEQ.
+func UnitCostLlmTokenTypeProperty(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldUnitCostLlmTokenTypeProperty, v))
+}
+
+// UnitCostLlmTokenType applies equality check predicate on the "unit_cost_llm_token_type" field. It's identical to UnitCostLlmTokenTypeEQ.
+func UnitCostLlmTokenType(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldUnitCostLlmTokenType, v))
 }
 
 // ArchivedAt applies equality check predicate on the "archived_at" field. It's identical to ArchivedAtEQ.
@@ -533,6 +574,581 @@ func AdvancedMeterGroupByFiltersIsNil() predicate.Feature {
 // AdvancedMeterGroupByFiltersNotNil applies the NotNil predicate on the "advanced_meter_group_by_filters" field.
 func AdvancedMeterGroupByFiltersNotNil() predicate.Feature {
 	return predicate.Feature(sql.FieldNotNull(FieldAdvancedMeterGroupByFilters))
+}
+
+// UnitCostTypeEQ applies the EQ predicate on the "unit_cost_type" field.
+func UnitCostTypeEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldUnitCostType, v))
+}
+
+// UnitCostTypeNEQ applies the NEQ predicate on the "unit_cost_type" field.
+func UnitCostTypeNEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldNEQ(FieldUnitCostType, v))
+}
+
+// UnitCostTypeIn applies the In predicate on the "unit_cost_type" field.
+func UnitCostTypeIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldIn(FieldUnitCostType, vs...))
+}
+
+// UnitCostTypeNotIn applies the NotIn predicate on the "unit_cost_type" field.
+func UnitCostTypeNotIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldNotIn(FieldUnitCostType, vs...))
+}
+
+// UnitCostTypeGT applies the GT predicate on the "unit_cost_type" field.
+func UnitCostTypeGT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGT(FieldUnitCostType, v))
+}
+
+// UnitCostTypeGTE applies the GTE predicate on the "unit_cost_type" field.
+func UnitCostTypeGTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGTE(FieldUnitCostType, v))
+}
+
+// UnitCostTypeLT applies the LT predicate on the "unit_cost_type" field.
+func UnitCostTypeLT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLT(FieldUnitCostType, v))
+}
+
+// UnitCostTypeLTE applies the LTE predicate on the "unit_cost_type" field.
+func UnitCostTypeLTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLTE(FieldUnitCostType, v))
+}
+
+// UnitCostTypeContains applies the Contains predicate on the "unit_cost_type" field.
+func UnitCostTypeContains(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContains(FieldUnitCostType, v))
+}
+
+// UnitCostTypeHasPrefix applies the HasPrefix predicate on the "unit_cost_type" field.
+func UnitCostTypeHasPrefix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasPrefix(FieldUnitCostType, v))
+}
+
+// UnitCostTypeHasSuffix applies the HasSuffix predicate on the "unit_cost_type" field.
+func UnitCostTypeHasSuffix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasSuffix(FieldUnitCostType, v))
+}
+
+// UnitCostTypeIsNil applies the IsNil predicate on the "unit_cost_type" field.
+func UnitCostTypeIsNil() predicate.Feature {
+	return predicate.Feature(sql.FieldIsNull(FieldUnitCostType))
+}
+
+// UnitCostTypeNotNil applies the NotNil predicate on the "unit_cost_type" field.
+func UnitCostTypeNotNil() predicate.Feature {
+	return predicate.Feature(sql.FieldNotNull(FieldUnitCostType))
+}
+
+// UnitCostTypeEqualFold applies the EqualFold predicate on the "unit_cost_type" field.
+func UnitCostTypeEqualFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEqualFold(FieldUnitCostType, v))
+}
+
+// UnitCostTypeContainsFold applies the ContainsFold predicate on the "unit_cost_type" field.
+func UnitCostTypeContainsFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContainsFold(FieldUnitCostType, v))
+}
+
+// UnitCostManualAmountEQ applies the EQ predicate on the "unit_cost_manual_amount" field.
+func UnitCostManualAmountEQ(v alpacadecimal.Decimal) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldUnitCostManualAmount, v))
+}
+
+// UnitCostManualAmountNEQ applies the NEQ predicate on the "unit_cost_manual_amount" field.
+func UnitCostManualAmountNEQ(v alpacadecimal.Decimal) predicate.Feature {
+	return predicate.Feature(sql.FieldNEQ(FieldUnitCostManualAmount, v))
+}
+
+// UnitCostManualAmountIn applies the In predicate on the "unit_cost_manual_amount" field.
+func UnitCostManualAmountIn(vs ...alpacadecimal.Decimal) predicate.Feature {
+	return predicate.Feature(sql.FieldIn(FieldUnitCostManualAmount, vs...))
+}
+
+// UnitCostManualAmountNotIn applies the NotIn predicate on the "unit_cost_manual_amount" field.
+func UnitCostManualAmountNotIn(vs ...alpacadecimal.Decimal) predicate.Feature {
+	return predicate.Feature(sql.FieldNotIn(FieldUnitCostManualAmount, vs...))
+}
+
+// UnitCostManualAmountGT applies the GT predicate on the "unit_cost_manual_amount" field.
+func UnitCostManualAmountGT(v alpacadecimal.Decimal) predicate.Feature {
+	return predicate.Feature(sql.FieldGT(FieldUnitCostManualAmount, v))
+}
+
+// UnitCostManualAmountGTE applies the GTE predicate on the "unit_cost_manual_amount" field.
+func UnitCostManualAmountGTE(v alpacadecimal.Decimal) predicate.Feature {
+	return predicate.Feature(sql.FieldGTE(FieldUnitCostManualAmount, v))
+}
+
+// UnitCostManualAmountLT applies the LT predicate on the "unit_cost_manual_amount" field.
+func UnitCostManualAmountLT(v alpacadecimal.Decimal) predicate.Feature {
+	return predicate.Feature(sql.FieldLT(FieldUnitCostManualAmount, v))
+}
+
+// UnitCostManualAmountLTE applies the LTE predicate on the "unit_cost_manual_amount" field.
+func UnitCostManualAmountLTE(v alpacadecimal.Decimal) predicate.Feature {
+	return predicate.Feature(sql.FieldLTE(FieldUnitCostManualAmount, v))
+}
+
+// UnitCostManualAmountIsNil applies the IsNil predicate on the "unit_cost_manual_amount" field.
+func UnitCostManualAmountIsNil() predicate.Feature {
+	return predicate.Feature(sql.FieldIsNull(FieldUnitCostManualAmount))
+}
+
+// UnitCostManualAmountNotNil applies the NotNil predicate on the "unit_cost_manual_amount" field.
+func UnitCostManualAmountNotNil() predicate.Feature {
+	return predicate.Feature(sql.FieldNotNull(FieldUnitCostManualAmount))
+}
+
+// UnitCostLlmProviderPropertyEQ applies the EQ predicate on the "unit_cost_llm_provider_property" field.
+func UnitCostLlmProviderPropertyEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldUnitCostLlmProviderProperty, v))
+}
+
+// UnitCostLlmProviderPropertyNEQ applies the NEQ predicate on the "unit_cost_llm_provider_property" field.
+func UnitCostLlmProviderPropertyNEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldNEQ(FieldUnitCostLlmProviderProperty, v))
+}
+
+// UnitCostLlmProviderPropertyIn applies the In predicate on the "unit_cost_llm_provider_property" field.
+func UnitCostLlmProviderPropertyIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldIn(FieldUnitCostLlmProviderProperty, vs...))
+}
+
+// UnitCostLlmProviderPropertyNotIn applies the NotIn predicate on the "unit_cost_llm_provider_property" field.
+func UnitCostLlmProviderPropertyNotIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldNotIn(FieldUnitCostLlmProviderProperty, vs...))
+}
+
+// UnitCostLlmProviderPropertyGT applies the GT predicate on the "unit_cost_llm_provider_property" field.
+func UnitCostLlmProviderPropertyGT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGT(FieldUnitCostLlmProviderProperty, v))
+}
+
+// UnitCostLlmProviderPropertyGTE applies the GTE predicate on the "unit_cost_llm_provider_property" field.
+func UnitCostLlmProviderPropertyGTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGTE(FieldUnitCostLlmProviderProperty, v))
+}
+
+// UnitCostLlmProviderPropertyLT applies the LT predicate on the "unit_cost_llm_provider_property" field.
+func UnitCostLlmProviderPropertyLT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLT(FieldUnitCostLlmProviderProperty, v))
+}
+
+// UnitCostLlmProviderPropertyLTE applies the LTE predicate on the "unit_cost_llm_provider_property" field.
+func UnitCostLlmProviderPropertyLTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLTE(FieldUnitCostLlmProviderProperty, v))
+}
+
+// UnitCostLlmProviderPropertyContains applies the Contains predicate on the "unit_cost_llm_provider_property" field.
+func UnitCostLlmProviderPropertyContains(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContains(FieldUnitCostLlmProviderProperty, v))
+}
+
+// UnitCostLlmProviderPropertyHasPrefix applies the HasPrefix predicate on the "unit_cost_llm_provider_property" field.
+func UnitCostLlmProviderPropertyHasPrefix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasPrefix(FieldUnitCostLlmProviderProperty, v))
+}
+
+// UnitCostLlmProviderPropertyHasSuffix applies the HasSuffix predicate on the "unit_cost_llm_provider_property" field.
+func UnitCostLlmProviderPropertyHasSuffix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasSuffix(FieldUnitCostLlmProviderProperty, v))
+}
+
+// UnitCostLlmProviderPropertyIsNil applies the IsNil predicate on the "unit_cost_llm_provider_property" field.
+func UnitCostLlmProviderPropertyIsNil() predicate.Feature {
+	return predicate.Feature(sql.FieldIsNull(FieldUnitCostLlmProviderProperty))
+}
+
+// UnitCostLlmProviderPropertyNotNil applies the NotNil predicate on the "unit_cost_llm_provider_property" field.
+func UnitCostLlmProviderPropertyNotNil() predicate.Feature {
+	return predicate.Feature(sql.FieldNotNull(FieldUnitCostLlmProviderProperty))
+}
+
+// UnitCostLlmProviderPropertyEqualFold applies the EqualFold predicate on the "unit_cost_llm_provider_property" field.
+func UnitCostLlmProviderPropertyEqualFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEqualFold(FieldUnitCostLlmProviderProperty, v))
+}
+
+// UnitCostLlmProviderPropertyContainsFold applies the ContainsFold predicate on the "unit_cost_llm_provider_property" field.
+func UnitCostLlmProviderPropertyContainsFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContainsFold(FieldUnitCostLlmProviderProperty, v))
+}
+
+// UnitCostLlmProviderEQ applies the EQ predicate on the "unit_cost_llm_provider" field.
+func UnitCostLlmProviderEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldUnitCostLlmProvider, v))
+}
+
+// UnitCostLlmProviderNEQ applies the NEQ predicate on the "unit_cost_llm_provider" field.
+func UnitCostLlmProviderNEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldNEQ(FieldUnitCostLlmProvider, v))
+}
+
+// UnitCostLlmProviderIn applies the In predicate on the "unit_cost_llm_provider" field.
+func UnitCostLlmProviderIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldIn(FieldUnitCostLlmProvider, vs...))
+}
+
+// UnitCostLlmProviderNotIn applies the NotIn predicate on the "unit_cost_llm_provider" field.
+func UnitCostLlmProviderNotIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldNotIn(FieldUnitCostLlmProvider, vs...))
+}
+
+// UnitCostLlmProviderGT applies the GT predicate on the "unit_cost_llm_provider" field.
+func UnitCostLlmProviderGT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGT(FieldUnitCostLlmProvider, v))
+}
+
+// UnitCostLlmProviderGTE applies the GTE predicate on the "unit_cost_llm_provider" field.
+func UnitCostLlmProviderGTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGTE(FieldUnitCostLlmProvider, v))
+}
+
+// UnitCostLlmProviderLT applies the LT predicate on the "unit_cost_llm_provider" field.
+func UnitCostLlmProviderLT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLT(FieldUnitCostLlmProvider, v))
+}
+
+// UnitCostLlmProviderLTE applies the LTE predicate on the "unit_cost_llm_provider" field.
+func UnitCostLlmProviderLTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLTE(FieldUnitCostLlmProvider, v))
+}
+
+// UnitCostLlmProviderContains applies the Contains predicate on the "unit_cost_llm_provider" field.
+func UnitCostLlmProviderContains(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContains(FieldUnitCostLlmProvider, v))
+}
+
+// UnitCostLlmProviderHasPrefix applies the HasPrefix predicate on the "unit_cost_llm_provider" field.
+func UnitCostLlmProviderHasPrefix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasPrefix(FieldUnitCostLlmProvider, v))
+}
+
+// UnitCostLlmProviderHasSuffix applies the HasSuffix predicate on the "unit_cost_llm_provider" field.
+func UnitCostLlmProviderHasSuffix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasSuffix(FieldUnitCostLlmProvider, v))
+}
+
+// UnitCostLlmProviderIsNil applies the IsNil predicate on the "unit_cost_llm_provider" field.
+func UnitCostLlmProviderIsNil() predicate.Feature {
+	return predicate.Feature(sql.FieldIsNull(FieldUnitCostLlmProvider))
+}
+
+// UnitCostLlmProviderNotNil applies the NotNil predicate on the "unit_cost_llm_provider" field.
+func UnitCostLlmProviderNotNil() predicate.Feature {
+	return predicate.Feature(sql.FieldNotNull(FieldUnitCostLlmProvider))
+}
+
+// UnitCostLlmProviderEqualFold applies the EqualFold predicate on the "unit_cost_llm_provider" field.
+func UnitCostLlmProviderEqualFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEqualFold(FieldUnitCostLlmProvider, v))
+}
+
+// UnitCostLlmProviderContainsFold applies the ContainsFold predicate on the "unit_cost_llm_provider" field.
+func UnitCostLlmProviderContainsFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContainsFold(FieldUnitCostLlmProvider, v))
+}
+
+// UnitCostLlmModelPropertyEQ applies the EQ predicate on the "unit_cost_llm_model_property" field.
+func UnitCostLlmModelPropertyEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldUnitCostLlmModelProperty, v))
+}
+
+// UnitCostLlmModelPropertyNEQ applies the NEQ predicate on the "unit_cost_llm_model_property" field.
+func UnitCostLlmModelPropertyNEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldNEQ(FieldUnitCostLlmModelProperty, v))
+}
+
+// UnitCostLlmModelPropertyIn applies the In predicate on the "unit_cost_llm_model_property" field.
+func UnitCostLlmModelPropertyIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldIn(FieldUnitCostLlmModelProperty, vs...))
+}
+
+// UnitCostLlmModelPropertyNotIn applies the NotIn predicate on the "unit_cost_llm_model_property" field.
+func UnitCostLlmModelPropertyNotIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldNotIn(FieldUnitCostLlmModelProperty, vs...))
+}
+
+// UnitCostLlmModelPropertyGT applies the GT predicate on the "unit_cost_llm_model_property" field.
+func UnitCostLlmModelPropertyGT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGT(FieldUnitCostLlmModelProperty, v))
+}
+
+// UnitCostLlmModelPropertyGTE applies the GTE predicate on the "unit_cost_llm_model_property" field.
+func UnitCostLlmModelPropertyGTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGTE(FieldUnitCostLlmModelProperty, v))
+}
+
+// UnitCostLlmModelPropertyLT applies the LT predicate on the "unit_cost_llm_model_property" field.
+func UnitCostLlmModelPropertyLT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLT(FieldUnitCostLlmModelProperty, v))
+}
+
+// UnitCostLlmModelPropertyLTE applies the LTE predicate on the "unit_cost_llm_model_property" field.
+func UnitCostLlmModelPropertyLTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLTE(FieldUnitCostLlmModelProperty, v))
+}
+
+// UnitCostLlmModelPropertyContains applies the Contains predicate on the "unit_cost_llm_model_property" field.
+func UnitCostLlmModelPropertyContains(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContains(FieldUnitCostLlmModelProperty, v))
+}
+
+// UnitCostLlmModelPropertyHasPrefix applies the HasPrefix predicate on the "unit_cost_llm_model_property" field.
+func UnitCostLlmModelPropertyHasPrefix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasPrefix(FieldUnitCostLlmModelProperty, v))
+}
+
+// UnitCostLlmModelPropertyHasSuffix applies the HasSuffix predicate on the "unit_cost_llm_model_property" field.
+func UnitCostLlmModelPropertyHasSuffix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasSuffix(FieldUnitCostLlmModelProperty, v))
+}
+
+// UnitCostLlmModelPropertyIsNil applies the IsNil predicate on the "unit_cost_llm_model_property" field.
+func UnitCostLlmModelPropertyIsNil() predicate.Feature {
+	return predicate.Feature(sql.FieldIsNull(FieldUnitCostLlmModelProperty))
+}
+
+// UnitCostLlmModelPropertyNotNil applies the NotNil predicate on the "unit_cost_llm_model_property" field.
+func UnitCostLlmModelPropertyNotNil() predicate.Feature {
+	return predicate.Feature(sql.FieldNotNull(FieldUnitCostLlmModelProperty))
+}
+
+// UnitCostLlmModelPropertyEqualFold applies the EqualFold predicate on the "unit_cost_llm_model_property" field.
+func UnitCostLlmModelPropertyEqualFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEqualFold(FieldUnitCostLlmModelProperty, v))
+}
+
+// UnitCostLlmModelPropertyContainsFold applies the ContainsFold predicate on the "unit_cost_llm_model_property" field.
+func UnitCostLlmModelPropertyContainsFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContainsFold(FieldUnitCostLlmModelProperty, v))
+}
+
+// UnitCostLlmModelEQ applies the EQ predicate on the "unit_cost_llm_model" field.
+func UnitCostLlmModelEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldUnitCostLlmModel, v))
+}
+
+// UnitCostLlmModelNEQ applies the NEQ predicate on the "unit_cost_llm_model" field.
+func UnitCostLlmModelNEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldNEQ(FieldUnitCostLlmModel, v))
+}
+
+// UnitCostLlmModelIn applies the In predicate on the "unit_cost_llm_model" field.
+func UnitCostLlmModelIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldIn(FieldUnitCostLlmModel, vs...))
+}
+
+// UnitCostLlmModelNotIn applies the NotIn predicate on the "unit_cost_llm_model" field.
+func UnitCostLlmModelNotIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldNotIn(FieldUnitCostLlmModel, vs...))
+}
+
+// UnitCostLlmModelGT applies the GT predicate on the "unit_cost_llm_model" field.
+func UnitCostLlmModelGT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGT(FieldUnitCostLlmModel, v))
+}
+
+// UnitCostLlmModelGTE applies the GTE predicate on the "unit_cost_llm_model" field.
+func UnitCostLlmModelGTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGTE(FieldUnitCostLlmModel, v))
+}
+
+// UnitCostLlmModelLT applies the LT predicate on the "unit_cost_llm_model" field.
+func UnitCostLlmModelLT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLT(FieldUnitCostLlmModel, v))
+}
+
+// UnitCostLlmModelLTE applies the LTE predicate on the "unit_cost_llm_model" field.
+func UnitCostLlmModelLTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLTE(FieldUnitCostLlmModel, v))
+}
+
+// UnitCostLlmModelContains applies the Contains predicate on the "unit_cost_llm_model" field.
+func UnitCostLlmModelContains(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContains(FieldUnitCostLlmModel, v))
+}
+
+// UnitCostLlmModelHasPrefix applies the HasPrefix predicate on the "unit_cost_llm_model" field.
+func UnitCostLlmModelHasPrefix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasPrefix(FieldUnitCostLlmModel, v))
+}
+
+// UnitCostLlmModelHasSuffix applies the HasSuffix predicate on the "unit_cost_llm_model" field.
+func UnitCostLlmModelHasSuffix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasSuffix(FieldUnitCostLlmModel, v))
+}
+
+// UnitCostLlmModelIsNil applies the IsNil predicate on the "unit_cost_llm_model" field.
+func UnitCostLlmModelIsNil() predicate.Feature {
+	return predicate.Feature(sql.FieldIsNull(FieldUnitCostLlmModel))
+}
+
+// UnitCostLlmModelNotNil applies the NotNil predicate on the "unit_cost_llm_model" field.
+func UnitCostLlmModelNotNil() predicate.Feature {
+	return predicate.Feature(sql.FieldNotNull(FieldUnitCostLlmModel))
+}
+
+// UnitCostLlmModelEqualFold applies the EqualFold predicate on the "unit_cost_llm_model" field.
+func UnitCostLlmModelEqualFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEqualFold(FieldUnitCostLlmModel, v))
+}
+
+// UnitCostLlmModelContainsFold applies the ContainsFold predicate on the "unit_cost_llm_model" field.
+func UnitCostLlmModelContainsFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContainsFold(FieldUnitCostLlmModel, v))
+}
+
+// UnitCostLlmTokenTypePropertyEQ applies the EQ predicate on the "unit_cost_llm_token_type_property" field.
+func UnitCostLlmTokenTypePropertyEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldUnitCostLlmTokenTypeProperty, v))
+}
+
+// UnitCostLlmTokenTypePropertyNEQ applies the NEQ predicate on the "unit_cost_llm_token_type_property" field.
+func UnitCostLlmTokenTypePropertyNEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldNEQ(FieldUnitCostLlmTokenTypeProperty, v))
+}
+
+// UnitCostLlmTokenTypePropertyIn applies the In predicate on the "unit_cost_llm_token_type_property" field.
+func UnitCostLlmTokenTypePropertyIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldIn(FieldUnitCostLlmTokenTypeProperty, vs...))
+}
+
+// UnitCostLlmTokenTypePropertyNotIn applies the NotIn predicate on the "unit_cost_llm_token_type_property" field.
+func UnitCostLlmTokenTypePropertyNotIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldNotIn(FieldUnitCostLlmTokenTypeProperty, vs...))
+}
+
+// UnitCostLlmTokenTypePropertyGT applies the GT predicate on the "unit_cost_llm_token_type_property" field.
+func UnitCostLlmTokenTypePropertyGT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGT(FieldUnitCostLlmTokenTypeProperty, v))
+}
+
+// UnitCostLlmTokenTypePropertyGTE applies the GTE predicate on the "unit_cost_llm_token_type_property" field.
+func UnitCostLlmTokenTypePropertyGTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGTE(FieldUnitCostLlmTokenTypeProperty, v))
+}
+
+// UnitCostLlmTokenTypePropertyLT applies the LT predicate on the "unit_cost_llm_token_type_property" field.
+func UnitCostLlmTokenTypePropertyLT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLT(FieldUnitCostLlmTokenTypeProperty, v))
+}
+
+// UnitCostLlmTokenTypePropertyLTE applies the LTE predicate on the "unit_cost_llm_token_type_property" field.
+func UnitCostLlmTokenTypePropertyLTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLTE(FieldUnitCostLlmTokenTypeProperty, v))
+}
+
+// UnitCostLlmTokenTypePropertyContains applies the Contains predicate on the "unit_cost_llm_token_type_property" field.
+func UnitCostLlmTokenTypePropertyContains(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContains(FieldUnitCostLlmTokenTypeProperty, v))
+}
+
+// UnitCostLlmTokenTypePropertyHasPrefix applies the HasPrefix predicate on the "unit_cost_llm_token_type_property" field.
+func UnitCostLlmTokenTypePropertyHasPrefix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasPrefix(FieldUnitCostLlmTokenTypeProperty, v))
+}
+
+// UnitCostLlmTokenTypePropertyHasSuffix applies the HasSuffix predicate on the "unit_cost_llm_token_type_property" field.
+func UnitCostLlmTokenTypePropertyHasSuffix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasSuffix(FieldUnitCostLlmTokenTypeProperty, v))
+}
+
+// UnitCostLlmTokenTypePropertyIsNil applies the IsNil predicate on the "unit_cost_llm_token_type_property" field.
+func UnitCostLlmTokenTypePropertyIsNil() predicate.Feature {
+	return predicate.Feature(sql.FieldIsNull(FieldUnitCostLlmTokenTypeProperty))
+}
+
+// UnitCostLlmTokenTypePropertyNotNil applies the NotNil predicate on the "unit_cost_llm_token_type_property" field.
+func UnitCostLlmTokenTypePropertyNotNil() predicate.Feature {
+	return predicate.Feature(sql.FieldNotNull(FieldUnitCostLlmTokenTypeProperty))
+}
+
+// UnitCostLlmTokenTypePropertyEqualFold applies the EqualFold predicate on the "unit_cost_llm_token_type_property" field.
+func UnitCostLlmTokenTypePropertyEqualFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEqualFold(FieldUnitCostLlmTokenTypeProperty, v))
+}
+
+// UnitCostLlmTokenTypePropertyContainsFold applies the ContainsFold predicate on the "unit_cost_llm_token_type_property" field.
+func UnitCostLlmTokenTypePropertyContainsFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContainsFold(FieldUnitCostLlmTokenTypeProperty, v))
+}
+
+// UnitCostLlmTokenTypeEQ applies the EQ predicate on the "unit_cost_llm_token_type" field.
+func UnitCostLlmTokenTypeEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldUnitCostLlmTokenType, v))
+}
+
+// UnitCostLlmTokenTypeNEQ applies the NEQ predicate on the "unit_cost_llm_token_type" field.
+func UnitCostLlmTokenTypeNEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldNEQ(FieldUnitCostLlmTokenType, v))
+}
+
+// UnitCostLlmTokenTypeIn applies the In predicate on the "unit_cost_llm_token_type" field.
+func UnitCostLlmTokenTypeIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldIn(FieldUnitCostLlmTokenType, vs...))
+}
+
+// UnitCostLlmTokenTypeNotIn applies the NotIn predicate on the "unit_cost_llm_token_type" field.
+func UnitCostLlmTokenTypeNotIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldNotIn(FieldUnitCostLlmTokenType, vs...))
+}
+
+// UnitCostLlmTokenTypeGT applies the GT predicate on the "unit_cost_llm_token_type" field.
+func UnitCostLlmTokenTypeGT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGT(FieldUnitCostLlmTokenType, v))
+}
+
+// UnitCostLlmTokenTypeGTE applies the GTE predicate on the "unit_cost_llm_token_type" field.
+func UnitCostLlmTokenTypeGTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGTE(FieldUnitCostLlmTokenType, v))
+}
+
+// UnitCostLlmTokenTypeLT applies the LT predicate on the "unit_cost_llm_token_type" field.
+func UnitCostLlmTokenTypeLT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLT(FieldUnitCostLlmTokenType, v))
+}
+
+// UnitCostLlmTokenTypeLTE applies the LTE predicate on the "unit_cost_llm_token_type" field.
+func UnitCostLlmTokenTypeLTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLTE(FieldUnitCostLlmTokenType, v))
+}
+
+// UnitCostLlmTokenTypeContains applies the Contains predicate on the "unit_cost_llm_token_type" field.
+func UnitCostLlmTokenTypeContains(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContains(FieldUnitCostLlmTokenType, v))
+}
+
+// UnitCostLlmTokenTypeHasPrefix applies the HasPrefix predicate on the "unit_cost_llm_token_type" field.
+func UnitCostLlmTokenTypeHasPrefix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasPrefix(FieldUnitCostLlmTokenType, v))
+}
+
+// UnitCostLlmTokenTypeHasSuffix applies the HasSuffix predicate on the "unit_cost_llm_token_type" field.
+func UnitCostLlmTokenTypeHasSuffix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasSuffix(FieldUnitCostLlmTokenType, v))
+}
+
+// UnitCostLlmTokenTypeIsNil applies the IsNil predicate on the "unit_cost_llm_token_type" field.
+func UnitCostLlmTokenTypeIsNil() predicate.Feature {
+	return predicate.Feature(sql.FieldIsNull(FieldUnitCostLlmTokenType))
+}
+
+// UnitCostLlmTokenTypeNotNil applies the NotNil predicate on the "unit_cost_llm_token_type" field.
+func UnitCostLlmTokenTypeNotNil() predicate.Feature {
+	return predicate.Feature(sql.FieldNotNull(FieldUnitCostLlmTokenType))
+}
+
+// UnitCostLlmTokenTypeEqualFold applies the EqualFold predicate on the "unit_cost_llm_token_type" field.
+func UnitCostLlmTokenTypeEqualFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEqualFold(FieldUnitCostLlmTokenType, v))
+}
+
+// UnitCostLlmTokenTypeContainsFold applies the ContainsFold predicate on the "unit_cost_llm_token_type" field.
+func UnitCostLlmTokenTypeContainsFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContainsFold(FieldUnitCostLlmTokenType, v))
 }
 
 // ArchivedAtEQ applies the EQ predicate on the "archived_at" field.

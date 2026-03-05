@@ -24,6 +24,7 @@ import (
 	appstripeentity "github.com/openmeterio/openmeter/openmeter/app/stripe/entity"
 	appstripeentityapp "github.com/openmeterio/openmeter/openmeter/app/stripe/entity/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	costpkg "github.com/openmeterio/openmeter/openmeter/cost"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -513,6 +514,7 @@ func getTestServer(t *testing.T) *Server {
 			AppStripe:                   appStripeService,
 			AppCustomInvoicing:          appCustomInvoicingService,
 			Billing:                     billingService,
+			CostService:                 &NoopCostService{},
 			Customer:                    customerService,
 			CurrencyService:             &NoopCurrencyService{},
 			DebugConnector:              MockDebugHandler{},
@@ -705,6 +707,15 @@ func (n NoopFeatureConnector) ArchiveFeature(ctx context.Context, featureID mode
 
 func (n NoopFeatureConnector) ResolveFeatureMeters(ctx context.Context, namespace string, featureKeys []string) (feature.FeatureMeters, error) {
 	return feature.FeatureMeterCollection{}, nil
+}
+
+// NoopCostService
+var _ costpkg.Service = (*NoopCostService)(nil)
+
+type NoopCostService struct{}
+
+func (n NoopCostService) QueryFeatureCost(ctx context.Context, input costpkg.QueryFeatureCostInput) (*costpkg.CostQueryResult, error) {
+	return &costpkg.CostQueryResult{}, nil
 }
 
 // NoopEntitlementConnector

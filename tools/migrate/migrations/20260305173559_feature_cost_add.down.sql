@@ -1,0 +1,2 @@
+-- reverse: modify "features" table
+ALTER TABLE "features" DROP CONSTRAINT "unit_cost_llm_token_type_mutual_exclusive", DROP CONSTRAINT "unit_cost_llm_provider_mutual_exclusive", DROP CONSTRAINT "unit_cost_llm_model_mutual_exclusive", DROP COLUMN "unit_cost_llm_token_type", DROP COLUMN "unit_cost_llm_token_type_property", DROP COLUMN "unit_cost_llm_model", DROP COLUMN "unit_cost_llm_model_property", DROP COLUMN "unit_cost_llm_provider", DROP COLUMN "unit_cost_llm_provider_property", DROP COLUMN "unit_cost_manual_amount", DROP COLUMN "unit_cost_type";

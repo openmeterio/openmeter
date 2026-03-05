@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
@@ -116,6 +117,118 @@ func (_c *FeatureCreate) SetMeterGroupByFilters(v map[string]string) *FeatureCre
 // SetAdvancedMeterGroupByFilters sets the "advanced_meter_group_by_filters" field.
 func (_c *FeatureCreate) SetAdvancedMeterGroupByFilters(v feature.MeterGroupByFilters) *FeatureCreate {
 	_c.mutation.SetAdvancedMeterGroupByFilters(v)
+	return _c
+}
+
+// SetUnitCostType sets the "unit_cost_type" field.
+func (_c *FeatureCreate) SetUnitCostType(v string) *FeatureCreate {
+	_c.mutation.SetUnitCostType(v)
+	return _c
+}
+
+// SetNillableUnitCostType sets the "unit_cost_type" field if the given value is not nil.
+func (_c *FeatureCreate) SetNillableUnitCostType(v *string) *FeatureCreate {
+	if v != nil {
+		_c.SetUnitCostType(*v)
+	}
+	return _c
+}
+
+// SetUnitCostManualAmount sets the "unit_cost_manual_amount" field.
+func (_c *FeatureCreate) SetUnitCostManualAmount(v alpacadecimal.Decimal) *FeatureCreate {
+	_c.mutation.SetUnitCostManualAmount(v)
+	return _c
+}
+
+// SetNillableUnitCostManualAmount sets the "unit_cost_manual_amount" field if the given value is not nil.
+func (_c *FeatureCreate) SetNillableUnitCostManualAmount(v *alpacadecimal.Decimal) *FeatureCreate {
+	if v != nil {
+		_c.SetUnitCostManualAmount(*v)
+	}
+	return _c
+}
+
+// SetUnitCostLlmProviderProperty sets the "unit_cost_llm_provider_property" field.
+func (_c *FeatureCreate) SetUnitCostLlmProviderProperty(v string) *FeatureCreate {
+	_c.mutation.SetUnitCostLlmProviderProperty(v)
+	return _c
+}
+
+// SetNillableUnitCostLlmProviderProperty sets the "unit_cost_llm_provider_property" field if the given value is not nil.
+func (_c *FeatureCreate) SetNillableUnitCostLlmProviderProperty(v *string) *FeatureCreate {
+	if v != nil {
+		_c.SetUnitCostLlmProviderProperty(*v)
+	}
+	return _c
+}
+
+// SetUnitCostLlmProvider sets the "unit_cost_llm_provider" field.
+func (_c *FeatureCreate) SetUnitCostLlmProvider(v string) *FeatureCreate {
+	_c.mutation.SetUnitCostLlmProvider(v)
+	return _c
+}
+
+// SetNillableUnitCostLlmProvider sets the "unit_cost_llm_provider" field if the given value is not nil.
+func (_c *FeatureCreate) SetNillableUnitCostLlmProvider(v *string) *FeatureCreate {
+	if v != nil {
+		_c.SetUnitCostLlmProvider(*v)
+	}
+	return _c
+}
+
+// SetUnitCostLlmModelProperty sets the "unit_cost_llm_model_property" field.
+func (_c *FeatureCreate) SetUnitCostLlmModelProperty(v string) *FeatureCreate {
+	_c.mutation.SetUnitCostLlmModelProperty(v)
+	return _c
+}
+
+// SetNillableUnitCostLlmModelProperty sets the "unit_cost_llm_model_property" field if the given value is not nil.
+func (_c *FeatureCreate) SetNillableUnitCostLlmModelProperty(v *string) *FeatureCreate {
+	if v != nil {
+		_c.SetUnitCostLlmModelProperty(*v)
+	}
+	return _c
+}
+
+// SetUnitCostLlmModel sets the "unit_cost_llm_model" field.
+func (_c *FeatureCreate) SetUnitCostLlmModel(v string) *FeatureCreate {
+	_c.mutation.SetUnitCostLlmModel(v)
+	return _c
+}
+
+// SetNillableUnitCostLlmModel sets the "unit_cost_llm_model" field if the given value is not nil.
+func (_c *FeatureCreate) SetNillableUnitCostLlmModel(v *string) *FeatureCreate {
+	if v != nil {
+		_c.SetUnitCostLlmModel(*v)
+	}
+	return _c
+}
+
+// SetUnitCostLlmTokenTypeProperty sets the "unit_cost_llm_token_type_property" field.
+func (_c *FeatureCreate) SetUnitCostLlmTokenTypeProperty(v string) *FeatureCreate {
+	_c.mutation.SetUnitCostLlmTokenTypeProperty(v)
+	return _c
+}
+
+// SetNillableUnitCostLlmTokenTypeProperty sets the "unit_cost_llm_token_type_property" field if the given value is not nil.
+func (_c *FeatureCreate) SetNillableUnitCostLlmTokenTypeProperty(v *string) *FeatureCreate {
+	if v != nil {
+		_c.SetUnitCostLlmTokenTypeProperty(*v)
+	}
+	return _c
+}
+
+// SetUnitCostLlmTokenType sets the "unit_cost_llm_token_type" field.
+func (_c *FeatureCreate) SetUnitCostLlmTokenType(v string) *FeatureCreate {
+	_c.mutation.SetUnitCostLlmTokenType(v)
+	return _c
+}
+
+// SetNillableUnitCostLlmTokenType sets the "unit_cost_llm_token_type" field if the given value is not nil.
+func (_c *FeatureCreate) SetNillableUnitCostLlmTokenType(v *string) *FeatureCreate {
+	if v != nil {
+		_c.SetUnitCostLlmTokenType(*v)
+	}
 	return _c
 }
 
@@ -349,6 +462,38 @@ func (_c *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 		_spec.SetField(dbfeature.FieldAdvancedMeterGroupByFilters, field.TypeJSON, value)
 		_node.AdvancedMeterGroupByFilters = value
 	}
+	if value, ok := _c.mutation.UnitCostType(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostType, field.TypeString, value)
+		_node.UnitCostType = &value
+	}
+	if value, ok := _c.mutation.UnitCostManualAmount(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostManualAmount, field.TypeOther, value)
+		_node.UnitCostManualAmount = &value
+	}
+	if value, ok := _c.mutation.UnitCostLlmProviderProperty(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostLlmProviderProperty, field.TypeString, value)
+		_node.UnitCostLlmProviderProperty = &value
+	}
+	if value, ok := _c.mutation.UnitCostLlmProvider(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostLlmProvider, field.TypeString, value)
+		_node.UnitCostLlmProvider = &value
+	}
+	if value, ok := _c.mutation.UnitCostLlmModelProperty(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostLlmModelProperty, field.TypeString, value)
+		_node.UnitCostLlmModelProperty = &value
+	}
+	if value, ok := _c.mutation.UnitCostLlmModel(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostLlmModel, field.TypeString, value)
+		_node.UnitCostLlmModel = &value
+	}
+	if value, ok := _c.mutation.UnitCostLlmTokenTypeProperty(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostLlmTokenTypeProperty, field.TypeString, value)
+		_node.UnitCostLlmTokenTypeProperty = &value
+	}
+	if value, ok := _c.mutation.UnitCostLlmTokenType(); ok {
+		_spec.SetField(dbfeature.FieldUnitCostLlmTokenType, field.TypeString, value)
+		_node.UnitCostLlmTokenType = &value
+	}
 	if value, ok := _c.mutation.ArchivedAt(); ok {
 		_spec.SetField(dbfeature.FieldArchivedAt, field.TypeTime, value)
 		_node.ArchivedAt = &value
@@ -549,6 +694,150 @@ func (u *FeatureUpsert) ClearAdvancedMeterGroupByFilters() *FeatureUpsert {
 	return u
 }
 
+// SetUnitCostType sets the "unit_cost_type" field.
+func (u *FeatureUpsert) SetUnitCostType(v string) *FeatureUpsert {
+	u.Set(dbfeature.FieldUnitCostType, v)
+	return u
+}
+
+// UpdateUnitCostType sets the "unit_cost_type" field to the value that was provided on create.
+func (u *FeatureUpsert) UpdateUnitCostType() *FeatureUpsert {
+	u.SetExcluded(dbfeature.FieldUnitCostType)
+	return u
+}
+
+// ClearUnitCostType clears the value of the "unit_cost_type" field.
+func (u *FeatureUpsert) ClearUnitCostType() *FeatureUpsert {
+	u.SetNull(dbfeature.FieldUnitCostType)
+	return u
+}
+
+// SetUnitCostManualAmount sets the "unit_cost_manual_amount" field.
+func (u *FeatureUpsert) SetUnitCostManualAmount(v alpacadecimal.Decimal) *FeatureUpsert {
+	u.Set(dbfeature.FieldUnitCostManualAmount, v)
+	return u
+}
+
+// UpdateUnitCostManualAmount sets the "unit_cost_manual_amount" field to the value that was provided on create.
+func (u *FeatureUpsert) UpdateUnitCostManualAmount() *FeatureUpsert {
+	u.SetExcluded(dbfeature.FieldUnitCostManualAmount)
+	return u
+}
+
+// ClearUnitCostManualAmount clears the value of the "unit_cost_manual_amount" field.
+func (u *FeatureUpsert) ClearUnitCostManualAmount() *FeatureUpsert {
+	u.SetNull(dbfeature.FieldUnitCostManualAmount)
+	return u
+}
+
+// SetUnitCostLlmProviderProperty sets the "unit_cost_llm_provider_property" field.
+func (u *FeatureUpsert) SetUnitCostLlmProviderProperty(v string) *FeatureUpsert {
+	u.Set(dbfeature.FieldUnitCostLlmProviderProperty, v)
+	return u
+}
+
+// UpdateUnitCostLlmProviderProperty sets the "unit_cost_llm_provider_property" field to the value that was provided on create.
+func (u *FeatureUpsert) UpdateUnitCostLlmProviderProperty() *FeatureUpsert {
+	u.SetExcluded(dbfeature.FieldUnitCostLlmProviderProperty)
+	return u
+}
+
+// ClearUnitCostLlmProviderProperty clears the value of the "unit_cost_llm_provider_property" field.
+func (u *FeatureUpsert) ClearUnitCostLlmProviderProperty() *FeatureUpsert {
+	u.SetNull(dbfeature.FieldUnitCostLlmProviderProperty)
+	return u
+}
+
+// SetUnitCostLlmProvider sets the "unit_cost_llm_provider" field.
+func (u *FeatureUpsert) SetUnitCostLlmProvider(v string) *FeatureUpsert {
+	u.Set(dbfeature.FieldUnitCostLlmProvider, v)
+	return u
+}
+
+// UpdateUnitCostLlmProvider sets the "unit_cost_llm_provider" field to the value that was provided on create.
+func (u *FeatureUpsert) UpdateUnitCostLlmProvider() *FeatureUpsert {
+	u.SetExcluded(dbfeature.FieldUnitCostLlmProvider)
+	return u
+}
+
+// ClearUnitCostLlmProvider clears the value of the "unit_cost_llm_provider" field.
+func (u *FeatureUpsert) ClearUnitCostLlmProvider() *FeatureUpsert {
+	u.SetNull(dbfeature.FieldUnitCostLlmProvider)
+	return u
+}
+
+// SetUnitCostLlmModelProperty sets the "unit_cost_llm_model_property" field.
+func (u *FeatureUpsert) SetUnitCostLlmModelProperty(v string) *FeatureUpsert {
+	u.Set(dbfeature.FieldUnitCostLlmModelProperty, v)
+	return u
+}
+
+// UpdateUnitCostLlmModelProperty sets the "unit_cost_llm_model_property" field to the value that was provided on create.
+func (u *FeatureUpsert) UpdateUnitCostLlmModelProperty() *FeatureUpsert {
+	u.SetExcluded(dbfeature.FieldUnitCostLlmModelProperty)
+	return u
+}
+
+// ClearUnitCostLlmModelProperty clears the value of the "unit_cost_llm_model_property" field.
+func (u *FeatureUpsert) ClearUnitCostLlmModelProperty() *FeatureUpsert {
+	u.SetNull(dbfeature.FieldUnitCostLlmModelProperty)
+	return u
+}
+
+// SetUnitCostLlmModel sets the "unit_cost_llm_model" field.
+func (u *FeatureUpsert) SetUnitCostLlmModel(v string) *FeatureUpsert {
+	u.Set(dbfeature.FieldUnitCostLlmModel, v)
+	return u
+}
+
+// UpdateUnitCostLlmModel sets the "unit_cost_llm_model" field to the value that was provided on create.
+func (u *FeatureUpsert) UpdateUnitCostLlmModel() *FeatureUpsert {
+	u.SetExcluded(dbfeature.FieldUnitCostLlmModel)
+	return u
+}
+
+// ClearUnitCostLlmModel clears the value of the "unit_cost_llm_model" field.
+func (u *FeatureUpsert) ClearUnitCostLlmModel() *FeatureUpsert {
+	u.SetNull(dbfeature.FieldUnitCostLlmModel)
+	return u
+}
+
+// SetUnitCostLlmTokenTypeProperty sets the "unit_cost_llm_token_type_property" field.
+func (u *FeatureUpsert) SetUnitCostLlmTokenTypeProperty(v string) *FeatureUpsert {
+	u.Set(dbfeature.FieldUnitCostLlmTokenTypeProperty, v)
+	return u
+}
+
+// UpdateUnitCostLlmTokenTypeProperty sets the "unit_cost_llm_token_type_property" field to the value that was provided on create.
+func (u *FeatureUpsert) UpdateUnitCostLlmTokenTypeProperty() *FeatureUpsert {
+	u.SetExcluded(dbfeature.FieldUnitCostLlmTokenTypeProperty)
+	return u
+}
+
+// ClearUnitCostLlmTokenTypeProperty clears the value of the "unit_cost_llm_token_type_property" field.
+func (u *FeatureUpsert) ClearUnitCostLlmTokenTypeProperty() *FeatureUpsert {
+	u.SetNull(dbfeature.FieldUnitCostLlmTokenTypeProperty)
+	return u
+}
+
+// SetUnitCostLlmTokenType sets the "unit_cost_llm_token_type" field.
+func (u *FeatureUpsert) SetUnitCostLlmTokenType(v string) *FeatureUpsert {
+	u.Set(dbfeature.FieldUnitCostLlmTokenType, v)
+	return u
+}
+
+// UpdateUnitCostLlmTokenType sets the "unit_cost_llm_token_type" field to the value that was provided on create.
+func (u *FeatureUpsert) UpdateUnitCostLlmTokenType() *FeatureUpsert {
+	u.SetExcluded(dbfeature.FieldUnitCostLlmTokenType)
+	return u
+}
+
+// ClearUnitCostLlmTokenType clears the value of the "unit_cost_llm_token_type" field.
+func (u *FeatureUpsert) ClearUnitCostLlmTokenType() *FeatureUpsert {
+	u.SetNull(dbfeature.FieldUnitCostLlmTokenType)
+	return u
+}
+
 // SetArchivedAt sets the "archived_at" field.
 func (u *FeatureUpsert) SetArchivedAt(v time.Time) *FeatureUpsert {
 	u.Set(dbfeature.FieldArchivedAt, v)
@@ -736,6 +1025,174 @@ func (u *FeatureUpsertOne) UpdateAdvancedMeterGroupByFilters() *FeatureUpsertOne
 func (u *FeatureUpsertOne) ClearAdvancedMeterGroupByFilters() *FeatureUpsertOne {
 	return u.Update(func(s *FeatureUpsert) {
 		s.ClearAdvancedMeterGroupByFilters()
+	})
+}
+
+// SetUnitCostType sets the "unit_cost_type" field.
+func (u *FeatureUpsertOne) SetUnitCostType(v string) *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetUnitCostType(v)
+	})
+}
+
+// UpdateUnitCostType sets the "unit_cost_type" field to the value that was provided on create.
+func (u *FeatureUpsertOne) UpdateUnitCostType() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateUnitCostType()
+	})
+}
+
+// ClearUnitCostType clears the value of the "unit_cost_type" field.
+func (u *FeatureUpsertOne) ClearUnitCostType() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearUnitCostType()
+	})
+}
+
+// SetUnitCostManualAmount sets the "unit_cost_manual_amount" field.
+func (u *FeatureUpsertOne) SetUnitCostManualAmount(v alpacadecimal.Decimal) *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetUnitCostManualAmount(v)
+	})
+}
+
+// UpdateUnitCostManualAmount sets the "unit_cost_manual_amount" field to the value that was provided on create.
+func (u *FeatureUpsertOne) UpdateUnitCostManualAmount() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateUnitCostManualAmount()
+	})
+}
+
+// ClearUnitCostManualAmount clears the value of the "unit_cost_manual_amount" field.
+func (u *FeatureUpsertOne) ClearUnitCostManualAmount() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearUnitCostManualAmount()
+	})
+}
+
+// SetUnitCostLlmProviderProperty sets the "unit_cost_llm_provider_property" field.
+func (u *FeatureUpsertOne) SetUnitCostLlmProviderProperty(v string) *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetUnitCostLlmProviderProperty(v)
+	})
+}
+
+// UpdateUnitCostLlmProviderProperty sets the "unit_cost_llm_provider_property" field to the value that was provided on create.
+func (u *FeatureUpsertOne) UpdateUnitCostLlmProviderProperty() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateUnitCostLlmProviderProperty()
+	})
+}
+
+// ClearUnitCostLlmProviderProperty clears the value of the "unit_cost_llm_provider_property" field.
+func (u *FeatureUpsertOne) ClearUnitCostLlmProviderProperty() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearUnitCostLlmProviderProperty()
+	})
+}
+
+// SetUnitCostLlmProvider sets the "unit_cost_llm_provider" field.
+func (u *FeatureUpsertOne) SetUnitCostLlmProvider(v string) *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetUnitCostLlmProvider(v)
+	})
+}
+
+// UpdateUnitCostLlmProvider sets the "unit_cost_llm_provider" field to the value that was provided on create.
+func (u *FeatureUpsertOne) UpdateUnitCostLlmProvider() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateUnitCostLlmProvider()
+	})
+}
+
+// ClearUnitCostLlmProvider clears the value of the "unit_cost_llm_provider" field.
+func (u *FeatureUpsertOne) ClearUnitCostLlmProvider() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearUnitCostLlmProvider()
+	})
+}
+
+// SetUnitCostLlmModelProperty sets the "unit_cost_llm_model_property" field.
+func (u *FeatureUpsertOne) SetUnitCostLlmModelProperty(v string) *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetUnitCostLlmModelProperty(v)
+	})
+}
+
+// UpdateUnitCostLlmModelProperty sets the "unit_cost_llm_model_property" field to the value that was provided on create.
+func (u *FeatureUpsertOne) UpdateUnitCostLlmModelProperty() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateUnitCostLlmModelProperty()
+	})
+}
+
+// ClearUnitCostLlmModelProperty clears the value of the "unit_cost_llm_model_property" field.
+func (u *FeatureUpsertOne) ClearUnitCostLlmModelProperty() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearUnitCostLlmModelProperty()
+	})
+}
+
+// SetUnitCostLlmModel sets the "unit_cost_llm_model" field.
+func (u *FeatureUpsertOne) SetUnitCostLlmModel(v string) *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetUnitCostLlmModel(v)
+	})
+}
+
+// UpdateUnitCostLlmModel sets the "unit_cost_llm_model" field to the value that was provided on create.
+func (u *FeatureUpsertOne) UpdateUnitCostLlmModel() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateUnitCostLlmModel()
+	})
+}
+
+// ClearUnitCostLlmModel clears the value of the "unit_cost_llm_model" field.
+func (u *FeatureUpsertOne) ClearUnitCostLlmModel() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearUnitCostLlmModel()
+	})
+}
+
+// SetUnitCostLlmTokenTypeProperty sets the "unit_cost_llm_token_type_property" field.
+func (u *FeatureUpsertOne) SetUnitCostLlmTokenTypeProperty(v string) *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetUnitCostLlmTokenTypeProperty(v)
+	})
+}
+
+// UpdateUnitCostLlmTokenTypeProperty sets the "unit_cost_llm_token_type_property" field to the value that was provided on create.
+func (u *FeatureUpsertOne) UpdateUnitCostLlmTokenTypeProperty() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateUnitCostLlmTokenTypeProperty()
+	})
+}
+
+// ClearUnitCostLlmTokenTypeProperty clears the value of the "unit_cost_llm_token_type_property" field.
+func (u *FeatureUpsertOne) ClearUnitCostLlmTokenTypeProperty() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearUnitCostLlmTokenTypeProperty()
+	})
+}
+
+// SetUnitCostLlmTokenType sets the "unit_cost_llm_token_type" field.
+func (u *FeatureUpsertOne) SetUnitCostLlmTokenType(v string) *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetUnitCostLlmTokenType(v)
+	})
+}
+
+// UpdateUnitCostLlmTokenType sets the "unit_cost_llm_token_type" field to the value that was provided on create.
+func (u *FeatureUpsertOne) UpdateUnitCostLlmTokenType() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateUnitCostLlmTokenType()
+	})
+}
+
+// ClearUnitCostLlmTokenType clears the value of the "unit_cost_llm_token_type" field.
+func (u *FeatureUpsertOne) ClearUnitCostLlmTokenType() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearUnitCostLlmTokenType()
 	})
 }
 
@@ -1096,6 +1553,174 @@ func (u *FeatureUpsertBulk) UpdateAdvancedMeterGroupByFilters() *FeatureUpsertBu
 func (u *FeatureUpsertBulk) ClearAdvancedMeterGroupByFilters() *FeatureUpsertBulk {
 	return u.Update(func(s *FeatureUpsert) {
 		s.ClearAdvancedMeterGroupByFilters()
+	})
+}
+
+// SetUnitCostType sets the "unit_cost_type" field.
+func (u *FeatureUpsertBulk) SetUnitCostType(v string) *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetUnitCostType(v)
+	})
+}
+
+// UpdateUnitCostType sets the "unit_cost_type" field to the value that was provided on create.
+func (u *FeatureUpsertBulk) UpdateUnitCostType() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateUnitCostType()
+	})
+}
+
+// ClearUnitCostType clears the value of the "unit_cost_type" field.
+func (u *FeatureUpsertBulk) ClearUnitCostType() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearUnitCostType()
+	})
+}
+
+// SetUnitCostManualAmount sets the "unit_cost_manual_amount" field.
+func (u *FeatureUpsertBulk) SetUnitCostManualAmount(v alpacadecimal.Decimal) *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetUnitCostManualAmount(v)
+	})
+}
+
+// UpdateUnitCostManualAmount sets the "unit_cost_manual_amount" field to the value that was provided on create.
+func (u *FeatureUpsertBulk) UpdateUnitCostManualAmount() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateUnitCostManualAmount()
+	})
+}
+
+// ClearUnitCostManualAmount clears the value of the "unit_cost_manual_amount" field.
+func (u *FeatureUpsertBulk) ClearUnitCostManualAmount() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearUnitCostManualAmount()
+	})
+}
+
+// SetUnitCostLlmProviderProperty sets the "unit_cost_llm_provider_property" field.
+func (u *FeatureUpsertBulk) SetUnitCostLlmProviderProperty(v string) *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetUnitCostLlmProviderProperty(v)
+	})
+}
+
+// UpdateUnitCostLlmProviderProperty sets the "unit_cost_llm_provider_property" field to the value that was provided on create.
+func (u *FeatureUpsertBulk) UpdateUnitCostLlmProviderProperty() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateUnitCostLlmProviderProperty()
+	})
+}
+
+// ClearUnitCostLlmProviderProperty clears the value of the "unit_cost_llm_provider_property" field.
+func (u *FeatureUpsertBulk) ClearUnitCostLlmProviderProperty() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearUnitCostLlmProviderProperty()
+	})
+}
+
+// SetUnitCostLlmProvider sets the "unit_cost_llm_provider" field.
+func (u *FeatureUpsertBulk) SetUnitCostLlmProvider(v string) *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetUnitCostLlmProvider(v)
+	})
+}
+
+// UpdateUnitCostLlmProvider sets the "unit_cost_llm_provider" field to the value that was provided on create.
+func (u *FeatureUpsertBulk) UpdateUnitCostLlmProvider() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateUnitCostLlmProvider()
+	})
+}
+
+// ClearUnitCostLlmProvider clears the value of the "unit_cost_llm_provider" field.
+func (u *FeatureUpsertBulk) ClearUnitCostLlmProvider() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearUnitCostLlmProvider()
+	})
+}
+
+// SetUnitCostLlmModelProperty sets the "unit_cost_llm_model_property" field.
+func (u *FeatureUpsertBulk) SetUnitCostLlmModelProperty(v string) *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetUnitCostLlmModelProperty(v)
+	})
+}
+
+// UpdateUnitCostLlmModelProperty sets the "unit_cost_llm_model_property" field to the value that was provided on create.
+func (u *FeatureUpsertBulk) UpdateUnitCostLlmModelProperty() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateUnitCostLlmModelProperty()
+	})
+}
+
+// ClearUnitCostLlmModelProperty clears the value of the "unit_cost_llm_model_property" field.
+func (u *FeatureUpsertBulk) ClearUnitCostLlmModelProperty() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearUnitCostLlmModelProperty()
+	})
+}
+
+// SetUnitCostLlmModel sets the "unit_cost_llm_model" field.
+func (u *FeatureUpsertBulk) SetUnitCostLlmModel(v string) *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetUnitCostLlmModel(v)
+	})
+}
+
+// UpdateUnitCostLlmModel sets the "unit_cost_llm_model" field to the value that was provided on create.
+func (u *FeatureUpsertBulk) UpdateUnitCostLlmModel() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateUnitCostLlmModel()
+	})
+}
+
+// ClearUnitCostLlmModel clears the value of the "unit_cost_llm_model" field.
+func (u *FeatureUpsertBulk) ClearUnitCostLlmModel() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearUnitCostLlmModel()
+	})
+}
+
+// SetUnitCostLlmTokenTypeProperty sets the "unit_cost_llm_token_type_property" field.
+func (u *FeatureUpsertBulk) SetUnitCostLlmTokenTypeProperty(v string) *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetUnitCostLlmTokenTypeProperty(v)
+	})
+}
+
+// UpdateUnitCostLlmTokenTypeProperty sets the "unit_cost_llm_token_type_property" field to the value that was provided on create.
+func (u *FeatureUpsertBulk) UpdateUnitCostLlmTokenTypeProperty() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateUnitCostLlmTokenTypeProperty()
+	})
+}
+
+// ClearUnitCostLlmTokenTypeProperty clears the value of the "unit_cost_llm_token_type_property" field.
+func (u *FeatureUpsertBulk) ClearUnitCostLlmTokenTypeProperty() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearUnitCostLlmTokenTypeProperty()
+	})
+}
+
+// SetUnitCostLlmTokenType sets the "unit_cost_llm_token_type" field.
+func (u *FeatureUpsertBulk) SetUnitCostLlmTokenType(v string) *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetUnitCostLlmTokenType(v)
+	})
+}
+
+// UpdateUnitCostLlmTokenType sets the "unit_cost_llm_token_type" field to the value that was provided on create.
+func (u *FeatureUpsertBulk) UpdateUnitCostLlmTokenType() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateUnitCostLlmTokenType()
+	})
+}
+
+// ClearUnitCostLlmTokenType clears the value of the "unit_cost_llm_token_type" field.
+func (u *FeatureUpsertBulk) ClearUnitCostLlmTokenType() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearUnitCostLlmTokenType()
 	})
 }
 

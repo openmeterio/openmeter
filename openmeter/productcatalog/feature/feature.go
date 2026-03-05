@@ -132,6 +132,9 @@ type Feature struct {
 	// MeterGroupByFilters Optional meter group by filters. Useful if the meter scope is broader than what feature tracks.
 	MeterGroupByFilters MeterGroupByFilters `json:"meterGroupByFilters,omitempty"`
 
+	// UnitCost is an optional per-unit cost: either a fixed manual amount or dynamic LLM cost lookup.
+	UnitCost *UnitCost `json:"unitCost,omitempty"`
+
 	// Metadata Additional metadata.
 	Metadata map[string]string `json:"metadata,omitempty"`
 
@@ -174,6 +177,12 @@ func (f *Feature) Validate() error {
 
 	if f.UpdatedAt.IsZero() {
 		errs = append(errs, fmt.Errorf("updated at is required"))
+	}
+
+	if f.UnitCost != nil {
+		if err := f.UnitCost.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unit cost is invalid: %w", err))
+		}
 	}
 
 	return errors.Join(errs...)

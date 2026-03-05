@@ -121,9 +121,14 @@ func (b *EntitlementSnapshotHandler) createResetEvent(ctx context.Context, in cr
 		annotations[notification.AnnotationEventFeatureID] = in.Snapshot.Feature.ID
 	}
 
+	featureResp, err := productcatalogdriver.MapFeatureToResponse(in.Snapshot.Feature)
+	if err != nil {
+		return fmt.Errorf("failed to map feature to API: %w", err)
+	}
+
 	resetPayload := notification.EntitlementResetPayload{
 		Entitlement: *entitlementAPIEntity,
-		Feature:     productcatalogdriver.MapFeatureToResponse(in.Snapshot.Feature),
+		Feature:     featureResp,
 		Subject:     subjecthttphandler.FromSubject(in.Snapshot.Subject),
 		Value:       (api.EntitlementValue)(*in.Snapshot.Value),
 	}
