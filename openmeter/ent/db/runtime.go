@@ -53,6 +53,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/llmcostprice"
@@ -1628,6 +1629,33 @@ func init() {
 	ledgersubaccountDescID := ledgersubaccountMixinFields0[0].Descriptor()
 	// ledgersubaccount.DefaultID holds the default value on creation for the id field.
 	ledgersubaccount.DefaultID = ledgersubaccountDescID.Default.(func() string)
+	ledgersubaccountrouteMixin := schema.LedgerSubAccountRoute{}.Mixin()
+	ledgersubaccountrouteMixinFields0 := ledgersubaccountrouteMixin[0].Fields()
+	_ = ledgersubaccountrouteMixinFields0
+	ledgersubaccountrouteMixinFields1 := ledgersubaccountrouteMixin[1].Fields()
+	_ = ledgersubaccountrouteMixinFields1
+	ledgersubaccountrouteMixinFields2 := ledgersubaccountrouteMixin[2].Fields()
+	_ = ledgersubaccountrouteMixinFields2
+	ledgersubaccountrouteFields := schema.LedgerSubAccountRoute{}.Fields()
+	_ = ledgersubaccountrouteFields
+	// ledgersubaccountrouteDescNamespace is the schema descriptor for namespace field.
+	ledgersubaccountrouteDescNamespace := ledgersubaccountrouteMixinFields1[0].Descriptor()
+	// ledgersubaccountroute.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	ledgersubaccountroute.NamespaceValidator = ledgersubaccountrouteDescNamespace.Validators[0].(func(string) error)
+	// ledgersubaccountrouteDescCreatedAt is the schema descriptor for created_at field.
+	ledgersubaccountrouteDescCreatedAt := ledgersubaccountrouteMixinFields2[0].Descriptor()
+	// ledgersubaccountroute.DefaultCreatedAt holds the default value on creation for the created_at field.
+	ledgersubaccountroute.DefaultCreatedAt = ledgersubaccountrouteDescCreatedAt.Default.(func() time.Time)
+	// ledgersubaccountrouteDescUpdatedAt is the schema descriptor for updated_at field.
+	ledgersubaccountrouteDescUpdatedAt := ledgersubaccountrouteMixinFields2[1].Descriptor()
+	// ledgersubaccountroute.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	ledgersubaccountroute.DefaultUpdatedAt = ledgersubaccountrouteDescUpdatedAt.Default.(func() time.Time)
+	// ledgersubaccountroute.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	ledgersubaccountroute.UpdateDefaultUpdatedAt = ledgersubaccountrouteDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// ledgersubaccountrouteDescID is the schema descriptor for id field.
+	ledgersubaccountrouteDescID := ledgersubaccountrouteMixinFields0[0].Descriptor()
+	// ledgersubaccountroute.DefaultID holds the default value on creation for the id field.
+	ledgersubaccountroute.DefaultID = ledgersubaccountrouteDescID.Default.(func() string)
 	ledgertransactionMixin := schema.LedgerTransaction{}.Mixin()
 	ledgertransactionMixinFields0 := ledgertransactionMixin[0].Fields()
 	_ = ledgertransactionMixinFields0

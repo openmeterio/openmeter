@@ -33,6 +33,8 @@ type CustomerFBOSubAccountDimensions struct {
 	Features       mo.Option[DimensionFeature]
 }
 
+const DefaultCustomerFBOPriority = 100
+
 // CustomerReceivableAccount is a customer receivable account.
 type CustomerReceivableAccount interface {
 	CustomerAccount

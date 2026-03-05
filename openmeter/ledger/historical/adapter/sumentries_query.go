@@ -3,10 +3,13 @@ package adapter
 import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"strconv"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	ledgerdimensiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
 	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	ledgersubaccountdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
+	ledgersubaccountroutedb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -65,11 +68,23 @@ func (b *sumEntriesQuery) entryPredicates() []predicate.LedgerEntry {
 
 func (b *sumEntriesQuery) subAccountPredicates() []predicate.LedgerSubAccount {
 	subAccountPredicates := make([]predicate.LedgerSubAccount, 0, 1)
+	routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 2)
 	if b.query.Filters.Dimensions.CurrencyID != "" {
-		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.CurrencyDimensionID(b.query.Filters.Dimensions.CurrencyID))
+		routePredicates = append(routePredicates, ledgersubaccountroutedb.CurrencyDimensionID(b.query.Filters.Dimensions.CurrencyID))
 	}
-	// DEFERRED: tax/feature/credit-priority not active yet.
-	// Currency is the only enforced dimension in current provisioning model.
+	if b.query.Filters.Dimensions.CreditPriority != nil {
+		routePredicates = append(routePredicates,
+			ledgersubaccountroutedb.HasCreditPriorityDimensionWith(
+				ledgerdimensiondb.DimensionKey(string(ledger.DimensionKeyCreditPriority)),
+				ledgerdimensiondb.DimensionValue(strconv.Itoa(*b.query.Filters.Dimensions.CreditPriority)),
+			),
+		)
+	}
+	// DEFERRED: tax/feature filters are not active yet.
+
+	if len(routePredicates) > 0 {
+		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.HasRouteWith(routePredicates...))
+	}
 
 	return subAccountPredicates
 }

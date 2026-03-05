@@ -14,27 +14,23 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
 // LedgerSubAccountQuery is the builder for querying LedgerSubAccount entities.
 type LedgerSubAccountQuery struct {
 	config
-	ctx                         *QueryContext
-	order                       []ledgersubaccount.OrderOption
-	inters                      []Interceptor
-	predicates                  []predicate.LedgerSubAccount
-	withAccount                 *LedgerAccountQuery
-	withEntries                 *LedgerEntryQuery
-	withCurrencyDimension       *LedgerDimensionQuery
-	withTaxCodeDimension        *LedgerDimensionQuery
-	withFeaturesDimension       *LedgerDimensionQuery
-	withCreditPriorityDimension *LedgerDimensionQuery
-	withFKs                     bool
-	modifiers                   []func(*sql.Selector)
+	ctx         *QueryContext
+	order       []ledgersubaccount.OrderOption
+	inters      []Interceptor
+	predicates  []predicate.LedgerSubAccount
+	withAccount *LedgerAccountQuery
+	withRoute   *LedgerSubAccountRouteQuery
+	withEntries *LedgerEntryQuery
+	modifiers   []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -93,6 +89,28 @@ func (_q *LedgerSubAccountQuery) QueryAccount() *LedgerAccountQuery {
 	return query
 }
 
+// QueryRoute chains the current query on the "route" edge.
+func (_q *LedgerSubAccountQuery) QueryRoute() *LedgerSubAccountRouteQuery {
+	query := (&LedgerSubAccountRouteClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, selector),
+			sqlgraph.To(ledgersubaccountroute.Table, ledgersubaccountroute.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgersubaccount.RouteTable, ledgersubaccount.RouteColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // QueryEntries chains the current query on the "entries" edge.
 func (_q *LedgerSubAccountQuery) QueryEntries() *LedgerEntryQuery {
 	query := (&LedgerEntryClient{config: _q.config}).Query()
@@ -108,94 +126,6 @@ func (_q *LedgerSubAccountQuery) QueryEntries() *LedgerEntryQuery {
 			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, selector),
 			sqlgraph.To(ledgerentry.Table, ledgerentry.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, ledgersubaccount.EntriesTable, ledgersubaccount.EntriesColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryCurrencyDimension chains the current query on the "currency_dimension" edge.
-func (_q *LedgerSubAccountQuery) QueryCurrencyDimension() *LedgerDimensionQuery {
-	query := (&LedgerDimensionClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, selector),
-			sqlgraph.To(ledgerdimension.Table, ledgerdimension.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, ledgersubaccount.CurrencyDimensionTable, ledgersubaccount.CurrencyDimensionColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryTaxCodeDimension chains the current query on the "tax_code_dimension" edge.
-func (_q *LedgerSubAccountQuery) QueryTaxCodeDimension() *LedgerDimensionQuery {
-	query := (&LedgerDimensionClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, selector),
-			sqlgraph.To(ledgerdimension.Table, ledgerdimension.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, ledgersubaccount.TaxCodeDimensionTable, ledgersubaccount.TaxCodeDimensionColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryFeaturesDimension chains the current query on the "features_dimension" edge.
-func (_q *LedgerSubAccountQuery) QueryFeaturesDimension() *LedgerDimensionQuery {
-	query := (&LedgerDimensionClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, selector),
-			sqlgraph.To(ledgerdimension.Table, ledgerdimension.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, ledgersubaccount.FeaturesDimensionTable, ledgersubaccount.FeaturesDimensionColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryCreditPriorityDimension chains the current query on the "credit_priority_dimension" edge.
-func (_q *LedgerSubAccountQuery) QueryCreditPriorityDimension() *LedgerDimensionQuery {
-	query := (&LedgerDimensionClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, selector),
-			sqlgraph.To(ledgerdimension.Table, ledgerdimension.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, ledgersubaccount.CreditPriorityDimensionTable, ledgersubaccount.CreditPriorityDimensionColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -390,17 +320,14 @@ func (_q *LedgerSubAccountQuery) Clone() *LedgerSubAccountQuery {
 		return nil
 	}
 	return &LedgerSubAccountQuery{
-		config:                      _q.config,
-		ctx:                         _q.ctx.Clone(),
-		order:                       append([]ledgersubaccount.OrderOption{}, _q.order...),
-		inters:                      append([]Interceptor{}, _q.inters...),
-		predicates:                  append([]predicate.LedgerSubAccount{}, _q.predicates...),
-		withAccount:                 _q.withAccount.Clone(),
-		withEntries:                 _q.withEntries.Clone(),
-		withCurrencyDimension:       _q.withCurrencyDimension.Clone(),
-		withTaxCodeDimension:        _q.withTaxCodeDimension.Clone(),
-		withFeaturesDimension:       _q.withFeaturesDimension.Clone(),
-		withCreditPriorityDimension: _q.withCreditPriorityDimension.Clone(),
+		config:      _q.config,
+		ctx:         _q.ctx.Clone(),
+		order:       append([]ledgersubaccount.OrderOption{}, _q.order...),
+		inters:      append([]Interceptor{}, _q.inters...),
+		predicates:  append([]predicate.LedgerSubAccount{}, _q.predicates...),
+		withAccount: _q.withAccount.Clone(),
+		withRoute:   _q.withRoute.Clone(),
+		withEntries: _q.withEntries.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -418,6 +345,17 @@ func (_q *LedgerSubAccountQuery) WithAccount(opts ...func(*LedgerAccountQuery)) 
 	return _q
 }
 
+// WithRoute tells the query-builder to eager-load the nodes that are connected to
+// the "route" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *LedgerSubAccountQuery) WithRoute(opts ...func(*LedgerSubAccountRouteQuery)) *LedgerSubAccountQuery {
+	query := (&LedgerSubAccountRouteClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withRoute = query
+	return _q
+}
+
 // WithEntries tells the query-builder to eager-load the nodes that are connected to
 // the "entries" edge. The optional arguments are used to configure the query builder of the edge.
 func (_q *LedgerSubAccountQuery) WithEntries(opts ...func(*LedgerEntryQuery)) *LedgerSubAccountQuery {
@@ -426,50 +364,6 @@ func (_q *LedgerSubAccountQuery) WithEntries(opts ...func(*LedgerEntryQuery)) *L
 		opt(query)
 	}
 	_q.withEntries = query
-	return _q
-}
-
-// WithCurrencyDimension tells the query-builder to eager-load the nodes that are connected to
-// the "currency_dimension" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *LedgerSubAccountQuery) WithCurrencyDimension(opts ...func(*LedgerDimensionQuery)) *LedgerSubAccountQuery {
-	query := (&LedgerDimensionClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withCurrencyDimension = query
-	return _q
-}
-
-// WithTaxCodeDimension tells the query-builder to eager-load the nodes that are connected to
-// the "tax_code_dimension" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *LedgerSubAccountQuery) WithTaxCodeDimension(opts ...func(*LedgerDimensionQuery)) *LedgerSubAccountQuery {
-	query := (&LedgerDimensionClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withTaxCodeDimension = query
-	return _q
-}
-
-// WithFeaturesDimension tells the query-builder to eager-load the nodes that are connected to
-// the "features_dimension" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *LedgerSubAccountQuery) WithFeaturesDimension(opts ...func(*LedgerDimensionQuery)) *LedgerSubAccountQuery {
-	query := (&LedgerDimensionClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withFeaturesDimension = query
-	return _q
-}
-
-// WithCreditPriorityDimension tells the query-builder to eager-load the nodes that are connected to
-// the "credit_priority_dimension" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *LedgerSubAccountQuery) WithCreditPriorityDimension(opts ...func(*LedgerDimensionQuery)) *LedgerSubAccountQuery {
-	query := (&LedgerDimensionClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withCreditPriorityDimension = query
 	return _q
 }
 
@@ -550,20 +444,13 @@ func (_q *LedgerSubAccountQuery) prepareQuery(ctx context.Context) error {
 func (_q *LedgerSubAccountQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*LedgerSubAccount, error) {
 	var (
 		nodes       = []*LedgerSubAccount{}
-		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
-		loadedTypes = [6]bool{
+		loadedTypes = [3]bool{
 			_q.withAccount != nil,
+			_q.withRoute != nil,
 			_q.withEntries != nil,
-			_q.withCurrencyDimension != nil,
-			_q.withTaxCodeDimension != nil,
-			_q.withFeaturesDimension != nil,
-			_q.withCreditPriorityDimension != nil,
 		}
 	)
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, ledgersubaccount.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*LedgerSubAccount).scanValues(nil, columns)
 	}
@@ -591,34 +478,16 @@ func (_q *LedgerSubAccountQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 			return nil, err
 		}
 	}
+	if query := _q.withRoute; query != nil {
+		if err := _q.loadRoute(ctx, query, nodes, nil,
+			func(n *LedgerSubAccount, e *LedgerSubAccountRoute) { n.Edges.Route = e }); err != nil {
+			return nil, err
+		}
+	}
 	if query := _q.withEntries; query != nil {
 		if err := _q.loadEntries(ctx, query, nodes,
 			func(n *LedgerSubAccount) { n.Edges.Entries = []*LedgerEntry{} },
 			func(n *LedgerSubAccount, e *LedgerEntry) { n.Edges.Entries = append(n.Edges.Entries, e) }); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withCurrencyDimension; query != nil {
-		if err := _q.loadCurrencyDimension(ctx, query, nodes, nil,
-			func(n *LedgerSubAccount, e *LedgerDimension) { n.Edges.CurrencyDimension = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withTaxCodeDimension; query != nil {
-		if err := _q.loadTaxCodeDimension(ctx, query, nodes, nil,
-			func(n *LedgerSubAccount, e *LedgerDimension) { n.Edges.TaxCodeDimension = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withFeaturesDimension; query != nil {
-		if err := _q.loadFeaturesDimension(ctx, query, nodes, nil,
-			func(n *LedgerSubAccount, e *LedgerDimension) { n.Edges.FeaturesDimension = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withCreditPriorityDimension; query != nil {
-		if err := _q.loadCreditPriorityDimension(ctx, query, nodes, nil,
-			func(n *LedgerSubAccount, e *LedgerDimension) { n.Edges.CreditPriorityDimension = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -647,6 +516,35 @@ func (_q *LedgerSubAccountQuery) loadAccount(ctx context.Context, query *LedgerA
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "account_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (_q *LedgerSubAccountQuery) loadRoute(ctx context.Context, query *LedgerSubAccountRouteQuery, nodes []*LedgerSubAccount, init func(*LedgerSubAccount), assign func(*LedgerSubAccount, *LedgerSubAccountRoute)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*LedgerSubAccount)
+	for i := range nodes {
+		fk := nodes[i].RouteID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(ledgersubaccountroute.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "route_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -684,122 +582,6 @@ func (_q *LedgerSubAccountQuery) loadEntries(ctx context.Context, query *LedgerE
 	}
 	return nil
 }
-func (_q *LedgerSubAccountQuery) loadCurrencyDimension(ctx context.Context, query *LedgerDimensionQuery, nodes []*LedgerSubAccount, init func(*LedgerSubAccount), assign func(*LedgerSubAccount, *LedgerDimension)) error {
-	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*LedgerSubAccount)
-	for i := range nodes {
-		fk := nodes[i].CurrencyDimensionID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(ledgerdimension.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "currency_dimension_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
-func (_q *LedgerSubAccountQuery) loadTaxCodeDimension(ctx context.Context, query *LedgerDimensionQuery, nodes []*LedgerSubAccount, init func(*LedgerSubAccount), assign func(*LedgerSubAccount, *LedgerDimension)) error {
-	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*LedgerSubAccount)
-	for i := range nodes {
-		fk := nodes[i].TaxCodeDimensionID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(ledgerdimension.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "tax_code_dimension_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
-func (_q *LedgerSubAccountQuery) loadFeaturesDimension(ctx context.Context, query *LedgerDimensionQuery, nodes []*LedgerSubAccount, init func(*LedgerSubAccount), assign func(*LedgerSubAccount, *LedgerDimension)) error {
-	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*LedgerSubAccount)
-	for i := range nodes {
-		fk := nodes[i].FeaturesDimensionID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(ledgerdimension.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "features_dimension_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
-func (_q *LedgerSubAccountQuery) loadCreditPriorityDimension(ctx context.Context, query *LedgerDimensionQuery, nodes []*LedgerSubAccount, init func(*LedgerSubAccount), assign func(*LedgerSubAccount, *LedgerDimension)) error {
-	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*LedgerSubAccount)
-	for i := range nodes {
-		fk := nodes[i].CreditPriorityDimensionID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(ledgerdimension.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "credit_priority_dimension_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
 
 func (_q *LedgerSubAccountQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
@@ -832,17 +614,8 @@ func (_q *LedgerSubAccountQuery) querySpec() *sqlgraph.QuerySpec {
 		if _q.withAccount != nil {
 			_spec.Node.AddColumnOnce(ledgersubaccount.FieldAccountID)
 		}
-		if _q.withCurrencyDimension != nil {
-			_spec.Node.AddColumnOnce(ledgersubaccount.FieldCurrencyDimensionID)
-		}
-		if _q.withTaxCodeDimension != nil {
-			_spec.Node.AddColumnOnce(ledgersubaccount.FieldTaxCodeDimensionID)
-		}
-		if _q.withFeaturesDimension != nil {
-			_spec.Node.AddColumnOnce(ledgersubaccount.FieldFeaturesDimensionID)
-		}
-		if _q.withCreditPriorityDimension != nil {
-			_spec.Node.AddColumnOnce(ledgersubaccount.FieldCreditPriorityDimensionID)
+		if _q.withRoute != nil {
+			_spec.Node.AddColumnOnce(ledgersubaccount.FieldRouteID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

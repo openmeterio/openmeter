@@ -150,8 +150,8 @@ func (_u *LedgerSubAccountUpdate) check() error {
 	if _u.mutation.AccountCleared() && len(_u.mutation.AccountIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "LedgerSubAccount.account"`)
 	}
-	if _u.mutation.CurrencyDimensionCleared() && len(_u.mutation.CurrencyDimensionIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "LedgerSubAccount.currency_dimension"`)
+	if _u.mutation.RouteCleared() && len(_u.mutation.RouteIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "LedgerSubAccount.route"`)
 	}
 	return nil
 }
@@ -381,8 +381,8 @@ func (_u *LedgerSubAccountUpdateOne) check() error {
 	if _u.mutation.AccountCleared() && len(_u.mutation.AccountIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "LedgerSubAccount.account"`)
 	}
-	if _u.mutation.CurrencyDimensionCleared() && len(_u.mutation.CurrencyDimensionIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "LedgerSubAccount.currency_dimension"`)
+	if _u.mutation.RouteCleared() && len(_u.mutation.RouteIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "LedgerSubAccount.route"`)
 	}
 	return nil
 }

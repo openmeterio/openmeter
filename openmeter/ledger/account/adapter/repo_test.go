@@ -10,6 +10,7 @@ import (
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	ledgeraccountdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
+	ledgersubaccountroutedb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/openmeter/ledger/account/adapter"
@@ -195,6 +196,14 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	priority7, err := env.repo.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
+		Namespace:    namespace,
+		Key:          string(ledger.DimensionKeyCreditPriority),
+		Value:        "7",
+		DisplayValue: "Priority 7",
+	})
+	require.NoError(t, err)
+
 	accountA, err := env.repo.CreateAccount(ctx, ledgeraccount.CreateAccountInput{
 		Namespace: namespace,
 		Type:      ledger.AccountTypeCustomerFBO,
@@ -225,6 +234,16 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	subA3Priority7, err := env.repo.CreateSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
+		Namespace: namespace,
+		AccountID: accountA.ID.ID,
+		Dimensions: ledgeraccount.SubAccountDimensionInput{
+			CurrencyDimensionID:       currencyA.ID,
+			CreditPriorityDimensionID: &priority7.ID,
+		},
+	})
+	require.NoError(t, err)
+
 	_, err = env.repo.CreateSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 		Namespace: namespace,
 		AccountID: accountB.ID.ID,
@@ -240,28 +259,120 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 			AccountID: accountA.ID.ID,
 		})
 		require.NoError(t, err)
-		require.Len(t, items, 2)
+		require.Len(t, items, 3)
 	})
 
 	t.Run("filters by dimensions", func(t *testing.T) {
-		tax := ulid.Make().String()
 		priority := 7
 		items, err := env.repo.ListSubAccounts(ctx, ledgeraccount.ListSubAccountsInput{
 			Namespace: namespace,
 			AccountID: accountA.ID.ID,
 			Dimensions: ledger.QueryDimensions{
 				CurrencyID:     currencyA.ID,
-				TaxCodeID:      &tax,
-				FeatureIDs:     []string{ulid.Make().String()},
 				CreditPriority: &priority,
 			},
 		})
 		require.NoError(t, err)
-		// DEFERRED: tax/feature/credit-priority not active yet.
-		// Currency is the only enforced dimension in current provisioning model.
 		require.Len(t, items, 1)
-		require.Equal(t, subA1.ID, items[0].ID)
+		require.Equal(t, subA3Priority7.ID, items[0].ID)
 	})
+
+	t.Run("create uses route uniqueness", func(t *testing.T) {
+		dup, err := env.repo.CreateSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
+			Namespace: namespace,
+			AccountID: accountA.ID.ID,
+			Dimensions: ledgeraccount.SubAccountDimensionInput{
+				CurrencyDimensionID: currencyA.ID,
+			},
+		})
+		require.NoError(t, err)
+		require.Equal(t, subA1.ID, dup.ID)
+	})
+}
+
+func TestRepo_SubAccountRouteUniquenessConstraints(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+	env.DBSchemaMigrate(t)
+
+	ctx := t.Context()
+	namespace := testNamespace()
+
+	currency, err := env.repo.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
+		Namespace:    namespace,
+		Key:          string(ledger.DimensionKeyCurrency),
+		Value:        "USD",
+		DisplayValue: "USD",
+	})
+	require.NoError(t, err)
+
+	priority7, err := env.repo.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
+		Namespace:    namespace,
+		Key:          string(ledger.DimensionKeyCreditPriority),
+		Value:        "7",
+		DisplayValue: "Priority 7",
+	})
+	require.NoError(t, err)
+
+	accountA, err := env.repo.CreateAccount(ctx, ledgeraccount.CreateAccountInput{
+		Namespace: namespace,
+		Type:      ledger.AccountTypeCustomerFBO,
+	})
+	require.NoError(t, err)
+
+	accountB, err := env.repo.CreateAccount(ctx, ledgeraccount.CreateAccountInput{
+		Namespace: namespace,
+		Type:      ledger.AccountTypeCustomerFBO,
+	})
+	require.NoError(t, err)
+
+	createRoute := func(accountID string, creditPriorityDimensionID *string) error {
+		key, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, ledger.SubAccountRouteInput{
+			CurrencyDimensionID:       currency.ID,
+			CreditPriorityDimensionID: creditPriorityDimensionID,
+		})
+		require.NoError(t, err)
+
+		_, err = env.client.LedgerSubAccountRoute.Create().
+			SetNamespace(namespace).
+			SetAccountID(accountID).
+			SetRoutingKeyVersion(key.Version()).
+			SetRoutingKey(key.Value()).
+			SetCurrencyDimensionID(currency.ID).
+			SetNillableCreditPriorityDimensionID(creditPriorityDimensionID).
+			Save(ctx)
+		return err
+	}
+
+	t.Run("rejects duplicate route for same account and key", func(t *testing.T) {
+		err := createRoute(accountA.ID.ID, nil)
+		require.NoError(t, err)
+
+		err = createRoute(accountA.ID.ID, nil)
+		require.Error(t, err)
+		require.True(t, entdb.IsConstraintError(err))
+	})
+
+	t.Run("allows same key across different accounts", func(t *testing.T) {
+		err := createRoute(accountB.ID.ID, nil)
+		require.NoError(t, err)
+	})
+
+	t.Run("allows different keys within same account", func(t *testing.T) {
+		err := createRoute(accountA.ID.ID, &priority7.ID)
+		require.NoError(t, err)
+	})
+
+	countA, err := env.client.LedgerSubAccountRoute.Query().
+		Where(
+			ledgersubaccountroutedb.Namespace(namespace),
+			ledgersubaccountroutedb.AccountID(accountA.ID.ID),
+		).
+		Count(ctx)
+	require.NoError(t, err)
+	require.Equal(t, 2, countA)
 }
 
 type TestEnv struct {

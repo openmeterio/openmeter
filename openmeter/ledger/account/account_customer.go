@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
@@ -91,15 +92,19 @@ type CustomerFBOAccountImpl struct {
 var _ ledger.CustomerFBOAccount = (*CustomerFBOAccountImpl)(nil)
 
 // GetSubAccountForDimensions finds or creates a sub-account for the given dimensions.
-// DEFERRED: tax/feature/credit-priority not active yet.
-// Currency is the only enforced dimension in current provisioning model.
+// CreditPriority is enforced for customer_fbo (defaulting to 100 when not provided).
 func (a *CustomerFBOAccountImpl) GetSubAccountForDimensions(ctx context.Context, dimensions ledger.CustomerFBOSubAccountDimensions) (ledger.SubAccount, error) {
 	currDimID, err := extractDimensionID(dimensions.Currency)
 	if err != nil {
 		return nil, fmt.Errorf("currency dimension: %w", err)
 	}
 
-	return ensureSubAccountForCurrency(ctx, a.services.SubAccountService, a.data.ID.Namespace, a.data.ID.ID, currDimID)
+	creditPriority, creditPriorityDimensionID, err := resolveCreditPriorityDimension(ctx, a.services.SubAccountService, a.data.ID.Namespace, dimensions.CreditPriority)
+	if err != nil {
+		return nil, fmt.Errorf("credit priority dimension: %w", err)
+	}
+
+	return ensureSubAccountForCustomerFBO(ctx, a.services.SubAccountService, a.data.ID.Namespace, a.data.ID.ID, currDimID, creditPriority, creditPriorityDimensionID)
 }
 
 // ----------------------------------------------------------------------------
@@ -157,6 +162,34 @@ func extractDimensionID(dim ledger.DimensionCurrency) (string, error) {
 	return ider.dimensionID(), nil
 }
 
+func extractCreditPriorityDimensionID(dim ledger.DimensionCreditPriority) (string, error) {
+	ider, ok := dim.(dimensionIDer)
+	if !ok {
+		return "", fmt.Errorf("dimension does not expose its DB id (type %T)", dim)
+	}
+	return ider.dimensionID(), nil
+}
+
+func resolveCreditPriorityDimension(ctx context.Context, svc SubAccountCreatorLister, namespace string, dim ledger.DimensionCreditPriority) (int, string, error) {
+	if dim != nil {
+		if dim.Value() < 1 {
+			return 0, "", fmt.Errorf("credit priority must be a positive integer")
+		}
+		id, err := extractCreditPriorityDimensionID(dim)
+		if err != nil {
+			return 0, "", err
+		}
+		return dim.Value(), id, nil
+	}
+
+	defaultPriority, err := svc.GetDimensionByKeyAndValue(ctx, namespace, ledger.DimensionKeyCreditPriority, strconv.Itoa(ledger.DefaultCustomerFBOPriority))
+	if err != nil {
+		return 0, "", fmt.Errorf("failed to resolve default priority dimension: %w", err)
+	}
+
+	return ledger.DefaultCustomerFBOPriority, defaultPriority.ID, nil
+}
+
 func ensureSubAccountForCurrency(
 	ctx context.Context,
 	svc SubAccountCreatorLister,
@@ -182,6 +215,44 @@ func ensureSubAccountForCurrency(
 		AccountID: accountID,
 		Dimensions: SubAccountDimensionInput{
 			CurrencyDimensionID: currencyDimID,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create sub-account: %w", err)
+	}
+
+	return sub, nil
+}
+
+func ensureSubAccountForCustomerFBO(
+	ctx context.Context,
+	svc SubAccountCreatorLister,
+	namespace, accountID, currencyDimID string,
+	creditPriority int,
+	creditPriorityDimensionID string,
+) (ledger.SubAccount, error) {
+	subs, err := svc.ListSubAccounts(ctx, ListSubAccountsInput{
+		Namespace: namespace,
+		AccountID: accountID,
+		Dimensions: ledger.QueryDimensions{
+			CurrencyID:     currencyDimID,
+			CreditPriority: &creditPriority,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list sub-accounts: %w", err)
+	}
+
+	if len(subs) > 0 {
+		return subs[0], nil
+	}
+
+	sub, err := svc.CreateSubAccount(ctx, CreateSubAccountInput{
+		Namespace: namespace,
+		AccountID: accountID,
+		Dimensions: SubAccountDimensionInput{
+			CurrencyDimensionID:       currencyDimID,
+			CreditPriorityDimensionID: &creditPriorityDimensionID,
 		},
 	})
 	if err != nil {

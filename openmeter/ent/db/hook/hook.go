@@ -561,6 +561,18 @@ func (f LedgerSubAccountFunc) Mutate(ctx context.Context, m db.Mutation) (db.Val
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.LedgerSubAccountMutation", m)
 }
 
+// The LedgerSubAccountRouteFunc type is an adapter to allow the use of ordinary
+// function as LedgerSubAccountRoute mutator.
+type LedgerSubAccountRouteFunc func(context.Context, *db.LedgerSubAccountRouteMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LedgerSubAccountRouteFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.LedgerSubAccountRouteMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.LedgerSubAccountRouteMutation", m)
+}
+
 // The LedgerTransactionFunc type is an adapter to allow the use of ordinary
 // function as LedgerTransaction mutator.
 type LedgerTransactionFunc func(context.Context, *db.LedgerTransactionMutation) (db.Value, error)

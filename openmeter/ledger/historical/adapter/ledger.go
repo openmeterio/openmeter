@@ -34,10 +34,17 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 
 	entryInputs := input.EntryInputs()
 	accountTypesBySubAccountID := make(map[string]ledger.AccountType, len(entryInputs))
+	routeIDBySubAccountID := make(map[string]string, len(entryInputs))
+	routeKeyBySubAccountID := make(map[string]string, len(entryInputs))
+	routeKeyVersionBySubAccountID := make(map[string]ledger.RoutingKeyVersion, len(entryInputs))
 	createInputs := make([]*db.LedgerEntryCreate, 0, len(entryInputs))
 	for _, entryInput := range entryInputs {
 		subAccountID := entryInput.PostingAddress().SubAccountID()
+		route := entryInput.PostingAddress().Route()
 		accountTypesBySubAccountID[subAccountID] = entryInput.PostingAddress().AccountType()
+		routeIDBySubAccountID[subAccountID] = route.ID()
+		routeKeyBySubAccountID[subAccountID] = route.RoutingKey().Value()
+		routeKeyVersionBySubAccountID[subAccountID] = route.RoutingKey().Version()
 
 		createInputs = append(createInputs, r.db.LedgerEntry.Create().
 			SetNamespace(groupID.Namespace).
@@ -70,6 +77,9 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 				CreatedAt:     e.CreatedAt,
 				AccountID:     e.SubAccountID,
 				AccountType:   accountTypesBySubAccountID[e.SubAccountID],
+				RouteID:       routeIDBySubAccountID[e.SubAccountID],
+				RouteKey:      routeKeyBySubAccountID[e.SubAccountID],
+				RouteKeyVer:   routeKeyVersionBySubAccountID[e.SubAccountID],
 				Amount:        e.Amount,
 				TransactionID: e.TransactionID,
 			}
@@ -134,6 +144,7 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 			)
 			q.WithSubAccount(func(sq *db.LedgerSubAccountQuery) {
 				sq.WithAccount()
+				sq.WithRoute()
 			})
 		})
 
@@ -166,6 +177,10 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 			if err != nil {
 				return ledgerhistorical.EntryData{}, fmt.Errorf("entry %s sub-account %s missing account edge: %w", entry.ID, subAccount.ID, err)
 			}
+			route, err := subAccount.Edges.RouteOrErr()
+			if err != nil {
+				return ledgerhistorical.EntryData{}, fmt.Errorf("entry %s sub-account %s missing route edge: %w", entry.ID, subAccount.ID, err)
+			}
 
 			return ledgerhistorical.EntryData{
 				ID:            entry.ID,
@@ -174,6 +189,9 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 				CreatedAt:     entry.CreatedAt,
 				AccountID:     entry.SubAccountID,
 				AccountType:   account.AccountType,
+				RouteID:       route.ID,
+				RouteKey:      route.RoutingKey,
+				RouteKeyVer:   route.RoutingKeyVersion,
 				Amount:        entry.Amount,
 				TransactionID: entry.TransactionID,
 			}, nil

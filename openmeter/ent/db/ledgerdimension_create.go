@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -111,79 +111,79 @@ func (_c *LedgerDimensionCreate) SetNillableID(v *string) *LedgerDimensionCreate
 	return _c
 }
 
-// AddSubAccountIDs adds the "sub_accounts" edge to the LedgerSubAccount entity by IDs.
-func (_c *LedgerDimensionCreate) AddSubAccountIDs(ids ...string) *LedgerDimensionCreate {
-	_c.mutation.AddSubAccountIDs(ids...)
+// AddSubAccountRouteIDs adds the "sub_account_routes" edge to the LedgerSubAccountRoute entity by IDs.
+func (_c *LedgerDimensionCreate) AddSubAccountRouteIDs(ids ...string) *LedgerDimensionCreate {
+	_c.mutation.AddSubAccountRouteIDs(ids...)
 	return _c
 }
 
-// AddSubAccounts adds the "sub_accounts" edges to the LedgerSubAccount entity.
-func (_c *LedgerDimensionCreate) AddSubAccounts(v ...*LedgerSubAccount) *LedgerDimensionCreate {
+// AddSubAccountRoutes adds the "sub_account_routes" edges to the LedgerSubAccountRoute entity.
+func (_c *LedgerDimensionCreate) AddSubAccountRoutes(v ...*LedgerSubAccountRoute) *LedgerDimensionCreate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _c.AddSubAccountIDs(ids...)
+	return _c.AddSubAccountRouteIDs(ids...)
 }
 
-// AddCurrencySubAccountIDs adds the "currency_sub_accounts" edge to the LedgerSubAccount entity by IDs.
-func (_c *LedgerDimensionCreate) AddCurrencySubAccountIDs(ids ...string) *LedgerDimensionCreate {
-	_c.mutation.AddCurrencySubAccountIDs(ids...)
+// AddCurrencySubAccountRouteIDs adds the "currency_sub_account_routes" edge to the LedgerSubAccountRoute entity by IDs.
+func (_c *LedgerDimensionCreate) AddCurrencySubAccountRouteIDs(ids ...string) *LedgerDimensionCreate {
+	_c.mutation.AddCurrencySubAccountRouteIDs(ids...)
 	return _c
 }
 
-// AddCurrencySubAccounts adds the "currency_sub_accounts" edges to the LedgerSubAccount entity.
-func (_c *LedgerDimensionCreate) AddCurrencySubAccounts(v ...*LedgerSubAccount) *LedgerDimensionCreate {
+// AddCurrencySubAccountRoutes adds the "currency_sub_account_routes" edges to the LedgerSubAccountRoute entity.
+func (_c *LedgerDimensionCreate) AddCurrencySubAccountRoutes(v ...*LedgerSubAccountRoute) *LedgerDimensionCreate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _c.AddCurrencySubAccountIDs(ids...)
+	return _c.AddCurrencySubAccountRouteIDs(ids...)
 }
 
-// AddTaxCodeSubAccountIDs adds the "tax_code_sub_accounts" edge to the LedgerSubAccount entity by IDs.
-func (_c *LedgerDimensionCreate) AddTaxCodeSubAccountIDs(ids ...string) *LedgerDimensionCreate {
-	_c.mutation.AddTaxCodeSubAccountIDs(ids...)
+// AddTaxCodeSubAccountRouteIDs adds the "tax_code_sub_account_routes" edge to the LedgerSubAccountRoute entity by IDs.
+func (_c *LedgerDimensionCreate) AddTaxCodeSubAccountRouteIDs(ids ...string) *LedgerDimensionCreate {
+	_c.mutation.AddTaxCodeSubAccountRouteIDs(ids...)
 	return _c
 }
 
-// AddTaxCodeSubAccounts adds the "tax_code_sub_accounts" edges to the LedgerSubAccount entity.
-func (_c *LedgerDimensionCreate) AddTaxCodeSubAccounts(v ...*LedgerSubAccount) *LedgerDimensionCreate {
+// AddTaxCodeSubAccountRoutes adds the "tax_code_sub_account_routes" edges to the LedgerSubAccountRoute entity.
+func (_c *LedgerDimensionCreate) AddTaxCodeSubAccountRoutes(v ...*LedgerSubAccountRoute) *LedgerDimensionCreate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _c.AddTaxCodeSubAccountIDs(ids...)
+	return _c.AddTaxCodeSubAccountRouteIDs(ids...)
 }
 
-// AddFeaturesSubAccountIDs adds the "features_sub_accounts" edge to the LedgerSubAccount entity by IDs.
-func (_c *LedgerDimensionCreate) AddFeaturesSubAccountIDs(ids ...string) *LedgerDimensionCreate {
-	_c.mutation.AddFeaturesSubAccountIDs(ids...)
+// AddFeaturesSubAccountRouteIDs adds the "features_sub_account_routes" edge to the LedgerSubAccountRoute entity by IDs.
+func (_c *LedgerDimensionCreate) AddFeaturesSubAccountRouteIDs(ids ...string) *LedgerDimensionCreate {
+	_c.mutation.AddFeaturesSubAccountRouteIDs(ids...)
 	return _c
 }
 
-// AddFeaturesSubAccounts adds the "features_sub_accounts" edges to the LedgerSubAccount entity.
-func (_c *LedgerDimensionCreate) AddFeaturesSubAccounts(v ...*LedgerSubAccount) *LedgerDimensionCreate {
+// AddFeaturesSubAccountRoutes adds the "features_sub_account_routes" edges to the LedgerSubAccountRoute entity.
+func (_c *LedgerDimensionCreate) AddFeaturesSubAccountRoutes(v ...*LedgerSubAccountRoute) *LedgerDimensionCreate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _c.AddFeaturesSubAccountIDs(ids...)
+	return _c.AddFeaturesSubAccountRouteIDs(ids...)
 }
 
-// AddCreditPrioritySubAccountIDs adds the "credit_priority_sub_accounts" edge to the LedgerSubAccount entity by IDs.
-func (_c *LedgerDimensionCreate) AddCreditPrioritySubAccountIDs(ids ...string) *LedgerDimensionCreate {
-	_c.mutation.AddCreditPrioritySubAccountIDs(ids...)
+// AddCreditPrioritySubAccountRouteIDs adds the "credit_priority_sub_account_routes" edge to the LedgerSubAccountRoute entity by IDs.
+func (_c *LedgerDimensionCreate) AddCreditPrioritySubAccountRouteIDs(ids ...string) *LedgerDimensionCreate {
+	_c.mutation.AddCreditPrioritySubAccountRouteIDs(ids...)
 	return _c
 }
 
-// AddCreditPrioritySubAccounts adds the "credit_priority_sub_accounts" edges to the LedgerSubAccount entity.
-func (_c *LedgerDimensionCreate) AddCreditPrioritySubAccounts(v ...*LedgerSubAccount) *LedgerDimensionCreate {
+// AddCreditPrioritySubAccountRoutes adds the "credit_priority_sub_account_routes" edges to the LedgerSubAccountRoute entity.
+func (_c *LedgerDimensionCreate) AddCreditPrioritySubAccountRoutes(v ...*LedgerSubAccountRoute) *LedgerDimensionCreate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _c.AddCreditPrioritySubAccountIDs(ids...)
+	return _c.AddCreditPrioritySubAccountRouteIDs(ids...)
 }
 
 // Mutation returns the LedgerDimensionMutation object of the builder.
@@ -328,15 +328,15 @@ func (_c *LedgerDimensionCreate) createSpec() (*LedgerDimension, *sqlgraph.Creat
 		_spec.SetField(ledgerdimension.FieldDimensionDisplayValue, field.TypeString, value)
 		_node.DimensionDisplayValue = value
 	}
-	if nodes := _c.mutation.SubAccountsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.SubAccountRoutesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   ledgerdimension.SubAccountsTable,
-			Columns: []string{ledgerdimension.SubAccountsColumn},
+			Table:   ledgerdimension.SubAccountRoutesTable,
+			Columns: []string{ledgerdimension.SubAccountRoutesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccountroute.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -344,15 +344,15 @@ func (_c *LedgerDimensionCreate) createSpec() (*LedgerDimension, *sqlgraph.Creat
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.CurrencySubAccountsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.CurrencySubAccountRoutesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   ledgerdimension.CurrencySubAccountsTable,
-			Columns: []string{ledgerdimension.CurrencySubAccountsColumn},
+			Table:   ledgerdimension.CurrencySubAccountRoutesTable,
+			Columns: []string{ledgerdimension.CurrencySubAccountRoutesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccountroute.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -360,15 +360,15 @@ func (_c *LedgerDimensionCreate) createSpec() (*LedgerDimension, *sqlgraph.Creat
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.TaxCodeSubAccountsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.TaxCodeSubAccountRoutesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   ledgerdimension.TaxCodeSubAccountsTable,
-			Columns: []string{ledgerdimension.TaxCodeSubAccountsColumn},
+			Table:   ledgerdimension.TaxCodeSubAccountRoutesTable,
+			Columns: []string{ledgerdimension.TaxCodeSubAccountRoutesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccountroute.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -376,15 +376,15 @@ func (_c *LedgerDimensionCreate) createSpec() (*LedgerDimension, *sqlgraph.Creat
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.FeaturesSubAccountsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.FeaturesSubAccountRoutesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   ledgerdimension.FeaturesSubAccountsTable,
-			Columns: []string{ledgerdimension.FeaturesSubAccountsColumn},
+			Table:   ledgerdimension.FeaturesSubAccountRoutesTable,
+			Columns: []string{ledgerdimension.FeaturesSubAccountRoutesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccountroute.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -392,15 +392,15 @@ func (_c *LedgerDimensionCreate) createSpec() (*LedgerDimension, *sqlgraph.Creat
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.CreditPrioritySubAccountsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.CreditPrioritySubAccountRoutesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   ledgerdimension.CreditPrioritySubAccountsTable,
-			Columns: []string{ledgerdimension.CreditPrioritySubAccountsColumn},
+			Table:   ledgerdimension.CreditPrioritySubAccountRoutesTable,
+			Columns: []string{ledgerdimension.CreditPrioritySubAccountRoutesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccountroute.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -39,10 +39,10 @@ func (LedgerDimension) Indexes() []ent.Index {
 
 func (LedgerDimension) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("sub_accounts", LedgerSubAccount.Type),
-		edge.To("currency_sub_accounts", LedgerSubAccount.Type),
-		edge.To("tax_code_sub_accounts", LedgerSubAccount.Type),
-		edge.To("features_sub_accounts", LedgerSubAccount.Type),
-		edge.To("credit_priority_sub_accounts", LedgerSubAccount.Type),
+		edge.To("sub_account_routes", LedgerSubAccountRoute.Type),
+		edge.To("currency_sub_account_routes", LedgerSubAccountRoute.Type),
+		edge.To("tax_code_sub_account_routes", LedgerSubAccountRoute.Type),
+		edge.To("features_sub_account_routes", LedgerSubAccountRoute.Type),
+		edge.To("credit_priority_sub_account_routes", LedgerSubAccountRoute.Type),
 	}
 }

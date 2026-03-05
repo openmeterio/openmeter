@@ -500,21 +500,21 @@ func DimensionDisplayValueContainsFold(v string) predicate.LedgerDimension {
 	return predicate.LedgerDimension(sql.FieldContainsFold(FieldDimensionDisplayValue, v))
 }
 
-// HasSubAccounts applies the HasEdge predicate on the "sub_accounts" edge.
-func HasSubAccounts() predicate.LedgerDimension {
+// HasSubAccountRoutes applies the HasEdge predicate on the "sub_account_routes" edge.
+func HasSubAccountRoutes() predicate.LedgerDimension {
 	return predicate.LedgerDimension(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, SubAccountsTable, SubAccountsColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, SubAccountRoutesTable, SubAccountRoutesColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasSubAccountsWith applies the HasEdge predicate on the "sub_accounts" edge with a given conditions (other predicates).
-func HasSubAccountsWith(preds ...predicate.LedgerSubAccount) predicate.LedgerDimension {
+// HasSubAccountRoutesWith applies the HasEdge predicate on the "sub_account_routes" edge with a given conditions (other predicates).
+func HasSubAccountRoutesWith(preds ...predicate.LedgerSubAccountRoute) predicate.LedgerDimension {
 	return predicate.LedgerDimension(func(s *sql.Selector) {
-		step := newSubAccountsStep()
+		step := newSubAccountRoutesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -523,21 +523,21 @@ func HasSubAccountsWith(preds ...predicate.LedgerSubAccount) predicate.LedgerDim
 	})
 }
 
-// HasCurrencySubAccounts applies the HasEdge predicate on the "currency_sub_accounts" edge.
-func HasCurrencySubAccounts() predicate.LedgerDimension {
+// HasCurrencySubAccountRoutes applies the HasEdge predicate on the "currency_sub_account_routes" edge.
+func HasCurrencySubAccountRoutes() predicate.LedgerDimension {
 	return predicate.LedgerDimension(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, CurrencySubAccountsTable, CurrencySubAccountsColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, CurrencySubAccountRoutesTable, CurrencySubAccountRoutesColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasCurrencySubAccountsWith applies the HasEdge predicate on the "currency_sub_accounts" edge with a given conditions (other predicates).
-func HasCurrencySubAccountsWith(preds ...predicate.LedgerSubAccount) predicate.LedgerDimension {
+// HasCurrencySubAccountRoutesWith applies the HasEdge predicate on the "currency_sub_account_routes" edge with a given conditions (other predicates).
+func HasCurrencySubAccountRoutesWith(preds ...predicate.LedgerSubAccountRoute) predicate.LedgerDimension {
 	return predicate.LedgerDimension(func(s *sql.Selector) {
-		step := newCurrencySubAccountsStep()
+		step := newCurrencySubAccountRoutesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -546,21 +546,21 @@ func HasCurrencySubAccountsWith(preds ...predicate.LedgerSubAccount) predicate.L
 	})
 }
 
-// HasTaxCodeSubAccounts applies the HasEdge predicate on the "tax_code_sub_accounts" edge.
-func HasTaxCodeSubAccounts() predicate.LedgerDimension {
+// HasTaxCodeSubAccountRoutes applies the HasEdge predicate on the "tax_code_sub_account_routes" edge.
+func HasTaxCodeSubAccountRoutes() predicate.LedgerDimension {
 	return predicate.LedgerDimension(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, TaxCodeSubAccountsTable, TaxCodeSubAccountsColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, TaxCodeSubAccountRoutesTable, TaxCodeSubAccountRoutesColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasTaxCodeSubAccountsWith applies the HasEdge predicate on the "tax_code_sub_accounts" edge with a given conditions (other predicates).
-func HasTaxCodeSubAccountsWith(preds ...predicate.LedgerSubAccount) predicate.LedgerDimension {
+// HasTaxCodeSubAccountRoutesWith applies the HasEdge predicate on the "tax_code_sub_account_routes" edge with a given conditions (other predicates).
+func HasTaxCodeSubAccountRoutesWith(preds ...predicate.LedgerSubAccountRoute) predicate.LedgerDimension {
 	return predicate.LedgerDimension(func(s *sql.Selector) {
-		step := newTaxCodeSubAccountsStep()
+		step := newTaxCodeSubAccountRoutesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -569,21 +569,21 @@ func HasTaxCodeSubAccountsWith(preds ...predicate.LedgerSubAccount) predicate.Le
 	})
 }
 
-// HasFeaturesSubAccounts applies the HasEdge predicate on the "features_sub_accounts" edge.
-func HasFeaturesSubAccounts() predicate.LedgerDimension {
+// HasFeaturesSubAccountRoutes applies the HasEdge predicate on the "features_sub_account_routes" edge.
+func HasFeaturesSubAccountRoutes() predicate.LedgerDimension {
 	return predicate.LedgerDimension(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, FeaturesSubAccountsTable, FeaturesSubAccountsColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, FeaturesSubAccountRoutesTable, FeaturesSubAccountRoutesColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasFeaturesSubAccountsWith applies the HasEdge predicate on the "features_sub_accounts" edge with a given conditions (other predicates).
-func HasFeaturesSubAccountsWith(preds ...predicate.LedgerSubAccount) predicate.LedgerDimension {
+// HasFeaturesSubAccountRoutesWith applies the HasEdge predicate on the "features_sub_account_routes" edge with a given conditions (other predicates).
+func HasFeaturesSubAccountRoutesWith(preds ...predicate.LedgerSubAccountRoute) predicate.LedgerDimension {
 	return predicate.LedgerDimension(func(s *sql.Selector) {
-		step := newFeaturesSubAccountsStep()
+		step := newFeaturesSubAccountRoutesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -592,21 +592,21 @@ func HasFeaturesSubAccountsWith(preds ...predicate.LedgerSubAccount) predicate.L
 	})
 }
 
-// HasCreditPrioritySubAccounts applies the HasEdge predicate on the "credit_priority_sub_accounts" edge.
-func HasCreditPrioritySubAccounts() predicate.LedgerDimension {
+// HasCreditPrioritySubAccountRoutes applies the HasEdge predicate on the "credit_priority_sub_account_routes" edge.
+func HasCreditPrioritySubAccountRoutes() predicate.LedgerDimension {
 	return predicate.LedgerDimension(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, CreditPrioritySubAccountsTable, CreditPrioritySubAccountsColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, CreditPrioritySubAccountRoutesTable, CreditPrioritySubAccountRoutesColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasCreditPrioritySubAccountsWith applies the HasEdge predicate on the "credit_priority_sub_accounts" edge with a given conditions (other predicates).
-func HasCreditPrioritySubAccountsWith(preds ...predicate.LedgerSubAccount) predicate.LedgerDimension {
+// HasCreditPrioritySubAccountRoutesWith applies the HasEdge predicate on the "credit_priority_sub_account_routes" edge with a given conditions (other predicates).
+func HasCreditPrioritySubAccountRoutesWith(preds ...predicate.LedgerSubAccountRoute) predicate.LedgerDimension {
 	return predicate.LedgerDimension(func(s *sql.Selector) {
-		step := newCreditPrioritySubAccountsStep()
+		step := newCreditPrioritySubAccountRoutesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

@@ -298,6 +298,9 @@ type LedgerEntry func(*sql.Selector)
 // LedgerSubAccount is the predicate function for ledgersubaccount builders.
 type LedgerSubAccount func(*sql.Selector)
 
+// LedgerSubAccountRoute is the predicate function for ledgersubaccountroute builders.
+type LedgerSubAccountRoute func(*sql.Selector)
+
 // LedgerTransaction is the predicate function for ledgertransaction builders.
 type LedgerTransaction func(*sql.Selector)
 

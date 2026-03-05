@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -83,6 +84,21 @@ func (_u *LedgerAccountUpdate) AddSubAccounts(v ...*LedgerSubAccount) *LedgerAcc
 	return _u.AddSubAccountIDs(ids...)
 }
 
+// AddSubAccountRouteIDs adds the "sub_account_routes" edge to the LedgerSubAccountRoute entity by IDs.
+func (_u *LedgerAccountUpdate) AddSubAccountRouteIDs(ids ...string) *LedgerAccountUpdate {
+	_u.mutation.AddSubAccountRouteIDs(ids...)
+	return _u
+}
+
+// AddSubAccountRoutes adds the "sub_account_routes" edges to the LedgerSubAccountRoute entity.
+func (_u *LedgerAccountUpdate) AddSubAccountRoutes(v ...*LedgerSubAccountRoute) *LedgerAccountUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSubAccountRouteIDs(ids...)
+}
+
 // Mutation returns the LedgerAccountMutation object of the builder.
 func (_u *LedgerAccountUpdate) Mutation() *LedgerAccountMutation {
 	return _u.mutation
@@ -107,6 +123,27 @@ func (_u *LedgerAccountUpdate) RemoveSubAccounts(v ...*LedgerSubAccount) *Ledger
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveSubAccountIDs(ids...)
+}
+
+// ClearSubAccountRoutes clears all "sub_account_routes" edges to the LedgerSubAccountRoute entity.
+func (_u *LedgerAccountUpdate) ClearSubAccountRoutes() *LedgerAccountUpdate {
+	_u.mutation.ClearSubAccountRoutes()
+	return _u
+}
+
+// RemoveSubAccountRouteIDs removes the "sub_account_routes" edge to LedgerSubAccountRoute entities by IDs.
+func (_u *LedgerAccountUpdate) RemoveSubAccountRouteIDs(ids ...string) *LedgerAccountUpdate {
+	_u.mutation.RemoveSubAccountRouteIDs(ids...)
+	return _u
+}
+
+// RemoveSubAccountRoutes removes "sub_account_routes" edges to LedgerSubAccountRoute entities.
+func (_u *LedgerAccountUpdate) RemoveSubAccountRoutes(v ...*LedgerSubAccountRoute) *LedgerAccountUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSubAccountRouteIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -214,6 +251,51 @@ func (_u *LedgerAccountUpdate) sqlSave(ctx context.Context) (_node int, err erro
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.SubAccountRoutesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.SubAccountRoutesTable,
+			Columns: []string{ledgeraccount.SubAccountRoutesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccountroute.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSubAccountRoutesIDs(); len(nodes) > 0 && !_u.mutation.SubAccountRoutesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.SubAccountRoutesTable,
+			Columns: []string{ledgeraccount.SubAccountRoutesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccountroute.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubAccountRoutesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.SubAccountRoutesTable,
+			Columns: []string{ledgeraccount.SubAccountRoutesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccountroute.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{ledgeraccount.Label}
@@ -287,6 +369,21 @@ func (_u *LedgerAccountUpdateOne) AddSubAccounts(v ...*LedgerSubAccount) *Ledger
 	return _u.AddSubAccountIDs(ids...)
 }
 
+// AddSubAccountRouteIDs adds the "sub_account_routes" edge to the LedgerSubAccountRoute entity by IDs.
+func (_u *LedgerAccountUpdateOne) AddSubAccountRouteIDs(ids ...string) *LedgerAccountUpdateOne {
+	_u.mutation.AddSubAccountRouteIDs(ids...)
+	return _u
+}
+
+// AddSubAccountRoutes adds the "sub_account_routes" edges to the LedgerSubAccountRoute entity.
+func (_u *LedgerAccountUpdateOne) AddSubAccountRoutes(v ...*LedgerSubAccountRoute) *LedgerAccountUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSubAccountRouteIDs(ids...)
+}
+
 // Mutation returns the LedgerAccountMutation object of the builder.
 func (_u *LedgerAccountUpdateOne) Mutation() *LedgerAccountMutation {
 	return _u.mutation
@@ -311,6 +408,27 @@ func (_u *LedgerAccountUpdateOne) RemoveSubAccounts(v ...*LedgerSubAccount) *Led
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveSubAccountIDs(ids...)
+}
+
+// ClearSubAccountRoutes clears all "sub_account_routes" edges to the LedgerSubAccountRoute entity.
+func (_u *LedgerAccountUpdateOne) ClearSubAccountRoutes() *LedgerAccountUpdateOne {
+	_u.mutation.ClearSubAccountRoutes()
+	return _u
+}
+
+// RemoveSubAccountRouteIDs removes the "sub_account_routes" edge to LedgerSubAccountRoute entities by IDs.
+func (_u *LedgerAccountUpdateOne) RemoveSubAccountRouteIDs(ids ...string) *LedgerAccountUpdateOne {
+	_u.mutation.RemoveSubAccountRouteIDs(ids...)
+	return _u
+}
+
+// RemoveSubAccountRoutes removes "sub_account_routes" edges to LedgerSubAccountRoute entities.
+func (_u *LedgerAccountUpdateOne) RemoveSubAccountRoutes(v ...*LedgerSubAccountRoute) *LedgerAccountUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSubAccountRouteIDs(ids...)
 }
 
 // Where appends a list predicates to the LedgerAccountUpdate builder.
@@ -441,6 +559,51 @@ func (_u *LedgerAccountUpdateOne) sqlSave(ctx context.Context) (_node *LedgerAcc
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SubAccountRoutesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.SubAccountRoutesTable,
+			Columns: []string{ledgeraccount.SubAccountRoutesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccountroute.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSubAccountRoutesIDs(); len(nodes) > 0 && !_u.mutation.SubAccountRoutesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.SubAccountRoutesTable,
+			Columns: []string{ledgeraccount.SubAccountRoutesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccountroute.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SubAccountRoutesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.SubAccountRoutesTable,
+			Columns: []string{ledgeraccount.SubAccountRoutesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccountroute.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

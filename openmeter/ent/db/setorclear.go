@@ -3335,6 +3335,20 @@ func (u *LedgerSubAccountUpdateOne) SetOrClearDeletedAt(value *time.Time) *Ledge
 	return u.SetDeletedAt(*value)
 }
 
+func (u *LedgerSubAccountRouteUpdate) SetOrClearDeletedAt(value *time.Time) *LedgerSubAccountRouteUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LedgerSubAccountRouteUpdateOne) SetOrClearDeletedAt(value *time.Time) *LedgerSubAccountRouteUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *LedgerTransactionUpdate) SetOrClearAnnotations(value *models.Annotations) *LedgerTransactionUpdate {
 	if value == nil {
 		return u.ClearAnnotations()

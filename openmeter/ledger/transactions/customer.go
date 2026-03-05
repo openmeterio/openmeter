@@ -17,6 +17,8 @@ type IssueCustomerReceivableTemplate struct {
 	At       time.Time
 	Amount   alpacadecimal.Decimal
 	Currency currencyx.Code
+	// Optional, defaults to ledger.DefaultCustomerFBOPriority.
+	CreditPriority *int
 	// TaxCode  string // TBD
 }
 
@@ -27,11 +29,14 @@ func (t IssueCustomerReceivableTemplate) typeGuard() guard {
 var _ CustomerTransactionTemplate = (IssueCustomerReceivableTemplate{})
 
 func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
-	// DEFERRED: tax/feature/credit-priority not active yet.
-	// Currency is the only enforced dimension in current provisioning model.
 	currency, err := resolvers.DimensionService.GetCurrencyDimension(ctx, string(t.Currency))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get currency dimension: %w", err)
+	}
+
+	priority, err := resolveCustomerFBOPriorityDimension(ctx, resolvers, t.CreditPriority)
+	if err != nil {
+		return nil, err
 	}
 
 	// Let's fetch the customer accounts
@@ -41,7 +46,8 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 	}
 
 	fbo, err := customerAccounts.FBOAccount.GetSubAccountForDimensions(ctx, ledger.CustomerFBOSubAccountDimensions{
-		Currency: currency,
+		Currency:       currency,
+		CreditPriority: priority,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get FBO sub-account: %w", err)
@@ -137,6 +143,8 @@ type CoverCustomerReceivableTemplate struct {
 	At       time.Time
 	Amount   alpacadecimal.Decimal
 	Currency currencyx.Code
+	// Optional, defaults to 100.
+	CreditPriority *int
 	// TaxCode  string // TBD
 }
 
@@ -153,6 +161,11 @@ func (t CoverCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 		return nil, fmt.Errorf("failed to get currency dimension: %w", err)
 	}
 
+	priority, err := resolveCustomerFBOPriorityDimension(ctx, resolvers, t.CreditPriority)
+	if err != nil {
+		return nil, err
+	}
+
 	// Let's fetch the customer accounts
 	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
@@ -160,7 +173,8 @@ func (t CoverCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 	}
 
 	fbo, err := customerAccounts.FBOAccount.GetSubAccountForDimensions(ctx, ledger.CustomerFBOSubAccountDimensions{
-		Currency: currency,
+		Currency:       currency,
+		CreditPriority: priority,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get FBO sub-account: %w", err)

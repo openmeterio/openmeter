@@ -1140,6 +1140,22 @@ func (e *LedgerSubAccount) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
+func (e *LedgerSubAccountRoute) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *LedgerSubAccountRoute) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *LedgerSubAccountRoute) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *LedgerSubAccountRoute) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
 func (e *LedgerTransaction) GetNamespace() string {
 	return e.Namespace
 }

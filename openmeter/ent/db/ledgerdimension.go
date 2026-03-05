@@ -43,64 +43,64 @@ type LedgerDimension struct {
 
 // LedgerDimensionEdges holds the relations/edges for other nodes in the graph.
 type LedgerDimensionEdges struct {
-	// SubAccounts holds the value of the sub_accounts edge.
-	SubAccounts []*LedgerSubAccount `json:"sub_accounts,omitempty"`
-	// CurrencySubAccounts holds the value of the currency_sub_accounts edge.
-	CurrencySubAccounts []*LedgerSubAccount `json:"currency_sub_accounts,omitempty"`
-	// TaxCodeSubAccounts holds the value of the tax_code_sub_accounts edge.
-	TaxCodeSubAccounts []*LedgerSubAccount `json:"tax_code_sub_accounts,omitempty"`
-	// FeaturesSubAccounts holds the value of the features_sub_accounts edge.
-	FeaturesSubAccounts []*LedgerSubAccount `json:"features_sub_accounts,omitempty"`
-	// CreditPrioritySubAccounts holds the value of the credit_priority_sub_accounts edge.
-	CreditPrioritySubAccounts []*LedgerSubAccount `json:"credit_priority_sub_accounts,omitempty"`
+	// SubAccountRoutes holds the value of the sub_account_routes edge.
+	SubAccountRoutes []*LedgerSubAccountRoute `json:"sub_account_routes,omitempty"`
+	// CurrencySubAccountRoutes holds the value of the currency_sub_account_routes edge.
+	CurrencySubAccountRoutes []*LedgerSubAccountRoute `json:"currency_sub_account_routes,omitempty"`
+	// TaxCodeSubAccountRoutes holds the value of the tax_code_sub_account_routes edge.
+	TaxCodeSubAccountRoutes []*LedgerSubAccountRoute `json:"tax_code_sub_account_routes,omitempty"`
+	// FeaturesSubAccountRoutes holds the value of the features_sub_account_routes edge.
+	FeaturesSubAccountRoutes []*LedgerSubAccountRoute `json:"features_sub_account_routes,omitempty"`
+	// CreditPrioritySubAccountRoutes holds the value of the credit_priority_sub_account_routes edge.
+	CreditPrioritySubAccountRoutes []*LedgerSubAccountRoute `json:"credit_priority_sub_account_routes,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [5]bool
 }
 
-// SubAccountsOrErr returns the SubAccounts value or an error if the edge
+// SubAccountRoutesOrErr returns the SubAccountRoutes value or an error if the edge
 // was not loaded in eager-loading.
-func (e LedgerDimensionEdges) SubAccountsOrErr() ([]*LedgerSubAccount, error) {
+func (e LedgerDimensionEdges) SubAccountRoutesOrErr() ([]*LedgerSubAccountRoute, error) {
 	if e.loadedTypes[0] {
-		return e.SubAccounts, nil
+		return e.SubAccountRoutes, nil
 	}
-	return nil, &NotLoadedError{edge: "sub_accounts"}
+	return nil, &NotLoadedError{edge: "sub_account_routes"}
 }
 
-// CurrencySubAccountsOrErr returns the CurrencySubAccounts value or an error if the edge
+// CurrencySubAccountRoutesOrErr returns the CurrencySubAccountRoutes value or an error if the edge
 // was not loaded in eager-loading.
-func (e LedgerDimensionEdges) CurrencySubAccountsOrErr() ([]*LedgerSubAccount, error) {
+func (e LedgerDimensionEdges) CurrencySubAccountRoutesOrErr() ([]*LedgerSubAccountRoute, error) {
 	if e.loadedTypes[1] {
-		return e.CurrencySubAccounts, nil
+		return e.CurrencySubAccountRoutes, nil
 	}
-	return nil, &NotLoadedError{edge: "currency_sub_accounts"}
+	return nil, &NotLoadedError{edge: "currency_sub_account_routes"}
 }
 
-// TaxCodeSubAccountsOrErr returns the TaxCodeSubAccounts value or an error if the edge
+// TaxCodeSubAccountRoutesOrErr returns the TaxCodeSubAccountRoutes value or an error if the edge
 // was not loaded in eager-loading.
-func (e LedgerDimensionEdges) TaxCodeSubAccountsOrErr() ([]*LedgerSubAccount, error) {
+func (e LedgerDimensionEdges) TaxCodeSubAccountRoutesOrErr() ([]*LedgerSubAccountRoute, error) {
 	if e.loadedTypes[2] {
-		return e.TaxCodeSubAccounts, nil
+		return e.TaxCodeSubAccountRoutes, nil
 	}
-	return nil, &NotLoadedError{edge: "tax_code_sub_accounts"}
+	return nil, &NotLoadedError{edge: "tax_code_sub_account_routes"}
 }
 
-// FeaturesSubAccountsOrErr returns the FeaturesSubAccounts value or an error if the edge
+// FeaturesSubAccountRoutesOrErr returns the FeaturesSubAccountRoutes value or an error if the edge
 // was not loaded in eager-loading.
-func (e LedgerDimensionEdges) FeaturesSubAccountsOrErr() ([]*LedgerSubAccount, error) {
+func (e LedgerDimensionEdges) FeaturesSubAccountRoutesOrErr() ([]*LedgerSubAccountRoute, error) {
 	if e.loadedTypes[3] {
-		return e.FeaturesSubAccounts, nil
+		return e.FeaturesSubAccountRoutes, nil
 	}
-	return nil, &NotLoadedError{edge: "features_sub_accounts"}
+	return nil, &NotLoadedError{edge: "features_sub_account_routes"}
 }
 
-// CreditPrioritySubAccountsOrErr returns the CreditPrioritySubAccounts value or an error if the edge
+// CreditPrioritySubAccountRoutesOrErr returns the CreditPrioritySubAccountRoutes value or an error if the edge
 // was not loaded in eager-loading.
-func (e LedgerDimensionEdges) CreditPrioritySubAccountsOrErr() ([]*LedgerSubAccount, error) {
+func (e LedgerDimensionEdges) CreditPrioritySubAccountRoutesOrErr() ([]*LedgerSubAccountRoute, error) {
 	if e.loadedTypes[4] {
-		return e.CreditPrioritySubAccounts, nil
+		return e.CreditPrioritySubAccountRoutes, nil
 	}
-	return nil, &NotLoadedError{edge: "credit_priority_sub_accounts"}
+	return nil, &NotLoadedError{edge: "credit_priority_sub_account_routes"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -199,29 +199,29 @@ func (_m *LedgerDimension) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QuerySubAccounts queries the "sub_accounts" edge of the LedgerDimension entity.
-func (_m *LedgerDimension) QuerySubAccounts() *LedgerSubAccountQuery {
-	return NewLedgerDimensionClient(_m.config).QuerySubAccounts(_m)
+// QuerySubAccountRoutes queries the "sub_account_routes" edge of the LedgerDimension entity.
+func (_m *LedgerDimension) QuerySubAccountRoutes() *LedgerSubAccountRouteQuery {
+	return NewLedgerDimensionClient(_m.config).QuerySubAccountRoutes(_m)
 }
 
-// QueryCurrencySubAccounts queries the "currency_sub_accounts" edge of the LedgerDimension entity.
-func (_m *LedgerDimension) QueryCurrencySubAccounts() *LedgerSubAccountQuery {
-	return NewLedgerDimensionClient(_m.config).QueryCurrencySubAccounts(_m)
+// QueryCurrencySubAccountRoutes queries the "currency_sub_account_routes" edge of the LedgerDimension entity.
+func (_m *LedgerDimension) QueryCurrencySubAccountRoutes() *LedgerSubAccountRouteQuery {
+	return NewLedgerDimensionClient(_m.config).QueryCurrencySubAccountRoutes(_m)
 }
 
-// QueryTaxCodeSubAccounts queries the "tax_code_sub_accounts" edge of the LedgerDimension entity.
-func (_m *LedgerDimension) QueryTaxCodeSubAccounts() *LedgerSubAccountQuery {
-	return NewLedgerDimensionClient(_m.config).QueryTaxCodeSubAccounts(_m)
+// QueryTaxCodeSubAccountRoutes queries the "tax_code_sub_account_routes" edge of the LedgerDimension entity.
+func (_m *LedgerDimension) QueryTaxCodeSubAccountRoutes() *LedgerSubAccountRouteQuery {
+	return NewLedgerDimensionClient(_m.config).QueryTaxCodeSubAccountRoutes(_m)
 }
 
-// QueryFeaturesSubAccounts queries the "features_sub_accounts" edge of the LedgerDimension entity.
-func (_m *LedgerDimension) QueryFeaturesSubAccounts() *LedgerSubAccountQuery {
-	return NewLedgerDimensionClient(_m.config).QueryFeaturesSubAccounts(_m)
+// QueryFeaturesSubAccountRoutes queries the "features_sub_account_routes" edge of the LedgerDimension entity.
+func (_m *LedgerDimension) QueryFeaturesSubAccountRoutes() *LedgerSubAccountRouteQuery {
+	return NewLedgerDimensionClient(_m.config).QueryFeaturesSubAccountRoutes(_m)
 }
 
-// QueryCreditPrioritySubAccounts queries the "credit_priority_sub_accounts" edge of the LedgerDimension entity.
-func (_m *LedgerDimension) QueryCreditPrioritySubAccounts() *LedgerSubAccountQuery {
-	return NewLedgerDimensionClient(_m.config).QueryCreditPrioritySubAccounts(_m)
+// QueryCreditPrioritySubAccountRoutes queries the "credit_priority_sub_account_routes" edge of the LedgerDimension entity.
+func (_m *LedgerDimension) QueryCreditPrioritySubAccountRoutes() *LedgerSubAccountRouteQuery {
+	return NewLedgerDimensionClient(_m.config).QueryCreditPrioritySubAccountRoutes(_m)
 }
 
 // Update returns a builder for updating this LedgerDimension.

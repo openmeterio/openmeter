@@ -17,7 +17,7 @@ import (
 // Deps holds the wired ledger components needed for integration tests.
 type Deps struct {
 	AccountService   ledgeraccount.Service
-	ResolversService *resolvers.Service
+	ResolversService *resolvers.AccountResolver
 	HistoricalLedger *historical.Ledger
 }
 

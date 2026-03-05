@@ -3,6 +3,8 @@ package account
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strconv"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -33,9 +35,9 @@ type ListSubAccountsInput struct {
 	Namespace string
 	AccountID string
 
-	// DEFERRED: tax/feature/credit-priority not active yet.
-	// Currency is the only enforced dimension in current provisioning model.
-	// Non-currency filters are accepted for forward compatibility and ignored.
+	// Currency is always enforced.
+	// CreditPriority is additionally supported for customer_fbo sub-account lookup.
+	// DEFERRED: tax/feature filters are accepted for forward compatibility and ignored.
 	Dimensions ledger.QueryDimensions
 }
 
@@ -78,8 +80,8 @@ func (c CreateSubAccountInput) Validate() error {
 
 type SubAccountDimensionInput struct {
 	CurrencyDimensionID string
-	// DEFERRED: tax/feature/credit-priority not active yet.
-	// Currency is the only enforced dimension in current provisioning model.
+	// CreditPriorityDimensionID is meaningful / allowed only for customer_fbo.
+	// DEFERRED: tax/feature are accepted for forward compatibility and currently inactive.
 	TaxCodeDimensionID        *string
 	FeaturesDimensionID       *string
 	CreditPriorityDimensionID *string
@@ -98,10 +100,21 @@ func (d SubAccountDimensionInput) ValidateForAccountType(accountType ledger.Acco
 		return err
 	}
 
-	// TBD: TaxCode, Features, CreditPriority dimension requirements are not enforced yet.
-	// Currency is the only mandatory dimension across all account types.
+	if accountType == ledger.AccountTypeCustomerFBO {
+		if d.CreditPriorityDimensionID == nil {
+			return models.NewGenericValidationError(errors.New("credit priority dimension id is required for customer_fbo"))
+		}
+	}
+
+	if accountType != ledger.AccountTypeCustomerFBO && d.CreditPriorityDimensionID != nil {
+		return models.NewGenericValidationError(fmt.Errorf("credit priority dimension is only allowed for customer_fbo accounts"))
+	}
 
 	return nil
+}
+
+func DefaultCustomerFBOPriorityDimensionValue() string {
+	return strconv.Itoa(ledger.DefaultCustomerFBOPriority)
 }
 
 type CreateDimensionInput struct {

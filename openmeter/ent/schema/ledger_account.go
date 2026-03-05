@@ -39,6 +39,7 @@ func (LedgerAccount) Indexes() []ent.Index {
 func (LedgerAccount) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("sub_accounts", LedgerSubAccount.Type),
+		edge.To("sub_account_routes", LedgerSubAccountRoute.Type),
 	}
 }
 
@@ -60,11 +61,60 @@ func (LedgerSubAccount) Fields() []ent.Field {
 		field.String("account_id").SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}).Immutable(),
-		// Mandatory Generic Dimensions
+		field.String("route_id").SchemaType(map[string]string{
+			dialect.Postgres: "char(26)",
+		}).Immutable(),
+	}
+}
+
+func (LedgerSubAccount) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "account_id", "route_id").Unique(),
+	}
+}
+
+func (LedgerSubAccount) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("account", LedgerAccount.Type).
+			Ref("sub_accounts").
+			Field("account_id").
+			Required().
+			Immutable().
+			Unique(),
+		edge.From("route", LedgerSubAccountRoute.Type).
+			Ref("sub_accounts").
+			Field("route_id").
+			Required().
+			Immutable().
+			Unique(),
+		edge.To("entries", LedgerEntry.Type),
+	}
+}
+
+type LedgerSubAccountRoute struct {
+	ent.Schema
+}
+
+func (LedgerSubAccountRoute) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.IDMixin{},
+		entutils.NamespaceMixin{},
+		entutils.TimeMixin{},
+	}
+}
+
+func (LedgerSubAccountRoute) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("account_id").SchemaType(map[string]string{
+			dialect.Postgres: "char(26)",
+		}).Immutable(),
+		field.String("routing_key_version").
+			GoType(ledger.RoutingKeyVersion("")).
+			Immutable(),
+		field.String("routing_key").Immutable(),
 		field.String("currency_dimension_id").SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}).Immutable(),
-		// Optional and Type Specific Dimensions
 		field.String("tax_code_dimension_id").SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}).Optional().Immutable(),
@@ -77,39 +127,39 @@ func (LedgerSubAccount) Fields() []ent.Field {
 	}
 }
 
-func (LedgerSubAccount) Indexes() []ent.Index {
+func (LedgerSubAccountRoute) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("namespace", "account_id", "currency_dimension_id").Unique(),
+		index.Fields("namespace", "account_id", "routing_key_version", "routing_key").Unique(),
 	}
 }
 
-func (LedgerSubAccount) Edges() []ent.Edge {
+func (LedgerSubAccountRoute) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("account", LedgerAccount.Type).
-			Ref("sub_accounts").
+			Ref("sub_account_routes").
 			Field("account_id").
 			Required().
 			Immutable().
 			Unique(),
-		edge.To("entries", LedgerEntry.Type),
+		edge.To("sub_accounts", LedgerSubAccount.Type),
 		edge.From("currency_dimension", LedgerDimension.Type).
-			Ref("currency_sub_accounts").
+			Ref("currency_sub_account_routes").
 			Field("currency_dimension_id").
 			Required().
 			Immutable().
 			Unique(),
 		edge.From("tax_code_dimension", LedgerDimension.Type).
-			Ref("tax_code_sub_accounts").
+			Ref("tax_code_sub_account_routes").
 			Field("tax_code_dimension_id").
 			Immutable().
 			Unique(),
 		edge.From("features_dimension", LedgerDimension.Type).
-			Ref("features_sub_accounts").
+			Ref("features_sub_account_routes").
 			Field("features_dimension_id").
 			Immutable().
 			Unique(),
 		edge.From("credit_priority_dimension", LedgerDimension.Type).
-			Ref("credit_priority_sub_accounts").
+			Ref("credit_priority_sub_account_routes").
 			Field("credit_priority_dimension_id").
 			Immutable().
 			Unique(),

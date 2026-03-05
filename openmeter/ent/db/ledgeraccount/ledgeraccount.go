@@ -28,6 +28,8 @@ const (
 	FieldAccountType = "account_type"
 	// EdgeSubAccounts holds the string denoting the sub_accounts edge name in mutations.
 	EdgeSubAccounts = "sub_accounts"
+	// EdgeSubAccountRoutes holds the string denoting the sub_account_routes edge name in mutations.
+	EdgeSubAccountRoutes = "sub_account_routes"
 	// Table holds the table name of the ledgeraccount in the database.
 	Table = "ledger_accounts"
 	// SubAccountsTable is the table that holds the sub_accounts relation/edge.
@@ -37,6 +39,13 @@ const (
 	SubAccountsInverseTable = "ledger_sub_accounts"
 	// SubAccountsColumn is the table column denoting the sub_accounts relation/edge.
 	SubAccountsColumn = "account_id"
+	// SubAccountRoutesTable is the table that holds the sub_account_routes relation/edge.
+	SubAccountRoutesTable = "ledger_sub_account_routes"
+	// SubAccountRoutesInverseTable is the table name for the LedgerSubAccountRoute entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgersubaccountroute" package.
+	SubAccountRoutesInverseTable = "ledger_sub_account_routes"
+	// SubAccountRoutesColumn is the table column denoting the sub_account_routes relation/edge.
+	SubAccountRoutesColumn = "account_id"
 )
 
 // Columns holds all SQL columns for ledgeraccount fields.
@@ -119,10 +128,31 @@ func BySubAccounts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newSubAccountsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// BySubAccountRoutesCount orders the results by sub_account_routes count.
+func BySubAccountRoutesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newSubAccountRoutesStep(), opts...)
+	}
+}
+
+// BySubAccountRoutes orders the results by sub_account_routes terms.
+func BySubAccountRoutes(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSubAccountRoutesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newSubAccountsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SubAccountsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, SubAccountsTable, SubAccountsColumn),
+	)
+}
+func newSubAccountRoutesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SubAccountRoutesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, SubAccountRoutesTable, SubAccountRoutesColumn),
 	)
 }
