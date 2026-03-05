@@ -1,9 +1,10 @@
 package adapter
 
 import (
+	"strconv"
+
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
-	"strconv"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	ledgerdimensiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
