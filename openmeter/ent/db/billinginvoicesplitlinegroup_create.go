@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -121,6 +122,20 @@ func (_c *BillingInvoiceSplitLineGroupCreate) SetTaxConfig(v productcatalog.TaxC
 func (_c *BillingInvoiceSplitLineGroupCreate) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingInvoiceSplitLineGroupCreate {
 	if v != nil {
 		_c.SetTaxConfig(*v)
+	}
+	return _c
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetTaxCodeID(v string) *BillingInvoiceSplitLineGroupCreate {
+	_c.mutation.SetTaxCodeID(v)
+	return _c
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetNillableTaxCodeID(v *string) *BillingInvoiceSplitLineGroupCreate {
+	if v != nil {
+		_c.SetTaxCodeID(*v)
 	}
 	return _c
 }
@@ -308,6 +323,11 @@ func (_c *BillingInvoiceSplitLineGroupCreate) SetSubscriptionItem(v *Subscriptio
 // SetCharge sets the "charge" edge to the Charge entity.
 func (_c *BillingInvoiceSplitLineGroupCreate) SetCharge(v *Charge) *BillingInvoiceSplitLineGroupCreate {
 	return _c.SetChargeID(v.ID)
+}
+
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetTaxCode(v *TaxCode) *BillingInvoiceSplitLineGroupCreate {
+	return _c.SetTaxCodeID(v.ID)
 }
 
 // Mutation returns the BillingInvoiceSplitLineGroupMutation object of the builder.
@@ -604,6 +624,23 @@ func (_c *BillingInvoiceSplitLineGroupCreate) createSpec() (*BillingInvoiceSplit
 		_node.ChargeID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.TaxCodeTable,
+			Columns: []string{billinginvoicesplitlinegroup.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.TaxCodeID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec, nil
 }
 
@@ -749,6 +786,24 @@ func (u *BillingInvoiceSplitLineGroupUpsert) UpdateTaxConfig() *BillingInvoiceSp
 // ClearTaxConfig clears the value of the "tax_config" field.
 func (u *BillingInvoiceSplitLineGroupUpsert) ClearTaxConfig() *BillingInvoiceSplitLineGroupUpsert {
 	u.SetNull(billinginvoicesplitlinegroup.FieldTaxConfig)
+	return u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) SetTaxCodeID(v string) *BillingInvoiceSplitLineGroupUpsert {
+	u.Set(billinginvoicesplitlinegroup.FieldTaxCodeID, v)
+	return u
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsert) UpdateTaxCodeID() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetExcluded(billinginvoicesplitlinegroup.FieldTaxCodeID)
+	return u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) ClearTaxCodeID() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetNull(billinginvoicesplitlinegroup.FieldTaxCodeID)
 	return u
 }
 
@@ -1032,6 +1087,27 @@ func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateTaxConfig() *BillingInvoic
 func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearTaxConfig() *BillingInvoiceSplitLineGroupUpsertOne {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
 		s.ClearTaxConfig()
+	})
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) SetTaxCodeID(v string) *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetTaxCodeID(v)
+	})
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateTaxCodeID() *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateTaxCodeID()
+	})
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearTaxCodeID() *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.ClearTaxCodeID()
 	})
 }
 
@@ -1501,6 +1577,27 @@ func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateTaxConfig() *BillingInvoi
 func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearTaxConfig() *BillingInvoiceSplitLineGroupUpsertBulk {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
 		s.ClearTaxConfig()
+	})
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetTaxCodeID(v string) *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetTaxCodeID(v)
+	})
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateTaxCodeID() *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateTaxCodeID()
+	})
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearTaxCodeID() *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.ClearTaxCodeID()
 	})
 }
 

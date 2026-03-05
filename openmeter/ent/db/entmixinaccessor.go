@@ -417,6 +417,10 @@ func (e *BillingInvoiceLine) GetTaxConfig() productcatalog.TaxConfig {
 	return e.TaxConfig
 }
 
+func (e *BillingInvoiceLine) GetTaxCodeID() *string {
+	return e.TaxCodeID
+}
+
 func (e *BillingInvoiceLine) GetAmount() alpacadecimal.Decimal {
 	return e.Amount
 }
@@ -569,6 +573,10 @@ func (e *BillingInvoiceSplitLineGroup) GetTaxConfig() productcatalog.TaxConfig {
 	return e.TaxConfig
 }
 
+func (e *BillingInvoiceSplitLineGroup) GetTaxCodeID() *string {
+	return e.TaxCodeID
+}
+
 func (e *BillingInvoiceUsageBasedLineConfig) GetID() string {
 	return e.ID
 }
@@ -703,6 +711,10 @@ func (e *BillingStandardInvoiceDetailedLine) GetCurrency() currencyx.Code {
 
 func (e *BillingStandardInvoiceDetailedLine) GetTaxConfig() productcatalog.TaxConfig {
 	return e.TaxConfig
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetTaxCodeID() *string {
+	return e.TaxCodeID
 }
 
 func (e *BillingStandardInvoiceDetailedLine) GetAmount() alpacadecimal.Decimal {

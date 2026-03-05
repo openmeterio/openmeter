@@ -185,6 +185,12 @@ func (SubscriptionItem) Fields() []ent.Field {
 			}).
 			Optional().
 			Nillable(),
+		field.String("tax_code_id").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
 		field.String("billing_cadence").
 			GoType(datetime.ISODurationString("")).
 			Optional().
@@ -224,5 +230,9 @@ func (SubscriptionItem) Edges() []ent.Edge {
 		edge.To("billing_lines", BillingInvoiceLine.Type),
 		edge.To("billing_split_line_groups", BillingInvoiceSplitLineGroup.Type),
 		edge.To("charge_intents", Charge.Type),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("subscription_items").
+			Field("tax_code_id").
+			Unique(),
 	}
 }

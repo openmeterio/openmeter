@@ -1136,6 +1136,22 @@ func (c *AddonRateCardClient) QueryFeatures(_m *AddonRateCard) *FeatureQuery {
 	return query
 }
 
+// QueryTaxCode queries the tax_code edge of a AddonRateCard.
+func (c *AddonRateCardClient) QueryTaxCode(_m *AddonRateCard) *TaxCodeQuery {
+	query := (&TaxCodeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(addonratecard.Table, addonratecard.FieldID, id),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, addonratecard.TaxCodeTable, addonratecard.TaxCodeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *AddonRateCardClient) Hooks() []Hook {
 	return c.hooks.AddonRateCard
@@ -2653,6 +2669,22 @@ func (c *BillingCustomerOverrideClient) QueryBillingProfile(_m *BillingCustomerO
 	return query
 }
 
+// QueryTaxCode queries the tax_code edge of a BillingCustomerOverride.
+func (c *BillingCustomerOverrideClient) QueryTaxCode(_m *BillingCustomerOverride) *TaxCodeQuery {
+	query := (&TaxCodeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingcustomeroverride.Table, billingcustomeroverride.FieldID, id),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billingcustomeroverride.TaxCodeTable, billingcustomeroverride.TaxCodeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *BillingCustomerOverrideClient) Hooks() []Hook {
 	return c.hooks.BillingCustomerOverride
@@ -3468,6 +3500,22 @@ func (c *BillingInvoiceLineClient) QueryChargeCreditPurchaseInvoicedPayment(_m *
 	return query
 }
 
+// QueryTaxCode queries the tax_code edge of a BillingInvoiceLine.
+func (c *BillingInvoiceLineClient) QueryTaxCode(_m *BillingInvoiceLine) *TaxCodeQuery {
+	query := (&TaxCodeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, id),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoiceline.TaxCodeTable, billinginvoiceline.TaxCodeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *BillingInvoiceLineClient) Hooks() []Hook {
 	return c.hooks.BillingInvoiceLine
@@ -3972,6 +4020,22 @@ func (c *BillingInvoiceSplitLineGroupClient) QueryCharge(_m *BillingInvoiceSplit
 			sqlgraph.From(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID, id),
 			sqlgraph.To(charge.Table, charge.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoicesplitlinegroup.ChargeTable, billinginvoicesplitlinegroup.ChargeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTaxCode queries the tax_code edge of a BillingInvoiceSplitLineGroup.
+func (c *BillingInvoiceSplitLineGroupClient) QueryTaxCode(_m *BillingInvoiceSplitLineGroup) *TaxCodeQuery {
+	query := (&TaxCodeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID, id),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoicesplitlinegroup.TaxCodeTable, billinginvoicesplitlinegroup.TaxCodeColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -4921,6 +4985,22 @@ func (c *BillingStandardInvoiceDetailedLineClient) QueryBillingInvoiceLine(_m *B
 	return query
 }
 
+// QueryTaxCode queries the tax_code edge of a BillingStandardInvoiceDetailedLine.
+func (c *BillingStandardInvoiceDetailedLineClient) QueryTaxCode(_m *BillingStandardInvoiceDetailedLine) *TaxCodeQuery {
+	query := (&TaxCodeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingstandardinvoicedetailedline.Table, billingstandardinvoicedetailedline.FieldID, id),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billingstandardinvoicedetailedline.TaxCodeTable, billingstandardinvoicedetailedline.TaxCodeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryAmountDiscounts queries the amount_discounts edge of a BillingStandardInvoiceDetailedLine.
 func (c *BillingStandardInvoiceDetailedLineClient) QueryAmountDiscounts(_m *BillingStandardInvoiceDetailedLine) *BillingStandardInvoiceDetailedLineAmountDiscountQuery {
 	query := (&BillingStandardInvoiceDetailedLineAmountDiscountClient{config: c.config}).Query()
@@ -5244,6 +5324,22 @@ func (c *BillingWorkflowConfigClient) QueryBillingProfile(_m *BillingWorkflowCon
 			sqlgraph.From(billingworkflowconfig.Table, billingworkflowconfig.FieldID, id),
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, billingworkflowconfig.BillingProfileTable, billingworkflowconfig.BillingProfileColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTaxCode queries the tax_code edge of a BillingWorkflowConfig.
+func (c *BillingWorkflowConfigClient) QueryTaxCode(_m *BillingWorkflowConfig) *TaxCodeQuery {
+	query := (&TaxCodeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingworkflowconfig.Table, billingworkflowconfig.FieldID, id),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billingworkflowconfig.TaxCodeTable, billingworkflowconfig.TaxCodeColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -11468,6 +11564,22 @@ func (c *PlanRateCardClient) QueryFeatures(_m *PlanRateCard) *FeatureQuery {
 	return query
 }
 
+// QueryTaxCode queries the tax_code edge of a PlanRateCard.
+func (c *PlanRateCardClient) QueryTaxCode(_m *PlanRateCard) *TaxCodeQuery {
+	query := (&TaxCodeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(planratecard.Table, planratecard.FieldID, id),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, planratecard.TaxCodeTable, planratecard.TaxCodeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *PlanRateCardClient) Hooks() []Hook {
 	return c.hooks.PlanRateCard
@@ -12554,6 +12666,22 @@ func (c *SubscriptionItemClient) QueryChargeIntents(_m *SubscriptionItem) *Charg
 	return query
 }
 
+// QueryTaxCode queries the tax_code edge of a SubscriptionItem.
+func (c *SubscriptionItemClient) QueryTaxCode(_m *SubscriptionItem) *TaxCodeQuery {
+	query := (&TaxCodeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, id),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, subscriptionitem.TaxCodeTable, subscriptionitem.TaxCodeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *SubscriptionItemClient) Hooks() []Hook {
 	return c.hooks.SubscriptionItem
@@ -12898,6 +13026,134 @@ func (c *TaxCodeClient) GetX(ctx context.Context, id string) *TaxCode {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryBillingWorkflowConfigs queries the billing_workflow_configs edge of a TaxCode.
+func (c *TaxCodeClient) QueryBillingWorkflowConfigs(_m *TaxCode) *BillingWorkflowConfigQuery {
+	query := (&BillingWorkflowConfigClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
+			sqlgraph.To(billingworkflowconfig.Table, billingworkflowconfig.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.BillingWorkflowConfigsTable, dbtaxcode.BillingWorkflowConfigsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBillingCustomerOverrides queries the billing_customer_overrides edge of a TaxCode.
+func (c *TaxCodeClient) QueryBillingCustomerOverrides(_m *TaxCode) *BillingCustomerOverrideQuery {
+	query := (&BillingCustomerOverrideClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
+			sqlgraph.To(billingcustomeroverride.Table, billingcustomeroverride.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.BillingCustomerOverridesTable, dbtaxcode.BillingCustomerOverridesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBillingInvoiceLines queries the billing_invoice_lines edge of a TaxCode.
+func (c *TaxCodeClient) QueryBillingInvoiceLines(_m *TaxCode) *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
+			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.BillingInvoiceLinesTable, dbtaxcode.BillingInvoiceLinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBillingInvoiceSplitLineGroups queries the billing_invoice_split_line_groups edge of a TaxCode.
+func (c *TaxCodeClient) QueryBillingInvoiceSplitLineGroups(_m *TaxCode) *BillingInvoiceSplitLineGroupQuery {
+	query := (&BillingInvoiceSplitLineGroupClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
+			sqlgraph.To(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.BillingInvoiceSplitLineGroupsTable, dbtaxcode.BillingInvoiceSplitLineGroupsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBillingStandardInvoiceDetailedLines queries the billing_standard_invoice_detailed_lines edge of a TaxCode.
+func (c *TaxCodeClient) QueryBillingStandardInvoiceDetailedLines(_m *TaxCode) *BillingStandardInvoiceDetailedLineQuery {
+	query := (&BillingStandardInvoiceDetailedLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
+			sqlgraph.To(billingstandardinvoicedetailedline.Table, billingstandardinvoicedetailedline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.BillingStandardInvoiceDetailedLinesTable, dbtaxcode.BillingStandardInvoiceDetailedLinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubscriptionItems queries the subscription_items edge of a TaxCode.
+func (c *TaxCodeClient) QuerySubscriptionItems(_m *TaxCode) *SubscriptionItemQuery {
+	query := (&SubscriptionItemClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
+			sqlgraph.To(subscriptionitem.Table, subscriptionitem.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.SubscriptionItemsTable, dbtaxcode.SubscriptionItemsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPlanRateCards queries the plan_rate_cards edge of a TaxCode.
+func (c *TaxCodeClient) QueryPlanRateCards(_m *TaxCode) *PlanRateCardQuery {
+	query := (&PlanRateCardClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
+			sqlgraph.To(planratecard.Table, planratecard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.PlanRateCardsTable, dbtaxcode.PlanRateCardsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryAddonRateCards queries the addon_rate_cards edge of a TaxCode.
+func (c *TaxCodeClient) QueryAddonRateCards(_m *TaxCode) *AddonRateCardQuery {
+	query := (&AddonRateCardClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
+			sqlgraph.To(addonratecard.Table, addonratecard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.AddonRateCardsTable, dbtaxcode.AddonRateCardsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.

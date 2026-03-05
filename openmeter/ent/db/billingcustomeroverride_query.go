@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 )
 
 // BillingCustomerOverrideQuery is the builder for querying BillingCustomerOverride entities.
@@ -27,6 +28,7 @@ type BillingCustomerOverrideQuery struct {
 	predicates         []predicate.BillingCustomerOverride
 	withCustomer       *CustomerQuery
 	withBillingProfile *BillingProfileQuery
+	withTaxCode        *TaxCodeQuery
 	modifiers          []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -101,6 +103,28 @@ func (_q *BillingCustomerOverrideQuery) QueryBillingProfile() *BillingProfileQue
 			sqlgraph.From(billingcustomeroverride.Table, billingcustomeroverride.FieldID, selector),
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billingcustomeroverride.BillingProfileTable, billingcustomeroverride.BillingProfileColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryTaxCode chains the current query on the "tax_code" edge.
+func (_q *BillingCustomerOverrideQuery) QueryTaxCode() *TaxCodeQuery {
+	query := (&TaxCodeClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingcustomeroverride.Table, billingcustomeroverride.FieldID, selector),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billingcustomeroverride.TaxCodeTable, billingcustomeroverride.TaxCodeColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -302,6 +326,7 @@ func (_q *BillingCustomerOverrideQuery) Clone() *BillingCustomerOverrideQuery {
 		predicates:         append([]predicate.BillingCustomerOverride{}, _q.predicates...),
 		withCustomer:       _q.withCustomer.Clone(),
 		withBillingProfile: _q.withBillingProfile.Clone(),
+		withTaxCode:        _q.withTaxCode.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -327,6 +352,17 @@ func (_q *BillingCustomerOverrideQuery) WithBillingProfile(opts ...func(*Billing
 		opt(query)
 	}
 	_q.withBillingProfile = query
+	return _q
+}
+
+// WithTaxCode tells the query-builder to eager-load the nodes that are connected to
+// the "tax_code" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BillingCustomerOverrideQuery) WithTaxCode(opts ...func(*TaxCodeQuery)) *BillingCustomerOverrideQuery {
+	query := (&TaxCodeClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withTaxCode = query
 	return _q
 }
 
@@ -408,9 +444,10 @@ func (_q *BillingCustomerOverrideQuery) sqlAll(ctx context.Context, hooks ...que
 	var (
 		nodes       = []*BillingCustomerOverride{}
 		_spec       = _q.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			_q.withCustomer != nil,
 			_q.withBillingProfile != nil,
+			_q.withTaxCode != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -443,6 +480,12 @@ func (_q *BillingCustomerOverrideQuery) sqlAll(ctx context.Context, hooks ...que
 	if query := _q.withBillingProfile; query != nil {
 		if err := _q.loadBillingProfile(ctx, query, nodes, nil,
 			func(n *BillingCustomerOverride, e *BillingProfile) { n.Edges.BillingProfile = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withTaxCode; query != nil {
+		if err := _q.loadTaxCode(ctx, query, nodes, nil,
+			func(n *BillingCustomerOverride, e *TaxCode) { n.Edges.TaxCode = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -510,6 +553,38 @@ func (_q *BillingCustomerOverrideQuery) loadBillingProfile(ctx context.Context, 
 	}
 	return nil
 }
+func (_q *BillingCustomerOverrideQuery) loadTaxCode(ctx context.Context, query *TaxCodeQuery, nodes []*BillingCustomerOverride, init func(*BillingCustomerOverride), assign func(*BillingCustomerOverride, *TaxCode)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*BillingCustomerOverride)
+	for i := range nodes {
+		if nodes[i].TaxCodeID == nil {
+			continue
+		}
+		fk := *nodes[i].TaxCodeID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(dbtaxcode.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "tax_code_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (_q *BillingCustomerOverrideQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
@@ -544,6 +619,9 @@ func (_q *BillingCustomerOverrideQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withBillingProfile != nil {
 			_spec.Node.AddColumnOnce(billingcustomeroverride.FieldBillingProfileID)
+		}
+		if _q.withTaxCode != nil {
+			_spec.Node.AddColumnOnce(billingcustomeroverride.FieldTaxCodeID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

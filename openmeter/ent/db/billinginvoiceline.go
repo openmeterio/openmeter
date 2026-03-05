@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -53,6 +54,8 @@ type BillingInvoiceLine struct {
 	Currency currencyx.Code `json:"currency,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
 	TaxConfig productcatalog.TaxConfig `json:"tax_config,omitempty"`
+	// TaxCodeID holds the value of the "tax_code_id" field.
+	TaxCodeID *string `json:"tax_code_id,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
 	// TaxesTotal holds the value of the "taxes_total" field.
@@ -157,9 +160,11 @@ type BillingInvoiceLineEdges struct {
 	ChargeFlatFeeInvoicedUsage []*ChargeFlatFeeInvoicedUsage `json:"charge_flat_fee_invoiced_usage,omitempty"`
 	// ChargeCreditPurchaseInvoicedPayment holds the value of the charge_credit_purchase_invoiced_payment edge.
 	ChargeCreditPurchaseInvoicedPayment *ChargeCreditPurchaseInvoicedPayment `json:"charge_credit_purchase_invoiced_payment,omitempty"`
+	// TaxCode holds the value of the tax_code edge.
+	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [17]bool
+	loadedTypes [18]bool
 }
 
 // BillingInvoiceOrErr returns the BillingInvoice value or an error if the edge
@@ -337,6 +342,17 @@ func (e BillingInvoiceLineEdges) ChargeCreditPurchaseInvoicedPaymentOrErr() (*Ch
 	return nil, &NotLoadedError{edge: "charge_credit_purchase_invoiced_payment"}
 }
 
+// TaxCodeOrErr returns the TaxCode value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceLineEdges) TaxCodeOrErr() (*TaxCode, error) {
+	if e.TaxCode != nil {
+		return e.TaxCode, nil
+	} else if e.loadedTypes[17] {
+		return nil, &NotFoundError{label: dbtaxcode.Label}
+	}
+	return nil, &NotLoadedError{edge: "tax_code"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -348,7 +364,7 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billinginvoiceline.FieldAmount, billinginvoiceline.FieldTaxesTotal, billinginvoiceline.FieldTaxesInclusiveTotal, billinginvoiceline.FieldTaxesExclusiveTotal, billinginvoiceline.FieldChargesTotal, billinginvoiceline.FieldDiscountsTotal, billinginvoiceline.FieldCreditsTotal, billinginvoiceline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldSplitLineGroupID, billinginvoiceline.FieldChargeID, billinginvoiceline.FieldLineIds:
+		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldTaxCodeID, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldSplitLineGroupID, billinginvoiceline.FieldChargeID, billinginvoiceline.FieldLineIds:
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt, billinginvoiceline.FieldSubscriptionBillingPeriodFrom, billinginvoiceline.FieldSubscriptionBillingPeriodTo:
 			values[i] = new(sql.NullTime)
@@ -448,6 +464,13 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 				if err := json.Unmarshal(*value, &_m.TaxConfig); err != nil {
 					return fmt.Errorf("unmarshal field tax_config: %w", err)
 				}
+			}
+		case billinginvoiceline.FieldTaxCodeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
+			} else if value.Valid {
+				_m.TaxCodeID = new(string)
+				*_m.TaxCodeID = value.String
 			}
 		case billinginvoiceline.FieldAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -747,6 +770,11 @@ func (_m *BillingInvoiceLine) QueryChargeCreditPurchaseInvoicedPayment() *Charge
 	return NewBillingInvoiceLineClient(_m.config).QueryChargeCreditPurchaseInvoicedPayment(_m)
 }
 
+// QueryTaxCode queries the "tax_code" edge of the BillingInvoiceLine entity.
+func (_m *BillingInvoiceLine) QueryTaxCode() *TaxCodeQuery {
+	return NewBillingInvoiceLineClient(_m.config).QueryTaxCode(_m)
+}
+
 // Update returns a builder for updating this BillingInvoiceLine.
 // Note that you need to call BillingInvoiceLine.Unwrap() before calling this method if this BillingInvoiceLine
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -803,6 +831,11 @@ func (_m *BillingInvoiceLine) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("tax_config=")
 	builder.WriteString(fmt.Sprintf("%v", _m.TaxConfig))
+	builder.WriteString(", ")
+	if v := _m.TaxCodeID; v != nil {
+		builder.WriteString("tax_code_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("amount=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Amount))

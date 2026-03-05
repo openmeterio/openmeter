@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
@@ -53,6 +54,8 @@ type BillingCustomerOverride struct {
 	InvoiceProgressiveBilling *bool `json:"invoice_progressive_billing,omitempty"`
 	// InvoiceDefaultTaxConfig holds the value of the "invoice_default_tax_config" field.
 	InvoiceDefaultTaxConfig productcatalog.TaxConfig `json:"invoice_default_tax_config,omitempty"`
+	// TaxCodeID holds the value of the "tax_code_id" field.
+	TaxCodeID *string `json:"tax_code_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingCustomerOverrideQuery when eager-loading is set.
 	Edges        BillingCustomerOverrideEdges `json:"edges"`
@@ -65,9 +68,11 @@ type BillingCustomerOverrideEdges struct {
 	Customer *Customer `json:"customer,omitempty"`
 	// BillingProfile holds the value of the billing_profile edge.
 	BillingProfile *BillingProfile `json:"billing_profile,omitempty"`
+	// TaxCode holds the value of the tax_code edge.
+	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // CustomerOrErr returns the Customer value or an error if the edge
@@ -92,6 +97,17 @@ func (e BillingCustomerOverrideEdges) BillingProfileOrErr() (*BillingProfile, er
 	return nil, &NotLoadedError{edge: "billing_profile"}
 }
 
+// TaxCodeOrErr returns the TaxCode value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingCustomerOverrideEdges) TaxCodeOrErr() (*TaxCode, error) {
+	if e.TaxCode != nil {
+		return e.TaxCode, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: dbtaxcode.Label}
+	}
+	return nil, &NotLoadedError{edge: "tax_code"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*BillingCustomerOverride) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -101,7 +117,7 @@ func (*BillingCustomerOverride) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billingcustomeroverride.FieldInvoiceAutoAdvance, billingcustomeroverride.FieldInvoiceProgressiveBilling:
 			values[i] = new(sql.NullBool)
-		case billingcustomeroverride.FieldID, billingcustomeroverride.FieldNamespace, billingcustomeroverride.FieldCustomerID, billingcustomeroverride.FieldBillingProfileID, billingcustomeroverride.FieldCollectionAlignment, billingcustomeroverride.FieldLineCollectionPeriod, billingcustomeroverride.FieldInvoiceDraftPeriod, billingcustomeroverride.FieldInvoiceDueAfter, billingcustomeroverride.FieldInvoiceCollectionMethod:
+		case billingcustomeroverride.FieldID, billingcustomeroverride.FieldNamespace, billingcustomeroverride.FieldCustomerID, billingcustomeroverride.FieldBillingProfileID, billingcustomeroverride.FieldCollectionAlignment, billingcustomeroverride.FieldLineCollectionPeriod, billingcustomeroverride.FieldInvoiceDraftPeriod, billingcustomeroverride.FieldInvoiceDueAfter, billingcustomeroverride.FieldInvoiceCollectionMethod, billingcustomeroverride.FieldTaxCodeID:
 			values[i] = new(sql.NullString)
 		case billingcustomeroverride.FieldCreatedAt, billingcustomeroverride.FieldUpdatedAt, billingcustomeroverride.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -229,6 +245,13 @@ func (_m *BillingCustomerOverride) assignValues(columns []string, values []any) 
 					return fmt.Errorf("unmarshal field invoice_default_tax_config: %w", err)
 				}
 			}
+		case billingcustomeroverride.FieldTaxCodeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
+			} else if value.Valid {
+				_m.TaxCodeID = new(string)
+				*_m.TaxCodeID = value.String
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -250,6 +273,11 @@ func (_m *BillingCustomerOverride) QueryCustomer() *CustomerQuery {
 // QueryBillingProfile queries the "billing_profile" edge of the BillingCustomerOverride entity.
 func (_m *BillingCustomerOverride) QueryBillingProfile() *BillingProfileQuery {
 	return NewBillingCustomerOverrideClient(_m.config).QueryBillingProfile(_m)
+}
+
+// QueryTaxCode queries the "tax_code" edge of the BillingCustomerOverride entity.
+func (_m *BillingCustomerOverride) QueryTaxCode() *TaxCodeQuery {
+	return NewBillingCustomerOverrideClient(_m.config).QueryTaxCode(_m)
 }
 
 // Update returns a builder for updating this BillingCustomerOverride.
@@ -337,6 +365,11 @@ func (_m *BillingCustomerOverride) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("invoice_default_tax_config=")
 	builder.WriteString(fmt.Sprintf("%v", _m.InvoiceDefaultTaxConfig))
+	builder.WriteString(", ")
+	if v := _m.TaxCodeID; v != nil {
+		builder.WriteString("tax_code_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

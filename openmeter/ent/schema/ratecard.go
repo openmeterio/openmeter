@@ -42,6 +42,12 @@ func (RateCard) Fields() []ent.Field {
 			}).
 			Optional().
 			Nillable(),
+		field.String("tax_code_id").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
 		field.String("billing_cadence").
 			GoType(datetime.ISODurationString("")).
 			Optional().

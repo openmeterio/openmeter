@@ -146,6 +146,13 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 		field.JSON("invoice_default_tax_settings", productcatalog.TaxConfig{}).
 			Optional(),
 
+		field.String("tax_code_id").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+
 		// Enable automatic tax calculation when tax is supported by the app.
 		field.Bool("tax_enabled").Default(true),
 
@@ -165,6 +172,10 @@ func (BillingWorkflowConfig) Edges() []ent.Edge {
 		edge.To("billing_invoices", BillingInvoice.Type).
 			Unique(),
 		edge.To("billing_profile", BillingProfile.Type).
+			Unique(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("billing_workflow_configs").
+			Field("tax_code_id").
 			Unique(),
 	}
 }
@@ -242,6 +253,13 @@ func (BillingCustomerOverride) Fields() []ent.Field {
 
 		field.JSON("invoice_default_tax_config", productcatalog.TaxConfig{}).
 			Optional(),
+
+		field.String("tax_code_id").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
 	}
 }
 
@@ -263,6 +281,10 @@ func (BillingCustomerOverride) Edges() []ent.Edge {
 		edge.From("billing_profile", BillingProfile.Type).
 			Ref("billing_customer_override").
 			Field("billing_profile_id").
+			Unique(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("billing_customer_overrides").
+			Field("tax_code_id").
 			Unique(),
 	}
 }
@@ -286,6 +308,12 @@ func (InvoiceLineBaseMixin) Fields() []ent.Field {
 				dialect.Postgres: "jsonb",
 			}).
 			Optional(),
+		field.String("tax_code_id").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
 	}
 }
 
@@ -483,6 +511,10 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 		edge.To("charge_credit_purchase_invoiced_payment", ChargeCreditPurchaseInvoicedPayment.Type).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("billing_invoice_lines").
+			Field("tax_code_id").
+			Unique(),
 	}
 }
 
@@ -696,6 +728,10 @@ func (BillingInvoiceSplitLineGroup) Edges() []ent.Edge {
 		edge.From("charge", Charge.Type).
 			Ref("billing_split_line_groups").
 			Field("charge_id").
+			Unique(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("billing_invoice_split_line_groups").
+			Field("tax_code_id").
 			Unique(),
 	}
 }
@@ -943,6 +979,10 @@ func (BillingStandardInvoiceDetailedLine) Edges() []ent.Edge {
 			Field("parent_line_id").
 			Unique().
 			Required(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("billing_standard_invoice_detailed_lines").
+			Field("tax_code_id").
+			Unique(),
 		edge.To("amount_discounts", BillingStandardInvoiceDetailedLineAmountDiscount.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}

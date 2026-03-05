@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
@@ -139,6 +140,20 @@ func (_c *AddonRateCardCreate) SetTaxConfig(v *productcatalog.TaxConfig) *AddonR
 	return _c
 }
 
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_c *AddonRateCardCreate) SetTaxCodeID(v string) *AddonRateCardCreate {
+	_c.mutation.SetTaxCodeID(v)
+	return _c
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_c *AddonRateCardCreate) SetNillableTaxCodeID(v *string) *AddonRateCardCreate {
+	if v != nil {
+		_c.SetTaxCodeID(*v)
+	}
+	return _c
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (_c *AddonRateCardCreate) SetBillingCadence(v datetime.ISODurationString) *AddonRateCardCreate {
 	_c.mutation.SetBillingCadence(v)
@@ -221,6 +236,11 @@ func (_c *AddonRateCardCreate) SetNillableFeaturesID(id *string) *AddonRateCardC
 // SetFeatures sets the "features" edge to the Feature entity.
 func (_c *AddonRateCardCreate) SetFeatures(v *Feature) *AddonRateCardCreate {
 	return _c.SetFeaturesID(v.ID)
+}
+
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_c *AddonRateCardCreate) SetTaxCode(v *TaxCode) *AddonRateCardCreate {
+	return _c.SetTaxCodeID(v.ID)
 }
 
 // Mutation returns the AddonRateCardMutation object of the builder.
@@ -487,6 +507,23 @@ func (_c *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateSpe
 		_node.FeatureID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   addonratecard.TaxCodeTable,
+			Columns: []string{addonratecard.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.TaxCodeID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec, nil
 }
 
@@ -668,6 +705,24 @@ func (u *AddonRateCardUpsert) UpdateTaxConfig() *AddonRateCardUpsert {
 // ClearTaxConfig clears the value of the "tax_config" field.
 func (u *AddonRateCardUpsert) ClearTaxConfig() *AddonRateCardUpsert {
 	u.SetNull(addonratecard.FieldTaxConfig)
+	return u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *AddonRateCardUpsert) SetTaxCodeID(v string) *AddonRateCardUpsert {
+	u.Set(addonratecard.FieldTaxCodeID, v)
+	return u
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *AddonRateCardUpsert) UpdateTaxCodeID() *AddonRateCardUpsert {
+	u.SetExcluded(addonratecard.FieldTaxCodeID)
+	return u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *AddonRateCardUpsert) ClearTaxCodeID() *AddonRateCardUpsert {
+	u.SetNull(addonratecard.FieldTaxCodeID)
 	return u
 }
 
@@ -966,6 +1021,27 @@ func (u *AddonRateCardUpsertOne) UpdateTaxConfig() *AddonRateCardUpsertOne {
 func (u *AddonRateCardUpsertOne) ClearTaxConfig() *AddonRateCardUpsertOne {
 	return u.Update(func(s *AddonRateCardUpsert) {
 		s.ClearTaxConfig()
+	})
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *AddonRateCardUpsertOne) SetTaxCodeID(v string) *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.SetTaxCodeID(v)
+	})
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *AddonRateCardUpsertOne) UpdateTaxCodeID() *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.UpdateTaxCodeID()
+	})
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *AddonRateCardUpsertOne) ClearTaxCodeID() *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.ClearTaxCodeID()
 	})
 }
 
@@ -1448,6 +1524,27 @@ func (u *AddonRateCardUpsertBulk) UpdateTaxConfig() *AddonRateCardUpsertBulk {
 func (u *AddonRateCardUpsertBulk) ClearTaxConfig() *AddonRateCardUpsertBulk {
 	return u.Update(func(s *AddonRateCardUpsert) {
 		s.ClearTaxConfig()
+	})
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *AddonRateCardUpsertBulk) SetTaxCodeID(v string) *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.SetTaxCodeID(v)
+	})
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *AddonRateCardUpsertBulk) UpdateTaxCodeID() *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.UpdateTaxCodeID()
+	})
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *AddonRateCardUpsertBulk) ClearTaxCodeID() *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.ClearTaxCodeID()
 	})
 }
 

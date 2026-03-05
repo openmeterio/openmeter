@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
@@ -148,6 +149,26 @@ func (_u *AddonRateCardUpdate) ClearTaxConfig() *AddonRateCardUpdate {
 	return _u
 }
 
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *AddonRateCardUpdate) SetTaxCodeID(v string) *AddonRateCardUpdate {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *AddonRateCardUpdate) SetNillableTaxCodeID(v *string) *AddonRateCardUpdate {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *AddonRateCardUpdate) ClearTaxCodeID() *AddonRateCardUpdate {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (_u *AddonRateCardUpdate) SetBillingCadence(v datetime.ISODurationString) *AddonRateCardUpdate {
 	_u.mutation.SetBillingCadence(v)
@@ -250,6 +271,11 @@ func (_u *AddonRateCardUpdate) SetFeatures(v *Feature) *AddonRateCardUpdate {
 	return _u.SetFeaturesID(v.ID)
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_u *AddonRateCardUpdate) SetTaxCode(v *TaxCode) *AddonRateCardUpdate {
+	return _u.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the AddonRateCardMutation object of the builder.
 func (_u *AddonRateCardUpdate) Mutation() *AddonRateCardMutation {
 	return _u.mutation
@@ -264,6 +290,12 @@ func (_u *AddonRateCardUpdate) ClearAddon() *AddonRateCardUpdate {
 // ClearFeatures clears the "features" edge to the Feature entity.
 func (_u *AddonRateCardUpdate) ClearFeatures() *AddonRateCardUpdate {
 	_u.mutation.ClearFeatures()
+	return _u
+}
+
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (_u *AddonRateCardUpdate) ClearTaxCode() *AddonRateCardUpdate {
+	_u.mutation.ClearTaxCode()
 	return _u
 }
 
@@ -482,6 +514,35 @@ func (_u *AddonRateCardUpdate) sqlSave(ctx context.Context) (_node int, err erro
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.TaxCodeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   addonratecard.TaxCodeTable,
+			Columns: []string{addonratecard.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   addonratecard.TaxCodeTable,
+			Columns: []string{addonratecard.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{addonratecard.Label}
@@ -618,6 +679,26 @@ func (_u *AddonRateCardUpdateOne) ClearTaxConfig() *AddonRateCardUpdateOne {
 	return _u
 }
 
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *AddonRateCardUpdateOne) SetTaxCodeID(v string) *AddonRateCardUpdateOne {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *AddonRateCardUpdateOne) SetNillableTaxCodeID(v *string) *AddonRateCardUpdateOne {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *AddonRateCardUpdateOne) ClearTaxCodeID() *AddonRateCardUpdateOne {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (_u *AddonRateCardUpdateOne) SetBillingCadence(v datetime.ISODurationString) *AddonRateCardUpdateOne {
 	_u.mutation.SetBillingCadence(v)
@@ -720,6 +801,11 @@ func (_u *AddonRateCardUpdateOne) SetFeatures(v *Feature) *AddonRateCardUpdateOn
 	return _u.SetFeaturesID(v.ID)
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_u *AddonRateCardUpdateOne) SetTaxCode(v *TaxCode) *AddonRateCardUpdateOne {
+	return _u.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the AddonRateCardMutation object of the builder.
 func (_u *AddonRateCardUpdateOne) Mutation() *AddonRateCardMutation {
 	return _u.mutation
@@ -734,6 +820,12 @@ func (_u *AddonRateCardUpdateOne) ClearAddon() *AddonRateCardUpdateOne {
 // ClearFeatures clears the "features" edge to the Feature entity.
 func (_u *AddonRateCardUpdateOne) ClearFeatures() *AddonRateCardUpdateOne {
 	_u.mutation.ClearFeatures()
+	return _u
+}
+
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (_u *AddonRateCardUpdateOne) ClearTaxCode() *AddonRateCardUpdateOne {
+	_u.mutation.ClearTaxCode()
 	return _u
 }
 
@@ -975,6 +1067,35 @@ func (_u *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonRate
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TaxCodeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   addonratecard.TaxCodeTable,
+			Columns: []string{addonratecard.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   addonratecard.TaxCodeTable,
+			Columns: []string{addonratecard.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
