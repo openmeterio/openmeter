@@ -29,3 +29,10 @@ func (a *Router) DeleteFeature(w http.ResponseWriter, r *http.Request, featureId
 func (a *Router) GetFeature(w http.ResponseWriter, r *http.Request, featureId string) {
 	a.featureHandler.GetFeature().With(featureId).ServeHTTP(w, r)
 }
+
+// Query feaure cost
+// (GET /api/v1/features/{featureId}/cost)
+func (a *Router) QueryFeatureCost(w http.ResponseWriter, r *http.Request, featureId string, params api.QueryFeatureCostParams) {
+	// TODO: implement
+	unimplemented.QueryFeatureCost(w, r, featureId, params)
+}
