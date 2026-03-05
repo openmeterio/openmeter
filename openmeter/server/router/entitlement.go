@@ -224,6 +224,7 @@ func (a *Router) GetCustomerEntitlementValueV2(w http.ResponseWriter, r *http.Re
 	a.customerHandler.GetCustomerEntitlementValueV2().With(customerdriver.GetCustomerEntitlementValueParams{
 		CustomerIDOrKey: customerIdOrKey,
 		FeatureKey:      featureKey,
+		Time:            params.Time,
 	}).ServeHTTP(w, r)
 }
 

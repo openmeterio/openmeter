@@ -86,13 +86,18 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 		return nil, fmt.Errorf("failed to get balance since snapshot: %w", err)
 	}
 
+	grantBalances := make(map[string]float64, len(res.Snapshot.Balances))
+	for grantID, balance := range res.Snapshot.Balances {
+		grantBalances[grantID] = balance
+	}
+
 	return &EntitlementBalance{
 		EntitlementID:             entitlementID.ID,
 		Balance:                   res.Snapshot.Balance(),
 		UsageInPeriod:             res.Snapshot.Usage.Usage,
 		Overage:                   res.Snapshot.Overage,
 		TotalAvailableGrantAmount: res.TotalAvailableGrantAmount(),
-		GrantBalances:             map[string]float64(res.Snapshot.Balances.Clone()),
+		GrantBalances:             grantBalances,
 		StartOfPeriod:             startOfPeriod,
 	}, nil
 }

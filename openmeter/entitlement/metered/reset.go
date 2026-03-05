@@ -69,11 +69,17 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 			return nil, err
 		}
 
+		grantBalances := make(map[string]float64, len(balanceAfterReset.Balances))
+		for grantID, balance := range balanceAfterReset.Balances {
+			grantBalances[grantID] = balance
+		}
+
 		return &EntitlementBalance{
 			EntitlementID: entitlementID.ID,
 			Balance:       balanceAfterReset.Balance(),
 			UsageInPeriod: 0.0, // you cannot have usage right after a reset
 			Overage:       balanceAfterReset.Overage,
+			GrantBalances: grantBalances,
 			StartOfPeriod: params.At,
 		}, nil
 	})

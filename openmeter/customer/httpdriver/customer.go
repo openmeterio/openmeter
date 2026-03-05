@@ -358,11 +358,15 @@ func (h *handler) GetCustomer() GetCustomerHandler {
 }
 
 type (
-	GetCustomerEntitlementValueRequest  = customer.GetEntitlementValueInput
+	GetCustomerEntitlementValueRequest struct {
+		customer.GetEntitlementValueInput
+		At time.Time
+	}
 	GetCustomerEntitlementValueResponse = api.EntitlementValue
 	GetCustomerEntitlementValueParams   = struct {
 		CustomerIDOrKey string
 		FeatureKey      string
+		Time            *time.Time
 	}
 	GetCustomerEntitlementValueHandler httptransport.HandlerWithArgs[GetCustomerEntitlementValueRequest, GetCustomerEntitlementValueResponse, GetCustomerEntitlementValueParams]
 )
@@ -400,12 +404,15 @@ func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandl
 			}
 
 			return GetCustomerEntitlementValueRequest{
-				FeatureKey: params.FeatureKey,
-				CustomerID: cus.GetID(),
+				GetEntitlementValueInput: customer.GetEntitlementValueInput{
+					FeatureKey: params.FeatureKey,
+					CustomerID: cus.GetID(),
+				},
+				At: defaultx.WithDefault(params.Time, clock.Now()),
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerEntitlementValueRequest) (GetCustomerEntitlementValueResponse, error) {
-			val, err := h.entitlementService.GetEntitlementValue(ctx, request.CustomerID.Namespace, request.CustomerID.ID, request.FeatureKey, clock.Now())
+			val, err := h.entitlementService.GetEntitlementValue(ctx, request.CustomerID.Namespace, request.CustomerID.ID, request.FeatureKey, request.At)
 			if err != nil {
 				if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
 					val = &entitlement.NoAccessValue{}
@@ -453,12 +460,15 @@ func (h *handler) GetCustomerEntitlementValueV2() GetCustomerEntitlementValueV2H
 			}
 
 			return GetCustomerEntitlementValueRequest{
-				FeatureKey: params.FeatureKey,
-				CustomerID: cus.GetID(),
+				GetEntitlementValueInput: customer.GetEntitlementValueInput{
+					FeatureKey: params.FeatureKey,
+					CustomerID: cus.GetID(),
+				},
+				At: defaultx.WithDefault(params.Time, clock.Now()),
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerEntitlementValueRequest) (GetCustomerEntitlementValueV2Response, error) {
-			val, err := h.entitlementService.GetEntitlementValue(ctx, request.CustomerID.Namespace, request.CustomerID.ID, request.FeatureKey, clock.Now())
+			val, err := h.entitlementService.GetEntitlementValue(ctx, request.CustomerID.Namespace, request.CustomerID.ID, request.FeatureKey, request.At)
 			if err != nil {
 				if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
 					val = &entitlement.NoAccessValue{}
