@@ -2,7 +2,6 @@ package adapter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"slices"
 
@@ -121,9 +120,8 @@ func (a *adapter) QueryFeatureCost(ctx context.Context, input cost.QueryFeatureC
 	costRows, currency, err := computeCostRows(rows, internalGroupByKeys, func(groupByValues map[string]string) (*cost.ResolvedUnitCost, string, error) {
 		resolved, err := a.resolveUnitCost(ctx, feat, groupByValues, priceCache)
 		if err != nil {
-			var vi models.ValidationIssue
-			if errors.As(err, &vi) && vi.Code() == llmcost.ErrCodePriceNotFound {
-				return nil, vi.Error(), nil
+			if llmcost.IsPriceNotFoundError(err) {
+				return nil, err.Error(), nil
 			}
 			return nil, "", fmt.Errorf("failed to resolve unit cost: %w", err)
 		}
