@@ -37,6 +37,8 @@ const (
 	FieldCurrency = "currency"
 	// FieldTaxConfig holds the string denoting the tax_config field in the database.
 	FieldTaxConfig = "tax_config"
+	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
+	FieldTaxCodeID = "tax_code_id"
 	// FieldAmount holds the string denoting the amount field in the database.
 	FieldAmount = "amount"
 	// FieldTaxesTotal holds the string denoting the taxes_total field in the database.
@@ -127,6 +129,8 @@ const (
 	EdgeChargeCreditRealization = "charge_credit_realization"
 	// EdgeChargeStandardInvoiceAccruedUsage holds the string denoting the charge_standard_invoice_accrued_usage edge name in mutations.
 	EdgeChargeStandardInvoiceAccruedUsage = "charge_standard_invoice_accrued_usage"
+	// EdgeTaxCode holds the string denoting the tax_code edge name in mutations.
+	EdgeTaxCode = "tax_code"
 	// Table holds the table name of the billinginvoiceline in the database.
 	Table = "billing_invoice_lines"
 	// BillingInvoiceTable is the table that holds the billing_invoice relation/edge.
@@ -235,6 +239,13 @@ const (
 	ChargeStandardInvoiceAccruedUsageInverseTable = "charge_standard_invoice_accrued_usages"
 	// ChargeStandardInvoiceAccruedUsageColumn is the table column denoting the charge_standard_invoice_accrued_usage relation/edge.
 	ChargeStandardInvoiceAccruedUsageColumn = "line_id"
+	// TaxCodeTable is the table that holds the tax_code relation/edge.
+	TaxCodeTable = "billing_invoice_lines"
+	// TaxCodeInverseTable is the table name for the TaxCode entity.
+	// It exists in this package in order to avoid circular dependency with the "dbtaxcode" package.
+	TaxCodeInverseTable = "tax_codes"
+	// TaxCodeColumn is the table column denoting the tax_code relation/edge.
+	TaxCodeColumn = "tax_code_id"
 )
 
 // Columns holds all SQL columns for billinginvoiceline fields.
@@ -250,6 +261,7 @@ var Columns = []string{
 	FieldDescription,
 	FieldCurrency,
 	FieldTaxConfig,
+	FieldTaxCodeID,
 	FieldAmount,
 	FieldTaxesTotal,
 	FieldTaxesInclusiveTotal,
@@ -398,6 +410,11 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByTaxCodeID orders the results by the tax_code_id field.
+func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
 }
 
 // ByAmount orders the results by the amount field.
@@ -698,6 +715,13 @@ func ByChargeStandardInvoiceAccruedUsage(term sql.OrderTerm, terms ...sql.OrderT
 		sqlgraph.OrderByNeighborTerms(s, newChargeStandardInvoiceAccruedUsageStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByTaxCodeField orders the results by tax_code field.
+func ByTaxCodeField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTaxCodeStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newBillingInvoiceStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -808,5 +832,12 @@ func newChargeStandardInvoiceAccruedUsageStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ChargeStandardInvoiceAccruedUsageInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, ChargeStandardInvoiceAccruedUsageTable, ChargeStandardInvoiceAccruedUsageColumn),
+	)
+}
+func newTaxCodeStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TaxCodeInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
 	)
 }

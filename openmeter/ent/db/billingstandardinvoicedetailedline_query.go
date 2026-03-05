@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedlineamountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 )
 
 // BillingStandardInvoiceDetailedLineQuery is the builder for querying BillingStandardInvoiceDetailedLine entities.
@@ -29,6 +30,7 @@ type BillingStandardInvoiceDetailedLineQuery struct {
 	predicates             []predicate.BillingStandardInvoiceDetailedLine
 	withBillingInvoice     *BillingInvoiceQuery
 	withBillingInvoiceLine *BillingInvoiceLineQuery
+	withTaxCode            *TaxCodeQuery
 	withAmountDiscounts    *BillingStandardInvoiceDetailedLineAmountDiscountQuery
 	modifiers              []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
@@ -104,6 +106,28 @@ func (_q *BillingStandardInvoiceDetailedLineQuery) QueryBillingInvoiceLine() *Bi
 			sqlgraph.From(billingstandardinvoicedetailedline.Table, billingstandardinvoicedetailedline.FieldID, selector),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billingstandardinvoicedetailedline.BillingInvoiceLineTable, billingstandardinvoicedetailedline.BillingInvoiceLineColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryTaxCode chains the current query on the "tax_code" edge.
+func (_q *BillingStandardInvoiceDetailedLineQuery) QueryTaxCode() *TaxCodeQuery {
+	query := (&TaxCodeClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingstandardinvoicedetailedline.Table, billingstandardinvoicedetailedline.FieldID, selector),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billingstandardinvoicedetailedline.TaxCodeTable, billingstandardinvoicedetailedline.TaxCodeColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -327,6 +351,7 @@ func (_q *BillingStandardInvoiceDetailedLineQuery) Clone() *BillingStandardInvoi
 		predicates:             append([]predicate.BillingStandardInvoiceDetailedLine{}, _q.predicates...),
 		withBillingInvoice:     _q.withBillingInvoice.Clone(),
 		withBillingInvoiceLine: _q.withBillingInvoiceLine.Clone(),
+		withTaxCode:            _q.withTaxCode.Clone(),
 		withAmountDiscounts:    _q.withAmountDiscounts.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
@@ -353,6 +378,17 @@ func (_q *BillingStandardInvoiceDetailedLineQuery) WithBillingInvoiceLine(opts .
 		opt(query)
 	}
 	_q.withBillingInvoiceLine = query
+	return _q
+}
+
+// WithTaxCode tells the query-builder to eager-load the nodes that are connected to
+// the "tax_code" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BillingStandardInvoiceDetailedLineQuery) WithTaxCode(opts ...func(*TaxCodeQuery)) *BillingStandardInvoiceDetailedLineQuery {
+	query := (&TaxCodeClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withTaxCode = query
 	return _q
 }
 
@@ -445,9 +481,10 @@ func (_q *BillingStandardInvoiceDetailedLineQuery) sqlAll(ctx context.Context, h
 	var (
 		nodes       = []*BillingStandardInvoiceDetailedLine{}
 		_spec       = _q.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			_q.withBillingInvoice != nil,
 			_q.withBillingInvoiceLine != nil,
+			_q.withTaxCode != nil,
 			_q.withAmountDiscounts != nil,
 		}
 	)
@@ -481,6 +518,12 @@ func (_q *BillingStandardInvoiceDetailedLineQuery) sqlAll(ctx context.Context, h
 	if query := _q.withBillingInvoiceLine; query != nil {
 		if err := _q.loadBillingInvoiceLine(ctx, query, nodes, nil,
 			func(n *BillingStandardInvoiceDetailedLine, e *BillingInvoiceLine) { n.Edges.BillingInvoiceLine = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withTaxCode; query != nil {
+		if err := _q.loadTaxCode(ctx, query, nodes, nil,
+			func(n *BillingStandardInvoiceDetailedLine, e *TaxCode) { n.Edges.TaxCode = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -556,6 +599,38 @@ func (_q *BillingStandardInvoiceDetailedLineQuery) loadBillingInvoiceLine(ctx co
 	}
 	return nil
 }
+func (_q *BillingStandardInvoiceDetailedLineQuery) loadTaxCode(ctx context.Context, query *TaxCodeQuery, nodes []*BillingStandardInvoiceDetailedLine, init func(*BillingStandardInvoiceDetailedLine), assign func(*BillingStandardInvoiceDetailedLine, *TaxCode)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*BillingStandardInvoiceDetailedLine)
+	for i := range nodes {
+		if nodes[i].TaxCodeID == nil {
+			continue
+		}
+		fk := *nodes[i].TaxCodeID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(dbtaxcode.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "tax_code_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 func (_q *BillingStandardInvoiceDetailedLineQuery) loadAmountDiscounts(ctx context.Context, query *BillingStandardInvoiceDetailedLineAmountDiscountQuery, nodes []*BillingStandardInvoiceDetailedLine, init func(*BillingStandardInvoiceDetailedLine), assign func(*BillingStandardInvoiceDetailedLine, *BillingStandardInvoiceDetailedLineAmountDiscount)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*BillingStandardInvoiceDetailedLine)
@@ -620,6 +695,9 @@ func (_q *BillingStandardInvoiceDetailedLineQuery) querySpec() *sqlgraph.QuerySp
 		}
 		if _q.withBillingInvoiceLine != nil {
 			_spec.Node.AddColumnOnce(billingstandardinvoicedetailedline.FieldParentLineID)
+		}
+		if _q.withTaxCode != nil {
+			_spec.Node.AddColumnOnce(billingstandardinvoicedetailedline.FieldTaxCodeID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
@@ -214,6 +215,20 @@ func (_c *BillingCustomerOverrideCreate) SetNillableInvoiceDefaultTaxConfig(v *p
 	return _c
 }
 
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_c *BillingCustomerOverrideCreate) SetTaxCodeID(v string) *BillingCustomerOverrideCreate {
+	_c.mutation.SetTaxCodeID(v)
+	return _c
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_c *BillingCustomerOverrideCreate) SetNillableTaxCodeID(v *string) *BillingCustomerOverrideCreate {
+	if v != nil {
+		_c.SetTaxCodeID(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *BillingCustomerOverrideCreate) SetID(v string) *BillingCustomerOverrideCreate {
 	_c.mutation.SetID(v)
@@ -236,6 +251,11 @@ func (_c *BillingCustomerOverrideCreate) SetCustomer(v *Customer) *BillingCustom
 // SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
 func (_c *BillingCustomerOverrideCreate) SetBillingProfile(v *BillingProfile) *BillingCustomerOverrideCreate {
 	return _c.SetBillingProfileID(v.ID)
+}
+
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_c *BillingCustomerOverrideCreate) SetTaxCode(v *TaxCode) *BillingCustomerOverrideCreate {
+	return _c.SetTaxCodeID(v.ID)
 }
 
 // Mutation returns the BillingCustomerOverrideMutation object of the builder.
@@ -449,6 +469,23 @@ func (_c *BillingCustomerOverrideCreate) createSpec() (*BillingCustomerOverride,
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.BillingProfileID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingcustomeroverride.TaxCodeTable,
+			Columns: []string{billingcustomeroverride.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.TaxCodeID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -710,6 +747,24 @@ func (u *BillingCustomerOverrideUpsert) UpdateInvoiceDefaultTaxConfig() *Billing
 // ClearInvoiceDefaultTaxConfig clears the value of the "invoice_default_tax_config" field.
 func (u *BillingCustomerOverrideUpsert) ClearInvoiceDefaultTaxConfig() *BillingCustomerOverrideUpsert {
 	u.SetNull(billingcustomeroverride.FieldInvoiceDefaultTaxConfig)
+	return u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *BillingCustomerOverrideUpsert) SetTaxCodeID(v string) *BillingCustomerOverrideUpsert {
+	u.Set(billingcustomeroverride.FieldTaxCodeID, v)
+	return u
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsert) UpdateTaxCodeID() *BillingCustomerOverrideUpsert {
+	u.SetExcluded(billingcustomeroverride.FieldTaxCodeID)
+	return u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *BillingCustomerOverrideUpsert) ClearTaxCodeID() *BillingCustomerOverrideUpsert {
+	u.SetNull(billingcustomeroverride.FieldTaxCodeID)
 	return u
 }
 
@@ -1012,6 +1067,27 @@ func (u *BillingCustomerOverrideUpsertOne) UpdateInvoiceDefaultTaxConfig() *Bill
 func (u *BillingCustomerOverrideUpsertOne) ClearInvoiceDefaultTaxConfig() *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.ClearInvoiceDefaultTaxConfig()
+	})
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *BillingCustomerOverrideUpsertOne) SetTaxCodeID(v string) *BillingCustomerOverrideUpsertOne {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.SetTaxCodeID(v)
+	})
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsertOne) UpdateTaxCodeID() *BillingCustomerOverrideUpsertOne {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.UpdateTaxCodeID()
+	})
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *BillingCustomerOverrideUpsertOne) ClearTaxCodeID() *BillingCustomerOverrideUpsertOne {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.ClearTaxCodeID()
 	})
 }
 
@@ -1481,6 +1557,27 @@ func (u *BillingCustomerOverrideUpsertBulk) UpdateInvoiceDefaultTaxConfig() *Bil
 func (u *BillingCustomerOverrideUpsertBulk) ClearInvoiceDefaultTaxConfig() *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.ClearInvoiceDefaultTaxConfig()
+	})
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *BillingCustomerOverrideUpsertBulk) SetTaxCodeID(v string) *BillingCustomerOverrideUpsertBulk {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.SetTaxCodeID(v)
+	})
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsertBulk) UpdateTaxCodeID() *BillingCustomerOverrideUpsertBulk {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.UpdateTaxCodeID()
+	})
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *BillingCustomerOverrideUpsertBulk) ClearTaxCodeID() *BillingCustomerOverrideUpsertBulk {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.ClearTaxCodeID()
 	})
 }
 

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 )
@@ -33,8 +34,80 @@ const (
 	FieldKey = "key"
 	// FieldAppMappings holds the string denoting the app_mappings field in the database.
 	FieldAppMappings = "app_mappings"
+	// EdgeBillingWorkflowConfigs holds the string denoting the billing_workflow_configs edge name in mutations.
+	EdgeBillingWorkflowConfigs = "billing_workflow_configs"
+	// EdgeBillingCustomerOverrides holds the string denoting the billing_customer_overrides edge name in mutations.
+	EdgeBillingCustomerOverrides = "billing_customer_overrides"
+	// EdgeBillingInvoiceLines holds the string denoting the billing_invoice_lines edge name in mutations.
+	EdgeBillingInvoiceLines = "billing_invoice_lines"
+	// EdgeBillingInvoiceSplitLineGroups holds the string denoting the billing_invoice_split_line_groups edge name in mutations.
+	EdgeBillingInvoiceSplitLineGroups = "billing_invoice_split_line_groups"
+	// EdgeBillingStandardInvoiceDetailedLines holds the string denoting the billing_standard_invoice_detailed_lines edge name in mutations.
+	EdgeBillingStandardInvoiceDetailedLines = "billing_standard_invoice_detailed_lines"
+	// EdgeSubscriptionItems holds the string denoting the subscription_items edge name in mutations.
+	EdgeSubscriptionItems = "subscription_items"
+	// EdgePlanRateCards holds the string denoting the plan_rate_cards edge name in mutations.
+	EdgePlanRateCards = "plan_rate_cards"
+	// EdgeAddonRateCards holds the string denoting the addon_rate_cards edge name in mutations.
+	EdgeAddonRateCards = "addon_rate_cards"
 	// Table holds the table name of the taxcode in the database.
 	Table = "tax_codes"
+	// BillingWorkflowConfigsTable is the table that holds the billing_workflow_configs relation/edge.
+	BillingWorkflowConfigsTable = "billing_workflow_configs"
+	// BillingWorkflowConfigsInverseTable is the table name for the BillingWorkflowConfig entity.
+	// It exists in this package in order to avoid circular dependency with the "billingworkflowconfig" package.
+	BillingWorkflowConfigsInverseTable = "billing_workflow_configs"
+	// BillingWorkflowConfigsColumn is the table column denoting the billing_workflow_configs relation/edge.
+	BillingWorkflowConfigsColumn = "tax_code_id"
+	// BillingCustomerOverridesTable is the table that holds the billing_customer_overrides relation/edge.
+	BillingCustomerOverridesTable = "billing_customer_overrides"
+	// BillingCustomerOverridesInverseTable is the table name for the BillingCustomerOverride entity.
+	// It exists in this package in order to avoid circular dependency with the "billingcustomeroverride" package.
+	BillingCustomerOverridesInverseTable = "billing_customer_overrides"
+	// BillingCustomerOverridesColumn is the table column denoting the billing_customer_overrides relation/edge.
+	BillingCustomerOverridesColumn = "tax_code_id"
+	// BillingInvoiceLinesTable is the table that holds the billing_invoice_lines relation/edge.
+	BillingInvoiceLinesTable = "billing_invoice_lines"
+	// BillingInvoiceLinesInverseTable is the table name for the BillingInvoiceLine entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoiceline" package.
+	BillingInvoiceLinesInverseTable = "billing_invoice_lines"
+	// BillingInvoiceLinesColumn is the table column denoting the billing_invoice_lines relation/edge.
+	BillingInvoiceLinesColumn = "tax_code_id"
+	// BillingInvoiceSplitLineGroupsTable is the table that holds the billing_invoice_split_line_groups relation/edge.
+	BillingInvoiceSplitLineGroupsTable = "billing_invoice_split_line_groups"
+	// BillingInvoiceSplitLineGroupsInverseTable is the table name for the BillingInvoiceSplitLineGroup entity.
+	// It exists in this package in order to avoid circular dependency with the "billinginvoicesplitlinegroup" package.
+	BillingInvoiceSplitLineGroupsInverseTable = "billing_invoice_split_line_groups"
+	// BillingInvoiceSplitLineGroupsColumn is the table column denoting the billing_invoice_split_line_groups relation/edge.
+	BillingInvoiceSplitLineGroupsColumn = "tax_code_id"
+	// BillingStandardInvoiceDetailedLinesTable is the table that holds the billing_standard_invoice_detailed_lines relation/edge.
+	BillingStandardInvoiceDetailedLinesTable = "billing_standard_invoice_detailed_lines"
+	// BillingStandardInvoiceDetailedLinesInverseTable is the table name for the BillingStandardInvoiceDetailedLine entity.
+	// It exists in this package in order to avoid circular dependency with the "billingstandardinvoicedetailedline" package.
+	BillingStandardInvoiceDetailedLinesInverseTable = "billing_standard_invoice_detailed_lines"
+	// BillingStandardInvoiceDetailedLinesColumn is the table column denoting the billing_standard_invoice_detailed_lines relation/edge.
+	BillingStandardInvoiceDetailedLinesColumn = "tax_code_id"
+	// SubscriptionItemsTable is the table that holds the subscription_items relation/edge.
+	SubscriptionItemsTable = "subscription_items"
+	// SubscriptionItemsInverseTable is the table name for the SubscriptionItem entity.
+	// It exists in this package in order to avoid circular dependency with the "subscriptionitem" package.
+	SubscriptionItemsInverseTable = "subscription_items"
+	// SubscriptionItemsColumn is the table column denoting the subscription_items relation/edge.
+	SubscriptionItemsColumn = "tax_code_id"
+	// PlanRateCardsTable is the table that holds the plan_rate_cards relation/edge.
+	PlanRateCardsTable = "plan_rate_cards"
+	// PlanRateCardsInverseTable is the table name for the PlanRateCard entity.
+	// It exists in this package in order to avoid circular dependency with the "planratecard" package.
+	PlanRateCardsInverseTable = "plan_rate_cards"
+	// PlanRateCardsColumn is the table column denoting the plan_rate_cards relation/edge.
+	PlanRateCardsColumn = "tax_code_id"
+	// AddonRateCardsTable is the table that holds the addon_rate_cards relation/edge.
+	AddonRateCardsTable = "addon_rate_cards"
+	// AddonRateCardsInverseTable is the table name for the AddonRateCard entity.
+	// It exists in this package in order to avoid circular dependency with the "addonratecard" package.
+	AddonRateCardsInverseTable = "addon_rate_cards"
+	// AddonRateCardsColumn is the table column denoting the addon_rate_cards relation/edge.
+	AddonRateCardsColumn = "tax_code_id"
 )
 
 // Columns holds all SQL columns for taxcode fields.
@@ -126,4 +199,172 @@ func ByKey(opts ...sql.OrderTermOption) OrderOption {
 // ByAppMappings orders the results by the app_mappings field.
 func ByAppMappings(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAppMappings, opts...).ToFunc()
+}
+
+// ByBillingWorkflowConfigsCount orders the results by billing_workflow_configs count.
+func ByBillingWorkflowConfigsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingWorkflowConfigsStep(), opts...)
+	}
+}
+
+// ByBillingWorkflowConfigs orders the results by billing_workflow_configs terms.
+func ByBillingWorkflowConfigs(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingWorkflowConfigsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByBillingCustomerOverridesCount orders the results by billing_customer_overrides count.
+func ByBillingCustomerOverridesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingCustomerOverridesStep(), opts...)
+	}
+}
+
+// ByBillingCustomerOverrides orders the results by billing_customer_overrides terms.
+func ByBillingCustomerOverrides(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingCustomerOverridesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByBillingInvoiceLinesCount orders the results by billing_invoice_lines count.
+func ByBillingInvoiceLinesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingInvoiceLinesStep(), opts...)
+	}
+}
+
+// ByBillingInvoiceLines orders the results by billing_invoice_lines terms.
+func ByBillingInvoiceLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByBillingInvoiceSplitLineGroupsCount orders the results by billing_invoice_split_line_groups count.
+func ByBillingInvoiceSplitLineGroupsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingInvoiceSplitLineGroupsStep(), opts...)
+	}
+}
+
+// ByBillingInvoiceSplitLineGroups orders the results by billing_invoice_split_line_groups terms.
+func ByBillingInvoiceSplitLineGroups(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingInvoiceSplitLineGroupsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByBillingStandardInvoiceDetailedLinesCount orders the results by billing_standard_invoice_detailed_lines count.
+func ByBillingStandardInvoiceDetailedLinesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBillingStandardInvoiceDetailedLinesStep(), opts...)
+	}
+}
+
+// ByBillingStandardInvoiceDetailedLines orders the results by billing_standard_invoice_detailed_lines terms.
+func ByBillingStandardInvoiceDetailedLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingStandardInvoiceDetailedLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// BySubscriptionItemsCount orders the results by subscription_items count.
+func BySubscriptionItemsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newSubscriptionItemsStep(), opts...)
+	}
+}
+
+// BySubscriptionItems orders the results by subscription_items terms.
+func BySubscriptionItems(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSubscriptionItemsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByPlanRateCardsCount orders the results by plan_rate_cards count.
+func ByPlanRateCardsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newPlanRateCardsStep(), opts...)
+	}
+}
+
+// ByPlanRateCards orders the results by plan_rate_cards terms.
+func ByPlanRateCards(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPlanRateCardsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByAddonRateCardsCount orders the results by addon_rate_cards count.
+func ByAddonRateCardsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newAddonRateCardsStep(), opts...)
+	}
+}
+
+// ByAddonRateCards orders the results by addon_rate_cards terms.
+func ByAddonRateCards(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAddonRateCardsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newBillingWorkflowConfigsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingWorkflowConfigsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingWorkflowConfigsTable, BillingWorkflowConfigsColumn),
+	)
+}
+func newBillingCustomerOverridesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingCustomerOverridesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingCustomerOverridesTable, BillingCustomerOverridesColumn),
+	)
+}
+func newBillingInvoiceLinesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingInvoiceLinesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceLinesTable, BillingInvoiceLinesColumn),
+	)
+}
+func newBillingInvoiceSplitLineGroupsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingInvoiceSplitLineGroupsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoiceSplitLineGroupsTable, BillingInvoiceSplitLineGroupsColumn),
+	)
+}
+func newBillingStandardInvoiceDetailedLinesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingStandardInvoiceDetailedLinesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BillingStandardInvoiceDetailedLinesTable, BillingStandardInvoiceDetailedLinesColumn),
+	)
+}
+func newSubscriptionItemsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SubscriptionItemsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, SubscriptionItemsTable, SubscriptionItemsColumn),
+	)
+}
+func newPlanRateCardsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PlanRateCardsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, PlanRateCardsTable, PlanRateCardsColumn),
+	)
+}
+func newAddonRateCardsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(AddonRateCardsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, AddonRateCardsTable, AddonRateCardsColumn),
+	)
 }

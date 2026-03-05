@@ -93,6 +93,7 @@ var (
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "addon_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "feature_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// AddonRateCardsTable holds the schema information for the "addon_rate_cards" table.
 	AddonRateCardsTable = &schema.Table{
@@ -110,6 +111,12 @@ var (
 				Symbol:     "addon_rate_cards_features_addon_ratecard",
 				Columns:    []*schema.Column{AddonRateCardsColumns[17]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "addon_rate_cards_tax_codes_addon_rate_cards",
+				Columns:    []*schema.Column{AddonRateCardsColumns[18]},
+				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
@@ -506,6 +513,7 @@ var (
 		{Name: "invoice_default_tax_config", Type: field.TypeJSON, Nullable: true},
 		{Name: "billing_profile_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "customer_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingCustomerOverridesTable holds the schema information for the "billing_customer_overrides" table.
 	BillingCustomerOverridesTable = &schema.Table{
@@ -524,6 +532,12 @@ var (
 				Columns:    []*schema.Column{BillingCustomerOverridesColumns[15]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "billing_customer_overrides_tax_codes_billing_customer_overrides",
+				Columns:    []*schema.Column{BillingCustomerOverridesColumns[16]},
+				RefColumns: []*schema.Column{TaxCodesColumns[0]},
+				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
@@ -791,6 +805,7 @@ var (
 		{Name: "subscription_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_item_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_phase_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingInvoiceLinesTable holds the schema information for the "billing_invoice_lines" table.
 	BillingInvoiceLinesTable = &schema.Table{
@@ -850,6 +865,12 @@ var (
 				Symbol:     "billing_invoice_lines_subscription_phases_billing_lines",
 				Columns:    []*schema.Column{BillingInvoiceLinesColumns[41]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "billing_invoice_lines_tax_codes_billing_invoice_lines",
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[42]},
+				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
@@ -1041,6 +1062,7 @@ var (
 		{Name: "subscription_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_item_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_phase_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingInvoiceSplitLineGroupsTable holds the schema information for the "billing_invoice_split_line_groups" table.
 	BillingInvoiceSplitLineGroupsTable = &schema.Table{
@@ -1070,6 +1092,12 @@ var (
 				Symbol:     "billing_invoice_split_line_groups_subscription_phases_billing_split_line_groups",
 				Columns:    []*schema.Column{BillingInvoiceSplitLineGroupsColumns[21]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "billing_invoice_split_line_groups_tax_codes_billing_invoice_split_line_groups",
+				Columns:    []*schema.Column{BillingInvoiceSplitLineGroupsColumns[22]},
+				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
@@ -1332,6 +1360,7 @@ var (
 		{Name: "credits_applied", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "parent_line_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingStandardInvoiceDetailedLinesTable holds the schema information for the "billing_standard_invoice_detailed_lines" table.
 	BillingStandardInvoiceDetailedLinesTable = &schema.Table{
@@ -1350,6 +1379,12 @@ var (
 				Columns:    []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[30]},
 				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
 				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "billing_standard_invoice_detailed_lines_tax_codes_billing_standard_invoice_detailed_lines",
+				Columns:    []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[31]},
+				RefColumns: []*schema.Column{TaxCodesColumns[0]},
+				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
@@ -1471,12 +1506,21 @@ var (
 		{Name: "invoice_default_tax_settings", Type: field.TypeJSON, Nullable: true},
 		{Name: "tax_enabled", Type: field.TypeBool, Default: true},
 		{Name: "tax_enforced", Type: field.TypeBool, Default: false},
+		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingWorkflowConfigsTable holds the schema information for the "billing_workflow_configs" table.
 	BillingWorkflowConfigsTable = &schema.Table{
 		Name:       "billing_workflow_configs",
 		Columns:    BillingWorkflowConfigsColumns,
 		PrimaryKey: []*schema.Column{BillingWorkflowConfigsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "billing_workflow_configs_tax_codes_billing_workflow_configs",
+				Columns:    []*schema.Column{BillingWorkflowConfigsColumns[16]},
+				RefColumns: []*schema.Column{TaxCodesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "billingworkflowconfig_id",
@@ -2976,6 +3020,7 @@ var (
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "feature_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "phase_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// PlanRateCardsTable holds the schema information for the "plan_rate_cards" table.
 	PlanRateCardsTable = &schema.Table{
@@ -2994,6 +3039,12 @@ var (
 				Columns:    []*schema.Column{PlanRateCardsColumns[17]},
 				RefColumns: []*schema.Column{PlanPhasesColumns[0]},
 				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "plan_rate_cards_tax_codes_plan_rate_cards",
+				Columns:    []*schema.Column{PlanRateCardsColumns[18]},
+				RefColumns: []*schema.Column{TaxCodesColumns[0]},
+				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
@@ -3323,6 +3374,7 @@ var (
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "entitlement_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "phase_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// SubscriptionItemsTable holds the schema information for the "subscription_items" table.
 	SubscriptionItemsTable = &schema.Table{
@@ -3341,6 +3393,12 @@ var (
 				Columns:    []*schema.Column{SubscriptionItemsColumns[22]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "subscription_items_tax_codes_subscription_items",
+				Columns:    []*schema.Column{SubscriptionItemsColumns[23]},
+				RefColumns: []*schema.Column{TaxCodesColumns[0]},
+				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
@@ -3649,6 +3707,7 @@ var (
 func init() {
 	AddonRateCardsTable.ForeignKeys[0].RefTable = AddonsTable
 	AddonRateCardsTable.ForeignKeys[1].RefTable = FeaturesTable
+	AddonRateCardsTable.ForeignKeys[2].RefTable = TaxCodesTable
 	AppCustomInvoicingsTable.ForeignKeys[0].RefTable = AppsTable
 	AppCustomInvoicingCustomersTable.ForeignKeys[0].RefTable = AppCustomInvoicingsTable
 	AppCustomInvoicingCustomersTable.ForeignKeys[1].RefTable = CustomersTable
@@ -3660,6 +3719,7 @@ func init() {
 	BalanceSnapshotsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	BillingCustomerOverridesTable.ForeignKeys[0].RefTable = BillingProfilesTable
 	BillingCustomerOverridesTable.ForeignKeys[1].RefTable = CustomersTable
+	BillingCustomerOverridesTable.ForeignKeys[2].RefTable = TaxCodesTable
 	BillingInvoicesTable.ForeignKeys[0].RefTable = AppsTable
 	BillingInvoicesTable.ForeignKeys[1].RefTable = AppsTable
 	BillingInvoicesTable.ForeignKeys[2].RefTable = AppsTable
@@ -3675,12 +3735,14 @@ func init() {
 	BillingInvoiceLinesTable.ForeignKeys[6].RefTable = SubscriptionsTable
 	BillingInvoiceLinesTable.ForeignKeys[7].RefTable = SubscriptionItemsTable
 	BillingInvoiceLinesTable.ForeignKeys[8].RefTable = SubscriptionPhasesTable
+	BillingInvoiceLinesTable.ForeignKeys[9].RefTable = TaxCodesTable
 	BillingInvoiceLineDiscountsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	BillingInvoiceLineUsageDiscountsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	BillingInvoiceSplitLineGroupsTable.ForeignKeys[0].RefTable = ChargesTable
 	BillingInvoiceSplitLineGroupsTable.ForeignKeys[1].RefTable = SubscriptionsTable
 	BillingInvoiceSplitLineGroupsTable.ForeignKeys[2].RefTable = SubscriptionItemsTable
 	BillingInvoiceSplitLineGroupsTable.ForeignKeys[3].RefTable = SubscriptionPhasesTable
+	BillingInvoiceSplitLineGroupsTable.ForeignKeys[4].RefTable = TaxCodesTable
 	BillingInvoiceValidationIssuesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
 	BillingProfilesTable.ForeignKeys[0].RefTable = AppsTable
 	BillingProfilesTable.ForeignKeys[1].RefTable = AppsTable
@@ -3688,7 +3750,9 @@ func init() {
 	BillingProfilesTable.ForeignKeys[3].RefTable = BillingWorkflowConfigsTable
 	BillingStandardInvoiceDetailedLinesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
 	BillingStandardInvoiceDetailedLinesTable.ForeignKeys[1].RefTable = BillingInvoiceLinesTable
+	BillingStandardInvoiceDetailedLinesTable.ForeignKeys[2].RefTable = TaxCodesTable
 	BillingStandardInvoiceDetailedLineAmountDiscountsTable.ForeignKeys[0].RefTable = BillingStandardInvoiceDetailedLinesTable
+	BillingWorkflowConfigsTable.ForeignKeys[0].RefTable = TaxCodesTable
 	ChargesTable.ForeignKeys[0].RefTable = CustomersTable
 	ChargesTable.ForeignKeys[1].RefTable = SubscriptionsTable
 	ChargesTable.ForeignKeys[2].RefTable = SubscriptionItemsTable
@@ -3720,6 +3784,7 @@ func init() {
 	PlanPhasesTable.ForeignKeys[0].RefTable = PlansTable
 	PlanRateCardsTable.ForeignKeys[0].RefTable = FeaturesTable
 	PlanRateCardsTable.ForeignKeys[1].RefTable = PlanPhasesTable
+	PlanRateCardsTable.ForeignKeys[2].RefTable = TaxCodesTable
 	SubscriptionsTable.ForeignKeys[0].RefTable = CustomersTable
 	SubscriptionsTable.ForeignKeys[1].RefTable = PlansTable
 	SubscriptionAddonsTable.ForeignKeys[0].RefTable = AddonsTable
@@ -3728,6 +3793,7 @@ func init() {
 	SubscriptionBillingSyncStatesTable.ForeignKeys[0].RefTable = SubscriptionsTable
 	SubscriptionItemsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	SubscriptionItemsTable.ForeignKeys[1].RefTable = SubscriptionPhasesTable
+	SubscriptionItemsTable.ForeignKeys[2].RefTable = TaxCodesTable
 	SubscriptionPhasesTable.ForeignKeys[0].RefTable = SubscriptionsTable
 	UsageResetsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	NotificationChannelRulesTable.ForeignKeys[0].RefTable = NotificationChannelsTable

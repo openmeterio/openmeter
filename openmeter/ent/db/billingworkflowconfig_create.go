@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
@@ -138,6 +139,20 @@ func (_c *BillingWorkflowConfigCreate) SetNillableInvoiceDefaultTaxSettings(v *p
 	return _c
 }
 
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_c *BillingWorkflowConfigCreate) SetTaxCodeID(v string) *BillingWorkflowConfigCreate {
+	_c.mutation.SetTaxCodeID(v)
+	return _c
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_c *BillingWorkflowConfigCreate) SetNillableTaxCodeID(v *string) *BillingWorkflowConfigCreate {
+	if v != nil {
+		_c.SetTaxCodeID(*v)
+	}
+	return _c
+}
+
 // SetTaxEnabled sets the "tax_enabled" field.
 func (_c *BillingWorkflowConfigCreate) SetTaxEnabled(v bool) *BillingWorkflowConfigCreate {
 	_c.mutation.SetTaxEnabled(v)
@@ -216,6 +231,11 @@ func (_c *BillingWorkflowConfigCreate) SetNillableBillingProfileID(id *string) *
 // SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
 func (_c *BillingWorkflowConfigCreate) SetBillingProfile(v *BillingProfile) *BillingWorkflowConfigCreate {
 	return _c.SetBillingProfileID(v.ID)
+}
+
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_c *BillingWorkflowConfigCreate) SetTaxCode(v *TaxCode) *BillingWorkflowConfigCreate {
+	return _c.SetTaxCodeID(v.ID)
 }
 
 // Mutation returns the BillingWorkflowConfigMutation object of the builder.
@@ -466,6 +486,23 @@ func (_c *BillingWorkflowConfigCreate) createSpec() (*BillingWorkflowConfig, *sq
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingworkflowconfig.TaxCodeTable,
+			Columns: []string{billingworkflowconfig.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.TaxCodeID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 
@@ -665,6 +702,24 @@ func (u *BillingWorkflowConfigUpsert) UpdateInvoiceDefaultTaxSettings() *Billing
 // ClearInvoiceDefaultTaxSettings clears the value of the "invoice_default_tax_settings" field.
 func (u *BillingWorkflowConfigUpsert) ClearInvoiceDefaultTaxSettings() *BillingWorkflowConfigUpsert {
 	u.SetNull(billingworkflowconfig.FieldInvoiceDefaultTaxSettings)
+	return u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *BillingWorkflowConfigUpsert) SetTaxCodeID(v string) *BillingWorkflowConfigUpsert {
+	u.Set(billingworkflowconfig.FieldTaxCodeID, v)
+	return u
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsert) UpdateTaxCodeID() *BillingWorkflowConfigUpsert {
+	u.SetExcluded(billingworkflowconfig.FieldTaxCodeID)
+	return u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *BillingWorkflowConfigUpsert) ClearTaxCodeID() *BillingWorkflowConfigUpsert {
+	u.SetNull(billingworkflowconfig.FieldTaxCodeID)
 	return u
 }
 
@@ -918,6 +973,27 @@ func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceDefaultTaxSettings() *Bill
 func (u *BillingWorkflowConfigUpsertOne) ClearInvoiceDefaultTaxSettings() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.ClearInvoiceDefaultTaxSettings()
+	})
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *BillingWorkflowConfigUpsertOne) SetTaxCodeID(v string) *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetTaxCodeID(v)
+	})
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertOne) UpdateTaxCodeID() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateTaxCodeID()
+	})
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *BillingWorkflowConfigUpsertOne) ClearTaxCodeID() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearTaxCodeID()
 	})
 }
 
@@ -1342,6 +1418,27 @@ func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceDefaultTaxSettings() *Bil
 func (u *BillingWorkflowConfigUpsertBulk) ClearInvoiceDefaultTaxSettings() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.ClearInvoiceDefaultTaxSettings()
+	})
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *BillingWorkflowConfigUpsertBulk) SetTaxCodeID(v string) *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetTaxCodeID(v)
+	})
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertBulk) UpdateTaxCodeID() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateTaxCodeID()
+	})
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *BillingWorkflowConfigUpsertBulk) ClearTaxCodeID() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearTaxCodeID()
 	})
 }
 

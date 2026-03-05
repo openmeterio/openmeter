@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -12,18 +13,34 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 )
 
 // TaxCodeQuery is the builder for querying TaxCode entities.
 type TaxCodeQuery struct {
 	config
-	ctx        *QueryContext
-	order      []dbtaxcode.OrderOption
-	inters     []Interceptor
-	predicates []predicate.TaxCode
-	modifiers  []func(*sql.Selector)
+	ctx                                     *QueryContext
+	order                                   []dbtaxcode.OrderOption
+	inters                                  []Interceptor
+	predicates                              []predicate.TaxCode
+	withBillingWorkflowConfigs              *BillingWorkflowConfigQuery
+	withBillingCustomerOverrides            *BillingCustomerOverrideQuery
+	withBillingInvoiceLines                 *BillingInvoiceLineQuery
+	withBillingInvoiceSplitLineGroups       *BillingInvoiceSplitLineGroupQuery
+	withBillingStandardInvoiceDetailedLines *BillingStandardInvoiceDetailedLineQuery
+	withSubscriptionItems                   *SubscriptionItemQuery
+	withPlanRateCards                       *PlanRateCardQuery
+	withAddonRateCards                      *AddonRateCardQuery
+	modifiers                               []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -58,6 +75,182 @@ func (_q *TaxCodeQuery) Unique(unique bool) *TaxCodeQuery {
 func (_q *TaxCodeQuery) Order(o ...dbtaxcode.OrderOption) *TaxCodeQuery {
 	_q.order = append(_q.order, o...)
 	return _q
+}
+
+// QueryBillingWorkflowConfigs chains the current query on the "billing_workflow_configs" edge.
+func (_q *TaxCodeQuery) QueryBillingWorkflowConfigs() *BillingWorkflowConfigQuery {
+	query := (&BillingWorkflowConfigClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, selector),
+			sqlgraph.To(billingworkflowconfig.Table, billingworkflowconfig.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.BillingWorkflowConfigsTable, dbtaxcode.BillingWorkflowConfigsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingCustomerOverrides chains the current query on the "billing_customer_overrides" edge.
+func (_q *TaxCodeQuery) QueryBillingCustomerOverrides() *BillingCustomerOverrideQuery {
+	query := (&BillingCustomerOverrideClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, selector),
+			sqlgraph.To(billingcustomeroverride.Table, billingcustomeroverride.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.BillingCustomerOverridesTable, dbtaxcode.BillingCustomerOverridesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingInvoiceLines chains the current query on the "billing_invoice_lines" edge.
+func (_q *TaxCodeQuery) QueryBillingInvoiceLines() *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceLineClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, selector),
+			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.BillingInvoiceLinesTable, dbtaxcode.BillingInvoiceLinesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingInvoiceSplitLineGroups chains the current query on the "billing_invoice_split_line_groups" edge.
+func (_q *TaxCodeQuery) QueryBillingInvoiceSplitLineGroups() *BillingInvoiceSplitLineGroupQuery {
+	query := (&BillingInvoiceSplitLineGroupClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, selector),
+			sqlgraph.To(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.BillingInvoiceSplitLineGroupsTable, dbtaxcode.BillingInvoiceSplitLineGroupsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingStandardInvoiceDetailedLines chains the current query on the "billing_standard_invoice_detailed_lines" edge.
+func (_q *TaxCodeQuery) QueryBillingStandardInvoiceDetailedLines() *BillingStandardInvoiceDetailedLineQuery {
+	query := (&BillingStandardInvoiceDetailedLineClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, selector),
+			sqlgraph.To(billingstandardinvoicedetailedline.Table, billingstandardinvoicedetailedline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.BillingStandardInvoiceDetailedLinesTable, dbtaxcode.BillingStandardInvoiceDetailedLinesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QuerySubscriptionItems chains the current query on the "subscription_items" edge.
+func (_q *TaxCodeQuery) QuerySubscriptionItems() *SubscriptionItemQuery {
+	query := (&SubscriptionItemClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, selector),
+			sqlgraph.To(subscriptionitem.Table, subscriptionitem.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.SubscriptionItemsTable, dbtaxcode.SubscriptionItemsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPlanRateCards chains the current query on the "plan_rate_cards" edge.
+func (_q *TaxCodeQuery) QueryPlanRateCards() *PlanRateCardQuery {
+	query := (&PlanRateCardClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, selector),
+			sqlgraph.To(planratecard.Table, planratecard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.PlanRateCardsTable, dbtaxcode.PlanRateCardsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryAddonRateCards chains the current query on the "addon_rate_cards" edge.
+func (_q *TaxCodeQuery) QueryAddonRateCards() *AddonRateCardQuery {
+	query := (&AddonRateCardClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, selector),
+			sqlgraph.To(addonratecard.Table, addonratecard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.AddonRateCardsTable, dbtaxcode.AddonRateCardsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first TaxCode entity from the query.
@@ -247,15 +440,111 @@ func (_q *TaxCodeQuery) Clone() *TaxCodeQuery {
 		return nil
 	}
 	return &TaxCodeQuery{
-		config:     _q.config,
-		ctx:        _q.ctx.Clone(),
-		order:      append([]dbtaxcode.OrderOption{}, _q.order...),
-		inters:     append([]Interceptor{}, _q.inters...),
-		predicates: append([]predicate.TaxCode{}, _q.predicates...),
+		config:                                  _q.config,
+		ctx:                                     _q.ctx.Clone(),
+		order:                                   append([]dbtaxcode.OrderOption{}, _q.order...),
+		inters:                                  append([]Interceptor{}, _q.inters...),
+		predicates:                              append([]predicate.TaxCode{}, _q.predicates...),
+		withBillingWorkflowConfigs:              _q.withBillingWorkflowConfigs.Clone(),
+		withBillingCustomerOverrides:            _q.withBillingCustomerOverrides.Clone(),
+		withBillingInvoiceLines:                 _q.withBillingInvoiceLines.Clone(),
+		withBillingInvoiceSplitLineGroups:       _q.withBillingInvoiceSplitLineGroups.Clone(),
+		withBillingStandardInvoiceDetailedLines: _q.withBillingStandardInvoiceDetailedLines.Clone(),
+		withSubscriptionItems:                   _q.withSubscriptionItems.Clone(),
+		withPlanRateCards:                       _q.withPlanRateCards.Clone(),
+		withAddonRateCards:                      _q.withAddonRateCards.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
+}
+
+// WithBillingWorkflowConfigs tells the query-builder to eager-load the nodes that are connected to
+// the "billing_workflow_configs" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *TaxCodeQuery) WithBillingWorkflowConfigs(opts ...func(*BillingWorkflowConfigQuery)) *TaxCodeQuery {
+	query := (&BillingWorkflowConfigClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withBillingWorkflowConfigs = query
+	return _q
+}
+
+// WithBillingCustomerOverrides tells the query-builder to eager-load the nodes that are connected to
+// the "billing_customer_overrides" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *TaxCodeQuery) WithBillingCustomerOverrides(opts ...func(*BillingCustomerOverrideQuery)) *TaxCodeQuery {
+	query := (&BillingCustomerOverrideClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withBillingCustomerOverrides = query
+	return _q
+}
+
+// WithBillingInvoiceLines tells the query-builder to eager-load the nodes that are connected to
+// the "billing_invoice_lines" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *TaxCodeQuery) WithBillingInvoiceLines(opts ...func(*BillingInvoiceLineQuery)) *TaxCodeQuery {
+	query := (&BillingInvoiceLineClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withBillingInvoiceLines = query
+	return _q
+}
+
+// WithBillingInvoiceSplitLineGroups tells the query-builder to eager-load the nodes that are connected to
+// the "billing_invoice_split_line_groups" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *TaxCodeQuery) WithBillingInvoiceSplitLineGroups(opts ...func(*BillingInvoiceSplitLineGroupQuery)) *TaxCodeQuery {
+	query := (&BillingInvoiceSplitLineGroupClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withBillingInvoiceSplitLineGroups = query
+	return _q
+}
+
+// WithBillingStandardInvoiceDetailedLines tells the query-builder to eager-load the nodes that are connected to
+// the "billing_standard_invoice_detailed_lines" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *TaxCodeQuery) WithBillingStandardInvoiceDetailedLines(opts ...func(*BillingStandardInvoiceDetailedLineQuery)) *TaxCodeQuery {
+	query := (&BillingStandardInvoiceDetailedLineClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withBillingStandardInvoiceDetailedLines = query
+	return _q
+}
+
+// WithSubscriptionItems tells the query-builder to eager-load the nodes that are connected to
+// the "subscription_items" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *TaxCodeQuery) WithSubscriptionItems(opts ...func(*SubscriptionItemQuery)) *TaxCodeQuery {
+	query := (&SubscriptionItemClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withSubscriptionItems = query
+	return _q
+}
+
+// WithPlanRateCards tells the query-builder to eager-load the nodes that are connected to
+// the "plan_rate_cards" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *TaxCodeQuery) WithPlanRateCards(opts ...func(*PlanRateCardQuery)) *TaxCodeQuery {
+	query := (&PlanRateCardClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withPlanRateCards = query
+	return _q
+}
+
+// WithAddonRateCards tells the query-builder to eager-load the nodes that are connected to
+// the "addon_rate_cards" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *TaxCodeQuery) WithAddonRateCards(opts ...func(*AddonRateCardQuery)) *TaxCodeQuery {
+	query := (&AddonRateCardClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withAddonRateCards = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -334,8 +623,18 @@ func (_q *TaxCodeQuery) prepareQuery(ctx context.Context) error {
 
 func (_q *TaxCodeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*TaxCode, error) {
 	var (
-		nodes = []*TaxCode{}
-		_spec = _q.querySpec()
+		nodes       = []*TaxCode{}
+		_spec       = _q.querySpec()
+		loadedTypes = [8]bool{
+			_q.withBillingWorkflowConfigs != nil,
+			_q.withBillingCustomerOverrides != nil,
+			_q.withBillingInvoiceLines != nil,
+			_q.withBillingInvoiceSplitLineGroups != nil,
+			_q.withBillingStandardInvoiceDetailedLines != nil,
+			_q.withSubscriptionItems != nil,
+			_q.withPlanRateCards != nil,
+			_q.withAddonRateCards != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*TaxCode).scanValues(nil, columns)
@@ -343,6 +642,7 @@ func (_q *TaxCodeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*TaxC
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &TaxCode{config: _q.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if len(_q.modifiers) > 0 {
@@ -357,7 +657,343 @@ func (_q *TaxCodeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*TaxC
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := _q.withBillingWorkflowConfigs; query != nil {
+		if err := _q.loadBillingWorkflowConfigs(ctx, query, nodes,
+			func(n *TaxCode) { n.Edges.BillingWorkflowConfigs = []*BillingWorkflowConfig{} },
+			func(n *TaxCode, e *BillingWorkflowConfig) {
+				n.Edges.BillingWorkflowConfigs = append(n.Edges.BillingWorkflowConfigs, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withBillingCustomerOverrides; query != nil {
+		if err := _q.loadBillingCustomerOverrides(ctx, query, nodes,
+			func(n *TaxCode) { n.Edges.BillingCustomerOverrides = []*BillingCustomerOverride{} },
+			func(n *TaxCode, e *BillingCustomerOverride) {
+				n.Edges.BillingCustomerOverrides = append(n.Edges.BillingCustomerOverrides, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withBillingInvoiceLines; query != nil {
+		if err := _q.loadBillingInvoiceLines(ctx, query, nodes,
+			func(n *TaxCode) { n.Edges.BillingInvoiceLines = []*BillingInvoiceLine{} },
+			func(n *TaxCode, e *BillingInvoiceLine) {
+				n.Edges.BillingInvoiceLines = append(n.Edges.BillingInvoiceLines, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withBillingInvoiceSplitLineGroups; query != nil {
+		if err := _q.loadBillingInvoiceSplitLineGroups(ctx, query, nodes,
+			func(n *TaxCode) { n.Edges.BillingInvoiceSplitLineGroups = []*BillingInvoiceSplitLineGroup{} },
+			func(n *TaxCode, e *BillingInvoiceSplitLineGroup) {
+				n.Edges.BillingInvoiceSplitLineGroups = append(n.Edges.BillingInvoiceSplitLineGroups, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withBillingStandardInvoiceDetailedLines; query != nil {
+		if err := _q.loadBillingStandardInvoiceDetailedLines(ctx, query, nodes,
+			func(n *TaxCode) {
+				n.Edges.BillingStandardInvoiceDetailedLines = []*BillingStandardInvoiceDetailedLine{}
+			},
+			func(n *TaxCode, e *BillingStandardInvoiceDetailedLine) {
+				n.Edges.BillingStandardInvoiceDetailedLines = append(n.Edges.BillingStandardInvoiceDetailedLines, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withSubscriptionItems; query != nil {
+		if err := _q.loadSubscriptionItems(ctx, query, nodes,
+			func(n *TaxCode) { n.Edges.SubscriptionItems = []*SubscriptionItem{} },
+			func(n *TaxCode, e *SubscriptionItem) {
+				n.Edges.SubscriptionItems = append(n.Edges.SubscriptionItems, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withPlanRateCards; query != nil {
+		if err := _q.loadPlanRateCards(ctx, query, nodes,
+			func(n *TaxCode) { n.Edges.PlanRateCards = []*PlanRateCard{} },
+			func(n *TaxCode, e *PlanRateCard) { n.Edges.PlanRateCards = append(n.Edges.PlanRateCards, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withAddonRateCards; query != nil {
+		if err := _q.loadAddonRateCards(ctx, query, nodes,
+			func(n *TaxCode) { n.Edges.AddonRateCards = []*AddonRateCard{} },
+			func(n *TaxCode, e *AddonRateCard) { n.Edges.AddonRateCards = append(n.Edges.AddonRateCards, e) }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (_q *TaxCodeQuery) loadBillingWorkflowConfigs(ctx context.Context, query *BillingWorkflowConfigQuery, nodes []*TaxCode, init func(*TaxCode), assign func(*TaxCode, *BillingWorkflowConfig)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*TaxCode)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billingworkflowconfig.FieldTaxCodeID)
+	}
+	query.Where(predicate.BillingWorkflowConfig(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(dbtaxcode.BillingWorkflowConfigsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.TaxCodeID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "tax_code_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "tax_code_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *TaxCodeQuery) loadBillingCustomerOverrides(ctx context.Context, query *BillingCustomerOverrideQuery, nodes []*TaxCode, init func(*TaxCode), assign func(*TaxCode, *BillingCustomerOverride)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*TaxCode)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billingcustomeroverride.FieldTaxCodeID)
+	}
+	query.Where(predicate.BillingCustomerOverride(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(dbtaxcode.BillingCustomerOverridesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.TaxCodeID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "tax_code_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "tax_code_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *TaxCodeQuery) loadBillingInvoiceLines(ctx context.Context, query *BillingInvoiceLineQuery, nodes []*TaxCode, init func(*TaxCode), assign func(*TaxCode, *BillingInvoiceLine)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*TaxCode)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billinginvoiceline.FieldTaxCodeID)
+	}
+	query.Where(predicate.BillingInvoiceLine(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(dbtaxcode.BillingInvoiceLinesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.TaxCodeID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "tax_code_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "tax_code_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *TaxCodeQuery) loadBillingInvoiceSplitLineGroups(ctx context.Context, query *BillingInvoiceSplitLineGroupQuery, nodes []*TaxCode, init func(*TaxCode), assign func(*TaxCode, *BillingInvoiceSplitLineGroup)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*TaxCode)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billinginvoicesplitlinegroup.FieldTaxCodeID)
+	}
+	query.Where(predicate.BillingInvoiceSplitLineGroup(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(dbtaxcode.BillingInvoiceSplitLineGroupsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.TaxCodeID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "tax_code_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "tax_code_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *TaxCodeQuery) loadBillingStandardInvoiceDetailedLines(ctx context.Context, query *BillingStandardInvoiceDetailedLineQuery, nodes []*TaxCode, init func(*TaxCode), assign func(*TaxCode, *BillingStandardInvoiceDetailedLine)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*TaxCode)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billingstandardinvoicedetailedline.FieldTaxCodeID)
+	}
+	query.Where(predicate.BillingStandardInvoiceDetailedLine(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(dbtaxcode.BillingStandardInvoiceDetailedLinesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.TaxCodeID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "tax_code_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "tax_code_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *TaxCodeQuery) loadSubscriptionItems(ctx context.Context, query *SubscriptionItemQuery, nodes []*TaxCode, init func(*TaxCode), assign func(*TaxCode, *SubscriptionItem)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*TaxCode)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(subscriptionitem.FieldTaxCodeID)
+	}
+	query.Where(predicate.SubscriptionItem(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(dbtaxcode.SubscriptionItemsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.TaxCodeID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "tax_code_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "tax_code_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *TaxCodeQuery) loadPlanRateCards(ctx context.Context, query *PlanRateCardQuery, nodes []*TaxCode, init func(*TaxCode), assign func(*TaxCode, *PlanRateCard)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*TaxCode)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(planratecard.FieldTaxCodeID)
+	}
+	query.Where(predicate.PlanRateCard(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(dbtaxcode.PlanRateCardsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.TaxCodeID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "tax_code_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "tax_code_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *TaxCodeQuery) loadAddonRateCards(ctx context.Context, query *AddonRateCardQuery, nodes []*TaxCode, init func(*TaxCode), assign func(*TaxCode, *AddonRateCard)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*TaxCode)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(addonratecard.FieldTaxCodeID)
+	}
+	query.Where(predicate.AddonRateCard(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(dbtaxcode.AddonRateCardsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.TaxCodeID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "tax_code_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "tax_code_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (_q *TaxCodeQuery) sqlCount(ctx context.Context) (int, error) {

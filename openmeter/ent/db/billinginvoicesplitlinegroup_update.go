@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -121,6 +122,26 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) SetNillableTaxConfig(v *productcat
 // ClearTaxConfig clears the value of the "tax_config" field.
 func (_u *BillingInvoiceSplitLineGroupUpdate) ClearTaxConfig() *BillingInvoiceSplitLineGroupUpdate {
 	_u.mutation.ClearTaxConfig()
+	return _u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetTaxCodeID(v string) *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetNillableTaxCodeID(v *string) *BillingInvoiceSplitLineGroupUpdate {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *BillingInvoiceSplitLineGroupUpdate) ClearTaxCodeID() *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.ClearTaxCodeID()
 	return _u
 }
 
@@ -244,6 +265,11 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) SetCharge(v *Charge) *BillingInvoi
 	return _u.SetChargeID(v.ID)
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetTaxCode(v *TaxCode) *BillingInvoiceSplitLineGroupUpdate {
+	return _u.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the BillingInvoiceSplitLineGroupMutation object of the builder.
 func (_u *BillingInvoiceSplitLineGroupUpdate) Mutation() *BillingInvoiceSplitLineGroupMutation {
 	return _u.mutation
@@ -273,6 +299,12 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) RemoveBillingInvoiceLines(v ...*Bi
 // ClearCharge clears the "charge" edge to the Charge entity.
 func (_u *BillingInvoiceSplitLineGroupUpdate) ClearCharge() *BillingInvoiceSplitLineGroupUpdate {
 	_u.mutation.ClearCharge()
+	return _u
+}
+
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (_u *BillingInvoiceSplitLineGroupUpdate) ClearTaxCode() *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.ClearTaxCode()
 	return _u
 }
 
@@ -459,6 +491,35 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) sqlSave(ctx context.Context) (_nod
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.TaxCodeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.TaxCodeTable,
+			Columns: []string{billinginvoicesplitlinegroup.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.TaxCodeTable,
+			Columns: []string{billinginvoicesplitlinegroup.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{billinginvoicesplitlinegroup.Label}
@@ -568,6 +629,26 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetNillableTaxConfig(v *product
 // ClearTaxConfig clears the value of the "tax_config" field.
 func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearTaxConfig() *BillingInvoiceSplitLineGroupUpdateOne {
 	_u.mutation.ClearTaxConfig()
+	return _u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetTaxCodeID(v string) *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetNillableTaxCodeID(v *string) *BillingInvoiceSplitLineGroupUpdateOne {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearTaxCodeID() *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.ClearTaxCodeID()
 	return _u
 }
 
@@ -691,6 +772,11 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetCharge(v *Charge) *BillingIn
 	return _u.SetChargeID(v.ID)
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetTaxCode(v *TaxCode) *BillingInvoiceSplitLineGroupUpdateOne {
+	return _u.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the BillingInvoiceSplitLineGroupMutation object of the builder.
 func (_u *BillingInvoiceSplitLineGroupUpdateOne) Mutation() *BillingInvoiceSplitLineGroupMutation {
 	return _u.mutation
@@ -720,6 +806,12 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) RemoveBillingInvoiceLines(v ...
 // ClearCharge clears the "charge" edge to the Charge entity.
 func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearCharge() *BillingInvoiceSplitLineGroupUpdateOne {
 	_u.mutation.ClearCharge()
+	return _u
+}
+
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearTaxCode() *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.ClearTaxCode()
 	return _u
 }
 
@@ -929,6 +1021,35 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) sqlSave(ctx context.Context) (_
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TaxCodeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.TaxCodeTable,
+			Columns: []string{billinginvoicesplitlinegroup.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoicesplitlinegroup.TaxCodeTable,
+			Columns: []string{billinginvoicesplitlinegroup.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -277,6 +278,26 @@ func (_u *SubscriptionItemUpdate) ClearTaxConfig() *SubscriptionItemUpdate {
 	return _u
 }
 
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *SubscriptionItemUpdate) SetTaxCodeID(v string) *SubscriptionItemUpdate {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *SubscriptionItemUpdate) SetNillableTaxCodeID(v *string) *SubscriptionItemUpdate {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *SubscriptionItemUpdate) ClearTaxCodeID() *SubscriptionItemUpdate {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (_u *SubscriptionItemUpdate) SetBillingCadence(v datetime.ISODurationString) *SubscriptionItemUpdate {
 	_u.mutation.SetBillingCadence(v)
@@ -371,6 +392,11 @@ func (_u *SubscriptionItemUpdate) AddChargeIntents(v ...*Charge) *SubscriptionIt
 	return _u.AddChargeIntentIDs(ids...)
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_u *SubscriptionItemUpdate) SetTaxCode(v *TaxCode) *SubscriptionItemUpdate {
+	return _u.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the SubscriptionItemMutation object of the builder.
 func (_u *SubscriptionItemUpdate) Mutation() *SubscriptionItemMutation {
 	return _u.mutation
@@ -443,6 +469,12 @@ func (_u *SubscriptionItemUpdate) RemoveChargeIntents(v ...*Charge) *Subscriptio
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveChargeIntentIDs(ids...)
+}
+
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (_u *SubscriptionItemUpdate) ClearTaxCode() *SubscriptionItemUpdate {
+	_u.mutation.ClearTaxCode()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -803,6 +835,35 @@ func (_u *SubscriptionItemUpdate) sqlSave(ctx context.Context) (_node int, err e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.TaxCodeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   subscriptionitem.TaxCodeTable,
+			Columns: []string{subscriptionitem.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   subscriptionitem.TaxCodeTable,
+			Columns: []string{subscriptionitem.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{subscriptionitem.Label}
@@ -1065,6 +1126,26 @@ func (_u *SubscriptionItemUpdateOne) ClearTaxConfig() *SubscriptionItemUpdateOne
 	return _u
 }
 
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *SubscriptionItemUpdateOne) SetTaxCodeID(v string) *SubscriptionItemUpdateOne {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *SubscriptionItemUpdateOne) SetNillableTaxCodeID(v *string) *SubscriptionItemUpdateOne {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *SubscriptionItemUpdateOne) ClearTaxCodeID() *SubscriptionItemUpdateOne {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (_u *SubscriptionItemUpdateOne) SetBillingCadence(v datetime.ISODurationString) *SubscriptionItemUpdateOne {
 	_u.mutation.SetBillingCadence(v)
@@ -1159,6 +1240,11 @@ func (_u *SubscriptionItemUpdateOne) AddChargeIntents(v ...*Charge) *Subscriptio
 	return _u.AddChargeIntentIDs(ids...)
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_u *SubscriptionItemUpdateOne) SetTaxCode(v *TaxCode) *SubscriptionItemUpdateOne {
+	return _u.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the SubscriptionItemMutation object of the builder.
 func (_u *SubscriptionItemUpdateOne) Mutation() *SubscriptionItemMutation {
 	return _u.mutation
@@ -1231,6 +1317,12 @@ func (_u *SubscriptionItemUpdateOne) RemoveChargeIntents(v ...*Charge) *Subscrip
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveChargeIntentIDs(ids...)
+}
+
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (_u *SubscriptionItemUpdateOne) ClearTaxCode() *SubscriptionItemUpdateOne {
+	_u.mutation.ClearTaxCode()
+	return _u
 }
 
 // Where appends a list predicates to the SubscriptionItemUpdate builder.
@@ -1614,6 +1706,35 @@ func (_u *SubscriptionItemUpdateOne) sqlSave(ctx context.Context) (_node *Subscr
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TaxCodeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   subscriptionitem.TaxCodeTable,
+			Columns: []string{subscriptionitem.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   subscriptionitem.TaxCodeTable,
+			Columns: []string{subscriptionitem.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

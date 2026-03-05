@@ -172,6 +172,10 @@ func (PlanRateCard) Edges() []ent.Edge {
 			Ref("ratecard").
 			Field("feature_id").
 			Unique(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("plan_rate_cards").
+			Field("tax_code_id").
+			Unique(),
 	}
 }
 

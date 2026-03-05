@@ -29,6 +29,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 )
 
 // BillingInvoiceLineQuery is the builder for querying BillingInvoiceLine entities.
@@ -54,6 +55,7 @@ type BillingInvoiceLineQuery struct {
 	withChargeStandardInvoicePaymentSettlement *ChargeStandardInvoicePaymentSettlementQuery
 	withChargeCreditRealization                *ChargeCreditRealizationQuery
 	withChargeStandardInvoiceAccruedUsage      *ChargeStandardInvoiceAccruedUsageQuery
+	withTaxCode                                *TaxCodeQuery
 	withFKs                                    bool
 	modifiers                                  []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
@@ -444,6 +446,28 @@ func (_q *BillingInvoiceLineQuery) QueryChargeStandardInvoiceAccruedUsage() *Cha
 	return query
 }
 
+// QueryTaxCode chains the current query on the "tax_code" edge.
+func (_q *BillingInvoiceLineQuery) QueryTaxCode() *TaxCodeQuery {
+	query := (&TaxCodeClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoiceline.TaxCodeTable, billinginvoiceline.TaxCodeColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // First returns the first BillingInvoiceLine entity from the query.
 // Returns a *NotFoundError when no BillingInvoiceLine was found.
 func (_q *BillingInvoiceLineQuery) First(ctx context.Context) (*BillingInvoiceLine, error) {
@@ -652,6 +676,7 @@ func (_q *BillingInvoiceLineQuery) Clone() *BillingInvoiceLineQuery {
 		withChargeStandardInvoicePaymentSettlement: _q.withChargeStandardInvoicePaymentSettlement.Clone(),
 		withChargeCreditRealization:                _q.withChargeCreditRealization.Clone(),
 		withChargeStandardInvoiceAccruedUsage:      _q.withChargeStandardInvoiceAccruedUsage.Clone(),
+		withTaxCode:                                _q.withTaxCode.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -834,6 +859,17 @@ func (_q *BillingInvoiceLineQuery) WithChargeStandardInvoiceAccruedUsage(opts ..
 	return _q
 }
 
+// WithTaxCode tells the query-builder to eager-load the nodes that are connected to
+// the "tax_code" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BillingInvoiceLineQuery) WithTaxCode(opts ...func(*TaxCodeQuery)) *BillingInvoiceLineQuery {
+	query := (&TaxCodeClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withTaxCode = query
+	return _q
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
@@ -913,7 +949,7 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 		nodes       = []*BillingInvoiceLine{}
 		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
-		loadedTypes = [16]bool{
+		loadedTypes = [17]bool{
 			_q.withBillingInvoice != nil,
 			_q.withSplitLineGroup != nil,
 			_q.withFlatFeeLine != nil,
@@ -930,6 +966,7 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 			_q.withChargeStandardInvoicePaymentSettlement != nil,
 			_q.withChargeCreditRealization != nil,
 			_q.withChargeStandardInvoiceAccruedUsage != nil,
+			_q.withTaxCode != nil,
 		}
 	)
 	if _q.withFlatFeeLine != nil || _q.withUsageBasedLine != nil {
@@ -1074,6 +1111,12 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 			func(n *BillingInvoiceLine, e *ChargeStandardInvoiceAccruedUsage) {
 				n.Edges.ChargeStandardInvoiceAccruedUsage = append(n.Edges.ChargeStandardInvoiceAccruedUsage, e)
 			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withTaxCode; query != nil {
+		if err := _q.loadTaxCode(ctx, query, nodes, nil,
+			func(n *BillingInvoiceLine, e *TaxCode) { n.Edges.TaxCode = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -1582,6 +1625,38 @@ func (_q *BillingInvoiceLineQuery) loadChargeStandardInvoiceAccruedUsage(ctx con
 	}
 	return nil
 }
+func (_q *BillingInvoiceLineQuery) loadTaxCode(ctx context.Context, query *TaxCodeQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *TaxCode)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*BillingInvoiceLine)
+	for i := range nodes {
+		if nodes[i].TaxCodeID == nil {
+			continue
+		}
+		fk := *nodes[i].TaxCodeID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(dbtaxcode.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "tax_code_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (_q *BillingInvoiceLineQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
@@ -1631,6 +1706,9 @@ func (_q *BillingInvoiceLineQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withCharge != nil {
 			_spec.Node.AddColumnOnce(billinginvoiceline.FieldChargeID)
+		}
+		if _q.withTaxCode != nil {
+			_spec.Node.AddColumnOnce(billinginvoiceline.FieldTaxCodeID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {
