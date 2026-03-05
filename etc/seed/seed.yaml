@@ -8,8 +8,8 @@ input:
       let event_type = "tokens"
       let source = "api-gateway"
       let provider_models = [
-        {"provider": "openai", "models": ["gpt-5.2", "chatgpt-4o-latest", "gpt-3.5-turbo"]},
-        {"provider": "anthropic", "models": ["claude-3-5-sonnet", "claude-opus-4-6", "claude-3-5-haiku"]}
+        {"provider": "openai", "models": ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"]},
+        {"provider": "anthropic", "models": ["claude-3-5-sonnet", "claude-3-opus", "claude-3-5-haiku"]}
       ]
       let types = ["input", "output"]
       let subject = "customer-%d".format(random_int(seed: timestamp_unix_nano()) % $max_subjects)
