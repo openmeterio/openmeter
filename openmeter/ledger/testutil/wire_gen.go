@@ -26,13 +26,13 @@ func InitDeps(db2 *db.Client, logger *slog.Logger) (Deps, error) {
 	}
 	accountLiveServices := common.NewLedgerAccountLiveServices(locker)
 	service := common.NewLedgerAccountService(repo, accountLiveServices)
-	resolversRepo := common.NewLedgerResolversRepo(db2)
-	resolversService := common.NewLedgerResolversService(service, resolversRepo)
+	customerAccountRepo := common.NewLedgerResolversRepo(db2)
+	accountResolver := common.NewLedgerResolversService(service, customerAccountRepo)
 	historicalRepo := common.NewLedgerHistoricalRepo(db2)
 	ledger := common.NewLedgerHistoricalLedger(historicalRepo, service, locker)
 	deps := Deps{
 		AccountService:   service,
-		ResolversService: resolversService,
+		ResolversService: accountResolver,
 		HistoricalLedger: ledger,
 	}
 	return deps, nil
@@ -43,6 +43,6 @@ func InitDeps(db2 *db.Client, logger *slog.Logger) (Deps, error) {
 // Deps holds the wired ledger components needed for integration tests.
 type Deps struct {
 	AccountService   account.Service
-	ResolversService *resolvers.Service
+	ResolversService *resolvers.AccountResolver
 	HistoricalLedger *historical.Ledger
 }

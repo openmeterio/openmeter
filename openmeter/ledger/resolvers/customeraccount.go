@@ -8,8 +8,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
-// Repo manages the linking table that maps customers to their ledger accounts.
-type Repo interface {
+// CustomerAccountRepo manages the linking table that maps customers to their ledger accounts.
+type CustomerAccountRepo interface {
 	entutils.TxCreator
 
 	CreateCustomerAccount(ctx context.Context, input CreateCustomerAccountInput) error

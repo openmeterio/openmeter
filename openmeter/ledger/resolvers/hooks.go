@@ -11,12 +11,13 @@ import (
 )
 
 type (
+	// TODO: these hooks should be added to customer lifecycle
 	CustomerLedgerHook     = models.ServiceHook[customer.Customer]
 	NoopCustomerLedgerHook = models.NoopServiceHook[customer.Customer]
 )
 
 type CustomerLedgerHookConfig struct {
-	Service Service
+	Service AccountResolver
 	Tracer  trace.Tracer
 }
 

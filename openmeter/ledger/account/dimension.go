@@ -74,5 +74,45 @@ func (d *DimensionData) AsFeatureDimension() (ledger.DimensionFeature, error) {
 }
 
 func (d *DimensionData) AsCreditPriorityDimension() (ledger.DimensionCreditPriority, error) {
-	return nil, ledger.ErrInvalidDimensionKey
+	if d.DimensionKey != ledger.DimensionKeyCreditPriority {
+		return nil, fmt.Errorf("dimension is not a credit priority dimension")
+	}
+
+	value, err := ledger.ParseCreditPriority(d.DimensionValue)
+	if err != nil {
+		return nil, err
+	}
+
+	return &creditPriorityDimension{
+		data:  *d,
+		value: value,
+	}, nil
+}
+
+type creditPriorityDimension struct {
+	data  DimensionData
+	value int
+}
+
+var (
+	_ ledger.DimensionCreditPriority = (*creditPriorityDimension)(nil)
+	_ dimensionIDer                  = (*creditPriorityDimension)(nil)
+)
+
+func (d *creditPriorityDimension) dimensionID() string { return d.data.ID }
+
+func (d *creditPriorityDimension) Equal(other ledger.Dimension[any]) bool {
+	return d.Key() == other.Key() && d.Value() == other.Value()
+}
+
+func (d *creditPriorityDimension) Key() ledger.DimensionKey {
+	return ledger.DimensionKeyCreditPriority
+}
+
+func (d *creditPriorityDimension) Value() int {
+	return d.value
+}
+
+func (d *creditPriorityDimension) DisplayValue() string {
+	return d.data.DimensionDisplayValue
 }

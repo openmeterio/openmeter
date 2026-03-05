@@ -15,18 +15,20 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
 // LedgerAccountQuery is the builder for querying LedgerAccount entities.
 type LedgerAccountQuery struct {
 	config
-	ctx             *QueryContext
-	order           []ledgeraccount.OrderOption
-	inters          []Interceptor
-	predicates      []predicate.LedgerAccount
-	withSubAccounts *LedgerSubAccountQuery
-	modifiers       []func(*sql.Selector)
+	ctx                  *QueryContext
+	order                []ledgeraccount.OrderOption
+	inters               []Interceptor
+	predicates           []predicate.LedgerAccount
+	withSubAccounts      *LedgerSubAccountQuery
+	withSubAccountRoutes *LedgerSubAccountRouteQuery
+	modifiers            []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -78,6 +80,28 @@ func (_q *LedgerAccountQuery) QuerySubAccounts() *LedgerSubAccountQuery {
 			sqlgraph.From(ledgeraccount.Table, ledgeraccount.FieldID, selector),
 			sqlgraph.To(ledgersubaccount.Table, ledgersubaccount.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, ledgeraccount.SubAccountsTable, ledgeraccount.SubAccountsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QuerySubAccountRoutes chains the current query on the "sub_account_routes" edge.
+func (_q *LedgerAccountQuery) QuerySubAccountRoutes() *LedgerSubAccountRouteQuery {
+	query := (&LedgerSubAccountRouteClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgeraccount.Table, ledgeraccount.FieldID, selector),
+			sqlgraph.To(ledgersubaccountroute.Table, ledgersubaccountroute.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgeraccount.SubAccountRoutesTable, ledgeraccount.SubAccountRoutesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -272,12 +296,13 @@ func (_q *LedgerAccountQuery) Clone() *LedgerAccountQuery {
 		return nil
 	}
 	return &LedgerAccountQuery{
-		config:          _q.config,
-		ctx:             _q.ctx.Clone(),
-		order:           append([]ledgeraccount.OrderOption{}, _q.order...),
-		inters:          append([]Interceptor{}, _q.inters...),
-		predicates:      append([]predicate.LedgerAccount{}, _q.predicates...),
-		withSubAccounts: _q.withSubAccounts.Clone(),
+		config:               _q.config,
+		ctx:                  _q.ctx.Clone(),
+		order:                append([]ledgeraccount.OrderOption{}, _q.order...),
+		inters:               append([]Interceptor{}, _q.inters...),
+		predicates:           append([]predicate.LedgerAccount{}, _q.predicates...),
+		withSubAccounts:      _q.withSubAccounts.Clone(),
+		withSubAccountRoutes: _q.withSubAccountRoutes.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -292,6 +317,17 @@ func (_q *LedgerAccountQuery) WithSubAccounts(opts ...func(*LedgerSubAccountQuer
 		opt(query)
 	}
 	_q.withSubAccounts = query
+	return _q
+}
+
+// WithSubAccountRoutes tells the query-builder to eager-load the nodes that are connected to
+// the "sub_account_routes" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *LedgerAccountQuery) WithSubAccountRoutes(opts ...func(*LedgerSubAccountRouteQuery)) *LedgerAccountQuery {
+	query := (&LedgerSubAccountRouteClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withSubAccountRoutes = query
 	return _q
 }
 
@@ -373,8 +409,9 @@ func (_q *LedgerAccountQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 	var (
 		nodes       = []*LedgerAccount{}
 		_spec       = _q.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			_q.withSubAccounts != nil,
+			_q.withSubAccountRoutes != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -405,6 +442,15 @@ func (_q *LedgerAccountQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 			return nil, err
 		}
 	}
+	if query := _q.withSubAccountRoutes; query != nil {
+		if err := _q.loadSubAccountRoutes(ctx, query, nodes,
+			func(n *LedgerAccount) { n.Edges.SubAccountRoutes = []*LedgerSubAccountRoute{} },
+			func(n *LedgerAccount, e *LedgerSubAccountRoute) {
+				n.Edges.SubAccountRoutes = append(n.Edges.SubAccountRoutes, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
 }
 
@@ -418,12 +464,42 @@ func (_q *LedgerAccountQuery) loadSubAccounts(ctx context.Context, query *Ledger
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
 	if len(query.ctx.Fields) > 0 {
 		query.ctx.AppendFieldOnce(ledgersubaccount.FieldAccountID)
 	}
 	query.Where(predicate.LedgerSubAccount(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(ledgeraccount.SubAccountsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.AccountID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "account_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *LedgerAccountQuery) loadSubAccountRoutes(ctx context.Context, query *LedgerSubAccountRouteQuery, nodes []*LedgerAccount, init func(*LedgerAccount), assign func(*LedgerAccount, *LedgerSubAccountRoute)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*LedgerAccount)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(ledgersubaccountroute.FieldAccountID)
+	}
+	query.Where(predicate.LedgerSubAccountRoute(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(ledgeraccount.SubAccountRoutesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

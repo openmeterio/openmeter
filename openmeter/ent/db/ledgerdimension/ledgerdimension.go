@@ -30,53 +30,53 @@ const (
 	FieldDimensionValue = "dimension_value"
 	// FieldDimensionDisplayValue holds the string denoting the dimension_display_value field in the database.
 	FieldDimensionDisplayValue = "dimension_display_value"
-	// EdgeSubAccounts holds the string denoting the sub_accounts edge name in mutations.
-	EdgeSubAccounts = "sub_accounts"
-	// EdgeCurrencySubAccounts holds the string denoting the currency_sub_accounts edge name in mutations.
-	EdgeCurrencySubAccounts = "currency_sub_accounts"
-	// EdgeTaxCodeSubAccounts holds the string denoting the tax_code_sub_accounts edge name in mutations.
-	EdgeTaxCodeSubAccounts = "tax_code_sub_accounts"
-	// EdgeFeaturesSubAccounts holds the string denoting the features_sub_accounts edge name in mutations.
-	EdgeFeaturesSubAccounts = "features_sub_accounts"
-	// EdgeCreditPrioritySubAccounts holds the string denoting the credit_priority_sub_accounts edge name in mutations.
-	EdgeCreditPrioritySubAccounts = "credit_priority_sub_accounts"
+	// EdgeSubAccountRoutes holds the string denoting the sub_account_routes edge name in mutations.
+	EdgeSubAccountRoutes = "sub_account_routes"
+	// EdgeCurrencySubAccountRoutes holds the string denoting the currency_sub_account_routes edge name in mutations.
+	EdgeCurrencySubAccountRoutes = "currency_sub_account_routes"
+	// EdgeTaxCodeSubAccountRoutes holds the string denoting the tax_code_sub_account_routes edge name in mutations.
+	EdgeTaxCodeSubAccountRoutes = "tax_code_sub_account_routes"
+	// EdgeFeaturesSubAccountRoutes holds the string denoting the features_sub_account_routes edge name in mutations.
+	EdgeFeaturesSubAccountRoutes = "features_sub_account_routes"
+	// EdgeCreditPrioritySubAccountRoutes holds the string denoting the credit_priority_sub_account_routes edge name in mutations.
+	EdgeCreditPrioritySubAccountRoutes = "credit_priority_sub_account_routes"
 	// Table holds the table name of the ledgerdimension in the database.
 	Table = "ledger_dimensions"
-	// SubAccountsTable is the table that holds the sub_accounts relation/edge.
-	SubAccountsTable = "ledger_sub_accounts"
-	// SubAccountsInverseTable is the table name for the LedgerSubAccount entity.
-	// It exists in this package in order to avoid circular dependency with the "ledgersubaccount" package.
-	SubAccountsInverseTable = "ledger_sub_accounts"
-	// SubAccountsColumn is the table column denoting the sub_accounts relation/edge.
-	SubAccountsColumn = "ledger_dimension_sub_accounts"
-	// CurrencySubAccountsTable is the table that holds the currency_sub_accounts relation/edge.
-	CurrencySubAccountsTable = "ledger_sub_accounts"
-	// CurrencySubAccountsInverseTable is the table name for the LedgerSubAccount entity.
-	// It exists in this package in order to avoid circular dependency with the "ledgersubaccount" package.
-	CurrencySubAccountsInverseTable = "ledger_sub_accounts"
-	// CurrencySubAccountsColumn is the table column denoting the currency_sub_accounts relation/edge.
-	CurrencySubAccountsColumn = "currency_dimension_id"
-	// TaxCodeSubAccountsTable is the table that holds the tax_code_sub_accounts relation/edge.
-	TaxCodeSubAccountsTable = "ledger_sub_accounts"
-	// TaxCodeSubAccountsInverseTable is the table name for the LedgerSubAccount entity.
-	// It exists in this package in order to avoid circular dependency with the "ledgersubaccount" package.
-	TaxCodeSubAccountsInverseTable = "ledger_sub_accounts"
-	// TaxCodeSubAccountsColumn is the table column denoting the tax_code_sub_accounts relation/edge.
-	TaxCodeSubAccountsColumn = "tax_code_dimension_id"
-	// FeaturesSubAccountsTable is the table that holds the features_sub_accounts relation/edge.
-	FeaturesSubAccountsTable = "ledger_sub_accounts"
-	// FeaturesSubAccountsInverseTable is the table name for the LedgerSubAccount entity.
-	// It exists in this package in order to avoid circular dependency with the "ledgersubaccount" package.
-	FeaturesSubAccountsInverseTable = "ledger_sub_accounts"
-	// FeaturesSubAccountsColumn is the table column denoting the features_sub_accounts relation/edge.
-	FeaturesSubAccountsColumn = "features_dimension_id"
-	// CreditPrioritySubAccountsTable is the table that holds the credit_priority_sub_accounts relation/edge.
-	CreditPrioritySubAccountsTable = "ledger_sub_accounts"
-	// CreditPrioritySubAccountsInverseTable is the table name for the LedgerSubAccount entity.
-	// It exists in this package in order to avoid circular dependency with the "ledgersubaccount" package.
-	CreditPrioritySubAccountsInverseTable = "ledger_sub_accounts"
-	// CreditPrioritySubAccountsColumn is the table column denoting the credit_priority_sub_accounts relation/edge.
-	CreditPrioritySubAccountsColumn = "credit_priority_dimension_id"
+	// SubAccountRoutesTable is the table that holds the sub_account_routes relation/edge.
+	SubAccountRoutesTable = "ledger_sub_account_routes"
+	// SubAccountRoutesInverseTable is the table name for the LedgerSubAccountRoute entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgersubaccountroute" package.
+	SubAccountRoutesInverseTable = "ledger_sub_account_routes"
+	// SubAccountRoutesColumn is the table column denoting the sub_account_routes relation/edge.
+	SubAccountRoutesColumn = "ledger_dimension_sub_account_routes"
+	// CurrencySubAccountRoutesTable is the table that holds the currency_sub_account_routes relation/edge.
+	CurrencySubAccountRoutesTable = "ledger_sub_account_routes"
+	// CurrencySubAccountRoutesInverseTable is the table name for the LedgerSubAccountRoute entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgersubaccountroute" package.
+	CurrencySubAccountRoutesInverseTable = "ledger_sub_account_routes"
+	// CurrencySubAccountRoutesColumn is the table column denoting the currency_sub_account_routes relation/edge.
+	CurrencySubAccountRoutesColumn = "currency_dimension_id"
+	// TaxCodeSubAccountRoutesTable is the table that holds the tax_code_sub_account_routes relation/edge.
+	TaxCodeSubAccountRoutesTable = "ledger_sub_account_routes"
+	// TaxCodeSubAccountRoutesInverseTable is the table name for the LedgerSubAccountRoute entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgersubaccountroute" package.
+	TaxCodeSubAccountRoutesInverseTable = "ledger_sub_account_routes"
+	// TaxCodeSubAccountRoutesColumn is the table column denoting the tax_code_sub_account_routes relation/edge.
+	TaxCodeSubAccountRoutesColumn = "tax_code_dimension_id"
+	// FeaturesSubAccountRoutesTable is the table that holds the features_sub_account_routes relation/edge.
+	FeaturesSubAccountRoutesTable = "ledger_sub_account_routes"
+	// FeaturesSubAccountRoutesInverseTable is the table name for the LedgerSubAccountRoute entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgersubaccountroute" package.
+	FeaturesSubAccountRoutesInverseTable = "ledger_sub_account_routes"
+	// FeaturesSubAccountRoutesColumn is the table column denoting the features_sub_account_routes relation/edge.
+	FeaturesSubAccountRoutesColumn = "features_dimension_id"
+	// CreditPrioritySubAccountRoutesTable is the table that holds the credit_priority_sub_account_routes relation/edge.
+	CreditPrioritySubAccountRoutesTable = "ledger_sub_account_routes"
+	// CreditPrioritySubAccountRoutesInverseTable is the table name for the LedgerSubAccountRoute entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgersubaccountroute" package.
+	CreditPrioritySubAccountRoutesInverseTable = "ledger_sub_account_routes"
+	// CreditPrioritySubAccountRoutesColumn is the table column denoting the credit_priority_sub_account_routes relation/edge.
+	CreditPrioritySubAccountRoutesColumn = "credit_priority_dimension_id"
 )
 
 // Columns holds all SQL columns for ledgerdimension fields.
@@ -158,107 +158,107 @@ func ByDimensionDisplayValue(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDimensionDisplayValue, opts...).ToFunc()
 }
 
-// BySubAccountsCount orders the results by sub_accounts count.
-func BySubAccountsCount(opts ...sql.OrderTermOption) OrderOption {
+// BySubAccountRoutesCount orders the results by sub_account_routes count.
+func BySubAccountRoutesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newSubAccountsStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newSubAccountRoutesStep(), opts...)
 	}
 }
 
-// BySubAccounts orders the results by sub_accounts terms.
-func BySubAccounts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// BySubAccountRoutes orders the results by sub_account_routes terms.
+func BySubAccountRoutes(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newSubAccountsStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newSubAccountRoutesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
-// ByCurrencySubAccountsCount orders the results by currency_sub_accounts count.
-func ByCurrencySubAccountsCount(opts ...sql.OrderTermOption) OrderOption {
+// ByCurrencySubAccountRoutesCount orders the results by currency_sub_account_routes count.
+func ByCurrencySubAccountRoutesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newCurrencySubAccountsStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newCurrencySubAccountRoutesStep(), opts...)
 	}
 }
 
-// ByCurrencySubAccounts orders the results by currency_sub_accounts terms.
-func ByCurrencySubAccounts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByCurrencySubAccountRoutes orders the results by currency_sub_account_routes terms.
+func ByCurrencySubAccountRoutes(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newCurrencySubAccountsStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newCurrencySubAccountRoutesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
-// ByTaxCodeSubAccountsCount orders the results by tax_code_sub_accounts count.
-func ByTaxCodeSubAccountsCount(opts ...sql.OrderTermOption) OrderOption {
+// ByTaxCodeSubAccountRoutesCount orders the results by tax_code_sub_account_routes count.
+func ByTaxCodeSubAccountRoutesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newTaxCodeSubAccountsStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newTaxCodeSubAccountRoutesStep(), opts...)
 	}
 }
 
-// ByTaxCodeSubAccounts orders the results by tax_code_sub_accounts terms.
-func ByTaxCodeSubAccounts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByTaxCodeSubAccountRoutes orders the results by tax_code_sub_account_routes terms.
+func ByTaxCodeSubAccountRoutes(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newTaxCodeSubAccountsStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newTaxCodeSubAccountRoutesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
-// ByFeaturesSubAccountsCount orders the results by features_sub_accounts count.
-func ByFeaturesSubAccountsCount(opts ...sql.OrderTermOption) OrderOption {
+// ByFeaturesSubAccountRoutesCount orders the results by features_sub_account_routes count.
+func ByFeaturesSubAccountRoutesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newFeaturesSubAccountsStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newFeaturesSubAccountRoutesStep(), opts...)
 	}
 }
 
-// ByFeaturesSubAccounts orders the results by features_sub_accounts terms.
-func ByFeaturesSubAccounts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByFeaturesSubAccountRoutes orders the results by features_sub_account_routes terms.
+func ByFeaturesSubAccountRoutes(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newFeaturesSubAccountsStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newFeaturesSubAccountRoutesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
-// ByCreditPrioritySubAccountsCount orders the results by credit_priority_sub_accounts count.
-func ByCreditPrioritySubAccountsCount(opts ...sql.OrderTermOption) OrderOption {
+// ByCreditPrioritySubAccountRoutesCount orders the results by credit_priority_sub_account_routes count.
+func ByCreditPrioritySubAccountRoutesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newCreditPrioritySubAccountsStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newCreditPrioritySubAccountRoutesStep(), opts...)
 	}
 }
 
-// ByCreditPrioritySubAccounts orders the results by credit_priority_sub_accounts terms.
-func ByCreditPrioritySubAccounts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByCreditPrioritySubAccountRoutes orders the results by credit_priority_sub_account_routes terms.
+func ByCreditPrioritySubAccountRoutes(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newCreditPrioritySubAccountsStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newCreditPrioritySubAccountRoutesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-func newSubAccountsStep() *sqlgraph.Step {
+func newSubAccountRoutesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(SubAccountsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, SubAccountsTable, SubAccountsColumn),
+		sqlgraph.To(SubAccountRoutesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, SubAccountRoutesTable, SubAccountRoutesColumn),
 	)
 }
-func newCurrencySubAccountsStep() *sqlgraph.Step {
+func newCurrencySubAccountRoutesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(CurrencySubAccountsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, CurrencySubAccountsTable, CurrencySubAccountsColumn),
+		sqlgraph.To(CurrencySubAccountRoutesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CurrencySubAccountRoutesTable, CurrencySubAccountRoutesColumn),
 	)
 }
-func newTaxCodeSubAccountsStep() *sqlgraph.Step {
+func newTaxCodeSubAccountRoutesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(TaxCodeSubAccountsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, TaxCodeSubAccountsTable, TaxCodeSubAccountsColumn),
+		sqlgraph.To(TaxCodeSubAccountRoutesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, TaxCodeSubAccountRoutesTable, TaxCodeSubAccountRoutesColumn),
 	)
 }
-func newFeaturesSubAccountsStep() *sqlgraph.Step {
+func newFeaturesSubAccountRoutesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(FeaturesSubAccountsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, FeaturesSubAccountsTable, FeaturesSubAccountsColumn),
+		sqlgraph.To(FeaturesSubAccountRoutesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, FeaturesSubAccountRoutesTable, FeaturesSubAccountRoutesColumn),
 	)
 }
-func newCreditPrioritySubAccountsStep() *sqlgraph.Step {
+func newCreditPrioritySubAccountRoutesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(CreditPrioritySubAccountsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, CreditPrioritySubAccountsTable, CreditPrioritySubAccountsColumn),
+		sqlgraph.To(CreditPrioritySubAccountRoutesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CreditPrioritySubAccountRoutesTable, CreditPrioritySubAccountRoutesColumn),
 	)
 }

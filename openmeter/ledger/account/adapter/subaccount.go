@@ -3,28 +3,48 @@ package adapter
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	ledgerdimensiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
 	dbledgersubaccount "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
+	dbledgersubaccountroute "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/samber/mo"
 )
 
 func (r *repo) CreateSubAccount(ctx context.Context, input ledgeraccount.CreateSubAccountInput) (*ledgeraccount.SubAccountData, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (*ledgeraccount.SubAccountData, error) {
+		route, err := r.resolveOrCreateRoute(ctx, input)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve route: %w", err)
+		}
+
 		entity, err := r.db.LedgerSubAccount.Create().
 			SetNamespace(input.Namespace).
 			SetAnnotations(input.Annotations).
 			SetAccountID(input.AccountID).
-			SetCurrencyDimensionID(input.Dimensions.CurrencyDimensionID).
-			SetNillableTaxCodeDimensionID(input.Dimensions.TaxCodeDimensionID).
-			SetNillableFeaturesDimensionID(input.Dimensions.FeaturesDimensionID).
-			SetNillableCreditPriorityDimensionID(input.Dimensions.CreditPriorityDimensionID).
+			SetRouteID(route.ID).
 			Save(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create ledger sub-account: %w", err)
+			if db.IsConstraintError(err) {
+				entity, err = r.db.LedgerSubAccount.Query().
+					Where(
+						dbledgersubaccount.Namespace(input.Namespace),
+						dbledgersubaccount.AccountID(input.AccountID),
+						dbledgersubaccount.RouteID(route.ID),
+					).
+					Only(ctx)
+				if err != nil {
+					return nil, fmt.Errorf("failed to resolve existing ledger sub-account after conflict: %w", err)
+				}
+			} else {
+				return nil, fmt.Errorf("failed to create ledger sub-account: %w", err)
+			}
 		}
 
 		// We need to load the edges
@@ -40,15 +60,62 @@ func (r *repo) CreateSubAccount(ctx context.Context, input ledgeraccount.CreateS
 	})
 }
 
+func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.CreateSubAccountInput) (*db.LedgerSubAccountRoute, error) {
+	routeKey, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, ledger.SubAccountRouteInput{
+		CurrencyDimensionID:       input.Dimensions.CurrencyDimensionID,
+		TaxCodeDimensionID:        input.Dimensions.TaxCodeDimensionID,
+		FeaturesDimensionID:       input.Dimensions.FeaturesDimensionID,
+		CreditPriorityDimensionID: input.Dimensions.CreditPriorityDimensionID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to build routing key: %w", err)
+	}
+
+	create := r.db.LedgerSubAccountRoute.Create().
+		SetNamespace(input.Namespace).
+		SetAccountID(input.AccountID).
+		SetRoutingKeyVersion(routeKey.Version()).
+		SetRoutingKey(routeKey.Value()).
+		SetCurrencyDimensionID(input.Dimensions.CurrencyDimensionID).
+		SetNillableTaxCodeDimensionID(input.Dimensions.TaxCodeDimensionID).
+		SetNillableFeaturesDimensionID(input.Dimensions.FeaturesDimensionID).
+		SetNillableCreditPriorityDimensionID(input.Dimensions.CreditPriorityDimensionID)
+
+	route, err := create.Save(ctx)
+	if err == nil {
+		return route, nil
+	}
+
+	if !db.IsConstraintError(err) {
+		return nil, fmt.Errorf("failed to create sub-account route: %w", err)
+	}
+
+	route, err = r.db.LedgerSubAccountRoute.Query().
+		Where(
+			dbledgersubaccountroute.Namespace(input.Namespace),
+			dbledgersubaccountroute.AccountID(input.AccountID),
+			dbledgersubaccountroute.RoutingKeyVersion(routeKey.Version()),
+			dbledgersubaccountroute.RoutingKey(routeKey.Value()),
+		).
+		Only(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve existing route after conflict: %w", err)
+	}
+
+	return route, nil
+}
+
 func (r *repo) GetSubAccountByID(ctx context.Context, id models.NamespacedID) (*ledgeraccount.SubAccountData, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (*ledgeraccount.SubAccountData, error) {
 		entity, err := r.db.LedgerSubAccount.Query().
 			Where(dbledgersubaccount.ID(id.ID)).
 			Where(dbledgersubaccount.Namespace(id.Namespace)).
-			WithCurrencyDimension().
-			WithTaxCodeDimension().
-			WithFeaturesDimension().
-			WithCreditPriorityDimension().
+			WithRoute(func(query *db.LedgerSubAccountRouteQuery) {
+				query.WithCurrencyDimension()
+				query.WithTaxCodeDimension()
+				query.WithFeaturesDimension()
+				query.WithCreditPriorityDimension()
+			}).
 			WithAccount().
 			Only(ctx)
 		if err != nil {
@@ -71,18 +138,31 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 			dbledgersubaccount.AccountID(input.AccountID),
 		}
 
+		routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 3)
 		if input.Dimensions.CurrencyID != "" {
-			predicates = append(predicates, dbledgersubaccount.CurrencyDimensionID(input.Dimensions.CurrencyID))
+			routePredicates = append(routePredicates, dbledgersubaccountroute.CurrencyDimensionID(input.Dimensions.CurrencyID))
 		}
-		// DEFERRED: tax/feature/credit-priority not active yet.
-		// Currency is the only enforced dimension in current provisioning model.
+		if input.Dimensions.CreditPriority != nil {
+			routePredicates = append(routePredicates,
+				dbledgersubaccountroute.HasCreditPriorityDimensionWith(
+					ledgerdimensiondb.DimensionKey(string(ledger.DimensionKeyCreditPriority)),
+					ledgerdimensiondb.DimensionValue(strconv.Itoa(*input.Dimensions.CreditPriority)),
+				),
+			)
+		}
+		// DEFERRED: tax/feature filters are not active yet.
+		if len(routePredicates) > 0 {
+			predicates = append(predicates, dbledgersubaccount.HasRouteWith(routePredicates...))
+		}
 
 		entities, err := r.db.LedgerSubAccount.Query().
 			Where(predicates...).
-			WithCurrencyDimension().
-			WithTaxCodeDimension().
-			WithFeaturesDimension().
-			WithCreditPriorityDimension().
+			WithRoute(func(query *db.LedgerSubAccountRouteQuery) {
+				query.WithCurrencyDimension()
+				query.WithTaxCodeDimension()
+				query.WithFeaturesDimension()
+				query.WithCreditPriorityDimension()
+			}).
 			WithAccount().
 			All(ctx)
 		if err != nil {
@@ -106,25 +186,39 @@ func MapSubAccountData(entity *db.LedgerSubAccount) (ledgeraccount.SubAccountDat
 	if entity.Edges.Account == nil {
 		return ledgeraccount.SubAccountData{}, fmt.Errorf("account edge is required")
 	}
+	if entity.Edges.Route == nil {
+		return ledgeraccount.SubAccountData{}, fmt.Errorf("route edge is required")
+	}
 
+	route := entity.Edges.Route
 	dimensions := ledgeraccount.SubAccountDimensions{}
 
-	{
-		if entity.Edges.CurrencyDimension == nil {
-			return ledgeraccount.SubAccountData{}, fmt.Errorf("currency dimension edge is required")
-		}
+	if route.Edges.CurrencyDimension == nil {
+		return ledgeraccount.SubAccountData{}, fmt.Errorf("currency dimension edge is required")
+	}
 
-		currencyDimensionData, err := MapDimensionData(entity.Edges.CurrencyDimension)
+	currencyDimensionData, err := MapDimensionData(route.Edges.CurrencyDimension)
+	if err != nil {
+		return ledgeraccount.SubAccountData{}, fmt.Errorf("failed to map currency dimension data: %w", err)
+	}
+
+	cDim, err := currencyDimensionData.AsCurrencyDimension()
+	if err != nil {
+		return ledgeraccount.SubAccountData{}, fmt.Errorf("failed to map currency dimension: %w", err)
+	}
+
+	dimensions.Currency = cDim
+
+	if route.Edges.CreditPriorityDimension != nil {
+		creditPriorityDimensionData, err := MapDimensionData(route.Edges.CreditPriorityDimension)
 		if err != nil {
-			return ledgeraccount.SubAccountData{}, fmt.Errorf("failed to map currency dimension data: %w", err)
+			return ledgeraccount.SubAccountData{}, fmt.Errorf("failed to map credit priority dimension data: %w", err)
 		}
-
-		cDim, err := currencyDimensionData.AsCurrencyDimension()
+		priorityDim, err := creditPriorityDimensionData.AsCreditPriorityDimension()
 		if err != nil {
-			return ledgeraccount.SubAccountData{}, fmt.Errorf("failed to map currency dimension: %w", err)
+			return ledgeraccount.SubAccountData{}, fmt.Errorf("failed to map credit priority dimension: %w", err)
 		}
-
-		dimensions.Currency = cDim
+		dimensions.CreditPriority = mo.Some[ledger.DimensionCreditPriority](priorityDim)
 	}
 
 	return ledgeraccount.SubAccountData{
@@ -135,5 +229,10 @@ func MapSubAccountData(entity *db.LedgerSubAccount) (ledgeraccount.SubAccountDat
 		AccountID:   entity.AccountID,
 		AccountType: entity.Edges.Account.AccountType,
 		Dimensions:  dimensions,
+		Route: ledgeraccount.SubAccountRouteData{
+			ID:                route.ID,
+			RoutingKeyVersion: route.RoutingKeyVersion,
+			RoutingKey:        route.RoutingKey,
+		},
 	}, nil
 }

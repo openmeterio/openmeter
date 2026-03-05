@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -33,38 +33,25 @@ type LedgerSubAccount struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// AccountID holds the value of the "account_id" field.
 	AccountID string `json:"account_id,omitempty"`
-	// CurrencyDimensionID holds the value of the "currency_dimension_id" field.
-	CurrencyDimensionID string `json:"currency_dimension_id,omitempty"`
-	// TaxCodeDimensionID holds the value of the "tax_code_dimension_id" field.
-	TaxCodeDimensionID string `json:"tax_code_dimension_id,omitempty"`
-	// FeaturesDimensionID holds the value of the "features_dimension_id" field.
-	FeaturesDimensionID string `json:"features_dimension_id,omitempty"`
-	// CreditPriorityDimensionID holds the value of the "credit_priority_dimension_id" field.
-	CreditPriorityDimensionID string `json:"credit_priority_dimension_id,omitempty"`
+	// RouteID holds the value of the "route_id" field.
+	RouteID string `json:"route_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the LedgerSubAccountQuery when eager-loading is set.
-	Edges                         LedgerSubAccountEdges `json:"edges"`
-	ledger_dimension_sub_accounts *string
-	selectValues                  sql.SelectValues
+	Edges        LedgerSubAccountEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // LedgerSubAccountEdges holds the relations/edges for other nodes in the graph.
 type LedgerSubAccountEdges struct {
 	// Account holds the value of the account edge.
 	Account *LedgerAccount `json:"account,omitempty"`
+	// Route holds the value of the route edge.
+	Route *LedgerSubAccountRoute `json:"route,omitempty"`
 	// Entries holds the value of the entries edge.
 	Entries []*LedgerEntry `json:"entries,omitempty"`
-	// CurrencyDimension holds the value of the currency_dimension edge.
-	CurrencyDimension *LedgerDimension `json:"currency_dimension,omitempty"`
-	// TaxCodeDimension holds the value of the tax_code_dimension edge.
-	TaxCodeDimension *LedgerDimension `json:"tax_code_dimension,omitempty"`
-	// FeaturesDimension holds the value of the features_dimension edge.
-	FeaturesDimension *LedgerDimension `json:"features_dimension,omitempty"`
-	// CreditPriorityDimension holds the value of the credit_priority_dimension edge.
-	CreditPriorityDimension *LedgerDimension `json:"credit_priority_dimension,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [6]bool
+	loadedTypes [3]bool
 }
 
 // AccountOrErr returns the Account value or an error if the edge
@@ -78,57 +65,24 @@ func (e LedgerSubAccountEdges) AccountOrErr() (*LedgerAccount, error) {
 	return nil, &NotLoadedError{edge: "account"}
 }
 
+// RouteOrErr returns the Route value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e LedgerSubAccountEdges) RouteOrErr() (*LedgerSubAccountRoute, error) {
+	if e.Route != nil {
+		return e.Route, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: ledgersubaccountroute.Label}
+	}
+	return nil, &NotLoadedError{edge: "route"}
+}
+
 // EntriesOrErr returns the Entries value or an error if the edge
 // was not loaded in eager-loading.
 func (e LedgerSubAccountEdges) EntriesOrErr() ([]*LedgerEntry, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[2] {
 		return e.Entries, nil
 	}
 	return nil, &NotLoadedError{edge: "entries"}
-}
-
-// CurrencyDimensionOrErr returns the CurrencyDimension value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e LedgerSubAccountEdges) CurrencyDimensionOrErr() (*LedgerDimension, error) {
-	if e.CurrencyDimension != nil {
-		return e.CurrencyDimension, nil
-	} else if e.loadedTypes[2] {
-		return nil, &NotFoundError{label: ledgerdimension.Label}
-	}
-	return nil, &NotLoadedError{edge: "currency_dimension"}
-}
-
-// TaxCodeDimensionOrErr returns the TaxCodeDimension value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e LedgerSubAccountEdges) TaxCodeDimensionOrErr() (*LedgerDimension, error) {
-	if e.TaxCodeDimension != nil {
-		return e.TaxCodeDimension, nil
-	} else if e.loadedTypes[3] {
-		return nil, &NotFoundError{label: ledgerdimension.Label}
-	}
-	return nil, &NotLoadedError{edge: "tax_code_dimension"}
-}
-
-// FeaturesDimensionOrErr returns the FeaturesDimension value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e LedgerSubAccountEdges) FeaturesDimensionOrErr() (*LedgerDimension, error) {
-	if e.FeaturesDimension != nil {
-		return e.FeaturesDimension, nil
-	} else if e.loadedTypes[4] {
-		return nil, &NotFoundError{label: ledgerdimension.Label}
-	}
-	return nil, &NotLoadedError{edge: "features_dimension"}
-}
-
-// CreditPriorityDimensionOrErr returns the CreditPriorityDimension value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e LedgerSubAccountEdges) CreditPriorityDimensionOrErr() (*LedgerDimension, error) {
-	if e.CreditPriorityDimension != nil {
-		return e.CreditPriorityDimension, nil
-	} else if e.loadedTypes[5] {
-		return nil, &NotFoundError{label: ledgerdimension.Label}
-	}
-	return nil, &NotLoadedError{edge: "credit_priority_dimension"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -138,12 +92,10 @@ func (*LedgerSubAccount) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case ledgersubaccount.FieldAnnotations:
 			values[i] = new([]byte)
-		case ledgersubaccount.FieldID, ledgersubaccount.FieldNamespace, ledgersubaccount.FieldAccountID, ledgersubaccount.FieldCurrencyDimensionID, ledgersubaccount.FieldTaxCodeDimensionID, ledgersubaccount.FieldFeaturesDimensionID, ledgersubaccount.FieldCreditPriorityDimensionID:
+		case ledgersubaccount.FieldID, ledgersubaccount.FieldNamespace, ledgersubaccount.FieldAccountID, ledgersubaccount.FieldRouteID:
 			values[i] = new(sql.NullString)
 		case ledgersubaccount.FieldCreatedAt, ledgersubaccount.FieldUpdatedAt, ledgersubaccount.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
-		case ledgersubaccount.ForeignKeys[0]: // ledger_dimension_sub_accounts
-			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -204,36 +156,11 @@ func (_m *LedgerSubAccount) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.AccountID = value.String
 			}
-		case ledgersubaccount.FieldCurrencyDimensionID:
+		case ledgersubaccount.FieldRouteID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field currency_dimension_id", values[i])
+				return fmt.Errorf("unexpected type %T for field route_id", values[i])
 			} else if value.Valid {
-				_m.CurrencyDimensionID = value.String
-			}
-		case ledgersubaccount.FieldTaxCodeDimensionID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_code_dimension_id", values[i])
-			} else if value.Valid {
-				_m.TaxCodeDimensionID = value.String
-			}
-		case ledgersubaccount.FieldFeaturesDimensionID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field features_dimension_id", values[i])
-			} else if value.Valid {
-				_m.FeaturesDimensionID = value.String
-			}
-		case ledgersubaccount.FieldCreditPriorityDimensionID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field credit_priority_dimension_id", values[i])
-			} else if value.Valid {
-				_m.CreditPriorityDimensionID = value.String
-			}
-		case ledgersubaccount.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field ledger_dimension_sub_accounts", values[i])
-			} else if value.Valid {
-				_m.ledger_dimension_sub_accounts = new(string)
-				*_m.ledger_dimension_sub_accounts = value.String
+				_m.RouteID = value.String
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -253,29 +180,14 @@ func (_m *LedgerSubAccount) QueryAccount() *LedgerAccountQuery {
 	return NewLedgerSubAccountClient(_m.config).QueryAccount(_m)
 }
 
+// QueryRoute queries the "route" edge of the LedgerSubAccount entity.
+func (_m *LedgerSubAccount) QueryRoute() *LedgerSubAccountRouteQuery {
+	return NewLedgerSubAccountClient(_m.config).QueryRoute(_m)
+}
+
 // QueryEntries queries the "entries" edge of the LedgerSubAccount entity.
 func (_m *LedgerSubAccount) QueryEntries() *LedgerEntryQuery {
 	return NewLedgerSubAccountClient(_m.config).QueryEntries(_m)
-}
-
-// QueryCurrencyDimension queries the "currency_dimension" edge of the LedgerSubAccount entity.
-func (_m *LedgerSubAccount) QueryCurrencyDimension() *LedgerDimensionQuery {
-	return NewLedgerSubAccountClient(_m.config).QueryCurrencyDimension(_m)
-}
-
-// QueryTaxCodeDimension queries the "tax_code_dimension" edge of the LedgerSubAccount entity.
-func (_m *LedgerSubAccount) QueryTaxCodeDimension() *LedgerDimensionQuery {
-	return NewLedgerSubAccountClient(_m.config).QueryTaxCodeDimension(_m)
-}
-
-// QueryFeaturesDimension queries the "features_dimension" edge of the LedgerSubAccount entity.
-func (_m *LedgerSubAccount) QueryFeaturesDimension() *LedgerDimensionQuery {
-	return NewLedgerSubAccountClient(_m.config).QueryFeaturesDimension(_m)
-}
-
-// QueryCreditPriorityDimension queries the "credit_priority_dimension" edge of the LedgerSubAccount entity.
-func (_m *LedgerSubAccount) QueryCreditPriorityDimension() *LedgerDimensionQuery {
-	return NewLedgerSubAccountClient(_m.config).QueryCreditPriorityDimension(_m)
 }
 
 // Update returns a builder for updating this LedgerSubAccount.
@@ -321,17 +233,8 @@ func (_m *LedgerSubAccount) String() string {
 	builder.WriteString("account_id=")
 	builder.WriteString(_m.AccountID)
 	builder.WriteString(", ")
-	builder.WriteString("currency_dimension_id=")
-	builder.WriteString(_m.CurrencyDimensionID)
-	builder.WriteString(", ")
-	builder.WriteString("tax_code_dimension_id=")
-	builder.WriteString(_m.TaxCodeDimensionID)
-	builder.WriteString(", ")
-	builder.WriteString("features_dimension_id=")
-	builder.WriteString(_m.FeaturesDimensionID)
-	builder.WriteString(", ")
-	builder.WriteString("credit_priority_dimension_id=")
-	builder.WriteString(_m.CreditPriorityDimensionID)
+	builder.WriteString("route_id=")
+	builder.WriteString(_m.RouteID)
 	builder.WriteByte(')')
 	return builder.String()
 }

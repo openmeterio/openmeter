@@ -65,6 +65,20 @@ func (s *service) CreateSubAccount(ctx context.Context, input account.CreateSubA
 		return nil, fmt.Errorf("failed to get account: %w", err)
 	}
 
+	if acc.Type() == ledger.AccountTypeCustomerFBO && input.Dimensions.CreditPriorityDimensionID == nil {
+		defaultPriorityDimension, err := s.repo.GetDimensionByKeyAndValue(
+			ctx,
+			input.Namespace,
+			ledger.DimensionKeyCreditPriority,
+			account.DefaultCustomerFBOPriorityDimensionValue(),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve default credit priority dimension: %w", err)
+		}
+
+		input.Dimensions.CreditPriorityDimensionID = &defaultPriorityDimension.ID
+	}
+
 	// Let's validate the provided dimensions
 	if err := input.Dimensions.ValidateForAccountType(acc.Type()); err != nil {
 		return nil, err

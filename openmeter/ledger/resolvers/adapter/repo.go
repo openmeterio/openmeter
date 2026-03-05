@@ -18,9 +18,9 @@ type repo struct {
 	db *entdb.Client
 }
 
-var _ resolvers.Repo = (*repo)(nil)
+var _ resolvers.CustomerAccountRepo = (*repo)(nil)
 
-func NewRepo(db *entdb.Client) resolvers.Repo {
+func NewRepo(db *entdb.Client) resolvers.CustomerAccountRepo {
 	return &repo{db: db}
 }
 

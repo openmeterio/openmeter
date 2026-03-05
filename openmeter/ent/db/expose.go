@@ -179,6 +179,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		LedgerSubAccount: NewLedgerSubAccountClient(config),
 
+		LedgerSubAccountRoute: NewLedgerSubAccountRouteClient(config),
+
 		LedgerTransaction: NewLedgerTransactionClient(config),
 
 		LedgerTransactionGroup: NewLedgerTransactionGroupClient(config),

@@ -59,6 +59,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/llmcostprice"
@@ -187,6 +188,7 @@ func checkColumn(t, c string) error {
 			ledgerdimension.Table:                                  ledgerdimension.ValidColumn,
 			ledgerentry.Table:                                      ledgerentry.ValidColumn,
 			ledgersubaccount.Table:                                 ledgersubaccount.ValidColumn,
+			ledgersubaccountroute.Table:                            ledgersubaccountroute.ValidColumn,
 			ledgertransaction.Table:                                ledgertransaction.ValidColumn,
 			ledgertransactiongroup.Table:                           ledgertransactiongroup.ValidColumn,
 			dbmeter.Table:                                          dbmeter.ValidColumn,

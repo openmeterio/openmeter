@@ -34,6 +34,7 @@ func (b *Balance) Pending() alpacadecimal.Decimal {
 type SubAccountCreatorLister interface {
 	ListSubAccounts(ctx context.Context, input ListSubAccountsInput) ([]*SubAccount, error)
 	CreateSubAccount(ctx context.Context, input CreateSubAccountInput) (*SubAccount, error)
+	GetDimensionByKeyAndValue(ctx context.Context, namespace string, key ledger.DimensionKey, value string) (*DimensionData, error)
 }
 
 type AccountLiveServices struct {

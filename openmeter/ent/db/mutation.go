@@ -64,6 +64,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/llmcostprice"
@@ -152,6 +153,7 @@ const (
 	TypeLedgerDimension                                  = "LedgerDimension"
 	TypeLedgerEntry                                      = "LedgerEntry"
 	TypeLedgerSubAccount                                 = "LedgerSubAccount"
+	TypeLedgerSubAccountRoute                            = "LedgerSubAccountRoute"
 	TypeLedgerTransaction                                = "LedgerTransaction"
 	TypeLedgerTransactionGroup                           = "LedgerTransactionGroup"
 	TypeMeter                                            = "Meter"
@@ -54421,22 +54423,25 @@ func (m *LLMCostPriceMutation) ResetEdge(name string) error {
 // LedgerAccountMutation represents an operation that mutates the LedgerAccount nodes in the graph.
 type LedgerAccountMutation struct {
 	config
-	op                  Op
-	typ                 string
-	id                  *string
-	namespace           *string
-	annotations         *models.Annotations
-	created_at          *time.Time
-	updated_at          *time.Time
-	deleted_at          *time.Time
-	account_type        *ledger.AccountType
-	clearedFields       map[string]struct{}
-	sub_accounts        map[string]struct{}
-	removedsub_accounts map[string]struct{}
-	clearedsub_accounts bool
-	done                bool
-	oldValue            func(context.Context) (*LedgerAccount, error)
-	predicates          []predicate.LedgerAccount
+	op                        Op
+	typ                       string
+	id                        *string
+	namespace                 *string
+	annotations               *models.Annotations
+	created_at                *time.Time
+	updated_at                *time.Time
+	deleted_at                *time.Time
+	account_type              *ledger.AccountType
+	clearedFields             map[string]struct{}
+	sub_accounts              map[string]struct{}
+	removedsub_accounts       map[string]struct{}
+	clearedsub_accounts       bool
+	sub_account_routes        map[string]struct{}
+	removedsub_account_routes map[string]struct{}
+	clearedsub_account_routes bool
+	done                      bool
+	oldValue                  func(context.Context) (*LedgerAccount, error)
+	predicates                []predicate.LedgerAccount
 }
 
 var _ ent.Mutation = (*LedgerAccountMutation)(nil)
@@ -54839,6 +54844,60 @@ func (m *LedgerAccountMutation) ResetSubAccounts() {
 	m.removedsub_accounts = nil
 }
 
+// AddSubAccountRouteIDs adds the "sub_account_routes" edge to the LedgerSubAccountRoute entity by ids.
+func (m *LedgerAccountMutation) AddSubAccountRouteIDs(ids ...string) {
+	if m.sub_account_routes == nil {
+		m.sub_account_routes = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.sub_account_routes[ids[i]] = struct{}{}
+	}
+}
+
+// ClearSubAccountRoutes clears the "sub_account_routes" edge to the LedgerSubAccountRoute entity.
+func (m *LedgerAccountMutation) ClearSubAccountRoutes() {
+	m.clearedsub_account_routes = true
+}
+
+// SubAccountRoutesCleared reports if the "sub_account_routes" edge to the LedgerSubAccountRoute entity was cleared.
+func (m *LedgerAccountMutation) SubAccountRoutesCleared() bool {
+	return m.clearedsub_account_routes
+}
+
+// RemoveSubAccountRouteIDs removes the "sub_account_routes" edge to the LedgerSubAccountRoute entity by IDs.
+func (m *LedgerAccountMutation) RemoveSubAccountRouteIDs(ids ...string) {
+	if m.removedsub_account_routes == nil {
+		m.removedsub_account_routes = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.sub_account_routes, ids[i])
+		m.removedsub_account_routes[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedSubAccountRoutes returns the removed IDs of the "sub_account_routes" edge to the LedgerSubAccountRoute entity.
+func (m *LedgerAccountMutation) RemovedSubAccountRoutesIDs() (ids []string) {
+	for id := range m.removedsub_account_routes {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// SubAccountRoutesIDs returns the "sub_account_routes" edge IDs in the mutation.
+func (m *LedgerAccountMutation) SubAccountRoutesIDs() (ids []string) {
+	for id := range m.sub_account_routes {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetSubAccountRoutes resets all changes to the "sub_account_routes" edge.
+func (m *LedgerAccountMutation) ResetSubAccountRoutes() {
+	m.sub_account_routes = nil
+	m.clearedsub_account_routes = false
+	m.removedsub_account_routes = nil
+}
+
 // Where appends a list predicates to the LedgerAccountMutation builder.
 func (m *LedgerAccountMutation) Where(ps ...predicate.LedgerAccount) {
 	m.predicates = append(m.predicates, ps...)
@@ -55072,9 +55131,12 @@ func (m *LedgerAccountMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *LedgerAccountMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.sub_accounts != nil {
 		edges = append(edges, ledgeraccount.EdgeSubAccounts)
+	}
+	if m.sub_account_routes != nil {
+		edges = append(edges, ledgeraccount.EdgeSubAccountRoutes)
 	}
 	return edges
 }
@@ -55089,15 +55151,24 @@ func (m *LedgerAccountMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case ledgeraccount.EdgeSubAccountRoutes:
+		ids := make([]ent.Value, 0, len(m.sub_account_routes))
+		for id := range m.sub_account_routes {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LedgerAccountMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.removedsub_accounts != nil {
 		edges = append(edges, ledgeraccount.EdgeSubAccounts)
+	}
+	if m.removedsub_account_routes != nil {
+		edges = append(edges, ledgeraccount.EdgeSubAccountRoutes)
 	}
 	return edges
 }
@@ -55112,15 +55183,24 @@ func (m *LedgerAccountMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case ledgeraccount.EdgeSubAccountRoutes:
+		ids := make([]ent.Value, 0, len(m.removedsub_account_routes))
+		for id := range m.removedsub_account_routes {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *LedgerAccountMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedsub_accounts {
 		edges = append(edges, ledgeraccount.EdgeSubAccounts)
+	}
+	if m.clearedsub_account_routes {
+		edges = append(edges, ledgeraccount.EdgeSubAccountRoutes)
 	}
 	return edges
 }
@@ -55131,6 +55211,8 @@ func (m *LedgerAccountMutation) EdgeCleared(name string) bool {
 	switch name {
 	case ledgeraccount.EdgeSubAccounts:
 		return m.clearedsub_accounts
+	case ledgeraccount.EdgeSubAccountRoutes:
+		return m.clearedsub_account_routes
 	}
 	return false
 }
@@ -55149,6 +55231,9 @@ func (m *LedgerAccountMutation) ResetEdge(name string) error {
 	switch name {
 	case ledgeraccount.EdgeSubAccounts:
 		m.ResetSubAccounts()
+		return nil
+	case ledgeraccount.EdgeSubAccountRoutes:
+		m.ResetSubAccountRoutes()
 		return nil
 	}
 	return fmt.Errorf("unknown LedgerAccount edge %s", name)
@@ -55835,36 +55920,36 @@ func (m *LedgerCustomerAccountMutation) ResetEdge(name string) error {
 // LedgerDimensionMutation represents an operation that mutates the LedgerDimension nodes in the graph.
 type LedgerDimensionMutation struct {
 	config
-	op                                  Op
-	typ                                 string
-	id                                  *string
-	namespace                           *string
-	annotations                         *models.Annotations
-	created_at                          *time.Time
-	updated_at                          *time.Time
-	deleted_at                          *time.Time
-	dimension_key                       *string
-	dimension_value                     *string
-	dimension_display_value             *string
-	clearedFields                       map[string]struct{}
-	sub_accounts                        map[string]struct{}
-	removedsub_accounts                 map[string]struct{}
-	clearedsub_accounts                 bool
-	currency_sub_accounts               map[string]struct{}
-	removedcurrency_sub_accounts        map[string]struct{}
-	clearedcurrency_sub_accounts        bool
-	tax_code_sub_accounts               map[string]struct{}
-	removedtax_code_sub_accounts        map[string]struct{}
-	clearedtax_code_sub_accounts        bool
-	features_sub_accounts               map[string]struct{}
-	removedfeatures_sub_accounts        map[string]struct{}
-	clearedfeatures_sub_accounts        bool
-	credit_priority_sub_accounts        map[string]struct{}
-	removedcredit_priority_sub_accounts map[string]struct{}
-	clearedcredit_priority_sub_accounts bool
-	done                                bool
-	oldValue                            func(context.Context) (*LedgerDimension, error)
-	predicates                          []predicate.LedgerDimension
+	op                                        Op
+	typ                                       string
+	id                                        *string
+	namespace                                 *string
+	annotations                               *models.Annotations
+	created_at                                *time.Time
+	updated_at                                *time.Time
+	deleted_at                                *time.Time
+	dimension_key                             *string
+	dimension_value                           *string
+	dimension_display_value                   *string
+	clearedFields                             map[string]struct{}
+	sub_account_routes                        map[string]struct{}
+	removedsub_account_routes                 map[string]struct{}
+	clearedsub_account_routes                 bool
+	currency_sub_account_routes               map[string]struct{}
+	removedcurrency_sub_account_routes        map[string]struct{}
+	clearedcurrency_sub_account_routes        bool
+	tax_code_sub_account_routes               map[string]struct{}
+	removedtax_code_sub_account_routes        map[string]struct{}
+	clearedtax_code_sub_account_routes        bool
+	features_sub_account_routes               map[string]struct{}
+	removedfeatures_sub_account_routes        map[string]struct{}
+	clearedfeatures_sub_account_routes        bool
+	credit_priority_sub_account_routes        map[string]struct{}
+	removedcredit_priority_sub_account_routes map[string]struct{}
+	clearedcredit_priority_sub_account_routes bool
+	done                                      bool
+	oldValue                                  func(context.Context) (*LedgerDimension, error)
+	predicates                                []predicate.LedgerDimension
 }
 
 var _ ent.Mutation = (*LedgerDimensionMutation)(nil)
@@ -56285,274 +56370,274 @@ func (m *LedgerDimensionMutation) ResetDimensionDisplayValue() {
 	m.dimension_display_value = nil
 }
 
-// AddSubAccountIDs adds the "sub_accounts" edge to the LedgerSubAccount entity by ids.
-func (m *LedgerDimensionMutation) AddSubAccountIDs(ids ...string) {
-	if m.sub_accounts == nil {
-		m.sub_accounts = make(map[string]struct{})
+// AddSubAccountRouteIDs adds the "sub_account_routes" edge to the LedgerSubAccountRoute entity by ids.
+func (m *LedgerDimensionMutation) AddSubAccountRouteIDs(ids ...string) {
+	if m.sub_account_routes == nil {
+		m.sub_account_routes = make(map[string]struct{})
 	}
 	for i := range ids {
-		m.sub_accounts[ids[i]] = struct{}{}
+		m.sub_account_routes[ids[i]] = struct{}{}
 	}
 }
 
-// ClearSubAccounts clears the "sub_accounts" edge to the LedgerSubAccount entity.
-func (m *LedgerDimensionMutation) ClearSubAccounts() {
-	m.clearedsub_accounts = true
+// ClearSubAccountRoutes clears the "sub_account_routes" edge to the LedgerSubAccountRoute entity.
+func (m *LedgerDimensionMutation) ClearSubAccountRoutes() {
+	m.clearedsub_account_routes = true
 }
 
-// SubAccountsCleared reports if the "sub_accounts" edge to the LedgerSubAccount entity was cleared.
-func (m *LedgerDimensionMutation) SubAccountsCleared() bool {
-	return m.clearedsub_accounts
+// SubAccountRoutesCleared reports if the "sub_account_routes" edge to the LedgerSubAccountRoute entity was cleared.
+func (m *LedgerDimensionMutation) SubAccountRoutesCleared() bool {
+	return m.clearedsub_account_routes
 }
 
-// RemoveSubAccountIDs removes the "sub_accounts" edge to the LedgerSubAccount entity by IDs.
-func (m *LedgerDimensionMutation) RemoveSubAccountIDs(ids ...string) {
-	if m.removedsub_accounts == nil {
-		m.removedsub_accounts = make(map[string]struct{})
+// RemoveSubAccountRouteIDs removes the "sub_account_routes" edge to the LedgerSubAccountRoute entity by IDs.
+func (m *LedgerDimensionMutation) RemoveSubAccountRouteIDs(ids ...string) {
+	if m.removedsub_account_routes == nil {
+		m.removedsub_account_routes = make(map[string]struct{})
 	}
 	for i := range ids {
-		delete(m.sub_accounts, ids[i])
-		m.removedsub_accounts[ids[i]] = struct{}{}
+		delete(m.sub_account_routes, ids[i])
+		m.removedsub_account_routes[ids[i]] = struct{}{}
 	}
 }
 
-// RemovedSubAccounts returns the removed IDs of the "sub_accounts" edge to the LedgerSubAccount entity.
-func (m *LedgerDimensionMutation) RemovedSubAccountsIDs() (ids []string) {
-	for id := range m.removedsub_accounts {
+// RemovedSubAccountRoutes returns the removed IDs of the "sub_account_routes" edge to the LedgerSubAccountRoute entity.
+func (m *LedgerDimensionMutation) RemovedSubAccountRoutesIDs() (ids []string) {
+	for id := range m.removedsub_account_routes {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// SubAccountsIDs returns the "sub_accounts" edge IDs in the mutation.
-func (m *LedgerDimensionMutation) SubAccountsIDs() (ids []string) {
-	for id := range m.sub_accounts {
+// SubAccountRoutesIDs returns the "sub_account_routes" edge IDs in the mutation.
+func (m *LedgerDimensionMutation) SubAccountRoutesIDs() (ids []string) {
+	for id := range m.sub_account_routes {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// ResetSubAccounts resets all changes to the "sub_accounts" edge.
-func (m *LedgerDimensionMutation) ResetSubAccounts() {
-	m.sub_accounts = nil
-	m.clearedsub_accounts = false
-	m.removedsub_accounts = nil
+// ResetSubAccountRoutes resets all changes to the "sub_account_routes" edge.
+func (m *LedgerDimensionMutation) ResetSubAccountRoutes() {
+	m.sub_account_routes = nil
+	m.clearedsub_account_routes = false
+	m.removedsub_account_routes = nil
 }
 
-// AddCurrencySubAccountIDs adds the "currency_sub_accounts" edge to the LedgerSubAccount entity by ids.
-func (m *LedgerDimensionMutation) AddCurrencySubAccountIDs(ids ...string) {
-	if m.currency_sub_accounts == nil {
-		m.currency_sub_accounts = make(map[string]struct{})
+// AddCurrencySubAccountRouteIDs adds the "currency_sub_account_routes" edge to the LedgerSubAccountRoute entity by ids.
+func (m *LedgerDimensionMutation) AddCurrencySubAccountRouteIDs(ids ...string) {
+	if m.currency_sub_account_routes == nil {
+		m.currency_sub_account_routes = make(map[string]struct{})
 	}
 	for i := range ids {
-		m.currency_sub_accounts[ids[i]] = struct{}{}
+		m.currency_sub_account_routes[ids[i]] = struct{}{}
 	}
 }
 
-// ClearCurrencySubAccounts clears the "currency_sub_accounts" edge to the LedgerSubAccount entity.
-func (m *LedgerDimensionMutation) ClearCurrencySubAccounts() {
-	m.clearedcurrency_sub_accounts = true
+// ClearCurrencySubAccountRoutes clears the "currency_sub_account_routes" edge to the LedgerSubAccountRoute entity.
+func (m *LedgerDimensionMutation) ClearCurrencySubAccountRoutes() {
+	m.clearedcurrency_sub_account_routes = true
 }
 
-// CurrencySubAccountsCleared reports if the "currency_sub_accounts" edge to the LedgerSubAccount entity was cleared.
-func (m *LedgerDimensionMutation) CurrencySubAccountsCleared() bool {
-	return m.clearedcurrency_sub_accounts
+// CurrencySubAccountRoutesCleared reports if the "currency_sub_account_routes" edge to the LedgerSubAccountRoute entity was cleared.
+func (m *LedgerDimensionMutation) CurrencySubAccountRoutesCleared() bool {
+	return m.clearedcurrency_sub_account_routes
 }
 
-// RemoveCurrencySubAccountIDs removes the "currency_sub_accounts" edge to the LedgerSubAccount entity by IDs.
-func (m *LedgerDimensionMutation) RemoveCurrencySubAccountIDs(ids ...string) {
-	if m.removedcurrency_sub_accounts == nil {
-		m.removedcurrency_sub_accounts = make(map[string]struct{})
-	}
-	for i := range ids {
-		delete(m.currency_sub_accounts, ids[i])
-		m.removedcurrency_sub_accounts[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedCurrencySubAccounts returns the removed IDs of the "currency_sub_accounts" edge to the LedgerSubAccount entity.
-func (m *LedgerDimensionMutation) RemovedCurrencySubAccountsIDs() (ids []string) {
-	for id := range m.removedcurrency_sub_accounts {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// CurrencySubAccountsIDs returns the "currency_sub_accounts" edge IDs in the mutation.
-func (m *LedgerDimensionMutation) CurrencySubAccountsIDs() (ids []string) {
-	for id := range m.currency_sub_accounts {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetCurrencySubAccounts resets all changes to the "currency_sub_accounts" edge.
-func (m *LedgerDimensionMutation) ResetCurrencySubAccounts() {
-	m.currency_sub_accounts = nil
-	m.clearedcurrency_sub_accounts = false
-	m.removedcurrency_sub_accounts = nil
-}
-
-// AddTaxCodeSubAccountIDs adds the "tax_code_sub_accounts" edge to the LedgerSubAccount entity by ids.
-func (m *LedgerDimensionMutation) AddTaxCodeSubAccountIDs(ids ...string) {
-	if m.tax_code_sub_accounts == nil {
-		m.tax_code_sub_accounts = make(map[string]struct{})
+// RemoveCurrencySubAccountRouteIDs removes the "currency_sub_account_routes" edge to the LedgerSubAccountRoute entity by IDs.
+func (m *LedgerDimensionMutation) RemoveCurrencySubAccountRouteIDs(ids ...string) {
+	if m.removedcurrency_sub_account_routes == nil {
+		m.removedcurrency_sub_account_routes = make(map[string]struct{})
 	}
 	for i := range ids {
-		m.tax_code_sub_accounts[ids[i]] = struct{}{}
+		delete(m.currency_sub_account_routes, ids[i])
+		m.removedcurrency_sub_account_routes[ids[i]] = struct{}{}
 	}
 }
 
-// ClearTaxCodeSubAccounts clears the "tax_code_sub_accounts" edge to the LedgerSubAccount entity.
-func (m *LedgerDimensionMutation) ClearTaxCodeSubAccounts() {
-	m.clearedtax_code_sub_accounts = true
+// RemovedCurrencySubAccountRoutes returns the removed IDs of the "currency_sub_account_routes" edge to the LedgerSubAccountRoute entity.
+func (m *LedgerDimensionMutation) RemovedCurrencySubAccountRoutesIDs() (ids []string) {
+	for id := range m.removedcurrency_sub_account_routes {
+		ids = append(ids, id)
+	}
+	return
 }
 
-// TaxCodeSubAccountsCleared reports if the "tax_code_sub_accounts" edge to the LedgerSubAccount entity was cleared.
-func (m *LedgerDimensionMutation) TaxCodeSubAccountsCleared() bool {
-	return m.clearedtax_code_sub_accounts
+// CurrencySubAccountRoutesIDs returns the "currency_sub_account_routes" edge IDs in the mutation.
+func (m *LedgerDimensionMutation) CurrencySubAccountRoutesIDs() (ids []string) {
+	for id := range m.currency_sub_account_routes {
+		ids = append(ids, id)
+	}
+	return
 }
 
-// RemoveTaxCodeSubAccountIDs removes the "tax_code_sub_accounts" edge to the LedgerSubAccount entity by IDs.
-func (m *LedgerDimensionMutation) RemoveTaxCodeSubAccountIDs(ids ...string) {
-	if m.removedtax_code_sub_accounts == nil {
-		m.removedtax_code_sub_accounts = make(map[string]struct{})
+// ResetCurrencySubAccountRoutes resets all changes to the "currency_sub_account_routes" edge.
+func (m *LedgerDimensionMutation) ResetCurrencySubAccountRoutes() {
+	m.currency_sub_account_routes = nil
+	m.clearedcurrency_sub_account_routes = false
+	m.removedcurrency_sub_account_routes = nil
+}
+
+// AddTaxCodeSubAccountRouteIDs adds the "tax_code_sub_account_routes" edge to the LedgerSubAccountRoute entity by ids.
+func (m *LedgerDimensionMutation) AddTaxCodeSubAccountRouteIDs(ids ...string) {
+	if m.tax_code_sub_account_routes == nil {
+		m.tax_code_sub_account_routes = make(map[string]struct{})
 	}
 	for i := range ids {
-		delete(m.tax_code_sub_accounts, ids[i])
-		m.removedtax_code_sub_accounts[ids[i]] = struct{}{}
+		m.tax_code_sub_account_routes[ids[i]] = struct{}{}
 	}
 }
 
-// RemovedTaxCodeSubAccounts returns the removed IDs of the "tax_code_sub_accounts" edge to the LedgerSubAccount entity.
-func (m *LedgerDimensionMutation) RemovedTaxCodeSubAccountsIDs() (ids []string) {
-	for id := range m.removedtax_code_sub_accounts {
-		ids = append(ids, id)
-	}
-	return
+// ClearTaxCodeSubAccountRoutes clears the "tax_code_sub_account_routes" edge to the LedgerSubAccountRoute entity.
+func (m *LedgerDimensionMutation) ClearTaxCodeSubAccountRoutes() {
+	m.clearedtax_code_sub_account_routes = true
 }
 
-// TaxCodeSubAccountsIDs returns the "tax_code_sub_accounts" edge IDs in the mutation.
-func (m *LedgerDimensionMutation) TaxCodeSubAccountsIDs() (ids []string) {
-	for id := range m.tax_code_sub_accounts {
-		ids = append(ids, id)
-	}
-	return
+// TaxCodeSubAccountRoutesCleared reports if the "tax_code_sub_account_routes" edge to the LedgerSubAccountRoute entity was cleared.
+func (m *LedgerDimensionMutation) TaxCodeSubAccountRoutesCleared() bool {
+	return m.clearedtax_code_sub_account_routes
 }
 
-// ResetTaxCodeSubAccounts resets all changes to the "tax_code_sub_accounts" edge.
-func (m *LedgerDimensionMutation) ResetTaxCodeSubAccounts() {
-	m.tax_code_sub_accounts = nil
-	m.clearedtax_code_sub_accounts = false
-	m.removedtax_code_sub_accounts = nil
-}
-
-// AddFeaturesSubAccountIDs adds the "features_sub_accounts" edge to the LedgerSubAccount entity by ids.
-func (m *LedgerDimensionMutation) AddFeaturesSubAccountIDs(ids ...string) {
-	if m.features_sub_accounts == nil {
-		m.features_sub_accounts = make(map[string]struct{})
+// RemoveTaxCodeSubAccountRouteIDs removes the "tax_code_sub_account_routes" edge to the LedgerSubAccountRoute entity by IDs.
+func (m *LedgerDimensionMutation) RemoveTaxCodeSubAccountRouteIDs(ids ...string) {
+	if m.removedtax_code_sub_account_routes == nil {
+		m.removedtax_code_sub_account_routes = make(map[string]struct{})
 	}
 	for i := range ids {
-		m.features_sub_accounts[ids[i]] = struct{}{}
+		delete(m.tax_code_sub_account_routes, ids[i])
+		m.removedtax_code_sub_account_routes[ids[i]] = struct{}{}
 	}
 }
 
-// ClearFeaturesSubAccounts clears the "features_sub_accounts" edge to the LedgerSubAccount entity.
-func (m *LedgerDimensionMutation) ClearFeaturesSubAccounts() {
-	m.clearedfeatures_sub_accounts = true
+// RemovedTaxCodeSubAccountRoutes returns the removed IDs of the "tax_code_sub_account_routes" edge to the LedgerSubAccountRoute entity.
+func (m *LedgerDimensionMutation) RemovedTaxCodeSubAccountRoutesIDs() (ids []string) {
+	for id := range m.removedtax_code_sub_account_routes {
+		ids = append(ids, id)
+	}
+	return
 }
 
-// FeaturesSubAccountsCleared reports if the "features_sub_accounts" edge to the LedgerSubAccount entity was cleared.
-func (m *LedgerDimensionMutation) FeaturesSubAccountsCleared() bool {
-	return m.clearedfeatures_sub_accounts
+// TaxCodeSubAccountRoutesIDs returns the "tax_code_sub_account_routes" edge IDs in the mutation.
+func (m *LedgerDimensionMutation) TaxCodeSubAccountRoutesIDs() (ids []string) {
+	for id := range m.tax_code_sub_account_routes {
+		ids = append(ids, id)
+	}
+	return
 }
 
-// RemoveFeaturesSubAccountIDs removes the "features_sub_accounts" edge to the LedgerSubAccount entity by IDs.
-func (m *LedgerDimensionMutation) RemoveFeaturesSubAccountIDs(ids ...string) {
-	if m.removedfeatures_sub_accounts == nil {
-		m.removedfeatures_sub_accounts = make(map[string]struct{})
+// ResetTaxCodeSubAccountRoutes resets all changes to the "tax_code_sub_account_routes" edge.
+func (m *LedgerDimensionMutation) ResetTaxCodeSubAccountRoutes() {
+	m.tax_code_sub_account_routes = nil
+	m.clearedtax_code_sub_account_routes = false
+	m.removedtax_code_sub_account_routes = nil
+}
+
+// AddFeaturesSubAccountRouteIDs adds the "features_sub_account_routes" edge to the LedgerSubAccountRoute entity by ids.
+func (m *LedgerDimensionMutation) AddFeaturesSubAccountRouteIDs(ids ...string) {
+	if m.features_sub_account_routes == nil {
+		m.features_sub_account_routes = make(map[string]struct{})
 	}
 	for i := range ids {
-		delete(m.features_sub_accounts, ids[i])
-		m.removedfeatures_sub_accounts[ids[i]] = struct{}{}
+		m.features_sub_account_routes[ids[i]] = struct{}{}
 	}
 }
 
-// RemovedFeaturesSubAccounts returns the removed IDs of the "features_sub_accounts" edge to the LedgerSubAccount entity.
-func (m *LedgerDimensionMutation) RemovedFeaturesSubAccountsIDs() (ids []string) {
-	for id := range m.removedfeatures_sub_accounts {
-		ids = append(ids, id)
-	}
-	return
+// ClearFeaturesSubAccountRoutes clears the "features_sub_account_routes" edge to the LedgerSubAccountRoute entity.
+func (m *LedgerDimensionMutation) ClearFeaturesSubAccountRoutes() {
+	m.clearedfeatures_sub_account_routes = true
 }
 
-// FeaturesSubAccountsIDs returns the "features_sub_accounts" edge IDs in the mutation.
-func (m *LedgerDimensionMutation) FeaturesSubAccountsIDs() (ids []string) {
-	for id := range m.features_sub_accounts {
-		ids = append(ids, id)
-	}
-	return
+// FeaturesSubAccountRoutesCleared reports if the "features_sub_account_routes" edge to the LedgerSubAccountRoute entity was cleared.
+func (m *LedgerDimensionMutation) FeaturesSubAccountRoutesCleared() bool {
+	return m.clearedfeatures_sub_account_routes
 }
 
-// ResetFeaturesSubAccounts resets all changes to the "features_sub_accounts" edge.
-func (m *LedgerDimensionMutation) ResetFeaturesSubAccounts() {
-	m.features_sub_accounts = nil
-	m.clearedfeatures_sub_accounts = false
-	m.removedfeatures_sub_accounts = nil
-}
-
-// AddCreditPrioritySubAccountIDs adds the "credit_priority_sub_accounts" edge to the LedgerSubAccount entity by ids.
-func (m *LedgerDimensionMutation) AddCreditPrioritySubAccountIDs(ids ...string) {
-	if m.credit_priority_sub_accounts == nil {
-		m.credit_priority_sub_accounts = make(map[string]struct{})
+// RemoveFeaturesSubAccountRouteIDs removes the "features_sub_account_routes" edge to the LedgerSubAccountRoute entity by IDs.
+func (m *LedgerDimensionMutation) RemoveFeaturesSubAccountRouteIDs(ids ...string) {
+	if m.removedfeatures_sub_account_routes == nil {
+		m.removedfeatures_sub_account_routes = make(map[string]struct{})
 	}
 	for i := range ids {
-		m.credit_priority_sub_accounts[ids[i]] = struct{}{}
+		delete(m.features_sub_account_routes, ids[i])
+		m.removedfeatures_sub_account_routes[ids[i]] = struct{}{}
 	}
 }
 
-// ClearCreditPrioritySubAccounts clears the "credit_priority_sub_accounts" edge to the LedgerSubAccount entity.
-func (m *LedgerDimensionMutation) ClearCreditPrioritySubAccounts() {
-	m.clearedcredit_priority_sub_accounts = true
+// RemovedFeaturesSubAccountRoutes returns the removed IDs of the "features_sub_account_routes" edge to the LedgerSubAccountRoute entity.
+func (m *LedgerDimensionMutation) RemovedFeaturesSubAccountRoutesIDs() (ids []string) {
+	for id := range m.removedfeatures_sub_account_routes {
+		ids = append(ids, id)
+	}
+	return
 }
 
-// CreditPrioritySubAccountsCleared reports if the "credit_priority_sub_accounts" edge to the LedgerSubAccount entity was cleared.
-func (m *LedgerDimensionMutation) CreditPrioritySubAccountsCleared() bool {
-	return m.clearedcredit_priority_sub_accounts
+// FeaturesSubAccountRoutesIDs returns the "features_sub_account_routes" edge IDs in the mutation.
+func (m *LedgerDimensionMutation) FeaturesSubAccountRoutesIDs() (ids []string) {
+	for id := range m.features_sub_account_routes {
+		ids = append(ids, id)
+	}
+	return
 }
 
-// RemoveCreditPrioritySubAccountIDs removes the "credit_priority_sub_accounts" edge to the LedgerSubAccount entity by IDs.
-func (m *LedgerDimensionMutation) RemoveCreditPrioritySubAccountIDs(ids ...string) {
-	if m.removedcredit_priority_sub_accounts == nil {
-		m.removedcredit_priority_sub_accounts = make(map[string]struct{})
+// ResetFeaturesSubAccountRoutes resets all changes to the "features_sub_account_routes" edge.
+func (m *LedgerDimensionMutation) ResetFeaturesSubAccountRoutes() {
+	m.features_sub_account_routes = nil
+	m.clearedfeatures_sub_account_routes = false
+	m.removedfeatures_sub_account_routes = nil
+}
+
+// AddCreditPrioritySubAccountRouteIDs adds the "credit_priority_sub_account_routes" edge to the LedgerSubAccountRoute entity by ids.
+func (m *LedgerDimensionMutation) AddCreditPrioritySubAccountRouteIDs(ids ...string) {
+	if m.credit_priority_sub_account_routes == nil {
+		m.credit_priority_sub_account_routes = make(map[string]struct{})
 	}
 	for i := range ids {
-		delete(m.credit_priority_sub_accounts, ids[i])
-		m.removedcredit_priority_sub_accounts[ids[i]] = struct{}{}
+		m.credit_priority_sub_account_routes[ids[i]] = struct{}{}
 	}
 }
 
-// RemovedCreditPrioritySubAccounts returns the removed IDs of the "credit_priority_sub_accounts" edge to the LedgerSubAccount entity.
-func (m *LedgerDimensionMutation) RemovedCreditPrioritySubAccountsIDs() (ids []string) {
-	for id := range m.removedcredit_priority_sub_accounts {
+// ClearCreditPrioritySubAccountRoutes clears the "credit_priority_sub_account_routes" edge to the LedgerSubAccountRoute entity.
+func (m *LedgerDimensionMutation) ClearCreditPrioritySubAccountRoutes() {
+	m.clearedcredit_priority_sub_account_routes = true
+}
+
+// CreditPrioritySubAccountRoutesCleared reports if the "credit_priority_sub_account_routes" edge to the LedgerSubAccountRoute entity was cleared.
+func (m *LedgerDimensionMutation) CreditPrioritySubAccountRoutesCleared() bool {
+	return m.clearedcredit_priority_sub_account_routes
+}
+
+// RemoveCreditPrioritySubAccountRouteIDs removes the "credit_priority_sub_account_routes" edge to the LedgerSubAccountRoute entity by IDs.
+func (m *LedgerDimensionMutation) RemoveCreditPrioritySubAccountRouteIDs(ids ...string) {
+	if m.removedcredit_priority_sub_account_routes == nil {
+		m.removedcredit_priority_sub_account_routes = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.credit_priority_sub_account_routes, ids[i])
+		m.removedcredit_priority_sub_account_routes[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedCreditPrioritySubAccountRoutes returns the removed IDs of the "credit_priority_sub_account_routes" edge to the LedgerSubAccountRoute entity.
+func (m *LedgerDimensionMutation) RemovedCreditPrioritySubAccountRoutesIDs() (ids []string) {
+	for id := range m.removedcredit_priority_sub_account_routes {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// CreditPrioritySubAccountsIDs returns the "credit_priority_sub_accounts" edge IDs in the mutation.
-func (m *LedgerDimensionMutation) CreditPrioritySubAccountsIDs() (ids []string) {
-	for id := range m.credit_priority_sub_accounts {
+// CreditPrioritySubAccountRoutesIDs returns the "credit_priority_sub_account_routes" edge IDs in the mutation.
+func (m *LedgerDimensionMutation) CreditPrioritySubAccountRoutesIDs() (ids []string) {
+	for id := range m.credit_priority_sub_account_routes {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// ResetCreditPrioritySubAccounts resets all changes to the "credit_priority_sub_accounts" edge.
-func (m *LedgerDimensionMutation) ResetCreditPrioritySubAccounts() {
-	m.credit_priority_sub_accounts = nil
-	m.clearedcredit_priority_sub_accounts = false
-	m.removedcredit_priority_sub_accounts = nil
+// ResetCreditPrioritySubAccountRoutes resets all changes to the "credit_priority_sub_account_routes" edge.
+func (m *LedgerDimensionMutation) ResetCreditPrioritySubAccountRoutes() {
+	m.credit_priority_sub_account_routes = nil
+	m.clearedcredit_priority_sub_account_routes = false
+	m.removedcredit_priority_sub_account_routes = nil
 }
 
 // Where appends a list predicates to the LedgerDimensionMutation builder.
@@ -56823,20 +56908,20 @@ func (m *LedgerDimensionMutation) ResetField(name string) error {
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *LedgerDimensionMutation) AddedEdges() []string {
 	edges := make([]string, 0, 5)
-	if m.sub_accounts != nil {
-		edges = append(edges, ledgerdimension.EdgeSubAccounts)
+	if m.sub_account_routes != nil {
+		edges = append(edges, ledgerdimension.EdgeSubAccountRoutes)
 	}
-	if m.currency_sub_accounts != nil {
-		edges = append(edges, ledgerdimension.EdgeCurrencySubAccounts)
+	if m.currency_sub_account_routes != nil {
+		edges = append(edges, ledgerdimension.EdgeCurrencySubAccountRoutes)
 	}
-	if m.tax_code_sub_accounts != nil {
-		edges = append(edges, ledgerdimension.EdgeTaxCodeSubAccounts)
+	if m.tax_code_sub_account_routes != nil {
+		edges = append(edges, ledgerdimension.EdgeTaxCodeSubAccountRoutes)
 	}
-	if m.features_sub_accounts != nil {
-		edges = append(edges, ledgerdimension.EdgeFeaturesSubAccounts)
+	if m.features_sub_account_routes != nil {
+		edges = append(edges, ledgerdimension.EdgeFeaturesSubAccountRoutes)
 	}
-	if m.credit_priority_sub_accounts != nil {
-		edges = append(edges, ledgerdimension.EdgeCreditPrioritySubAccounts)
+	if m.credit_priority_sub_account_routes != nil {
+		edges = append(edges, ledgerdimension.EdgeCreditPrioritySubAccountRoutes)
 	}
 	return edges
 }
@@ -56845,33 +56930,33 @@ func (m *LedgerDimensionMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *LedgerDimensionMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case ledgerdimension.EdgeSubAccounts:
-		ids := make([]ent.Value, 0, len(m.sub_accounts))
-		for id := range m.sub_accounts {
+	case ledgerdimension.EdgeSubAccountRoutes:
+		ids := make([]ent.Value, 0, len(m.sub_account_routes))
+		for id := range m.sub_account_routes {
 			ids = append(ids, id)
 		}
 		return ids
-	case ledgerdimension.EdgeCurrencySubAccounts:
-		ids := make([]ent.Value, 0, len(m.currency_sub_accounts))
-		for id := range m.currency_sub_accounts {
+	case ledgerdimension.EdgeCurrencySubAccountRoutes:
+		ids := make([]ent.Value, 0, len(m.currency_sub_account_routes))
+		for id := range m.currency_sub_account_routes {
 			ids = append(ids, id)
 		}
 		return ids
-	case ledgerdimension.EdgeTaxCodeSubAccounts:
-		ids := make([]ent.Value, 0, len(m.tax_code_sub_accounts))
-		for id := range m.tax_code_sub_accounts {
+	case ledgerdimension.EdgeTaxCodeSubAccountRoutes:
+		ids := make([]ent.Value, 0, len(m.tax_code_sub_account_routes))
+		for id := range m.tax_code_sub_account_routes {
 			ids = append(ids, id)
 		}
 		return ids
-	case ledgerdimension.EdgeFeaturesSubAccounts:
-		ids := make([]ent.Value, 0, len(m.features_sub_accounts))
-		for id := range m.features_sub_accounts {
+	case ledgerdimension.EdgeFeaturesSubAccountRoutes:
+		ids := make([]ent.Value, 0, len(m.features_sub_account_routes))
+		for id := range m.features_sub_account_routes {
 			ids = append(ids, id)
 		}
 		return ids
-	case ledgerdimension.EdgeCreditPrioritySubAccounts:
-		ids := make([]ent.Value, 0, len(m.credit_priority_sub_accounts))
-		for id := range m.credit_priority_sub_accounts {
+	case ledgerdimension.EdgeCreditPrioritySubAccountRoutes:
+		ids := make([]ent.Value, 0, len(m.credit_priority_sub_account_routes))
+		for id := range m.credit_priority_sub_account_routes {
 			ids = append(ids, id)
 		}
 		return ids
@@ -56882,20 +56967,20 @@ func (m *LedgerDimensionMutation) AddedIDs(name string) []ent.Value {
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LedgerDimensionMutation) RemovedEdges() []string {
 	edges := make([]string, 0, 5)
-	if m.removedsub_accounts != nil {
-		edges = append(edges, ledgerdimension.EdgeSubAccounts)
+	if m.removedsub_account_routes != nil {
+		edges = append(edges, ledgerdimension.EdgeSubAccountRoutes)
 	}
-	if m.removedcurrency_sub_accounts != nil {
-		edges = append(edges, ledgerdimension.EdgeCurrencySubAccounts)
+	if m.removedcurrency_sub_account_routes != nil {
+		edges = append(edges, ledgerdimension.EdgeCurrencySubAccountRoutes)
 	}
-	if m.removedtax_code_sub_accounts != nil {
-		edges = append(edges, ledgerdimension.EdgeTaxCodeSubAccounts)
+	if m.removedtax_code_sub_account_routes != nil {
+		edges = append(edges, ledgerdimension.EdgeTaxCodeSubAccountRoutes)
 	}
-	if m.removedfeatures_sub_accounts != nil {
-		edges = append(edges, ledgerdimension.EdgeFeaturesSubAccounts)
+	if m.removedfeatures_sub_account_routes != nil {
+		edges = append(edges, ledgerdimension.EdgeFeaturesSubAccountRoutes)
 	}
-	if m.removedcredit_priority_sub_accounts != nil {
-		edges = append(edges, ledgerdimension.EdgeCreditPrioritySubAccounts)
+	if m.removedcredit_priority_sub_account_routes != nil {
+		edges = append(edges, ledgerdimension.EdgeCreditPrioritySubAccountRoutes)
 	}
 	return edges
 }
@@ -56904,33 +56989,33 @@ func (m *LedgerDimensionMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *LedgerDimensionMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
-	case ledgerdimension.EdgeSubAccounts:
-		ids := make([]ent.Value, 0, len(m.removedsub_accounts))
-		for id := range m.removedsub_accounts {
+	case ledgerdimension.EdgeSubAccountRoutes:
+		ids := make([]ent.Value, 0, len(m.removedsub_account_routes))
+		for id := range m.removedsub_account_routes {
 			ids = append(ids, id)
 		}
 		return ids
-	case ledgerdimension.EdgeCurrencySubAccounts:
-		ids := make([]ent.Value, 0, len(m.removedcurrency_sub_accounts))
-		for id := range m.removedcurrency_sub_accounts {
+	case ledgerdimension.EdgeCurrencySubAccountRoutes:
+		ids := make([]ent.Value, 0, len(m.removedcurrency_sub_account_routes))
+		for id := range m.removedcurrency_sub_account_routes {
 			ids = append(ids, id)
 		}
 		return ids
-	case ledgerdimension.EdgeTaxCodeSubAccounts:
-		ids := make([]ent.Value, 0, len(m.removedtax_code_sub_accounts))
-		for id := range m.removedtax_code_sub_accounts {
+	case ledgerdimension.EdgeTaxCodeSubAccountRoutes:
+		ids := make([]ent.Value, 0, len(m.removedtax_code_sub_account_routes))
+		for id := range m.removedtax_code_sub_account_routes {
 			ids = append(ids, id)
 		}
 		return ids
-	case ledgerdimension.EdgeFeaturesSubAccounts:
-		ids := make([]ent.Value, 0, len(m.removedfeatures_sub_accounts))
-		for id := range m.removedfeatures_sub_accounts {
+	case ledgerdimension.EdgeFeaturesSubAccountRoutes:
+		ids := make([]ent.Value, 0, len(m.removedfeatures_sub_account_routes))
+		for id := range m.removedfeatures_sub_account_routes {
 			ids = append(ids, id)
 		}
 		return ids
-	case ledgerdimension.EdgeCreditPrioritySubAccounts:
-		ids := make([]ent.Value, 0, len(m.removedcredit_priority_sub_accounts))
-		for id := range m.removedcredit_priority_sub_accounts {
+	case ledgerdimension.EdgeCreditPrioritySubAccountRoutes:
+		ids := make([]ent.Value, 0, len(m.removedcredit_priority_sub_account_routes))
+		for id := range m.removedcredit_priority_sub_account_routes {
 			ids = append(ids, id)
 		}
 		return ids
@@ -56941,20 +57026,20 @@ func (m *LedgerDimensionMutation) RemovedIDs(name string) []ent.Value {
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *LedgerDimensionMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 5)
-	if m.clearedsub_accounts {
-		edges = append(edges, ledgerdimension.EdgeSubAccounts)
+	if m.clearedsub_account_routes {
+		edges = append(edges, ledgerdimension.EdgeSubAccountRoutes)
 	}
-	if m.clearedcurrency_sub_accounts {
-		edges = append(edges, ledgerdimension.EdgeCurrencySubAccounts)
+	if m.clearedcurrency_sub_account_routes {
+		edges = append(edges, ledgerdimension.EdgeCurrencySubAccountRoutes)
 	}
-	if m.clearedtax_code_sub_accounts {
-		edges = append(edges, ledgerdimension.EdgeTaxCodeSubAccounts)
+	if m.clearedtax_code_sub_account_routes {
+		edges = append(edges, ledgerdimension.EdgeTaxCodeSubAccountRoutes)
 	}
-	if m.clearedfeatures_sub_accounts {
-		edges = append(edges, ledgerdimension.EdgeFeaturesSubAccounts)
+	if m.clearedfeatures_sub_account_routes {
+		edges = append(edges, ledgerdimension.EdgeFeaturesSubAccountRoutes)
 	}
-	if m.clearedcredit_priority_sub_accounts {
-		edges = append(edges, ledgerdimension.EdgeCreditPrioritySubAccounts)
+	if m.clearedcredit_priority_sub_account_routes {
+		edges = append(edges, ledgerdimension.EdgeCreditPrioritySubAccountRoutes)
 	}
 	return edges
 }
@@ -56963,16 +57048,16 @@ func (m *LedgerDimensionMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *LedgerDimensionMutation) EdgeCleared(name string) bool {
 	switch name {
-	case ledgerdimension.EdgeSubAccounts:
-		return m.clearedsub_accounts
-	case ledgerdimension.EdgeCurrencySubAccounts:
-		return m.clearedcurrency_sub_accounts
-	case ledgerdimension.EdgeTaxCodeSubAccounts:
-		return m.clearedtax_code_sub_accounts
-	case ledgerdimension.EdgeFeaturesSubAccounts:
-		return m.clearedfeatures_sub_accounts
-	case ledgerdimension.EdgeCreditPrioritySubAccounts:
-		return m.clearedcredit_priority_sub_accounts
+	case ledgerdimension.EdgeSubAccountRoutes:
+		return m.clearedsub_account_routes
+	case ledgerdimension.EdgeCurrencySubAccountRoutes:
+		return m.clearedcurrency_sub_account_routes
+	case ledgerdimension.EdgeTaxCodeSubAccountRoutes:
+		return m.clearedtax_code_sub_account_routes
+	case ledgerdimension.EdgeFeaturesSubAccountRoutes:
+		return m.clearedfeatures_sub_account_routes
+	case ledgerdimension.EdgeCreditPrioritySubAccountRoutes:
+		return m.clearedcredit_priority_sub_account_routes
 	}
 	return false
 }
@@ -56989,20 +57074,20 @@ func (m *LedgerDimensionMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *LedgerDimensionMutation) ResetEdge(name string) error {
 	switch name {
-	case ledgerdimension.EdgeSubAccounts:
-		m.ResetSubAccounts()
+	case ledgerdimension.EdgeSubAccountRoutes:
+		m.ResetSubAccountRoutes()
 		return nil
-	case ledgerdimension.EdgeCurrencySubAccounts:
-		m.ResetCurrencySubAccounts()
+	case ledgerdimension.EdgeCurrencySubAccountRoutes:
+		m.ResetCurrencySubAccountRoutes()
 		return nil
-	case ledgerdimension.EdgeTaxCodeSubAccounts:
-		m.ResetTaxCodeSubAccounts()
+	case ledgerdimension.EdgeTaxCodeSubAccountRoutes:
+		m.ResetTaxCodeSubAccountRoutes()
 		return nil
-	case ledgerdimension.EdgeFeaturesSubAccounts:
-		m.ResetFeaturesSubAccounts()
+	case ledgerdimension.EdgeFeaturesSubAccountRoutes:
+		m.ResetFeaturesSubAccountRoutes()
 		return nil
-	case ledgerdimension.EdgeCreditPrioritySubAccounts:
-		m.ResetCreditPrioritySubAccounts()
+	case ledgerdimension.EdgeCreditPrioritySubAccountRoutes:
+		m.ResetCreditPrioritySubAccountRoutes()
 		return nil
 	}
 	return fmt.Errorf("unknown LedgerDimension edge %s", name)
@@ -57862,31 +57947,25 @@ func (m *LedgerEntryMutation) ResetEdge(name string) error {
 // LedgerSubAccountMutation represents an operation that mutates the LedgerSubAccount nodes in the graph.
 type LedgerSubAccountMutation struct {
 	config
-	op                               Op
-	typ                              string
-	id                               *string
-	namespace                        *string
-	annotations                      *models.Annotations
-	created_at                       *time.Time
-	updated_at                       *time.Time
-	deleted_at                       *time.Time
-	clearedFields                    map[string]struct{}
-	account                          *string
-	clearedaccount                   bool
-	entries                          map[string]struct{}
-	removedentries                   map[string]struct{}
-	clearedentries                   bool
-	currency_dimension               *string
-	clearedcurrency_dimension        bool
-	tax_code_dimension               *string
-	clearedtax_code_dimension        bool
-	features_dimension               *string
-	clearedfeatures_dimension        bool
-	credit_priority_dimension        *string
-	clearedcredit_priority_dimension bool
-	done                             bool
-	oldValue                         func(context.Context) (*LedgerSubAccount, error)
-	predicates                       []predicate.LedgerSubAccount
+	op             Op
+	typ            string
+	id             *string
+	namespace      *string
+	annotations    *models.Annotations
+	created_at     *time.Time
+	updated_at     *time.Time
+	deleted_at     *time.Time
+	clearedFields  map[string]struct{}
+	account        *string
+	clearedaccount bool
+	route          *string
+	clearedroute   bool
+	entries        map[string]struct{}
+	removedentries map[string]struct{}
+	clearedentries bool
+	done           bool
+	oldValue       func(context.Context) (*LedgerSubAccount, error)
+	predicates     []predicate.LedgerSubAccount
 }
 
 var _ ent.Mutation = (*LedgerSubAccountMutation)(nil)
@@ -58235,187 +58314,40 @@ func (m *LedgerSubAccountMutation) ResetAccountID() {
 	m.account = nil
 }
 
-// SetCurrencyDimensionID sets the "currency_dimension_id" field.
-func (m *LedgerSubAccountMutation) SetCurrencyDimensionID(s string) {
-	m.currency_dimension = &s
+// SetRouteID sets the "route_id" field.
+func (m *LedgerSubAccountMutation) SetRouteID(s string) {
+	m.route = &s
 }
 
-// CurrencyDimensionID returns the value of the "currency_dimension_id" field in the mutation.
-func (m *LedgerSubAccountMutation) CurrencyDimensionID() (r string, exists bool) {
-	v := m.currency_dimension
+// RouteID returns the value of the "route_id" field in the mutation.
+func (m *LedgerSubAccountMutation) RouteID() (r string, exists bool) {
+	v := m.route
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldCurrencyDimensionID returns the old "currency_dimension_id" field's value of the LedgerSubAccount entity.
+// OldRouteID returns the old "route_id" field's value of the LedgerSubAccount entity.
 // If the LedgerSubAccount object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *LedgerSubAccountMutation) OldCurrencyDimensionID(ctx context.Context) (v string, err error) {
+func (m *LedgerSubAccountMutation) OldRouteID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCurrencyDimensionID is only allowed on UpdateOne operations")
+		return v, errors.New("OldRouteID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCurrencyDimensionID requires an ID field in the mutation")
+		return v, errors.New("OldRouteID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCurrencyDimensionID: %w", err)
+		return v, fmt.Errorf("querying old value for OldRouteID: %w", err)
 	}
-	return oldValue.CurrencyDimensionID, nil
+	return oldValue.RouteID, nil
 }
 
-// ResetCurrencyDimensionID resets all changes to the "currency_dimension_id" field.
-func (m *LedgerSubAccountMutation) ResetCurrencyDimensionID() {
-	m.currency_dimension = nil
-}
-
-// SetTaxCodeDimensionID sets the "tax_code_dimension_id" field.
-func (m *LedgerSubAccountMutation) SetTaxCodeDimensionID(s string) {
-	m.tax_code_dimension = &s
-}
-
-// TaxCodeDimensionID returns the value of the "tax_code_dimension_id" field in the mutation.
-func (m *LedgerSubAccountMutation) TaxCodeDimensionID() (r string, exists bool) {
-	v := m.tax_code_dimension
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxCodeDimensionID returns the old "tax_code_dimension_id" field's value of the LedgerSubAccount entity.
-// If the LedgerSubAccount object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *LedgerSubAccountMutation) OldTaxCodeDimensionID(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxCodeDimensionID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxCodeDimensionID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxCodeDimensionID: %w", err)
-	}
-	return oldValue.TaxCodeDimensionID, nil
-}
-
-// ClearTaxCodeDimensionID clears the value of the "tax_code_dimension_id" field.
-func (m *LedgerSubAccountMutation) ClearTaxCodeDimensionID() {
-	m.tax_code_dimension = nil
-	m.clearedFields[ledgersubaccount.FieldTaxCodeDimensionID] = struct{}{}
-}
-
-// TaxCodeDimensionIDCleared returns if the "tax_code_dimension_id" field was cleared in this mutation.
-func (m *LedgerSubAccountMutation) TaxCodeDimensionIDCleared() bool {
-	_, ok := m.clearedFields[ledgersubaccount.FieldTaxCodeDimensionID]
-	return ok
-}
-
-// ResetTaxCodeDimensionID resets all changes to the "tax_code_dimension_id" field.
-func (m *LedgerSubAccountMutation) ResetTaxCodeDimensionID() {
-	m.tax_code_dimension = nil
-	delete(m.clearedFields, ledgersubaccount.FieldTaxCodeDimensionID)
-}
-
-// SetFeaturesDimensionID sets the "features_dimension_id" field.
-func (m *LedgerSubAccountMutation) SetFeaturesDimensionID(s string) {
-	m.features_dimension = &s
-}
-
-// FeaturesDimensionID returns the value of the "features_dimension_id" field in the mutation.
-func (m *LedgerSubAccountMutation) FeaturesDimensionID() (r string, exists bool) {
-	v := m.features_dimension
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldFeaturesDimensionID returns the old "features_dimension_id" field's value of the LedgerSubAccount entity.
-// If the LedgerSubAccount object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *LedgerSubAccountMutation) OldFeaturesDimensionID(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldFeaturesDimensionID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldFeaturesDimensionID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldFeaturesDimensionID: %w", err)
-	}
-	return oldValue.FeaturesDimensionID, nil
-}
-
-// ClearFeaturesDimensionID clears the value of the "features_dimension_id" field.
-func (m *LedgerSubAccountMutation) ClearFeaturesDimensionID() {
-	m.features_dimension = nil
-	m.clearedFields[ledgersubaccount.FieldFeaturesDimensionID] = struct{}{}
-}
-
-// FeaturesDimensionIDCleared returns if the "features_dimension_id" field was cleared in this mutation.
-func (m *LedgerSubAccountMutation) FeaturesDimensionIDCleared() bool {
-	_, ok := m.clearedFields[ledgersubaccount.FieldFeaturesDimensionID]
-	return ok
-}
-
-// ResetFeaturesDimensionID resets all changes to the "features_dimension_id" field.
-func (m *LedgerSubAccountMutation) ResetFeaturesDimensionID() {
-	m.features_dimension = nil
-	delete(m.clearedFields, ledgersubaccount.FieldFeaturesDimensionID)
-}
-
-// SetCreditPriorityDimensionID sets the "credit_priority_dimension_id" field.
-func (m *LedgerSubAccountMutation) SetCreditPriorityDimensionID(s string) {
-	m.credit_priority_dimension = &s
-}
-
-// CreditPriorityDimensionID returns the value of the "credit_priority_dimension_id" field in the mutation.
-func (m *LedgerSubAccountMutation) CreditPriorityDimensionID() (r string, exists bool) {
-	v := m.credit_priority_dimension
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCreditPriorityDimensionID returns the old "credit_priority_dimension_id" field's value of the LedgerSubAccount entity.
-// If the LedgerSubAccount object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *LedgerSubAccountMutation) OldCreditPriorityDimensionID(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreditPriorityDimensionID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreditPriorityDimensionID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreditPriorityDimensionID: %w", err)
-	}
-	return oldValue.CreditPriorityDimensionID, nil
-}
-
-// ClearCreditPriorityDimensionID clears the value of the "credit_priority_dimension_id" field.
-func (m *LedgerSubAccountMutation) ClearCreditPriorityDimensionID() {
-	m.credit_priority_dimension = nil
-	m.clearedFields[ledgersubaccount.FieldCreditPriorityDimensionID] = struct{}{}
-}
-
-// CreditPriorityDimensionIDCleared returns if the "credit_priority_dimension_id" field was cleared in this mutation.
-func (m *LedgerSubAccountMutation) CreditPriorityDimensionIDCleared() bool {
-	_, ok := m.clearedFields[ledgersubaccount.FieldCreditPriorityDimensionID]
-	return ok
-}
-
-// ResetCreditPriorityDimensionID resets all changes to the "credit_priority_dimension_id" field.
-func (m *LedgerSubAccountMutation) ResetCreditPriorityDimensionID() {
-	m.credit_priority_dimension = nil
-	delete(m.clearedFields, ledgersubaccount.FieldCreditPriorityDimensionID)
+// ResetRouteID resets all changes to the "route_id" field.
+func (m *LedgerSubAccountMutation) ResetRouteID() {
+	m.route = nil
 }
 
 // ClearAccount clears the "account" edge to the LedgerAccount entity.
@@ -58443,6 +58375,33 @@ func (m *LedgerSubAccountMutation) AccountIDs() (ids []string) {
 func (m *LedgerSubAccountMutation) ResetAccount() {
 	m.account = nil
 	m.clearedaccount = false
+}
+
+// ClearRoute clears the "route" edge to the LedgerSubAccountRoute entity.
+func (m *LedgerSubAccountMutation) ClearRoute() {
+	m.clearedroute = true
+	m.clearedFields[ledgersubaccount.FieldRouteID] = struct{}{}
+}
+
+// RouteCleared reports if the "route" edge to the LedgerSubAccountRoute entity was cleared.
+func (m *LedgerSubAccountMutation) RouteCleared() bool {
+	return m.clearedroute
+}
+
+// RouteIDs returns the "route" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// RouteID instead. It exists only for internal usage by the builders.
+func (m *LedgerSubAccountMutation) RouteIDs() (ids []string) {
+	if id := m.route; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetRoute resets all changes to the "route" edge.
+func (m *LedgerSubAccountMutation) ResetRoute() {
+	m.route = nil
+	m.clearedroute = false
 }
 
 // AddEntryIDs adds the "entries" edge to the LedgerEntry entity by ids.
@@ -58499,114 +58458,6 @@ func (m *LedgerSubAccountMutation) ResetEntries() {
 	m.removedentries = nil
 }
 
-// ClearCurrencyDimension clears the "currency_dimension" edge to the LedgerDimension entity.
-func (m *LedgerSubAccountMutation) ClearCurrencyDimension() {
-	m.clearedcurrency_dimension = true
-	m.clearedFields[ledgersubaccount.FieldCurrencyDimensionID] = struct{}{}
-}
-
-// CurrencyDimensionCleared reports if the "currency_dimension" edge to the LedgerDimension entity was cleared.
-func (m *LedgerSubAccountMutation) CurrencyDimensionCleared() bool {
-	return m.clearedcurrency_dimension
-}
-
-// CurrencyDimensionIDs returns the "currency_dimension" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// CurrencyDimensionID instead. It exists only for internal usage by the builders.
-func (m *LedgerSubAccountMutation) CurrencyDimensionIDs() (ids []string) {
-	if id := m.currency_dimension; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetCurrencyDimension resets all changes to the "currency_dimension" edge.
-func (m *LedgerSubAccountMutation) ResetCurrencyDimension() {
-	m.currency_dimension = nil
-	m.clearedcurrency_dimension = false
-}
-
-// ClearTaxCodeDimension clears the "tax_code_dimension" edge to the LedgerDimension entity.
-func (m *LedgerSubAccountMutation) ClearTaxCodeDimension() {
-	m.clearedtax_code_dimension = true
-	m.clearedFields[ledgersubaccount.FieldTaxCodeDimensionID] = struct{}{}
-}
-
-// TaxCodeDimensionCleared reports if the "tax_code_dimension" edge to the LedgerDimension entity was cleared.
-func (m *LedgerSubAccountMutation) TaxCodeDimensionCleared() bool {
-	return m.TaxCodeDimensionIDCleared() || m.clearedtax_code_dimension
-}
-
-// TaxCodeDimensionIDs returns the "tax_code_dimension" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// TaxCodeDimensionID instead. It exists only for internal usage by the builders.
-func (m *LedgerSubAccountMutation) TaxCodeDimensionIDs() (ids []string) {
-	if id := m.tax_code_dimension; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetTaxCodeDimension resets all changes to the "tax_code_dimension" edge.
-func (m *LedgerSubAccountMutation) ResetTaxCodeDimension() {
-	m.tax_code_dimension = nil
-	m.clearedtax_code_dimension = false
-}
-
-// ClearFeaturesDimension clears the "features_dimension" edge to the LedgerDimension entity.
-func (m *LedgerSubAccountMutation) ClearFeaturesDimension() {
-	m.clearedfeatures_dimension = true
-	m.clearedFields[ledgersubaccount.FieldFeaturesDimensionID] = struct{}{}
-}
-
-// FeaturesDimensionCleared reports if the "features_dimension" edge to the LedgerDimension entity was cleared.
-func (m *LedgerSubAccountMutation) FeaturesDimensionCleared() bool {
-	return m.FeaturesDimensionIDCleared() || m.clearedfeatures_dimension
-}
-
-// FeaturesDimensionIDs returns the "features_dimension" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// FeaturesDimensionID instead. It exists only for internal usage by the builders.
-func (m *LedgerSubAccountMutation) FeaturesDimensionIDs() (ids []string) {
-	if id := m.features_dimension; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetFeaturesDimension resets all changes to the "features_dimension" edge.
-func (m *LedgerSubAccountMutation) ResetFeaturesDimension() {
-	m.features_dimension = nil
-	m.clearedfeatures_dimension = false
-}
-
-// ClearCreditPriorityDimension clears the "credit_priority_dimension" edge to the LedgerDimension entity.
-func (m *LedgerSubAccountMutation) ClearCreditPriorityDimension() {
-	m.clearedcredit_priority_dimension = true
-	m.clearedFields[ledgersubaccount.FieldCreditPriorityDimensionID] = struct{}{}
-}
-
-// CreditPriorityDimensionCleared reports if the "credit_priority_dimension" edge to the LedgerDimension entity was cleared.
-func (m *LedgerSubAccountMutation) CreditPriorityDimensionCleared() bool {
-	return m.CreditPriorityDimensionIDCleared() || m.clearedcredit_priority_dimension
-}
-
-// CreditPriorityDimensionIDs returns the "credit_priority_dimension" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// CreditPriorityDimensionID instead. It exists only for internal usage by the builders.
-func (m *LedgerSubAccountMutation) CreditPriorityDimensionIDs() (ids []string) {
-	if id := m.credit_priority_dimension; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetCreditPriorityDimension resets all changes to the "credit_priority_dimension" edge.
-func (m *LedgerSubAccountMutation) ResetCreditPriorityDimension() {
-	m.credit_priority_dimension = nil
-	m.clearedcredit_priority_dimension = false
-}
-
 // Where appends a list predicates to the LedgerSubAccountMutation builder.
 func (m *LedgerSubAccountMutation) Where(ps ...predicate.LedgerSubAccount) {
 	m.predicates = append(m.predicates, ps...)
@@ -58641,7 +58492,7 @@ func (m *LedgerSubAccountMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LedgerSubAccountMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 7)
 	if m.namespace != nil {
 		fields = append(fields, ledgersubaccount.FieldNamespace)
 	}
@@ -58660,17 +58511,8 @@ func (m *LedgerSubAccountMutation) Fields() []string {
 	if m.account != nil {
 		fields = append(fields, ledgersubaccount.FieldAccountID)
 	}
-	if m.currency_dimension != nil {
-		fields = append(fields, ledgersubaccount.FieldCurrencyDimensionID)
-	}
-	if m.tax_code_dimension != nil {
-		fields = append(fields, ledgersubaccount.FieldTaxCodeDimensionID)
-	}
-	if m.features_dimension != nil {
-		fields = append(fields, ledgersubaccount.FieldFeaturesDimensionID)
-	}
-	if m.credit_priority_dimension != nil {
-		fields = append(fields, ledgersubaccount.FieldCreditPriorityDimensionID)
+	if m.route != nil {
+		fields = append(fields, ledgersubaccount.FieldRouteID)
 	}
 	return fields
 }
@@ -58692,14 +58534,8 @@ func (m *LedgerSubAccountMutation) Field(name string) (ent.Value, bool) {
 		return m.DeletedAt()
 	case ledgersubaccount.FieldAccountID:
 		return m.AccountID()
-	case ledgersubaccount.FieldCurrencyDimensionID:
-		return m.CurrencyDimensionID()
-	case ledgersubaccount.FieldTaxCodeDimensionID:
-		return m.TaxCodeDimensionID()
-	case ledgersubaccount.FieldFeaturesDimensionID:
-		return m.FeaturesDimensionID()
-	case ledgersubaccount.FieldCreditPriorityDimensionID:
-		return m.CreditPriorityDimensionID()
+	case ledgersubaccount.FieldRouteID:
+		return m.RouteID()
 	}
 	return nil, false
 }
@@ -58721,14 +58557,8 @@ func (m *LedgerSubAccountMutation) OldField(ctx context.Context, name string) (e
 		return m.OldDeletedAt(ctx)
 	case ledgersubaccount.FieldAccountID:
 		return m.OldAccountID(ctx)
-	case ledgersubaccount.FieldCurrencyDimensionID:
-		return m.OldCurrencyDimensionID(ctx)
-	case ledgersubaccount.FieldTaxCodeDimensionID:
-		return m.OldTaxCodeDimensionID(ctx)
-	case ledgersubaccount.FieldFeaturesDimensionID:
-		return m.OldFeaturesDimensionID(ctx)
-	case ledgersubaccount.FieldCreditPriorityDimensionID:
-		return m.OldCreditPriorityDimensionID(ctx)
+	case ledgersubaccount.FieldRouteID:
+		return m.OldRouteID(ctx)
 	}
 	return nil, fmt.Errorf("unknown LedgerSubAccount field %s", name)
 }
@@ -58780,33 +58610,12 @@ func (m *LedgerSubAccountMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetAccountID(v)
 		return nil
-	case ledgersubaccount.FieldCurrencyDimensionID:
+	case ledgersubaccount.FieldRouteID:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetCurrencyDimensionID(v)
-		return nil
-	case ledgersubaccount.FieldTaxCodeDimensionID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxCodeDimensionID(v)
-		return nil
-	case ledgersubaccount.FieldFeaturesDimensionID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetFeaturesDimensionID(v)
-		return nil
-	case ledgersubaccount.FieldCreditPriorityDimensionID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCreditPriorityDimensionID(v)
+		m.SetRouteID(v)
 		return nil
 	}
 	return fmt.Errorf("unknown LedgerSubAccount field %s", name)
@@ -58844,15 +58653,6 @@ func (m *LedgerSubAccountMutation) ClearedFields() []string {
 	if m.FieldCleared(ledgersubaccount.FieldDeletedAt) {
 		fields = append(fields, ledgersubaccount.FieldDeletedAt)
 	}
-	if m.FieldCleared(ledgersubaccount.FieldTaxCodeDimensionID) {
-		fields = append(fields, ledgersubaccount.FieldTaxCodeDimensionID)
-	}
-	if m.FieldCleared(ledgersubaccount.FieldFeaturesDimensionID) {
-		fields = append(fields, ledgersubaccount.FieldFeaturesDimensionID)
-	}
-	if m.FieldCleared(ledgersubaccount.FieldCreditPriorityDimensionID) {
-		fields = append(fields, ledgersubaccount.FieldCreditPriorityDimensionID)
-	}
 	return fields
 }
 
@@ -58872,15 +58672,6 @@ func (m *LedgerSubAccountMutation) ClearField(name string) error {
 		return nil
 	case ledgersubaccount.FieldDeletedAt:
 		m.ClearDeletedAt()
-		return nil
-	case ledgersubaccount.FieldTaxCodeDimensionID:
-		m.ClearTaxCodeDimensionID()
-		return nil
-	case ledgersubaccount.FieldFeaturesDimensionID:
-		m.ClearFeaturesDimensionID()
-		return nil
-	case ledgersubaccount.FieldCreditPriorityDimensionID:
-		m.ClearCreditPriorityDimensionID()
 		return nil
 	}
 	return fmt.Errorf("unknown LedgerSubAccount nullable field %s", name)
@@ -58908,17 +58699,8 @@ func (m *LedgerSubAccountMutation) ResetField(name string) error {
 	case ledgersubaccount.FieldAccountID:
 		m.ResetAccountID()
 		return nil
-	case ledgersubaccount.FieldCurrencyDimensionID:
-		m.ResetCurrencyDimensionID()
-		return nil
-	case ledgersubaccount.FieldTaxCodeDimensionID:
-		m.ResetTaxCodeDimensionID()
-		return nil
-	case ledgersubaccount.FieldFeaturesDimensionID:
-		m.ResetFeaturesDimensionID()
-		return nil
-	case ledgersubaccount.FieldCreditPriorityDimensionID:
-		m.ResetCreditPriorityDimensionID()
+	case ledgersubaccount.FieldRouteID:
+		m.ResetRouteID()
 		return nil
 	}
 	return fmt.Errorf("unknown LedgerSubAccount field %s", name)
@@ -58926,24 +58708,15 @@ func (m *LedgerSubAccountMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *LedgerSubAccountMutation) AddedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 3)
 	if m.account != nil {
 		edges = append(edges, ledgersubaccount.EdgeAccount)
 	}
+	if m.route != nil {
+		edges = append(edges, ledgersubaccount.EdgeRoute)
+	}
 	if m.entries != nil {
 		edges = append(edges, ledgersubaccount.EdgeEntries)
-	}
-	if m.currency_dimension != nil {
-		edges = append(edges, ledgersubaccount.EdgeCurrencyDimension)
-	}
-	if m.tax_code_dimension != nil {
-		edges = append(edges, ledgersubaccount.EdgeTaxCodeDimension)
-	}
-	if m.features_dimension != nil {
-		edges = append(edges, ledgersubaccount.EdgeFeaturesDimension)
-	}
-	if m.credit_priority_dimension != nil {
-		edges = append(edges, ledgersubaccount.EdgeCreditPriorityDimension)
 	}
 	return edges
 }
@@ -58956,35 +58729,23 @@ func (m *LedgerSubAccountMutation) AddedIDs(name string) []ent.Value {
 		if id := m.account; id != nil {
 			return []ent.Value{*id}
 		}
+	case ledgersubaccount.EdgeRoute:
+		if id := m.route; id != nil {
+			return []ent.Value{*id}
+		}
 	case ledgersubaccount.EdgeEntries:
 		ids := make([]ent.Value, 0, len(m.entries))
 		for id := range m.entries {
 			ids = append(ids, id)
 		}
 		return ids
-	case ledgersubaccount.EdgeCurrencyDimension:
-		if id := m.currency_dimension; id != nil {
-			return []ent.Value{*id}
-		}
-	case ledgersubaccount.EdgeTaxCodeDimension:
-		if id := m.tax_code_dimension; id != nil {
-			return []ent.Value{*id}
-		}
-	case ledgersubaccount.EdgeFeaturesDimension:
-		if id := m.features_dimension; id != nil {
-			return []ent.Value{*id}
-		}
-	case ledgersubaccount.EdgeCreditPriorityDimension:
-		if id := m.credit_priority_dimension; id != nil {
-			return []ent.Value{*id}
-		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LedgerSubAccountMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 3)
 	if m.removedentries != nil {
 		edges = append(edges, ledgersubaccount.EdgeEntries)
 	}
@@ -59007,24 +58768,15 @@ func (m *LedgerSubAccountMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *LedgerSubAccountMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 3)
 	if m.clearedaccount {
 		edges = append(edges, ledgersubaccount.EdgeAccount)
 	}
+	if m.clearedroute {
+		edges = append(edges, ledgersubaccount.EdgeRoute)
+	}
 	if m.clearedentries {
 		edges = append(edges, ledgersubaccount.EdgeEntries)
-	}
-	if m.clearedcurrency_dimension {
-		edges = append(edges, ledgersubaccount.EdgeCurrencyDimension)
-	}
-	if m.clearedtax_code_dimension {
-		edges = append(edges, ledgersubaccount.EdgeTaxCodeDimension)
-	}
-	if m.clearedfeatures_dimension {
-		edges = append(edges, ledgersubaccount.EdgeFeaturesDimension)
-	}
-	if m.clearedcredit_priority_dimension {
-		edges = append(edges, ledgersubaccount.EdgeCreditPriorityDimension)
 	}
 	return edges
 }
@@ -59035,16 +58787,10 @@ func (m *LedgerSubAccountMutation) EdgeCleared(name string) bool {
 	switch name {
 	case ledgersubaccount.EdgeAccount:
 		return m.clearedaccount
+	case ledgersubaccount.EdgeRoute:
+		return m.clearedroute
 	case ledgersubaccount.EdgeEntries:
 		return m.clearedentries
-	case ledgersubaccount.EdgeCurrencyDimension:
-		return m.clearedcurrency_dimension
-	case ledgersubaccount.EdgeTaxCodeDimension:
-		return m.clearedtax_code_dimension
-	case ledgersubaccount.EdgeFeaturesDimension:
-		return m.clearedfeatures_dimension
-	case ledgersubaccount.EdgeCreditPriorityDimension:
-		return m.clearedcredit_priority_dimension
 	}
 	return false
 }
@@ -59056,17 +58802,8 @@ func (m *LedgerSubAccountMutation) ClearEdge(name string) error {
 	case ledgersubaccount.EdgeAccount:
 		m.ClearAccount()
 		return nil
-	case ledgersubaccount.EdgeCurrencyDimension:
-		m.ClearCurrencyDimension()
-		return nil
-	case ledgersubaccount.EdgeTaxCodeDimension:
-		m.ClearTaxCodeDimension()
-		return nil
-	case ledgersubaccount.EdgeFeaturesDimension:
-		m.ClearFeaturesDimension()
-		return nil
-	case ledgersubaccount.EdgeCreditPriorityDimension:
-		m.ClearCreditPriorityDimension()
+	case ledgersubaccount.EdgeRoute:
+		m.ClearRoute()
 		return nil
 	}
 	return fmt.Errorf("unknown LedgerSubAccount unique edge %s", name)
@@ -59079,23 +58816,1288 @@ func (m *LedgerSubAccountMutation) ResetEdge(name string) error {
 	case ledgersubaccount.EdgeAccount:
 		m.ResetAccount()
 		return nil
+	case ledgersubaccount.EdgeRoute:
+		m.ResetRoute()
+		return nil
 	case ledgersubaccount.EdgeEntries:
 		m.ResetEntries()
 		return nil
-	case ledgersubaccount.EdgeCurrencyDimension:
+	}
+	return fmt.Errorf("unknown LedgerSubAccount edge %s", name)
+}
+
+// LedgerSubAccountRouteMutation represents an operation that mutates the LedgerSubAccountRoute nodes in the graph.
+type LedgerSubAccountRouteMutation struct {
+	config
+	op                               Op
+	typ                              string
+	id                               *string
+	namespace                        *string
+	created_at                       *time.Time
+	updated_at                       *time.Time
+	deleted_at                       *time.Time
+	routing_key_version              *ledger.RoutingKeyVersion
+	routing_key                      *string
+	clearedFields                    map[string]struct{}
+	account                          *string
+	clearedaccount                   bool
+	sub_accounts                     map[string]struct{}
+	removedsub_accounts              map[string]struct{}
+	clearedsub_accounts              bool
+	currency_dimension               *string
+	clearedcurrency_dimension        bool
+	tax_code_dimension               *string
+	clearedtax_code_dimension        bool
+	features_dimension               *string
+	clearedfeatures_dimension        bool
+	credit_priority_dimension        *string
+	clearedcredit_priority_dimension bool
+	done                             bool
+	oldValue                         func(context.Context) (*LedgerSubAccountRoute, error)
+	predicates                       []predicate.LedgerSubAccountRoute
+}
+
+var _ ent.Mutation = (*LedgerSubAccountRouteMutation)(nil)
+
+// ledgersubaccountrouteOption allows management of the mutation configuration using functional options.
+type ledgersubaccountrouteOption func(*LedgerSubAccountRouteMutation)
+
+// newLedgerSubAccountRouteMutation creates new mutation for the LedgerSubAccountRoute entity.
+func newLedgerSubAccountRouteMutation(c config, op Op, opts ...ledgersubaccountrouteOption) *LedgerSubAccountRouteMutation {
+	m := &LedgerSubAccountRouteMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeLedgerSubAccountRoute,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withLedgerSubAccountRouteID sets the ID field of the mutation.
+func withLedgerSubAccountRouteID(id string) ledgersubaccountrouteOption {
+	return func(m *LedgerSubAccountRouteMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *LedgerSubAccountRoute
+		)
+		m.oldValue = func(ctx context.Context) (*LedgerSubAccountRoute, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().LedgerSubAccountRoute.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withLedgerSubAccountRoute sets the old LedgerSubAccountRoute of the mutation.
+func withLedgerSubAccountRoute(node *LedgerSubAccountRoute) ledgersubaccountrouteOption {
+	return func(m *LedgerSubAccountRouteMutation) {
+		m.oldValue = func(context.Context) (*LedgerSubAccountRoute, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m LedgerSubAccountRouteMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m LedgerSubAccountRouteMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of LedgerSubAccountRoute entities.
+func (m *LedgerSubAccountRouteMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *LedgerSubAccountRouteMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *LedgerSubAccountRouteMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().LedgerSubAccountRoute.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *LedgerSubAccountRouteMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the LedgerSubAccountRoute entity.
+// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerSubAccountRouteMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *LedgerSubAccountRouteMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *LedgerSubAccountRouteMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the LedgerSubAccountRoute entity.
+// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerSubAccountRouteMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *LedgerSubAccountRouteMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *LedgerSubAccountRouteMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the LedgerSubAccountRoute entity.
+// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerSubAccountRouteMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *LedgerSubAccountRouteMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *LedgerSubAccountRouteMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the LedgerSubAccountRoute entity.
+// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerSubAccountRouteMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *LedgerSubAccountRouteMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[ledgersubaccountroute.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *LedgerSubAccountRouteMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[ledgersubaccountroute.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *LedgerSubAccountRouteMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, ledgersubaccountroute.FieldDeletedAt)
+}
+
+// SetAccountID sets the "account_id" field.
+func (m *LedgerSubAccountRouteMutation) SetAccountID(s string) {
+	m.account = &s
+}
+
+// AccountID returns the value of the "account_id" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) AccountID() (r string, exists bool) {
+	v := m.account
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAccountID returns the old "account_id" field's value of the LedgerSubAccountRoute entity.
+// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerSubAccountRouteMutation) OldAccountID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAccountID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAccountID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAccountID: %w", err)
+	}
+	return oldValue.AccountID, nil
+}
+
+// ResetAccountID resets all changes to the "account_id" field.
+func (m *LedgerSubAccountRouteMutation) ResetAccountID() {
+	m.account = nil
+}
+
+// SetRoutingKeyVersion sets the "routing_key_version" field.
+func (m *LedgerSubAccountRouteMutation) SetRoutingKeyVersion(lkv ledger.RoutingKeyVersion) {
+	m.routing_key_version = &lkv
+}
+
+// RoutingKeyVersion returns the value of the "routing_key_version" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) RoutingKeyVersion() (r ledger.RoutingKeyVersion, exists bool) {
+	v := m.routing_key_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRoutingKeyVersion returns the old "routing_key_version" field's value of the LedgerSubAccountRoute entity.
+// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerSubAccountRouteMutation) OldRoutingKeyVersion(ctx context.Context) (v ledger.RoutingKeyVersion, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRoutingKeyVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRoutingKeyVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRoutingKeyVersion: %w", err)
+	}
+	return oldValue.RoutingKeyVersion, nil
+}
+
+// ResetRoutingKeyVersion resets all changes to the "routing_key_version" field.
+func (m *LedgerSubAccountRouteMutation) ResetRoutingKeyVersion() {
+	m.routing_key_version = nil
+}
+
+// SetRoutingKey sets the "routing_key" field.
+func (m *LedgerSubAccountRouteMutation) SetRoutingKey(s string) {
+	m.routing_key = &s
+}
+
+// RoutingKey returns the value of the "routing_key" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) RoutingKey() (r string, exists bool) {
+	v := m.routing_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRoutingKey returns the old "routing_key" field's value of the LedgerSubAccountRoute entity.
+// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerSubAccountRouteMutation) OldRoutingKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRoutingKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRoutingKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRoutingKey: %w", err)
+	}
+	return oldValue.RoutingKey, nil
+}
+
+// ResetRoutingKey resets all changes to the "routing_key" field.
+func (m *LedgerSubAccountRouteMutation) ResetRoutingKey() {
+	m.routing_key = nil
+}
+
+// SetCurrencyDimensionID sets the "currency_dimension_id" field.
+func (m *LedgerSubAccountRouteMutation) SetCurrencyDimensionID(s string) {
+	m.currency_dimension = &s
+}
+
+// CurrencyDimensionID returns the value of the "currency_dimension_id" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) CurrencyDimensionID() (r string, exists bool) {
+	v := m.currency_dimension
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrencyDimensionID returns the old "currency_dimension_id" field's value of the LedgerSubAccountRoute entity.
+// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerSubAccountRouteMutation) OldCurrencyDimensionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrencyDimensionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrencyDimensionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrencyDimensionID: %w", err)
+	}
+	return oldValue.CurrencyDimensionID, nil
+}
+
+// ResetCurrencyDimensionID resets all changes to the "currency_dimension_id" field.
+func (m *LedgerSubAccountRouteMutation) ResetCurrencyDimensionID() {
+	m.currency_dimension = nil
+}
+
+// SetTaxCodeDimensionID sets the "tax_code_dimension_id" field.
+func (m *LedgerSubAccountRouteMutation) SetTaxCodeDimensionID(s string) {
+	m.tax_code_dimension = &s
+}
+
+// TaxCodeDimensionID returns the value of the "tax_code_dimension_id" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) TaxCodeDimensionID() (r string, exists bool) {
+	v := m.tax_code_dimension
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxCodeDimensionID returns the old "tax_code_dimension_id" field's value of the LedgerSubAccountRoute entity.
+// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerSubAccountRouteMutation) OldTaxCodeDimensionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxCodeDimensionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxCodeDimensionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxCodeDimensionID: %w", err)
+	}
+	return oldValue.TaxCodeDimensionID, nil
+}
+
+// ClearTaxCodeDimensionID clears the value of the "tax_code_dimension_id" field.
+func (m *LedgerSubAccountRouteMutation) ClearTaxCodeDimensionID() {
+	m.tax_code_dimension = nil
+	m.clearedFields[ledgersubaccountroute.FieldTaxCodeDimensionID] = struct{}{}
+}
+
+// TaxCodeDimensionIDCleared returns if the "tax_code_dimension_id" field was cleared in this mutation.
+func (m *LedgerSubAccountRouteMutation) TaxCodeDimensionIDCleared() bool {
+	_, ok := m.clearedFields[ledgersubaccountroute.FieldTaxCodeDimensionID]
+	return ok
+}
+
+// ResetTaxCodeDimensionID resets all changes to the "tax_code_dimension_id" field.
+func (m *LedgerSubAccountRouteMutation) ResetTaxCodeDimensionID() {
+	m.tax_code_dimension = nil
+	delete(m.clearedFields, ledgersubaccountroute.FieldTaxCodeDimensionID)
+}
+
+// SetFeaturesDimensionID sets the "features_dimension_id" field.
+func (m *LedgerSubAccountRouteMutation) SetFeaturesDimensionID(s string) {
+	m.features_dimension = &s
+}
+
+// FeaturesDimensionID returns the value of the "features_dimension_id" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) FeaturesDimensionID() (r string, exists bool) {
+	v := m.features_dimension
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeaturesDimensionID returns the old "features_dimension_id" field's value of the LedgerSubAccountRoute entity.
+// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerSubAccountRouteMutation) OldFeaturesDimensionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeaturesDimensionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeaturesDimensionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeaturesDimensionID: %w", err)
+	}
+	return oldValue.FeaturesDimensionID, nil
+}
+
+// ClearFeaturesDimensionID clears the value of the "features_dimension_id" field.
+func (m *LedgerSubAccountRouteMutation) ClearFeaturesDimensionID() {
+	m.features_dimension = nil
+	m.clearedFields[ledgersubaccountroute.FieldFeaturesDimensionID] = struct{}{}
+}
+
+// FeaturesDimensionIDCleared returns if the "features_dimension_id" field was cleared in this mutation.
+func (m *LedgerSubAccountRouteMutation) FeaturesDimensionIDCleared() bool {
+	_, ok := m.clearedFields[ledgersubaccountroute.FieldFeaturesDimensionID]
+	return ok
+}
+
+// ResetFeaturesDimensionID resets all changes to the "features_dimension_id" field.
+func (m *LedgerSubAccountRouteMutation) ResetFeaturesDimensionID() {
+	m.features_dimension = nil
+	delete(m.clearedFields, ledgersubaccountroute.FieldFeaturesDimensionID)
+}
+
+// SetCreditPriorityDimensionID sets the "credit_priority_dimension_id" field.
+func (m *LedgerSubAccountRouteMutation) SetCreditPriorityDimensionID(s string) {
+	m.credit_priority_dimension = &s
+}
+
+// CreditPriorityDimensionID returns the value of the "credit_priority_dimension_id" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) CreditPriorityDimensionID() (r string, exists bool) {
+	v := m.credit_priority_dimension
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreditPriorityDimensionID returns the old "credit_priority_dimension_id" field's value of the LedgerSubAccountRoute entity.
+// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerSubAccountRouteMutation) OldCreditPriorityDimensionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreditPriorityDimensionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreditPriorityDimensionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreditPriorityDimensionID: %w", err)
+	}
+	return oldValue.CreditPriorityDimensionID, nil
+}
+
+// ClearCreditPriorityDimensionID clears the value of the "credit_priority_dimension_id" field.
+func (m *LedgerSubAccountRouteMutation) ClearCreditPriorityDimensionID() {
+	m.credit_priority_dimension = nil
+	m.clearedFields[ledgersubaccountroute.FieldCreditPriorityDimensionID] = struct{}{}
+}
+
+// CreditPriorityDimensionIDCleared returns if the "credit_priority_dimension_id" field was cleared in this mutation.
+func (m *LedgerSubAccountRouteMutation) CreditPriorityDimensionIDCleared() bool {
+	_, ok := m.clearedFields[ledgersubaccountroute.FieldCreditPriorityDimensionID]
+	return ok
+}
+
+// ResetCreditPriorityDimensionID resets all changes to the "credit_priority_dimension_id" field.
+func (m *LedgerSubAccountRouteMutation) ResetCreditPriorityDimensionID() {
+	m.credit_priority_dimension = nil
+	delete(m.clearedFields, ledgersubaccountroute.FieldCreditPriorityDimensionID)
+}
+
+// ClearAccount clears the "account" edge to the LedgerAccount entity.
+func (m *LedgerSubAccountRouteMutation) ClearAccount() {
+	m.clearedaccount = true
+	m.clearedFields[ledgersubaccountroute.FieldAccountID] = struct{}{}
+}
+
+// AccountCleared reports if the "account" edge to the LedgerAccount entity was cleared.
+func (m *LedgerSubAccountRouteMutation) AccountCleared() bool {
+	return m.clearedaccount
+}
+
+// AccountIDs returns the "account" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// AccountID instead. It exists only for internal usage by the builders.
+func (m *LedgerSubAccountRouteMutation) AccountIDs() (ids []string) {
+	if id := m.account; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetAccount resets all changes to the "account" edge.
+func (m *LedgerSubAccountRouteMutation) ResetAccount() {
+	m.account = nil
+	m.clearedaccount = false
+}
+
+// AddSubAccountIDs adds the "sub_accounts" edge to the LedgerSubAccount entity by ids.
+func (m *LedgerSubAccountRouteMutation) AddSubAccountIDs(ids ...string) {
+	if m.sub_accounts == nil {
+		m.sub_accounts = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.sub_accounts[ids[i]] = struct{}{}
+	}
+}
+
+// ClearSubAccounts clears the "sub_accounts" edge to the LedgerSubAccount entity.
+func (m *LedgerSubAccountRouteMutation) ClearSubAccounts() {
+	m.clearedsub_accounts = true
+}
+
+// SubAccountsCleared reports if the "sub_accounts" edge to the LedgerSubAccount entity was cleared.
+func (m *LedgerSubAccountRouteMutation) SubAccountsCleared() bool {
+	return m.clearedsub_accounts
+}
+
+// RemoveSubAccountIDs removes the "sub_accounts" edge to the LedgerSubAccount entity by IDs.
+func (m *LedgerSubAccountRouteMutation) RemoveSubAccountIDs(ids ...string) {
+	if m.removedsub_accounts == nil {
+		m.removedsub_accounts = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.sub_accounts, ids[i])
+		m.removedsub_accounts[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedSubAccounts returns the removed IDs of the "sub_accounts" edge to the LedgerSubAccount entity.
+func (m *LedgerSubAccountRouteMutation) RemovedSubAccountsIDs() (ids []string) {
+	for id := range m.removedsub_accounts {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// SubAccountsIDs returns the "sub_accounts" edge IDs in the mutation.
+func (m *LedgerSubAccountRouteMutation) SubAccountsIDs() (ids []string) {
+	for id := range m.sub_accounts {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetSubAccounts resets all changes to the "sub_accounts" edge.
+func (m *LedgerSubAccountRouteMutation) ResetSubAccounts() {
+	m.sub_accounts = nil
+	m.clearedsub_accounts = false
+	m.removedsub_accounts = nil
+}
+
+// ClearCurrencyDimension clears the "currency_dimension" edge to the LedgerDimension entity.
+func (m *LedgerSubAccountRouteMutation) ClearCurrencyDimension() {
+	m.clearedcurrency_dimension = true
+	m.clearedFields[ledgersubaccountroute.FieldCurrencyDimensionID] = struct{}{}
+}
+
+// CurrencyDimensionCleared reports if the "currency_dimension" edge to the LedgerDimension entity was cleared.
+func (m *LedgerSubAccountRouteMutation) CurrencyDimensionCleared() bool {
+	return m.clearedcurrency_dimension
+}
+
+// CurrencyDimensionIDs returns the "currency_dimension" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CurrencyDimensionID instead. It exists only for internal usage by the builders.
+func (m *LedgerSubAccountRouteMutation) CurrencyDimensionIDs() (ids []string) {
+	if id := m.currency_dimension; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCurrencyDimension resets all changes to the "currency_dimension" edge.
+func (m *LedgerSubAccountRouteMutation) ResetCurrencyDimension() {
+	m.currency_dimension = nil
+	m.clearedcurrency_dimension = false
+}
+
+// ClearTaxCodeDimension clears the "tax_code_dimension" edge to the LedgerDimension entity.
+func (m *LedgerSubAccountRouteMutation) ClearTaxCodeDimension() {
+	m.clearedtax_code_dimension = true
+	m.clearedFields[ledgersubaccountroute.FieldTaxCodeDimensionID] = struct{}{}
+}
+
+// TaxCodeDimensionCleared reports if the "tax_code_dimension" edge to the LedgerDimension entity was cleared.
+func (m *LedgerSubAccountRouteMutation) TaxCodeDimensionCleared() bool {
+	return m.TaxCodeDimensionIDCleared() || m.clearedtax_code_dimension
+}
+
+// TaxCodeDimensionIDs returns the "tax_code_dimension" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TaxCodeDimensionID instead. It exists only for internal usage by the builders.
+func (m *LedgerSubAccountRouteMutation) TaxCodeDimensionIDs() (ids []string) {
+	if id := m.tax_code_dimension; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTaxCodeDimension resets all changes to the "tax_code_dimension" edge.
+func (m *LedgerSubAccountRouteMutation) ResetTaxCodeDimension() {
+	m.tax_code_dimension = nil
+	m.clearedtax_code_dimension = false
+}
+
+// ClearFeaturesDimension clears the "features_dimension" edge to the LedgerDimension entity.
+func (m *LedgerSubAccountRouteMutation) ClearFeaturesDimension() {
+	m.clearedfeatures_dimension = true
+	m.clearedFields[ledgersubaccountroute.FieldFeaturesDimensionID] = struct{}{}
+}
+
+// FeaturesDimensionCleared reports if the "features_dimension" edge to the LedgerDimension entity was cleared.
+func (m *LedgerSubAccountRouteMutation) FeaturesDimensionCleared() bool {
+	return m.FeaturesDimensionIDCleared() || m.clearedfeatures_dimension
+}
+
+// FeaturesDimensionIDs returns the "features_dimension" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// FeaturesDimensionID instead. It exists only for internal usage by the builders.
+func (m *LedgerSubAccountRouteMutation) FeaturesDimensionIDs() (ids []string) {
+	if id := m.features_dimension; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetFeaturesDimension resets all changes to the "features_dimension" edge.
+func (m *LedgerSubAccountRouteMutation) ResetFeaturesDimension() {
+	m.features_dimension = nil
+	m.clearedfeatures_dimension = false
+}
+
+// ClearCreditPriorityDimension clears the "credit_priority_dimension" edge to the LedgerDimension entity.
+func (m *LedgerSubAccountRouteMutation) ClearCreditPriorityDimension() {
+	m.clearedcredit_priority_dimension = true
+	m.clearedFields[ledgersubaccountroute.FieldCreditPriorityDimensionID] = struct{}{}
+}
+
+// CreditPriorityDimensionCleared reports if the "credit_priority_dimension" edge to the LedgerDimension entity was cleared.
+func (m *LedgerSubAccountRouteMutation) CreditPriorityDimensionCleared() bool {
+	return m.CreditPriorityDimensionIDCleared() || m.clearedcredit_priority_dimension
+}
+
+// CreditPriorityDimensionIDs returns the "credit_priority_dimension" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CreditPriorityDimensionID instead. It exists only for internal usage by the builders.
+func (m *LedgerSubAccountRouteMutation) CreditPriorityDimensionIDs() (ids []string) {
+	if id := m.credit_priority_dimension; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCreditPriorityDimension resets all changes to the "credit_priority_dimension" edge.
+func (m *LedgerSubAccountRouteMutation) ResetCreditPriorityDimension() {
+	m.credit_priority_dimension = nil
+	m.clearedcredit_priority_dimension = false
+}
+
+// Where appends a list predicates to the LedgerSubAccountRouteMutation builder.
+func (m *LedgerSubAccountRouteMutation) Where(ps ...predicate.LedgerSubAccountRoute) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the LedgerSubAccountRouteMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *LedgerSubAccountRouteMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.LedgerSubAccountRoute, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *LedgerSubAccountRouteMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *LedgerSubAccountRouteMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (LedgerSubAccountRoute).
+func (m *LedgerSubAccountRouteMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *LedgerSubAccountRouteMutation) Fields() []string {
+	fields := make([]string, 0, 11)
+	if m.namespace != nil {
+		fields = append(fields, ledgersubaccountroute.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, ledgersubaccountroute.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, ledgersubaccountroute.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, ledgersubaccountroute.FieldDeletedAt)
+	}
+	if m.account != nil {
+		fields = append(fields, ledgersubaccountroute.FieldAccountID)
+	}
+	if m.routing_key_version != nil {
+		fields = append(fields, ledgersubaccountroute.FieldRoutingKeyVersion)
+	}
+	if m.routing_key != nil {
+		fields = append(fields, ledgersubaccountroute.FieldRoutingKey)
+	}
+	if m.currency_dimension != nil {
+		fields = append(fields, ledgersubaccountroute.FieldCurrencyDimensionID)
+	}
+	if m.tax_code_dimension != nil {
+		fields = append(fields, ledgersubaccountroute.FieldTaxCodeDimensionID)
+	}
+	if m.features_dimension != nil {
+		fields = append(fields, ledgersubaccountroute.FieldFeaturesDimensionID)
+	}
+	if m.credit_priority_dimension != nil {
+		fields = append(fields, ledgersubaccountroute.FieldCreditPriorityDimensionID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *LedgerSubAccountRouteMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case ledgersubaccountroute.FieldNamespace:
+		return m.Namespace()
+	case ledgersubaccountroute.FieldCreatedAt:
+		return m.CreatedAt()
+	case ledgersubaccountroute.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case ledgersubaccountroute.FieldDeletedAt:
+		return m.DeletedAt()
+	case ledgersubaccountroute.FieldAccountID:
+		return m.AccountID()
+	case ledgersubaccountroute.FieldRoutingKeyVersion:
+		return m.RoutingKeyVersion()
+	case ledgersubaccountroute.FieldRoutingKey:
+		return m.RoutingKey()
+	case ledgersubaccountroute.FieldCurrencyDimensionID:
+		return m.CurrencyDimensionID()
+	case ledgersubaccountroute.FieldTaxCodeDimensionID:
+		return m.TaxCodeDimensionID()
+	case ledgersubaccountroute.FieldFeaturesDimensionID:
+		return m.FeaturesDimensionID()
+	case ledgersubaccountroute.FieldCreditPriorityDimensionID:
+		return m.CreditPriorityDimensionID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *LedgerSubAccountRouteMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case ledgersubaccountroute.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case ledgersubaccountroute.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case ledgersubaccountroute.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case ledgersubaccountroute.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case ledgersubaccountroute.FieldAccountID:
+		return m.OldAccountID(ctx)
+	case ledgersubaccountroute.FieldRoutingKeyVersion:
+		return m.OldRoutingKeyVersion(ctx)
+	case ledgersubaccountroute.FieldRoutingKey:
+		return m.OldRoutingKey(ctx)
+	case ledgersubaccountroute.FieldCurrencyDimensionID:
+		return m.OldCurrencyDimensionID(ctx)
+	case ledgersubaccountroute.FieldTaxCodeDimensionID:
+		return m.OldTaxCodeDimensionID(ctx)
+	case ledgersubaccountroute.FieldFeaturesDimensionID:
+		return m.OldFeaturesDimensionID(ctx)
+	case ledgersubaccountroute.FieldCreditPriorityDimensionID:
+		return m.OldCreditPriorityDimensionID(ctx)
+	}
+	return nil, fmt.Errorf("unknown LedgerSubAccountRoute field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *LedgerSubAccountRouteMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case ledgersubaccountroute.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case ledgersubaccountroute.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case ledgersubaccountroute.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case ledgersubaccountroute.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case ledgersubaccountroute.FieldAccountID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAccountID(v)
+		return nil
+	case ledgersubaccountroute.FieldRoutingKeyVersion:
+		v, ok := value.(ledger.RoutingKeyVersion)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRoutingKeyVersion(v)
+		return nil
+	case ledgersubaccountroute.FieldRoutingKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRoutingKey(v)
+		return nil
+	case ledgersubaccountroute.FieldCurrencyDimensionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrencyDimensionID(v)
+		return nil
+	case ledgersubaccountroute.FieldTaxCodeDimensionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxCodeDimensionID(v)
+		return nil
+	case ledgersubaccountroute.FieldFeaturesDimensionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeaturesDimensionID(v)
+		return nil
+	case ledgersubaccountroute.FieldCreditPriorityDimensionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreditPriorityDimensionID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown LedgerSubAccountRoute field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *LedgerSubAccountRouteMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *LedgerSubAccountRouteMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *LedgerSubAccountRouteMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown LedgerSubAccountRoute numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *LedgerSubAccountRouteMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(ledgersubaccountroute.FieldDeletedAt) {
+		fields = append(fields, ledgersubaccountroute.FieldDeletedAt)
+	}
+	if m.FieldCleared(ledgersubaccountroute.FieldTaxCodeDimensionID) {
+		fields = append(fields, ledgersubaccountroute.FieldTaxCodeDimensionID)
+	}
+	if m.FieldCleared(ledgersubaccountroute.FieldFeaturesDimensionID) {
+		fields = append(fields, ledgersubaccountroute.FieldFeaturesDimensionID)
+	}
+	if m.FieldCleared(ledgersubaccountroute.FieldCreditPriorityDimensionID) {
+		fields = append(fields, ledgersubaccountroute.FieldCreditPriorityDimensionID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *LedgerSubAccountRouteMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *LedgerSubAccountRouteMutation) ClearField(name string) error {
+	switch name {
+	case ledgersubaccountroute.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case ledgersubaccountroute.FieldTaxCodeDimensionID:
+		m.ClearTaxCodeDimensionID()
+		return nil
+	case ledgersubaccountroute.FieldFeaturesDimensionID:
+		m.ClearFeaturesDimensionID()
+		return nil
+	case ledgersubaccountroute.FieldCreditPriorityDimensionID:
+		m.ClearCreditPriorityDimensionID()
+		return nil
+	}
+	return fmt.Errorf("unknown LedgerSubAccountRoute nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *LedgerSubAccountRouteMutation) ResetField(name string) error {
+	switch name {
+	case ledgersubaccountroute.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case ledgersubaccountroute.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case ledgersubaccountroute.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case ledgersubaccountroute.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case ledgersubaccountroute.FieldAccountID:
+		m.ResetAccountID()
+		return nil
+	case ledgersubaccountroute.FieldRoutingKeyVersion:
+		m.ResetRoutingKeyVersion()
+		return nil
+	case ledgersubaccountroute.FieldRoutingKey:
+		m.ResetRoutingKey()
+		return nil
+	case ledgersubaccountroute.FieldCurrencyDimensionID:
+		m.ResetCurrencyDimensionID()
+		return nil
+	case ledgersubaccountroute.FieldTaxCodeDimensionID:
+		m.ResetTaxCodeDimensionID()
+		return nil
+	case ledgersubaccountroute.FieldFeaturesDimensionID:
+		m.ResetFeaturesDimensionID()
+		return nil
+	case ledgersubaccountroute.FieldCreditPriorityDimensionID:
+		m.ResetCreditPriorityDimensionID()
+		return nil
+	}
+	return fmt.Errorf("unknown LedgerSubAccountRoute field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *LedgerSubAccountRouteMutation) AddedEdges() []string {
+	edges := make([]string, 0, 6)
+	if m.account != nil {
+		edges = append(edges, ledgersubaccountroute.EdgeAccount)
+	}
+	if m.sub_accounts != nil {
+		edges = append(edges, ledgersubaccountroute.EdgeSubAccounts)
+	}
+	if m.currency_dimension != nil {
+		edges = append(edges, ledgersubaccountroute.EdgeCurrencyDimension)
+	}
+	if m.tax_code_dimension != nil {
+		edges = append(edges, ledgersubaccountroute.EdgeTaxCodeDimension)
+	}
+	if m.features_dimension != nil {
+		edges = append(edges, ledgersubaccountroute.EdgeFeaturesDimension)
+	}
+	if m.credit_priority_dimension != nil {
+		edges = append(edges, ledgersubaccountroute.EdgeCreditPriorityDimension)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *LedgerSubAccountRouteMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case ledgersubaccountroute.EdgeAccount:
+		if id := m.account; id != nil {
+			return []ent.Value{*id}
+		}
+	case ledgersubaccountroute.EdgeSubAccounts:
+		ids := make([]ent.Value, 0, len(m.sub_accounts))
+		for id := range m.sub_accounts {
+			ids = append(ids, id)
+		}
+		return ids
+	case ledgersubaccountroute.EdgeCurrencyDimension:
+		if id := m.currency_dimension; id != nil {
+			return []ent.Value{*id}
+		}
+	case ledgersubaccountroute.EdgeTaxCodeDimension:
+		if id := m.tax_code_dimension; id != nil {
+			return []ent.Value{*id}
+		}
+	case ledgersubaccountroute.EdgeFeaturesDimension:
+		if id := m.features_dimension; id != nil {
+			return []ent.Value{*id}
+		}
+	case ledgersubaccountroute.EdgeCreditPriorityDimension:
+		if id := m.credit_priority_dimension; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *LedgerSubAccountRouteMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 6)
+	if m.removedsub_accounts != nil {
+		edges = append(edges, ledgersubaccountroute.EdgeSubAccounts)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *LedgerSubAccountRouteMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case ledgersubaccountroute.EdgeSubAccounts:
+		ids := make([]ent.Value, 0, len(m.removedsub_accounts))
+		for id := range m.removedsub_accounts {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *LedgerSubAccountRouteMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 6)
+	if m.clearedaccount {
+		edges = append(edges, ledgersubaccountroute.EdgeAccount)
+	}
+	if m.clearedsub_accounts {
+		edges = append(edges, ledgersubaccountroute.EdgeSubAccounts)
+	}
+	if m.clearedcurrency_dimension {
+		edges = append(edges, ledgersubaccountroute.EdgeCurrencyDimension)
+	}
+	if m.clearedtax_code_dimension {
+		edges = append(edges, ledgersubaccountroute.EdgeTaxCodeDimension)
+	}
+	if m.clearedfeatures_dimension {
+		edges = append(edges, ledgersubaccountroute.EdgeFeaturesDimension)
+	}
+	if m.clearedcredit_priority_dimension {
+		edges = append(edges, ledgersubaccountroute.EdgeCreditPriorityDimension)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *LedgerSubAccountRouteMutation) EdgeCleared(name string) bool {
+	switch name {
+	case ledgersubaccountroute.EdgeAccount:
+		return m.clearedaccount
+	case ledgersubaccountroute.EdgeSubAccounts:
+		return m.clearedsub_accounts
+	case ledgersubaccountroute.EdgeCurrencyDimension:
+		return m.clearedcurrency_dimension
+	case ledgersubaccountroute.EdgeTaxCodeDimension:
+		return m.clearedtax_code_dimension
+	case ledgersubaccountroute.EdgeFeaturesDimension:
+		return m.clearedfeatures_dimension
+	case ledgersubaccountroute.EdgeCreditPriorityDimension:
+		return m.clearedcredit_priority_dimension
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *LedgerSubAccountRouteMutation) ClearEdge(name string) error {
+	switch name {
+	case ledgersubaccountroute.EdgeAccount:
+		m.ClearAccount()
+		return nil
+	case ledgersubaccountroute.EdgeCurrencyDimension:
+		m.ClearCurrencyDimension()
+		return nil
+	case ledgersubaccountroute.EdgeTaxCodeDimension:
+		m.ClearTaxCodeDimension()
+		return nil
+	case ledgersubaccountroute.EdgeFeaturesDimension:
+		m.ClearFeaturesDimension()
+		return nil
+	case ledgersubaccountroute.EdgeCreditPriorityDimension:
+		m.ClearCreditPriorityDimension()
+		return nil
+	}
+	return fmt.Errorf("unknown LedgerSubAccountRoute unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *LedgerSubAccountRouteMutation) ResetEdge(name string) error {
+	switch name {
+	case ledgersubaccountroute.EdgeAccount:
+		m.ResetAccount()
+		return nil
+	case ledgersubaccountroute.EdgeSubAccounts:
+		m.ResetSubAccounts()
+		return nil
+	case ledgersubaccountroute.EdgeCurrencyDimension:
 		m.ResetCurrencyDimension()
 		return nil
-	case ledgersubaccount.EdgeTaxCodeDimension:
+	case ledgersubaccountroute.EdgeTaxCodeDimension:
 		m.ResetTaxCodeDimension()
 		return nil
-	case ledgersubaccount.EdgeFeaturesDimension:
+	case ledgersubaccountroute.EdgeFeaturesDimension:
 		m.ResetFeaturesDimension()
 		return nil
-	case ledgersubaccount.EdgeCreditPriorityDimension:
+	case ledgersubaccountroute.EdgeCreditPriorityDimension:
 		m.ResetCreditPriorityDimension()
 		return nil
 	}
-	return fmt.Errorf("unknown LedgerSubAccount edge %s", name)
+	return fmt.Errorf("unknown LedgerSubAccountRoute edge %s", name)
 }
 
 // LedgerTransactionMutation represents an operation that mutates the LedgerTransaction nodes in the graph.

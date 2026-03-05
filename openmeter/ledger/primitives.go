@@ -22,6 +22,7 @@ type PostingAddress interface {
 
 	SubAccountID() string
 	AccountType() AccountType
+	Route() SubAccountRoute
 }
 
 type Balance interface {
@@ -42,8 +43,7 @@ type SubAccount interface {
 type QueryDimensions struct {
 	CurrencyID string
 
-	// DEFERRED: tax/feature/credit-priority not active yet.
-	// Currency is the only enforced dimension in current provisioning model.
+	// DEFERRED: tax/feature not active yet.
 	// Non-currency fields are retained for near-future expansion.
 	// TaxCodeID is the ID of the tax code that the sub-account uses.
 	TaxCodeID *string
@@ -51,7 +51,7 @@ type QueryDimensions struct {
 	// FeatureIDs is the IDs of the features that the sub-account uses.
 	FeatureIDs []string
 
-	// CreditPriority is the priority of the funds in the sub-account
+	// CreditPriority is only meaningful for customer_fbo queries.
 	CreditPriority *int
 }
 

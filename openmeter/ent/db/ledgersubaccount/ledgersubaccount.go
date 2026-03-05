@@ -26,26 +26,14 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// FieldAccountID holds the string denoting the account_id field in the database.
 	FieldAccountID = "account_id"
-	// FieldCurrencyDimensionID holds the string denoting the currency_dimension_id field in the database.
-	FieldCurrencyDimensionID = "currency_dimension_id"
-	// FieldTaxCodeDimensionID holds the string denoting the tax_code_dimension_id field in the database.
-	FieldTaxCodeDimensionID = "tax_code_dimension_id"
-	// FieldFeaturesDimensionID holds the string denoting the features_dimension_id field in the database.
-	FieldFeaturesDimensionID = "features_dimension_id"
-	// FieldCreditPriorityDimensionID holds the string denoting the credit_priority_dimension_id field in the database.
-	FieldCreditPriorityDimensionID = "credit_priority_dimension_id"
+	// FieldRouteID holds the string denoting the route_id field in the database.
+	FieldRouteID = "route_id"
 	// EdgeAccount holds the string denoting the account edge name in mutations.
 	EdgeAccount = "account"
+	// EdgeRoute holds the string denoting the route edge name in mutations.
+	EdgeRoute = "route"
 	// EdgeEntries holds the string denoting the entries edge name in mutations.
 	EdgeEntries = "entries"
-	// EdgeCurrencyDimension holds the string denoting the currency_dimension edge name in mutations.
-	EdgeCurrencyDimension = "currency_dimension"
-	// EdgeTaxCodeDimension holds the string denoting the tax_code_dimension edge name in mutations.
-	EdgeTaxCodeDimension = "tax_code_dimension"
-	// EdgeFeaturesDimension holds the string denoting the features_dimension edge name in mutations.
-	EdgeFeaturesDimension = "features_dimension"
-	// EdgeCreditPriorityDimension holds the string denoting the credit_priority_dimension edge name in mutations.
-	EdgeCreditPriorityDimension = "credit_priority_dimension"
 	// Table holds the table name of the ledgersubaccount in the database.
 	Table = "ledger_sub_accounts"
 	// AccountTable is the table that holds the account relation/edge.
@@ -55,6 +43,13 @@ const (
 	AccountInverseTable = "ledger_accounts"
 	// AccountColumn is the table column denoting the account relation/edge.
 	AccountColumn = "account_id"
+	// RouteTable is the table that holds the route relation/edge.
+	RouteTable = "ledger_sub_accounts"
+	// RouteInverseTable is the table name for the LedgerSubAccountRoute entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgersubaccountroute" package.
+	RouteInverseTable = "ledger_sub_account_routes"
+	// RouteColumn is the table column denoting the route relation/edge.
+	RouteColumn = "route_id"
 	// EntriesTable is the table that holds the entries relation/edge.
 	EntriesTable = "ledger_entries"
 	// EntriesInverseTable is the table name for the LedgerEntry entity.
@@ -62,34 +57,6 @@ const (
 	EntriesInverseTable = "ledger_entries"
 	// EntriesColumn is the table column denoting the entries relation/edge.
 	EntriesColumn = "sub_account_id"
-	// CurrencyDimensionTable is the table that holds the currency_dimension relation/edge.
-	CurrencyDimensionTable = "ledger_sub_accounts"
-	// CurrencyDimensionInverseTable is the table name for the LedgerDimension entity.
-	// It exists in this package in order to avoid circular dependency with the "ledgerdimension" package.
-	CurrencyDimensionInverseTable = "ledger_dimensions"
-	// CurrencyDimensionColumn is the table column denoting the currency_dimension relation/edge.
-	CurrencyDimensionColumn = "currency_dimension_id"
-	// TaxCodeDimensionTable is the table that holds the tax_code_dimension relation/edge.
-	TaxCodeDimensionTable = "ledger_sub_accounts"
-	// TaxCodeDimensionInverseTable is the table name for the LedgerDimension entity.
-	// It exists in this package in order to avoid circular dependency with the "ledgerdimension" package.
-	TaxCodeDimensionInverseTable = "ledger_dimensions"
-	// TaxCodeDimensionColumn is the table column denoting the tax_code_dimension relation/edge.
-	TaxCodeDimensionColumn = "tax_code_dimension_id"
-	// FeaturesDimensionTable is the table that holds the features_dimension relation/edge.
-	FeaturesDimensionTable = "ledger_sub_accounts"
-	// FeaturesDimensionInverseTable is the table name for the LedgerDimension entity.
-	// It exists in this package in order to avoid circular dependency with the "ledgerdimension" package.
-	FeaturesDimensionInverseTable = "ledger_dimensions"
-	// FeaturesDimensionColumn is the table column denoting the features_dimension relation/edge.
-	FeaturesDimensionColumn = "features_dimension_id"
-	// CreditPriorityDimensionTable is the table that holds the credit_priority_dimension relation/edge.
-	CreditPriorityDimensionTable = "ledger_sub_accounts"
-	// CreditPriorityDimensionInverseTable is the table name for the LedgerDimension entity.
-	// It exists in this package in order to avoid circular dependency with the "ledgerdimension" package.
-	CreditPriorityDimensionInverseTable = "ledger_dimensions"
-	// CreditPriorityDimensionColumn is the table column denoting the credit_priority_dimension relation/edge.
-	CreditPriorityDimensionColumn = "credit_priority_dimension_id"
 )
 
 // Columns holds all SQL columns for ledgersubaccount fields.
@@ -101,27 +68,13 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldDeletedAt,
 	FieldAccountID,
-	FieldCurrencyDimensionID,
-	FieldTaxCodeDimensionID,
-	FieldFeaturesDimensionID,
-	FieldCreditPriorityDimensionID,
-}
-
-// ForeignKeys holds the SQL foreign-keys that are owned by the "ledger_sub_accounts"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"ledger_dimension_sub_accounts",
+	FieldRouteID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -174,30 +127,22 @@ func ByAccountID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAccountID, opts...).ToFunc()
 }
 
-// ByCurrencyDimensionID orders the results by the currency_dimension_id field.
-func ByCurrencyDimensionID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCurrencyDimensionID, opts...).ToFunc()
-}
-
-// ByTaxCodeDimensionID orders the results by the tax_code_dimension_id field.
-func ByTaxCodeDimensionID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTaxCodeDimensionID, opts...).ToFunc()
-}
-
-// ByFeaturesDimensionID orders the results by the features_dimension_id field.
-func ByFeaturesDimensionID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldFeaturesDimensionID, opts...).ToFunc()
-}
-
-// ByCreditPriorityDimensionID orders the results by the credit_priority_dimension_id field.
-func ByCreditPriorityDimensionID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCreditPriorityDimensionID, opts...).ToFunc()
+// ByRouteID orders the results by the route_id field.
+func ByRouteID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRouteID, opts...).ToFunc()
 }
 
 // ByAccountField orders the results by account field.
 func ByAccountField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newAccountStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByRouteField orders the results by route field.
+func ByRouteField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newRouteStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -214,34 +159,6 @@ func ByEntries(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newEntriesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
-
-// ByCurrencyDimensionField orders the results by currency_dimension field.
-func ByCurrencyDimensionField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newCurrencyDimensionStep(), sql.OrderByField(field, opts...))
-	}
-}
-
-// ByTaxCodeDimensionField orders the results by tax_code_dimension field.
-func ByTaxCodeDimensionField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newTaxCodeDimensionStep(), sql.OrderByField(field, opts...))
-	}
-}
-
-// ByFeaturesDimensionField orders the results by features_dimension field.
-func ByFeaturesDimensionField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newFeaturesDimensionStep(), sql.OrderByField(field, opts...))
-	}
-}
-
-// ByCreditPriorityDimensionField orders the results by credit_priority_dimension field.
-func ByCreditPriorityDimensionField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newCreditPriorityDimensionStep(), sql.OrderByField(field, opts...))
-	}
-}
 func newAccountStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -249,38 +166,17 @@ func newAccountStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.M2O, true, AccountTable, AccountColumn),
 	)
 }
+func newRouteStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(RouteInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, RouteTable, RouteColumn),
+	)
+}
 func newEntriesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(EntriesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, EntriesTable, EntriesColumn),
-	)
-}
-func newCurrencyDimensionStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(CurrencyDimensionInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, CurrencyDimensionTable, CurrencyDimensionColumn),
-	)
-}
-func newTaxCodeDimensionStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(TaxCodeDimensionInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeDimensionTable, TaxCodeDimensionColumn),
-	)
-}
-func newFeaturesDimensionStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(FeaturesDimensionInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, FeaturesDimensionTable, FeaturesDimensionColumn),
-	)
-}
-func newCreditPriorityDimensionStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(CreditPriorityDimensionInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, CreditPriorityDimensionTable, CreditPriorityDimensionColumn),
 	)
 }

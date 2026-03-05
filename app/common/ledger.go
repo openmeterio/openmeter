@@ -26,7 +26,7 @@ var LedgerStack = wire.NewSet(
 	NewLedgerHistoricalLedger,
 	NewLedgerResolversService,
 	wire.Bind(new(ledger.Ledger), new(*historical.Ledger)),
-	wire.Bind(new(ledger.AccountResolver), new(*resolvers.Service)),
+	wire.Bind(new(ledger.AccountResolver), new(*resolvers.AccountResolver)),
 )
 
 func NewLedgerAccountRepo(db *entdb.Client) ledgeraccount.Repo {
@@ -37,7 +37,7 @@ func NewLedgerHistoricalRepo(db *entdb.Client) historical.Repo {
 	return historicaladapter.NewRepo(db)
 }
 
-func NewLedgerResolversRepo(db *entdb.Client) resolvers.Repo {
+func NewLedgerResolversRepo(db *entdb.Client) resolvers.CustomerAccountRepo {
 	return resolversadapter.NewRepo(db)
 }
 
@@ -67,9 +67,9 @@ func NewLedgerHistoricalLedger(
 
 func NewLedgerResolversService(
 	accountSvc ledgeraccount.Service,
-	repo resolvers.Repo,
-) *resolvers.Service {
-	return resolvers.NewService(resolvers.ServiceConfig{
+	repo resolvers.CustomerAccountRepo,
+) *resolvers.AccountResolver {
+	return resolvers.NewAccountResolver(resolvers.AccountResolverConfig{
 		AccountService: accountSvc,
 		Repo:           repo,
 	})

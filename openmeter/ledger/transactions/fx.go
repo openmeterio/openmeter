@@ -19,6 +19,8 @@ type ConvertCurrencyTemplate struct {
 
 	SourceCurrency currencyx.Code
 	TargetCurrency currencyx.Code
+	// Optional, defaults to ledger.DefaultCustomerFBOPriority.
+	CreditPriority *int
 	// TaxCode  string // TBD
 }
 
@@ -41,6 +43,11 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 		return nil, fmt.Errorf("failed to get target currency dimension: %w", err)
 	}
 
+	priority, err := resolveCustomerFBOPriorityDimension(ctx, resolvers, t.CreditPriority)
+	if err != nil {
+		return nil, err
+	}
+
 	// Let's fetch the customer accounts
 	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
@@ -48,14 +55,16 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 	}
 
 	sourceAccount, err := customerAccounts.FBOAccount.GetSubAccountForDimensions(ctx, ledger.CustomerFBOSubAccountDimensions{
-		Currency: sourceCurrency,
+		Currency:       sourceCurrency,
+		CreditPriority: priority,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get source sub-account: %w", err)
 	}
 
 	targetAccount, err := customerAccounts.FBOAccount.GetSubAccountForDimensions(ctx, ledger.CustomerFBOSubAccountDimensions{
-		Currency: targetCurrency,
+		Currency:       targetCurrency,
+		CreditPriority: priority,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get target sub-account: %w", err)

@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	"github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
 	"github.com/openmeterio/openmeter/openmeter/ledger/testutil"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -88,6 +89,14 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	_, err = acctSvc.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
+		Namespace:    namespace,
+		Key:          string(ledger.DimensionKeyCreditPriority),
+		Value:        "100",
+		DisplayValue: "Default priority",
+	})
+	require.NoError(t, err)
+
 	// === Provision customer accounts ===
 	customerID := customer.CustomerID{
 		Namespace: namespace,
@@ -120,9 +129,9 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 
 		deps := transactions.ResolverDependencies{
 			AccountService: resolversSvc,
-			DimensionService: &ledgeraccount.DimensionResolver{
+			DimensionService: &resolvers.DimensionResolver{
 				Namespace: namespace,
-				Service:   acctSvc,
+				Lookup:    acctSvc,
 			},
 		}
 

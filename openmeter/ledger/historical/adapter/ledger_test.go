@@ -63,19 +63,28 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 	namespace := testNamespace()
 	subAccountA := env.createSubAccount(t, namespace, "acc-a")
 	subAccountB := env.createSubAccount(t, namespace, "acc-b")
+	routeVersion := ledger.RoutingKeyVersionV1
+	routeA := "route-a"
+	routeB := "route-b"
 
 	txInput := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
 		{
 			Address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
-				SubAccountID: subAccountA,
-				AccountType:  ledger.AccountTypeCustomerFBO,
+				SubAccountID:      subAccountA,
+				AccountType:       ledger.AccountTypeCustomerFBO,
+				RouteID:           "r-a",
+				RoutingKeyVersion: routeVersion,
+				RoutingKey:        routeA,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(-100),
 		},
 		{
 			Address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
-				SubAccountID: subAccountB,
-				AccountType:  ledger.AccountTypeCustomerFBO,
+				SubAccountID:      subAccountB,
+				AccountType:       ledger.AccountTypeCustomerFBO,
+				RouteID:           "r-b",
+				RoutingKeyVersion: routeVersion,
+				RoutingKey:        routeB,
 			}),
 			AmountValue: alpacadecimal.NewFromInt(100),
 		},
@@ -116,6 +125,17 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 	})
 	require.Contains(t, subAccountIDs, subAccountA)
 	require.Contains(t, subAccountIDs, subAccountB)
+
+	require.Len(t, tx.Entries(), 2)
+	addressesBySubAccount := map[string]ledger.PostingAddress{}
+	for _, entry := range tx.Entries() {
+		addr := entry.PostingAddress()
+		addressesBySubAccount[addr.SubAccountID()] = addr
+	}
+	require.Equal(t, routeA, addressesBySubAccount[subAccountA].Route().RoutingKey().Value())
+	require.Equal(t, routeVersion, addressesBySubAccount[subAccountA].Route().RoutingKey().Version())
+	require.Equal(t, routeB, addressesBySubAccount[subAccountB].Route().RoutingKey().Value())
+	require.Equal(t, routeVersion, addressesBySubAccount[subAccountB].Route().RoutingKey().Version())
 }
 
 func TestRepo_BookTransaction_NilInput(t *testing.T) {
@@ -328,8 +348,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	// DEFERRED: credit priority filtering is not active yet; currency is the only enforced dimension.
-	require.True(t, sumPriority.Equal(alpacadecimal.NewFromInt(50)))
+	require.True(t, sumPriority.Equal(alpacadecimal.NewFromInt(150)))
 
 	txID := txEarly.ID().ID
 	sumTxID, err := env.repo.SumEntries(ctx, ledger.Query{
@@ -378,12 +397,14 @@ func TestSumEntriesQuery_SQL(t *testing.T) {
 
 	sqlStr, args := q.SQL()
 
-	require.Equal(t, `SELECT SUM("ledger_entries"."amount") AS "sum_amount" FROM "ledger_entries" WHERE (("ledger_entries"."namespace" = $1 AND "ledger_entries"."transaction_id" = $2) AND EXISTS (SELECT "ledger_transactions"."id" FROM "ledger_transactions" WHERE "ledger_entries"."transaction_id" = "ledger_transactions"."id" AND "ledger_transactions"."booked_at" >= $3)) AND EXISTS (SELECT "ledger_sub_accounts"."id" FROM "ledger_sub_accounts" WHERE "ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id" AND "ledger_sub_accounts"."currency_dimension_id" = $4)`, sqlStr)
+	require.Equal(t, `SELECT SUM("ledger_entries"."amount") AS "sum_amount" FROM "ledger_entries" WHERE (("ledger_entries"."namespace" = $1 AND "ledger_entries"."transaction_id" = $2) AND EXISTS (SELECT "ledger_transactions"."id" FROM "ledger_transactions" WHERE "ledger_entries"."transaction_id" = "ledger_transactions"."id" AND "ledger_transactions"."booked_at" >= $3)) AND EXISTS (SELECT "ledger_sub_accounts"."id" FROM "ledger_sub_accounts" WHERE "ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id" AND EXISTS (SELECT "ledger_sub_account_routes"."id" FROM "ledger_sub_account_routes" WHERE ("ledger_sub_accounts"."route_id" = "ledger_sub_account_routes"."id" AND "ledger_sub_account_routes"."currency_dimension_id" = $4) AND EXISTS (SELECT "ledger_dimensions"."id" FROM "ledger_dimensions" WHERE ("ledger_sub_account_routes"."credit_priority_dimension_id" = "ledger_dimensions"."id" AND "ledger_dimensions"."dimension_key" = $5) AND "ledger_dimensions"."dimension_value" = $6)))`, sqlStr)
 	require.Equal(t, []any{
 		"ns-test",
 		txID,
 		bookedFrom,
 		"01TESTCUR1234567890123456",
+		string(ledger.DimensionKeyCreditPriority),
+		"7",
 	}, args)
 }
 
@@ -452,6 +473,38 @@ func (e *TestEnv) createSubAccountWithDimensions(t *testing.T, namespace string,
 	subAccount, err := e.client.LedgerSubAccount.Create().
 		SetNamespace(namespace).
 		SetAccountID(account.ID).
+		SetRouteID(mustCreateRoute(t, e.client, namespace, account.ID, currencyDimensionID, taxCodeDimensionID, featuresDimensionID, creditPriorityDimensionID)).
+		Save(t.Context())
+	require.NoError(t, err)
+
+	return subAccount.ID
+}
+
+func mustCreateRoute(
+	t *testing.T,
+	client *entdb.Client,
+	namespace string,
+	accountID string,
+	currencyDimensionID string,
+	taxCodeDimensionID *string,
+	featuresDimensionID *string,
+	creditPriorityDimensionID *string,
+) string {
+	t.Helper()
+
+	routeKey, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, ledger.SubAccountRouteInput{
+		CurrencyDimensionID:       currencyDimensionID,
+		TaxCodeDimensionID:        taxCodeDimensionID,
+		FeaturesDimensionID:       featuresDimensionID,
+		CreditPriorityDimensionID: creditPriorityDimensionID,
+	})
+	require.NoError(t, err)
+
+	route, err := client.LedgerSubAccountRoute.Create().
+		SetNamespace(namespace).
+		SetAccountID(accountID).
+		SetRoutingKeyVersion(routeKey.Version()).
+		SetRoutingKey(routeKey.Value()).
 		SetCurrencyDimensionID(currencyDimensionID).
 		SetNillableTaxCodeDimensionID(taxCodeDimensionID).
 		SetNillableFeaturesDimensionID(featuresDimensionID).
@@ -459,7 +512,7 @@ func (e *TestEnv) createSubAccountWithDimensions(t *testing.T, namespace string,
 		Save(t.Context())
 	require.NoError(t, err)
 
-	return subAccount.ID
+	return route.ID
 }
 
 func (e *TestEnv) createDimension(t *testing.T, namespace, key, value, displayValue string) string {

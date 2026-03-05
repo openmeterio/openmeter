@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -113,6 +114,21 @@ func (_c *LedgerAccountCreate) AddSubAccounts(v ...*LedgerSubAccount) *LedgerAcc
 		ids[i] = v[i].ID
 	}
 	return _c.AddSubAccountIDs(ids...)
+}
+
+// AddSubAccountRouteIDs adds the "sub_account_routes" edge to the LedgerSubAccountRoute entity by IDs.
+func (_c *LedgerAccountCreate) AddSubAccountRouteIDs(ids ...string) *LedgerAccountCreate {
+	_c.mutation.AddSubAccountRouteIDs(ids...)
+	return _c
+}
+
+// AddSubAccountRoutes adds the "sub_account_routes" edges to the LedgerSubAccountRoute entity.
+func (_c *LedgerAccountCreate) AddSubAccountRoutes(v ...*LedgerSubAccountRoute) *LedgerAccountCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddSubAccountRouteIDs(ids...)
 }
 
 // Mutation returns the LedgerAccountMutation object of the builder.
@@ -257,6 +273,22 @@ func (_c *LedgerAccountCreate) createSpec() (*LedgerAccount, *sqlgraph.CreateSpe
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SubAccountRoutesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.SubAccountRoutesTable,
+			Columns: []string{ledgeraccount.SubAccountRoutesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccountroute.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

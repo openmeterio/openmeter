@@ -404,6 +404,29 @@ func HasSubAccountsWith(preds ...predicate.LedgerSubAccount) predicate.LedgerAcc
 	})
 }
 
+// HasSubAccountRoutes applies the HasEdge predicate on the "sub_account_routes" edge.
+func HasSubAccountRoutes() predicate.LedgerAccount {
+	return predicate.LedgerAccount(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, SubAccountRoutesTable, SubAccountRoutesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSubAccountRoutesWith applies the HasEdge predicate on the "sub_account_routes" edge with a given conditions (other predicates).
+func HasSubAccountRoutesWith(preds ...predicate.LedgerSubAccountRoute) predicate.LedgerAccount {
+	return predicate.LedgerAccount(func(s *sql.Selector) {
+		step := newSubAccountRoutesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.LedgerAccount) predicate.LedgerAccount {
 	return predicate.LedgerAccount(sql.AndPredicates(predicates...))

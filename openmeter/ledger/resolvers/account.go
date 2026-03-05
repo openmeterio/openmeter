@@ -11,31 +11,31 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// Service implements ledger.AccountResolver and manages customer ledger account provisioning.
-type Service struct {
+// AccountResolver implements ledger.AccountResolver and manages customer ledger account provisioning.
+type AccountResolver struct {
 	AccountService ledgeraccount.Service
-	Repo           Repo
+	Repo           CustomerAccountRepo
 }
 
-// ServiceConfig holds the dependencies for constructing a Service.
-type ServiceConfig struct {
+// AccountResolverConfig holds the dependencies for constructing a Service.
+type AccountResolverConfig struct {
 	AccountService ledgeraccount.Service
-	Repo           Repo
+	Repo           CustomerAccountRepo
 }
 
-// NewService constructs a resolvers Service from the given config.
-func NewService(cfg ServiceConfig) *Service {
-	return &Service{
+// NewAccountResolver constructs a resolvers Service from the given config.
+func NewAccountResolver(cfg AccountResolverConfig) *AccountResolver {
+	return &AccountResolver{
 		AccountService: cfg.AccountService,
 		Repo:           cfg.Repo,
 	}
 }
 
-var _ ledger.AccountResolver = (*Service)(nil)
+var _ ledger.AccountResolver = (*AccountResolver)(nil)
 
 // CreateCustomerAccounts creates FBO and Receivable ledger accounts for a new customer
 // and stores the mappings in the linking table.
-func (s *Service) CreateCustomerAccounts(ctx context.Context, customerID customer.CustomerID) (ledger.CustomerAccounts, error) {
+func (s *AccountResolver) CreateCustomerAccounts(ctx context.Context, customerID customer.CustomerID) (ledger.CustomerAccounts, error) {
 	return transaction.Run(ctx, s.Repo, func(ctx context.Context) (ledger.CustomerAccounts, error) {
 		ns := customerID.Namespace
 
@@ -82,7 +82,7 @@ func (s *Service) CreateCustomerAccounts(ctx context.Context, customerID custome
 }
 
 // GetCustomerAccounts retrieves the FBO and Receivable accounts for a customer.
-func (s *Service) GetCustomerAccounts(ctx context.Context, customerID customer.CustomerID) (ledger.CustomerAccounts, error) {
+func (s *AccountResolver) GetCustomerAccounts(ctx context.Context, customerID customer.CustomerID) (ledger.CustomerAccounts, error) {
 	ns := customerID.Namespace
 
 	accountIDs, err := s.Repo.GetCustomerAccountIDs(ctx, customerID)
@@ -128,7 +128,7 @@ func (s *Service) GetCustomerAccounts(ctx context.Context, customerID customer.C
 
 // GetBusinessAccounts retrieves (and idempotently creates) the shared business accounts
 // for a namespace.
-func (s *Service) GetBusinessAccounts(ctx context.Context, namespace string) (ledger.BusinessAccounts, error) {
+func (s *AccountResolver) GetBusinessAccounts(ctx context.Context, namespace string) (ledger.BusinessAccounts, error) {
 	types := []ledger.AccountType{
 		ledger.AccountTypeWash,
 		ledger.AccountTypeEarnings,

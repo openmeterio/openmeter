@@ -2,6 +2,8 @@ package ledger
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 
 	"github.com/samber/mo"
 
@@ -39,8 +41,7 @@ var (
 
 func (d DimensionKey) Validate() error {
 	switch d {
-	// For now we only support currency as a dimension
-	case DimensionKeyCurrency:
+	case DimensionKeyCurrency, DimensionKeyCreditPriority:
 		return nil
 	default:
 		return ErrInvalidDimensionKey.WithAttrs(models.Attributes{
@@ -63,6 +64,18 @@ type (
 
 type DimensionResolver interface {
 	GetCurrencyDimension(ctx context.Context, value string) (DimensionCurrency, error)
+	GetCreditPriorityDimension(ctx context.Context, value int) (DimensionCreditPriority, error)
+}
+
+func ParseCreditPriority(raw string) (int, error) {
+	value, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0, fmt.Errorf("parse credit priority: %w", err)
+	}
+	if value < 1 {
+		return 0, fmt.Errorf("credit priority must be a positive integer")
+	}
+	return value, nil
 }
 
 // ----------------------------------------------------------------------------
