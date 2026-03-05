@@ -179,5 +179,11 @@ func (f *Feature) Validate() error {
 		errs = append(errs, fmt.Errorf("updated at is required"))
 	}
 
+	if f.UnitCost != nil {
+		if err := f.UnitCost.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("unit cost is invalid: %w", err))
+		}
+	}
+
 	return errors.Join(errs...)
 }
