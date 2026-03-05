@@ -633,6 +633,52 @@ func TestCostPerTokenForType(t *testing.T) {
 	})
 }
 
+func TestBuildCacheKey(t *testing.T) {
+	t.Run("deterministic regardless of map iteration order", func(t *testing.T) {
+		// Build the same map many times and verify key is always identical.
+		keys := make(map[string]struct{})
+		for i := 0; i < 100; i++ {
+			m := map[string]string{
+				"provider":   "openai",
+				"model":      "gpt-4",
+				"token_type": "input",
+			}
+			keys[buildCacheKey(m)] = struct{}{}
+		}
+		assert.Len(t, keys, 1, "cache key should be deterministic")
+	})
+
+	t.Run("different values produce different keys", func(t *testing.T) {
+		k1 := buildCacheKey(map[string]string{"provider": "openai", "model": "gpt-4"})
+		k2 := buildCacheKey(map[string]string{"provider": "openai", "model": "gpt-3.5-turbo"})
+		assert.NotEqual(t, k1, k2)
+	})
+
+	t.Run("different keys produce different cache keys", func(t *testing.T) {
+		k1 := buildCacheKey(map[string]string{"provider": "openai"})
+		k2 := buildCacheKey(map[string]string{"model": "openai"})
+		assert.NotEqual(t, k1, k2)
+	})
+
+	t.Run("no collision from values containing separators", func(t *testing.T) {
+		// Ensure values with = or , don't collide with different key/value combos.
+		k1 := buildCacheKey(map[string]string{"a": "b,c=d"})
+		k2 := buildCacheKey(map[string]string{"a": "b", "c": "d"})
+		assert.NotEqual(t, k1, k2)
+	})
+
+	t.Run("empty map", func(t *testing.T) {
+		assert.Equal(t, "", buildCacheKey(map[string]string{}))
+	})
+
+	t.Run("single entry", func(t *testing.T) {
+		key := buildCacheKey(map[string]string{"provider": "openai"})
+		assert.NotEmpty(t, key)
+		assert.Contains(t, key, "provider")
+		assert.Contains(t, key, "openai")
+	})
+}
+
 func TestResolveDimension(t *testing.T) {
 	groupByValues := map[string]string{
 		"provider":   "openai",

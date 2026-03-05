@@ -86,7 +86,7 @@ func computeCostRows(rows []meter.MeterQueryRow, internalGroupByKeys []string, r
 		}
 
 		// Resolve unit cost with caching.
-		cacheKey := fmt.Sprint(groupByValues)
+		cacheKey := buildCacheKey(groupByValues)
 
 		var resolved *cost.ResolvedUnitCost
 		var detail string
@@ -236,4 +236,21 @@ func costPerTokenForType(pricing llmcost.ModelPricing, tokenType feature.LLMToke
 	default:
 		return alpacadecimal.Decimal{}, fmt.Errorf("unknown LLM token type: %s", tokenType)
 	}
+}
+
+// buildCacheKey builds a deterministic cache key for a map of group-by values.
+func buildCacheKey(groupByValues map[string]string) string {
+	sortedKeys := make([]string, 0, len(groupByValues))
+
+	for k := range groupByValues {
+		sortedKeys = append(sortedKeys, k)
+	}
+	slices.Sort(sortedKeys)
+
+	var b strings.Builder
+	for _, k := range sortedKeys {
+		fmt.Fprintf(&b, "%s=%s\x00", k, groupByValues[k])
+	}
+
+	return b.String()
 }
