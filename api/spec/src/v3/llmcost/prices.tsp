@@ -47,17 +47,13 @@ model Price {
   @visibility(Lifecycle.Read)
   id: Shared.ULID;
 
-  /** Provider/vendor of the model (e.g., "openai", "anthropic"). */
+  /** Provider of the model. */
   @visibility(Lifecycle.Read)
-  provider: string;
+  provider: Provider;
 
-  /** Canonical model identifier (e.g., "gpt-4", "claude-3-5-sonnet"). */
+  /** The model. */
   @visibility(Lifecycle.Read)
-  model_id: string;
-
-  /** Human-readable model name. */
-  @visibility(Lifecycle.Read)
-  model_name: string;
+  `model`: Model;
 
   /** Token pricing data. */
   @visibility(Lifecycle.Read)
@@ -86,6 +82,30 @@ model Price {
   /** Last update timestamp. */
   @visibility(Lifecycle.Read)
   updated_at?: Shared.DateTime;
+}
+
+/**
+ * LLM Provider
+ */
+@friendlyName("LLMCostProvider")
+model Provider {
+  /** Identifier of the provider. e.g., "openai", "anthropic"). */
+  id: string;
+
+  /** Name of the provider. e.g., "OpenAI", "Anthropic"). */
+  name: string;
+}
+
+/**
+ * LLM Model
+ */
+@friendlyName("LLMCostModel")
+model Model {
+  /** Identifier of the model. e.g., "gpt-4", "claude-3-5-sonnet"). */
+  id: string;
+
+  /** Name of the model. e.g., "GPT-4", "Claude 3.5 Sonnet"). */
+  name: string;
 }
 
 /**

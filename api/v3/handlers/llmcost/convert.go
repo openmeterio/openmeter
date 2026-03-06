@@ -2,6 +2,7 @@ package llmcost
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -12,6 +13,36 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+// providerDisplayNames maps well-known provider IDs to their formatted display names.
+var providerDisplayNames = map[string]string{
+	"anthropic":  "Anthropic",
+	"azure":      "Azure",
+	"bedrock":    "Amazon Bedrock",
+	"cohere":     "Cohere",
+	"gemini":     "Google Gemini",
+	"huggingface": "HuggingFace",
+	"llama2":     "Llama",
+	"mistral":    "Mistral",
+	"openai":     "OpenAI",
+	"vertex":     "Google Vertex",
+}
+
+// formatProviderName returns the display name for a provider ID.
+// Known providers get their canonical display name; unknown providers
+// get their ID with the first letter capitalized.
+func formatProviderName(id string) string {
+	if name, ok := providerDisplayNames[strings.ToLower(id)]; ok {
+		return name
+	}
+
+	if id == "" {
+		return ""
+	}
+
+	// Fallback: capitalize first letter
+	return strings.ToUpper(id[:1]) + id[1:]
+}
+
 func domainPriceToAPI(p llmcost.Price) api.LLMCostPrice {
 	// Map internal source to API source: manual stays manual, everything else is system.
 	source := api.LLMCostPriceSourceSystem
@@ -19,11 +50,18 @@ func domainPriceToAPI(p llmcost.Price) api.LLMCostPrice {
 		source = api.LLMCostPriceSourceManual
 	}
 
+	providerID := string(p.Provider)
+
 	out := api.LLMCostPrice{
-		Id:            p.ID,
-		Provider:      string(p.Provider),
-		ModelId:       p.ModelID,
-		ModelName:     p.ModelName,
+		Id: p.ID,
+		Provider: api.LLMCostProvider{
+			Id:   providerID,
+			Name: formatProviderName(providerID),
+		},
+		Model: api.LLMCostModel{
+			Id:   p.ModelID,
+			Name: p.ModelName,
+		},
 		Currency:      p.Currency,
 		Source:        source,
 		EffectiveFrom: p.EffectiveFrom,
