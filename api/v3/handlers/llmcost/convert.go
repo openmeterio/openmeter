@@ -15,16 +15,16 @@ import (
 
 // providerDisplayNames maps well-known provider IDs to their formatted display names.
 var providerDisplayNames = map[string]string{
-	"anthropic":  "Anthropic",
-	"azure":      "Azure",
-	"bedrock":    "Amazon Bedrock",
-	"cohere":     "Cohere",
-	"gemini":     "Google Gemini",
+	"anthropic":   "Anthropic",
+	"azure":       "Azure",
+	"bedrock":     "Amazon Bedrock",
+	"cohere":      "Cohere",
+	"gemini":      "Google Gemini",
 	"huggingface": "HuggingFace",
-	"llama2":     "Llama",
-	"mistral":    "Mistral",
-	"openai":     "OpenAI",
-	"vertex":     "Google Vertex",
+	"llama2":      "Llama",
+	"mistral":     "Mistral",
+	"openai":      "OpenAI",
+	"vertex":      "Google Vertex",
 }
 
 // formatProviderName returns the display name for a provider ID.
