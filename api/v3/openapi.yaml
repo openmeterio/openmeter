@@ -3640,6 +3640,19 @@ components:
       title: ISO 8601 Duration
       example: P1Y
       format: ISO8601
+    LLMCostModel:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          description: Identifier of the model, e.g., "gpt-4", "claude-3-5-sonnet".
+        name:
+          type: string
+          description: Name of the model, e.g., "GPT-4", "Claude 3.5 Sonnet".
+      description: LLM Model
     LLMCostModelPricing:
       type: object
       required:
@@ -3711,8 +3724,7 @@ components:
       required:
         - id
         - provider
-        - model_id
-        - model_name
+        - model
         - pricing
         - currency
         - source
@@ -3724,16 +3736,14 @@ components:
           description: Unique identifier.
           readOnly: true
         provider:
-          type: string
-          description: Provider/vendor of the model (e.g., "openai", "anthropic").
+          allOf:
+            - $ref: '#/components/schemas/LLMCostProvider'
+          description: Provider of the model.
           readOnly: true
-        model_id:
-          type: string
-          description: Canonical model identifier (e.g., "gpt-4", "claude-3-5-sonnet").
-          readOnly: true
-        model_name:
-          type: string
-          description: Human-readable model name.
+        model:
+          allOf:
+            - $ref: '#/components/schemas/LLMCostModel'
+          description: The model.
           readOnly: true
         pricing:
           allOf:
@@ -3779,6 +3789,19 @@ components:
         - manual
         - system
       description: Identifies where an LLM cost price came from.
+    LLMCostProvider:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          description: Identifier of the provider, e.g., "openai", "anthropic".
+        name:
+          type: string
+          description: Name of the provider, e.g., "OpenAI", "Anthropic".
+      description: LLM Provider
     ListCostBasesParamsFilter:
       type: object
       properties:
