@@ -77,6 +77,21 @@ interface LLMCostPricesOperations {
     @query(#{ style: "deepObject", explode: true })
     filter?: ListPricesParamsFilter,
 
+    /**
+     * Sort prices returned in the response.
+     * Supported sort attributes are:
+     * - `id`
+     * - `provider.id`
+     * - `model.id` (default)
+     * - `effective_from`
+     * - `effective_to`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending.
+     * The `desc` suffix is used to specify a descending order.
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
+
     ...Common.PagePaginationQuery,
   ): Shared.PagePaginatedResponse<Price> | Common.ErrorResponses;
 

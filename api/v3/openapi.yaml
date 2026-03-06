@@ -725,6 +725,24 @@ paths:
           schema:
             $ref: '#/components/schemas/ListLLMCostPricesParamsFilter'
           style: deepObject
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort prices returned in the response.
+            Supported sort attributes are:
+            - `id`
+            - `provider.id`
+            - `model.id` (default)
+            - `effective_from`
+            - `effective_to`
+
+            The `asc` suffix is optional as the default sort order is ascending.
+            The `desc` suffix is used to specify a descending order.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
         - $ref: '#/components/parameters/PagePaginationQuery'
       responses:
         '200':

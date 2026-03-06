@@ -9,6 +9,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -49,6 +50,25 @@ func (h *handler) ListPrices() ListPricesHandler {
 						{Field: "page", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
+			}
+
+			// Sort
+			if params.Sort != nil {
+				sort, err := request.ParseSortBy(*params.Sort)
+				if err != nil {
+					return req, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+
+				if !validPriceSortField(sort.Field) {
+					return req, apierrors.NewBadRequestError(ctx, fmt.Errorf("unsupported sort field: %s", sort.Field), apierrors.InvalidParameters{
+						{Field: "sort", Reason: fmt.Sprintf("unsupported sort field %q, must be one of: id, provider.id, model.id, effective_from, effective_to", sort.Field), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+
+				req.OrderBy = sort.Field
+				req.Order = sort.Order.ToSortxOrder()
 			}
 
 			// Filters

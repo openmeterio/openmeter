@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 // ListPrices returns global (namespace IS NULL) prices with optional filtering.
@@ -41,7 +42,27 @@ func (a *adapter) ListPrices(ctx context.Context, input llmcost.ListPricesInput)
 			pricedb.CurrencyEqualFold, pricedb.CurrencyNEQ, pricedb.CurrencyContainsFold,
 		)
 
-		query = query.Order(pricedb.ByProvider(), pricedb.ByModelID(), pricedb.ByEffectiveFrom())
+		// Order
+		order := entutils.GetOrdering(sortx.OrderDefault)
+		if !input.Order.IsDefaultValue() {
+			order = entutils.GetOrdering(input.Order)
+		}
+
+		switch input.OrderBy {
+		case "id":
+			query = query.Order(pricedb.ByID(order...))
+		case "provider.id":
+			query = query.Order(pricedb.ByProvider(order...), pricedb.ByID(order...))
+		case "effective_from":
+			query = query.Order(pricedb.ByEffectiveFrom(order...), pricedb.ByID(order...))
+		case "effective_to":
+			query = query.Order(pricedb.ByEffectiveTo(order...), pricedb.ByID(order...))
+		case "model.id":
+			query = query.Order(pricedb.ByModelID(order...), pricedb.ByID(order...))
+		default:
+			// No sort specified; default to model ID ascending.
+			query = query.Order(pricedb.ByModelID(), pricedb.ByID())
+		}
 
 		entities, err := query.Paginate(ctx, input.Page)
 		if err != nil {

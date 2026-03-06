@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 // Service provides read-only access to LLM cost prices and management of per-namespace overrides.
@@ -49,6 +50,12 @@ type ListPricesInput struct {
 	// When set, any global price that has a matching override in this namespace
 	// will be replaced by the override in the result.
 	Namespace string `json:"namespace,omitempty"`
+
+	// OrderBy is the field to sort by (e.g., "id", "provider.id", "model.id", "effective_from", "effective_to").
+	OrderBy string `json:"order_by,omitempty"`
+
+	// Order is the sort direction (ASC or DESC).
+	Order sortx.Order `json:"order,omitempty"`
 
 	// Provider filters by LLM vendor.
 	Provider *filters.StringFilter `json:"provider,omitempty"`
