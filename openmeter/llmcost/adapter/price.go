@@ -52,15 +52,16 @@ func (a *adapter) ListPrices(ctx context.Context, input llmcost.ListPricesInput)
 		case "id":
 			query = query.Order(pricedb.ByID(order...))
 		case "provider.id":
-			query = query.Order(pricedb.ByProvider(order...))
+			query = query.Order(pricedb.ByProvider(order...), pricedb.ByID(order...))
 		case "effective_from":
-			query = query.Order(pricedb.ByEffectiveFrom(order...))
+			query = query.Order(pricedb.ByEffectiveFrom(order...), pricedb.ByID(order...))
 		case "effective_to":
-			query = query.Order(pricedb.ByEffectiveTo(order...))
+			query = query.Order(pricedb.ByEffectiveTo(order...), pricedb.ByID(order...))
 		case "model.id":
-			fallthrough
+			query = query.Order(pricedb.ByModelID(order...), pricedb.ByID(order...))
 		default:
-			query = query.Order(pricedb.ByModelID(order...))
+			// No sort specified; default to model ID ascending.
+			query = query.Order(pricedb.ByModelID(), pricedb.ByID())
 		}
 
 		entities, err := query.Paginate(ctx, input.Page)

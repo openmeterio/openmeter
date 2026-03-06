@@ -191,6 +191,16 @@ func decimalFromString(s string) (alpacadecimal.Decimal, error) {
 	return v, nil
 }
 
+// validPriceSortField reports whether the given field name is a supported sort attribute for price listing.
+func validPriceSortField(field string) bool {
+	switch field {
+	case "id", "provider.id", "model.id", "effective_from", "effective_to":
+		return true
+	default:
+		return false
+	}
+}
+
 // filterSingleStringToDomain converts an API FilterSingleString to the domain StringFilter.
 // Returns nil if the input is nil or empty.
 func filterSingleStringToDomain(f *api.FilterSingleString) (*filters.StringFilter, error) {
