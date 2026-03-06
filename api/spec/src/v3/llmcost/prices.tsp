@@ -89,10 +89,10 @@ model Price {
  */
 @friendlyName("LLMCostProvider")
 model Provider {
-  /** Identifier of the provider. e.g., "openai", "anthropic"). */
+  /** Identifier of the provider, e.g., "openai", "anthropic". */
   id: string;
 
-  /** Name of the provider. e.g., "OpenAI", "Anthropic"). */
+  /** Name of the provider, e.g., "OpenAI", "Anthropic". */
   name: string;
 }
 
@@ -101,10 +101,10 @@ model Provider {
  */
 @friendlyName("LLMCostModel")
 model Model {
-  /** Identifier of the model. e.g., "gpt-4", "claude-3-5-sonnet"). */
+  /** Identifier of the model, e.g., "gpt-4", "claude-3-5-sonnet". */
   id: string;
 
-  /** Name of the model. e.g., "GPT-4", "Claude 3.5 Sonnet"). */
+  /** Name of the model, e.g., "GPT-4", "Claude 3.5 Sonnet". */
   name: string;
 }
 
