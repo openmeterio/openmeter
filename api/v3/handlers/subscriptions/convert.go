@@ -2,6 +2,7 @@ package subscriptions
 
 import (
 	"fmt"
+	"maps"
 
 	"github.com/samber/lo"
 
@@ -89,9 +90,8 @@ func ConvertFromCreateSubscriptionRequestToCreateSubscriptionWorkflowInput(
 // convertMetadataToLabels converts models.Metadata to api.Labels.
 // Always returns an initialized map (never nil) so JSON serializes to {} instead of null.
 func convertMetadataToLabels(source models.Metadata) *api.Labels {
-	labels := make(api.Labels)
-	for k, v := range source {
-		labels[k] = v
+	if len(source) == 0 {
+		return &api.Labels{}
 	}
-	return &labels
+	return lo.ToPtr((api.Labels)(maps.Clone(source)))
 }
