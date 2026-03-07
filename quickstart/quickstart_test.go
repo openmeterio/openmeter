@@ -47,6 +47,12 @@ func openmeterAddress(t *testing.T) string {
 	return strings.TrimRight(address, "/")
 }
 
+func openmeterV3Address(t *testing.T) string {
+	t.Helper()
+
+	return openmeterAddress(t) + "/api/v3"
+}
+
 func createMeterV3(t *testing.T, address string, body apiv3.CreateMeterRequest) *apiv3.Meter {
 	t.Helper()
 
@@ -109,7 +115,7 @@ func queryMeterV3(t require.TestingT, address string, meterID string, body apiv3
 
 func TestQuickstart(t *testing.T) {
 	client := initClient(t)
-	address := openmeterAddress(t)
+	v3Address := openmeterV3Address(t)
 	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
 	v1MeterSlug := "quickstart_v1_" + suffix
 	v3MeterKey := "quickstart_v3_" + suffix
@@ -128,7 +134,7 @@ func TestQuickstart(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, v1CreateResp.StatusCode(), "Invalid status code [response_body=%s]", string(v1CreateResp.Body))
 
-	v3Meter := createMeterV3(t, address, apiv3.CreateMeterRequest{
+	v3Meter := createMeterV3(t, v3Address, apiv3.CreateMeterRequest{
 		Key:         v3MeterKey,
 		Name:        "Quickstart V3 Meter",
 		Aggregation: apiv3.MeterAggregationCount,
@@ -219,7 +225,7 @@ func TestQuickstart(t *testing.T) {
 	t.Run("v3", func(t *testing.T) {
 		assert.EventuallyWithT(t, func(t *assert.CollectT) {
 			granularity := apiv3.MeterQueryGranularity("PT1H")
-			resp := queryMeterV3(t, address, v3Meter.Id, apiv3.MeterQueryRequest{
+			resp := queryMeterV3(t, v3Address, v3Meter.Id, apiv3.MeterQueryRequest{
 				Granularity: &granularity,
 			})
 
