@@ -64,13 +64,21 @@ func GetMeterIDBySlug(t *testing.T, client *api.ClientWithResponses, meterSlug s
 	return resp.JSON200.Id
 }
 
-func QueryMeterV3(t *testing.T, meterID string, body apiv3.MeterQueryRequest) (int, *apiv3.MeterQueryResult, error) {
+func openmeterV3Address(t *testing.T) string {
 	t.Helper()
 
 	address := os.Getenv("OPENMETER_ADDRESS")
 	if address == "" {
 		t.Skip("OPENMETER_ADDRESS not set")
 	}
+
+	return strings.TrimRight(address, "/") + "/api/v3"
+}
+
+func QueryMeterV3(t *testing.T, meterID string, body apiv3.MeterQueryRequest) (int, *apiv3.MeterQueryResult, error) {
+	t.Helper()
+
+	address := openmeterV3Address(t)
 
 	payload, err := json.Marshal(body)
 	if err != nil {
@@ -80,7 +88,7 @@ func QueryMeterV3(t *testing.T, meterID string, body apiv3.MeterQueryRequest) (i
 	req, err := http.NewRequestWithContext(
 		context.Background(),
 		http.MethodPost,
-		strings.TrimRight(address, "/")+"/openmeter/meters/"+meterID,
+		address+"/openmeter/meters/"+meterID,
 		bytes.NewReader(payload),
 	)
 	if err != nil {
