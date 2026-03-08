@@ -64,21 +64,13 @@ func GetMeterIDBySlug(t *testing.T, client *api.ClientWithResponses, meterSlug s
 	return resp.JSON200.Id
 }
 
-func openmeterV3Address(t *testing.T) string {
+func QueryMeterV3(t *testing.T, meterID string, body apiv3.MeterQueryRequest) (int, *apiv3.MeterQueryResult, error) {
 	t.Helper()
 
 	address := os.Getenv("OPENMETER_ADDRESS")
 	if address == "" {
 		t.Skip("OPENMETER_ADDRESS not set")
 	}
-
-	return strings.TrimRight(address, "/") + "/api/v3"
-}
-
-func QueryMeterV3(t *testing.T, meterID string, body apiv3.MeterQueryRequest) (int, *apiv3.MeterQueryResult, error) {
-	t.Helper()
-
-	address := openmeterV3Address(t)
 
 	payload, err := json.Marshal(body)
 	if err != nil {
@@ -88,7 +80,7 @@ func QueryMeterV3(t *testing.T, meterID string, body apiv3.MeterQueryRequest) (i
 	req, err := http.NewRequestWithContext(
 		context.Background(),
 		http.MethodPost,
-		address+"/openmeter/meters/"+meterID,
+		strings.TrimRight(address, "/")+"/api/v3/openmeter/meters/"+meterID,
 		bytes.NewReader(payload),
 	)
 	if err != nil {
@@ -103,8 +95,8 @@ func QueryMeterV3(t *testing.T, meterID string, body apiv3.MeterQueryRequest) (i
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		_, _ = io.ReadAll(resp.Body)
-		return resp.StatusCode, nil, nil
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return resp.StatusCode, nil, fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	var result apiv3.MeterQueryResult
