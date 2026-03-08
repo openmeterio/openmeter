@@ -1,0 +1,34 @@
+{
+  "name": "@openmeter/api-spec-aip",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "compile": "tsp compile --config tspconfig.yaml ./src && node ./scripts/flatten-allof.mjs ./output/definitions/metering-and-billing/v3/openapi.MeteringAndBilling.yaml",
+    "bundle": "openapi bundle output/definitions/metering-and-billing/v3/openapi.OpenMeter.yaml",
+    "watch": "tsp compile --watch --config tspconfig.yaml ./src",
+    "format": "prettier --ignore-path ../../.prettierignore --list-different --find-config-path --write .",
+    "lint": "prettier --ignore-path ../../.prettierignore --check .",
+    "lint:fix": "prettier --ignore-path ../../.prettierignore --write ."
+  },
+  "main": "./lib/index.js",
+  "exports": {
+    ".": {
+      "typespec": "./src/main.tsp"
+    }
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.20.3",
+    "@types/node": "25.3.3",
+    "@typespec/compiler": "1.9.0",
+    "@typespec/http": "1.9.1",
+    "@typespec/json-schema": "1.9.0",
+    "@typespec/openapi": "1.9.0",
+    "@typespec/openapi3": "1.9.0",
+    "@typespec/prettier-plugin-typespec": "1.9.0",
+    "@typespec/rest": "0.79.0",
+    "prettier": "3.8.1",
+    "yaml": "2.8.2"
+  },
+  "private": true,
+  "packageManager": "pnpm@10.28.0+sha512.05df71d1421f21399e053fde567cea34d446fa02c76571441bfc1c7956e98e363088982d940465fd34480d4d90a0668bc12362f8aa88000a64e83d0b0e47be48"
+}
