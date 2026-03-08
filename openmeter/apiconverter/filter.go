@@ -10,6 +10,7 @@ import (
 // goverter:skipCopySameType
 // goverter:output:file ./filter.gen.go
 var (
+	// goverter:ignore Exists
 	ConvertString       func(api.FilterString) filter.FilterString
 	ConvertStringPtr    func(*api.FilterString) *filter.FilterString
 	ConvertStringMap    func(map[string]api.FilterString) map[string]filter.FilterString
