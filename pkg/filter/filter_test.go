@@ -56,6 +56,22 @@ func TestFilterString_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "valid exists filter false",
+			filter: filter.FilterString{
+				Exists: lo.ToPtr(false),
+			},
+			wantErr: false,
+		},
+		{
+			name: "exists with eq filter",
+			filter: filter.FilterString{
+				Exists: lo.ToPtr(true),
+				Eq:     lo.ToPtr("test"),
+			},
+			wantErr:    true,
+			errMessage: "only one filter can be set",
+		},
+		{
 			name: "valid in filter",
 			filter: filter.FilterString{
 				In: &[]string{"test1", "test2"},

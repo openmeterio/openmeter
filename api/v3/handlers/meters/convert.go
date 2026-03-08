@@ -2,6 +2,8 @@
 package meters
 
 import (
+	"fmt"
+
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
@@ -126,11 +128,11 @@ func ConvertISO8601DurationToWindowSize(duration string) (meter.WindowSize, erro
 	return ws, nil
 }
 
-func ConvertWindowSizeToISO8601Duration(ws meter.WindowSize) string {
+func ConvertWindowSizeToISO8601Duration(ws meter.WindowSize) (string, error) {
 	if d, ok := windowSizeToISO8601[ws]; ok {
-		return d
+		return d, nil
 	}
-	return string(ws)
+	return "", fmt.Errorf("unknown WindowSize: %q", ws)
 }
 
 func ConvertMeterQueryRowToAPI(row meter.MeterQueryRow) api.MeterQueryRow {

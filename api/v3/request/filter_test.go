@@ -9,6 +9,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/request"
+	"github.com/openmeterio/openmeter/pkg/filter"
 )
 
 func TestConvertQueryFilterString(t *testing.T) {
@@ -22,14 +23,12 @@ func TestConvertQueryFilterString(t *testing.T) {
 
 		got := request.ConvertQueryFilterString(in)
 
-		require.NotNil(t, got.Eq)
-		assert.Equal(t, "eq", *got.Eq)
-		require.NotNil(t, got.Ne)
-		assert.Equal(t, "ne", *got.Ne)
-		require.NotNil(t, got.In)
-		assert.Equal(t, []string{"a", "b"}, *got.In)
-		require.NotNil(t, got.Nin)
-		assert.Equal(t, []string{"c", "d"}, *got.Nin)
+		assert.Equal(t, filter.FilterString{
+			Eq:  lo.ToPtr("eq"),
+			Ne:  lo.ToPtr("ne"),
+			In:  &[]string{"a", "b"},
+			Nin: &[]string{"c", "d"},
+		}, got)
 	})
 
 	t.Run("maps contains operators", func(t *testing.T) {
@@ -40,10 +39,10 @@ func TestConvertQueryFilterString(t *testing.T) {
 
 		got := request.ConvertQueryFilterString(in)
 
-		require.NotNil(t, got.Like)
-		assert.Equal(t, "%abc%", *got.Like)
-		require.NotNil(t, got.Nlike)
-		assert.Equal(t, "%xyz%", *got.Nlike)
+		assert.Equal(t, filter.FilterString{
+			Like:  lo.ToPtr("%abc%"),
+			Nlike: lo.ToPtr("%xyz%"),
+		}, got)
 	})
 
 	t.Run("escapes like metacharacters in contains operators", func(t *testing.T) {
@@ -54,10 +53,10 @@ func TestConvertQueryFilterString(t *testing.T) {
 
 		got := request.ConvertQueryFilterString(in)
 
-		require.NotNil(t, got.Like)
-		assert.Equal(t, `%100\%\\path\_name%`, *got.Like)
-		require.NotNil(t, got.Nlike)
-		assert.Equal(t, `%a\_b\\c\%d%`, *got.Nlike)
+		assert.Equal(t, filter.FilterString{
+			Like:  lo.ToPtr(`%100\%\\path\_name%`),
+			Nlike: lo.ToPtr(`%a\_b\\c\%d%`),
+		}, got)
 	})
 
 	t.Run("maps and or recursively", func(t *testing.T) {
@@ -74,19 +73,40 @@ func TestConvertQueryFilterString(t *testing.T) {
 
 		got := request.ConvertQueryFilterString(in)
 
-		require.NotNil(t, got.And)
-		require.Len(t, *got.And, 2)
-		require.NotNil(t, (*got.And)[0].Eq)
-		assert.Equal(t, "a", *(*got.And)[0].Eq)
-		require.NotNil(t, (*got.And)[1].Like)
-		assert.Equal(t, "%b%", *(*got.And)[1].Like)
+		assert.Equal(t, filter.FilterString{
+			And: &[]filter.FilterString{
+				{Eq: lo.ToPtr("a")},
+				{Like: lo.ToPtr("%b%")},
+			},
+			Or: &[]filter.FilterString{
+				{Ne: lo.ToPtr("c")},
+				{Nlike: lo.ToPtr("%d%")},
+			},
+		}, got)
+	})
 
-		require.NotNil(t, got.Or)
-		require.Len(t, *got.Or, 2)
-		require.NotNil(t, (*got.Or)[0].Ne)
-		assert.Equal(t, "c", *(*got.Or)[0].Ne)
-		require.NotNil(t, (*got.Or)[1].Nlike)
-		assert.Equal(t, "%d%", *(*got.Or)[1].Nlike)
+	t.Run("maps deeply nested and or", func(t *testing.T) {
+		in := api.QueryFilterString{
+			And: &[]api.QueryFilterString{
+				{
+					Or: &[]api.QueryFilterString{
+						{Eq: lo.ToPtr("nested")},
+					},
+				},
+			},
+		}
+
+		got := request.ConvertQueryFilterString(in)
+
+		assert.Equal(t, filter.FilterString{
+			And: &[]filter.FilterString{
+				{
+					Or: &[]filter.FilterString{
+						{Eq: lo.ToPtr("nested")},
+					},
+				},
+			},
+		}, got)
 	})
 }
 
@@ -100,7 +120,8 @@ func TestConvertQueryFilterStringPtr(t *testing.T) {
 
 		got := request.ConvertQueryFilterStringPtr(in)
 		require.NotNil(t, got)
-		require.NotNil(t, got.Like)
-		assert.Equal(t, `%abc\\\_\%%`, *got.Like)
+		assert.Equal(t, &filter.FilterString{
+			Like: lo.ToPtr(`%abc\\\_\%%`),
+		}, got)
 	})
 }
