@@ -30,7 +30,9 @@ Edit or create files in `openmeter/ent/schema/`. Look at existing schema files f
 - Edge (relationship) definitions
 - Field validations and defaults
 
-If the user described what change they want ($ARGUMENTS), implement it. Otherwise, ask what schema changes are needed.
+If the user described what change they want ($ARGUMENTS), implement it. Otherwise, ask what schema changes are needed. When creating a new schema always define schema to support soft delete.
+
+Schemas supporting soft delete always have a `deleted_at` field.
 
 ### Step 2: Regenerate ent code
 
