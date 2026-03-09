@@ -30,29 +30,7 @@ Core business logic is in `openmeter/`, shared utilities in `pkg/`, API layer in
 
 **Stack:** Go + PostgreSQL (Ent ORM) + Kafka + ClickHouse. API defined in TypeSpec, generated to OpenAPI.
 
-### Domain Package Pattern
-
-Each domain package under `openmeter/` follows a layered pattern:
-
-```
-openmeter/<domain>/
-  <domain>.go          # Entity types, value objects, enums
-  service.go           # Service interface + input DTOs
-  adapter.go           # Adapter interface (persistence contract)
-  errors.go            # Error definitions (optional)
-  service/service.go   # Business logic (implements Service interface)
-  adapter/adapter.go   # Ent DB persistence (implements Adapter interface)
-```
-
-**Responsibility split:**
-
-| Layer | Owns | Does NOT own |
-|-------|------|-------------|
-| Root package | Types, interfaces, input DTOs, errors, validation | Any implementation code |
-| Service | Business rules, transaction orchestration, input enrichment | Database queries, entity mapping |
-| Adapter | Ent queries, entity↔domain mapping, constraint error handling | Business decisions, input defaults |
-
-See the `/service` skill for full implementation patterns.
+Domain packages under `openmeter/` follow a layered service/adapter pattern. See the `/service` skill for full details.
 
 ### Project Layout
 
@@ -135,16 +113,7 @@ POSTGRES_HOST=127.0.0.1 go test -tags=dynamic -v ./openmeter/billing/...
 
 Key flags: `-tags=dynamic` (required for confluent-kafka-go), `-p 128 -parallel 16` (used by Make). Set `POSTGRES_HOST=127.0.0.1` or tests requiring Postgres will be skipped.
 
-### Testing Patterns
-
-- **testify** for assertions: `require.*` to fail fast, `assert.*` to continue
-- **pgtestdb** for isolated Postgres per test — automatically skips if `POSTGRES_HOST` unset
-- **testutils** packages per domain (e.g., `openmeter/testutils`, `openmeter/streaming/testutils`)
-- **clock.SetTime / clock.FreezeTime** for time-deterministic tests — always `defer clock.ResetTime()`
-- **eventbus.NewMock(t)** for event bus in tests
-- **Suite pattern**: `suite.Suite` + `*require.Assertions` embedded, with `SetupSuite`/`TearDownSuite`
-
-See the `/test` skill for full TestEnv patterns and examples.
+See the `/test` skill for testing patterns, TestEnv setup, and examples.
 
 ## Building
 
@@ -163,70 +132,7 @@ All builds use `GO_BUILD_FLAGS=-tags=dynamic`.
 
 ## Coding Conventions
 
-### Constructors & Config
-
-```go
-type Config struct {
-    Adapter   customer.Adapter
-    Publisher eventbus.Publisher
-}
-func (c Config) Validate() error { ... }
-func New(config Config) (*Service, error) { ... }
-```
-
-### Input Types
-
-All implement `.Validate() error`. Naming: `Create<Entity>Input`, `Update<Entity>Input`, `List<Entity>Input`, `Get<Entity>Input`, `Delete<Entity>Input`.
-
-```go
-type CreateCustomerInput struct {
-    Namespace string
-    CustomerMutate
-}
-```
-
-Use `models.NamespacedID` for Get/Delete inputs that identify a namespaced entity.
-
-### Errors
-
-Three patterns, each for a different layer:
-
-- **Generic errors** (`pkg/models`): Used in service/adapter layers. `models.NewGenericValidationError()`, `models.NewGenericNotFoundError()`, `models.NewGenericConflictError()`, etc.
-- **Domain errors**: Provide `New<X>Error()` constructor + `Is<X>Error()` checker. Wrap generic errors.
-- **Validation issues** (`models.NewValidationIssue(code, message)`): Structured client-facing errors with field paths and severity. Used in v3 API handlers.
-
-### Multi-tenancy
-
-Every entity is namespaced. Extract via `namespaceDecoder.GetNamespace(ctx)` in HTTP handlers.
-
-### HTTP Handlers
-
-Use `httptransport.HandlerWithArgs[Req, Resp, Params]` with two phases:
-
-1. Parse HTTP request → domain input (resolve namespace, pagination, sort)
-2. Call service → map domain result to API response type
-
-See the `/api` skill for full handler patterns.
-
-### Transactions
-
-Service layer wraps operations: `transaction.Run(ctx, repo, func(ctx) (T, error) {...})`. Adapters implement `transaction.Driver` via `Tx`/`WithTx`/`Self` methods.
-
-### Hooks
-
-`models.ServiceHookRegistry[T]` for lifecycle events: `PreUpdate`, `PostCreate`, `PreDelete`, `PostDelete`, `PostUpdate`.
-
-### Logging
-
-`*slog.Logger` everywhere. Use structured context logging:
-
-```go
-logger.WarnContext(ctx, "msg", "key", val)
-```
-
-### DI
-
-Google Wire. Providers live in `app/common/`. Each binary (`cmd/*`) composes its own `wire.go`.
+See the `/service` skill for service/adapter patterns, constructors, input types, errors, transactions, hooks, logging, multi-tenancy, and DI wiring. See the `/api` skill for HTTP handler patterns and ValidationIssue.
 
 ## Key Dependencies
 

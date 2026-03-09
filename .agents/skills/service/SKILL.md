@@ -489,6 +489,22 @@ If the service is needed in other entry points (e.g., `cmd/billing-worker`, `cmd
 3. Add input types with `Validate()` methods
 4. Implement in both `service/` and `adapter/` layers
 
+## Cross-cutting Conventions
+
+### Multi-tenancy
+
+Every entity is namespaced. In HTTP handlers, extract namespace via `namespaceDecoder.GetNamespace(ctx)`. In service/adapter layers, namespace is always passed as part of the input struct.
+
+### Logging
+
+Use `*slog.Logger` everywhere with structured context logging:
+
+```go
+logger.WarnContext(ctx, "msg", "key", val)
+```
+
+Use `logger.With("subsystem", "<domain>")` when creating sub-loggers for services/adapters.
+
 ## Anti-patterns to Avoid
 
 - **Deep nesting**: No more than one level of subdirectories (`adapter/`, `service/`). No `adapter/internal/helpers/`.

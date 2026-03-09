@@ -211,6 +211,62 @@ func TestCreate<Resource>Input_Validate(t *testing.T) {
 }
 ```
 
+## Time Control
+
+Use `clock.SetTime` or `clock.FreezeTime` for time-deterministic tests. Always defer a reset:
+
+```go
+func TestTimeSensitive(t *testing.T) {
+    now := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+    clock.SetTime(now)
+    defer clock.ResetTime()
+
+    // Test code that depends on current time...
+}
+```
+
+- `clock.SetTime(t)` — sets the clock to a specific time
+- `clock.FreezeTime(t)` — freezes time so it doesn't advance
+- Always `defer clock.ResetTime()` to avoid leaking into other tests
+
+## Suite Pattern
+
+For complex test scenarios with shared setup/teardown, use testify's `suite.Suite`:
+
+```go
+type <Domain>Suite struct {
+    suite.Suite
+    *require.Assertions
+
+    env *testutils.TestEnv
+}
+
+func (s *<Domain>Suite) SetupSuite() {
+    s.env = testutils.NewTestEnv(s.T())
+    s.env.DBSchemaMigrate(s.T())
+}
+
+func (s *<Domain>Suite) TearDownSuite() {
+    s.env.Close(s.T())
+}
+
+func (s *<Domain>Suite) TestCreate() {
+    // Use s.Require() or s.Assert() for assertions
+    result, err := s.env.Service.Create(s.T().Context(), input)
+    s.NoError(err)
+    s.Equal("expected", result.Name)
+}
+
+func TestSuite(t *testing.T) {
+    suite.Run(t, new(<Domain>Suite))
+}
+```
+
+Key conventions:
+- Embed `*require.Assertions` for convenient assertion methods
+- Use `SetupSuite`/`TearDownSuite` for one-time setup (DB, env)
+- Use `SetupTest`/`TearDownTest` for per-test setup if needed
+
 ## Testing Conventions
 
 - Use `require` for fatal assertions (test cannot continue), `assert` for soft assertions
