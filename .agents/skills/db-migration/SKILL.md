@@ -23,12 +23,7 @@ Follow these steps in order:
 
 ### Step 1: Modify the ent schema
 
-Edit or create files in `openmeter/ent/schema/`. Look at existing schema files for conventions:
-
-- Mixins for common fields (namespace, timestamps, metadata)
-- Index definitions
-- Edge (relationship) definitions
-- Field validations and defaults
+Edit or create files in `openmeter/ent/schema/`. Look at existing schema files for conventions.
 
 If the user described what change they want ($ARGUMENTS), implement it. Otherwise, ask what schema changes are needed. When creating a new schema always define schema to support soft delete.
 
@@ -65,6 +60,134 @@ Read the generated `.up.sql` file and verify:
 - Indexes are created where appropriate
 
 Present a summary of the migration to the user.
+
+## Available Mixins
+
+From `pkg/framework/entutils/mixins.go`:
+
+| Mixin | Fields | Notes |
+|-------|--------|-------|
+| `entutils.IDMixin{}` | `id` char(26) ULID | Auto-generated, unique, immutable |
+| `entutils.NamespaceMixin{}` | `namespace` string | Immutable, indexed |
+| `entutils.TimeMixin{}` | `created_at`, `updated_at`, `deleted_at` (nillable) | Provides soft delete support |
+| `entutils.MetadataMixin{}` | `metadata` JSONB `map[string]string` | Optional |
+| `entutils.ResourceMixin{}` | ID + Namespace + Metadata + Time + `name` + `description` | Composite of above mixins |
+| `entutils.UniqueResourceMixin{}` | Resource + `key` | Adds unique index on `(namespace, key, deleted_at)` |
+| `entutils.KeyMixin{}` | `key` string | Immutable, not empty |
+| `entutils.CadencedMixin{}` | `active_from`, `active_to` (nillable) | For time-bounded entities |
+
+Usage in schema:
+
+```go
+func (<Entity>) Mixin() []ent.Mixin {
+    return []ent.Mixin{
+        entutils.IDMixin{},
+        entutils.NamespaceMixin{},
+        entutils.TimeMixin{},
+    }
+}
+```
+
+## Common Field Patterns
+
+### JSONB custom type
+
+```go
+field.String("config").
+    GoType(MyConfig{}).
+    ValueScanner(entutils.JSONStringValueScanner[MyConfig]).
+    SchemaType(map[string]string{dialect.Postgres: "jsonb"})
+```
+
+### Decimal
+
+```go
+field.Other("amount", alpacadecimal.Decimal{}).
+    SchemaType(map[string]string{dialect.Postgres: "numeric"})
+```
+
+### Foreign key
+
+```go
+field.String("customer_id").
+    SchemaType(map[string]string{dialect.Postgres: "char(26)"}).
+    Immutable()
+```
+
+### Enum-like string
+
+```go
+field.String("status").
+    Default("active")
+```
+
+### Optional nillable
+
+```go
+field.Time("effective_to").
+    Optional().
+    Nillable()
+```
+
+## Edge (Relationship) Patterns
+
+### One-to-many (parent → children)
+
+```go
+// In parent schema:
+edge.To("children", Child.Type).
+    Annotations(entsql.OnDelete(entsql.Cascade))
+
+// In child schema:
+edge.From("parent", Parent.Type).
+    Ref("children").
+    Unique().
+    Required().
+    Field("parent_id")
+```
+
+### Many-to-one foreign key (child → parent, no back-edge)
+
+```go
+// Define the FK field:
+field.String("parent_id").
+    SchemaType(map[string]string{dialect.Postgres: "char(26)"}).
+    Immutable()
+
+// Define the edge:
+edge.To("parent", Parent.Type).
+    Unique().
+    Required().
+    Field("parent_id")
+```
+
+## Index Patterns
+
+### Soft-delete aware unique index
+
+```go
+// In Indexes():
+index.Fields("namespace", "key", "deleted_at").Unique()
+```
+
+This ensures uniqueness among non-deleted records. Always filter with `Where(<entity>db.DeletedAtIsNil())` in queries.
+
+### Composite index
+
+```go
+index.Fields("namespace", "provider", "model_id")
+```
+
+### GIN index for JSONB
+
+```go
+index.Fields("annotations").
+    Annotations(
+        entsql.IndexTypes(map[string]string{
+            dialect.Postgres: "GIN",
+        }),
+    )
+```
 
 ## Troubleshooting
 

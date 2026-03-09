@@ -93,11 +93,206 @@ This regenerates Go server code from the updated OpenAPI spec (oapi-codegen).
 
 ### Step 3: Implement the handler
 
-After generating, you'll need to implement the new handler methods in the Go server code. The generated interfaces will show what methods need to be implemented.
+After generating, implement the handler package and wire it into the server.
 
-The handlers are located at `api/v3/handlers`, you also need to connect handlers at `api/v3/server/routes.go`.
+#### Handler Package Structure
 
-### Step 4: Review
+Each handler domain lives at `api/v3/handlers/<domain>/` and contains:
+
+- `handler.go` — Handler interface + constructor
+- `<operation>.go` — One file per operation (create.go, list.go, get.go, delete.go)
+- `convert.go` — Domain ↔ API type mapping functions
+
+Reference: `api/v3/handlers/llmcost/`
+
+#### Handler Interface & Constructor (`handler.go`)
+
+```go
+package <domain>
+
+type Handler interface {
+    List<Resource>s() List<Resource>sHandler
+    Create<Resource>() Create<Resource>Handler
+    Get<Resource>() Get<Resource>Handler
+    Delete<Resource>() Delete<Resource>Handler
+}
+
+type handler struct {
+    resolveNamespace func(ctx context.Context) (string, error)
+    service          <domain>.Service
+    options          []httptransport.HandlerOption
+}
+
+func New(
+    resolveNamespace func(ctx context.Context) (string, error),
+    service <domain>.Service,
+    options ...httptransport.HandlerOption,
+) Handler {
+    return &handler{
+        resolveNamespace: resolveNamespace,
+        service:          service,
+        options:          options,
+    }
+}
+```
+
+Reference: `api/v3/handlers/llmcost/handler.go`
+
+#### Handler Operation Pattern (`<operation>.go`)
+
+Each operation file uses `httptransport.NewHandlerWithArgs` with 4 arguments:
+
+1. **Request decoder** — parse HTTP request → domain input, resolve namespace
+2. **Operation function** — call service, map result to API response type
+3. **Response encoder** — `commonhttp.JSONResponseEncoderWithStatus[T](http.StatusXxx)`
+4. **Options** — `httptransport.AppendOptions(h.options, httptransport.WithOperationName("..."), httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()))`
+
+Type alias convention at top of file:
+
+```go
+type (
+    List<Resource>sRequest  = <domain>.List<Resource>sInput
+    List<Resource>sResponse = response.PagePaginationResponse[api.<Resource>]
+    List<Resource>sParams   = api.List<Resource>sParams
+    List<Resource>sHandler  = httptransport.HandlerWithArgs[List<Resource>sRequest, List<Resource>sResponse, List<Resource>sParams]
+)
+```
+
+Full example:
+
+```go
+func (h *handler) List<Resource>s() List<Resource>sHandler {
+    return httptransport.NewHandlerWithArgs(
+        // 1. Request decoder
+        func(ctx context.Context, r *http.Request, params List<Resource>sParams) (List<Resource>sRequest, error) {
+            ns, err := h.resolveNamespace(ctx)
+            if err != nil {
+                return List<Resource>sRequest{}, err
+            }
+
+            req := List<Resource>sRequest{
+                Namespace: ns,
+            }
+
+            // Pagination
+            req.Page = pagination.NewPage(1, 20)
+            if params.Page != nil {
+                req.Page = pagination.NewPage(
+                    lo.FromPtrOr(params.Page.Number, 1),
+                    lo.FromPtrOr(params.Page.Size, 20),
+                )
+                if err := req.Page.Validate(); err != nil {
+                    return req, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+                        {Field: "page", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+                    })
+                }
+            }
+
+            // Sort
+            if params.Sort != nil {
+                sort, err := request.ParseSortBy(*params.Sort)
+                if err != nil {
+                    return req, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+                        {Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+                    })
+                }
+                if !validSortField(sort.Field) {
+                    return req, apierrors.NewBadRequestError(ctx, fmt.Errorf("unsupported sort field: %s", sort.Field), apierrors.InvalidParameters{
+                        {Field: "sort", Reason: fmt.Sprintf("unsupported sort field %q", sort.Field), Source: apierrors.InvalidParamSourceQuery},
+                    })
+                }
+                req.OrderBy = sort.Field
+                req.Order = sort.Order.ToSortxOrder()
+            }
+
+            return req, nil
+        },
+        // 2. Operation function
+        func(ctx context.Context, request List<Resource>sRequest) (List<Resource>sResponse, error) {
+            result, err := h.service.List<Resource>s(ctx, request)
+            if err != nil {
+                return List<Resource>sResponse{}, fmt.Errorf("failed to list: %w", err)
+            }
+
+            items := lo.Map(result.Items, func(item <domain>.<Resource>, _ int) api.<Resource> {
+                return domainToAPI(item)
+            })
+
+            return response.NewPagePaginationResponse(items, response.PageMetaPage{
+                Size:   request.Page.PageSize,
+                Number: request.Page.PageNumber,
+                Total:  lo.ToPtr(result.TotalCount),
+            }), nil
+        },
+        // 3. Response encoder
+        commonhttp.JSONResponseEncoderWithStatus[List<Resource>sResponse](http.StatusOK),
+        // 4. Options
+        httptransport.AppendOptions(
+            h.options,
+            httptransport.WithOperationName("list-<resource>s"),
+            httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
+        )...,
+    )
+}
+```
+
+For handlers without params (e.g., Create), use `httptransport.NewHandler` (3 arguments, no params):
+
+```go
+type (
+    Create<Resource>Handler = httptransport.Handler[Create<Resource>Request, Create<Resource>Response]
+)
+```
+
+Reference: `api/v3/handlers/llmcost/list_prices.go`
+
+#### Error Mapping
+
+Domain errors auto-map to HTTP status codes via the error encoder:
+
+- `GenericNotFoundError` → 404
+- `GenericValidationError` → 400
+- `GenericConflictError` → 409
+- `GenericForbiddenError` → 403
+- `GenericPreConditionFailedError` → 412
+
+No need to manually handle these — just return them from the service and the error encoder handles it.
+
+### Step 4: Wire Handler into Server
+
+Three files to modify:
+
+**1. `api/v3/server/server.go`:**
+
+- Add service to `Config` struct
+- Add handler field to `Server` struct
+- Instantiate handler in `NewServer()` using `<domain>handler.New(resolveNamespace, config.<Domain>Service, httptransport.WithErrorHandler(config.ErrorHandler))`
+
+**2. `api/v3/server/routes.go`:**
+
+- Add route methods that delegate to handler:
+
+```go
+// For operations WITH params (list, get by ID, delete by ID):
+func (s *Server) List<Resource>s(w http.ResponseWriter, r *http.Request, params api.List<Resource>sParams) {
+    s.<domain>Handler.List<Resource>s().With(params).ServeHTTP(w, r)
+}
+
+func (s *Server) Get<Resource>(w http.ResponseWriter, r *http.Request, id api.ULID) {
+    s.<domain>Handler.Get<Resource>().With(id).ServeHTTP(w, r)
+}
+
+// For operations WITHOUT params (create):
+func (s *Server) Create<Resource>(w http.ResponseWriter, r *http.Request) {
+    s.<domain>Handler.Create<Resource>().ServeHTTP(w, r)
+}
+```
+
+**3. Import the handler package in `server.go`.**
+
+Reference: `api/v3/server/server.go:138-218`, `api/v3/server/routes.go`
+
+### Step 5: Review
 
 - Check the generated `api/openapi.yaml` or `api/v3/api.gen.go` to verify the endpoints look correct
 - Present a summary of the API changes to the user
@@ -108,3 +303,4 @@ The handlers are located at `api/v3/handlers`, you also need to connect handlers
 - Never edit generated files manually (`api/openapi.yaml`, `api/client/`, `api/*.gen.go`)
 - Run `make gen-api` to generate Go types
 - Follow existing TypeSpec patterns and conventions from other v3 domains
+- When implementing the service layer, use the `/service` skill for service/adapter patterns

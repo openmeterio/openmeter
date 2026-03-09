@@ -22,7 +22,9 @@ openmeter/<domain>/
 ├── errors.go           # Custom errors (optional, only when needed)
 ├── event.go            # Domain events (optional, for packages that modify DB entities)
 ├── adapter/            # Adapter layer implementation (business logic)
-│   └── adapter.go
+│   ├── adapter.go      # Config, New(), transaction boilerplate
+│   ├── <operation>.go  # One file per operation (list.go, get.go, create.go, etc.)
+│   └── mapping.go      # Entity ↔ domain type mapping functions
 ├── service/            # Service layer implementation (thin orchestration layer)
 │   └── service.go
 ├── driver/             # v1 API, do not implement for new services (also called: httpdriver, driver)
@@ -106,7 +108,9 @@ func (i Create<Resource>Input) Validate() error {
 The service layer is a **thin orchestration layer**. It:
 
 - Runs input validation via request validators when applicable
+- Wraps adapter calls in transactions
 - Publishes domain events after mutations
+- Calls service hooks (PostCreate, PreDelete, PostDelete, PreUpdate, PostUpdate)
 - Does NOT contain business logic — that belongs in the adapter
 
 See `openmeter/customer/service/customer.go` for a full example with hooks and events.
@@ -117,16 +121,185 @@ Constructor patterns:
 - Simple: `func New(adapter <domain>.Adapter, logger *slog.Logger) <domain>.Service`
 - With config: `func New(config Config) (*Service, error)` where `Config` has a `Validate()` method
 
+### Transaction Patterns in Service Layer
+
+Use `transaction.Run()` for methods returning a value, `transaction.RunWithNoValue()` for void methods:
+
+```go
+func (s *service) Create<Resource>(ctx context.Context, input <domain>.Create<Resource>Input) (*<domain>.<Resource>, error) {
+    return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*<domain>.<Resource>, error) {
+        result, err := s.adapter.Create<Resource>(ctx, input)
+        if err != nil {
+            return nil, err
+        }
+
+        // Publish event, call hooks, etc.
+        return result, nil
+    })
+}
+
+func (s *service) Delete<Resource>(ctx context.Context, input <domain>.Delete<Resource>Input) error {
+    return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
+        return s.adapter.Delete<Resource>(ctx, input)
+    })
+}
+```
+
+Reference: `openmeter/llmcost/service/service.go`, `openmeter/customer/service/customer.go`
+
+### Service Hooks Pattern
+
+For services that need lifecycle hooks (e.g., other services reacting to creates/deletes), use `models.ServiceHookRegistry`:
+
+```go
+type Service struct {
+    adapter   <domain>.Adapter
+    publisher eventbus.Publisher
+    hooks     models.ServiceHookRegistry[<domain>.<Resource>]
+}
+
+func (s *Service) RegisterHooks(hooks ...models.ServiceHook[<domain>.<Resource>]) {
+    s.hooks.RegisterHooks(hooks...)
+}
+```
+
+Available hook points: `PostCreate`, `PreDelete`, `PostDelete`, `PreUpdate`, `PostUpdate`. Call them inside the transaction:
+
+```go
+// In CreateCustomer:
+if err = s.hooks.PostCreate(ctx, created); err != nil {
+    return nil, err
+}
+
+// In DeleteCustomer:
+if err = s.hooks.PreDelete(ctx, existing); err != nil {
+    return err
+}
+// ... perform delete ...
+if err = s.hooks.PostDelete(ctx, deleted); err != nil {
+    return err
+}
+```
+
+Reference: `openmeter/customer/service/service.go`, `openmeter/customer/service/customer.go`
+
 ## Adapter Layer Implementation (`adapter/`)
 
 The adapter implements business logic and database access using the ent ORM. It:
 
 - Implements the `Adapter` interface
-- Contains `entutils.TxCreator` for transaction support
+- Contains transaction boilerplate (`Tx`, `WithTx`, `Self`)
+- Wraps each method in `entutils.TransactingRepo()` for transaction support
 - Maps between ent DB entities and domain types (in `mapping.go`)
 - MUST call `input.Validate()` when the service layer is a passthrough (no additional validation)
 
 See `openmeter/customer/adapter/` and `openmeter/llmcost/adapter/` for examples.
+
+### Adapter Transaction Boilerplate
+
+Every adapter MUST implement these three methods. Copy from `openmeter/llmcost/adapter/adapter.go:61-83`:
+
+```go
+func (a *adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
+    ctx, rawConfig, eDriver, err := a.db.HijackTx(ctx, &sql.TxOptions{
+        ReadOnly: false,
+    })
+    if err != nil {
+        return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
+    }
+
+    return ctx, entutils.NewTxDriver(eDriver, rawConfig), nil
+}
+
+func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
+    txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
+
+    return &adapter{
+        db:     txClient.Client(),
+        logger: a.logger,
+    }
+}
+
+func (a *adapter) Self() *adapter {
+    return a
+}
+```
+
+### Adapter Method Pattern with TransactingRepo
+
+Each adapter method wraps its logic in `entutils.TransactingRepo()` (or `TransactingRepoWithNoValue()` for void):
+
+```go
+func (a *adapter) List<Resource>s(ctx context.Context, input <domain>.List<Resource>sInput) (pagination.Result[<domain>.<Resource>], error) {
+    return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (pagination.Result[<domain>.<Resource>], error) {
+        if err := input.Validate(); err != nil {
+            return pagination.Result[<domain>.<Resource>]{}, err
+        }
+
+        query := a.db.<Entity>.Query().
+            Where(<entity>db.DeletedAtIsNil())  // Always filter soft-deleted
+
+        // Apply ordering
+        order := entutils.GetOrdering(sortx.OrderDefault)
+        if !input.Order.IsDefaultValue() {
+            order = entutils.GetOrdering(input.Order)
+        }
+        switch input.OrderBy {
+        case "id":
+            query = query.Order(<entity>db.ByID(order...))
+        default:
+            query = query.Order(<entity>db.ByID())
+        }
+
+        // Paginate
+        entities, err := query.Paginate(ctx, input.Page)
+        if err != nil {
+            return pagination.Result[<domain>.<Resource>]{}, fmt.Errorf("failed to list: %w", err)
+        }
+
+        return pagination.MapResultErr(entities, map<Resource>FromEntity)
+    })
+}
+```
+
+For void operations, use `entutils.TransactingRepoWithNoValue()`:
+
+```go
+func (a *adapter) Delete<Resource>(ctx context.Context, input <domain>.Delete<Resource>Input) error {
+    return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, a *adapter) error {
+        // ...
+    })
+}
+```
+
+Reference: `openmeter/llmcost/adapter/price.go`
+
+### Entity Mapping (`mapping.go`)
+
+Create `mapping.go` with functions that convert ent entities to domain types:
+
+```go
+func map<Resource>FromEntity(entity *db.<Entity>) (<domain>.<Resource>, error) {
+    if entity == nil {
+        return <domain>.<Resource>{}, errors.New("entity is required")
+    }
+
+    return <domain>.<Resource>{
+        ManagedModel: models.ManagedModel{
+            CreatedAt: entity.CreatedAt,
+            UpdatedAt: entity.UpdatedAt,
+            DeletedAt: entity.DeletedAt,
+        },
+        ID:   entity.ID,
+        Name: entity.Name,
+        // ... map all fields
+    }, nil
+}
+```
+
+For paginated results, use `pagination.MapResultErr(entities, mapFn)`.
+
+Reference: `openmeter/llmcost/adapter/mapping.go`
 
 ## Custom Errors (`errors.go`)
 
@@ -176,6 +349,10 @@ Events follow this structure:
 ## Database Schema
 
 When the service requires database tables, use the `/db-migration` skill for creating ent schemas and generating migrations.
+
+## API Handlers
+
+When implementing API handlers for the service, use the `/api` skill for handler implementation patterns, wiring into the server, and type conversion.
 
 ## Dependency Injection Wiring
 
@@ -267,11 +444,12 @@ If the service is needed in other entry points (e.g., `cmd/billing-worker`, `cmd
 4. Define the `Adapter` interface in `adapter.go`
 5. Implement the service layer in `service/service.go`
 6. Create the ent schema if needed (use `/db-migration` skill)
-7. Implement the adapter layer in `adapter/`
+7. Implement the adapter layer in `adapter/adapter.go`, `adapter/<operation>.go`, `adapter/mapping.go`
 8. Add `errors.go` only if custom errors are needed
 9. Add `event.go` if the service modifies entities
 10. Wire it up: create `app/common/<domain>.go` and register in `cmd/<micro_service>/wire.go`
 11. Run `make generate` to regenerate Wire bindings
+12. Implement API handlers (use `/api` skill)
 
 ### Modifying an existing service
 
