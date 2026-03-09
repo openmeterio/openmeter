@@ -258,6 +258,30 @@ Domain errors auto-map to HTTP status codes via the error encoder:
 
 No need to manually handle these — just return them from the service and the error encoder handles it.
 
+#### Structured Validation Errors (ValidationIssue)
+
+In v3 API handlers, use `models.ValidationIssue` for structured validation errors with codes, field paths, and severity levels. This is the **handler-layer** pattern — service/adapter layers continue using `models.NewGenericValidationError()`.
+
+```go
+// Define validation issues as package-level variables
+var errMissingName = models.NewValidationError("missing_name", "name is required")
+var errInvalidCurrency = models.NewValidationWarning("invalid_currency", "currency not recognized")
+
+// Use with field paths
+err := errMissingName.WithPathString("body", "name")
+
+// Convert from domain errors to structured issues
+issues, err := models.AsValidationIssues(domainErr)
+```
+
+Key types from `pkg/models/validationissue.go`:
+- `models.NewValidationError(code, message)` — critical severity
+- `models.NewValidationWarning(code, message)` — warning severity
+- `models.NewValidationIssue(code, message, opts...)` — with options
+- `.WithPathString("body", "field")` — attach JSONPath field location
+- `.WithComponent(component)` — attach component name
+- `models.AsValidationIssues(err)` — convert error tree to structured issues
+
 ### Step 4: Wire Handler into Server
 
 Three files to modify:

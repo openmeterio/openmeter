@@ -21,11 +21,11 @@ openmeter/<domain>/
 ├── <domain>.go         # Domain types and models
 ├── errors.go           # Custom errors (optional, only when needed)
 ├── event.go            # Domain events (optional, for packages that modify DB entities)
-├── adapter/            # Adapter layer implementation (business logic)
+├── adapter/            # Adapter layer implementation (data access)
 │   ├── adapter.go      # Config, New(), transaction boilerplate
 │   ├── <operation>.go  # One file per operation (list.go, get.go, create.go, etc.)
 │   └── mapping.go      # Entity ↔ domain type mapping functions
-├── service/            # Service layer implementation (thin orchestration layer)
+├── service/            # Service layer implementation (business logic + orchestration)
 │   └── service.go
 ├── driver/             # v1 API, do not implement for new services (also called: httpdriver, driver)
 │   └── <operation>.go
@@ -103,15 +103,45 @@ func (i Create<Resource>Input) Validate() error {
 }
 ```
 
+### NamespacedID for Get/Delete Inputs
+
+Use `models.NamespacedID` as the standard way to identify namespaced entities:
+
+```go
+type GetItemInput struct {
+    models.NamespacedID  // provides Namespace + ID with built-in Validate()
+}
+
+type DeleteItemInput struct {
+    models.NamespacedID
+}
+```
+
+Reference: `pkg/models/id.go`, used in `openmeter/subject/service.go`
+
+## Responsibility Split
+
+| Layer | Owns | Does NOT own |
+|-------|------|-------------|
+| **Root** | Types, interfaces, input DTOs, errors, validation | Any implementation code |
+| **Service** | Business rules, transaction orchestration, input enrichment | Database queries, entity mapping |
+| **Adapter** | Ent queries, entity↔domain mapping, constraint error handling | Business decisions, input defaults |
+
 ## Service Layer Implementation (`service/`)
 
-The service layer is a **thin orchestration layer**. It:
+The service layer **orchestrates operations**: validates inputs, applies business rules, and wraps calls in transactions. It is thin when the operation is pure CRUD, but substantial when business logic exists. It:
 
 - Runs input validation via request validators when applicable
 - Wraps adapter calls in transactions
+- Enforces business rules and invariants (e.g., checking preconditions before mutations)
+- Composes data from multiple sources (e.g., merging overrides with global prices)
 - Publishes domain events after mutations
 - Calls service hooks (PostCreate, PreDelete, PostDelete, PreUpdate, PostUpdate)
-- Does NOT contain business logic — that belongs in the adapter
+
+**Real examples of business logic in the service layer:**
+- `customer/service/customer.go` — checks active subscriptions before allowing delete
+- `llmcost/service/service.go` — fetches global prices + namespace overrides, merges in memory
+- `currencies/service/service.go` — mixes in-memory fiat currencies with DB-stored custom ones
 
 See `openmeter/customer/service/customer.go` for a full example with hooks and events.
 See `openmeter/llmcost/service/service.go` for a simpler passthrough example.
@@ -185,12 +215,13 @@ Reference: `openmeter/customer/service/service.go`, `openmeter/customer/service/
 
 ## Adapter Layer Implementation (`adapter/`)
 
-The adapter implements business logic and database access using the ent ORM. It:
+The adapter is **pure data access**: it translates between the domain model and the database (Ent ORM). It contains no business logic — if a rule is not about "how to store or retrieve data," it belongs in the service. It:
 
 - Implements the `Adapter` interface
 - Contains transaction boilerplate (`Tx`, `WithTx`, `Self`)
 - Wraps each method in `entutils.TransactingRepo()` for transaction support
 - Maps between ent DB entities and domain types (in `mapping.go`)
+- Translates Ent constraint errors to domain errors (`db.IsNotFound()` → `NewXxxNotFoundError()`)
 - MUST call `input.Validate()` when the service layer is a passthrough (no additional validation)
 
 See `openmeter/customer/adapter/` and `openmeter/llmcost/adapter/` for examples.
@@ -457,3 +488,13 @@ If the service is needed in other entry points (e.g., `cmd/billing-worker`, `cmd
 2. Add new methods to both `Service` and `Adapter` interfaces
 3. Add input types with `Validate()` methods
 4. Implement in both `service/` and `adapter/` layers
+
+## Anti-patterns to Avoid
+
+- **Deep nesting**: No more than one level of subdirectories (`adapter/`, `service/`). No `adapter/internal/helpers/`.
+- **Connectors**: Don't use a "connector" abstraction layer between service and adapter.
+- **Scattered domain types**: All types and interfaces live in the root package, never in subpackages.
+- **Business logic in adapter**: Adapters handle only data access. Business decisions belong in the service.
+- **Global state**: Use constructor injection, never package-level variables for dependencies.
+- **Multiple entity types in one package**: If entities are independent, consider separate packages.
+- **Driver/httpdriver packages when not needed**: HTTP handlers live at `api/v3/handlers/`, not as subpackages of the domain.
