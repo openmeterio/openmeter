@@ -21,6 +21,7 @@ import (
 	customersbillinghandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/billing"
 	customersentitlementhandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlementaccess"
 	eventshandler "github.com/openmeterio/openmeter/api/v3/handlers/events"
+	featurecosthandler "github.com/openmeterio/openmeter/api/v3/handlers/featurecost"
 	llmcosthandler "github.com/openmeterio/openmeter/api/v3/handlers/llmcost"
 	metershandler "github.com/openmeterio/openmeter/api/v3/handlers/meters"
 	subscriptionshandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
@@ -30,6 +31,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/cost"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -37,6 +39,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -69,6 +72,8 @@ type Config struct {
 	SubscriptionService     subscription.Service
 	TaxCodeService          taxcode.Service
 	CurrencyService         currencies.CurrencyService
+	CostService             cost.Service
+	FeatureConnector        feature.FeatureConnector
 }
 
 func (c *Config) Validate() error {
@@ -158,6 +163,7 @@ type Server struct {
 	billingProfilesHandler      billingprofileshandler.Handler
 	taxcodesHandler             taxcodeshandler.Handler
 	currenciesHandler           currencieshandler.Handler
+	featureCostHandler          featurecosthandler.Handler
 }
 
 // Make sure we conform to ServerInterface
@@ -207,6 +213,11 @@ func NewServer(config *Config) (*Server, error) {
 		llmcostH = llmcosthandler.New(resolveNamespace, config.LLMCostService, httptransport.WithErrorHandler(config.ErrorHandler))
 	}
 
+	var featureCostH featurecosthandler.Handler
+	if config.CostService != nil && config.FeatureConnector != nil {
+		featureCostH = featurecosthandler.New(resolveNamespace, config.CostService, config.FeatureConnector, config.MeterService, config.CustomerService, httptransport.WithErrorHandler(config.ErrorHandler))
+	}
+
 	return &Server{
 		Config:                      config,
 		swagger:                     swagger,
@@ -221,6 +232,7 @@ func NewServer(config *Config) (*Server, error) {
 		billingProfilesHandler:      billingProfilesHandler,
 		taxcodesHandler:             taxcodesHandler,
 		currenciesHandler:           currenciesHandler,
+		featureCostHandler:          featureCostH,
 	}, nil
 }
 

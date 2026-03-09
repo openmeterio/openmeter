@@ -185,6 +185,12 @@ func (s *Server) ListCostBases(w http.ResponseWriter, r *http.Request, currencyI
 	s.currenciesHandler.ListCostBases().With(currencieshandler.ListCostBasesArgs{CurrencyID: currencyId, Params: params}).ServeHTTP(w, r)
 }
 
+// Feature Cost
+
+func (s *Server) QueryFeatureCost(w http.ResponseWriter, r *http.Request, featureId api.ULID) {
+	s.featureCostHandler.QueryFeatureCost().With(featureId).ServeHTTP(w, r)
+}
+
 // LLM Cost Prices
 
 func (s *Server) ListLlmCostPrices(w http.ResponseWriter, r *http.Request, params api.ListLlmCostPricesParams) {

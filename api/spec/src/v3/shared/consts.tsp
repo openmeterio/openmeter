@@ -29,6 +29,9 @@ const TaxDescription = "Tax codes are used to calculate taxes for customers.";
 const LLMCostTag = "OpenMeter LLM Cost";
 const LLMCostDescription = "LLM cost database providing normalized pricing data for language models across providers. Prices are synced from multiple external sources and auto-confirmed when they agree.";
 
+const FeaturesTag = "OpenMeter Features";
+const FeaturesDescription = "Features represent product capabilities backed by meters, with optional per-unit cost configuration.";
+
 const UnstableExtension = "x-unstable";
 const InternalExtension = "x-internal";
 const PrivateExtension = "x-private";
