@@ -88,106 +88,14 @@ func (<Entity>) Mixin() []ent.Mixin {
 }
 ```
 
-## Common Field Patterns
+## Field, Edge, and Index Patterns
 
-### JSONB custom type
+For fields, edges (relationships), and indexes, **read existing schemas** in `openmeter/ent/schema/` for conventions. Key things to know:
 
-```go
-field.String("config").
-    GoType(MyConfig{}).
-    ValueScanner(entutils.JSONStringValueScanner[MyConfig]).
-    SchemaType(map[string]string{dialect.Postgres: "jsonb"})
-```
-
-### Decimal
-
-```go
-field.Other("amount", alpacadecimal.Decimal{}).
-    SchemaType(map[string]string{dialect.Postgres: "numeric"})
-```
-
-### Foreign key
-
-```go
-field.String("customer_id").
-    SchemaType(map[string]string{dialect.Postgres: "char(26)"}).
-    Immutable()
-```
-
-### Enum-like string
-
-```go
-field.String("status").
-    Default("active")
-```
-
-### Optional nillable
-
-```go
-field.Time("effective_to").
-    Optional().
-    Nillable()
-```
-
-## Edge (Relationship) Patterns
-
-### One-to-many (parent → children)
-
-```go
-// In parent schema:
-edge.To("children", Child.Type).
-    Annotations(entsql.OnDelete(entsql.Cascade))
-
-// In child schema:
-edge.From("parent", Parent.Type).
-    Ref("children").
-    Unique().
-    Required().
-    Field("parent_id")
-```
-
-### Many-to-one foreign key (child → parent, no back-edge)
-
-```go
-// Define the FK field:
-field.String("parent_id").
-    SchemaType(map[string]string{dialect.Postgres: "char(26)"}).
-    Immutable()
-
-// Define the edge:
-edge.To("parent", Parent.Type).
-    Unique().
-    Required().
-    Field("parent_id")
-```
-
-## Index Patterns
-
-### Soft-delete aware unique index
-
-```go
-// In Indexes():
-index.Fields("namespace", "key", "deleted_at").Unique()
-```
-
-This ensures uniqueness among non-deleted records. Always filter with `Where(<entity>db.DeletedAtIsNil())` in queries.
-
-### Composite index
-
-```go
-index.Fields("namespace", "provider", "model_id")
-```
-
-### GIN index for JSONB
-
-```go
-index.Fields("annotations").
-    Annotations(
-        entsql.IndexTypes(map[string]string{
-            dialect.Postgres: "GIN",
-        }),
-    )
-```
+- **JSONB fields** use `entutils.JSONStringValueScanner` — see `openmeter/ent/schema/llmcostprice.go`
+- **Foreign keys** use `char(26)` schema type to match ULID IDs
+- **Soft-delete unique indexes** include `deleted_at` in the unique constraint (e.g., `index.Fields("namespace", "key", "deleted_at").Unique()`) — always filter with `Where(<entity>db.DeletedAtIsNil())` in queries
+- **Cascade deletes** use `entsql.OnDelete(entsql.Cascade)` on the parent edge
 
 ## Troubleshooting
 
