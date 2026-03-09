@@ -2,6 +2,8 @@ package filter
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/huandu/go-sqlbuilder"
@@ -28,10 +30,27 @@ var (
 	_ Filter = (*FilterBoolean)(nil)
 )
 
+const likeEscapeCharacter = `\`
+
+// EscapeLikePattern escapes SQL LIKE metacharacters using the package's escape character.
+func EscapeLikePattern(value string) string {
+	escaped := strings.ReplaceAll(value, likeEscapeCharacter, likeEscapeCharacter+likeEscapeCharacter)
+	escaped = strings.ReplaceAll(escaped, "%", likeEscapeCharacter+"%")
+	escaped = strings.ReplaceAll(escaped, "_", likeEscapeCharacter+"_")
+
+	return escaped
+}
+
+// ContainsPattern builds a LIKE pattern for a literal contains-match.
+func ContainsPattern(value string) string {
+	return fmt.Sprintf("%%%s%%", EscapeLikePattern(value))
+}
+
 // FilterString is a filter for a string field.
 type FilterString struct {
 	Eq     *string         `json:"$eq,omitempty"`
 	Ne     *string         `json:"$ne,omitempty"`
+	Exists *bool           `json:"$exists,omitempty"`
 	In     *[]string       `json:"$in,omitempty"`
 	Nin    *[]string       `json:"$nin,omitempty"`
 	Like   *string         `json:"$like,omitempty"`
@@ -50,7 +69,7 @@ type FilterString struct {
 func (f FilterString) Validate() error {
 	// Check for multiple non-nil filters
 	if err := validateMutuallyExclusiveFilters([]bool{
-		f.Eq != nil, f.Ne != nil, f.In != nil, f.Nin != nil,
+		f.Eq != nil, f.Ne != nil, f.Exists != nil, f.In != nil, f.Nin != nil,
 		f.Like != nil, f.Nlike != nil, f.Ilike != nil, f.Nilike != nil,
 		f.Gt != nil, f.Gte != nil, f.Lt != nil, f.Lte != nil,
 		f.And != nil, f.Or != nil,
@@ -114,7 +133,7 @@ func (f FilterString) ValidateWithComplexity(maxDepth int) error {
 
 // IsEmpty returns true if the filter is empty.
 func (f FilterString) IsEmpty() bool {
-	return f.Eq == nil && f.Ne == nil && f.In == nil && f.Nin == nil && f.Like == nil && f.Nlike == nil && f.Ilike == nil && f.Nilike == nil && f.Gt == nil && f.Gte == nil && f.Lt == nil && f.Lte == nil && f.And == nil && f.Or == nil
+	return f.Eq == nil && f.Ne == nil && f.Exists == nil && f.In == nil && f.Nin == nil && f.Like == nil && f.Nlike == nil && f.Ilike == nil && f.Nilike == nil && f.Gt == nil && f.Gte == nil && f.Lt == nil && f.Lte == nil && f.And == nil && f.Or == nil
 }
 
 // SelectWhereExpr converts the filter to a SQL WHERE expression.
@@ -124,6 +143,11 @@ func (f FilterString) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder)
 		return q.EQ(field, *f.Eq)
 	case f.Ne != nil:
 		return q.NE(field, *f.Ne)
+	case f.Exists != nil:
+		if *f.Exists {
+			return q.IsNotNull(field)
+		}
+		return q.IsNull(field)
 	case f.In != nil:
 		return q.In(field, *f.In)
 	case f.Nin != nil:

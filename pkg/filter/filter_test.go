@@ -11,6 +11,17 @@ import (
 	"github.com/openmeterio/openmeter/pkg/filter"
 )
 
+func TestEscapeLikePattern(t *testing.T) {
+	assert.Equal(t, "", filter.EscapeLikePattern(""))
+	assert.Equal(t, "plain", filter.EscapeLikePattern("plain"))
+	assert.Equal(t, `100\%\\path\_name`, filter.EscapeLikePattern(`100%\path_name`))
+}
+
+func TestContainsPattern(t *testing.T) {
+	assert.Equal(t, "%plain%", filter.ContainsPattern("plain"))
+	assert.Equal(t, `%a\_b\\c\%d%`, filter.ContainsPattern(`a_b\c%d`))
+}
+
 func TestFilterString_Validate(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -36,6 +47,29 @@ func TestFilterString_Validate(t *testing.T) {
 				Ne: lo.ToPtr("test"),
 			},
 			wantErr: false,
+		},
+		{
+			name: "valid exists filter",
+			filter: filter.FilterString{
+				Exists: lo.ToPtr(true),
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid exists filter false",
+			filter: filter.FilterString{
+				Exists: lo.ToPtr(false),
+			},
+			wantErr: false,
+		},
+		{
+			name: "exists with eq filter",
+			filter: filter.FilterString{
+				Exists: lo.ToPtr(true),
+				Eq:     lo.ToPtr("test"),
+			},
+			wantErr:    true,
+			errMessage: "only one filter can be set",
 		},
 		{
 			name: "valid in filter",
@@ -182,6 +216,26 @@ func TestFilterString_SelectWhereExpr(t *testing.T) {
 			wantEmpty: false,
 			wantSQL:   "SELECT * FROM table WHERE test_field <> ?",
 			wantArgs:  []interface{}{"test"},
+		},
+		{
+			name: "exists filter",
+			filter: filter.FilterString{
+				Exists: lo.ToPtr(true),
+			},
+			field:     "test_field",
+			wantEmpty: false,
+			wantSQL:   "SELECT * FROM table WHERE test_field IS NOT NULL",
+			wantArgs:  nil,
+		},
+		{
+			name: "not exists filter",
+			filter: filter.FilterString{
+				Exists: lo.ToPtr(false),
+			},
+			field:     "test_field",
+			wantEmpty: false,
+			wantSQL:   "SELECT * FROM table WHERE test_field IS NULL",
+			wantArgs:  nil,
 		},
 		{
 			name: "in filter",
@@ -1530,6 +1584,13 @@ func TestFilterString_IsEmpty(t *testing.T) {
 			name: "ne filter",
 			filter: filter.FilterString{
 				Ne: lo.ToPtr("test"),
+			},
+			want: false,
+		},
+		{
+			name: "exists filter",
+			filter: filter.FilterString{
+				Exists: lo.ToPtr(true),
 			},
 			want: false,
 		},

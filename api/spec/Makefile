@@ -1,7 +1,7 @@
 # A Self-Documenting Makefile: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 
 .PHONY: generate
-generate: ## Generate OpenAPI spec
+generate: format ## Generate OpenAPI spec
 	$(call print-target)
 	pnpm --frozen-lockfile install
 	pnpm compile
@@ -14,6 +14,12 @@ lint: ## Lint OpenAPI spec
 	$(call print-target)
 	pnpm --frozen-lockfile install
 	pnpm lint
+
+.PHONY: format
+format: ## Format OpenAPI spec
+	$(call print-target)
+	pnpm --frozen-lockfile install
+	pnpm format
 
 .PHONY: help
 .DEFAULT_GOAL := help

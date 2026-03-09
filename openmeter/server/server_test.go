@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/api"
+	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
@@ -58,6 +59,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/log"
@@ -140,12 +142,13 @@ type testResponse struct {
 
 func TestRoutes(t *testing.T) {
 	// No need for DB setup with NoopBillingService
-	testServer := getTestServer(t)
+	testServer, mockStreamingConnector := getTestServer(t)
 
 	tests := []struct {
-		name string
-		req  testRequest
-		res  testResponse
+		name                       string
+		req                        testRequest
+		res                        testResponse
+		assertStreamingQueryParams func(t *testing.T, params streaming.QueryParams)
 	}{
 		// Events
 		{
@@ -232,6 +235,28 @@ func TestRoutes(t *testing.T) {
 			},
 		},
 		{
+			name: "query meter v3 with empty JSON object",
+			req: testRequest{
+				method:      http.MethodPost,
+				contentType: "application/json",
+				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
+				body:        apiv3.MeterQueryRequest{},
+			},
+			res: testResponse{
+				status: http.StatusOK,
+				body: apiv3.MeterQueryResult{
+					Data: []apiv3.MeterQueryRow{
+						{
+							Value:      "300",
+							From:       time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+							To:         time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+							Dimensions: apiv3.MeterQueryRow_Dimensions{},
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "query meter with valid group by",
 			req: testRequest{
 				method:      http.MethodGet,
@@ -240,6 +265,25 @@ func TestRoutes(t *testing.T) {
 			},
 			res: testResponse{
 				status: http.StatusOK,
+			},
+		},
+		{
+			name: "query meter with valid group by v3",
+			req: testRequest{
+				method:      http.MethodPost,
+				contentType: "application/json",
+				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
+				body: apiv3.MeterQueryRequest{
+					GroupByDimensions: &[]string{"path", "method"},
+				},
+			},
+			res: testResponse{
+				status: http.StatusOK,
+			},
+			assertStreamingQueryParams: func(t *testing.T, params streaming.QueryParams) {
+				assert.Equal(t, []string{"path", "method"}, params.GroupBy)
+				assert.Nil(t, params.FilterSubject)
+				assert.Nil(t, params.FilterGroupBy)
 			},
 		},
 		{
@@ -254,11 +298,71 @@ func TestRoutes(t *testing.T) {
 			},
 		},
 		{
+			name: "query meter with subject group by v3",
+			req: testRequest{
+				method:      http.MethodPost,
+				contentType: "application/json",
+				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
+				body: apiv3.MeterQueryRequest{
+					GroupByDimensions: &[]string{"subject"},
+				},
+			},
+			res: testResponse{
+				status: http.StatusOK,
+			},
+			assertStreamingQueryParams: func(t *testing.T, params streaming.QueryParams) {
+				assert.Equal(t, []string{"subject"}, params.GroupBy)
+				assert.Nil(t, params.FilterSubject)
+				assert.Nil(t, params.FilterGroupBy)
+			},
+		},
+		{
+			name: "query meter with customer filter v3",
+			req: testRequest{
+				method:      http.MethodPost,
+				contentType: "application/json",
+				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
+				body: apiv3.MeterQueryRequest{
+					Filters: &apiv3.MeterQueryFilters{
+						Dimensions: &apiv3.MeterQueryFilters_Dimensions{
+							CustomerId: &apiv3.QueryFilterString{
+								Eq: lo.ToPtr("customer-1"),
+							},
+						},
+					},
+				},
+			},
+			res: testResponse{
+				status: http.StatusOK,
+			},
+			assertStreamingQueryParams: func(t *testing.T, params streaming.QueryParams) {
+				assert.Equal(t, []string{"customer_id"}, params.GroupBy)
+				assert.Len(t, params.FilterCustomer, 1)
+				assert.Equal(t, "customer-1", params.FilterCustomer[0].GetUsageAttribution().ID)
+				assert.Nil(t, params.FilterSubject)
+				assert.Nil(t, params.FilterGroupBy)
+			},
+		},
+		{
 			name: "query meter with invalid group by",
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
 				path:        "/api/v1/meters/" + mockMeters[0].Key + "/query?groupBy=foo",
+			},
+			res: testResponse{
+				status: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "query meter with invalid group by v3",
+			req: testRequest{
+				method:      http.MethodPost,
+				contentType: "application/json",
+				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
+				body: apiv3.MeterQueryRequest{
+					GroupByDimensions: &[]string{"foo"},
+				},
 			},
 			res: testResponse{
 				status: http.StatusBadRequest,
@@ -283,6 +387,43 @@ func TestRoutes(t *testing.T) {
 			},
 		},
 		{
+			name: "query meter with subject v3",
+			req: testRequest{
+				method:      http.MethodPost,
+				contentType: "application/json",
+				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
+				body: apiv3.MeterQueryRequest{
+					Filters: &apiv3.MeterQueryFilters{
+						Dimensions: &apiv3.MeterQueryFilters_Dimensions{
+							Subject: &apiv3.QueryFilterString{
+								Eq: lo.ToPtr("s1"),
+							},
+						},
+					},
+				},
+			},
+			res: testResponse{
+				status: http.StatusOK,
+				body: apiv3.MeterQueryResult{
+					Data: []apiv3.MeterQueryRow{
+						{
+							Value: "300",
+							From:  time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+							To:    time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+							Dimensions: apiv3.MeterQueryRow_Dimensions{
+								Subject: mockQueryValue.Subject,
+							},
+						},
+					},
+				},
+			},
+			assertStreamingQueryParams: func(t *testing.T, params streaming.QueryParams) {
+				assert.Equal(t, []string{"subject"}, params.GroupBy)
+				assert.Equal(t, []string{"s1"}, params.FilterSubject)
+				assert.Nil(t, params.FilterGroupBy)
+			},
+		},
+		{
 			name: "query meter with filter",
 			req: testRequest{
 				method:      http.MethodGet,
@@ -301,11 +442,74 @@ func TestRoutes(t *testing.T) {
 			},
 		},
 		{
+			name: "query meter with filter v3",
+			req: testRequest{
+				method:      http.MethodPost,
+				contentType: "application/json",
+				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
+				body: apiv3.MeterQueryRequest{
+					Filters: &apiv3.MeterQueryFilters{
+						Dimensions: &apiv3.MeterQueryFilters_Dimensions{
+							AdditionalProperties: map[string]apiv3.QueryFilterStringMapItem{
+								"method": {
+									Eq: lo.ToPtr("GET"),
+								},
+							},
+						},
+					},
+				},
+			},
+			res: testResponse{
+				status: http.StatusOK,
+				body: apiv3.MeterQueryResult{
+					Data: []apiv3.MeterQueryRow{
+						{
+							Value:      "300",
+							From:       time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+							To:         time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+							Dimensions: apiv3.MeterQueryRow_Dimensions{},
+						},
+					},
+				},
+			},
+			assertStreamingQueryParams: func(t *testing.T, params streaming.QueryParams) {
+				assert.Empty(t, params.GroupBy)
+				assert.Nil(t, params.FilterSubject)
+				assert.Equal(t, map[string]filter.FilterString{
+					"method": {
+						Eq: lo.ToPtr("GET"),
+					},
+				}, params.FilterGroupBy)
+			},
+		},
+		{
 			name: "query meter with invalid group by filter",
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
 				path:        "/api/v1/meters/" + mockMeters[0].Key + "/query?filterGroupBy[invalid]=abcd",
+			},
+			res: testResponse{
+				status: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "query meter with invalid group by filter v3",
+			req: testRequest{
+				method:      http.MethodPost,
+				contentType: "application/json",
+				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
+				body: apiv3.MeterQueryRequest{
+					Filters: &apiv3.MeterQueryFilters{
+						Dimensions: &apiv3.MeterQueryFilters_Dimensions{
+							AdditionalProperties: map[string]apiv3.QueryFilterStringMapItem{
+								"invalid": {
+									Eq: lo.ToPtr("abcd"),
+								},
+							},
+						},
+					},
+				},
 			},
 			res: testResponse{
 				status: http.StatusBadRequest,
@@ -416,6 +620,8 @@ func TestRoutes(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			mockStreamingConnector.ResetQueryMeterParams()
+
 			var reqBody []byte
 			if tt.req.body != nil {
 				reqBody, _ = json.Marshal(tt.req.body)
@@ -438,6 +644,13 @@ func TestRoutes(t *testing.T) {
 			// status
 			assert.Equal(t, tt.res.status, res.StatusCode, writer.Body.String())
 
+			if tt.assertStreamingQueryParams != nil {
+				params, ok := mockStreamingConnector.LastQueryMeterParams()
+				if assert.True(t, ok, "expected QueryMeter to be called") {
+					tt.assertStreamingQueryParams(t, params)
+				}
+			}
+
 			// body
 			if tt.res.body == nil {
 				return
@@ -455,8 +668,8 @@ func TestRoutes(t *testing.T) {
 	}
 }
 
-// getTestServer returns a test server
-func getTestServer(t *testing.T) *Server {
+// getTestServer returns a test server and its streaming connector mock
+func getTestServer(t *testing.T) (*Server, *MockStreamingConnector) {
 	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
 		DefaultNamespace: DefaultNamespace,
 	})
@@ -556,7 +769,7 @@ func getTestServer(t *testing.T) *Server {
 	// Create server
 	server, err := NewServer(config)
 	assert.NoError(t, err, "failed to create server")
-	return server
+	return server, mockStreamingConnector
 }
 
 // NoopPublisher is a publisher that does nothing (no-operation)
@@ -608,7 +821,9 @@ func (h MockDebugHandler) GetDebugMetrics(ctx context.Context, namespace string)
 // MockStreamingConnector
 var _ streaming.Connector = (*MockStreamingConnector)(nil)
 
-type MockStreamingConnector struct{}
+type MockStreamingConnector struct {
+	lastQueryMeterParams *streaming.QueryParams
+}
 
 func (c *MockStreamingConnector) CreateNamespace(ctx context.Context, namespace string) error {
 	return nil
@@ -655,6 +870,9 @@ func (c *MockStreamingConnector) ListEventsV2(ctx context.Context, params stream
 }
 
 func (c *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, m meter.Meter, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
+	queryParams := params
+	c.lastQueryMeterParams = &queryParams
+
 	value := mockQueryValue
 
 	if params.FilterSubject == nil {
@@ -662,6 +880,18 @@ func (c *MockStreamingConnector) QueryMeter(ctx context.Context, namespace strin
 	}
 
 	return []meter.MeterQueryRow{value}, nil
+}
+
+func (c *MockStreamingConnector) ResetQueryMeterParams() {
+	c.lastQueryMeterParams = nil
+}
+
+func (c *MockStreamingConnector) LastQueryMeterParams() (streaming.QueryParams, bool) {
+	if c.lastQueryMeterParams == nil {
+		return streaming.QueryParams{}, false
+	}
+
+	return *c.lastQueryMeterParams, true
 }
 
 func (c *MockStreamingConnector) ListSubjects(ctx context.Context, params streaming.ListSubjectsParams) ([]string, error) {
@@ -1079,7 +1309,22 @@ type NoopCustomerService struct{}
 func (n NoopCustomerService) RegisterHooks(_ ...models.ServiceHook[customer.Customer]) {}
 
 func (n NoopCustomerService) ListCustomers(ctx context.Context, params customer.ListCustomersInput) (pagination.Result[customer.Customer], error) {
-	return pagination.Result[customer.Customer]{}, nil
+	items := lo.Map(params.CustomerIDs, func(customerID string, _ int) customer.Customer {
+		key := customerID
+
+		return customer.Customer{
+			ManagedResource: models.ManagedResource{
+				ID:   customerID,
+				Name: customerID,
+			},
+			Key: &key,
+		}
+	})
+
+	return pagination.Result[customer.Customer]{
+		TotalCount: len(items),
+		Items:      items,
+	}, nil
 }
 
 func (n NoopCustomerService) ListCustomerUsageAttributions(ctx context.Context, input customer.ListCustomerUsageAttributionsInput) (pagination.Result[streaming.CustomerUsageAttribution], error) {

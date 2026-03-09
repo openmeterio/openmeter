@@ -1,6 +1,8 @@
 import "@typespec/json-schema";
 import "../shared/index.tsp";
 
+using TypeSpec.JsonSchema;
+
 namespace Meters;
 
 /**
@@ -40,22 +42,27 @@ union MeterQueryGranularity {
 @friendlyName("MeterQueryFilters")
 model MeterQueryFilters {
   /**
-   * Filters to apply to the subject key of the query.
-   * Only equals ("eq", "in") comparisons are supported.
-   */
-  subject_key?: Shared.QueryFilterString;
-
-  /**
-   * Filters to apply to the customer ID of the query.
-   * Only equals ("eq", "in") comparisons are supported.
-   */
-  customer_id?: Shared.QueryFilterString;
-
-  /**
    * Filters to apply to the dimensions of the query.
    */
-  @JsonSchema.maxProperties(10)
-  dimensions?: Shared.QueryFilterStringMap;
+  @maxProperties(10)
+  dimensions?: {
+    /**
+     * Filters to apply to the subject of the query.
+     * Only equals ("eq", "in") comparisons are supported.
+     */
+    subject?: Shared.QueryFilterString;
+
+    /**
+     * Filters to apply to the customer ID of the query.
+     * Only equals ("eq", "in") comparisons are supported.
+     */
+    customer_id?: Shared.QueryFilterString;
+
+    /**
+     * Additional dimensions to filter by.
+     */
+    ...Record<Shared.QueryFilterStringMapItem>;
+  };
 }
 
 /**
@@ -118,8 +125,11 @@ model MeterQueryRequest {
       value: "12.3456",
       from: Shared.DateTime.fromISO("2023-01-01T00:00:00Z"),
       to: Shared.DateTime.fromISO("2023-01-02T00:00:00Z"),
-      subject_key: "83d489bd-13a5-4a3d-a886-44c385b5c43b",
-      dimensions: #{ `model`: "gpt-4-turbo", type: "input" },
+      dimensions: #{
+        customer_id: "01G65Z755AFWAKHE12NY0CQ9FH",
+        `model`: "gpt-4-turbo",
+        type: "input",
+      },
     }
   ],
 })
@@ -150,8 +160,11 @@ model MeterQueryResult {
   value: "12.3456",
   from: Shared.DateTime.fromISO("2023-01-01T00:00:00Z"),
   to: Shared.DateTime.fromISO("2023-01-02T00:00:00Z"),
-  subject_key: "83d489bd-13a5-4a3d-a886-44c385b5c43b",
-  dimensions: #{ `model`: "gpt-4-turbo", type: "input" },
+  dimensions: #{
+    customer_id: "01G65Z755AFWAKHE12NY0CQ9FH",
+    `model`: "gpt-4-turbo",
+    type: "input",
+  },
 })
 model MeterQueryRow {
   /**
@@ -170,18 +183,23 @@ model MeterQueryRow {
   to: Shared.DateTime;
 
   /**
-   * The subject key the value is aggregated over.
-   * If not specified, the value is aggregated over all subjects.
-   */
-  subject_key?: string;
-
-  /**
-   * The customer ID the value is aggregated over.
-   */
-  customer_id?: string;
-
-  /**
    * The dimensions the value is aggregated over.
    */
-  dimensions: Record<string | null>;
+  dimensions: {
+    /**
+     * The subject the value is aggregated over.
+     * If not specified, the value is aggregated over all subjects.
+     */
+    subject?: string;
+
+    /**
+     * The customer ID the value is aggregated over.
+     */
+    customer_id?: string;
+
+    /**
+     * Additional dimensions the value is aggregated over.
+     */
+    ...Record<string>;
+  };
 }
