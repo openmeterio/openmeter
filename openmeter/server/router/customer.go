@@ -6,7 +6,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	apphttpdriver "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
-	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
+	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/httpdriver"
 )
 
 // List customers

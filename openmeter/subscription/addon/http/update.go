@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
-	subscriptionhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
+	subscriptionhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/httpdriver"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"

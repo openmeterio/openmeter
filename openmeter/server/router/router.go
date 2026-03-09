@@ -59,7 +59,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	planaddonhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/httpdriver"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
-	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
+	subscriptionhttpdriver "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 	progresshttpdriver "github.com/openmeterio/openmeter/openmeter/progressmanager/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/streaming"

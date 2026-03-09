@@ -8,7 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
-	subscriptionhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
+	subscriptionhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	addondiff "github.com/openmeterio/openmeter/openmeter/subscription/addon/diff"
