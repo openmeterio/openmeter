@@ -188,7 +188,7 @@ func TestPostgresAdapter(t *testing.T) {
 			})
 
 			t.Run("ByIdExpandAddon", func(t *testing.T) {
-				getPlanV1, err := env.PlanRepository.GetPlan(ctx, plan.GetPlanInput{
+				getPlanV1, err := env.PlanAdapter.GetPlan(ctx, plan.GetPlanInput{
 					NamespacedID: models.NamespacedID{
 						Namespace: namespace,
 						ID:        planV1.ID,
@@ -207,7 +207,7 @@ func TestPostgresAdapter(t *testing.T) {
 
 		t.Run("List", func(t *testing.T) {
 			t.Run("ById", func(t *testing.T) {
-				listPlanV1, err := env.PlanRepository.ListPlans(ctx, plan.ListPlansInput{
+				listPlanV1, err := env.PlanAdapter.ListPlans(ctx, plan.ListPlansInput{
 					Namespaces: []string{namespace},
 					IDs:        []string{planV1.ID},
 				})
@@ -219,7 +219,7 @@ func TestPostgresAdapter(t *testing.T) {
 			})
 
 			t.Run("ByKey", func(t *testing.T) {
-				listPlanV1, err := env.PlanRepository.ListPlans(ctx, plan.ListPlansInput{
+				listPlanV1, err := env.PlanAdapter.ListPlans(ctx, plan.ListPlansInput{
 					Namespaces: []string{namespace},
 					Keys:       []string{planV1Input.Key},
 				})
@@ -231,7 +231,7 @@ func TestPostgresAdapter(t *testing.T) {
 			})
 
 			t.Run("ByKeyVersion", func(t *testing.T) {
-				listPlanV1, err := env.PlanRepository.ListPlans(ctx, plan.ListPlansInput{
+				listPlanV1, err := env.PlanAdapter.ListPlans(ctx, plan.ListPlansInput{
 					Namespaces:  []string{namespace},
 					KeyVersions: map[string][]int{planV1Input.Key: {1}},
 				})
@@ -264,7 +264,7 @@ func TestPostgresAdapter(t *testing.T) {
 				Phases: nil,
 			}
 
-			planV1, err = env.PlanRepository.UpdatePlan(ctx, planV1Update)
+			planV1, err = env.PlanAdapter.UpdatePlan(ctx, planV1Update)
 			require.NoErrorf(t, err, "updating plan must not fail")
 
 			require.NotNilf(t, planV1, "plan must not be nil")
@@ -273,7 +273,7 @@ func TestPostgresAdapter(t *testing.T) {
 		})
 
 		t.Run("Delete", func(t *testing.T) {
-			err = env.PlanRepository.DeletePlan(ctx, plan.DeletePlanInput{
+			err = env.PlanAdapter.DeletePlan(ctx, plan.DeletePlanInput{
 				NamespacedID: models.NamespacedID{
 					Namespace: planV1.Namespace,
 					ID:        planV1.ID,
@@ -281,7 +281,7 @@ func TestPostgresAdapter(t *testing.T) {
 			})
 			require.NoErrorf(t, err, "deleting plan must not fail")
 
-			getPlanV1, err := env.PlanRepository.GetPlan(ctx, plan.GetPlanInput{
+			getPlanV1, err := env.PlanAdapter.GetPlan(ctx, plan.GetPlanInput{
 				NamespacedID: models.NamespacedID{
 					Namespace: namespace,
 					ID:        planV1.ID,
@@ -295,7 +295,7 @@ func TestPostgresAdapter(t *testing.T) {
 		})
 
 		t.Run("ListStatusFilter", func(t *testing.T) {
-			testListPlanStatusFilter(ctx, t, env.PlanRepository)
+			testListPlanStatusFilter(ctx, t, env.PlanAdapter)
 		})
 	})
 }
@@ -307,7 +307,7 @@ type createPlanVersionInput struct {
 	Template        plan.CreatePlanInput
 }
 
-func createPlanVersion(ctx context.Context, repo plan.Repository, in createPlanVersionInput) error {
+func createPlanVersion(ctx context.Context, repo plan.Adapter, in createPlanVersionInput) error {
 	createInput := in.Template
 	createInput.Namespace = in.Namespace
 	createInput.Plan.PlanMeta.Version = in.Version
@@ -328,7 +328,7 @@ func createPlanVersion(ctx context.Context, repo plan.Repository, in createPlanV
 	return err
 }
 
-func testListPlanStatusFilter(ctx context.Context, t *testing.T, repo plan.Repository) {
+func testListPlanStatusFilter(ctx context.Context, t *testing.T, repo plan.Adapter) {
 	defer clock.ResetTime()
 
 	ns := "list-plan-status-filter"

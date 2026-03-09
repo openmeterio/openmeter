@@ -31,7 +31,7 @@ type TestEnv struct {
 	Meter               *meteradapter.TestAdapter
 	Feature             feature.FeatureConnector
 	Plan                plan.Service
-	PlanRepository      plan.Repository
+	PlanAdapter         plan.Adapter
 	PlanAddon           planaddon.Service
 	PlanAddonRepository planaddon.Repository
 	Addon               addon.Service
@@ -153,7 +153,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 		Meter:               meterAdapter,
 		Feature:             featureService,
 		Plan:                planService,
-		PlanRepository:      planAdapter,
+		PlanAdapter:         planAdapter,
 		PlanAddon:           planAddonService,
 		PlanAddonRepository: planAddonAdapter,
 		Addon:               addonService,

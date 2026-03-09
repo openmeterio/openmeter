@@ -9,7 +9,7 @@ import (
 
 // TODO: add bulk api
 
-type Repository interface {
+type Adapter interface {
 	entutils.TxCreator
 	// Plans
 
@@ -19,3 +19,6 @@ type Repository interface {
 	GetPlan(ctx context.Context, params GetPlanInput) (*Plan, error)
 	UpdatePlan(ctx context.Context, params UpdatePlanInput) (*Plan, error)
 }
+
+// Repository is a backward-compatible alias for Adapter.
+type Repository = Adapter
