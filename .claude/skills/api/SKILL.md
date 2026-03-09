@@ -21,7 +21,7 @@ You are helping the user add or modify API endpoints in OpenMeter.
 
 ## V3 API Structure
 
-```
+```text
 api/spec/src/v3/
 ├── main.tsp              # Top-level imports
 ├── openmeter.tsp         # Service definition, routes, and interface wiring
@@ -95,7 +95,7 @@ This regenerates Go server code from the updated OpenAPI spec (oapi-codegen).
 
 After generating, you'll need to implement the new handler methods in the Go server code. The generated interfaces will show what methods need to be implemented.
 
-The handles are located at `api/v3/handlers`, you also need to connect handlers at `api/v3/server/routes.go`.
+The handlers are located at `api/v3/handlers`, you also need to connect handlers at `api/v3/server/routes.go`.
 
 ### Step 4: Review
 

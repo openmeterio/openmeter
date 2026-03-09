@@ -14,7 +14,7 @@ You are helping the user modify the OpenMeter database schema and generate a cor
 
 - **Schema files:** `openmeter/ent/schema/*.go` — ent schema definitions (source of truth)
 - **Generated ent code:** `openmeter/ent/db/` — DO NOT edit manually
-- **Migrations dir:** `tools/migrate/migrations/` — DO NOt edit manually
+- **Migrations dir:** `tools/migrate/migrations/` — DO NOT edit manually
 - **Always use `--env local`** — we do not use Atlas Cloud services
 
 ## Workflow
