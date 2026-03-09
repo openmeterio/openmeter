@@ -52,6 +52,10 @@ func BuildQueryParams(ctx context.Context, m meter.Meter, body api.MeterQueryReq
 	if filters := body.Filters; filters != nil {
 		if dimensions := filters.Dimensions; dimensions != nil {
 			if dimensions.Subject != nil {
+				if err := ValidateQueryFilterString(dimensions.Subject, "dimensions", DimensionSubject); err != nil {
+					return params, err
+				}
+
 				subjects, err := ExtractStringsFromQueryFilter(dimensions.Subject, "dimensions", DimensionSubject)
 				if err != nil {
 					return params, err
@@ -65,6 +69,10 @@ func BuildQueryParams(ctx context.Context, m meter.Meter, body api.MeterQueryReq
 			}
 
 			if dimensions.CustomerId != nil {
+				if err := ValidateQueryFilterString(dimensions.CustomerId, "dimensions", DimensionCustomerID); err != nil {
+					return params, err
+				}
+
 				customerIDs, err := ExtractStringsFromQueryFilter(dimensions.CustomerId, "dimensions", DimensionCustomerID)
 				if err != nil {
 					return params, err
@@ -89,6 +97,9 @@ func BuildQueryParams(ctx context.Context, m meter.Meter, body api.MeterQueryReq
 				for k, v := range dimensions.AdditionalProperties {
 					if _, ok := m.GroupBy[k]; !ok {
 						return params, NewInvalidDimensionFilterError(k)
+					}
+					if err := ValidateQueryFilterStringMapItem(v, "dimensions", k); err != nil {
+						return params, err
 					}
 					f := request.ConvertQueryFilterStringMapItem(v)
 					if err := f.ValidateWithComplexity(maxGroupByFilterComplexityDepth); err != nil {
