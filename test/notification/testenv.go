@@ -25,6 +25,7 @@ import (
 	webhooksvix "github.com/openmeterio/openmeter/openmeter/notification/webhook/svix"
 	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	featureservice "github.com/openmeterio/openmeter/openmeter/productcatalog/feature/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -138,7 +139,7 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 	}
 
 	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(entClient, logger.WithGroup("feature.postgres"))
-	featureConnector := feature.NewFeatureConnector(featureAdapter, meterService, eventbus.NewMock(t))
+	featureConnector := featureservice.New(featureAdapter, meterService, eventbus.NewMock(t))
 
 	adapter, err := notificationadapter.New(notificationadapter.Config{
 		Client: entClient,

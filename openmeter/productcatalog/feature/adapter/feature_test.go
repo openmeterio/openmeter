@@ -13,8 +13,8 @@ import (
 	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	featureadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/feature/adapter"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -55,11 +55,11 @@ func TestCreateFeature(t *testing.T) {
 
 	tt := []struct {
 		name string
-		run  func(t *testing.T, connector feature.FeatureRepo)
+		run  func(t *testing.T, connector feature.Adapter)
 	}{
 		{
 			name: "Should create a feature and return the created feature with defaults",
-			run: func(t *testing.T, connector feature.FeatureRepo) {
+			run: func(t *testing.T, connector feature.Adapter) {
 				ctx := context.Background()
 				featureIn := testFeature
 
@@ -86,7 +86,7 @@ func TestCreateFeature(t *testing.T) {
 		},
 		{
 			name: "Should archive a feature that exists and error on a feature that doesnt",
-			run: func(t *testing.T, connector feature.FeatureRepo) {
+			run: func(t *testing.T, connector feature.Adapter) {
 				ctx := context.Background()
 				featureIn := testFeature
 
@@ -111,7 +111,7 @@ func TestCreateFeature(t *testing.T) {
 		},
 		{
 			name: "Should search and order",
-			run: func(t *testing.T, connector feature.FeatureRepo) {
+			run: func(t *testing.T, connector feature.Adapter) {
 				ctx := context.Background()
 				featureIn1 := testFeature
 				featureIn1.Name = "feature-3"
@@ -186,7 +186,7 @@ func TestCreateFeature(t *testing.T) {
 		},
 		{
 			name: "Should find by name",
-			run: func(t *testing.T, connector feature.FeatureRepo) {
+			run: func(t *testing.T, connector feature.Adapter) {
 				ctx := context.Background()
 				featureIn1 := testFeature
 				featureIn1.Name = "feature-1"
@@ -241,7 +241,7 @@ func TestCreateFeature(t *testing.T) {
 				t.Fatalf("failed to create schema: %v", err)
 			}
 
-			dbConnector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
+			dbConnector := featureadapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
 			tc.run(t, dbConnector)
 		})
 	}
@@ -260,7 +260,7 @@ func TestCreateFeature(t *testing.T) {
 			t.Fatalf("failed to create schema: %v", err)
 		}
 
-		dbConnector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
+		dbConnector := featureadapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
 		ctx := context.Background()
 		featureIn := testFeature
 
@@ -351,7 +351,7 @@ func TestArchiveFeature(t *testing.T) {
 			Save(ctx)
 		assert.NoError(t, err)
 
-		connector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
+		connector := featureadapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
 
 		featureIn := testFeature
 
@@ -409,7 +409,7 @@ func TestFetchingArchivedFeature(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		connector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
+		connector := featureadapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
 
 		featureIn := testFeature
 

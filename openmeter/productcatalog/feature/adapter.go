@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
+// ArchiveFeatureInput contains the parameters for archiving a feature.
 type ArchiveFeatureInput struct {
 	Namespace string
 	ID        string
@@ -34,7 +35,8 @@ func (i ArchiveFeatureInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-type FeatureRepo interface {
+// Adapter is the database adapter interface for feature persistence.
+type Adapter interface {
 	CreateFeature(ctx context.Context, feature CreateFeatureInputs) (Feature, error)
 	ArchiveFeature(ctx context.Context, params ArchiveFeatureInput) error
 	ListFeatures(ctx context.Context, params ListFeaturesParams) (pagination.Result[Feature], error)
@@ -42,5 +44,8 @@ type FeatureRepo interface {
 
 	GetByIdOrKey(ctx context.Context, namespace string, idOrKey string, includeArchived bool) (*Feature, error)
 	entutils.TxCreator
-	entutils.TxUser[FeatureRepo]
+	entutils.TxUser[Adapter]
 }
+
+// FeatureRepo is an alias for Adapter, kept for backward compatibility.
+type FeatureRepo = Adapter

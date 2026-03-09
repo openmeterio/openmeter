@@ -13,11 +13,12 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	productcatalogpgadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	addonadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	featureadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/feature/adapter"
+	featureservice "github.com/openmeterio/openmeter/openmeter/productcatalog/feature/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
@@ -61,9 +62,9 @@ func NewFeatureConnector(
 	db *entdb.Client,
 	meterService meter.Service,
 	publisher eventbus.Publisher,
-) feature.FeatureConnector {
-	featureRepo := productcatalogpgadapter.NewPostgresFeatureRepo(db, logger)
-	return feature.NewFeatureConnector(featureRepo, meterService, publisher)
+) feature.Service {
+	adapter := featureadapter.NewPostgresFeatureRepo(db, logger)
+	return featureservice.New(adapter, meterService, publisher)
 }
 
 func NewCostService(

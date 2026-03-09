@@ -15,6 +15,7 @@ import (
 	addonadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	featureservice "github.com/openmeterio/openmeter/openmeter/productcatalog/feature/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
@@ -93,7 +94,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 
 	// Init feature service
 	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(client, logger)
-	featureService := feature.NewFeatureConnector(featureAdapter, meterAdapter, publisher)
+	featureService := featureservice.New(featureAdapter, meterAdapter, publisher)
 
 	// Init plan service
 	planAdapter, err := planadapter.New(planadapter.Config{

@@ -1,7 +1,6 @@
 package feature
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -32,85 +31,6 @@ func (f FeatureMeterCollection) Get(featureKey string, requireMeter bool) (Featu
 	}
 
 	return featureMeter, nil
-}
-
-func (c *featureConnector) ResolveFeatureMeters(ctx context.Context, namespace string, featureKeys []string) (FeatureMeters, error) {
-	if namespace == "" {
-		return nil, fmt.Errorf("namespace is required")
-	}
-
-	if len(featureKeys) == 0 {
-		return FeatureMeterCollection{}, nil
-	}
-
-	featuresToResolve := lo.Uniq(lo.Filter(featureKeys, func(key string, _ int) bool {
-		return key != ""
-	}))
-
-	// Let's resolve the features
-	features, err := c.featureRepo.ListFeatures(ctx, ListFeaturesParams{
-		IDsOrKeys:       featuresToResolve,
-		Namespace:       namespace,
-		IncludeArchived: true,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("listing features: %w", err)
-	}
-
-	featuresByKey := getLastFeatures(features.Items)
-
-	metersToResolve := lo.Uniq(
-		lo.Filter(
-			lo.Map(lo.Values(featuresByKey), func(f Feature, _ int) string {
-				if f.MeterSlug == nil {
-					return ""
-				}
-
-				return *f.MeterSlug
-			}),
-			func(meterSlug string, _ int) bool {
-				return meterSlug != ""
-			},
-		),
-	)
-
-	meters, err := c.meterService.ListMeters(ctx, meter.ListMetersParams{
-		SlugFilter:     lo.ToPtr(metersToResolve),
-		Namespace:      namespace,
-		IncludeDeleted: true,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("listing meters: %w", err)
-	}
-
-	metersByKey := getLastMeters(meters.Items)
-
-	out := make(FeatureMeterCollection, len(featuresByKey))
-	for featureKey, feat := range featuresByKey {
-		if feat.MeterSlug == nil {
-			out[featureKey] = FeatureMeter{
-				Feature: feat,
-			}
-
-			continue
-		}
-
-		meter, exists := metersByKey[*feat.MeterSlug]
-		if !exists {
-			out[featureKey] = FeatureMeter{
-				Feature: feat,
-			}
-
-			continue
-		}
-
-		out[featureKey] = FeatureMeter{
-			Feature: feat,
-			Meter:   &meter,
-		}
-	}
-
-	return out, nil
 }
 
 type lastEntityAccessor[T any] interface {
@@ -164,7 +84,8 @@ func (a featureAccessor) GetDeletedAt(f Feature) *time.Time {
 	return f.ArchivedAt
 }
 
-func getLastFeatures(features []Feature) map[string]Feature {
+// GetLastFeatures returns a map of feature key to the most recent feature (active preferred, then most recently archived).
+func GetLastFeatures(features []Feature) map[string]Feature {
 	return getLastEntity(features, featureAccessor{})
 }
 
@@ -180,6 +101,7 @@ func (a meterAccessor) GetDeletedAt(meter meter.Meter) *time.Time {
 	return meter.DeletedAt
 }
 
-func getLastMeters(meters []meter.Meter) map[string]meter.Meter {
+// GetLastMeters returns a map of meter key to the most recent meter (active preferred, then most recently deleted).
+func GetLastMeters(meters []meter.Meter) map[string]meter.Meter {
 	return getLastEntity(meters, meterAccessor{})
 }

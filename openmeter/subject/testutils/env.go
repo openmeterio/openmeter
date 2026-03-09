@@ -21,6 +21,7 @@ import (
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	featureservice "github.com/openmeterio/openmeter/openmeter/productcatalog/feature/service"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	subjectadapter "github.com/openmeterio/openmeter/openmeter/subject/adapter"
 	subjectservice "github.com/openmeterio/openmeter/openmeter/subject/service"
@@ -102,7 +103,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 
 	// Init feature service
 	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(client, logger)
-	featureService := feature.NewFeatureConnector(featureAdapter, meterAdapter, publisher)
+	featureService := featureservice.New(featureAdapter, meterAdapter, publisher)
 
 	// Entitlement Adapter
 	entitlementDBAdapter := entitlementpgadapter.NewPostgresEntitlementRepo(client)

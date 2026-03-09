@@ -32,6 +32,7 @@ import (
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	productcatalogrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	featureservice "github.com/openmeterio/openmeter/openmeter/productcatalog/feature/service"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	subjectadapter "github.com/openmeterio/openmeter/openmeter/subject/adapter"
@@ -118,7 +119,7 @@ func setupDependencies(t *testing.T) Dependencies {
 		t.Fatalf("failed to create meter adapter: %v", err)
 	}
 
-	featureConnector := feature.NewFeatureConnector(featureRepo, meterAdapter, eventbus.NewMock(t)) // TODO: meter repo is needed
+	featureConnector := featureservice.New(featureRepo, meterAdapter, eventbus.NewMock(t)) // TODO: meter repo is needed
 
 	// Init grants/credit
 	grantRepo := grantrepo.NewPostgresGrantRepo(dbClient)

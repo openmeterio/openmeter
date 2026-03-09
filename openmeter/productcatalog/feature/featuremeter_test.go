@@ -48,7 +48,7 @@ func TestGetLastFeatures(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			out := getLastFeatures(tc.features)
+			out := GetLastFeatures(tc.features)
 
 			featureKeyToID := map[string]string{}
 			for key, feat := range out {
