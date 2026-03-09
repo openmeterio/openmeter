@@ -7,7 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
+	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/httputil"
 	subscriptionhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"

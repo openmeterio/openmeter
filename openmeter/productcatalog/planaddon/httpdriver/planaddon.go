@@ -8,7 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
+	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/httputil"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"

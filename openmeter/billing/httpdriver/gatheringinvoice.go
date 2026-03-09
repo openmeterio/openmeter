@@ -8,7 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
+	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/httputil"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"

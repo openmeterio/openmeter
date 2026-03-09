@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/api"
-	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
+	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/httputil"
 )
 
 func TestUsageBasedLineParser(t *testing.T) {

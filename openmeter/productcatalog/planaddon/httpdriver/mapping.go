@@ -7,7 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	addonhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/httpdriver"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/http"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/httputil"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -28,9 +28,9 @@ func FromPlanAddon(a planaddon.PlanAddon) (api.PlanAddon, error) {
 		CreatedAt:        a.CreatedAt,
 		DeletedAt:        a.DeletedAt,
 		UpdatedAt:        a.UpdatedAt,
-		Annotations:      http.FromAnnotations(a.Annotations),
-		Metadata:         http.FromMetadata(a.Metadata),
-		ValidationErrors: http.FromValidationErrors(validationIssues),
+		Annotations:      httputil.FromAnnotations(a.Annotations),
+		Metadata:         httputil.FromMetadata(a.Metadata),
+		ValidationErrors: httputil.FromValidationErrors(validationIssues),
 	}
 
 	return resp, nil

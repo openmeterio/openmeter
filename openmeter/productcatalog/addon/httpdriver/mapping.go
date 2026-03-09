@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/http"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/httputil"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -26,17 +26,17 @@ func FromAddon(a addon.Addon) (api.Addon, error) {
 		EffectiveTo:      a.EffectiveTo,
 		Id:               a.ID,
 		Key:              a.Key,
-		Metadata:         http.FromMetadata(a.Metadata),
-		Annotations:      http.FromAnnotations(a.Annotations),
+		Metadata:         httputil.FromMetadata(a.Metadata),
+		Annotations:      httputil.FromAnnotations(a.Annotations),
 		Name:             a.Name,
 		UpdatedAt:        a.UpdatedAt,
 		Version:          a.Version,
-		ValidationErrors: http.FromValidationErrors(validationIssues),
+		ValidationErrors: httputil.FromValidationErrors(validationIssues),
 	}
 
 	resp.RateCards = make([]api.RateCard, 0, len(a.RateCards))
 	for _, rateCard := range a.RateCards.AsProductCatalogRateCards() {
-		rc, err := http.FromRateCard(rateCard)
+		rc, err := httputil.FromRateCard(rateCard)
 		if err != nil {
 			return resp, fmt.Errorf("failed to cast ratecard: %w", err)
 		}
@@ -82,7 +82,7 @@ func AsCreateAddonRequest(a api.AddonCreate, namespace string) (CreateAddonReque
 		return req, fmt.Errorf("invalid CurrencyCode: %w", err)
 	}
 
-	req.RateCards, err = http.AsRateCards(a.RateCards)
+	req.RateCards, err = httputil.AsRateCards(a.RateCards)
 	if err != nil {
 		return req, err
 	}
@@ -102,7 +102,7 @@ func AsUpdateAddonRequest(a api.AddonReplaceUpdate, namespace string, addonID st
 		Metadata:     (*models.Metadata)(a.Metadata),
 	}
 
-	rateCards, err := http.AsRateCards(a.RateCards)
+	rateCards, err := httputil.AsRateCards(a.RateCards)
 	if err != nil {
 		return req, err
 	}

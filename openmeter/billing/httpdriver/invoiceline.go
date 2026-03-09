@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
+	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/httputil"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"

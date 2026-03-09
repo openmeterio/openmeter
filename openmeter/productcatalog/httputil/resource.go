@@ -1,4 +1,4 @@
-package http
+package httputil
 
 type ResourceKind string
 

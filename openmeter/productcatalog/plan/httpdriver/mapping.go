@@ -8,7 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/http"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/httputil"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -32,7 +32,7 @@ func FromPlan(p plan.Plan) (api.Plan, error) {
 		Version:          p.Version,
 		BillingCadence:   p.BillingCadence.String(),
 		ProRatingConfig:  fromProRatingConfig(p.ProRatingConfig),
-		ValidationErrors: http.FromValidationErrors(validationIssues),
+		ValidationErrors: httputil.FromValidationErrors(validationIssues),
 	}
 
 	resp.Phases = make([]api.PlanPhase, 0, len(p.Phases))
@@ -68,14 +68,14 @@ func FromPlanPhase(p plan.Phase) (api.PlanPhase, error) {
 	resp := api.PlanPhase{
 		Description: p.Description,
 		Key:         p.Key,
-		Metadata:    http.FromMetadata(p.Metadata),
+		Metadata:    httputil.FromMetadata(p.Metadata),
 		Name:        p.Name,
 		Duration:    (*string)(p.Duration.ISOStringPtrOrNil()),
 	}
 
 	resp.RateCards = make([]api.RateCard, 0, len(p.RateCards))
 	for _, rateCard := range p.RateCards {
-		rc, err := http.FromRateCard(rateCard)
+		rc, err := httputil.FromRateCard(rateCard)
 		if err != nil {
 			return resp, fmt.Errorf("failed to cast RateCard: %w", err)
 		}
@@ -172,7 +172,7 @@ func AsPlanPhase(a api.PlanPhase) (productcatalog.Phase, error) {
 		return phase, models.NewGenericValidationError(fmt.Errorf("invalid duration: failed to cast to period: %w", err))
 	}
 
-	phase.RateCards, err = http.AsRateCards(a.RateCards)
+	phase.RateCards, err = httputil.AsRateCards(a.RateCards)
 	if err != nil {
 		return phase, err
 	}
