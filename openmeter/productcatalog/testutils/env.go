@@ -35,7 +35,7 @@ type TestEnv struct {
 	PlanAddon           planaddon.Service
 	PlanAddonRepository planaddon.Repository
 	Addon               addon.Service
-	AddonRepository     addon.Repository
+	AddonRepository     addon.Adapter
 
 	Client *entdb.Client
 	db     *testutils.TestDB

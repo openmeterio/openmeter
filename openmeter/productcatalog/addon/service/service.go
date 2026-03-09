@@ -10,7 +10,7 @@ import (
 )
 
 type Config struct {
-	Adapter   addon.Repository
+	Adapter   addon.Adapter
 	Feature   feature.FeatureConnector
 	Logger    *slog.Logger
 	Publisher eventbus.Publisher
@@ -44,7 +44,7 @@ func New(config Config) (addon.Service, error) {
 var _ addon.Service = (*service)(nil)
 
 type service struct {
-	adapter   addon.Repository
+	adapter   addon.Adapter
 	feature   feature.FeatureConnector
 	logger    *slog.Logger
 	publisher eventbus.Publisher

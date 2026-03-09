@@ -9,7 +9,7 @@ import (
 
 // TODO: add bulk api
 
-type Repository interface {
+type Adapter interface {
 	entutils.TxCreator
 
 	ListAddons(ctx context.Context, params ListAddonsInput) (pagination.Result[Addon], error)
@@ -18,3 +18,6 @@ type Repository interface {
 	GetAddon(ctx context.Context, params GetAddonInput) (*Addon, error)
 	UpdateAddon(ctx context.Context, params UpdateAddonInput) (*Addon, error)
 }
+
+// Repository is an alias for Adapter for backward compatibility.
+type Repository = Adapter
