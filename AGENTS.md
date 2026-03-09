@@ -142,7 +142,7 @@ See the `/service` skill for service/adapter patterns, constructors, input types
 | Analytics | ClickHouse |
 | Events | Kafka (confluent-kafka-go) + Watermill |
 | HTTP | Chi router + oapi-codegen |
-| Billing | Stripe, GOBL (invoicing) |
+| Invoicing | GOBL (invoice format) |
 | Webhooks | Svix |
 | Observability | OpenTelemetry |
 | Config | Viper + Cobra |
