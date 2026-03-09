@@ -37,7 +37,7 @@ func (h *handler) QueryFeatureCost() QueryFeatureCostHandler {
 			}
 
 			var body api.MeterQueryRequest
-			if err := request.ParseBody(r, &body); err != nil {
+			if err := request.ParseOptionalBody(r, &body); err != nil {
 				return QueryFeatureCostRequest{}, err
 			}
 

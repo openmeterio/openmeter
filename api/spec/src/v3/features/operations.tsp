@@ -25,6 +25,6 @@ interface FeatureCostOperations {
   @summary("Query feature cost")
   queryCost(
     @path featureId: Shared.ULID,
-    @body request: Meters.MeterQueryRequest,
+    @body request?: Meters.MeterQueryRequest,
   ): FeatureCostQueryResult | Common.NotFound | Common.ErrorResponses;
 }
