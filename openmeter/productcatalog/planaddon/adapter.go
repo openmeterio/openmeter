@@ -7,7 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-type Repository interface {
+type Adapter interface {
 	entutils.TxCreator
 
 	ListPlanAddons(ctx context.Context, params ListPlanAddonsInput) (pagination.Result[PlanAddon], error)
@@ -16,3 +16,6 @@ type Repository interface {
 	GetPlanAddon(ctx context.Context, params GetPlanAddonInput) (*PlanAddon, error)
 	UpdatePlanAddon(ctx context.Context, params UpdatePlanAddonInput) (*PlanAddon, error)
 }
+
+// Repository is an alias for Adapter for backward compatibility.
+type Repository = Adapter

@@ -39,7 +39,7 @@ func (c Config) Validate() error {
 	return nil
 }
 
-func New(config Config) (planaddon.Repository, error) {
+func New(config Config) (planaddon.Adapter, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func New(config Config) (planaddon.Repository, error) {
 	}, nil
 }
 
-var _ planaddon.Repository = (*adapter)(nil)
+var _ planaddon.Adapter = (*adapter)(nil)
 
 type adapter struct {
 	db *entdb.Client

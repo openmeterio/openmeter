@@ -33,7 +33,7 @@ type TestEnv struct {
 	Plan                plan.Service
 	PlanRepository      plan.Repository
 	PlanAddon           planaddon.Service
-	PlanAddonRepository planaddon.Repository
+	PlanAddonAdapter planaddon.Adapter
 	Addon               addon.Service
 	AddonRepository     addon.Repository
 
@@ -155,7 +155,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 		Plan:                planService,
 		PlanRepository:      planAdapter,
 		PlanAddon:           planAddonService,
-		PlanAddonRepository: planAddonAdapter,
+		PlanAddonAdapter: planAddonAdapter,
 		Addon:               addonService,
 		AddonRepository:     addonAdapter,
 		db:                  db,

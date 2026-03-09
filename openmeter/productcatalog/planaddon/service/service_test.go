@@ -270,7 +270,7 @@ func TestPlanAddonService(t *testing.T) {
 
 			var planAddon *planaddon.PlanAddon
 
-			planAddon, err = env.PlanAddonRepository.CreatePlanAddon(ctx, planAddonInput)
+			planAddon, err = env.PlanAddonAdapter.CreatePlanAddon(ctx, planAddonInput)
 			require.NoErrorf(t, err, "creating new plan add-on assignment must not fail")
 
 			require.NotNilf(t, planAddon, "plan add-on assignment must not be nil")

@@ -296,7 +296,7 @@ func TestPostgresAdapter(t *testing.T) {
 
 			var planAddon *planaddon.PlanAddon
 
-			planAddon, err = env.PlanAddonRepository.CreatePlanAddon(ctx, planAddonInput)
+			planAddon, err = env.PlanAddonAdapter.CreatePlanAddon(ctx, planAddonInput)
 			require.NoErrorf(t, err, "creating new plan add-on assignment must not fail")
 
 			require.NotNilf(t, planAddon, "plan add-on assignment must not be nil")
@@ -305,7 +305,7 @@ func TestPostgresAdapter(t *testing.T) {
 
 			t.Run("Get", func(t *testing.T) {
 				t.Run("ById", func(t *testing.T) {
-					getPlanAddon, err := env.PlanAddonRepository.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
+					getPlanAddon, err := env.PlanAddonAdapter.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
 						NamespacedModel: models.NamespacedModel{
 							Namespace: namespace,
 						},
@@ -319,7 +319,7 @@ func TestPostgresAdapter(t *testing.T) {
 				})
 
 				t.Run("ByKey", func(t *testing.T) {
-					getPlanAddon, err := env.PlanAddonRepository.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
+					getPlanAddon, err := env.PlanAddonAdapter.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
 						NamespacedModel: models.NamespacedModel{
 							Namespace: namespace,
 						},
@@ -336,7 +336,7 @@ func TestPostgresAdapter(t *testing.T) {
 
 			t.Run("List", func(t *testing.T) {
 				t.Run("ById", func(t *testing.T) {
-					listPlanAddons, err := env.PlanAddonRepository.ListPlanAddons(ctx, planaddon.ListPlanAddonsInput{
+					listPlanAddons, err := env.PlanAddonAdapter.ListPlanAddons(ctx, planaddon.ListPlanAddonsInput{
 						Namespaces: []string{namespace},
 						IDs:        []string{planAddon.ID},
 					})
@@ -348,7 +348,7 @@ func TestPostgresAdapter(t *testing.T) {
 				})
 
 				t.Run("ByResourceKey", func(t *testing.T) {
-					listPlanAddons, err := env.PlanAddonRepository.ListPlanAddons(ctx, planaddon.ListPlanAddonsInput{
+					listPlanAddons, err := env.PlanAddonAdapter.ListPlanAddons(ctx, planaddon.ListPlanAddonsInput{
 						Namespaces: []string{namespace},
 						PlanKeys:   []string{planV1.Key},
 						AddonKeys:  []string{addonV1.Key},
@@ -376,7 +376,7 @@ func TestPostgresAdapter(t *testing.T) {
 					FromPlanPhase: &planV1.Phases[2].Key,
 				}
 
-				updatedPlanAddon, err := env.PlanAddonRepository.UpdatePlanAddon(ctx, planAddonUpdate)
+				updatedPlanAddon, err := env.PlanAddonAdapter.UpdatePlanAddon(ctx, planAddonUpdate)
 				require.NoErrorf(t, err, "updating plan add-on assignment must not fail")
 
 				require.NotNilf(t, updatedPlanAddon, "plan add-on assignment must not be nil")
@@ -385,7 +385,7 @@ func TestPostgresAdapter(t *testing.T) {
 			})
 
 			t.Run("Delete", func(t *testing.T) {
-				err = env.PlanAddonRepository.DeletePlanAddon(ctx, planaddon.DeletePlanAddonInput{
+				err = env.PlanAddonAdapter.DeletePlanAddon(ctx, planaddon.DeletePlanAddonInput{
 					NamespacedModel: models.NamespacedModel{
 						Namespace: namespace,
 					},
@@ -393,7 +393,7 @@ func TestPostgresAdapter(t *testing.T) {
 				})
 				require.NoErrorf(t, err, "deleting plan add-on assignment must not fail")
 
-				getPlanAddon, err := env.PlanAddonRepository.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
+				getPlanAddon, err := env.PlanAddonAdapter.GetPlanAddon(ctx, planaddon.GetPlanAddonInput{
 					NamespacedModel: models.NamespacedModel{
 						Namespace: namespace,
 					},

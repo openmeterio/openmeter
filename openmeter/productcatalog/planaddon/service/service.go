@@ -11,7 +11,7 @@ import (
 )
 
 type Config struct {
-	Adapter   planaddon.Repository
+	Adapter   planaddon.Adapter
 	Plan      plan.Service
 	Addon     addon.Service
 	Logger    *slog.Logger
@@ -51,7 +51,7 @@ func New(config Config) (planaddon.Service, error) {
 var _ planaddon.Service = (*service)(nil)
 
 type service struct {
-	adapter   planaddon.Repository
+	adapter   planaddon.Adapter
 	plan      plan.Service
 	addon     addon.Service
 	logger    *slog.Logger
