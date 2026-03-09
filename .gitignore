@@ -20,3 +20,10 @@ openmeter.log
 
 .gocache
 .gomodcache
+
+# Claude Code (local settings and session files)
+.claude/settings.local.json
+.claude/plans/
+.claude/todos.json
+.claude/worktrees
+CLAUDE.local.md
