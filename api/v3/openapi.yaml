@@ -16,6 +16,8 @@ servers:
 tags:
   - name: OpenMeter LLM Cost
     description: LLM cost database providing normalized pricing data for language models across providers. Prices are synced from multiple external sources and auto-confirmed when they agree.
+  - name: OpenMeter Features
+    description: Features represent product capabilities backed by meters, with optional per-unit cost configuration.
   - name: OpenMeter Tax
     description: Tax codes are used to calculate taxes for customers.
   - name: OpenMeter Billing
@@ -624,6 +626,43 @@ paths:
                 - type: array
                   items:
                     $ref: '#/components/schemas/MeteringEvent'
+  /openmeter/features/{featureId}/cost/query:
+    post:
+      operationId: query-feature-cost
+      summary: Query feature cost
+      description: Query the cost of a feature.
+      parameters:
+        - name: featureId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureCostQueryResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Features
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeterQueryRequest'
+      x-internal: true
+      x-unstable: true
+      x-private: true
   /openmeter/llm-cost/overrides:
     get:
       operationId: list-llm-cost-overrides
@@ -3633,6 +3672,75 @@ components:
       description: ExternalResourceKey is a unique string that is used to identify a resource in an external system.
       title: External Resource Key
       example: 019ae40f-4258-7f15-9491-842f42a7d6ac
+    FeatureCostQueryResult:
+      type: object
+      required:
+        - data
+      properties:
+        from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Start of the queried period.
+        to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: End of the queried period.
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureCostQueryRow'
+          description: The cost data rows.
+      description: Result of a feature cost query.
+    FeatureCostQueryRow:
+      type: object
+      required:
+        - usage
+        - cost
+        - currency
+        - from
+        - to
+        - dimensions
+      properties:
+        usage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The metered usage value for the period.
+        cost:
+          type: string
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          nullable: true
+          description: |-
+            The computed cost amount (usage × unit cost).
+            Null when pricing is not available for the given combination of dimensions.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency code of the cost amount.
+        detail:
+          type: string
+          description: Detail message when cost amount is null, explaining why the cost could not be resolved.
+        from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The start of the time bucket the value is aggregated over.
+        to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The end of the time bucket the value is aggregated over.
+        dimensions:
+          type: object
+          properties:
+            subject:
+              type: string
+              description: The subject the value is aggregated over.
+            customer_id:
+              type: string
+              description: The customer ID the value is aggregated over.
+          additionalProperties:
+            type: string
+          description: The dimensions the value is aggregated over.
+      description: A row in the result of a feature cost query.
     FilterSingleString:
       type: object
       properties:
