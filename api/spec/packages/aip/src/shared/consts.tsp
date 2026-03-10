@@ -32,6 +32,10 @@ const LLMCostDescription = "LLM cost database providing normalized pricing data 
 const FeaturesTag = "OpenMeter Features";
 const FeaturesDescription = "Features represent product capabilities backed by meters, with optional per-unit cost configuration.";
 
+const ProductCatalogTag = "OpenMeter Product Catalog";
+const ProductCatalogDescription = "TODO";
+
 const UnstableExtension = "x-unstable";
 const InternalExtension = "x-internal";
 const PrivateExtension = "x-private";
+
