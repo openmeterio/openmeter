@@ -2,38 +2,40 @@ import "../shared/index.tsp";
 
 namespace ProductCatalog;
 
-
 /**
  * The type of the price.
  */
-@friendlyName("PriceType")
+@friendlyName("BillingPriceType")
 enum PriceType {
-  flat: "flat",
-  unit: "unit",
-  tiered_graduated: "tiered_graduated",
-  tiered_volume: "tiered_volume",
-  dynamic: "dynamic",
-  package: "package",
+  Free: "free",
+  Flat: "flat",
+  Unit: "unit",
+  Graduated: "graduated",
+  Volume: "volume",
+  Dynamic: "dynamic",
+  Package: "package",
 }
 
 /**
  * Price.
- * One of: flat, unit, or tiered.
  */
-@friendlyName("Price")
+@friendlyName("BillingPrice")
 @discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union Price {
+  @summary("Free price")
+  free: PriceFree,
+
   @summary("Flat price")
   flat: PriceFlat,
 
   @summary("Unit price")
   unit: PriceUnit,
 
-  @summary("Graduated tiered price")
-  tiered_graduated: PriceTieredGraduated,
+  @summary("Graduated price")
+  graduated: PriceGraduated,
 
-  @summary("Volume tiered price")
-  tiered_volume: PriceTieredVolume,
+  @summary("Volume price")
+  volume: PriceVolume,
 
   @summary("Dynamic price")
   dynamic: PriceDynamic,
@@ -43,38 +45,54 @@ union Price {
 }
 
 /**
- * The payment term of a flat price.
- * One of: in_advance or in_arrears.
+ * Usage based price.
  */
-@friendlyName("PricePaymentTerm")
+@friendlyName("BillingPriceUsageBased")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
+union PriceUsageBased {
+  unit: PriceUnit,
+  dynamic: PriceDynamic,
+  package: PricePackage,
+}
+
+/**
+ * The payment term of a flat price.
+ */
+@friendlyName("BillingPricePaymentTerm")
 union PricePaymentTerm {
   /**
    * If in_advance, the rate card will be invoiced in the previous billing cycle.
    */
-  inAdvance: "in_advance",
+  InAdvance: "in_advance",
 
   /**
    * If in_arrears, the rate card will be invoiced in the current billing cycle.
    */
-  inArrears: "in_arrears",
+  InArrears: "in_arrears",
+}
 
-  // NOTE(chrisgacsal): prepaid might be implemented in future releases
-  // /**
-  //  * If prepaid, entitlements will be granted only after invoice is paid
-  //  */
-  // prepaid: "prepaid",
+/**
+ * Free price.
+ */
+@friendlyName("BillingPriceFree")
+model PriceFree {
+  /**
+   * The type of the price.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  type: PriceType.Free;
 }
 
 /**
  * Flat price.
  */
-@friendlyName("PriceFlat")
+@friendlyName("BillingPriceFlat")
 model PriceFlat {
   /**
    * The type of the price.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  type: PriceType.flat;
+  type: PriceType.Flat;
 
   /**
    * The amount of the flat price.
@@ -86,7 +104,7 @@ model PriceFlat {
 /**
  * Flat price with payment term.
  */
-@friendlyName("PriceFlatWithPaymentTerm")
+@friendlyName("BillingPriceFlatWithPaymentTerm")
 model PriceFlatWithPaymentTerm {
   ...PriceFlat;
 
@@ -95,19 +113,19 @@ model PriceFlatWithPaymentTerm {
    * Defaults to in advance.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  payment_term?: PricePaymentTerm = PricePaymentTerm.inAdvance;
+  payment_term?: PricePaymentTerm = PricePaymentTerm.InAdvance;
 }
 
 /**
  * Unit price.
  */
-@friendlyName("PriceUnit")
+@friendlyName("BillingPriceUnit")
 model PriceUnit {
   /**
    * The type of the price.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  type: PriceType.unit;
+  type: PriceType.Unit;
 
   /**
    * The amount of the unit price.
@@ -120,13 +138,13 @@ model PriceUnit {
  * Graduated tiered price.
  * Pricing can change as the quantity grows.
  */
-@friendlyName("PriceTieredGraduated")
-model PriceTieredGraduated {
+@friendlyName("BillingPriceGraduated")
+model PriceGraduated {
   /**
    * The type of the price.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  type: PriceType.tiered_graduated;
+  type: PriceType.Graduated;
 
   /**
    * The tiers of the tiered price.
@@ -142,13 +160,13 @@ model PriceTieredGraduated {
  * Volume tiered price.
  * The maximum quantity within a period determines the per unit price.
  */
-@friendlyName("PriceTieredVolume")
-model PriceTieredVolume {
+@friendlyName("BillingPriceVolume")
+model PriceVolume {
   /**
    * The type of the price.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  type: PriceType.tiered_volume;
+  type: PriceType.Volume;
 
   /**
    * The tiers of the tiered price.
@@ -164,11 +182,11 @@ model PriceTieredVolume {
  * A price tier.
  * At least one price component is required in each tier.
  */
-@friendlyName("PriceTier")
+@friendlyName("BillingPriceTier")
 model PriceTier {
   /**
    * Up to and including to this quantity will be contained in the tier.
-   * If null, the tier is open-ended.
+   * If undefined, the tier is open-ended.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Up to quantity")
@@ -179,14 +197,14 @@ model PriceTier {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Flat price component")
-  flat_price: PriceFlat | null;
+  flat_price?: PriceFlat;
 
   /**
    * The usage based price component of the tier.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Usage based price component")
-  usage_price: PriceUnit | PriceDynamic | PricePackage | null;
+  usage_price?: PriceUsageBased;
 }
 
 /**
@@ -197,13 +215,13 @@ model PriceTier {
  *
  * The rate specifies the markup over the price.
  */
-@friendlyName("PriceDynamic")
+@friendlyName("BillingPriceDynamic")
 model PriceDynamic {
   /**
    * The type of the price.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  type: PriceType.dynamic;
+  type: PriceType.Dynamic;
 
   /**
    * The multiplier to apply to the base price to get the dynamic price.
@@ -234,13 +252,13 @@ model PriceDynamic {
  * - if the quantity is 20.1, the price will be 2*$10=$20, as the additional 0.1 usage (compared to the
  *   previous example) requires a new package.
  */
-@friendlyName("PricePackage")
+@friendlyName("BillingPricePackage")
 model PricePackage {
   /**
    * The type of the price.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  type: PriceType.package;
+  type: PriceType.Package;
 
   /**
    * The price of one package.
@@ -261,7 +279,7 @@ model PricePackage {
  * Spending commitments.
  * The customer is committed to spend at least the minimum amount and at most the maximum amount.
  */
-@friendlyName("SpendCommitments")
+@friendlyName("BillingSpendCommitments")
 model SpendCommitments {
   /**
    * The customer is committed to spend at least the amount.
@@ -281,34 +299,34 @@ model SpendCommitments {
 /**
  * Unit price with spend commitments.
  */
-@friendlyName("PriceUnitWithCommitments")
+@friendlyName("BillingPriceUnitWithCommitments")
 model PriceUnitWithCommitments {
   ...PriceUnit;
   ...SpendCommitments;
 }
 
 /**
- * Graduated tiered price with spend commitments.
+ * Graduated price with spend commitments.
  */
-@friendlyName("PriceTieredGraduatedWithCommitments")
-model PriceTieredGraduatedWithCommitments {
-  ...PriceTieredGraduated;
+@friendlyName("BillingPriceGraduatedWithCommitments")
+model PriceGraduatedWithCommitments {
+  ...PriceGraduated;
   ...SpendCommitments;
 }
 
 /**
- * Volume tiered price with spend commitments.
+ * Volume price with spend commitments.
  */
-@friendlyName("PriceTieredVolumeWithCommitments")
-model PriceTieredVolumeWithCommitments {
-  ...PriceTieredVolume;
+@friendlyName("BillingPriceVolumeWithCommitments")
+model PriceVolumeWithCommitments {
+  ...PriceVolume;
   ...SpendCommitments;
 }
 
 /**
  * Dynamic price with spend commitments.
  */
-@friendlyName("PriceDynamicWithCommitments")
+@friendlyName("BillingPriceDynamicWithCommitments")
 model PriceDynamicWithCommitments {
   ...PriceDynamic;
   ...SpendCommitments;
@@ -317,7 +335,7 @@ model PriceDynamicWithCommitments {
 /**
  * Package price with spend commitments.
  */
-@friendlyName("PricePackageWithCommitments")
+@friendlyName("BillingPricePackageWithCommitments")
 model PricePackageWithCommitments {
   ...PricePackage;
   ...SpendCommitments;

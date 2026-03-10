@@ -7,7 +7,7 @@ output-dir: '{base-dir}'
 options:
   '@typespec/openapi3':
     emitter-output-dir: '{output-dir}/output/definitions/metering-and-billing/v3'
-    omit-unreachable-types: true
+    omit-unreachable-types: false
 linter:
   extends:
     - '@openmeter/api-spec/aip'

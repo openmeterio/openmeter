@@ -11,6 +11,7 @@ import "./subscriptions/index.tsp";
 import "./apps/index.tsp";
 import "./billing/index.tsp";
 import "./tax/index.tsp";
+import "./productcatalog/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -100,6 +101,11 @@ interface CurrenciesCustomEndpoints
 @tag(Shared.BillingTag)
 interface CurrenciesCustomCostBasesEndpoints
   extends Currencies.CurrenciesCustomCostBasesOperations {}
+
+@route("/openmeter/product-catalog/prices")
+@tag(Shared.ProductCatalogTag)
+interface ProductCatalogEndpoints
+  extends ProductCatalog.ProductCatalogOperations {}
 
 /**
  * The system account access token is meant for automations and integrations that are not directly associated with a human identity.
