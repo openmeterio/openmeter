@@ -5,7 +5,7 @@ import (
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
-	"github.com/openmeterio/openmeter/api/v3/handlers/query"
+	"github.com/openmeterio/openmeter/api/v3/handlers/meters/query"
 	"github.com/openmeterio/openmeter/openmeter/cost"
 )
 
