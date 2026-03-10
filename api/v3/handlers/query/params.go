@@ -45,7 +45,9 @@ func BuildQueryParams(ctx context.Context, m meter.Meter, body api.MeterQueryReq
 			if !IsSupportedGroupByDimension(m, groupBy) {
 				return params, NewInvalidGroupByError(groupBy)
 			}
-			params.GroupBy = append(params.GroupBy, groupBy)
+			if !slices.Contains(params.GroupBy, groupBy) {
+				params.GroupBy = append(params.GroupBy, groupBy)
+			}
 		}
 	}
 

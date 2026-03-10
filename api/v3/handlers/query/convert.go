@@ -94,7 +94,11 @@ func ValidateQueryFilterStringMapItem(f api.QueryFilterStringMapItem, fieldPath 
 }
 
 // firstKey returns the first key from a map in sorted order for deterministic error messages.
+// Returns empty string if the map is empty to avoid panics.
 func firstKey[V any](m map[string]V) string {
+	if len(m) == 0 {
+		return ""
+	}
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)

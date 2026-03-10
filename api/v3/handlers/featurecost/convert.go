@@ -11,6 +11,12 @@ import (
 
 // ConvertCostQueryResultToAPI converts a domain CostQueryResult to the v3 API response.
 func ConvertCostQueryResultToAPI(result *cost.CostQueryResult, body api.MeterQueryRequest) api.FeatureCostQueryResult {
+	if result == nil {
+		return api.FeatureCostQueryResult{
+			From: body.From,
+			To:   body.To,
+		}
+	}
 	return api.FeatureCostQueryResult{
 		From:     body.From,
 		To:       body.To,
