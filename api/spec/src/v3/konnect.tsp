@@ -45,6 +45,8 @@ using TypeSpec.OpenAPI;
 @tagMetadata(Shared.AppsTag, #{ description: Shared.AppsDescription })
 @tagMetadata(Shared.BillingTag, #{ description: Shared.BillingDescription })
 @tagMetadata(Shared.TaxTag, #{ description: Shared.TaxDescription })
+@tagMetadata(Shared.FeaturesTag, #{ description: Shared.FeaturesDescription })
+@tagMetadata(Shared.LLMCostTag, #{ description: Shared.LLMCostDescription })
 @useAuth(systemAccountAccessToken | personalAccessToken | konnectAccessToken)
 namespace MeteringAndBilling;
 
@@ -100,6 +102,19 @@ interface CurrenciesCustomEndpoints
 @tag(Shared.BillingTag)
 interface CurrenciesCustomCostBasesEndpoints
   extends Currencies.CurrenciesCustomCostBasesOperations {}
+
+@route("/openmeter/features/{featureId}/cost")
+@tag(Shared.FeaturesTag)
+interface FeaturesEndpoints extends Features.FeatureCostOperations {}
+
+@route("/openmeter/llm-cost/prices")
+@tag(Shared.LLMCostTag)
+interface LLMCostPricesEndpoints extends LLMCost.LLMCostPricesOperations {}
+
+@route("/openmeter/llm-cost/overrides")
+@tag(Shared.LLMCostTag)
+interface LLMCostOverridesEndpoints
+  extends LLMCost.LLMCostOverridesOperations {}
 
 /**
  * The system account access token is meant for automations and integrations that are not directly associated with a human identity.

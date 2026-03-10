@@ -20,7 +20,7 @@ interface FeatureCostOperations {
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   @post
-  @route("/cost")
+  @route("/query")
   @operationId("query-feature-cost")
   @summary("Query feature cost")
   queryCost(

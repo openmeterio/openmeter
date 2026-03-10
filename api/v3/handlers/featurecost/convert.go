@@ -19,9 +19,8 @@ func ConvertCostQueryResultToAPI(result *cost.CostQueryResult, body api.MeterQue
 		}
 	}
 	return api.FeatureCostQueryResult{
-		From:     body.From,
-		To:       body.To,
-		Currency: api.CurrencyCode(result.Currency),
+		From: body.From,
+		To:   body.To,
 		Data: lo.Map(result.Rows, func(row cost.CostQueryRow, _ int) api.FeatureCostQueryRow {
 			return convertCostQueryRowToAPI(row)
 		}),

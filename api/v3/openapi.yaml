@@ -626,7 +626,7 @@ paths:
                 - type: array
                   items:
                     $ref: '#/components/schemas/MeteringEvent'
-  /openmeter/features/{featureId}/cost:
+  /openmeter/features/{featureId}/cost/query:
     post:
       operationId: query-feature-cost
       summary: Query feature cost
@@ -3675,7 +3675,6 @@ components:
     FeatureCostQueryResult:
       type: object
       required:
-        - currency
         - data
       properties:
         from:
@@ -3686,10 +3685,6 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: End of the queried period.
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          description: The currency code of the cost amounts.
         data:
           type: array
           items:
@@ -3717,7 +3712,7 @@ components:
           nullable: true
           description: |-
             The computed cost amount (usage × unit cost).
-            Null when pricing is not available for the group-by combination.
+            Null when pricing is not available for the given combination of dimensions.
         currency:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'

@@ -2,14 +2,11 @@ import "@typespec/json-schema";
 import "../shared/index.tsp";
 import "../meters/query.tsp";
 
-using TypeSpec.JsonSchema;
-
 namespace Features;
 
 /**
  * A row in the result of a feature cost query.
  */
-#suppress "@openmeter/api-spec/repeated-prefix-grouping" "keep the row flat"
 @friendlyName("FeatureCostQueryRow")
 model FeatureCostQueryRow {
   /**
@@ -19,8 +16,9 @@ model FeatureCostQueryRow {
 
   /**
    * The computed cost amount (usage × unit cost).
-   * Null when pricing is not available for the group-by combination.
+   * Null when pricing is not available for the given combination of dimensions.
    */
+  #suppress "@openmeter/api-spec/no-nullable" "cost is nullable"
   cost: Shared.Numeric | null;
 
   /**
@@ -78,11 +76,6 @@ model FeatureCostQueryResult {
    * End of the queried period.
    */
   to?: Shared.DateTime;
-
-  /**
-   * The currency code of the cost amounts.
-   */
-  currency: Shared.CurrencyCode;
 
   /**
    * The cost data rows.
