@@ -24,7 +24,7 @@ func NewCustomerResolver(customerService customer.Service) CustomerResolverFunc 
 		customers, err := customerService.ListCustomers(ctx, customer.ListCustomersInput{
 			Namespace:      namespace,
 			CustomerIDs:    customerIDs,
-			IncludeDeleted: false,
+			IncludeDeleted: true,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to list customers: %w", err)

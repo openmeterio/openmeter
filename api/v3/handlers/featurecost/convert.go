@@ -15,6 +15,7 @@ func ConvertCostQueryResultToAPI(result *cost.CostQueryResult, body api.MeterQue
 		return api.FeatureCostQueryResult{
 			From: body.From,
 			To:   body.To,
+			Data: []api.FeatureCostQueryRow{},
 		}
 	}
 	return api.FeatureCostQueryResult{

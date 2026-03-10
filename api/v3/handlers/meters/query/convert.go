@@ -119,6 +119,9 @@ func ExtractStringsFromQueryFilter(f *api.QueryFilterString, fieldPath ...string
 		f.And != nil || f.Or != nil {
 		return nil, NewUnsupportedFilterOperatorError(fieldPath...)
 	}
+	if len(f.AdditionalProperties) > 0 {
+		return nil, NewUnsupportedFilterOperatorError(fieldPath...)
+	}
 	if f.Eq != nil && f.In != nil {
 		return nil, NewUnsupportedFilterOperatorError(fieldPath...)
 	}

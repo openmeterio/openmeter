@@ -49,7 +49,7 @@ func (h *handler) QueryFeatureCost() QueryFeatureCostHandler {
 		},
 		func(ctx context.Context, req QueryFeatureCostRequest) (QueryFeatureCostResponse, error) {
 			// Get the feature to find its meter
-			feat, err := h.featureConnector.GetFeature(ctx, req.Namespace, req.FeatureID, feature.IncludeArchivedFeatureFalse)
+			feat, err := h.featureConnector.GetFeature(ctx, req.Namespace, req.FeatureID, feature.IncludeArchivedFeatureTrue)
 			if err != nil {
 				return QueryFeatureCostResponse{}, err
 			}
@@ -78,7 +78,7 @@ func (h *handler) QueryFeatureCost() QueryFeatureCostHandler {
 			// Query feature cost
 			result, err := h.costService.QueryFeatureCost(ctx, cost.QueryFeatureCostInput{
 				Namespace:   req.Namespace,
-				FeatureID:   req.FeatureID,
+				FeatureID:   feat.ID,
 				QueryParams: params,
 			})
 			if err != nil {
