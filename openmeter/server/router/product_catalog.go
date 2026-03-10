@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
-	costhttpdriver "github.com/openmeterio/openmeter/openmeter/cost/httpdriver"
 )
 
 // List features
@@ -29,13 +28,4 @@ func (a *Router) DeleteFeature(w http.ResponseWriter, r *http.Request, featureId
 // (GET /api/v1/features/{featureId})
 func (a *Router) GetFeature(w http.ResponseWriter, r *http.Request, featureId string) {
 	a.featureHandler.GetFeature().With(featureId).ServeHTTP(w, r)
-}
-
-// Query feature cost
-// (GET /api/v1/features/{featureId}/cost)
-func (a *Router) QueryFeatureCost(w http.ResponseWriter, r *http.Request, featureId string, params api.QueryFeatureCostParams) {
-	a.costHandler.QueryFeatureCost().With(costhttpdriver.QueryFeatureCostHandlerParams{
-		FeatureID:              featureId,
-		QueryFeatureCostParams: params,
-	}).ServeHTTP(w, r)
 }

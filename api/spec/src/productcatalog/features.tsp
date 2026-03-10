@@ -209,60 +209,6 @@ union FeatureUnitCost {
 }
 
 /**
- * A row in the result of a feature cost query.
- */
-@friendlyName("FeatureCostQueryRow")
-model FeatureCostQueryRow {
-  /** The metered usage value for the period. */
-  usage: Numeric;
-
-  /** The computed cost amount (usage × unit cost). Null when pricing is not available for the group-by combination. */
-  cost: Numeric | null;
-
-  /** The currency code of the cost amount. */
-  currency: CurrencyCode;
-
-  /** Detail message when cost amount is null, explaining why the cost could not be resolved. */
-  detail?: string;
-
-  /** The start of the window the value is aggregated over. */
-  windowStart: DateTime;
-
-  /** The end of the window the value is aggregated over. */
-  windowEnd: DateTime;
-
-  /** The subject the value is aggregated over. */
-  subject?: string;
-
-  /** The customer ID the value is aggregated over. */
-  customerId?: string;
-
-  /** The group by values the value is aggregated over. */
-  groupBy?: Record<string | null>;
-}
-
-/**
- * Result of a feature cost query.
- */
-@friendlyName("FeatureCostQueryResult")
-model FeatureCostQueryResult {
-  /** Start of the queried period. */
-  from?: DateTime;
-
-  /** End of the queried period. */
-  to?: DateTime;
-
-  /** The window size that the cost is aggregated. */
-  windowSize?: WindowSize;
-
-  /** The currency code of the cost amounts. */
-  currency: CurrencyCode;
-
-  /** The cost data rows. */
-  data: FeatureCostQueryRow[];
-}
-
-/**
  * List features result
  */
 @oneOf
