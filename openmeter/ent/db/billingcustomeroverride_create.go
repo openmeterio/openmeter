@@ -229,6 +229,20 @@ func (_c *BillingCustomerOverrideCreate) SetNillableTaxCodeID(v *string) *Billin
 	return _c
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_c *BillingCustomerOverrideCreate) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingCustomerOverrideCreate {
+	_c.mutation.SetTaxBehavior(v)
+	return _c
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_c *BillingCustomerOverrideCreate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingCustomerOverrideCreate {
+	if v != nil {
+		_c.SetTaxBehavior(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *BillingCustomerOverrideCreate) SetID(v string) *BillingCustomerOverrideCreate {
 	_c.mutation.SetID(v)
@@ -346,6 +360,11 @@ func (_c *BillingCustomerOverrideCreate) check() error {
 			return &ValidationError{Name: "invoice_default_tax_config", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_default_tax_config": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.TaxBehavior(); ok {
+		if err := billingcustomeroverride.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.tax_behavior": %w`, err)}
+		}
+	}
 	if len(_c.mutation.CustomerIDs()) == 0 {
 		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "BillingCustomerOverride.customer"`)}
 	}
@@ -436,6 +455,10 @@ func (_c *BillingCustomerOverrideCreate) createSpec() (*BillingCustomerOverride,
 	if value, ok := _c.mutation.InvoiceDefaultTaxConfig(); ok {
 		_spec.SetField(billingcustomeroverride.FieldInvoiceDefaultTaxConfig, field.TypeJSON, value)
 		_node.InvoiceDefaultTaxConfig = value
+	}
+	if value, ok := _c.mutation.TaxBehavior(); ok {
+		_spec.SetField(billingcustomeroverride.FieldTaxBehavior, field.TypeEnum, value)
+		_node.TaxBehavior = &value
 	}
 	if nodes := _c.mutation.CustomerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -768,6 +791,24 @@ func (u *BillingCustomerOverrideUpsert) ClearTaxCodeID() *BillingCustomerOverrid
 	return u
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *BillingCustomerOverrideUpsert) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingCustomerOverrideUpsert {
+	u.Set(billingcustomeroverride.FieldTaxBehavior, v)
+	return u
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsert) UpdateTaxBehavior() *BillingCustomerOverrideUpsert {
+	u.SetExcluded(billingcustomeroverride.FieldTaxBehavior)
+	return u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *BillingCustomerOverrideUpsert) ClearTaxBehavior() *BillingCustomerOverrideUpsert {
+	u.SetNull(billingcustomeroverride.FieldTaxBehavior)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -1088,6 +1129,27 @@ func (u *BillingCustomerOverrideUpsertOne) UpdateTaxCodeID() *BillingCustomerOve
 func (u *BillingCustomerOverrideUpsertOne) ClearTaxCodeID() *BillingCustomerOverrideUpsertOne {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.ClearTaxCodeID()
+	})
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *BillingCustomerOverrideUpsertOne) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingCustomerOverrideUpsertOne {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.SetTaxBehavior(v)
+	})
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsertOne) UpdateTaxBehavior() *BillingCustomerOverrideUpsertOne {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.UpdateTaxBehavior()
+	})
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *BillingCustomerOverrideUpsertOne) ClearTaxBehavior() *BillingCustomerOverrideUpsertOne {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.ClearTaxBehavior()
 	})
 }
 
@@ -1578,6 +1640,27 @@ func (u *BillingCustomerOverrideUpsertBulk) UpdateTaxCodeID() *BillingCustomerOv
 func (u *BillingCustomerOverrideUpsertBulk) ClearTaxCodeID() *BillingCustomerOverrideUpsertBulk {
 	return u.Update(func(s *BillingCustomerOverrideUpsert) {
 		s.ClearTaxCodeID()
+	})
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *BillingCustomerOverrideUpsertBulk) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingCustomerOverrideUpsertBulk {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.SetTaxBehavior(v)
+	})
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *BillingCustomerOverrideUpsertBulk) UpdateTaxBehavior() *BillingCustomerOverrideUpsertBulk {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.UpdateTaxBehavior()
+	})
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *BillingCustomerOverrideUpsertBulk) ClearTaxBehavior() *BillingCustomerOverrideUpsertBulk {
+	return u.Update(func(s *BillingCustomerOverrideUpsert) {
+		s.ClearTaxBehavior()
 	})
 }
 

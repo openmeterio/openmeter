@@ -719,6 +719,46 @@ func TaxCodeIDContainsFold(v string) predicate.BillingStandardInvoiceDetailedLin
 	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldContainsFold(FieldTaxCodeID, v))
 }
 
+// TaxBehaviorEQ applies the EQ predicate on the "tax_behavior" field.
+func TaxBehaviorEQ(v productcatalog.TaxBehavior) predicate.BillingStandardInvoiceDetailedLine {
+	vc := v
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldEQ(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorNEQ applies the NEQ predicate on the "tax_behavior" field.
+func TaxBehaviorNEQ(v productcatalog.TaxBehavior) predicate.BillingStandardInvoiceDetailedLine {
+	vc := v
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldNEQ(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorIn applies the In predicate on the "tax_behavior" field.
+func TaxBehaviorIn(vs ...productcatalog.TaxBehavior) predicate.BillingStandardInvoiceDetailedLine {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldIn(FieldTaxBehavior, v...))
+}
+
+// TaxBehaviorNotIn applies the NotIn predicate on the "tax_behavior" field.
+func TaxBehaviorNotIn(vs ...productcatalog.TaxBehavior) predicate.BillingStandardInvoiceDetailedLine {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldNotIn(FieldTaxBehavior, v...))
+}
+
+// TaxBehaviorIsNil applies the IsNil predicate on the "tax_behavior" field.
+func TaxBehaviorIsNil() predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldIsNull(FieldTaxBehavior))
+}
+
+// TaxBehaviorNotNil applies the NotNil predicate on the "tax_behavior" field.
+func TaxBehaviorNotNil() predicate.BillingStandardInvoiceDetailedLine {
+	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldNotNull(FieldTaxBehavior))
+}
+
 // AmountEQ applies the EQ predicate on the "amount" field.
 func AmountEQ(v alpacadecimal.Decimal) predicate.BillingStandardInvoiceDetailedLine {
 	return predicate.BillingStandardInvoiceDetailedLine(sql.FieldEQ(FieldAmount, v))

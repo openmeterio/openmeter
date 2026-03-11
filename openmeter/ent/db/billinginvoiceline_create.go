@@ -158,6 +158,20 @@ func (_c *BillingInvoiceLineCreate) SetNillableTaxCodeID(v *string) *BillingInvo
 	return _c
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_c *BillingInvoiceLineCreate) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingInvoiceLineCreate {
+	_c.mutation.SetTaxBehavior(v)
+	return _c
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_c *BillingInvoiceLineCreate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingInvoiceLineCreate {
+	if v != nil {
+		_c.SetTaxBehavior(*v)
+	}
+	return _c
+}
+
 // SetAmount sets the "amount" field.
 func (_c *BillingInvoiceLineCreate) SetAmount(v alpacadecimal.Decimal) *BillingInvoiceLineCreate {
 	_c.mutation.SetAmount(v)
@@ -735,6 +749,11 @@ func (_c *BillingInvoiceLineCreate) check() error {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_config": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.TaxBehavior(); ok {
+		if err := billinginvoiceline.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_behavior": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Amount(); !ok {
 		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "BillingInvoiceLine.amount"`)}
 	}
@@ -881,6 +900,10 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 	if value, ok := _c.mutation.TaxConfig(); ok {
 		_spec.SetField(billinginvoiceline.FieldTaxConfig, field.TypeJSON, value)
 		_node.TaxConfig = value
+	}
+	if value, ok := _c.mutation.TaxBehavior(); ok {
+		_spec.SetField(billinginvoiceline.FieldTaxBehavior, field.TypeEnum, value)
+		_node.TaxBehavior = &value
 	}
 	if value, ok := _c.mutation.Amount(); ok {
 		_spec.SetField(billinginvoiceline.FieldAmount, field.TypeOther, value)
@@ -1457,6 +1480,24 @@ func (u *BillingInvoiceLineUpsert) UpdateTaxCodeID() *BillingInvoiceLineUpsert {
 // ClearTaxCodeID clears the value of the "tax_code_id" field.
 func (u *BillingInvoiceLineUpsert) ClearTaxCodeID() *BillingInvoiceLineUpsert {
 	u.SetNull(billinginvoiceline.FieldTaxCodeID)
+	return u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *BillingInvoiceLineUpsert) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldTaxBehavior, v)
+	return u
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateTaxBehavior() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldTaxBehavior)
+	return u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *BillingInvoiceLineUpsert) ClearTaxBehavior() *BillingInvoiceLineUpsert {
+	u.SetNull(billinginvoiceline.FieldTaxBehavior)
 	return u
 }
 
@@ -2091,6 +2132,27 @@ func (u *BillingInvoiceLineUpsertOne) UpdateTaxCodeID() *BillingInvoiceLineUpser
 func (u *BillingInvoiceLineUpsertOne) ClearTaxCodeID() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearTaxCodeID()
+	})
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *BillingInvoiceLineUpsertOne) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetTaxBehavior(v)
+	})
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateTaxBehavior() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateTaxBehavior()
+	})
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *BillingInvoiceLineUpsertOne) ClearTaxBehavior() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearTaxBehavior()
 	})
 }
 
@@ -2965,6 +3027,27 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateTaxCodeID() *BillingInvoiceLineUpse
 func (u *BillingInvoiceLineUpsertBulk) ClearTaxCodeID() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearTaxCodeID()
+	})
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *BillingInvoiceLineUpsertBulk) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetTaxBehavior(v)
+	})
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateTaxBehavior() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateTaxBehavior()
+	})
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *BillingInvoiceLineUpsertBulk) ClearTaxBehavior() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearTaxBehavior()
 	})
 }
 

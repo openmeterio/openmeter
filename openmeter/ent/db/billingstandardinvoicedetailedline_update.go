@@ -160,6 +160,26 @@ func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearTaxCodeID() *BillingSta
 	return _u
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpdate {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearTaxBehavior() *BillingStandardInvoiceDetailedLineUpdate {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
 // SetAmount sets the "amount" field.
 func (_u *BillingStandardInvoiceDetailedLineUpdate) SetAmount(v alpacadecimal.Decimal) *BillingStandardInvoiceDetailedLineUpdate {
 	_u.mutation.SetAmount(v)
@@ -592,6 +612,11 @@ func (_u *BillingStandardInvoiceDetailedLineUpdate) check() error {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.tax_config": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := billingstandardinvoicedetailedline.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Category(); ok {
 		if err := billingstandardinvoicedetailedline.CategoryValidator(v); err != nil {
 			return &ValidationError{Name: "category", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.category": %w`, err)}
@@ -663,6 +688,12 @@ func (_u *BillingStandardInvoiceDetailedLineUpdate) sqlSave(ctx context.Context)
 	}
 	if _u.mutation.TaxConfigCleared() {
 		_spec.ClearField(billingstandardinvoicedetailedline.FieldTaxConfig, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(billingstandardinvoicedetailedline.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.Amount(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldAmount, field.TypeOther, value)
@@ -1010,6 +1041,26 @@ func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableTaxCodeID(v *s
 // ClearTaxCodeID clears the value of the "tax_code_id" field.
 func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearTaxCodeID() *BillingStandardInvoiceDetailedLineUpdateOne {
 	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpdateOne {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearTaxBehavior() *BillingStandardInvoiceDetailedLineUpdateOne {
+	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -1458,6 +1509,11 @@ func (_u *BillingStandardInvoiceDetailedLineUpdateOne) check() error {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.tax_config": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := billingstandardinvoicedetailedline.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Category(); ok {
 		if err := billingstandardinvoicedetailedline.CategoryValidator(v); err != nil {
 			return &ValidationError{Name: "category", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.category": %w`, err)}
@@ -1546,6 +1602,12 @@ func (_u *BillingStandardInvoiceDetailedLineUpdateOne) sqlSave(ctx context.Conte
 	}
 	if _u.mutation.TaxConfigCleared() {
 		_spec.ClearField(billingstandardinvoicedetailedline.FieldTaxConfig, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(billingstandardinvoicedetailedline.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.Amount(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldAmount, field.TypeOther, value)

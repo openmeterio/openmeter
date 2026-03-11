@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 const (
@@ -48,6 +49,8 @@ const (
 	FieldInvoiceDefaultTaxConfig = "invoice_default_tax_config"
 	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
 	FieldTaxCodeID = "tax_code_id"
+	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
+	FieldTaxBehavior = "tax_behavior"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
 	EdgeCustomer = "customer"
 	// EdgeBillingProfile holds the string denoting the billing_profile edge name in mutations.
@@ -98,6 +101,7 @@ var Columns = []string{
 	FieldInvoiceProgressiveBilling,
 	FieldInvoiceDefaultTaxConfig,
 	FieldTaxCodeID,
+	FieldTaxBehavior,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -140,6 +144,16 @@ func InvoiceCollectionMethodValidator(icm billing.CollectionMethod) error {
 		return nil
 	default:
 		return fmt.Errorf("billingcustomeroverride: invalid enum value for invoice_collection_method field: %q", icm)
+	}
+}
+
+// TaxBehaviorValidator is a validator for the "tax_behavior" field enum values. It is called by the builders before save.
+func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
+	switch tb {
+	case "inclusive", "exclusive":
+		return nil
+	default:
+		return fmt.Errorf("billingcustomeroverride: invalid enum value for tax_behavior field: %q", tb)
 	}
 }
 
@@ -219,6 +233,11 @@ func ByInvoiceProgressiveBilling(opts ...sql.OrderTermOption) OrderOption {
 // ByTaxCodeID orders the results by the tax_code_id field.
 func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
+}
+
+// ByTaxBehavior orders the results by the tax_behavior field.
+func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
 }
 
 // ByCustomerField orders the results by customer field.

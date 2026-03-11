@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
@@ -1180,6 +1181,46 @@ func TaxCodeIDEqualFold(v string) predicate.SubscriptionItem {
 // TaxCodeIDContainsFold applies the ContainsFold predicate on the "tax_code_id" field.
 func TaxCodeIDContainsFold(v string) predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(sql.FieldContainsFold(FieldTaxCodeID, v))
+}
+
+// TaxBehaviorEQ applies the EQ predicate on the "tax_behavior" field.
+func TaxBehaviorEQ(v productcatalog.TaxBehavior) predicate.SubscriptionItem {
+	vc := v
+	return predicate.SubscriptionItem(sql.FieldEQ(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorNEQ applies the NEQ predicate on the "tax_behavior" field.
+func TaxBehaviorNEQ(v productcatalog.TaxBehavior) predicate.SubscriptionItem {
+	vc := v
+	return predicate.SubscriptionItem(sql.FieldNEQ(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorIn applies the In predicate on the "tax_behavior" field.
+func TaxBehaviorIn(vs ...productcatalog.TaxBehavior) predicate.SubscriptionItem {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.SubscriptionItem(sql.FieldIn(FieldTaxBehavior, v...))
+}
+
+// TaxBehaviorNotIn applies the NotIn predicate on the "tax_behavior" field.
+func TaxBehaviorNotIn(vs ...productcatalog.TaxBehavior) predicate.SubscriptionItem {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.SubscriptionItem(sql.FieldNotIn(FieldTaxBehavior, v...))
+}
+
+// TaxBehaviorIsNil applies the IsNil predicate on the "tax_behavior" field.
+func TaxBehaviorIsNil() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldIsNull(FieldTaxBehavior))
+}
+
+// TaxBehaviorNotNil applies the NotNil predicate on the "tax_behavior" field.
+func TaxBehaviorNotNil() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldNotNull(FieldTaxBehavior))
 }
 
 // BillingCadenceEQ applies the EQ predicate on the "billing_cadence" field.
