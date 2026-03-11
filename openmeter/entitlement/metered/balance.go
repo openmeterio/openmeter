@@ -22,12 +22,13 @@ import (
 )
 
 type EntitlementBalance struct {
-	EntitlementID             string    `json:"entitlementId"`
-	Balance                   float64   `json:"balance"`
-	UsageInPeriod             float64   `json:"usageInPeriod"`
-	Overage                   float64   `json:"overage"`
-	TotalAvailableGrantAmount float64   `json:"totalAvailableGrantAmount"`
-	StartOfPeriod             time.Time `json:"startOfPeriod"`
+	EntitlementID             string             `json:"entitlementId"`
+	Balance                   float64            `json:"balance"`
+	UsageInPeriod             float64            `json:"usageInPeriod"`
+	Overage                   float64            `json:"overage"`
+	TotalAvailableGrantAmount float64            `json:"totalAvailableGrantAmount"`
+	GrantBalances             map[string]float64 `json:"grantBalances"`
+	StartOfPeriod             time.Time          `json:"startOfPeriod"`
 }
 
 type EntitlementBalanceHistoryWindow struct {
@@ -85,12 +86,18 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 		return nil, fmt.Errorf("failed to get balance since snapshot: %w", err)
 	}
 
+	grantBalances := make(map[string]float64, len(res.Snapshot.Balances))
+	for grantID, balance := range res.Snapshot.Balances {
+		grantBalances[grantID] = balance
+	}
+
 	return &EntitlementBalance{
 		EntitlementID:             entitlementID.ID,
 		Balance:                   res.Snapshot.Balance(),
 		UsageInPeriod:             res.Snapshot.Usage.Usage,
 		Overage:                   res.Snapshot.Overage,
 		TotalAvailableGrantAmount: res.TotalAvailableGrantAmount(),
+		GrantBalances:             grantBalances,
 		StartOfPeriod:             startOfPeriod,
 	}, nil
 }

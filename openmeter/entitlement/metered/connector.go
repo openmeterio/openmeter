@@ -46,12 +46,13 @@ type Connector interface {
 }
 
 type MeteredEntitlementValue struct {
-	isSoftLimit               bool      `json:"-"`
-	Balance                   float64   `json:"balance"`
-	UsageInPeriod             float64   `json:"usageInPeriod"`
-	Overage                   float64   `json:"overage"`
-	TotalAvailableGrantAmount float64   `json:"totalAvailableGrantAmount"`
-	StartOfPeriod             time.Time `json:"startOfPeriod"`
+	isSoftLimit               bool               `json:"-"`
+	Balance                   float64            `json:"balance"`
+	UsageInPeriod             float64            `json:"usageInPeriod"`
+	Overage                   float64            `json:"overage"`
+	TotalAvailableGrantAmount float64            `json:"totalAvailableGrantAmount"`
+	GrantBalances             map[string]float64 `json:"grantBalances"`
+	StartOfPeriod             time.Time          `json:"startOfPeriod"`
 }
 
 var _ entitlement.EntitlementValue = &MeteredEntitlementValue{}
@@ -133,6 +134,7 @@ func (e *connector) GetValue(ctx context.Context, entitlement *entitlement.Entit
 		Balance:                   balance.Balance,
 		UsageInPeriod:             balance.UsageInPeriod,
 		Overage:                   balance.Overage,
+		GrantBalances:             balance.GrantBalances,
 		StartOfPeriod:             balance.StartOfPeriod,
 		TotalAvailableGrantAmount: balance.TotalAvailableGrantAmount,
 	}, nil

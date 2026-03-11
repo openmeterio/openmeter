@@ -11594,7 +11594,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EntitlementValue'
+                $ref: '#/components/schemas/EntitlementValueV2'
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:
@@ -17171,6 +17171,55 @@ components:
           example: '{ key: "value" }'
           readOnly: true
       description: Entitlements are the core of OpenMeter access management. They define access to features for subjects. Entitlements can be metered, boolean, or static.
+    EntitlementValueV2:
+      type: object
+      required:
+        - hasAccess
+      properties:
+        hasAccess:
+          type: boolean
+          description: Whether the subject has access to the feature. Shared accross all entitlement types.
+          example: true
+          readOnly: true
+        balance:
+          type: number
+          format: double
+          description: Only available for metered entitlements. Metered entitlements are built around a balance calculation where feature usage is deducted from the issued grants. Balance represents the remaining balance of the entitlement, it's value never turns negative.
+          example: 100
+          readOnly: true
+        usage:
+          type: number
+          format: double
+          description: Only available for metered entitlements. Returns the total feature usage in the current period.
+          example: 50
+          readOnly: true
+        overage:
+          type: number
+          format: double
+          description: Only available for metered entitlements. Overage represents the usage that wasn't covered by grants, e.g. if the subject had a total feature usage of 100 in the period but they were only granted 80, there would be 20 overage.
+          example: 0
+          readOnly: true
+        totalAvailableGrantAmount:
+          type: number
+          format: double
+          description: Only available for metered entitlements. The summed amount of all grant active at query time PLUS the used amount of since inactive grants.
+          example: 100
+          readOnly: true
+        config:
+          type: string
+          description: Only available for static entitlements. The JSON parsable config of the entitlement.
+          example: '{ key: "value" }'
+          readOnly: true
+        grantBalances:
+          type: object
+          additionalProperties:
+            type: number
+            format: double
+          description: |-
+            Only available for metered entitlements. The closing balance of each active grant at query time.
+            The key is the grant ID and the value is the remaining balance.
+          readOnly: true
+      description: EntitlementValueV2 returns entitlement access state and value fields for customer-scoped V2 APIs.
     ErrorExtension:
       type: object
       required:

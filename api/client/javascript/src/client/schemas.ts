@@ -5832,6 +5832,50 @@ export interface components {
        */
       readonly config?: string
     }
+    /** @description EntitlementValueV2 returns entitlement access state and value fields for customer-scoped V2 APIs. */
+    EntitlementValueV2: {
+      /**
+       * @description Whether the subject has access to the feature. Shared accross all entitlement types.
+       * @example true
+       */
+      readonly hasAccess: boolean
+      /**
+       * Format: double
+       * @description Only available for metered entitlements. Metered entitlements are built around a balance calculation where feature usage is deducted from the issued grants. Balance represents the remaining balance of the entitlement, it's value never turns negative.
+       * @example 100
+       */
+      readonly balance?: number
+      /**
+       * Format: double
+       * @description Only available for metered entitlements. Returns the total feature usage in the current period.
+       * @example 50
+       */
+      readonly usage?: number
+      /**
+       * Format: double
+       * @description Only available for metered entitlements. Overage represents the usage that wasn't covered by grants, e.g. if the subject had a total feature usage of 100 in the period but they were only granted 80, there would be 20 overage.
+       * @example 0
+       */
+      readonly overage?: number
+      /**
+       * Format: double
+       * @description Only available for metered entitlements. The summed amount of all grant active at query time PLUS the used amount of since inactive grants.
+       * @example 100
+       */
+      readonly totalAvailableGrantAmount?: number
+      /**
+       * @description Only available for static entitlements. The JSON parsable config of the entitlement.
+       * @example { key: "value" }
+       */
+      readonly config?: string
+      /**
+       * @description Only available for metered entitlements. The closing balance of each active grant at query time.
+       *     The key is the grant ID and the value is the remaining balance.
+       */
+      readonly grantBalances?: {
+        [key: string]: number
+      }
+    }
     /** @description Generic ErrorExtension as part of HTTPProblem.Extensions.[StatusCode] */
     ErrorExtension: {
       /**
@@ -12488,6 +12532,7 @@ export type EntitlementV2CreateInputs =
 export type EntitlementV2PaginatedResponse =
   components['schemas']['EntitlementV2PaginatedResponse']
 export type EntitlementValue = components['schemas']['EntitlementValue']
+export type EntitlementValueV2 = components['schemas']['EntitlementValueV2']
 export type ErrorExtension = components['schemas']['ErrorExtension']
 export type Event = components['schemas']['Event']
 export type EventDeliveryAttemptResponse =
@@ -27746,7 +27791,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['EntitlementValue']
+          'application/json': components['schemas']['EntitlementValueV2']
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */

@@ -358,13 +358,22 @@ func (h *handler) GetCustomer() GetCustomerHandler {
 }
 
 type (
-	GetCustomerEntitlementValueRequest  = customer.GetEntitlementValueInput
+	GetCustomerEntitlementValueRequest struct {
+		customer.GetEntitlementValueInput
+		At time.Time
+	}
 	GetCustomerEntitlementValueResponse = api.EntitlementValue
 	GetCustomerEntitlementValueParams   = struct {
 		CustomerIDOrKey string
 		FeatureKey      string
+		Time            *time.Time
 	}
 	GetCustomerEntitlementValueHandler httptransport.HandlerWithArgs[GetCustomerEntitlementValueRequest, GetCustomerEntitlementValueResponse, GetCustomerEntitlementValueParams]
+)
+
+type (
+	GetCustomerEntitlementValueV2Response = EntitlementValueV2
+	GetCustomerEntitlementValueV2Handler  httptransport.HandlerWithArgs[GetCustomerEntitlementValueRequest, GetCustomerEntitlementValueV2Response, GetCustomerEntitlementValueParams]
 )
 
 // GetCustomerEntitlementValue returns a handler for getting a customer.
@@ -395,12 +404,15 @@ func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandl
 			}
 
 			return GetCustomerEntitlementValueRequest{
-				FeatureKey: params.FeatureKey,
-				CustomerID: cus.GetID(),
+				GetEntitlementValueInput: customer.GetEntitlementValueInput{
+					FeatureKey: params.FeatureKey,
+					CustomerID: cus.GetID(),
+				},
+				At: defaultx.WithDefault(params.Time, clock.Now()),
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerEntitlementValueRequest) (GetCustomerEntitlementValueResponse, error) {
-			val, err := h.entitlementService.GetEntitlementValue(ctx, request.CustomerID.Namespace, request.CustomerID.ID, request.FeatureKey, clock.Now())
+			val, err := h.entitlementService.GetEntitlementValue(ctx, request.CustomerID.Namespace, request.CustomerID.ID, request.FeatureKey, request.At)
 			if err != nil {
 				if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
 					val = &entitlement.NoAccessValue{}
@@ -422,6 +434,62 @@ func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandl
 	)
 }
 
+func (h *handler) GetCustomerEntitlementValueV2() GetCustomerEntitlementValueV2Handler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params GetCustomerEntitlementValueParams) (GetCustomerEntitlementValueRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return GetCustomerEntitlementValueRequest{}, err
+			}
+
+			cus, err := h.service.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerIDOrKey: &customer.CustomerIDOrKey{
+					IDOrKey:   params.CustomerIDOrKey,
+					Namespace: ns,
+				},
+			})
+			if err != nil {
+				return GetCustomerEntitlementValueRequest{}, err
+			}
+
+			if cus != nil && cus.IsDeleted() {
+				return GetCustomerEntitlementValueRequest{},
+					models.NewGenericPreConditionFailedError(
+						fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+					)
+			}
+
+			return GetCustomerEntitlementValueRequest{
+				GetEntitlementValueInput: customer.GetEntitlementValueInput{
+					FeatureKey: params.FeatureKey,
+					CustomerID: cus.GetID(),
+				},
+				At: defaultx.WithDefault(params.Time, clock.Now()),
+			}, nil
+		},
+		func(ctx context.Context, request GetCustomerEntitlementValueRequest) (GetCustomerEntitlementValueV2Response, error) {
+			val, err := h.entitlementService.GetEntitlementValue(ctx, request.CustomerID.Namespace, request.CustomerID.ID, request.FeatureKey, request.At)
+			if err != nil {
+				if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
+					val = &entitlement.NoAccessValue{}
+					err = nil
+				}
+			}
+
+			if err != nil {
+				return GetCustomerEntitlementValueV2Response{}, err
+			}
+
+			return MapEntitlementValueToAPIV2(val)
+		},
+		commonhttp.JSONResponseEncoderWithStatus[GetCustomerEntitlementValueV2Response](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("getCustomerEntitlementValueV2"),
+		)...,
+	)
+}
+
 type (
 	GetCustomerAccessRequest  = customer.GetCustomerInput
 	GetCustomerAccessResponse = api.CustomerAccess
@@ -429,6 +497,11 @@ type (
 		CustomerIDOrKey string
 	}
 	GetCustomerAccessHandler httptransport.HandlerWithArgs[GetCustomerAccessRequest, GetCustomerAccessResponse, GetCustomerAccessParams]
+)
+
+type (
+	GetCustomerAccessV2Response = CustomerAccessV2
+	GetCustomerAccessV2Handler  httptransport.HandlerWithArgs[GetCustomerAccessRequest, GetCustomerAccessV2Response, GetCustomerAccessParams]
 )
 
 // GetCustomerAccess returns a handler for getting a customer access.
@@ -478,6 +551,56 @@ func (h *handler) GetCustomerAccess() GetCustomerAccessHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getCustomerAccess"),
+		)...,
+	)
+}
+
+func (h *handler) GetCustomerAccessV2() GetCustomerAccessV2Handler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params GetCustomerAccessParams) (GetCustomerAccessRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return GetCustomerAccessRequest{}, err
+			}
+
+			return GetCustomerAccessRequest{
+				CustomerIDOrKey: &customer.CustomerIDOrKey{
+					Namespace: ns,
+					IDOrKey:   params.CustomerIDOrKey,
+				},
+			}, nil
+		},
+		func(ctx context.Context, request GetCustomerAccessRequest) (GetCustomerAccessV2Response, error) {
+			cus, err := h.service.GetCustomer(ctx, customer.GetCustomerInput{
+				CustomerIDOrKey: request.CustomerIDOrKey,
+			})
+			if err != nil {
+				return GetCustomerAccessV2Response{}, err
+			}
+
+			if cus != nil && cus.IsDeleted() {
+				return GetCustomerAccessV2Response{},
+					models.NewGenericPreConditionFailedError(
+						fmt.Errorf("customer is deleted [namespace=%s customer.id=%s]", cus.Namespace, cus.ID),
+					)
+			}
+
+			access, err := h.entitlementService.GetAccess(ctx, cus.Namespace, cus.ID)
+			if err != nil {
+				return GetCustomerAccessV2Response{}, err
+			}
+
+			apiAccess, err := MapAccessToAPIV2(access)
+			if err != nil {
+				return GetCustomerAccessV2Response{}, err
+			}
+
+			return apiAccess, nil
+		},
+		commonhttp.JSONResponseEncoderWithStatus[GetCustomerAccessV2Response](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("getCustomerAccessV2"),
 		)...,
 	)
 }
