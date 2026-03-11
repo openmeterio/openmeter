@@ -171,6 +171,26 @@ func (_u *BillingInvoiceLineUpdate) ClearTaxCodeID() *BillingInvoiceLineUpdate {
 	return _u
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *BillingInvoiceLineUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingInvoiceLineUpdate {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingInvoiceLineUpdate {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *BillingInvoiceLineUpdate) ClearTaxBehavior() *BillingInvoiceLineUpdate {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
 // SetAmount sets the "amount" field.
 func (_u *BillingInvoiceLineUpdate) SetAmount(v alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
 	_u.mutation.SetAmount(v)
@@ -1064,6 +1084,11 @@ func (_u *BillingInvoiceLineUpdate) check() error {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_config": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := billinginvoiceline.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.ManagedBy(); ok {
 		if err := billinginvoiceline.ManagedByValidator(v); err != nil {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.managed_by": %w`, err)}
@@ -1132,6 +1157,12 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 	}
 	if _u.mutation.TaxConfigCleared() {
 		_spec.ClearField(billinginvoiceline.FieldTaxConfig, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(billinginvoiceline.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(billinginvoiceline.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.Amount(); ok {
 		_spec.SetField(billinginvoiceline.FieldAmount, field.TypeOther, value)
@@ -1958,6 +1989,26 @@ func (_u *BillingInvoiceLineUpdateOne) SetNillableTaxCodeID(v *string) *BillingI
 // ClearTaxCodeID clears the value of the "tax_code_id" field.
 func (_u *BillingInvoiceLineUpdateOne) ClearTaxCodeID() *BillingInvoiceLineUpdateOne {
 	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *BillingInvoiceLineUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingInvoiceLineUpdateOne {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingInvoiceLineUpdateOne {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *BillingInvoiceLineUpdateOne) ClearTaxBehavior() *BillingInvoiceLineUpdateOne {
+	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -2867,6 +2918,11 @@ func (_u *BillingInvoiceLineUpdateOne) check() error {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_config": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := billinginvoiceline.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.ManagedBy(); ok {
 		if err := billinginvoiceline.ManagedByValidator(v); err != nil {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.managed_by": %w`, err)}
@@ -2952,6 +3008,12 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 	}
 	if _u.mutation.TaxConfigCleared() {
 		_spec.ClearField(billinginvoiceline.FieldTaxConfig, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(billinginvoiceline.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(billinginvoiceline.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.Amount(); ok {
 		_spec.SetField(billinginvoiceline.FieldAmount, field.TypeOther, value)

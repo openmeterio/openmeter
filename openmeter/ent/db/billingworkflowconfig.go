@@ -52,6 +52,8 @@ type BillingWorkflowConfig struct {
 	InvoiceDefaultTaxSettings productcatalog.TaxConfig `json:"invoice_default_tax_settings,omitempty"`
 	// TaxCodeID holds the value of the "tax_code_id" field.
 	TaxCodeID *string `json:"tax_code_id,omitempty"`
+	// TaxBehavior holds the value of the "tax_behavior" field.
+	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// TaxEnabled holds the value of the "tax_enabled" field.
 	TaxEnabled bool `json:"tax_enabled,omitempty"`
 	// TaxEnforced holds the value of the "tax_enforced" field.
@@ -117,7 +119,7 @@ func (*BillingWorkflowConfig) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billingworkflowconfig.FieldInvoiceAutoAdvance, billingworkflowconfig.FieldInvoiceProgressiveBilling, billingworkflowconfig.FieldTaxEnabled, billingworkflowconfig.FieldTaxEnforced:
 			values[i] = new(sql.NullBool)
-		case billingworkflowconfig.FieldID, billingworkflowconfig.FieldNamespace, billingworkflowconfig.FieldCollectionAlignment, billingworkflowconfig.FieldLineCollectionPeriod, billingworkflowconfig.FieldInvoiceDraftPeriod, billingworkflowconfig.FieldInvoiceDueAfter, billingworkflowconfig.FieldInvoiceCollectionMethod, billingworkflowconfig.FieldTaxCodeID:
+		case billingworkflowconfig.FieldID, billingworkflowconfig.FieldNamespace, billingworkflowconfig.FieldCollectionAlignment, billingworkflowconfig.FieldLineCollectionPeriod, billingworkflowconfig.FieldInvoiceDraftPeriod, billingworkflowconfig.FieldInvoiceDueAfter, billingworkflowconfig.FieldInvoiceCollectionMethod, billingworkflowconfig.FieldTaxCodeID, billingworkflowconfig.FieldTaxBehavior:
 			values[i] = new(sql.NullString)
 		case billingworkflowconfig.FieldCreatedAt, billingworkflowconfig.FieldUpdatedAt, billingworkflowconfig.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -232,6 +234,13 @@ func (_m *BillingWorkflowConfig) assignValues(columns []string, values []any) er
 				_m.TaxCodeID = new(string)
 				*_m.TaxCodeID = value.String
 			}
+		case billingworkflowconfig.FieldTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
+			} else if value.Valid {
+				_m.TaxBehavior = new(productcatalog.TaxBehavior)
+				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
+			}
 		case billingworkflowconfig.FieldTaxEnabled:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field tax_enabled", values[i])
@@ -339,6 +348,11 @@ func (_m *BillingWorkflowConfig) String() string {
 	if v := _m.TaxCodeID; v != nil {
 		builder.WriteString("tax_code_id=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxBehavior; v != nil {
+		builder.WriteString("tax_behavior=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("tax_enabled=")

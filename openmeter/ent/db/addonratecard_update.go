@@ -169,6 +169,26 @@ func (_u *AddonRateCardUpdate) ClearTaxCodeID() *AddonRateCardUpdate {
 	return _u
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *AddonRateCardUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *AddonRateCardUpdate {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *AddonRateCardUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *AddonRateCardUpdate {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *AddonRateCardUpdate) ClearTaxBehavior() *AddonRateCardUpdate {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (_u *AddonRateCardUpdate) SetBillingCadence(v datetime.ISODurationString) *AddonRateCardUpdate {
 	_u.mutation.SetBillingCadence(v)
@@ -347,6 +367,11 @@ func (_u *AddonRateCardUpdate) check() error {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_config": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := addonratecard.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.price": %w`, err)}
@@ -429,6 +454,12 @@ func (_u *AddonRateCardUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	}
 	if _u.mutation.TaxConfigCleared() {
 		_spec.ClearField(addonratecard.FieldTaxConfig, field.TypeString)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(addonratecard.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(addonratecard.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.BillingCadence(); ok {
 		_spec.SetField(addonratecard.FieldBillingCadence, field.TypeString, value)
@@ -699,6 +730,26 @@ func (_u *AddonRateCardUpdateOne) ClearTaxCodeID() *AddonRateCardUpdateOne {
 	return _u
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *AddonRateCardUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *AddonRateCardUpdateOne {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *AddonRateCardUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *AddonRateCardUpdateOne {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *AddonRateCardUpdateOne) ClearTaxBehavior() *AddonRateCardUpdateOne {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (_u *AddonRateCardUpdateOne) SetBillingCadence(v datetime.ISODurationString) *AddonRateCardUpdateOne {
 	_u.mutation.SetBillingCadence(v)
@@ -890,6 +941,11 @@ func (_u *AddonRateCardUpdateOne) check() error {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_config": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := addonratecard.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.price": %w`, err)}
@@ -989,6 +1045,12 @@ func (_u *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonRate
 	}
 	if _u.mutation.TaxConfigCleared() {
 		_spec.ClearField(addonratecard.FieldTaxConfig, field.TypeString)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(addonratecard.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(addonratecard.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.BillingCadence(); ok {
 		_spec.SetField(addonratecard.FieldBillingCadence, field.TypeString, value)

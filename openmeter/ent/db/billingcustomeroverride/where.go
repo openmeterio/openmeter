@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
@@ -960,6 +961,46 @@ func TaxCodeIDEqualFold(v string) predicate.BillingCustomerOverride {
 // TaxCodeIDContainsFold applies the ContainsFold predicate on the "tax_code_id" field.
 func TaxCodeIDContainsFold(v string) predicate.BillingCustomerOverride {
 	return predicate.BillingCustomerOverride(sql.FieldContainsFold(FieldTaxCodeID, v))
+}
+
+// TaxBehaviorEQ applies the EQ predicate on the "tax_behavior" field.
+func TaxBehaviorEQ(v productcatalog.TaxBehavior) predicate.BillingCustomerOverride {
+	vc := v
+	return predicate.BillingCustomerOverride(sql.FieldEQ(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorNEQ applies the NEQ predicate on the "tax_behavior" field.
+func TaxBehaviorNEQ(v productcatalog.TaxBehavior) predicate.BillingCustomerOverride {
+	vc := v
+	return predicate.BillingCustomerOverride(sql.FieldNEQ(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorIn applies the In predicate on the "tax_behavior" field.
+func TaxBehaviorIn(vs ...productcatalog.TaxBehavior) predicate.BillingCustomerOverride {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingCustomerOverride(sql.FieldIn(FieldTaxBehavior, v...))
+}
+
+// TaxBehaviorNotIn applies the NotIn predicate on the "tax_behavior" field.
+func TaxBehaviorNotIn(vs ...productcatalog.TaxBehavior) predicate.BillingCustomerOverride {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingCustomerOverride(sql.FieldNotIn(FieldTaxBehavior, v...))
+}
+
+// TaxBehaviorIsNil applies the IsNil predicate on the "tax_behavior" field.
+func TaxBehaviorIsNil() predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldIsNull(FieldTaxBehavior))
+}
+
+// TaxBehaviorNotNil applies the NotNil predicate on the "tax_behavior" field.
+func TaxBehaviorNotNil() predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldNotNull(FieldTaxBehavior))
 }
 
 // HasCustomer applies the HasEdge predicate on the "customer" edge.

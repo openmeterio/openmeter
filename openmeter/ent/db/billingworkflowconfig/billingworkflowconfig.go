@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 const (
@@ -44,6 +45,8 @@ const (
 	FieldInvoiceDefaultTaxSettings = "invoice_default_tax_settings"
 	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
 	FieldTaxCodeID = "tax_code_id"
+	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
+	FieldTaxBehavior = "tax_behavior"
 	// FieldTaxEnabled holds the string denoting the tax_enabled field in the database.
 	FieldTaxEnabled = "tax_enabled"
 	// FieldTaxEnforced holds the string denoting the tax_enforced field in the database.
@@ -96,6 +99,7 @@ var Columns = []string{
 	FieldInvoiceProgressiveBilling,
 	FieldInvoiceDefaultTaxSettings,
 	FieldTaxCodeID,
+	FieldTaxBehavior,
 	FieldTaxEnabled,
 	FieldTaxEnforced,
 }
@@ -144,6 +148,16 @@ func InvoiceCollectionMethodValidator(icm billing.CollectionMethod) error {
 		return nil
 	default:
 		return fmt.Errorf("billingworkflowconfig: invalid enum value for invoice_collection_method field: %q", icm)
+	}
+}
+
+// TaxBehaviorValidator is a validator for the "tax_behavior" field enum values. It is called by the builders before save.
+func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
+	switch tb {
+	case "inclusive", "exclusive":
+		return nil
+	default:
+		return fmt.Errorf("billingworkflowconfig: invalid enum value for tax_behavior field: %q", tb)
 	}
 }
 
@@ -213,6 +227,11 @@ func ByInvoiceProgressiveBilling(opts ...sql.OrderTermOption) OrderOption {
 // ByTaxCodeID orders the results by the tax_code_id field.
 func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
+}
+
+// ByTaxBehavior orders the results by the tax_behavior field.
+func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
 }
 
 // ByTaxEnabled orders the results by the tax_enabled field.

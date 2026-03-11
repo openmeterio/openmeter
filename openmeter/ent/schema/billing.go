@@ -151,6 +151,10 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}),
+		field.Enum("tax_behavior").
+			GoType(productcatalog.TaxBehavior("")).
+			Optional().
+			Nillable(),
 
 		// Enable automatic tax calculation when tax is supported by the app.
 		field.Bool("tax_enabled").Default(true),
@@ -259,6 +263,10 @@ func (BillingCustomerOverride) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}),
+		field.Enum("tax_behavior").
+			GoType(productcatalog.TaxBehavior("")).
+			Optional().
+			Nillable(),
 	}
 }
 
@@ -354,6 +362,10 @@ func (InvoiceLineBaseMixin) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}),
+		field.Enum("tax_behavior").
+			GoType(productcatalog.TaxBehavior("")).
+			Optional().
+			Nillable(),
 	}
 }
 
