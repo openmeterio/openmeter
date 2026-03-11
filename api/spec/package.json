@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "compile": "pnpm compile:openapi && pnpm compile:v3 && pnpm compile:client",
+    "compile": "pnpm compile:openapi && pnpm compile:v3",
     "compile:openapi": "tsp compile --config tspconfig.yaml ./src/cloud",
     "compile:v3": "tsp compile --config tspconfig.v3.yaml ./src/v3 && node ./scripts/flatten-allof-v3.mjs ./output/definitions/metering-and-billing/v3/openapi.MeteringAndBilling.yaml",
     "compile:client": "tsp compile --config tspconfig.client.yaml ./src",

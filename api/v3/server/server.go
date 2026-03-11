@@ -251,9 +251,9 @@ func (s *Server) RegisterRoutes(r chi.Router) error {
 
 	validationMiddleware := oasmiddleware.ValidateRequest(validationRouter, oasmiddleware.ValidateRequestOption{
 		RouteNotFoundHook: oasmiddleware.OasRouteNotFoundErrorHook,
-		RouteValidationErrorHook: func(err error, w http.ResponseWriter, r *http.Request) bool {
-			return oasmiddleware.OasValidationErrorHook(r.Context(), err, w, r)
-		},
+		// RouteValidationErrorHook: func(err error, w http.ResponseWriter, r *http.Request) bool {
+		// 	return oasmiddleware.OasValidationErrorHook(r.Context(), err, w, r)
+		// },
 		FilterOptions: &openapi3filter.Options{
 			// No-op auth: auth is handled by other middleware.
 			AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
