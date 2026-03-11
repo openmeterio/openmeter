@@ -17,24 +17,32 @@ namespace LLMCost;
  * TODO: This is a temporary solution to support the filter API.
  */
 @friendlyName("FilterSingleString")
+@useRef("../../../../common/definitions/aip_filters.yaml#/components/schemas/StringFieldFilter")
 model FilterSingleString {
   /**
    * The field must match the provided value.
    */
-  @extension("x-omitempty", true)
   eq?: string;
+
+  /**
+   * aasd
+   */
+  oeq?: string;
 
   /**
    * The field must not match the provided value.
    */
-  @extension("x-omitempty", true)
   neq?: string;
 
   /**
    * The field must contain the provided value.
    */
-  @extension("x-omitempty", true)
   contains?: string;
+
+  /**
+   * asd
+   */
+  ocontains?: string;
 }
 
 /**
@@ -44,6 +52,7 @@ model FilterSingleString {
 @friendlyName("ListLLMCostPricesParamsFilter")
 model ListPricesParamsFilter {
   /** Filter by provider. e.g. ?filter[provider][eq]=openai */
+  @extension("x-go-type", "FilterString")
   provider?: FilterSingleString;
 
   /** Filter by model ID. e.g. ?filter[model_id][eq]=gpt-4 */

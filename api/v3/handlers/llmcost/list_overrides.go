@@ -53,11 +53,11 @@ func (h *handler) ListOverrides() ListOverridesHandler {
 
 			// Filters
 			if params.Filter != nil {
-				provider, err := filterSingleStringToDomain(params.Filter.Provider)
-				if err != nil {
-					return req, err
-				}
-				req.Provider = provider
+				// provider, err := filterSingleStringToDomain(params.Filter.Provider)
+				// if err != nil {
+				// 	return req, err
+				// }
+				// req.Provider = provider
 
 				modelID, err := filterSingleStringToDomain(params.Filter.ModelId)
 				if err != nil {

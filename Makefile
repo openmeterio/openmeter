@@ -29,7 +29,7 @@ generate-javascript-sdk: ## Generate JavaScript SDK
 	$(MAKE) -C api/client/javascript generate
 
 .PHONY: gen-api
-gen-api: update-openapi generate-javascript-sdk ## Generate API and SDKs
+gen-api: update-openapi # generate-javascript-sdk ## Generate API and SDKs
 	$(call print-target)
 
 .PHONY: generate-all

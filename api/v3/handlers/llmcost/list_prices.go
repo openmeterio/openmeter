@@ -2,7 +2,9 @@ package llmcost
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/samber/lo"
@@ -71,13 +73,22 @@ func (h *handler) ListPrices() ListPricesHandler {
 				req.Order = sort.Order.ToSortxOrder()
 			}
 
+			j, err := json.Marshal(params.Filter)
+			if err != nil {
+				return req, err
+			}
+
+			// query := r.URL.Query()
+			// filter := query.Get("filter")
+
+			slog.Info("params.Filter", "filter", string(j))
 			// Filters
 			if params.Filter != nil {
-				provider, err := filterSingleStringToDomain(params.Filter.Provider)
-				if err != nil {
-					return req, err
-				}
-				req.Provider = provider
+				// provider, err := filterSingleStringToDomain(params.Filter.Provider)
+				// if err != nil {
+				// 	return req, err
+				// }
+				// req.Provider = provider
 
 				modelID, err := filterSingleStringToDomain(params.Filter.ModelId)
 				if err != nil {
