@@ -1,8 +1,11 @@
 //go:generate go tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config=codegen.yaml ./openapi.yaml
 package v3
 
-// FilterSingleString A filter for a single string field.
-// TODO: This is a temporary solution to support the filter API.
+import (
+	"net/http"
+)
+
+// FilterString A filter for a string field.
 type FilterString struct {
 	// Contains The field must contain the provided value.
 	Contains *string `json:"contains,omitempty"`
@@ -18,4 +21,15 @@ type FilterString struct {
 
 	// Oeq aasd
 	Oeq *string `json:"oeq,omitempty"`
+}
+
+func (f *FilterString) ParseEq(name string, r *http.Request) {
+	if f == nil {
+		f = &FilterString{}
+	}
+	query := r.URL.Query()
+	eq := query.Get(name)
+	if eq != "" {
+		f.Eq = &eq
+	}
 }

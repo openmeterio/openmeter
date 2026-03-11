@@ -73,41 +73,42 @@ func (h *handler) ListPrices() ListPricesHandler {
 				req.Order = sort.Order.ToSortxOrder()
 			}
 
-			j, err := json.Marshal(params.Filter)
-			if err != nil {
-				return req, err
-			}
-
-			// query := r.URL.Query()
-			// filter := query.Get("filter")
-
-			slog.Info("params.Filter", "filter", string(j))
 			// Filters
 			if params.Filter != nil {
-				// provider, err := filterSingleStringToDomain(params.Filter.Provider)
-				// if err != nil {
-				// 	return req, err
-				// }
-				// req.Provider = provider
+				params.Filter.Provider.ParseEq("filter[provider]", r)
+				provider, err := filterSingleStringToDomain(params.Filter.Provider)
+				if err != nil {
+					return req, err
+				}
+				req.Provider = provider
 
+				params.Filter.ModelId.ParseEq("filter[model_id]", r)
 				modelID, err := filterSingleStringToDomain(params.Filter.ModelId)
 				if err != nil {
 					return req, err
 				}
 				req.ModelID = modelID
 
+				params.Filter.ModelName.ParseEq("filter[model_name]", r)
 				modelName, err := filterSingleStringToDomain(params.Filter.ModelName)
 				if err != nil {
 					return req, err
 				}
 				req.ModelName = modelName
 
+				params.Filter.Currency.ParseEq("filter[currency]", r)
 				currency, err := filterSingleStringToDomain(params.Filter.Currency)
 				if err != nil {
 					return req, err
 				}
 				req.Currency = currency
 			}
+
+			j, err := json.Marshal(req)
+			if err != nil {
+				return req, err
+			}
+			slog.Info("req", "req", string(j))
 
 			return req, nil
 		},

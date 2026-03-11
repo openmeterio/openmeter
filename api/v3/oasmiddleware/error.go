@@ -1,12 +1,9 @@
 package oasmiddleware
 
 import (
-	"errors"
-	"fmt"
 	"strings"
 
-	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/getkin/kin-openapi/openapi3filter"
+	validatorerrors "github.com/pb33f/libopenapi-validator/errors"
 
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 )
@@ -18,126 +15,75 @@ var oasRuleToAip = map[string]string{
 	"maxItems":  "max_items",
 }
 
-func ToAipError(me openapi3.MultiError) []apierrors.InvalidParameter {
-	return aipMapper(me, nil)
-}
-
-func aipMapper(me openapi3.MultiError, parent *apierrors.InvalidParameter) []apierrors.InvalidParameter {
+// ToAipErrorFromLibopenapi converts libopenapi ValidationErrors to AIP InvalidParameters.
+func ToAipErrorFromLibopenapi(errs []*validatorerrors.ValidationError) []apierrors.InvalidParameter {
 	var ipErrs []apierrors.InvalidParameter
-	for _, err := range me {
-		var i *apierrors.InvalidParameter
-		if parent != nil {
-			i = parent
-		} else {
-			i = &apierrors.InvalidParameter{}
+	for _, ve := range errs {
+		if ve == nil {
+			continue
 		}
-		switch err := err.(type) {
-		case *openapi3.SchemaError:
-			i.Reason = err.Reason
-			ipErrs = append(ipErrs, invalidParamFromSchemaError(err, i))
-		case *openapi3filter.RequestError:
-			if err.Parameter != nil {
-				if err.Parameter.Name != "" {
-					i.Field = err.Parameter.Name
-				}
-				if err.Parameter.In != "" {
-					i.Source = apierrors.ToInvalid(err.Parameter.In)
-				}
-				if err.Parameter.Required {
-					i.Rule = "required"
-				}
-			}
-			i.Reason = err.Reason
-			if err.Reason == "" || err.RequestBody != nil {
-				i.Reason = err.Error()
-			}
-
-			if err, ok := err.Err.(openapi3.MultiError); ok {
-				ipErrs = append(ipErrs, aipMapper(err, i)...)
-				continue
-			}
-
-			if err, ok := err.Err.(*openapi3.SchemaError); ok {
-				i.Choices = make([]string, 0)
-				if err.SchemaField == "enum" {
-					i.Rule = "enum"
-					for _, v := range err.Schema.Enum {
-						i.Choices = append(i.Choices, fmt.Sprintf("%v", v))
-					}
-					i.Reason = fmt.Sprintf("must be one of: [%s]", strings.Join(i.Choices, ","))
-				} else if err.SchemaField == "oneOf" {
-					ipErrs = append(ipErrs, collectFromSchemaError(err)...)
-					continue
-				}
-			}
-			ipErrs = append(ipErrs, *i)
+		ip := apierrors.InvalidParameter{
+			Field:  ve.ParameterName,
+			Reason: ve.Reason,
+			Rule:   ruleFromValidationError(ve),
+			Source: sourceFromValidationError(ve),
 		}
+		if ip.Field == "" && len(ve.SchemaValidationErrors) > 0 {
+			// Use field path from schema errors if no parameter name
+			sve := ve.SchemaValidationErrors[0]
+			if sve.FieldName != "" {
+				ip.Field = sve.FieldName
+			} else if sve.FieldPath != "" {
+				ip.Field = strings.TrimPrefix(strings.TrimPrefix(sve.FieldPath, "$."), "body.")
+			}
+		}
+		if len(ve.SchemaValidationErrors) > 0 {
+			// Extract enum choices from schema validation errors if applicable
+			for _, sve := range ve.SchemaValidationErrors {
+				if sve.Reason != "" && ip.Reason == "" {
+					ip.Reason = sve.Reason
+				}
+			}
+		}
+		ipErrs = append(ipErrs, ip)
 	}
 	return ipErrs
 }
 
-// collectFromSchemaError looks at schemaErr.Origin. If there are deeper
-// child errors (via unwrapOriginError), it returns those. Otherwise, it
-// returns a single InvalidParameter built from schemaErr itself.
-func collectFromSchemaError(se *openapi3.SchemaError) []apierrors.InvalidParameter {
-	childParams := unwrapOriginError(se)
-	if len(childParams) == 0 {
-		return []apierrors.InvalidParameter{
-			invalidParamFromSchemaError(se, nil),
-		}
+func ruleFromValidationError(ve *validatorerrors.ValidationError) string {
+	if r, ok := oasRuleToAip[ve.ValidationSubType]; ok {
+		return r
 	}
-	return childParams
+	if ve.ValidationSubType != "" {
+		return ve.ValidationSubType
+	}
+	if ve.ValidationType != "" {
+		return ve.ValidationType
+	}
+	return ""
 }
 
-// unwrapOriginError traverses schemaErr.Origin (which may be a wrapped multiErrorForOneOf)
-// and returns a flat slice of InvalidParameter entries for each underlying *SchemaError.
-func unwrapOriginError(schemaErr *openapi3.SchemaError) []apierrors.InvalidParameter {
-	if schemaErr == nil || schemaErr.Origin == nil {
-		return nil
+func sourceFromValidationError(ve *validatorerrors.ValidationError) apierrors.InvalidParameterSource {
+	// libopenapi uses: path, query, header, cookie for parameter validation
+	switch strings.ToLower(ve.ValidationType) {
+	case "path":
+		return apierrors.InvalidParamSourcePath
+	case "query":
+		return apierrors.InvalidParamSourceQuery
+	case "header":
+		return apierrors.InvalidParamSourceHeader
+	case "requestbody", "schema":
+		return apierrors.InvalidParamSourceBody
 	}
-
-	// 1) First, try to pull out a MultiError (or multiErrorForOneOf) from the wrapper chain.
-	var me openapi3.MultiError
-	if errors.As(schemaErr.Origin, &me) {
-		var result []apierrors.InvalidParameter
-		for _, subErr := range me {
-			var subSE *openapi3.SchemaError
-			if errors.As(subErr, &subSE) {
-				result = append(result, collectFromSchemaError(subSE)...)
-			}
-		}
-		return result
+	switch strings.ToLower(ve.ValidationSubType) {
+	case "path":
+		return apierrors.InvalidParamSourcePath
+	case "query":
+		return apierrors.InvalidParamSourceQuery
+	case "header":
+		return apierrors.InvalidParamSourceHeader
+	case "requestbody", "schema":
+		return apierrors.InvalidParamSourceBody
 	}
-
-	// 2) If there are no multi-errors and Origin wraps another *SchemaError somewhere in its chain, dive into that.
-	var innerSE *openapi3.SchemaError
-	if errors.As(schemaErr.Origin, &innerSE) {
-		return collectFromSchemaError(innerSE)
-	}
-
-	// 3) If we reach here, Origin was neither a nested *SchemaError nor a MultiError.
-	return nil
-}
-
-func invalidParamFromSchemaError(
-	schemaErr *openapi3.SchemaError,
-	parent *apierrors.InvalidParameter,
-) apierrors.InvalidParameter {
-	var ip *apierrors.InvalidParameter
-	if parent != nil {
-		ip = parent
-	} else {
-		ip = &apierrors.InvalidParameter{
-			Reason: schemaErr.Reason,
-		}
-	}
-	if rule, ok := oasRuleToAip[schemaErr.SchemaField]; ok {
-		ip.Rule = rule
-	} else {
-		ip.Rule = schemaErr.SchemaField
-	}
-	if path := schemaErr.JSONPointer(); len(path) > 0 {
-		ip.Field = strings.Join(path, ".")
-	}
-	return *ip
+	return apierrors.InvalidParamSourceBody
 }

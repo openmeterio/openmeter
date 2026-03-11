@@ -3741,6 +3741,27 @@ components:
             type: string
           description: The dimensions the value is aggregated over.
       description: A row in the result of a feature cost query.
+    FilterSingleString:
+      type: object
+      properties:
+        eq:
+          type: string
+          description: The field must match the provided value.
+        oeq:
+          type: string
+          description: aasd
+        neq:
+          type: string
+          description: The field must not match the provided value.
+        contains:
+          type: string
+          description: The field must contain the provided value.
+        ocontains:
+          type: string
+          description: asd
+      description: |-
+        A filter for a single string field.
+        TODO: This is a temporary solution to support the filter API.
     ISO8601Duration:
       type: string
       pattern: ^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$
@@ -3952,22 +3973,29 @@ components:
       type: object
       properties:
         provider:
-          allOf:
-            - $ref: '#/components/schemas/StringFieldFilter'
+          anyOf:
+            - type: string
+            - $ref: '#/components/schemas/FilterSingleString'
           description: Filter by provider. e.g. ?filter[provider][eq]=openai
           x-go-type: FilterString
         model_id:
-          allOf:
-            - $ref: '#/components/schemas/StringFieldFilter'
+          anyOf:
+            - type: string
+            - $ref: '#/components/schemas/FilterSingleString'
           description: Filter by model ID. e.g. ?filter[model_id][eq]=gpt-4
+          x-go-type: FilterString
         model_name:
-          allOf:
-            - $ref: '#/components/schemas/StringFieldFilter'
+          anyOf:
+            - type: string
+            - $ref: '#/components/schemas/FilterSingleString'
           description: Filter by model name. e.g. ?filter[model_name][contains]=gpt
+          x-go-type: FilterString
         currency:
-          allOf:
-            - $ref: '#/components/schemas/StringFieldFilter'
+          anyOf:
+            - type: string
+            - $ref: '#/components/schemas/FilterSingleString'
           description: Filter by currency code. e.g. ?filter[currency][eq]=USD
+          x-go-type: FilterString
       description: Filter options for listing LLM cost prices.
     Meter:
       type: object
@@ -5008,96 +5036,6 @@ components:
               example: kong:trace:1234567890
             detail:
               example: Gone
-    StringFieldEqualsFilter:
-      title: StringFieldEqualsFilter
-      description: Filters on the given string field value by exact match.
-      oneOf:
-        - type: string
-        - type: object
-          title: StringFieldEqualsComparison
-          additionalProperties: false
-          properties:
-            eq:
-              type: string
-          required:
-            - eq
-      x-examples:
-        example-1: equals-some-value
-        example-2:
-          eq: some-value
-    StringFieldContainsFilter:
-      title: StringFieldContainsFilter
-      description: Filters on the given string field value by fuzzy match.
-      type: object
-      additionalProperties: false
-      properties:
-        contains:
-          type: string
-      required:
-        - contains
-      x-examples:
-        example-1:
-          contains: some-value
-    StringFieldOContainsFilter:
-      title: StringFieldOContainsFilter
-      description: Returns entities that fuzzy-match any of the comma-delimited phrases in the filter string.
-      type: object
-      additionalProperties: false
-      properties:
-        ocontains:
-          type: string
-      required:
-        - ocontains
-      x-examples:
-        example-1:
-          ocontains: this-value,or-that-value
-    StringFieldOEQFilter:
-      title: StringFieldOEQFilter
-      description: Returns entities that exact match any of the comma-delimited phrases in the filter string.
-      type: object
-      additionalProperties: false
-      properties:
-        oeq:
-          type: string
-      required:
-        - oeq
-      x-examples:
-        example-1:
-          oeq: some-value,some-other-value
-    StringFieldNEQFilter:
-      title: StringFieldNEQFilter
-      description: Filters on the given string field value by exact match inequality.
-      type: object
-      additionalProperties: false
-      properties:
-        neq:
-          type: string
-      required:
-        - neq
-      x-examples:
-        example-1:
-          neq: not-this-value
-    StringFieldFilter:
-      title: StringFieldFilter
-      description: Filters on the given string field value by either exact or fuzzy match.
-      oneOf:
-        - $ref: '#/components/schemas/StringFieldEqualsFilter'
-        - $ref: '#/components/schemas/StringFieldContainsFilter'
-        - $ref: '#/components/schemas/StringFieldOContainsFilter'
-        - $ref: '#/components/schemas/StringFieldOEQFilter'
-        - $ref: '#/components/schemas/StringFieldNEQFilter'
-      x-examples:
-        example-1: equals-some-value
-        example-2:
-          eq: some-value
-        example-3:
-          contains: some-value
-        example-4:
-          ocontains: some-potential,value
-        example-5:
-          oeq: some-potential,value
-        example-6:
-          neq: not-this-value
     ConflictError:
       allOf:
         - $ref: '#/components/schemas/BaseError'

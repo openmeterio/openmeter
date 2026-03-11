@@ -17,7 +17,7 @@ namespace LLMCost;
  * TODO: This is a temporary solution to support the filter API.
  */
 @friendlyName("FilterSingleString")
-@useRef("../../../../common/definitions/aip_filters.yaml#/components/schemas/StringFieldFilter")
+// @useRef("../../../../common/definitions/aip_filters.yaml#/components/schemas/StringFieldFilter")
 model FilterSingleString {
   /**
    * The field must match the provided value.
@@ -53,16 +53,19 @@ model FilterSingleString {
 model ListPricesParamsFilter {
   /** Filter by provider. e.g. ?filter[provider][eq]=openai */
   @extension("x-go-type", "FilterString")
-  provider?: FilterSingleString;
+  provider?: string | FilterSingleString;
 
   /** Filter by model ID. e.g. ?filter[model_id][eq]=gpt-4 */
-  model_id?: FilterSingleString;
+  @extension("x-go-type", "FilterString")
+  model_id?: string | FilterSingleString;
 
   /** Filter by model name. e.g. ?filter[model_name][contains]=gpt */
-  model_name?: FilterSingleString;
+  @extension("x-go-type", "FilterString")
+  model_name?: string | FilterSingleString;
 
   /** Filter by currency code. e.g. ?filter[currency][eq]=USD */
-  currency?: FilterSingleString;
+  @extension("x-go-type", "FilterString")
+  currency?: string | FilterSingleString;
 }
 
 /**
