@@ -55,6 +55,8 @@ type BillingInvoiceLine struct {
 	TaxConfig productcatalog.TaxConfig `json:"tax_config,omitempty"`
 	// TaxCodeID holds the value of the "tax_code_id" field.
 	TaxCodeID *string `json:"tax_code_id,omitempty"`
+	// TaxBehavior holds the value of the "tax_behavior" field.
+	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
 	// TaxesTotal holds the value of the "taxes_total" field.
@@ -350,7 +352,7 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billinginvoiceline.FieldAmount, billinginvoiceline.FieldTaxesTotal, billinginvoiceline.FieldTaxesInclusiveTotal, billinginvoiceline.FieldTaxesExclusiveTotal, billinginvoiceline.FieldChargesTotal, billinginvoiceline.FieldDiscountsTotal, billinginvoiceline.FieldCreditsTotal, billinginvoiceline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldTaxCodeID, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldSplitLineGroupID, billinginvoiceline.FieldChargeID, billinginvoiceline.FieldLineIds:
+		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldTaxCodeID, billinginvoiceline.FieldTaxBehavior, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldSplitLineGroupID, billinginvoiceline.FieldChargeID, billinginvoiceline.FieldLineIds:
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt, billinginvoiceline.FieldSubscriptionBillingPeriodFrom, billinginvoiceline.FieldSubscriptionBillingPeriodTo:
 			values[i] = new(sql.NullTime)
@@ -457,6 +459,13 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 			} else if value.Valid {
 				_m.TaxCodeID = new(string)
 				*_m.TaxCodeID = value.String
+			}
+		case billinginvoiceline.FieldTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
+			} else if value.Valid {
+				_m.TaxBehavior = new(productcatalog.TaxBehavior)
+				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
 			}
 		case billinginvoiceline.FieldAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -816,6 +825,11 @@ func (_m *BillingInvoiceLine) String() string {
 	if v := _m.TaxCodeID; v != nil {
 		builder.WriteString("tax_code_id=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxBehavior; v != nil {
+		builder.WriteString("tax_behavior=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("amount=")

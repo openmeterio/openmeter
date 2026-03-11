@@ -49,6 +49,8 @@ type AddonRateCard struct {
 	TaxConfig *productcatalog.TaxConfig `json:"tax_config,omitempty"`
 	// TaxCodeID holds the value of the "tax_code_id" field.
 	TaxCodeID *string `json:"tax_code_id,omitempty"`
+	// TaxBehavior holds the value of the "tax_behavior" field.
+	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// BillingCadence holds the value of the "billing_cadence" field.
 	BillingCadence *datetime.ISODurationString `json:"billing_cadence,omitempty"`
 	// Price holds the value of the "price" field.
@@ -118,7 +120,7 @@ func (*AddonRateCard) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case addonratecard.FieldMetadata:
 			values[i] = new([]byte)
-		case addonratecard.FieldID, addonratecard.FieldNamespace, addonratecard.FieldName, addonratecard.FieldDescription, addonratecard.FieldKey, addonratecard.FieldType, addonratecard.FieldFeatureKey, addonratecard.FieldTaxCodeID, addonratecard.FieldBillingCadence, addonratecard.FieldAddonID, addonratecard.FieldFeatureID:
+		case addonratecard.FieldID, addonratecard.FieldNamespace, addonratecard.FieldName, addonratecard.FieldDescription, addonratecard.FieldKey, addonratecard.FieldType, addonratecard.FieldFeatureKey, addonratecard.FieldTaxCodeID, addonratecard.FieldTaxBehavior, addonratecard.FieldBillingCadence, addonratecard.FieldAddonID, addonratecard.FieldFeatureID:
 			values[i] = new(sql.NullString)
 		case addonratecard.FieldCreatedAt, addonratecard.FieldUpdatedAt, addonratecard.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -234,6 +236,13 @@ func (_m *AddonRateCard) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.TaxCodeID = new(string)
 				*_m.TaxCodeID = value.String
+			}
+		case addonratecard.FieldTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
+			} else if value.Valid {
+				_m.TaxBehavior = new(productcatalog.TaxBehavior)
+				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
 			}
 		case addonratecard.FieldBillingCadence:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -367,6 +376,11 @@ func (_m *AddonRateCard) String() string {
 	if v := _m.TaxCodeID; v != nil {
 		builder.WriteString("tax_code_id=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxBehavior; v != nil {
+		builder.WriteString("tax_behavior=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	if v := _m.BillingCadence; v != nil {

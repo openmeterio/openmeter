@@ -140,6 +140,20 @@ func (_c *BillingInvoiceSplitLineGroupCreate) SetNillableTaxCodeID(v *string) *B
 	return _c
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingInvoiceSplitLineGroupCreate {
+	_c.mutation.SetTaxBehavior(v)
+	return _c
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_c *BillingInvoiceSplitLineGroupCreate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingInvoiceSplitLineGroupCreate {
+	if v != nil {
+		_c.SetTaxBehavior(*v)
+	}
+	return _c
+}
+
 // SetServicePeriodStart sets the "service_period_start" field.
 func (_c *BillingInvoiceSplitLineGroupCreate) SetServicePeriodStart(v time.Time) *BillingInvoiceSplitLineGroupCreate {
 	_c.mutation.SetServicePeriodStart(v)
@@ -411,6 +425,11 @@ func (_c *BillingInvoiceSplitLineGroupCreate) check() error {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceSplitLineGroup.tax_config": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.TaxBehavior(); ok {
+		if err := billinginvoicesplitlinegroup.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceSplitLineGroup.tax_behavior": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.ServicePeriodStart(); !ok {
 		return &ValidationError{Name: "service_period_start", err: errors.New(`db: missing required field "BillingInvoiceSplitLineGroup.service_period_start"`)}
 	}
@@ -499,6 +518,10 @@ func (_c *BillingInvoiceSplitLineGroupCreate) createSpec() (*BillingInvoiceSplit
 	if value, ok := _c.mutation.TaxConfig(); ok {
 		_spec.SetField(billinginvoicesplitlinegroup.FieldTaxConfig, field.TypeJSON, value)
 		_node.TaxConfig = value
+	}
+	if value, ok := _c.mutation.TaxBehavior(); ok {
+		_spec.SetField(billinginvoicesplitlinegroup.FieldTaxBehavior, field.TypeEnum, value)
+		_node.TaxBehavior = &value
 	}
 	if value, ok := _c.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(billinginvoicesplitlinegroup.FieldServicePeriodStart, field.TypeTime, value)
@@ -807,6 +830,24 @@ func (u *BillingInvoiceSplitLineGroupUpsert) ClearTaxCodeID() *BillingInvoiceSpl
 	return u
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingInvoiceSplitLineGroupUpsert {
+	u.Set(billinginvoicesplitlinegroup.FieldTaxBehavior, v)
+	return u
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsert) UpdateTaxBehavior() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetExcluded(billinginvoicesplitlinegroup.FieldTaxBehavior)
+	return u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *BillingInvoiceSplitLineGroupUpsert) ClearTaxBehavior() *BillingInvoiceSplitLineGroupUpsert {
+	u.SetNull(billinginvoicesplitlinegroup.FieldTaxBehavior)
+	return u
+}
+
 // SetServicePeriodStart sets the "service_period_start" field.
 func (u *BillingInvoiceSplitLineGroupUpsert) SetServicePeriodStart(v time.Time) *BillingInvoiceSplitLineGroupUpsert {
 	u.Set(billinginvoicesplitlinegroup.FieldServicePeriodStart, v)
@@ -1108,6 +1149,27 @@ func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateTaxCodeID() *BillingInvoic
 func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearTaxCodeID() *BillingInvoiceSplitLineGroupUpsertOne {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
 		s.ClearTaxCodeID()
+	})
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetTaxBehavior(v)
+	})
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) UpdateTaxBehavior() *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateTaxBehavior()
+	})
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *BillingInvoiceSplitLineGroupUpsertOne) ClearTaxBehavior() *BillingInvoiceSplitLineGroupUpsertOne {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.ClearTaxBehavior()
 	})
 }
 
@@ -1598,6 +1660,27 @@ func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateTaxCodeID() *BillingInvoi
 func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearTaxCodeID() *BillingInvoiceSplitLineGroupUpsertBulk {
 	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
 		s.ClearTaxCodeID()
+	})
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.SetTaxBehavior(v)
+	})
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) UpdateTaxBehavior() *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.UpdateTaxBehavior()
+	})
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *BillingInvoiceSplitLineGroupUpsertBulk) ClearTaxBehavior() *BillingInvoiceSplitLineGroupUpsertBulk {
+	return u.Update(func(s *BillingInvoiceSplitLineGroupUpsert) {
+		s.ClearTaxBehavior()
 	})
 }
 

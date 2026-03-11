@@ -46,6 +46,8 @@ type BillingInvoiceSplitLineGroup struct {
 	TaxConfig productcatalog.TaxConfig `json:"tax_config,omitempty"`
 	// TaxCodeID holds the value of the "tax_code_id" field.
 	TaxCodeID *string `json:"tax_code_id,omitempty"`
+	// TaxBehavior holds the value of the "tax_behavior" field.
+	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// ServicePeriodStart holds the value of the "service_period_start" field.
 	ServicePeriodStart time.Time `json:"service_period_start,omitempty"`
 	// ServicePeriodEnd holds the value of the "service_period_end" field.
@@ -166,7 +168,7 @@ func (*BillingInvoiceSplitLineGroup) scanValues(columns []string) ([]any, error)
 		switch columns[i] {
 		case billinginvoicesplitlinegroup.FieldMetadata, billinginvoicesplitlinegroup.FieldTaxConfig:
 			values[i] = new([]byte)
-		case billinginvoicesplitlinegroup.FieldID, billinginvoicesplitlinegroup.FieldNamespace, billinginvoicesplitlinegroup.FieldName, billinginvoicesplitlinegroup.FieldDescription, billinginvoicesplitlinegroup.FieldCurrency, billinginvoicesplitlinegroup.FieldTaxCodeID, billinginvoicesplitlinegroup.FieldUniqueReferenceID, billinginvoicesplitlinegroup.FieldFeatureKey, billinginvoicesplitlinegroup.FieldSubscriptionID, billinginvoicesplitlinegroup.FieldSubscriptionPhaseID, billinginvoicesplitlinegroup.FieldSubscriptionItemID, billinginvoicesplitlinegroup.FieldChargeID:
+		case billinginvoicesplitlinegroup.FieldID, billinginvoicesplitlinegroup.FieldNamespace, billinginvoicesplitlinegroup.FieldName, billinginvoicesplitlinegroup.FieldDescription, billinginvoicesplitlinegroup.FieldCurrency, billinginvoicesplitlinegroup.FieldTaxCodeID, billinginvoicesplitlinegroup.FieldTaxBehavior, billinginvoicesplitlinegroup.FieldUniqueReferenceID, billinginvoicesplitlinegroup.FieldFeatureKey, billinginvoicesplitlinegroup.FieldSubscriptionID, billinginvoicesplitlinegroup.FieldSubscriptionPhaseID, billinginvoicesplitlinegroup.FieldSubscriptionItemID, billinginvoicesplitlinegroup.FieldChargeID:
 			values[i] = new(sql.NullString)
 		case billinginvoicesplitlinegroup.FieldCreatedAt, billinginvoicesplitlinegroup.FieldUpdatedAt, billinginvoicesplitlinegroup.FieldDeletedAt, billinginvoicesplitlinegroup.FieldServicePeriodStart, billinginvoicesplitlinegroup.FieldServicePeriodEnd, billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom, billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo:
 			values[i] = new(sql.NullTime)
@@ -261,6 +263,13 @@ func (_m *BillingInvoiceSplitLineGroup) assignValues(columns []string, values []
 			} else if value.Valid {
 				_m.TaxCodeID = new(string)
 				*_m.TaxCodeID = value.String
+			}
+		case billinginvoicesplitlinegroup.FieldTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
+			} else if value.Valid {
+				_m.TaxBehavior = new(productcatalog.TaxBehavior)
+				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
 			}
 		case billinginvoicesplitlinegroup.FieldServicePeriodStart:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -442,6 +451,11 @@ func (_m *BillingInvoiceSplitLineGroup) String() string {
 	if v := _m.TaxCodeID; v != nil {
 		builder.WriteString("tax_code_id=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxBehavior; v != nil {
+		builder.WriteString("tax_behavior=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("service_period_start=")

@@ -56,6 +56,8 @@ type BillingCustomerOverride struct {
 	InvoiceDefaultTaxConfig productcatalog.TaxConfig `json:"invoice_default_tax_config,omitempty"`
 	// TaxCodeID holds the value of the "tax_code_id" field.
 	TaxCodeID *string `json:"tax_code_id,omitempty"`
+	// TaxBehavior holds the value of the "tax_behavior" field.
+	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingCustomerOverrideQuery when eager-loading is set.
 	Edges        BillingCustomerOverrideEdges `json:"edges"`
@@ -117,7 +119,7 @@ func (*BillingCustomerOverride) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billingcustomeroverride.FieldInvoiceAutoAdvance, billingcustomeroverride.FieldInvoiceProgressiveBilling:
 			values[i] = new(sql.NullBool)
-		case billingcustomeroverride.FieldID, billingcustomeroverride.FieldNamespace, billingcustomeroverride.FieldCustomerID, billingcustomeroverride.FieldBillingProfileID, billingcustomeroverride.FieldCollectionAlignment, billingcustomeroverride.FieldLineCollectionPeriod, billingcustomeroverride.FieldInvoiceDraftPeriod, billingcustomeroverride.FieldInvoiceDueAfter, billingcustomeroverride.FieldInvoiceCollectionMethod, billingcustomeroverride.FieldTaxCodeID:
+		case billingcustomeroverride.FieldID, billingcustomeroverride.FieldNamespace, billingcustomeroverride.FieldCustomerID, billingcustomeroverride.FieldBillingProfileID, billingcustomeroverride.FieldCollectionAlignment, billingcustomeroverride.FieldLineCollectionPeriod, billingcustomeroverride.FieldInvoiceDraftPeriod, billingcustomeroverride.FieldInvoiceDueAfter, billingcustomeroverride.FieldInvoiceCollectionMethod, billingcustomeroverride.FieldTaxCodeID, billingcustomeroverride.FieldTaxBehavior:
 			values[i] = new(sql.NullString)
 		case billingcustomeroverride.FieldCreatedAt, billingcustomeroverride.FieldUpdatedAt, billingcustomeroverride.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -252,6 +254,13 @@ func (_m *BillingCustomerOverride) assignValues(columns []string, values []any) 
 				_m.TaxCodeID = new(string)
 				*_m.TaxCodeID = value.String
 			}
+		case billingcustomeroverride.FieldTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
+			} else if value.Valid {
+				_m.TaxBehavior = new(productcatalog.TaxBehavior)
+				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -369,6 +378,11 @@ func (_m *BillingCustomerOverride) String() string {
 	if v := _m.TaxCodeID; v != nil {
 		builder.WriteString("tax_code_id=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxBehavior; v != nil {
+		builder.WriteString("tax_behavior=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteByte(')')
 	return builder.String()

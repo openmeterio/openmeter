@@ -145,6 +145,26 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) ClearTaxCodeID() *BillingInvoiceSp
 	return _u
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *BillingInvoiceSplitLineGroupUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingInvoiceSplitLineGroupUpdate {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *BillingInvoiceSplitLineGroupUpdate) ClearTaxBehavior() *BillingInvoiceSplitLineGroupUpdate {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
 // SetServicePeriodStart sets the "service_period_start" field.
 func (_u *BillingInvoiceSplitLineGroupUpdate) SetServicePeriodStart(v time.Time) *BillingInvoiceSplitLineGroupUpdate {
 	_u.mutation.SetServicePeriodStart(v)
@@ -344,7 +364,25 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (_u *BillingInvoiceSplitLineGroupUpdate) check() error {
+	if v, ok := _u.mutation.TaxConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceSplitLineGroup.tax_config": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := billinginvoicesplitlinegroup.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceSplitLineGroup.tax_behavior": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (_u *BillingInvoiceSplitLineGroupUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.Columns, sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -382,6 +420,12 @@ func (_u *BillingInvoiceSplitLineGroupUpdate) sqlSave(ctx context.Context) (_nod
 	}
 	if _u.mutation.TaxConfigCleared() {
 		_spec.ClearField(billinginvoicesplitlinegroup.FieldTaxConfig, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(billinginvoicesplitlinegroup.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(billinginvoicesplitlinegroup.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(billinginvoicesplitlinegroup.FieldServicePeriodStart, field.TypeTime, value)
@@ -652,6 +696,26 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearTaxCodeID() *BillingInvoic
 	return _u
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingInvoiceSplitLineGroupUpdateOne {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) ClearTaxBehavior() *BillingInvoiceSplitLineGroupUpdateOne {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
 // SetServicePeriodStart sets the "service_period_start" field.
 func (_u *BillingInvoiceSplitLineGroupUpdateOne) SetServicePeriodStart(v time.Time) *BillingInvoiceSplitLineGroupUpdateOne {
 	_u.mutation.SetServicePeriodStart(v)
@@ -864,7 +928,25 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (_u *BillingInvoiceSplitLineGroupUpdateOne) check() error {
+	if v, ok := _u.mutation.TaxConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceSplitLineGroup.tax_config": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := billinginvoicesplitlinegroup.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceSplitLineGroup.tax_behavior": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (_u *BillingInvoiceSplitLineGroupUpdateOne) sqlSave(ctx context.Context) (_node *BillingInvoiceSplitLineGroup, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.Columns, sqlgraph.NewFieldSpec(billinginvoicesplitlinegroup.FieldID, field.TypeString))
 	id, ok := _u.mutation.ID()
 	if !ok {
@@ -919,6 +1001,12 @@ func (_u *BillingInvoiceSplitLineGroupUpdateOne) sqlSave(ctx context.Context) (_
 	}
 	if _u.mutation.TaxConfigCleared() {
 		_spec.ClearField(billinginvoicesplitlinegroup.FieldTaxConfig, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(billinginvoicesplitlinegroup.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(billinginvoicesplitlinegroup.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(billinginvoicesplitlinegroup.FieldServicePeriodStart, field.TypeTime, value)

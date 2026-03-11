@@ -271,6 +271,26 @@ func (_u *BillingCustomerOverrideUpdate) ClearTaxCodeID() *BillingCustomerOverri
 	return _u
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *BillingCustomerOverrideUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingCustomerOverrideUpdate {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *BillingCustomerOverrideUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdate {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *BillingCustomerOverrideUpdate) ClearTaxBehavior() *BillingCustomerOverrideUpdate {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
 // SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
 func (_u *BillingCustomerOverrideUpdate) SetBillingProfile(v *BillingProfile) *BillingCustomerOverrideUpdate {
 	return _u.SetBillingProfileID(v.ID)
@@ -356,6 +376,11 @@ func (_u *BillingCustomerOverrideUpdate) check() error {
 			return &ValidationError{Name: "invoice_default_tax_config", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_default_tax_config": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := billingcustomeroverride.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.tax_behavior": %w`, err)}
+		}
+	}
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BillingCustomerOverride.customer"`)
 	}
@@ -436,6 +461,12 @@ func (_u *BillingCustomerOverrideUpdate) sqlSave(ctx context.Context) (_node int
 	}
 	if _u.mutation.InvoiceDefaultTaxConfigCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceDefaultTaxConfig, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(billingcustomeroverride.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(billingcustomeroverride.FieldTaxBehavior, field.TypeEnum)
 	}
 	if _u.mutation.BillingProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -753,6 +784,26 @@ func (_u *BillingCustomerOverrideUpdateOne) ClearTaxCodeID() *BillingCustomerOve
 	return _u
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *BillingCustomerOverrideUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingCustomerOverrideUpdateOne {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *BillingCustomerOverrideUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdateOne {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *BillingCustomerOverrideUpdateOne) ClearTaxBehavior() *BillingCustomerOverrideUpdateOne {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
 // SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
 func (_u *BillingCustomerOverrideUpdateOne) SetBillingProfile(v *BillingProfile) *BillingCustomerOverrideUpdateOne {
 	return _u.SetBillingProfileID(v.ID)
@@ -849,6 +900,11 @@ func (_u *BillingCustomerOverrideUpdateOne) check() error {
 	if v, ok := _u.mutation.InvoiceDefaultTaxConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "invoice_default_tax_config", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_default_tax_config": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := billingcustomeroverride.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.tax_behavior": %w`, err)}
 		}
 	}
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
@@ -948,6 +1004,12 @@ func (_u *BillingCustomerOverrideUpdateOne) sqlSave(ctx context.Context) (_node 
 	}
 	if _u.mutation.InvoiceDefaultTaxConfigCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceDefaultTaxConfig, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(billingcustomeroverride.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(billingcustomeroverride.FieldTaxBehavior, field.TypeEnum)
 	}
 	if _u.mutation.BillingProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{

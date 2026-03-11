@@ -153,6 +153,20 @@ func (_c *BillingWorkflowConfigCreate) SetNillableTaxCodeID(v *string) *BillingW
 	return _c
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_c *BillingWorkflowConfigCreate) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingWorkflowConfigCreate {
+	_c.mutation.SetTaxBehavior(v)
+	return _c
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_c *BillingWorkflowConfigCreate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingWorkflowConfigCreate {
+	if v != nil {
+		_c.SetTaxBehavior(*v)
+	}
+	return _c
+}
+
 // SetTaxEnabled sets the "tax_enabled" field.
 func (_c *BillingWorkflowConfigCreate) SetTaxEnabled(v bool) *BillingWorkflowConfigCreate {
 	_c.mutation.SetTaxEnabled(v)
@@ -352,6 +366,11 @@ func (_c *BillingWorkflowConfigCreate) check() error {
 			return &ValidationError{Name: "invoice_default_tax_settings", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_default_tax_settings": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.TaxBehavior(); ok {
+		if err := billingworkflowconfig.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.tax_behavior": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.TaxEnabled(); !ok {
 		return &ValidationError{Name: "tax_enabled", err: errors.New(`db: missing required field "BillingWorkflowConfig.tax_enabled"`)}
 	}
@@ -445,6 +464,10 @@ func (_c *BillingWorkflowConfigCreate) createSpec() (*BillingWorkflowConfig, *sq
 	if value, ok := _c.mutation.InvoiceDefaultTaxSettings(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceDefaultTaxSettings, field.TypeJSON, value)
 		_node.InvoiceDefaultTaxSettings = value
+	}
+	if value, ok := _c.mutation.TaxBehavior(); ok {
+		_spec.SetField(billingworkflowconfig.FieldTaxBehavior, field.TypeEnum, value)
+		_node.TaxBehavior = &value
 	}
 	if value, ok := _c.mutation.TaxEnabled(); ok {
 		_spec.SetField(billingworkflowconfig.FieldTaxEnabled, field.TypeBool, value)
@@ -723,6 +746,24 @@ func (u *BillingWorkflowConfigUpsert) ClearTaxCodeID() *BillingWorkflowConfigUps
 	return u
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *BillingWorkflowConfigUpsert) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingWorkflowConfigUpsert {
+	u.Set(billingworkflowconfig.FieldTaxBehavior, v)
+	return u
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsert) UpdateTaxBehavior() *BillingWorkflowConfigUpsert {
+	u.SetExcluded(billingworkflowconfig.FieldTaxBehavior)
+	return u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *BillingWorkflowConfigUpsert) ClearTaxBehavior() *BillingWorkflowConfigUpsert {
+	u.SetNull(billingworkflowconfig.FieldTaxBehavior)
+	return u
+}
+
 // SetTaxEnabled sets the "tax_enabled" field.
 func (u *BillingWorkflowConfigUpsert) SetTaxEnabled(v bool) *BillingWorkflowConfigUpsert {
 	u.Set(billingworkflowconfig.FieldTaxEnabled, v)
@@ -994,6 +1035,27 @@ func (u *BillingWorkflowConfigUpsertOne) UpdateTaxCodeID() *BillingWorkflowConfi
 func (u *BillingWorkflowConfigUpsertOne) ClearTaxCodeID() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.ClearTaxCodeID()
+	})
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *BillingWorkflowConfigUpsertOne) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetTaxBehavior(v)
+	})
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertOne) UpdateTaxBehavior() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateTaxBehavior()
+	})
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *BillingWorkflowConfigUpsertOne) ClearTaxBehavior() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearTaxBehavior()
 	})
 }
 
@@ -1439,6 +1501,27 @@ func (u *BillingWorkflowConfigUpsertBulk) UpdateTaxCodeID() *BillingWorkflowConf
 func (u *BillingWorkflowConfigUpsertBulk) ClearTaxCodeID() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.ClearTaxCodeID()
+	})
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *BillingWorkflowConfigUpsertBulk) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetTaxBehavior(v)
+	})
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertBulk) UpdateTaxBehavior() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateTaxBehavior()
+	})
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *BillingWorkflowConfigUpsertBulk) ClearTaxBehavior() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.ClearTaxBehavior()
 	})
 }
 

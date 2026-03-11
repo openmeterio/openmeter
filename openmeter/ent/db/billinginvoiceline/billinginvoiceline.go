@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 const (
@@ -39,6 +40,8 @@ const (
 	FieldTaxConfig = "tax_config"
 	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
 	FieldTaxCodeID = "tax_code_id"
+	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
+	FieldTaxBehavior = "tax_behavior"
 	// FieldAmount holds the string denoting the amount field in the database.
 	FieldAmount = "amount"
 	// FieldTaxesTotal holds the string denoting the taxes_total field in the database.
@@ -262,6 +265,7 @@ var Columns = []string{
 	FieldCurrency,
 	FieldTaxConfig,
 	FieldTaxCodeID,
+	FieldTaxBehavior,
 	FieldAmount,
 	FieldTaxesTotal,
 	FieldTaxesInclusiveTotal,
@@ -339,6 +343,16 @@ var (
 	}
 )
 
+// TaxBehaviorValidator is a validator for the "tax_behavior" field enum values. It is called by the builders before save.
+func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
+	switch tb {
+	case "inclusive", "exclusive":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoiceline: invalid enum value for tax_behavior field: %q", tb)
+	}
+}
+
 // ManagedByValidator is a validator for the "managed_by" field enum values. It is called by the builders before save.
 func ManagedByValidator(mb billing.InvoiceLineManagedBy) error {
 	switch mb {
@@ -415,6 +429,11 @@ func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 // ByTaxCodeID orders the results by the tax_code_id field.
 func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
+}
+
+// ByTaxBehavior orders the results by the tax_behavior field.
+func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
 }
 
 // ByAmount orders the results by the amount field.

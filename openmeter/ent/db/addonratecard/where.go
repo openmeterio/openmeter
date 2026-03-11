@@ -738,6 +738,46 @@ func TaxCodeIDContainsFold(v string) predicate.AddonRateCard {
 	return predicate.AddonRateCard(sql.FieldContainsFold(FieldTaxCodeID, v))
 }
 
+// TaxBehaviorEQ applies the EQ predicate on the "tax_behavior" field.
+func TaxBehaviorEQ(v productcatalog.TaxBehavior) predicate.AddonRateCard {
+	vc := v
+	return predicate.AddonRateCard(sql.FieldEQ(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorNEQ applies the NEQ predicate on the "tax_behavior" field.
+func TaxBehaviorNEQ(v productcatalog.TaxBehavior) predicate.AddonRateCard {
+	vc := v
+	return predicate.AddonRateCard(sql.FieldNEQ(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorIn applies the In predicate on the "tax_behavior" field.
+func TaxBehaviorIn(vs ...productcatalog.TaxBehavior) predicate.AddonRateCard {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.AddonRateCard(sql.FieldIn(FieldTaxBehavior, v...))
+}
+
+// TaxBehaviorNotIn applies the NotIn predicate on the "tax_behavior" field.
+func TaxBehaviorNotIn(vs ...productcatalog.TaxBehavior) predicate.AddonRateCard {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.AddonRateCard(sql.FieldNotIn(FieldTaxBehavior, v...))
+}
+
+// TaxBehaviorIsNil applies the IsNil predicate on the "tax_behavior" field.
+func TaxBehaviorIsNil() predicate.AddonRateCard {
+	return predicate.AddonRateCard(sql.FieldIsNull(FieldTaxBehavior))
+}
+
+// TaxBehaviorNotNil applies the NotNil predicate on the "tax_behavior" field.
+func TaxBehaviorNotNil() predicate.AddonRateCard {
+	return predicate.AddonRateCard(sql.FieldNotNull(FieldTaxBehavior))
+}
+
 // BillingCadenceEQ applies the EQ predicate on the "billing_cadence" field.
 func BillingCadenceEQ(v datetime.ISODurationString) predicate.AddonRateCard {
 	vc := string(v)

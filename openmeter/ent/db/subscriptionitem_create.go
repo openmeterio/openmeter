@@ -240,6 +240,20 @@ func (_c *SubscriptionItemCreate) SetNillableTaxCodeID(v *string) *SubscriptionI
 	return _c
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_c *SubscriptionItemCreate) SetTaxBehavior(v productcatalog.TaxBehavior) *SubscriptionItemCreate {
+	_c.mutation.SetTaxBehavior(v)
+	return _c
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_c *SubscriptionItemCreate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *SubscriptionItemCreate {
+	if v != nil {
+		_c.SetTaxBehavior(*v)
+	}
+	return _c
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (_c *SubscriptionItemCreate) SetBillingCadence(v datetime.ISODurationString) *SubscriptionItemCreate {
 	_c.mutation.SetBillingCadence(v)
@@ -442,6 +456,11 @@ func (_c *SubscriptionItemCreate) check() error {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.tax_config": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.TaxBehavior(); ok {
+		if err := subscriptionitem.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.price": %w`, err)}
@@ -573,6 +592,10 @@ func (_c *SubscriptionItemCreate) createSpec() (*SubscriptionItem, *sqlgraph.Cre
 		}
 		_spec.SetField(subscriptionitem.FieldTaxConfig, field.TypeString, vv)
 		_node.TaxConfig = value
+	}
+	if value, ok := _c.mutation.TaxBehavior(); ok {
+		_spec.SetField(subscriptionitem.FieldTaxBehavior, field.TypeEnum, value)
+		_node.TaxBehavior = &value
 	}
 	if value, ok := _c.mutation.BillingCadence(); ok {
 		_spec.SetField(subscriptionitem.FieldBillingCadence, field.TypeString, value)
@@ -1015,6 +1038,24 @@ func (u *SubscriptionItemUpsert) ClearTaxCodeID() *SubscriptionItemUpsert {
 	return u
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *SubscriptionItemUpsert) SetTaxBehavior(v productcatalog.TaxBehavior) *SubscriptionItemUpsert {
+	u.Set(subscriptionitem.FieldTaxBehavior, v)
+	return u
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *SubscriptionItemUpsert) UpdateTaxBehavior() *SubscriptionItemUpsert {
+	u.SetExcluded(subscriptionitem.FieldTaxBehavior)
+	return u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *SubscriptionItemUpsert) ClearTaxBehavior() *SubscriptionItemUpsert {
+	u.SetNull(subscriptionitem.FieldTaxBehavior)
+	return u
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (u *SubscriptionItemUpsert) SetBillingCadence(v datetime.ISODurationString) *SubscriptionItemUpsert {
 	u.Set(subscriptionitem.FieldBillingCadence, v)
@@ -1441,6 +1482,27 @@ func (u *SubscriptionItemUpsertOne) UpdateTaxCodeID() *SubscriptionItemUpsertOne
 func (u *SubscriptionItemUpsertOne) ClearTaxCodeID() *SubscriptionItemUpsertOne {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.ClearTaxCodeID()
+	})
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *SubscriptionItemUpsertOne) SetTaxBehavior(v productcatalog.TaxBehavior) *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.SetTaxBehavior(v)
+	})
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *SubscriptionItemUpsertOne) UpdateTaxBehavior() *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.UpdateTaxBehavior()
+	})
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *SubscriptionItemUpsertOne) ClearTaxBehavior() *SubscriptionItemUpsertOne {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.ClearTaxBehavior()
 	})
 }
 
@@ -2049,6 +2111,27 @@ func (u *SubscriptionItemUpsertBulk) UpdateTaxCodeID() *SubscriptionItemUpsertBu
 func (u *SubscriptionItemUpsertBulk) ClearTaxCodeID() *SubscriptionItemUpsertBulk {
 	return u.Update(func(s *SubscriptionItemUpsert) {
 		s.ClearTaxCodeID()
+	})
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *SubscriptionItemUpsertBulk) SetTaxBehavior(v productcatalog.TaxBehavior) *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.SetTaxBehavior(v)
+	})
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *SubscriptionItemUpsertBulk) UpdateTaxBehavior() *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.UpdateTaxBehavior()
+	})
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *SubscriptionItemUpsertBulk) ClearTaxBehavior() *SubscriptionItemUpsertBulk {
+	return u.Update(func(s *SubscriptionItemUpsert) {
+		s.ClearTaxBehavior()
 	})
 }
 

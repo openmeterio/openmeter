@@ -43,6 +43,8 @@ const (
 	FieldTaxConfig = "tax_config"
 	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
 	FieldTaxCodeID = "tax_code_id"
+	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
+	FieldTaxBehavior = "tax_behavior"
 	// FieldBillingCadence holds the string denoting the billing_cadence field in the database.
 	FieldBillingCadence = "billing_cadence"
 	// FieldPrice holds the string denoting the price field in the database.
@@ -100,6 +102,7 @@ var Columns = []string{
 	FieldEntitlementTemplate,
 	FieldTaxConfig,
 	FieldTaxCodeID,
+	FieldTaxBehavior,
 	FieldBillingCadence,
 	FieldPrice,
 	FieldDiscounts,
@@ -148,6 +151,16 @@ func TypeValidator(_type productcatalog.RateCardType) error {
 		return nil
 	default:
 		return fmt.Errorf("planratecard: invalid enum value for type field: %q", _type)
+	}
+}
+
+// TaxBehaviorValidator is a validator for the "tax_behavior" field enum values. It is called by the builders before save.
+func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
+	switch tb {
+	case "inclusive", "exclusive":
+		return nil
+	default:
+		return fmt.Errorf("planratecard: invalid enum value for tax_behavior field: %q", tb)
 	}
 }
 
@@ -217,6 +230,11 @@ func ByTaxConfig(opts ...sql.OrderTermOption) OrderOption {
 // ByTaxCodeID orders the results by the tax_code_id field.
 func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
+}
+
+// ByTaxBehavior orders the results by the tax_behavior field.
+func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
 }
 
 // ByBillingCadence orders the results by the billing_cadence field.

@@ -298,6 +298,26 @@ func (_u *SubscriptionItemUpdate) ClearTaxCodeID() *SubscriptionItemUpdate {
 	return _u
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *SubscriptionItemUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *SubscriptionItemUpdate {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *SubscriptionItemUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *SubscriptionItemUpdate {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *SubscriptionItemUpdate) ClearTaxBehavior() *SubscriptionItemUpdate {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (_u *SubscriptionItemUpdate) SetBillingCadence(v datetime.ISODurationString) *SubscriptionItemUpdate {
 	_u.mutation.SetBillingCadence(v)
@@ -530,6 +550,11 @@ func (_u *SubscriptionItemUpdate) check() error {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.tax_config": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := subscriptionitem.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.price": %w`, err)}
@@ -644,6 +669,12 @@ func (_u *SubscriptionItemUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if _u.mutation.TaxConfigCleared() {
 		_spec.ClearField(subscriptionitem.FieldTaxConfig, field.TypeString)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(subscriptionitem.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(subscriptionitem.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.BillingCadence(); ok {
 		_spec.SetField(subscriptionitem.FieldBillingCadence, field.TypeString, value)
@@ -1146,6 +1177,26 @@ func (_u *SubscriptionItemUpdateOne) ClearTaxCodeID() *SubscriptionItemUpdateOne
 	return _u
 }
 
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *SubscriptionItemUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *SubscriptionItemUpdateOne {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *SubscriptionItemUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *SubscriptionItemUpdateOne {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *SubscriptionItemUpdateOne) ClearTaxBehavior() *SubscriptionItemUpdateOne {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (_u *SubscriptionItemUpdateOne) SetBillingCadence(v datetime.ISODurationString) *SubscriptionItemUpdateOne {
 	_u.mutation.SetBillingCadence(v)
@@ -1391,6 +1442,11 @@ func (_u *SubscriptionItemUpdateOne) check() error {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.tax_config": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := subscriptionitem.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.price": %w`, err)}
@@ -1522,6 +1578,12 @@ func (_u *SubscriptionItemUpdateOne) sqlSave(ctx context.Context) (_node *Subscr
 	}
 	if _u.mutation.TaxConfigCleared() {
 		_spec.ClearField(subscriptionitem.FieldTaxConfig, field.TypeString)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(subscriptionitem.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(subscriptionitem.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.BillingCadence(); ok {
 		_spec.SetField(subscriptionitem.FieldBillingCadence, field.TypeString, value)
