@@ -66,6 +66,22 @@ model ResourceWithKey {
   key: ResourceKey;
 }
 
+/**
+ * Represents common fields of immutable resources.
+ */
+@friendlyName("ResourceImmutable")
+model ResourceImmutable {
+  ...OmitProperties<Shared.Resource, "updated_at" | "deleted_at">;
+}
+
+@doc("{name} reference.", T)
+@friendlyName("{name}Reference", T)
+model ResourceReference<T extends {}> {
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  id: ULID;
+}
+
 @doc("{name} reference.", T)
 @friendlyName("{name}Reference", T)
 model ResourceWithKeyReference<T extends {}> {

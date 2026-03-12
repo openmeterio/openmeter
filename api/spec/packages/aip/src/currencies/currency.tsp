@@ -3,6 +3,8 @@ import "../shared/index.tsp";
 
 namespace Currencies;
 
+using TypeSpec.OpenAPI;
+
 /**
  * Currency type for custom currencies.
  * It should be a unique code but not conflicting with any existing standard currency codes.
@@ -24,6 +26,16 @@ union Currency {
 
   @summary("Custom currency")
   custom: CurrencyCustom,
+}
+
+/**
+ * Fiat or custom currency code.
+ */
+@friendlyName("BillingCurrencyCode")
+@extension("x-go-type", "string")
+union CurrencyCode {
+  Shared.CurrencyCode,
+  // CurrencyCodeCustom,
 }
 
 /**

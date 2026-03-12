@@ -116,9 +116,15 @@ scalar CountryCode extends string;
 scalar Numeric extends string;
 
 /**
- * Money represents a currency amount.
+ * Monetary amount in a specific currency.
  */
-alias Money = Numeric;
+@friendlyName("CurrencyAmount")
+model CurrencyAmount {
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  amount: Shared.Numeric;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  currency: Shared.CurrencyCode;
+}
 
 /**
  * Tax identifier code is a normalized tax code shown on the original identity document.

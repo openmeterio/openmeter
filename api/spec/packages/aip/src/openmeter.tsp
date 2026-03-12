@@ -71,6 +71,31 @@ interface CustomerBillingEndpoints
 interface CustomerEntitlementsEndpoints
   extends Entitlements.CustomerEntitlementsOperations {}
 
+@route("/openmeter/customers/{customerId}/credits/grants")
+@tag(Shared.CustomersTag)
+interface CustomerCreditGrantsEndpoints
+  extends Customers.CustomerCreditGrantsOperations {}
+
+@route("/openmeter/customers/{customerId}/credits/balance")
+@tag(Shared.CustomersTag)
+interface CustomerCreditBalanceEndpoints
+  extends Customers.CustomerCreditBalancesOperations {}
+
+@route("/openmeter/customers/{customerId}/credits/grants/{creditGrantId}")
+@tag(Shared.CustomersTag)
+interface CustomerCreditGrantEndpoints {
+  @route("/void")
+  voidGrant is Customers.CustomerCreditGrantVoidOperations.voidGrant;
+
+  @route("/settlement/external")
+  updateExternalSettlement is Customers.CustomerCreditGrantExternalSettlementOperations.updateExternalSettlement;
+}
+
+@route("/openmeter/customers/{customerId}/credits/transactions")
+@tag(Shared.CustomersTag)
+interface CustomerCreditTransactionEndpoints
+  extends Customers.CustomerCreditTransactionOperations {}
+
 @route("/openmeter/subscriptions")
 @tag(Shared.SubscriptionsTag)
 interface SubscriptionsEndpoints

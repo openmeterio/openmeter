@@ -6,6 +6,7 @@ import "./shared/index.tsp";
 import "./events/index.tsp";
 import "./meters/index.tsp";
 import "./customers/index.tsp";
+import "./customers/credits/index.tsp";
 import "./entitlements/index.tsp";
 import "./subscriptions/index.tsp";
 import "./apps/index.tsp";
@@ -71,6 +72,31 @@ interface CustomerBillingEndpoints
 @tag(Shared.EntitlementsTag)
 interface CustomerEntitlementsEndpoints
   extends Entitlements.CustomerEntitlementsOperations {}
+
+@route("/openmeter/customers/{customerId}/credits/grants")
+@tag(Shared.CustomersTag)
+interface CustomerCreditGrantsEndpoints
+  extends Customers.CustomerCreditGrantsOperations {}
+
+@route("/openmeter/customers/{customerId}/credits/balance")
+@tag(Shared.CustomersTag)
+interface CustomerCreditBalanceEndpoints
+  extends Customers.CustomerCreditBalancesOperations {}
+
+@route("/openmeter/customers/{customerId}/credits/grants/{creditGrantId}")
+@tag(Shared.CustomersTag)
+interface CustomerCreditGrantEndpoints {
+  @route("/void")
+  voidGrant is Customers.CustomerCreditGrantVoidOperations.voidGrant;
+
+  @route("/settlement/external")
+  updateExternalSettlement is Customers.CustomerCreditGrantExternalSettlementOperations.updateExternalSettlement;
+}
+
+@route("/openmeter/customers/{customerId}/credits/transactions")
+@tag(Shared.CustomersTag)
+interface CustomerCreditTransactionEndpoints
+  extends Customers.CustomerCreditTransactionOperations {}
 
 @route("/openmeter/subscriptions")
 @tag(Shared.SubscriptionsTag)
