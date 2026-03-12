@@ -1,6 +1,7 @@
 import "../shared/index.tsp";
 import "./price.tsp";
 import "../billing/tax.tsp";
+import "./feature.tsp";
 import "../tax/codes.tsp";
 
 namespace ProductCatalog;

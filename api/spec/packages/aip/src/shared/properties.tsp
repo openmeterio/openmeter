@@ -1,5 +1,7 @@
 import "../common/properties.tsp";
 
+using TypeSpec.OpenAPI;
+
 namespace Shared;
 
 // See: https://github.com/ulid/spec/issues/94
@@ -147,3 +149,14 @@ model RecurringPeriod {
   @example("P1M")
   interval: ISO8601Duration;
 }
+
+/**
+ * Numeric representation of a percentage
+ *
+ * 50% is represented as 50
+ */
+@example(50)
+@friendlyName("Percentage")
+@minValue(0)
+@maxValue(100)
+scalar Percentage extends float64;

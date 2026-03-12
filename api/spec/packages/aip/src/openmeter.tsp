@@ -12,6 +12,7 @@ import "./billing/index.tsp";
 import "./currencies/index.tsp";
 import "./features/index.tsp";
 import "./llmcost/index.tsp";
+import "./productcatalog/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -113,3 +114,8 @@ interface LLMCostPricesEndpoints extends LLMCost.LLMCostPricesOperations {}
 @tag(Shared.LLMCostTag)
 interface LLMCostOverridesEndpoints
   extends LLMCost.LLMCostOverridesOperations {}
+
+@route("/openmeter/test")
+@tag(Shared.LLMCostTag)
+interface ProductCatalogEndpoints
+  extends ProductCatalog.ProductCatalogOperations {}
