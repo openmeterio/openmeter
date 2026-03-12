@@ -151,12 +151,9 @@ model RecurringPeriod {
 }
 
 /**
- * Numeric representation of a percentage
- *
- * 50% is represented as 50
+ * Numeric representation of a percentage.
+ * For example, 50% is represented as 50.
  */
 @example(50)
 @friendlyName("Percentage")
-@minValue(0)
-@maxValue(100)
-scalar Percentage extends float64;
+scalar Percentage extends float;
