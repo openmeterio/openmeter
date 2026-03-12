@@ -15,22 +15,11 @@ func TestTaxConfigValidation(t *testing.T) {
 		ExpectedError error
 	}{
 		{
-			Name: "stripe valid",
+			Name: "tax code id valid",
 			TaxConfig: TaxConfig{
-				Stripe: &StripeTaxConfig{
-					Code: "txcd_99999999",
-				},
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 			},
 			ExpectedError: nil,
-		},
-		{
-			Name: "stripe invalid",
-			TaxConfig: TaxConfig{
-				Stripe: &StripeTaxConfig{
-					Code: "invalid_tax_code",
-				},
-			},
-			ExpectedError: errors.New("validation error: invalid stripe config: validation error: invalid product tax code: invalid_tax_code"),
 		},
 		{
 			Name: "behavior valid",
@@ -70,26 +59,20 @@ func TestTaxConfigEqual(t *testing.T) {
 		{
 			Name: "Equal",
 			Left: &TaxConfig{
-				Stripe: &StripeTaxConfig{
-					Code: "txcd_99999999",
-				},
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 			},
 			Right: &TaxConfig{
-				Stripe: &StripeTaxConfig{
-					Code: "txcd_99999999",
-				},
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 			},
 			ExpectedResult: true,
 		},
 		{
 			Name: "Left diff",
 			Left: &TaxConfig{
-				Stripe: &StripeTaxConfig{
-					Code: "txcd_99999999",
-				},
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 			},
 			Right: &TaxConfig{
-				Stripe: nil,
+				TaxCodeId: nil,
 			},
 			ExpectedResult: false,
 		},
@@ -97,23 +80,17 @@ func TestTaxConfigEqual(t *testing.T) {
 			Name: "Right diff",
 			Left: nil,
 			Right: &TaxConfig{
-				Stripe: &StripeTaxConfig{
-					Code: "txcd_99999999",
-				},
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 			},
 			ExpectedResult: false,
 		},
 		{
 			Name: "Complete diff",
 			Left: &TaxConfig{
-				Stripe: &StripeTaxConfig{
-					Code: "txcd_99999999",
-				},
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 			},
 			Right: &TaxConfig{
-				Stripe: &StripeTaxConfig{
-					Code: "txcd_99999998",
-				},
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FB0"),
 			},
 			ExpectedResult: false,
 		},
@@ -174,32 +151,24 @@ func TestMergeTaxConfigs(t *testing.T) {
 			Name: "Left nil",
 			Left: nil,
 			Right: &TaxConfig{
-				Behavior: lo.ToPtr(InclusiveTaxBehavior),
-				Stripe: &StripeTaxConfig{
-					Code: "txcd_99999999",
-				},
+				Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 			},
 			Expected: &TaxConfig{
-				Behavior: lo.ToPtr(InclusiveTaxBehavior),
-				Stripe: &StripeTaxConfig{
-					Code: "txcd_99999999",
-				},
+				Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 			},
 		},
 		{
 			Name: "Right nil",
 			Left: &TaxConfig{
-				Behavior: lo.ToPtr(InclusiveTaxBehavior),
-				Stripe: &StripeTaxConfig{
-					Code: "txcd_99999999",
-				},
+				Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 			},
 			Right: nil,
 			Expected: &TaxConfig{
-				Behavior: lo.ToPtr(InclusiveTaxBehavior),
-				Stripe: &StripeTaxConfig{
-					Code: "txcd_99999999",
-				},
+				Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 			},
 		},
 		{
@@ -211,60 +180,44 @@ func TestMergeTaxConfigs(t *testing.T) {
 		{
 			Name: "Right overrides left fully",
 			Left: &TaxConfig{
-				Behavior: lo.ToPtr(InclusiveTaxBehavior),
-				Stripe: &StripeTaxConfig{
-					Code: "txcd_99999999",
-				},
+				Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 			},
 			Right: &TaxConfig{
-				Behavior: lo.ToPtr(ExclusiveTaxBehavior),
-				Stripe: &StripeTaxConfig{
-					Code: "txcd_99999998",
-				},
+				Behavior:  lo.ToPtr(ExclusiveTaxBehavior),
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FB0"),
 			},
 			Expected: &TaxConfig{
-				Behavior: lo.ToPtr(ExclusiveTaxBehavior),
-				Stripe: &StripeTaxConfig{
-					Code: "txcd_99999998",
-				},
+				Behavior:  lo.ToPtr(ExclusiveTaxBehavior),
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FB0"),
 			},
 		},
 		{
 			Name: "Right overrides left partially - behavior",
 			Left: &TaxConfig{
-				Behavior: lo.ToPtr(InclusiveTaxBehavior),
-				Stripe: &StripeTaxConfig{
-					Code: "txcd_99999999",
-				},
+				Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 			},
 			Right: &TaxConfig{
 				Behavior: lo.ToPtr(ExclusiveTaxBehavior),
 			},
 			Expected: &TaxConfig{
-				Behavior: lo.ToPtr(ExclusiveTaxBehavior),
-				Stripe: &StripeTaxConfig{
-					Code: "txcd_99999999",
-				},
+				Behavior:  lo.ToPtr(ExclusiveTaxBehavior),
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 			},
 		},
 		{
-			Name: "Right overrides left partially - stripe",
+			Name: "Right overrides left partially - tax code id",
 			Left: &TaxConfig{
-				Behavior: lo.ToPtr(InclusiveTaxBehavior),
-				Stripe: &StripeTaxConfig{
-					Code: "txcd_99999999",
-				},
+				Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 			},
 			Right: &TaxConfig{
-				Stripe: &StripeTaxConfig{
-					Code: "txcd_99999998",
-				},
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FB0"),
 			},
 			Expected: &TaxConfig{
-				Behavior: lo.ToPtr(InclusiveTaxBehavior),
-				Stripe: &StripeTaxConfig{
-					Code: "txcd_99999998",
-				},
+				Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FB0"),
 			},
 		},
 	}

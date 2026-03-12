@@ -21,6 +21,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	planaddonadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/adapter"
 	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
+	taxcodeservice "github.com/openmeterio/openmeter/openmeter/taxcode/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
@@ -36,6 +39,8 @@ type TestEnv struct {
 	PlanAddonRepository planaddon.Repository
 	Addon               addon.Service
 	AddonRepository     addon.Repository
+	TaxCode             taxcode.Service
+	TaxCodeRepository   taxcode.Repository
 
 	Client *entdb.Client
 	db     *testutils.TestDB
@@ -147,6 +152,21 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	require.NoErrorf(t, err, "initializing planaddon service must not fail")
 	require.NotNilf(t, addonService, "planaddon service must not be nil")
 
+	// Init tax code service
+	taxCodeAdapter, err := taxcodeadapter.New(taxcodeadapter.Config{
+		Client: client,
+		Logger: logger,
+	})
+	require.NoErrorf(t, err, "initializing tax code adapter must not fail")
+	require.NotNilf(t, taxCodeAdapter, "tax code adapter must not be nil")
+
+	taxCodeService := taxcodeservice.New(taxcodeservice.Config{
+		Adapter: taxCodeAdapter,
+		Logger:  logger,
+	})
+	require.NoErrorf(t, err, "initializing tax code service must not fail")
+	require.NotNilf(t, taxCodeService, "tax code service must not be nil")
+
 	return &TestEnv{
 		Logger:              logger,
 		Publisher:           publisher,
@@ -158,6 +178,8 @@ func NewTestEnv(t *testing.T) *TestEnv {
 		PlanAddonRepository: planAddonAdapter,
 		Addon:               addonService,
 		AddonRepository:     addonAdapter,
+		TaxCode:             taxCodeService,
+		TaxCodeRepository:   taxCodeAdapter,
 		db:                  db,
 		Client:              client,
 	}

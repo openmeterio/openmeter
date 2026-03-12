@@ -832,9 +832,7 @@ func TestChangeToPlan(t *testing.T) {
 				UsagePeriod:     subscriptiontestutils.ISOMonth,
 			}),
 			TaxConfig: &productcatalog.TaxConfig{
-				Stripe: &productcatalog.StripeTaxConfig{
-					Code: "txcd_10000001",
-				},
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5GAP"),
 			},
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromInt(int64(1)),
@@ -849,9 +847,7 @@ func TestChangeToPlan(t *testing.T) {
 			Name:        "Rate Card 2",
 			Description: lo.ToPtr("Rate Card 2 Description"),
 			TaxConfig: &productcatalog.TaxConfig{
-				Stripe: &productcatalog.StripeTaxConfig{
-					Code: "txcd_10000001",
-				},
+				TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5GAP"),
 			},
 			Price: nil,
 		},

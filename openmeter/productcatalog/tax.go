@@ -34,8 +34,8 @@ func (t TaxBehavior) Validate() error {
 
 // TaxConfig stores the provider-specific tax configs.
 type TaxConfig struct {
-	Behavior *TaxBehavior     `json:"behavior,omitempty"`
-	Stripe   *StripeTaxConfig `json:"stripe,omitempty"`
+	Behavior  *TaxBehavior `json:"behavior,omitempty"`
+	TaxCodeId *string      `json:"tax_code_id,omitempty"`
 }
 
 func (c *TaxConfig) Equal(v *TaxConfig) bool {
@@ -55,7 +55,15 @@ func (c *TaxConfig) Equal(v *TaxConfig) bool {
 		return false
 	}
 
-	return c.Stripe.Equal(v.Stripe)
+	if (c.TaxCodeId != nil && v.TaxCodeId == nil) || (c.TaxCodeId == nil && v.TaxCodeId != nil) {
+		return false
+	}
+
+	if c.TaxCodeId != nil && *c.TaxCodeId != *v.TaxCodeId {
+		return false
+	}
+
+	return true
 }
 
 func (c *TaxConfig) Validate() error {
@@ -67,11 +75,11 @@ func (c *TaxConfig) Validate() error {
 		}
 	}
 
-	if c.Stripe != nil {
-		if err := c.Stripe.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid stripe config: %w", err))
-		}
-	}
+	// if c.Stripe != nil {
+	// 	if err := c.Stripe.Validate(); err != nil {
+	// 		errs = append(errs, fmt.Errorf("invalid stripe config: %w", err))
+	// 	}
+	// }
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
@@ -81,8 +89,8 @@ func (c TaxConfig) Clone() TaxConfig {
 		Behavior: c.Behavior,
 	}
 
-	if c.Stripe != nil {
-		out.Stripe = lo.ToPtr(c.Stripe.Clone())
+	if c.TaxCodeId != nil {
+		out.TaxCodeId = lo.ToPtr(*c.TaxCodeId)
 	}
 
 	return out
@@ -91,8 +99,8 @@ func (c TaxConfig) Clone() TaxConfig {
 func MergeTaxConfigs(base, overrides *TaxConfig) *TaxConfig {
 	if base != nil && overrides != nil {
 		return &TaxConfig{
-			Behavior: lo.CoalesceOrEmpty(overrides.Behavior, base.Behavior),
-			Stripe:   lo.CoalesceOrEmpty(overrides.Stripe, base.Stripe),
+			Behavior:  lo.CoalesceOrEmpty(overrides.Behavior, base.Behavior),
+			TaxCodeId: lo.CoalesceOrEmpty(overrides.TaxCodeId, base.TaxCodeId),
 		}
 	}
 

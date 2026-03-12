@@ -40,9 +40,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 								Config: []byte(`"test"`),
 							}),
 						TaxConfig: &TaxConfig{
-							Stripe: &StripeTaxConfig{
-								Code: "txcd_99999999",
-							},
+							TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 						},
 						Price: NewPriceFrom(FlatPrice{
 							Amount:      decimal.NewFromInt(1000),
@@ -85,9 +83,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 								Config: []byte("invalid JSON"),
 							}),
 						TaxConfig: &TaxConfig{
-							Stripe: &StripeTaxConfig{
-								Code: "invalid_code",
-							},
+							TaxCodeId: lo.ToPtr("invalid_tax_code_id"),
 						},
 						Price: NewPriceFrom(
 							FlatPrice{
@@ -203,9 +199,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 								UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 							}),
 						TaxConfig: &TaxConfig{
-							Stripe: &StripeTaxConfig{
-								Code: "txcd_99999999",
-							},
+							TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 						},
 						Price: NewPriceFrom(
 							UnitPrice{
@@ -244,9 +238,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 								UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 							}),
 						TaxConfig: &TaxConfig{
-							Stripe: &StripeTaxConfig{
-								Code: "invalid_code",
-							},
+							TaxCodeId: lo.ToPtr("invalid_tax_code_id"),
 						},
 						Price: NewPriceFrom(
 							UnitPrice{
@@ -400,9 +392,7 @@ func TestRateCardsEqual(t *testing.T) {
 									UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 								}),
 							TaxConfig: &TaxConfig{
-								Stripe: &StripeTaxConfig{
-									Code: "txcd_99999999",
-								},
+								TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 							},
 							Price: NewPriceFrom(
 								UnitPrice{
@@ -447,9 +437,7 @@ func TestRateCardsEqual(t *testing.T) {
 									UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 								}),
 							TaxConfig: &TaxConfig{
-								Stripe: &StripeTaxConfig{
-									Code: "txcd_99999999",
-								},
+								TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 							},
 							Price: NewPriceFrom(
 								UnitPrice{
@@ -498,9 +486,7 @@ func TestRateCardsEqual(t *testing.T) {
 									UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 								}),
 							TaxConfig: &TaxConfig{
-								Stripe: &StripeTaxConfig{
-									Code: "txcd_99999999",
-								},
+								TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 							},
 							Price: NewPriceFrom(
 								UnitPrice{
@@ -533,9 +519,7 @@ func TestRateCardsEqual(t *testing.T) {
 									Config: []byte(`"test"`),
 								}),
 							TaxConfig: &TaxConfig{
-								Stripe: &StripeTaxConfig{
-									Code: "txcd_99999999",
-								},
+								TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 							},
 							Price: NewPriceFrom(FlatPrice{
 								Amount:      decimal.NewFromInt(1000),

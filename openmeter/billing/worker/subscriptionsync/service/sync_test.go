@@ -3768,10 +3768,8 @@ func (s *SubscriptionHandlerTestSuite) TestRateCardTaxSync() {
 	//  the gathering invoice will contain the tax details
 
 	taxConfig := &productcatalog.TaxConfig{
-		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		Stripe: &productcatalog.StripeTaxConfig{
-			Code: "txcd_10000000",
-		},
+		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 	}
 
 	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{

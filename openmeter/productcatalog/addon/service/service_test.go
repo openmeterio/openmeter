@@ -77,9 +77,7 @@ func TestAddonService(t *testing.T) {
 						FeatureID:           lo.ToPtr(features[0].ID),
 						EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
 						TaxConfig: &productcatalog.TaxConfig{
-							Stripe: &productcatalog.StripeTaxConfig{
-								Code: "txcd_10000000",
-							},
+							TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 						},
 						Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 							Mode: productcatalog.VolumeTieredPrice,
@@ -161,9 +159,7 @@ func TestAddonService(t *testing.T) {
 								FeatureKey:  lo.ToPtr(features[0].Key),
 								FeatureID:   lo.ToPtr(features[0].ID),
 								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+									TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 								},
 								Price: productcatalog.NewPriceFrom(
 									productcatalog.FlatPrice{
@@ -183,9 +179,7 @@ func TestAddonService(t *testing.T) {
 								FeatureID:           lo.ToPtr(features[1].ID),
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
 								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+									TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 								},
 								Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 									Mode: productcatalog.VolumeTieredPrice,

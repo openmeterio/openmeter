@@ -24,5 +24,8 @@ func NewTaxCodeAdapter(logger *slog.Logger, db *entdb.Client) (taxcode.Repositor
 }
 
 func NewTaxCodeService(logger *slog.Logger, adapter taxcode.Repository) taxcode.Service {
-	return taxcodeservice.New(adapter, logger.With("subsystem", "taxcode"))
+	return taxcodeservice.New(taxcodeservice.Config{
+		Adapter: adapter,
+		Logger:  logger.With("subsystem", "taxcode"),
+	})
 }

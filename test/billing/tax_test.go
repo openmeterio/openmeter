@@ -11,11 +11,13 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -37,13 +39,22 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	cust := s.CreateTestCustomer(namespace, "test")
+	taxCodeSaas := s.CreateTestTaxCode(taxcode.CreateTaxCodeInput{
+		Namespace: namespace,
+		Key:       "saas-business-use",
+		Name:      "Software as a service (SaaS) - business use",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{
+				AppType: app.AppTypeStripe,
+				TaxCode: "txcd_10103001",
+			},
+		},
+	})
 
 	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
 		profile.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
-			Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-			Stripe: &productcatalog.StripeTaxConfig{
-				Code: "txcd_10000000",
-			},
+			Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+			TaxCodeId: &taxCodeSaas.ID,
 		}
 	}))
 
@@ -51,8 +62,8 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 		draftInvoice := s.generateDraftInvoice(ctx, cust)
 		s.NotNil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
 		s.Equal(productcatalog.InclusiveTaxBehavior, *draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Behavior)
-		s.NotNil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe)
-		s.Equal("txcd_10000000", draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe.Code)
+		s.NotNil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.TaxCodeId)
+		s.Equal(taxCodeSaas.ID, *draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.TaxCodeId)
 	})
 
 	s.Run("Profile default tax config is not set in billing profile, set in override", func() {
@@ -66,15 +77,25 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 		s.NoError(err)
 		s.Nil(profile.WorkflowConfig.Invoicing.DefaultTaxConfig)
 
+		taxCodeDownload := s.CreateTestTaxCode(taxcode.CreateTaxCodeInput{
+			Namespace: namespace,
+			Key:       "saas-download-use",
+			Name:      "Software as a service (SaaS) - electronic download - business use",
+			AppMappings: taxcode.TaxCodeAppMappings{
+				{
+					AppType: app.AppTypeStripe,
+					TaxCode: "txcd_10103101",
+				},
+			},
+		})
+
 		override := billing.UpsertCustomerOverrideInput{
 			Namespace:  namespace,
 			CustomerID: cust.ID,
 			Invoicing: billing.InvoicingOverrideConfig{
 				DefaultTaxConfig: &productcatalog.TaxConfig{
-					Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-					Stripe: &productcatalog.StripeTaxConfig{
-						Code: "txcd_20000000",
-					},
+					Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+					TaxCodeId: &taxCodeDownload.ID,
 				},
 			},
 		}
@@ -91,12 +112,12 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 		s.NoError(err)
 		s.NotNil(customerOverride.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig)
 		s.Equal(productcatalog.ExclusiveTaxBehavior, *customerOverride.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig.Behavior)
-		s.Equal("txcd_20000000", customerOverride.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig.Stripe.Code)
+		s.Equal(taxCodeDownload.ID, *customerOverride.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig.TaxCodeId)
 
 		draftInvoice := s.generateDraftInvoice(ctx, cust)
 		s.NotNil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
 		s.Equal(productcatalog.ExclusiveTaxBehavior, *draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Behavior)
-		s.Equal("txcd_20000000", draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe.Code)
+		s.Equal(taxCodeDownload.ID, *draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.TaxCodeId)
 	})
 
 	s.Run("Profile default tax config is not set, invoice inherits it, but can be updated", func() {
@@ -120,15 +141,25 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 		draftInvoice := s.generateDraftInvoice(ctx, cust)
 		s.Nil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
 
+		taxCode := s.CreateTestTaxCode(taxcode.CreateTaxCodeInput{
+			Namespace: namespace,
+			Key:       "cloude-business-process",
+			Name:      "Cloud-based business process as a service",
+			AppMappings: taxcode.TaxCodeAppMappings{
+				{
+					AppType: app.AppTypeStripe,
+					TaxCode: "txcd_10104001",
+				},
+			},
+		})
+
 		// let's update the invoice
 		updatedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 			Invoice: draftInvoice.GetInvoiceID(),
 			EditFn: func(invoice *billing.StandardInvoice) error {
 				invoice.Workflow.Config.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
-					Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-					Stripe: &productcatalog.StripeTaxConfig{
-						Code: "txcd_30000000",
-					},
+					Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+					TaxCodeId: &taxCode.ID,
 				}
 				return nil
 			},
@@ -136,7 +167,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 		s.NoError(err)
 		s.NotNil(updatedInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Behavior)
 		s.Equal(productcatalog.InclusiveTaxBehavior, *updatedInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Behavior)
-		s.Equal("txcd_30000000", updatedInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe.Code)
+		s.Equal(taxCode.ID, *updatedInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.TaxCodeId)
 	})
 }
 
@@ -177,6 +208,18 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	})
 	s.NoError(err, "meter replacement must not return error")
 
+	taxCode := s.CreateTestTaxCode(taxcode.CreateTaxCodeInput{
+		Namespace: namespace,
+		Key:       "sf-download",
+		Name:      "Downloadable Software - business use",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{
+				AppType: app.AppTypeStripe,
+				TaxCode: "txcd_10202003",
+			},
+		},
+	})
+
 	defer func() {
 		err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{})
 		s.NoError(err, "meter replacement must not return error")
@@ -194,10 +237,8 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	defer s.MockStreamingConnector.Reset()
 
 	taxConfig := &productcatalog.TaxConfig{
-		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		Stripe: &productcatalog.StripeTaxConfig{
-			Code: "txcd_10000000",
-		},
+		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		TaxCodeId: &taxCode.ID,
 	}
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
