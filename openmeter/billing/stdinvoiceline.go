@@ -13,6 +13,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -42,6 +43,7 @@ type StandardLineBase struct {
 	ChildUniqueReferenceID *string `json:"childUniqueReferenceID,omitempty"`
 
 	TaxConfig         *productcatalog.TaxConfig `json:"taxOverrides,omitempty"`
+	TaxCode           *taxcode.TaxCode          `json:"taxCode,omitempty"`
 	RateCardDiscounts Discounts                 `json:"rateCardDiscounts,omitempty"`
 	CreditsApplied    CreditsApplied            `json:"creditsApplied,omitempty"`
 

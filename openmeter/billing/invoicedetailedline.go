@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -60,6 +61,7 @@ type DetailedLineBase struct {
 
 	// Apps
 	TaxConfig   *productcatalog.TaxConfig `json:"taxConfig,omitempty"`
+	TaxCode     *taxcode.TaxCode          `json:"taxCode,omitempty"`
 	ExternalIDs LineExternalIDs           `json:"externalIDs,omitempty"`
 
 	// FeeLineConfigID contains the ID of the fee configuration in the DB, this should go away

@@ -5,6 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 )
 
 type invoiceCalculatorsByType struct {
@@ -22,7 +23,7 @@ var InvoiceCalculations = invoiceCalculatorsByType{
 		WithNoDependencies(UpsertDiscountCorrelationIDs),
 		RecalculateDetailedLinesAndTotals,
 		WithNoDependencies(CalculateStandardInvoiceServicePeriod),
-		WithNoDependencies(SnapshotTaxConfigIntoLines),
+		SnapshotTaxConfigIntoLines,
 	},
 	LegacyGatheringInvoice: []Calculation{
 		WithNoDependencies(UpsertDiscountCorrelationIDs),
@@ -40,7 +41,7 @@ var InvoiceCalculations = invoiceCalculatorsByType{
 		WithNoDependencies(LegacyGatheringInvoiceCollectionAt),
 		RecalculateDetailedLinesAndTotals,
 		WithNoDependencies(CalculateStandardInvoiceServicePeriod),
-		WithNoDependencies(SnapshotTaxConfigIntoLines),
+		SnapshotTaxConfigIntoLines,
 		WithNoDependencies(FillGatheringDetailedLineMeta),
 	},
 }
@@ -59,6 +60,7 @@ type Calculator interface {
 
 type CalculatorDependencies struct {
 	FeatureMeters feature.FeatureMeters
+	TaxCodes      map[string]taxcode.TaxCode
 }
 
 type calculator struct{}

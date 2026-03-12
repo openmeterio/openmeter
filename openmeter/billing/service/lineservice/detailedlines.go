@@ -152,6 +152,7 @@ func newDetailedLines(line *billing.StandardLine, inputs ...newDetailedLineInput
 				Currency:               line.Currency,
 				ChildUniqueReferenceID: &in.ChildUniqueReferenceID,
 				TaxConfig:              line.TaxConfig,
+				TaxCode:                line.TaxCode,
 
 				PaymentTerm:    lo.CoalesceOrEmpty(in.PaymentTerm, productcatalog.InArrearsPaymentTerm),
 				PerUnitAmount:  in.PerUnitAmount,
