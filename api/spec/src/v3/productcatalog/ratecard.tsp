@@ -53,6 +53,13 @@ model RateCard {
   commitments?: SpendCommitments;
 
   /**
+   * The discounts of the rate card.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Discounts")
+  discounts?: Discounts;
+
+  /**
    * The tax config of the rate card.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
@@ -69,4 +76,24 @@ model RateCardTaxConfig {
   behavior?: Billing.TaxBehavior;
   #suppress "@openmeter/api-spec/doc-decorator" "shared model"
   code: Shared.ResourceWithKeyReference<Tax.TaxCode>;
+}
+
+/**
+ * Discount configuration for a rate card.
+ */
+@friendlyName("BillingRateCardDiscounts")
+model Discounts {
+  /**
+   * Percentage discount applied to the price (0–100).
+   */
+  @minValue(0)
+  @maxValue(100)
+  percentage?: Shared.Percentage;
+
+  /**
+   * Number of usage units granted free before billing starts.
+   * Only applies to usage-based lines (not flat fees). Usage is treated as zero
+   * until this amount is exhausted.
+   */
+  usage?: Shared.Numeric;
 }

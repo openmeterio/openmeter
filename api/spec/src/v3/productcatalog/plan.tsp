@@ -8,34 +8,36 @@ namespace ProductCatalog;
  */
 @friendlyName("BillingPlanStatus")
 enum PlanStatus {
-  draft: "draft",
-  active: "active",
-  archived: "archived",
-  scheduled: "scheduled",
-}
-
-/**
- * References an exact plan.
- */
-@friendlyName("BillingPlanReference")
-model PlanReference {
-  ...PickProperties<Shared.ResourceWithKey, "key" | "name" | "id">;
+  /**
+   * The plan has not yet been published and can be edited.
+   */
+  Draft: "draft",
 
   /**
-   * The plan version.
+   * The plan is published and can be used in subscriptions.
    */
-  version: integer;
+  Active: "active",
+
+  /**
+   * The plan is no longer available for use.
+   */
+  Archived: "archived",
+
+  /**
+   * The plan is scheduled to be published at a future date.
+   */
+  Scheduled: "scheduled",
 }
 
 /**
  * Plans provide a template for subscriptions.
  */
-@friendlyName("Plan")
+@friendlyName("BillingPlan")
 model Plan {
-  ...PickProperties<Shared.ResourceWithKey, "key" | "name" | "id">;
+  ...Shared.ResourceWithKey;
 
   /**
-   * Version of the plan. Incremented when the plan is updated.
+   * Plans are versioned to allow you to make changes without affecting running subscriptions.
    */
   @summary("Version")
   @minValue(1)
@@ -47,16 +49,105 @@ model Plan {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Currency")
-  currency: Shared.CurrencyCode = "USD";
+  currency: Shared.CurrencyCode;
 
   /**
-   * The default billing cadence for subscriptions using this plan.
-   * Defines how often customers are billed using ISO8601 duration format.
-   * Examples: "P1M" (monthly), "P3M" (quarterly), "P1Y" (annually).
+   * The billing cadence for subscriptions using this plan.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @summary("Billing cadence")
+  billing_cadence: Shared.ISO8601Duration;
+
+  /**
+   * The date and time when the plan becomes `active`.
+   * When not specified, the plan is in `draft` status.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Effective start date")
+  effective_from?: Shared.DateTime;
+
+  /**
+   * A scheduled date and time when the plan becomes `archived`.
+   * When not specified, the plan is in `active` status indefinitely.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Effective end date")
+  effective_to?: Shared.DateTime;
+
+  /**
+   * The status of the plan.
+   * Computed based on the effective start and end dates:
+   *  - draft = no effectiveFrom
+   *  - active = effectiveFrom <= now < effectiveTo
+   *  - archived / inactive = effectiveTo <= now
+   *  - scheduled = now < effectiveFrom < effectiveTo
+   */
+  @summary("Status")
+  @visibility(Lifecycle.Read)
+  status: PlanStatus;
+
+  /**
+   * List of validation errors in `draft` state that prevent the plan from being published.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Validation errors")
+  validation_errors?: PlanValidationError[];
+}
+
+/**
+ * Validation errors providing detailed description of the issue.
+ */
+@friendlyName("BillingPlanValidationError")
+model PlanValidationError {
+  /**
+   * The path to the field in the plan definition.
+   */
+  @visibility(Lifecycle.Read)
+  @example("addons/pro/ratecards/token/featureKey")
+  field: string;
+
+  /**
+   * The machine readable code of the error.
+   */
+  @visibility(Lifecycle.Read)
+  @example("invalid_feature_key")
+  code: string;
+
+  /**
+   * The human readable description of the error.
+   */
+  @visibility(Lifecycle.Read)
+  @example("not found feature by key")
+  message: string;
+
+  /**
+   * Additional attributes.
+   */
+  @visibility(Lifecycle.Read)
+  attributes?: Record<unknown>;
+}
+
+/**
+ * The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
+ */
+@friendlyName("BillingPlanPhase")
+model PlanPhase {
+  ...PickProperties<
+    Shared.ResourceWithKey,
+    "key" | "name" | "description" | "labels"
+  >;
+
+  /**
+   * The duration of the phase.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Billing cadence")
-  @encode(DurationKnownEncoding.ISO8601)
-  @example(duration.fromISO("P1M"))
-  billingCadence: duration;
+  @summary("Duration")
+  duration: Shared.ISO8601Duration;
+
+  /**
+   * The rate cards of the plan.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Rate cards")
+  rateCards: RateCard[];
 }
