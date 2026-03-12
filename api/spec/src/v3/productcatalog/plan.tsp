@@ -34,7 +34,20 @@ enum PlanStatus {
  */
 @friendlyName("BillingPlan")
 model Plan {
-  ...Shared.ResourceWithKey;
+  ...Shared.Resource;
+
+  /**
+   * A key is a semi-unique string that is used to identify the plan.
+   * It is used to reference the latest `active` version of the plan and is unique with the version number.
+   */
+  @pattern(
+    "^[a-z0-9]+(?:_[a-z0-9]+)*$",
+    "Must start with a lowercase letter or a number. Can contain lowercase letters, numbers, and underscores."
+  )
+  @minLength(1)
+  @maxLength(64)
+  @summary("Key")
+  key: string;
 
   /**
    * Plans are versioned to allow you to make changes without affecting running subscriptions.
@@ -149,5 +162,5 @@ model PlanPhase {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Rate cards")
-  rateCards: RateCard[];
+  rate_cards: RateCard[];
 }
