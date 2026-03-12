@@ -283,6 +283,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 			},
 
 			Lines: billing.NewGatheringInvoiceLines([]billing.GatheringLine{expectedUSDLine}),
+
+			Expands: []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 		}
 
 		s.NoError(invoicecalc.GatheringInvoiceCollectionAt(&expectedInvoice))

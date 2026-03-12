@@ -166,13 +166,35 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 		return nil, fmt.Errorf("creating standard invoice from gathering invoice: %w", err)
 	}
 
-	wasLinesAbsent := invoice.Lines.IsAbsent()
+	wasLinesPresent := invoice.Lines.IsPresent()
 
-	if wasLinesAbsent {
+	shouldReloadLines := !wasLinesPresent
+
+	if !invoice.Expands.Has(billing.GatheringInvoiceExpandSplitLineHierarchy) && wasLinesPresent {
+		// If the invoice has lines and the splitline hierarchy is not expanded, we need to check if there are any progressive billed lines
+		// and reload the invoice as price calculations depend on the presence of the split line hierarchy.
+
+		progressiveBilledLineCount := lo.CountBy(invoice.Lines.OrEmpty(), func(line billing.GatheringLine) bool {
+			if line.DeletedAt != nil {
+				return false
+			}
+
+			return line.SplitLineGroupID != nil
+		})
+
+		if progressiveBilledLineCount > 0 {
+			shouldReloadLines = true
+		}
+	}
+
+	// If the gathering invoice has no splitline hierarchy expanded we need to reload the invoice so that the price calculations can
+	// properly proceed.
+	if shouldReloadLines {
 		// Let's reload the whole invoice with lines expanded
 		invoice, err = s.adapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
 			Invoice: in.Invoice.GetInvoiceID(),
-			Expand:  billing.GatheringInvoiceExpandAll,
+			Expand: billing.GatheringInvoiceExpandAll.
+				With(billing.GatheringInvoiceExpandSplitLineHierarchy),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("fetching gathering invoice: %w", err)
@@ -223,7 +245,7 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 		return nil, fmt.Errorf("calculating invoice: %w", err)
 	}
 
-	if wasLinesAbsent {
+	if !wasLinesPresent {
 		// If the original user intent was to not to receive the lines, let's not send them
 		out.Lines = billing.StandardInvoiceLines{}
 	} else {
