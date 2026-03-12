@@ -422,6 +422,8 @@ func (a *adapter) mapGatheringInvoiceFromDB(ctx context.Context, invoice *db.Bil
 			NextCollectionAt: invoice.CollectionAt.In(time.UTC),
 			SchemaLevel:      invoice.SchemaLevel,
 		},
+
+		Expands: expand,
 	}
 
 	if expand.Has(billing.GatheringInvoiceExpandLines) {

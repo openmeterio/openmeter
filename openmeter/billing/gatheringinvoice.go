@@ -75,7 +75,7 @@ type GatheringInvoice struct {
 	// these lines too.
 	AvailableActions *GatheringInvoiceAvailableActions `json:"availableActions,omitempty"`
 
-	SplitLineHierarchy *SplitLineHierarchy `json:"splitLineHierarchy,omitempty"`
+	Expands GatheringInvoiceExpands `json:"expands,omitempty"`
 }
 
 func (g GatheringInvoice) WithoutDBState() (GatheringInvoice, error) {
@@ -158,6 +158,7 @@ func (g GatheringInvoice) Clone() (GatheringInvoice, error) {
 	}
 
 	clone.Lines = clonedLines
+	clone.Expands = g.Expands.Clone()
 
 	return clone, nil
 }
@@ -681,6 +682,16 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 		subscription = g.Subscription.Clone()
 	}
 
+	var splitLineHierarchy *SplitLineHierarchy
+	if g.SplitLineHierarchy != nil {
+		clonedSHierarchy, err := g.SplitLineHierarchy.Clone()
+		if err != nil {
+			return nil, fmt.Errorf("cloning split line hierarchy: %w", err)
+		}
+
+		splitLineHierarchy = lo.ToPtr(clonedSHierarchy)
+	}
+
 	convertedLine := &StandardLine{
 		StandardLineBase: StandardLineBase{
 			ManagedResource: g.ManagedResource,
@@ -707,6 +718,8 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 			Price:      lo.ToPtr(g.Price),
 			FeatureKey: g.FeatureKey,
 		},
+
+		SplitLineHierarchy: splitLineHierarchy,
 
 		DBState: nil, // We don't want to reuse the state from the gathering line (so let's make it explicit)
 	}
