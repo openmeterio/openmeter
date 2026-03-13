@@ -1,7 +1,10 @@
 package llmcost
 
 import (
+	"encoding/json"
 	"fmt"
+	"log/slog"
+	"net/url"
 	"strings"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -10,8 +13,84 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
+	"github.com/openmeterio/openmeter/pkg/filter/aip160"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+// stringOps is the set of AIP-160 operators valid for string fields.
+var stringOps = map[aip160.Operator]bool{
+	aip160.OpEq:        true,
+	aip160.OpNeq:       true,
+	aip160.OpOEq:       true,
+	aip160.OpContains:  true,
+	aip160.OpOContains: true,
+}
+
+// authorizedPriceFilters defines per-field authorized operators,
+// following the AuthorizedFilters pattern from the AIP filtering spec.
+var authorizedPriceFilters = map[string]map[aip160.Operator]bool{
+	"provider":   stringOps,
+	"model_id":   stringOps,
+	"model_name": stringOps,
+	"currency":   stringOps,
+}
+
+// parsePriceFilters parses AIP-160 deep-object filter params from the request URL
+// (e.g. ?filter[provider][eq]=openai) and returns per-field StringFilter values.
+func parsePriceFilters(query url.Values) (provider, modelID, modelName, currency *filters.StringFilter, err error) {
+	conditions, err := aip160.ParseFromValues(query, "filter")
+	if err != nil {
+		return nil, nil, nil, nil, models.NewGenericValidationError(fmt.Errorf("invalid filter: %w", err))
+	}
+
+	if b, merr := json.Marshal(conditions); merr == nil {
+		slog.Default().Debug("aip160 parsed filter", "conditions", string(b))
+	}
+
+	if c, ok := lo.Find(conditions, func(c aip160.FieldFilter) bool {
+		_, fieldOK := authorizedPriceFilters[c.Field]
+		return !fieldOK
+	}); ok {
+		return nil, nil, nil, nil, models.NewGenericValidationError(
+			fmt.Errorf("unsupported filter field %q, supported fields: provider, model_id, model_name, currency", c.Field),
+		)
+	}
+
+	if c, ok := lo.Find(conditions, func(c aip160.FieldFilter) bool {
+		return !authorizedPriceFilters[c.Field][c.Operator]
+	}); ok {
+		return nil, nil, nil, nil, models.NewGenericValidationError(
+			fmt.Errorf("unsupported operator %q for field %q", c.Operator, c.Field),
+		)
+	}
+
+	byField := lo.Associate(conditions, func(c aip160.FieldFilter) (string, *filters.StringFilter) {
+		sf, _ := fieldFilterToStringFilter(c)
+		return c.Field, sf
+	})
+
+	return byField["provider"], byField["model_id"], byField["model_name"], byField["currency"], nil
+}
+
+// fieldFilterToStringFilter converts a single AIP-160 FieldFilter to a domain StringFilter.
+func fieldFilterToStringFilter(c aip160.FieldFilter) (*filters.StringFilter, error) {
+	switch c.Operator {
+	case aip160.OpEq:
+		return &filters.StringFilter{Eq: &c.Value}, nil
+	case aip160.OpNeq:
+		return &filters.StringFilter{Neq: &c.Value}, nil
+	case aip160.OpContains:
+		return &filters.StringFilter{Contains: &c.Value}, nil
+	case aip160.OpOEq:
+		return &filters.StringFilter{In: c.Values}, nil
+	case aip160.OpOContains:
+		return &filters.StringFilter{ContainsAny: c.Values}, nil
+	default:
+		return nil, models.NewGenericValidationError(
+			fmt.Errorf("unsupported operator %q for field %q", c.Operator, c.Field),
+		)
+	}
+}
 
 // providerDisplayNames maps well-known provider IDs to their formatted display names.
 var providerDisplayNames = map[string]string{
@@ -199,28 +278,4 @@ func validPriceSortField(field string) bool {
 	default:
 		return false
 	}
-}
-
-// filterSingleStringToDomain converts an API FilterSingleString to the domain StringFilter.
-// Returns nil if the input is nil or empty.
-func filterSingleStringToDomain(f *api.FilterSingleString) (*filters.StringFilter, error) {
-	if f == nil {
-		return nil, nil
-	}
-
-	out := &filters.StringFilter{
-		Eq:       f.Eq,
-		Neq:      f.Neq,
-		Contains: f.Contains,
-	}
-
-	if err := out.Validate(); err != nil {
-		return nil, models.NewGenericValidationError(err)
-	}
-
-	if out.IsEmpty() {
-		return nil, nil
-	}
-
-	return out, nil
 }

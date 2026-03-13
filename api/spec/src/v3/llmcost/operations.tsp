@@ -13,48 +13,15 @@ using TypeSpec.OpenAPI;
 namespace LLMCost;
 
 /**
- * A filter for a single string field.
- * TODO: This is a temporary solution to support the filter API.
+ * AIP-160 filter expression in deep-object URL format.
+ * e.g. ?filter[provider][eq]=openai
  */
-@friendlyName("FilterSingleString")
-model FilterSingleString {
-  /**
-   * The field must match the provided value.
-   */
-  @extension("x-omitempty", true)
-  eq?: string;
-
-  /**
-   * The field must not match the provided value.
-   */
-  @extension("x-omitempty", true)
-  neq?: string;
-
-  /**
-   * The field must contain the provided value.
-   */
-  @extension("x-omitempty", true)
-  contains?: string;
-}
-
-/**
- * Filter options for listing LLM cost prices.
- */
-#suppress "@openmeter/api-spec/repeated-prefix-grouping" "model_id and model_name should not be grouped"
-@friendlyName("ListLLMCostPricesParamsFilter")
-model ListPricesParamsFilter {
-  /** Filter by provider. e.g. ?filter[provider][eq]=openai */
-  provider?: FilterSingleString;
-
-  /** Filter by model ID. e.g. ?filter[model_id][eq]=gpt-4 */
-  model_id?: FilterSingleString;
-
-  /** Filter by model name. e.g. ?filter[model_name][contains]=gpt */
-  model_name?: FilterSingleString;
-
-  /** Filter by currency code. e.g. ?filter[currency][eq]=USD */
-  currency?: FilterSingleString;
-}
+@extension("x-go-type", "aip160.Filter")
+@extension(
+  "x-go-type-import",
+  #{ path: "github.com/openmeterio/openmeter/pkg/filter/aip160" }
+)
+scalar AIP160Filter extends string;
 
 /**
  * Operations for managing global LLM cost prices.
@@ -72,10 +39,19 @@ interface LLMCostPricesOperations {
   @summary("List LLM cost prices")
   list_prices(
     /**
-     * Filter prices.
+     * AIP-160 filter expression using the deep-object format.
+     *
+     * Supported fields: `provider`, `model_id`, `model_name`, `currency`
+     *
+     * Supported operators: `eq`, `neq`, `contains`, `oeq`, `ocontains`
+     *
+     * Examples:
+     * - `?filter[provider][eq]=openai`
+     * - `?filter[model_id][eq]=gpt-4`
+     * - `?filter[model_name][contains]=gpt`
+     * - `?filter[currency][eq]=USD`
      */
-    @query(#{ style: "deepObject", explode: true })
-    filter?: ListPricesParamsFilter,
+    @query filter?: AIP160Filter,
 
     /**
      * Sort prices returned in the response.
@@ -124,8 +100,20 @@ interface LLMCostOverridesOperations {
   @operationId("list-llm-cost-overrides")
   @summary("List LLM cost overrides")
   list_overrides(
-    @query(#{ style: "deepObject", explode: true })
-    filter?: ListPricesParamsFilter,
+    /**
+     * AIP-160 filter expression using the deep-object format.
+     *
+     * Supported fields: `provider`, `model_id`, `model_name`, `currency`
+     *
+     * Supported operators: `eq`, `neq`, `contains`, `oeq`, `ocontains`
+     *
+     * Examples:
+     * - `?filter[provider][eq]=openai`
+     * - `?filter[model_id][eq]=gpt-4`
+     * - `?filter[model_name][contains]=gpt`
+     * - `?filter[currency][eq]=USD`
+     */
+    @query filter?: AIP160Filter,
 
     ...Common.PagePaginationQuery,
   ): Shared.PagePaginatedResponse<Price> | Common.ErrorResponses;

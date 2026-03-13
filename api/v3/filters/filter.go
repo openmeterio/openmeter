@@ -3,7 +3,7 @@ package filters
 import "errors"
 
 // StringFilter represents a filter operation on a string field.
-// Exactly one of Eq, Neq, or Contains should be set.
+// Exactly one of Eq, Neq, Contains, or In should be set.
 type StringFilter struct {
 	// Eq requires the field to match the provided value exactly (case-insensitive).
 	Eq *string `json:"eq,omitempty"`
@@ -13,11 +13,17 @@ type StringFilter struct {
 
 	// Contains requires the field to contain the provided value (case-insensitive).
 	Contains *string `json:"contains,omitempty"`
+
+	// In requires the field to match any of the provided values (case-sensitive).
+	In []string `json:"in,omitempty"`
+
+	// ContainsAny requires the field to contain any of the provided values (case-insensitive OR match).
+	ContainsAny []string `json:"contains_any,omitempty"`
 }
 
 // IsEmpty returns true if no filter operator is set.
 func (f StringFilter) IsEmpty() bool {
-	return f.Eq == nil && f.Neq == nil && f.Contains == nil
+	return f.Eq == nil && f.Neq == nil && f.Contains == nil && len(f.In) == 0 && len(f.ContainsAny) == 0
 }
 
 // Validate validates the filter.
