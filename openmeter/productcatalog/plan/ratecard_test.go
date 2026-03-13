@@ -54,9 +54,7 @@ func TestRateCard_JSON(t *testing.T) {
 								Config: []byte(`{"key":"value"}`),
 							}),
 						TaxConfig: &productcatalog.TaxConfig{
-							Stripe: &productcatalog.StripeTaxConfig{
-								Code: "txcd_99999999",
-							},
+							TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 						},
 						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 							Amount:      decimal.NewFromInt(1000),
@@ -104,9 +102,7 @@ func TestRateCard_JSON(t *testing.T) {
 								UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 							}),
 						TaxConfig: &productcatalog.TaxConfig{
-							Stripe: &productcatalog.StripeTaxConfig{
-								Code: "txcd_99999999",
-							},
+							TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 						},
 						Price: productcatalog.NewPriceFrom(
 							productcatalog.UnitPrice{
@@ -187,9 +183,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 									Config: []byte(`"test"`),
 								}),
 							TaxConfig: &productcatalog.TaxConfig{
-								Stripe: &productcatalog.StripeTaxConfig{
-									Code: "txcd_99999999",
-								},
+								TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 							},
 							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 								Amount:      decimal.NewFromInt(1000),
@@ -234,9 +228,7 @@ func TestFlatFeeRateCard(t *testing.T) {
 									Config: []byte("invalid JSON"),
 								}),
 							TaxConfig: &productcatalog.TaxConfig{
-								Stripe: &productcatalog.StripeTaxConfig{
-									Code: "invalid_code",
-								},
+								TaxCodeId: lo.ToPtr("invalid_tax_code_id"),
 							},
 							Price: productcatalog.NewPriceFrom(
 								productcatalog.FlatPrice{
@@ -309,9 +301,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 									UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 								}),
 							TaxConfig: &productcatalog.TaxConfig{
-								Stripe: &productcatalog.StripeTaxConfig{
-									Code: "txcd_99999999",
-								},
+								TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 							},
 							Price: productcatalog.NewPriceFrom(
 								productcatalog.UnitPrice{
@@ -364,9 +354,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 									UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
 								}),
 							TaxConfig: &productcatalog.TaxConfig{
-								Stripe: &productcatalog.StripeTaxConfig{
-									Code: "invalid_code",
-								},
+								TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 							},
 							Price: productcatalog.NewPriceFrom(
 								productcatalog.UnitPrice{

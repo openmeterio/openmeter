@@ -38,6 +38,10 @@ const (
 	FieldCurrency = "currency"
 	// FieldTaxConfig holds the string denoting the tax_config field in the database.
 	FieldTaxConfig = "tax_config"
+	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
+	FieldTaxCodeID = "tax_code_id"
+	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
+	FieldTaxBehavior = "tax_behavior"
 	// FieldAmount holds the string denoting the amount field in the database.
 	FieldAmount = "amount"
 	// FieldTaxesTotal holds the string denoting the taxes_total field in the database.
@@ -82,6 +86,8 @@ const (
 	EdgeBillingInvoice = "billing_invoice"
 	// EdgeBillingInvoiceLine holds the string denoting the billing_invoice_line edge name in mutations.
 	EdgeBillingInvoiceLine = "billing_invoice_line"
+	// EdgeTaxCode holds the string denoting the tax_code edge name in mutations.
+	EdgeTaxCode = "tax_code"
 	// EdgeAmountDiscounts holds the string denoting the amount_discounts edge name in mutations.
 	EdgeAmountDiscounts = "amount_discounts"
 	// Table holds the table name of the billingstandardinvoicedetailedline in the database.
@@ -100,6 +106,13 @@ const (
 	BillingInvoiceLineInverseTable = "billing_invoice_lines"
 	// BillingInvoiceLineColumn is the table column denoting the billing_invoice_line relation/edge.
 	BillingInvoiceLineColumn = "parent_line_id"
+	// TaxCodeTable is the table that holds the tax_code relation/edge.
+	TaxCodeTable = "billing_standard_invoice_detailed_lines"
+	// TaxCodeInverseTable is the table name for the TaxCode entity.
+	// It exists in this package in order to avoid circular dependency with the "dbtaxcode" package.
+	TaxCodeInverseTable = "tax_codes"
+	// TaxCodeColumn is the table column denoting the tax_code relation/edge.
+	TaxCodeColumn = "tax_code_id"
 	// AmountDiscountsTable is the table that holds the amount_discounts relation/edge.
 	AmountDiscountsTable = "billing_standard_invoice_detailed_line_amount_discounts"
 	// AmountDiscountsInverseTable is the table name for the BillingStandardInvoiceDetailedLineAmountDiscount entity.
@@ -122,6 +135,8 @@ var Columns = []string{
 	FieldDescription,
 	FieldCurrency,
 	FieldTaxConfig,
+	FieldTaxCodeID,
+	FieldTaxBehavior,
 	FieldAmount,
 	FieldTaxesTotal,
 	FieldTaxesInclusiveTotal,
@@ -172,6 +187,16 @@ var (
 		CreditsApplied field.TypeValueScanner[*billing.CreditsApplied]
 	}
 )
+
+// TaxBehaviorValidator is a validator for the "tax_behavior" field enum values. It is called by the builders before save.
+func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
+	switch tb {
+	case "inclusive", "exclusive":
+		return nil
+	default:
+		return fmt.Errorf("billingstandardinvoicedetailedline: invalid enum value for tax_behavior field: %q", tb)
+	}
+}
 
 const DefaultCategory billing.FlatFeeCategory = "regular"
 
@@ -238,6 +263,16 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByTaxCodeID orders the results by the tax_code_id field.
+func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
+}
+
+// ByTaxBehavior orders the results by the tax_behavior field.
+func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
 }
 
 // ByAmount orders the results by the amount field.
@@ -354,6 +389,13 @@ func ByBillingInvoiceLineField(field string, opts ...sql.OrderTermOption) OrderO
 	}
 }
 
+// ByTaxCodeField orders the results by tax_code field.
+func ByTaxCodeField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTaxCodeStep(), sql.OrderByField(field, opts...))
+	}
+}
+
 // ByAmountDiscountsCount orders the results by amount_discounts count.
 func ByAmountDiscountsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -379,6 +421,13 @@ func newBillingInvoiceLineStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingInvoiceLineInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, BillingInvoiceLineTable, BillingInvoiceLineColumn),
+	)
+}
+func newTaxCodeStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TaxCodeInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
 	)
 }
 func newAmountDiscountsStep() *sqlgraph.Step {

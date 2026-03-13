@@ -82,9 +82,7 @@ func TestEditingAndCanceling(t *testing.T) {
 									Amount: alpacadecimal.NewFromInt(100),
 								}),
 								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+									TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 								},
 								EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
 							},
@@ -203,9 +201,7 @@ func TestEditingAndCanceling(t *testing.T) {
 									Amount: alpacadecimal.NewFromInt(101),
 								}),
 								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+									TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 								},
 							},
 							BillingCadence: datetime.MustParseDuration(t, "P1M"),

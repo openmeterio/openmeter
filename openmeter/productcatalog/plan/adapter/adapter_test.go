@@ -41,9 +41,7 @@ var planPhases = []productcatalog.Phase{
 					FeatureID:           nil,
 					EntitlementTemplate: nil,
 					TaxConfig: &productcatalog.TaxConfig{
-						Stripe: &productcatalog.StripeTaxConfig{
-							Code: "txcd_10000000",
-						},
+						TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 					},
 					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 						Amount:      decimal.NewFromInt(0),
@@ -73,9 +71,7 @@ var planPhases = []productcatalog.Phase{
 					FeatureID:           nil,
 					EntitlementTemplate: nil,
 					TaxConfig: &productcatalog.TaxConfig{
-						Stripe: &productcatalog.StripeTaxConfig{
-							Code: "txcd_10000000",
-						},
+						TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 					},
 					Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 						Mode: productcatalog.VolumeTieredPrice,

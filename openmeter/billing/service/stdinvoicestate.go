@@ -666,8 +666,14 @@ func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
 		return fmt.Errorf("resolving feature meters: %w", err)
 	}
 
+	taxCodes, err := m.Service.resolveTaxCodes(ctx, m.Invoice)
+	if err != nil {
+		return fmt.Errorf("resolving tax codes: %w", err)
+	}
+
 	return m.Calculator.Calculate(&m.Invoice, invoicecalc.CalculatorDependencies{
 		FeatureMeters: featureMeters,
+		TaxCodes:      taxCodes,
 	})
 }
 

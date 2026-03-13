@@ -13,6 +13,7 @@ import (
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
@@ -46,6 +47,10 @@ type PlanRateCard struct {
 	EntitlementTemplate *productcatalog.EntitlementTemplate `json:"entitlement_template,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
 	TaxConfig *productcatalog.TaxConfig `json:"tax_config,omitempty"`
+	// TaxCodeID holds the value of the "tax_code_id" field.
+	TaxCodeID *string `json:"tax_code_id,omitempty"`
+	// TaxBehavior holds the value of the "tax_behavior" field.
+	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// BillingCadence holds the value of the "billing_cadence" field.
 	BillingCadence *datetime.ISODurationString `json:"billing_cadence,omitempty"`
 	// Price holds the value of the "price" field.
@@ -68,9 +73,11 @@ type PlanRateCardEdges struct {
 	Phase *PlanPhase `json:"phase,omitempty"`
 	// Features holds the value of the features edge.
 	Features *Feature `json:"features,omitempty"`
+	// TaxCode holds the value of the tax_code edge.
+	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // PhaseOrErr returns the Phase value or an error if the edge
@@ -95,6 +102,17 @@ func (e PlanRateCardEdges) FeaturesOrErr() (*Feature, error) {
 	return nil, &NotLoadedError{edge: "features"}
 }
 
+// TaxCodeOrErr returns the TaxCode value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e PlanRateCardEdges) TaxCodeOrErr() (*TaxCode, error) {
+	if e.TaxCode != nil {
+		return e.TaxCode, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: dbtaxcode.Label}
+	}
+	return nil, &NotLoadedError{edge: "tax_code"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*PlanRateCard) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -102,7 +120,7 @@ func (*PlanRateCard) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case planratecard.FieldMetadata:
 			values[i] = new([]byte)
-		case planratecard.FieldID, planratecard.FieldNamespace, planratecard.FieldName, planratecard.FieldDescription, planratecard.FieldKey, planratecard.FieldType, planratecard.FieldFeatureKey, planratecard.FieldBillingCadence, planratecard.FieldPhaseID, planratecard.FieldFeatureID:
+		case planratecard.FieldID, planratecard.FieldNamespace, planratecard.FieldName, planratecard.FieldDescription, planratecard.FieldKey, planratecard.FieldType, planratecard.FieldFeatureKey, planratecard.FieldTaxCodeID, planratecard.FieldTaxBehavior, planratecard.FieldBillingCadence, planratecard.FieldPhaseID, planratecard.FieldFeatureID:
 			values[i] = new(sql.NullString)
 		case planratecard.FieldCreatedAt, planratecard.FieldUpdatedAt, planratecard.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -212,6 +230,20 @@ func (_m *PlanRateCard) assignValues(columns []string, values []any) error {
 			} else {
 				_m.TaxConfig = value
 			}
+		case planratecard.FieldTaxCodeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
+			} else if value.Valid {
+				_m.TaxCodeID = new(string)
+				*_m.TaxCodeID = value.String
+			}
+		case planratecard.FieldTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
+			} else if value.Valid {
+				_m.TaxBehavior = new(productcatalog.TaxBehavior)
+				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
+			}
 		case planratecard.FieldBillingCadence:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field billing_cadence", values[i])
@@ -265,6 +297,11 @@ func (_m *PlanRateCard) QueryPhase() *PlanPhaseQuery {
 // QueryFeatures queries the "features" edge of the PlanRateCard entity.
 func (_m *PlanRateCard) QueryFeatures() *FeatureQuery {
 	return NewPlanRateCardClient(_m.config).QueryFeatures(_m)
+}
+
+// QueryTaxCode queries the "tax_code" edge of the PlanRateCard entity.
+func (_m *PlanRateCard) QueryTaxCode() *TaxCodeQuery {
+	return NewPlanRateCardClient(_m.config).QueryTaxCode(_m)
 }
 
 // Update returns a builder for updating this PlanRateCard.
@@ -333,6 +370,16 @@ func (_m *PlanRateCard) String() string {
 	builder.WriteString(", ")
 	if v := _m.TaxConfig; v != nil {
 		builder.WriteString("tax_config=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxCodeID; v != nil {
+		builder.WriteString("tax_code_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxBehavior; v != nil {
+		builder.WriteString("tax_behavior=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")

@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
@@ -51,6 +52,7 @@ func BillingService(
 	featureConnector feature.FeatureConnector,
 	meterService meter.Service,
 	streamingConnector streaming.Connector,
+	taxCodeService taxcode.Service,
 	eventPublisher eventbus.Publisher,
 	billingConfig config.BillingConfiguration,
 	subscriptionServices SubscriptionServiceWithWorkflow,
@@ -66,6 +68,7 @@ func BillingService(
 		Logger:                       logger,
 		MeterService:                 meterService,
 		StreamingConnector:           streamingConnector,
+		TaxCodeService:               taxCodeService,
 		Publisher:                    eventPublisher,
 		AdvancementStrategy:          billingConfig.AdvancementStrategy,
 		FSNamespaceLockdown:          fsConfig.NamespaceLockdown,

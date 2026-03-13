@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
@@ -42,6 +43,19 @@ func (TaxCode) Indexes() []ent.Index {
 				entsql.IndexWhere("deleted_at IS NULL"),
 			).
 			Unique(),
+	}
+}
+
+func (TaxCode) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.To("billing_workflow_configs", BillingWorkflowConfig.Type),
+		edge.To("billing_customer_overrides", BillingCustomerOverride.Type),
+		edge.To("billing_invoice_lines", BillingInvoiceLine.Type),
+		edge.To("billing_invoice_split_line_groups", BillingInvoiceSplitLineGroup.Type),
+		edge.To("billing_standard_invoice_detailed_lines", BillingStandardInvoiceDetailedLine.Type),
+		edge.To("subscription_items", SubscriptionItem.Type),
+		edge.To("plan_rate_cards", PlanRateCard.Type),
+		edge.To("addon_rate_cards", AddonRateCard.Type),
 	}
 }
 

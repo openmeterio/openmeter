@@ -9,15 +9,19 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
+type Config struct {
+	Adapter taxcode.Repository
+	Logger  *slog.Logger
+}
 type service struct {
 	adapter taxcode.Repository
 	logger  *slog.Logger
 }
 
-func New(adapter taxcode.Repository, logger *slog.Logger) taxcode.Service {
+func New(config Config) taxcode.Service {
 	return &service{
-		adapter: adapter,
-		logger:  logger,
+		adapter: config.Adapter,
+		logger:  config.Logger,
 	}
 }
 

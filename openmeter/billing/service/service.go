@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -29,6 +30,7 @@ type Service struct {
 	featureService     feature.FeatureConnector
 	meterService       meter.Service
 	streamingConnector streaming.Connector
+	taxCodeService     taxcode.Service
 
 	publisher eventbus.Publisher
 
@@ -47,6 +49,7 @@ type Config struct {
 	FeatureService               feature.FeatureConnector
 	MeterService                 meter.Service
 	StreamingConnector           streaming.Connector
+	TaxCodeService               taxcode.Service
 	Publisher                    eventbus.Publisher
 	AdvancementStrategy          billing.AdvancementStrategy
 	FSNamespaceLockdown          []string
@@ -110,6 +113,7 @@ func New(config Config) (*Service, error) {
 		featureService:               config.FeatureService,
 		meterService:                 config.MeterService,
 		streamingConnector:           config.StreamingConnector,
+		taxCodeService:               config.TaxCodeService,
 		publisher:                    config.Publisher,
 		advancementStrategy:          config.AdvancementStrategy,
 		fsNamespaceLockdown:          config.FSNamespaceLockdown,

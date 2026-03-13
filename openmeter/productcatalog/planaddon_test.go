@@ -73,10 +73,8 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 											UsagePeriod:             oneMonthPeriod,
 										}),
 										TaxConfig: &TaxConfig{
-											Behavior: lo.ToPtr(InclusiveTaxBehavior),
-											Stripe: &StripeTaxConfig{
-												Code: "txcd_10000000",
-											},
+											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+											TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 										},
 										Price: nil,
 									},
@@ -87,10 +85,8 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 										Key:  "base_fee",
 										Name: "Base fee",
 										TaxConfig: &TaxConfig{
-											Behavior: lo.ToPtr(InclusiveTaxBehavior),
-											Stripe: &StripeTaxConfig{
-												Code: "txcd_10000001",
-											},
+											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+											TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5GAP"),
 										},
 										Price: nil,
 									},
@@ -117,10 +113,8 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 											UsagePeriod:             oneMonthPeriod,
 										}),
 										TaxConfig: &TaxConfig{
-											Behavior: lo.ToPtr(InclusiveTaxBehavior),
-											Stripe: &StripeTaxConfig{
-												Code: "txcd_10000000",
-											},
+											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+											TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 										},
 										Price: NewPriceFrom(FlatPrice{
 											Amount:      alpacadecimal.NewFromInt(100),
@@ -134,10 +128,8 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 										Key:  "base_fee",
 										Name: "Base fee",
 										TaxConfig: &TaxConfig{
-											Behavior: lo.ToPtr(InclusiveTaxBehavior),
-											Stripe: &StripeTaxConfig{
-												Code: "txcd_10000001",
-											},
+											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+											TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5GAP"),
 										},
 										Price: NewPriceFrom(FlatPrice{
 											Amount: alpacadecimal.NewFromInt(250),
@@ -175,10 +167,8 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 									UsagePeriod:             oneMonthPeriod,
 								}),
 								TaxConfig: &TaxConfig{
-									Behavior: lo.ToPtr(InclusiveTaxBehavior),
-									Stripe: &StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+									Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+									TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 								},
 								Price: NewPriceFrom(FlatPrice{
 									Amount:      alpacadecimal.NewFromInt(99),
@@ -238,10 +228,8 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 											UsagePeriod:             oneMonthPeriod,
 										}),
 										TaxConfig: &TaxConfig{
-											Behavior: lo.ToPtr(InclusiveTaxBehavior),
-											Stripe: &StripeTaxConfig{
-												Code: "txcd_10000000",
-											},
+											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+											TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 										},
 										Price: nil,
 									},
@@ -252,10 +240,8 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 										Key:  "base_fee",
 										Name: "Base fee",
 										TaxConfig: &TaxConfig{
-											Behavior: lo.ToPtr(InclusiveTaxBehavior),
-											Stripe: &StripeTaxConfig{
-												Code: "txcd_10000001",
-											},
+											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+											TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5GAP"),
 										},
 										Price: nil,
 									},
@@ -282,10 +268,8 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 											UsagePeriod:             oneMonthPeriod,
 										}),
 										TaxConfig: &TaxConfig{
-											Behavior: lo.ToPtr(InclusiveTaxBehavior),
-											Stripe: &StripeTaxConfig{
-												Code: "txcd_10000000",
-											},
+											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+											TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 										},
 										Price: NewPriceFrom(UnitPrice{
 											Amount: alpacadecimal.NewFromInt(100),
@@ -298,10 +282,8 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 										Key:  "base_fee",
 										Name: "Base fee",
 										TaxConfig: &TaxConfig{
-											Behavior: lo.ToPtr(InclusiveTaxBehavior),
-											Stripe: &StripeTaxConfig{
-												Code: "txcd_10000001",
-											},
+											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+											TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5GAP"),
 										},
 										Price: NewPriceFrom(FlatPrice{
 											Amount: alpacadecimal.NewFromInt(250),
@@ -340,10 +322,8 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 									UsagePeriod:             oneMonthPeriod,
 								}),
 								TaxConfig: &TaxConfig{
-									Behavior: lo.ToPtr(InclusiveTaxBehavior),
-									Stripe: &StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+									Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+									TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 								},
 								Price: NewPriceFrom(FlatPrice{
 									Amount:      alpacadecimal.NewFromInt(99),
@@ -430,10 +410,8 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 											UsagePeriod:             oneMonthPeriod,
 										}),
 										TaxConfig: &TaxConfig{
-											Behavior: lo.ToPtr(InclusiveTaxBehavior),
-											Stripe: &StripeTaxConfig{
-												Code: "txcd_10000000",
-											},
+											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+											TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 										},
 										Price: nil,
 									},
@@ -444,10 +422,8 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 										Key:  "base_fee",
 										Name: "Base fee",
 										TaxConfig: &TaxConfig{
-											Behavior: lo.ToPtr(InclusiveTaxBehavior),
-											Stripe: &StripeTaxConfig{
-												Code: "txcd_10000001",
-											},
+											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+											TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5GAP"),
 										},
 										Price: nil,
 									},
@@ -474,10 +450,8 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 											UsagePeriod:             oneMonthPeriod,
 										}),
 										TaxConfig: &TaxConfig{
-											Behavior: lo.ToPtr(InclusiveTaxBehavior),
-											Stripe: &StripeTaxConfig{
-												Code: "txcd_10000000",
-											},
+											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+											TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 										},
 										Price: NewPriceFrom(UnitPrice{
 											Amount: alpacadecimal.NewFromInt(100),
@@ -490,10 +464,8 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 										Key:  "base_fee",
 										Name: "Base fee",
 										TaxConfig: &TaxConfig{
-											Behavior: lo.ToPtr(InclusiveTaxBehavior),
-											Stripe: &StripeTaxConfig{
-												Code: "txcd_10000001",
-											},
+											Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+											TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5GAP"),
 										},
 										Price: NewPriceFrom(FlatPrice{
 											Amount: alpacadecimal.NewFromInt(250),
@@ -527,10 +499,8 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 									Config: []byte(`{"storage_capacity": 1000}`),
 								}),
 								TaxConfig: &TaxConfig{
-									Behavior: lo.ToPtr(InclusiveTaxBehavior),
-									Stripe: &StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+									Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+									TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 								},
 								Price: NewPriceFrom(FlatPrice{
 									Amount:      alpacadecimal.NewFromInt(99),

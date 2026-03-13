@@ -46,6 +46,9 @@ import (
 	subjectadapter "github.com/openmeterio/openmeter/openmeter/subject/adapter"
 	subjectservice "github.com/openmeterio/openmeter/openmeter/subject/service"
 	subjecthooks "github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
+	taxcodeservice "github.com/openmeterio/openmeter/openmeter/taxcode/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -77,6 +80,9 @@ type BaseSuite struct {
 
 	AppService app.Service
 	SandboxApp *appsandbox.MockableFactory
+
+	TaxCodeAdapter taxcode.Repository
+	TaxCodeService taxcode.Service
 }
 
 // GetUniqueNamespace returns a unique namespace with the given prefix
@@ -201,6 +207,22 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 	require.NoError(t, err)
 	s.AppService = appService
 
+	// Tax code
+	taxCodeAdapter, err := taxcodeadapter.New(taxcodeadapter.Config{
+		Client: dbClient,
+		Logger: slog.Default(),
+	})
+	require.NoError(t, err)
+
+	s.TaxCodeAdapter = taxCodeAdapter
+
+	taxCodeService := taxcodeservice.New(taxcodeservice.Config{
+		Logger:  slog.Default(),
+		Adapter: taxCodeAdapter,
+	})
+
+	s.TaxCodeService = taxCodeService
+
 	// Billing
 	billingAdapter, err := billingadapter.New(billingadapter.Config{
 		Client: dbClient,
@@ -217,6 +239,7 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 		FeatureService:               s.FeatureService,
 		MeterService:                 s.MeterAdapter,
 		StreamingConnector:           s.MockStreamingConnector,
+		TaxCodeService:               taxCodeService,
 		Publisher:                    publisher,
 		AdvancementStrategy:          billing.ForegroundAdvancementStrategy,
 		MaxParallelQuantitySnapshots: 2,
@@ -495,6 +518,16 @@ func (s *BaseSuite) CreateDraftInvoice(t *testing.T, ctx context.Context, in Dra
 	require.Len(t, invoice[0].Lines.MustGet(), 2)
 
 	return invoice[0]
+}
+
+func (s *BaseSuite) CreateTestTaxCode(input taxcode.CreateTaxCodeInput) taxcode.TaxCode {
+	s.T().Helper()
+
+	taxcode, err := s.TaxCodeService.CreateTaxCode(context.Background(), input)
+
+	s.NoError(err)
+
+	return taxcode
 }
 
 type TestFeature struct {

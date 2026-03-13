@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
@@ -123,6 +124,11 @@ func InvoiceDueAfter(v datetime.ISODurationString) predicate.BillingCustomerOver
 // InvoiceProgressiveBilling applies equality check predicate on the "invoice_progressive_billing" field. It's identical to InvoiceProgressiveBillingEQ.
 func InvoiceProgressiveBilling(v bool) predicate.BillingCustomerOverride {
 	return predicate.BillingCustomerOverride(sql.FieldEQ(FieldInvoiceProgressiveBilling, v))
+}
+
+// TaxCodeID applies equality check predicate on the "tax_code_id" field. It's identical to TaxCodeIDEQ.
+func TaxCodeID(v string) predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldEQ(FieldTaxCodeID, v))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -882,6 +888,121 @@ func InvoiceDefaultTaxConfigNotNil() predicate.BillingCustomerOverride {
 	return predicate.BillingCustomerOverride(sql.FieldNotNull(FieldInvoiceDefaultTaxConfig))
 }
 
+// TaxCodeIDEQ applies the EQ predicate on the "tax_code_id" field.
+func TaxCodeIDEQ(v string) predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldEQ(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDNEQ applies the NEQ predicate on the "tax_code_id" field.
+func TaxCodeIDNEQ(v string) predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldNEQ(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDIn applies the In predicate on the "tax_code_id" field.
+func TaxCodeIDIn(vs ...string) predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldIn(FieldTaxCodeID, vs...))
+}
+
+// TaxCodeIDNotIn applies the NotIn predicate on the "tax_code_id" field.
+func TaxCodeIDNotIn(vs ...string) predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldNotIn(FieldTaxCodeID, vs...))
+}
+
+// TaxCodeIDGT applies the GT predicate on the "tax_code_id" field.
+func TaxCodeIDGT(v string) predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldGT(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDGTE applies the GTE predicate on the "tax_code_id" field.
+func TaxCodeIDGTE(v string) predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldGTE(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDLT applies the LT predicate on the "tax_code_id" field.
+func TaxCodeIDLT(v string) predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldLT(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDLTE applies the LTE predicate on the "tax_code_id" field.
+func TaxCodeIDLTE(v string) predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldLTE(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDContains applies the Contains predicate on the "tax_code_id" field.
+func TaxCodeIDContains(v string) predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldContains(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDHasPrefix applies the HasPrefix predicate on the "tax_code_id" field.
+func TaxCodeIDHasPrefix(v string) predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldHasPrefix(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDHasSuffix applies the HasSuffix predicate on the "tax_code_id" field.
+func TaxCodeIDHasSuffix(v string) predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldHasSuffix(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDIsNil applies the IsNil predicate on the "tax_code_id" field.
+func TaxCodeIDIsNil() predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldIsNull(FieldTaxCodeID))
+}
+
+// TaxCodeIDNotNil applies the NotNil predicate on the "tax_code_id" field.
+func TaxCodeIDNotNil() predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldNotNull(FieldTaxCodeID))
+}
+
+// TaxCodeIDEqualFold applies the EqualFold predicate on the "tax_code_id" field.
+func TaxCodeIDEqualFold(v string) predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldEqualFold(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDContainsFold applies the ContainsFold predicate on the "tax_code_id" field.
+func TaxCodeIDContainsFold(v string) predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldContainsFold(FieldTaxCodeID, v))
+}
+
+// TaxBehaviorEQ applies the EQ predicate on the "tax_behavior" field.
+func TaxBehaviorEQ(v productcatalog.TaxBehavior) predicate.BillingCustomerOverride {
+	vc := v
+	return predicate.BillingCustomerOverride(sql.FieldEQ(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorNEQ applies the NEQ predicate on the "tax_behavior" field.
+func TaxBehaviorNEQ(v productcatalog.TaxBehavior) predicate.BillingCustomerOverride {
+	vc := v
+	return predicate.BillingCustomerOverride(sql.FieldNEQ(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorIn applies the In predicate on the "tax_behavior" field.
+func TaxBehaviorIn(vs ...productcatalog.TaxBehavior) predicate.BillingCustomerOverride {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingCustomerOverride(sql.FieldIn(FieldTaxBehavior, v...))
+}
+
+// TaxBehaviorNotIn applies the NotIn predicate on the "tax_behavior" field.
+func TaxBehaviorNotIn(vs ...productcatalog.TaxBehavior) predicate.BillingCustomerOverride {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingCustomerOverride(sql.FieldNotIn(FieldTaxBehavior, v...))
+}
+
+// TaxBehaviorIsNil applies the IsNil predicate on the "tax_behavior" field.
+func TaxBehaviorIsNil() predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldIsNull(FieldTaxBehavior))
+}
+
+// TaxBehaviorNotNil applies the NotNil predicate on the "tax_behavior" field.
+func TaxBehaviorNotNil() predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(sql.FieldNotNull(FieldTaxBehavior))
+}
+
 // HasCustomer applies the HasEdge predicate on the "customer" edge.
 func HasCustomer() predicate.BillingCustomerOverride {
 	return predicate.BillingCustomerOverride(func(s *sql.Selector) {
@@ -920,6 +1041,29 @@ func HasBillingProfile() predicate.BillingCustomerOverride {
 func HasBillingProfileWith(preds ...predicate.BillingProfile) predicate.BillingCustomerOverride {
 	return predicate.BillingCustomerOverride(func(s *sql.Selector) {
 		step := newBillingProfileStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasTaxCode applies the HasEdge predicate on the "tax_code" edge.
+func HasTaxCode() predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTaxCodeWith applies the HasEdge predicate on the "tax_code" edge with a given conditions (other predicates).
+func HasTaxCodeWith(preds ...predicate.TaxCode) predicate.BillingCustomerOverride {
+	return predicate.BillingCustomerOverride(func(s *sql.Selector) {
+		step := newTaxCodeStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

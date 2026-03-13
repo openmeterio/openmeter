@@ -84,9 +84,7 @@ func TestPlanService(t *testing.T) {
 				FeatureID:           lo.ToPtr(features[0].ID),
 				EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}),
 				TaxConfig: &productcatalog.TaxConfig{
-					Stripe: &productcatalog.StripeTaxConfig{
-						Code: "txcd_10000000",
-					},
+					TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 				},
 				Price: nil, // This would match with a TieredPrice, which is not supported for add-ons
 			},
@@ -130,9 +128,7 @@ func TestPlanService(t *testing.T) {
 								FeatureKey:  lo.ToPtr(features[0].Key),
 								FeatureID:   lo.ToPtr(features[0].ID),
 								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+									TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 								},
 								Price: productcatalog.NewPriceFrom(
 									productcatalog.FlatPrice{
@@ -161,9 +157,7 @@ func TestPlanService(t *testing.T) {
 								FeatureKey:  lo.ToPtr(features[0].Key),
 								FeatureID:   lo.ToPtr(features[0].ID),
 								TaxConfig: &productcatalog.TaxConfig{
-									Stripe: &productcatalog.StripeTaxConfig{
-										Code: "txcd_10000000",
-									},
+									TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 								},
 								Price: productcatalog.NewPriceFrom(
 									productcatalog.TieredPrice{
@@ -278,9 +272,7 @@ func TestPlanService(t *testing.T) {
 											UsagePeriod:             MonthPeriod,
 										}),
 									TaxConfig: &productcatalog.TaxConfig{
-										Stripe: &productcatalog.StripeTaxConfig{
-											Code: "txcd_10000000",
-										},
+										TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 									},
 									Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 										Mode: productcatalog.VolumeTieredPrice,
@@ -387,9 +379,7 @@ func TestPlanService(t *testing.T) {
 											FeatureKey:  lo.ToPtr(features[0].Key),
 											FeatureID:   lo.ToPtr(features[0].ID),
 											TaxConfig: &productcatalog.TaxConfig{
-												Stripe: &productcatalog.StripeTaxConfig{
-													Code: "txcd_10000000",
-												},
+												TaxCodeId: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 											},
 											Price: productcatalog.NewPriceFrom(
 												productcatalog.TieredPrice{

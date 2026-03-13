@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 const (
@@ -46,10 +47,16 @@ const (
 	FieldInvoiceProgressiveBilling = "invoice_progressive_billing"
 	// FieldInvoiceDefaultTaxConfig holds the string denoting the invoice_default_tax_config field in the database.
 	FieldInvoiceDefaultTaxConfig = "invoice_default_tax_config"
+	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
+	FieldTaxCodeID = "tax_code_id"
+	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
+	FieldTaxBehavior = "tax_behavior"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
 	EdgeCustomer = "customer"
 	// EdgeBillingProfile holds the string denoting the billing_profile edge name in mutations.
 	EdgeBillingProfile = "billing_profile"
+	// EdgeTaxCode holds the string denoting the tax_code edge name in mutations.
+	EdgeTaxCode = "tax_code"
 	// Table holds the table name of the billingcustomeroverride in the database.
 	Table = "billing_customer_overrides"
 	// CustomerTable is the table that holds the customer relation/edge.
@@ -66,6 +73,13 @@ const (
 	BillingProfileInverseTable = "billing_profiles"
 	// BillingProfileColumn is the table column denoting the billing_profile relation/edge.
 	BillingProfileColumn = "billing_profile_id"
+	// TaxCodeTable is the table that holds the tax_code relation/edge.
+	TaxCodeTable = "billing_customer_overrides"
+	// TaxCodeInverseTable is the table name for the TaxCode entity.
+	// It exists in this package in order to avoid circular dependency with the "dbtaxcode" package.
+	TaxCodeInverseTable = "tax_codes"
+	// TaxCodeColumn is the table column denoting the tax_code relation/edge.
+	TaxCodeColumn = "tax_code_id"
 )
 
 // Columns holds all SQL columns for billingcustomeroverride fields.
@@ -86,6 +100,8 @@ var Columns = []string{
 	FieldInvoiceCollectionMethod,
 	FieldInvoiceProgressiveBilling,
 	FieldInvoiceDefaultTaxConfig,
+	FieldTaxCodeID,
+	FieldTaxBehavior,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -128,6 +144,16 @@ func InvoiceCollectionMethodValidator(icm billing.CollectionMethod) error {
 		return nil
 	default:
 		return fmt.Errorf("billingcustomeroverride: invalid enum value for invoice_collection_method field: %q", icm)
+	}
+}
+
+// TaxBehaviorValidator is a validator for the "tax_behavior" field enum values. It is called by the builders before save.
+func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
+	switch tb {
+	case "inclusive", "exclusive":
+		return nil
+	default:
+		return fmt.Errorf("billingcustomeroverride: invalid enum value for tax_behavior field: %q", tb)
 	}
 }
 
@@ -204,6 +230,16 @@ func ByInvoiceProgressiveBilling(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceProgressiveBilling, opts...).ToFunc()
 }
 
+// ByTaxCodeID orders the results by the tax_code_id field.
+func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
+}
+
+// ByTaxBehavior orders the results by the tax_behavior field.
+func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
+}
+
 // ByCustomerField orders the results by customer field.
 func ByCustomerField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -215,6 +251,13 @@ func ByCustomerField(field string, opts ...sql.OrderTermOption) OrderOption {
 func ByBillingProfileField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newBillingProfileStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByTaxCodeField orders the results by tax_code field.
+func ByTaxCodeField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTaxCodeStep(), sql.OrderByField(field, opts...))
 	}
 }
 func newCustomerStep() *sqlgraph.Step {
@@ -229,5 +272,12 @@ func newBillingProfileStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingProfileInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, BillingProfileTable, BillingProfileColumn),
+	)
+}
+func newTaxCodeStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TaxCodeInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
 	)
 }

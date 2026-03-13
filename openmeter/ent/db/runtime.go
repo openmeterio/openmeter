@@ -151,13 +151,13 @@ func init() {
 	addonratecardDescTaxConfig := addonratecardFields[3].Descriptor()
 	addonratecard.ValueScanner.TaxConfig = addonratecardDescTaxConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.TaxConfig])
 	// addonratecardDescPrice is the schema descriptor for price field.
-	addonratecardDescPrice := addonratecardFields[5].Descriptor()
+	addonratecardDescPrice := addonratecardFields[7].Descriptor()
 	addonratecard.ValueScanner.Price = addonratecardDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
 	// addonratecardDescDiscounts is the schema descriptor for discounts field.
-	addonratecardDescDiscounts := addonratecardFields[6].Descriptor()
+	addonratecardDescDiscounts := addonratecardFields[8].Descriptor()
 	addonratecard.ValueScanner.Discounts = addonratecardDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// addonratecardDescAddonID is the schema descriptor for addon_id field.
-	addonratecardDescAddonID := addonratecardFields[7].Descriptor()
+	addonratecardDescAddonID := addonratecardFields[9].Descriptor()
 	// addonratecard.AddonIDValidator is a validator for the "addon_id" field. It is called by the builders before save.
 	addonratecard.AddonIDValidator = addonratecardDescAddonID.Validators[0].(func(string) error)
 	// addonratecardDescID is the schema descriptor for id field.
@@ -886,11 +886,11 @@ func init() {
 	// billingworkflowconfig.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	billingworkflowconfig.UpdateDefaultUpdatedAt = billingworkflowconfigDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// billingworkflowconfigDescTaxEnabled is the schema descriptor for tax_enabled field.
-	billingworkflowconfigDescTaxEnabled := billingworkflowconfigFields[9].Descriptor()
+	billingworkflowconfigDescTaxEnabled := billingworkflowconfigFields[11].Descriptor()
 	// billingworkflowconfig.DefaultTaxEnabled holds the default value on creation for the tax_enabled field.
 	billingworkflowconfig.DefaultTaxEnabled = billingworkflowconfigDescTaxEnabled.Default.(bool)
 	// billingworkflowconfigDescTaxEnforced is the schema descriptor for tax_enforced field.
-	billingworkflowconfigDescTaxEnforced := billingworkflowconfigFields[10].Descriptor()
+	billingworkflowconfigDescTaxEnforced := billingworkflowconfigFields[12].Descriptor()
 	// billingworkflowconfig.DefaultTaxEnforced holds the default value on creation for the tax_enforced field.
 	billingworkflowconfig.DefaultTaxEnforced = billingworkflowconfigDescTaxEnforced.Default.(bool)
 	// billingworkflowconfigDescID is the schema descriptor for id field.
@@ -1783,13 +1783,13 @@ func init() {
 	planratecardDescTaxConfig := planratecardFields[3].Descriptor()
 	planratecard.ValueScanner.TaxConfig = planratecardDescTaxConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.TaxConfig])
 	// planratecardDescPrice is the schema descriptor for price field.
-	planratecardDescPrice := planratecardFields[5].Descriptor()
+	planratecardDescPrice := planratecardFields[7].Descriptor()
 	planratecard.ValueScanner.Price = planratecardDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
 	// planratecardDescDiscounts is the schema descriptor for discounts field.
-	planratecardDescDiscounts := planratecardFields[6].Descriptor()
+	planratecardDescDiscounts := planratecardFields[8].Descriptor()
 	planratecard.ValueScanner.Discounts = planratecardDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// planratecardDescPhaseID is the schema descriptor for phase_id field.
-	planratecardDescPhaseID := planratecardFields[7].Descriptor()
+	planratecardDescPhaseID := planratecardFields[9].Descriptor()
 	// planratecard.PhaseIDValidator is a validator for the "phase_id" field. It is called by the builders before save.
 	planratecard.PhaseIDValidator = planratecardDescPhaseID.Validators[0].(func(string) error)
 	// planratecardDescID is the schema descriptor for id field.
@@ -2028,10 +2028,10 @@ func init() {
 	subscriptionitemDescTaxConfig := subscriptionitemFields[13].Descriptor()
 	subscriptionitem.ValueScanner.TaxConfig = subscriptionitemDescTaxConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.TaxConfig])
 	// subscriptionitemDescPrice is the schema descriptor for price field.
-	subscriptionitemDescPrice := subscriptionitemFields[15].Descriptor()
+	subscriptionitemDescPrice := subscriptionitemFields[17].Descriptor()
 	subscriptionitem.ValueScanner.Price = subscriptionitemDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
 	// subscriptionitemDescDiscounts is the schema descriptor for discounts field.
-	subscriptionitemDescDiscounts := subscriptionitemFields[16].Descriptor()
+	subscriptionitemDescDiscounts := subscriptionitemFields[18].Descriptor()
 	subscriptionitem.ValueScanner.Discounts = subscriptionitemDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// subscriptionitemDescID is the schema descriptor for id field.
 	subscriptionitemDescID := subscriptionitemMixinFields0[0].Descriptor()

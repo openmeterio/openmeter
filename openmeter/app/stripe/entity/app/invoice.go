@@ -507,9 +507,15 @@ func applyTaxSettingsToInvoiceItem(add *stripe.InvoiceItemParams, line billing.D
 		if line.TaxConfig.Behavior != nil {
 			add.TaxBehavior = getStripeTaxBehavior(line.TaxConfig.Behavior)
 		}
+	}
 
-		if line.TaxConfig.Stripe != nil {
-			add.TaxCode = stripe.String(line.TaxConfig.Stripe.Code)
+	// Use resolved TaxCode entity's app mapping for Stripe
+	if line.TaxCode != nil {
+		for _, mapping := range line.TaxCode.AppMappings {
+			if mapping.AppType == app.AppTypeStripe {
+				add.TaxCode = stripe.String(mapping.TaxCode)
+				break
+			}
 		}
 	}
 

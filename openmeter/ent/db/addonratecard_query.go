@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 )
 
 // AddonRateCardQuery is the builder for querying AddonRateCard entities.
@@ -27,6 +28,7 @@ type AddonRateCardQuery struct {
 	predicates   []predicate.AddonRateCard
 	withAddon    *AddonQuery
 	withFeatures *FeatureQuery
+	withTaxCode  *TaxCodeQuery
 	modifiers    []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -101,6 +103,28 @@ func (_q *AddonRateCardQuery) QueryFeatures() *FeatureQuery {
 			sqlgraph.From(addonratecard.Table, addonratecard.FieldID, selector),
 			sqlgraph.To(dbfeature.Table, dbfeature.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, addonratecard.FeaturesTable, addonratecard.FeaturesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryTaxCode chains the current query on the "tax_code" edge.
+func (_q *AddonRateCardQuery) QueryTaxCode() *TaxCodeQuery {
+	query := (&TaxCodeClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(addonratecard.Table, addonratecard.FieldID, selector),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, addonratecard.TaxCodeTable, addonratecard.TaxCodeColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -302,6 +326,7 @@ func (_q *AddonRateCardQuery) Clone() *AddonRateCardQuery {
 		predicates:   append([]predicate.AddonRateCard{}, _q.predicates...),
 		withAddon:    _q.withAddon.Clone(),
 		withFeatures: _q.withFeatures.Clone(),
+		withTaxCode:  _q.withTaxCode.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -327,6 +352,17 @@ func (_q *AddonRateCardQuery) WithFeatures(opts ...func(*FeatureQuery)) *AddonRa
 		opt(query)
 	}
 	_q.withFeatures = query
+	return _q
+}
+
+// WithTaxCode tells the query-builder to eager-load the nodes that are connected to
+// the "tax_code" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *AddonRateCardQuery) WithTaxCode(opts ...func(*TaxCodeQuery)) *AddonRateCardQuery {
+	query := (&TaxCodeClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withTaxCode = query
 	return _q
 }
 
@@ -408,9 +444,10 @@ func (_q *AddonRateCardQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 	var (
 		nodes       = []*AddonRateCard{}
 		_spec       = _q.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			_q.withAddon != nil,
 			_q.withFeatures != nil,
+			_q.withTaxCode != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -443,6 +480,12 @@ func (_q *AddonRateCardQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 	if query := _q.withFeatures; query != nil {
 		if err := _q.loadFeatures(ctx, query, nodes, nil,
 			func(n *AddonRateCard, e *Feature) { n.Edges.Features = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withTaxCode; query != nil {
+		if err := _q.loadTaxCode(ctx, query, nodes, nil,
+			func(n *AddonRateCard, e *TaxCode) { n.Edges.TaxCode = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -510,6 +553,38 @@ func (_q *AddonRateCardQuery) loadFeatures(ctx context.Context, query *FeatureQu
 	}
 	return nil
 }
+func (_q *AddonRateCardQuery) loadTaxCode(ctx context.Context, query *TaxCodeQuery, nodes []*AddonRateCard, init func(*AddonRateCard), assign func(*AddonRateCard, *TaxCode)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*AddonRateCard)
+	for i := range nodes {
+		if nodes[i].TaxCodeID == nil {
+			continue
+		}
+		fk := *nodes[i].TaxCodeID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(dbtaxcode.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "tax_code_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (_q *AddonRateCardQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
@@ -544,6 +619,9 @@ func (_q *AddonRateCardQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withFeatures != nil {
 			_spec.Node.AddColumnOnce(addonratecard.FieldFeatureID)
+		}
+		if _q.withTaxCode != nil {
+			_spec.Node.AddColumnOnce(addonratecard.FieldTaxCodeID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

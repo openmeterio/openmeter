@@ -239,8 +239,14 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 	out.QuantitySnapshotedAt = lo.ToPtr(now)
 	out.Lines = billing.NewStandardInvoiceLines(inScopeLines)
 
+	taxCodes, err := s.resolveTaxCodes(ctx, *out)
+	if err != nil {
+		return nil, fmt.Errorf("resolving tax codes: %w", err)
+	}
+
 	if err := s.invoiceCalculator.CalculateGatheringInvoiceWithLiveData(out, invoicecalc.CalculatorDependencies{
 		FeatureMeters: featureMeters,
+		TaxCodes:      taxCodes,
 	}); err != nil {
 		return nil, fmt.Errorf("calculating invoice: %w", err)
 	}
@@ -849,9 +855,15 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		}
 	}
 
+	taxCodes, err := s.resolveTaxCodes(ctx, invoice)
+	if err != nil {
+		return billing.StandardInvoice{}, fmt.Errorf("resolving tax codes: %w", err)
+	}
+
 	// Let's simulate a recalculation of the invoice
 	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.CalculatorDependencies{
 		FeatureMeters: featureMeters,
+		TaxCodes:      taxCodes,
 	}); err != nil {
 		return billing.StandardInvoice{}, err
 	}

@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
@@ -189,6 +190,46 @@ func (_u *BillingWorkflowConfigUpdate) ClearInvoiceDefaultTaxSettings() *Billing
 	return _u
 }
 
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *BillingWorkflowConfigUpdate) SetTaxCodeID(v string) *BillingWorkflowConfigUpdate {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *BillingWorkflowConfigUpdate) SetNillableTaxCodeID(v *string) *BillingWorkflowConfigUpdate {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *BillingWorkflowConfigUpdate) ClearTaxCodeID() *BillingWorkflowConfigUpdate {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *BillingWorkflowConfigUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingWorkflowConfigUpdate {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *BillingWorkflowConfigUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingWorkflowConfigUpdate {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *BillingWorkflowConfigUpdate) ClearTaxBehavior() *BillingWorkflowConfigUpdate {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
 // SetTaxEnabled sets the "tax_enabled" field.
 func (_u *BillingWorkflowConfigUpdate) SetTaxEnabled(v bool) *BillingWorkflowConfigUpdate {
 	_u.mutation.SetTaxEnabled(v)
@@ -255,6 +296,11 @@ func (_u *BillingWorkflowConfigUpdate) SetBillingProfile(v *BillingProfile) *Bil
 	return _u.SetBillingProfileID(v.ID)
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_u *BillingWorkflowConfigUpdate) SetTaxCode(v *TaxCode) *BillingWorkflowConfigUpdate {
+	return _u.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the BillingWorkflowConfigMutation object of the builder.
 func (_u *BillingWorkflowConfigUpdate) Mutation() *BillingWorkflowConfigMutation {
 	return _u.mutation
@@ -269,6 +315,12 @@ func (_u *BillingWorkflowConfigUpdate) ClearBillingInvoices() *BillingWorkflowCo
 // ClearBillingProfile clears the "billing_profile" edge to the BillingProfile entity.
 func (_u *BillingWorkflowConfigUpdate) ClearBillingProfile() *BillingWorkflowConfigUpdate {
 	_u.mutation.ClearBillingProfile()
+	return _u
+}
+
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (_u *BillingWorkflowConfigUpdate) ClearTaxCode() *BillingWorkflowConfigUpdate {
+	_u.mutation.ClearTaxCode()
 	return _u
 }
 
@@ -330,6 +382,11 @@ func (_u *BillingWorkflowConfigUpdate) check() error {
 			return &ValidationError{Name: "invoice_default_tax_settings", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_default_tax_settings": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := billingworkflowconfig.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.tax_behavior": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -386,6 +443,12 @@ func (_u *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (_node int, 
 	}
 	if _u.mutation.InvoiceDefaultTaxSettingsCleared() {
 		_spec.ClearField(billingworkflowconfig.FieldInvoiceDefaultTaxSettings, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(billingworkflowconfig.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.TaxEnabled(); ok {
 		_spec.SetField(billingworkflowconfig.FieldTaxEnabled, field.TypeBool, value)
@@ -444,6 +507,35 @@ func (_u *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (_node int, 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TaxCodeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingworkflowconfig.TaxCodeTable,
+			Columns: []string{billingworkflowconfig.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingworkflowconfig.TaxCodeTable,
+			Columns: []string{billingworkflowconfig.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -627,6 +719,46 @@ func (_u *BillingWorkflowConfigUpdateOne) ClearInvoiceDefaultTaxSettings() *Bill
 	return _u
 }
 
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *BillingWorkflowConfigUpdateOne) SetTaxCodeID(v string) *BillingWorkflowConfigUpdateOne {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *BillingWorkflowConfigUpdateOne) SetNillableTaxCodeID(v *string) *BillingWorkflowConfigUpdateOne {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *BillingWorkflowConfigUpdateOne) ClearTaxCodeID() *BillingWorkflowConfigUpdateOne {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *BillingWorkflowConfigUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingWorkflowConfigUpdateOne {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *BillingWorkflowConfigUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingWorkflowConfigUpdateOne {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *BillingWorkflowConfigUpdateOne) ClearTaxBehavior() *BillingWorkflowConfigUpdateOne {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
 // SetTaxEnabled sets the "tax_enabled" field.
 func (_u *BillingWorkflowConfigUpdateOne) SetTaxEnabled(v bool) *BillingWorkflowConfigUpdateOne {
 	_u.mutation.SetTaxEnabled(v)
@@ -693,6 +825,11 @@ func (_u *BillingWorkflowConfigUpdateOne) SetBillingProfile(v *BillingProfile) *
 	return _u.SetBillingProfileID(v.ID)
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_u *BillingWorkflowConfigUpdateOne) SetTaxCode(v *TaxCode) *BillingWorkflowConfigUpdateOne {
+	return _u.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the BillingWorkflowConfigMutation object of the builder.
 func (_u *BillingWorkflowConfigUpdateOne) Mutation() *BillingWorkflowConfigMutation {
 	return _u.mutation
@@ -707,6 +844,12 @@ func (_u *BillingWorkflowConfigUpdateOne) ClearBillingInvoices() *BillingWorkflo
 // ClearBillingProfile clears the "billing_profile" edge to the BillingProfile entity.
 func (_u *BillingWorkflowConfigUpdateOne) ClearBillingProfile() *BillingWorkflowConfigUpdateOne {
 	_u.mutation.ClearBillingProfile()
+	return _u
+}
+
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (_u *BillingWorkflowConfigUpdateOne) ClearTaxCode() *BillingWorkflowConfigUpdateOne {
+	_u.mutation.ClearTaxCode()
 	return _u
 }
 
@@ -779,6 +922,11 @@ func (_u *BillingWorkflowConfigUpdateOne) check() error {
 	if v, ok := _u.mutation.InvoiceDefaultTaxSettings(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "invoice_default_tax_settings", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_default_tax_settings": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := billingworkflowconfig.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.tax_behavior": %w`, err)}
 		}
 	}
 	return nil
@@ -855,6 +1003,12 @@ func (_u *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node *B
 	if _u.mutation.InvoiceDefaultTaxSettingsCleared() {
 		_spec.ClearField(billingworkflowconfig.FieldInvoiceDefaultTaxSettings, field.TypeJSON)
 	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(billingworkflowconfig.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldTaxBehavior, field.TypeEnum)
+	}
 	if value, ok := _u.mutation.TaxEnabled(); ok {
 		_spec.SetField(billingworkflowconfig.FieldTaxEnabled, field.TypeBool, value)
 	}
@@ -912,6 +1066,35 @@ func (_u *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node *B
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TaxCodeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingworkflowconfig.TaxCodeTable,
+			Columns: []string{billingworkflowconfig.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingworkflowconfig.TaxCodeTable,
+			Columns: []string{billingworkflowconfig.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
