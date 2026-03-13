@@ -34,6 +34,10 @@ type SubscriptionItem struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Metadata holds the value of the "metadata" field.
 	Metadata map[string]string `json:"metadata,omitempty"`
+	// TaxCodeID holds the value of the "tax_code_id" field.
+	TaxCodeID *string `json:"tax_code_id,omitempty"`
+	// TaxBehavior holds the value of the "tax_behavior" field.
+	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// Annotations holds the value of the "annotations" field.
 	Annotations models.Annotations `json:"annotations,omitempty"`
 	// ActiveFrom holds the value of the "active_from" field.
@@ -62,10 +66,6 @@ type SubscriptionItem struct {
 	EntitlementTemplate *productcatalog.EntitlementTemplate `json:"entitlement_template,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
 	TaxConfig *productcatalog.TaxConfig `json:"tax_config,omitempty"`
-	// TaxCodeID holds the value of the "tax_code_id" field.
-	TaxCodeID *string `json:"tax_code_id,omitempty"`
-	// TaxBehavior holds the value of the "tax_behavior" field.
-	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// BillingCadence holds the value of the "billing_cadence" field.
 	BillingCadence *datetime.ISODurationString `json:"billing_cadence,omitempty"`
 	// Price holds the value of the "price" field.
@@ -166,7 +166,7 @@ func (*SubscriptionItem) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case subscriptionitem.FieldRestartsBillingPeriod:
 			values[i] = new(sql.NullBool)
-		case subscriptionitem.FieldID, subscriptionitem.FieldNamespace, subscriptionitem.FieldPhaseID, subscriptionitem.FieldKey, subscriptionitem.FieldEntitlementID, subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart, subscriptionitem.FieldActiveToOverrideRelativeToPhaseStart, subscriptionitem.FieldName, subscriptionitem.FieldDescription, subscriptionitem.FieldFeatureKey, subscriptionitem.FieldTaxCodeID, subscriptionitem.FieldTaxBehavior, subscriptionitem.FieldBillingCadence:
+		case subscriptionitem.FieldID, subscriptionitem.FieldNamespace, subscriptionitem.FieldTaxCodeID, subscriptionitem.FieldTaxBehavior, subscriptionitem.FieldPhaseID, subscriptionitem.FieldKey, subscriptionitem.FieldEntitlementID, subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart, subscriptionitem.FieldActiveToOverrideRelativeToPhaseStart, subscriptionitem.FieldName, subscriptionitem.FieldDescription, subscriptionitem.FieldFeatureKey, subscriptionitem.FieldBillingCadence:
 			values[i] = new(sql.NullString)
 		case subscriptionitem.FieldCreatedAt, subscriptionitem.FieldUpdatedAt, subscriptionitem.FieldDeletedAt, subscriptionitem.FieldActiveFrom, subscriptionitem.FieldActiveTo:
 			values[i] = new(sql.NullTime)
@@ -233,6 +233,20 @@ func (_m *SubscriptionItem) assignValues(columns []string, values []any) error {
 				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
+			}
+		case subscriptionitem.FieldTaxCodeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
+			} else if value.Valid {
+				_m.TaxCodeID = new(string)
+				*_m.TaxCodeID = value.String
+			}
+		case subscriptionitem.FieldTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
+			} else if value.Valid {
+				_m.TaxBehavior = new(productcatalog.TaxBehavior)
+				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
 			}
 		case subscriptionitem.FieldAnnotations:
 			if value, err := subscriptionitem.ValueScanner.Annotations.FromValue(values[i]); err != nil {
@@ -324,20 +338,6 @@ func (_m *SubscriptionItem) assignValues(columns []string, values []any) error {
 				return err
 			} else {
 				_m.TaxConfig = value
-			}
-		case subscriptionitem.FieldTaxCodeID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
-			} else if value.Valid {
-				_m.TaxCodeID = new(string)
-				*_m.TaxCodeID = value.String
-			}
-		case subscriptionitem.FieldTaxBehavior:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
-			} else if value.Valid {
-				_m.TaxBehavior = new(productcatalog.TaxBehavior)
-				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
 			}
 		case subscriptionitem.FieldBillingCadence:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -441,6 +441,16 @@ func (_m *SubscriptionItem) String() string {
 	builder.WriteString("metadata=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
 	builder.WriteString(", ")
+	if v := _m.TaxCodeID; v != nil {
+		builder.WriteString("tax_code_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxBehavior; v != nil {
+		builder.WriteString("tax_behavior=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
 	builder.WriteString("annotations=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
 	builder.WriteString(", ")
@@ -498,16 +508,6 @@ func (_m *SubscriptionItem) String() string {
 	builder.WriteString(", ")
 	if v := _m.TaxConfig; v != nil {
 		builder.WriteString("tax_config=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := _m.TaxCodeID; v != nil {
-		builder.WriteString("tax_code_id=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := _m.TaxBehavior; v != nil {
-		builder.WriteString("tax_behavior=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")

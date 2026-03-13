@@ -28,6 +28,10 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// FieldMetadata holds the string denoting the metadata field in the database.
 	FieldMetadata = "metadata"
+	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
+	FieldTaxCodeID = "tax_code_id"
+	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
+	FieldTaxBehavior = "tax_behavior"
 	// FieldAnnotations holds the string denoting the annotations field in the database.
 	FieldAnnotations = "annotations"
 	// FieldActiveFrom holds the string denoting the active_from field in the database.
@@ -56,10 +60,6 @@ const (
 	FieldEntitlementTemplate = "entitlement_template"
 	// FieldTaxConfig holds the string denoting the tax_config field in the database.
 	FieldTaxConfig = "tax_config"
-	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
-	FieldTaxCodeID = "tax_code_id"
-	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
-	FieldTaxBehavior = "tax_behavior"
 	// FieldBillingCadence holds the string denoting the billing_cadence field in the database.
 	FieldBillingCadence = "billing_cadence"
 	// FieldPrice holds the string denoting the price field in the database.
@@ -132,6 +132,8 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldDeletedAt,
 	FieldMetadata,
+	FieldTaxCodeID,
+	FieldTaxBehavior,
 	FieldAnnotations,
 	FieldActiveFrom,
 	FieldActiveTo,
@@ -146,8 +148,6 @@ var Columns = []string{
 	FieldFeatureKey,
 	FieldEntitlementTemplate,
 	FieldTaxConfig,
-	FieldTaxCodeID,
-	FieldTaxBehavior,
 	FieldBillingCadence,
 	FieldPrice,
 	FieldDiscounts,
@@ -228,6 +228,16 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
+// ByTaxCodeID orders the results by the tax_code_id field.
+func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
+}
+
+// ByTaxBehavior orders the results by the tax_behavior field.
+func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
+}
+
 // ByAnnotations orders the results by the annotations field.
 func ByAnnotations(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAnnotations, opts...).ToFunc()
@@ -296,16 +306,6 @@ func ByEntitlementTemplate(opts ...sql.OrderTermOption) OrderOption {
 // ByTaxConfig orders the results by the tax_config field.
 func ByTaxConfig(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTaxConfig, opts...).ToFunc()
-}
-
-// ByTaxCodeID orders the results by the tax_code_id field.
-func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
-}
-
-// ByTaxBehavior orders the results by the tax_behavior field.
-func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
 }
 
 // ByBillingCadence orders the results by the billing_cadence field.

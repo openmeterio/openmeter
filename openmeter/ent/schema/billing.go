@@ -115,6 +115,7 @@ func (BillingWorkflowConfig) Mixin() []ent.Mixin {
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
+		TaxMixin{},
 	}
 }
 
@@ -145,17 +146,6 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 
 		field.JSON("invoice_default_tax_settings", productcatalog.TaxConfig{}).
 			Optional(),
-
-		field.String("tax_code_id").
-			Optional().
-			Nillable().
-			SchemaType(map[string]string{
-				dialect.Postgres: "char(26)",
-			}),
-		field.Enum("tax_behavior").
-			GoType(productcatalog.TaxBehavior("")).
-			Optional().
-			Nillable(),
 
 		// Enable automatic tax calculation when tax is supported by the app.
 		field.Bool("tax_enabled").Default(true),
@@ -193,6 +183,7 @@ func (BillingCustomerOverride) Mixin() []ent.Mixin {
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
+		TaxMixin{},
 	}
 }
 
@@ -257,17 +248,6 @@ func (BillingCustomerOverride) Fields() []ent.Field {
 
 		field.JSON("invoice_default_tax_config", productcatalog.TaxConfig{}).
 			Optional(),
-
-		field.String("tax_code_id").
-			Optional().
-			Nillable().
-			SchemaType(map[string]string{
-				dialect.Postgres: "char(26)",
-			}),
-		field.Enum("tax_behavior").
-			GoType(productcatalog.TaxBehavior("")).
-			Optional().
-			Nillable(),
 	}
 }
 
@@ -316,16 +296,6 @@ func (InvoiceLineBaseMixin) Fields() []ent.Field {
 				dialect.Postgres: "jsonb",
 			}).
 			Optional(),
-		field.String("tax_code_id").
-			Optional().
-			Nillable().
-			SchemaType(map[string]string{
-				dialect.Postgres: "char(26)",
-			}),
-		field.Enum("tax_behavior").
-			GoType(productcatalog.TaxBehavior("")).
-			Optional().
-			Nillable(),
 	}
 }
 
@@ -338,6 +308,7 @@ func (BillingInvoiceLine) Mixin() []ent.Mixin {
 		entutils.AnnotationsMixin{},
 		entutils.ResourceMixin{},
 		InvoiceLineBaseMixin{},
+		TaxMixin{},
 		totals.Mixin{},
 	}
 }
@@ -641,6 +612,7 @@ func (BillingInvoiceSplitLineGroup) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.ResourceMixin{},
 		InvoiceLineBaseMixin{},
+		TaxMixin{},
 	}
 }
 
@@ -898,6 +870,7 @@ func (BillingStandardInvoiceDetailedLine) Mixin() []ent.Mixin {
 		entutils.AnnotationsMixin{},
 		entutils.ResourceMixin{},
 		InvoiceLineBaseMixin{},
+		TaxMixin{},
 		totals.Mixin{},
 	}
 }

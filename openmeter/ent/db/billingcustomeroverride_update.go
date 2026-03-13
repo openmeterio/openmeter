@@ -59,6 +59,46 @@ func (_u *BillingCustomerOverrideUpdate) ClearDeletedAt() *BillingCustomerOverri
 	return _u
 }
 
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *BillingCustomerOverrideUpdate) SetTaxCodeID(v string) *BillingCustomerOverrideUpdate {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *BillingCustomerOverrideUpdate) SetNillableTaxCodeID(v *string) *BillingCustomerOverrideUpdate {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *BillingCustomerOverrideUpdate) ClearTaxCodeID() *BillingCustomerOverrideUpdate {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *BillingCustomerOverrideUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingCustomerOverrideUpdate {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *BillingCustomerOverrideUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdate {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *BillingCustomerOverrideUpdate) ClearTaxBehavior() *BillingCustomerOverrideUpdate {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
 // SetBillingProfileID sets the "billing_profile_id" field.
 func (_u *BillingCustomerOverrideUpdate) SetBillingProfileID(v string) *BillingCustomerOverrideUpdate {
 	_u.mutation.SetBillingProfileID(v)
@@ -251,46 +291,6 @@ func (_u *BillingCustomerOverrideUpdate) ClearInvoiceDefaultTaxConfig() *Billing
 	return _u
 }
 
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_u *BillingCustomerOverrideUpdate) SetTaxCodeID(v string) *BillingCustomerOverrideUpdate {
-	_u.mutation.SetTaxCodeID(v)
-	return _u
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_u *BillingCustomerOverrideUpdate) SetNillableTaxCodeID(v *string) *BillingCustomerOverrideUpdate {
-	if v != nil {
-		_u.SetTaxCodeID(*v)
-	}
-	return _u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *BillingCustomerOverrideUpdate) ClearTaxCodeID() *BillingCustomerOverrideUpdate {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_u *BillingCustomerOverrideUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingCustomerOverrideUpdate {
-	_u.mutation.SetTaxBehavior(v)
-	return _u
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_u *BillingCustomerOverrideUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdate {
-	if v != nil {
-		_u.SetTaxBehavior(*v)
-	}
-	return _u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (_u *BillingCustomerOverrideUpdate) ClearTaxBehavior() *BillingCustomerOverrideUpdate {
-	_u.mutation.ClearTaxBehavior()
-	return _u
-}
-
 // SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
 func (_u *BillingCustomerOverrideUpdate) SetBillingProfile(v *BillingProfile) *BillingCustomerOverrideUpdate {
 	return _u.SetBillingProfileID(v.ID)
@@ -356,6 +356,11 @@ func (_u *BillingCustomerOverrideUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *BillingCustomerOverrideUpdate) check() error {
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := billingcustomeroverride.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.CollectionAlignment(); ok {
 		if err := billingcustomeroverride.CollectionAlignmentValidator(v); err != nil {
 			return &ValidationError{Name: "collection_alignment", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.collection_alignment": %w`, err)}
@@ -374,11 +379,6 @@ func (_u *BillingCustomerOverrideUpdate) check() error {
 	if v, ok := _u.mutation.InvoiceDefaultTaxConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "invoice_default_tax_config", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_default_tax_config": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxBehavior(); ok {
-		if err := billingcustomeroverride.TaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.tax_behavior": %w`, err)}
 		}
 	}
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
@@ -407,6 +407,12 @@ func (_u *BillingCustomerOverrideUpdate) sqlSave(ctx context.Context) (_node int
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(billingcustomeroverride.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(billingcustomeroverride.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.CollectionAlignment(); ok {
 		_spec.SetField(billingcustomeroverride.FieldCollectionAlignment, field.TypeEnum, value)
@@ -461,12 +467,6 @@ func (_u *BillingCustomerOverrideUpdate) sqlSave(ctx context.Context) (_node int
 	}
 	if _u.mutation.InvoiceDefaultTaxConfigCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceDefaultTaxConfig, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.TaxBehavior(); ok {
-		_spec.SetField(billingcustomeroverride.FieldTaxBehavior, field.TypeEnum, value)
-	}
-	if _u.mutation.TaxBehaviorCleared() {
-		_spec.ClearField(billingcustomeroverride.FieldTaxBehavior, field.TypeEnum)
 	}
 	if _u.mutation.BillingProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -569,6 +569,46 @@ func (_u *BillingCustomerOverrideUpdateOne) SetNillableDeletedAt(v *time.Time) *
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (_u *BillingCustomerOverrideUpdateOne) ClearDeletedAt() *BillingCustomerOverrideUpdateOne {
 	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *BillingCustomerOverrideUpdateOne) SetTaxCodeID(v string) *BillingCustomerOverrideUpdateOne {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *BillingCustomerOverrideUpdateOne) SetNillableTaxCodeID(v *string) *BillingCustomerOverrideUpdateOne {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *BillingCustomerOverrideUpdateOne) ClearTaxCodeID() *BillingCustomerOverrideUpdateOne {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *BillingCustomerOverrideUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingCustomerOverrideUpdateOne {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *BillingCustomerOverrideUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdateOne {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *BillingCustomerOverrideUpdateOne) ClearTaxBehavior() *BillingCustomerOverrideUpdateOne {
+	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -764,46 +804,6 @@ func (_u *BillingCustomerOverrideUpdateOne) ClearInvoiceDefaultTaxConfig() *Bill
 	return _u
 }
 
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_u *BillingCustomerOverrideUpdateOne) SetTaxCodeID(v string) *BillingCustomerOverrideUpdateOne {
-	_u.mutation.SetTaxCodeID(v)
-	return _u
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_u *BillingCustomerOverrideUpdateOne) SetNillableTaxCodeID(v *string) *BillingCustomerOverrideUpdateOne {
-	if v != nil {
-		_u.SetTaxCodeID(*v)
-	}
-	return _u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *BillingCustomerOverrideUpdateOne) ClearTaxCodeID() *BillingCustomerOverrideUpdateOne {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_u *BillingCustomerOverrideUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingCustomerOverrideUpdateOne {
-	_u.mutation.SetTaxBehavior(v)
-	return _u
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_u *BillingCustomerOverrideUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdateOne {
-	if v != nil {
-		_u.SetTaxBehavior(*v)
-	}
-	return _u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (_u *BillingCustomerOverrideUpdateOne) ClearTaxBehavior() *BillingCustomerOverrideUpdateOne {
-	_u.mutation.ClearTaxBehavior()
-	return _u
-}
-
 // SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
 func (_u *BillingCustomerOverrideUpdateOne) SetBillingProfile(v *BillingProfile) *BillingCustomerOverrideUpdateOne {
 	return _u.SetBillingProfileID(v.ID)
@@ -882,6 +882,11 @@ func (_u *BillingCustomerOverrideUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *BillingCustomerOverrideUpdateOne) check() error {
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := billingcustomeroverride.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.CollectionAlignment(); ok {
 		if err := billingcustomeroverride.CollectionAlignmentValidator(v); err != nil {
 			return &ValidationError{Name: "collection_alignment", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.collection_alignment": %w`, err)}
@@ -900,11 +905,6 @@ func (_u *BillingCustomerOverrideUpdateOne) check() error {
 	if v, ok := _u.mutation.InvoiceDefaultTaxConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "invoice_default_tax_config", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.invoice_default_tax_config": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxBehavior(); ok {
-		if err := billingcustomeroverride.TaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingCustomerOverride.tax_behavior": %w`, err)}
 		}
 	}
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
@@ -950,6 +950,12 @@ func (_u *BillingCustomerOverrideUpdateOne) sqlSave(ctx context.Context) (_node 
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(billingcustomeroverride.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(billingcustomeroverride.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.CollectionAlignment(); ok {
 		_spec.SetField(billingcustomeroverride.FieldCollectionAlignment, field.TypeEnum, value)
@@ -1004,12 +1010,6 @@ func (_u *BillingCustomerOverrideUpdateOne) sqlSave(ctx context.Context) (_node 
 	}
 	if _u.mutation.InvoiceDefaultTaxConfigCleared() {
 		_spec.ClearField(billingcustomeroverride.FieldInvoiceDefaultTaxConfig, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.TaxBehavior(); ok {
-		_spec.SetField(billingcustomeroverride.FieldTaxBehavior, field.TypeEnum, value)
-	}
-	if _u.mutation.TaxBehaviorCleared() {
-		_spec.ClearField(billingcustomeroverride.FieldTaxBehavior, field.TypeEnum)
 	}
 	if _u.mutation.BillingProfileCleared() {
 		edge := &sqlgraph.EdgeSpec{

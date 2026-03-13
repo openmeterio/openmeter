@@ -25,6 +25,10 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
+	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
+	FieldTaxCodeID = "tax_code_id"
+	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
+	FieldTaxBehavior = "tax_behavior"
 	// FieldCollectionAlignment holds the string denoting the collection_alignment field in the database.
 	FieldCollectionAlignment = "collection_alignment"
 	// FieldAnchoredAlignmentDetail holds the string denoting the anchored_alignment_detail field in the database.
@@ -43,10 +47,6 @@ const (
 	FieldInvoiceProgressiveBilling = "invoice_progressive_billing"
 	// FieldInvoiceDefaultTaxSettings holds the string denoting the invoice_default_tax_settings field in the database.
 	FieldInvoiceDefaultTaxSettings = "invoice_default_tax_settings"
-	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
-	FieldTaxCodeID = "tax_code_id"
-	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
-	FieldTaxBehavior = "tax_behavior"
 	// FieldTaxEnabled holds the string denoting the tax_enabled field in the database.
 	FieldTaxEnabled = "tax_enabled"
 	// FieldTaxEnforced holds the string denoting the tax_enforced field in the database.
@@ -89,6 +89,8 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
+	FieldTaxCodeID,
+	FieldTaxBehavior,
 	FieldCollectionAlignment,
 	FieldAnchoredAlignmentDetail,
 	FieldLineCollectionPeriod,
@@ -98,8 +100,6 @@ var Columns = []string{
 	FieldInvoiceCollectionMethod,
 	FieldInvoiceProgressiveBilling,
 	FieldInvoiceDefaultTaxSettings,
-	FieldTaxCodeID,
-	FieldTaxBehavior,
 	FieldTaxEnabled,
 	FieldTaxEnforced,
 }
@@ -131,6 +131,16 @@ var (
 	DefaultID func() string
 )
 
+// TaxBehaviorValidator is a validator for the "tax_behavior" field enum values. It is called by the builders before save.
+func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
+	switch tb {
+	case "inclusive", "exclusive":
+		return nil
+	default:
+		return fmt.Errorf("billingworkflowconfig: invalid enum value for tax_behavior field: %q", tb)
+	}
+}
+
 // CollectionAlignmentValidator is a validator for the "collection_alignment" field enum values. It is called by the builders before save.
 func CollectionAlignmentValidator(ca billing.AlignmentKind) error {
 	switch ca {
@@ -148,16 +158,6 @@ func InvoiceCollectionMethodValidator(icm billing.CollectionMethod) error {
 		return nil
 	default:
 		return fmt.Errorf("billingworkflowconfig: invalid enum value for invoice_collection_method field: %q", icm)
-	}
-}
-
-// TaxBehaviorValidator is a validator for the "tax_behavior" field enum values. It is called by the builders before save.
-func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
-	switch tb {
-	case "inclusive", "exclusive":
-		return nil
-	default:
-		return fmt.Errorf("billingworkflowconfig: invalid enum value for tax_behavior field: %q", tb)
 	}
 }
 
@@ -187,6 +187,16 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByDeletedAt orders the results by the deleted_at field.
 func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
+}
+
+// ByTaxCodeID orders the results by the tax_code_id field.
+func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
+}
+
+// ByTaxBehavior orders the results by the tax_behavior field.
+func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
 }
 
 // ByCollectionAlignment orders the results by the collection_alignment field.
@@ -222,16 +232,6 @@ func ByInvoiceCollectionMethod(opts ...sql.OrderTermOption) OrderOption {
 // ByInvoiceProgressiveBilling orders the results by the invoice_progressive_billing field.
 func ByInvoiceProgressiveBilling(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldInvoiceProgressiveBilling, opts...).ToFunc()
-}
-
-// ByTaxCodeID orders the results by the tax_code_id field.
-func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
-}
-
-// ByTaxBehavior orders the results by the tax_behavior field.
-func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
 }
 
 // ByTaxEnabled orders the results by the tax_enabled field.

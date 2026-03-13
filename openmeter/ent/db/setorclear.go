@@ -143,6 +143,34 @@ func (u *AddonRateCardUpdateOne) SetOrClearDescription(value *string) *AddonRate
 	return u.SetDescription(*value)
 }
 
+func (u *AddonRateCardUpdate) SetOrClearTaxCodeID(value *string) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearTaxCodeID(value *string) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *AddonRateCardUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
 func (u *AddonRateCardUpdate) SetOrClearFeatureKey(value *string) *AddonRateCardUpdate {
 	if value == nil {
 		return u.ClearFeatureKey()
@@ -183,34 +211,6 @@ func (u *AddonRateCardUpdateOne) SetOrClearTaxConfig(value **productcatalog.TaxC
 		return u.ClearTaxConfig()
 	}
 	return u.SetTaxConfig(*value)
-}
-
-func (u *AddonRateCardUpdate) SetOrClearTaxCodeID(value *string) *AddonRateCardUpdate {
-	if value == nil {
-		return u.ClearTaxCodeID()
-	}
-	return u.SetTaxCodeID(*value)
-}
-
-func (u *AddonRateCardUpdateOne) SetOrClearTaxCodeID(value *string) *AddonRateCardUpdateOne {
-	if value == nil {
-		return u.ClearTaxCodeID()
-	}
-	return u.SetTaxCodeID(*value)
-}
-
-func (u *AddonRateCardUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *AddonRateCardUpdate {
-	if value == nil {
-		return u.ClearTaxBehavior()
-	}
-	return u.SetTaxBehavior(*value)
-}
-
-func (u *AddonRateCardUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *AddonRateCardUpdateOne {
-	if value == nil {
-		return u.ClearTaxBehavior()
-	}
-	return u.SetTaxBehavior(*value)
 }
 
 func (u *AddonRateCardUpdate) SetOrClearBillingCadence(value *datetime.ISODurationString) *AddonRateCardUpdate {
@@ -437,6 +437,34 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearDeletedAt(value *time.Time)
 	return u.SetDeletedAt(*value)
 }
 
+func (u *BillingCustomerOverrideUpdate) SetOrClearTaxCodeID(value *string) *BillingCustomerOverrideUpdate {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearTaxCodeID(value *string) *BillingCustomerOverrideUpdateOne {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *BillingCustomerOverrideUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdate {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
+func (u *BillingCustomerOverrideUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdateOne {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
 func (u *BillingCustomerOverrideUpdate) SetOrClearBillingProfileID(value *string) *BillingCustomerOverrideUpdate {
 	if value == nil {
 		return u.ClearBillingProfileID()
@@ -575,34 +603,6 @@ func (u *BillingCustomerOverrideUpdateOne) SetOrClearInvoiceDefaultTaxConfig(val
 		return u.ClearInvoiceDefaultTaxConfig()
 	}
 	return u.SetInvoiceDefaultTaxConfig(*value)
-}
-
-func (u *BillingCustomerOverrideUpdate) SetOrClearTaxCodeID(value *string) *BillingCustomerOverrideUpdate {
-	if value == nil {
-		return u.ClearTaxCodeID()
-	}
-	return u.SetTaxCodeID(*value)
-}
-
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearTaxCodeID(value *string) *BillingCustomerOverrideUpdateOne {
-	if value == nil {
-		return u.ClearTaxCodeID()
-	}
-	return u.SetTaxCodeID(*value)
-}
-
-func (u *BillingCustomerOverrideUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdate {
-	if value == nil {
-		return u.ClearTaxBehavior()
-	}
-	return u.SetTaxBehavior(*value)
-}
-
-func (u *BillingCustomerOverrideUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *BillingCustomerOverrideUpdateOne {
-	if value == nil {
-		return u.ClearTaxBehavior()
-	}
-	return u.SetTaxBehavior(*value)
 }
 
 func (u *BillingInvoiceUpdate) SetOrClearMetadata(value *map[string]string) *BillingInvoiceUpdate {
@@ -2229,34 +2229,6 @@ func (u *BillingWorkflowConfigUpdateOne) SetOrClearDeletedAt(value *time.Time) *
 	return u.SetDeletedAt(*value)
 }
 
-func (u *BillingWorkflowConfigUpdate) SetOrClearAnchoredAlignmentDetail(value **billing.AnchoredAlignmentDetail) *BillingWorkflowConfigUpdate {
-	if value == nil {
-		return u.ClearAnchoredAlignmentDetail()
-	}
-	return u.SetAnchoredAlignmentDetail(*value)
-}
-
-func (u *BillingWorkflowConfigUpdateOne) SetOrClearAnchoredAlignmentDetail(value **billing.AnchoredAlignmentDetail) *BillingWorkflowConfigUpdateOne {
-	if value == nil {
-		return u.ClearAnchoredAlignmentDetail()
-	}
-	return u.SetAnchoredAlignmentDetail(*value)
-}
-
-func (u *BillingWorkflowConfigUpdate) SetOrClearInvoiceDefaultTaxSettings(value *productcatalog.TaxConfig) *BillingWorkflowConfigUpdate {
-	if value == nil {
-		return u.ClearInvoiceDefaultTaxSettings()
-	}
-	return u.SetInvoiceDefaultTaxSettings(*value)
-}
-
-func (u *BillingWorkflowConfigUpdateOne) SetOrClearInvoiceDefaultTaxSettings(value *productcatalog.TaxConfig) *BillingWorkflowConfigUpdateOne {
-	if value == nil {
-		return u.ClearInvoiceDefaultTaxSettings()
-	}
-	return u.SetInvoiceDefaultTaxSettings(*value)
-}
-
 func (u *BillingWorkflowConfigUpdate) SetOrClearTaxCodeID(value *string) *BillingWorkflowConfigUpdate {
 	if value == nil {
 		return u.ClearTaxCodeID()
@@ -2283,6 +2255,34 @@ func (u *BillingWorkflowConfigUpdateOne) SetOrClearTaxBehavior(value *productcat
 		return u.ClearTaxBehavior()
 	}
 	return u.SetTaxBehavior(*value)
+}
+
+func (u *BillingWorkflowConfigUpdate) SetOrClearAnchoredAlignmentDetail(value **billing.AnchoredAlignmentDetail) *BillingWorkflowConfigUpdate {
+	if value == nil {
+		return u.ClearAnchoredAlignmentDetail()
+	}
+	return u.SetAnchoredAlignmentDetail(*value)
+}
+
+func (u *BillingWorkflowConfigUpdateOne) SetOrClearAnchoredAlignmentDetail(value **billing.AnchoredAlignmentDetail) *BillingWorkflowConfigUpdateOne {
+	if value == nil {
+		return u.ClearAnchoredAlignmentDetail()
+	}
+	return u.SetAnchoredAlignmentDetail(*value)
+}
+
+func (u *BillingWorkflowConfigUpdate) SetOrClearInvoiceDefaultTaxSettings(value *productcatalog.TaxConfig) *BillingWorkflowConfigUpdate {
+	if value == nil {
+		return u.ClearInvoiceDefaultTaxSettings()
+	}
+	return u.SetInvoiceDefaultTaxSettings(*value)
+}
+
+func (u *BillingWorkflowConfigUpdateOne) SetOrClearInvoiceDefaultTaxSettings(value *productcatalog.TaxConfig) *BillingWorkflowConfigUpdateOne {
+	if value == nil {
+		return u.ClearInvoiceDefaultTaxSettings()
+	}
+	return u.SetInvoiceDefaultTaxSettings(*value)
 }
 
 func (u *ChargeUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeUpdate {
@@ -3881,6 +3881,34 @@ func (u *PlanRateCardUpdateOne) SetOrClearDescription(value *string) *PlanRateCa
 	return u.SetDescription(*value)
 }
 
+func (u *PlanRateCardUpdate) SetOrClearTaxCodeID(value *string) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearTaxCodeID(value *string) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
 func (u *PlanRateCardUpdate) SetOrClearFeatureKey(value *string) *PlanRateCardUpdate {
 	if value == nil {
 		return u.ClearFeatureKey()
@@ -3921,34 +3949,6 @@ func (u *PlanRateCardUpdateOne) SetOrClearTaxConfig(value **productcatalog.TaxCo
 		return u.ClearTaxConfig()
 	}
 	return u.SetTaxConfig(*value)
-}
-
-func (u *PlanRateCardUpdate) SetOrClearTaxCodeID(value *string) *PlanRateCardUpdate {
-	if value == nil {
-		return u.ClearTaxCodeID()
-	}
-	return u.SetTaxCodeID(*value)
-}
-
-func (u *PlanRateCardUpdateOne) SetOrClearTaxCodeID(value *string) *PlanRateCardUpdateOne {
-	if value == nil {
-		return u.ClearTaxCodeID()
-	}
-	return u.SetTaxCodeID(*value)
-}
-
-func (u *PlanRateCardUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *PlanRateCardUpdate {
-	if value == nil {
-		return u.ClearTaxBehavior()
-	}
-	return u.SetTaxBehavior(*value)
-}
-
-func (u *PlanRateCardUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *PlanRateCardUpdateOne {
-	if value == nil {
-		return u.ClearTaxBehavior()
-	}
-	return u.SetTaxBehavior(*value)
 }
 
 func (u *PlanRateCardUpdate) SetOrClearBillingCadence(value *datetime.ISODurationString) *PlanRateCardUpdate {
@@ -4231,6 +4231,34 @@ func (u *SubscriptionItemUpdateOne) SetOrClearMetadata(value *map[string]string)
 	return u.SetMetadata(*value)
 }
 
+func (u *SubscriptionItemUpdate) SetOrClearTaxCodeID(value *string) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearTaxCodeID(value *string) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *SubscriptionItemUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
 func (u *SubscriptionItemUpdate) SetOrClearAnnotations(value *models.Annotations) *SubscriptionItemUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
@@ -4369,34 +4397,6 @@ func (u *SubscriptionItemUpdateOne) SetOrClearTaxConfig(value **productcatalog.T
 		return u.ClearTaxConfig()
 	}
 	return u.SetTaxConfig(*value)
-}
-
-func (u *SubscriptionItemUpdate) SetOrClearTaxCodeID(value *string) *SubscriptionItemUpdate {
-	if value == nil {
-		return u.ClearTaxCodeID()
-	}
-	return u.SetTaxCodeID(*value)
-}
-
-func (u *SubscriptionItemUpdateOne) SetOrClearTaxCodeID(value *string) *SubscriptionItemUpdateOne {
-	if value == nil {
-		return u.ClearTaxCodeID()
-	}
-	return u.SetTaxCodeID(*value)
-}
-
-func (u *SubscriptionItemUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *SubscriptionItemUpdate {
-	if value == nil {
-		return u.ClearTaxBehavior()
-	}
-	return u.SetTaxBehavior(*value)
-}
-
-func (u *SubscriptionItemUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *SubscriptionItemUpdateOne {
-	if value == nil {
-		return u.ClearTaxBehavior()
-	}
-	return u.SetTaxBehavior(*value)
 }
 
 func (u *SubscriptionItemUpdate) SetOrClearBillingCadence(value *datetime.ISODurationString) *SubscriptionItemUpdate {
