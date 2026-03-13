@@ -71,7 +71,11 @@ union PricePaymentTerm {
  */
 @friendlyName("BillingPriceFree")
 model PriceFree {
+  /**
+   * The type of the price.
+   */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Type")
   type: PriceType.Free;
 }
 
@@ -80,10 +84,18 @@ model PriceFree {
  */
 @friendlyName("BillingPriceFlat")
 model PriceFlat {
+  /**
+   * The type of the price.
+   */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Type")
   type: PriceType.Flat;
 
+  /**
+   * The amount of the flat price.
+   */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Amount")
   amount: Shared.Numeric;
 }
 
@@ -96,10 +108,18 @@ model PriceFlat {
  */
 @friendlyName("BillingPriceUnit")
 model PriceUnit {
+  /**
+   * The type of the price.
+   */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Type")
   type: PriceType.Unit;
 
+  /**
+   * The amount of the unit price.
+   */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Amount")
   amount: Shared.Numeric;
 }
 
@@ -118,6 +138,7 @@ model PriceGraduated {
    * The type of the price.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Type")
   type: PriceType.Graduated;
 
   /**
@@ -141,7 +162,11 @@ model PriceGraduated {
  */
 @friendlyName("BillingPriceVolume")
 model PriceVolume {
+  /**
+   * The type of the price.
+   */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Type")
   type: PriceType.Volume;
 
   /**
