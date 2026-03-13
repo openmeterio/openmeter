@@ -431,14 +431,14 @@ files = [
 
 [[package]]
 name = "corehttp"
-version = "1.0.0b6"
+version = "1.0.0b7"
 description = "CoreHTTP Library for Python"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "corehttp-1.0.0b6-py3-none-any.whl", hash = "sha256:3cd421b9267350b7fb6b1bb06022f615a083a41352c766fc1cb490c4cf2c641e"},
-    {file = "corehttp-1.0.0b6.tar.gz", hash = "sha256:ee2f16decb02fc1d6e5b4502404053937734f0740646be186fe4a98a7f2dbb18"},
+    {file = "corehttp-1.0.0b7-py3-none-any.whl", hash = "sha256:d20d0291407458789298fbee27a551a60156a1ba23a8fd27ec0a0e63c48f8718"},
+    {file = "corehttp-1.0.0b7.tar.gz", hash = "sha256:f21b71028a62e67e346f4669590b1285afa09145d39a50573b3cfabf9c7b2457"},
 ]
 
 [package.dependencies]
@@ -450,6 +450,7 @@ typing-extensions = ">=4.6.0"
 aiohttp = ["aiohttp (>=3.0)"]
 httpx = ["httpx (>=0.25.0)"]
 requests = ["requests (>=2.18.4)"]
+tracing = ["opentelemetry-api (>=1.26,<2.0)"]
 
 [[package]]
 name = "deprecation"
