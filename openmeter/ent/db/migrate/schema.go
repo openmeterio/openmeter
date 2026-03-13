@@ -143,6 +143,11 @@ var (
 				Columns: []*schema.Column{AddonRateCardsColumns[1], AddonRateCardsColumns[8], AddonRateCardsColumns[5]},
 			},
 			{
+				Name:    "addonratecard_tax_code_id",
+				Unique:  false,
+				Columns: []*schema.Column{AddonRateCardsColumns[19]},
+			},
+			{
 				Name:    "addonratecard_addon_id_key",
 				Unique:  true,
 				Columns: []*schema.Column{AddonRateCardsColumns[17], AddonRateCardsColumns[8]},
@@ -554,6 +559,11 @@ var (
 				Columns: []*schema.Column{BillingCustomerOverridesColumns[1]},
 			},
 			{
+				Name:    "billingcustomeroverride_tax_code_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingCustomerOverridesColumns[17]},
+			},
+			{
 				Name:    "billingcustomeroverride_namespace_id",
 				Unique:  true,
 				Columns: []*schema.Column{BillingCustomerOverridesColumns[1], BillingCustomerOverridesColumns[0]},
@@ -904,6 +914,11 @@ var (
 				Columns: []*schema.Column{BillingInvoiceLinesColumns[2], BillingInvoiceLinesColumns[0]},
 			},
 			{
+				Name:    "billinginvoiceline_tax_code_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[43]},
+			},
+			{
 				Name:    "billinginvoiceline_namespace_invoice_id",
 				Unique:  false,
 				Columns: []*schema.Column{BillingInvoiceLinesColumns[2], BillingInvoiceLinesColumns[34]},
@@ -1120,6 +1135,11 @@ var (
 				Name:    "billinginvoicesplitlinegroup_namespace_id",
 				Unique:  true,
 				Columns: []*schema.Column{BillingInvoiceSplitLineGroupsColumns[1], BillingInvoiceSplitLineGroupsColumns[0]},
+			},
+			{
+				Name:    "billinginvoicesplitlinegroup_tax_code_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoiceSplitLineGroupsColumns[23]},
 			},
 			{
 				Name:    "billinginvoicesplitlinegroup_namespace_unique_reference_id",
@@ -1419,6 +1439,11 @@ var (
 				Columns: []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[2], BillingStandardInvoiceDetailedLinesColumns[0]},
 			},
 			{
+				Name:    "billingstandardinvoicedetailedline_tax_code_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[32]},
+			},
+			{
 				Name:    "billingstandardinvoicedetailedline_namespace_invoice_id",
 				Unique:  false,
 				Columns: []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[2], BillingStandardInvoiceDetailedLinesColumns[30]},
@@ -1537,6 +1562,11 @@ var (
 				Name:    "billingworkflowconfig_namespace",
 				Unique:  false,
 				Columns: []*schema.Column{BillingWorkflowConfigsColumns[1]},
+			},
+			{
+				Name:    "billingworkflowconfig_tax_code_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingWorkflowConfigsColumns[17]},
 			},
 			{
 				Name:    "billingworkflowconfig_namespace_id",
@@ -3076,6 +3106,11 @@ var (
 				Columns: []*schema.Column{PlanRateCardsColumns[1], PlanRateCardsColumns[8], PlanRateCardsColumns[5]},
 			},
 			{
+				Name:    "planratecard_tax_code_id",
+				Unique:  false,
+				Columns: []*schema.Column{PlanRateCardsColumns[19]},
+			},
+			{
 				Name:    "planratecard_phase_id_key",
 				Unique:  true,
 				Columns: []*schema.Column{PlanRateCardsColumns[18], PlanRateCardsColumns[8]},
@@ -3419,6 +3454,11 @@ var (
 				Name:    "subscriptionitem_namespace",
 				Unique:  false,
 				Columns: []*schema.Column{SubscriptionItemsColumns[1]},
+			},
+			{
+				Name:    "subscriptionitem_tax_code_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionItemsColumns[24]},
 			},
 			{
 				Name:    "subscriptionitem_namespace_id",
