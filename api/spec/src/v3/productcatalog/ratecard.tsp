@@ -1,5 +1,6 @@
 import "../shared/index.tsp";
 import "./price.tsp";
+import "./unitconfig.tsp";
 import "../billing/tax.tsp";
 import "./feature.tsp";
 import "../tax/codes.tsp";
@@ -25,10 +26,11 @@ model RateCard {
 
   /**
    * The billing cadence of the rate card.
+   * When null, the charge is one-time (non-recurring). Only valid for flat prices.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Billing cadence")
-  billing_cadence: Shared.ISO8601Duration;
+  billing_cadence: Shared.ISO8601Duration | null;
 
   /**
    * The price of the rate card.
@@ -46,7 +48,20 @@ model RateCard {
   payment_term?: PricePaymentTerm = PricePaymentTerm.InArrears;
 
   /**
-   * The commitments of the rate card.
+   * Unit conversion configuration applied before pricing.
+   *
+   * When set, raw metered quantities are transformed into billing units
+   * before being passed to the price model and entitlement checks.
+   * Tier boundaries (up_to_amount) are also expressed in billing units.
+   * Only applicable to usage-based prices (unit, graduated, volume).
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Unit conversion config")
+  unit_config?: UnitConfig;
+
+  /**
+   * Spend commitments for this rate card.
+   * Only applicable to usage-based prices (unit, graduated, volume).
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Commitments")
