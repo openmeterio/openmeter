@@ -12,8 +12,6 @@ enum PriceType {
   Unit: "unit",
   Graduated: "graduated",
   Volume: "volume",
-  Dynamic: "dynamic",
-  Package: "package",
 }
 
 /**
@@ -36,23 +34,20 @@ union Price {
 
   @summary("Volume price")
   volume: PriceVolume,
-
-  @summary("Dynamic price")
-  dynamic: PriceDynamic,
-
-  @summary("Package price")
-  package: PricePackage,
 }
 
 /**
- * Usage based price.
+ * Usage-based price types that can appear on a usage-based rate card.
+ *
+ * When UnitConfig is present on the rate card, these price types operate on
+ * billing units (i.e. post-conversion quantities), not raw metered units.
  */
 @friendlyName("BillingPriceUsageBased")
 @discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union PriceUsageBased {
   unit: PriceUnit,
-  dynamic: PriceDynamic,
-  package: PricePackage,
+  graduated: PriceGraduated,
+  volume: PriceVolume,
 }
 
 /**
@@ -76,9 +71,6 @@ union PricePaymentTerm {
  */
 @friendlyName("BillingPriceFree")
 model PriceFree {
-  /**
-   * The type of the price.
-   */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   type: PriceType.Free;
 }
@@ -88,15 +80,9 @@ model PriceFree {
  */
 @friendlyName("BillingPriceFlat")
 model PriceFlat {
-  /**
-   * The type of the price.
-   */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   type: PriceType.Flat;
 
-  /**
-   * The amount of the flat price.
-   */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   amount: Shared.Numeric;
 }
@@ -118,25 +104,28 @@ model PriceFlatWithPaymentTerm {
 
 /**
  * Unit price.
+ *
+ * Charges a fixed rate per billing unit.
+ * When UnitConfig is present on the rate card, billing units are the
+ * converted quantities (e.g. GB instead of bytes).
  */
 @friendlyName("BillingPriceUnit")
 model PriceUnit {
-  /**
-   * The type of the price.
-   */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   type: PriceType.Unit;
 
-  /**
-   * The amount of the unit price.
-   */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   amount: Shared.Numeric;
 }
 
 /**
  * Graduated tiered price.
- * Pricing can change as the quantity grows.
+ *
+ * Each tier's rate applies only to the usage within that tier.
+ * Pricing can change as cumulative usage crosses tier boundaries.
+ *
+ * When UnitConfig is present on the rate card, tier boundaries (up_to_amount)
+ * are expressed in converted billing units.
  */
 @friendlyName("BillingPriceGraduated")
 model PriceGraduated {
@@ -147,8 +136,8 @@ model PriceGraduated {
   type: PriceType.Graduated;
 
   /**
-   * The tiers of the tiered price.
-   * At least one price component is required in each tier.
+   * The tiers of the graduated price.
+   * At least one tier is required.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Tiers")
@@ -158,19 +147,21 @@ model PriceGraduated {
 
 /**
  * Volume tiered price.
- * The maximum quantity within a period determines the per unit price.
+ *
+ * The maximum quantity within a period determines the per-unit price for
+ * all units in that period.
+ *
+ * When UnitConfig is present on the rate card, tier boundaries (up_to_amount)
+ * are expressed in converted billing units.
  */
 @friendlyName("BillingPriceVolume")
 model PriceVolume {
-  /**
-   * The type of the price.
-   */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   type: PriceType.Volume;
 
   /**
-   * The tiers of the tiered price.
-   * At least one price component is required in each tier.
+   * The tiers of the volume price.
+   * At least one tier is required.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Tiers")
@@ -179,14 +170,17 @@ model PriceVolume {
 }
 
 /**
- * A price tier.
- * At least one price component is required in each tier.
+ * A price tier used in graduated and volume pricing.
+ *
+ * At least one price component (flat_price or unit_price) must be set.
+ * When UnitConfig is present on the rate card, up_to_amount is expressed
+ * in converted billing units.
  */
 @friendlyName("BillingPriceTier")
 model PriceTier {
   /**
-   * Up to and including to this quantity will be contained in the tier.
-   * If undefined, the tier is open-ended.
+   * Up to and including this quantity will be contained in the tier.
+   * If undefined, the tier is open-ended (the last tier).
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Up to quantity")
@@ -194,89 +188,23 @@ model PriceTier {
 
   /**
    * The flat price component of the tier.
+   * Charged once when the tier is entered.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Flat price component")
   flat_price?: PriceFlat;
 
   /**
-   * The usage based price component of the tier.
+   * The unit price component of the tier.
+   * Charged per billing unit within the tier.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Usage based price component")
-  usage_price?: PriceUsageBased;
+  @summary("Unit price component")
+  unit_price?: PriceUnit;
 }
 
 /**
- * Dynamic price.
- *
- * The underlying meter's value is considered the base price in the
- * customer's currency.
- *
- * The rate specifies the markup over the price.
- */
-@friendlyName("BillingPriceDynamic")
-model PriceDynamic {
-  /**
-   * The type of the price.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  type: PriceType.Dynamic;
-
-  /**
-   * The multiplier to apply to the base price to get the dynamic price.
-   *
-   * Examples:
-   * - 0.0: the price is zero
-   * - 0.5: the price is 50% of the base price
-   * - 1.0: the price is the same as the base price
-   * - 1.5: the price is 150% of the base price
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("The multiplier to apply to the base price to get the dynamic price")
-  multiplier?: Shared.Numeric = "1";
-}
-
-/**
- * Package price.
- *
- * The item is sold in packages. Each package contains quantityPerPackage items, the price of the
- * package is set in amount.
- *
- * The total price of the usage will be enough packages that can accomodate all the usage.
- *
- * Examples (given a package size of 20, and an amount of $10):
- * - if the quantity is 98, the price will be 5*$10=$50.
- * - if the quantity is zero, the price will be 0*$10=$0, as even the first package is not purchased.
- * - if the quantity is 20, the price will be 1*$10=$10, as the usage fits into the first package.
- * - if the quantity is 20.1, the price will be 2*$10=$20, as the additional 0.1 usage (compared to the
- *   previous example) requires a new package.
- */
-@friendlyName("BillingPricePackage")
-model PricePackage {
-  /**
-   * The type of the price.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  type: PriceType.Package;
-
-  /**
-   * The price of one package.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Amount")
-  amount: Shared.Numeric;
-
-  /**
-   * The quantity per package.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Quantity per package")
-  quantity_per_package: Shared.Numeric;
-}
-
-/**
- * Spending commitments.
+ * Spend commitments for a rate card.
  * The customer is committed to spend at least the minimum amount and at most the maximum amount.
  */
 @friendlyName("BillingSpendCommitments")
@@ -294,49 +222,4 @@ model SpendCommitments {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Maximum amount")
   maximum_amount?: Shared.Numeric;
-}
-
-/**
- * Unit price with spend commitments.
- */
-@friendlyName("BillingPriceUnitWithCommitments")
-model PriceUnitWithCommitments {
-  ...PriceUnit;
-  ...SpendCommitments;
-}
-
-/**
- * Graduated price with spend commitments.
- */
-@friendlyName("BillingPriceGraduatedWithCommitments")
-model PriceGraduatedWithCommitments {
-  ...PriceGraduated;
-  ...SpendCommitments;
-}
-
-/**
- * Volume price with spend commitments.
- */
-@friendlyName("BillingPriceVolumeWithCommitments")
-model PriceVolumeWithCommitments {
-  ...PriceVolume;
-  ...SpendCommitments;
-}
-
-/**
- * Dynamic price with spend commitments.
- */
-@friendlyName("BillingPriceDynamicWithCommitments")
-model PriceDynamicWithCommitments {
-  ...PriceDynamic;
-  ...SpendCommitments;
-}
-
-/**
- * Package price with spend commitments.
- */
-@friendlyName("BillingPricePackageWithCommitments")
-model PricePackageWithCommitments {
-  ...PricePackage;
-  ...SpendCommitments;
 }
