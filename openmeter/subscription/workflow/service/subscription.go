@@ -2,10 +2,13 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"maps"
+	"time"
 
 	"github.com/samber/lo"
+	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -20,6 +23,17 @@ import (
 )
 
 func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error) {
+	setSpanAttrs(ctx,
+		attribute.String("subscription.namespace", inp.Namespace),
+		attribute.String("workflow.operation", "create_from_plan"),
+		attribute.Bool("subscription.timing.has_custom", inp.Timing.Custom != nil),
+		attribute.String("subscription.timing.enum", lo.TernaryF(inp.Timing.Enum != nil, func() string {
+			return string(*inp.Timing.Enum)
+		}, func() string {
+			return ""
+		})),
+	)
+
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionView, error) {
 		var def subscription.SubscriptionView
 
@@ -76,6 +90,8 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 			return def, fmt.Errorf("failed to create spec from plan: %w", err)
 		}
 
+		setSpanAttrs(ctx, addSubscriptionSpecAttrs([]attribute.KeyValue{}, "subscription.spec", spec)...)
+
 		if err := spec.ValidateAlignment(); err != nil {
 			return def, err
 		}
@@ -91,6 +107,19 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 }
 
 func (s *service) EditRunning(ctx context.Context, subscriptionID models.NamespacedID, customizations []subscription.Patch, timing subscription.Timing) (subscription.SubscriptionView, error) {
+	setSpanAttrs(ctx,
+		attribute.String("subscription.namespace", subscriptionID.Namespace),
+		attribute.String("subscription.id", subscriptionID.ID),
+		attribute.String("workflow.operation", "edit_running"),
+		attribute.Int("subscription.customizations.count", len(customizations)),
+		attribute.Bool("subscription.timing.has_custom", timing.Custom != nil),
+		attribute.String("subscription.timing.enum", lo.TernaryF(timing.Enum != nil, func() string {
+			return string(*timing.Enum)
+		}, func() string {
+			return ""
+		})),
+	)
+
 	// Finally, let's update the subscription
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionView, error) {
 		// First, let's fetch the current state of the Subscription
@@ -154,20 +183,73 @@ func (s *service) EditRunning(ctx context.Context, subscriptionID models.Namespa
 		if err != nil {
 			return subscription.SubscriptionView{}, fmt.Errorf("failed to resolve timing: %w", err)
 		}
+		setSpanAttrs(ctx, attribute.String("subscription.edit_time", editTime.UTC().Format(time.RFC3339Nano)))
 
 		// Let's apply the customizations
 		spec := curr.AsSpec()
+		setSpanAttrs(ctx, addSubscriptionSpecAttrs([]attribute.KeyValue{}, "subscription.spec.before_apply", spec)...)
+		for idx, p := range customizations {
+			path := p.Path()
+			eventAttrs := []attribute.KeyValue{
+				attribute.String("apply.source", "subscription.customization"),
+				attribute.Int("apply.order", idx),
+				attribute.String("patch.op", string(p.Op())),
+				attribute.String("patch.path", string(path)),
+				attribute.String("patch.path.type", string(path.Type())),
+				attribute.String("patch.phase_key", path.PhaseKey()),
+			}
+			if itemKey := path.ItemKey(); itemKey != "" {
+				eventAttrs = append(eventAttrs, attribute.String("patch.item_key", itemKey))
+			}
+			if itemVersion := path.ItemVersion(); itemVersion >= 0 {
+				eventAttrs = append(eventAttrs, attribute.Int("patch.item_version", itemVersion))
+			}
+
+			// Add cadence override details for add-item patches (critical for debugging sort order issues)
+			addItemCadenceAttrs := func(inp subscription.SubscriptionItemSpec) {
+				if inp.ActiveFromOverrideRelativeToPhaseStart != nil {
+					eventAttrs = append(eventAttrs, attribute.String("patch.item.active_from_override", inp.ActiveFromOverrideRelativeToPhaseStart.ISOString().String()))
+				}
+				if inp.ActiveToOverrideRelativeToPhaseStart != nil {
+					eventAttrs = append(eventAttrs, attribute.String("patch.item.active_to_override", inp.ActiveToOverrideRelativeToPhaseStart.ISOString().String()))
+				}
+			}
+			if ap, ok := p.(patch.PatchAddItem); ok {
+				addItemCadenceAttrs(ap.CreateInput)
+			} else if ap, ok := p.(*patch.PatchAddItem); ok {
+				addItemCadenceAttrs(ap.CreateInput)
+			}
+
+			addSpanEvent(ctx, "subscription.apply.plan", eventAttrs...)
+		}
+
+		// TODO: remove after issue is fixed
+		specBeforeApplyJSON, _ := json.Marshal(spec)
+		logApplyErr := func(mErr error) {
+			customizationsJSON, err := json.Marshal(customizations)
+			if err != nil {
+				s.Logger.DebugContext(ctx, "failed to marshal customizations for error logging", "error", err)
+			}
+			s.Logger.DebugContext(ctx, "failed to apply customizations",
+				"apply_error", mErr,
+				"spec_before_apply", specBeforeApplyJSON,
+				"customizations", customizationsJSON,
+				"edit_time", editTime,
+			)
+		}
 
 		err = spec.ApplyMany(lo.Map(customizations, subscription.ToApplies), subscription.ApplyContext{
 			CurrentTime: editTime,
 		})
 		if err := subscriptionworkflow.MapSubscriptionErrors(err); err != nil {
+			logApplyErr(err)
 			return subscription.SubscriptionView{}, fmt.Errorf("failed to apply customizations: %w", err)
 		}
 
 		if err := spec.ValidateAlignment(); err != nil {
 			return subscription.SubscriptionView{}, err
 		}
+		setSpanAttrs(ctx, addSubscriptionSpecAttrs([]attribute.KeyValue{}, "subscription.spec.after_apply", spec)...)
 
 		sub, err := s.Service.Update(ctx, subscriptionID, spec)
 		if err != nil {
@@ -179,6 +261,18 @@ func (s *service) EditRunning(ctx context.Context, subscriptionID models.Namespa
 }
 
 func (s *service) ChangeToPlan(ctx context.Context, subscriptionID models.NamespacedID, inp subscriptionworkflow.ChangeSubscriptionWorkflowInput, plan subscription.Plan) (subscription.Subscription, subscription.SubscriptionView, error) {
+	setSpanAttrs(ctx,
+		attribute.String("subscription.namespace", subscriptionID.Namespace),
+		attribute.String("subscription.id", subscriptionID.ID),
+		attribute.String("workflow.operation", "change_to_plan"),
+		attribute.Bool("subscription.timing.has_custom", inp.Timing.Custom != nil),
+		attribute.String("subscription.timing.enum", lo.TernaryF(inp.Timing.Enum != nil, func() string {
+			return string(*inp.Timing.Enum)
+		}, func() string {
+			return ""
+		})),
+	)
+
 	// typing helper
 	type res struct {
 		curr subscription.Subscription
