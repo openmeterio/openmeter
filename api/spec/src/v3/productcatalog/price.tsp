@@ -88,21 +88,6 @@ model PriceFlat {
 }
 
 /**
- * Flat price with payment term.
- */
-@friendlyName("BillingPriceFlatWithPaymentTerm")
-model PriceFlatWithPaymentTerm {
-  ...PriceFlat;
-
-  /**
-   * The payment term of the flat price.
-   * Defaults to in advance.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  payment_term?: PricePaymentTerm = PricePaymentTerm.InAdvance;
-}
-
-/**
  * Unit price.
  *
  * Charges a fixed rate per billing unit.
