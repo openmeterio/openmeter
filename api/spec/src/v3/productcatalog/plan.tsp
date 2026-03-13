@@ -40,21 +40,17 @@ model Plan {
    * A key is a semi-unique string that is used to identify the plan.
    * It is used to reference the latest `active` version of the plan and is unique with the version number.
    */
-  @pattern(
-    "^[a-z0-9]+(?:_[a-z0-9]+)*$",
-    "Must start with a lowercase letter or a number. Can contain lowercase letters, numbers, and underscores."
-  )
-  @minLength(1)
-  @maxLength(64)
+  #suppress "@openmeter/api-spec/doc-decorator" "shared model"
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Key")
-  key: string;
+  key: Shared.ResourceKey;
 
   /**
    * Plans are versioned to allow you to make changes without affecting running subscriptions.
    */
+  @visibility(Lifecycle.Read)
   @summary("Version")
   @minValue(1)
-  @visibility(Lifecycle.Read)
   version: integer = 1;
 
   /**
@@ -70,6 +66,15 @@ model Plan {
   @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Billing cadence")
   billing_cadence: Shared.ISO8601Duration;
+
+  /**
+   * Whether pro-rating is enabled for this plan.
+   *
+   * TODO: WIP — pro-rating mode and exact semantics will be defined in a later iteration.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Pro-rating enabled")
+  pro_rating_enabled?: boolean = true;
 
   /**
    * The date and time when the plan becomes `active`.
@@ -95,9 +100,19 @@ model Plan {
    *  - archived / inactive = effectiveTo <= now
    *  - scheduled = now < effectiveFrom < effectiveTo
    */
-  @summary("Status")
   @visibility(Lifecycle.Read)
+  @summary("Status")
   status: PlanStatus;
+
+  /**
+   * The plan phases define the pricing ramp for a subscription.
+   * A phase switch occurs only at the end of a billing period.
+   * At least one phase is required.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Plan phases")
+  @minItems(1)
+  phases: PlanPhase[];
 
   /**
    * List of validation errors in `draft` state that prevent the plan from being published.
@@ -116,6 +131,7 @@ model PlanValidationError {
    * The path to the field in the plan definition.
    */
   @visibility(Lifecycle.Read)
+  @summary("Field")
   @example("addons/pro/ratecards/token/featureKey")
   field: string;
 
@@ -123,6 +139,7 @@ model PlanValidationError {
    * The machine readable code of the error.
    */
   @visibility(Lifecycle.Read)
+  @summary("Code")
   @example("invalid_feature_key")
   code: string;
 
@@ -130,6 +147,7 @@ model PlanValidationError {
    * The human readable description of the error.
    */
   @visibility(Lifecycle.Read)
+  @summary("Message")
   @example("not found feature by key")
   message: string;
 
@@ -137,6 +155,7 @@ model PlanValidationError {
    * Additional attributes.
    */
   @visibility(Lifecycle.Read)
+  @summary("Attributes")
   attributes?: Record<unknown>;
 }
 
@@ -152,10 +171,11 @@ model PlanPhase {
 
   /**
    * The duration of the phase.
+   * When null, the phase runs indefinitely. Only the last phase may have a null duration.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Duration")
-  duration: Shared.ISO8601Duration;
+  duration: Shared.ISO8601Duration | null;
 
   /**
    * The rate cards of the plan.

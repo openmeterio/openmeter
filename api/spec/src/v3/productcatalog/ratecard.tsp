@@ -101,6 +101,7 @@ model Discounts {
   /**
    * Percentage discount applied to the price (0–100).
    */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @minValue(0)
   @maxValue(100)
   percentage?: Shared.Percentage;
@@ -110,5 +111,6 @@ model Discounts {
    * Only applies to usage-based lines (not flat fees). Usage is treated as zero
    * until this amount is exhausted.
    */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   usage?: Shared.Numeric;
 }

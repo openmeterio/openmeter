@@ -3,14 +3,10 @@ import "./price.tsp";
 
 namespace ProductCatalog;
 
-// ────────────────────────────────────────────────────────────────────────────
-// UnitConfig – unit conversion on usage-based rate cards
-// ────────────────────────────────────────────────────────────────────────────
-
 /**
  * The arithmetic operation used to convert raw metered units into billing units.
  */
-@friendlyName("UnitConfigOperation")
+@friendlyName("BillingUnitConfigOperation")
 enum UnitConfigOperation {
   /** Divide the metered quantity by the conversion factor (e.g., bytes ÷ 1e9 = GB). */
   Divide: "divide",
@@ -25,7 +21,7 @@ enum UnitConfigOperation {
  * Rounding is applied only to the invoiced quantity.
  * Entitlement balance checks use the precise decimal value after conversion.
  */
-@friendlyName("UnitConfigRoundingMode")
+@friendlyName("BillingUnitConfigRoundingMode")
 enum UnitConfigRoundingMode {
   /** Round up to the next integer (typical for package-style billing). */
   Ceiling: "ceiling",
@@ -57,7 +53,7 @@ enum UnitConfigRoundingMode {
  * - DynamicPrice(multiplier):              operation=multiply, conversionFactor=multiplier + UnitPrice(amount=1)
  * - PackagePrice(amount, quantityPerPkg):  operation=divide, conversionFactor=quantityPerPkg, rounding=ceiling + UnitPrice(amount)
  */
-@friendlyName("UnitConfig")
+@friendlyName("BillingUnitConfig")
 model UnitConfig {
   /**
    * The arithmetic operation to apply to the raw metered quantity.
@@ -109,10 +105,6 @@ model UnitConfig {
   display_unit?: string;
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// MeteredEntitlement – simplified quota model for usage-based rate cards
-// ────────────────────────────────────────────────────────────────────────────
-
 /**
  * Metered entitlement configuration for a usage-based rate card.
  *
@@ -121,14 +113,14 @@ model UnitConfig {
  *
  * Entitlement balance checks use the precise (unrounded) converted value.
  */
-@friendlyName("MeteredEntitlement")
+@friendlyName("BillingMeteredEntitlement")
 model MeteredEntitlement {
   /**
    * The usage quota in billing units (converted via UnitConfig when present).
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Quota")
-  quota: float64;
+  quota: Shared.Numeric;
 
   /**
    * The period over which the quota is enforced, as an ISO 8601 duration.
@@ -152,16 +144,12 @@ model MeteredEntitlement {
   is_soft_limit?: boolean = false;
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// InvoiceUsageQuantityDetail – audit trail for converted quantities
-// ────────────────────────────────────────────────────────────────────────────
-
 /**
  * Usage quantity details on an invoice line item when UnitConfig is in effect.
  *
  * Provides the full audit trail from raw meter output to the invoiced amount.
  */
-@friendlyName("InvoiceUsageQuantityDetail")
+@friendlyName("BillingInvoiceUsageQuantityDetail")
 model InvoiceUsageQuantityDetail {
   /**
    * The raw quantity as reported by the meter (native units).
