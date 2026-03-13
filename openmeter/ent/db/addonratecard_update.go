@@ -105,6 +105,46 @@ func (_u *AddonRateCardUpdate) ClearDescription() *AddonRateCardUpdate {
 	return _u
 }
 
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *AddonRateCardUpdate) SetTaxCodeID(v string) *AddonRateCardUpdate {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *AddonRateCardUpdate) SetNillableTaxCodeID(v *string) *AddonRateCardUpdate {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *AddonRateCardUpdate) ClearTaxCodeID() *AddonRateCardUpdate {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *AddonRateCardUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *AddonRateCardUpdate {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *AddonRateCardUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *AddonRateCardUpdate {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *AddonRateCardUpdate) ClearTaxBehavior() *AddonRateCardUpdate {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
 // SetFeatureKey sets the "feature_key" field.
 func (_u *AddonRateCardUpdate) SetFeatureKey(v string) *AddonRateCardUpdate {
 	_u.mutation.SetFeatureKey(v)
@@ -146,46 +186,6 @@ func (_u *AddonRateCardUpdate) SetTaxConfig(v *productcatalog.TaxConfig) *AddonR
 // ClearTaxConfig clears the value of the "tax_config" field.
 func (_u *AddonRateCardUpdate) ClearTaxConfig() *AddonRateCardUpdate {
 	_u.mutation.ClearTaxConfig()
-	return _u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_u *AddonRateCardUpdate) SetTaxCodeID(v string) *AddonRateCardUpdate {
-	_u.mutation.SetTaxCodeID(v)
-	return _u
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_u *AddonRateCardUpdate) SetNillableTaxCodeID(v *string) *AddonRateCardUpdate {
-	if v != nil {
-		_u.SetTaxCodeID(*v)
-	}
-	return _u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *AddonRateCardUpdate) ClearTaxCodeID() *AddonRateCardUpdate {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_u *AddonRateCardUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *AddonRateCardUpdate {
-	_u.mutation.SetTaxBehavior(v)
-	return _u
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_u *AddonRateCardUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *AddonRateCardUpdate {
-	if v != nil {
-		_u.SetTaxBehavior(*v)
-	}
-	return _u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (_u *AddonRateCardUpdate) ClearTaxBehavior() *AddonRateCardUpdate {
-	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -357,6 +357,11 @@ func (_u *AddonRateCardUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *AddonRateCardUpdate) check() error {
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := addonratecard.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.EntitlementTemplate(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "entitlement_template", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.entitlement_template": %w`, err)}
@@ -365,11 +370,6 @@ func (_u *AddonRateCardUpdate) check() error {
 	if v, ok := _u.mutation.TaxConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_config": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxBehavior(); ok {
-		if err := addonratecard.TaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_behavior": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Price(); ok {
@@ -429,6 +429,12 @@ func (_u *AddonRateCardUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(addonratecard.FieldDescription, field.TypeString)
 	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(addonratecard.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(addonratecard.FieldTaxBehavior, field.TypeEnum)
+	}
 	if value, ok := _u.mutation.FeatureKey(); ok {
 		_spec.SetField(addonratecard.FieldFeatureKey, field.TypeString, value)
 	}
@@ -454,12 +460,6 @@ func (_u *AddonRateCardUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	}
 	if _u.mutation.TaxConfigCleared() {
 		_spec.ClearField(addonratecard.FieldTaxConfig, field.TypeString)
-	}
-	if value, ok := _u.mutation.TaxBehavior(); ok {
-		_spec.SetField(addonratecard.FieldTaxBehavior, field.TypeEnum, value)
-	}
-	if _u.mutation.TaxBehaviorCleared() {
-		_spec.ClearField(addonratecard.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.BillingCadence(); ok {
 		_spec.SetField(addonratecard.FieldBillingCadence, field.TypeString, value)
@@ -666,6 +666,46 @@ func (_u *AddonRateCardUpdateOne) ClearDescription() *AddonRateCardUpdateOne {
 	return _u
 }
 
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *AddonRateCardUpdateOne) SetTaxCodeID(v string) *AddonRateCardUpdateOne {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *AddonRateCardUpdateOne) SetNillableTaxCodeID(v *string) *AddonRateCardUpdateOne {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *AddonRateCardUpdateOne) ClearTaxCodeID() *AddonRateCardUpdateOne {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *AddonRateCardUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *AddonRateCardUpdateOne {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *AddonRateCardUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *AddonRateCardUpdateOne {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *AddonRateCardUpdateOne) ClearTaxBehavior() *AddonRateCardUpdateOne {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
 // SetFeatureKey sets the "feature_key" field.
 func (_u *AddonRateCardUpdateOne) SetFeatureKey(v string) *AddonRateCardUpdateOne {
 	_u.mutation.SetFeatureKey(v)
@@ -707,46 +747,6 @@ func (_u *AddonRateCardUpdateOne) SetTaxConfig(v *productcatalog.TaxConfig) *Add
 // ClearTaxConfig clears the value of the "tax_config" field.
 func (_u *AddonRateCardUpdateOne) ClearTaxConfig() *AddonRateCardUpdateOne {
 	_u.mutation.ClearTaxConfig()
-	return _u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_u *AddonRateCardUpdateOne) SetTaxCodeID(v string) *AddonRateCardUpdateOne {
-	_u.mutation.SetTaxCodeID(v)
-	return _u
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_u *AddonRateCardUpdateOne) SetNillableTaxCodeID(v *string) *AddonRateCardUpdateOne {
-	if v != nil {
-		_u.SetTaxCodeID(*v)
-	}
-	return _u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *AddonRateCardUpdateOne) ClearTaxCodeID() *AddonRateCardUpdateOne {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_u *AddonRateCardUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *AddonRateCardUpdateOne {
-	_u.mutation.SetTaxBehavior(v)
-	return _u
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_u *AddonRateCardUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *AddonRateCardUpdateOne {
-	if v != nil {
-		_u.SetTaxBehavior(*v)
-	}
-	return _u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (_u *AddonRateCardUpdateOne) ClearTaxBehavior() *AddonRateCardUpdateOne {
-	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -931,6 +931,11 @@ func (_u *AddonRateCardUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *AddonRateCardUpdateOne) check() error {
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := addonratecard.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.EntitlementTemplate(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "entitlement_template", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.entitlement_template": %w`, err)}
@@ -939,11 +944,6 @@ func (_u *AddonRateCardUpdateOne) check() error {
 	if v, ok := _u.mutation.TaxConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_config": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxBehavior(); ok {
-		if err := addonratecard.TaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.tax_behavior": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Price(); ok {
@@ -1020,6 +1020,12 @@ func (_u *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonRate
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(addonratecard.FieldDescription, field.TypeString)
 	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(addonratecard.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(addonratecard.FieldTaxBehavior, field.TypeEnum)
+	}
 	if value, ok := _u.mutation.FeatureKey(); ok {
 		_spec.SetField(addonratecard.FieldFeatureKey, field.TypeString, value)
 	}
@@ -1045,12 +1051,6 @@ func (_u *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonRate
 	}
 	if _u.mutation.TaxConfigCleared() {
 		_spec.ClearField(addonratecard.FieldTaxConfig, field.TypeString)
-	}
-	if value, ok := _u.mutation.TaxBehavior(); ok {
-		_spec.SetField(addonratecard.FieldTaxBehavior, field.TypeEnum, value)
-	}
-	if _u.mutation.TaxBehaviorCleared() {
-		_spec.ClearField(addonratecard.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.BillingCadence(); ok {
 		_spec.SetField(addonratecard.FieldBillingCadence, field.TypeString, value)

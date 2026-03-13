@@ -87,6 +87,11 @@ func DeletedAt(v time.Time) predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(sql.FieldEQ(FieldDeletedAt, v))
 }
 
+// TaxCodeID applies equality check predicate on the "tax_code_id" field. It's identical to TaxCodeIDEQ.
+func TaxCodeID(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldEQ(FieldTaxCodeID, v))
+}
+
 // ActiveFrom applies equality check predicate on the "active_from" field. It's identical to ActiveFromEQ.
 func ActiveFrom(v time.Time) predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(sql.FieldEQ(FieldActiveFrom, v))
@@ -142,11 +147,6 @@ func Description(v string) predicate.SubscriptionItem {
 // FeatureKey applies equality check predicate on the "feature_key" field. It's identical to FeatureKeyEQ.
 func FeatureKey(v string) predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(sql.FieldEQ(FieldFeatureKey, v))
-}
-
-// TaxCodeID applies equality check predicate on the "tax_code_id" field. It's identical to TaxCodeIDEQ.
-func TaxCodeID(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldEQ(FieldTaxCodeID, v))
 }
 
 // BillingCadence applies equality check predicate on the "billing_cadence" field. It's identical to BillingCadenceEQ.
@@ -358,6 +358,121 @@ func MetadataIsNil() predicate.SubscriptionItem {
 // MetadataNotNil applies the NotNil predicate on the "metadata" field.
 func MetadataNotNil() predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(sql.FieldNotNull(FieldMetadata))
+}
+
+// TaxCodeIDEQ applies the EQ predicate on the "tax_code_id" field.
+func TaxCodeIDEQ(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldEQ(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDNEQ applies the NEQ predicate on the "tax_code_id" field.
+func TaxCodeIDNEQ(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldNEQ(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDIn applies the In predicate on the "tax_code_id" field.
+func TaxCodeIDIn(vs ...string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldIn(FieldTaxCodeID, vs...))
+}
+
+// TaxCodeIDNotIn applies the NotIn predicate on the "tax_code_id" field.
+func TaxCodeIDNotIn(vs ...string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldNotIn(FieldTaxCodeID, vs...))
+}
+
+// TaxCodeIDGT applies the GT predicate on the "tax_code_id" field.
+func TaxCodeIDGT(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldGT(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDGTE applies the GTE predicate on the "tax_code_id" field.
+func TaxCodeIDGTE(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldGTE(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDLT applies the LT predicate on the "tax_code_id" field.
+func TaxCodeIDLT(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldLT(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDLTE applies the LTE predicate on the "tax_code_id" field.
+func TaxCodeIDLTE(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldLTE(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDContains applies the Contains predicate on the "tax_code_id" field.
+func TaxCodeIDContains(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldContains(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDHasPrefix applies the HasPrefix predicate on the "tax_code_id" field.
+func TaxCodeIDHasPrefix(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldHasPrefix(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDHasSuffix applies the HasSuffix predicate on the "tax_code_id" field.
+func TaxCodeIDHasSuffix(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldHasSuffix(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDIsNil applies the IsNil predicate on the "tax_code_id" field.
+func TaxCodeIDIsNil() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldIsNull(FieldTaxCodeID))
+}
+
+// TaxCodeIDNotNil applies the NotNil predicate on the "tax_code_id" field.
+func TaxCodeIDNotNil() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldNotNull(FieldTaxCodeID))
+}
+
+// TaxCodeIDEqualFold applies the EqualFold predicate on the "tax_code_id" field.
+func TaxCodeIDEqualFold(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldEqualFold(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDContainsFold applies the ContainsFold predicate on the "tax_code_id" field.
+func TaxCodeIDContainsFold(v string) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldContainsFold(FieldTaxCodeID, v))
+}
+
+// TaxBehaviorEQ applies the EQ predicate on the "tax_behavior" field.
+func TaxBehaviorEQ(v productcatalog.TaxBehavior) predicate.SubscriptionItem {
+	vc := v
+	return predicate.SubscriptionItem(sql.FieldEQ(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorNEQ applies the NEQ predicate on the "tax_behavior" field.
+func TaxBehaviorNEQ(v productcatalog.TaxBehavior) predicate.SubscriptionItem {
+	vc := v
+	return predicate.SubscriptionItem(sql.FieldNEQ(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorIn applies the In predicate on the "tax_behavior" field.
+func TaxBehaviorIn(vs ...productcatalog.TaxBehavior) predicate.SubscriptionItem {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.SubscriptionItem(sql.FieldIn(FieldTaxBehavior, v...))
+}
+
+// TaxBehaviorNotIn applies the NotIn predicate on the "tax_behavior" field.
+func TaxBehaviorNotIn(vs ...productcatalog.TaxBehavior) predicate.SubscriptionItem {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.SubscriptionItem(sql.FieldNotIn(FieldTaxBehavior, v...))
+}
+
+// TaxBehaviorIsNil applies the IsNil predicate on the "tax_behavior" field.
+func TaxBehaviorIsNil() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldIsNull(FieldTaxBehavior))
+}
+
+// TaxBehaviorNotNil applies the NotNil predicate on the "tax_behavior" field.
+func TaxBehaviorNotNil() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldNotNull(FieldTaxBehavior))
 }
 
 // AnnotationsIsNil applies the IsNil predicate on the "annotations" field.
@@ -1106,121 +1221,6 @@ func TaxConfigIsNil() predicate.SubscriptionItem {
 // TaxConfigNotNil applies the NotNil predicate on the "tax_config" field.
 func TaxConfigNotNil() predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(sql.FieldNotNull(FieldTaxConfig))
-}
-
-// TaxCodeIDEQ applies the EQ predicate on the "tax_code_id" field.
-func TaxCodeIDEQ(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldEQ(FieldTaxCodeID, v))
-}
-
-// TaxCodeIDNEQ applies the NEQ predicate on the "tax_code_id" field.
-func TaxCodeIDNEQ(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldNEQ(FieldTaxCodeID, v))
-}
-
-// TaxCodeIDIn applies the In predicate on the "tax_code_id" field.
-func TaxCodeIDIn(vs ...string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldIn(FieldTaxCodeID, vs...))
-}
-
-// TaxCodeIDNotIn applies the NotIn predicate on the "tax_code_id" field.
-func TaxCodeIDNotIn(vs ...string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldNotIn(FieldTaxCodeID, vs...))
-}
-
-// TaxCodeIDGT applies the GT predicate on the "tax_code_id" field.
-func TaxCodeIDGT(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldGT(FieldTaxCodeID, v))
-}
-
-// TaxCodeIDGTE applies the GTE predicate on the "tax_code_id" field.
-func TaxCodeIDGTE(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldGTE(FieldTaxCodeID, v))
-}
-
-// TaxCodeIDLT applies the LT predicate on the "tax_code_id" field.
-func TaxCodeIDLT(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldLT(FieldTaxCodeID, v))
-}
-
-// TaxCodeIDLTE applies the LTE predicate on the "tax_code_id" field.
-func TaxCodeIDLTE(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldLTE(FieldTaxCodeID, v))
-}
-
-// TaxCodeIDContains applies the Contains predicate on the "tax_code_id" field.
-func TaxCodeIDContains(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldContains(FieldTaxCodeID, v))
-}
-
-// TaxCodeIDHasPrefix applies the HasPrefix predicate on the "tax_code_id" field.
-func TaxCodeIDHasPrefix(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldHasPrefix(FieldTaxCodeID, v))
-}
-
-// TaxCodeIDHasSuffix applies the HasSuffix predicate on the "tax_code_id" field.
-func TaxCodeIDHasSuffix(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldHasSuffix(FieldTaxCodeID, v))
-}
-
-// TaxCodeIDIsNil applies the IsNil predicate on the "tax_code_id" field.
-func TaxCodeIDIsNil() predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldIsNull(FieldTaxCodeID))
-}
-
-// TaxCodeIDNotNil applies the NotNil predicate on the "tax_code_id" field.
-func TaxCodeIDNotNil() predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldNotNull(FieldTaxCodeID))
-}
-
-// TaxCodeIDEqualFold applies the EqualFold predicate on the "tax_code_id" field.
-func TaxCodeIDEqualFold(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldEqualFold(FieldTaxCodeID, v))
-}
-
-// TaxCodeIDContainsFold applies the ContainsFold predicate on the "tax_code_id" field.
-func TaxCodeIDContainsFold(v string) predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldContainsFold(FieldTaxCodeID, v))
-}
-
-// TaxBehaviorEQ applies the EQ predicate on the "tax_behavior" field.
-func TaxBehaviorEQ(v productcatalog.TaxBehavior) predicate.SubscriptionItem {
-	vc := v
-	return predicate.SubscriptionItem(sql.FieldEQ(FieldTaxBehavior, vc))
-}
-
-// TaxBehaviorNEQ applies the NEQ predicate on the "tax_behavior" field.
-func TaxBehaviorNEQ(v productcatalog.TaxBehavior) predicate.SubscriptionItem {
-	vc := v
-	return predicate.SubscriptionItem(sql.FieldNEQ(FieldTaxBehavior, vc))
-}
-
-// TaxBehaviorIn applies the In predicate on the "tax_behavior" field.
-func TaxBehaviorIn(vs ...productcatalog.TaxBehavior) predicate.SubscriptionItem {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.SubscriptionItem(sql.FieldIn(FieldTaxBehavior, v...))
-}
-
-// TaxBehaviorNotIn applies the NotIn predicate on the "tax_behavior" field.
-func TaxBehaviorNotIn(vs ...productcatalog.TaxBehavior) predicate.SubscriptionItem {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.SubscriptionItem(sql.FieldNotIn(FieldTaxBehavior, v...))
-}
-
-// TaxBehaviorIsNil applies the IsNil predicate on the "tax_behavior" field.
-func TaxBehaviorIsNil() predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldIsNull(FieldTaxBehavior))
-}
-
-// TaxBehaviorNotNil applies the NotNil predicate on the "tax_behavior" field.
-func TaxBehaviorNotNil() predicate.SubscriptionItem {
-	return predicate.SubscriptionItem(sql.FieldNotNull(FieldTaxBehavior))
 }
 
 // BillingCadenceEQ applies the EQ predicate on the "billing_cadence" field.

@@ -105,6 +105,46 @@ func (_u *PlanRateCardUpdate) ClearDescription() *PlanRateCardUpdate {
 	return _u
 }
 
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *PlanRateCardUpdate) SetTaxCodeID(v string) *PlanRateCardUpdate {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *PlanRateCardUpdate) SetNillableTaxCodeID(v *string) *PlanRateCardUpdate {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *PlanRateCardUpdate) ClearTaxCodeID() *PlanRateCardUpdate {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *PlanRateCardUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *PlanRateCardUpdate {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *PlanRateCardUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *PlanRateCardUpdate {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *PlanRateCardUpdate) ClearTaxBehavior() *PlanRateCardUpdate {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
 // SetFeatureKey sets the "feature_key" field.
 func (_u *PlanRateCardUpdate) SetFeatureKey(v string) *PlanRateCardUpdate {
 	_u.mutation.SetFeatureKey(v)
@@ -146,46 +186,6 @@ func (_u *PlanRateCardUpdate) SetTaxConfig(v *productcatalog.TaxConfig) *PlanRat
 // ClearTaxConfig clears the value of the "tax_config" field.
 func (_u *PlanRateCardUpdate) ClearTaxConfig() *PlanRateCardUpdate {
 	_u.mutation.ClearTaxConfig()
-	return _u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_u *PlanRateCardUpdate) SetTaxCodeID(v string) *PlanRateCardUpdate {
-	_u.mutation.SetTaxCodeID(v)
-	return _u
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_u *PlanRateCardUpdate) SetNillableTaxCodeID(v *string) *PlanRateCardUpdate {
-	if v != nil {
-		_u.SetTaxCodeID(*v)
-	}
-	return _u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *PlanRateCardUpdate) ClearTaxCodeID() *PlanRateCardUpdate {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_u *PlanRateCardUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *PlanRateCardUpdate {
-	_u.mutation.SetTaxBehavior(v)
-	return _u
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_u *PlanRateCardUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *PlanRateCardUpdate {
-	if v != nil {
-		_u.SetTaxBehavior(*v)
-	}
-	return _u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (_u *PlanRateCardUpdate) ClearTaxBehavior() *PlanRateCardUpdate {
-	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -357,6 +357,11 @@ func (_u *PlanRateCardUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *PlanRateCardUpdate) check() error {
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := planratecard.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.EntitlementTemplate(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "entitlement_template", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.entitlement_template": %w`, err)}
@@ -365,11 +370,6 @@ func (_u *PlanRateCardUpdate) check() error {
 	if v, ok := _u.mutation.TaxConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.tax_config": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxBehavior(); ok {
-		if err := planratecard.TaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.tax_behavior": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Price(); ok {
@@ -429,6 +429,12 @@ func (_u *PlanRateCardUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(planratecard.FieldDescription, field.TypeString)
 	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(planratecard.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(planratecard.FieldTaxBehavior, field.TypeEnum)
+	}
 	if value, ok := _u.mutation.FeatureKey(); ok {
 		_spec.SetField(planratecard.FieldFeatureKey, field.TypeString, value)
 	}
@@ -454,12 +460,6 @@ func (_u *PlanRateCardUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if _u.mutation.TaxConfigCleared() {
 		_spec.ClearField(planratecard.FieldTaxConfig, field.TypeString)
-	}
-	if value, ok := _u.mutation.TaxBehavior(); ok {
-		_spec.SetField(planratecard.FieldTaxBehavior, field.TypeEnum, value)
-	}
-	if _u.mutation.TaxBehaviorCleared() {
-		_spec.ClearField(planratecard.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.BillingCadence(); ok {
 		_spec.SetField(planratecard.FieldBillingCadence, field.TypeString, value)
@@ -666,6 +666,46 @@ func (_u *PlanRateCardUpdateOne) ClearDescription() *PlanRateCardUpdateOne {
 	return _u
 }
 
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *PlanRateCardUpdateOne) SetTaxCodeID(v string) *PlanRateCardUpdateOne {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *PlanRateCardUpdateOne) SetNillableTaxCodeID(v *string) *PlanRateCardUpdateOne {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *PlanRateCardUpdateOne) ClearTaxCodeID() *PlanRateCardUpdateOne {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *PlanRateCardUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *PlanRateCardUpdateOne {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *PlanRateCardUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *PlanRateCardUpdateOne {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *PlanRateCardUpdateOne) ClearTaxBehavior() *PlanRateCardUpdateOne {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
 // SetFeatureKey sets the "feature_key" field.
 func (_u *PlanRateCardUpdateOne) SetFeatureKey(v string) *PlanRateCardUpdateOne {
 	_u.mutation.SetFeatureKey(v)
@@ -707,46 +747,6 @@ func (_u *PlanRateCardUpdateOne) SetTaxConfig(v *productcatalog.TaxConfig) *Plan
 // ClearTaxConfig clears the value of the "tax_config" field.
 func (_u *PlanRateCardUpdateOne) ClearTaxConfig() *PlanRateCardUpdateOne {
 	_u.mutation.ClearTaxConfig()
-	return _u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_u *PlanRateCardUpdateOne) SetTaxCodeID(v string) *PlanRateCardUpdateOne {
-	_u.mutation.SetTaxCodeID(v)
-	return _u
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_u *PlanRateCardUpdateOne) SetNillableTaxCodeID(v *string) *PlanRateCardUpdateOne {
-	if v != nil {
-		_u.SetTaxCodeID(*v)
-	}
-	return _u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *PlanRateCardUpdateOne) ClearTaxCodeID() *PlanRateCardUpdateOne {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_u *PlanRateCardUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *PlanRateCardUpdateOne {
-	_u.mutation.SetTaxBehavior(v)
-	return _u
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_u *PlanRateCardUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *PlanRateCardUpdateOne {
-	if v != nil {
-		_u.SetTaxBehavior(*v)
-	}
-	return _u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (_u *PlanRateCardUpdateOne) ClearTaxBehavior() *PlanRateCardUpdateOne {
-	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -931,6 +931,11 @@ func (_u *PlanRateCardUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *PlanRateCardUpdateOne) check() error {
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := planratecard.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.EntitlementTemplate(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "entitlement_template", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.entitlement_template": %w`, err)}
@@ -939,11 +944,6 @@ func (_u *PlanRateCardUpdateOne) check() error {
 	if v, ok := _u.mutation.TaxConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.tax_config": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxBehavior(); ok {
-		if err := planratecard.TaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.tax_behavior": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Price(); ok {
@@ -1020,6 +1020,12 @@ func (_u *PlanRateCardUpdateOne) sqlSave(ctx context.Context) (_node *PlanRateCa
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(planratecard.FieldDescription, field.TypeString)
 	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(planratecard.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(planratecard.FieldTaxBehavior, field.TypeEnum)
+	}
 	if value, ok := _u.mutation.FeatureKey(); ok {
 		_spec.SetField(planratecard.FieldFeatureKey, field.TypeString, value)
 	}
@@ -1045,12 +1051,6 @@ func (_u *PlanRateCardUpdateOne) sqlSave(ctx context.Context) (_node *PlanRateCa
 	}
 	if _u.mutation.TaxConfigCleared() {
 		_spec.ClearField(planratecard.FieldTaxConfig, field.TypeString)
-	}
-	if value, ok := _u.mutation.TaxBehavior(); ok {
-		_spec.SetField(planratecard.FieldTaxBehavior, field.TypeEnum, value)
-	}
-	if _u.mutation.TaxBehaviorCleared() {
-		_spec.ClearField(planratecard.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.BillingCadence(); ok {
 		_spec.SetField(planratecard.FieldBillingCadence, field.TypeString, value)

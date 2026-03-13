@@ -8,8 +8,10 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"entgo.io/ent/schema/mixin"
 )
 
 // Tax code stores information about an entity's tax code
@@ -60,3 +62,23 @@ func (TaxCode) Edges() []ent.Edge {
 }
 
 var TaxCodeAppMappingsValueScanner = entutils.JSONStringValueScanner[*taxcode.TaxCodeAppMappings]()
+
+// TaxMixin adds tax_code_id and tax_behavior fields to a schema.
+type TaxMixin struct {
+	mixin.Schema
+}
+
+func (TaxMixin) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("tax_code_id").
+			Optional().
+			Nillable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+		field.Enum("tax_behavior").
+			GoType(productcatalog.TaxBehavior("")).
+			Optional().
+			Nillable(),
+	}
+}

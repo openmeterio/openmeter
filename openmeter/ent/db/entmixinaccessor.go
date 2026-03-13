@@ -85,6 +85,14 @@ func (e *AddonRateCard) GetKey() string {
 	return e.Key
 }
 
+func (e *AddonRateCard) GetTaxCodeID() *string {
+	return e.TaxCodeID
+}
+
+func (e *AddonRateCard) GetTaxBehavior() *productcatalog.TaxBehavior {
+	return e.TaxBehavior
+}
+
 func (e *App) GetID() string {
 	return e.ID
 }
@@ -251,6 +259,14 @@ func (e *BillingCustomerOverride) GetUpdatedAt() time.Time {
 
 func (e *BillingCustomerOverride) GetDeletedAt() *time.Time {
 	return e.DeletedAt
+}
+
+func (e *BillingCustomerOverride) GetTaxCodeID() *string {
+	return e.TaxCodeID
+}
+
+func (e *BillingCustomerOverride) GetTaxBehavior() *productcatalog.TaxBehavior {
+	return e.TaxBehavior
 }
 
 func (e *BillingInvoice) GetID() string {
@@ -819,6 +835,14 @@ func (e *BillingWorkflowConfig) GetUpdatedAt() time.Time {
 
 func (e *BillingWorkflowConfig) GetDeletedAt() *time.Time {
 	return e.DeletedAt
+}
+
+func (e *BillingWorkflowConfig) GetTaxCodeID() *string {
+	return e.TaxCodeID
+}
+
+func (e *BillingWorkflowConfig) GetTaxBehavior() *productcatalog.TaxBehavior {
+	return e.TaxBehavior
 }
 
 func (e *Charge) GetID() string {
@@ -2001,6 +2025,14 @@ func (e *PlanRateCard) GetKey() string {
 	return e.Key
 }
 
+func (e *PlanRateCard) GetTaxCodeID() *string {
+	return e.TaxCodeID
+}
+
+func (e *PlanRateCard) GetTaxBehavior() *productcatalog.TaxBehavior {
+	return e.TaxBehavior
+}
+
 func (e *Subject) GetID() string {
 	return e.ID
 }
@@ -2131,6 +2163,14 @@ func (e *SubscriptionItem) GetDeletedAt() *time.Time {
 
 func (e *SubscriptionItem) GetMetadata() map[string]string {
 	return e.Metadata
+}
+
+func (e *SubscriptionItem) GetTaxCodeID() *string {
+	return e.TaxCodeID
+}
+
+func (e *SubscriptionItem) GetTaxBehavior() *productcatalog.TaxBehavior {
+	return e.TaxBehavior
 }
 
 func (e *SubscriptionPhase) GetID() string {

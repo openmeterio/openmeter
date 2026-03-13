@@ -91,6 +91,7 @@ type AddonRateCard struct {
 func (AddonRateCard) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.UniqueResourceMixin{},
+		TaxMixin{},
 	}
 }
 

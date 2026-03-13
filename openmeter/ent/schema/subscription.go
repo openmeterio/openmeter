@@ -140,6 +140,7 @@ func (SubscriptionItem) Mixin() []ent.Mixin {
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
 		entutils.MetadataMixin{},
+		TaxMixin{},
 	}
 }
 
@@ -183,16 +184,6 @@ func (SubscriptionItem) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).
-			Optional().
-			Nillable(),
-		field.String("tax_code_id").
-			Optional().
-			Nillable().
-			SchemaType(map[string]string{
-				dialect.Postgres: "char(26)",
-			}),
-		field.Enum("tax_behavior").
-			GoType(productcatalog.TaxBehavior("")).
 			Optional().
 			Nillable(),
 		field.String("billing_cadence").

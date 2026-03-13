@@ -60,6 +60,46 @@ func (_u *BillingWorkflowConfigUpdate) ClearDeletedAt() *BillingWorkflowConfigUp
 	return _u
 }
 
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *BillingWorkflowConfigUpdate) SetTaxCodeID(v string) *BillingWorkflowConfigUpdate {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *BillingWorkflowConfigUpdate) SetNillableTaxCodeID(v *string) *BillingWorkflowConfigUpdate {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *BillingWorkflowConfigUpdate) ClearTaxCodeID() *BillingWorkflowConfigUpdate {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *BillingWorkflowConfigUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingWorkflowConfigUpdate {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *BillingWorkflowConfigUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingWorkflowConfigUpdate {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *BillingWorkflowConfigUpdate) ClearTaxBehavior() *BillingWorkflowConfigUpdate {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
 // SetCollectionAlignment sets the "collection_alignment" field.
 func (_u *BillingWorkflowConfigUpdate) SetCollectionAlignment(v billing.AlignmentKind) *BillingWorkflowConfigUpdate {
 	_u.mutation.SetCollectionAlignment(v)
@@ -187,46 +227,6 @@ func (_u *BillingWorkflowConfigUpdate) SetNillableInvoiceDefaultTaxSettings(v *p
 // ClearInvoiceDefaultTaxSettings clears the value of the "invoice_default_tax_settings" field.
 func (_u *BillingWorkflowConfigUpdate) ClearInvoiceDefaultTaxSettings() *BillingWorkflowConfigUpdate {
 	_u.mutation.ClearInvoiceDefaultTaxSettings()
-	return _u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_u *BillingWorkflowConfigUpdate) SetTaxCodeID(v string) *BillingWorkflowConfigUpdate {
-	_u.mutation.SetTaxCodeID(v)
-	return _u
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_u *BillingWorkflowConfigUpdate) SetNillableTaxCodeID(v *string) *BillingWorkflowConfigUpdate {
-	if v != nil {
-		_u.SetTaxCodeID(*v)
-	}
-	return _u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *BillingWorkflowConfigUpdate) ClearTaxCodeID() *BillingWorkflowConfigUpdate {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_u *BillingWorkflowConfigUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingWorkflowConfigUpdate {
-	_u.mutation.SetTaxBehavior(v)
-	return _u
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_u *BillingWorkflowConfigUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingWorkflowConfigUpdate {
-	if v != nil {
-		_u.SetTaxBehavior(*v)
-	}
-	return _u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (_u *BillingWorkflowConfigUpdate) ClearTaxBehavior() *BillingWorkflowConfigUpdate {
-	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -362,6 +362,11 @@ func (_u *BillingWorkflowConfigUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *BillingWorkflowConfigUpdate) check() error {
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := billingworkflowconfig.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.CollectionAlignment(); ok {
 		if err := billingworkflowconfig.CollectionAlignmentValidator(v); err != nil {
 			return &ValidationError{Name: "collection_alignment", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.collection_alignment": %w`, err)}
@@ -380,11 +385,6 @@ func (_u *BillingWorkflowConfigUpdate) check() error {
 	if v, ok := _u.mutation.InvoiceDefaultTaxSettings(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "invoice_default_tax_settings", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_default_tax_settings": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxBehavior(); ok {
-		if err := billingworkflowconfig.TaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.tax_behavior": %w`, err)}
 		}
 	}
 	return nil
@@ -410,6 +410,12 @@ func (_u *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (_node int, 
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(billingworkflowconfig.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(billingworkflowconfig.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.CollectionAlignment(); ok {
 		_spec.SetField(billingworkflowconfig.FieldCollectionAlignment, field.TypeEnum, value)
@@ -443,12 +449,6 @@ func (_u *BillingWorkflowConfigUpdate) sqlSave(ctx context.Context) (_node int, 
 	}
 	if _u.mutation.InvoiceDefaultTaxSettingsCleared() {
 		_spec.ClearField(billingworkflowconfig.FieldInvoiceDefaultTaxSettings, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.TaxBehavior(); ok {
-		_spec.SetField(billingworkflowconfig.FieldTaxBehavior, field.TypeEnum, value)
-	}
-	if _u.mutation.TaxBehaviorCleared() {
-		_spec.ClearField(billingworkflowconfig.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.TaxEnabled(); ok {
 		_spec.SetField(billingworkflowconfig.FieldTaxEnabled, field.TypeBool, value)
@@ -589,6 +589,46 @@ func (_u *BillingWorkflowConfigUpdateOne) ClearDeletedAt() *BillingWorkflowConfi
 	return _u
 }
 
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *BillingWorkflowConfigUpdateOne) SetTaxCodeID(v string) *BillingWorkflowConfigUpdateOne {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *BillingWorkflowConfigUpdateOne) SetNillableTaxCodeID(v *string) *BillingWorkflowConfigUpdateOne {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *BillingWorkflowConfigUpdateOne) ClearTaxCodeID() *BillingWorkflowConfigUpdateOne {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *BillingWorkflowConfigUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingWorkflowConfigUpdateOne {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *BillingWorkflowConfigUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingWorkflowConfigUpdateOne {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *BillingWorkflowConfigUpdateOne) ClearTaxBehavior() *BillingWorkflowConfigUpdateOne {
+	_u.mutation.ClearTaxBehavior()
+	return _u
+}
+
 // SetCollectionAlignment sets the "collection_alignment" field.
 func (_u *BillingWorkflowConfigUpdateOne) SetCollectionAlignment(v billing.AlignmentKind) *BillingWorkflowConfigUpdateOne {
 	_u.mutation.SetCollectionAlignment(v)
@@ -716,46 +756,6 @@ func (_u *BillingWorkflowConfigUpdateOne) SetNillableInvoiceDefaultTaxSettings(v
 // ClearInvoiceDefaultTaxSettings clears the value of the "invoice_default_tax_settings" field.
 func (_u *BillingWorkflowConfigUpdateOne) ClearInvoiceDefaultTaxSettings() *BillingWorkflowConfigUpdateOne {
 	_u.mutation.ClearInvoiceDefaultTaxSettings()
-	return _u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_u *BillingWorkflowConfigUpdateOne) SetTaxCodeID(v string) *BillingWorkflowConfigUpdateOne {
-	_u.mutation.SetTaxCodeID(v)
-	return _u
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_u *BillingWorkflowConfigUpdateOne) SetNillableTaxCodeID(v *string) *BillingWorkflowConfigUpdateOne {
-	if v != nil {
-		_u.SetTaxCodeID(*v)
-	}
-	return _u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *BillingWorkflowConfigUpdateOne) ClearTaxCodeID() *BillingWorkflowConfigUpdateOne {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_u *BillingWorkflowConfigUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingWorkflowConfigUpdateOne {
-	_u.mutation.SetTaxBehavior(v)
-	return _u
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_u *BillingWorkflowConfigUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingWorkflowConfigUpdateOne {
-	if v != nil {
-		_u.SetTaxBehavior(*v)
-	}
-	return _u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (_u *BillingWorkflowConfigUpdateOne) ClearTaxBehavior() *BillingWorkflowConfigUpdateOne {
-	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -904,6 +904,11 @@ func (_u *BillingWorkflowConfigUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *BillingWorkflowConfigUpdateOne) check() error {
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := billingworkflowconfig.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.CollectionAlignment(); ok {
 		if err := billingworkflowconfig.CollectionAlignmentValidator(v); err != nil {
 			return &ValidationError{Name: "collection_alignment", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.collection_alignment": %w`, err)}
@@ -922,11 +927,6 @@ func (_u *BillingWorkflowConfigUpdateOne) check() error {
 	if v, ok := _u.mutation.InvoiceDefaultTaxSettings(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "invoice_default_tax_settings", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.invoice_default_tax_settings": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxBehavior(); ok {
-		if err := billingworkflowconfig.TaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.tax_behavior": %w`, err)}
 		}
 	}
 	return nil
@@ -970,6 +970,12 @@ func (_u *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node *B
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(billingworkflowconfig.FieldDeletedAt, field.TypeTime)
 	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(billingworkflowconfig.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(billingworkflowconfig.FieldTaxBehavior, field.TypeEnum)
+	}
 	if value, ok := _u.mutation.CollectionAlignment(); ok {
 		_spec.SetField(billingworkflowconfig.FieldCollectionAlignment, field.TypeEnum, value)
 	}
@@ -1002,12 +1008,6 @@ func (_u *BillingWorkflowConfigUpdateOne) sqlSave(ctx context.Context) (_node *B
 	}
 	if _u.mutation.InvoiceDefaultTaxSettingsCleared() {
 		_spec.ClearField(billingworkflowconfig.FieldInvoiceDefaultTaxSettings, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.TaxBehavior(); ok {
-		_spec.SetField(billingworkflowconfig.FieldTaxBehavior, field.TypeEnum, value)
-	}
-	if _u.mutation.TaxBehaviorCleared() {
-		_spec.ClearField(billingworkflowconfig.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.TaxEnabled(); ok {
 		_spec.SetField(billingworkflowconfig.FieldTaxEnabled, field.TypeBool, value)

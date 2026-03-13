@@ -39,6 +39,10 @@ type PlanRateCard struct {
 	Description *string `json:"description,omitempty"`
 	// Key holds the value of the "key" field.
 	Key string `json:"key,omitempty"`
+	// TaxCodeID holds the value of the "tax_code_id" field.
+	TaxCodeID *string `json:"tax_code_id,omitempty"`
+	// TaxBehavior holds the value of the "tax_behavior" field.
+	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// Type holds the value of the "type" field.
 	Type productcatalog.RateCardType `json:"type,omitempty"`
 	// FeatureKey holds the value of the "feature_key" field.
@@ -47,10 +51,6 @@ type PlanRateCard struct {
 	EntitlementTemplate *productcatalog.EntitlementTemplate `json:"entitlement_template,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
 	TaxConfig *productcatalog.TaxConfig `json:"tax_config,omitempty"`
-	// TaxCodeID holds the value of the "tax_code_id" field.
-	TaxCodeID *string `json:"tax_code_id,omitempty"`
-	// TaxBehavior holds the value of the "tax_behavior" field.
-	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// BillingCadence holds the value of the "billing_cadence" field.
 	BillingCadence *datetime.ISODurationString `json:"billing_cadence,omitempty"`
 	// Price holds the value of the "price" field.
@@ -120,7 +120,7 @@ func (*PlanRateCard) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case planratecard.FieldMetadata:
 			values[i] = new([]byte)
-		case planratecard.FieldID, planratecard.FieldNamespace, planratecard.FieldName, planratecard.FieldDescription, planratecard.FieldKey, planratecard.FieldType, planratecard.FieldFeatureKey, planratecard.FieldTaxCodeID, planratecard.FieldTaxBehavior, planratecard.FieldBillingCadence, planratecard.FieldPhaseID, planratecard.FieldFeatureID:
+		case planratecard.FieldID, planratecard.FieldNamespace, planratecard.FieldName, planratecard.FieldDescription, planratecard.FieldKey, planratecard.FieldTaxCodeID, planratecard.FieldTaxBehavior, planratecard.FieldType, planratecard.FieldFeatureKey, planratecard.FieldBillingCadence, planratecard.FieldPhaseID, planratecard.FieldFeatureID:
 			values[i] = new(sql.NullString)
 		case planratecard.FieldCreatedAt, planratecard.FieldUpdatedAt, planratecard.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -205,6 +205,20 @@ func (_m *PlanRateCard) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Key = value.String
 			}
+		case planratecard.FieldTaxCodeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
+			} else if value.Valid {
+				_m.TaxCodeID = new(string)
+				*_m.TaxCodeID = value.String
+			}
+		case planratecard.FieldTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
+			} else if value.Valid {
+				_m.TaxBehavior = new(productcatalog.TaxBehavior)
+				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
+			}
 		case planratecard.FieldType:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
@@ -229,20 +243,6 @@ func (_m *PlanRateCard) assignValues(columns []string, values []any) error {
 				return err
 			} else {
 				_m.TaxConfig = value
-			}
-		case planratecard.FieldTaxCodeID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
-			} else if value.Valid {
-				_m.TaxCodeID = new(string)
-				*_m.TaxCodeID = value.String
-			}
-		case planratecard.FieldTaxBehavior:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
-			} else if value.Valid {
-				_m.TaxBehavior = new(productcatalog.TaxBehavior)
-				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
 			}
 		case planratecard.FieldBillingCadence:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -355,6 +355,16 @@ func (_m *PlanRateCard) String() string {
 	builder.WriteString("key=")
 	builder.WriteString(_m.Key)
 	builder.WriteString(", ")
+	if v := _m.TaxCodeID; v != nil {
+		builder.WriteString("tax_code_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxBehavior; v != nil {
+		builder.WriteString("tax_behavior=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
 	builder.WriteString("type=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Type))
 	builder.WriteString(", ")
@@ -370,16 +380,6 @@ func (_m *PlanRateCard) String() string {
 	builder.WriteString(", ")
 	if v := _m.TaxConfig; v != nil {
 		builder.WriteString("tax_config=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := _m.TaxCodeID; v != nil {
-		builder.WriteString("tax_code_id=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := _m.TaxBehavior; v != nil {
-		builder.WriteString("tax_behavior=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
