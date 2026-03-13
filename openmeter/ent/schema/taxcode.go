@@ -82,3 +82,9 @@ func (TaxMixin) Fields() []ent.Field {
 			Nillable(),
 	}
 }
+
+func (TaxMixin) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("tax_code_id"),
+	}
+}
