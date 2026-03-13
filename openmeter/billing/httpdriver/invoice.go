@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	apphttpdriver "github.com/openmeterio/openmeter/openmeter/app/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -762,7 +763,7 @@ func mapInvoiceExpandsToEntity(expand []api.InvoiceExpand) billing.InvoiceExpand
 		SetOrUnsetIf(slices.Contains(expand, api.InvoiceExpandLines), billing.InvoiceExpandLines)
 }
 
-func mapTotalsToAPI(t billing.Totals) api.InvoiceTotals {
+func mapTotalsToAPI(t totals.Totals) api.InvoiceTotals {
 	return api.InvoiceTotals{
 		Amount:              t.Amount.String(),
 		ChargesTotal:        t.ChargesTotal.String(),

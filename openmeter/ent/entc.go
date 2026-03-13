@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/entc"
 	"entgo.io/ent/entc/gen"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entexpose"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/entmixinaccessor"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entpaginate"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entsetorclear"
 )
@@ -28,6 +29,7 @@ func main() {
 		},
 		entc.Extensions(
 			entexpose.New(),
+			entmixinaccessor.New(),
 			entpaginate.New(),
 			entsetorclear.New(),
 		),

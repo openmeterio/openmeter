@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicepaymentsettlement"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -102,7 +103,7 @@ func (a *adapter) CreateStandardInvoiceAccruedUsage(ctx context.Context, chargeI
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (charges.StandardInvoiceAccruedUsage, error) {
-		entity, err := tx.db.ChargeStandardInvoiceAccruedUsage.Create().
+		create := tx.db.ChargeStandardInvoiceAccruedUsage.Create().
 			SetNamespace(chargeID.Namespace).
 			SetChargeID(chargeID.ID).
 			SetAnnotations(accruedUsage.Annotations).
@@ -111,17 +112,11 @@ func (a *adapter) CreateStandardInvoiceAccruedUsage(ctx context.Context, chargeI
 			SetServicePeriodFrom(accruedUsage.ServicePeriod.From).
 			SetServicePeriodTo(accruedUsage.ServicePeriod.To).
 			SetMutable(accruedUsage.Mutable).
-			SetNillableLedgerTransactionGroupID(trnsGroupID).
-			// Totals
-			SetAmount(accruedUsage.Totals.Amount).
-			SetChargesTotal(accruedUsage.Totals.ChargesTotal).
-			SetDiscountsTotal(accruedUsage.Totals.DiscountsTotal).
-			SetTaxesInclusiveTotal(accruedUsage.Totals.TaxesInclusiveTotal).
-			SetTaxesExclusiveTotal(accruedUsage.Totals.TaxesExclusiveTotal).
-			SetTaxesTotal(accruedUsage.Totals.TaxesTotal).
-			SetCreditsTotal(accruedUsage.Totals.CreditsTotal).
-			SetTotal(accruedUsage.Totals.Total).
-			Save(ctx)
+			SetNillableLedgerTransactionGroupID(trnsGroupID)
+
+		create = totals.Set(create, accruedUsage.Totals)
+
+		entity, err := create.Save(ctx)
 		if err != nil {
 			return charges.StandardInvoiceAccruedUsage{}, err
 		}

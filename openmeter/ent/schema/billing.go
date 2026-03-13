@@ -11,6 +11,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -266,47 +267,6 @@ func (BillingCustomerOverride) Edges() []ent.Edge {
 	}
 }
 
-type TotalsMixin struct {
-	mixin.Schema
-}
-
-func (m TotalsMixin) Fields() []ent.Field {
-	return []ent.Field{
-		field.Other("amount", alpacadecimal.Decimal{}).
-			SchemaType(map[string]string{
-				dialect.Postgres: "numeric",
-			}),
-		field.Other("taxes_total", alpacadecimal.Decimal{}).
-			SchemaType(map[string]string{
-				dialect.Postgres: "numeric",
-			}),
-		field.Other("taxes_inclusive_total", alpacadecimal.Decimal{}).
-			SchemaType(map[string]string{
-				dialect.Postgres: "numeric",
-			}),
-		field.Other("taxes_exclusive_total", alpacadecimal.Decimal{}).
-			SchemaType(map[string]string{
-				dialect.Postgres: "numeric",
-			}),
-		field.Other("charges_total", alpacadecimal.Decimal{}).
-			SchemaType(map[string]string{
-				dialect.Postgres: "numeric",
-			}),
-		field.Other("discounts_total", alpacadecimal.Decimal{}).
-			SchemaType(map[string]string{
-				dialect.Postgres: "numeric",
-			}),
-		field.Other("credits_total", alpacadecimal.Decimal{}).
-			SchemaType(map[string]string{
-				dialect.Postgres: "numeric",
-			}),
-		field.Other("total", alpacadecimal.Decimal{}).
-			SchemaType(map[string]string{
-				dialect.Postgres: "numeric",
-			}),
-	}
-}
-
 type InvoiceLineBaseMixin struct {
 	mixin.Schema
 }
@@ -338,7 +298,7 @@ func (BillingInvoiceLine) Mixin() []ent.Mixin {
 		entutils.AnnotationsMixin{},
 		entutils.ResourceMixin{},
 		InvoiceLineBaseMixin{},
-		TotalsMixin{},
+		totals.Mixin{},
 	}
 }
 
@@ -890,7 +850,7 @@ func (BillingStandardInvoiceDetailedLine) Mixin() []ent.Mixin {
 		entutils.AnnotationsMixin{},
 		entutils.ResourceMixin{},
 		InvoiceLineBaseMixin{},
-		TotalsMixin{},
+		totals.Mixin{},
 	}
 }
 
@@ -1064,7 +1024,7 @@ func (BillingInvoice) Mixin() []ent.Mixin {
 		entutils.CustomerAddressMixin{
 			FieldPrefix: "customer",
 		},
-		TotalsMixin{},
+		totals.Mixin{},
 	}
 }
 

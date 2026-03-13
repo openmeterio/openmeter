@@ -6,6 +6,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -63,18 +64,16 @@ func UpdateTotalsFromDetailedLines(line *billing.StandardLine) error {
 	// any custom logic implemented here to be carried over to the external systems.
 
 	// UBP line's value is the sum of all the children
-	res := billing.Totals{}
+	line.Totals = totals.Sum(
+		lo.Map(line.DetailedLines, func(l billing.DetailedLine, _ int) totals.Totals {
+			// Deleted lines are not contributing to the totals
+			if l.DeletedAt != nil {
+				return totals.Totals{}
+			}
 
-	res = res.Add(lo.Map(line.DetailedLines, func(l billing.DetailedLine, _ int) billing.Totals {
-		// Deleted lines are not contributing to the totals
-		if l.DeletedAt != nil {
-			return billing.Totals{}
-		}
-
-		return l.Totals
-	})...)
-
-	line.Totals = res
+			return l.Totals
+		})...,
+	)
 
 	return nil
 }

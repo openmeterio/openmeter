@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -198,15 +199,15 @@ func mergeDetailedLines(parentLine *billing.StandardLine, in newDetailedLinesInp
 	return nil
 }
 
-func calculateDetailedLineTotals(line billing.DetailedLine) (billing.Totals, error) {
+func calculateDetailedLineTotals(line billing.DetailedLine) (totals.Totals, error) {
 	// Calculate the line totals
 	calc, err := line.Currency.Calculator()
 	if err != nil {
-		return billing.Totals{}, err
+		return totals.Totals{}, err
 	}
 
 	// Calculate the line totals
-	totals := billing.Totals{
+	totals := totals.Totals{
 		DiscountsTotal: line.AmountDiscounts.SumAmount(calc),
 		CreditsTotal:   line.CreditsApplied.SumAmount(calc),
 

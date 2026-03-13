@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 )
 
@@ -43,18 +44,16 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps Ca
 		}
 	}
 
-	totals := billing.Totals{}
+	invoice.Totals = totals.Sum(
+		lo.Map(invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) totals.Totals {
+			// Deleted lines are not contributing to the totals
+			if line.DeletedAt != nil {
+				return totals.Totals{}
+			}
 
-	totals = totals.Add(lo.Map(invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) billing.Totals {
-		// Deleted lines are not contributing to the totals
-		if line.DeletedAt != nil {
-			return billing.Totals{}
-		}
-
-		return line.Totals
-	})...)
-
-	invoice.Totals = totals
+			return line.Totals
+		})...,
+	)
 
 	return outErr
 }

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -87,7 +87,7 @@ type StandardInvoiceAccruedUsage struct {
 	Mutable           bool                             `json:"mutable"`
 	LedgerTransaction *LedgerTransactionGroupReference `json:"ledgerTransaction"`
 
-	Totals billing.Totals `json:"totals"`
+	Totals totals.Totals `json:"totals"`
 }
 
 func (r StandardInvoiceAccruedUsage) Validate() error {

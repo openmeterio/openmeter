@@ -10,6 +10,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -301,7 +302,7 @@ type StandardInvoice struct {
 	Lines            StandardInvoiceLines `json:"lines,omitempty"`
 	ValidationIssues ValidationIssues     `json:"validationIssues,omitempty"`
 
-	Totals Totals `json:"totals"`
+	Totals totals.Totals `json:"totals"`
 
 	// private fields required by the service
 	ExpandedFields StandardInvoiceExpands `json:"-"`
@@ -653,7 +654,7 @@ type CreateInvoiceAdapterInput struct {
 	DueAt        *time.Time
 	CollectionAt *time.Time
 
-	Totals Totals
+	Totals totals.Totals
 }
 
 func (c CreateInvoiceAdapterInput) Validate() error {

@@ -20,6 +20,7 @@ import (
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -3070,7 +3071,7 @@ type expectedTotals struct {
 	Total float64 `json:"total"`
 }
 
-func requireTotals(t *testing.T, expected expectedTotals, totals billing.Totals) {
+func requireTotals(t *testing.T, expected expectedTotals, totals totals.Totals) {
 	t.Helper()
 	totalsFloat := expectedTotals{
 		Amount:              totals.Amount.InexactFloat64(),

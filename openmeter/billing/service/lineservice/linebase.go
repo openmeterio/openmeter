@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -106,5 +107,5 @@ func (l lineBase) IsDeleted() bool {
 }
 
 func (l lineBase) ResetTotals() {
-	l.line.Totals = billing.Totals{}
+	l.line.Totals = totals.Totals{}
 }

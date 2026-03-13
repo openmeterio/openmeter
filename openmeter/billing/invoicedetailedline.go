@@ -8,6 +8,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -56,7 +57,7 @@ type DetailedLineBase struct {
 	Currency      currencyx.Code        `json:"currency"`
 	PerUnitAmount alpacadecimal.Decimal `json:"perUnitAmount"`
 	Quantity      alpacadecimal.Decimal `json:"quantity"`
-	Totals        Totals                `json:"totals"`
+	Totals        totals.Totals         `json:"totals"`
 
 	// Apps
 	TaxConfig   *productcatalog.TaxConfig `json:"taxConfig,omitempty"`

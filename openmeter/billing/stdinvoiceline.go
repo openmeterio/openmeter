@@ -11,6 +11,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -48,7 +49,7 @@ type StandardLineBase struct {
 	ExternalIDs  LineExternalIDs        `json:"externalIDs,omitempty"`
 	Subscription *SubscriptionReference `json:"subscription,omitempty"`
 
-	Totals Totals `json:"totals,omitempty"`
+	Totals totals.Totals `json:"totals,omitempty"`
 }
 
 func (i StandardLineBase) Equal(other StandardLineBase) bool {

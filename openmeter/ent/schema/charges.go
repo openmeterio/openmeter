@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -425,7 +426,7 @@ func (ChargeStandardInvoiceAccruedUsage) Mixin() []ent.Mixin {
 		entutils.IDMixin{},
 		entutils.TimeMixin{},
 		entutils.AnnotationsMixin{},
-		TotalsMixin{},
+		totals.Mixin{},
 	}
 }
 
