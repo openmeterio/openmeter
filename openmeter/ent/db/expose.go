@@ -171,6 +171,22 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		LLMCostPrice: NewLLMCostPriceClient(config),
 
+		LedgerAccount: NewLedgerAccountClient(config),
+
+		LedgerCustomerAccount: NewLedgerCustomerAccountClient(config),
+
+		LedgerDimension: NewLedgerDimensionClient(config),
+
+		LedgerEntry: NewLedgerEntryClient(config),
+
+		LedgerSubAccount: NewLedgerSubAccountClient(config),
+
+		LedgerSubAccountRoute: NewLedgerSubAccountRouteClient(config),
+
+		LedgerTransaction: NewLedgerTransactionClient(config),
+
+		LedgerTransactionGroup: NewLedgerTransactionGroupClient(config),
+
 		Meter: NewMeterClient(config),
 
 		NotificationChannel: NewNotificationChannelClient(config),

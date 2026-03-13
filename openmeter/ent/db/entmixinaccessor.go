@@ -1044,6 +1044,158 @@ func (e *LLMCostPrice) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
+func (e *LedgerAccount) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *LedgerAccount) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *LedgerAccount) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *LedgerAccount) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *LedgerAccount) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *LedgerCustomerAccount) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *LedgerCustomerAccount) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *LedgerCustomerAccount) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *LedgerCustomerAccount) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *LedgerDimension) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *LedgerDimension) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *LedgerDimension) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *LedgerDimension) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *LedgerDimension) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *LedgerEntry) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *LedgerEntry) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *LedgerEntry) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *LedgerEntry) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *LedgerEntry) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *LedgerSubAccount) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *LedgerSubAccount) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *LedgerSubAccount) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *LedgerSubAccount) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *LedgerSubAccount) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *LedgerSubAccountRoute) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *LedgerSubAccountRoute) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *LedgerSubAccountRoute) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *LedgerSubAccountRoute) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *LedgerTransaction) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *LedgerTransaction) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *LedgerTransaction) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *LedgerTransaction) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *LedgerTransaction) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *LedgerTransactionGroup) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *LedgerTransactionGroup) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *LedgerTransactionGroup) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *LedgerTransactionGroup) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *LedgerTransactionGroup) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
 func (e *Meter) GetNamespace() string {
 	return e.Namespace
 }
