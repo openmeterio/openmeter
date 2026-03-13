@@ -10,6 +10,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -191,7 +192,7 @@ func (i OnFlatFeeAssignedToInvoiceInput) Validate() error {
 type OnFlatFeeStandardInvoiceUsageAccruedInput struct {
 	Charge        FlatFeeCharge         `json:"charge"`
 	ServicePeriod timeutil.ClosedPeriod `json:"servicePeriod"`
-	Totals        billing.Totals        `json:"totals"`
+	Totals        totals.Totals         `json:"totals"`
 }
 
 func (i OnFlatFeeStandardInvoiceUsageAccruedInput) Validate() error {

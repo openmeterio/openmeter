@@ -3,6 +3,7 @@
 package billing
 
 import (
+	totals "github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	models "github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -161,7 +162,7 @@ func deriveEqual_1(this, that *SubscriptionReference) bool {
 }
 
 // deriveEqual_2 returns whether this and that are equal.
-func deriveEqual_2(this, that *Totals) bool {
+func deriveEqual_2(this, that *totals.Totals) bool {
 	return (this == nil && that == nil) ||
 		this != nil && that != nil &&
 			this.Amount.Equal(that.Amount) &&

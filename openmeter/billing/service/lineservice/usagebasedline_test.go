@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -87,7 +88,7 @@ func runUBPTest(t *testing.T, tc ubpCalculationTestCase) {
 				Line: &billing.StandardLine{
 					StandardLineBase: billing.StandardLineBase{
 						// Period is unset, so this fake line is always in scope for NetAmount calculations
-						Totals: billing.Totals{
+						Totals: totals.Totals{
 							Amount: tc.previousBilledAmount,
 						},
 					},

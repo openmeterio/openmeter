@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -91,16 +92,7 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 			TaxConfig:         lo.EmptyableToPtr(dbLine.TaxConfig),
 			RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
 			CreditsApplied:    creditsApplied,
-			Totals: billing.Totals{
-				Amount:              dbLine.Amount,
-				CreditsTotal:        dbLine.CreditsTotal,
-				ChargesTotal:        dbLine.ChargesTotal,
-				DiscountsTotal:      dbLine.DiscountsTotal,
-				TaxesInclusiveTotal: dbLine.TaxesInclusiveTotal,
-				TaxesExclusiveTotal: dbLine.TaxesExclusiveTotal,
-				TaxesTotal:          dbLine.TaxesTotal,
-				Total:               dbLine.Total,
-			},
+			Totals:            totals.FromDB(dbLine),
 			ExternalIDs: billing.LineExternalIDs{
 				Invoicing: lo.FromPtr(dbLine.InvoicingAppExternalID),
 			},
@@ -198,16 +190,7 @@ func (a *adapter) mapStandardInvoiceDetailedLineFromDB(dbLine *db.BillingInvoice
 
 		CreditsApplied: creditsApplied,
 		TaxConfig:      lo.EmptyableToPtr(dbLine.TaxConfig),
-		Totals: billing.Totals{
-			Amount:              dbLine.Amount,
-			CreditsTotal:        dbLine.CreditsTotal,
-			ChargesTotal:        dbLine.ChargesTotal,
-			DiscountsTotal:      dbLine.DiscountsTotal,
-			TaxesInclusiveTotal: dbLine.TaxesInclusiveTotal,
-			TaxesExclusiveTotal: dbLine.TaxesExclusiveTotal,
-			TaxesTotal:          dbLine.TaxesTotal,
-			Total:               dbLine.Total,
-		},
+		Totals:         totals.FromDB(dbLine),
 		ExternalIDs: billing.LineExternalIDs{
 			Invoicing: lo.FromPtr(dbLine.InvoicingAppExternalID),
 		},
@@ -258,16 +241,7 @@ func (a *adapter) mapStandardInvoiceDetailedLineV2FromDB(dbLine *db.BillingStand
 
 		CreditsApplied: creditsApplied,
 		TaxConfig:      lo.EmptyableToPtr(dbLine.TaxConfig),
-		Totals: billing.Totals{
-			Amount:              dbLine.Amount,
-			ChargesTotal:        dbLine.ChargesTotal,
-			CreditsTotal:        dbLine.CreditsTotal,
-			DiscountsTotal:      dbLine.DiscountsTotal,
-			TaxesInclusiveTotal: dbLine.TaxesInclusiveTotal,
-			TaxesExclusiveTotal: dbLine.TaxesExclusiveTotal,
-			TaxesTotal:          dbLine.TaxesTotal,
-			Total:               dbLine.Total,
-		},
+		Totals:         totals.FromDB(dbLine),
 		ExternalIDs: billing.LineExternalIDs{
 			Invoicing: lo.FromPtr(dbLine.InvoicingAppExternalID),
 		},

@@ -1,4 +1,4 @@
-package billing
+package totals
 
 import (
 	"errors"
@@ -79,6 +79,12 @@ func (t Totals) Add(others ...Totals) Totals {
 	}
 
 	return res
+}
+
+func Sum(others ...Totals) Totals {
+	res := Totals{}
+
+	return res.Add(others...)
 }
 
 func (t Totals) CalculateTotal() alpacadecimal.Decimal {

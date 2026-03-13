@@ -11,6 +11,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
@@ -100,17 +101,10 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					SetMetadata(line.Metadata).
 					SetAnnotations(line.Annotations).
 					SetNillableChildUniqueReferenceID(line.ChildUniqueReferenceID).
-					// Totals
-					SetAmount(line.Totals.Amount).
-					SetChargesTotal(line.Totals.ChargesTotal).
-					SetCreditsTotal(line.Totals.CreditsTotal).
-					SetDiscountsTotal(line.Totals.DiscountsTotal).
-					SetTaxesTotal(line.Totals.TaxesTotal).
-					SetTaxesInclusiveTotal(line.Totals.TaxesInclusiveTotal).
-					SetTaxesExclusiveTotal(line.Totals.TaxesExclusiveTotal).
-					SetTotal(line.Totals.Total).
 					// ExternalIDs
 					SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(line.ExternalIDs.Invoicing))
+
+				create = totals.Set(create, line.Totals)
 
 				if len(line.CreditsApplied) > 0 {
 					create = create.SetCreditsApplied(&line.CreditsApplied)
@@ -362,17 +356,10 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 				SetNillableDescription(line.Description).
 				SetCurrency(line.Currency).
 				SetNillableChildUniqueReferenceID(line.ChildUniqueReferenceID).
-				// Totals
-				SetAmount(line.Totals.Amount).
-				SetChargesTotal(line.Totals.ChargesTotal).
-				SetCreditsTotal(line.Totals.CreditsTotal).
-				SetDiscountsTotal(line.Totals.DiscountsTotal).
-				SetTaxesTotal(line.Totals.TaxesTotal).
-				SetTaxesInclusiveTotal(line.Totals.TaxesInclusiveTotal).
-				SetTaxesExclusiveTotal(line.Totals.TaxesExclusiveTotal).
-				SetTotal(line.Totals.Total).
 				// ExternalIDs
 				SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(line.ExternalIDs.Invoicing))
+
+			create = totals.Set(create, line.Totals)
 
 			if line.TaxConfig != nil {
 				create = create.SetTaxConfig(*line.TaxConfig)
@@ -480,18 +467,10 @@ func (a *adapter) upsertDetailedLinesV2(ctx context.Context, in detailedLineDiff
 				SetCategory(line.Category).
 				SetPaymentTerm(line.PaymentTerm).
 				SetNillableIndex(line.Index).
-				// Totals
-				SetAmount(line.Totals.Amount).
-				SetChargesTotal(line.Totals.ChargesTotal).
-				SetCreditsTotal(line.Totals.CreditsTotal).
-				SetDiscountsTotal(line.Totals.DiscountsTotal).
-				SetTaxesTotal(line.Totals.TaxesTotal).
-				SetTaxesInclusiveTotal(line.Totals.TaxesInclusiveTotal).
-				SetTaxesExclusiveTotal(line.Totals.TaxesExclusiveTotal).
-				SetTotal(line.Totals.Total).
-
 				// ExternalIDs
 				SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(line.ExternalIDs.Invoicing))
+
+			create = totals.Set(create, line.Totals)
 
 			if len(line.CreditsApplied) > 0 {
 				create = create.SetCreditsApplied(&line.CreditsApplied)

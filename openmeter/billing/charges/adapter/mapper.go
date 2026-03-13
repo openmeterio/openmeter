@@ -6,8 +6,8 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -362,16 +362,7 @@ func mapStandardInvoiceAccruedUsageFromDB(entity *entdb.ChargeStandardInvoiceAcc
 		},
 		Mutable:           entity.Mutable,
 		LedgerTransaction: ledgerTransaction,
-		Totals: billing.Totals{
-			Amount:              entity.Amount,
-			TaxesTotal:          entity.TaxesTotal,
-			TaxesInclusiveTotal: entity.TaxesInclusiveTotal,
-			TaxesExclusiveTotal: entity.TaxesExclusiveTotal,
-			ChargesTotal:        entity.ChargesTotal,
-			DiscountsTotal:      entity.DiscountsTotal,
-			CreditsTotal:        entity.CreditsTotal,
-			Total:               entity.Total,
-		},
+		Totals:            totals.FromDB(entity),
 	}
 }
 

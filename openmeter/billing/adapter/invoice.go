@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
@@ -336,15 +337,6 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			SetTaxAppID(input.Profile.Apps.Tax.GetID().ID).
 			SetInvoicingAppID(input.Profile.Apps.Invoicing.GetID().ID).
 			SetPaymentAppID(input.Profile.Apps.Payment.GetID().ID).
-			// Totals
-			SetAmount(input.Totals.Amount).
-			SetChargesTotal(input.Totals.ChargesTotal).
-			SetCreditsTotal(input.Totals.CreditsTotal).
-			SetDiscountsTotal(input.Totals.DiscountsTotal).
-			SetTaxesTotal(input.Totals.TaxesTotal).
-			SetTaxesExclusiveTotal(input.Totals.TaxesExclusiveTotal).
-			SetTaxesInclusiveTotal(input.Totals.TaxesInclusiveTotal).
-			SetTotal(input.Totals.Total).
 			// Supplier contacts
 			SetNillableSupplierAddressCountry(supplier.Address.Country).
 			SetNillableSupplierAddressPostalCode(supplier.Address.PostalCode).
@@ -357,6 +349,8 @@ func (a *adapter) CreateInvoice(ctx context.Context, input billing.CreateInvoice
 			SetNillableSupplierTaxCode(supplier.TaxCode).
 			SetNillableCollectionAt(input.CollectionAt).
 			SetSchemaLevel(currentSchemaLevel)
+
+		createMut = totals.Set(createMut, input.Totals)
 
 		if customer.BillingAddress != nil {
 			createMut = createMut.
@@ -487,16 +481,9 @@ func (a *adapter) UpdateStandardInvoice(ctx context.Context, in billing.UpdateSt
 			SetOrClearIssuedAt(convert.SafeToUTC(in.IssuedAt)).
 			SetOrClearDeletedAt(convert.SafeToUTC(in.DeletedAt)).
 			SetOrClearSentToCustomerAt(convert.SafeToUTC(in.SentToCustomerAt)).
-			SetOrClearQuantitySnapshotedAt(convert.SafeToUTC(in.QuantitySnapshotedAt)).
-			// Totals
-			SetAmount(in.Totals.Amount).
-			SetChargesTotal(in.Totals.ChargesTotal).
-			SetCreditsTotal(in.Totals.CreditsTotal).
-			SetDiscountsTotal(in.Totals.DiscountsTotal).
-			SetTaxesTotal(in.Totals.TaxesTotal).
-			SetTaxesExclusiveTotal(in.Totals.TaxesExclusiveTotal).
-			SetTaxesInclusiveTotal(in.Totals.TaxesInclusiveTotal).
-			SetTotal(in.Totals.Total)
+			SetOrClearQuantitySnapshotedAt(convert.SafeToUTC(in.QuantitySnapshotedAt))
+
+		updateQuery = totals.Set(updateQuery, in.Totals)
 
 		if in.Period != nil {
 			updateQuery = updateQuery.
@@ -726,16 +713,7 @@ func (a *adapter) mapStandardInvoiceFromDB(ctx context.Context, invoice *db.Bill
 	res := billing.StandardInvoice{
 		StandardInvoiceBase: base,
 
-		Totals: billing.Totals{
-			Amount:              invoice.Amount,
-			ChargesTotal:        invoice.ChargesTotal,
-			DiscountsTotal:      invoice.DiscountsTotal,
-			TaxesTotal:          invoice.TaxesTotal,
-			TaxesExclusiveTotal: invoice.TaxesExclusiveTotal,
-			TaxesInclusiveTotal: invoice.TaxesInclusiveTotal,
-			CreditsTotal:        invoice.CreditsTotal,
-			Total:               invoice.Total,
-		},
+		Totals: totals.FromDB(invoice),
 
 		ExpandedFields: expand,
 	}
