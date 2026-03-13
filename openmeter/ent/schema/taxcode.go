@@ -7,11 +7,11 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"entgo.io/ent/schema/mixin"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"entgo.io/ent/schema/mixin"
 )
 
 // Tax code stores information about an entity's tax code
