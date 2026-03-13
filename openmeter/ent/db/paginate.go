@@ -1577,7 +1577,7 @@ var _ pagination.Paginator[*ChargeCreditPurchase] = (*ChargeCreditPurchaseQuery)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *ChargeCreditRealizationQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeCreditRealization], error) {
+func (_m *ChargeCreditPurchaseExternalPaymentQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeCreditPurchaseExternalPayment], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1596,7 +1596,7 @@ func (_m *ChargeCreditRealizationQuery) Paginate(ctx context.Context, page pagin
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.Result[*ChargeCreditRealization]{
+	pagedResponse := pagination.Result[*ChargeCreditPurchaseExternalPayment]{
 		Page: page,
 	}
 
@@ -1610,7 +1610,7 @@ func (_m *ChargeCreditRealizationQuery) Paginate(ctx context.Context, page pagin
 	// If there are no items, return the empty response early
 	if count == 0 {
 		// Items should be [] not null.
-		pagedResponse.Items = make([]*ChargeCreditRealization, 0)
+		pagedResponse.Items = make([]*ChargeCreditPurchaseExternalPayment, 0)
 		return pagedResponse, nil
 	}
 
@@ -1631,65 +1631,7 @@ func (_m *ChargeCreditRealizationQuery) Paginate(ctx context.Context, page pagin
 }
 
 // type check
-var _ pagination.Paginator[*ChargeCreditRealization] = (*ChargeCreditRealizationQuery)(nil)
-
-// Paginate runs the query and returns a paginated response.
-// If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *ChargeExternalPaymentSettlementQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeExternalPaymentSettlement], error) {
-	// Get the limit and offset
-	limit, offset := page.Limit(), page.Offset()
-
-	// Unset previous pagination settings
-	zero := 0
-	_m.ctx.Offset = &zero
-	_m.ctx.Limit = &zero
-
-	// Create duplicate of the query to run for
-	countQuery := _m.Clone()
-	pagedQuery := _m
-
-	// Unset select for count query
-	countQuery.ctx.Fields = []string{}
-
-	// Unset ordering for count query
-	countQuery.order = nil
-
-	pagedResponse := pagination.Result[*ChargeExternalPaymentSettlement]{
-		Page: page,
-	}
-
-	// Get the total count
-	count, err := countQuery.Count(ctx)
-	if err != nil {
-		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
-	}
-	pagedResponse.TotalCount = count
-
-	// If there are no items, return the empty response early
-	if count == 0 {
-		// Items should be [] not null.
-		pagedResponse.Items = make([]*ChargeExternalPaymentSettlement, 0)
-		return pagedResponse, nil
-	}
-
-	// If page is its 0 value then return all the items
-	if page.IsZero() {
-		offset = 0
-		limit = count
-	}
-
-	// Set the limit and offset
-	pagedQuery.ctx.Limit = &limit
-	pagedQuery.ctx.Offset = &offset
-
-	// Get the paged items
-	items, err := pagedQuery.All(ctx)
-	pagedResponse.Items = items
-	return pagedResponse, err
-}
-
-// type check
-var _ pagination.Paginator[*ChargeExternalPaymentSettlement] = (*ChargeExternalPaymentSettlementQuery)(nil)
+var _ pagination.Paginator[*ChargeCreditPurchaseExternalPayment] = (*ChargeCreditPurchaseExternalPaymentQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
@@ -1751,7 +1693,7 @@ var _ pagination.Paginator[*ChargeFlatFee] = (*ChargeFlatFeeQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *ChargeStandardInvoiceAccruedUsageQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeStandardInvoiceAccruedUsage], error) {
+func (_m *ChargeFlatFeeCreditAllocationsQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFeeCreditAllocations], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1770,7 +1712,7 @@ func (_m *ChargeStandardInvoiceAccruedUsageQuery) Paginate(ctx context.Context, 
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.Result[*ChargeStandardInvoiceAccruedUsage]{
+	pagedResponse := pagination.Result[*ChargeFlatFeeCreditAllocations]{
 		Page: page,
 	}
 
@@ -1784,7 +1726,7 @@ func (_m *ChargeStandardInvoiceAccruedUsageQuery) Paginate(ctx context.Context, 
 	// If there are no items, return the empty response early
 	if count == 0 {
 		// Items should be [] not null.
-		pagedResponse.Items = make([]*ChargeStandardInvoiceAccruedUsage, 0)
+		pagedResponse.Items = make([]*ChargeFlatFeeCreditAllocations, 0)
 		return pagedResponse, nil
 	}
 
@@ -1805,11 +1747,11 @@ func (_m *ChargeStandardInvoiceAccruedUsageQuery) Paginate(ctx context.Context, 
 }
 
 // type check
-var _ pagination.Paginator[*ChargeStandardInvoiceAccruedUsage] = (*ChargeStandardInvoiceAccruedUsageQuery)(nil)
+var _ pagination.Paginator[*ChargeFlatFeeCreditAllocations] = (*ChargeFlatFeeCreditAllocationsQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *ChargeStandardInvoicePaymentSettlementQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeStandardInvoicePaymentSettlement], error) {
+func (_m *ChargeFlatFeeInvoicedUsageQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFeeInvoicedUsage], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1828,7 +1770,7 @@ func (_m *ChargeStandardInvoicePaymentSettlementQuery) Paginate(ctx context.Cont
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.Result[*ChargeStandardInvoicePaymentSettlement]{
+	pagedResponse := pagination.Result[*ChargeFlatFeeInvoicedUsage]{
 		Page: page,
 	}
 
@@ -1842,7 +1784,7 @@ func (_m *ChargeStandardInvoicePaymentSettlementQuery) Paginate(ctx context.Cont
 	// If there are no items, return the empty response early
 	if count == 0 {
 		// Items should be [] not null.
-		pagedResponse.Items = make([]*ChargeStandardInvoicePaymentSettlement, 0)
+		pagedResponse.Items = make([]*ChargeFlatFeeInvoicedUsage, 0)
 		return pagedResponse, nil
 	}
 
@@ -1863,11 +1805,11 @@ func (_m *ChargeStandardInvoicePaymentSettlementQuery) Paginate(ctx context.Cont
 }
 
 // type check
-var _ pagination.Paginator[*ChargeStandardInvoicePaymentSettlement] = (*ChargeStandardInvoicePaymentSettlementQuery)(nil)
+var _ pagination.Paginator[*ChargeFlatFeeInvoicedUsage] = (*ChargeFlatFeeInvoicedUsageQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.
-func (_m *ChargeUsageBasedQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeUsageBased], error) {
+func (_m *ChargeFlatFeePaymentQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeFlatFeePayment], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -1886,7 +1828,7 @@ func (_m *ChargeUsageBasedQuery) Paginate(ctx context.Context, page pagination.P
 	// Unset ordering for count query
 	countQuery.order = nil
 
-	pagedResponse := pagination.Result[*ChargeUsageBased]{
+	pagedResponse := pagination.Result[*ChargeFlatFeePayment]{
 		Page: page,
 	}
 
@@ -1900,7 +1842,7 @@ func (_m *ChargeUsageBasedQuery) Paginate(ctx context.Context, page pagination.P
 	// If there are no items, return the empty response early
 	if count == 0 {
 		// Items should be [] not null.
-		pagedResponse.Items = make([]*ChargeUsageBased, 0)
+		pagedResponse.Items = make([]*ChargeFlatFeePayment, 0)
 		return pagedResponse, nil
 	}
 
@@ -1921,7 +1863,7 @@ func (_m *ChargeUsageBasedQuery) Paginate(ctx context.Context, page pagination.P
 }
 
 // type check
-var _ pagination.Paginator[*ChargeUsageBased] = (*ChargeUsageBasedQuery)(nil)
+var _ pagination.Paginator[*ChargeFlatFeePayment] = (*ChargeFlatFeePaymentQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its 0 value then it will return all the items and populate the response page accordingly.

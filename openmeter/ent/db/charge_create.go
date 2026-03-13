@@ -13,13 +13,12 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
@@ -159,13 +158,13 @@ func (_c *ChargeCreate) SetFullServicePeriodTo(v time.Time) *ChargeCreate {
 }
 
 // SetType sets the "type" field.
-func (_c *ChargeCreate) SetType(v charges.ChargeType) *ChargeCreate {
+func (_c *ChargeCreate) SetType(v meta.ChargeType) *ChargeCreate {
 	_c.mutation.SetType(v)
 	return _c
 }
 
 // SetStatus sets the "status" field.
-func (_c *ChargeCreate) SetStatus(v charges.ChargeStatus) *ChargeCreate {
+func (_c *ChargeCreate) SetStatus(v meta.ChargeStatus) *ChargeCreate {
 	_c.mutation.SetStatus(v)
 	return _c
 }
@@ -269,25 +268,6 @@ func (_c *ChargeCreate) SetNillableFlatFeeID(id *string) *ChargeCreate {
 // SetFlatFee sets the "flat_fee" edge to the ChargeFlatFee entity.
 func (_c *ChargeCreate) SetFlatFee(v *ChargeFlatFee) *ChargeCreate {
 	return _c.SetFlatFeeID(v.ID)
-}
-
-// SetUsageBasedID sets the "usage_based" edge to the ChargeUsageBased entity by ID.
-func (_c *ChargeCreate) SetUsageBasedID(id string) *ChargeCreate {
-	_c.mutation.SetUsageBasedID(id)
-	return _c
-}
-
-// SetNillableUsageBasedID sets the "usage_based" edge to the ChargeUsageBased entity by ID if the given value is not nil.
-func (_c *ChargeCreate) SetNillableUsageBasedID(id *string) *ChargeCreate {
-	if id != nil {
-		_c = _c.SetUsageBasedID(*id)
-	}
-	return _c
-}
-
-// SetUsageBased sets the "usage_based" edge to the ChargeUsageBased entity.
-func (_c *ChargeCreate) SetUsageBased(v *ChargeUsageBased) *ChargeCreate {
-	return _c.SetUsageBasedID(v.ID)
 }
 
 // SetCreditPurchaseID sets the "credit_purchase" edge to the ChargeCreditPurchase entity by ID.
@@ -609,22 +589,6 @@ func (_c *ChargeCreate) createSpec() (*Charge, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.UsageBasedIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: false,
-			Table:   charge.UsageBasedTable,
-			Columns: []string{charge.UsageBasedColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -969,7 +933,7 @@ func (u *ChargeUpsert) UpdateFullServicePeriodTo() *ChargeUpsert {
 }
 
 // SetStatus sets the "status" field.
-func (u *ChargeUpsert) SetStatus(v charges.ChargeStatus) *ChargeUpsert {
+func (u *ChargeUpsert) SetStatus(v meta.ChargeStatus) *ChargeUpsert {
 	u.Set(charge.FieldStatus, v)
 	return u
 }
@@ -1279,7 +1243,7 @@ func (u *ChargeUpsertOne) UpdateFullServicePeriodTo() *ChargeUpsertOne {
 }
 
 // SetStatus sets the "status" field.
-func (u *ChargeUpsertOne) SetStatus(v charges.ChargeStatus) *ChargeUpsertOne {
+func (u *ChargeUpsertOne) SetStatus(v meta.ChargeStatus) *ChargeUpsertOne {
 	return u.Update(func(s *ChargeUpsert) {
 		s.SetStatus(v)
 	})
@@ -1763,7 +1727,7 @@ func (u *ChargeUpsertBulk) UpdateFullServicePeriodTo() *ChargeUpsertBulk {
 }
 
 // SetStatus sets the "status" field.
-func (u *ChargeUpsertBulk) SetStatus(v charges.ChargeStatus) *ChargeUpsertBulk {
+func (u *ChargeUpsertBulk) SetStatus(v meta.ChargeStatus) *ChargeUpsertBulk {
 	return u.Update(func(s *ChargeUpsert) {
 		s.SetStatus(v)
 	})

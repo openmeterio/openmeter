@@ -5,39 +5,42 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
-var _ charges.CreditPurchaseService = (*service)(nil)
+var _ charges.CreditPurchaseFacadeService = (*service)(nil)
 
-func (s *service) UpdateExternalCreditPurchasePaymentState(ctx context.Context, input charges.UpdateExternalCreditPurchasePaymentStateInput) (charges.CreditPurchaseCharge, error) {
+func (s *service) HandleCreditPurchaseExternalPaymentStateTransition(ctx context.Context, input charges.HandleCreditPurchaseExternalPaymentStateTransitionInput) (creditpurchase.Charge, error) {
 	if err := input.Validate(); err != nil {
-		return charges.CreditPurchaseCharge{}, err
+		return creditpurchase.Charge{}, err
 	}
 
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (charges.CreditPurchaseCharge, error) {
-		charge, err := s.adapter.GetChargeByID(ctx, charges.GetChargeByIDInput{
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditpurchase.Charge, error) {
+		charge, err := s.GetByID(ctx, charges.GetByIDInput{
 			ChargeID: input.ChargeID,
-			Expands: charges.Expands{
-				charges.ExpandRealizations,
+			Expands: meta.Expands{
+				meta.ExpandRealizations,
 			},
 		})
 		if err != nil {
-			return charges.CreditPurchaseCharge{}, err
+			return creditpurchase.Charge{}, err
 		}
 
 		creditPurchaseCharge, err := charge.AsCreditPurchaseCharge()
 		if err != nil {
-			return charges.CreditPurchaseCharge{}, err
+			return creditpurchase.Charge{}, err
 		}
 
 		switch input.TargetPaymentState {
-		case charges.PaymentSettlementStatusAuthorized:
-			return s.creditPurchaseOrchestrator.HandleExternalCreditPurchasePaymentAuthorized(ctx, creditPurchaseCharge)
-		case charges.PaymentSettlementStatusSettled:
-			return s.creditPurchaseOrchestrator.HandleExternalCreditPurchasePaymentSettled(ctx, creditPurchaseCharge)
+		case payment.StatusAuthorized:
+			return s.creditPurchaseService.HandleExternalPaymentAuthorized(ctx, creditPurchaseCharge)
+		case payment.StatusSettled:
+			return s.creditPurchaseService.HandleExternalPaymentSettled(ctx, creditPurchaseCharge)
 		default:
-			return charges.CreditPurchaseCharge{}, fmt.Errorf("invalid target payment state: %s", input.TargetPaymentState)
+			return creditpurchase.Charge{}, fmt.Errorf("invalid target payment state: %s", input.TargetPaymentState)
 		}
 	})
 }

@@ -8,7 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -35,16 +35,14 @@ const (
 	FieldAmountBeforeProration = "amount_before_proration"
 	// FieldAmountAfterProration holds the string denoting the amount_after_proration field in the database.
 	FieldAmountAfterProration = "amount_after_proration"
-	// FieldStdInvoicePaymentSettlementID holds the string denoting the std_invoice_payment_settlement_id field in the database.
-	FieldStdInvoicePaymentSettlementID = "std_invoice_payment_settlement_id"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
 	EdgeCharge = "charge"
-	// EdgeChargeStandardInvoicePaymentSettlement holds the string denoting the charge_standard_invoice_payment_settlement edge name in mutations.
-	EdgeChargeStandardInvoicePaymentSettlement = "charge_standard_invoice_payment_settlement"
-	// EdgeChargeStandardInvoiceAccruedUsage holds the string denoting the charge_standard_invoice_accrued_usage edge name in mutations.
-	EdgeChargeStandardInvoiceAccruedUsage = "charge_standard_invoice_accrued_usage"
-	// EdgeChargeCreditRealizations holds the string denoting the charge_credit_realizations edge name in mutations.
-	EdgeChargeCreditRealizations = "charge_credit_realizations"
+	// EdgeCreditAllocations holds the string denoting the credit_allocations edge name in mutations.
+	EdgeCreditAllocations = "credit_allocations"
+	// EdgeInvoicedUsage holds the string denoting the invoiced_usage edge name in mutations.
+	EdgeInvoicedUsage = "invoiced_usage"
+	// EdgePayment holds the string denoting the payment edge name in mutations.
+	EdgePayment = "payment"
 	// Table holds the table name of the chargeflatfee in the database.
 	Table = "charge_flat_fees"
 	// ChargeTable is the table that holds the charge relation/edge.
@@ -54,27 +52,27 @@ const (
 	ChargeInverseTable = "charges"
 	// ChargeColumn is the table column denoting the charge relation/edge.
 	ChargeColumn = "id"
-	// ChargeStandardInvoicePaymentSettlementTable is the table that holds the charge_standard_invoice_payment_settlement relation/edge.
-	ChargeStandardInvoicePaymentSettlementTable = "charge_flat_fees"
-	// ChargeStandardInvoicePaymentSettlementInverseTable is the table name for the ChargeStandardInvoicePaymentSettlement entity.
-	// It exists in this package in order to avoid circular dependency with the "chargestandardinvoicepaymentsettlement" package.
-	ChargeStandardInvoicePaymentSettlementInverseTable = "charge_standard_invoice_payment_settlements"
-	// ChargeStandardInvoicePaymentSettlementColumn is the table column denoting the charge_standard_invoice_payment_settlement relation/edge.
-	ChargeStandardInvoicePaymentSettlementColumn = "std_invoice_payment_settlement_id"
-	// ChargeStandardInvoiceAccruedUsageTable is the table that holds the charge_standard_invoice_accrued_usage relation/edge.
-	ChargeStandardInvoiceAccruedUsageTable = "charge_standard_invoice_accrued_usages"
-	// ChargeStandardInvoiceAccruedUsageInverseTable is the table name for the ChargeStandardInvoiceAccruedUsage entity.
-	// It exists in this package in order to avoid circular dependency with the "chargestandardinvoiceaccruedusage" package.
-	ChargeStandardInvoiceAccruedUsageInverseTable = "charge_standard_invoice_accrued_usages"
-	// ChargeStandardInvoiceAccruedUsageColumn is the table column denoting the charge_standard_invoice_accrued_usage relation/edge.
-	ChargeStandardInvoiceAccruedUsageColumn = "charge_id"
-	// ChargeCreditRealizationsTable is the table that holds the charge_credit_realizations relation/edge.
-	ChargeCreditRealizationsTable = "charge_credit_realizations"
-	// ChargeCreditRealizationsInverseTable is the table name for the ChargeCreditRealization entity.
-	// It exists in this package in order to avoid circular dependency with the "chargecreditrealization" package.
-	ChargeCreditRealizationsInverseTable = "charge_credit_realizations"
-	// ChargeCreditRealizationsColumn is the table column denoting the charge_credit_realizations relation/edge.
-	ChargeCreditRealizationsColumn = "charge_id"
+	// CreditAllocationsTable is the table that holds the credit_allocations relation/edge.
+	CreditAllocationsTable = "charge_flat_fee_credit_allocations"
+	// CreditAllocationsInverseTable is the table name for the ChargeFlatFeeCreditAllocations entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeflatfeecreditallocations" package.
+	CreditAllocationsInverseTable = "charge_flat_fee_credit_allocations"
+	// CreditAllocationsColumn is the table column denoting the credit_allocations relation/edge.
+	CreditAllocationsColumn = "charge_id"
+	// InvoicedUsageTable is the table that holds the invoiced_usage relation/edge.
+	InvoicedUsageTable = "charge_flat_fee_invoiced_usages"
+	// InvoicedUsageInverseTable is the table name for the ChargeFlatFeeInvoicedUsage entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeflatfeeinvoicedusage" package.
+	InvoicedUsageInverseTable = "charge_flat_fee_invoiced_usages"
+	// InvoicedUsageColumn is the table column denoting the invoiced_usage relation/edge.
+	InvoicedUsageColumn = "charge_id"
+	// PaymentTable is the table that holds the payment relation/edge.
+	PaymentTable = "charge_flat_fee_payments"
+	// PaymentInverseTable is the table name for the ChargeFlatFeePayment entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeflatfeepayment" package.
+	PaymentInverseTable = "charge_flat_fee_payments"
+	// PaymentColumn is the table column denoting the payment relation/edge.
+	PaymentColumn = "charge_id"
 )
 
 // Columns holds all SQL columns for chargeflatfee fields.
@@ -89,7 +87,6 @@ var Columns = []string{
 	FieldFeatureKey,
 	FieldAmountBeforeProration,
 	FieldAmountAfterProration,
-	FieldStdInvoicePaymentSettlementID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -109,8 +106,6 @@ var (
 	PaymentTermValidator func(string) error
 	// FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
 	FeatureKeyValidator func(string) error
-	// StdInvoicePaymentSettlementIDValidator is a validator for the "std_invoice_payment_settlement_id" field. It is called by the builders before save.
-	StdInvoicePaymentSettlementIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all ChargeFlatFee fields.
@@ -130,7 +125,7 @@ func SettlementModeValidator(sm productcatalog.SettlementMode) error {
 }
 
 // ProRatingValidator is a validator for the "pro_rating" field enum values. It is called by the builders before save.
-func ProRatingValidator(pr charges.ProRatingModeAdapterEnum) error {
+func ProRatingValidator(pr flatfee.ProRatingModeAdapterEnum) error {
 	switch pr {
 	case "prorate_prices", "no_prorate":
 		return nil
@@ -192,11 +187,6 @@ func ByAmountAfterProration(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmountAfterProration, opts...).ToFunc()
 }
 
-// ByStdInvoicePaymentSettlementID orders the results by the std_invoice_payment_settlement_id field.
-func ByStdInvoicePaymentSettlementID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldStdInvoicePaymentSettlementID, opts...).ToFunc()
-}
-
 // ByChargeField orders the results by charge field.
 func ByChargeField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -204,31 +194,31 @@ func ByChargeField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
-// ByChargeStandardInvoicePaymentSettlementField orders the results by charge_standard_invoice_payment_settlement field.
-func ByChargeStandardInvoicePaymentSettlementField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByCreditAllocationsCount orders the results by credit_allocations count.
+func ByCreditAllocationsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newChargeStandardInvoicePaymentSettlementStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborsCount(s, newCreditAllocationsStep(), opts...)
 	}
 }
 
-// ByChargeStandardInvoiceAccruedUsageField orders the results by charge_standard_invoice_accrued_usage field.
-func ByChargeStandardInvoiceAccruedUsageField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByCreditAllocations orders the results by credit_allocations terms.
+func ByCreditAllocations(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newChargeStandardInvoiceAccruedUsageStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newCreditAllocationsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
-// ByChargeCreditRealizationsCount orders the results by charge_credit_realizations count.
-func ByChargeCreditRealizationsCount(opts ...sql.OrderTermOption) OrderOption {
+// ByInvoicedUsageField orders the results by invoiced_usage field.
+func ByInvoicedUsageField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newChargeCreditRealizationsStep(), opts...)
+		sqlgraph.OrderByNeighborTerms(s, newInvoicedUsageStep(), sql.OrderByField(field, opts...))
 	}
 }
 
-// ByChargeCreditRealizations orders the results by charge_credit_realizations terms.
-func ByChargeCreditRealizations(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByPaymentField orders the results by payment field.
+func ByPaymentField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newChargeCreditRealizationsStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newPaymentStep(), sql.OrderByField(field, opts...))
 	}
 }
 func newChargeStep() *sqlgraph.Step {
@@ -238,24 +228,24 @@ func newChargeStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2O, true, ChargeTable, ChargeColumn),
 	)
 }
-func newChargeStandardInvoicePaymentSettlementStep() *sqlgraph.Step {
+func newCreditAllocationsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ChargeStandardInvoicePaymentSettlementInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, true, ChargeStandardInvoicePaymentSettlementTable, ChargeStandardInvoicePaymentSettlementColumn),
+		sqlgraph.To(CreditAllocationsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CreditAllocationsTable, CreditAllocationsColumn),
 	)
 }
-func newChargeStandardInvoiceAccruedUsageStep() *sqlgraph.Step {
+func newInvoicedUsageStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ChargeStandardInvoiceAccruedUsageInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, false, ChargeStandardInvoiceAccruedUsageTable, ChargeStandardInvoiceAccruedUsageColumn),
+		sqlgraph.To(InvoicedUsageInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, InvoicedUsageTable, InvoicedUsageColumn),
 	)
 }
-func newChargeCreditRealizationsStep() *sqlgraph.Step {
+func newPaymentStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ChargeCreditRealizationsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, ChargeCreditRealizationsTable, ChargeCreditRealizationsColumn),
+		sqlgraph.To(PaymentInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, PaymentTable, PaymentColumn),
 	)
 }

@@ -68,18 +68,16 @@ type Tx struct {
 	Charge *ChargeClient
 	// ChargeCreditPurchase is the client for interacting with the ChargeCreditPurchase builders.
 	ChargeCreditPurchase *ChargeCreditPurchaseClient
-	// ChargeCreditRealization is the client for interacting with the ChargeCreditRealization builders.
-	ChargeCreditRealization *ChargeCreditRealizationClient
-	// ChargeExternalPaymentSettlement is the client for interacting with the ChargeExternalPaymentSettlement builders.
-	ChargeExternalPaymentSettlement *ChargeExternalPaymentSettlementClient
+	// ChargeCreditPurchaseExternalPayment is the client for interacting with the ChargeCreditPurchaseExternalPayment builders.
+	ChargeCreditPurchaseExternalPayment *ChargeCreditPurchaseExternalPaymentClient
 	// ChargeFlatFee is the client for interacting with the ChargeFlatFee builders.
 	ChargeFlatFee *ChargeFlatFeeClient
-	// ChargeStandardInvoiceAccruedUsage is the client for interacting with the ChargeStandardInvoiceAccruedUsage builders.
-	ChargeStandardInvoiceAccruedUsage *ChargeStandardInvoiceAccruedUsageClient
-	// ChargeStandardInvoicePaymentSettlement is the client for interacting with the ChargeStandardInvoicePaymentSettlement builders.
-	ChargeStandardInvoicePaymentSettlement *ChargeStandardInvoicePaymentSettlementClient
-	// ChargeUsageBased is the client for interacting with the ChargeUsageBased builders.
-	ChargeUsageBased *ChargeUsageBasedClient
+	// ChargeFlatFeeCreditAllocations is the client for interacting with the ChargeFlatFeeCreditAllocations builders.
+	ChargeFlatFeeCreditAllocations *ChargeFlatFeeCreditAllocationsClient
+	// ChargeFlatFeeInvoicedUsage is the client for interacting with the ChargeFlatFeeInvoicedUsage builders.
+	ChargeFlatFeeInvoicedUsage *ChargeFlatFeeInvoicedUsageClient
+	// ChargeFlatFeePayment is the client for interacting with the ChargeFlatFeePayment builders.
+	ChargeFlatFeePayment *ChargeFlatFeePaymentClient
 	// CurrencyCostBasis is the client for interacting with the CurrencyCostBasis builders.
 	CurrencyCostBasis *CurrencyCostBasisClient
 	// CustomCurrency is the client for interacting with the CustomCurrency builders.
@@ -290,12 +288,11 @@ func (tx *Tx) init() {
 	tx.BillingWorkflowConfig = NewBillingWorkflowConfigClient(tx.config)
 	tx.Charge = NewChargeClient(tx.config)
 	tx.ChargeCreditPurchase = NewChargeCreditPurchaseClient(tx.config)
-	tx.ChargeCreditRealization = NewChargeCreditRealizationClient(tx.config)
-	tx.ChargeExternalPaymentSettlement = NewChargeExternalPaymentSettlementClient(tx.config)
+	tx.ChargeCreditPurchaseExternalPayment = NewChargeCreditPurchaseExternalPaymentClient(tx.config)
 	tx.ChargeFlatFee = NewChargeFlatFeeClient(tx.config)
-	tx.ChargeStandardInvoiceAccruedUsage = NewChargeStandardInvoiceAccruedUsageClient(tx.config)
-	tx.ChargeStandardInvoicePaymentSettlement = NewChargeStandardInvoicePaymentSettlementClient(tx.config)
-	tx.ChargeUsageBased = NewChargeUsageBasedClient(tx.config)
+	tx.ChargeFlatFeeCreditAllocations = NewChargeFlatFeeCreditAllocationsClient(tx.config)
+	tx.ChargeFlatFeeInvoicedUsage = NewChargeFlatFeeInvoicedUsageClient(tx.config)
+	tx.ChargeFlatFeePayment = NewChargeFlatFeePaymentClient(tx.config)
 	tx.CurrencyCostBasis = NewCurrencyCostBasisClient(tx.config)
 	tx.CustomCurrency = NewCustomCurrencyClient(tx.config)
 	tx.Customer = NewCustomerClient(tx.config)

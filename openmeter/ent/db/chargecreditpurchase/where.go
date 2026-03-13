@@ -86,11 +86,6 @@ func CreditGrantedAt(v time.Time) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldCreditGrantedAt, v))
 }
 
-// ExternalPaymentSettlementID applies equality check predicate on the "external_payment_settlement_id" field. It's identical to ExternalPaymentSettlementIDEQ.
-func ExternalPaymentSettlementID(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldExternalPaymentSettlementID, v))
-}
-
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldNamespace, v))
@@ -321,81 +316,6 @@ func CreditGrantedAtNotNil() predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldCreditGrantedAt))
 }
 
-// ExternalPaymentSettlementIDEQ applies the EQ predicate on the "external_payment_settlement_id" field.
-func ExternalPaymentSettlementIDEQ(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldExternalPaymentSettlementID, v))
-}
-
-// ExternalPaymentSettlementIDNEQ applies the NEQ predicate on the "external_payment_settlement_id" field.
-func ExternalPaymentSettlementIDNEQ(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldNEQ(FieldExternalPaymentSettlementID, v))
-}
-
-// ExternalPaymentSettlementIDIn applies the In predicate on the "external_payment_settlement_id" field.
-func ExternalPaymentSettlementIDIn(vs ...string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldIn(FieldExternalPaymentSettlementID, vs...))
-}
-
-// ExternalPaymentSettlementIDNotIn applies the NotIn predicate on the "external_payment_settlement_id" field.
-func ExternalPaymentSettlementIDNotIn(vs ...string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldNotIn(FieldExternalPaymentSettlementID, vs...))
-}
-
-// ExternalPaymentSettlementIDGT applies the GT predicate on the "external_payment_settlement_id" field.
-func ExternalPaymentSettlementIDGT(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldGT(FieldExternalPaymentSettlementID, v))
-}
-
-// ExternalPaymentSettlementIDGTE applies the GTE predicate on the "external_payment_settlement_id" field.
-func ExternalPaymentSettlementIDGTE(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldGTE(FieldExternalPaymentSettlementID, v))
-}
-
-// ExternalPaymentSettlementIDLT applies the LT predicate on the "external_payment_settlement_id" field.
-func ExternalPaymentSettlementIDLT(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldLT(FieldExternalPaymentSettlementID, v))
-}
-
-// ExternalPaymentSettlementIDLTE applies the LTE predicate on the "external_payment_settlement_id" field.
-func ExternalPaymentSettlementIDLTE(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldLTE(FieldExternalPaymentSettlementID, v))
-}
-
-// ExternalPaymentSettlementIDContains applies the Contains predicate on the "external_payment_settlement_id" field.
-func ExternalPaymentSettlementIDContains(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldContains(FieldExternalPaymentSettlementID, v))
-}
-
-// ExternalPaymentSettlementIDHasPrefix applies the HasPrefix predicate on the "external_payment_settlement_id" field.
-func ExternalPaymentSettlementIDHasPrefix(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldHasPrefix(FieldExternalPaymentSettlementID, v))
-}
-
-// ExternalPaymentSettlementIDHasSuffix applies the HasSuffix predicate on the "external_payment_settlement_id" field.
-func ExternalPaymentSettlementIDHasSuffix(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldHasSuffix(FieldExternalPaymentSettlementID, v))
-}
-
-// ExternalPaymentSettlementIDIsNil applies the IsNil predicate on the "external_payment_settlement_id" field.
-func ExternalPaymentSettlementIDIsNil() predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldIsNull(FieldExternalPaymentSettlementID))
-}
-
-// ExternalPaymentSettlementIDNotNil applies the NotNil predicate on the "external_payment_settlement_id" field.
-func ExternalPaymentSettlementIDNotNil() predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldExternalPaymentSettlementID))
-}
-
-// ExternalPaymentSettlementIDEqualFold applies the EqualFold predicate on the "external_payment_settlement_id" field.
-func ExternalPaymentSettlementIDEqualFold(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldEqualFold(FieldExternalPaymentSettlementID, v))
-}
-
-// ExternalPaymentSettlementIDContainsFold applies the ContainsFold predicate on the "external_payment_settlement_id" field.
-func ExternalPaymentSettlementIDContainsFold(v string) predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldContainsFold(FieldExternalPaymentSettlementID, v))
-}
-
 // HasCharge applies the HasEdge predicate on the "charge" edge.
 func HasCharge() predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(func(s *sql.Selector) {
@@ -419,21 +339,21 @@ func HasChargeWith(preds ...predicate.Charge) predicate.ChargeCreditPurchase {
 	})
 }
 
-// HasChargeExternalPaymentSettlement applies the HasEdge predicate on the "charge_external_payment_settlement" edge.
-func HasChargeExternalPaymentSettlement() predicate.ChargeCreditPurchase {
+// HasExternalPayment applies the HasEdge predicate on the "external_payment" edge.
+func HasExternalPayment() predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, ChargeExternalPaymentSettlementTable, ChargeExternalPaymentSettlementColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, ExternalPaymentTable, ExternalPaymentColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasChargeExternalPaymentSettlementWith applies the HasEdge predicate on the "charge_external_payment_settlement" edge with a given conditions (other predicates).
-func HasChargeExternalPaymentSettlementWith(preds ...predicate.ChargeExternalPaymentSettlement) predicate.ChargeCreditPurchase {
+// HasExternalPaymentWith applies the HasEdge predicate on the "external_payment" edge with a given conditions (other predicates).
+func HasExternalPaymentWith(preds ...predicate.ChargeCreditPurchaseExternalPayment) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(func(s *sql.Selector) {
-		step := newChargeExternalPaymentSettlementStep()
+		step := newExternalPaymentStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

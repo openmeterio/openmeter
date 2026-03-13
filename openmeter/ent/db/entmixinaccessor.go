@@ -7,10 +7,15 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func (e *Addon) GetID() string {
+	return e.ID
+}
 
 func (e *Addon) GetNamespace() string {
 	return e.Namespace
@@ -42,6 +47,10 @@ func (e *Addon) GetDescription() *string {
 
 func (e *Addon) GetKey() string {
 	return e.Key
+}
+
+func (e *AddonRateCard) GetID() string {
+	return e.ID
 }
 
 func (e *AddonRateCard) GetNamespace() string {
@@ -76,6 +85,10 @@ func (e *AddonRateCard) GetKey() string {
 	return e.Key
 }
 
+func (e *App) GetID() string {
+	return e.ID
+}
+
 func (e *App) GetNamespace() string {
 	return e.Namespace
 }
@@ -102,6 +115,10 @@ func (e *App) GetName() string {
 
 func (e *App) GetDescription() *string {
 	return e.Description
+}
+
+func (e *AppCustomInvoicing) GetID() string {
+	return e.ID
 }
 
 func (e *AppCustomInvoicing) GetNamespace() string {
@@ -156,6 +173,10 @@ func (e *AppCustomer) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
+func (e *AppStripe) GetID() string {
+	return e.ID
+}
+
 func (e *AppStripe) GetNamespace() string {
 	return e.Namespace
 }
@@ -204,8 +225,16 @@ func (e *BalanceSnapshot) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
+func (e *BillingCustomerLock) GetID() string {
+	return e.ID
+}
+
 func (e *BillingCustomerLock) GetNamespace() string {
 	return e.Namespace
+}
+
+func (e *BillingCustomerOverride) GetID() string {
+	return e.ID
 }
 
 func (e *BillingCustomerOverride) GetNamespace() string {
@@ -222,6 +251,10 @@ func (e *BillingCustomerOverride) GetUpdatedAt() time.Time {
 
 func (e *BillingCustomerOverride) GetDeletedAt() *time.Time {
 	return e.DeletedAt
+}
+
+func (e *BillingInvoice) GetID() string {
+	return e.ID
 }
 
 func (e *BillingInvoice) GetNamespace() string {
@@ -332,8 +365,16 @@ func (e *BillingInvoice) GetTotal() alpacadecimal.Decimal {
 	return e.Total
 }
 
+func (e *BillingInvoiceFlatFeeLineConfig) GetID() string {
+	return e.ID
+}
+
 func (e *BillingInvoiceFlatFeeLineConfig) GetNamespace() string {
 	return e.Namespace
+}
+
+func (e *BillingInvoiceLine) GetID() string {
+	return e.ID
 }
 
 func (e *BillingInvoiceLine) GetAnnotations() models.Annotations {
@@ -408,6 +449,10 @@ func (e *BillingInvoiceLine) GetTotal() alpacadecimal.Decimal {
 	return e.Total
 }
 
+func (e *BillingInvoiceLineDiscount) GetID() string {
+	return e.ID
+}
+
 func (e *BillingInvoiceLineDiscount) GetNamespace() string {
 	return e.Namespace
 }
@@ -442,6 +487,10 @@ func (e *BillingInvoiceLineDiscount) GetReason() billing.DiscountReasonType {
 
 func (e *BillingInvoiceLineDiscount) GetInvoicingAppExternalID() *string {
 	return e.InvoicingAppExternalID
+}
+
+func (e *BillingInvoiceLineUsageDiscount) GetID() string {
+	return e.ID
 }
 
 func (e *BillingInvoiceLineUsageDiscount) GetNamespace() string {
@@ -480,6 +529,10 @@ func (e *BillingInvoiceLineUsageDiscount) GetInvoicingAppExternalID() *string {
 	return e.InvoicingAppExternalID
 }
 
+func (e *BillingInvoiceSplitLineGroup) GetID() string {
+	return e.ID
+}
+
 func (e *BillingInvoiceSplitLineGroup) GetNamespace() string {
 	return e.Namespace
 }
@@ -516,8 +569,16 @@ func (e *BillingInvoiceSplitLineGroup) GetTaxConfig() productcatalog.TaxConfig {
 	return e.TaxConfig
 }
 
+func (e *BillingInvoiceUsageBasedLineConfig) GetID() string {
+	return e.ID
+}
+
 func (e *BillingInvoiceUsageBasedLineConfig) GetNamespace() string {
 	return e.Namespace
+}
+
+func (e *BillingInvoiceValidationIssue) GetID() string {
+	return e.ID
 }
 
 func (e *BillingInvoiceValidationIssue) GetNamespace() string {
@@ -534,6 +595,10 @@ func (e *BillingInvoiceValidationIssue) GetUpdatedAt() time.Time {
 
 func (e *BillingInvoiceValidationIssue) GetDeletedAt() *time.Time {
 	return e.DeletedAt
+}
+
+func (e *BillingProfile) GetID() string {
+	return e.ID
 }
 
 func (e *BillingProfile) GetNamespace() string {
@@ -594,6 +659,10 @@ func (e *BillingProfile) GetSupplierAddressPhoneNumber() *string {
 
 func (e *BillingSequenceNumbers) GetNamespace() string {
 	return e.Namespace
+}
+
+func (e *BillingStandardInvoiceDetailedLine) GetID() string {
+	return e.ID
 }
 
 func (e *BillingStandardInvoiceDetailedLine) GetAnnotations() models.Annotations {
@@ -668,6 +737,10 @@ func (e *BillingStandardInvoiceDetailedLine) GetTotal() alpacadecimal.Decimal {
 	return e.Total
 }
 
+func (e *BillingStandardInvoiceDetailedLineAmountDiscount) GetID() string {
+	return e.ID
+}
+
 func (e *BillingStandardInvoiceDetailedLineAmountDiscount) GetNamespace() string {
 	return e.Namespace
 }
@@ -704,6 +777,10 @@ func (e *BillingStandardInvoiceDetailedLineAmountDiscount) GetInvoicingAppExtern
 	return e.InvoicingAppExternalID
 }
 
+func (e *BillingWorkflowConfig) GetID() string {
+	return e.ID
+}
+
 func (e *BillingWorkflowConfig) GetNamespace() string {
 	return e.Namespace
 }
@@ -718,6 +795,10 @@ func (e *BillingWorkflowConfig) GetUpdatedAt() time.Time {
 
 func (e *BillingWorkflowConfig) GetDeletedAt() *time.Time {
 	return e.DeletedAt
+}
+
+func (e *Charge) GetID() string {
+	return e.ID
 }
 
 func (e *Charge) GetAnnotations() models.Annotations {
@@ -752,128 +833,260 @@ func (e *Charge) GetDescription() *string {
 	return e.Description
 }
 
+func (e *ChargeCreditPurchase) GetID() string {
+	return e.ID
+}
+
 func (e *ChargeCreditPurchase) GetNamespace() string {
 	return e.Namespace
 }
 
-func (e *ChargeCreditRealization) GetNamespace() string {
+func (e *ChargeCreditPurchaseExternalPayment) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeCreditPurchaseExternalPayment) GetServicePeriodFrom() time.Time {
+	return e.ServicePeriodFrom
+}
+
+func (e *ChargeCreditPurchaseExternalPayment) GetServicePeriodTo() time.Time {
+	return e.ServicePeriodTo
+}
+
+func (e *ChargeCreditPurchaseExternalPayment) GetStatus() payment.Status {
+	return e.Status
+}
+
+func (e *ChargeCreditPurchaseExternalPayment) GetAmount() alpacadecimal.Decimal {
+	return e.Amount
+}
+
+func (e *ChargeCreditPurchaseExternalPayment) GetAuthorizedTransactionGroupID() *string {
+	return e.AuthorizedTransactionGroupID
+}
+
+func (e *ChargeCreditPurchaseExternalPayment) GetAuthorizedAt() *time.Time {
+	return e.AuthorizedAt
+}
+
+func (e *ChargeCreditPurchaseExternalPayment) GetSettledTransactionGroupID() *string {
+	return e.SettledTransactionGroupID
+}
+
+func (e *ChargeCreditPurchaseExternalPayment) GetSettledAt() *time.Time {
+	return e.SettledAt
+}
+
+func (e *ChargeCreditPurchaseExternalPayment) GetNamespace() string {
 	return e.Namespace
 }
 
-func (e *ChargeCreditRealization) GetCreatedAt() time.Time {
+func (e *ChargeCreditPurchaseExternalPayment) GetCreatedAt() time.Time {
 	return e.CreatedAt
 }
 
-func (e *ChargeCreditRealization) GetUpdatedAt() time.Time {
+func (e *ChargeCreditPurchaseExternalPayment) GetUpdatedAt() time.Time {
 	return e.UpdatedAt
 }
 
-func (e *ChargeCreditRealization) GetDeletedAt() *time.Time {
+func (e *ChargeCreditPurchaseExternalPayment) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
-func (e *ChargeCreditRealization) GetAnnotations() models.Annotations {
+func (e *ChargeCreditPurchaseExternalPayment) GetAnnotations() models.Annotations {
 	return e.Annotations
 }
 
-func (e *ChargeExternalPaymentSettlement) GetNamespace() string {
-	return e.Namespace
-}
-
-func (e *ChargeExternalPaymentSettlement) GetCreatedAt() time.Time {
-	return e.CreatedAt
-}
-
-func (e *ChargeExternalPaymentSettlement) GetUpdatedAt() time.Time {
-	return e.UpdatedAt
-}
-
-func (e *ChargeExternalPaymentSettlement) GetDeletedAt() *time.Time {
-	return e.DeletedAt
-}
-
-func (e *ChargeExternalPaymentSettlement) GetAnnotations() models.Annotations {
-	return e.Annotations
+func (e *ChargeFlatFee) GetID() string {
+	return e.ID
 }
 
 func (e *ChargeFlatFee) GetNamespace() string {
 	return e.Namespace
 }
 
-func (e *ChargeStandardInvoiceAccruedUsage) GetNamespace() string {
-	return e.Namespace
+func (e *ChargeFlatFeeCreditAllocations) GetID() string {
+	return e.ID
 }
 
-func (e *ChargeStandardInvoiceAccruedUsage) GetCreatedAt() time.Time {
-	return e.CreatedAt
+func (e *ChargeFlatFeeCreditAllocations) GetLineID() *string {
+	return e.LineID
 }
 
-func (e *ChargeStandardInvoiceAccruedUsage) GetUpdatedAt() time.Time {
-	return e.UpdatedAt
-}
-
-func (e *ChargeStandardInvoiceAccruedUsage) GetDeletedAt() *time.Time {
-	return e.DeletedAt
-}
-
-func (e *ChargeStandardInvoiceAccruedUsage) GetAnnotations() models.Annotations {
-	return e.Annotations
-}
-
-func (e *ChargeStandardInvoiceAccruedUsage) GetAmount() alpacadecimal.Decimal {
+func (e *ChargeFlatFeeCreditAllocations) GetAmount() alpacadecimal.Decimal {
 	return e.Amount
 }
 
-func (e *ChargeStandardInvoiceAccruedUsage) GetTaxesTotal() alpacadecimal.Decimal {
-	return e.TaxesTotal
+func (e *ChargeFlatFeeCreditAllocations) GetServicePeriodFrom() time.Time {
+	return e.ServicePeriodFrom
 }
 
-func (e *ChargeStandardInvoiceAccruedUsage) GetTaxesInclusiveTotal() alpacadecimal.Decimal {
-	return e.TaxesInclusiveTotal
+func (e *ChargeFlatFeeCreditAllocations) GetServicePeriodTo() time.Time {
+	return e.ServicePeriodTo
 }
 
-func (e *ChargeStandardInvoiceAccruedUsage) GetTaxesExclusiveTotal() alpacadecimal.Decimal {
-	return e.TaxesExclusiveTotal
+func (e *ChargeFlatFeeCreditAllocations) GetLedgerTransactionGroupID() string {
+	return e.LedgerTransactionGroupID
 }
 
-func (e *ChargeStandardInvoiceAccruedUsage) GetChargesTotal() alpacadecimal.Decimal {
-	return e.ChargesTotal
-}
-
-func (e *ChargeStandardInvoiceAccruedUsage) GetDiscountsTotal() alpacadecimal.Decimal {
-	return e.DiscountsTotal
-}
-
-func (e *ChargeStandardInvoiceAccruedUsage) GetCreditsTotal() alpacadecimal.Decimal {
-	return e.CreditsTotal
-}
-
-func (e *ChargeStandardInvoiceAccruedUsage) GetTotal() alpacadecimal.Decimal {
-	return e.Total
-}
-
-func (e *ChargeStandardInvoicePaymentSettlement) GetNamespace() string {
+func (e *ChargeFlatFeeCreditAllocations) GetNamespace() string {
 	return e.Namespace
 }
 
-func (e *ChargeStandardInvoicePaymentSettlement) GetCreatedAt() time.Time {
+func (e *ChargeFlatFeeCreditAllocations) GetCreatedAt() time.Time {
 	return e.CreatedAt
 }
 
-func (e *ChargeStandardInvoicePaymentSettlement) GetUpdatedAt() time.Time {
+func (e *ChargeFlatFeeCreditAllocations) GetUpdatedAt() time.Time {
 	return e.UpdatedAt
 }
 
-func (e *ChargeStandardInvoicePaymentSettlement) GetDeletedAt() *time.Time {
+func (e *ChargeFlatFeeCreditAllocations) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
-func (e *ChargeStandardInvoicePaymentSettlement) GetAnnotations() models.Annotations {
+func (e *ChargeFlatFeeCreditAllocations) GetAnnotations() models.Annotations {
 	return e.Annotations
 }
 
-func (e *ChargeUsageBased) GetNamespace() string {
+func (e *ChargeFlatFeeInvoicedUsage) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeFlatFeeInvoicedUsage) GetLineID() *string {
+	return e.LineID
+}
+
+func (e *ChargeFlatFeeInvoicedUsage) GetServicePeriodFrom() time.Time {
+	return e.ServicePeriodFrom
+}
+
+func (e *ChargeFlatFeeInvoicedUsage) GetServicePeriodTo() time.Time {
+	return e.ServicePeriodTo
+}
+
+func (e *ChargeFlatFeeInvoicedUsage) GetMutable() bool {
+	return e.Mutable
+}
+
+func (e *ChargeFlatFeeInvoicedUsage) GetLedgerTransactionGroupID() *string {
+	return e.LedgerTransactionGroupID
+}
+
+func (e *ChargeFlatFeeInvoicedUsage) GetNamespace() string {
 	return e.Namespace
+}
+
+func (e *ChargeFlatFeeInvoicedUsage) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeFlatFeeInvoicedUsage) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeFlatFeeInvoicedUsage) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *ChargeFlatFeeInvoicedUsage) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *ChargeFlatFeeInvoicedUsage) GetAmount() alpacadecimal.Decimal {
+	return e.Amount
+}
+
+func (e *ChargeFlatFeeInvoicedUsage) GetTaxesTotal() alpacadecimal.Decimal {
+	return e.TaxesTotal
+}
+
+func (e *ChargeFlatFeeInvoicedUsage) GetTaxesInclusiveTotal() alpacadecimal.Decimal {
+	return e.TaxesInclusiveTotal
+}
+
+func (e *ChargeFlatFeeInvoicedUsage) GetTaxesExclusiveTotal() alpacadecimal.Decimal {
+	return e.TaxesExclusiveTotal
+}
+
+func (e *ChargeFlatFeeInvoicedUsage) GetChargesTotal() alpacadecimal.Decimal {
+	return e.ChargesTotal
+}
+
+func (e *ChargeFlatFeeInvoicedUsage) GetDiscountsTotal() alpacadecimal.Decimal {
+	return e.DiscountsTotal
+}
+
+func (e *ChargeFlatFeeInvoicedUsage) GetCreditsTotal() alpacadecimal.Decimal {
+	return e.CreditsTotal
+}
+
+func (e *ChargeFlatFeeInvoicedUsage) GetTotal() alpacadecimal.Decimal {
+	return e.Total
+}
+
+func (e *ChargeFlatFeePayment) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeFlatFeePayment) GetLineID() string {
+	return e.LineID
+}
+
+func (e *ChargeFlatFeePayment) GetServicePeriodFrom() time.Time {
+	return e.ServicePeriodFrom
+}
+
+func (e *ChargeFlatFeePayment) GetServicePeriodTo() time.Time {
+	return e.ServicePeriodTo
+}
+
+func (e *ChargeFlatFeePayment) GetStatus() payment.Status {
+	return e.Status
+}
+
+func (e *ChargeFlatFeePayment) GetAmount() alpacadecimal.Decimal {
+	return e.Amount
+}
+
+func (e *ChargeFlatFeePayment) GetAuthorizedTransactionGroupID() *string {
+	return e.AuthorizedTransactionGroupID
+}
+
+func (e *ChargeFlatFeePayment) GetAuthorizedAt() *time.Time {
+	return e.AuthorizedAt
+}
+
+func (e *ChargeFlatFeePayment) GetSettledTransactionGroupID() *string {
+	return e.SettledTransactionGroupID
+}
+
+func (e *ChargeFlatFeePayment) GetSettledAt() *time.Time {
+	return e.SettledAt
+}
+
+func (e *ChargeFlatFeePayment) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *ChargeFlatFeePayment) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeFlatFeePayment) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeFlatFeePayment) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *ChargeFlatFeePayment) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *CurrencyCostBasis) GetID() string {
+	return e.ID
 }
 
 func (e *CurrencyCostBasis) GetNamespace() string {
@@ -892,6 +1105,10 @@ func (e *CurrencyCostBasis) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
+func (e *CustomCurrency) GetID() string {
+	return e.ID
+}
+
 func (e *CustomCurrency) GetNamespace() string {
 	return e.Namespace
 }
@@ -906,6 +1123,10 @@ func (e *CustomCurrency) GetUpdatedAt() time.Time {
 
 func (e *CustomCurrency) GetDeletedAt() *time.Time {
 	return e.DeletedAt
+}
+
+func (e *Customer) GetID() string {
+	return e.ID
 }
 
 func (e *Customer) GetNamespace() string {
@@ -972,6 +1193,10 @@ func (e *CustomerSubjects) GetNamespace() string {
 	return e.Namespace
 }
 
+func (e *Entitlement) GetID() string {
+	return e.ID
+}
+
 func (e *Entitlement) GetNamespace() string {
 	return e.Namespace
 }
@@ -992,6 +1217,10 @@ func (e *Entitlement) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
+func (e *Feature) GetID() string {
+	return e.ID
+}
+
 func (e *Feature) GetCreatedAt() time.Time {
 	return e.CreatedAt
 }
@@ -1006,6 +1235,10 @@ func (e *Feature) GetDeletedAt() *time.Time {
 
 func (e *Feature) GetMetadata() map[string]string {
 	return e.Metadata
+}
+
+func (e *Grant) GetID() string {
+	return e.ID
 }
 
 func (e *Grant) GetNamespace() string {
@@ -1028,6 +1261,10 @@ func (e *Grant) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
+func (e *LLMCostPrice) GetID() string {
+	return e.ID
+}
+
 func (e *LLMCostPrice) GetMetadata() map[string]string {
 	return e.Metadata
 }
@@ -1042,6 +1279,10 @@ func (e *LLMCostPrice) GetUpdatedAt() time.Time {
 
 func (e *LLMCostPrice) GetDeletedAt() *time.Time {
 	return e.DeletedAt
+}
+
+func (e *Meter) GetID() string {
+	return e.ID
 }
 
 func (e *Meter) GetNamespace() string {
@@ -1080,6 +1321,10 @@ func (e *Meter) GetAnnotations() models.Annotations {
 	return e.Annotations
 }
 
+func (e *NotificationChannel) GetID() string {
+	return e.ID
+}
+
 func (e *NotificationChannel) GetNamespace() string {
 	return e.Namespace
 }
@@ -1104,6 +1349,10 @@ func (e *NotificationChannel) GetMetadata() map[string]string {
 	return e.Metadata
 }
 
+func (e *NotificationEvent) GetID() string {
+	return e.ID
+}
+
 func (e *NotificationEvent) GetNamespace() string {
 	return e.Namespace
 }
@@ -1112,12 +1361,20 @@ func (e *NotificationEvent) GetAnnotations() models.Annotations {
 	return e.Annotations
 }
 
+func (e *NotificationEventDeliveryStatus) GetID() string {
+	return e.ID
+}
+
 func (e *NotificationEventDeliveryStatus) GetNamespace() string {
 	return e.Namespace
 }
 
 func (e *NotificationEventDeliveryStatus) GetAnnotations() models.Annotations {
 	return e.Annotations
+}
+
+func (e *NotificationRule) GetID() string {
+	return e.ID
 }
 
 func (e *NotificationRule) GetNamespace() string {
@@ -1142,6 +1399,10 @@ func (e *NotificationRule) GetAnnotations() models.Annotations {
 
 func (e *NotificationRule) GetMetadata() map[string]string {
 	return e.Metadata
+}
+
+func (e *Plan) GetID() string {
+	return e.ID
 }
 
 func (e *Plan) GetNamespace() string {
@@ -1176,6 +1437,10 @@ func (e *Plan) GetKey() string {
 	return e.Key
 }
 
+func (e *PlanAddon) GetID() string {
+	return e.ID
+}
+
 func (e *PlanAddon) GetNamespace() string {
 	return e.Namespace
 }
@@ -1198,6 +1463,10 @@ func (e *PlanAddon) GetUpdatedAt() time.Time {
 
 func (e *PlanAddon) GetDeletedAt() *time.Time {
 	return e.DeletedAt
+}
+
+func (e *PlanPhase) GetID() string {
+	return e.ID
 }
 
 func (e *PlanPhase) GetNamespace() string {
@@ -1232,6 +1501,10 @@ func (e *PlanPhase) GetKey() string {
 	return e.Key
 }
 
+func (e *PlanRateCard) GetID() string {
+	return e.ID
+}
+
 func (e *PlanRateCard) GetNamespace() string {
 	return e.Namespace
 }
@@ -1264,6 +1537,10 @@ func (e *PlanRateCard) GetKey() string {
 	return e.Key
 }
 
+func (e *Subject) GetID() string {
+	return e.ID
+}
+
 func (e *Subject) GetNamespace() string {
 	return e.Namespace
 }
@@ -1278,6 +1555,10 @@ func (e *Subject) GetUpdatedAt() time.Time {
 
 func (e *Subject) GetDeletedAt() *time.Time {
 	return e.DeletedAt
+}
+
+func (e *Subscription) GetID() string {
+	return e.ID
 }
 
 func (e *Subscription) GetNamespace() string {
@@ -1312,6 +1593,10 @@ func (e *Subscription) GetActiveTo() *time.Time {
 	return e.ActiveTo
 }
 
+func (e *SubscriptionAddon) GetID() string {
+	return e.ID
+}
+
 func (e *SubscriptionAddon) GetNamespace() string {
 	return e.Namespace
 }
@@ -1332,6 +1617,10 @@ func (e *SubscriptionAddon) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
+func (e *SubscriptionAddonQuantity) GetID() string {
+	return e.ID
+}
+
 func (e *SubscriptionAddonQuantity) GetNamespace() string {
 	return e.Namespace
 }
@@ -1348,8 +1637,16 @@ func (e *SubscriptionAddonQuantity) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
+func (e *SubscriptionBillingSyncState) GetID() string {
+	return e.ID
+}
+
 func (e *SubscriptionBillingSyncState) GetNamespace() string {
 	return e.Namespace
+}
+
+func (e *SubscriptionItem) GetID() string {
+	return e.ID
 }
 
 func (e *SubscriptionItem) GetNamespace() string {
@@ -1372,6 +1669,10 @@ func (e *SubscriptionItem) GetMetadata() map[string]string {
 	return e.Metadata
 }
 
+func (e *SubscriptionPhase) GetID() string {
+	return e.ID
+}
+
 func (e *SubscriptionPhase) GetNamespace() string {
 	return e.Namespace
 }
@@ -1390,6 +1691,10 @@ func (e *SubscriptionPhase) GetDeletedAt() *time.Time {
 
 func (e *SubscriptionPhase) GetMetadata() map[string]string {
 	return e.Metadata
+}
+
+func (e *TaxCode) GetID() string {
+	return e.ID
 }
 
 func (e *TaxCode) GetNamespace() string {
@@ -1422,6 +1727,10 @@ func (e *TaxCode) GetDescription() *string {
 
 func (e *TaxCode) GetKey() string {
 	return e.Key
+}
+
+func (e *UsageReset) GetID() string {
+	return e.ID
 }
 
 func (e *UsageReset) GetNamespace() string {

@@ -40,12 +40,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditrealization"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeexternalpaymentsettlement"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoiceaccruedusage"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicepaymentsettlement"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecreditallocations"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/currencycostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -163,12 +162,11 @@ func checkColumn(t, c string) error {
 			billingworkflowconfig.Table:                            billingworkflowconfig.ValidColumn,
 			charge.Table:                                           charge.ValidColumn,
 			chargecreditpurchase.Table:                             chargecreditpurchase.ValidColumn,
-			chargecreditrealization.Table:                          chargecreditrealization.ValidColumn,
-			chargeexternalpaymentsettlement.Table:                  chargeexternalpaymentsettlement.ValidColumn,
+			chargecreditpurchaseexternalpayment.Table:              chargecreditpurchaseexternalpayment.ValidColumn,
 			chargeflatfee.Table:                                    chargeflatfee.ValidColumn,
-			chargestandardinvoiceaccruedusage.Table:                chargestandardinvoiceaccruedusage.ValidColumn,
-			chargestandardinvoicepaymentsettlement.Table:           chargestandardinvoicepaymentsettlement.ValidColumn,
-			chargeusagebased.Table:                                 chargeusagebased.ValidColumn,
+			chargeflatfeecreditallocations.Table:                   chargeflatfeecreditallocations.ValidColumn,
+			chargeflatfeeinvoicedusage.Table:                       chargeflatfeeinvoicedusage.ValidColumn,
+			chargeflatfeepayment.Table:                             chargeflatfeepayment.ValidColumn,
 			currencycostbasis.Table:                                currencycostbasis.ValidColumn,
 			customcurrency.Table:                                   customcurrency.ValidColumn,
 			customer.Table:                                         customer.ValidColumn,
