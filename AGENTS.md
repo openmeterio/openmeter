@@ -149,7 +149,7 @@ All builds use `GO_BUILD_FLAGS=-tags=dynamic`.
 
 ## Coding Conventions
 
-See the `/service` skill for service/adapter patterns, constructors, input types, errors, transactions, hooks, logging, multi-tenancy, and DI wiring. See the `/api` skill for HTTP handler patterns and ValidationIssue.
+See the `/service` skill for service/adapter patterns, constructors, input types, errors, transactions, hooks, logging, multi-tenancy, and DI wiring. See the `/api` skill for HTTP handler patterns and ValidationIssue. See the `/ent` skill for Ent ORM patterns and Postgres type gotchas. See the `/ledger` skill for ledger package architecture, wiring, and testing.
 
 ## Key Dependencies
 
@@ -168,19 +168,4 @@ See the `/service` skill for service/adapter patterns, constructors, input types
 ## Skills
 
 Skills are created inside [.agents/skills](.agents/skills/) by default and then symlinked to [.claude/skills](.claude/skills). Make sure you always treat `.agents/skills` as the source of truth.
-
-
-## Ledger gotchas
-
-- For Postgres-backed tests run directly with `go test` (not via Make), ensure the PG env is set (e.g. `POSTGRES_HOST=localhost`). If tests rely on DB constraints/triggers, run real migrations (not just `Schema.Create`).
-- For `CreateEntries`, prefer Ent `CreateBulk` path (not driver-level `ExecContext`) and map DB trigger violations to validation errors (`ledger_entries_dimension_ids_fk` / SQLSTATE 23503 path).
-- When adding/adjusting historical adapter tests, follow existing repo conventions (`NewTestEnv`, `DBSchemaMigrate`, `t.Cleanup(env.Close)`), and use migration-backed schema so trigger-based constraints are actually exercised.
-
-## Ent gotchas
-
-- For Postgres `text[]` columns in Ent, avoid `field.Strings(...).SchemaType(map[string]string{dialect.Postgres: "text[]"})` in this codebase/version when you need native array behavior. `SchemaType` changes DDL, but does not change the runtime encode/decode path for `field.Strings`.
-- Prefer `field.Other(..., pgtype.TextArray{})` for native Postgres array encode/decode with Ent methods (create/query/update) when working with `text[]`.
-- If you change Ent schema types, regenerate Ent code (`go generate ./openmeter/ent` or `make generate`) before running tests.
-- For custom Ent selects/joins, prefer the generated selected-value parsing helpers from the `entselectedparse` extension (`openmeter/ent/db/selectedparse.go`) instead of hand-written scanners.
-- Use `db.Parse<Entity>FromSelectedValues(prefix, row.Value)` for aliased joined columns (example: `db.ParseLedgerDimensionFromSelectedValues("dimension_", row.Value)`).
 
