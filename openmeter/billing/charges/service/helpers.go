@@ -4,38 +4,32 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 )
 
 type chargesByTypeResult struct {
-	flatFees       []charges.FlatFeeCharge
-	usageBased     []charges.UsageBasedCharge
-	creditPurchase []charges.CreditPurchaseCharge
+	flatFees       []flatfee.Charge
+	creditPurchase []creditpurchase.Charge
 }
 
 func chargesByType(in charges.Charges) (chargesByTypeResult, error) {
 	result := chargesByTypeResult{
-		flatFees:       make([]charges.FlatFeeCharge, 0, len(in)),
-		usageBased:     make([]charges.UsageBasedCharge, 0, len(in)),
-		creditPurchase: make([]charges.CreditPurchaseCharge, 0, len(in)),
+		flatFees:       make([]flatfee.Charge, 0, len(in)),
+		creditPurchase: make([]creditpurchase.Charge, 0, len(in)),
 	}
 
 	for _, charge := range in {
 		switch charge.Type() {
-		case charges.ChargeTypeFlatFee:
+		case meta.ChargeTypeFlatFee:
 			flatFee, err := charge.AsFlatFeeCharge()
 			if err != nil {
 				return chargesByTypeResult{}, err
 			}
 
 			result.flatFees = append(result.flatFees, flatFee)
-		case charges.ChargeTypeUsageBased:
-			usageBased, err := charge.AsUsageBasedCharge()
-			if err != nil {
-				return chargesByTypeResult{}, err
-			}
-
-			result.usageBased = append(result.usageBased, usageBased)
-		case charges.ChargeTypeCreditPurchase:
+		case meta.ChargeTypeCreditPurchase:
 			creditPurchase, err := charge.AsCreditPurchaseCharge()
 			if err != nil {
 				return chargesByTypeResult{}, err

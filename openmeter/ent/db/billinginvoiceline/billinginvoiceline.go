@@ -121,12 +121,12 @@ const (
 	EdgeSubscriptionItem = "subscription_item"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
 	EdgeCharge = "charge"
-	// EdgeChargeStandardInvoicePaymentSettlement holds the string denoting the charge_standard_invoice_payment_settlement edge name in mutations.
-	EdgeChargeStandardInvoicePaymentSettlement = "charge_standard_invoice_payment_settlement"
-	// EdgeChargeCreditRealization holds the string denoting the charge_credit_realization edge name in mutations.
-	EdgeChargeCreditRealization = "charge_credit_realization"
-	// EdgeChargeStandardInvoiceAccruedUsage holds the string denoting the charge_standard_invoice_accrued_usage edge name in mutations.
-	EdgeChargeStandardInvoiceAccruedUsage = "charge_standard_invoice_accrued_usage"
+	// EdgeChargeFlatFeePayment holds the string denoting the charge_flat_fee_payment edge name in mutations.
+	EdgeChargeFlatFeePayment = "charge_flat_fee_payment"
+	// EdgeChargeFlatFeeCreditAllocations holds the string denoting the charge_flat_fee_credit_allocations edge name in mutations.
+	EdgeChargeFlatFeeCreditAllocations = "charge_flat_fee_credit_allocations"
+	// EdgeChargeFlatFeeInvoicedUsage holds the string denoting the charge_flat_fee_invoiced_usage edge name in mutations.
+	EdgeChargeFlatFeeInvoicedUsage = "charge_flat_fee_invoiced_usage"
 	// Table holds the table name of the billinginvoiceline in the database.
 	Table = "billing_invoice_lines"
 	// BillingInvoiceTable is the table that holds the billing_invoice relation/edge.
@@ -214,27 +214,27 @@ const (
 	ChargeInverseTable = "charges"
 	// ChargeColumn is the table column denoting the charge relation/edge.
 	ChargeColumn = "charge_id"
-	// ChargeStandardInvoicePaymentSettlementTable is the table that holds the charge_standard_invoice_payment_settlement relation/edge.
-	ChargeStandardInvoicePaymentSettlementTable = "charge_standard_invoice_payment_settlements"
-	// ChargeStandardInvoicePaymentSettlementInverseTable is the table name for the ChargeStandardInvoicePaymentSettlement entity.
-	// It exists in this package in order to avoid circular dependency with the "chargestandardinvoicepaymentsettlement" package.
-	ChargeStandardInvoicePaymentSettlementInverseTable = "charge_standard_invoice_payment_settlements"
-	// ChargeStandardInvoicePaymentSettlementColumn is the table column denoting the charge_standard_invoice_payment_settlement relation/edge.
-	ChargeStandardInvoicePaymentSettlementColumn = "line_id"
-	// ChargeCreditRealizationTable is the table that holds the charge_credit_realization relation/edge.
-	ChargeCreditRealizationTable = "charge_credit_realizations"
-	// ChargeCreditRealizationInverseTable is the table name for the ChargeCreditRealization entity.
-	// It exists in this package in order to avoid circular dependency with the "chargecreditrealization" package.
-	ChargeCreditRealizationInverseTable = "charge_credit_realizations"
-	// ChargeCreditRealizationColumn is the table column denoting the charge_credit_realization relation/edge.
-	ChargeCreditRealizationColumn = "line_id"
-	// ChargeStandardInvoiceAccruedUsageTable is the table that holds the charge_standard_invoice_accrued_usage relation/edge.
-	ChargeStandardInvoiceAccruedUsageTable = "charge_standard_invoice_accrued_usages"
-	// ChargeStandardInvoiceAccruedUsageInverseTable is the table name for the ChargeStandardInvoiceAccruedUsage entity.
-	// It exists in this package in order to avoid circular dependency with the "chargestandardinvoiceaccruedusage" package.
-	ChargeStandardInvoiceAccruedUsageInverseTable = "charge_standard_invoice_accrued_usages"
-	// ChargeStandardInvoiceAccruedUsageColumn is the table column denoting the charge_standard_invoice_accrued_usage relation/edge.
-	ChargeStandardInvoiceAccruedUsageColumn = "line_id"
+	// ChargeFlatFeePaymentTable is the table that holds the charge_flat_fee_payment relation/edge.
+	ChargeFlatFeePaymentTable = "charge_flat_fee_payments"
+	// ChargeFlatFeePaymentInverseTable is the table name for the ChargeFlatFeePayment entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeflatfeepayment" package.
+	ChargeFlatFeePaymentInverseTable = "charge_flat_fee_payments"
+	// ChargeFlatFeePaymentColumn is the table column denoting the charge_flat_fee_payment relation/edge.
+	ChargeFlatFeePaymentColumn = "line_id"
+	// ChargeFlatFeeCreditAllocationsTable is the table that holds the charge_flat_fee_credit_allocations relation/edge.
+	ChargeFlatFeeCreditAllocationsTable = "charge_flat_fee_credit_allocations"
+	// ChargeFlatFeeCreditAllocationsInverseTable is the table name for the ChargeFlatFeeCreditAllocations entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeflatfeecreditallocations" package.
+	ChargeFlatFeeCreditAllocationsInverseTable = "charge_flat_fee_credit_allocations"
+	// ChargeFlatFeeCreditAllocationsColumn is the table column denoting the charge_flat_fee_credit_allocations relation/edge.
+	ChargeFlatFeeCreditAllocationsColumn = "line_id"
+	// ChargeFlatFeeInvoicedUsageTable is the table that holds the charge_flat_fee_invoiced_usage relation/edge.
+	ChargeFlatFeeInvoicedUsageTable = "charge_flat_fee_invoiced_usages"
+	// ChargeFlatFeeInvoicedUsageInverseTable is the table name for the ChargeFlatFeeInvoicedUsage entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeflatfeeinvoicedusage" package.
+	ChargeFlatFeeInvoicedUsageInverseTable = "charge_flat_fee_invoiced_usages"
+	// ChargeFlatFeeInvoicedUsageColumn is the table column denoting the charge_flat_fee_invoiced_usage relation/edge.
+	ChargeFlatFeeInvoicedUsageColumn = "line_id"
 )
 
 // Columns holds all SQL columns for billinginvoiceline fields.
@@ -664,38 +664,38 @@ func ByChargeField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
-// ByChargeStandardInvoicePaymentSettlementField orders the results by charge_standard_invoice_payment_settlement field.
-func ByChargeStandardInvoicePaymentSettlementField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByChargeFlatFeePaymentField orders the results by charge_flat_fee_payment field.
+func ByChargeFlatFeePaymentField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newChargeStandardInvoicePaymentSettlementStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newChargeFlatFeePaymentStep(), sql.OrderByField(field, opts...))
 	}
 }
 
-// ByChargeCreditRealizationCount orders the results by charge_credit_realization count.
-func ByChargeCreditRealizationCount(opts ...sql.OrderTermOption) OrderOption {
+// ByChargeFlatFeeCreditAllocationsCount orders the results by charge_flat_fee_credit_allocations count.
+func ByChargeFlatFeeCreditAllocationsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newChargeCreditRealizationStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newChargeFlatFeeCreditAllocationsStep(), opts...)
 	}
 }
 
-// ByChargeCreditRealization orders the results by charge_credit_realization terms.
-func ByChargeCreditRealization(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByChargeFlatFeeCreditAllocations orders the results by charge_flat_fee_credit_allocations terms.
+func ByChargeFlatFeeCreditAllocations(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newChargeCreditRealizationStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newChargeFlatFeeCreditAllocationsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
-// ByChargeStandardInvoiceAccruedUsageCount orders the results by charge_standard_invoice_accrued_usage count.
-func ByChargeStandardInvoiceAccruedUsageCount(opts ...sql.OrderTermOption) OrderOption {
+// ByChargeFlatFeeInvoicedUsageCount orders the results by charge_flat_fee_invoiced_usage count.
+func ByChargeFlatFeeInvoicedUsageCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newChargeStandardInvoiceAccruedUsageStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newChargeFlatFeeInvoicedUsageStep(), opts...)
 	}
 }
 
-// ByChargeStandardInvoiceAccruedUsage orders the results by charge_standard_invoice_accrued_usage terms.
-func ByChargeStandardInvoiceAccruedUsage(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByChargeFlatFeeInvoicedUsage orders the results by charge_flat_fee_invoiced_usage terms.
+func ByChargeFlatFeeInvoicedUsage(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newChargeStandardInvoiceAccruedUsageStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newChargeFlatFeeInvoicedUsageStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 func newBillingInvoiceStep() *sqlgraph.Step {
@@ -789,24 +789,24 @@ func newChargeStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.M2O, true, ChargeTable, ChargeColumn),
 	)
 }
-func newChargeStandardInvoicePaymentSettlementStep() *sqlgraph.Step {
+func newChargeFlatFeePaymentStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ChargeStandardInvoicePaymentSettlementInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, false, ChargeStandardInvoicePaymentSettlementTable, ChargeStandardInvoicePaymentSettlementColumn),
+		sqlgraph.To(ChargeFlatFeePaymentInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, ChargeFlatFeePaymentTable, ChargeFlatFeePaymentColumn),
 	)
 }
-func newChargeCreditRealizationStep() *sqlgraph.Step {
+func newChargeFlatFeeCreditAllocationsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ChargeCreditRealizationInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, ChargeCreditRealizationTable, ChargeCreditRealizationColumn),
+		sqlgraph.To(ChargeFlatFeeCreditAllocationsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeeCreditAllocationsTable, ChargeFlatFeeCreditAllocationsColumn),
 	)
 }
-func newChargeStandardInvoiceAccruedUsageStep() *sqlgraph.Step {
+func newChargeFlatFeeInvoicedUsageStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ChargeStandardInvoiceAccruedUsageInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, ChargeStandardInvoiceAccruedUsageTable, ChargeStandardInvoiceAccruedUsageColumn),
+		sqlgraph.To(ChargeFlatFeeInvoicedUsageInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeeInvoicedUsageTable, ChargeFlatFeeInvoicedUsageColumn),
 	)
 }

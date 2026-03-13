@@ -13,6 +13,7 @@ import (
 	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -104,6 +105,14 @@ func (IDMixin) Indexes() []ent.Index {
 	}
 }
 
+type IDMixinGetter interface {
+	GetID() string
+}
+
+type IDMixinCreator[T any] interface {
+	SetID(id string) T
+}
+
 // KeyMixin adds the key field to the schema
 type KeyMixin struct {
 	mixin.Schema
@@ -136,6 +145,14 @@ func (NamespaceMixin) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace"),
 	}
+}
+
+type NamespaceMixinGetter interface {
+	GetNamespace() string
+}
+
+type NamespaceMixinCreator[T any] interface {
+	SetNamespace(namespace string) T
 }
 
 // MetadataMixin adds metadata to the schema
@@ -181,6 +198,14 @@ func (AnnotationsMixin) Indexes() []ent.Index {
 	}
 }
 
+type AnnotationsMixinGetter interface {
+	GetAnnotations() models.Annotations
+}
+
+type AnnotationsMixinSetter[T any] interface {
+	SetAnnotations(annotations models.Annotations) T
+}
+
 // TimeMixin adds the created_at and updated_at fields to the schema
 type TimeMixin struct {
 	mixin.Schema
@@ -198,6 +223,31 @@ func (TimeMixin) Fields() []ent.Field {
 		field.Time("deleted_at").
 			Optional().
 			Nillable(),
+	}
+}
+
+type TimeMixinGetter interface {
+	GetCreatedAt() time.Time
+	GetUpdatedAt() time.Time
+	GetDeletedAt() *time.Time
+}
+
+type TimeMixinCreator[T any] interface {
+	SetCreatedAt(createdAt time.Time) T
+	SetUpdatedAt(updatedAt time.Time) T
+	SetNillableDeletedAt(deletedAt *time.Time) T
+}
+
+type TimeMixinUpdater[T any] interface {
+	SetUpdatedAt(updatedAt time.Time) T
+	SetNillableDeletedAt(deletedAt *time.Time) T
+}
+
+func MapTimeMixinFromDB[T TimeMixinGetter](dbEntity T) models.ManagedModel {
+	return models.ManagedModel{
+		CreatedAt: dbEntity.GetCreatedAt().In(time.UTC),
+		UpdatedAt: dbEntity.GetUpdatedAt().In(time.UTC),
+		DeletedAt: convert.TimePtrIn(dbEntity.GetDeletedAt(), time.UTC),
 	}
 }
 

@@ -8,6 +8,8 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 )
 
 func (s *service) InvoicePendingLines(ctx context.Context, input billing.InvoicePendingLinesInput) ([]billing.StandardInvoice, error) {
@@ -66,7 +68,7 @@ func (s *service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 
 type gatheringLineWithCreditAllocations struct {
 	GatheringLine billing.GatheringLine
-	Realizations  charges.CreditRealizations
+	Realizations  creditrealization.Realizations
 }
 
 type gatheringLinesWithCreditAllocationsResult struct {
@@ -95,18 +97,18 @@ func (s *service) allocateCreditAmountsToBillableLines(ctx context.Context, name
 		return *line.GatheringLine.ChargeID
 	})
 
-	affectedCharges, err := s.adapter.GetChargesByIDs(ctx, charges.GetChargesByIDsInput{
+	affectedCharges, err := s.GetByIDs(ctx, charges.GetByIDsInput{
 		Namespace: namespace,
 		ChargeIDs: chargeIDs,
-		Expands: charges.Expands{
-			charges.ExpandRealizations,
+		Expands: meta.Expands{
+			meta.ExpandRealizations,
 		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("getting charges by IDs: %w", err)
 	}
 
-	chargesById := make(map[charges.ChargeID]charges.Charge)
+	chargesById := make(map[meta.ChargeID]charges.Charge)
 	for _, charge := range affectedCharges {
 		id, err := charge.GetChargeID()
 		if err != nil {
@@ -122,7 +124,7 @@ func (s *service) allocateCreditAmountsToBillableLines(ctx context.Context, name
 			return nil, fmt.Errorf("charge ID is nil for line [lineID=%s]", lineID)
 		}
 
-		chargeID := charges.ChargeID{
+		chargeID := meta.ChargeID{
 			Namespace: namespace,
 			ID:        *gatheringLine.GatheringLine.ChargeID,
 		}
@@ -132,7 +134,7 @@ func (s *service) allocateCreditAmountsToBillableLines(ctx context.Context, name
 		}
 
 		switch charge.Type() {
-		case charges.ChargeTypeFlatFee:
+		case meta.ChargeTypeFlatFee:
 			flatFee, err := charge.AsFlatFeeCharge()
 			if err != nil {
 				return nil, err
@@ -143,19 +145,12 @@ func (s *service) allocateCreditAmountsToBillableLines(ctx context.Context, name
 				return nil, charges.ErrCreditRealizationsAlreadyAllocated.WithAttr("chargeID", chargeID.ID)
 			}
 
-			creditAllocations, err := s.flatFeeOrchestrator.PostLineAssignedToInvoice(ctx, flatFee, gatheringLine.GatheringLine)
+			creditAllocations, err := s.flatFeeService.PostLineAssignedToInvoice(ctx, flatFee, gatheringLine.GatheringLine)
 			if err != nil {
 				return nil, fmt.Errorf("post line assigned to invoice: %w", err)
 			}
 
 			gatheringLine.Realizations = creditAllocations
-		case charges.ChargeTypeUsageBased:
-			usageBased, err := charge.AsUsageBasedCharge()
-			if err != nil {
-				return nil, err
-			}
-
-			return nil, fmt.Errorf("usage based charges are not supported [chargeID=%s]: %w", usageBased.ID, charges.ErrUnsupported)
 		default:
 			return nil, fmt.Errorf("charge type is not supported: %s", charge.Type())
 		}
@@ -168,8 +163,8 @@ func (s *service) allocateCreditAmountsToBillableLines(ctx context.Context, name
 	}, nil
 }
 
-func convertCreditRealizationToCreditsApplied(creditRealizations charges.CreditRealizations) billing.CreditsApplied {
-	return lo.Map(creditRealizations, func(creditRealization charges.CreditRealization, _ int) billing.CreditApplied {
+func convertCreditRealizationToCreditsApplied(creditRealizations creditrealization.Realizations) billing.CreditsApplied {
+	return lo.Map(creditRealizations, func(creditRealization creditrealization.Realization, _ int) billing.CreditApplied {
 		return billing.CreditApplied{
 			Amount:              creditRealization.Amount,
 			CreditRealizationID: creditRealization.ID,

@@ -8,7 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -820,19 +820,19 @@ func FullServicePeriodToLTE(v time.Time) predicate.Charge {
 }
 
 // TypeEQ applies the EQ predicate on the "type" field.
-func TypeEQ(v charges.ChargeType) predicate.Charge {
+func TypeEQ(v meta.ChargeType) predicate.Charge {
 	vc := v
 	return predicate.Charge(sql.FieldEQ(FieldType, vc))
 }
 
 // TypeNEQ applies the NEQ predicate on the "type" field.
-func TypeNEQ(v charges.ChargeType) predicate.Charge {
+func TypeNEQ(v meta.ChargeType) predicate.Charge {
 	vc := v
 	return predicate.Charge(sql.FieldNEQ(FieldType, vc))
 }
 
 // TypeIn applies the In predicate on the "type" field.
-func TypeIn(vs ...charges.ChargeType) predicate.Charge {
+func TypeIn(vs ...meta.ChargeType) predicate.Charge {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -841,7 +841,7 @@ func TypeIn(vs ...charges.ChargeType) predicate.Charge {
 }
 
 // TypeNotIn applies the NotIn predicate on the "type" field.
-func TypeNotIn(vs ...charges.ChargeType) predicate.Charge {
+func TypeNotIn(vs ...meta.ChargeType) predicate.Charge {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -850,19 +850,19 @@ func TypeNotIn(vs ...charges.ChargeType) predicate.Charge {
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.
-func StatusEQ(v charges.ChargeStatus) predicate.Charge {
+func StatusEQ(v meta.ChargeStatus) predicate.Charge {
 	vc := v
 	return predicate.Charge(sql.FieldEQ(FieldStatus, vc))
 }
 
 // StatusNEQ applies the NEQ predicate on the "status" field.
-func StatusNEQ(v charges.ChargeStatus) predicate.Charge {
+func StatusNEQ(v meta.ChargeStatus) predicate.Charge {
 	vc := v
 	return predicate.Charge(sql.FieldNEQ(FieldStatus, vc))
 }
 
 // StatusIn applies the In predicate on the "status" field.
-func StatusIn(vs ...charges.ChargeStatus) predicate.Charge {
+func StatusIn(vs ...meta.ChargeStatus) predicate.Charge {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -871,7 +871,7 @@ func StatusIn(vs ...charges.ChargeStatus) predicate.Charge {
 }
 
 // StatusNotIn applies the NotIn predicate on the "status" field.
-func StatusNotIn(vs ...charges.ChargeStatus) predicate.Charge {
+func StatusNotIn(vs ...meta.ChargeStatus) predicate.Charge {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -1308,29 +1308,6 @@ func HasFlatFee() predicate.Charge {
 func HasFlatFeeWith(preds ...predicate.ChargeFlatFee) predicate.Charge {
 	return predicate.Charge(func(s *sql.Selector) {
 		step := newFlatFeeStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasUsageBased applies the HasEdge predicate on the "usage_based" edge.
-func HasUsageBased() predicate.Charge {
-	return predicate.Charge(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, UsageBasedTable, UsageBasedColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasUsageBasedWith applies the HasEdge predicate on the "usage_based" edge with a given conditions (other predicates).
-func HasUsageBasedWith(preds ...predicate.ChargeUsageBased) predicate.Charge {
-	return predicate.Charge(func(s *sql.Selector) {
-		step := newUsageBasedStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

@@ -10,11 +10,11 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoiceaccruedusage"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicepaymentsettlement"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -34,15 +34,13 @@ type ChargeFlatFee struct {
 	// Discounts holds the value of the "discounts" field.
 	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
 	// ProRating holds the value of the "pro_rating" field.
-	ProRating charges.ProRatingModeAdapterEnum `json:"pro_rating,omitempty"`
+	ProRating flatfee.ProRatingModeAdapterEnum `json:"pro_rating,omitempty"`
 	// FeatureKey holds the value of the "feature_key" field.
 	FeatureKey *string `json:"feature_key,omitempty"`
 	// AmountBeforeProration holds the value of the "amount_before_proration" field.
 	AmountBeforeProration alpacadecimal.Decimal `json:"amount_before_proration,omitempty"`
 	// AmountAfterProration holds the value of the "amount_after_proration" field.
 	AmountAfterProration alpacadecimal.Decimal `json:"amount_after_proration,omitempty"`
-	// StdInvoicePaymentSettlementID holds the value of the "std_invoice_payment_settlement_id" field.
-	StdInvoicePaymentSettlementID *string `json:"std_invoice_payment_settlement_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeFlatFeeQuery when eager-loading is set.
 	Edges        ChargeFlatFeeEdges `json:"edges"`
@@ -53,12 +51,12 @@ type ChargeFlatFee struct {
 type ChargeFlatFeeEdges struct {
 	// Charge holds the value of the charge edge.
 	Charge *Charge `json:"charge,omitempty"`
-	// ChargeStandardInvoicePaymentSettlement holds the value of the charge_standard_invoice_payment_settlement edge.
-	ChargeStandardInvoicePaymentSettlement *ChargeStandardInvoicePaymentSettlement `json:"charge_standard_invoice_payment_settlement,omitempty"`
-	// ChargeStandardInvoiceAccruedUsage holds the value of the charge_standard_invoice_accrued_usage edge.
-	ChargeStandardInvoiceAccruedUsage *ChargeStandardInvoiceAccruedUsage `json:"charge_standard_invoice_accrued_usage,omitempty"`
-	// ChargeCreditRealizations holds the value of the charge_credit_realizations edge.
-	ChargeCreditRealizations []*ChargeCreditRealization `json:"charge_credit_realizations,omitempty"`
+	// CreditAllocations holds the value of the credit_allocations edge.
+	CreditAllocations []*ChargeFlatFeeCreditAllocations `json:"credit_allocations,omitempty"`
+	// InvoicedUsage holds the value of the invoiced_usage edge.
+	InvoicedUsage *ChargeFlatFeeInvoicedUsage `json:"invoiced_usage,omitempty"`
+	// Payment holds the value of the payment edge.
+	Payment *ChargeFlatFeePayment `json:"payment,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [4]bool
@@ -75,35 +73,35 @@ func (e ChargeFlatFeeEdges) ChargeOrErr() (*Charge, error) {
 	return nil, &NotLoadedError{edge: "charge"}
 }
 
-// ChargeStandardInvoicePaymentSettlementOrErr returns the ChargeStandardInvoicePaymentSettlement value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeFlatFeeEdges) ChargeStandardInvoicePaymentSettlementOrErr() (*ChargeStandardInvoicePaymentSettlement, error) {
-	if e.ChargeStandardInvoicePaymentSettlement != nil {
-		return e.ChargeStandardInvoicePaymentSettlement, nil
-	} else if e.loadedTypes[1] {
-		return nil, &NotFoundError{label: chargestandardinvoicepaymentsettlement.Label}
-	}
-	return nil, &NotLoadedError{edge: "charge_standard_invoice_payment_settlement"}
-}
-
-// ChargeStandardInvoiceAccruedUsageOrErr returns the ChargeStandardInvoiceAccruedUsage value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeFlatFeeEdges) ChargeStandardInvoiceAccruedUsageOrErr() (*ChargeStandardInvoiceAccruedUsage, error) {
-	if e.ChargeStandardInvoiceAccruedUsage != nil {
-		return e.ChargeStandardInvoiceAccruedUsage, nil
-	} else if e.loadedTypes[2] {
-		return nil, &NotFoundError{label: chargestandardinvoiceaccruedusage.Label}
-	}
-	return nil, &NotLoadedError{edge: "charge_standard_invoice_accrued_usage"}
-}
-
-// ChargeCreditRealizationsOrErr returns the ChargeCreditRealizations value or an error if the edge
+// CreditAllocationsOrErr returns the CreditAllocations value or an error if the edge
 // was not loaded in eager-loading.
-func (e ChargeFlatFeeEdges) ChargeCreditRealizationsOrErr() ([]*ChargeCreditRealization, error) {
-	if e.loadedTypes[3] {
-		return e.ChargeCreditRealizations, nil
+func (e ChargeFlatFeeEdges) CreditAllocationsOrErr() ([]*ChargeFlatFeeCreditAllocations, error) {
+	if e.loadedTypes[1] {
+		return e.CreditAllocations, nil
 	}
-	return nil, &NotLoadedError{edge: "charge_credit_realizations"}
+	return nil, &NotLoadedError{edge: "credit_allocations"}
+}
+
+// InvoicedUsageOrErr returns the InvoicedUsage value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeFlatFeeEdges) InvoicedUsageOrErr() (*ChargeFlatFeeInvoicedUsage, error) {
+	if e.InvoicedUsage != nil {
+		return e.InvoicedUsage, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: chargeflatfeeinvoicedusage.Label}
+	}
+	return nil, &NotLoadedError{edge: "invoiced_usage"}
+}
+
+// PaymentOrErr returns the Payment value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeFlatFeeEdges) PaymentOrErr() (*ChargeFlatFeePayment, error) {
+	if e.Payment != nil {
+		return e.Payment, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: chargeflatfeepayment.Label}
+	}
+	return nil, &NotLoadedError{edge: "payment"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -113,7 +111,7 @@ func (*ChargeFlatFee) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargeflatfee.FieldAmountBeforeProration, chargeflatfee.FieldAmountAfterProration:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeflatfee.FieldID, chargeflatfee.FieldNamespace, chargeflatfee.FieldPaymentTerm, chargeflatfee.FieldSettlementMode, chargeflatfee.FieldProRating, chargeflatfee.FieldFeatureKey, chargeflatfee.FieldStdInvoicePaymentSettlementID:
+		case chargeflatfee.FieldID, chargeflatfee.FieldNamespace, chargeflatfee.FieldPaymentTerm, chargeflatfee.FieldSettlementMode, chargeflatfee.FieldProRating, chargeflatfee.FieldFeatureKey:
 			values[i] = new(sql.NullString)
 		case chargeflatfee.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
@@ -174,7 +172,7 @@ func (_m *ChargeFlatFee) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field pro_rating", values[i])
 			} else if value.Valid {
-				_m.ProRating = charges.ProRatingModeAdapterEnum(value.String)
+				_m.ProRating = flatfee.ProRatingModeAdapterEnum(value.String)
 			}
 		case chargeflatfee.FieldFeatureKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -195,13 +193,6 @@ func (_m *ChargeFlatFee) assignValues(columns []string, values []any) error {
 			} else if value != nil {
 				_m.AmountAfterProration = *value
 			}
-		case chargeflatfee.FieldStdInvoicePaymentSettlementID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field std_invoice_payment_settlement_id", values[i])
-			} else if value.Valid {
-				_m.StdInvoicePaymentSettlementID = new(string)
-				*_m.StdInvoicePaymentSettlementID = value.String
-			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -220,19 +211,19 @@ func (_m *ChargeFlatFee) QueryCharge() *ChargeQuery {
 	return NewChargeFlatFeeClient(_m.config).QueryCharge(_m)
 }
 
-// QueryChargeStandardInvoicePaymentSettlement queries the "charge_standard_invoice_payment_settlement" edge of the ChargeFlatFee entity.
-func (_m *ChargeFlatFee) QueryChargeStandardInvoicePaymentSettlement() *ChargeStandardInvoicePaymentSettlementQuery {
-	return NewChargeFlatFeeClient(_m.config).QueryChargeStandardInvoicePaymentSettlement(_m)
+// QueryCreditAllocations queries the "credit_allocations" edge of the ChargeFlatFee entity.
+func (_m *ChargeFlatFee) QueryCreditAllocations() *ChargeFlatFeeCreditAllocationsQuery {
+	return NewChargeFlatFeeClient(_m.config).QueryCreditAllocations(_m)
 }
 
-// QueryChargeStandardInvoiceAccruedUsage queries the "charge_standard_invoice_accrued_usage" edge of the ChargeFlatFee entity.
-func (_m *ChargeFlatFee) QueryChargeStandardInvoiceAccruedUsage() *ChargeStandardInvoiceAccruedUsageQuery {
-	return NewChargeFlatFeeClient(_m.config).QueryChargeStandardInvoiceAccruedUsage(_m)
+// QueryInvoicedUsage queries the "invoiced_usage" edge of the ChargeFlatFee entity.
+func (_m *ChargeFlatFee) QueryInvoicedUsage() *ChargeFlatFeeInvoicedUsageQuery {
+	return NewChargeFlatFeeClient(_m.config).QueryInvoicedUsage(_m)
 }
 
-// QueryChargeCreditRealizations queries the "charge_credit_realizations" edge of the ChargeFlatFee entity.
-func (_m *ChargeFlatFee) QueryChargeCreditRealizations() *ChargeCreditRealizationQuery {
-	return NewChargeFlatFeeClient(_m.config).QueryChargeCreditRealizations(_m)
+// QueryPayment queries the "payment" edge of the ChargeFlatFee entity.
+func (_m *ChargeFlatFee) QueryPayment() *ChargeFlatFeePaymentQuery {
+	return NewChargeFlatFeeClient(_m.config).QueryPayment(_m)
 }
 
 // Update returns a builder for updating this ChargeFlatFee.
@@ -288,11 +279,6 @@ func (_m *ChargeFlatFee) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("amount_after_proration=")
 	builder.WriteString(fmt.Sprintf("%v", _m.AmountAfterProration))
-	builder.WriteString(", ")
-	if v := _m.StdInvoicePaymentSettlementID; v != nil {
-		builder.WriteString("std_invoice_payment_settlement_id=")
-		builder.WriteString(*v)
-	}
 	builder.WriteByte(')')
 	return builder.String()
 }
