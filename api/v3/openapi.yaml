@@ -672,9 +672,22 @@ paths:
         - name: filter
           in: query
           required: false
+          description: |-
+            AIP-160 filter expression using the deep-object format.
+
+            Supported fields: `provider`, `model_id`, `model_name`, `currency`
+
+            Supported operators: `eq`, `neq`, `contains`, `oeq`, `ocontains`
+
+            Examples:
+            - `?filter[provider][eq]=openai`
+            - `?filter[model_id][eq]=gpt-4`
+            - `?filter[model_name][contains]=gpt`
+            - `?filter[currency][eq]=USD`
           schema:
-            $ref: '#/components/schemas/ListLLMCostPricesParamsFilter'
-          style: deepObject
+            $ref: '#/components/schemas/LLMCost.AIP160Filter'
+          explode: false
+          style: form
         - $ref: '#/components/parameters/PagePaginationQuery'
       responses:
         '200':
@@ -760,10 +773,22 @@ paths:
         - name: filter
           in: query
           required: false
-          description: Filter prices.
+          description: |-
+            AIP-160 filter expression using the deep-object format.
+
+            Supported fields: `provider`, `model_id`, `model_name`, `currency`
+
+            Supported operators: `eq`, `neq`, `contains`, `oeq`, `ocontains`
+
+            Examples:
+            - `?filter[provider][eq]=openai`
+            - `?filter[model_id][eq]=gpt-4`
+            - `?filter[model_name][contains]=gpt`
+            - `?filter[currency][eq]=USD`
           schema:
-            $ref: '#/components/schemas/ListLLMCostPricesParamsFilter'
-          style: deepObject
+            $ref: '#/components/schemas/LLMCost.AIP160Filter'
+          explode: false
+          style: form
         - name: sort
           in: query
           required: false
@@ -3741,24 +3766,6 @@ components:
             type: string
           description: The dimensions the value is aggregated over.
       description: A row in the result of a feature cost query.
-    FilterSingleString:
-      type: object
-      properties:
-        eq:
-          type: string
-          description: The field must match the provided value.
-          x-omitempty: true
-        neq:
-          type: string
-          description: The field must not match the provided value.
-          x-omitempty: true
-        contains:
-          type: string
-          description: The field must contain the provided value.
-          x-omitempty: true
-      description: |-
-        A filter for a single string field.
-        TODO: This is a temporary solution to support the filter API.
     ISO8601Duration:
       type: string
       pattern: ^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$
@@ -3766,6 +3773,14 @@ components:
       title: ISO 8601 Duration
       example: P1Y
       format: ISO8601
+    LLMCost.AIP160Filter:
+      type: string
+      description: |-
+        AIP-160 filter expression in deep-object URL format.
+        e.g. ?filter[provider][eq]=openai
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/filter/aip160
+      x-go-type: aip160.Filter
     LLMCostModel:
       type: object
       required:
@@ -3966,26 +3981,6 @@ components:
             Filter customers by key.
             Case-insensitive partial match.
       description: Filter options for listing customers.
-    ListLLMCostPricesParamsFilter:
-      type: object
-      properties:
-        provider:
-          allOf:
-            - $ref: '#/components/schemas/FilterSingleString'
-          description: Filter by provider. e.g. ?filter[provider][eq]=openai
-        model_id:
-          allOf:
-            - $ref: '#/components/schemas/FilterSingleString'
-          description: Filter by model ID. e.g. ?filter[model_id][eq]=gpt-4
-        model_name:
-          allOf:
-            - $ref: '#/components/schemas/FilterSingleString'
-          description: Filter by model name. e.g. ?filter[model_name][contains]=gpt
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/FilterSingleString'
-          description: Filter by currency code. e.g. ?filter[currency][eq]=USD
-      description: Filter options for listing LLM cost prices.
     Meter:
       type: object
       required:

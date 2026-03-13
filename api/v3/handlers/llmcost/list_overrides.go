@@ -52,31 +52,16 @@ func (h *handler) ListOverrides() ListOverridesHandler {
 			}
 
 			// Filters
-			if params.Filter != nil {
-				provider, err := filterSingleStringToDomain(params.Filter.Provider)
-				if err != nil {
-					return req, err
-				}
-				req.Provider = provider
-
-				modelID, err := filterSingleStringToDomain(params.Filter.ModelId)
-				if err != nil {
-					return req, err
-				}
-				req.ModelID = modelID
-
-				modelName, err := filterSingleStringToDomain(params.Filter.ModelName)
-				if err != nil {
-					return req, err
-				}
-				req.ModelName = modelName
-
-				currency, err := filterSingleStringToDomain(params.Filter.Currency)
-				if err != nil {
-					return req, err
-				}
-				req.Currency = currency
+			provider, modelID, modelName, currency, err := parsePriceFilters(r.URL.Query())
+			if err != nil {
+				return req, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+					{Field: "filter", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+				})
 			}
+			req.Provider = provider
+			req.ModelID = modelID
+			req.ModelName = modelName
+			req.Currency = currency
 
 			return req, nil
 		},

@@ -30,16 +30,16 @@ func (a *adapter) ListPrices(ctx context.Context, input llmcost.ListPricesInput)
 			Where(pricedb.NamespaceIsNil()) // Global prices only
 
 		applyStringFilter(input.Provider, &query,
-			pricedb.ProviderEqualFold, pricedb.ProviderNEQ, pricedb.ProviderContainsFold,
+			pricedb.ProviderEqualFold, pricedb.ProviderNEQ, pricedb.ProviderContainsFold, pricedb.ProviderIn,
 		)
 		applyStringFilter(input.ModelID, &query,
-			pricedb.ModelIDEqualFold, pricedb.ModelIDNEQ, pricedb.ModelIDContainsFold,
+			pricedb.ModelIDEqualFold, pricedb.ModelIDNEQ, pricedb.ModelIDContainsFold, pricedb.ModelIDIn,
 		)
 		applyStringFilter(input.ModelName, &query,
-			pricedb.ModelNameEqualFold, pricedb.ModelNameNEQ, pricedb.ModelNameContainsFold,
+			pricedb.ModelNameEqualFold, pricedb.ModelNameNEQ, pricedb.ModelNameContainsFold, pricedb.ModelNameIn,
 		)
 		applyStringFilter(input.Currency, &query,
-			pricedb.CurrencyEqualFold, pricedb.CurrencyNEQ, pricedb.CurrencyContainsFold,
+			pricedb.CurrencyEqualFold, pricedb.CurrencyNEQ, pricedb.CurrencyContainsFold, pricedb.CurrencyIn,
 		)
 
 		// Order
@@ -235,16 +235,16 @@ func (a *adapter) ListOverrides(ctx context.Context, input llmcost.ListOverrides
 			Where(pricedb.SourceEQ(string(llmcost.PriceSourceManual)))
 
 		applyStringFilter(input.Provider, &query,
-			pricedb.ProviderEqualFold, pricedb.ProviderNEQ, pricedb.ProviderContainsFold,
+			pricedb.ProviderEqualFold, pricedb.ProviderNEQ, pricedb.ProviderContainsFold, pricedb.ProviderIn,
 		)
 		applyStringFilter(input.ModelID, &query,
-			pricedb.ModelIDEqualFold, pricedb.ModelIDNEQ, pricedb.ModelIDContainsFold,
+			pricedb.ModelIDEqualFold, pricedb.ModelIDNEQ, pricedb.ModelIDContainsFold, pricedb.ModelIDIn,
 		)
 		applyStringFilter(input.ModelName, &query,
-			pricedb.ModelNameEqualFold, pricedb.ModelNameNEQ, pricedb.ModelNameContainsFold,
+			pricedb.ModelNameEqualFold, pricedb.ModelNameNEQ, pricedb.ModelNameContainsFold, pricedb.ModelNameIn,
 		)
 		applyStringFilter(input.Currency, &query,
-			pricedb.CurrencyEqualFold, pricedb.CurrencyNEQ, pricedb.CurrencyContainsFold,
+			pricedb.CurrencyEqualFold, pricedb.CurrencyNEQ, pricedb.CurrencyContainsFold, pricedb.CurrencyIn,
 		)
 
 		query = query.Order(pricedb.ByProvider(), pricedb.ByModelID())
@@ -323,6 +323,7 @@ func applyStringFilter(
 	eqFold func(string) predicate.LLMCostPrice,
 	neq func(string) predicate.LLMCostPrice,
 	containsFold func(string) predicate.LLMCostPrice,
+	in func(...string) predicate.LLMCostPrice,
 ) {
 	if f == nil {
 		return
@@ -335,5 +336,13 @@ func applyStringFilter(
 		*query = (*query).Where(neq(*f.Neq))
 	case f.Contains != nil:
 		*query = (*query).Where(containsFold(*f.Contains))
+	case len(f.In) > 0:
+		*query = (*query).Where(in(f.In...))
+	case len(f.ContainsAny) > 0:
+		preds := make([]predicate.LLMCostPrice, len(f.ContainsAny))
+		for i, v := range f.ContainsAny {
+			preds[i] = containsFold(v)
+		}
+		*query = (*query).Where(pricedb.Or(preds...))
 	}
 }
