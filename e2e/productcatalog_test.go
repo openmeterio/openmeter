@@ -875,12 +875,16 @@ func TestPlan(t *testing.T) {
 			require.NotNil(t, apiRes.ApplicationproblemJSON400.Extensions, "received the following body: %s", apiRes.Body)
 
 			extensions := apiRes.ApplicationproblemJSON400.Extensions
-			require.GreaterOrEqual(t, len(extensions.ValidationErrors), 1)
+			require.GreaterOrEqual(t, len(extensions.ValidationErrors), 2)
 
 			valErr := extensions.ValidationErrors[0]
 			require.NotNil(t, valErr)
 			require.Equal(t, "entitlement_template_invalid_issue_after_reset_with_priority", valErr.Code, "received the following body: %s", apiRes.Body)
-			// we expect component and severity
+			require.Equal(t, "$.phases[?(@.key=='test_plan_phase_3')].items.plan_feature_1.entitlementTemplate.issueAfterReset", valErr.Field, "received the following body: %s", apiRes.Body)
+
+			valErr = extensions.ValidationErrors[1]
+			require.NotNil(t, valErr)
+			require.Equal(t, "entitlement_template_issue_after_reset_required", valErr.Code, "received the following body: %s", apiRes.Body)
 			require.Equal(t, "$.phases[?(@.key=='test_plan_phase_3')].items.plan_feature_1.entitlementTemplate.issueAfterReset", valErr.Field, "received the following body: %s", apiRes.Body)
 		})
 
