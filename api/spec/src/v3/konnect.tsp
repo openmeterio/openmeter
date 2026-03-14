@@ -6,6 +6,7 @@ import "./shared/index.tsp";
 import "./events/index.tsp";
 import "./meters/index.tsp";
 import "./customers/index.tsp";
+import "./customers/credits/index.tsp";
 import "./entitlements/index.tsp";
 import "./subscriptions/index.tsp";
 import "./apps/index.tsp";
@@ -71,6 +72,11 @@ interface CustomerBillingEndpoints
 @tag(Shared.EntitlementsTag)
 interface CustomerEntitlementsEndpoints
   extends Entitlements.CustomerEntitlementsOperations {}
+
+@route("/openmeter/customers/{customerId}/credits")
+@tag(Shared.CustomersTag)
+interface CustomerCreditsEndpoints
+  extends Customers.CustomerCreditsOperations {}
 
 @route("/openmeter/subscriptions")
 @tag(Shared.SubscriptionsTag)
