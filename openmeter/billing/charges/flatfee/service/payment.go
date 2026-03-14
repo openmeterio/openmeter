@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
@@ -53,13 +54,17 @@ func (s *service) PostPaymentAuthorized(ctx context.Context, charge flatfee.Char
 	})
 }
 
-func (s *service) PostPaymentSettled(ctx context.Context, charge flatfee.Charge) error {
+func (s *service) PostPaymentSettled(ctx context.Context, charge flatfee.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
 		if charge.State.Payment == nil {
 			return payment.ErrCannotSettleNotAuthorizedPayment.WithAttrs(charge.ErrorAttributes())
 		}
 
 		paymentSettlement := *charge.State.Payment
+
+		if paymentSettlement.LineID != lineWithHeader.Line.ID {
+			return fmt.Errorf("payment settlement line ID does not match the line ID: %s != %s", paymentSettlement.LineID, lineWithHeader.Line.ID)
+		}
 
 		if paymentSettlement.Status != payment.StatusAuthorized {
 			return payment.ErrPaymentAlreadySettled.WithAttrs(charge.ErrorAttributes())
