@@ -76,7 +76,7 @@ func (s *service) GetByIDs(ctx context.Context, input charges.GetByIDsInput) (ch
 			}
 		}
 
-		out := make(charges.Charges, len(chargesByType))
+		out := make(charges.Charges, len(chargesWithIndex))
 		nrFetched := 0
 
 		// Let's fetch flat fees

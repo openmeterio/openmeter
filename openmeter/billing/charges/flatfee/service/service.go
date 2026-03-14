@@ -1,4 +1,4 @@
-package flatfee
+package service
 
 import (
 	"errors"

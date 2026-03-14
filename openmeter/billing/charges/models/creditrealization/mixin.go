@@ -5,9 +5,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
-	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/field"
-	"entgo.io/ent/schema/index"
 	"entgo.io/ent/schema/mixin"
 	"github.com/alpacahq/alpacadecimal"
 
@@ -56,18 +54,6 @@ func (m mixinBase) Fields() []ent.Field {
 			}).
 			NotEmpty().
 			Immutable(),
-
-		// TODO: Taxconfig!
-	}
-}
-
-func (m mixinBase) Indexes() []ent.Index {
-	return []ent.Index{
-		index.Fields("namespace", "charge_id", "line_id", "deleted_at").
-			Annotations(
-				entsql.IndexWhere("line_id IS NOT NULL AND deleted_at IS NULL"),
-			).
-			Unique(),
 	}
 }
 

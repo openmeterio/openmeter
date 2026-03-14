@@ -138,8 +138,6 @@ DROP INDEX "chargeflatfeeinvoicedusage_annotations";
 DROP INDEX "charge_flat_fee_invoiced_usages_charge_id_key";
 -- reverse: create "charge_flat_fee_invoiced_usages" table
 DROP TABLE "charge_flat_fee_invoiced_usages";
--- reverse: create index "chargeflatfeecreditallocations_namespace_charge_id_line_id_dele" to table: "charge_flat_fee_credit_allocations"
-DROP INDEX "chargeflatfeecreditallocations_namespace_charge_id_line_id_dele";
 -- reverse: create index "chargeflatfeecreditallocations_namespace" to table: "charge_flat_fee_credit_allocations"
 DROP INDEX "chargeflatfeecreditallocations_namespace";
 -- reverse: create index "chargeflatfeecreditallocations_id" to table: "charge_flat_fee_credit_allocations"

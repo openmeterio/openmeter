@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -124,14 +125,35 @@ func (a *adapter) GetByIDs(ctx context.Context, input creditpurchase.GetByIDsInp
 			return nil, err
 		}
 
-		out := make([]creditpurchase.Charge, 0, len(entities))
+		entitiesMapped := make([]creditpurchase.Charge, 0, len(entities))
 		for idx, entity := range entities {
 			charge, err := MapCreditPurchaseChargeFromDB(input.Charges[idx], entity, input.Expands)
 			if err != nil {
 				return nil, err
 			}
-			out = append(out, charge)
+			entitiesMapped = append(entitiesMapped, charge)
 		}
+
+		entitiesByID := lo.GroupBy(entitiesMapped, func(charge creditpurchase.Charge) string {
+			return charge.ID
+		})
+
+		var errs []error
+		out := make([]creditpurchase.Charge, 0, len(input.Charges))
+		for _, charge := range input.Charges {
+			charges, ok := entitiesByID[charge.ID]
+			if !ok {
+				errs = append(errs, fmt.Errorf("charge not found: %s", charge.ID))
+				continue
+			}
+
+			out = append(out, charges[0])
+		}
+
+		if len(errs) > 0 {
+			return nil, errors.Join(errs...)
+		}
+
 		return out, nil
 	})
 }

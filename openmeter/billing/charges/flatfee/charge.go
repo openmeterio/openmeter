@@ -30,6 +30,10 @@ type Charge struct {
 func (c Charge) Validate() error {
 	var errs []error
 
+	if err := c.ManagedResource.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("managed resource: %w", err))
+	}
+
 	if err := c.Intent.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("intent: %w", err))
 	}

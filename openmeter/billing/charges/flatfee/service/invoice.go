@@ -1,4 +1,4 @@
-package flatfee
+package service
 
 import (
 	"context"
@@ -18,11 +18,16 @@ func (s *service) PostLineAssignedToInvoice(ctx context.Context, charge flatfee.
 		return nil, nil
 	}
 
-	creditAllocations, err := s.handler.OnAssignedToInvoice(ctx, flatfee.OnAssignedToInvoiceInput{
+	input := flatfee.OnAssignedToInvoiceInput{
 		Charge:            charge,
 		ServicePeriod:     line.ServicePeriod,
 		PreTaxTotalAmount: charge.Intent.AmountAfterProration,
-	})
+	}
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("validating on assigned to invoice input: %w", err)
+	}
+
+	creditAllocations, err := s.handler.OnAssignedToInvoice(ctx, input)
 	if err != nil {
 		return nil, fmt.Errorf("on flat fee assigned to invoice: %w", err)
 	}

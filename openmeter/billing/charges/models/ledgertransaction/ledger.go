@@ -23,7 +23,7 @@ func (r GroupReference) Validate() error {
 }
 
 func (r *GroupReference) GetIDOrNull() *string {
-	if r == nil {
+	if r == nil || r.TransactionGroupID == "" {
 		return nil
 	}
 
@@ -50,7 +50,7 @@ func (r TimedGroupReference) Validate() error {
 }
 
 func (r *TimedGroupReference) GetIDOrNull() *string {
-	if r == nil {
+	if r == nil || r.TransactionGroupID == "" {
 		return nil
 	}
 

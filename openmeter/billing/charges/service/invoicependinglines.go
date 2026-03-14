@@ -97,6 +97,11 @@ func (s *service) allocateCreditAmountsToBillableLines(ctx context.Context, name
 		return *line.GatheringLine.ChargeID
 	})
 
+	if len(chargeIDs) != len(lo.Uniq(chargeIDs)) {
+		// This should not happen, but we want to be defensive.
+		return nil, fmt.Errorf("duplicate charge IDs found: %v", chargeIDs)
+	}
+
 	affectedCharges, err := s.GetByIDs(ctx, charges.GetByIDsInput{
 		Namespace: namespace,
 		ChargeIDs: chargeIDs,
