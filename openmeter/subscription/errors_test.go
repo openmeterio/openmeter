@@ -200,7 +200,7 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 		byts, err := json.MarshalIndent(exts, "", "  ")
 		require.NoError(t, err)
 
-		require.Len(t, issues, 4, "got %s", string(byts))
+		require.Len(t, issues, 5, "got %s", string(byts))
 
 		models.RequireValidationIssuesMatch(t, models.ValidationIssues{
 			models.NewValidationIssue(
@@ -231,6 +231,23 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 			models.NewValidationIssue(
 				productcatalog.ErrCodeEntitlementTemplateInvalidIssueAfterResetWithPriority,
 				"invalid entitlement template as issue after reset is required if issue after reset priority is set",
+				models.WithField(
+					models.NewFieldSelectorGroup(
+						models.NewFieldSelector("phases"),
+						models.NewFieldSelector("phase1"),
+						models.NewFieldSelector("itemsByKey"),
+						models.NewFieldSelector("item1").WithExpression(models.NewFieldArrIndex(0)),
+						models.NewFieldSelector("entitlementTemplate"),
+						models.NewFieldSelector("issueAfterReset"),
+					),
+				),
+				models.WithComponent("rateCard"),
+				models.WithWarningSeverity(),
+				commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+			),
+			models.NewValidationIssue(
+				productcatalog.ErrCodeEntitlementTemplateIssueAfterResetRequired,
+				"issueAfterReset is required for metered entitlement templates",
 				models.WithField(
 					models.NewFieldSelectorGroup(
 						models.NewFieldSelector("phases"),
@@ -308,6 +325,22 @@ func TestSubscriptionSpecValidation(t *testing.T) {
 				models.NewValidationIssue(
 					productcatalog.ErrCodeEntitlementTemplateInvalidIssueAfterResetWithPriority,
 					"invalid entitlement template as issue after reset is required if issue after reset priority is set",
+					models.WithField(
+						models.NewFieldSelectorGroup(
+							models.NewFieldSelector("phases").WithExpression(models.NewFieldAttrValue("key", "phase1")),
+							models.NewFieldSelector("itemsByKey"),
+							models.NewFieldSelector("item1").WithExpression(models.NewFieldArrIndex(0)),
+							models.NewFieldSelector("entitlementTemplate"),
+							models.NewFieldSelector("issueAfterReset"),
+						),
+					),
+					models.WithComponent("rateCard"),
+					models.WithWarningSeverity(),
+					commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+				),
+				models.NewValidationIssue(
+					productcatalog.ErrCodeEntitlementTemplateIssueAfterResetRequired,
+					"issueAfterReset is required for metered entitlement templates",
 					models.WithField(
 						models.NewFieldSelectorGroup(
 							models.NewFieldSelector("phases").WithExpression(models.NewFieldAttrValue("key", "phase1")),

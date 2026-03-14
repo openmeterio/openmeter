@@ -258,6 +258,16 @@ var ErrEntitlementTemplateInvalidIssueAfterResetWithPriority = models.NewValidat
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
+const ErrCodeEntitlementTemplateIssueAfterResetRequired models.ErrorCode = "entitlement_template_issue_after_reset_required"
+
+var ErrEntitlementTemplateIssueAfterResetRequired = models.NewValidationIssue(
+	ErrCodeEntitlementTemplateIssueAfterResetRequired,
+	"issueAfterReset is required for metered entitlement templates",
+	models.WithFieldString("entitlementTemplate", "issueAfterReset"),
+	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
 const ErrCodeEntitlementTemplateNegativeUsagePeriod models.ErrorCode = "entitlement_template_negative_usage_period"
 
 var ErrEntitlementTemplateNegativeUsagePeriod = models.NewValidationIssue(
