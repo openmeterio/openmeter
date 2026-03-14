@@ -47,12 +47,12 @@ jobs:
         with:
           verb: call
           args: release --version ${{ github.ref_name }} --github-actor ${{ github.actor }} --github-token env:GITHUB_TOKEN --pypi-token env:PYPI_TOKEN --npm-token env:NPM_TOKEN
-          cloud-token: ${{ secrets.DAGGER_CLOUD_NO_CACHE_TOKEN }}
+          cloud-token: ${{ secrets.DAGGER_CLOUD_NO_CACHE_TOKEN }} # zizmor: ignore[secrets-outside-env]
           version: ${{ env.DAGGER_VERSION }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }} # zizmor: ignore[secrets-outside-env]
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }} # zizmor: ignore[secrets-outside-env]
 
   sdk-python-release:
     name: Python SDK Release
@@ -97,4 +97,4 @@ jobs:
         env:
           PY_SDK_RELEASE_VERSION: ${{ github.ref_name }}
           COMMIT_SHORT_SHA: ${{ steps.get-short-sha.outputs.id }}
-          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }} # zizmor: ignore[secrets-outside-env]
