@@ -214,19 +214,19 @@ func (i ChargeIntents) ByType() (ChargeIntentsByType, error) {
 		case meta.ChargeTypeFlatFee:
 			flatFee, err := ch.AsFlatFeeIntent()
 			if err != nil {
-				return ChargeIntentsByType{}, err
+				return ChargeIntentsByType{}, fmt.Errorf("converting flat fee intent[%d]: %w", idx, err)
 			}
 
 			out.FlatFee = append(out.FlatFee, WithIndex[flatfee.Intent]{Index: idx, Value: flatFee})
 		case meta.ChargeTypeCreditPurchase:
 			creditPurchase, err := ch.AsCreditPurchaseIntent()
 			if err != nil {
-				return ChargeIntentsByType{}, err
+				return ChargeIntentsByType{}, fmt.Errorf("converting credit purchase intent[%d]: %w", idx, err)
 			}
 
 			out.CreditPurchase = append(out.CreditPurchase, WithIndex[creditpurchase.Intent]{Index: idx, Value: creditPurchase})
 		default:
-			return ChargeIntentsByType{}, fmt.Errorf("unsupported charge type: %s", ch.Type())
+			return ChargeIntentsByType{}, fmt.Errorf("unsupported charge type[%d]: %s", idx, ch.Type())
 		}
 	}
 

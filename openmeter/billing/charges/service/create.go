@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -103,21 +102,6 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 	})
 }
 
-type invoiceChargePostCreateInput struct {
-	namespace string
-	flatFees  []flatfee.Charge
-}
-
-func (i invoiceChargePostCreateInput) Validate() error {
-	var errs []error
-
-	if i.namespace == "" {
-		errs = append(errs, fmt.Errorf("namespace is required"))
-	}
-
-	return errors.Join(errs...)
-}
-
 type currencyAndCustomerID struct {
 	currency   currencyx.Code
 	customerID customer.CustomerID
@@ -133,29 +117,21 @@ func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCrea
 		return nil
 	}
 
-	uniqueCurrencyAndCustomerIDs := lo.Uniq(
-		lo.Map(gatheringLinesToCreate, func(item gatheringLineWithCustomerID, _ int) currencyAndCustomerID {
-			return currencyAndCustomerID{
-				currency:   item.gatheringLine.Currency,
-				customerID: item.customerID,
-			}
-		}),
-	)
-
-	for _, custAndCurrency := range uniqueCurrencyAndCustomerIDs {
-		gatheringLinesForCurrencyAndCustomer := lo.FilterMap(gatheringLinesToCreate, func(item gatheringLineWithCustomerID, _ int) (billing.GatheringLine, bool) {
-			return item.gatheringLine, item.customerID == custAndCurrency.customerID && item.gatheringLine.Currency == custAndCurrency.currency
-		})
-
-		if len(gatheringLinesForCurrencyAndCustomer) == 0 {
-			continue
+	gatheringLinesByCurrencyAndCustomer := lo.GroupBy(gatheringLinesToCreate, func(item gatheringLineWithCustomerID) currencyAndCustomerID {
+		return currencyAndCustomerID{
+			currency:   item.gatheringLine.Currency,
+			customerID: item.customerID,
 		}
+	})
 
+	for custAndCurrency, lines := range gatheringLinesByCurrencyAndCustomer {
 		// Let's create the gathering invoice on invoicing side
 		_, err := s.billingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: custAndCurrency.customerID,
 			Currency: custAndCurrency.currency,
-			Lines:    gatheringLinesForCurrencyAndCustomer,
+			Lines: lo.Map(lines, func(item gatheringLineWithCustomerID, _ int) billing.GatheringLine {
+				return item.gatheringLine
+			}),
 		})
 		if err != nil {
 			return fmt.Errorf("creating pending invoice lines for charges: %w", err)
