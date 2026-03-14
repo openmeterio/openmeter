@@ -363,6 +363,11 @@ func asPlanRateCardRow(r productcatalog.RateCard) (entdb.PlanRateCard, error) {
 	ratecard.FeatureKey = meta.FeatureKey
 	ratecard.FeatureID = meta.FeatureID
 
+	if meta.TaxConfig != nil {
+		ratecard.TaxCodeID = meta.TaxConfig.TaxCodeID
+		ratecard.TaxBehavior = meta.TaxConfig.Behavior
+	}
+
 	ratecard.BillingCadence = r.GetBillingCadence().ISOStringPtrOrNil()
 
 	return ratecard, nil

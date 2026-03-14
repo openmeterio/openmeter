@@ -128,6 +128,9 @@ func rateCardBulkCreate(c *entdb.PlanRateCardClient, rateCards productcatalog.Ra
 			q.SetTaxConfig(rateCardEntity.TaxConfig)
 		}
 
+		q.SetNillableTaxCodeID(rateCardEntity.TaxCodeID)
+		q.SetNillableTaxBehavior(rateCardEntity.TaxBehavior)
+
 		if rateCardEntity.Price != nil {
 			q.SetPrice(rateCardEntity.Price)
 		}
