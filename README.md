@@ -1,4 +1,4 @@
-<span align="center">
+<div align="center">
 
 ![OpenMeter logo](assets/logo.png)
 
@@ -17,7 +17,7 @@ for AI and DevTool companies.
 [![Go Report Card](https://goreportcard.com/badge/github.com/openmeterio/openmeter?style=flat-square)](https://goreportcard.com/report/github.com/openmeterio/openmeter)
 ![GitHub Stars](https://img.shields.io/github/stars/openmeterio/openmeter?style=flat-square)
 
-</span>
+</div>
 
 ---
 
