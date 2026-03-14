@@ -92,6 +92,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.NewServerPublisher,
 		common.Notification,
 		common.Streaming,
+		common.TaxCode,
 		common.ProductCatalog,
 		common.ProgressManager,
 		common.Subscription,
