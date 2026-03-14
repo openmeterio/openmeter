@@ -5,7 +5,7 @@
 # OpenMeter
 
 The open-source metering and billing platform
-for AI, agentic and DevTool use-cases.
+for AI, agentic and DevTool monetization.
 
 [Docs](https://openmeter.io/docs) |
 [Hosted](https://cloud.konghq.com/register?utm_campaign=metering_and_billing) |
