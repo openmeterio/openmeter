@@ -18,6 +18,12 @@ import (
 
 type chargeProcessorFn[T flatfee.Charge | creditpurchase.Charge] func(ctx context.Context, charge T, lineWithHeader billing.StandardLineWithInvoiceHeader) error
 
+func unsupported[T flatfee.Charge | creditpurchase.Charge](err error) chargeProcessorFn[T] {
+	return func(ctx context.Context, charge T, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
+		return err
+	}
+}
+
 type processorByType struct {
 	flatFee        chargeProcessorFn[flatfee.Charge]
 	creditPurchase chargeProcessorFn[creditpurchase.Charge]
@@ -26,19 +32,22 @@ type processorByType struct {
 func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billing.StandardInvoice) error {
 	if invoice.Status == billing.StandardInvoiceStatusIssued {
 		return s.handleChargeEvent(ctx, invoice, processorByType{
-			flatFee: s.flatFeeService.PostInvoiceIssued,
+			flatFee:        s.flatFeeService.PostInvoiceIssued,
+			creditPurchase: unsupported[creditpurchase.Charge](fmt.Errorf("invoice credit purchase settlements are not supported: %w", meta.ErrUnsupported)),
 		})
 	}
 
 	if invoice.Status == billing.StandardInvoiceStatusPaymentProcessingPending {
 		return s.handleChargeEvent(ctx, invoice, processorByType{
-			flatFee: s.flatFeeService.PostPaymentAuthorized,
+			flatFee:        s.flatFeeService.PostPaymentAuthorized,
+			creditPurchase: unsupported[creditpurchase.Charge](fmt.Errorf("payment authorized for credit purchase settlements are not supported: %w", meta.ErrUnsupported)),
 		})
 	}
 
 	if invoice.Status == billing.StandardInvoiceStatusPaid {
 		return s.handleChargeEvent(ctx, invoice, processorByType{
-			flatFee: s.flatFeeService.PostPaymentSettled,
+			flatFee:        s.flatFeeService.PostPaymentSettled,
+			creditPurchase: unsupported[creditpurchase.Charge](fmt.Errorf("payment settled for credit purchase settlements are not supported: %w", meta.ErrUnsupported)),
 		})
 	}
 

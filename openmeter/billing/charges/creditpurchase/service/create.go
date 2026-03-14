@@ -21,7 +21,7 @@ func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) 
 			return creditpurchase.Charge{}, err
 		}
 
-		// Let's active the state machine for the credit purchase charge
+		// Let's activate the state machine for the credit purchase charge
 		switch charge.Intent.Settlement.Type() {
 		case creditpurchase.SettlementTypePromotional:
 			return s.onPromotionalCreditPurchase(ctx, charge)

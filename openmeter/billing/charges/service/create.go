@@ -95,8 +95,8 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 
 		// Let's map the created charges to the original intents
 		out := make([]charges.Charge, len(input.Intents))
-		for idx, createdCharge := range createdCharges {
-			out[idx] = createdCharge.Value
+		for _, createdCharge := range createdCharges {
+			out[createdCharge.Index] = createdCharge.Value
 		}
 
 		return out, nil

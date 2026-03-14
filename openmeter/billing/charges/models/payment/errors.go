@@ -29,7 +29,7 @@ const ErrCodeCannotSettleNotAuthorizedPayment models.ErrorCode = "cannot_settle_
 
 var ErrCannotSettleNotAuthorizedPayment = models.NewValidationIssue(
 	ErrCodeCannotSettleNotAuthorizedPayment,
-	"cannot settle not authorized payment",
+	"cannot settle an unauthorized payment",
 	models.WithCriticalSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )

@@ -1763,14 +1763,6 @@ var (
 		},
 		Indexes: []*schema.Index{
 			{
-				Name:    "chargeflatfeecreditallocations_namespace_charge_id_line_id_deleted_at",
-				Unique:  true,
-				Columns: []*schema.Column{ChargeFlatFeeCreditAllocationsColumns[5], ChargeFlatFeeCreditAllocationsColumns[11], ChargeFlatFeeCreditAllocationsColumns[10], ChargeFlatFeeCreditAllocationsColumns[8]},
-				Annotation: &entsql.IndexAnnotation{
-					Where: "line_id IS NOT NULL AND deleted_at IS NULL",
-				},
-			},
-			{
 				Name:    "chargeflatfeecreditallocations_namespace",
 				Unique:  false,
 				Columns: []*schema.Column{ChargeFlatFeeCreditAllocationsColumns[5]},

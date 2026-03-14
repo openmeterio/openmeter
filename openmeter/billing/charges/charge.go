@@ -61,12 +61,20 @@ func (c Charge) AsFlatFeeCharge() (flatfee.Charge, error) {
 		return flatfee.Charge{}, fmt.Errorf("charge is not a flat fee charge")
 	}
 
+	if c.flatFee == nil {
+		return flatfee.Charge{}, fmt.Errorf("flat fee charge is nil")
+	}
+
 	return *c.flatFee, nil
 }
 
 func (c Charge) AsCreditPurchaseCharge() (creditpurchase.Charge, error) {
 	if c.t != meta.ChargeTypeCreditPurchase {
 		return creditpurchase.Charge{}, fmt.Errorf("charge is not a credit purchase charge")
+	}
+
+	if c.creditPurchase == nil {
+		return creditpurchase.Charge{}, fmt.Errorf("credit purchase charge is nil")
 	}
 
 	return *c.creditPurchase, nil

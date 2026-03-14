@@ -38,6 +38,7 @@ func (i IntentWithInitialStatus) Validate() error {
 		errs = append(errs, fmt.Errorf("intent: %w", err))
 	}
 
+	// Initial status is optional, but if it is set, it must be valid
 	if i.InitialStatus == "" {
 		if err := i.InitialStatus.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("initial status: %w", err))

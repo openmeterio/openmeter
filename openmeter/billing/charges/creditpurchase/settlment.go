@@ -141,6 +141,10 @@ func (s Settlement) MarshalJSON() ([]byte, error) {
 
 	switch s.t {
 	case SettlementTypeInvoice:
+		if s.invoice == nil {
+			return nil, fmt.Errorf("settlement: invoice is nil")
+		}
+
 		serde = struct {
 			Type SettlementType `json:"type"`
 			*InvoiceSettlement
@@ -149,6 +153,10 @@ func (s Settlement) MarshalJSON() ([]byte, error) {
 			InvoiceSettlement: s.invoice,
 		}
 	case SettlementTypeExternal:
+		if s.external == nil {
+			return nil, fmt.Errorf("settlement: external is nil")
+		}
+
 		serde = struct {
 			Type SettlementType `json:"type"`
 			*ExternalSettlement

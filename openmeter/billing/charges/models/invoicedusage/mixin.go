@@ -63,7 +63,6 @@ type Creator[T any] interface {
 	entutils.TimeMixinCreator[T]
 	entutils.AnnotationsMixinSetter[T]
 	totals.Setter[T]
-	SetChargeID(chargeID string) T
 	SetServicePeriodFrom(servicePeriodFrom time.Time) T
 	SetServicePeriodTo(servicePeriodTo time.Time) T
 	SetMutable(mutable bool) T
@@ -83,7 +82,6 @@ func Create[T Creator[T]](creator T, ns string, invoicedUsage AccruedUsage) T {
 		SetServicePeriodFrom(invoicedUsage.ServicePeriod.From.In(time.UTC)).
 		SetServicePeriodTo(invoicedUsage.ServicePeriod.To.In(time.UTC)).
 		SetMutable(invoicedUsage.Mutable).
-		SetNillableLineID(invoicedUsage.LineID).
 		SetNillableLedgerTransactionGroupID(trnsGroupID)
 
 	creator = totals.Set(creator, invoicedUsage.Totals)

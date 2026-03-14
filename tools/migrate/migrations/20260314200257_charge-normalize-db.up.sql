@@ -58,8 +58,6 @@ CREATE INDEX "chargeflatfeecreditallocations_annotations" ON "charge_flat_fee_cr
 CREATE UNIQUE INDEX "chargeflatfeecreditallocations_id" ON "charge_flat_fee_credit_allocations" ("id");
 -- create index "chargeflatfeecreditallocations_namespace" to table: "charge_flat_fee_credit_allocations"
 CREATE INDEX "chargeflatfeecreditallocations_namespace" ON "charge_flat_fee_credit_allocations" ("namespace");
--- create index "chargeflatfeecreditallocations_namespace_charge_id_line_id_dele" to table: "charge_flat_fee_credit_allocations"
-CREATE UNIQUE INDEX "chargeflatfeecreditallocations_namespace_charge_id_line_id_dele" ON "charge_flat_fee_credit_allocations" ("namespace", "charge_id", "line_id", "deleted_at") WHERE ((line_id IS NOT NULL) AND (deleted_at IS NULL));
 -- create "charge_flat_fee_invoiced_usages" table
 CREATE TABLE "charge_flat_fee_invoiced_usages" (
   "id" character(26) NOT NULL,
