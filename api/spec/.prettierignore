@@ -1,2 +1,3 @@
 .npmrc
 pnpm-lock.yaml
+packages/**/output/

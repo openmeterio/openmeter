@@ -4,10 +4,10 @@
 generate: format ## Generate OpenAPI spec
 	$(call print-target)
 	pnpm --frozen-lockfile install
-	pnpm compile
-	pnpm run bundle:v3 -o ../v3/openapi.yaml
-	cp output/openapi.OpenMeter.yaml ../openapi.yaml
-	cp output/openapi.OpenMeterCloud.yaml ../openapi.cloud.yaml
+	pnpm generate
+	pnpm --filter @openmeter/api-spec-aip exec openapi bundle output/definitions/metering-and-billing/v3/openapi.OpenMeter.yaml -o ../../../v3/openapi.yaml
+	cp packages/legacy/output/openapi.OpenMeter.yaml ../openapi.yaml
+	cp packages/legacy/output/openapi.OpenMeterCloud.yaml ../openapi.cloud.yaml
 
 .PHONY: lint
 lint: ## Lint OpenAPI spec
