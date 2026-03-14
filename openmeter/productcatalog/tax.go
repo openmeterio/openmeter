@@ -34,8 +34,9 @@ func (t TaxBehavior) Validate() error {
 
 // TaxConfig stores the provider-specific tax configs.
 type TaxConfig struct {
-	Behavior *TaxBehavior     `json:"behavior,omitempty"`
-	Stripe   *StripeTaxConfig `json:"stripe,omitempty"`
+	Behavior  *TaxBehavior     `json:"behavior,omitempty"`
+	Stripe    *StripeTaxConfig `json:"stripe,omitempty"`
+	TaxCodeID *string          `json:"tax_code_id,omitempty"`
 }
 
 func (c *TaxConfig) Equal(v *TaxConfig) bool {
@@ -52,6 +53,14 @@ func (c *TaxConfig) Equal(v *TaxConfig) bool {
 	}
 
 	if c.Behavior != nil && *c.Behavior != *v.Behavior {
+		return false
+	}
+
+	if (c.TaxCodeID != nil && v.TaxCodeID == nil) || (c.TaxCodeID == nil && v.TaxCodeID != nil) {
+		return false
+	}
+
+	if c.TaxCodeID != nil && *c.TaxCodeID != *v.TaxCodeID {
 		return false
 	}
 
@@ -85,14 +94,19 @@ func (c TaxConfig) Clone() TaxConfig {
 		out.Stripe = lo.ToPtr(c.Stripe.Clone())
 	}
 
+	if c.TaxCodeID != nil {
+		out.TaxCodeID = lo.ToPtr(*c.TaxCodeID)
+	}
+
 	return out
 }
 
 func MergeTaxConfigs(base, overrides *TaxConfig) *TaxConfig {
 	if base != nil && overrides != nil {
 		return &TaxConfig{
-			Behavior: lo.CoalesceOrEmpty(overrides.Behavior, base.Behavior),
-			Stripe:   lo.CoalesceOrEmpty(overrides.Stripe, base.Stripe),
+			Behavior:  lo.CoalesceOrEmpty(overrides.Behavior, base.Behavior),
+			Stripe:    lo.CoalesceOrEmpty(overrides.Stripe, base.Stripe),
+			TaxCodeID: lo.CoalesceOrEmpty(overrides.TaxCodeID, base.TaxCodeID),
 		}
 	}
 
