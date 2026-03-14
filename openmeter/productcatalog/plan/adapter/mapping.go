@@ -10,6 +10,7 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -278,6 +279,17 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 		Discounts:           lo.FromPtr(r.Discounts),
 	}
 
+	// Map TaxCode if eagerly loaded.
+	taxCodeRow, err := r.Edges.TaxCodeOrErr()
+	if err == nil {
+		tc, err := fromTaxCodeRow(taxCodeRow)
+		if err != nil {
+			return nil, fmt.Errorf("invalid tax code for rate card %s: %w", r.ID, err)
+		}
+
+		meta.TaxCode = &tc
+	}
+
 	// Get billing cadence
 
 	billingCadence, err := r.BillingCadence.ParsePtrOrNil()
@@ -351,7 +363,35 @@ func asPlanRateCardRow(r productcatalog.RateCard) (entdb.PlanRateCard, error) {
 	ratecard.FeatureKey = meta.FeatureKey
 	ratecard.FeatureID = meta.FeatureID
 
+	if meta.TaxConfig != nil {
+		ratecard.TaxCodeID = meta.TaxConfig.TaxCodeID
+		ratecard.TaxBehavior = meta.TaxConfig.Behavior
+	}
+
 	ratecard.BillingCadence = r.GetBillingCadence().ISOStringPtrOrNil()
 
 	return ratecard, nil
+}
+
+func fromTaxCodeRow(r *entdb.TaxCode) (taxcode.TaxCode, error) {
+	if r == nil {
+		return taxcode.TaxCode{}, errors.New("tax code is nil")
+	}
+
+	return taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{
+			Namespace: r.Namespace,
+			ID:        r.ID,
+		},
+		ManagedModel: models.ManagedModel{
+			CreatedAt: r.CreatedAt,
+			UpdatedAt: r.UpdatedAt,
+			DeletedAt: r.DeletedAt,
+		},
+		Key:         r.Key,
+		Name:        r.Name,
+		Description: r.Description,
+		AppMappings: lo.FromPtr(r.AppMappings),
+		Metadata:    models.NewMetadata(r.Metadata),
+	}, nil
 }

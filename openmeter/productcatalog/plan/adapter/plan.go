@@ -518,9 +518,14 @@ var planPhaseEagerLoadRateCardsFn = func(q *entdb.PlanPhaseQuery) {
 	q.WithRatecards(func(prcq *entdb.PlanRateCardQuery) {
 		prcq.Where(ratecarddb.Or(ratecarddb.DeletedAtIsNil(), ratecarddb.DeletedAtGT(clock.Now().UTC())))
 		rateCardEagerLoadFeaturesFn(prcq)
+		rateCardEagerLoadTaxCodesFn(prcq)
 	})
 }
 
 var rateCardEagerLoadFeaturesFn = func(q *entdb.PlanRateCardQuery) {
 	q.WithFeatures()
+}
+
+var rateCardEagerLoadTaxCodesFn = func(q *entdb.PlanRateCardQuery) {
+	q.WithTaxCode()
 }

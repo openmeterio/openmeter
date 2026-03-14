@@ -25,6 +25,7 @@ import (
 	planaddonadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/adapter"
 	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
@@ -84,6 +85,7 @@ func NewPlanService(
 	db *entdb.Client,
 	productCatalogConf config.ProductCatalogConfiguration,
 	featureConnector feature.FeatureConnector,
+	taxCodeService taxcode.Service,
 	publisher eventbus.Publisher,
 ) (plan.Service, error) {
 	adapter, err := planadapter.New(planadapter.Config{
@@ -97,6 +99,7 @@ func NewPlanService(
 	return planservice.New(planservice.Config{
 		Adapter:   adapter,
 		Feature:   featureConnector,
+		TaxCode:   taxCodeService,
 		Logger:    logger.With("subsystem", "productcatalog.plan"),
 		Publisher: publisher,
 	})

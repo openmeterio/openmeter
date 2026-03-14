@@ -84,7 +84,7 @@ func (a *adapter) createPhase(ctx context.Context, params createPhaseInput) (*pl
 
 			planPhaseRow, err = a.db.PlanPhase.Query().
 				Where(phasedb.Namespace(params.Namespace), phasedb.ID(planPhaseRow.ID)).
-				WithRatecards(rateCardEagerLoadFeaturesFn).
+				WithRatecards(rateCardEagerLoadFeaturesFn, rateCardEagerLoadTaxCodesFn).
 				First(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get PlanPhase: %w", err)
@@ -127,6 +127,9 @@ func rateCardBulkCreate(c *entdb.PlanRateCardClient, rateCards productcatalog.Ra
 		if rateCardEntity.TaxConfig != nil {
 			q.SetTaxConfig(rateCardEntity.TaxConfig)
 		}
+
+		q.SetNillableTaxCodeID(rateCardEntity.TaxCodeID)
+		q.SetNillableTaxBehavior(rateCardEntity.TaxBehavior)
 
 		if rateCardEntity.Price != nil {
 			q.SetPrice(rateCardEntity.Price)
