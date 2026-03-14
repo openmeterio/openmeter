@@ -49,7 +49,7 @@ func (m Mixin) Fields() []ent.Field {
 	}
 }
 
-type Mutator[T any] interface {
+type Setter[T any] interface {
 	SetAmount(amount alpacadecimal.Decimal) T
 	SetTaxesTotal(taxesTotal alpacadecimal.Decimal) T
 	SetTaxesInclusiveTotal(taxesInclusiveTotal alpacadecimal.Decimal) T
@@ -60,7 +60,7 @@ type Mutator[T any] interface {
 	SetTotal(total alpacadecimal.Decimal) T
 }
 
-func Set[T Mutator[T]](mut Mutator[T], totals Totals) T {
+func Set[T Setter[T]](mut Setter[T], totals Totals) T {
 	return mut.SetAmount(totals.Amount).
 		SetTaxesTotal(totals.TaxesTotal).
 		SetTaxesInclusiveTotal(totals.TaxesInclusiveTotal).

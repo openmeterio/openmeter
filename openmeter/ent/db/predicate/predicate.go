@@ -197,11 +197,8 @@ func ChargeCreditPurchaseOrErr(p ChargeCreditPurchase, err error) ChargeCreditPu
 	}
 }
 
-// ChargeCreditRealization is the predicate function for chargecreditrealization builders.
-type ChargeCreditRealization func(*sql.Selector)
-
-// ChargeExternalPaymentSettlement is the predicate function for chargeexternalpaymentsettlement builders.
-type ChargeExternalPaymentSettlement func(*sql.Selector)
+// ChargeCreditPurchaseExternalPayment is the predicate function for chargecreditpurchaseexternalpayment builders.
+type ChargeCreditPurchaseExternalPayment func(*sql.Selector)
 
 // ChargeFlatFee is the predicate function for chargeflatfee builders.
 type ChargeFlatFee func(*sql.Selector)
@@ -217,25 +214,14 @@ func ChargeFlatFeeOrErr(p ChargeFlatFee, err error) ChargeFlatFee {
 	}
 }
 
-// ChargeStandardInvoiceAccruedUsage is the predicate function for chargestandardinvoiceaccruedusage builders.
-type ChargeStandardInvoiceAccruedUsage func(*sql.Selector)
+// ChargeFlatFeeCreditAllocations is the predicate function for chargeflatfeecreditallocations builders.
+type ChargeFlatFeeCreditAllocations func(*sql.Selector)
 
-// ChargeStandardInvoicePaymentSettlement is the predicate function for chargestandardinvoicepaymentsettlement builders.
-type ChargeStandardInvoicePaymentSettlement func(*sql.Selector)
+// ChargeFlatFeeInvoicedUsage is the predicate function for chargeflatfeeinvoicedusage builders.
+type ChargeFlatFeeInvoicedUsage func(*sql.Selector)
 
-// ChargeUsageBased is the predicate function for chargeusagebased builders.
-type ChargeUsageBased func(*sql.Selector)
-
-// ChargeUsageBasedOrErr calls the predicate only if the error is not nit.
-func ChargeUsageBasedOrErr(p ChargeUsageBased, err error) ChargeUsageBased {
-	return func(s *sql.Selector) {
-		if err != nil {
-			s.AddError(err)
-			return
-		}
-		p(s)
-	}
-}
+// ChargeFlatFeePayment is the predicate function for chargeflatfeepayment builders.
+type ChargeFlatFeePayment func(*sql.Selector)
 
 // CurrencyCostBasis is the predicate function for currencycostbasis builders.
 type CurrencyCostBasis func(*sql.Selector)

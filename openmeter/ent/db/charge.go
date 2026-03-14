@@ -11,11 +11,10 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
@@ -60,9 +59,9 @@ type Charge struct {
 	// FullServicePeriodTo holds the value of the "full_service_period_to" field.
 	FullServicePeriodTo time.Time `json:"full_service_period_to,omitempty"`
 	// Type holds the value of the "type" field.
-	Type charges.ChargeType `json:"type,omitempty"`
+	Type meta.ChargeType `json:"type,omitempty"`
 	// Status holds the value of the "status" field.
-	Status charges.ChargeStatus `json:"status,omitempty"`
+	Status meta.ChargeStatus `json:"status,omitempty"`
 	// UniqueReferenceID holds the value of the "unique_reference_id" field.
 	UniqueReferenceID *string `json:"unique_reference_id,omitempty"`
 	// Currency holds the value of the "currency" field.
@@ -85,8 +84,6 @@ type Charge struct {
 type ChargeEdges struct {
 	// FlatFee holds the value of the flat_fee edge.
 	FlatFee *ChargeFlatFee `json:"flat_fee,omitempty"`
-	// UsageBased holds the value of the usage_based edge.
-	UsageBased *ChargeUsageBased `json:"usage_based,omitempty"`
 	// CreditPurchase holds the value of the credit_purchase edge.
 	CreditPurchase *ChargeCreditPurchase `json:"credit_purchase,omitempty"`
 	// BillingInvoiceLines holds the value of the billing_invoice_lines edge.
@@ -103,7 +100,7 @@ type ChargeEdges struct {
 	SubscriptionItem *SubscriptionItem `json:"subscription_item,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [9]bool
+	loadedTypes [8]bool
 }
 
 // FlatFeeOrErr returns the FlatFee value or an error if the edge
@@ -117,23 +114,12 @@ func (e ChargeEdges) FlatFeeOrErr() (*ChargeFlatFee, error) {
 	return nil, &NotLoadedError{edge: "flat_fee"}
 }
 
-// UsageBasedOrErr returns the UsageBased value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeEdges) UsageBasedOrErr() (*ChargeUsageBased, error) {
-	if e.UsageBased != nil {
-		return e.UsageBased, nil
-	} else if e.loadedTypes[1] {
-		return nil, &NotFoundError{label: chargeusagebased.Label}
-	}
-	return nil, &NotLoadedError{edge: "usage_based"}
-}
-
 // CreditPurchaseOrErr returns the CreditPurchase value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ChargeEdges) CreditPurchaseOrErr() (*ChargeCreditPurchase, error) {
 	if e.CreditPurchase != nil {
 		return e.CreditPurchase, nil
-	} else if e.loadedTypes[2] {
+	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: chargecreditpurchase.Label}
 	}
 	return nil, &NotLoadedError{edge: "credit_purchase"}
@@ -142,7 +128,7 @@ func (e ChargeEdges) CreditPurchaseOrErr() (*ChargeCreditPurchase, error) {
 // BillingInvoiceLinesOrErr returns the BillingInvoiceLines value or an error if the edge
 // was not loaded in eager-loading.
 func (e ChargeEdges) BillingInvoiceLinesOrErr() ([]*BillingInvoiceLine, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[2] {
 		return e.BillingInvoiceLines, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice_lines"}
@@ -151,7 +137,7 @@ func (e ChargeEdges) BillingInvoiceLinesOrErr() ([]*BillingInvoiceLine, error) {
 // BillingSplitLineGroupsOrErr returns the BillingSplitLineGroups value or an error if the edge
 // was not loaded in eager-loading.
 func (e ChargeEdges) BillingSplitLineGroupsOrErr() ([]*BillingInvoiceSplitLineGroup, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[3] {
 		return e.BillingSplitLineGroups, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_split_line_groups"}
@@ -162,7 +148,7 @@ func (e ChargeEdges) BillingSplitLineGroupsOrErr() ([]*BillingInvoiceSplitLineGr
 func (e ChargeEdges) CustomerOrErr() (*Customer, error) {
 	if e.Customer != nil {
 		return e.Customer, nil
-	} else if e.loadedTypes[5] {
+	} else if e.loadedTypes[4] {
 		return nil, &NotFoundError{label: customer.Label}
 	}
 	return nil, &NotLoadedError{edge: "customer"}
@@ -173,7 +159,7 @@ func (e ChargeEdges) CustomerOrErr() (*Customer, error) {
 func (e ChargeEdges) SubscriptionOrErr() (*Subscription, error) {
 	if e.Subscription != nil {
 		return e.Subscription, nil
-	} else if e.loadedTypes[6] {
+	} else if e.loadedTypes[5] {
 		return nil, &NotFoundError{label: subscription.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription"}
@@ -184,7 +170,7 @@ func (e ChargeEdges) SubscriptionOrErr() (*Subscription, error) {
 func (e ChargeEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
 	if e.SubscriptionPhase != nil {
 		return e.SubscriptionPhase, nil
-	} else if e.loadedTypes[7] {
+	} else if e.loadedTypes[6] {
 		return nil, &NotFoundError{label: subscriptionphase.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_phase"}
@@ -195,7 +181,7 @@ func (e ChargeEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
 func (e ChargeEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
 	if e.SubscriptionItem != nil {
 		return e.SubscriptionItem, nil
-	} else if e.loadedTypes[8] {
+	} else if e.loadedTypes[7] {
 		return nil, &NotFoundError{label: subscriptionitem.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_item"}
@@ -333,13 +319,13 @@ func (_m *Charge) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				_m.Type = charges.ChargeType(value.String)
+				_m.Type = meta.ChargeType(value.String)
 			}
 		case charge.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
-				_m.Status = charges.ChargeStatus(value.String)
+				_m.Status = meta.ChargeStatus(value.String)
 			}
 		case charge.FieldUniqueReferenceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -397,11 +383,6 @@ func (_m *Charge) Value(name string) (ent.Value, error) {
 // QueryFlatFee queries the "flat_fee" edge of the Charge entity.
 func (_m *Charge) QueryFlatFee() *ChargeFlatFeeQuery {
 	return NewChargeClient(_m.config).QueryFlatFee(_m)
-}
-
-// QueryUsageBased queries the "usage_based" edge of the Charge entity.
-func (_m *Charge) QueryUsageBased() *ChargeUsageBasedQuery {
-	return NewChargeClient(_m.config).QueryUsageBased(_m)
 }
 
 // QueryCreditPurchase queries the "credit_purchase" edge of the Charge entity.

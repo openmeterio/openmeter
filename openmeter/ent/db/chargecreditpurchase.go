@@ -10,10 +10,10 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeexternalpaymentsettlement"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 )
 
 // ChargeCreditPurchase is the model entity for the ChargeCreditPurchase schema.
@@ -26,13 +26,11 @@ type ChargeCreditPurchase struct {
 	// CreditAmount holds the value of the "credit_amount" field.
 	CreditAmount alpacadecimal.Decimal `json:"credit_amount,omitempty"`
 	// Settlement holds the value of the "settlement" field.
-	Settlement charges.CreditPurchaseSettlement `json:"settlement,omitempty"`
+	Settlement creditpurchase.Settlement `json:"settlement,omitempty"`
 	// CreditGrantTransactionGroupID holds the value of the "credit_grant_transaction_group_id" field.
 	CreditGrantTransactionGroupID *string `json:"credit_grant_transaction_group_id,omitempty"`
 	// CreditGrantedAt holds the value of the "credit_granted_at" field.
 	CreditGrantedAt *time.Time `json:"credit_granted_at,omitempty"`
-	// ExternalPaymentSettlementID holds the value of the "external_payment_settlement_id" field.
-	ExternalPaymentSettlementID *string `json:"external_payment_settlement_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeCreditPurchaseQuery when eager-loading is set.
 	Edges        ChargeCreditPurchaseEdges `json:"edges"`
@@ -43,8 +41,8 @@ type ChargeCreditPurchase struct {
 type ChargeCreditPurchaseEdges struct {
 	// Charge holds the value of the charge edge.
 	Charge *Charge `json:"charge,omitempty"`
-	// ChargeExternalPaymentSettlement holds the value of the charge_external_payment_settlement edge.
-	ChargeExternalPaymentSettlement *ChargeExternalPaymentSettlement `json:"charge_external_payment_settlement,omitempty"`
+	// ExternalPayment holds the value of the external_payment edge.
+	ExternalPayment *ChargeCreditPurchaseExternalPayment `json:"external_payment,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [2]bool
@@ -61,15 +59,15 @@ func (e ChargeCreditPurchaseEdges) ChargeOrErr() (*Charge, error) {
 	return nil, &NotLoadedError{edge: "charge"}
 }
 
-// ChargeExternalPaymentSettlementOrErr returns the ChargeExternalPaymentSettlement value or an error if the edge
+// ExternalPaymentOrErr returns the ExternalPayment value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeCreditPurchaseEdges) ChargeExternalPaymentSettlementOrErr() (*ChargeExternalPaymentSettlement, error) {
-	if e.ChargeExternalPaymentSettlement != nil {
-		return e.ChargeExternalPaymentSettlement, nil
+func (e ChargeCreditPurchaseEdges) ExternalPaymentOrErr() (*ChargeCreditPurchaseExternalPayment, error) {
+	if e.ExternalPayment != nil {
+		return e.ExternalPayment, nil
 	} else if e.loadedTypes[1] {
-		return nil, &NotFoundError{label: chargeexternalpaymentsettlement.Label}
+		return nil, &NotFoundError{label: chargecreditpurchaseexternalpayment.Label}
 	}
-	return nil, &NotLoadedError{edge: "charge_external_payment_settlement"}
+	return nil, &NotLoadedError{edge: "external_payment"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -79,7 +77,7 @@ func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargecreditpurchase.FieldCreditAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldCreditGrantTransactionGroupID, chargecreditpurchase.FieldExternalPaymentSettlementID:
+		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldCreditGrantTransactionGroupID:
 			values[i] = new(sql.NullString)
 		case chargecreditpurchase.FieldCreditGrantedAt:
 			values[i] = new(sql.NullTime)
@@ -138,13 +136,6 @@ func (_m *ChargeCreditPurchase) assignValues(columns []string, values []any) err
 				_m.CreditGrantedAt = new(time.Time)
 				*_m.CreditGrantedAt = value.Time
 			}
-		case chargecreditpurchase.FieldExternalPaymentSettlementID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field external_payment_settlement_id", values[i])
-			} else if value.Valid {
-				_m.ExternalPaymentSettlementID = new(string)
-				*_m.ExternalPaymentSettlementID = value.String
-			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -163,9 +154,9 @@ func (_m *ChargeCreditPurchase) QueryCharge() *ChargeQuery {
 	return NewChargeCreditPurchaseClient(_m.config).QueryCharge(_m)
 }
 
-// QueryChargeExternalPaymentSettlement queries the "charge_external_payment_settlement" edge of the ChargeCreditPurchase entity.
-func (_m *ChargeCreditPurchase) QueryChargeExternalPaymentSettlement() *ChargeExternalPaymentSettlementQuery {
-	return NewChargeCreditPurchaseClient(_m.config).QueryChargeExternalPaymentSettlement(_m)
+// QueryExternalPayment queries the "external_payment" edge of the ChargeCreditPurchase entity.
+func (_m *ChargeCreditPurchase) QueryExternalPayment() *ChargeCreditPurchaseExternalPaymentQuery {
+	return NewChargeCreditPurchaseClient(_m.config).QueryExternalPayment(_m)
 }
 
 // Update returns a builder for updating this ChargeCreditPurchase.
@@ -208,11 +199,6 @@ func (_m *ChargeCreditPurchase) String() string {
 	if v := _m.CreditGrantedAt; v != nil {
 		builder.WriteString("credit_granted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
-	}
-	builder.WriteString(", ")
-	if v := _m.ExternalPaymentSettlementID; v != nil {
-		builder.WriteString("external_payment_settlement_id=")
-		builder.WriteString(*v)
 	}
 	builder.WriteByte(')')
 	return builder.String()

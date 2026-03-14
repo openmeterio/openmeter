@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -14,20 +15,20 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeexternalpaymentsettlement"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
 // ChargeCreditPurchaseQuery is the builder for querying ChargeCreditPurchase entities.
 type ChargeCreditPurchaseQuery struct {
 	config
-	ctx                                 *QueryContext
-	order                               []chargecreditpurchase.OrderOption
-	inters                              []Interceptor
-	predicates                          []predicate.ChargeCreditPurchase
-	withCharge                          *ChargeQuery
-	withChargeExternalPaymentSettlement *ChargeExternalPaymentSettlementQuery
-	modifiers                           []func(*sql.Selector)
+	ctx                 *QueryContext
+	order               []chargecreditpurchase.OrderOption
+	inters              []Interceptor
+	predicates          []predicate.ChargeCreditPurchase
+	withCharge          *ChargeQuery
+	withExternalPayment *ChargeCreditPurchaseExternalPaymentQuery
+	modifiers           []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -86,9 +87,9 @@ func (_q *ChargeCreditPurchaseQuery) QueryCharge() *ChargeQuery {
 	return query
 }
 
-// QueryChargeExternalPaymentSettlement chains the current query on the "charge_external_payment_settlement" edge.
-func (_q *ChargeCreditPurchaseQuery) QueryChargeExternalPaymentSettlement() *ChargeExternalPaymentSettlementQuery {
-	query := (&ChargeExternalPaymentSettlementClient{config: _q.config}).Query()
+// QueryExternalPayment chains the current query on the "external_payment" edge.
+func (_q *ChargeCreditPurchaseQuery) QueryExternalPayment() *ChargeCreditPurchaseExternalPaymentQuery {
+	query := (&ChargeCreditPurchaseExternalPaymentClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -99,8 +100,8 @@ func (_q *ChargeCreditPurchaseQuery) QueryChargeExternalPaymentSettlement() *Cha
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(chargecreditpurchase.Table, chargecreditpurchase.FieldID, selector),
-			sqlgraph.To(chargeexternalpaymentsettlement.Table, chargeexternalpaymentsettlement.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, chargecreditpurchase.ChargeExternalPaymentSettlementTable, chargecreditpurchase.ChargeExternalPaymentSettlementColumn),
+			sqlgraph.To(chargecreditpurchaseexternalpayment.Table, chargecreditpurchaseexternalpayment.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, chargecreditpurchase.ExternalPaymentTable, chargecreditpurchase.ExternalPaymentColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -295,13 +296,13 @@ func (_q *ChargeCreditPurchaseQuery) Clone() *ChargeCreditPurchaseQuery {
 		return nil
 	}
 	return &ChargeCreditPurchaseQuery{
-		config:                              _q.config,
-		ctx:                                 _q.ctx.Clone(),
-		order:                               append([]chargecreditpurchase.OrderOption{}, _q.order...),
-		inters:                              append([]Interceptor{}, _q.inters...),
-		predicates:                          append([]predicate.ChargeCreditPurchase{}, _q.predicates...),
-		withCharge:                          _q.withCharge.Clone(),
-		withChargeExternalPaymentSettlement: _q.withChargeExternalPaymentSettlement.Clone(),
+		config:              _q.config,
+		ctx:                 _q.ctx.Clone(),
+		order:               append([]chargecreditpurchase.OrderOption{}, _q.order...),
+		inters:              append([]Interceptor{}, _q.inters...),
+		predicates:          append([]predicate.ChargeCreditPurchase{}, _q.predicates...),
+		withCharge:          _q.withCharge.Clone(),
+		withExternalPayment: _q.withExternalPayment.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -319,14 +320,14 @@ func (_q *ChargeCreditPurchaseQuery) WithCharge(opts ...func(*ChargeQuery)) *Cha
 	return _q
 }
 
-// WithChargeExternalPaymentSettlement tells the query-builder to eager-load the nodes that are connected to
-// the "charge_external_payment_settlement" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *ChargeCreditPurchaseQuery) WithChargeExternalPaymentSettlement(opts ...func(*ChargeExternalPaymentSettlementQuery)) *ChargeCreditPurchaseQuery {
-	query := (&ChargeExternalPaymentSettlementClient{config: _q.config}).Query()
+// WithExternalPayment tells the query-builder to eager-load the nodes that are connected to
+// the "external_payment" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeCreditPurchaseQuery) WithExternalPayment(opts ...func(*ChargeCreditPurchaseExternalPaymentQuery)) *ChargeCreditPurchaseQuery {
+	query := (&ChargeCreditPurchaseExternalPaymentClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withChargeExternalPaymentSettlement = query
+	_q.withExternalPayment = query
 	return _q
 }
 
@@ -410,7 +411,7 @@ func (_q *ChargeCreditPurchaseQuery) sqlAll(ctx context.Context, hooks ...queryH
 		_spec       = _q.querySpec()
 		loadedTypes = [2]bool{
 			_q.withCharge != nil,
-			_q.withChargeExternalPaymentSettlement != nil,
+			_q.withExternalPayment != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -440,11 +441,9 @@ func (_q *ChargeCreditPurchaseQuery) sqlAll(ctx context.Context, hooks ...queryH
 			return nil, err
 		}
 	}
-	if query := _q.withChargeExternalPaymentSettlement; query != nil {
-		if err := _q.loadChargeExternalPaymentSettlement(ctx, query, nodes, nil,
-			func(n *ChargeCreditPurchase, e *ChargeExternalPaymentSettlement) {
-				n.Edges.ChargeExternalPaymentSettlement = e
-			}); err != nil {
+	if query := _q.withExternalPayment; query != nil {
+		if err := _q.loadExternalPayment(ctx, query, nodes, nil,
+			func(n *ChargeCreditPurchase, e *ChargeCreditPurchaseExternalPayment) { n.Edges.ExternalPayment = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -480,35 +479,30 @@ func (_q *ChargeCreditPurchaseQuery) loadCharge(ctx context.Context, query *Char
 	}
 	return nil
 }
-func (_q *ChargeCreditPurchaseQuery) loadChargeExternalPaymentSettlement(ctx context.Context, query *ChargeExternalPaymentSettlementQuery, nodes []*ChargeCreditPurchase, init func(*ChargeCreditPurchase), assign func(*ChargeCreditPurchase, *ChargeExternalPaymentSettlement)) error {
-	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*ChargeCreditPurchase)
+func (_q *ChargeCreditPurchaseQuery) loadExternalPayment(ctx context.Context, query *ChargeCreditPurchaseExternalPaymentQuery, nodes []*ChargeCreditPurchase, init func(*ChargeCreditPurchase), assign func(*ChargeCreditPurchase, *ChargeCreditPurchaseExternalPayment)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*ChargeCreditPurchase)
 	for i := range nodes {
-		if nodes[i].ExternalPaymentSettlementID == nil {
-			continue
-		}
-		fk := *nodes[i].ExternalPaymentSettlementID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
 	}
-	if len(ids) == 0 {
-		return nil
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargecreditpurchaseexternalpayment.FieldChargeID)
 	}
-	query.Where(chargeexternalpaymentsettlement.IDIn(ids...))
+	query.Where(predicate.ChargeCreditPurchaseExternalPayment(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(chargecreditpurchase.ExternalPaymentColumn), fks...))
+	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
+		fk := n.ChargeID
+		node, ok := nodeids[fk]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "external_payment_settlement_id" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "charge_id" returned %v for node %v`, fk, n.ID)
 		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
+		assign(node, n)
 	}
 	return nil
 }
@@ -540,9 +534,6 @@ func (_q *ChargeCreditPurchaseQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != chargecreditpurchase.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
-		}
-		if _q.withChargeExternalPaymentSettlement != nil {
-			_spec.Node.AddColumnOnce(chargecreditpurchase.FieldExternalPaymentSettlementID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

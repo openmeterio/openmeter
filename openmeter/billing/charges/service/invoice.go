@@ -8,35 +8,46 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-type chargeProcessorFn[T charges.FlatFeeCharge | charges.UsageBasedCharge | charges.CreditPurchaseCharge] func(ctx context.Context, charge T, lineWithHeader billing.StandardLineWithInvoiceHeader) error
+type chargeProcessorFn[T flatfee.Charge | creditpurchase.Charge] func(ctx context.Context, charge T, lineWithHeader billing.StandardLineWithInvoiceHeader) error
+
+func unsupported[T flatfee.Charge | creditpurchase.Charge](err error) chargeProcessorFn[T] {
+	return func(ctx context.Context, charge T, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
+		return err
+	}
+}
 
 type processorByType struct {
-	flatFee        chargeProcessorFn[charges.FlatFeeCharge]
-	usageBased     chargeProcessorFn[charges.UsageBasedCharge]
-	creditPurchase chargeProcessorFn[charges.CreditPurchaseCharge]
+	flatFee        chargeProcessorFn[flatfee.Charge]
+	creditPurchase chargeProcessorFn[creditpurchase.Charge]
 }
 
 func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billing.StandardInvoice) error {
 	if invoice.Status == billing.StandardInvoiceStatusIssued {
 		return s.handleChargeEvent(ctx, invoice, processorByType{
-			flatFee: s.flatFeeOrchestrator.PostInvoiceIssued,
+			flatFee:        s.flatFeeService.PostInvoiceIssued,
+			creditPurchase: unsupported[creditpurchase.Charge](fmt.Errorf("invoice credit purchase settlements are not supported: %w", meta.ErrUnsupported)),
 		})
 	}
 
 	if invoice.Status == billing.StandardInvoiceStatusPaymentProcessingPending {
 		return s.handleChargeEvent(ctx, invoice, processorByType{
-			flatFee: s.flatFeeOrchestrator.PostPaymentAuthorized,
+			flatFee:        s.flatFeeService.PostPaymentAuthorized,
+			creditPurchase: unsupported[creditpurchase.Charge](fmt.Errorf("payment authorized for credit purchase settlements are not supported: %w", meta.ErrUnsupported)),
 		})
 	}
 
 	if invoice.Status == billing.StandardInvoiceStatusPaid {
 		return s.handleChargeEvent(ctx, invoice, processorByType{
-			flatFee: s.flatFeeOrchestrator.PostPaymentSettled,
+			flatFee:        s.flatFeeService.PostPaymentSettled,
+			creditPurchase: unsupported[creditpurchase.Charge](fmt.Errorf("payment settled for credit purchase settlements are not supported: %w", meta.ErrUnsupported)),
 		})
 	}
 
@@ -51,8 +62,8 @@ func (s *service) handleChargeEvent(ctx context.Context, invoice billing.Standar
 
 	for _, lineWithCharge := range linesWithCharges {
 		switch lineWithCharge.Charge.Type() {
-		case charges.ChargeTypeFlatFee:
-			ff, err := lineWithCharge.Charge.AsFlatFeeCharge()
+		case meta.ChargeTypeFlatFee:
+			flatFee, err := lineWithCharge.Charge.AsFlatFeeCharge()
 			if err != nil {
 				return err
 			}
@@ -61,7 +72,7 @@ func (s *service) handleChargeEvent(ctx context.Context, invoice billing.Standar
 				return fmt.Errorf("flat fee payment post processor is not supported")
 			}
 
-			err = processorByType.flatFee(ctx, ff, lineWithCharge.StandardLineWithInvoiceHeader)
+			err = processorByType.flatFee(ctx, flatFee, lineWithCharge.StandardLineWithInvoiceHeader)
 			if err != nil {
 				return err
 			}
@@ -107,20 +118,20 @@ func (s *service) getLinesWithChargesForStandardInvoice(ctx context.Context, ns 
 		}, true
 	})
 
-	referencedCharges, err := s.GetChargesByIDs(ctx, charges.GetChargesByIDsInput{
+	referencedCharges, err := s.GetByIDs(ctx, charges.GetByIDsInput{
 		Namespace: ns,
 		ChargeIDs: lo.Map(linesWithChargeID, func(l billing.StandardLineWithInvoiceHeader, _ int) string {
 			return *l.Line.ChargeID
 		}),
-		Expands: charges.Expands{
-			charges.ExpandRealizations,
+		Expands: meta.Expands{
+			meta.ExpandRealizations,
 		},
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	chargesByID := make(map[charges.ChargeID]charges.Charge, len(referencedCharges))
+	chargesByID := make(map[meta.ChargeID]charges.Charge, len(referencedCharges))
 	for _, charge := range referencedCharges {
 		id, err := charge.GetChargeID()
 		if err != nil {
@@ -132,7 +143,7 @@ func (s *service) getLinesWithChargesForStandardInvoice(ctx context.Context, ns 
 	return slicesx.MapWithErr(linesWithChargeID, func(lineWithHeader billing.StandardLineWithInvoiceHeader) (standardLineWithCharge, error) {
 		chargeID := *lineWithHeader.Line.ChargeID
 
-		charge, ok := chargesByID[charges.ChargeID{
+		charge, ok := chargesByID[meta.ChargeID{
 			Namespace: ns,
 			ID:        chargeID,
 		}]
