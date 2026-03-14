@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
@@ -43,6 +44,10 @@ type BillingInvoiceSplitLineGroup struct {
 	Currency currencyx.Code `json:"currency,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
 	TaxConfig productcatalog.TaxConfig `json:"tax_config,omitempty"`
+	// TaxCodeID holds the value of the "tax_code_id" field.
+	TaxCodeID *string `json:"tax_code_id,omitempty"`
+	// TaxBehavior holds the value of the "tax_behavior" field.
+	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// ServicePeriodStart holds the value of the "service_period_start" field.
 	ServicePeriodStart time.Time `json:"service_period_start,omitempty"`
 	// ServicePeriodEnd holds the value of the "service_period_end" field.
@@ -85,9 +90,11 @@ type BillingInvoiceSplitLineGroupEdges struct {
 	SubscriptionItem *SubscriptionItem `json:"subscription_item,omitempty"`
 	// Charge holds the value of the charge edge.
 	Charge *Charge `json:"charge,omitempty"`
+	// TaxCode holds the value of the tax_code edge.
+	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [6]bool
 }
 
 // BillingInvoiceLinesOrErr returns the BillingInvoiceLines value or an error if the edge
@@ -143,6 +150,17 @@ func (e BillingInvoiceSplitLineGroupEdges) ChargeOrErr() (*Charge, error) {
 	return nil, &NotLoadedError{edge: "charge"}
 }
 
+// TaxCodeOrErr returns the TaxCode value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceSplitLineGroupEdges) TaxCodeOrErr() (*TaxCode, error) {
+	if e.TaxCode != nil {
+		return e.TaxCode, nil
+	} else if e.loadedTypes[5] {
+		return nil, &NotFoundError{label: dbtaxcode.Label}
+	}
+	return nil, &NotLoadedError{edge: "tax_code"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*BillingInvoiceSplitLineGroup) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -150,7 +168,7 @@ func (*BillingInvoiceSplitLineGroup) scanValues(columns []string) ([]any, error)
 		switch columns[i] {
 		case billinginvoicesplitlinegroup.FieldMetadata, billinginvoicesplitlinegroup.FieldTaxConfig:
 			values[i] = new([]byte)
-		case billinginvoicesplitlinegroup.FieldID, billinginvoicesplitlinegroup.FieldNamespace, billinginvoicesplitlinegroup.FieldName, billinginvoicesplitlinegroup.FieldDescription, billinginvoicesplitlinegroup.FieldCurrency, billinginvoicesplitlinegroup.FieldUniqueReferenceID, billinginvoicesplitlinegroup.FieldFeatureKey, billinginvoicesplitlinegroup.FieldSubscriptionID, billinginvoicesplitlinegroup.FieldSubscriptionPhaseID, billinginvoicesplitlinegroup.FieldSubscriptionItemID, billinginvoicesplitlinegroup.FieldChargeID:
+		case billinginvoicesplitlinegroup.FieldID, billinginvoicesplitlinegroup.FieldNamespace, billinginvoicesplitlinegroup.FieldName, billinginvoicesplitlinegroup.FieldDescription, billinginvoicesplitlinegroup.FieldCurrency, billinginvoicesplitlinegroup.FieldTaxCodeID, billinginvoicesplitlinegroup.FieldTaxBehavior, billinginvoicesplitlinegroup.FieldUniqueReferenceID, billinginvoicesplitlinegroup.FieldFeatureKey, billinginvoicesplitlinegroup.FieldSubscriptionID, billinginvoicesplitlinegroup.FieldSubscriptionPhaseID, billinginvoicesplitlinegroup.FieldSubscriptionItemID, billinginvoicesplitlinegroup.FieldChargeID:
 			values[i] = new(sql.NullString)
 		case billinginvoicesplitlinegroup.FieldCreatedAt, billinginvoicesplitlinegroup.FieldUpdatedAt, billinginvoicesplitlinegroup.FieldDeletedAt, billinginvoicesplitlinegroup.FieldServicePeriodStart, billinginvoicesplitlinegroup.FieldServicePeriodEnd, billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodFrom, billinginvoicesplitlinegroup.FieldSubscriptionBillingPeriodTo:
 			values[i] = new(sql.NullTime)
@@ -238,6 +256,20 @@ func (_m *BillingInvoiceSplitLineGroup) assignValues(columns []string, values []
 				if err := json.Unmarshal(*value, &_m.TaxConfig); err != nil {
 					return fmt.Errorf("unmarshal field tax_config: %w", err)
 				}
+			}
+		case billinginvoicesplitlinegroup.FieldTaxCodeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
+			} else if value.Valid {
+				_m.TaxCodeID = new(string)
+				*_m.TaxCodeID = value.String
+			}
+		case billinginvoicesplitlinegroup.FieldTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
+			} else if value.Valid {
+				_m.TaxBehavior = new(productcatalog.TaxBehavior)
+				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
 			}
 		case billinginvoicesplitlinegroup.FieldServicePeriodStart:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -357,6 +389,11 @@ func (_m *BillingInvoiceSplitLineGroup) QueryCharge() *ChargeQuery {
 	return NewBillingInvoiceSplitLineGroupClient(_m.config).QueryCharge(_m)
 }
 
+// QueryTaxCode queries the "tax_code" edge of the BillingInvoiceSplitLineGroup entity.
+func (_m *BillingInvoiceSplitLineGroup) QueryTaxCode() *TaxCodeQuery {
+	return NewBillingInvoiceSplitLineGroupClient(_m.config).QueryTaxCode(_m)
+}
+
 // Update returns a builder for updating this BillingInvoiceSplitLineGroup.
 // Note that you need to call BillingInvoiceSplitLineGroup.Unwrap() before calling this method if this BillingInvoiceSplitLineGroup
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -410,6 +447,16 @@ func (_m *BillingInvoiceSplitLineGroup) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("tax_config=")
 	builder.WriteString(fmt.Sprintf("%v", _m.TaxConfig))
+	builder.WriteString(", ")
+	if v := _m.TaxCodeID; v != nil {
+		builder.WriteString("tax_code_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxBehavior; v != nil {
+		builder.WriteString("tax_behavior=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("service_period_start=")
 	builder.WriteString(_m.ServicePeriodStart.Format(time.ANSIC))

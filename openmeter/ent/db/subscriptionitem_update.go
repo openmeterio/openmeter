@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -70,6 +71,46 @@ func (_u *SubscriptionItemUpdate) SetMetadata(v map[string]string) *Subscription
 // ClearMetadata clears the value of the "metadata" field.
 func (_u *SubscriptionItemUpdate) ClearMetadata() *SubscriptionItemUpdate {
 	_u.mutation.ClearMetadata()
+	return _u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *SubscriptionItemUpdate) SetTaxCodeID(v string) *SubscriptionItemUpdate {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *SubscriptionItemUpdate) SetNillableTaxCodeID(v *string) *SubscriptionItemUpdate {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *SubscriptionItemUpdate) ClearTaxCodeID() *SubscriptionItemUpdate {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *SubscriptionItemUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *SubscriptionItemUpdate {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *SubscriptionItemUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *SubscriptionItemUpdate {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *SubscriptionItemUpdate) ClearTaxBehavior() *SubscriptionItemUpdate {
+	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -371,6 +412,11 @@ func (_u *SubscriptionItemUpdate) AddChargeIntents(v ...*Charge) *SubscriptionIt
 	return _u.AddChargeIntentIDs(ids...)
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_u *SubscriptionItemUpdate) SetTaxCode(v *TaxCode) *SubscriptionItemUpdate {
+	return _u.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the SubscriptionItemMutation object of the builder.
 func (_u *SubscriptionItemUpdate) Mutation() *SubscriptionItemMutation {
 	return _u.mutation
@@ -445,6 +491,12 @@ func (_u *SubscriptionItemUpdate) RemoveChargeIntents(v ...*Charge) *Subscriptio
 	return _u.RemoveChargeIntentIDs(ids...)
 }
 
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (_u *SubscriptionItemUpdate) ClearTaxCode() *SubscriptionItemUpdate {
+	_u.mutation.ClearTaxCode()
+	return _u
+}
+
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *SubscriptionItemUpdate) Save(ctx context.Context) (int, error) {
 	_u.defaults()
@@ -483,6 +535,11 @@ func (_u *SubscriptionItemUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *SubscriptionItemUpdate) check() error {
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := subscriptionitem.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Name(); ok {
 		if err := subscriptionitem.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.name": %w`, err)}
@@ -540,6 +597,12 @@ func (_u *SubscriptionItemUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(subscriptionitem.FieldMetadata, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(subscriptionitem.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(subscriptionitem.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.Annotations(); ok {
 		vv, err := subscriptionitem.ValueScanner.Annotations.Value(value)
@@ -803,6 +866,35 @@ func (_u *SubscriptionItemUpdate) sqlSave(ctx context.Context) (_node int, err e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.TaxCodeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   subscriptionitem.TaxCodeTable,
+			Columns: []string{subscriptionitem.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   subscriptionitem.TaxCodeTable,
+			Columns: []string{subscriptionitem.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{subscriptionitem.Label}
@@ -858,6 +950,46 @@ func (_u *SubscriptionItemUpdateOne) SetMetadata(v map[string]string) *Subscript
 // ClearMetadata clears the value of the "metadata" field.
 func (_u *SubscriptionItemUpdateOne) ClearMetadata() *SubscriptionItemUpdateOne {
 	_u.mutation.ClearMetadata()
+	return _u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_u *SubscriptionItemUpdateOne) SetTaxCodeID(v string) *SubscriptionItemUpdateOne {
+	_u.mutation.SetTaxCodeID(v)
+	return _u
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_u *SubscriptionItemUpdateOne) SetNillableTaxCodeID(v *string) *SubscriptionItemUpdateOne {
+	if v != nil {
+		_u.SetTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (_u *SubscriptionItemUpdateOne) ClearTaxCodeID() *SubscriptionItemUpdateOne {
+	_u.mutation.ClearTaxCodeID()
+	return _u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_u *SubscriptionItemUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *SubscriptionItemUpdateOne {
+	_u.mutation.SetTaxBehavior(v)
+	return _u
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_u *SubscriptionItemUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *SubscriptionItemUpdateOne {
+	if v != nil {
+		_u.SetTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (_u *SubscriptionItemUpdateOne) ClearTaxBehavior() *SubscriptionItemUpdateOne {
+	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -1159,6 +1291,11 @@ func (_u *SubscriptionItemUpdateOne) AddChargeIntents(v ...*Charge) *Subscriptio
 	return _u.AddChargeIntentIDs(ids...)
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_u *SubscriptionItemUpdateOne) SetTaxCode(v *TaxCode) *SubscriptionItemUpdateOne {
+	return _u.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the SubscriptionItemMutation object of the builder.
 func (_u *SubscriptionItemUpdateOne) Mutation() *SubscriptionItemMutation {
 	return _u.mutation
@@ -1233,6 +1370,12 @@ func (_u *SubscriptionItemUpdateOne) RemoveChargeIntents(v ...*Charge) *Subscrip
 	return _u.RemoveChargeIntentIDs(ids...)
 }
 
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (_u *SubscriptionItemUpdateOne) ClearTaxCode() *SubscriptionItemUpdateOne {
+	_u.mutation.ClearTaxCode()
+	return _u
+}
+
 // Where appends a list predicates to the SubscriptionItemUpdate builder.
 func (_u *SubscriptionItemUpdateOne) Where(ps ...predicate.SubscriptionItem) *SubscriptionItemUpdateOne {
 	_u.mutation.Where(ps...)
@@ -1284,6 +1427,11 @@ func (_u *SubscriptionItemUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *SubscriptionItemUpdateOne) check() error {
+	if v, ok := _u.mutation.TaxBehavior(); ok {
+		if err := subscriptionitem.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Name(); ok {
 		if err := subscriptionitem.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.name": %w`, err)}
@@ -1358,6 +1506,12 @@ func (_u *SubscriptionItemUpdateOne) sqlSave(ctx context.Context) (_node *Subscr
 	}
 	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(subscriptionitem.FieldMetadata, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.TaxBehavior(); ok {
+		_spec.SetField(subscriptionitem.FieldTaxBehavior, field.TypeEnum, value)
+	}
+	if _u.mutation.TaxBehaviorCleared() {
+		_spec.ClearField(subscriptionitem.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.Annotations(); ok {
 		vv, err := subscriptionitem.ValueScanner.Annotations.Value(value)
@@ -1614,6 +1768,35 @@ func (_u *SubscriptionItemUpdateOne) sqlSave(ctx context.Context) (_node *Subscr
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TaxCodeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   subscriptionitem.TaxCodeTable,
+			Columns: []string{subscriptionitem.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   subscriptionitem.TaxCodeTable,
+			Columns: []string{subscriptionitem.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

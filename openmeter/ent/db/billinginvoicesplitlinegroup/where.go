@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
@@ -100,6 +101,11 @@ func Description(v string) predicate.BillingInvoiceSplitLineGroup {
 func Currency(v currencyx.Code) predicate.BillingInvoiceSplitLineGroup {
 	vc := string(v)
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldCurrency, vc))
+}
+
+// TaxCodeID applies equality check predicate on the "tax_code_id" field. It's identical to TaxCodeIDEQ.
+func TaxCodeID(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldTaxCodeID, v))
 }
 
 // ServicePeriodStart applies equality check predicate on the "service_period_start" field. It's identical to ServicePeriodStartEQ.
@@ -589,6 +595,121 @@ func TaxConfigIsNil() predicate.BillingInvoiceSplitLineGroup {
 // TaxConfigNotNil applies the NotNil predicate on the "tax_config" field.
 func TaxConfigNotNil() predicate.BillingInvoiceSplitLineGroup {
 	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotNull(FieldTaxConfig))
+}
+
+// TaxCodeIDEQ applies the EQ predicate on the "tax_code_id" field.
+func TaxCodeIDEQ(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDNEQ applies the NEQ predicate on the "tax_code_id" field.
+func TaxCodeIDNEQ(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNEQ(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDIn applies the In predicate on the "tax_code_id" field.
+func TaxCodeIDIn(vs ...string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIn(FieldTaxCodeID, vs...))
+}
+
+// TaxCodeIDNotIn applies the NotIn predicate on the "tax_code_id" field.
+func TaxCodeIDNotIn(vs ...string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotIn(FieldTaxCodeID, vs...))
+}
+
+// TaxCodeIDGT applies the GT predicate on the "tax_code_id" field.
+func TaxCodeIDGT(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGT(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDGTE applies the GTE predicate on the "tax_code_id" field.
+func TaxCodeIDGTE(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldGTE(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDLT applies the LT predicate on the "tax_code_id" field.
+func TaxCodeIDLT(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLT(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDLTE applies the LTE predicate on the "tax_code_id" field.
+func TaxCodeIDLTE(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldLTE(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDContains applies the Contains predicate on the "tax_code_id" field.
+func TaxCodeIDContains(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldContains(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDHasPrefix applies the HasPrefix predicate on the "tax_code_id" field.
+func TaxCodeIDHasPrefix(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldHasPrefix(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDHasSuffix applies the HasSuffix predicate on the "tax_code_id" field.
+func TaxCodeIDHasSuffix(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldHasSuffix(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDIsNil applies the IsNil predicate on the "tax_code_id" field.
+func TaxCodeIDIsNil() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIsNull(FieldTaxCodeID))
+}
+
+// TaxCodeIDNotNil applies the NotNil predicate on the "tax_code_id" field.
+func TaxCodeIDNotNil() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotNull(FieldTaxCodeID))
+}
+
+// TaxCodeIDEqualFold applies the EqualFold predicate on the "tax_code_id" field.
+func TaxCodeIDEqualFold(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEqualFold(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDContainsFold applies the ContainsFold predicate on the "tax_code_id" field.
+func TaxCodeIDContainsFold(v string) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldContainsFold(FieldTaxCodeID, v))
+}
+
+// TaxBehaviorEQ applies the EQ predicate on the "tax_behavior" field.
+func TaxBehaviorEQ(v productcatalog.TaxBehavior) predicate.BillingInvoiceSplitLineGroup {
+	vc := v
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldEQ(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorNEQ applies the NEQ predicate on the "tax_behavior" field.
+func TaxBehaviorNEQ(v productcatalog.TaxBehavior) predicate.BillingInvoiceSplitLineGroup {
+	vc := v
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNEQ(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorIn applies the In predicate on the "tax_behavior" field.
+func TaxBehaviorIn(vs ...productcatalog.TaxBehavior) predicate.BillingInvoiceSplitLineGroup {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIn(FieldTaxBehavior, v...))
+}
+
+// TaxBehaviorNotIn applies the NotIn predicate on the "tax_behavior" field.
+func TaxBehaviorNotIn(vs ...productcatalog.TaxBehavior) predicate.BillingInvoiceSplitLineGroup {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotIn(FieldTaxBehavior, v...))
+}
+
+// TaxBehaviorIsNil applies the IsNil predicate on the "tax_behavior" field.
+func TaxBehaviorIsNil() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldIsNull(FieldTaxBehavior))
+}
+
+// TaxBehaviorNotNil applies the NotNil predicate on the "tax_behavior" field.
+func TaxBehaviorNotNil() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(sql.FieldNotNull(FieldTaxBehavior))
 }
 
 // ServicePeriodStartEQ applies the EQ predicate on the "service_period_start" field.
@@ -1338,6 +1459,29 @@ func HasCharge() predicate.BillingInvoiceSplitLineGroup {
 func HasChargeWith(preds ...predicate.Charge) predicate.BillingInvoiceSplitLineGroup {
 	return predicate.BillingInvoiceSplitLineGroup(func(s *sql.Selector) {
 		step := newChargeStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasTaxCode applies the HasEdge predicate on the "tax_code" edge.
+func HasTaxCode() predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTaxCodeWith applies the HasEdge predicate on the "tax_code" edge with a given conditions (other predicates).
+func HasTaxCodeWith(preds ...predicate.TaxCode) predicate.BillingInvoiceSplitLineGroup {
+	return predicate.BillingInvoiceSplitLineGroup(func(s *sql.Selector) {
+		step := newTaxCodeStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

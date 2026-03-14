@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
@@ -31,6 +32,10 @@ type BillingWorkflowConfig struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// TaxCodeID holds the value of the "tax_code_id" field.
+	TaxCodeID *string `json:"tax_code_id,omitempty"`
+	// TaxBehavior holds the value of the "tax_behavior" field.
+	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// CollectionAlignment holds the value of the "collection_alignment" field.
 	CollectionAlignment billing.AlignmentKind `json:"collection_alignment,omitempty"`
 	// AnchoredAlignmentDetail holds the value of the "anchored_alignment_detail" field.
@@ -65,9 +70,11 @@ type BillingWorkflowConfigEdges struct {
 	BillingInvoices *BillingInvoice `json:"billing_invoices,omitempty"`
 	// BillingProfile holds the value of the billing_profile edge.
 	BillingProfile *BillingProfile `json:"billing_profile,omitempty"`
+	// TaxCode holds the value of the tax_code edge.
+	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // BillingInvoicesOrErr returns the BillingInvoices value or an error if the edge
@@ -92,6 +99,17 @@ func (e BillingWorkflowConfigEdges) BillingProfileOrErr() (*BillingProfile, erro
 	return nil, &NotLoadedError{edge: "billing_profile"}
 }
 
+// TaxCodeOrErr returns the TaxCode value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingWorkflowConfigEdges) TaxCodeOrErr() (*TaxCode, error) {
+	if e.TaxCode != nil {
+		return e.TaxCode, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: dbtaxcode.Label}
+	}
+	return nil, &NotLoadedError{edge: "tax_code"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*BillingWorkflowConfig) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -101,7 +119,7 @@ func (*BillingWorkflowConfig) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billingworkflowconfig.FieldInvoiceAutoAdvance, billingworkflowconfig.FieldInvoiceProgressiveBilling, billingworkflowconfig.FieldTaxEnabled, billingworkflowconfig.FieldTaxEnforced:
 			values[i] = new(sql.NullBool)
-		case billingworkflowconfig.FieldID, billingworkflowconfig.FieldNamespace, billingworkflowconfig.FieldCollectionAlignment, billingworkflowconfig.FieldLineCollectionPeriod, billingworkflowconfig.FieldInvoiceDraftPeriod, billingworkflowconfig.FieldInvoiceDueAfter, billingworkflowconfig.FieldInvoiceCollectionMethod:
+		case billingworkflowconfig.FieldID, billingworkflowconfig.FieldNamespace, billingworkflowconfig.FieldTaxCodeID, billingworkflowconfig.FieldTaxBehavior, billingworkflowconfig.FieldCollectionAlignment, billingworkflowconfig.FieldLineCollectionPeriod, billingworkflowconfig.FieldInvoiceDraftPeriod, billingworkflowconfig.FieldInvoiceDueAfter, billingworkflowconfig.FieldInvoiceCollectionMethod:
 			values[i] = new(sql.NullString)
 		case billingworkflowconfig.FieldCreatedAt, billingworkflowconfig.FieldUpdatedAt, billingworkflowconfig.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -150,6 +168,20 @@ func (_m *BillingWorkflowConfig) assignValues(columns []string, values []any) er
 			} else if value.Valid {
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
+			}
+		case billingworkflowconfig.FieldTaxCodeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
+			} else if value.Valid {
+				_m.TaxCodeID = new(string)
+				*_m.TaxCodeID = value.String
+			}
+		case billingworkflowconfig.FieldTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
+			} else if value.Valid {
+				_m.TaxBehavior = new(productcatalog.TaxBehavior)
+				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
 			}
 		case billingworkflowconfig.FieldCollectionAlignment:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -244,6 +276,11 @@ func (_m *BillingWorkflowConfig) QueryBillingProfile() *BillingProfileQuery {
 	return NewBillingWorkflowConfigClient(_m.config).QueryBillingProfile(_m)
 }
 
+// QueryTaxCode queries the "tax_code" edge of the BillingWorkflowConfig entity.
+func (_m *BillingWorkflowConfig) QueryTaxCode() *TaxCodeQuery {
+	return NewBillingWorkflowConfigClient(_m.config).QueryTaxCode(_m)
+}
+
 // Update returns a builder for updating this BillingWorkflowConfig.
 // Note that you need to call BillingWorkflowConfig.Unwrap() before calling this method if this BillingWorkflowConfig
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -279,6 +316,16 @@ func (_m *BillingWorkflowConfig) String() string {
 	if v := _m.DeletedAt; v != nil {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxCodeID; v != nil {
+		builder.WriteString("tax_code_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxBehavior; v != nil {
+		builder.WriteString("tax_behavior=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("collection_alignment=")

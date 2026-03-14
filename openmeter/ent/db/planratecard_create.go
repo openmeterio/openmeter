@@ -15,6 +15,7 @@ import (
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
@@ -104,6 +105,34 @@ func (_c *PlanRateCardCreate) SetNillableDescription(v *string) *PlanRateCardCre
 // SetKey sets the "key" field.
 func (_c *PlanRateCardCreate) SetKey(v string) *PlanRateCardCreate {
 	_c.mutation.SetKey(v)
+	return _c
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_c *PlanRateCardCreate) SetTaxCodeID(v string) *PlanRateCardCreate {
+	_c.mutation.SetTaxCodeID(v)
+	return _c
+}
+
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_c *PlanRateCardCreate) SetNillableTaxCodeID(v *string) *PlanRateCardCreate {
+	if v != nil {
+		_c.SetTaxCodeID(*v)
+	}
+	return _c
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (_c *PlanRateCardCreate) SetTaxBehavior(v productcatalog.TaxBehavior) *PlanRateCardCreate {
+	_c.mutation.SetTaxBehavior(v)
+	return _c
+}
+
+// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
+func (_c *PlanRateCardCreate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *PlanRateCardCreate {
+	if v != nil {
+		_c.SetTaxBehavior(*v)
+	}
 	return _c
 }
 
@@ -223,6 +252,11 @@ func (_c *PlanRateCardCreate) SetFeatures(v *Feature) *PlanRateCardCreate {
 	return _c.SetFeaturesID(v.ID)
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_c *PlanRateCardCreate) SetTaxCode(v *TaxCode) *PlanRateCardCreate {
+	return _c.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the PlanRateCardMutation object of the builder.
 func (_c *PlanRateCardCreate) Mutation() *PlanRateCardMutation {
 	return _c.mutation
@@ -297,6 +331,11 @@ func (_c *PlanRateCardCreate) check() error {
 	if v, ok := _c.mutation.Key(); ok {
 		if err := planratecard.KeyValidator(v); err != nil {
 			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.key": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.TaxBehavior(); ok {
+		if err := planratecard.TaxBehaviorValidator(v); err != nil {
+			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "PlanRateCard.tax_behavior": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.GetType(); !ok {
@@ -409,6 +448,10 @@ func (_c *PlanRateCardCreate) createSpec() (*PlanRateCard, *sqlgraph.CreateSpec,
 		_spec.SetField(planratecard.FieldKey, field.TypeString, value)
 		_node.Key = value
 	}
+	if value, ok := _c.mutation.TaxBehavior(); ok {
+		_spec.SetField(planratecard.FieldTaxBehavior, field.TypeEnum, value)
+		_node.TaxBehavior = &value
+	}
 	if value, ok := _c.mutation.GetType(); ok {
 		_spec.SetField(planratecard.FieldType, field.TypeEnum, value)
 		_node.Type = value
@@ -485,6 +528,23 @@ func (_c *PlanRateCardCreate) createSpec() (*PlanRateCard, *sqlgraph.CreateSpec,
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.FeatureID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   planratecard.TaxCodeTable,
+			Columns: []string{planratecard.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.TaxCodeID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -614,6 +674,42 @@ func (u *PlanRateCardUpsert) UpdateDescription() *PlanRateCardUpsert {
 // ClearDescription clears the value of the "description" field.
 func (u *PlanRateCardUpsert) ClearDescription() *PlanRateCardUpsert {
 	u.SetNull(planratecard.FieldDescription)
+	return u
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *PlanRateCardUpsert) SetTaxCodeID(v string) *PlanRateCardUpsert {
+	u.Set(planratecard.FieldTaxCodeID, v)
+	return u
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *PlanRateCardUpsert) UpdateTaxCodeID() *PlanRateCardUpsert {
+	u.SetExcluded(planratecard.FieldTaxCodeID)
+	return u
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *PlanRateCardUpsert) ClearTaxCodeID() *PlanRateCardUpsert {
+	u.SetNull(planratecard.FieldTaxCodeID)
+	return u
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *PlanRateCardUpsert) SetTaxBehavior(v productcatalog.TaxBehavior) *PlanRateCardUpsert {
+	u.Set(planratecard.FieldTaxBehavior, v)
+	return u
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *PlanRateCardUpsert) UpdateTaxBehavior() *PlanRateCardUpsert {
+	u.SetExcluded(planratecard.FieldTaxBehavior)
+	return u
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *PlanRateCardUpsert) ClearTaxBehavior() *PlanRateCardUpsert {
+	u.SetNull(planratecard.FieldTaxBehavior)
 	return u
 }
 
@@ -903,6 +999,48 @@ func (u *PlanRateCardUpsertOne) UpdateDescription() *PlanRateCardUpsertOne {
 func (u *PlanRateCardUpsertOne) ClearDescription() *PlanRateCardUpsertOne {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *PlanRateCardUpsertOne) SetTaxCodeID(v string) *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.SetTaxCodeID(v)
+	})
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *PlanRateCardUpsertOne) UpdateTaxCodeID() *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.UpdateTaxCodeID()
+	})
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *PlanRateCardUpsertOne) ClearTaxCodeID() *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.ClearTaxCodeID()
+	})
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *PlanRateCardUpsertOne) SetTaxBehavior(v productcatalog.TaxBehavior) *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.SetTaxBehavior(v)
+	})
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *PlanRateCardUpsertOne) UpdateTaxBehavior() *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.UpdateTaxBehavior()
+	})
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *PlanRateCardUpsertOne) ClearTaxBehavior() *PlanRateCardUpsertOne {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.ClearTaxBehavior()
 	})
 }
 
@@ -1385,6 +1523,48 @@ func (u *PlanRateCardUpsertBulk) UpdateDescription() *PlanRateCardUpsertBulk {
 func (u *PlanRateCardUpsertBulk) ClearDescription() *PlanRateCardUpsertBulk {
 	return u.Update(func(s *PlanRateCardUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (u *PlanRateCardUpsertBulk) SetTaxCodeID(v string) *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.SetTaxCodeID(v)
+	})
+}
+
+// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
+func (u *PlanRateCardUpsertBulk) UpdateTaxCodeID() *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.UpdateTaxCodeID()
+	})
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (u *PlanRateCardUpsertBulk) ClearTaxCodeID() *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.ClearTaxCodeID()
+	})
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (u *PlanRateCardUpsertBulk) SetTaxBehavior(v productcatalog.TaxBehavior) *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.SetTaxBehavior(v)
+	})
+}
+
+// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
+func (u *PlanRateCardUpsertBulk) UpdateTaxBehavior() *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.UpdateTaxBehavior()
+	})
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (u *PlanRateCardUpsertBulk) ClearTaxBehavior() *PlanRateCardUpsertBulk {
+	return u.Update(func(s *PlanRateCardUpsert) {
+		s.ClearTaxBehavior()
 	})
 }
 

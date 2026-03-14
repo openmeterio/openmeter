@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -33,6 +34,10 @@ type SubscriptionItem struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Metadata holds the value of the "metadata" field.
 	Metadata map[string]string `json:"metadata,omitempty"`
+	// TaxCodeID holds the value of the "tax_code_id" field.
+	TaxCodeID *string `json:"tax_code_id,omitempty"`
+	// TaxBehavior holds the value of the "tax_behavior" field.
+	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// Annotations holds the value of the "annotations" field.
 	Annotations models.Annotations `json:"annotations,omitempty"`
 	// ActiveFrom holds the value of the "active_from" field.
@@ -85,9 +90,11 @@ type SubscriptionItemEdges struct {
 	BillingSplitLineGroups []*BillingInvoiceSplitLineGroup `json:"billing_split_line_groups,omitempty"`
 	// ChargeIntents holds the value of the charge_intents edge.
 	ChargeIntents []*Charge `json:"charge_intents,omitempty"`
+	// TaxCode holds the value of the tax_code edge.
+	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [6]bool
 }
 
 // PhaseOrErr returns the Phase value or an error if the edge
@@ -139,6 +146,17 @@ func (e SubscriptionItemEdges) ChargeIntentsOrErr() ([]*Charge, error) {
 	return nil, &NotLoadedError{edge: "charge_intents"}
 }
 
+// TaxCodeOrErr returns the TaxCode value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e SubscriptionItemEdges) TaxCodeOrErr() (*TaxCode, error) {
+	if e.TaxCode != nil {
+		return e.TaxCode, nil
+	} else if e.loadedTypes[5] {
+		return nil, &NotFoundError{label: dbtaxcode.Label}
+	}
+	return nil, &NotLoadedError{edge: "tax_code"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*SubscriptionItem) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -148,7 +166,7 @@ func (*SubscriptionItem) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case subscriptionitem.FieldRestartsBillingPeriod:
 			values[i] = new(sql.NullBool)
-		case subscriptionitem.FieldID, subscriptionitem.FieldNamespace, subscriptionitem.FieldPhaseID, subscriptionitem.FieldKey, subscriptionitem.FieldEntitlementID, subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart, subscriptionitem.FieldActiveToOverrideRelativeToPhaseStart, subscriptionitem.FieldName, subscriptionitem.FieldDescription, subscriptionitem.FieldFeatureKey, subscriptionitem.FieldBillingCadence:
+		case subscriptionitem.FieldID, subscriptionitem.FieldNamespace, subscriptionitem.FieldTaxCodeID, subscriptionitem.FieldTaxBehavior, subscriptionitem.FieldPhaseID, subscriptionitem.FieldKey, subscriptionitem.FieldEntitlementID, subscriptionitem.FieldActiveFromOverrideRelativeToPhaseStart, subscriptionitem.FieldActiveToOverrideRelativeToPhaseStart, subscriptionitem.FieldName, subscriptionitem.FieldDescription, subscriptionitem.FieldFeatureKey, subscriptionitem.FieldBillingCadence:
 			values[i] = new(sql.NullString)
 		case subscriptionitem.FieldCreatedAt, subscriptionitem.FieldUpdatedAt, subscriptionitem.FieldDeletedAt, subscriptionitem.FieldActiveFrom, subscriptionitem.FieldActiveTo:
 			values[i] = new(sql.NullTime)
@@ -215,6 +233,20 @@ func (_m *SubscriptionItem) assignValues(columns []string, values []any) error {
 				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
+			}
+		case subscriptionitem.FieldTaxCodeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
+			} else if value.Valid {
+				_m.TaxCodeID = new(string)
+				*_m.TaxCodeID = value.String
+			}
+		case subscriptionitem.FieldTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
+			} else if value.Valid {
+				_m.TaxBehavior = new(productcatalog.TaxBehavior)
+				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
 			}
 		case subscriptionitem.FieldAnnotations:
 			if value, err := subscriptionitem.ValueScanner.Annotations.FromValue(values[i]); err != nil {
@@ -364,6 +396,11 @@ func (_m *SubscriptionItem) QueryChargeIntents() *ChargeQuery {
 	return NewSubscriptionItemClient(_m.config).QueryChargeIntents(_m)
 }
 
+// QueryTaxCode queries the "tax_code" edge of the SubscriptionItem entity.
+func (_m *SubscriptionItem) QueryTaxCode() *TaxCodeQuery {
+	return NewSubscriptionItemClient(_m.config).QueryTaxCode(_m)
+}
+
 // Update returns a builder for updating this SubscriptionItem.
 // Note that you need to call SubscriptionItem.Unwrap() before calling this method if this SubscriptionItem
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -403,6 +440,16 @@ func (_m *SubscriptionItem) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
+	builder.WriteString(", ")
+	if v := _m.TaxCodeID; v != nil {
+		builder.WriteString("tax_code_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxBehavior; v != nil {
+		builder.WriteString("tax_behavior=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("annotations=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
