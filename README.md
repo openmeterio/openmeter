@@ -43,9 +43,8 @@ customer-facing dashboards.
 - **Product Catalog** — Define plans, add-ons, features, and
   rate cards. Manage subscriptions with mid-cycle changes,
   prorating, and alignment.
-- **Prepaid Credits** — Prepaid credits with paid or
-  promotional grants with priority-based burn-down and
-  expiration.
+- **Prepaid Credits** — Support paid or promotional credit grants
+  with priority-based burn-down and expiration.
 - **Customer Portal** — Token-based self-service dashboards
   so your customers can see their own usage.
 - **Notifications** — Webhook-based alerts with configurable
