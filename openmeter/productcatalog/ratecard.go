@@ -191,6 +191,12 @@ func (r RateCardMeta) Validate() error {
 		if err := r.EntitlementTemplate.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid entitlement template: %w", err))
 		}
+
+		if r.EntitlementTemplate.Type() == entitlement.EntitlementTypeMetered {
+			if metered, err := r.EntitlementTemplate.AsMetered(); err == nil && metered.IssueAfterReset == nil {
+				errs = append(errs, ErrEntitlementTemplateIssueAfterResetRequired)
+			}
+		}
 	}
 
 	if r.TaxConfig != nil {
