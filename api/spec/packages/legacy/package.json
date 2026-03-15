@@ -15,7 +15,7 @@
   "main": "./lib/index.js",
   "exports": {
     ".": {
-      "typespec": "./src/main.tsp"
+      "typespec": "./src/cloud/main.tsp"
     }
   },
   "devDependencies": {
