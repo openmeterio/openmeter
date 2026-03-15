@@ -3,26 +3,10 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "compile": "pnpm compile:openapi && pnpm compile:v3 && pnpm compile:client",
-    "compile:openapi": "tsp compile --config tspconfig.yaml ./src/cloud",
-    "compile:v3": "tsp compile --config tspconfig.v3.yaml ./src/v3 && node ./scripts/flatten-allof-v3.mjs ./output/definitions/metering-and-billing/v3/openapi.MeteringAndBilling.yaml",
-    "compile:client": "tsp compile --config tspconfig.client.yaml ./src",
-    "bundle:v3": "openapi bundle output/definitions/metering-and-billing/v3/openapi.OpenMeter.yaml",
-    "watch:openapi": "tsp compile --watch --config tspconfig.yaml ./src/cloud",
-    "watch:v3": "tsp compile --watch --config tspconfig.v3.yaml ./src/v3",
-    "watch:client": "tsp compile --watch --config tspconfig.client.yaml ./src",
+    "generate": "pnpm --filter @openmeter/api-spec-legacy run compile && pnpm --filter @openmeter/api-spec-aip run compile",
     "format": "prettier --list-different --find-config-path --write .",
-    "lint": "prettier --check .",
+    "lint": "prettier --check . && pnpm --filter @openmeter/api-spec-legacy run lint && pnpm --filter @openmeter/api-spec-aip run lint",
     "lint:fix": "prettier --write ."
-  },
-  "main": "./lib/index.js",
-  "exports": {
-    ".": {
-      "typespec": "./src/cloud/main.tsp"
-    },
-    "./v3": {
-      "typespec": "./src/v3/main.tsp"
-    }
   },
   "devDependencies": {
     "@azure-tools/typespec-client-generator-core": "0.65.4",
@@ -39,6 +23,12 @@
     "@typespec/versioning": "0.79.0",
     "prettier": "3.8.1",
     "yaml": "2.8.2"
+  },
+  "exports": {
+    "./openapi.yaml": "./packages/legacy/output/openapi.OpenMeterCloud.yaml",
+    "./openapi.cloud.yaml": "./packages/legacy/output/openapi.OpenMeterCloud.yaml",
+    "./openapi.legacy.yaml": "./packages/legacy/output/openapi.OpenMeter.yaml",
+    "./v3/openapi.yaml": "./packages/aip/output/definitions/metering-and-billing/v3/openapi.MeteringAndBilling.yaml"
   },
   "private": true,
   "packageManager": "pnpm@10.28.0+sha512.05df71d1421f21399e053fde567cea34d446fa02c76571441bfc1c7956e98e363088982d940465fd34480d4d90a0668bc12362f8aa88000a64e83d0b0e47be48",

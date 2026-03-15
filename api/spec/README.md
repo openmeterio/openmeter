@@ -1,29 +1,27 @@
-# TypeSpec best practices
+# OpenMeter API specs
 
-## Use `@visibility` decorator
+This workspace contains two TypeSpec packages that generate OpenAPI specs:
 
-Visibility is a language feature that allows you to share a model between multiple operations and define in which contexts properties of the model are “visible.” Visibility is a very powerful feature that allows you to define different “views” of a model within different operations or contexts.
+| Package                        | Description                                                   | Output                                                  |
+| ------------------------------ | ------------------------------------------------------------- | ------------------------------------------------------- |
+| **Legacy** (`packages/legacy`) | OpenMeter API (v1-v2) and OpenMeter Cloud API                 | `openapi.OpenMeter.yaml`, `openapi.OpenMeterCloud.yaml` |
+| **AIP** (`packages/aip`)       | OpenMeter and Konnect metering & billing APIs (v3), AIP-style | `openapi.MeteringAndBilling.yaml` (OpenMeter + Konnect) |
 
-- `Lifecycle.Read`: output of any operation
-- `Lifecycle.Create`: input to operations that create an entity
-- `Lifecycle.Update`: input to operations that update data
+From the repo root, run `make gen-api` (or `make -C api/spec generate`) to build both packages and copy/bundle artifacts into `api/`.
 
-Use the `@visibility` decorator to control the visibility of the properties in the generated OpenAPI specification.
+---
 
-## Use `Rest` (`"@typespec/rest"`) models to create request body types
+## Legacy API (`packages/legacy`)
 
-- _POST_: `Rest.Resource.ResourceCreateModel<T>`
-  - Fields with `Lifecycle.Create` visibility
-  - The model name is `{name}Create`
-- _PUT_: `Rest.Resource.ResourceReplaceModel<T>` (custom in `rest.tsp`)
-  - Fields without `Lifecycle.Read` visibility
-  - The model name is `{name}ReplaceUpdate`
-- _PATCH_: `Rest.Resource.ResourceCreateOrUpdateModel<T>`
-  - Fields without `Lifecycle.Read` visibility and all optional
-  - The model name is `{name}Update`
+Legacy specs follow OpenMeter’s existing TypeSpec conventions. See [`packages/legacy/README.md`](packages/legacy/README.md) for patterns and guidelines.
 
-Follow the naming convention with custom, CRUD type operations. Avoid names, like `RequestBody`, `Input` (this can be used for non CRUD operations).
+---
 
-## Use of the `@friendlyName` decorator
+## AIP (`packages/aip`)
 
-Use package prefix for the friendly name, like `Plan`, `PlanPhase`, `PlanStatus`.
+The AIP package defines v3 metering and billing APIs in line with [Kong’s AIP (API Improvement Proposals)](https://kong-aip.netlify.app/list/).
+
+- **OpenMeter** (`openmeter.tsp`): OpenMeter v3 API (events, meters, customers, subscriptions, billing, etc.).
+- **Konnect** (`konnect.tsp`): Konnect metering & billing API, same surface with Konnect-specific auth and servers.
+
+See [`packages/aip/README.md`](packages/aip/README.md) for patterns and guidelines.

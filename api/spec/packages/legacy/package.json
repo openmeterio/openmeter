@@ -1,0 +1,36 @@
+{
+  "name": "@openmeter/api-spec-legacy",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "compile": "pnpm compile:openapi && pnpm compile:client",
+    "compile:openapi": "tsp compile --config tspconfig.yaml ./src/cloud",
+    "compile:client": "tsp compile --config tspconfig.client.yaml ./src",
+    "watch:openapi": "tsp compile --watch --config tspconfig.yaml ./src/cloud",
+    "watch:client": "tsp compile --watch --config tspconfig.client.yaml ./src",
+    "format": "prettier --ignore-path ../../.prettierignore --list-different --find-config-path --write .",
+    "lint": "prettier --ignore-path ../../.prettierignore --check .",
+    "lint:fix": "prettier --ignore-path ../../.prettierignore --write ."
+  },
+  "main": "./lib/index.js",
+  "exports": {
+    ".": {
+      "typespec": "./src/main.tsp"
+    }
+  },
+  "devDependencies": {
+    "@azure-tools/typespec-client-generator-core": "0.65.4",
+    "@types/node": "25.3.3",
+    "@typespec/compiler": "1.9.0",
+    "@typespec/http": "1.9.1",
+    "@typespec/http-client-python": "0.27.2",
+    "@typespec/openapi": "1.9.0",
+    "@typespec/openapi3": "1.9.0",
+    "@typespec/prettier-plugin-typespec": "1.9.0",
+    "@typespec/rest": "0.79.0",
+    "@typespec/versioning": "0.79.0",
+    "prettier": "3.8.1"
+  },
+  "private": true,
+  "packageManager": "pnpm@10.28.0+sha512.05df71d1421f21399e053fde567cea34d446fa02c76571441bfc1c7956e98e363088982d940465fd34480d4d90a0668bc12362f8aa88000a64e83d0b0e47be48"
+}
