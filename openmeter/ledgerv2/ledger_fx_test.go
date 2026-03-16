@@ -112,12 +112,11 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 			Currency: "CRD",
 		}
 
-		inputs, err := transactions.ResolveTransactions(ctx, deps, scope, tx1, tx2, tx3)
-		require.NoError(t, err)
-		require.Len(t, inputs, 3)
-
 		// tx1, tx2 & tx3 should be written to the ledger AT THE SAME TIME
-		_, err = histLedger.CommitGroup(ctx, transactions.GroupInputs(namespace, nil, inputs...))
+		_, err = histLedger.CommitGroup(ctx, historical.TransactionGroupInput{
+			Namespace:    namespace,
+			Transactions: []ledgerv2.TransactionResolver{tx1, tx2, tx3},
+		})
 		require.NoError(t, err)
 	})
 }
