@@ -45,7 +45,7 @@ func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 
 			return nil, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[DeleteCustomerResponse](http.StatusNoContent),
+		commonhttp.EmptyResponseEncoder[DeleteCustomerResponse](http.StatusNoContent),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("delete-customer"),

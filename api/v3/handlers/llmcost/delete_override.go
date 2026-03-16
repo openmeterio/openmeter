@@ -38,7 +38,7 @@ func (h *handler) DeleteOverride() DeleteOverrideHandler {
 
 			return nil, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[DeleteOverrideResponse](http.StatusNoContent),
+		commonhttp.EmptyResponseEncoder[DeleteOverrideResponse](http.StatusNoContent),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("delete-llm-cost-override"),

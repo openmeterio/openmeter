@@ -45,7 +45,7 @@ func (h *handler) DeleteBillingProfile() DeleteBillingProfileHandler {
 
 			return nil, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[DeleteBillingProfileResponse](http.StatusNoContent),
+		commonhttp.EmptyResponseEncoder[DeleteBillingProfileResponse](http.StatusNoContent),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("delete-billing-profile"),

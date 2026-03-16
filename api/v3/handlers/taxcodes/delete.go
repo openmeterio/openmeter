@@ -47,7 +47,7 @@ func (h *handler) DeleteTaxCode() DeleteTaxCodeHandler {
 
 			return nil, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[DeleteTaxCodeResponse](http.StatusNoContent),
+		commonhttp.EmptyResponseEncoder[DeleteTaxCodeResponse](http.StatusNoContent),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("delete-tax-code"),
