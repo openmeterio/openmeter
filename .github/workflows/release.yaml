@@ -28,6 +28,7 @@ jobs:
   dagger:
     name: Dagger
     runs-on: depot-ubuntu-latest-8
+    environment: prod
 
     permissions:
       contents: write
@@ -57,6 +58,7 @@ jobs:
   sdk-python-release:
     name: Python SDK Release
     runs-on: depot-ubuntu-latest-8
+    environment: prod
 
     steps:
       - name: Checkout repository
