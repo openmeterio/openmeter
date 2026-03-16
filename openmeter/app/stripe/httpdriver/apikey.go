@@ -47,7 +47,7 @@ func (h *handler) UpdateStripeAPIKey() UpdateStripeAPIKeyHandler {
 
 			return UpdateStripeAPIKeyResponse{}, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[UpdateStripeAPIKeyResponse](http.StatusNoContent),
+		commonhttp.EmptyResponseEncoder[UpdateStripeAPIKeyResponse](http.StatusNoContent),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("replaceStripeAPIKey"),

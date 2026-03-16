@@ -46,7 +46,7 @@ func (h *handler) DeleteMeter() DeleteMeterHandler {
 
 			return nil, nil
 		},
-		commonhttp.JSONResponseEncoderWithStatus[DeleteMeterResponse](http.StatusNoContent),
+		commonhttp.EmptyResponseEncoder[DeleteMeterResponse](http.StatusNoContent),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("delete-meter"),
