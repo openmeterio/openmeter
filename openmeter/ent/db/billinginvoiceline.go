@@ -18,7 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargestandardinvoicepaymentsettlement"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -148,12 +148,12 @@ type BillingInvoiceLineEdges struct {
 	SubscriptionItem *SubscriptionItem `json:"subscription_item,omitempty"`
 	// Charge holds the value of the charge edge.
 	Charge *Charge `json:"charge,omitempty"`
-	// ChargeStandardInvoicePaymentSettlement holds the value of the charge_standard_invoice_payment_settlement edge.
-	ChargeStandardInvoicePaymentSettlement *ChargeStandardInvoicePaymentSettlement `json:"charge_standard_invoice_payment_settlement,omitempty"`
-	// ChargeCreditRealization holds the value of the charge_credit_realization edge.
-	ChargeCreditRealization []*ChargeCreditRealization `json:"charge_credit_realization,omitempty"`
-	// ChargeStandardInvoiceAccruedUsage holds the value of the charge_standard_invoice_accrued_usage edge.
-	ChargeStandardInvoiceAccruedUsage []*ChargeStandardInvoiceAccruedUsage `json:"charge_standard_invoice_accrued_usage,omitempty"`
+	// ChargeFlatFeePayment holds the value of the charge_flat_fee_payment edge.
+	ChargeFlatFeePayment *ChargeFlatFeePayment `json:"charge_flat_fee_payment,omitempty"`
+	// ChargeFlatFeeCreditAllocations holds the value of the charge_flat_fee_credit_allocations edge.
+	ChargeFlatFeeCreditAllocations []*ChargeFlatFeeCreditAllocations `json:"charge_flat_fee_credit_allocations,omitempty"`
+	// ChargeFlatFeeInvoicedUsage holds the value of the charge_flat_fee_invoiced_usage edge.
+	ChargeFlatFeeInvoicedUsage []*ChargeFlatFeeInvoicedUsage `json:"charge_flat_fee_invoiced_usage,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [16]bool
@@ -294,33 +294,33 @@ func (e BillingInvoiceLineEdges) ChargeOrErr() (*Charge, error) {
 	return nil, &NotLoadedError{edge: "charge"}
 }
 
-// ChargeStandardInvoicePaymentSettlementOrErr returns the ChargeStandardInvoicePaymentSettlement value or an error if the edge
+// ChargeFlatFeePaymentOrErr returns the ChargeFlatFeePayment value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e BillingInvoiceLineEdges) ChargeStandardInvoicePaymentSettlementOrErr() (*ChargeStandardInvoicePaymentSettlement, error) {
-	if e.ChargeStandardInvoicePaymentSettlement != nil {
-		return e.ChargeStandardInvoicePaymentSettlement, nil
+func (e BillingInvoiceLineEdges) ChargeFlatFeePaymentOrErr() (*ChargeFlatFeePayment, error) {
+	if e.ChargeFlatFeePayment != nil {
+		return e.ChargeFlatFeePayment, nil
 	} else if e.loadedTypes[13] {
-		return nil, &NotFoundError{label: chargestandardinvoicepaymentsettlement.Label}
+		return nil, &NotFoundError{label: chargeflatfeepayment.Label}
 	}
-	return nil, &NotLoadedError{edge: "charge_standard_invoice_payment_settlement"}
+	return nil, &NotLoadedError{edge: "charge_flat_fee_payment"}
 }
 
-// ChargeCreditRealizationOrErr returns the ChargeCreditRealization value or an error if the edge
+// ChargeFlatFeeCreditAllocationsOrErr returns the ChargeFlatFeeCreditAllocations value or an error if the edge
 // was not loaded in eager-loading.
-func (e BillingInvoiceLineEdges) ChargeCreditRealizationOrErr() ([]*ChargeCreditRealization, error) {
+func (e BillingInvoiceLineEdges) ChargeFlatFeeCreditAllocationsOrErr() ([]*ChargeFlatFeeCreditAllocations, error) {
 	if e.loadedTypes[14] {
-		return e.ChargeCreditRealization, nil
+		return e.ChargeFlatFeeCreditAllocations, nil
 	}
-	return nil, &NotLoadedError{edge: "charge_credit_realization"}
+	return nil, &NotLoadedError{edge: "charge_flat_fee_credit_allocations"}
 }
 
-// ChargeStandardInvoiceAccruedUsageOrErr returns the ChargeStandardInvoiceAccruedUsage value or an error if the edge
+// ChargeFlatFeeInvoicedUsageOrErr returns the ChargeFlatFeeInvoicedUsage value or an error if the edge
 // was not loaded in eager-loading.
-func (e BillingInvoiceLineEdges) ChargeStandardInvoiceAccruedUsageOrErr() ([]*ChargeStandardInvoiceAccruedUsage, error) {
+func (e BillingInvoiceLineEdges) ChargeFlatFeeInvoicedUsageOrErr() ([]*ChargeFlatFeeInvoicedUsage, error) {
 	if e.loadedTypes[15] {
-		return e.ChargeStandardInvoiceAccruedUsage, nil
+		return e.ChargeFlatFeeInvoicedUsage, nil
 	}
-	return nil, &NotLoadedError{edge: "charge_standard_invoice_accrued_usage"}
+	return nil, &NotLoadedError{edge: "charge_flat_fee_invoiced_usage"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -713,19 +713,19 @@ func (_m *BillingInvoiceLine) QueryCharge() *ChargeQuery {
 	return NewBillingInvoiceLineClient(_m.config).QueryCharge(_m)
 }
 
-// QueryChargeStandardInvoicePaymentSettlement queries the "charge_standard_invoice_payment_settlement" edge of the BillingInvoiceLine entity.
-func (_m *BillingInvoiceLine) QueryChargeStandardInvoicePaymentSettlement() *ChargeStandardInvoicePaymentSettlementQuery {
-	return NewBillingInvoiceLineClient(_m.config).QueryChargeStandardInvoicePaymentSettlement(_m)
+// QueryChargeFlatFeePayment queries the "charge_flat_fee_payment" edge of the BillingInvoiceLine entity.
+func (_m *BillingInvoiceLine) QueryChargeFlatFeePayment() *ChargeFlatFeePaymentQuery {
+	return NewBillingInvoiceLineClient(_m.config).QueryChargeFlatFeePayment(_m)
 }
 
-// QueryChargeCreditRealization queries the "charge_credit_realization" edge of the BillingInvoiceLine entity.
-func (_m *BillingInvoiceLine) QueryChargeCreditRealization() *ChargeCreditRealizationQuery {
-	return NewBillingInvoiceLineClient(_m.config).QueryChargeCreditRealization(_m)
+// QueryChargeFlatFeeCreditAllocations queries the "charge_flat_fee_credit_allocations" edge of the BillingInvoiceLine entity.
+func (_m *BillingInvoiceLine) QueryChargeFlatFeeCreditAllocations() *ChargeFlatFeeCreditAllocationsQuery {
+	return NewBillingInvoiceLineClient(_m.config).QueryChargeFlatFeeCreditAllocations(_m)
 }
 
-// QueryChargeStandardInvoiceAccruedUsage queries the "charge_standard_invoice_accrued_usage" edge of the BillingInvoiceLine entity.
-func (_m *BillingInvoiceLine) QueryChargeStandardInvoiceAccruedUsage() *ChargeStandardInvoiceAccruedUsageQuery {
-	return NewBillingInvoiceLineClient(_m.config).QueryChargeStandardInvoiceAccruedUsage(_m)
+// QueryChargeFlatFeeInvoicedUsage queries the "charge_flat_fee_invoiced_usage" edge of the BillingInvoiceLine entity.
+func (_m *BillingInvoiceLine) QueryChargeFlatFeeInvoicedUsage() *ChargeFlatFeeInvoicedUsageQuery {
+	return NewBillingInvoiceLineClient(_m.config).QueryChargeFlatFeeInvoicedUsage(_m)
 }
 
 // Update returns a builder for updating this BillingInvoiceLine.

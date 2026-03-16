@@ -9,7 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 )
 
 const (
@@ -65,8 +65,6 @@ const (
 	FieldSubscriptionItemID = "subscription_item_id"
 	// EdgeFlatFee holds the string denoting the flat_fee edge name in mutations.
 	EdgeFlatFee = "flat_fee"
-	// EdgeUsageBased holds the string denoting the usage_based edge name in mutations.
-	EdgeUsageBased = "usage_based"
 	// EdgeCreditPurchase holds the string denoting the credit_purchase edge name in mutations.
 	EdgeCreditPurchase = "credit_purchase"
 	// EdgeBillingInvoiceLines holds the string denoting the billing_invoice_lines edge name in mutations.
@@ -90,13 +88,6 @@ const (
 	FlatFeeInverseTable = "charge_flat_fees"
 	// FlatFeeColumn is the table column denoting the flat_fee relation/edge.
 	FlatFeeColumn = "id"
-	// UsageBasedTable is the table that holds the usage_based relation/edge.
-	UsageBasedTable = "charge_usage_baseds"
-	// UsageBasedInverseTable is the table name for the ChargeUsageBased entity.
-	// It exists in this package in order to avoid circular dependency with the "chargeusagebased" package.
-	UsageBasedInverseTable = "charge_usage_baseds"
-	// UsageBasedColumn is the table column denoting the usage_based relation/edge.
-	UsageBasedColumn = "id"
 	// CreditPurchaseTable is the table that holds the credit_purchase relation/edge.
 	CreditPurchaseTable = "charge_credit_purchases"
 	// CreditPurchaseInverseTable is the table name for the ChargeCreditPurchase entity.
@@ -204,7 +195,7 @@ var (
 )
 
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
-func TypeValidator(_type charges.ChargeType) error {
+func TypeValidator(_type meta.ChargeType) error {
 	switch _type {
 	case "flat_fee", "usage_based", "credit_purchase":
 		return nil
@@ -214,7 +205,7 @@ func TypeValidator(_type charges.ChargeType) error {
 }
 
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
-func StatusValidator(s charges.ChargeStatus) error {
+func StatusValidator(s meta.ChargeStatus) error {
 	switch s {
 	case "created", "active", "settled", "final":
 		return nil
@@ -353,13 +344,6 @@ func ByFlatFeeField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
-// ByUsageBasedField orders the results by usage_based field.
-func ByUsageBasedField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newUsageBasedStep(), sql.OrderByField(field, opts...))
-	}
-}
-
 // ByCreditPurchaseField orders the results by credit_purchase field.
 func ByCreditPurchaseField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -427,13 +411,6 @@ func newFlatFeeStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(FlatFeeInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, FlatFeeTable, FlatFeeColumn),
-	)
-}
-func newUsageBasedStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(UsageBasedInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, false, UsageBasedTable, UsageBasedColumn),
 	)
 }
 func newCreditPurchaseStep() *sqlgraph.Step {

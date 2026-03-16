@@ -7,107 +7,110 @@ import (
 
 	"github.com/oklog/ulid/v2"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 )
 
-var _ charges.FlatFeeHandler = (*flatFeeTestHandler)(nil)
+var _ flatfee.Handler = (*flatFeeTestHandler)(nil)
 
 type flatFeeTestHandler struct {
-	onFlatFeeAssignedToInvoice           func(ctx context.Context, input charges.OnFlatFeeAssignedToInvoiceInput) ([]charges.CreditRealizationCreateInput, error)
-	onFlatFeeStandardInvoiceUsageAccrued func(ctx context.Context, input charges.OnFlatFeeStandardInvoiceUsageAccruedInput) (charges.LedgerTransactionGroupReference, error)
-	onFlatFeePaymentAuthorized           func(ctx context.Context, charge charges.FlatFeeCharge) (charges.LedgerTransactionGroupReference, error)
-	onFlatFeePaymentSettled              func(ctx context.Context, charge charges.FlatFeeCharge) (charges.LedgerTransactionGroupReference, error)
-	onFlatFeePaymentUncollectible        func(ctx context.Context, charge charges.FlatFeeCharge) (charges.LedgerTransactionGroupReference, error)
+	onAssignedToInvoice    func(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) ([]creditrealization.CreateInput, error)
+	onInvoiceUsageAccrued  func(ctx context.Context, input flatfee.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
+	onPaymentAuthorized    func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
+	onPaymentSettled       func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
+	onPaymentUncollectible func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
 }
 
 func newFlatFeeTestHandler() *flatFeeTestHandler {
 	return &flatFeeTestHandler{}
 }
 
-func (h *flatFeeTestHandler) OnFlatFeeAssignedToInvoice(ctx context.Context, input charges.OnFlatFeeAssignedToInvoiceInput) ([]charges.CreditRealizationCreateInput, error) {
-	if h.onFlatFeeAssignedToInvoice == nil {
-		return nil, errors.New("onFlatFeeAssignedToInvoice is not set")
+func (h *flatFeeTestHandler) OnAssignedToInvoice(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) ([]creditrealization.CreateInput, error) {
+	if h.onAssignedToInvoice == nil {
+		return nil, errors.New("onAssignedToInvoice is not set")
 	}
 
-	return h.onFlatFeeAssignedToInvoice(ctx, input)
+	return h.onAssignedToInvoice(ctx, input)
 }
 
-func (h *flatFeeTestHandler) OnFlatFeeStandardInvoiceUsageAccrued(ctx context.Context, input charges.OnFlatFeeStandardInvoiceUsageAccruedInput) (charges.LedgerTransactionGroupReference, error) {
-	if h.onFlatFeeStandardInvoiceUsageAccrued == nil {
-		return charges.LedgerTransactionGroupReference{}, errors.New("onFlatFeeStandardInvoiceUsageAccrued is not set")
+func (h *flatFeeTestHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfee.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error) {
+	if h.onInvoiceUsageAccrued == nil {
+		return ledgertransaction.GroupReference{}, errors.New("onInvoiceUsageAccrued is not set")
 	}
 
-	return h.onFlatFeeStandardInvoiceUsageAccrued(ctx, input)
+	return h.onInvoiceUsageAccrued(ctx, input)
 }
 
-func (h *flatFeeTestHandler) OnFlatFeePaymentAuthorized(ctx context.Context, charge charges.FlatFeeCharge) (charges.LedgerTransactionGroupReference, error) {
-	if h.onFlatFeePaymentAuthorized == nil {
-		return charges.LedgerTransactionGroupReference{}, errors.New("onFlatFeePaymentAuthorized is not set")
+func (h *flatFeeTestHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error) {
+	if h.onPaymentAuthorized == nil {
+		return ledgertransaction.GroupReference{}, errors.New("onPaymentAuthorized is not set")
 	}
 
-	return h.onFlatFeePaymentAuthorized(ctx, charge)
+	return h.onPaymentAuthorized(ctx, charge)
 }
 
-func (h *flatFeeTestHandler) OnFlatFeePaymentSettled(ctx context.Context, charge charges.FlatFeeCharge) (charges.LedgerTransactionGroupReference, error) {
-	if h.onFlatFeePaymentSettled == nil {
-		return charges.LedgerTransactionGroupReference{}, errors.New("onFlatFeePaymentSettled is not set")
+func (h *flatFeeTestHandler) OnPaymentSettled(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error) {
+	if h.onPaymentSettled == nil {
+		return ledgertransaction.GroupReference{}, errors.New("onPaymentSettled is not set")
 	}
 
-	return h.onFlatFeePaymentSettled(ctx, charge)
+	return h.onPaymentSettled(ctx, charge)
 }
 
-func (h *flatFeeTestHandler) OnFlatFeePaymentUncollectible(ctx context.Context, charge charges.FlatFeeCharge) (charges.LedgerTransactionGroupReference, error) {
-	if h.onFlatFeePaymentUncollectible == nil {
-		return charges.LedgerTransactionGroupReference{}, errors.New("onFlatFeePaymentUncollectible is not set")
+func (h *flatFeeTestHandler) OnPaymentUncollectible(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error) {
+	if h.onPaymentUncollectible == nil {
+		return ledgertransaction.GroupReference{}, errors.New("onPaymentUncollectible is not set")
 	}
 
-	return h.onFlatFeePaymentUncollectible(ctx, charge)
+	return h.onPaymentUncollectible(ctx, charge)
 }
 
 func (h *flatFeeTestHandler) Reset() {
 	*h = flatFeeTestHandler{}
 }
 
-var _ charges.CreditPurchaseHandler = (*creditPurchaseTestHandler)(nil)
+var _ creditpurchase.Handler = (*creditPurchaseTestHandler)(nil)
 
 type creditPurchaseTestHandler struct {
-	onPromotionalCreditPurchase       func(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.LedgerTransactionGroupReference, error)
-	onCreditPurchaseInitiated         func(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.LedgerTransactionGroupReference, error)
-	onCreditPurchasePaymentAuthorized func(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.LedgerTransactionGroupReference, error)
-	onCreditPurchasePaymentSettled    func(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.LedgerTransactionGroupReference, error)
+	onPromotionalCreditPurchase       func(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error)
+	onCreditPurchaseInitiated         func(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error)
+	onCreditPurchasePaymentAuthorized func(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error)
+	onCreditPurchasePaymentSettled    func(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error)
 }
 
 func newCreditPurchaseTestHandler() *creditPurchaseTestHandler {
 	return &creditPurchaseTestHandler{}
 }
 
-func (h *creditPurchaseTestHandler) OnPromotionalCreditPurchase(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.LedgerTransactionGroupReference, error) {
+func (h *creditPurchaseTestHandler) OnPromotionalCreditPurchase(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error) {
 	if h.onPromotionalCreditPurchase == nil {
-		return charges.LedgerTransactionGroupReference{}, errors.New("onPromotionalCreditPurchase is not set")
+		return ledgertransaction.GroupReference{}, errors.New("onPromotionalCreditPurchase is not set")
 	}
 
 	return h.onPromotionalCreditPurchase(ctx, charge)
 }
 
-func (h *creditPurchaseTestHandler) OnCreditPurchaseInitiated(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.LedgerTransactionGroupReference, error) {
+func (h *creditPurchaseTestHandler) OnCreditPurchaseInitiated(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error) {
 	if h.onCreditPurchaseInitiated == nil {
-		return charges.LedgerTransactionGroupReference{}, errors.New("onCreditPurchaseInitiated is not set")
+		return ledgertransaction.GroupReference{}, errors.New("onCreditPurchaseInitiated is not set")
 	}
 
 	return h.onCreditPurchaseInitiated(ctx, charge)
 }
 
-func (h *creditPurchaseTestHandler) OnCreditPurchasePaymentAuthorized(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.LedgerTransactionGroupReference, error) {
+func (h *creditPurchaseTestHandler) OnCreditPurchasePaymentAuthorized(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error) {
 	if h.onCreditPurchasePaymentAuthorized == nil {
-		return charges.LedgerTransactionGroupReference{}, errors.New("onCreditPurchasePaymentAuthorized is not set")
+		return ledgertransaction.GroupReference{}, errors.New("onCreditPurchasePaymentAuthorized is not set")
 	}
 
 	return h.onCreditPurchasePaymentAuthorized(ctx, charge)
 }
 
-func (h *creditPurchaseTestHandler) OnCreditPurchasePaymentSettled(ctx context.Context, charge charges.CreditPurchaseCharge) (charges.LedgerTransactionGroupReference, error) {
+func (h *creditPurchaseTestHandler) OnCreditPurchasePaymentSettled(ctx context.Context, charge creditpurchase.Charge) (ledgertransaction.GroupReference, error) {
 	if h.onCreditPurchasePaymentSettled == nil {
-		return charges.LedgerTransactionGroupReference{}, errors.New("onCreditPurchasePaymentSettled is not set")
+		return ledgertransaction.GroupReference{}, errors.New("onCreditPurchasePaymentSettled is not set")
 	}
 
 	return h.onCreditPurchasePaymentSettled(ctx, charge)
@@ -133,13 +136,13 @@ func newCountedLedgerTransactionCallback[T any]() *countedLedgerTransactionCallb
 	}
 }
 
-func (c *countedLedgerTransactionCallback[T]) Handler(t *testing.T, asserts ...assertFunc[T]) func(ctx context.Context, t T) (charges.LedgerTransactionGroupReference, error) {
-	return func(ctx context.Context, arg T) (charges.LedgerTransactionGroupReference, error) {
+func (c *countedLedgerTransactionCallback[T]) Handler(t *testing.T, asserts ...assertFunc[T]) func(ctx context.Context, t T) (ledgertransaction.GroupReference, error) {
+	return func(ctx context.Context, arg T) (ledgertransaction.GroupReference, error) {
 		c.nrInvocations++
 		for _, assert := range asserts {
 			assert(t, arg)
 		}
-		return charges.LedgerTransactionGroupReference{
+		return ledgertransaction.GroupReference{
 			TransactionGroupID: c.id,
 		}, nil
 	}

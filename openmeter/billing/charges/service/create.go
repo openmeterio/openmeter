@@ -2,20 +2,21 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func (s *service) CreateCharges(ctx context.Context, input charges.CreateChargeInputs) (charges.Charges, error) {
+func (s *service) Create(ctx context.Context, input charges.CreateInput) (charges.Charges, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -23,174 +24,119 @@ func (s *service) CreateCharges(ctx context.Context, input charges.CreateChargeI
 	// Let's validate for unsupported charge types while we are building out the service
 	for _, charge := range input.Intents {
 		switch charge.Type() {
-		case charges.ChargeTypeUsageBased:
-			return nil, fmt.Errorf("unsupported charge type %s: %w", charge.Type(), charges.ErrUnsupported)
+		case meta.ChargeTypeUsageBased:
+			return nil, fmt.Errorf("unsupported charge type %s: %w", charge.Type(), meta.ErrUnsupported)
 		}
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (charges.Charges, error) {
-		createdCharges, err := s.adapter.CreateCharges(ctx, input)
+		intentsByType, err := input.Intents.ByType()
 		if err != nil {
 			return nil, err
 		}
 
-		createdChargesByType, err := chargesByType(createdCharges)
+		createdCharges := make([]charges.WithIndex[charges.Charge], 0, len(input.Intents))
+		gatheringLinesToCreate := make([]gatheringLineWithCustomerID, 0, len(input.Intents))
+
+		// Let's create all the flat fee charges in bulk and record any gathering lines to create
+		flatFees, err := s.flatFeeService.Create(ctx, flatfee.CreateInput{
+			Namespace: input.Namespace,
+			Intents: lo.Map(intentsByType.FlatFee, func(intent charges.WithIndex[flatfee.Intent], _ int) flatfee.Intent {
+				return intent.Value
+			}),
+		})
 		if err != nil {
 			return nil, err
 		}
 
-		resultsByChargeID := make(map[charges.ChargeID]charges.Charge)
+		createdCharges = append(
+			createdCharges,
+			lo.Map(flatFees, func(fee flatfee.ChargeWithGatheringLine, idx int) charges.WithIndex[charges.Charge] {
+				return charges.WithIndex[charges.Charge]{
+					Index: intentsByType.FlatFee[idx].Index,
+					Value: charges.NewCharge(fee.Charge),
+				}
+			})...,
+		)
 
-		if len(createdChargesByType.usageBased) > 0 || len(createdChargesByType.flatFees) > 0 {
-			result, err := s.invoiceChargePostCreate(ctx, invoiceChargePostCreateInput{
-				namespace:  input.Namespace,
-				flatFees:   createdChargesByType.flatFees,
-				usageBased: createdChargesByType.usageBased,
+		for _, fee := range flatFees {
+			if fee.GatheringLineToCreate != nil {
+				gatheringLinesToCreate = append(gatheringLinesToCreate, gatheringLineWithCustomerID{
+					gatheringLine: *fee.GatheringLineToCreate,
+					customerID: customer.CustomerID{
+						Namespace: input.Namespace,
+						ID:        fee.Charge.Intent.CustomerID,
+					},
+				})
+			}
+		}
+
+		// Let's generate the gathering lines for the flat fees
+		if err := s.createGatheringLines(ctx, gatheringLinesToCreate); err != nil {
+			return nil, err
+		}
+
+		// Let's create all the credit purchase charges in bulk
+		for _, intent := range intentsByType.CreditPurchase {
+			charge, err := s.creditPurchaseService.Create(ctx, creditpurchase.CreateInput{
+				Namespace: input.Namespace,
+				Intent:    intent.Value,
 			})
 			if err != nil {
 				return nil, err
 			}
 
-			if result != nil {
-				for _, flatFee := range result.flatFees {
-					resultsByChargeID[flatFee.GetChargeID()] = charges.NewCharge(flatFee)
-				}
-				for _, usageBased := range result.usageBased {
-					resultsByChargeID[usageBased.GetChargeID()] = charges.NewCharge(usageBased)
-				}
-			}
+			createdCharges = append(createdCharges, charges.WithIndex[charges.Charge]{
+				Index: intent.Index,
+				Value: charges.NewCharge(charge),
+			})
 		}
 
-		if len(createdChargesByType.creditPurchase) > 0 {
-			for _, creditPurchase := range createdChargesByType.creditPurchase {
-				result, err := s.creditPurchaseOrchestrator.PostCreate(ctx, creditPurchase)
-				if err != nil {
-					return nil, err
-				}
-
-				resultsByChargeID[result.GetChargeID()] = charges.NewCharge(result)
-			}
-		}
-
-		out, err := slicesx.MapWithErr(createdCharges, func(charge charges.Charge) (charges.Charge, error) {
-			chargeID, err := charge.GetChargeID()
-			if err != nil {
-				return charges.Charge{}, err
-			}
-
-			updatedCharge, ok := resultsByChargeID[chargeID]
-			if !ok {
-				return charges.Charge{}, fmt.Errorf("charge %s not found", chargeID)
-			}
-
-			return updatedCharge, nil
-		})
-		if err != nil {
-			return nil, err
+		// Let's map the created charges to the original intents
+		out := make([]charges.Charge, len(input.Intents))
+		for _, createdCharge := range createdCharges {
+			out[createdCharge.Index] = createdCharge.Value
 		}
 
 		return out, nil
 	})
 }
 
-type invoiceChargePostCreateInput struct {
-	namespace  string
-	flatFees   []charges.FlatFeeCharge
-	usageBased []charges.UsageBasedCharge
-}
-
-func (i invoiceChargePostCreateInput) Validate() error {
-	var errs []error
-
-	if i.namespace == "" {
-		errs = append(errs, fmt.Errorf("namespace is required"))
-	}
-
-	return errors.Join(errs...)
-}
-
 type currencyAndCustomerID struct {
-	Currency   currencyx.Code
-	CustomerID string
+	currency   currencyx.Code
+	customerID customer.CustomerID
 }
 
 type gatheringLineWithCustomerID struct {
 	gatheringLine billing.GatheringLine
-	customerID    string
+	customerID    customer.CustomerID
 }
 
-type invoiceChargePostCreateResult struct {
-	flatFees   []charges.FlatFeeCharge
-	usageBased []charges.UsageBasedCharge
-}
-
-func (s *service) invoiceChargePostCreate(ctx context.Context, in invoiceChargePostCreateInput) (*invoiceChargePostCreateResult, error) {
-	result := invoiceChargePostCreateResult{
-		flatFees:   make([]charges.FlatFeeCharge, 0, len(in.flatFees)),
-		usageBased: make([]charges.UsageBasedCharge, 0, len(in.usageBased)),
-	}
-
-	// Let's execute the post create hooks for all the charges
-	gatheringLinesToCreate := make([]gatheringLineWithCustomerID, 0, len(in.flatFees)+len(in.usageBased))
-	for _, flatFee := range in.flatFees {
-		res, err := s.flatFeeOrchestrator.PostCreate(ctx, flatFee)
-		if err != nil {
-			return nil, err
-		}
-
-		result.flatFees = append(result.flatFees, res.Charge)
-
-		if res.GatheringLineToCreate != nil {
-			if res.GatheringLineToCreate.ChargeID == nil {
-				return nil, fmt.Errorf("gathering line charge ID is nil")
-			}
-
-			if *res.GatheringLineToCreate.ChargeID != flatFee.ID {
-				return nil, fmt.Errorf("gathering line charge ID %s does not match charge ID %s", *res.GatheringLineToCreate.ChargeID, flatFee.ID)
-			}
-
-			gatheringLinesToCreate = append(gatheringLinesToCreate, gatheringLineWithCustomerID{
-				gatheringLine: *res.GatheringLineToCreate,
-				customerID:    flatFee.Intent.CustomerID,
-			})
-		}
-	}
-
+func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCreate []gatheringLineWithCustomerID) error {
 	if len(gatheringLinesToCreate) == 0 {
-		return &result, nil
+		return nil
 	}
 
-	uniqueCurrencyAndCustomerIDs := lo.Uniq(
-		lo.Map(gatheringLinesToCreate, func(item gatheringLineWithCustomerID, _ int) currencyAndCustomerID {
-			return currencyAndCustomerID{
-				Currency:   item.gatheringLine.Currency,
-				CustomerID: item.customerID,
-			}
-		}),
-	)
-
-	for _, custAndCurrency := range uniqueCurrencyAndCustomerIDs {
-		gatheringLinesForCurrencyAndCustomer := lo.FilterMap(gatheringLinesToCreate, func(item gatheringLineWithCustomerID, _ int) (billing.GatheringLine, bool) {
-			return item.gatheringLine, item.customerID == custAndCurrency.CustomerID && item.gatheringLine.Currency == custAndCurrency.Currency
-		})
-
-		if len(gatheringLinesForCurrencyAndCustomer) == 0 {
-			continue
+	gatheringLinesByCurrencyAndCustomer := lo.GroupBy(gatheringLinesToCreate, func(item gatheringLineWithCustomerID) currencyAndCustomerID {
+		return currencyAndCustomerID{
+			currency:   item.gatheringLine.Currency,
+			customerID: item.customerID,
 		}
+	})
 
+	for custAndCurrency, lines := range gatheringLinesByCurrencyAndCustomer {
 		// Let's create the gathering invoice on invoicing side
 		_, err := s.billingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-			Customer: customer.CustomerID{
-				Namespace: in.namespace,
-				ID:        custAndCurrency.CustomerID,
-			},
-			Currency: custAndCurrency.Currency,
-			Lines:    gatheringLinesForCurrencyAndCustomer,
+			Customer: custAndCurrency.customerID,
+			Currency: custAndCurrency.currency,
+			Lines: lo.Map(lines, func(item gatheringLineWithCustomerID, _ int) billing.GatheringLine {
+				return item.gatheringLine
+			}),
 		})
 		if err != nil {
-			return nil, fmt.Errorf("creating pending invoice lines for charges: %w", err)
+			return fmt.Errorf("creating pending invoice lines for charges: %w", err)
 		}
 	}
 
-	return &result, nil
+	return nil
 }

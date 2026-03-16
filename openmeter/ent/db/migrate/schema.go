@@ -1597,7 +1597,6 @@ var (
 		{Name: "settlement", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "credit_grant_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "credit_granted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "external_payment_settlement_id", Type: field.TypeString, Unique: true, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// ChargeCreditPurchasesTable holds the schema information for the "charge_credit_purchases" table.
 	ChargeCreditPurchasesTable = &schema.Table{
@@ -1610,12 +1609,6 @@ var (
 				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[0]},
 				RefColumns: []*schema.Column{ChargesColumns[0]},
 				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "charge_credit_purchases_charge_external_payment_settlements_charge_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[6]},
-				RefColumns: []*schema.Column{ChargeExternalPaymentSettlementsColumns[0]},
-				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
@@ -1631,71 +1624,9 @@ var (
 			},
 		},
 	}
-	// ChargeCreditRealizationsColumns holds the columns for the "charge_credit_realizations" table.
-	ChargeCreditRealizationsColumns = []*schema.Column{
+	// ChargeCreditPurchaseExternalPaymentsColumns holds the columns for the "charge_credit_purchase_external_payments" table.
+	ChargeCreditPurchaseExternalPaymentsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "namespace", Type: field.TypeString},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
-		{Name: "service_period_from", Type: field.TypeTime},
-		{Name: "service_period_to", Type: field.TypeTime},
-		{Name: "ledger_transaction_group_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "line_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-	}
-	// ChargeCreditRealizationsTable holds the schema information for the "charge_credit_realizations" table.
-	ChargeCreditRealizationsTable = &schema.Table{
-		Name:       "charge_credit_realizations",
-		Columns:    ChargeCreditRealizationsColumns,
-		PrimaryKey: []*schema.Column{ChargeCreditRealizationsColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "charge_credit_realizations_billing_invoice_lines_charge_credit_realization",
-				Columns:    []*schema.Column{ChargeCreditRealizationsColumns[10]},
-				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
-				OnDelete:   schema.SetNull,
-			},
-			{
-				Symbol:     "charge_credit_realizations_charge_flat_fees_charge_credit_realizations",
-				Columns:    []*schema.Column{ChargeCreditRealizationsColumns[11]},
-				RefColumns: []*schema.Column{ChargeFlatFeesColumns[0]},
-				OnDelete:   schema.NoAction,
-			},
-		},
-		Indexes: []*schema.Index{
-			{
-				Name:    "chargecreditrealization_namespace",
-				Unique:  false,
-				Columns: []*schema.Column{ChargeCreditRealizationsColumns[1]},
-			},
-			{
-				Name:    "chargecreditrealization_id",
-				Unique:  true,
-				Columns: []*schema.Column{ChargeCreditRealizationsColumns[0]},
-			},
-			{
-				Name:    "chargecreditrealization_annotations",
-				Unique:  false,
-				Columns: []*schema.Column{ChargeCreditRealizationsColumns[5]},
-				Annotation: &entsql.IndexAnnotation{
-					Types: map[string]string{
-						"postgres": "GIN",
-					},
-				},
-			},
-		},
-	}
-	// ChargeExternalPaymentSettlementsColumns holds the columns for the "charge_external_payment_settlements" table.
-	ChargeExternalPaymentSettlementsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "namespace", Type: field.TypeString},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "service_period_from", Type: field.TypeTime},
 		{Name: "service_period_to", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"authorized", "settled"}},
@@ -1704,27 +1635,41 @@ var (
 		{Name: "authorized_at", Type: field.TypeTime, Nullable: true},
 		{Name: "settled_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "settled_at", Type: field.TypeTime, Nullable: true},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "charge_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
-	// ChargeExternalPaymentSettlementsTable holds the schema information for the "charge_external_payment_settlements" table.
-	ChargeExternalPaymentSettlementsTable = &schema.Table{
-		Name:       "charge_external_payment_settlements",
-		Columns:    ChargeExternalPaymentSettlementsColumns,
-		PrimaryKey: []*schema.Column{ChargeExternalPaymentSettlementsColumns[0]},
+	// ChargeCreditPurchaseExternalPaymentsTable holds the schema information for the "charge_credit_purchase_external_payments" table.
+	ChargeCreditPurchaseExternalPaymentsTable = &schema.Table{
+		Name:       "charge_credit_purchase_external_payments",
+		Columns:    ChargeCreditPurchaseExternalPaymentsColumns,
+		PrimaryKey: []*schema.Column{ChargeCreditPurchaseExternalPaymentsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "charge_credit_purchase_external_payments_charge_credit_purchases_external_payment",
+				Columns:    []*schema.Column{ChargeCreditPurchaseExternalPaymentsColumns[14]},
+				RefColumns: []*schema.Column{ChargeCreditPurchasesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
 		Indexes: []*schema.Index{
 			{
-				Name:    "chargeexternalpaymentsettlement_namespace",
+				Name:    "chargecreditpurchaseexternalpayment_namespace",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeExternalPaymentSettlementsColumns[1]},
+				Columns: []*schema.Column{ChargeCreditPurchaseExternalPaymentsColumns[9]},
 			},
 			{
-				Name:    "chargeexternalpaymentsettlement_id",
+				Name:    "chargecreditpurchaseexternalpayment_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeExternalPaymentSettlementsColumns[0]},
+				Columns: []*schema.Column{ChargeCreditPurchaseExternalPaymentsColumns[0]},
 			},
 			{
-				Name:    "chargeexternalpaymentsettlement_annotations",
+				Name:    "chargecreditpurchaseexternalpayment_annotations",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeExternalPaymentSettlementsColumns[5]},
+				Columns: []*schema.Column{ChargeCreditPurchaseExternalPaymentsColumns[13]},
 				Annotation: &entsql.IndexAnnotation{
 					Types: map[string]string{
 						"postgres": "GIN",
@@ -1732,9 +1677,9 @@ var (
 				},
 			},
 			{
-				Name:    "chargeexternalpaymentsettlement_namespace_id",
+				Name:    "chargecreditpurchaseexternalpayment_namespace_charge_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeExternalPaymentSettlementsColumns[1], ChargeExternalPaymentSettlementsColumns[0]},
+				Columns: []*schema.Column{ChargeCreditPurchaseExternalPaymentsColumns[9], ChargeCreditPurchaseExternalPaymentsColumns[14]},
 			},
 		},
 	}
@@ -1750,7 +1695,6 @@ var (
 		{Name: "feature_key", Type: field.TypeString, Nullable: true},
 		{Name: "amount_before_proration", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "amount_after_proration", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
-		{Name: "std_invoice_payment_settlement_id", Type: field.TypeString, Unique: true, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// ChargeFlatFeesTable holds the schema information for the "charge_flat_fees" table.
 	ChargeFlatFeesTable = &schema.Table{
@@ -1763,12 +1707,6 @@ var (
 				Columns:    []*schema.Column{ChargeFlatFeesColumns[0]},
 				RefColumns: []*schema.Column{ChargesColumns[0]},
 				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "charge_flat_fees_charge_standard_invoice_payment_settlements_charge_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[10]},
-				RefColumns: []*schema.Column{ChargeStandardInvoicePaymentSettlementsColumns[0]},
-				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
@@ -1789,9 +1727,70 @@ var (
 			},
 		},
 	}
-	// ChargeStandardInvoiceAccruedUsagesColumns holds the columns for the "charge_standard_invoice_accrued_usages" table.
-	ChargeStandardInvoiceAccruedUsagesColumns = []*schema.Column{
+	// ChargeFlatFeeCreditAllocationsColumns holds the columns for the "charge_flat_fee_credit_allocations" table.
+	ChargeFlatFeeCreditAllocationsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "service_period_from", Type: field.TypeTime},
+		{Name: "service_period_to", Type: field.TypeTime},
+		{Name: "ledger_transaction_group_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "line_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// ChargeFlatFeeCreditAllocationsTable holds the schema information for the "charge_flat_fee_credit_allocations" table.
+	ChargeFlatFeeCreditAllocationsTable = &schema.Table{
+		Name:       "charge_flat_fee_credit_allocations",
+		Columns:    ChargeFlatFeeCreditAllocationsColumns,
+		PrimaryKey: []*schema.Column{ChargeFlatFeeCreditAllocationsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "charge_flat_fee_credit_allocations_billing_invoice_lines_charge_flat_fee_credit_allocations",
+				Columns:    []*schema.Column{ChargeFlatFeeCreditAllocationsColumns[10]},
+				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "charge_flat_fee_credit_allocations_charge_flat_fees_credit_allocations",
+				Columns:    []*schema.Column{ChargeFlatFeeCreditAllocationsColumns[11]},
+				RefColumns: []*schema.Column{ChargeFlatFeesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "chargeflatfeecreditallocations_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeFlatFeeCreditAllocationsColumns[5]},
+			},
+			{
+				Name:    "chargeflatfeecreditallocations_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeFlatFeeCreditAllocationsColumns[0]},
+			},
+			{
+				Name:    "chargeflatfeecreditallocations_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeFlatFeeCreditAllocationsColumns[9]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+		},
+	}
+	// ChargeFlatFeeInvoicedUsagesColumns holds the columns for the "charge_flat_fee_invoiced_usages" table.
+	ChargeFlatFeeInvoicedUsagesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "service_period_from", Type: field.TypeTime},
+		{Name: "service_period_to", Type: field.TypeTime},
+		{Name: "mutable", Type: field.TypeBool},
+		{Name: "ledger_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
@@ -1805,47 +1804,43 @@ var (
 		{Name: "discounts_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "credits_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
-		{Name: "service_period_from", Type: field.TypeTime},
-		{Name: "service_period_to", Type: field.TypeTime},
-		{Name: "mutable", Type: field.TypeBool},
-		{Name: "ledger_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "line_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "charge_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
-	// ChargeStandardInvoiceAccruedUsagesTable holds the schema information for the "charge_standard_invoice_accrued_usages" table.
-	ChargeStandardInvoiceAccruedUsagesTable = &schema.Table{
-		Name:       "charge_standard_invoice_accrued_usages",
-		Columns:    ChargeStandardInvoiceAccruedUsagesColumns,
-		PrimaryKey: []*schema.Column{ChargeStandardInvoiceAccruedUsagesColumns[0]},
+	// ChargeFlatFeeInvoicedUsagesTable holds the schema information for the "charge_flat_fee_invoiced_usages" table.
+	ChargeFlatFeeInvoicedUsagesTable = &schema.Table{
+		Name:       "charge_flat_fee_invoiced_usages",
+		Columns:    ChargeFlatFeeInvoicedUsagesColumns,
+		PrimaryKey: []*schema.Column{ChargeFlatFeeInvoicedUsagesColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "charge_standard_invoice_accrued_usages_billing_invoice_lines_charge_standard_invoice_accrued_usage",
-				Columns:    []*schema.Column{ChargeStandardInvoiceAccruedUsagesColumns[18]},
+				Symbol:     "charge_flat_fee_invoiced_usages_billing_invoice_lines_charge_flat_fee_invoiced_usage",
+				Columns:    []*schema.Column{ChargeFlatFeeInvoicedUsagesColumns[18]},
 				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
-				Symbol:     "charge_standard_invoice_accrued_usages_charge_flat_fees_charge_standard_invoice_accrued_usage",
-				Columns:    []*schema.Column{ChargeStandardInvoiceAccruedUsagesColumns[19]},
+				Symbol:     "charge_flat_fee_invoiced_usages_charge_flat_fees_invoiced_usage",
+				Columns:    []*schema.Column{ChargeFlatFeeInvoicedUsagesColumns[19]},
 				RefColumns: []*schema.Column{ChargeFlatFeesColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.Cascade,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
-				Name:    "chargestandardinvoiceaccruedusage_namespace",
+				Name:    "chargeflatfeeinvoicedusage_namespace",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeStandardInvoiceAccruedUsagesColumns[1]},
+				Columns: []*schema.Column{ChargeFlatFeeInvoicedUsagesColumns[5]},
 			},
 			{
-				Name:    "chargestandardinvoiceaccruedusage_id",
+				Name:    "chargeflatfeeinvoicedusage_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeStandardInvoiceAccruedUsagesColumns[0]},
+				Columns: []*schema.Column{ChargeFlatFeeInvoicedUsagesColumns[0]},
 			},
 			{
-				Name:    "chargestandardinvoiceaccruedusage_annotations",
+				Name:    "chargeflatfeeinvoicedusage_annotations",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeStandardInvoiceAccruedUsagesColumns[5]},
+				Columns: []*schema.Column{ChargeFlatFeeInvoicedUsagesColumns[9]},
 				Annotation: &entsql.IndexAnnotation{
 					Types: map[string]string{
 						"postgres": "GIN",
@@ -1853,23 +1848,15 @@ var (
 				},
 			},
 			{
-				Name:    "chargestandardinvoiceaccruedusage_namespace_charge_id_line_id",
+				Name:    "chargeflatfeeinvoicedusage_namespace_charge_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeStandardInvoiceAccruedUsagesColumns[1], ChargeStandardInvoiceAccruedUsagesColumns[19], ChargeStandardInvoiceAccruedUsagesColumns[18]},
-				Annotation: &entsql.IndexAnnotation{
-					Where: "line_id IS NOT NULL AND deleted_at IS NULL",
-				},
+				Columns: []*schema.Column{ChargeFlatFeeInvoicedUsagesColumns[5], ChargeFlatFeeInvoicedUsagesColumns[19]},
 			},
 		},
 	}
-	// ChargeStandardInvoicePaymentSettlementsColumns holds the columns for the "charge_standard_invoice_payment_settlements" table.
-	ChargeStandardInvoicePaymentSettlementsColumns = []*schema.Column{
+	// ChargeFlatFeePaymentsColumns holds the columns for the "charge_flat_fee_payments" table.
+	ChargeFlatFeePaymentsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "namespace", Type: field.TypeString},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "service_period_from", Type: field.TypeTime},
 		{Name: "service_period_to", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"authorized", "settled"}},
@@ -1878,36 +1865,48 @@ var (
 		{Name: "authorized_at", Type: field.TypeTime, Nullable: true},
 		{Name: "settled_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "settled_at", Type: field.TypeTime, Nullable: true},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "line_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "charge_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
-	// ChargeStandardInvoicePaymentSettlementsTable holds the schema information for the "charge_standard_invoice_payment_settlements" table.
-	ChargeStandardInvoicePaymentSettlementsTable = &schema.Table{
-		Name:       "charge_standard_invoice_payment_settlements",
-		Columns:    ChargeStandardInvoicePaymentSettlementsColumns,
-		PrimaryKey: []*schema.Column{ChargeStandardInvoicePaymentSettlementsColumns[0]},
+	// ChargeFlatFeePaymentsTable holds the schema information for the "charge_flat_fee_payments" table.
+	ChargeFlatFeePaymentsTable = &schema.Table{
+		Name:       "charge_flat_fee_payments",
+		Columns:    ChargeFlatFeePaymentsColumns,
+		PrimaryKey: []*schema.Column{ChargeFlatFeePaymentsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "charge_standard_invoice_payment_settlements_billing_invoice_lines_charge_standard_invoice_payment_settlement",
-				Columns:    []*schema.Column{ChargeStandardInvoicePaymentSettlementsColumns[14]},
+				Symbol:     "charge_flat_fee_payments_billing_invoice_lines_charge_flat_fee_payment",
+				Columns:    []*schema.Column{ChargeFlatFeePaymentsColumns[14]},
 				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
 				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "charge_flat_fee_payments_charge_flat_fees_payment",
+				Columns:    []*schema.Column{ChargeFlatFeePaymentsColumns[15]},
+				RefColumns: []*schema.Column{ChargeFlatFeesColumns[0]},
+				OnDelete:   schema.Cascade,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
-				Name:    "chargestandardinvoicepaymentsettlement_namespace",
+				Name:    "chargeflatfeepayment_namespace",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeStandardInvoicePaymentSettlementsColumns[1]},
+				Columns: []*schema.Column{ChargeFlatFeePaymentsColumns[9]},
 			},
 			{
-				Name:    "chargestandardinvoicepaymentsettlement_id",
+				Name:    "chargeflatfeepayment_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeStandardInvoicePaymentSettlementsColumns[0]},
+				Columns: []*schema.Column{ChargeFlatFeePaymentsColumns[0]},
 			},
 			{
-				Name:    "chargestandardinvoicepaymentsettlement_annotations",
+				Name:    "chargeflatfeepayment_annotations",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeStandardInvoicePaymentSettlementsColumns[5]},
+				Columns: []*schema.Column{ChargeFlatFeePaymentsColumns[13]},
 				Annotation: &entsql.IndexAnnotation{
 					Types: map[string]string{
 						"postgres": "GIN",
@@ -1915,53 +1914,9 @@ var (
 				},
 			},
 			{
-				Name:    "chargestandardinvoicepaymentsettlement_namespace_line_id",
+				Name:    "chargeflatfeepayment_namespace_charge_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeStandardInvoicePaymentSettlementsColumns[1], ChargeStandardInvoicePaymentSettlementsColumns[14]},
-				Annotation: &entsql.IndexAnnotation{
-					Where: "line_id IS NOT NULL AND deleted_at IS NULL",
-				},
-			},
-		},
-	}
-	// ChargeUsageBasedsColumns holds the columns for the "charge_usage_baseds" table.
-	ChargeUsageBasedsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "namespace", Type: field.TypeString},
-		{Name: "price", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "feature_key", Type: field.TypeString},
-		{Name: "invoice_at", Type: field.TypeTime},
-		{Name: "settlement_mode", Type: field.TypeEnum, Enums: []string{"invoice_only", "credit_then_invoice", "credit_only"}},
-		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-	}
-	// ChargeUsageBasedsTable holds the schema information for the "charge_usage_baseds" table.
-	ChargeUsageBasedsTable = &schema.Table{
-		Name:       "charge_usage_baseds",
-		Columns:    ChargeUsageBasedsColumns,
-		PrimaryKey: []*schema.Column{ChargeUsageBasedsColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "charge_usage_baseds_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedsColumns[0]},
-				RefColumns: []*schema.Column{ChargesColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-		},
-		Indexes: []*schema.Index{
-			{
-				Name:    "chargeusagebased_namespace",
-				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedsColumns[1]},
-			},
-			{
-				Name:    "chargeusagebased_id",
-				Unique:  true,
-				Columns: []*schema.Column{ChargeUsageBasedsColumns[0]},
-			},
-			{
-				Name:    "chargeusagebased_namespace_id",
-				Unique:  true,
-				Columns: []*schema.Column{ChargeUsageBasedsColumns[1], ChargeUsageBasedsColumns[0]},
+				Columns: []*schema.Column{ChargeFlatFeePaymentsColumns[9], ChargeFlatFeePaymentsColumns[15]},
 			},
 		},
 	}
@@ -3609,12 +3564,11 @@ var (
 		BillingWorkflowConfigsTable,
 		ChargesTable,
 		ChargeCreditPurchasesTable,
-		ChargeCreditRealizationsTable,
-		ChargeExternalPaymentSettlementsTable,
+		ChargeCreditPurchaseExternalPaymentsTable,
 		ChargeFlatFeesTable,
-		ChargeStandardInvoiceAccruedUsagesTable,
-		ChargeStandardInvoicePaymentSettlementsTable,
-		ChargeUsageBasedsTable,
+		ChargeFlatFeeCreditAllocationsTable,
+		ChargeFlatFeeInvoicedUsagesTable,
+		ChargeFlatFeePaymentsTable,
 		CurrencyCostBasesTable,
 		CustomCurrenciesTable,
 		CustomersTable,
@@ -3694,15 +3648,14 @@ func init() {
 	ChargesTable.ForeignKeys[2].RefTable = SubscriptionItemsTable
 	ChargesTable.ForeignKeys[3].RefTable = SubscriptionPhasesTable
 	ChargeCreditPurchasesTable.ForeignKeys[0].RefTable = ChargesTable
-	ChargeCreditPurchasesTable.ForeignKeys[1].RefTable = ChargeExternalPaymentSettlementsTable
-	ChargeCreditRealizationsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
-	ChargeCreditRealizationsTable.ForeignKeys[1].RefTable = ChargeFlatFeesTable
+	ChargeCreditPurchaseExternalPaymentsTable.ForeignKeys[0].RefTable = ChargeCreditPurchasesTable
 	ChargeFlatFeesTable.ForeignKeys[0].RefTable = ChargesTable
-	ChargeFlatFeesTable.ForeignKeys[1].RefTable = ChargeStandardInvoicePaymentSettlementsTable
-	ChargeStandardInvoiceAccruedUsagesTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
-	ChargeStandardInvoiceAccruedUsagesTable.ForeignKeys[1].RefTable = ChargeFlatFeesTable
-	ChargeStandardInvoicePaymentSettlementsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
-	ChargeUsageBasedsTable.ForeignKeys[0].RefTable = ChargesTable
+	ChargeFlatFeeCreditAllocationsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
+	ChargeFlatFeeCreditAllocationsTable.ForeignKeys[1].RefTable = ChargeFlatFeesTable
+	ChargeFlatFeeInvoicedUsagesTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
+	ChargeFlatFeeInvoicedUsagesTable.ForeignKeys[1].RefTable = ChargeFlatFeesTable
+	ChargeFlatFeePaymentsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
+	ChargeFlatFeePaymentsTable.ForeignKeys[1].RefTable = ChargeFlatFeesTable
 	CurrencyCostBasesTable.ForeignKeys[0].RefTable = CustomCurrenciesTable
 	CustomerSubjectsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[0].RefTable = CustomersTable

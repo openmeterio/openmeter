@@ -8,7 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
@@ -97,11 +97,6 @@ func AmountBeforeProration(v alpacadecimal.Decimal) predicate.ChargeFlatFee {
 // AmountAfterProration applies equality check predicate on the "amount_after_proration" field. It's identical to AmountAfterProrationEQ.
 func AmountAfterProration(v alpacadecimal.Decimal) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldEQ(FieldAmountAfterProration, v))
-}
-
-// StdInvoicePaymentSettlementID applies equality check predicate on the "std_invoice_payment_settlement_id" field. It's identical to StdInvoicePaymentSettlementIDEQ.
-func StdInvoicePaymentSettlementID(v string) predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(sql.FieldEQ(FieldStdInvoicePaymentSettlementID, v))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -334,19 +329,19 @@ func DiscountsNotNil() predicate.ChargeFlatFee {
 }
 
 // ProRatingEQ applies the EQ predicate on the "pro_rating" field.
-func ProRatingEQ(v charges.ProRatingModeAdapterEnum) predicate.ChargeFlatFee {
+func ProRatingEQ(v flatfee.ProRatingModeAdapterEnum) predicate.ChargeFlatFee {
 	vc := v
 	return predicate.ChargeFlatFee(sql.FieldEQ(FieldProRating, vc))
 }
 
 // ProRatingNEQ applies the NEQ predicate on the "pro_rating" field.
-func ProRatingNEQ(v charges.ProRatingModeAdapterEnum) predicate.ChargeFlatFee {
+func ProRatingNEQ(v flatfee.ProRatingModeAdapterEnum) predicate.ChargeFlatFee {
 	vc := v
 	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldProRating, vc))
 }
 
 // ProRatingIn applies the In predicate on the "pro_rating" field.
-func ProRatingIn(vs ...charges.ProRatingModeAdapterEnum) predicate.ChargeFlatFee {
+func ProRatingIn(vs ...flatfee.ProRatingModeAdapterEnum) predicate.ChargeFlatFee {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -355,7 +350,7 @@ func ProRatingIn(vs ...charges.ProRatingModeAdapterEnum) predicate.ChargeFlatFee
 }
 
 // ProRatingNotIn applies the NotIn predicate on the "pro_rating" field.
-func ProRatingNotIn(vs ...charges.ProRatingModeAdapterEnum) predicate.ChargeFlatFee {
+func ProRatingNotIn(vs ...flatfee.ProRatingModeAdapterEnum) predicate.ChargeFlatFee {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -518,81 +513,6 @@ func AmountAfterProrationLTE(v alpacadecimal.Decimal) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldLTE(FieldAmountAfterProration, v))
 }
 
-// StdInvoicePaymentSettlementIDEQ applies the EQ predicate on the "std_invoice_payment_settlement_id" field.
-func StdInvoicePaymentSettlementIDEQ(v string) predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(sql.FieldEQ(FieldStdInvoicePaymentSettlementID, v))
-}
-
-// StdInvoicePaymentSettlementIDNEQ applies the NEQ predicate on the "std_invoice_payment_settlement_id" field.
-func StdInvoicePaymentSettlementIDNEQ(v string) predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldStdInvoicePaymentSettlementID, v))
-}
-
-// StdInvoicePaymentSettlementIDIn applies the In predicate on the "std_invoice_payment_settlement_id" field.
-func StdInvoicePaymentSettlementIDIn(vs ...string) predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(sql.FieldIn(FieldStdInvoicePaymentSettlementID, vs...))
-}
-
-// StdInvoicePaymentSettlementIDNotIn applies the NotIn predicate on the "std_invoice_payment_settlement_id" field.
-func StdInvoicePaymentSettlementIDNotIn(vs ...string) predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldStdInvoicePaymentSettlementID, vs...))
-}
-
-// StdInvoicePaymentSettlementIDGT applies the GT predicate on the "std_invoice_payment_settlement_id" field.
-func StdInvoicePaymentSettlementIDGT(v string) predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(sql.FieldGT(FieldStdInvoicePaymentSettlementID, v))
-}
-
-// StdInvoicePaymentSettlementIDGTE applies the GTE predicate on the "std_invoice_payment_settlement_id" field.
-func StdInvoicePaymentSettlementIDGTE(v string) predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(sql.FieldGTE(FieldStdInvoicePaymentSettlementID, v))
-}
-
-// StdInvoicePaymentSettlementIDLT applies the LT predicate on the "std_invoice_payment_settlement_id" field.
-func StdInvoicePaymentSettlementIDLT(v string) predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(sql.FieldLT(FieldStdInvoicePaymentSettlementID, v))
-}
-
-// StdInvoicePaymentSettlementIDLTE applies the LTE predicate on the "std_invoice_payment_settlement_id" field.
-func StdInvoicePaymentSettlementIDLTE(v string) predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(sql.FieldLTE(FieldStdInvoicePaymentSettlementID, v))
-}
-
-// StdInvoicePaymentSettlementIDContains applies the Contains predicate on the "std_invoice_payment_settlement_id" field.
-func StdInvoicePaymentSettlementIDContains(v string) predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(sql.FieldContains(FieldStdInvoicePaymentSettlementID, v))
-}
-
-// StdInvoicePaymentSettlementIDHasPrefix applies the HasPrefix predicate on the "std_invoice_payment_settlement_id" field.
-func StdInvoicePaymentSettlementIDHasPrefix(v string) predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(sql.FieldHasPrefix(FieldStdInvoicePaymentSettlementID, v))
-}
-
-// StdInvoicePaymentSettlementIDHasSuffix applies the HasSuffix predicate on the "std_invoice_payment_settlement_id" field.
-func StdInvoicePaymentSettlementIDHasSuffix(v string) predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(sql.FieldHasSuffix(FieldStdInvoicePaymentSettlementID, v))
-}
-
-// StdInvoicePaymentSettlementIDIsNil applies the IsNil predicate on the "std_invoice_payment_settlement_id" field.
-func StdInvoicePaymentSettlementIDIsNil() predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(sql.FieldIsNull(FieldStdInvoicePaymentSettlementID))
-}
-
-// StdInvoicePaymentSettlementIDNotNil applies the NotNil predicate on the "std_invoice_payment_settlement_id" field.
-func StdInvoicePaymentSettlementIDNotNil() predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(sql.FieldNotNull(FieldStdInvoicePaymentSettlementID))
-}
-
-// StdInvoicePaymentSettlementIDEqualFold applies the EqualFold predicate on the "std_invoice_payment_settlement_id" field.
-func StdInvoicePaymentSettlementIDEqualFold(v string) predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(sql.FieldEqualFold(FieldStdInvoicePaymentSettlementID, v))
-}
-
-// StdInvoicePaymentSettlementIDContainsFold applies the ContainsFold predicate on the "std_invoice_payment_settlement_id" field.
-func StdInvoicePaymentSettlementIDContainsFold(v string) predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(sql.FieldContainsFold(FieldStdInvoicePaymentSettlementID, v))
-}
-
 // HasCharge applies the HasEdge predicate on the "charge" edge.
 func HasCharge() predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(func(s *sql.Selector) {
@@ -616,21 +536,21 @@ func HasChargeWith(preds ...predicate.Charge) predicate.ChargeFlatFee {
 	})
 }
 
-// HasChargeStandardInvoicePaymentSettlement applies the HasEdge predicate on the "charge_standard_invoice_payment_settlement" edge.
-func HasChargeStandardInvoicePaymentSettlement() predicate.ChargeFlatFee {
+// HasCreditAllocations applies the HasEdge predicate on the "credit_allocations" edge.
+func HasCreditAllocations() predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, ChargeStandardInvoicePaymentSettlementTable, ChargeStandardInvoicePaymentSettlementColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, CreditAllocationsTable, CreditAllocationsColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasChargeStandardInvoicePaymentSettlementWith applies the HasEdge predicate on the "charge_standard_invoice_payment_settlement" edge with a given conditions (other predicates).
-func HasChargeStandardInvoicePaymentSettlementWith(preds ...predicate.ChargeStandardInvoicePaymentSettlement) predicate.ChargeFlatFee {
+// HasCreditAllocationsWith applies the HasEdge predicate on the "credit_allocations" edge with a given conditions (other predicates).
+func HasCreditAllocationsWith(preds ...predicate.ChargeFlatFeeCreditAllocations) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(func(s *sql.Selector) {
-		step := newChargeStandardInvoicePaymentSettlementStep()
+		step := newCreditAllocationsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -639,21 +559,21 @@ func HasChargeStandardInvoicePaymentSettlementWith(preds ...predicate.ChargeStan
 	})
 }
 
-// HasChargeStandardInvoiceAccruedUsage applies the HasEdge predicate on the "charge_standard_invoice_accrued_usage" edge.
-func HasChargeStandardInvoiceAccruedUsage() predicate.ChargeFlatFee {
+// HasInvoicedUsage applies the HasEdge predicate on the "invoiced_usage" edge.
+func HasInvoicedUsage() predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, ChargeStandardInvoiceAccruedUsageTable, ChargeStandardInvoiceAccruedUsageColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, InvoicedUsageTable, InvoicedUsageColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasChargeStandardInvoiceAccruedUsageWith applies the HasEdge predicate on the "charge_standard_invoice_accrued_usage" edge with a given conditions (other predicates).
-func HasChargeStandardInvoiceAccruedUsageWith(preds ...predicate.ChargeStandardInvoiceAccruedUsage) predicate.ChargeFlatFee {
+// HasInvoicedUsageWith applies the HasEdge predicate on the "invoiced_usage" edge with a given conditions (other predicates).
+func HasInvoicedUsageWith(preds ...predicate.ChargeFlatFeeInvoicedUsage) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(func(s *sql.Selector) {
-		step := newChargeStandardInvoiceAccruedUsageStep()
+		step := newInvoicedUsageStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -662,21 +582,21 @@ func HasChargeStandardInvoiceAccruedUsageWith(preds ...predicate.ChargeStandardI
 	})
 }
 
-// HasChargeCreditRealizations applies the HasEdge predicate on the "charge_credit_realizations" edge.
-func HasChargeCreditRealizations() predicate.ChargeFlatFee {
+// HasPayment applies the HasEdge predicate on the "payment" edge.
+func HasPayment() predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, ChargeCreditRealizationsTable, ChargeCreditRealizationsColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, PaymentTable, PaymentColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasChargeCreditRealizationsWith applies the HasEdge predicate on the "charge_credit_realizations" edge with a given conditions (other predicates).
-func HasChargeCreditRealizationsWith(preds ...predicate.ChargeCreditRealization) predicate.ChargeFlatFee {
+// HasPaymentWith applies the HasEdge predicate on the "payment" edge with a given conditions (other predicates).
+func HasPaymentWith(preds ...predicate.ChargeFlatFeePayment) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(func(s *sql.Selector) {
-		step := newChargeCreditRealizationsStep()
+		step := newPaymentStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

@@ -2,45 +2,32 @@ package service
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/service/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/service/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 )
 
 type service struct {
-	adapter                    charges.Adapter
-	billingService             billing.Service
-	handlers                   Handlers
-	flatFeeOrchestrator        charges.FlatFeeOrchestrator
-	creditPurchaseOrchestrator charges.CreditPurchaseOrchestrator
-}
+	adapter charges.Adapter
+	// Note: if meta has a service layer, we should use it here instead of the adapter
+	metaAdapter    meta.Adapter
+	billingService billing.Service
 
-type Handlers struct {
-	FlatFee        charges.FlatFeeHandler
-	CreditPurchase charges.CreditPurchaseHandler
-}
-
-func (h Handlers) Validate() error {
-	var errs []error
-
-	if h.FlatFee == nil {
-		errs = append(errs, errors.New("flat fee handler cannot be null"))
-	}
-
-	if h.CreditPurchase == nil {
-		errs = append(errs, errors.New("credit purchase handler cannot be null"))
-	}
-
-	return errors.Join(errs...)
+	flatFeeService        flatfee.Service
+	creditPurchaseService creditpurchase.Service
 }
 
 type Config struct {
-	Adapter        charges.Adapter
+	Adapter     charges.Adapter
+	MetaAdapter meta.Adapter
+
+	FlatFeeService        flatfee.Service
+	CreditPurchaseService creditpurchase.Service
+
 	BillingService billing.Service
-	Handlers       Handlers
 }
 
 func (c Config) Validate() error {
@@ -54,8 +41,16 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("billing service cannot be null"))
 	}
 
-	if err := c.Handlers.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("handlers: %w", err))
+	if c.FlatFeeService == nil {
+		errs = append(errs, errors.New("flat fee service cannot be null"))
+	}
+
+	if c.CreditPurchaseService == nil {
+		errs = append(errs, errors.New("credit purchase service cannot be null"))
+	}
+
+	if c.MetaAdapter == nil {
+		errs = append(errs, errors.New("meta adapter cannot be null"))
 	}
 
 	return errors.Join(errs...)
@@ -66,28 +61,12 @@ func New(config Config) (*service, error) {
 		return nil, err
 	}
 
-	flatFeeOrchestrator, err := flatfee.New(flatfee.Config{
-		Adapter:        config.Adapter,
-		FlatFeeHandler: config.Handlers.FlatFee,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	creditPurchaseOrchestrator, err := creditpurchase.New(creditpurchase.Config{
-		Adapter:               config.Adapter,
-		CreditPurchaseHandler: config.Handlers.CreditPurchase,
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	svc := &service{
-		adapter:                    config.Adapter,
-		billingService:             config.BillingService,
-		handlers:                   config.Handlers,
-		flatFeeOrchestrator:        flatFeeOrchestrator,
-		creditPurchaseOrchestrator: creditPurchaseOrchestrator,
+		adapter:               config.Adapter,
+		billingService:        config.BillingService,
+		metaAdapter:           config.MetaAdapter,
+		flatFeeService:        config.FlatFeeService,
+		creditPurchaseService: config.CreditPurchaseService,
 	}
 
 	standardInvoiceEventHandler := &standardInvoiceEventHandler{

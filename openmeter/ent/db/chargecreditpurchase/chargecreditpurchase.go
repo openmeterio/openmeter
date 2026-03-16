@@ -6,7 +6,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 )
 
 const (
@@ -24,12 +24,10 @@ const (
 	FieldCreditGrantTransactionGroupID = "credit_grant_transaction_group_id"
 	// FieldCreditGrantedAt holds the string denoting the credit_granted_at field in the database.
 	FieldCreditGrantedAt = "credit_granted_at"
-	// FieldExternalPaymentSettlementID holds the string denoting the external_payment_settlement_id field in the database.
-	FieldExternalPaymentSettlementID = "external_payment_settlement_id"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
 	EdgeCharge = "charge"
-	// EdgeChargeExternalPaymentSettlement holds the string denoting the charge_external_payment_settlement edge name in mutations.
-	EdgeChargeExternalPaymentSettlement = "charge_external_payment_settlement"
+	// EdgeExternalPayment holds the string denoting the external_payment edge name in mutations.
+	EdgeExternalPayment = "external_payment"
 	// Table holds the table name of the chargecreditpurchase in the database.
 	Table = "charge_credit_purchases"
 	// ChargeTable is the table that holds the charge relation/edge.
@@ -39,13 +37,13 @@ const (
 	ChargeInverseTable = "charges"
 	// ChargeColumn is the table column denoting the charge relation/edge.
 	ChargeColumn = "id"
-	// ChargeExternalPaymentSettlementTable is the table that holds the charge_external_payment_settlement relation/edge.
-	ChargeExternalPaymentSettlementTable = "charge_credit_purchases"
-	// ChargeExternalPaymentSettlementInverseTable is the table name for the ChargeExternalPaymentSettlement entity.
-	// It exists in this package in order to avoid circular dependency with the "chargeexternalpaymentsettlement" package.
-	ChargeExternalPaymentSettlementInverseTable = "charge_external_payment_settlements"
-	// ChargeExternalPaymentSettlementColumn is the table column denoting the charge_external_payment_settlement relation/edge.
-	ChargeExternalPaymentSettlementColumn = "external_payment_settlement_id"
+	// ExternalPaymentTable is the table that holds the external_payment relation/edge.
+	ExternalPaymentTable = "charge_credit_purchase_external_payments"
+	// ExternalPaymentInverseTable is the table name for the ChargeCreditPurchaseExternalPayment entity.
+	// It exists in this package in order to avoid circular dependency with the "chargecreditpurchaseexternalpayment" package.
+	ExternalPaymentInverseTable = "charge_credit_purchase_external_payments"
+	// ExternalPaymentColumn is the table column denoting the external_payment relation/edge.
+	ExternalPaymentColumn = "charge_id"
 )
 
 // Columns holds all SQL columns for chargecreditpurchase fields.
@@ -56,7 +54,6 @@ var Columns = []string{
 	FieldSettlement,
 	FieldCreditGrantTransactionGroupID,
 	FieldCreditGrantedAt,
-	FieldExternalPaymentSettlementID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -74,13 +71,11 @@ var (
 	NamespaceValidator func(string) error
 	// CreditGrantTransactionGroupIDValidator is a validator for the "credit_grant_transaction_group_id" field. It is called by the builders before save.
 	CreditGrantTransactionGroupIDValidator func(string) error
-	// ExternalPaymentSettlementIDValidator is a validator for the "external_payment_settlement_id" field. It is called by the builders before save.
-	ExternalPaymentSettlementIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// ValueScanner of all ChargeCreditPurchase fields.
 	ValueScanner struct {
-		Settlement field.TypeValueScanner[charges.CreditPurchaseSettlement]
+		Settlement field.TypeValueScanner[creditpurchase.Settlement]
 	}
 )
 
@@ -117,11 +112,6 @@ func ByCreditGrantedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreditGrantedAt, opts...).ToFunc()
 }
 
-// ByExternalPaymentSettlementID orders the results by the external_payment_settlement_id field.
-func ByExternalPaymentSettlementID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldExternalPaymentSettlementID, opts...).ToFunc()
-}
-
 // ByChargeField orders the results by charge field.
 func ByChargeField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -129,10 +119,10 @@ func ByChargeField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
-// ByChargeExternalPaymentSettlementField orders the results by charge_external_payment_settlement field.
-func ByChargeExternalPaymentSettlementField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByExternalPaymentField orders the results by external_payment field.
+func ByExternalPaymentField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newChargeExternalPaymentSettlementStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newExternalPaymentStep(), sql.OrderByField(field, opts...))
 	}
 }
 func newChargeStep() *sqlgraph.Step {
@@ -142,10 +132,10 @@ func newChargeStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2O, true, ChargeTable, ChargeColumn),
 	)
 }
-func newChargeExternalPaymentSettlementStep() *sqlgraph.Step {
+func newExternalPaymentStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ChargeExternalPaymentSettlementInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, true, ChargeExternalPaymentSettlementTable, ChargeExternalPaymentSettlementColumn),
+		sqlgraph.To(ExternalPaymentInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, ExternalPaymentTable, ExternalPaymentColumn),
 	)
 }

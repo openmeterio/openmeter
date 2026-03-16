@@ -5,6 +5,8 @@
       func (e *<Node>) Get<Field>() <Type> { return e.<Field> }
 
     For nillable fields, it returns a pointer type (matching the generated entity field type).
+
+    The ID field is handled separately since ent exposes it via $n.ID rather than $n.Fields.
 */}}
 {{ define "entmixinaccessor" }}
 
@@ -12,6 +14,13 @@
 {{ template "header" $ }}
 
 {{ range $n := $.Nodes }}
+	{{- if and $n.ID $n.ID.Position $n.ID.Position.MixedIn }}
+
+func (e *{{ $n.Name }}) GetID() {{ $n.ID.Type }} {
+	return e.ID
+}
+
+	{{- end }}
 	{{ range $f := $n.Fields }}
 		{{- if and $f.Position $f.Position.MixedIn }}
 
