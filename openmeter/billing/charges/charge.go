@@ -7,12 +7,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 )
 
 type Charge struct {
 	t meta.ChargeType
 
 	flatFee        *flatfee.Charge
+	usageBased     *usagebased.Charge
 	creditPurchase *creditpurchase.Charge
 }
 
@@ -20,7 +22,7 @@ func (c Charge) Type() meta.ChargeType {
 	return c.t
 }
 
-func NewCharge[T flatfee.Charge | creditpurchase.Charge](ch T) Charge {
+func NewCharge[T flatfee.Charge | usagebased.Charge | creditpurchase.Charge](ch T) Charge {
 	switch v := any(ch).(type) {
 	case flatfee.Charge:
 		return Charge{
@@ -31,6 +33,11 @@ func NewCharge[T flatfee.Charge | creditpurchase.Charge](ch T) Charge {
 		return Charge{
 			t:              meta.ChargeTypeCreditPurchase,
 			creditPurchase: &v,
+		}
+	case usagebased.Charge:
+		return Charge{
+			t:          meta.ChargeTypeUsageBased,
+			usageBased: &v,
 		}
 	}
 
@@ -51,6 +58,12 @@ func (c Charge) Validate() error {
 		}
 
 		return c.creditPurchase.Validate()
+	case meta.ChargeTypeUsageBased:
+		if c.usageBased == nil {
+			return fmt.Errorf("usage based charge is nil")
+		}
+
+		return c.usageBased.Validate()
 	}
 
 	return fmt.Errorf("invalid charge type: %s", c.t)
@@ -80,6 +93,14 @@ func (c Charge) AsCreditPurchaseCharge() (creditpurchase.Charge, error) {
 	return *c.creditPurchase, nil
 }
 
+func (c Charge) AsUsageBasedCharge() (usagebased.Charge, error) {
+	if c.t != meta.ChargeTypeUsageBased {
+		return usagebased.Charge{}, fmt.Errorf("charge is not a usage based charge")
+	}
+
+	return *c.usageBased, nil
+}
+
 func (c Charge) GetChargeID() (meta.ChargeID, error) {
 	switch c.t {
 	case meta.ChargeTypeFlatFee:
@@ -94,6 +115,12 @@ func (c Charge) GetChargeID() (meta.ChargeID, error) {
 		}
 
 		return c.creditPurchase.GetChargeID(), nil
+	case meta.ChargeTypeUsageBased:
+		if c.usageBased == nil {
+			return meta.ChargeID{}, fmt.Errorf("usage based charge is nil")
+		}
+
+		return c.usageBased.GetChargeID(), nil
 	}
 
 	return meta.ChargeID{}, fmt.Errorf("invalid charge type: %s", c.t)
@@ -118,9 +145,10 @@ type ChargeIntent struct {
 
 	flatFee        *flatfee.Intent
 	creditPurchase *creditpurchase.Intent
+	usageBased     *usagebased.Intent
 }
 
-func NewChargeIntent[T flatfee.Intent | creditpurchase.Intent](ch T) ChargeIntent {
+func NewChargeIntent[T flatfee.Intent | usagebased.Intent | creditpurchase.Intent](ch T) ChargeIntent {
 	switch v := any(ch).(type) {
 	case flatfee.Intent:
 		return ChargeIntent{
@@ -131,6 +159,11 @@ func NewChargeIntent[T flatfee.Intent | creditpurchase.Intent](ch T) ChargeInten
 		return ChargeIntent{
 			t:              meta.ChargeTypeCreditPurchase,
 			creditPurchase: &v,
+		}
+	case usagebased.Intent:
+		return ChargeIntent{
+			t:          meta.ChargeTypeUsageBased,
+			usageBased: &v,
 		}
 	}
 
@@ -155,6 +188,12 @@ func (i ChargeIntent) Validate() error {
 		}
 
 		return i.creditPurchase.Validate()
+	case meta.ChargeTypeUsageBased:
+		if i.usageBased == nil {
+			return fmt.Errorf("usage based is nil")
+		}
+
+		return i.usageBased.Validate()
 	}
 
 	return fmt.Errorf("invalid charge type: %s", i.t)
@@ -184,6 +223,18 @@ func (i ChargeIntent) AsCreditPurchaseIntent() (creditpurchase.Intent, error) {
 	return *i.creditPurchase, nil
 }
 
+func (i ChargeIntent) AsUsageBasedIntent() (usagebased.Intent, error) {
+	if i.t != meta.ChargeTypeUsageBased {
+		return usagebased.Intent{}, fmt.Errorf("charge is not a usage based charge")
+	}
+
+	if i.usageBased == nil {
+		return usagebased.Intent{}, fmt.Errorf("usage based is nil")
+	}
+
+	return *i.usageBased, nil
+}
+
 type ChargeIntents []ChargeIntent
 
 func (i ChargeIntents) Validate() error {
@@ -201,12 +252,14 @@ func (i ChargeIntents) Validate() error {
 type ChargeIntentsByType struct {
 	FlatFee        []WithIndex[flatfee.Intent]
 	CreditPurchase []WithIndex[creditpurchase.Intent]
+	UsageBased     []WithIndex[usagebased.Intent]
 }
 
 func (i ChargeIntents) ByType() (ChargeIntentsByType, error) {
 	out := ChargeIntentsByType{
 		FlatFee:        make([]WithIndex[flatfee.Intent], 0, len(i)),
 		CreditPurchase: make([]WithIndex[creditpurchase.Intent], 0, len(i)),
+		UsageBased:     make([]WithIndex[usagebased.Intent], 0, len(i)),
 	}
 
 	for idx, ch := range i {
@@ -225,6 +278,13 @@ func (i ChargeIntents) ByType() (ChargeIntentsByType, error) {
 			}
 
 			out.CreditPurchase = append(out.CreditPurchase, WithIndex[creditpurchase.Intent]{Index: idx, Value: creditPurchase})
+		case meta.ChargeTypeUsageBased:
+			usageBased, err := ch.AsUsageBasedIntent()
+			if err != nil {
+				return ChargeIntentsByType{}, fmt.Errorf("converting usage based intent[%d]: %w", idx, err)
+			}
+
+			out.UsageBased = append(out.UsageBased, WithIndex[usagebased.Intent]{Index: idx, Value: usageBased})
 		default:
 			return ChargeIntentsByType{}, fmt.Errorf("unsupported charge type[%d]: %s", idx, ch.Type())
 		}

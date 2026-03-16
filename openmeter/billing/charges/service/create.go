@@ -10,7 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -19,14 +19,6 @@ import (
 func (s *service) Create(ctx context.Context, input charges.CreateInput) (charges.Charges, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
-	}
-
-	// Let's validate for unsupported charge types while we are building out the service
-	for _, charge := range input.Intents {
-		switch charge.Type() {
-		case meta.ChargeTypeUsageBased:
-			return nil, fmt.Errorf("unsupported charge type %s: %w", charge.Type(), meta.ErrUnsupported)
-		}
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (charges.Charges, error) {
@@ -66,6 +58,39 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 					customerID: customer.CustomerID{
 						Namespace: input.Namespace,
 						ID:        fee.Charge.Intent.CustomerID,
+					},
+				})
+			}
+		}
+
+		// Let's create all the usage based charges in bulk
+		usageBasedCharges, err := s.usageBasedService.Create(ctx, usagebased.CreateInput{
+			Namespace: input.Namespace,
+			Intents: lo.Map(intentsByType.UsageBased, func(intent charges.WithIndex[usagebased.Intent], _ int) usagebased.Intent {
+				return intent.Value
+			}),
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		createdCharges = append(
+			createdCharges,
+			lo.Map(usageBasedCharges, func(charge usagebased.ChargeWithGatheringLine, idx int) charges.WithIndex[charges.Charge] {
+				return charges.WithIndex[charges.Charge]{
+					Index: intentsByType.UsageBased[idx].Index,
+					Value: charges.NewCharge(charge.Charge),
+				}
+			})...,
+		)
+
+		for _, charge := range usageBasedCharges {
+			if charge.GatheringLineToCreate != nil {
+				gatheringLinesToCreate = append(gatheringLinesToCreate, gatheringLineWithCustomerID{
+					gatheringLine: *charge.GatheringLineToCreate,
+					customerID: customer.CustomerID{
+						Namespace: input.Namespace,
+						ID:        charge.Charge.Intent.CustomerID,
 					},
 				})
 			}

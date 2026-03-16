@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
@@ -70,10 +71,6 @@ func (s *service) GetByIDs(ctx context.Context, input charges.GetByIDsInput) (ch
 			if err := refType.Validate(); err != nil {
 				return nil, err
 			}
-
-			if refType == meta.ChargeTypeUsageBased {
-				return nil, fmt.Errorf("usage based charges are not supported: %w", meta.ErrUnsupported)
-			}
 		}
 
 		out := make(charges.Charges, len(chargesWithIndex))
@@ -94,6 +91,24 @@ func (s *service) GetByIDs(ctx context.Context, input charges.GetByIDsInput) (ch
 		for i, flatFee := range flatFees {
 			targetIndex := chargesByType[meta.ChargeTypeFlatFee][i].Index
 			out[targetIndex] = charges.NewCharge(flatFee)
+			nrFetched++
+		}
+
+		// Let's fetch usage based charges
+		usageBasedCharges, err := s.usageBasedService.GetByIDs(ctx, usagebased.GetByIDsInput{
+			Namespace: input.Namespace,
+			Charges: lo.Map(chargesByType[meta.ChargeTypeUsageBased], func(chargeMeta charges.WithIndex[meta.Charge], _ int) meta.Charge {
+				return chargeMeta.Value
+			}),
+			Expands: input.Expands,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		for i, usageBasedCharge := range usageBasedCharges {
+			targetIndex := chargesByType[meta.ChargeTypeUsageBased][i].Index
+			out[targetIndex] = charges.NewCharge(usageBasedCharge)
 			nrFetched++
 		}
 

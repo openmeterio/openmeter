@@ -67,6 +67,8 @@ const (
 	EdgeFlatFee = "flat_fee"
 	// EdgeCreditPurchase holds the string denoting the credit_purchase edge name in mutations.
 	EdgeCreditPurchase = "credit_purchase"
+	// EdgeUsageBased holds the string denoting the usage_based edge name in mutations.
+	EdgeUsageBased = "usage_based"
 	// EdgeBillingInvoiceLines holds the string denoting the billing_invoice_lines edge name in mutations.
 	EdgeBillingInvoiceLines = "billing_invoice_lines"
 	// EdgeBillingSplitLineGroups holds the string denoting the billing_split_line_groups edge name in mutations.
@@ -95,6 +97,13 @@ const (
 	CreditPurchaseInverseTable = "charge_credit_purchases"
 	// CreditPurchaseColumn is the table column denoting the credit_purchase relation/edge.
 	CreditPurchaseColumn = "id"
+	// UsageBasedTable is the table that holds the usage_based relation/edge.
+	UsageBasedTable = "charge_usage_based"
+	// UsageBasedInverseTable is the table name for the ChargeUsageBased entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeusagebased" package.
+	UsageBasedInverseTable = "charge_usage_based"
+	// UsageBasedColumn is the table column denoting the usage_based relation/edge.
+	UsageBasedColumn = "id"
 	// BillingInvoiceLinesTable is the table that holds the billing_invoice_lines relation/edge.
 	BillingInvoiceLinesTable = "billing_invoice_lines"
 	// BillingInvoiceLinesInverseTable is the table name for the BillingInvoiceLine entity.
@@ -351,6 +360,13 @@ func ByCreditPurchaseField(field string, opts ...sql.OrderTermOption) OrderOptio
 	}
 }
 
+// ByUsageBasedField orders the results by usage_based field.
+func ByUsageBasedField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newUsageBasedStep(), sql.OrderByField(field, opts...))
+	}
+}
+
 // ByBillingInvoiceLinesCount orders the results by billing_invoice_lines count.
 func ByBillingInvoiceLinesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -418,6 +434,13 @@ func newCreditPurchaseStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CreditPurchaseInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, CreditPurchaseTable, CreditPurchaseColumn),
+	)
+}
+func newUsageBasedStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(UsageBasedInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, UsageBasedTable, UsageBasedColumn),
 	)
 }
 func newBillingInvoiceLinesStep() *sqlgraph.Step {

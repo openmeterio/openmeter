@@ -259,3 +259,88 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		s.Equal(meta.ChargeStatusFinal, updatedFlatFeeCharge.Status)
 	})
 }
+
+func (s *InvoicableChargesTestSuite) TestUsageBasedPartialCreditRealizations() {
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("charges-service-usage-based-partial-credit-realizations")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithProgressiveBilling(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	const (
+		usageBasedName = "usage-based"
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+
+	clock.SetTime(servicePeriod.From)
+
+	usageBasedChargeID := meta.ChargeID{}
+
+	s.Run("create new upcoming charges", func() {
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: []charges.ChargeIntent{
+				s.createMockChargeIntent(createMockChargeIntentInput{
+					customer:       cust.GetID(),
+					currency:       USD,
+					servicePeriod:  servicePeriod,
+					settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromFloat(100),
+					}),
+					name:              usageBasedName,
+					managedBy:         billing.SubscriptionManagedLine,
+					uniqueReferenceID: usageBasedName,
+					featureKey:        apiRequestsTotal.Feature.Key,
+				}),
+			},
+		})
+		s.NoError(err)
+
+		s.Len(res, 1)
+		s.Equal(res[0].Type(), meta.ChargeTypeUsageBased)
+		usageBasedCharge, err := res[0].AsUsageBasedCharge()
+		s.NoError(err)
+
+		gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+			Namespaces: []string{ns},
+			Customers:  []string{cust.ID},
+			Currencies: []currencyx.Code{currencyx.Code(currency.USD)},
+			Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
+		})
+		s.NoError(err)
+		s.Len(gatheringInvoices.Items, 1)
+		gatheringInvoice := gatheringInvoices.Items[0]
+
+		lines := gatheringInvoice.Lines.OrEmpty()
+		s.Len(lines, 1)
+		gatheringLine := lines[0]
+
+		s.Equal(usageBasedCharge.ID, *gatheringLine.ChargeID)
+
+		// TODO: validate periods, price, etc.
+
+		fetchedCharge := s.mustGetChargeByID(usageBasedCharge.GetChargeID())
+		fetchedUsageBasedCharge, err := fetchedCharge.AsUsageBasedCharge()
+		s.NoError(err)
+		s.Equal(usageBasedCharge, fetchedUsageBasedCharge)
+
+		usageBasedChargeID = usageBasedCharge.GetChargeID()
+	})
+
+	s.NotEmpty(usageBasedChargeID)
+}

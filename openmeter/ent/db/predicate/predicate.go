@@ -223,6 +223,32 @@ type ChargeFlatFeeInvoicedUsage func(*sql.Selector)
 // ChargeFlatFeePayment is the predicate function for chargeflatfeepayment builders.
 type ChargeFlatFeePayment func(*sql.Selector)
 
+// ChargeUsageBased is the predicate function for chargeusagebased builders.
+type ChargeUsageBased func(*sql.Selector)
+
+// ChargeUsageBasedOrErr calls the predicate only if the error is not nit.
+func ChargeUsageBasedOrErr(p ChargeUsageBased, err error) ChargeUsageBased {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
+// ChargeUsageBasedRunCreditAllocations is the predicate function for chargeusagebasedruncreditallocations builders.
+type ChargeUsageBasedRunCreditAllocations func(*sql.Selector)
+
+// ChargeUsageBasedRunInvoicedUsage is the predicate function for chargeusagebasedruninvoicedusage builders.
+type ChargeUsageBasedRunInvoicedUsage func(*sql.Selector)
+
+// ChargeUsageBasedRunPayment is the predicate function for chargeusagebasedrunpayment builders.
+type ChargeUsageBasedRunPayment func(*sql.Selector)
+
+// ChargeUsageBasedRuns is the predicate function for chargeusagebasedruns builders.
+type ChargeUsageBasedRuns func(*sql.Selector)
+
 // CurrencyCostBasis is the predicate function for currencycostbasis builders.
 type CurrencyCostBasis func(*sql.Selector)
 

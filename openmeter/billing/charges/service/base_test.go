@@ -17,6 +17,7 @@ import (
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -179,9 +180,14 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 		return charges.NewChargeIntent(flatFeeIntent)
 	}
 
-	s.FailNow("not implemented: usage based intents")
-
-	return charges.ChargeIntent{}
+	usageBasedIntent := usagebased.Intent{
+		Intent:         intentMeta,
+		FeatureKey:     input.featureKey,
+		Price:          lo.FromPtr(input.price),
+		InvoiceAt:      invoiceAt,
+		SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.InvoiceOnlySettlementMode),
+	}
+	return charges.NewChargeIntent(usageBasedIntent)
 }
 
 func (s *BaseSuite) mustGetChargeByID(chargeID meta.ChargeID) charges.Charge {

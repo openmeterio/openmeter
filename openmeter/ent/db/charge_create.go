@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
@@ -287,6 +288,25 @@ func (_c *ChargeCreate) SetNillableCreditPurchaseID(id *string) *ChargeCreate {
 // SetCreditPurchase sets the "credit_purchase" edge to the ChargeCreditPurchase entity.
 func (_c *ChargeCreate) SetCreditPurchase(v *ChargeCreditPurchase) *ChargeCreate {
 	return _c.SetCreditPurchaseID(v.ID)
+}
+
+// SetUsageBasedID sets the "usage_based" edge to the ChargeUsageBased entity by ID.
+func (_c *ChargeCreate) SetUsageBasedID(id string) *ChargeCreate {
+	_c.mutation.SetUsageBasedID(id)
+	return _c
+}
+
+// SetNillableUsageBasedID sets the "usage_based" edge to the ChargeUsageBased entity by ID if the given value is not nil.
+func (_c *ChargeCreate) SetNillableUsageBasedID(id *string) *ChargeCreate {
+	if id != nil {
+		_c = _c.SetUsageBasedID(*id)
+	}
+	return _c
+}
+
+// SetUsageBased sets the "usage_based" edge to the ChargeUsageBased entity.
+func (_c *ChargeCreate) SetUsageBased(v *ChargeUsageBased) *ChargeCreate {
+	return _c.SetUsageBasedID(v.ID)
 }
 
 // AddBillingInvoiceLineIDs adds the "billing_invoice_lines" edge to the BillingInvoiceLine entity by IDs.
@@ -605,6 +625,22 @@ func (_c *ChargeCreate) createSpec() (*Charge, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.UsageBasedIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   charge.UsageBasedTable,
+			Columns: []string{charge.UsageBasedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
