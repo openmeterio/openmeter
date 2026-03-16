@@ -7,6 +7,7 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -290,6 +291,9 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 		meta.TaxCode = &tc
 	}
 
+	// Backfill legacy TaxConfig fields from new columns and TaxCode entity.
+	meta.TaxConfig = backfillTaxConfig(meta.TaxConfig, r.TaxBehavior, meta.TaxCode)
+
 	// Get billing cadence
 
 	billingCadence, err := r.BillingCadence.ParsePtrOrNil()
@@ -394,4 +398,39 @@ func fromTaxCodeRow(r *entdb.TaxCode) (taxcode.TaxCode, error) {
 		AppMappings: lo.FromPtr(r.AppMappings),
 		Metadata:    models.NewMetadata(r.Metadata),
 	}, nil
+}
+
+// backfillTaxConfig fills in missing legacy TaxConfig fields from the new tax_behavior column
+// and the TaxCode entity's app mappings.
+func backfillTaxConfig(cfg *productcatalog.TaxConfig, taxBehavior *productcatalog.TaxBehavior, tc *taxcode.TaxCode) *productcatalog.TaxConfig {
+	// Resolve Stripe code from TaxCode app mappings.
+	var stripeCode string
+	if tc != nil {
+		if m, ok := lo.Find(tc.AppMappings, func(m taxcode.TaxCodeAppMapping) bool {
+			return m.AppType == app.AppTypeStripe
+		}); ok {
+			stripeCode = m.TaxCode
+		}
+	}
+
+	// Nothing to backfill.
+	if taxBehavior == nil && stripeCode == "" {
+		return cfg
+	}
+
+	if cfg == nil {
+		cfg = &productcatalog.TaxConfig{}
+	}
+
+	if cfg.Behavior == nil && taxBehavior != nil {
+		cfg.Behavior = taxBehavior
+	}
+
+	if cfg.Stripe == nil && stripeCode != "" {
+		cfg.Stripe = &productcatalog.StripeTaxConfig{
+			Code: stripeCode,
+		}
+	}
+
+	return cfg
 }
