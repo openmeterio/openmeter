@@ -98,6 +98,10 @@ func (c Charge) AsUsageBasedCharge() (usagebased.Charge, error) {
 		return usagebased.Charge{}, fmt.Errorf("charge is not a usage based charge")
 	}
 
+	if c.usageBased == nil {
+		return usagebased.Charge{}, fmt.Errorf("usage based charge is nil")
+	}
+
 	return *c.usageBased, nil
 }
 

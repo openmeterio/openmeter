@@ -146,7 +146,7 @@ type RealizationRun struct {
 	models.NamespacedID
 	models.ManagedModel
 
-	Type       RealizationRunType    `json:"status"`
+	Type       RealizationRunType    `json:"type"`
 	AsOf       time.Time             `json:"asOf"`
 	MeterValue alpacadecimal.Decimal `json:"meterValue"`
 

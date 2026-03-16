@@ -144,6 +144,10 @@ func (a *adapter) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) 
 			out = append(out, charges[0])
 		}
 
+		if len(out) != len(input.Charges) {
+			return nil, fmt.Errorf("expected to fetch %d charges, got %d", len(input.Charges), len(out))
+		}
+
 		if len(errs) > 0 {
 			return nil, errors.Join(errs...)
 		}
