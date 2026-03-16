@@ -393,6 +393,66 @@ func (f ChargeFlatFeePaymentFunc) Mutate(ctx context.Context, m db.Mutation) (db
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeFlatFeePaymentMutation", m)
 }
 
+// The ChargeUsageBasedFunc type is an adapter to allow the use of ordinary
+// function as ChargeUsageBased mutator.
+type ChargeUsageBasedFunc func(context.Context, *db.ChargeUsageBasedMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeUsageBasedFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeUsageBasedMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedMutation", m)
+}
+
+// The ChargeUsageBasedRunCreditAllocationsFunc type is an adapter to allow the use of ordinary
+// function as ChargeUsageBasedRunCreditAllocations mutator.
+type ChargeUsageBasedRunCreditAllocationsFunc func(context.Context, *db.ChargeUsageBasedRunCreditAllocationsMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeUsageBasedRunCreditAllocationsFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeUsageBasedRunCreditAllocationsMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedRunCreditAllocationsMutation", m)
+}
+
+// The ChargeUsageBasedRunInvoicedUsageFunc type is an adapter to allow the use of ordinary
+// function as ChargeUsageBasedRunInvoicedUsage mutator.
+type ChargeUsageBasedRunInvoicedUsageFunc func(context.Context, *db.ChargeUsageBasedRunInvoicedUsageMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeUsageBasedRunInvoicedUsageFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeUsageBasedRunInvoicedUsageMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedRunInvoicedUsageMutation", m)
+}
+
+// The ChargeUsageBasedRunPaymentFunc type is an adapter to allow the use of ordinary
+// function as ChargeUsageBasedRunPayment mutator.
+type ChargeUsageBasedRunPaymentFunc func(context.Context, *db.ChargeUsageBasedRunPaymentMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeUsageBasedRunPaymentFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeUsageBasedRunPaymentMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedRunPaymentMutation", m)
+}
+
+// The ChargeUsageBasedRunsFunc type is an adapter to allow the use of ordinary
+// function as ChargeUsageBasedRuns mutator.
+type ChargeUsageBasedRunsFunc func(context.Context, *db.ChargeUsageBasedRunsMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeUsageBasedRunsFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeUsageBasedRunsMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedRunsMutation", m)
+}
+
 // The CurrencyCostBasisFunc type is an adapter to allow the use of ordinary
 // function as CurrencyCostBasis mutator.
 type CurrencyCostBasisFunc func(context.Context, *db.CurrencyCostBasisMutation) (db.Value, error)

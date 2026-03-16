@@ -2509,6 +2509,216 @@ func (u *ChargeFlatFeePaymentUpdateOne) SetOrClearAnnotations(value *models.Anno
 	return u.SetAnnotations(*value)
 }
 
+func (u *ChargeUsageBasedUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearDiscounts()
+	}
+	return u.SetDiscounts(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearDiscounts(value **productcatalog.Discounts) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearDiscounts()
+	}
+	return u.SetDiscounts(*value)
+}
+
+func (u *ChargeUsageBasedRunCreditAllocationsUpdate) SetOrClearLineID(value *string) *ChargeUsageBasedRunCreditAllocationsUpdate {
+	if value == nil {
+		return u.ClearLineID()
+	}
+	return u.SetLineID(*value)
+}
+
+func (u *ChargeUsageBasedRunCreditAllocationsUpdateOne) SetOrClearLineID(value *string) *ChargeUsageBasedRunCreditAllocationsUpdateOne {
+	if value == nil {
+		return u.ClearLineID()
+	}
+	return u.SetLineID(*value)
+}
+
+func (u *ChargeUsageBasedRunCreditAllocationsUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRunCreditAllocationsUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRunCreditAllocationsUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRunCreditAllocationsUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRunCreditAllocationsUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedRunCreditAllocationsUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRunCreditAllocationsUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedRunCreditAllocationsUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRunInvoicedUsageUpdate) SetOrClearLineID(value *string) *ChargeUsageBasedRunInvoicedUsageUpdate {
+	if value == nil {
+		return u.ClearLineID()
+	}
+	return u.SetLineID(*value)
+}
+
+func (u *ChargeUsageBasedRunInvoicedUsageUpdateOne) SetOrClearLineID(value *string) *ChargeUsageBasedRunInvoicedUsageUpdateOne {
+	if value == nil {
+		return u.ClearLineID()
+	}
+	return u.SetLineID(*value)
+}
+
+func (u *ChargeUsageBasedRunInvoicedUsageUpdate) SetOrClearLedgerTransactionGroupID(value *string) *ChargeUsageBasedRunInvoicedUsageUpdate {
+	if value == nil {
+		return u.ClearLedgerTransactionGroupID()
+	}
+	return u.SetLedgerTransactionGroupID(*value)
+}
+
+func (u *ChargeUsageBasedRunInvoicedUsageUpdateOne) SetOrClearLedgerTransactionGroupID(value *string) *ChargeUsageBasedRunInvoicedUsageUpdateOne {
+	if value == nil {
+		return u.ClearLedgerTransactionGroupID()
+	}
+	return u.SetLedgerTransactionGroupID(*value)
+}
+
+func (u *ChargeUsageBasedRunInvoicedUsageUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRunInvoicedUsageUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRunInvoicedUsageUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRunInvoicedUsageUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRunInvoicedUsageUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedRunInvoicedUsageUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRunInvoicedUsageUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedRunInvoicedUsageUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRunPaymentUpdate) SetOrClearAuthorizedTransactionGroupID(value *string) *ChargeUsageBasedRunPaymentUpdate {
+	if value == nil {
+		return u.ClearAuthorizedTransactionGroupID()
+	}
+	return u.SetAuthorizedTransactionGroupID(*value)
+}
+
+func (u *ChargeUsageBasedRunPaymentUpdateOne) SetOrClearAuthorizedTransactionGroupID(value *string) *ChargeUsageBasedRunPaymentUpdateOne {
+	if value == nil {
+		return u.ClearAuthorizedTransactionGroupID()
+	}
+	return u.SetAuthorizedTransactionGroupID(*value)
+}
+
+func (u *ChargeUsageBasedRunPaymentUpdate) SetOrClearAuthorizedAt(value *time.Time) *ChargeUsageBasedRunPaymentUpdate {
+	if value == nil {
+		return u.ClearAuthorizedAt()
+	}
+	return u.SetAuthorizedAt(*value)
+}
+
+func (u *ChargeUsageBasedRunPaymentUpdateOne) SetOrClearAuthorizedAt(value *time.Time) *ChargeUsageBasedRunPaymentUpdateOne {
+	if value == nil {
+		return u.ClearAuthorizedAt()
+	}
+	return u.SetAuthorizedAt(*value)
+}
+
+func (u *ChargeUsageBasedRunPaymentUpdate) SetOrClearSettledTransactionGroupID(value *string) *ChargeUsageBasedRunPaymentUpdate {
+	if value == nil {
+		return u.ClearSettledTransactionGroupID()
+	}
+	return u.SetSettledTransactionGroupID(*value)
+}
+
+func (u *ChargeUsageBasedRunPaymentUpdateOne) SetOrClearSettledTransactionGroupID(value *string) *ChargeUsageBasedRunPaymentUpdateOne {
+	if value == nil {
+		return u.ClearSettledTransactionGroupID()
+	}
+	return u.SetSettledTransactionGroupID(*value)
+}
+
+func (u *ChargeUsageBasedRunPaymentUpdate) SetOrClearSettledAt(value *time.Time) *ChargeUsageBasedRunPaymentUpdate {
+	if value == nil {
+		return u.ClearSettledAt()
+	}
+	return u.SetSettledAt(*value)
+}
+
+func (u *ChargeUsageBasedRunPaymentUpdateOne) SetOrClearSettledAt(value *time.Time) *ChargeUsageBasedRunPaymentUpdateOne {
+	if value == nil {
+		return u.ClearSettledAt()
+	}
+	return u.SetSettledAt(*value)
+}
+
+func (u *ChargeUsageBasedRunPaymentUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRunPaymentUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRunPaymentUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRunPaymentUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRunPaymentUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedRunPaymentUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRunPaymentUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedRunPaymentUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRunsUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRunsUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRunsUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRunsUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *CurrencyCostBasisUpdate) SetOrClearDeletedAt(value *time.Time) *CurrencyCostBasisUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

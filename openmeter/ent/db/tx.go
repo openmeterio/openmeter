@@ -78,6 +78,16 @@ type Tx struct {
 	ChargeFlatFeeInvoicedUsage *ChargeFlatFeeInvoicedUsageClient
 	// ChargeFlatFeePayment is the client for interacting with the ChargeFlatFeePayment builders.
 	ChargeFlatFeePayment *ChargeFlatFeePaymentClient
+	// ChargeUsageBased is the client for interacting with the ChargeUsageBased builders.
+	ChargeUsageBased *ChargeUsageBasedClient
+	// ChargeUsageBasedRunCreditAllocations is the client for interacting with the ChargeUsageBasedRunCreditAllocations builders.
+	ChargeUsageBasedRunCreditAllocations *ChargeUsageBasedRunCreditAllocationsClient
+	// ChargeUsageBasedRunInvoicedUsage is the client for interacting with the ChargeUsageBasedRunInvoicedUsage builders.
+	ChargeUsageBasedRunInvoicedUsage *ChargeUsageBasedRunInvoicedUsageClient
+	// ChargeUsageBasedRunPayment is the client for interacting with the ChargeUsageBasedRunPayment builders.
+	ChargeUsageBasedRunPayment *ChargeUsageBasedRunPaymentClient
+	// ChargeUsageBasedRuns is the client for interacting with the ChargeUsageBasedRuns builders.
+	ChargeUsageBasedRuns *ChargeUsageBasedRunsClient
 	// CurrencyCostBasis is the client for interacting with the CurrencyCostBasis builders.
 	CurrencyCostBasis *CurrencyCostBasisClient
 	// CustomCurrency is the client for interacting with the CustomCurrency builders.
@@ -293,6 +303,11 @@ func (tx *Tx) init() {
 	tx.ChargeFlatFeeCreditAllocations = NewChargeFlatFeeCreditAllocationsClient(tx.config)
 	tx.ChargeFlatFeeInvoicedUsage = NewChargeFlatFeeInvoicedUsageClient(tx.config)
 	tx.ChargeFlatFeePayment = NewChargeFlatFeePaymentClient(tx.config)
+	tx.ChargeUsageBased = NewChargeUsageBasedClient(tx.config)
+	tx.ChargeUsageBasedRunCreditAllocations = NewChargeUsageBasedRunCreditAllocationsClient(tx.config)
+	tx.ChargeUsageBasedRunInvoicedUsage = NewChargeUsageBasedRunInvoicedUsageClient(tx.config)
+	tx.ChargeUsageBasedRunPayment = NewChargeUsageBasedRunPaymentClient(tx.config)
+	tx.ChargeUsageBasedRuns = NewChargeUsageBasedRunsClient(tx.config)
 	tx.CurrencyCostBasis = NewCurrencyCostBasisClient(tx.config)
 	tx.CustomCurrency = NewCustomCurrencyClient(tx.config)
 	tx.Customer = NewCustomerClient(tx.config)

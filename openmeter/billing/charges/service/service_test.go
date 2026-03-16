@@ -31,6 +31,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
+	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -48,6 +51,7 @@ type ChargesServiceTestSuite struct {
 	Charges                   *service
 	FlatFeeTestHandler        *flatFeeTestHandler
 	CreditPurchaseTestHandler *creditPurchaseTestHandler
+	UsageBasedTestHandler     *usageBasedTestHandler
 }
 
 func TestChargesService(t *testing.T) {
@@ -59,6 +63,7 @@ func (s *ChargesServiceTestSuite) SetupSuite() {
 
 	s.FlatFeeTestHandler = newFlatFeeTestHandler()
 	s.CreditPurchaseTestHandler = newCreditPurchaseTestHandler()
+	s.UsageBasedTestHandler = newUsageBasedTestHandler()
 
 	metaAdapter, err := metaadapter.New(metaadapter.Config{
 		Client: s.DBClient,
@@ -94,6 +99,20 @@ func (s *ChargesServiceTestSuite) SetupSuite() {
 	})
 	s.NoError(err)
 
+	usageBasedAdapter, err := usagebasedadapter.New(usagebasedadapter.Config{
+		Client:      s.DBClient,
+		Logger:      slog.Default(),
+		MetaAdapter: metaAdapter,
+	})
+	s.NoError(err)
+
+	usageBasedService, err := usagebasedservice.New(usagebasedservice.Config{
+		Adapter:     usageBasedAdapter,
+		Handler:     s.UsageBasedTestHandler,
+		MetaAdapter: metaAdapter,
+	})
+	s.NoError(err)
+
 	chargesAdapter, err := adapter.New(adapter.Config{
 		Client: s.DBClient,
 		Logger: slog.Default(),
@@ -106,6 +125,7 @@ func (s *ChargesServiceTestSuite) SetupSuite() {
 		MetaAdapter:           metaAdapter,
 		FlatFeeService:        flatFeeService,
 		CreditPurchaseService: creditPurchaseService,
+		UsageBasedService:     usageBasedService,
 
 		BillingService: s.BillingService,
 	})
@@ -116,6 +136,7 @@ func (s *ChargesServiceTestSuite) SetupSuite() {
 func (s *ChargesServiceTestSuite) TeardownTest() {
 	s.FlatFeeTestHandler.Reset()
 	s.CreditPurchaseTestHandler.Reset()
+	s.UsageBasedTestHandler.Reset()
 }
 
 func (s *ChargesServiceTestSuite) TestFlatFeePartialCreditRealizations() {
@@ -417,9 +438,14 @@ func (s *ChargesServiceTestSuite) createMockChargeIntent(input createMockChargeI
 		return charges.NewChargeIntent(flatFeeIntent)
 	}
 
-	s.FailNow("not implemented: usage based intents")
-
-	return charges.ChargeIntent{}
+	usageBasedIntent := usagebased.Intent{
+		Intent:         intentMeta,
+		FeatureKey:     input.featureKey,
+		Price:          lo.FromPtr(input.price),
+		InvoiceAt:      invoiceAt,
+		SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.InvoiceOnlySettlementMode),
+	}
+	return charges.NewChargeIntent(usageBasedIntent)
 }
 
 func (s *ChargesServiceTestSuite) mustGetChargeByID(chargeID meta.ChargeID) charges.Charge {
@@ -750,4 +776,89 @@ func (s *ChargesServiceTestSuite) TestExternalAuthorizedCreditPurchaseManuallySe
 		s.Equal(payment.StatusSettled, res.State.ExternalPaymentSettlement.Status)
 		s.Equal(meta.ChargeStatusFinal, res.Status)
 	})
+}
+
+func (s *ChargesServiceTestSuite) TestUsageBasedPartialCreditRealizations() {
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("charges-service-usage-based-partial-credit-realizations")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithProgressiveBilling(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	const (
+		usageBasedName = "usage-based"
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+
+	clock.SetTime(servicePeriod.From)
+
+	usageBasedChargeID := meta.ChargeID{}
+
+	s.Run("create new upcoming charges", func() {
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: []charges.ChargeIntent{
+				s.createMockChargeIntent(createMockChargeIntentInput{
+					customer:       cust.GetID(),
+					currency:       USD,
+					servicePeriod:  servicePeriod,
+					settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromFloat(100),
+					}),
+					name:              usageBasedName,
+					managedBy:         billing.SubscriptionManagedLine,
+					uniqueReferenceID: usageBasedName,
+					featureKey:        apiRequestsTotal.Feature.Key,
+				}),
+			},
+		})
+		s.NoError(err)
+
+		s.Len(res, 1)
+		s.Equal(res[0].Type(), meta.ChargeTypeUsageBased)
+		usageBasedCharge, err := res[0].AsUsageBasedCharge()
+		s.NoError(err)
+
+		gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+			Namespaces: []string{ns},
+			Customers:  []string{cust.ID},
+			Currencies: []currencyx.Code{currencyx.Code(currency.USD)},
+			Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
+		})
+		s.NoError(err)
+		s.Len(gatheringInvoices.Items, 1)
+		gatheringInvoice := gatheringInvoices.Items[0]
+
+		lines := gatheringInvoice.Lines.OrEmpty()
+		s.Len(lines, 1)
+		gatheringLine := lines[0]
+
+		s.Equal(usageBasedCharge.ID, *gatheringLine.ChargeID)
+
+		// TODO: validate periods, price, etc.
+
+		fetchedCharge := s.mustGetChargeByID(usageBasedCharge.GetChargeID())
+		fetchedUsageBasedCharge, err := fetchedCharge.AsUsageBasedCharge()
+		s.NoError(err)
+		s.Equal(usageBasedCharge, fetchedUsageBasedCharge)
+
+		usageBasedChargeID = usageBasedCharge.GetChargeID()
+	})
+
+	s.NotEmpty(usageBasedChargeID)
 }
