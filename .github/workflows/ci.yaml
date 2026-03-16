@@ -241,6 +241,7 @@ jobs:
   migrations:
     name: Migration Checks
     runs-on: depot-ubuntu-latest-8
+    environment: dev
 
     steps:
       # Required as a workaround for Dagger to properly detect Git metadata
@@ -392,6 +393,7 @@ jobs:
     name: FOSSA Scan
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
+    environment: prod
 
     steps:
       - name: Checkout repository

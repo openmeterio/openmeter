@@ -13,6 +13,7 @@ jobs:
   release-beta-sdk:
     name: Python SDK Beta Release
     runs-on: depot-ubuntu-latest-8
+    environment: dev
 
     steps:
       - name: Checkout repository
