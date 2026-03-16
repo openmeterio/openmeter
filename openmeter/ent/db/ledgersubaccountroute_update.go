@@ -137,9 +137,6 @@ func (_u *LedgerSubAccountRouteUpdate) check() error {
 	if _u.mutation.AccountCleared() && len(_u.mutation.AccountIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "LedgerSubAccountRoute.account"`)
 	}
-	if _u.mutation.CurrencyDimensionCleared() && len(_u.mutation.CurrencyDimensionIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "LedgerSubAccountRoute.currency_dimension"`)
-	}
 	return nil
 }
 
@@ -163,6 +160,18 @@ func (_u *LedgerSubAccountRouteUpdate) sqlSave(ctx context.Context) (_node int, 
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(ledgersubaccountroute.FieldDeletedAt, field.TypeTime)
+	}
+	if _u.mutation.CurrencyCleared() {
+		_spec.ClearField(ledgersubaccountroute.FieldCurrency, field.TypeString)
+	}
+	if _u.mutation.TaxCodeIDCleared() {
+		_spec.ClearField(ledgersubaccountroute.FieldTaxCodeID, field.TypeString)
+	}
+	if _u.mutation.FeatureKeysCleared() {
+		_spec.ClearField(ledgersubaccountroute.FieldFeatureKeys, field.TypeString)
+	}
+	if _u.mutation.CreditPriorityCleared() {
+		_spec.ClearField(ledgersubaccountroute.FieldCreditPriority, field.TypeInt)
 	}
 	if _u.mutation.SubAccountsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -350,9 +359,6 @@ func (_u *LedgerSubAccountRouteUpdateOne) check() error {
 	if _u.mutation.AccountCleared() && len(_u.mutation.AccountIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "LedgerSubAccountRoute.account"`)
 	}
-	if _u.mutation.CurrencyDimensionCleared() && len(_u.mutation.CurrencyDimensionIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "LedgerSubAccountRoute.currency_dimension"`)
-	}
 	return nil
 }
 
@@ -393,6 +399,18 @@ func (_u *LedgerSubAccountRouteUpdateOne) sqlSave(ctx context.Context) (_node *L
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(ledgersubaccountroute.FieldDeletedAt, field.TypeTime)
+	}
+	if _u.mutation.CurrencyCleared() {
+		_spec.ClearField(ledgersubaccountroute.FieldCurrency, field.TypeString)
+	}
+	if _u.mutation.TaxCodeIDCleared() {
+		_spec.ClearField(ledgersubaccountroute.FieldTaxCodeID, field.TypeString)
+	}
+	if _u.mutation.FeatureKeysCleared() {
+		_spec.ClearField(ledgersubaccountroute.FieldFeatureKeys, field.TypeString)
+	}
+	if _u.mutation.CreditPriorityCleared() {
+		_spec.ClearField(ledgersubaccountroute.FieldCreditPriority, field.TypeInt)
 	}
 	if _u.mutation.SubAccountsCleared() {
 		edge := &sqlgraph.EdgeSpec{

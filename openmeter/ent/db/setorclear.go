@@ -3251,34 +3251,6 @@ func (u *LedgerCustomerAccountUpdateOne) SetOrClearDeletedAt(value *time.Time) *
 	return u.SetDeletedAt(*value)
 }
 
-func (u *LedgerDimensionUpdate) SetOrClearAnnotations(value *models.Annotations) *LedgerDimensionUpdate {
-	if value == nil {
-		return u.ClearAnnotations()
-	}
-	return u.SetAnnotations(*value)
-}
-
-func (u *LedgerDimensionUpdateOne) SetOrClearAnnotations(value *models.Annotations) *LedgerDimensionUpdateOne {
-	if value == nil {
-		return u.ClearAnnotations()
-	}
-	return u.SetAnnotations(*value)
-}
-
-func (u *LedgerDimensionUpdate) SetOrClearDeletedAt(value *time.Time) *LedgerDimensionUpdate {
-	if value == nil {
-		return u.ClearDeletedAt()
-	}
-	return u.SetDeletedAt(*value)
-}
-
-func (u *LedgerDimensionUpdateOne) SetOrClearDeletedAt(value *time.Time) *LedgerDimensionUpdateOne {
-	if value == nil {
-		return u.ClearDeletedAt()
-	}
-	return u.SetDeletedAt(*value)
-}
-
 func (u *LedgerEntryUpdate) SetOrClearAnnotations(value *models.Annotations) *LedgerEntryUpdate {
 	if value == nil {
 		return u.ClearAnnotations()

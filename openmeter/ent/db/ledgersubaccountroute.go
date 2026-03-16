@@ -10,9 +10,9 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // LedgerSubAccountRoute is the model entity for the LedgerSubAccountRoute schema.
@@ -32,21 +32,18 @@ type LedgerSubAccountRoute struct {
 	AccountID string `json:"account_id,omitempty"`
 	// RoutingKeyVersion holds the value of the "routing_key_version" field.
 	RoutingKeyVersion ledger.RoutingKeyVersion `json:"routing_key_version,omitempty"`
-	// RoutingKey holds the value of the "routing_key" field.
-	RoutingKey string `json:"routing_key,omitempty"`
-	// CurrencyDimensionID holds the value of the "currency_dimension_id" field.
-	CurrencyDimensionID string `json:"currency_dimension_id,omitempty"`
-	// TaxCodeDimensionID holds the value of the "tax_code_dimension_id" field.
-	TaxCodeDimensionID string `json:"tax_code_dimension_id,omitempty"`
-	// FeaturesDimensionID holds the value of the "features_dimension_id" field.
-	FeaturesDimensionID string `json:"features_dimension_id,omitempty"`
-	// CreditPriorityDimensionID holds the value of the "credit_priority_dimension_id" field.
-	CreditPriorityDimensionID string `json:"credit_priority_dimension_id,omitempty"`
+	// Currency holds the value of the "currency" field.
+	Currency currencyx.Code `json:"currency,omitempty"`
+	// TaxCodeID holds the value of the "tax_code_id" field.
+	TaxCodeID string `json:"tax_code_id,omitempty"`
+	// FeatureKeys holds the value of the "feature_keys" field.
+	FeatureKeys string `json:"feature_keys,omitempty"`
+	// CreditPriority holds the value of the "credit_priority" field.
+	CreditPriority int `json:"credit_priority,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the LedgerSubAccountRouteQuery when eager-loading is set.
-	Edges                               LedgerSubAccountRouteEdges `json:"edges"`
-	ledger_dimension_sub_account_routes *string
-	selectValues                        sql.SelectValues
+	Edges        LedgerSubAccountRouteEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // LedgerSubAccountRouteEdges holds the relations/edges for other nodes in the graph.
@@ -55,17 +52,9 @@ type LedgerSubAccountRouteEdges struct {
 	Account *LedgerAccount `json:"account,omitempty"`
 	// SubAccounts holds the value of the sub_accounts edge.
 	SubAccounts []*LedgerSubAccount `json:"sub_accounts,omitempty"`
-	// CurrencyDimension holds the value of the currency_dimension edge.
-	CurrencyDimension *LedgerDimension `json:"currency_dimension,omitempty"`
-	// TaxCodeDimension holds the value of the tax_code_dimension edge.
-	TaxCodeDimension *LedgerDimension `json:"tax_code_dimension,omitempty"`
-	// FeaturesDimension holds the value of the features_dimension edge.
-	FeaturesDimension *LedgerDimension `json:"features_dimension,omitempty"`
-	// CreditPriorityDimension holds the value of the credit_priority_dimension edge.
-	CreditPriorityDimension *LedgerDimension `json:"credit_priority_dimension,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [6]bool
+	loadedTypes [2]bool
 }
 
 // AccountOrErr returns the Account value or an error if the edge
@@ -88,61 +77,17 @@ func (e LedgerSubAccountRouteEdges) SubAccountsOrErr() ([]*LedgerSubAccount, err
 	return nil, &NotLoadedError{edge: "sub_accounts"}
 }
 
-// CurrencyDimensionOrErr returns the CurrencyDimension value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e LedgerSubAccountRouteEdges) CurrencyDimensionOrErr() (*LedgerDimension, error) {
-	if e.CurrencyDimension != nil {
-		return e.CurrencyDimension, nil
-	} else if e.loadedTypes[2] {
-		return nil, &NotFoundError{label: ledgerdimension.Label}
-	}
-	return nil, &NotLoadedError{edge: "currency_dimension"}
-}
-
-// TaxCodeDimensionOrErr returns the TaxCodeDimension value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e LedgerSubAccountRouteEdges) TaxCodeDimensionOrErr() (*LedgerDimension, error) {
-	if e.TaxCodeDimension != nil {
-		return e.TaxCodeDimension, nil
-	} else if e.loadedTypes[3] {
-		return nil, &NotFoundError{label: ledgerdimension.Label}
-	}
-	return nil, &NotLoadedError{edge: "tax_code_dimension"}
-}
-
-// FeaturesDimensionOrErr returns the FeaturesDimension value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e LedgerSubAccountRouteEdges) FeaturesDimensionOrErr() (*LedgerDimension, error) {
-	if e.FeaturesDimension != nil {
-		return e.FeaturesDimension, nil
-	} else if e.loadedTypes[4] {
-		return nil, &NotFoundError{label: ledgerdimension.Label}
-	}
-	return nil, &NotLoadedError{edge: "features_dimension"}
-}
-
-// CreditPriorityDimensionOrErr returns the CreditPriorityDimension value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e LedgerSubAccountRouteEdges) CreditPriorityDimensionOrErr() (*LedgerDimension, error) {
-	if e.CreditPriorityDimension != nil {
-		return e.CreditPriorityDimension, nil
-	} else if e.loadedTypes[5] {
-		return nil, &NotFoundError{label: ledgerdimension.Label}
-	}
-	return nil, &NotLoadedError{edge: "credit_priority_dimension"}
-}
-
 // scanValues returns the types for scanning values from sql.Rows.
 func (*LedgerSubAccountRoute) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case ledgersubaccountroute.FieldID, ledgersubaccountroute.FieldNamespace, ledgersubaccountroute.FieldAccountID, ledgersubaccountroute.FieldRoutingKeyVersion, ledgersubaccountroute.FieldRoutingKey, ledgersubaccountroute.FieldCurrencyDimensionID, ledgersubaccountroute.FieldTaxCodeDimensionID, ledgersubaccountroute.FieldFeaturesDimensionID, ledgersubaccountroute.FieldCreditPriorityDimensionID:
+		case ledgersubaccountroute.FieldCreditPriority:
+			values[i] = new(sql.NullInt64)
+		case ledgersubaccountroute.FieldID, ledgersubaccountroute.FieldNamespace, ledgersubaccountroute.FieldAccountID, ledgersubaccountroute.FieldRoutingKeyVersion, ledgersubaccountroute.FieldCurrency, ledgersubaccountroute.FieldTaxCodeID, ledgersubaccountroute.FieldFeatureKeys:
 			values[i] = new(sql.NullString)
 		case ledgersubaccountroute.FieldCreatedAt, ledgersubaccountroute.FieldUpdatedAt, ledgersubaccountroute.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
-		case ledgersubaccountroute.ForeignKeys[0]: // ledger_dimension_sub_account_routes
-			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -201,42 +146,29 @@ func (_m *LedgerSubAccountRoute) assignValues(columns []string, values []any) er
 			} else if value.Valid {
 				_m.RoutingKeyVersion = ledger.RoutingKeyVersion(value.String)
 			}
-		case ledgersubaccountroute.FieldRoutingKey:
+		case ledgersubaccountroute.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field routing_key", values[i])
+				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
-				_m.RoutingKey = value.String
+				_m.Currency = currencyx.Code(value.String)
 			}
-		case ledgersubaccountroute.FieldCurrencyDimensionID:
+		case ledgersubaccountroute.FieldTaxCodeID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field currency_dimension_id", values[i])
+				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
 			} else if value.Valid {
-				_m.CurrencyDimensionID = value.String
+				_m.TaxCodeID = value.String
 			}
-		case ledgersubaccountroute.FieldTaxCodeDimensionID:
+		case ledgersubaccountroute.FieldFeatureKeys:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_code_dimension_id", values[i])
+				return fmt.Errorf("unexpected type %T for field feature_keys", values[i])
 			} else if value.Valid {
-				_m.TaxCodeDimensionID = value.String
+				_m.FeatureKeys = value.String
 			}
-		case ledgersubaccountroute.FieldFeaturesDimensionID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field features_dimension_id", values[i])
+		case ledgersubaccountroute.FieldCreditPriority:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field credit_priority", values[i])
 			} else if value.Valid {
-				_m.FeaturesDimensionID = value.String
-			}
-		case ledgersubaccountroute.FieldCreditPriorityDimensionID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field credit_priority_dimension_id", values[i])
-			} else if value.Valid {
-				_m.CreditPriorityDimensionID = value.String
-			}
-		case ledgersubaccountroute.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field ledger_dimension_sub_account_routes", values[i])
-			} else if value.Valid {
-				_m.ledger_dimension_sub_account_routes = new(string)
-				*_m.ledger_dimension_sub_account_routes = value.String
+				_m.CreditPriority = int(value.Int64)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -259,26 +191,6 @@ func (_m *LedgerSubAccountRoute) QueryAccount() *LedgerAccountQuery {
 // QuerySubAccounts queries the "sub_accounts" edge of the LedgerSubAccountRoute entity.
 func (_m *LedgerSubAccountRoute) QuerySubAccounts() *LedgerSubAccountQuery {
 	return NewLedgerSubAccountRouteClient(_m.config).QuerySubAccounts(_m)
-}
-
-// QueryCurrencyDimension queries the "currency_dimension" edge of the LedgerSubAccountRoute entity.
-func (_m *LedgerSubAccountRoute) QueryCurrencyDimension() *LedgerDimensionQuery {
-	return NewLedgerSubAccountRouteClient(_m.config).QueryCurrencyDimension(_m)
-}
-
-// QueryTaxCodeDimension queries the "tax_code_dimension" edge of the LedgerSubAccountRoute entity.
-func (_m *LedgerSubAccountRoute) QueryTaxCodeDimension() *LedgerDimensionQuery {
-	return NewLedgerSubAccountRouteClient(_m.config).QueryTaxCodeDimension(_m)
-}
-
-// QueryFeaturesDimension queries the "features_dimension" edge of the LedgerSubAccountRoute entity.
-func (_m *LedgerSubAccountRoute) QueryFeaturesDimension() *LedgerDimensionQuery {
-	return NewLedgerSubAccountRouteClient(_m.config).QueryFeaturesDimension(_m)
-}
-
-// QueryCreditPriorityDimension queries the "credit_priority_dimension" edge of the LedgerSubAccountRoute entity.
-func (_m *LedgerSubAccountRoute) QueryCreditPriorityDimension() *LedgerDimensionQuery {
-	return NewLedgerSubAccountRouteClient(_m.config).QueryCreditPriorityDimension(_m)
 }
 
 // Update returns a builder for updating this LedgerSubAccountRoute.
@@ -324,20 +236,17 @@ func (_m *LedgerSubAccountRoute) String() string {
 	builder.WriteString("routing_key_version=")
 	builder.WriteString(fmt.Sprintf("%v", _m.RoutingKeyVersion))
 	builder.WriteString(", ")
-	builder.WriteString("routing_key=")
-	builder.WriteString(_m.RoutingKey)
+	builder.WriteString("currency=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
 	builder.WriteString(", ")
-	builder.WriteString("currency_dimension_id=")
-	builder.WriteString(_m.CurrencyDimensionID)
+	builder.WriteString("tax_code_id=")
+	builder.WriteString(_m.TaxCodeID)
 	builder.WriteString(", ")
-	builder.WriteString("tax_code_dimension_id=")
-	builder.WriteString(_m.TaxCodeDimensionID)
+	builder.WriteString("feature_keys=")
+	builder.WriteString(_m.FeatureKeys)
 	builder.WriteString(", ")
-	builder.WriteString("features_dimension_id=")
-	builder.WriteString(_m.FeaturesDimensionID)
-	builder.WriteString(", ")
-	builder.WriteString("credit_priority_dimension_id=")
-	builder.WriteString(_m.CreditPriorityDimensionID)
+	builder.WriteString("credit_priority=")
+	builder.WriteString(fmt.Sprintf("%v", _m.CreditPriority))
 	builder.WriteByte(')')
 	return builder.String()
 }

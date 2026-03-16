@@ -32,7 +32,7 @@ type Balance interface {
 
 // SubAccount is an actual address you can post against. It has all required routing information provided.
 // Accounts describe ownership and purpose while SubAccounts parameterize the actual posting address.
-type SubAccount interface {
+type ISubAccount interface {
 	// Returns the address of the sub-account
 	Address() PostingAddress
 
@@ -57,7 +57,7 @@ type QueryDimensions struct {
 
 // Account represents a ledger account tying together multiple sub-accounts.
 // Accounts describe ownership and purpose while SubAccounts parameterize the actual posting address.
-type Account interface {
+type IAccount interface {
 	// Balance can be queried across sub-accounts according to QueryDimensions
 	GetBalance(ctx context.Context, query QueryDimensions) (Balance, error)
 }

@@ -1798,57 +1798,6 @@ func (_m *LedgerCustomerAccountQuery) Cursor(ctx context.Context, cursor *pagina
 
 // Cursor runs the query and returns a cursor-paginated response.
 // Ordering is always by created_at asc, id asc.
-func (_m *LedgerDimensionQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*LedgerDimension], error) {
-	if cursor != nil {
-		if err := cursor.Validate(); err != nil {
-			return pagination.Result[*LedgerDimension]{}, fmt.Errorf("invalid cursor: %w", err)
-		}
-
-		_m.Where(func(s *sql.Selector) {
-			s.Where(
-				sql.Or(
-					sql.GT(s.C("created_at"), cursor.Time),
-					sql.And(
-						sql.EQ(s.C("created_at"), cursor.Time),
-						sql.P(func(b *sql.Builder) {
-							b.WriteString("CAST(")
-							b.WriteString(s.C("id"))
-							b.WriteString(" AS TEXT) > ")
-							b.Args(cursor.ID)
-						}),
-					),
-				),
-			)
-		})
-	}
-
-	_m.Order(func(s *sql.Selector) {
-		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
-	})
-
-	items, err := _m.All(ctx)
-	if err != nil {
-		return pagination.Result[*LedgerDimension]{}, err
-	}
-
-	if items == nil {
-		items = make([]*LedgerDimension, 0)
-	}
-
-	result := pagination.Result[*LedgerDimension]{
-		Items: items,
-	}
-
-	if len(items) > 0 {
-		last := items[len(items)-1]
-		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
-	}
-
-	return result, nil
-}
-
-// Cursor runs the query and returns a cursor-paginated response.
-// Ordering is always by created_at asc, id asc.
 func (_m *LedgerEntryQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*LedgerEntry], error) {
 	if cursor != nil {
 		if err := cursor.Validate(); err != nil {

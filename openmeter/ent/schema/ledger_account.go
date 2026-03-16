@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/schema/index"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -111,25 +112,35 @@ func (LedgerSubAccountRoute) Fields() []ent.Field {
 		field.String("routing_key_version").
 			GoType(ledger.RoutingKeyVersion("")).
 			Immutable(),
-		field.String("routing_key").Immutable(),
-		field.String("currency_dimension_id").SchemaType(map[string]string{
+		field.String("currency").
+			GoType(currencyx.Code("")).
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(3)",
+			}).
+			Optional().
+			NotEmpty().
+			Immutable(),
+		field.String("tax_code_id").SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
-		}).Immutable(),
-		field.String("tax_code_dimension_id").SchemaType(map[string]string{
-			dialect.Postgres: "char(26)",
+		}).
+			Optional().
+			NotEmpty().
+			Immutable(),
+		// TODO: implement feature keys
+		field.String("feature_keys").SchemaType(map[string]string{
+			dialect.Postgres: "text[]",
 		}).Optional().Immutable(),
-		field.String("features_dimension_id").SchemaType(map[string]string{
-			dialect.Postgres: "char(26)",
-		}).Optional().Immutable(),
-		field.String("credit_priority_dimension_id").SchemaType(map[string]string{
-			dialect.Postgres: "char(26)",
+		field.Int("credit_priority").SchemaType(map[string]string{
+			dialect.Postgres: "integer",
 		}).Optional().Immutable(),
 	}
 }
 
 func (LedgerSubAccountRoute) Indexes() []ent.Index {
+	// TODO: have proper uniqeness constrains (e.g. coalesce)
 	return []ent.Index{
-		index.Fields("namespace", "account_id", "routing_key_version", "routing_key").Unique(),
+		// index.Fields("namespace", "account_id", "routing_key_version", "routing_key").Unique(),
+
 	}
 }
 
@@ -142,26 +153,5 @@ func (LedgerSubAccountRoute) Edges() []ent.Edge {
 			Immutable().
 			Unique(),
 		edge.To("sub_accounts", LedgerSubAccount.Type),
-		edge.From("currency_dimension", LedgerDimension.Type).
-			Ref("currency_sub_account_routes").
-			Field("currency_dimension_id").
-			Required().
-			Immutable().
-			Unique(),
-		edge.From("tax_code_dimension", LedgerDimension.Type).
-			Ref("tax_code_sub_account_routes").
-			Field("tax_code_dimension_id").
-			Immutable().
-			Unique(),
-		edge.From("features_dimension", LedgerDimension.Type).
-			Ref("features_sub_account_routes").
-			Field("features_dimension_id").
-			Immutable().
-			Unique(),
-		edge.From("credit_priority_dimension", LedgerDimension.Type).
-			Ref("credit_priority_sub_account_routes").
-			Field("credit_priority_dimension_id").
-			Immutable().
-			Unique(),
 	}
 }

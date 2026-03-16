@@ -13,10 +13,10 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // LedgerSubAccountRouteCreate is the builder for creating a LedgerSubAccountRoute entity.
@@ -87,56 +87,58 @@ func (_c *LedgerSubAccountRouteCreate) SetRoutingKeyVersion(v ledger.RoutingKeyV
 	return _c
 }
 
-// SetRoutingKey sets the "routing_key" field.
-func (_c *LedgerSubAccountRouteCreate) SetRoutingKey(v string) *LedgerSubAccountRouteCreate {
-	_c.mutation.SetRoutingKey(v)
+// SetCurrency sets the "currency" field.
+func (_c *LedgerSubAccountRouteCreate) SetCurrency(v currencyx.Code) *LedgerSubAccountRouteCreate {
+	_c.mutation.SetCurrency(v)
 	return _c
 }
 
-// SetCurrencyDimensionID sets the "currency_dimension_id" field.
-func (_c *LedgerSubAccountRouteCreate) SetCurrencyDimensionID(v string) *LedgerSubAccountRouteCreate {
-	_c.mutation.SetCurrencyDimensionID(v)
-	return _c
-}
-
-// SetTaxCodeDimensionID sets the "tax_code_dimension_id" field.
-func (_c *LedgerSubAccountRouteCreate) SetTaxCodeDimensionID(v string) *LedgerSubAccountRouteCreate {
-	_c.mutation.SetTaxCodeDimensionID(v)
-	return _c
-}
-
-// SetNillableTaxCodeDimensionID sets the "tax_code_dimension_id" field if the given value is not nil.
-func (_c *LedgerSubAccountRouteCreate) SetNillableTaxCodeDimensionID(v *string) *LedgerSubAccountRouteCreate {
+// SetNillableCurrency sets the "currency" field if the given value is not nil.
+func (_c *LedgerSubAccountRouteCreate) SetNillableCurrency(v *currencyx.Code) *LedgerSubAccountRouteCreate {
 	if v != nil {
-		_c.SetTaxCodeDimensionID(*v)
+		_c.SetCurrency(*v)
 	}
 	return _c
 }
 
-// SetFeaturesDimensionID sets the "features_dimension_id" field.
-func (_c *LedgerSubAccountRouteCreate) SetFeaturesDimensionID(v string) *LedgerSubAccountRouteCreate {
-	_c.mutation.SetFeaturesDimensionID(v)
+// SetTaxCodeID sets the "tax_code_id" field.
+func (_c *LedgerSubAccountRouteCreate) SetTaxCodeID(v string) *LedgerSubAccountRouteCreate {
+	_c.mutation.SetTaxCodeID(v)
 	return _c
 }
 
-// SetNillableFeaturesDimensionID sets the "features_dimension_id" field if the given value is not nil.
-func (_c *LedgerSubAccountRouteCreate) SetNillableFeaturesDimensionID(v *string) *LedgerSubAccountRouteCreate {
+// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
+func (_c *LedgerSubAccountRouteCreate) SetNillableTaxCodeID(v *string) *LedgerSubAccountRouteCreate {
 	if v != nil {
-		_c.SetFeaturesDimensionID(*v)
+		_c.SetTaxCodeID(*v)
 	}
 	return _c
 }
 
-// SetCreditPriorityDimensionID sets the "credit_priority_dimension_id" field.
-func (_c *LedgerSubAccountRouteCreate) SetCreditPriorityDimensionID(v string) *LedgerSubAccountRouteCreate {
-	_c.mutation.SetCreditPriorityDimensionID(v)
+// SetFeatureKeys sets the "feature_keys" field.
+func (_c *LedgerSubAccountRouteCreate) SetFeatureKeys(v string) *LedgerSubAccountRouteCreate {
+	_c.mutation.SetFeatureKeys(v)
 	return _c
 }
 
-// SetNillableCreditPriorityDimensionID sets the "credit_priority_dimension_id" field if the given value is not nil.
-func (_c *LedgerSubAccountRouteCreate) SetNillableCreditPriorityDimensionID(v *string) *LedgerSubAccountRouteCreate {
+// SetNillableFeatureKeys sets the "feature_keys" field if the given value is not nil.
+func (_c *LedgerSubAccountRouteCreate) SetNillableFeatureKeys(v *string) *LedgerSubAccountRouteCreate {
 	if v != nil {
-		_c.SetCreditPriorityDimensionID(*v)
+		_c.SetFeatureKeys(*v)
+	}
+	return _c
+}
+
+// SetCreditPriority sets the "credit_priority" field.
+func (_c *LedgerSubAccountRouteCreate) SetCreditPriority(v int) *LedgerSubAccountRouteCreate {
+	_c.mutation.SetCreditPriority(v)
+	return _c
+}
+
+// SetNillableCreditPriority sets the "credit_priority" field if the given value is not nil.
+func (_c *LedgerSubAccountRouteCreate) SetNillableCreditPriority(v *int) *LedgerSubAccountRouteCreate {
+	if v != nil {
+		_c.SetCreditPriority(*v)
 	}
 	return _c
 }
@@ -173,26 +175,6 @@ func (_c *LedgerSubAccountRouteCreate) AddSubAccounts(v ...*LedgerSubAccount) *L
 		ids[i] = v[i].ID
 	}
 	return _c.AddSubAccountIDs(ids...)
-}
-
-// SetCurrencyDimension sets the "currency_dimension" edge to the LedgerDimension entity.
-func (_c *LedgerSubAccountRouteCreate) SetCurrencyDimension(v *LedgerDimension) *LedgerSubAccountRouteCreate {
-	return _c.SetCurrencyDimensionID(v.ID)
-}
-
-// SetTaxCodeDimension sets the "tax_code_dimension" edge to the LedgerDimension entity.
-func (_c *LedgerSubAccountRouteCreate) SetTaxCodeDimension(v *LedgerDimension) *LedgerSubAccountRouteCreate {
-	return _c.SetTaxCodeDimensionID(v.ID)
-}
-
-// SetFeaturesDimension sets the "features_dimension" edge to the LedgerDimension entity.
-func (_c *LedgerSubAccountRouteCreate) SetFeaturesDimension(v *LedgerDimension) *LedgerSubAccountRouteCreate {
-	return _c.SetFeaturesDimensionID(v.ID)
-}
-
-// SetCreditPriorityDimension sets the "credit_priority_dimension" edge to the LedgerDimension entity.
-func (_c *LedgerSubAccountRouteCreate) SetCreditPriorityDimension(v *LedgerDimension) *LedgerSubAccountRouteCreate {
-	return _c.SetCreditPriorityDimensionID(v.ID)
 }
 
 // Mutation returns the LedgerSubAccountRouteMutation object of the builder.
@@ -271,17 +253,18 @@ func (_c *LedgerSubAccountRouteCreate) check() error {
 			return &ValidationError{Name: "routing_key_version", err: fmt.Errorf(`db: validator failed for field "LedgerSubAccountRoute.routing_key_version": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.RoutingKey(); !ok {
-		return &ValidationError{Name: "routing_key", err: errors.New(`db: missing required field "LedgerSubAccountRoute.routing_key"`)}
+	if v, ok := _c.mutation.Currency(); ok {
+		if err := ledgersubaccountroute.CurrencyValidator(string(v)); err != nil {
+			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "LedgerSubAccountRoute.currency": %w`, err)}
+		}
 	}
-	if _, ok := _c.mutation.CurrencyDimensionID(); !ok {
-		return &ValidationError{Name: "currency_dimension_id", err: errors.New(`db: missing required field "LedgerSubAccountRoute.currency_dimension_id"`)}
+	if v, ok := _c.mutation.TaxCodeID(); ok {
+		if err := ledgersubaccountroute.TaxCodeIDValidator(v); err != nil {
+			return &ValidationError{Name: "tax_code_id", err: fmt.Errorf(`db: validator failed for field "LedgerSubAccountRoute.tax_code_id": %w`, err)}
+		}
 	}
 	if len(_c.mutation.AccountIDs()) == 0 {
 		return &ValidationError{Name: "account", err: errors.New(`db: missing required edge "LedgerSubAccountRoute.account"`)}
-	}
-	if len(_c.mutation.CurrencyDimensionIDs()) == 0 {
-		return &ValidationError{Name: "currency_dimension", err: errors.New(`db: missing required edge "LedgerSubAccountRoute.currency_dimension"`)}
 	}
 	return nil
 }
@@ -339,9 +322,21 @@ func (_c *LedgerSubAccountRouteCreate) createSpec() (*LedgerSubAccountRoute, *sq
 		_spec.SetField(ledgersubaccountroute.FieldRoutingKeyVersion, field.TypeString, value)
 		_node.RoutingKeyVersion = value
 	}
-	if value, ok := _c.mutation.RoutingKey(); ok {
-		_spec.SetField(ledgersubaccountroute.FieldRoutingKey, field.TypeString, value)
-		_node.RoutingKey = value
+	if value, ok := _c.mutation.Currency(); ok {
+		_spec.SetField(ledgersubaccountroute.FieldCurrency, field.TypeString, value)
+		_node.Currency = value
+	}
+	if value, ok := _c.mutation.TaxCodeID(); ok {
+		_spec.SetField(ledgersubaccountroute.FieldTaxCodeID, field.TypeString, value)
+		_node.TaxCodeID = value
+	}
+	if value, ok := _c.mutation.FeatureKeys(); ok {
+		_spec.SetField(ledgersubaccountroute.FieldFeatureKeys, field.TypeString, value)
+		_node.FeatureKeys = value
+	}
+	if value, ok := _c.mutation.CreditPriority(); ok {
+		_spec.SetField(ledgersubaccountroute.FieldCreditPriority, field.TypeInt, value)
+		_node.CreditPriority = value
 	}
 	if nodes := _c.mutation.AccountIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -374,74 +369,6 @@ func (_c *LedgerSubAccountRouteCreate) createSpec() (*LedgerSubAccountRoute, *sq
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.CurrencyDimensionIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   ledgersubaccountroute.CurrencyDimensionTable,
-			Columns: []string{ledgersubaccountroute.CurrencyDimensionColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(ledgerdimension.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.CurrencyDimensionID = nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.TaxCodeDimensionIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   ledgersubaccountroute.TaxCodeDimensionTable,
-			Columns: []string{ledgersubaccountroute.TaxCodeDimensionColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(ledgerdimension.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.TaxCodeDimensionID = nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.FeaturesDimensionIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   ledgersubaccountroute.FeaturesDimensionTable,
-			Columns: []string{ledgersubaccountroute.FeaturesDimensionColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(ledgerdimension.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.FeaturesDimensionID = nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := _c.mutation.CreditPriorityDimensionIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   ledgersubaccountroute.CreditPriorityDimensionTable,
-			Columns: []string{ledgersubaccountroute.CreditPriorityDimensionColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(ledgerdimension.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.CreditPriorityDimensionID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -555,20 +482,17 @@ func (u *LedgerSubAccountRouteUpsertOne) UpdateNewValues() *LedgerSubAccountRout
 		if _, exists := u.create.mutation.RoutingKeyVersion(); exists {
 			s.SetIgnore(ledgersubaccountroute.FieldRoutingKeyVersion)
 		}
-		if _, exists := u.create.mutation.RoutingKey(); exists {
-			s.SetIgnore(ledgersubaccountroute.FieldRoutingKey)
+		if _, exists := u.create.mutation.Currency(); exists {
+			s.SetIgnore(ledgersubaccountroute.FieldCurrency)
 		}
-		if _, exists := u.create.mutation.CurrencyDimensionID(); exists {
-			s.SetIgnore(ledgersubaccountroute.FieldCurrencyDimensionID)
+		if _, exists := u.create.mutation.TaxCodeID(); exists {
+			s.SetIgnore(ledgersubaccountroute.FieldTaxCodeID)
 		}
-		if _, exists := u.create.mutation.TaxCodeDimensionID(); exists {
-			s.SetIgnore(ledgersubaccountroute.FieldTaxCodeDimensionID)
+		if _, exists := u.create.mutation.FeatureKeys(); exists {
+			s.SetIgnore(ledgersubaccountroute.FieldFeatureKeys)
 		}
-		if _, exists := u.create.mutation.FeaturesDimensionID(); exists {
-			s.SetIgnore(ledgersubaccountroute.FieldFeaturesDimensionID)
-		}
-		if _, exists := u.create.mutation.CreditPriorityDimensionID(); exists {
-			s.SetIgnore(ledgersubaccountroute.FieldCreditPriorityDimensionID)
+		if _, exists := u.create.mutation.CreditPriority(); exists {
+			s.SetIgnore(ledgersubaccountroute.FieldCreditPriority)
 		}
 	}))
 	return u
@@ -831,20 +755,17 @@ func (u *LedgerSubAccountRouteUpsertBulk) UpdateNewValues() *LedgerSubAccountRou
 			if _, exists := b.mutation.RoutingKeyVersion(); exists {
 				s.SetIgnore(ledgersubaccountroute.FieldRoutingKeyVersion)
 			}
-			if _, exists := b.mutation.RoutingKey(); exists {
-				s.SetIgnore(ledgersubaccountroute.FieldRoutingKey)
+			if _, exists := b.mutation.Currency(); exists {
+				s.SetIgnore(ledgersubaccountroute.FieldCurrency)
 			}
-			if _, exists := b.mutation.CurrencyDimensionID(); exists {
-				s.SetIgnore(ledgersubaccountroute.FieldCurrencyDimensionID)
+			if _, exists := b.mutation.TaxCodeID(); exists {
+				s.SetIgnore(ledgersubaccountroute.FieldTaxCodeID)
 			}
-			if _, exists := b.mutation.TaxCodeDimensionID(); exists {
-				s.SetIgnore(ledgersubaccountroute.FieldTaxCodeDimensionID)
+			if _, exists := b.mutation.FeatureKeys(); exists {
+				s.SetIgnore(ledgersubaccountroute.FieldFeatureKeys)
 			}
-			if _, exists := b.mutation.FeaturesDimensionID(); exists {
-				s.SetIgnore(ledgersubaccountroute.FieldFeaturesDimensionID)
-			}
-			if _, exists := b.mutation.CreditPriorityDimensionID(); exists {
-				s.SetIgnore(ledgersubaccountroute.FieldCreditPriorityDimensionID)
+			if _, exists := b.mutation.CreditPriority(); exists {
+				s.SetIgnore(ledgersubaccountroute.FieldCreditPriority)
 			}
 		}
 	}))

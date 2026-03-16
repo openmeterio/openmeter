@@ -76,7 +76,6 @@ func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.Cre
 		SetNamespace(input.Namespace).
 		SetAccountID(input.AccountID).
 		SetRoutingKeyVersion(routeKey.Version()).
-		SetRoutingKey(routeKey.Value()).
 		SetCurrencyDimensionID(input.Dimensions.CurrencyDimensionID).
 		SetNillableTaxCodeDimensionID(input.Dimensions.TaxCodeDimensionID).
 		SetNillableFeaturesDimensionID(input.Dimensions.FeaturesDimensionID).

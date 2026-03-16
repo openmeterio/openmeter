@@ -525,18 +525,6 @@ func (f LedgerCustomerAccountFunc) Mutate(ctx context.Context, m db.Mutation) (d
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.LedgerCustomerAccountMutation", m)
 }
 
-// The LedgerDimensionFunc type is an adapter to allow the use of ordinary
-// function as LedgerDimension mutator.
-type LedgerDimensionFunc func(context.Context, *db.LedgerDimensionMutation) (db.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f LedgerDimensionFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
-	if mv, ok := m.(*db.LedgerDimensionMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.LedgerDimensionMutation", m)
-}
-
 // The LedgerEntryFunc type is an adapter to allow the use of ordinary
 // function as LedgerEntry mutator.
 type LedgerEntryFunc func(context.Context, *db.LedgerEntryMutation) (db.Value, error)
