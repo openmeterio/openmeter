@@ -100,6 +100,10 @@ func (i Intent) Validate() error {
 		errs = append(errs, fmt.Errorf("price: %w", err))
 	}
 
+	if i.FeatureKey == "" {
+		errs = append(errs, fmt.Errorf("feature key is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
