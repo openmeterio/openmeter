@@ -54,9 +54,7 @@ func ValidateTransactionInput(ctx context.Context, transaction TransactionInput)
 	}
 
 	// Let's validate routing
-	if err := ValidateRouting(ctx, lo.Map(transaction.EntryInputs(), func(e EntryInput, _ int) EntryInput {
-		return e
-	})); err != nil {
+	if err := ValidateRouting(ctx, transaction.EntryInputs()); err != nil {
 		return err
 	}
 

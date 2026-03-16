@@ -112,18 +112,11 @@ func (LedgerSubAccountRoute) Fields() []ent.Field {
 			GoType(ledger.RoutingKeyVersion("")).
 			Immutable(),
 		field.String("routing_key").Immutable(),
-		field.String("currency_dimension_id").SchemaType(map[string]string{
-			dialect.Postgres: "char(26)",
-		}).Immutable(),
-		field.String("tax_code_dimension_id").SchemaType(map[string]string{
-			dialect.Postgres: "char(26)",
-		}).Optional().Immutable(),
-		field.String("features_dimension_id").SchemaType(map[string]string{
-			dialect.Postgres: "char(26)",
-		}).Optional().Immutable(),
-		field.String("credit_priority_dimension_id").SchemaType(map[string]string{
-			dialect.Postgres: "char(26)",
-		}).Optional().Immutable(),
+		// Literal routing values
+		field.String("currency").Immutable(),
+		field.String("tax_code").Optional().Nillable().Immutable(),
+		field.Strings("features").Optional().Immutable(),
+		field.Int("credit_priority").Optional().Nillable().Immutable(),
 	}
 }
 
@@ -142,26 +135,5 @@ func (LedgerSubAccountRoute) Edges() []ent.Edge {
 			Immutable().
 			Unique(),
 		edge.To("sub_accounts", LedgerSubAccount.Type),
-		edge.From("currency_dimension", LedgerDimension.Type).
-			Ref("currency_sub_account_routes").
-			Field("currency_dimension_id").
-			Required().
-			Immutable().
-			Unique(),
-		edge.From("tax_code_dimension", LedgerDimension.Type).
-			Ref("tax_code_sub_account_routes").
-			Field("tax_code_dimension_id").
-			Immutable().
-			Unique(),
-		edge.From("features_dimension", LedgerDimension.Type).
-			Ref("features_sub_account_routes").
-			Field("features_dimension_id").
-			Immutable().
-			Unique(),
-		edge.From("credit_priority_dimension", LedgerDimension.Type).
-			Ref("credit_priority_sub_account_routes").
-			Field("credit_priority_dimension_id").
-			Immutable().
-			Unique(),
 	}
 }

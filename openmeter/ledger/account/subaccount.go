@@ -3,20 +3,9 @@ package account
 import (
 	"time"
 
-	"github.com/samber/mo"
-
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
-
-type SubAccountDimensions struct {
-	Currency *currencyDimension
-
-	// TODO: implement other dimension types
-	TaxCode        mo.Option[ledger.DimensionTaxCode]
-	CreditPriority mo.Option[ledger.DimensionCreditPriority]
-	Feature        mo.Option[ledger.DimensionFeature]
-}
 
 type SubAccountData struct {
 	ID          string
@@ -27,8 +16,8 @@ type SubAccountData struct {
 	AccountID   string
 	AccountType ledger.AccountType
 
-	Dimensions SubAccountDimensions
-	Route      SubAccountRouteData
+	Route     ledger.Route
+	RouteMeta SubAccountRouteData
 }
 
 type SubAccountRouteData struct {
@@ -55,19 +44,10 @@ func (s *SubAccount) Address() ledger.PostingAddress {
 	return NewAddressFromData(AddressData{
 		SubAccountID:      s.data.ID,
 		AccountType:       s.data.AccountType,
-		RouteID:           s.data.Route.ID,
-		RoutingKeyVersion: s.data.Route.RoutingKeyVersion,
-		RoutingKey:        s.data.Route.RoutingKey,
+		RouteID:           s.data.RouteMeta.ID,
+		RoutingKeyVersion: s.data.RouteMeta.RoutingKeyVersion,
+		RoutingKey:        s.data.RouteMeta.RoutingKey,
 	})
-}
-
-func (s *SubAccount) Dimensions() ledger.SubAccountDimensions {
-	return ledger.SubAccountDimensions{
-		Currency:       s.data.Dimensions.Currency,
-		TaxCode:        s.data.Dimensions.TaxCode,
-		CreditPriority: s.data.Dimensions.CreditPriority,
-		Feature:        s.data.Dimensions.Feature,
-	}
 }
 
 func (s *SubAccount) AccountID() string {

@@ -3,7 +3,6 @@ package account
 import (
 	"context"
 
-	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -17,24 +16,15 @@ type Repo interface {
 	// GetAccountByID returns the account by its ID
 	GetAccountByID(ctx context.Context, id models.NamespacedID) (*AccountData, error)
 
-	// CreateSubAccount creates a new sub-account
-	CreateSubAccount(ctx context.Context, input CreateSubAccountInput) (*SubAccountData, error)
+	// EnsureSubAccount creates a new sub-account or returns the existing one if the route already exists.
+	EnsureSubAccount(ctx context.Context, input CreateSubAccountInput) (*SubAccountData, error)
 
 	// GetSubAccountByID returns the sub-account by its ID
 	GetSubAccountByID(ctx context.Context, id models.NamespacedID) (*SubAccountData, error)
 
-	// ListSubAccounts returns sub-accounts for account + dimension filters
+	// ListSubAccounts returns sub-accounts for account + route filters
 	ListSubAccounts(ctx context.Context, input ListSubAccountsInput) ([]*SubAccountData, error)
-
-	// CreateDimension creates a new dimension
-	CreateDimension(ctx context.Context, input CreateDimensionInput) (*DimensionData, error)
-
-	// GetDimensionByID returns the dimension by its ID
-	GetDimensionByID(ctx context.Context, id models.NamespacedID) (*DimensionData, error)
 
 	// ListAccounts returns accounts filtered by type within a namespace
 	ListAccounts(ctx context.Context, input ListAccountsInput) ([]*AccountData, error)
-
-	// GetDimensionByKeyAndValue looks up a dimension by its key+value pair (used by DimensionResolver)
-	GetDimensionByKeyAndValue(ctx context.Context, namespace string, key ledger.DimensionKey, value string) (*DimensionData, error)
 }

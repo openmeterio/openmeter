@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -39,52 +38,12 @@ func (s *service) CreateAccount(ctx context.Context, input account.CreateAccount
 	return account.NewAccountFromData(*accData, s.live)
 }
 
-func (s *service) CreateDimension(ctx context.Context, input account.CreateDimensionInput) (*account.DimensionData, error) {
+func (s *service) EnsureSubAccount(ctx context.Context, input account.CreateSubAccountInput) (*account.SubAccount, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
 
-	res, err := s.repo.CreateDimension(ctx, input)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create dimension: %w", err)
-	}
-
-	return res, nil
-}
-
-func (s *service) CreateSubAccount(ctx context.Context, input account.CreateSubAccountInput) (*account.SubAccount, error) {
-	if err := input.Validate(); err != nil {
-		return nil, err
-	}
-
-	acc, err := s.GetAccountByID(ctx, models.NamespacedID{
-		Namespace: input.Namespace,
-		ID:        input.AccountID,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get account: %w", err)
-	}
-
-	if acc.Type() == ledger.AccountTypeCustomerFBO && input.Dimensions.CreditPriorityDimensionID == nil {
-		defaultPriorityDimension, err := s.repo.GetDimensionByKeyAndValue(
-			ctx,
-			input.Namespace,
-			ledger.DimensionKeyCreditPriority,
-			account.DefaultCustomerFBOPriorityDimensionValue(),
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to resolve default credit priority dimension: %w", err)
-		}
-
-		input.Dimensions.CreditPriorityDimensionID = &defaultPriorityDimension.ID
-	}
-
-	// Let's validate the provided dimensions
-	if err := input.Dimensions.ValidateForAccountType(acc.Type()); err != nil {
-		return nil, err
-	}
-
-	subAccountData, err := s.repo.CreateSubAccount(ctx, input)
+	subAccountData, err := s.repo.EnsureSubAccount(ctx, input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sub-account: %w", err)
 	}
@@ -128,10 +87,6 @@ func (s *service) ListSubAccounts(ctx context.Context, input account.ListSubAcco
 	return subAccounts, nil
 }
 
-func (s *service) GetDimensionByID(ctx context.Context, id models.NamespacedID) (*account.DimensionData, error) {
-	return s.repo.GetDimensionByID(ctx, id)
-}
-
 func (s *service) ListAccounts(ctx context.Context, input account.ListAccountsInput) ([]*account.Account, error) {
 	accDatas, err := s.repo.ListAccounts(ctx, input)
 	if err != nil {
@@ -148,8 +103,4 @@ func (s *service) ListAccounts(ctx context.Context, input account.ListAccountsIn
 	}
 
 	return accounts, nil
-}
-
-func (s *service) GetDimensionByKeyAndValue(ctx context.Context, namespace string, key ledger.DimensionKey, value string) (*account.DimensionData, error) {
-	return s.repo.GetDimensionByKeyAndValue(ctx, namespace, key, value)
 }

@@ -41,7 +41,7 @@ type ListEntriesInput struct {
 }
 
 type EntryExpand struct {
-	Dimensions bool
+	Route bool
 }
 
 // ----------------------------------------------------------------------------

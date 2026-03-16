@@ -49,7 +49,7 @@ type Filters struct {
 	// BookedAtPeriod is inclusive-exclusive... should it be? Maybe finally add period inclusivity params?
 	BookedAtPeriod *timeutil.OpenPeriod
 	TransactionID  *string
-	Dimensions     QueryDimensions
+	Route          RouteFilter
 }
 
 type QuerySummedResult struct {

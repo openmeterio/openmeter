@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -69,105 +69,10 @@ func TestRepo_GetAccountByID_NotFound(t *testing.T) {
 
 	_, err := env.repo.GetAccountByID(t.Context(), models.NamespacedID{
 		Namespace: testNamespace(),
-		ID:        ulid.Make().String(),
+		ID:        "01NONEXISTENT000000000000",
 	})
 	require.Error(t, err)
 	require.ErrorContains(t, err, "failed to get ledger account by id")
-}
-
-func TestRepo_CreateAndGetDimension(t *testing.T) {
-	env := NewTestEnv(t)
-	t.Cleanup(func() {
-		env.Close(t)
-	})
-	env.DBSchemaMigrate(t)
-
-	ctx := t.Context()
-	namespace := testNamespace()
-	value := ulid.Make().String()
-
-	created, err := env.repo.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
-		Namespace:    namespace,
-		Key:          string(ledger.DimensionKeyCurrency),
-		Value:        value,
-		DisplayValue: "USD",
-		Annotations: models.Annotations{
-			"source": "test",
-		},
-	})
-	require.NoError(t, err)
-	require.NotNil(t, created)
-	require.Equal(t, namespace, created.Namespace)
-	require.NotEmpty(t, created.ID)
-	require.Equal(t, ledger.DimensionKeyCurrency, created.DimensionKey)
-	require.Equal(t, value, created.DimensionValue)
-	require.Equal(t, "USD", created.DimensionDisplayValue)
-	require.Equal(t, models.Annotations{"source": "test"}, created.Annotations)
-
-	got, err := env.repo.GetDimensionByID(ctx, models.NamespacedID{
-		Namespace: created.Namespace,
-		ID:        created.ID,
-	})
-	require.NoError(t, err)
-	require.NotNil(t, got)
-	require.Equal(t, created.ID, got.ID)
-	require.Equal(t, created.DimensionKey, got.DimensionKey)
-	require.Equal(t, created.DimensionValue, got.DimensionValue)
-	require.Equal(t, created.DimensionDisplayValue, got.DimensionDisplayValue)
-}
-
-func TestRepo_CreateDimension_InvalidKey(t *testing.T) {
-	env := NewTestEnv(t)
-	t.Cleanup(func() {
-		env.Close(t)
-	})
-	env.DBSchemaMigrate(t)
-
-	_, err := env.repo.CreateDimension(t.Context(), ledgeraccount.CreateDimensionInput{
-		Namespace:    testNamespace(),
-		Key:          "invalid-key",
-		Value:        ulid.Make().String(),
-		DisplayValue: "INV",
-	})
-	require.Error(t, err)
-	require.ErrorContains(t, err, "invalid dimension key")
-}
-
-func TestRepo_CreateDimension_AlreadyExists(t *testing.T) {
-	env := NewTestEnv(t)
-	t.Cleanup(func() {
-		env.Close(t)
-	})
-	env.DBSchemaMigrate(t)
-
-	ctx := t.Context()
-	namespace := testNamespace()
-
-	created, err := env.repo.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
-		Namespace:    namespace,
-		Key:          string(ledger.DimensionKeyCurrency),
-		Value:        "USD",
-		DisplayValue: "US Dollar",
-	})
-	require.NoError(t, err)
-	require.NotNil(t, created)
-
-	_, err = env.repo.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
-		Namespace:    namespace,
-		Key:          string(ledger.DimensionKeyCurrency),
-		Value:        "USD",
-		DisplayValue: "US Dollar",
-	})
-	require.Error(t, err)
-
-	issues, mapErr := models.AsValidationIssues(err)
-	require.NoError(t, mapErr)
-	require.NotEmpty(t, issues)
-	require.Equal(t, ledgeraccount.ErrCodeDimensionConflict, issues[0].Code())
-	require.Equal(t, namespace, issues[0].Attributes()["namespace"])
-	require.Equal(t, string(ledger.DimensionKeyCurrency), issues[0].Attributes()["key"])
-	require.Equal(t, "USD", issues[0].Attributes()["value"])
-	require.Equal(t, *created, issues[0].Attributes()["existing"])
 }
 
 func TestRepo_ListSubAccounts(t *testing.T) {
@@ -179,30 +84,6 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 
 	ctx := t.Context()
 	namespace := testNamespace()
-
-	currencyA, err := env.repo.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
-		Namespace:    namespace,
-		Key:          string(ledger.DimensionKeyCurrency),
-		Value:        "USD",
-		DisplayValue: "USD",
-	})
-	require.NoError(t, err)
-
-	currencyB, err := env.repo.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
-		Namespace:    namespace,
-		Key:          string(ledger.DimensionKeyCurrency),
-		Value:        "EUR",
-		DisplayValue: "EUR",
-	})
-	require.NoError(t, err)
-
-	priority7, err := env.repo.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
-		Namespace:    namespace,
-		Key:          string(ledger.DimensionKeyCreditPriority),
-		Value:        "7",
-		DisplayValue: "Priority 7",
-	})
-	require.NoError(t, err)
 
 	accountA, err := env.repo.CreateAccount(ctx, ledgeraccount.CreateAccountInput{
 		Namespace: namespace,
@@ -216,40 +97,31 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	subA1, err := env.repo.CreateSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
+	subA1, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 		Namespace: namespace,
 		AccountID: accountA.ID.ID,
-		Dimensions: ledgeraccount.SubAccountDimensionInput{
-			CurrencyDimensionID: currencyA.ID,
-		},
+		Route:     ledger.Route{Currency: "USD"},
 	})
 	require.NoError(t, err)
 
-	_, err = env.repo.CreateSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
+	_, err = env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 		Namespace: namespace,
 		AccountID: accountA.ID.ID,
-		Dimensions: ledgeraccount.SubAccountDimensionInput{
-			CurrencyDimensionID: currencyB.ID,
-		},
+		Route:     ledger.Route{Currency: "EUR"},
 	})
 	require.NoError(t, err)
 
-	subA3Priority7, err := env.repo.CreateSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
+	subA3Priority7, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 		Namespace: namespace,
 		AccountID: accountA.ID.ID,
-		Dimensions: ledgeraccount.SubAccountDimensionInput{
-			CurrencyDimensionID:       currencyA.ID,
-			CreditPriorityDimensionID: &priority7.ID,
-		},
+		Route:     ledger.Route{Currency: "USD", CreditPriority: lo.ToPtr(7)},
 	})
 	require.NoError(t, err)
 
-	_, err = env.repo.CreateSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
+	_, err = env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 		Namespace: namespace,
 		AccountID: accountB.ID.ID,
-		Dimensions: ledgeraccount.SubAccountDimensionInput{
-			CurrencyDimensionID: currencyA.ID,
-		},
+		Route:     ledger.Route{Currency: "USD"},
 	})
 	require.NoError(t, err)
 
@@ -262,14 +134,13 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 		require.Len(t, items, 3)
 	})
 
-	t.Run("filters by dimensions", func(t *testing.T) {
-		priority := 7
+	t.Run("filters by route", func(t *testing.T) {
 		items, err := env.repo.ListSubAccounts(ctx, ledgeraccount.ListSubAccountsInput{
 			Namespace: namespace,
 			AccountID: accountA.ID.ID,
-			Dimensions: ledger.QueryDimensions{
-				CurrencyID:     currencyA.ID,
-				CreditPriority: &priority,
+			Route: ledger.RouteFilter{
+				Currency:       "USD",
+				CreditPriority: lo.ToPtr(7),
 			},
 		})
 		require.NoError(t, err)
@@ -278,12 +149,10 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 	})
 
 	t.Run("create uses route uniqueness", func(t *testing.T) {
-		dup, err := env.repo.CreateSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
+		dup, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 			Namespace: namespace,
 			AccountID: accountA.ID.ID,
-			Dimensions: ledgeraccount.SubAccountDimensionInput{
-				CurrencyDimensionID: currencyA.ID,
-			},
+			Route:     ledger.Route{Currency: "USD"},
 		})
 		require.NoError(t, err)
 		require.Equal(t, subA1.ID, dup.ID)
@@ -300,22 +169,6 @@ func TestRepo_SubAccountRouteUniquenessConstraints(t *testing.T) {
 	ctx := t.Context()
 	namespace := testNamespace()
 
-	currency, err := env.repo.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
-		Namespace:    namespace,
-		Key:          string(ledger.DimensionKeyCurrency),
-		Value:        "USD",
-		DisplayValue: "USD",
-	})
-	require.NoError(t, err)
-
-	priority7, err := env.repo.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
-		Namespace:    namespace,
-		Key:          string(ledger.DimensionKeyCreditPriority),
-		Value:        "7",
-		DisplayValue: "Priority 7",
-	})
-	require.NoError(t, err)
-
 	accountA, err := env.repo.CreateAccount(ctx, ledgeraccount.CreateAccountInput{
 		Namespace: namespace,
 		Type:      ledger.AccountTypeCustomerFBO,
@@ -328,21 +181,22 @@ func TestRepo_SubAccountRouteUniquenessConstraints(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	createRoute := func(accountID string, creditPriorityDimensionID *string) error {
-		key, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, ledger.SubAccountRouteInput{
-			CurrencyDimensionID:       currency.ID,
-			CreditPriorityDimensionID: creditPriorityDimensionID,
+	createRoute := func(accountID string, creditPriority *int) error {
+		key, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, ledger.Route{
+			Currency:       "USD",
+			CreditPriority: creditPriority,
 		})
 		require.NoError(t, err)
 
-		_, err = env.client.LedgerSubAccountRoute.Create().
+		create := env.client.LedgerSubAccountRoute.Create().
 			SetNamespace(namespace).
 			SetAccountID(accountID).
 			SetRoutingKeyVersion(key.Version()).
 			SetRoutingKey(key.Value()).
-			SetCurrencyDimensionID(currency.ID).
-			SetNillableCreditPriorityDimensionID(creditPriorityDimensionID).
-			Save(ctx)
+			SetCurrency("USD").
+			SetNillableCreditPriority(creditPriority)
+
+		_, err = create.Save(ctx)
 		return err
 	}
 
@@ -361,7 +215,7 @@ func TestRepo_SubAccountRouteUniquenessConstraints(t *testing.T) {
 	})
 
 	t.Run("allows different keys within same account", func(t *testing.T) {
-		err := createRoute(accountA.ID.ID, &priority7.ID)
+		err := createRoute(accountA.ID.ID, lo.ToPtr(7))
 		require.NoError(t, err)
 	})
 

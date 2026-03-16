@@ -494,7 +494,6 @@ func (_q *LedgerAccountQuery) loadSubAccountRoutes(ctx context.Context, query *L
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
 	if len(query.ctx.Fields) > 0 {
 		query.ctx.AppendFieldOnce(ledgersubaccountroute.FieldAccountID)
 	}

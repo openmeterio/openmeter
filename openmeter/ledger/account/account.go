@@ -30,11 +30,10 @@ func (b *Balance) Pending() alpacadecimal.Decimal {
 }
 
 // SubAccountCreatorLister is used by account types to find-or-create sub-accounts
-// for a given set of dimensions.
+// for a given route.
 type SubAccountCreatorLister interface {
 	ListSubAccounts(ctx context.Context, input ListSubAccountsInput) ([]*SubAccount, error)
-	CreateSubAccount(ctx context.Context, input CreateSubAccountInput) (*SubAccount, error)
-	GetDimensionByKeyAndValue(ctx context.Context, namespace string, key ledger.DimensionKey, value string) (*DimensionData, error)
+	EnsureSubAccount(ctx context.Context, input CreateSubAccountInput) (*SubAccount, error)
 }
 
 type AccountLiveServices struct {
@@ -71,7 +70,7 @@ type Account struct {
 
 var _ ledger.Account = (*Account)(nil)
 
-func (a *Account) GetBalance(ctx context.Context, query ledger.QueryDimensions) (ledger.Balance, error) {
+func (a *Account) GetBalance(ctx context.Context, query ledger.RouteFilter) (ledger.Balance, error) {
 	// We can store the last cursor and balance, this will be added later
 	lastClosingCursor := (*pagination.Cursor)(nil)
 	periodSinceListClosing := (*timeutil.OpenPeriod)(nil)
@@ -82,7 +81,7 @@ func (a *Account) GetBalance(ctx context.Context, query ledger.QueryDimensions) 
 		Cursor:    lastClosingCursor,
 		Filters: ledger.Filters{
 			BookedAtPeriod: periodSinceListClosing,
-			Dimensions:     query,
+			Route:          query,
 		},
 	}
 

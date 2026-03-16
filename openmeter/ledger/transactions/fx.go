@@ -21,7 +21,6 @@ type ConvertCurrencyTemplate struct {
 	TargetCurrency currencyx.Code
 	// Optional, defaults to ledger.DefaultCustomerFBOPriority.
 	CreditPriority *int
-	// TaxCode  string // TBD
 }
 
 var _ CustomerTransactionTemplate = (ConvertCurrencyTemplate{})
@@ -31,60 +30,43 @@ func (t ConvertCurrencyTemplate) typeGuard() guard {
 }
 
 func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
-	// DEFERRED: tax/feature/credit-priority not active yet.
-	// Currency is the only enforced dimension in current provisioning model.
-	sourceCurrency, err := resolvers.DimensionService.GetCurrencyDimension(ctx, string(t.SourceCurrency))
-	if err != nil {
-		return nil, fmt.Errorf("failed to get source currency dimension: %w", err)
-	}
+	priority := resolveCustomerFBOCreditPriority(t.CreditPriority)
 
-	targetCurrency, err := resolvers.DimensionService.GetCurrencyDimension(ctx, string(t.TargetCurrency))
-	if err != nil {
-		return nil, fmt.Errorf("failed to get target currency dimension: %w", err)
-	}
-
-	priority, err := resolveCustomerFBOPriorityDimension(ctx, resolvers, t.CreditPriority)
-	if err != nil {
-		return nil, err
-	}
-
-	// Let's fetch the customer accounts
 	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get customer accounts: %w", err)
 	}
 
-	sourceAccount, err := customerAccounts.FBOAccount.GetSubAccountForDimensions(ctx, ledger.CustomerFBOSubAccountDimensions{
-		Currency:       sourceCurrency,
+	sourceAccount, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
+		Currency:       string(t.SourceCurrency),
 		CreditPriority: priority,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get source sub-account: %w", err)
 	}
 
-	targetAccount, err := customerAccounts.FBOAccount.GetSubAccountForDimensions(ctx, ledger.CustomerFBOSubAccountDimensions{
-		Currency:       targetCurrency,
+	targetAccount, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
+		Currency:       string(t.TargetCurrency),
 		CreditPriority: priority,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get target sub-account: %w", err)
 	}
 
-	// Let's fetch the business accounts
 	businessAccounts, err := resolvers.AccountService.GetBusinessAccounts(ctx, customerID.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get business accounts: %w", err)
 	}
 
-	brokerageSource, err := businessAccounts.BrokerageAccount.GetSubAccountForDimensions(ctx, ledger.BusinessSubAccountDimensions{
-		Currency: sourceCurrency,
+	brokerageSource, err := businessAccounts.BrokerageAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
+		Currency: string(t.SourceCurrency),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get brokerage source sub-account: %w", err)
 	}
 
-	brokerageTarget, err := businessAccounts.BrokerageAccount.GetSubAccountForDimensions(ctx, ledger.BusinessSubAccountDimensions{
-		Currency: targetCurrency,
+	brokerageTarget, err := businessAccounts.BrokerageAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
+		Currency: string(t.TargetCurrency),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get brokerage target sub-account: %w", err)
@@ -92,7 +74,6 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 
 	sourceAmount := t.TargetAmount.Mul(t.CostBasis)
 
-	// Now let's template the transaction
 	return &TransactionInput{
 		bookedAt: t.At,
 		entryInputs: []*EntryInput{

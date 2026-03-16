@@ -3,6 +3,8 @@ package ledger
 import (
 	"errors"
 	"fmt"
+	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -86,51 +88,122 @@ func (r SubAccountRoute) RoutingKey() RoutingKey {
 	return r.key
 }
 
-type SubAccountRouteInput struct {
-	CurrencyDimensionID       string
-	TaxCodeDimensionID        *string
-	FeaturesDimensionID       *string
-	CreditPriorityDimensionID *string
+// ----------------------------------------------------------------------------
+// Route — the canonical set of routing values for a sub-account
+// ----------------------------------------------------------------------------
+
+// Route holds the literal values that identify a sub-account's routing path.
+// It is used for creation, persistence, and routing key generation.
+type Route struct {
+	Currency       string
+	TaxCode        *string
+	Features       []string
+	CreditPriority *int
 }
 
-func (i SubAccountRouteInput) Validate() error {
-	if i.CurrencyDimensionID == "" {
-		return errors.New("currency dimension id is required")
+func (r Route) Validate() error {
+	if err := ValidateCurrency(r.Currency); err != nil {
+		return err
+	}
+	if r.CreditPriority != nil {
+		if err := ValidateCreditPriority(*r.CreditPriority); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func BuildRoutingKey(version RoutingKeyVersion, input SubAccountRouteInput) (RoutingKey, error) {
-	if err := input.Validate(); err != nil {
+// Filter converts a Route to a RouteFilter for use in queries.
+func (r Route) Filter() RouteFilter {
+	return RouteFilter(r)
+}
+
+// ----------------------------------------------------------------------------
+// Routing key generation
+// ----------------------------------------------------------------------------
+
+func BuildRoutingKey(version RoutingKeyVersion, route Route) (RoutingKey, error) {
+	if err := route.Validate(); err != nil {
 		return RoutingKey{}, err
 	}
 
 	switch version {
 	case RoutingKeyVersionV1:
-		return BuildRoutingKeyV1(input)
+		return BuildRoutingKeyV1(route)
 	default:
 		return RoutingKey{}, fmt.Errorf("unsupported routing key version: %s", version)
 	}
 }
 
-func BuildRoutingKeyV1(input SubAccountRouteInput) (RoutingKey, error) {
-	if err := input.Validate(); err != nil {
+func BuildRoutingKeyV1(route Route) (RoutingKey, error) {
+	if err := route.Validate(); err != nil {
 		return RoutingKey{}, err
 	}
 
 	value := strings.Join([]string{
-		"currency:" + input.CurrencyDimensionID,
-		"tax_code:" + routeDimensionValue(input.TaxCodeDimensionID),
-		"features:" + routeDimensionValue(input.FeaturesDimensionID),
-		"credit_priority:" + routeDimensionValue(input.CreditPriorityDimensionID),
+		"currency:" + route.Currency,
+		"tax_code:" + optionalStringValue(route.TaxCode),
+		"features:" + canonicalFeatures(route.Features),
+		"credit_priority:" + optionalIntValue(route.CreditPriority),
 	}, "|")
 
 	return NewRoutingKey(RoutingKeyVersionV1, value)
 }
 
-func routeDimensionValue(id *string) string {
-	if id == nil || *id == "" {
+// ----------------------------------------------------------------------------
+// Validation helpers
+// ----------------------------------------------------------------------------
+
+// ValidateCreditPriority validates a credit priority integer value.
+func ValidateCreditPriority(value int) error {
+	if value < 1 {
+		return fmt.Errorf("credit priority must be a positive integer")
+	}
+	return nil
+}
+
+// ValidateCurrency validates a currency string.
+func ValidateCurrency(value string) error {
+	if value == "" {
+		return fmt.Errorf("currency is required")
+	}
+	return nil
+}
+
+// ----------------------------------------------------------------------------
+// internal helpers
+// ----------------------------------------------------------------------------
+
+// SortedFeatures returns a sorted copy of features for canonical storage.
+// Returns nil if empty.
+func SortedFeatures(features []string) []string {
+	if len(features) == 0 {
+		return nil
+	}
+	sorted := make([]string, len(features))
+	copy(sorted, features)
+	sort.Strings(sorted)
+	return sorted
+}
+
+func canonicalFeatures(features []string) string {
+	if len(features) == 0 {
 		return "null"
 	}
-	return *id
+
+	return strings.Join(SortedFeatures(features), ",")
+}
+
+func optionalStringValue(s *string) string {
+	if s == nil || *s == "" {
+		return "null"
+	}
+	return *s
+}
+
+func optionalIntValue(v *int) string {
+	if v == nil {
+		return "null"
+	}
+	return strconv.Itoa(*v)
 }

@@ -1,13 +1,11 @@
 package adapter
 
 import (
-	"strconv"
-
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqljson"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	ledgerdimensiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerdimension"
 	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	ledgersubaccountdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	ledgersubaccountroutedb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
@@ -69,19 +67,25 @@ func (b *sumEntriesQuery) entryPredicates() []predicate.LedgerEntry {
 
 func (b *sumEntriesQuery) subAccountPredicates() []predicate.LedgerSubAccount {
 	subAccountPredicates := make([]predicate.LedgerSubAccount, 0, 1)
-	routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 2)
-	if b.query.Filters.Dimensions.CurrencyID != "" {
-		routePredicates = append(routePredicates, ledgersubaccountroutedb.CurrencyDimensionID(b.query.Filters.Dimensions.CurrencyID))
+	routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 4)
+	if b.query.Filters.Route.Currency != "" {
+		routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(b.query.Filters.Route.Currency))
 	}
-	if b.query.Filters.Dimensions.CreditPriority != nil {
+	if b.query.Filters.Route.CreditPriority != nil {
 		routePredicates = append(routePredicates,
-			ledgersubaccountroutedb.HasCreditPriorityDimensionWith(
-				ledgerdimensiondb.DimensionKey(string(ledger.DimensionKeyCreditPriority)),
-				ledgerdimensiondb.DimensionValue(strconv.Itoa(*b.query.Filters.Dimensions.CreditPriority)),
-			),
+			ledgersubaccountroutedb.CreditPriority(*b.query.Filters.Route.CreditPriority),
 		)
 	}
-	// DEFERRED: tax/feature filters are not active yet.
+	// DEFERRED: tax/feature route filters are not active yet but plumbing is in place.
+	if b.query.Filters.Route.TaxCode != nil {
+		routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxCode(*b.query.Filters.Route.TaxCode))
+	}
+	if len(b.query.Filters.Route.Features) > 0 {
+		// DB stores features as a sorted jsonb array; filter value is also sorted for canonical comparison.
+		routePredicates = append(routePredicates, func(s *sql.Selector) {
+			s.Where(sqljson.ValueEQ(ledgersubaccountroutedb.FieldFeatures, ledger.SortedFeatures(b.query.Filters.Route.Features)))
+		})
+	}
 
 	if len(routePredicates) > 0 {
 		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.HasRouteWith(routePredicates...))

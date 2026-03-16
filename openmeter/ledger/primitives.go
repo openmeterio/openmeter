@@ -35,21 +35,16 @@ type Balance interface {
 type SubAccount interface {
 	// Returns the address of the sub-account
 	Address() PostingAddress
-
-	Dimensions() SubAccountDimensions
 }
 
-// QueryDimensions is the set of dimensions that can be used to query the balance of an account
-type QueryDimensions struct {
-	CurrencyID string
+// RouteFilter is the set of route fields that can be used to filter sub-accounts and query balances.
+type RouteFilter struct {
+	Currency string
 
 	// DEFERRED: tax/feature not active yet.
 	// Non-currency fields are retained for near-future expansion.
-	// TaxCodeID is the ID of the tax code that the sub-account uses.
-	TaxCodeID *string
-
-	// FeatureIDs is the IDs of the features that the sub-account uses.
-	FeatureIDs []string
+	TaxCode  *string
+	Features []string
 
 	// CreditPriority is only meaningful for customer_fbo queries.
 	CreditPriority *int
@@ -58,8 +53,8 @@ type QueryDimensions struct {
 // Account represents a ledger account tying together multiple sub-accounts.
 // Accounts describe ownership and purpose while SubAccounts parameterize the actual posting address.
 type Account interface {
-	// Balance can be queried across sub-accounts according to QueryDimensions
-	GetBalance(ctx context.Context, query QueryDimensions) (Balance, error)
+	// Balance can be queried across sub-accounts according to RouteFilter
+	GetBalance(ctx context.Context, query RouteFilter) (Balance, error)
 }
 
 // ----------------------------------------------------------------------------

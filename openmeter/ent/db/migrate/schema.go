@@ -2512,56 +2512,6 @@ var (
 			},
 		},
 	}
-	// LedgerDimensionsColumns holds the columns for the "ledger_dimensions" table.
-	LedgerDimensionsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "namespace", Type: field.TypeString},
-		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "dimension_key", Type: field.TypeString},
-		{Name: "dimension_value", Type: field.TypeString},
-		{Name: "dimension_display_value", Type: field.TypeString},
-	}
-	// LedgerDimensionsTable holds the schema information for the "ledger_dimensions" table.
-	LedgerDimensionsTable = &schema.Table{
-		Name:       "ledger_dimensions",
-		Columns:    LedgerDimensionsColumns,
-		PrimaryKey: []*schema.Column{LedgerDimensionsColumns[0]},
-		Indexes: []*schema.Index{
-			{
-				Name:    "ledgerdimension_id",
-				Unique:  true,
-				Columns: []*schema.Column{LedgerDimensionsColumns[0]},
-			},
-			{
-				Name:    "ledgerdimension_namespace",
-				Unique:  false,
-				Columns: []*schema.Column{LedgerDimensionsColumns[1]},
-			},
-			{
-				Name:    "ledgerdimension_annotations",
-				Unique:  false,
-				Columns: []*schema.Column{LedgerDimensionsColumns[2]},
-				Annotation: &entsql.IndexAnnotation{
-					Types: map[string]string{
-						"postgres": "GIN",
-					},
-				},
-			},
-			{
-				Name:    "ledgerdimension_namespace_id",
-				Unique:  true,
-				Columns: []*schema.Column{LedgerDimensionsColumns[1], LedgerDimensionsColumns[0]},
-			},
-			{
-				Name:    "ledgerdimension_namespace_dimension_key_dimension_value",
-				Unique:  true,
-				Columns: []*schema.Column{LedgerDimensionsColumns[1], LedgerDimensionsColumns[6], LedgerDimensionsColumns[7]},
-			},
-		},
-	}
 	// LedgerEntriesColumns holds the columns for the "ledger_entries" table.
 	LedgerEntriesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -2706,12 +2656,11 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "routing_key_version", Type: field.TypeString},
 		{Name: "routing_key", Type: field.TypeString},
+		{Name: "currency", Type: field.TypeString},
+		{Name: "tax_code", Type: field.TypeString, Nullable: true},
+		{Name: "features", Type: field.TypeJSON, Nullable: true},
+		{Name: "credit_priority", Type: field.TypeInt, Nullable: true},
 		{Name: "account_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "ledger_dimension_sub_account_routes", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "currency_dimension_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "tax_code_dimension_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "features_dimension_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "credit_priority_dimension_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// LedgerSubAccountRoutesTable holds the schema information for the "ledger_sub_account_routes" table.
 	LedgerSubAccountRoutesTable = &schema.Table{
@@ -2721,39 +2670,9 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "ledger_sub_account_routes_ledger_accounts_sub_account_routes",
-				Columns:    []*schema.Column{LedgerSubAccountRoutesColumns[7]},
+				Columns:    []*schema.Column{LedgerSubAccountRoutesColumns[11]},
 				RefColumns: []*schema.Column{LedgerAccountsColumns[0]},
 				OnDelete:   schema.NoAction,
-			},
-			{
-				Symbol:     "ledger_sub_account_routes_ledger_dimensions_sub_account_routes",
-				Columns:    []*schema.Column{LedgerSubAccountRoutesColumns[8]},
-				RefColumns: []*schema.Column{LedgerDimensionsColumns[0]},
-				OnDelete:   schema.SetNull,
-			},
-			{
-				Symbol:     "ledger_sub_account_routes_ledger_dimensions_currency_sub_account_routes",
-				Columns:    []*schema.Column{LedgerSubAccountRoutesColumns[9]},
-				RefColumns: []*schema.Column{LedgerDimensionsColumns[0]},
-				OnDelete:   schema.NoAction,
-			},
-			{
-				Symbol:     "ledger_sub_account_routes_ledger_dimensions_tax_code_sub_account_routes",
-				Columns:    []*schema.Column{LedgerSubAccountRoutesColumns[10]},
-				RefColumns: []*schema.Column{LedgerDimensionsColumns[0]},
-				OnDelete:   schema.SetNull,
-			},
-			{
-				Symbol:     "ledger_sub_account_routes_ledger_dimensions_features_sub_account_routes",
-				Columns:    []*schema.Column{LedgerSubAccountRoutesColumns[11]},
-				RefColumns: []*schema.Column{LedgerDimensionsColumns[0]},
-				OnDelete:   schema.SetNull,
-			},
-			{
-				Symbol:     "ledger_sub_account_routes_ledger_dimensions_credit_priority_sub_account_routes",
-				Columns:    []*schema.Column{LedgerSubAccountRoutesColumns[12]},
-				RefColumns: []*schema.Column{LedgerDimensionsColumns[0]},
-				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
@@ -2770,7 +2689,7 @@ var (
 			{
 				Name:    "ledgersubaccountroute_namespace_account_id_routing_key_version_routing_key",
 				Unique:  true,
-				Columns: []*schema.Column{LedgerSubAccountRoutesColumns[1], LedgerSubAccountRoutesColumns[7], LedgerSubAccountRoutesColumns[5], LedgerSubAccountRoutesColumns[6]},
+				Columns: []*schema.Column{LedgerSubAccountRoutesColumns[1], LedgerSubAccountRoutesColumns[11], LedgerSubAccountRoutesColumns[5], LedgerSubAccountRoutesColumns[6]},
 			},
 		},
 	}
@@ -4027,7 +3946,6 @@ var (
 		LlmCostPricesTable,
 		LedgerAccountsTable,
 		LedgerCustomerAccountsTable,
-		LedgerDimensionsTable,
 		LedgerEntriesTable,
 		LedgerSubAccountsTable,
 		LedgerSubAccountRoutesTable,
@@ -4128,11 +4046,6 @@ func init() {
 	LedgerSubAccountsTable.ForeignKeys[0].RefTable = LedgerAccountsTable
 	LedgerSubAccountsTable.ForeignKeys[1].RefTable = LedgerSubAccountRoutesTable
 	LedgerSubAccountRoutesTable.ForeignKeys[0].RefTable = LedgerAccountsTable
-	LedgerSubAccountRoutesTable.ForeignKeys[1].RefTable = LedgerDimensionsTable
-	LedgerSubAccountRoutesTable.ForeignKeys[2].RefTable = LedgerDimensionsTable
-	LedgerSubAccountRoutesTable.ForeignKeys[3].RefTable = LedgerDimensionsTable
-	LedgerSubAccountRoutesTable.ForeignKeys[4].RefTable = LedgerDimensionsTable
-	LedgerSubAccountRoutesTable.ForeignKeys[5].RefTable = LedgerDimensionsTable
 	LedgerTransactionsTable.ForeignKeys[0].RefTable = LedgerTransactionGroupsTable
 	NotificationEventsTable.ForeignKeys[0].RefTable = NotificationRulesTable
 	PlanAddonsTable.ForeignKeys[0].RefTable = AddonsTable

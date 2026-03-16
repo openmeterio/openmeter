@@ -1325,30 +1325,6 @@ func (e *LedgerCustomerAccount) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
-func (e *LedgerDimension) GetID() string {
-	return e.ID
-}
-
-func (e *LedgerDimension) GetNamespace() string {
-	return e.Namespace
-}
-
-func (e *LedgerDimension) GetAnnotations() models.Annotations {
-	return e.Annotations
-}
-
-func (e *LedgerDimension) GetCreatedAt() time.Time {
-	return e.CreatedAt
-}
-
-func (e *LedgerDimension) GetUpdatedAt() time.Time {
-	return e.UpdatedAt
-}
-
-func (e *LedgerDimension) GetDeletedAt() *time.Time {
-	return e.DeletedAt
-}
-
 func (e *LedgerEntry) GetID() string {
 	return e.ID
 }

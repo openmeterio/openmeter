@@ -11,16 +11,12 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
-	"github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
 	"github.com/openmeterio/openmeter/openmeter/ledger/testutil"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
-
-// The point of this code is to test the primitive APIs with a more complex flow
 
 type testTransactionGroupInput struct {
 	transactions []ledger.TransactionInput
@@ -39,6 +35,8 @@ func (t testTransactionGroupInput) Transactions() []ledger.TransactionInput {
 func (t testTransactionGroupInput) Annotations() models.Annotations {
 	return nil
 }
+
+// The point of this code is to test the primitive APIs with a more complex flow
 
 func TestFXOnInvoiceIssued(t *testing.T) {
 	// === Setup DB ===
@@ -69,33 +67,8 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 	deps, err := testutil.InitDeps(dbClient, slog.Default())
 	require.NoError(t, err)
 
-	acctSvc := deps.AccountService
 	resolversSvc := deps.ResolversService
 	histLedger := deps.HistoricalLedger
-
-	// === Provision currency dimensions ===
-	usdDim1, err := acctSvc.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
-		Namespace:    namespace,
-		Key:          string(ledger.DimensionKeyCurrency),
-		Value:        "USD",
-		DisplayValue: "US Dollar",
-	})
-	require.NoError(t, err)
-	_, err = acctSvc.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
-		Namespace:    namespace,
-		Key:          string(ledger.DimensionKeyCurrency),
-		Value:        "CRD",
-		DisplayValue: "Credits",
-	})
-	require.NoError(t, err)
-
-	_, err = acctSvc.CreateDimension(ctx, ledgeraccount.CreateDimensionInput{
-		Namespace:    namespace,
-		Key:          string(ledger.DimensionKeyCreditPriority),
-		Value:        "100",
-		DisplayValue: "Default priority",
-	})
-	require.NoError(t, err)
 
 	// === Provision customer accounts ===
 	customerID := customer.CustomerID{
@@ -107,15 +80,14 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 	customerAccounts2, err := resolversSvc.CreateCustomerAccounts(ctx, customerID)
 	require.NoError(t, err)
 
-	usdCurrency, err := usdDim1.AsCurrencyDimension()
-	require.NoError(t, err)
-
-	fboSub1, err := customerAccounts1.FBOAccount.GetSubAccountForDimensions(ctx, ledger.CustomerFBOSubAccountDimensions{
-		Currency: usdCurrency,
+	fboSub1, err := customerAccounts1.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
+		Currency:       "USD",
+		CreditPriority: ledger.DefaultCustomerFBOPriority,
 	})
 	require.NoError(t, err)
-	fboSub2, err := customerAccounts2.FBOAccount.GetSubAccountForDimensions(ctx, ledger.CustomerFBOSubAccountDimensions{
-		Currency: usdCurrency,
+	fboSub2, err := customerAccounts2.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
+		Currency:       "USD",
+		CreditPriority: ledger.DefaultCustomerFBOPriority,
 	})
 	require.NoError(t, err)
 	require.Equal(t, fboSub1.Address().SubAccountID(), fboSub2.Address().SubAccountID())
@@ -129,10 +101,6 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 
 		deps := transactions.ResolverDependencies{
 			AccountService: resolversSvc,
-			DimensionService: &resolvers.DimensionResolver{
-				Namespace: namespace,
-				Lookup:    acctSvc,
-			},
 		}
 
 		scope := transactions.ResolutionScope{

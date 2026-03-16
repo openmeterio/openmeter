@@ -62,8 +62,8 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 
 	ctx := t.Context()
 	namespace := testNamespace()
-	subAccountA := env.createSubAccount(t, namespace, "acc-a")
-	subAccountB := env.createSubAccount(t, namespace, "acc-b")
+	subAccountA := env.createSubAccount(t, namespace, "acc-a", "USD", nil)
+	subAccountB := env.createSubAccount(t, namespace, "acc-b", "USD", nil)
 	routeVersion := ledger.RoutingKeyVersionV1
 	routeA := "route-a"
 	routeB := "route-b"
@@ -170,8 +170,8 @@ func TestRepo_ListTransactions_PaginatesAndFilters(t *testing.T) {
 
 	ctx := t.Context()
 	namespace := testNamespace()
-	subAccountA := env.createSubAccount(t, namespace, "acc-a")
-	subAccountB := env.createSubAccount(t, namespace, "acc-b")
+	subAccountA := env.createSubAccount(t, namespace, "acc-a", "USD", nil)
+	subAccountB := env.createSubAccount(t, namespace, "acc-b", "USD", nil)
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
 		Namespace: namespace,
@@ -247,18 +247,9 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	ctx := t.Context()
 	namespace := testNamespace()
 
-	currencyUSD := env.createDimension(t, namespace, string(ledger.DimensionKeyCurrency), "currency-usd", "USD")
-	currencyEUR := env.createDimension(t, namespace, string(ledger.DimensionKeyCurrency), "currency-eur", "EUR")
-	taxA := env.createDimension(t, namespace, string(ledger.DimensionKeyTaxCode), "tax-a", "TAX-A")
-	taxB := env.createDimension(t, namespace, string(ledger.DimensionKeyTaxCode), "tax-b", "TAX-B")
-	featureA := env.createDimension(t, namespace, string(ledger.DimensionKeyFeature), "feature-a", "FEATURE-A")
-	featureB := env.createDimension(t, namespace, string(ledger.DimensionKeyFeature), "feature-b", "FEATURE-B")
-	creditPriority1 := env.createDimension(t, namespace, string(ledger.DimensionKeyCreditPriority), "1", "1")
-	creditPriority2 := env.createDimension(t, namespace, string(ledger.DimensionKeyCreditPriority), "2", "2")
-
-	subAccountA := env.createSubAccountWithDimensions(t, namespace, "acc-a", currencyUSD, &taxA, &featureA, &creditPriority1)
-	subAccountB := env.createSubAccountWithDimensions(t, namespace, "acc-b", currencyUSD, &taxB, &featureB, &creditPriority2)
-	subAccountC := env.createSubAccountWithDimensions(t, namespace, "acc-c", currencyEUR, &taxA, &featureA, &creditPriority1)
+	subAccountA := env.createSubAccount(t, namespace, "acc-a", "USD", lo.ToPtr(1))
+	subAccountB := env.createSubAccount(t, namespace, "acc-b", "USD", lo.ToPtr(2))
+	subAccountC := env.createSubAccount(t, namespace, "acc-c", "EUR", lo.ToPtr(1))
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{Namespace: namespace})
 	require.NoError(t, err)
@@ -291,74 +282,56 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInputLate)
 	require.NoError(t, err)
 
+	// Sum by currency
 	sumUSD, err := env.repo.SumEntries(ctx, ledger.Query{
 		Namespace: namespace,
 		Filters: ledger.Filters{
-			Dimensions: ledger.QueryDimensions{CurrencyID: currencyUSD},
+			Route: ledger.RouteFilter{Currency: "USD"},
 		},
 	})
 	require.NoError(t, err)
+	// subAccountA(USD,p1): 100+50=150, subAccountB(USD,p2): -100 => total=50
 	require.True(t, sumUSD.Equal(alpacadecimal.NewFromInt(50)))
 
-	sumTaxA, err := env.repo.SumEntries(ctx, ledger.Query{
-		Namespace: namespace,
-		Filters: ledger.Filters{
-			Dimensions: ledger.QueryDimensions{
-				CurrencyID: currencyUSD,
-				TaxCodeID:  &taxA,
-			},
-		},
-	})
-	require.NoError(t, err)
-	// DEFERRED: tax code filtering is not active yet; currency is the only enforced dimension.
-	require.True(t, sumTaxA.Equal(alpacadecimal.NewFromInt(50)), "expected (currency-only): sumTaxA: %s, actual: %s", alpacadecimal.NewFromInt(50).String(), sumTaxA.String())
-
-	sumFeatureA, err := env.repo.SumEntries(ctx, ledger.Query{
-		Namespace: namespace,
-		Filters: ledger.Filters{
-			Dimensions: ledger.QueryDimensions{
-				CurrencyID: currencyUSD,
-				FeatureIDs: []string{featureA},
-			},
-		},
-	})
-	require.NoError(t, err)
-	// DEFERRED: feature filtering is not active yet; currency is the only enforced dimension.
-	require.True(t, sumFeatureA.Equal(alpacadecimal.NewFromInt(50)))
-
+	// Sum by currency + credit priority
 	creditPriority := 1
 	sumPriority, err := env.repo.SumEntries(ctx, ledger.Query{
 		Namespace: namespace,
 		Filters: ledger.Filters{
-			Dimensions: ledger.QueryDimensions{
-				CurrencyID:     currencyUSD,
+			Route: ledger.RouteFilter{
+				Currency:       "USD",
 				CreditPriority: &creditPriority,
 			},
 		},
 	})
 	require.NoError(t, err)
+	// Only subAccountA(USD,p1): 100+50=150
 	require.True(t, sumPriority.Equal(alpacadecimal.NewFromInt(150)))
 
+	// Sum by transaction ID
 	txID := txEarly.ID().ID
 	sumTxID, err := env.repo.SumEntries(ctx, ledger.Query{
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			TransactionID: &txID,
-			Dimensions:    ledger.QueryDimensions{CurrencyID: currencyUSD},
+			Route:         ledger.RouteFilter{Currency: "USD"},
 		},
 	})
 	require.NoError(t, err)
+	// 100 + (-100) = 0
 	require.True(t, sumTxID.Equal(alpacadecimal.NewFromInt(0)))
 
+	// Sum by booked_at period
 	from := bookedAtLate.Add(-1 * time.Minute)
 	sumLate, err := env.repo.SumEntries(ctx, ledger.Query{
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			BookedAtPeriod: &timeutil.OpenPeriod{From: &from},
-			Dimensions:     ledger.QueryDimensions{CurrencyID: currencyUSD},
+			Route:          ledger.RouteFilter{Currency: "USD"},
 		},
 	})
 	require.NoError(t, err)
+	// Only late tx: subAccountA(USD): +50
 	require.True(t, sumLate.Equal(alpacadecimal.NewFromInt(50)))
 }
 
@@ -374,10 +347,8 @@ func TestSumEntriesQuery_SQL(t *testing.T) {
 				BookedAtPeriod: &timeutil.OpenPeriod{
 					From: &bookedFrom,
 				},
-				Dimensions: ledger.QueryDimensions{
-					CurrencyID:     "01TESTCUR1234567890123456",
-					TaxCodeID:      lo.ToPtr("01TESTTAX1234567890123456"),
-					FeatureIDs:     []string{"01TESTFEAT123456789012345"},
+				Route: ledger.RouteFilter{
+					Currency:       "USD",
 					CreditPriority: lo.ToPtr(7),
 				},
 			},
@@ -386,14 +357,13 @@ func TestSumEntriesQuery_SQL(t *testing.T) {
 
 	sqlStr, args := q.SQL()
 
-	require.Equal(t, `SELECT SUM("ledger_entries"."amount") AS "sum_amount" FROM "ledger_entries" WHERE (("ledger_entries"."namespace" = $1 AND "ledger_entries"."transaction_id" = $2) AND EXISTS (SELECT "ledger_transactions"."id" FROM "ledger_transactions" WHERE "ledger_entries"."transaction_id" = "ledger_transactions"."id" AND "ledger_transactions"."booked_at" >= $3)) AND EXISTS (SELECT "ledger_sub_accounts"."id" FROM "ledger_sub_accounts" WHERE "ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id" AND EXISTS (SELECT "ledger_sub_account_routes"."id" FROM "ledger_sub_account_routes" WHERE ("ledger_sub_accounts"."route_id" = "ledger_sub_account_routes"."id" AND "ledger_sub_account_routes"."currency_dimension_id" = $4) AND EXISTS (SELECT "ledger_dimensions"."id" FROM "ledger_dimensions" WHERE ("ledger_sub_account_routes"."credit_priority_dimension_id" = "ledger_dimensions"."id" AND "ledger_dimensions"."dimension_key" = $5) AND "ledger_dimensions"."dimension_value" = $6)))`, sqlStr)
+	require.Equal(t, `SELECT SUM("ledger_entries"."amount") AS "sum_amount" FROM "ledger_entries" WHERE (("ledger_entries"."namespace" = $1 AND "ledger_entries"."transaction_id" = $2) AND EXISTS (SELECT "ledger_transactions"."id" FROM "ledger_transactions" WHERE "ledger_entries"."transaction_id" = "ledger_transactions"."id" AND "ledger_transactions"."booked_at" >= $3)) AND EXISTS (SELECT "ledger_sub_accounts"."id" FROM "ledger_sub_accounts" WHERE "ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id" AND EXISTS (SELECT "ledger_sub_account_routes"."id" FROM "ledger_sub_account_routes" WHERE ("ledger_sub_accounts"."route_id" = "ledger_sub_account_routes"."id" AND "ledger_sub_account_routes"."currency" = $4) AND "ledger_sub_account_routes"."credit_priority" = $5))`, sqlStr)
 	require.Equal(t, []any{
 		"ns-test",
 		txID,
 		bookedFrom,
-		"01TESTCUR1234567890123456",
-		string(ledger.DimensionKeyCreditPriority),
-		"7",
+		"USD",
+		7,
 	}, args)
 }
 
@@ -442,15 +412,7 @@ func (e *TestEnv) Close(t *testing.T) {
 	require.NoError(t, e.db.PGDriver.Close())
 }
 
-func (e *TestEnv) createSubAccount(t *testing.T, namespace string, accountID string) *entdb.LedgerSubAccount {
-	t.Helper()
-
-	currencyID := e.createDimension(t, namespace, string(ledger.DimensionKeyCurrency), fmt.Sprintf("currency-%d", time.Now().UnixNano()), "USD")
-	subAccount := e.createSubAccountWithDimensions(t, namespace, accountID, currencyID, nil, nil, nil)
-	return subAccount
-}
-
-func (e *TestEnv) createSubAccountWithDimensions(t *testing.T, namespace string, accountID string, currencyDimensionID string, taxCodeDimensionID *string, featuresDimensionID *string, creditPriorityDimensionID *string) *entdb.LedgerSubAccount {
+func (e *TestEnv) createSubAccount(t *testing.T, namespace string, accountID string, currency string, creditPriority *int) *entdb.LedgerSubAccount {
 	t.Helper()
 
 	account, err := e.client.LedgerAccount.Create().
@@ -460,10 +422,26 @@ func (e *TestEnv) createSubAccountWithDimensions(t *testing.T, namespace string,
 		Save(t.Context())
 	require.NoError(t, err)
 
+	routeKey, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, ledger.Route{
+		Currency:       currency,
+		CreditPriority: creditPriority,
+	})
+	require.NoError(t, err)
+
+	route, err := e.client.LedgerSubAccountRoute.Create().
+		SetNamespace(namespace).
+		SetAccountID(account.ID).
+		SetRoutingKeyVersion(routeKey.Version()).
+		SetRoutingKey(routeKey.Value()).
+		SetCurrency(currency).
+		SetNillableCreditPriority(creditPriority).
+		Save(t.Context())
+	require.NoError(t, err)
+
 	subAccount, err := e.client.LedgerSubAccount.Create().
 		SetNamespace(namespace).
 		SetAccountID(account.ID).
-		SetRouteID(mustCreateRoute(t, e.client, namespace, account.ID, currencyDimensionID, taxCodeDimensionID, featuresDimensionID, creditPriorityDimensionID)).
+		SetRouteID(route.ID).
 		Save(t.Context())
 	require.NoError(t, err)
 
@@ -472,65 +450,11 @@ func (e *TestEnv) createSubAccountWithDimensions(t *testing.T, namespace string,
 			ledgersubaccountdb.Namespace(namespace),
 			ledgersubaccountdb.ID(subAccount.ID),
 		).
-		WithRoute(func(query *entdb.LedgerSubAccountRouteQuery) {
-			query.WithCurrencyDimension()
-			query.WithTaxCodeDimension()
-			query.WithFeaturesDimension()
-			query.WithCreditPriorityDimension()
-		}).
+		WithRoute().
 		Only(t.Context())
 	require.NoError(t, err)
 
 	return subAccount
-}
-
-func mustCreateRoute(
-	t *testing.T,
-	client *entdb.Client,
-	namespace string,
-	accountID string,
-	currencyDimensionID string,
-	taxCodeDimensionID *string,
-	featuresDimensionID *string,
-	creditPriorityDimensionID *string,
-) string {
-	t.Helper()
-
-	routeKey, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, ledger.SubAccountRouteInput{
-		CurrencyDimensionID:       currencyDimensionID,
-		TaxCodeDimensionID:        taxCodeDimensionID,
-		FeaturesDimensionID:       featuresDimensionID,
-		CreditPriorityDimensionID: creditPriorityDimensionID,
-	})
-	require.NoError(t, err)
-
-	route, err := client.LedgerSubAccountRoute.Create().
-		SetNamespace(namespace).
-		SetAccountID(accountID).
-		SetRoutingKeyVersion(routeKey.Version()).
-		SetRoutingKey(routeKey.Value()).
-		SetCurrencyDimensionID(currencyDimensionID).
-		SetNillableTaxCodeDimensionID(taxCodeDimensionID).
-		SetNillableFeaturesDimensionID(featuresDimensionID).
-		SetNillableCreditPriorityDimensionID(creditPriorityDimensionID).
-		Save(t.Context())
-	require.NoError(t, err)
-
-	return route.ID
-}
-
-func (e *TestEnv) createDimension(t *testing.T, namespace, key, value, displayValue string) string {
-	t.Helper()
-
-	dimension, err := e.client.LedgerDimension.Create().
-		SetNamespace(namespace).
-		SetDimensionKey(key).
-		SetDimensionValue(value).
-		SetDimensionDisplayValue(displayValue).
-		Save(t.Context())
-	require.NoError(t, err)
-
-	return dimension.ID
 }
 
 func testNamespace() string {

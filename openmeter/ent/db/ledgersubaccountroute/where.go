@@ -102,24 +102,19 @@ func RoutingKey(v string) predicate.LedgerSubAccountRoute {
 	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldRoutingKey, v))
 }
 
-// CurrencyDimensionID applies equality check predicate on the "currency_dimension_id" field. It's identical to CurrencyDimensionIDEQ.
-func CurrencyDimensionID(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldCurrencyDimensionID, v))
+// Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
+func Currency(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldCurrency, v))
 }
 
-// TaxCodeDimensionID applies equality check predicate on the "tax_code_dimension_id" field. It's identical to TaxCodeDimensionIDEQ.
-func TaxCodeDimensionID(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldTaxCodeDimensionID, v))
+// TaxCode applies equality check predicate on the "tax_code" field. It's identical to TaxCodeEQ.
+func TaxCode(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldTaxCode, v))
 }
 
-// FeaturesDimensionID applies equality check predicate on the "features_dimension_id" field. It's identical to FeaturesDimensionIDEQ.
-func FeaturesDimensionID(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldFeaturesDimensionID, v))
-}
-
-// CreditPriorityDimensionID applies equality check predicate on the "credit_priority_dimension_id" field. It's identical to CreditPriorityDimensionIDEQ.
-func CreditPriorityDimensionID(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldCreditPriorityDimensionID, v))
+// CreditPriority applies equality check predicate on the "credit_priority" field. It's identical to CreditPriorityEQ.
+func CreditPriority(v int) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldCreditPriority, v))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -531,294 +526,204 @@ func RoutingKeyContainsFold(v string) predicate.LedgerSubAccountRoute {
 	return predicate.LedgerSubAccountRoute(sql.FieldContainsFold(FieldRoutingKey, v))
 }
 
-// CurrencyDimensionIDEQ applies the EQ predicate on the "currency_dimension_id" field.
-func CurrencyDimensionIDEQ(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldCurrencyDimensionID, v))
+// CurrencyEQ applies the EQ predicate on the "currency" field.
+func CurrencyEQ(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldCurrency, v))
 }
 
-// CurrencyDimensionIDNEQ applies the NEQ predicate on the "currency_dimension_id" field.
-func CurrencyDimensionIDNEQ(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldNEQ(FieldCurrencyDimensionID, v))
+// CurrencyNEQ applies the NEQ predicate on the "currency" field.
+func CurrencyNEQ(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldNEQ(FieldCurrency, v))
 }
 
-// CurrencyDimensionIDIn applies the In predicate on the "currency_dimension_id" field.
-func CurrencyDimensionIDIn(vs ...string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldIn(FieldCurrencyDimensionID, vs...))
+// CurrencyIn applies the In predicate on the "currency" field.
+func CurrencyIn(vs ...string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldIn(FieldCurrency, vs...))
 }
 
-// CurrencyDimensionIDNotIn applies the NotIn predicate on the "currency_dimension_id" field.
-func CurrencyDimensionIDNotIn(vs ...string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldNotIn(FieldCurrencyDimensionID, vs...))
+// CurrencyNotIn applies the NotIn predicate on the "currency" field.
+func CurrencyNotIn(vs ...string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldNotIn(FieldCurrency, vs...))
 }
 
-// CurrencyDimensionIDGT applies the GT predicate on the "currency_dimension_id" field.
-func CurrencyDimensionIDGT(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldGT(FieldCurrencyDimensionID, v))
+// CurrencyGT applies the GT predicate on the "currency" field.
+func CurrencyGT(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldGT(FieldCurrency, v))
 }
 
-// CurrencyDimensionIDGTE applies the GTE predicate on the "currency_dimension_id" field.
-func CurrencyDimensionIDGTE(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldGTE(FieldCurrencyDimensionID, v))
+// CurrencyGTE applies the GTE predicate on the "currency" field.
+func CurrencyGTE(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldGTE(FieldCurrency, v))
 }
 
-// CurrencyDimensionIDLT applies the LT predicate on the "currency_dimension_id" field.
-func CurrencyDimensionIDLT(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldLT(FieldCurrencyDimensionID, v))
+// CurrencyLT applies the LT predicate on the "currency" field.
+func CurrencyLT(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldLT(FieldCurrency, v))
 }
 
-// CurrencyDimensionIDLTE applies the LTE predicate on the "currency_dimension_id" field.
-func CurrencyDimensionIDLTE(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldLTE(FieldCurrencyDimensionID, v))
+// CurrencyLTE applies the LTE predicate on the "currency" field.
+func CurrencyLTE(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldLTE(FieldCurrency, v))
 }
 
-// CurrencyDimensionIDContains applies the Contains predicate on the "currency_dimension_id" field.
-func CurrencyDimensionIDContains(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldContains(FieldCurrencyDimensionID, v))
+// CurrencyContains applies the Contains predicate on the "currency" field.
+func CurrencyContains(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldContains(FieldCurrency, v))
 }
 
-// CurrencyDimensionIDHasPrefix applies the HasPrefix predicate on the "currency_dimension_id" field.
-func CurrencyDimensionIDHasPrefix(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldHasPrefix(FieldCurrencyDimensionID, v))
+// CurrencyHasPrefix applies the HasPrefix predicate on the "currency" field.
+func CurrencyHasPrefix(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldHasPrefix(FieldCurrency, v))
 }
 
-// CurrencyDimensionIDHasSuffix applies the HasSuffix predicate on the "currency_dimension_id" field.
-func CurrencyDimensionIDHasSuffix(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldHasSuffix(FieldCurrencyDimensionID, v))
+// CurrencyHasSuffix applies the HasSuffix predicate on the "currency" field.
+func CurrencyHasSuffix(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldHasSuffix(FieldCurrency, v))
 }
 
-// CurrencyDimensionIDEqualFold applies the EqualFold predicate on the "currency_dimension_id" field.
-func CurrencyDimensionIDEqualFold(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldEqualFold(FieldCurrencyDimensionID, v))
+// CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
+func CurrencyEqualFold(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldEqualFold(FieldCurrency, v))
 }
 
-// CurrencyDimensionIDContainsFold applies the ContainsFold predicate on the "currency_dimension_id" field.
-func CurrencyDimensionIDContainsFold(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldContainsFold(FieldCurrencyDimensionID, v))
+// CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
+func CurrencyContainsFold(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldContainsFold(FieldCurrency, v))
 }
 
-// TaxCodeDimensionIDEQ applies the EQ predicate on the "tax_code_dimension_id" field.
-func TaxCodeDimensionIDEQ(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldTaxCodeDimensionID, v))
+// TaxCodeEQ applies the EQ predicate on the "tax_code" field.
+func TaxCodeEQ(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldTaxCode, v))
 }
 
-// TaxCodeDimensionIDNEQ applies the NEQ predicate on the "tax_code_dimension_id" field.
-func TaxCodeDimensionIDNEQ(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldNEQ(FieldTaxCodeDimensionID, v))
+// TaxCodeNEQ applies the NEQ predicate on the "tax_code" field.
+func TaxCodeNEQ(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldNEQ(FieldTaxCode, v))
 }
 
-// TaxCodeDimensionIDIn applies the In predicate on the "tax_code_dimension_id" field.
-func TaxCodeDimensionIDIn(vs ...string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldIn(FieldTaxCodeDimensionID, vs...))
+// TaxCodeIn applies the In predicate on the "tax_code" field.
+func TaxCodeIn(vs ...string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldIn(FieldTaxCode, vs...))
 }
 
-// TaxCodeDimensionIDNotIn applies the NotIn predicate on the "tax_code_dimension_id" field.
-func TaxCodeDimensionIDNotIn(vs ...string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldNotIn(FieldTaxCodeDimensionID, vs...))
+// TaxCodeNotIn applies the NotIn predicate on the "tax_code" field.
+func TaxCodeNotIn(vs ...string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldNotIn(FieldTaxCode, vs...))
 }
 
-// TaxCodeDimensionIDGT applies the GT predicate on the "tax_code_dimension_id" field.
-func TaxCodeDimensionIDGT(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldGT(FieldTaxCodeDimensionID, v))
+// TaxCodeGT applies the GT predicate on the "tax_code" field.
+func TaxCodeGT(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldGT(FieldTaxCode, v))
 }
 
-// TaxCodeDimensionIDGTE applies the GTE predicate on the "tax_code_dimension_id" field.
-func TaxCodeDimensionIDGTE(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldGTE(FieldTaxCodeDimensionID, v))
+// TaxCodeGTE applies the GTE predicate on the "tax_code" field.
+func TaxCodeGTE(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldGTE(FieldTaxCode, v))
 }
 
-// TaxCodeDimensionIDLT applies the LT predicate on the "tax_code_dimension_id" field.
-func TaxCodeDimensionIDLT(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldLT(FieldTaxCodeDimensionID, v))
+// TaxCodeLT applies the LT predicate on the "tax_code" field.
+func TaxCodeLT(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldLT(FieldTaxCode, v))
 }
 
-// TaxCodeDimensionIDLTE applies the LTE predicate on the "tax_code_dimension_id" field.
-func TaxCodeDimensionIDLTE(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldLTE(FieldTaxCodeDimensionID, v))
+// TaxCodeLTE applies the LTE predicate on the "tax_code" field.
+func TaxCodeLTE(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldLTE(FieldTaxCode, v))
 }
 
-// TaxCodeDimensionIDContains applies the Contains predicate on the "tax_code_dimension_id" field.
-func TaxCodeDimensionIDContains(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldContains(FieldTaxCodeDimensionID, v))
+// TaxCodeContains applies the Contains predicate on the "tax_code" field.
+func TaxCodeContains(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldContains(FieldTaxCode, v))
 }
 
-// TaxCodeDimensionIDHasPrefix applies the HasPrefix predicate on the "tax_code_dimension_id" field.
-func TaxCodeDimensionIDHasPrefix(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldHasPrefix(FieldTaxCodeDimensionID, v))
+// TaxCodeHasPrefix applies the HasPrefix predicate on the "tax_code" field.
+func TaxCodeHasPrefix(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldHasPrefix(FieldTaxCode, v))
 }
 
-// TaxCodeDimensionIDHasSuffix applies the HasSuffix predicate on the "tax_code_dimension_id" field.
-func TaxCodeDimensionIDHasSuffix(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldHasSuffix(FieldTaxCodeDimensionID, v))
+// TaxCodeHasSuffix applies the HasSuffix predicate on the "tax_code" field.
+func TaxCodeHasSuffix(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldHasSuffix(FieldTaxCode, v))
 }
 
-// TaxCodeDimensionIDIsNil applies the IsNil predicate on the "tax_code_dimension_id" field.
-func TaxCodeDimensionIDIsNil() predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldIsNull(FieldTaxCodeDimensionID))
+// TaxCodeIsNil applies the IsNil predicate on the "tax_code" field.
+func TaxCodeIsNil() predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldIsNull(FieldTaxCode))
 }
 
-// TaxCodeDimensionIDNotNil applies the NotNil predicate on the "tax_code_dimension_id" field.
-func TaxCodeDimensionIDNotNil() predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldNotNull(FieldTaxCodeDimensionID))
+// TaxCodeNotNil applies the NotNil predicate on the "tax_code" field.
+func TaxCodeNotNil() predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldNotNull(FieldTaxCode))
 }
 
-// TaxCodeDimensionIDEqualFold applies the EqualFold predicate on the "tax_code_dimension_id" field.
-func TaxCodeDimensionIDEqualFold(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldEqualFold(FieldTaxCodeDimensionID, v))
+// TaxCodeEqualFold applies the EqualFold predicate on the "tax_code" field.
+func TaxCodeEqualFold(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldEqualFold(FieldTaxCode, v))
 }
 
-// TaxCodeDimensionIDContainsFold applies the ContainsFold predicate on the "tax_code_dimension_id" field.
-func TaxCodeDimensionIDContainsFold(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldContainsFold(FieldTaxCodeDimensionID, v))
+// TaxCodeContainsFold applies the ContainsFold predicate on the "tax_code" field.
+func TaxCodeContainsFold(v string) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldContainsFold(FieldTaxCode, v))
 }
 
-// FeaturesDimensionIDEQ applies the EQ predicate on the "features_dimension_id" field.
-func FeaturesDimensionIDEQ(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldFeaturesDimensionID, v))
+// FeaturesIsNil applies the IsNil predicate on the "features" field.
+func FeaturesIsNil() predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldIsNull(FieldFeatures))
 }
 
-// FeaturesDimensionIDNEQ applies the NEQ predicate on the "features_dimension_id" field.
-func FeaturesDimensionIDNEQ(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldNEQ(FieldFeaturesDimensionID, v))
+// FeaturesNotNil applies the NotNil predicate on the "features" field.
+func FeaturesNotNil() predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldNotNull(FieldFeatures))
 }
 
-// FeaturesDimensionIDIn applies the In predicate on the "features_dimension_id" field.
-func FeaturesDimensionIDIn(vs ...string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldIn(FieldFeaturesDimensionID, vs...))
+// CreditPriorityEQ applies the EQ predicate on the "credit_priority" field.
+func CreditPriorityEQ(v int) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldCreditPriority, v))
 }
 
-// FeaturesDimensionIDNotIn applies the NotIn predicate on the "features_dimension_id" field.
-func FeaturesDimensionIDNotIn(vs ...string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldNotIn(FieldFeaturesDimensionID, vs...))
+// CreditPriorityNEQ applies the NEQ predicate on the "credit_priority" field.
+func CreditPriorityNEQ(v int) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldNEQ(FieldCreditPriority, v))
 }
 
-// FeaturesDimensionIDGT applies the GT predicate on the "features_dimension_id" field.
-func FeaturesDimensionIDGT(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldGT(FieldFeaturesDimensionID, v))
+// CreditPriorityIn applies the In predicate on the "credit_priority" field.
+func CreditPriorityIn(vs ...int) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldIn(FieldCreditPriority, vs...))
 }
 
-// FeaturesDimensionIDGTE applies the GTE predicate on the "features_dimension_id" field.
-func FeaturesDimensionIDGTE(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldGTE(FieldFeaturesDimensionID, v))
+// CreditPriorityNotIn applies the NotIn predicate on the "credit_priority" field.
+func CreditPriorityNotIn(vs ...int) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldNotIn(FieldCreditPriority, vs...))
 }
 
-// FeaturesDimensionIDLT applies the LT predicate on the "features_dimension_id" field.
-func FeaturesDimensionIDLT(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldLT(FieldFeaturesDimensionID, v))
+// CreditPriorityGT applies the GT predicate on the "credit_priority" field.
+func CreditPriorityGT(v int) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldGT(FieldCreditPriority, v))
 }
 
-// FeaturesDimensionIDLTE applies the LTE predicate on the "features_dimension_id" field.
-func FeaturesDimensionIDLTE(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldLTE(FieldFeaturesDimensionID, v))
+// CreditPriorityGTE applies the GTE predicate on the "credit_priority" field.
+func CreditPriorityGTE(v int) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldGTE(FieldCreditPriority, v))
 }
 
-// FeaturesDimensionIDContains applies the Contains predicate on the "features_dimension_id" field.
-func FeaturesDimensionIDContains(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldContains(FieldFeaturesDimensionID, v))
+// CreditPriorityLT applies the LT predicate on the "credit_priority" field.
+func CreditPriorityLT(v int) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldLT(FieldCreditPriority, v))
 }
 
-// FeaturesDimensionIDHasPrefix applies the HasPrefix predicate on the "features_dimension_id" field.
-func FeaturesDimensionIDHasPrefix(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldHasPrefix(FieldFeaturesDimensionID, v))
+// CreditPriorityLTE applies the LTE predicate on the "credit_priority" field.
+func CreditPriorityLTE(v int) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldLTE(FieldCreditPriority, v))
 }
 
-// FeaturesDimensionIDHasSuffix applies the HasSuffix predicate on the "features_dimension_id" field.
-func FeaturesDimensionIDHasSuffix(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldHasSuffix(FieldFeaturesDimensionID, v))
+// CreditPriorityIsNil applies the IsNil predicate on the "credit_priority" field.
+func CreditPriorityIsNil() predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldIsNull(FieldCreditPriority))
 }
 
-// FeaturesDimensionIDIsNil applies the IsNil predicate on the "features_dimension_id" field.
-func FeaturesDimensionIDIsNil() predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldIsNull(FieldFeaturesDimensionID))
-}
-
-// FeaturesDimensionIDNotNil applies the NotNil predicate on the "features_dimension_id" field.
-func FeaturesDimensionIDNotNil() predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldNotNull(FieldFeaturesDimensionID))
-}
-
-// FeaturesDimensionIDEqualFold applies the EqualFold predicate on the "features_dimension_id" field.
-func FeaturesDimensionIDEqualFold(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldEqualFold(FieldFeaturesDimensionID, v))
-}
-
-// FeaturesDimensionIDContainsFold applies the ContainsFold predicate on the "features_dimension_id" field.
-func FeaturesDimensionIDContainsFold(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldContainsFold(FieldFeaturesDimensionID, v))
-}
-
-// CreditPriorityDimensionIDEQ applies the EQ predicate on the "credit_priority_dimension_id" field.
-func CreditPriorityDimensionIDEQ(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldCreditPriorityDimensionID, v))
-}
-
-// CreditPriorityDimensionIDNEQ applies the NEQ predicate on the "credit_priority_dimension_id" field.
-func CreditPriorityDimensionIDNEQ(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldNEQ(FieldCreditPriorityDimensionID, v))
-}
-
-// CreditPriorityDimensionIDIn applies the In predicate on the "credit_priority_dimension_id" field.
-func CreditPriorityDimensionIDIn(vs ...string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldIn(FieldCreditPriorityDimensionID, vs...))
-}
-
-// CreditPriorityDimensionIDNotIn applies the NotIn predicate on the "credit_priority_dimension_id" field.
-func CreditPriorityDimensionIDNotIn(vs ...string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldNotIn(FieldCreditPriorityDimensionID, vs...))
-}
-
-// CreditPriorityDimensionIDGT applies the GT predicate on the "credit_priority_dimension_id" field.
-func CreditPriorityDimensionIDGT(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldGT(FieldCreditPriorityDimensionID, v))
-}
-
-// CreditPriorityDimensionIDGTE applies the GTE predicate on the "credit_priority_dimension_id" field.
-func CreditPriorityDimensionIDGTE(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldGTE(FieldCreditPriorityDimensionID, v))
-}
-
-// CreditPriorityDimensionIDLT applies the LT predicate on the "credit_priority_dimension_id" field.
-func CreditPriorityDimensionIDLT(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldLT(FieldCreditPriorityDimensionID, v))
-}
-
-// CreditPriorityDimensionIDLTE applies the LTE predicate on the "credit_priority_dimension_id" field.
-func CreditPriorityDimensionIDLTE(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldLTE(FieldCreditPriorityDimensionID, v))
-}
-
-// CreditPriorityDimensionIDContains applies the Contains predicate on the "credit_priority_dimension_id" field.
-func CreditPriorityDimensionIDContains(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldContains(FieldCreditPriorityDimensionID, v))
-}
-
-// CreditPriorityDimensionIDHasPrefix applies the HasPrefix predicate on the "credit_priority_dimension_id" field.
-func CreditPriorityDimensionIDHasPrefix(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldHasPrefix(FieldCreditPriorityDimensionID, v))
-}
-
-// CreditPriorityDimensionIDHasSuffix applies the HasSuffix predicate on the "credit_priority_dimension_id" field.
-func CreditPriorityDimensionIDHasSuffix(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldHasSuffix(FieldCreditPriorityDimensionID, v))
-}
-
-// CreditPriorityDimensionIDIsNil applies the IsNil predicate on the "credit_priority_dimension_id" field.
-func CreditPriorityDimensionIDIsNil() predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldIsNull(FieldCreditPriorityDimensionID))
-}
-
-// CreditPriorityDimensionIDNotNil applies the NotNil predicate on the "credit_priority_dimension_id" field.
-func CreditPriorityDimensionIDNotNil() predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldNotNull(FieldCreditPriorityDimensionID))
-}
-
-// CreditPriorityDimensionIDEqualFold applies the EqualFold predicate on the "credit_priority_dimension_id" field.
-func CreditPriorityDimensionIDEqualFold(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldEqualFold(FieldCreditPriorityDimensionID, v))
-}
-
-// CreditPriorityDimensionIDContainsFold applies the ContainsFold predicate on the "credit_priority_dimension_id" field.
-func CreditPriorityDimensionIDContainsFold(v string) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(sql.FieldContainsFold(FieldCreditPriorityDimensionID, v))
+// CreditPriorityNotNil applies the NotNil predicate on the "credit_priority" field.
+func CreditPriorityNotNil() predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldNotNull(FieldCreditPriority))
 }
 
 // HasAccount applies the HasEdge predicate on the "account" edge.
@@ -859,98 +764,6 @@ func HasSubAccounts() predicate.LedgerSubAccountRoute {
 func HasSubAccountsWith(preds ...predicate.LedgerSubAccount) predicate.LedgerSubAccountRoute {
 	return predicate.LedgerSubAccountRoute(func(s *sql.Selector) {
 		step := newSubAccountsStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasCurrencyDimension applies the HasEdge predicate on the "currency_dimension" edge.
-func HasCurrencyDimension() predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, CurrencyDimensionTable, CurrencyDimensionColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasCurrencyDimensionWith applies the HasEdge predicate on the "currency_dimension" edge with a given conditions (other predicates).
-func HasCurrencyDimensionWith(preds ...predicate.LedgerDimension) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(func(s *sql.Selector) {
-		step := newCurrencyDimensionStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasTaxCodeDimension applies the HasEdge predicate on the "tax_code_dimension" edge.
-func HasTaxCodeDimension() predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeDimensionTable, TaxCodeDimensionColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasTaxCodeDimensionWith applies the HasEdge predicate on the "tax_code_dimension" edge with a given conditions (other predicates).
-func HasTaxCodeDimensionWith(preds ...predicate.LedgerDimension) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(func(s *sql.Selector) {
-		step := newTaxCodeDimensionStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasFeaturesDimension applies the HasEdge predicate on the "features_dimension" edge.
-func HasFeaturesDimension() predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, FeaturesDimensionTable, FeaturesDimensionColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasFeaturesDimensionWith applies the HasEdge predicate on the "features_dimension" edge with a given conditions (other predicates).
-func HasFeaturesDimensionWith(preds ...predicate.LedgerDimension) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(func(s *sql.Selector) {
-		step := newFeaturesDimensionStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasCreditPriorityDimension applies the HasEdge predicate on the "credit_priority_dimension" edge.
-func HasCreditPriorityDimension() predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, CreditPriorityDimensionTable, CreditPriorityDimensionColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasCreditPriorityDimensionWith applies the HasEdge predicate on the "credit_priority_dimension" edge with a given conditions (other predicates).
-func HasCreditPriorityDimensionWith(preds ...predicate.LedgerDimension) predicate.LedgerSubAccountRoute {
-	return predicate.LedgerSubAccountRoute(func(s *sql.Selector) {
-		step := newCreditPriorityDimensionStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
