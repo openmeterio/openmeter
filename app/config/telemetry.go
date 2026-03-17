@@ -386,7 +386,7 @@ func kongReplaceAttr(groups []string, a slog.Attr) slog.Attr {
 			file := strings.TrimPrefix(src.File, moduleRoot)
 			a.Value = slog.StringValue(fmt.Sprintf("%s:%d", file, src.Line))
 		}
-	case "error":
+	case "error", "err":
 		a.Key = "error.message"
 	}
 	return a
