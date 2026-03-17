@@ -27,6 +27,7 @@ import (
 type FeatureHandler interface {
 	GetFeature() GetFeatureHandler
 	CreateFeature() CreateFeatureHandler
+	UpdateFeature() UpdateFeatureHandler
 	ListFeatures() ListFeaturesHandler
 	DeleteFeature() DeleteFeatureHandler
 }
@@ -153,6 +154,59 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("createFeature"),
+			httptransport.WithErrorEncoder(getErrorEncoder()),
+		)...,
+	)
+}
+
+type (
+	UpdateFeatureHandlerRequest  = feature.UpdateFeatureInputs
+	UpdateFeatureHandlerResponse = api.Feature
+	UpdateFeatureHandlerParams   = string
+)
+
+type UpdateFeatureHandler httptransport.HandlerWithArgs[UpdateFeatureHandlerRequest, UpdateFeatureHandlerResponse, UpdateFeatureHandlerParams]
+
+func (h *featureHandlers) UpdateFeature() UpdateFeatureHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, featureID string) (UpdateFeatureHandlerRequest, error) {
+			parsedBody := api.UpdateFeatureJSONRequestBody{}
+			if err := commonhttp.JSONRequestBodyDecoder(r, &parsedBody); err != nil {
+				return feature.UpdateFeatureInputs{}, err
+			}
+
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return feature.UpdateFeatureInputs{}, err
+			}
+
+			return MapFeatureUpdateInputsRequest(ns, featureID, parsedBody)
+		},
+		func(ctx context.Context, input UpdateFeatureHandlerRequest) (UpdateFeatureHandlerResponse, error) {
+			updatedFeature, err := h.connector.UpdateFeature(ctx, input)
+			if err != nil {
+				return api.Feature{}, err
+			}
+
+			resp, err := MapFeatureToResponse(updatedFeature)
+			if err != nil {
+				return api.Feature{}, err
+			}
+
+			// Resolve LLM pricing if the feature has LLM unit cost
+			if updatedFeature.UnitCost != nil && updatedFeature.UnitCost.Type == feature.UnitCostTypeLLM && h.llmcostService != nil {
+				pricing := resolveLLMPricing(ctx, h.llmcostService, &updatedFeature)
+				if pricing != nil {
+					enrichFeatureResponseWithPricing(&resp, pricing)
+				}
+			}
+
+			return resp, nil
+		},
+		commonhttp.JSONResponseEncoder,
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("updateFeature"),
 			httptransport.WithErrorEncoder(getErrorEncoder()),
 		)...,
 	)

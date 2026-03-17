@@ -6754,6 +6754,38 @@ class FeaturePaginatedResponse(_Model):
         super().__init__(*args, **kwargs)
 
 
+class FeatureUpdateInputs(_Model):
+    """Inputs for updating a feature.
+
+    :ivar unit_cost: Unit cost. Is either a FeatureManualUnitCost type or a FeatureLLMUnitCost
+     type.
+    :vartype unit_cost: ~openmeter._generated.models.FeatureManualUnitCost or
+     ~openmeter._generated.models.FeatureLLMUnitCost
+    """
+
+    unit_cost: Optional["_types.FeatureUnitCost"] = rest_field(
+        name="unitCost", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Unit cost. Is either a FeatureManualUnitCost type or a FeatureLLMUnitCost type."""
+
+    @overload
+    def __init__(
+        self,
+        *,
+        unit_cost: Optional["_types.FeatureUnitCost"] = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(self, mapping: Mapping[str, Any]) -> None:
+        """
+        :param mapping: raw JSON to initialize the model.
+        :type mapping: Mapping[str, Any]
+        """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+
 class FilterIDExact(_Model):
     """A filter for a ID (ULID) field allowing only equality or inclusion.
 

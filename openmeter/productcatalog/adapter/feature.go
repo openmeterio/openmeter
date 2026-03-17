@@ -96,6 +96,65 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feat feature.Creat
 	return MapFeatureEntity(entity), nil
 }
 
+func (c *featureDBAdapter) UpdateFeature(ctx context.Context, input feature.UpdateFeatureInputs) (feature.Feature, error) {
+	query := c.db.Feature.Update().
+		Where(
+			db_feature.Or(db_feature.ID(input.ID), db_feature.Key(input.ID)),
+			db_feature.Namespace(input.Namespace),
+			db_feature.ArchivedAtIsNil(),
+		)
+
+	// Clear previous unit cost fields that won't be set, then set new ones
+	if input.UnitCost != nil {
+		// Always clear the "other type" fields to handle type switches cleanly
+		switch input.UnitCost.Type {
+		case feature.UnitCostTypeManual:
+			// Clear LLM fields, set manual fields
+			query = query.
+				ClearUnitCostLlmProviderProperty().
+				ClearUnitCostLlmProvider().
+				ClearUnitCostLlmModelProperty().
+				ClearUnitCostLlmModel().
+				ClearUnitCostLlmTokenTypeProperty().
+				ClearUnitCostLlmTokenType().
+				SetUnitCostType(string(input.UnitCost.Type))
+			if input.UnitCost.Manual != nil {
+				query = query.SetUnitCostManualAmount(input.UnitCost.Manual.Amount)
+			}
+		case feature.UnitCostTypeLLM:
+			// Clear manual fields, set LLM fields
+			query = query.
+				ClearUnitCostManualAmount().
+				SetUnitCostType(string(input.UnitCost.Type))
+			if input.UnitCost.LLM != nil {
+				query = query.
+					SetNillableUnitCostLlmProviderProperty(lo.EmptyableToPtr(input.UnitCost.LLM.ProviderProperty)).
+					SetNillableUnitCostLlmProvider(lo.EmptyableToPtr(input.UnitCost.LLM.Provider)).
+					SetNillableUnitCostLlmModelProperty(lo.EmptyableToPtr(input.UnitCost.LLM.ModelProperty)).
+					SetNillableUnitCostLlmModel(lo.EmptyableToPtr(input.UnitCost.LLM.Model)).
+					SetNillableUnitCostLlmTokenTypeProperty(lo.EmptyableToPtr(input.UnitCost.LLM.TokenTypeProperty)).
+					SetNillableUnitCostLlmTokenType(lo.EmptyableToPtr(input.UnitCost.LLM.TokenType))
+			}
+		}
+	}
+
+	n, err := query.Save(ctx)
+	if err != nil {
+		return feature.Feature{}, fmt.Errorf("failed to update feature: %w", err)
+	}
+
+	if n == 0 {
+		return feature.Feature{}, &feature.FeatureNotFoundError{ID: input.ID}
+	}
+
+	result, err := c.GetByIdOrKey(ctx, input.Namespace, input.ID, false)
+	if err != nil {
+		return feature.Feature{}, err
+	}
+
+	return *result, nil
+}
+
 func (c *featureDBAdapter) GetByIdOrKey(ctx context.Context, namespace string, idOrKey string, includeArchived bool) (*feature.Feature, error) {
 	query := c.db.Feature.Query().
 		// We only need Meter Key for v1 API backward compatibility

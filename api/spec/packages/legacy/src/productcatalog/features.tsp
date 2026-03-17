@@ -210,6 +210,20 @@ union FeatureUnitCost {
 }
 
 /**
+ * Inputs for updating a feature.
+ */
+@friendlyName("FeatureUpdateInputs")
+model FeatureUpdateInputs {
+  /**
+   * Optional per-unit cost configuration.
+   * Use "manual" for a fixed per-unit cost, or "llm" to look up cost
+   * from the LLM cost database based on meter group-by properties.
+   */
+  @summary("Unit cost")
+  unitCost?: FeatureUnitCost;
+}
+
+/**
  * List features result
  */
 @oneOf

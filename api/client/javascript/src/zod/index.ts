@@ -8327,7 +8327,7 @@ export const ListFeaturesQueryParams = zod.object({
  * Features are either metered or static. A feature is metered if meterSlug is provided at creation.
 For metered features you can pass additional filters that will be applied when calculating feature usage, based on the meter's groupBy fields.
 Meters with SUM, COUNT, UNIQUE_COUNT and LATEST aggregations are supported for features.
-Features cannot be updated later, only archived.
+Only the unitCost field can be updated after creation.
  * @summary Create feature
  */
 export const createFeatureBodyKeyMax = 64 as const
@@ -8578,6 +8578,144 @@ export const CreateFeatureBody = zod
   .describe(
     'Represents a feature that can be enabled or disabled for a plan.\nUsed both for product catalog and entitlements.',
   )
+
+/**
+ * Update a feature by ID.
+Currently only the unitCost field can be updated.
+ * @summary Update feature
+ */
+export const UpdateFeatureParams = zod.object({
+  featureId: zod.coerce.string(),
+})
+
+export const updateFeatureBodyUnitCostOneOneAmountOneRegExp =
+  /^-?[0-9]+(\.[0-9]+)?$/
+export const updateFeatureBodyUnitCostOneTwoPricingOneInputPerTokenOneRegExp =
+  /^-?[0-9]+(\.[0-9]+)?$/
+export const updateFeatureBodyUnitCostOneTwoPricingOneOutputPerTokenOneRegExp =
+  /^-?[0-9]+(\.[0-9]+)?$/
+export const updateFeatureBodyUnitCostOneTwoPricingOneCacheReadPerTokenOneRegExp =
+  /^-?[0-9]+(\.[0-9]+)?$/
+export const updateFeatureBodyUnitCostOneTwoPricingOneReasoningPerTokenOneRegExp =
+  /^-?[0-9]+(\.[0-9]+)?$/
+export const updateFeatureBodyUnitCostOneTwoPricingOneCacheWritePerTokenOneRegExp =
+  /^-?[0-9]+(\.[0-9]+)?$/
+
+export const UpdateFeatureBody = zod
+  .object({
+    unitCost: zod
+      .union([
+        zod
+          .object({
+            amount: zod.coerce
+              .string()
+              .regex(updateFeatureBodyUnitCostOneOneAmountOneRegExp)
+              .describe('Numeric represents an arbitrary precision number.')
+              .describe('Fixed per-unit cost amount in USD.'),
+            type: zod.enum(['manual']),
+          })
+          .describe('A fixed per-unit cost amount.'),
+        zod
+          .object({
+            model: zod.coerce
+              .string()
+              .optional()
+              .describe(
+                'Static model ID value (e.g., "gpt-4", "claude-3-5-sonnet").\nUse this when the feature tracks a single model.\nMutually exclusive with `modelProperty`.',
+              ),
+            modelProperty: zod.coerce
+              .string()
+              .optional()
+              .describe(
+                'Meter group-by property that holds the model ID.\nUse this when the meter has a group-by dimension for model.\nMutually exclusive with `model`.',
+              ),
+            pricing: zod
+              .object({
+                cacheReadPerToken: zod.coerce
+                  .string()
+                  .regex(
+                    updateFeatureBodyUnitCostOneTwoPricingOneCacheReadPerTokenOneRegExp,
+                  )
+                  .describe('Numeric represents an arbitrary precision number.')
+                  .optional()
+                  .describe('Cost per cache read token in USD.'),
+                cacheWritePerToken: zod.coerce
+                  .string()
+                  .regex(
+                    updateFeatureBodyUnitCostOneTwoPricingOneCacheWritePerTokenOneRegExp,
+                  )
+                  .describe('Numeric represents an arbitrary precision number.')
+                  .optional()
+                  .describe('Cost per cache write token in USD.'),
+                inputPerToken: zod.coerce
+                  .string()
+                  .regex(
+                    updateFeatureBodyUnitCostOneTwoPricingOneInputPerTokenOneRegExp,
+                  )
+                  .describe('Numeric represents an arbitrary precision number.')
+                  .describe('Cost per input token in USD.'),
+                outputPerToken: zod.coerce
+                  .string()
+                  .regex(
+                    updateFeatureBodyUnitCostOneTwoPricingOneOutputPerTokenOneRegExp,
+                  )
+                  .describe('Numeric represents an arbitrary precision number.')
+                  .describe('Cost per output token in USD.'),
+                reasoningPerToken: zod.coerce
+                  .string()
+                  .regex(
+                    updateFeatureBodyUnitCostOneTwoPricingOneReasoningPerTokenOneRegExp,
+                  )
+                  .describe('Numeric represents an arbitrary precision number.')
+                  .optional()
+                  .describe('Cost per reasoning token in USD.'),
+              })
+              .describe(
+                'Resolved per-token pricing from the LLM cost database.',
+              )
+              .optional()
+              .describe(
+                "Resolved per-token pricing from the LLM cost database.\nOnly populated in responses when the feature's meter group-by filters\nspecify exact provider and model values.",
+              ),
+            provider: zod.coerce
+              .string()
+              .optional()
+              .describe(
+                'Static LLM provider value (e.g., "openai", "anthropic").\nUse this when the feature tracks a single provider.\nMutually exclusive with `providerProperty`.',
+              ),
+            providerProperty: zod.coerce
+              .string()
+              .optional()
+              .describe(
+                'Meter group-by property that holds the LLM provider.\nUse this when the meter has a group-by dimension for provider.\nMutually exclusive with `provider`.',
+              ),
+            tokenType: zod.coerce
+              .string()
+              .optional()
+              .describe(
+                'Static token type value.\nUse this when the feature tracks a single token type (e.g., only input tokens).\nExpected values: input, output, cache_read, reasoning, cache_write, request, response.\n`request` is an alias for `input`, `response` is an alias for `output`.\nMutually exclusive with `tokenTypeProperty`.',
+              ),
+            tokenTypeProperty: zod.coerce
+              .string()
+              .optional()
+              .describe(
+                'Meter group-by property that holds the token type.\nUse this when the meter has a group-by dimension for token type.\nMutually exclusive with `tokenType`.',
+              ),
+            type: zod.enum(['llm']),
+          })
+          .describe(
+            'LLM cost lookup configuration.\nMaps meter group-by dimensions to LLM cost database fields.',
+          ),
+      ])
+      .describe(
+        'Per-unit cost configuration for a feature.\nEither a fixed manual amount or a dynamic LLM cost lookup.',
+      )
+      .optional()
+      .describe(
+        'Optional per-unit cost configuration.\nUse "manual" for a fixed per-unit cost, or "llm" to look up cost\nfrom the LLM cost database based on meter group-by properties.',
+      ),
+  })
+  .describe('Inputs for updating a feature.')
 
 /**
  * Get a feature by ID.
