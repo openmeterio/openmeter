@@ -129,8 +129,8 @@ func TestBuildQueryParams_SubjectFilter(t *testing.T) {
 	t.Run("eq filter adds subject to group by", func(t *testing.T) {
 		body := api.MeterQueryRequest{
 			Filters: &api.MeterQueryFilters{
-				Dimensions: &api.MeterQueryFilters_Dimensions{
-					Subject: &api.QueryFilterString{Eq: lo.ToPtr("user-1")},
+				Dimensions: &map[string]api.QueryFilterStringMapItem{
+					DimensionSubject: {Eq: lo.ToPtr("user-1")},
 				},
 			},
 		}
@@ -145,8 +145,8 @@ func TestBuildQueryParams_SubjectFilter(t *testing.T) {
 		body := api.MeterQueryRequest{
 			GroupByDimensions: &[]string{"subject"},
 			Filters: &api.MeterQueryFilters{
-				Dimensions: &api.MeterQueryFilters_Dimensions{
-					Subject: &api.QueryFilterString{Eq: lo.ToPtr("user-1")},
+				Dimensions: &map[string]api.QueryFilterStringMapItem{
+					DimensionSubject: {Eq: lo.ToPtr("user-1")},
 				},
 			},
 		}
@@ -182,8 +182,8 @@ func TestBuildQueryParams_CustomerFilter(t *testing.T) {
 
 		body := api.MeterQueryRequest{
 			Filters: &api.MeterQueryFilters{
-				Dimensions: &api.MeterQueryFilters_Dimensions{
-					CustomerId: &api.QueryFilterString{In: &[]string{"c1", "c2"}},
+				Dimensions: &map[string]api.QueryFilterStringMapItem{
+					DimensionCustomerID: {In: &[]string{"c1", "c2"}},
 				},
 			},
 		}
@@ -201,10 +201,8 @@ func TestBuildQueryParams_DimensionFilters(t *testing.T) {
 	t.Run("valid dimension filter", func(t *testing.T) {
 		body := api.MeterQueryRequest{
 			Filters: &api.MeterQueryFilters{
-				Dimensions: &api.MeterQueryFilters_Dimensions{
-					AdditionalProperties: map[string]api.QueryFilterStringMapItem{
-						"region": {Eq: lo.ToPtr("us-east-1")},
-					},
+				Dimensions: &map[string]api.QueryFilterStringMapItem{
+					"region": {Eq: lo.ToPtr("us-east-1")},
 				},
 			},
 		}
@@ -217,10 +215,8 @@ func TestBuildQueryParams_DimensionFilters(t *testing.T) {
 	t.Run("invalid dimension name", func(t *testing.T) {
 		body := api.MeterQueryRequest{
 			Filters: &api.MeterQueryFilters{
-				Dimensions: &api.MeterQueryFilters_Dimensions{
-					AdditionalProperties: map[string]api.QueryFilterStringMapItem{
-						"nonexistent": {Eq: lo.ToPtr("val")},
-					},
+				Dimensions: &map[string]api.QueryFilterStringMapItem{
+					"nonexistent": {Eq: lo.ToPtr("val")},
 				},
 			},
 		}
@@ -232,11 +228,9 @@ func TestBuildQueryParams_DimensionFilters(t *testing.T) {
 	t.Run("unknown operator in dimension filter", func(t *testing.T) {
 		body := api.MeterQueryRequest{
 			Filters: &api.MeterQueryFilters{
-				Dimensions: &api.MeterQueryFilters_Dimensions{
-					AdditionalProperties: map[string]api.QueryFilterStringMapItem{
-						"region": {
-							AdditionalProperties: map[string]interface{}{"bogus": "val"},
-						},
+				Dimensions: &map[string]api.QueryFilterStringMapItem{
+					"region": {
+						AdditionalProperties: map[string]interface{}{"bogus": "val"},
 					},
 				},
 			},
@@ -251,8 +245,8 @@ func TestBuildQueryParams_UnknownSubjectFilterOperator(t *testing.T) {
 	m := newTestMeter()
 	body := api.MeterQueryRequest{
 		Filters: &api.MeterQueryFilters{
-			Dimensions: &api.MeterQueryFilters_Dimensions{
-				Subject: &api.QueryFilterString{
+			Dimensions: &map[string]api.QueryFilterStringMapItem{
+				DimensionSubject: {
 					AdditionalProperties: map[string]interface{}{"regex": ".*"},
 				},
 			},

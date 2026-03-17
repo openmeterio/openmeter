@@ -53,50 +53,48 @@ func BuildQueryParams(ctx context.Context, m meter.Meter, body api.MeterQueryReq
 
 	if filters := body.Filters; filters != nil {
 		if dimensions := filters.Dimensions; dimensions != nil {
-			if dimensions.Subject != nil {
-				if err := ValidateQueryFilterString(dimensions.Subject, "dimensions", DimensionSubject); err != nil {
-					return params, err
-				}
+			for k, v := range *dimensions {
+				switch k {
+				case DimensionSubject:
+					if err := ValidateQueryFilterStringMapItem(v, "dimensions", DimensionSubject); err != nil {
+						return params, err
+					}
 
-				subjects, err := ExtractStringsFromQueryFilter(dimensions.Subject, "dimensions", DimensionSubject)
-				if err != nil {
-					return params, err
-				}
-
-				params.FilterSubject = subjects
-
-				if len(subjects) > 0 && !slices.Contains(params.GroupBy, DimensionSubject) {
-					params.GroupBy = append(params.GroupBy, DimensionSubject)
-				}
-			}
-
-			if dimensions.CustomerId != nil {
-				if err := ValidateQueryFilterString(dimensions.CustomerId, "dimensions", DimensionCustomerID); err != nil {
-					return params, err
-				}
-
-				customerIDs, err := ExtractStringsFromQueryFilter(dimensions.CustomerId, "dimensions", DimensionCustomerID)
-				if err != nil {
-					return params, err
-				}
-
-				if len(customerIDs) > 0 {
-					filterCustomers, err := resolveCustomers(ctx, m.Namespace, customerIDs)
+					subjects, err := ExtractStringsFromQueryFilterMapItem(&v, "dimensions", DimensionSubject)
 					if err != nil {
 						return params, err
 					}
 
-					params.FilterCustomer = CustomersToStreaming(filterCustomers)
+					params.FilterSubject = subjects
 
-					if !slices.Contains(params.GroupBy, DimensionCustomerID) {
-						params.GroupBy = append(params.GroupBy, DimensionCustomerID)
+					if len(subjects) > 0 && !slices.Contains(params.GroupBy, DimensionSubject) {
+						params.GroupBy = append(params.GroupBy, DimensionSubject)
 					}
-				}
-			}
 
-			if len(dimensions.AdditionalProperties) > 0 {
-				params.FilterGroupBy = make(map[string]filter.FilterString, len(dimensions.AdditionalProperties))
-				for k, v := range dimensions.AdditionalProperties {
+				case DimensionCustomerID:
+					if err := ValidateQueryFilterStringMapItem(v, "dimensions", DimensionCustomerID); err != nil {
+						return params, err
+					}
+
+					customerIDs, err := ExtractStringsFromQueryFilterMapItem(&v, "dimensions", DimensionCustomerID)
+					if err != nil {
+						return params, err
+					}
+
+					if len(customerIDs) > 0 {
+						filterCustomers, err := resolveCustomers(ctx, m.Namespace, customerIDs)
+						if err != nil {
+							return params, err
+						}
+
+						params.FilterCustomer = CustomersToStreaming(filterCustomers)
+
+						if !slices.Contains(params.GroupBy, DimensionCustomerID) {
+							params.GroupBy = append(params.GroupBy, DimensionCustomerID)
+						}
+					}
+
+				default:
 					if _, ok := m.GroupBy[k]; !ok {
 						return params, NewInvalidDimensionFilterError(k)
 					}
@@ -106,6 +104,9 @@ func BuildQueryParams(ctx context.Context, m meter.Meter, body api.MeterQueryReq
 					f := request.ConvertQueryFilterStringMapItem(v)
 					if err := f.ValidateWithComplexity(maxGroupByFilterComplexityDepth); err != nil {
 						return params, models.NewGenericValidationError(fmt.Errorf("dimension filter %q: %w", k, err))
+					}
+					if params.FilterGroupBy == nil {
+						params.FilterGroupBy = make(map[string]filter.FilterString)
 					}
 					params.FilterGroupBy[k] = f
 				}

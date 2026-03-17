@@ -250,7 +250,7 @@ func TestRoutes(t *testing.T) {
 							Value:      "300",
 							From:       time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 							To:         time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
-							Dimensions: apiv3.MeterQueryRow_Dimensions{},
+							Dimensions: map[string]string{},
 						},
 					},
 				},
@@ -324,8 +324,8 @@ func TestRoutes(t *testing.T) {
 				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
 				body: apiv3.MeterQueryRequest{
 					Filters: &apiv3.MeterQueryFilters{
-						Dimensions: &apiv3.MeterQueryFilters_Dimensions{
-							CustomerId: &apiv3.QueryFilterString{
+						Dimensions: &map[string]apiv3.QueryFilterStringMapItem{
+							"customer_id": {
 								Eq: lo.ToPtr("customer-1"),
 							},
 						},
@@ -394,8 +394,8 @@ func TestRoutes(t *testing.T) {
 				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
 				body: apiv3.MeterQueryRequest{
 					Filters: &apiv3.MeterQueryFilters{
-						Dimensions: &apiv3.MeterQueryFilters_Dimensions{
-							Subject: &apiv3.QueryFilterString{
+						Dimensions: &map[string]apiv3.QueryFilterStringMapItem{
+							"subject": {
 								Eq: lo.ToPtr("s1"),
 							},
 						},
@@ -410,8 +410,8 @@ func TestRoutes(t *testing.T) {
 							Value: "300",
 							From:  time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 							To:    time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
-							Dimensions: apiv3.MeterQueryRow_Dimensions{
-								Subject: mockQueryValue.Subject,
+							Dimensions: map[string]string{
+								"subject": *mockQueryValue.Subject,
 							},
 						},
 					},
@@ -449,11 +449,9 @@ func TestRoutes(t *testing.T) {
 				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
 				body: apiv3.MeterQueryRequest{
 					Filters: &apiv3.MeterQueryFilters{
-						Dimensions: &apiv3.MeterQueryFilters_Dimensions{
-							AdditionalProperties: map[string]apiv3.QueryFilterStringMapItem{
-								"method": {
-									Eq: lo.ToPtr("GET"),
-								},
+						Dimensions: &map[string]apiv3.QueryFilterStringMapItem{
+							"method": {
+								Eq: lo.ToPtr("GET"),
 							},
 						},
 					},
@@ -467,7 +465,7 @@ func TestRoutes(t *testing.T) {
 							Value:      "300",
 							From:       time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 							To:         time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
-							Dimensions: apiv3.MeterQueryRow_Dimensions{},
+							Dimensions: map[string]string{},
 						},
 					},
 				},
@@ -501,11 +499,9 @@ func TestRoutes(t *testing.T) {
 				path:        "/api/v3/openmeter/meters/" + mockMeters[0].ID,
 				body: apiv3.MeterQueryRequest{
 					Filters: &apiv3.MeterQueryFilters{
-						Dimensions: &apiv3.MeterQueryFilters_Dimensions{
-							AdditionalProperties: map[string]apiv3.QueryFilterStringMapItem{
-								"invalid": {
-									Eq: lo.ToPtr("abcd"),
-								},
+						Dimensions: &map[string]apiv3.QueryFilterStringMapItem{
+							"invalid": {
+								Eq: lo.ToPtr("abcd"),
 							},
 						},
 					},

@@ -28,25 +28,19 @@ func ConvertCostQueryResultToAPI(result *cost.CostQueryResult, body api.MeterQue
 }
 
 func convertCostQueryRowToAPI(row cost.CostQueryRow) api.FeatureCostQueryRow {
-	dimensions := api.FeatureCostQueryRow_Dimensions{
-		Subject:    row.Subject,
-		CustomerId: row.CustomerID,
+	dimensions := make(map[string]string)
+
+	if row.Subject != nil {
+		dimensions[query.DimensionSubject] = *row.Subject
 	}
 
-	if len(row.GroupBy) > 0 {
-		dimensions.AdditionalProperties = make(map[string]string, len(row.GroupBy))
+	if row.CustomerID != nil {
+		dimensions[query.DimensionCustomerID] = *row.CustomerID
+	}
 
-		for key, value := range row.GroupBy {
-			switch key {
-			case query.DimensionSubject:
-				dimensions.Subject = value
-			case query.DimensionCustomerID:
-				dimensions.CustomerId = value
-			default:
-				if value != nil {
-					dimensions.AdditionalProperties[key] = *value
-				}
-			}
+	for key, value := range row.GroupBy {
+		if value != nil {
+			dimensions[key] = *value
 		}
 	}
 

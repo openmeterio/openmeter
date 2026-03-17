@@ -594,7 +594,7 @@ func TestQuery(t *testing.T) {
 						Value:      v3Numeric(customerCount * 4 * 100),
 						From:       timestamp.Truncate(time.Minute),
 						To:         timestamp.Add(24 * time.Hour).Truncate(time.Minute).Add(time.Minute),
-						Dimensions: apiv3.MeterQueryRow_Dimensions{},
+						Dimensions: map[string]string{},
 					},
 				},
 			}
@@ -665,25 +665,25 @@ func TestQuery(t *testing.T) {
 							Value:      v3Numeric(customerCount * 100),
 							From:       timestamp.Truncate(time.Minute),
 							To:         timestamp.Truncate(time.Minute).Add(time.Minute),
-							Dimensions: apiv3.MeterQueryRow_Dimensions{},
+							Dimensions: map[string]string{},
 						},
 						{
 							Value:      v3Numeric(customerCount * 100),
 							From:       timestamp.Add(time.Minute).Truncate(time.Minute),
 							To:         timestamp.Add(time.Minute).Truncate(time.Minute).Add(time.Minute),
-							Dimensions: apiv3.MeterQueryRow_Dimensions{},
+							Dimensions: map[string]string{},
 						},
 						{
 							Value:      v3Numeric(customerCount * 100),
 							From:       timestamp.Add(time.Hour).Truncate(time.Minute),
 							To:         timestamp.Add(time.Hour).Truncate(time.Minute).Add(time.Minute),
-							Dimensions: apiv3.MeterQueryRow_Dimensions{},
+							Dimensions: map[string]string{},
 						},
 						{
 							Value:      v3Numeric(customerCount * 100),
 							From:       timestamp.Add(24 * time.Hour).Truncate(time.Minute),
 							To:         timestamp.Add(24 * time.Hour).Truncate(time.Minute).Add(time.Minute),
-							Dimensions: apiv3.MeterQueryRow_Dimensions{},
+							Dimensions: map[string]string{},
 						},
 					},
 				}
@@ -745,19 +745,19 @@ func TestQuery(t *testing.T) {
 							Value:      v3Numeric(customerCount * 2 * 100),
 							From:       timestamp.Truncate(time.Hour),
 							To:         timestamp.Truncate(time.Hour).Add(time.Hour),
-							Dimensions: apiv3.MeterQueryRow_Dimensions{},
+							Dimensions: map[string]string{},
 						},
 						{
 							Value:      v3Numeric(customerCount * 100),
 							From:       timestamp.Add(time.Hour).Truncate(time.Hour),
 							To:         timestamp.Add(time.Hour).Truncate(time.Hour).Add(time.Hour),
-							Dimensions: apiv3.MeterQueryRow_Dimensions{},
+							Dimensions: map[string]string{},
 						},
 						{
 							Value:      v3Numeric(customerCount * 100),
 							From:       timestamp.Add(24 * time.Hour).Truncate(time.Hour),
 							To:         timestamp.Add(24 * time.Hour).Truncate(time.Hour).Add(time.Hour),
-							Dimensions: apiv3.MeterQueryRow_Dimensions{},
+							Dimensions: map[string]string{},
 						},
 					},
 				}
@@ -813,13 +813,13 @@ func TestQuery(t *testing.T) {
 							Value:      v3Numeric(customerCount * 3 * 100),
 							From:       timestamp.Truncate(24 * time.Hour),
 							To:         timestamp.Truncate(24 * time.Hour).Add(24 * time.Hour),
-							Dimensions: apiv3.MeterQueryRow_Dimensions{},
+							Dimensions: map[string]string{},
 						},
 						{
 							Value:      v3Numeric(customerCount * 100),
 							From:       timestamp.Add(24 * time.Hour).Truncate(24 * time.Hour),
 							To:         timestamp.Add(24 * time.Hour).Truncate(24 * time.Hour).Add(24 * time.Hour),
-							Dimensions: apiv3.MeterQueryRow_Dimensions{},
+							Dimensions: map[string]string{},
 						},
 					},
 				}
@@ -868,8 +868,8 @@ func TestQuery(t *testing.T) {
 
 			v3Status, v3Resp, err := QueryMeterV3(testT, meterID, apiv3.MeterQueryRequest{
 				Filters: &apiv3.MeterQueryFilters{
-					Dimensions: &apiv3.MeterQueryFilters_Dimensions{
-						Subject: &apiv3.QueryFilterString{In: &subject},
+					Dimensions: &map[string]apiv3.QueryFilterStringMapItem{
+						"subject": {In: &subject},
 					},
 				},
 			})
@@ -882,16 +882,16 @@ func TestQuery(t *testing.T) {
 						Value: v3Numeric(4 * 100),
 						From:  timestamp.Truncate(time.Minute),
 						To:    timestamp.Truncate(time.Minute).Add(24*time.Hour + time.Minute),
-						Dimensions: apiv3.MeterQueryRow_Dimensions{
-							Subject: lo.ToPtr(subject[1]),
+						Dimensions: map[string]string{
+							"subject": subject[1],
 						},
 					},
 					{
 						Value: v3Numeric(4 * 100),
 						From:  timestamp.Truncate(time.Minute),
 						To:    timestamp.Truncate(time.Minute).Add(24*time.Hour + time.Minute),
-						Dimensions: apiv3.MeterQueryRow_Dimensions{
-							Subject: lo.ToPtr(subject[0]),
+						Dimensions: map[string]string{
+							"subject": subject[0],
 						},
 					},
 				},
@@ -993,8 +993,8 @@ func TestQueryDSTTransition(t *testing.T) {
 				Granularity: &granularity,
 				TimeZone:    &timeZone,
 				Filters: &apiv3.MeterQueryFilters{
-					Dimensions: &apiv3.MeterQueryFilters_Dimensions{
-						Subject: &apiv3.QueryFilterString{Eq: lo.ToPtr(subject)},
+					Dimensions: &map[string]apiv3.QueryFilterStringMapItem{
+						"subject": {Eq: lo.ToPtr(subject)},
 					},
 				},
 			})
@@ -1113,8 +1113,8 @@ func TestQueryDSTTransition(t *testing.T) {
 				Granularity: &granularity,
 				TimeZone:    &timeZone,
 				Filters: &apiv3.MeterQueryFilters{
-					Dimensions: &apiv3.MeterQueryFilters_Dimensions{
-						Subject: &apiv3.QueryFilterString{Eq: lo.ToPtr(subject)},
+					Dimensions: &map[string]apiv3.QueryFilterStringMapItem{
+						"subject": {Eq: lo.ToPtr(subject)},
 					},
 				},
 			})

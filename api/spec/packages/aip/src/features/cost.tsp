@@ -43,23 +43,9 @@ model FeatureCostQueryRow {
 
   /**
    * The dimensions the value is aggregated over.
+   * `subject` and `customer_id` are reserved dimensions.
    */
-  dimensions: {
-    /**
-     * The subject the value is aggregated over.
-     */
-    subject?: string;
-
-    /**
-     * The customer ID the value is aggregated over.
-     */
-    customer_id?: string;
-
-    /**
-     * Additional dimensions the value is aggregated over.
-     */
-    ...Record<string>;
-  };
+  dimensions: Record<string>;
 }
 
 /**

@@ -135,3 +135,32 @@ func ExtractStringsFromQueryFilter(f *api.QueryFilterString, fieldPath ...string
 	}
 	return result, nil
 }
+
+// ExtractStringsFromQueryFilterMapItem extracts a flat list of string values from a QueryFilterStringMapItem.
+// Only the eq and in operators are supported; an error is returned if any other operator is set.
+func ExtractStringsFromQueryFilterMapItem(f *api.QueryFilterStringMapItem, fieldPath ...string) ([]string, error) {
+	if f == nil {
+		return nil, nil
+	}
+
+	if f.Neq != nil || f.Nin != nil ||
+		f.Contains != nil || f.Ncontains != nil ||
+		f.And != nil || f.Or != nil || f.Exists != nil {
+		return nil, NewUnsupportedFilterOperatorError(fieldPath...)
+	}
+	if len(f.AdditionalProperties) > 0 {
+		return nil, NewUnsupportedFilterOperatorError(fieldPath...)
+	}
+	if f.Eq != nil && f.In != nil {
+		return nil, NewUnsupportedFilterOperatorError(fieldPath...)
+	}
+
+	var result []string
+	if f.Eq != nil {
+		result = append(result, *f.Eq)
+	}
+	if f.In != nil {
+		result = append(result, *f.In...)
+	}
+	return result, nil
+}

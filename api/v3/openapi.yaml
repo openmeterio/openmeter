@@ -3730,16 +3730,11 @@ components:
           description: The end of the time bucket the value is aggregated over.
         dimensions:
           type: object
-          properties:
-            subject:
-              type: string
-              description: The subject the value is aggregated over.
-            customer_id:
-              type: string
-              description: The customer ID the value is aggregated over.
           additionalProperties:
             type: string
-          description: The dimensions the value is aggregated over.
+          description: |-
+            The dimensions the value is aggregated over.
+            `subject` and `customer_id` are reserved dimensions.
       description: A row in the result of a feature cost query.
     FilterSingleString:
       type: object
@@ -4112,23 +4107,12 @@ components:
       properties:
         dimensions:
           type: object
-          properties:
-            subject:
-              allOf:
-                - $ref: '#/components/schemas/QueryFilterString'
-              description: |-
-                Filters to apply to the subject of the query.
-                Only equals ("eq", "in") comparisons are supported.
-            customer_id:
-              allOf:
-                - $ref: '#/components/schemas/QueryFilterString'
-              description: |-
-                Filters to apply to the customer ID of the query.
-                Only equals ("eq", "in") comparisons are supported.
           additionalProperties:
             $ref: '#/components/schemas/QueryFilterStringMapItem'
           maxProperties: 10
-          description: Filters to apply to the dimensions of the query.
+          description: |-
+            Filters to apply to the dimensions of the query.
+            For `subject` and `customer_id` only equals ("eq", "in") comparisons are supported.
       description: Filters to apply to a meter query.
     MeterQueryGranularity:
       type: string
@@ -4237,18 +4221,11 @@ components:
           description: The end of the time bucket the value is aggregated over.
         dimensions:
           type: object
-          properties:
-            subject:
-              type: string
-              description: |-
-                The subject the value is aggregated over.
-                If not specified, the value is aggregated over all subjects.
-            customer_id:
-              type: string
-              description: The customer ID the value is aggregated over.
           additionalProperties:
             type: string
-          description: The dimensions the value is aggregated over.
+          description: |-
+            The dimensions the value is aggregated over.
+            `subject` and `customer_id` are reserved dimensions.
       description: A row in the result of a meter query.
       example:
         value: '12.3456'
@@ -4382,19 +4359,19 @@ components:
           type: string
           description: The attribute does not contain the provided value.
         and:
-          type: array
-          items:
-            $ref: '#/components/schemas/QueryFilterString'
           minItems: 1
           maxItems: 10
           description: Combines the provided filters with a logical AND.
-        or:
           type: array
           items:
             $ref: '#/components/schemas/QueryFilterString'
+        or:
           minItems: 1
           maxItems: 10
           description: Combines the provided filters with a logical OR.
+          type: array
+          items:
+            $ref: '#/components/schemas/QueryFilterString'
       additionalProperties:
         not: {}
       minProperties: 1
