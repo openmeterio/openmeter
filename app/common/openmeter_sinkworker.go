@@ -82,7 +82,7 @@ func NewFlushHandlerManager(
 	flushHandlerMux.OnDrainComplete(func() {
 		logger.Info("shutting down kafka producer")
 		if err := messagePublisher.Close(); err != nil {
-			logger.Error("failed to close kafka producer", slog.String("error", err.Error()))
+			logger.Error("failed to close kafka producer", slog.Any("error", err))
 		}
 	})
 
@@ -96,7 +96,7 @@ func NewFlushHandlerManager(
 		logger.Info("shutting down flush success handlers")
 
 		if err := flushHandlerMux.Close(); err != nil {
-			logger.Error("failed to close flush success handler", slog.String("err", err.Error()))
+			logger.Error("failed to close flush success handler", slog.Any("error", err))
 		}
 
 		drainCtx, cancel := context.WithTimeout(context.Background(), sinkConfig.DrainTimeout)

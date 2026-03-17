@@ -209,7 +209,7 @@ func KafkaProducerGroup(ctx context.Context, producer *kafka.Producer, logger *s
 						// does not need to take action on them.
 						attrs := []any{
 							slog.Int("code", int(ev.Code())),
-							slog.String("error", ev.Error()),
+							slog.Any("error", ev),
 						}
 
 						// Log Kafka client "local" errors on warning level as those are mostly informational and the client is

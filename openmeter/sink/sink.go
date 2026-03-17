@@ -417,7 +417,7 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []sinkmodels.SinkM
 				logger.WarnContext(ctx, "event dropped",
 					slog.String("namespace", message.Namespace),
 					slog.String("event", string(message.KafkaMessage.Value)),
-					slog.String("error", message.Status.DropError.Error()),
+					slog.Any("error", message.Status.DropError),
 					slog.String("status", message.Status.State.String()),
 				)
 			}
@@ -472,7 +472,7 @@ func (s *Sink) dedupeSet(ctx context.Context, messages []sinkmodels.SinkMessage)
 				logger.WarnContext(ctx, "event dropped",
 					slog.String("namespace", message.Namespace),
 					slog.String("event", string(message.KafkaMessage.Value)),
-					slog.String("error", message.Status.DropError.Error()),
+					slog.Any("error", message.Status.DropError),
 					slog.String("status", message.Status.State.String()),
 				)
 			}
@@ -696,7 +696,7 @@ func (s *Sink) Run(ctx context.Context) error {
 			case kafka.Error:
 				attrs := []any{
 					slog.Int("code", int(e.Code())),
-					slog.String("error", e.Error()),
+					slog.Any("error", e),
 				}
 
 				// Log Kafka client "local" errors on warning level as those are mostly informational and the client is
