@@ -58,6 +58,25 @@ func TestNormalizeModelIDCaseAndWhitespace(t *testing.T) {
 	})
 }
 
+func TestNormalizeProviderCaseAndWhitespace(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"lowercases", "Azure", "openai"},
+		{"trims whitespace", "  azure  ", "openai"},
+		{"lowercases and trims", "  OpenAI  ", "openai"},
+		{"mixed case unknown", "  MyProvider  ", "myprovider"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, NormalizeProvider(tt.input))
+		})
+	}
+}
+
 func TestNormalizeModelIDVersionSuffix(t *testing.T) {
 	tests := []struct {
 		name     string

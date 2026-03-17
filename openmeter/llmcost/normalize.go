@@ -27,7 +27,10 @@ func NormalizeModelID(provider string, modelID string) (canonicalProvider string
 }
 
 // NormalizeProvider maps alternative provider names to their canonical form.
+// It lowercases and trims whitespace before matching.
 func NormalizeProvider(provider string) string {
+	provider = strings.ToLower(strings.TrimSpace(provider))
+
 	switch provider {
 	case "openai", "azure", "azure_ai":
 		return "openai"
