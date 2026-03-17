@@ -1,6 +1,6 @@
 import "../shared/index.tsp";
 import "../billing/tax.tsp";
-import "../features/feature.tsp";
+import "../features/index.tsp";
 import "../tax/codes.tsp";
 import "./price.tsp";
 import "./unitconfig.tsp";
@@ -22,7 +22,7 @@ model RateCard {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Feature reference")
-  feature?: Shared.ResourceKeyReference<Feature>;
+  feature?: Shared.ResourceKeyReference<Features.Feature>;
 
   /**
    * The billing cadence of the rate card.
