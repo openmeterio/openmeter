@@ -8438,7 +8438,7 @@ export const CreateFeatureBody = zod
               .string()
               .optional()
               .describe(
-                'Static token type value.\nUse this when the feature tracks a single token type (e.g., only input tokens).\nExpected values: input, output, cache_read, reasoning, cache_write.\nMutually exclusive with `tokenTypeProperty`.',
+                'Static token type value.\nUse this when the feature tracks a single token type (e.g., only input tokens).\nExpected values: input, output, cache_read, reasoning, cache_write, request, response.\n`request` is an alias for `input`, `response` is an alias for `output`.\nMutually exclusive with `tokenTypeProperty`.',
               ),
             tokenTypeProperty: zod.coerce
               .string()
