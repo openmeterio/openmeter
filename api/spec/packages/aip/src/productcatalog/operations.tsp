@@ -95,6 +95,34 @@ interface ProductCatalogOperations {
   ): Shared.DeleteResponse | Common.ErrorResponses | Common.NotFound;
 
   /**
+   * Archive a plan version.
+   */
+  @post
+  @route("/plans/{planId}/archive")
+  @operationId("archive-plan")
+  @summary("Archive a plan version.")
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  archivePlan(
+    @path planId: Shared.ULID,
+  ): Shared.UpdateResponse<Plan> | Common.ErrorResponses | Common.NotFound;
+
+  /**
+   * Publish a plan version.
+   */
+  @post
+  @route("/plans/{planId}/publish")
+  @operationId("archive-plan")
+  @summary("Publish a plan version.")
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  publishPlan(
+    @path planId: Shared.ULID,
+  ): Shared.UpdateResponse<Plan> | Common.ErrorResponses | Common.NotFound;
+
+  /**
    *  List all add-ons.
    */
   @get
@@ -119,6 +147,7 @@ interface ProductCatalogOperations {
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
   createAddon(
+    @body
     addon: Shared.CreateRequest<Addon>,
   ): Shared.CreateResponse<Addon> | Common.ErrorResponses;
 
@@ -172,4 +201,32 @@ interface ProductCatalogOperations {
   deleteAddon(
     @path addonId: Shared.ULID,
   ): Shared.DeleteResponse | Common.ErrorResponses | Common.NotFound;
+
+  /**
+   *  Archive a add-on version.
+   */
+  @post
+  @route("/addons/{addonId}/archive")
+  @operationId("archive-addon")
+  @summary("Archive a add-on version.")
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  archiveAddon(
+    @path addonId: Shared.ULID,
+  ): Shared.UpdateResponse<Addon> | Common.ErrorResponses;
+
+  /**
+   *  Publish an add-on version.
+   */
+  @post
+  @route("/addons/{addonId}/publish")
+  @operationId("publish-addon")
+  @summary("Publish an add-on version.")
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  publishAddon(
+    @path addonId: Shared.ULID,
+  ): Shared.UpdateResponse<Addon> | Common.ErrorResponses;
 }
