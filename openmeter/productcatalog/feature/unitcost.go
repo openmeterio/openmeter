@@ -127,7 +127,7 @@ func (u *UnitCost) Validate() error {
 				LLMTokenTypeInput: true, LLMTokenTypeOutput: true,
 				LLMTokenTypeCacheRead: true, LLMTokenTypeReasoning: true,
 				LLMTokenTypeCacheWrite: true,
-				LLMTokenTypeRequest: true, LLMTokenTypeResponse: true,
+				LLMTokenTypeRequest:    true, LLMTokenTypeResponse: true,
 			}
 			if !validTypes[LLMTokenType(u.LLM.TokenType)] {
 				errs = append(errs, fmt.Errorf("invalid token_type %q: expected one of input, output, cache_read, reasoning, cache_write, request, response", u.LLM.TokenType))
