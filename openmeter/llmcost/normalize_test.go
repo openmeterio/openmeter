@@ -34,7 +34,7 @@ func TestNormalizeModelIDProviderNames(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			provider, _ := NormalizeModelID("some-model", tt.input)
+			provider, _ := NormalizeModelID(tt.input, "some-model")
 			assert.Equal(t, tt.expected, provider)
 		})
 	}
@@ -42,17 +42,17 @@ func TestNormalizeModelIDProviderNames(t *testing.T) {
 
 func TestNormalizeModelIDCaseAndWhitespace(t *testing.T) {
 	t.Run("lowercases provider", func(t *testing.T) {
-		provider, _ := NormalizeModelID("model", "OpenAI")
+		provider, _ := NormalizeModelID("OpenAI", "model")
 		assert.Equal(t, "openai", provider)
 	})
 
 	t.Run("lowercases model ID", func(t *testing.T) {
-		_, modelID := NormalizeModelID("GPT-4o", "openai")
+		_, modelID := NormalizeModelID("openai", "GPT-4o")
 		assert.Equal(t, "gpt-4o", modelID)
 	})
 
 	t.Run("trims whitespace", func(t *testing.T) {
-		provider, modelID := NormalizeModelID("  gpt-4  ", "  openai  ")
+		provider, modelID := NormalizeModelID("  openai  ", "  gpt-4  ")
 		assert.Equal(t, "openai", provider)
 		assert.Equal(t, "gpt-4", modelID)
 	})
@@ -74,7 +74,7 @@ func TestNormalizeModelIDVersionSuffix(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, modelID := NormalizeModelID(tt.input, "openai")
+			_, modelID := NormalizeModelID("openai", tt.input)
 			assert.Equal(t, tt.expected, modelID)
 		})
 	}

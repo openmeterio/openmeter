@@ -13,9 +13,9 @@ var versionSuffix = regexp.MustCompile(`(-\d{8}|-\d{4}-\d{2}-\d{2})$`)
 // NormalizeModelID maps a raw model ID and provider to their canonical forms.
 // It lowercases, trims whitespace, strips date version suffixes, and normalizes
 // provider aliases (e.g. "azure" → "openai").
-func NormalizeModelID(rawID string, provider string) (canonicalProvider string, canonicalModelID string) {
+func NormalizeModelID(provider string, modelID string) (canonicalProvider string, canonicalModelID string) {
 	provider = strings.ToLower(strings.TrimSpace(provider))
-	modelID := strings.ToLower(strings.TrimSpace(rawID))
+	modelID = strings.ToLower(strings.TrimSpace(modelID))
 
 	// Strip date version suffixes (e.g., -20241022 or -2025-08-07)
 	modelID = versionSuffix.ReplaceAllString(modelID, "")
