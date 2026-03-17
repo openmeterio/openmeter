@@ -127,9 +127,10 @@ func (u *UnitCost) Validate() error {
 				LLMTokenTypeInput: true, LLMTokenTypeOutput: true,
 				LLMTokenTypeCacheRead: true, LLMTokenTypeReasoning: true,
 				LLMTokenTypeCacheWrite: true,
+				LLMTokenTypeRequest: true, LLMTokenTypeResponse: true,
 			}
 			if !validTypes[LLMTokenType(u.LLM.TokenType)] {
-				errs = append(errs, fmt.Errorf("invalid token_type %q: expected one of input, output, cache_read, reasoning, cache_write", u.LLM.TokenType))
+				errs = append(errs, fmt.Errorf("invalid token_type %q: expected one of input, output, cache_read, reasoning, cache_write, request, response", u.LLM.TokenType))
 			}
 		}
 
@@ -178,4 +179,9 @@ const (
 	LLMTokenTypeCacheRead  LLMTokenType = "cache_read"
 	LLMTokenTypeCacheWrite LLMTokenType = "cache_write"
 	LLMTokenTypeReasoning  LLMTokenType = "reasoning"
+
+	// LLMTokenTypeRequest is an alias for input tokens used by some providers.
+	LLMTokenTypeRequest LLMTokenType = "request"
+	// LLMTokenTypeResponse is an alias for output tokens used by some providers.
+	LLMTokenTypeResponse LLMTokenType = "response"
 )

@@ -214,9 +214,9 @@ func filterGroupBy(groupBy map[string]*string, excludeKeys []string) (filtered m
 // Returns an error if the token type is unknown or the pricing has no value for the requested dimension.
 func costPerTokenForType(pricing llmcost.ModelPricing, tokenType feature.LLMTokenType) (alpacadecimal.Decimal, error) {
 	switch tokenType {
-	case feature.LLMTokenTypeInput:
+	case feature.LLMTokenTypeInput, feature.LLMTokenTypeRequest:
 		return pricing.InputPerToken, nil
-	case feature.LLMTokenTypeOutput:
+	case feature.LLMTokenTypeOutput, feature.LLMTokenTypeResponse:
 		return pricing.OutputPerToken, nil
 	case feature.LLMTokenTypeCacheRead:
 		if pricing.CacheReadPerToken == nil {

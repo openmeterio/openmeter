@@ -152,7 +152,8 @@ model FeatureLLMUnitCost {
   /**
    * Static token type value.
    * Use this when the feature tracks a single token type (e.g., only input tokens).
-   * Expected values: input, output, cache_read, reasoning, cache_write.
+   * Expected values: input, output, cache_read, reasoning, cache_write, request, response.
+   * `request` is an alias for `input`, `response` is an alias for `output`.
    * Mutually exclusive with `tokenTypeProperty`.
    */
   @summary("Token type")

@@ -626,6 +626,18 @@ func TestCostPerTokenForType(t *testing.T) {
 		assert.Contains(t, err.Error(), "cache_write")
 	})
 
+	t.Run("request maps to input", func(t *testing.T) {
+		amount, err := costPerTokenForType(pricing, feature.LLMTokenTypeRequest)
+		require.NoError(t, err)
+		assert.True(t, amount.Equal(mustDecimal(0.01)))
+	})
+
+	t.Run("response maps to output", func(t *testing.T) {
+		amount, err := costPerTokenForType(pricing, feature.LLMTokenTypeResponse)
+		require.NoError(t, err)
+		assert.True(t, amount.Equal(mustDecimal(0.03)))
+	})
+
 	t.Run("unknown token type returns error", func(t *testing.T) {
 		_, err := costPerTokenForType(pricing, feature.LLMTokenType("unknown"))
 		require.Error(t, err)
