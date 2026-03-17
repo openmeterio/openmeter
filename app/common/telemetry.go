@@ -78,7 +78,7 @@ var Telemetry = wire.NewSet(
 //
 // We use JSON as a best-effort to make the logs machine-readable.
 func init() {
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, nil)))
+	slog.SetDefault(slog.New(config.NewJSONHandler(os.Stderr, slog.LevelInfo)))
 }
 
 const (
@@ -119,12 +119,12 @@ func NewLoggerProvider(ctx context.Context, conf config.LogTelemetryConfig, res 
 
 		if err := loggerProvider.ForceFlush(ctx); err != nil {
 			// no logger initialized at this point yet, so we are using the global logger
-			slog.Error("flushing logger provider", slog.String("error", err.Error()))
+			slog.Error("flushing logger provider", slog.Any("error", err))
 		}
 
 		if err := loggerProvider.Shutdown(ctx); err != nil {
 			// no logger initialized at this point yet, so we are using the global logger
-			slog.Error("shutting down logger provider", slog.String("error", err.Error()))
+			slog.Error("shutting down logger provider", slog.Any("error", err))
 		}
 	}, nil
 }
@@ -180,7 +180,7 @@ func NewMeterProvider(ctx context.Context, conf config.MetricsTelemetryConfig, r
 		defer cancel()
 
 		if err := meterProvider.Shutdown(ctx); err != nil {
-			logger.Error("shutting down meter provider", slog.String("error", err.Error()))
+			logger.Error("shutting down meter provider", slog.Any("error", err))
 		}
 	}, nil
 }
@@ -202,7 +202,7 @@ func NewTracerProvider(ctx context.Context, conf config.TraceTelemetryConfig, re
 		defer cancel()
 
 		if err := tracerProvider.Shutdown(ctx); err != nil {
-			logger.Error("shutting down tracer provider", slog.String("error", err.Error()))
+			logger.Error("shutting down tracer provider", slog.Any("error", err))
 		}
 	}, nil
 }
@@ -249,7 +249,7 @@ func NewTelemetryHandler(
 	// Start runtime metrics collector
 	{
 		if err := runtimeMetricsCollector.Start(); err != nil {
-			logger.Error("failed to start runtime metrics collector, continuing startup", slog.String("error", err.Error()))
+			logger.Error("failed to start runtime metrics collector, continuing startup", slog.Any("error", err))
 		}
 	}
 
@@ -307,7 +307,7 @@ func (c RuntimeMetricsCollector) Start() error {
 		runtime.WithMeterProvider(c.meterProvider),
 	)
 	if err != nil {
-		c.logger.Error("failed to start runtime metrics", slog.String("error", err.Error()))
+		c.logger.Error("failed to start runtime metrics", slog.Any("error", err))
 		return err
 	}
 

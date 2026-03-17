@@ -94,7 +94,7 @@ func main() {
 		ConsumerGroupName: conf.Notification.Consumer.ConsumerGroupName,
 	})
 	if err != nil {
-		logger.Error("failed to initialize Kafka subscriber", slog.String("error", err.Error()))
+		logger.Error("failed to initialize Kafka subscriber", slog.Any("error", err))
 		os.Exit(1)
 	}
 
@@ -119,7 +119,7 @@ func main() {
 
 	notificationConsumer, err := consumer.New(consumerOptions)
 	if err != nil {
-		logger.Error("failed to initialize worker", slog.String("error", err.Error()))
+		logger.Error("failed to initialize worker", slog.Any("error", err))
 		os.Exit(1)
 	}
 
@@ -151,6 +151,6 @@ func main() {
 	if e := &(run.SignalError{}); errors.As(err, &e) {
 		logger.Info("received signal: shutting down", slog.String("signal", e.Signal.String()))
 	} else if !errors.Is(err, http.ErrServerClosed) {
-		logger.Error("application stopped due to error", slog.String("error", err.Error()))
+		logger.Error("application stopped due to error", slog.Any("error", err))
 	}
 }

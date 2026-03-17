@@ -272,7 +272,7 @@ func main() {
 	if e := &(run.SignalError{}); errors.As(err, &e) {
 		logger.Info("received signal: shutting down", slog.String("signal", e.Signal.String()))
 	} else if !errors.Is(err, http.ErrServerClosed) {
-		logger.Error("application stopped due to error", slog.String("error", err.Error()))
+		logger.Error("application stopped due to error", slog.Any("error", err))
 	}
 }
 

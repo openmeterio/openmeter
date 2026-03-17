@@ -7,8 +7,10 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"runtime"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang-cz/devslog"
@@ -350,11 +352,62 @@ func (c LogTelemetryConfig) Validate() error {
 	return errors.Join(errs...)
 }
 
+// moduleRoot is the absolute path to the repository root, determined at init time.
+// It is used to trim source file paths to be relative to the project root.
+var moduleRoot string
+
+func init() {
+	// runtime.Caller(0) returns the path of this source file.
+	// Stripping its known suffix gives us the module root.
+	_, file, _, ok := runtime.Caller(0)
+	if ok {
+		moduleRoot = strings.TrimSuffix(file, "app/config/telemetry.go")
+	}
+}
+
+// kongReplaceAttr renames and reformats slog attributes to match the Kong encoder config
+// and DataDog standard attributes:
+// - TimeKey ("time") → "ts" formatted as ISO8601 (RFC3339)
+// - SourceKey ("source") → "caller" formatted as "file:line"
+// - "error" → "error.message" (DataDog standard error attribute)
+func kongReplaceAttr(groups []string, a slog.Attr) slog.Attr {
+	if len(groups) > 0 {
+		return a
+	}
+	switch a.Key {
+	case slog.TimeKey:
+		a.Key = "ts"
+		if t, ok := a.Value.Any().(time.Time); ok {
+			a.Value = slog.StringValue(t.Format(time.RFC3339))
+		}
+	case slog.SourceKey:
+		a.Key = "caller"
+		if src, ok := a.Value.Any().(*slog.Source); ok && src != nil {
+			file := strings.TrimPrefix(src.File, moduleRoot)
+			a.Value = slog.StringValue(fmt.Sprintf("%s:%d", file, src.Line))
+		}
+	case "error", "err":
+		a.Key = "error.message"
+	}
+	return a
+}
+
+// NewJSONHandler returns a [slog.JSONHandler] pre-configured with the Kong/DataDog
+// field schema (ts, caller, error.message). It is safe to call before full telemetry
+// initialisation, e.g. from package init() for bootstrap logging.
+func NewJSONHandler(w io.Writer, level slog.Leveler) *slog.JSONHandler {
+	return slog.NewJSONHandler(w, &slog.HandlerOptions{
+		Level:       level,
+		AddSource:   true,
+		ReplaceAttr: kongReplaceAttr,
+	})
+}
+
 // NewHandler creates a new [slog.Handler].
 func (c LogTelemetryConfig) NewHandler(w io.Writer) slog.Handler {
 	switch c.Format {
 	case "json":
-		return slog.NewJSONHandler(w, &slog.HandlerOptions{Level: c.Level})
+		return NewJSONHandler(w, c.Level)
 
 	case "text":
 		return slog.NewTextHandler(w, &slog.HandlerOptions{Level: c.Level})
@@ -372,7 +425,7 @@ func (c LogTelemetryConfig) NewHandler(w io.Writer) slog.Handler {
 		})
 	}
 
-	return slog.NewJSONHandler(w, &slog.HandlerOptions{Level: c.Level})
+	return NewJSONHandler(w, c.Level)
 }
 
 type ExportersLogTelemetryConfig struct {

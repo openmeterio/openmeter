@@ -46,14 +46,14 @@ func main() {
 
 	err := v.ReadInConfig()
 	if err != nil && !errors.As(err, &viper.ConfigFileNotFoundError{}) {
-		slog.Error("failed to read configuration", slog.String("error", err.Error()))
+		slog.Error("failed to read configuration", slog.Any("error", err))
 		os.Exit(1)
 	}
 
 	var conf config.Configuration
 	err = v.Unmarshal(&conf)
 	if err != nil {
-		slog.Error("failed to unmarshal configuration", slog.String("error", err.Error()))
+		slog.Error("failed to unmarshal configuration", slog.Any("error", err))
 		os.Exit(1)
 	}
 
@@ -121,7 +121,7 @@ func main() {
 			return
 		}
 
-		logger.Error("application stopped due to error", slog.String("error", err.Error()))
+		logger.Error("application stopped due to error", slog.Any("error", err))
 		os.Exit(1)
 	}
 }
