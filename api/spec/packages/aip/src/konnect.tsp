@@ -151,4 +151,3 @@ model personalAccessToken {
 model konnectAccessToken {
   ...Http.BearerAuth;
 }
-

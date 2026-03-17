@@ -157,3 +157,13 @@ model RecurringPeriod {
 @example(50)
 @friendlyName("Percentage")
 scalar Percentage extends float;
+
+// TODO: Figure out if we need this or not.
+/**
+ * Set of key-value pairs managed by the system. Cannot be modified by user.
+ */
+@example(#{ externalId: "019142cc-a016-796a-8113-1a942fecd26d" })
+@friendlyName("Annotations")
+model Annotations {
+  ...Record<unknown>;
+}

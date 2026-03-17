@@ -88,4 +88,3 @@ interface FeatureCostOperations {
     @path featureId: Shared.ULID,
   ): Shared.DeleteResponse | Common.ErrorResponses | Common.NotFound;
 }
-

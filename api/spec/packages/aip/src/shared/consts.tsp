@@ -38,4 +38,3 @@ const ProductCatalogDescription = "TODO";
 const UnstableExtension = "x-unstable";
 const InternalExtension = "x-internal";
 const PrivateExtension = "x-private";
-

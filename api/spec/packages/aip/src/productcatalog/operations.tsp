@@ -24,7 +24,7 @@ interface ProductCatalogOperations {
   @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
-  list(
+  listPlans(
     ...Common.PagePaginationQuery,
   ): Shared.PagePaginatedResponse<Plan> | Common.ErrorResponses;
 
@@ -38,7 +38,7 @@ interface ProductCatalogOperations {
   @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
-  create(
+  createPlan(
     @body
     plan: Shared.CreateRequest<Plan>,
   ): Shared.CreateResponse<Plan> | Common.ErrorResponses;
@@ -53,7 +53,7 @@ interface ProductCatalogOperations {
   @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
-  upsert(
+  upsertPlan(
     @path planId: Shared.ULID,
 
     @body
@@ -74,7 +74,7 @@ interface ProductCatalogOperations {
   @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
-  get(@path planId: Shared.ULID):
+  getPlan(@path planId: Shared.ULID):
     | Shared.GetResponse<Plan>
     | Common.ErrorResponses
     | Common.Gone
@@ -90,7 +90,86 @@ interface ProductCatalogOperations {
   @extension(Shared.PrivateExtension, true)
   @extension(Shared.UnstableExtension, true)
   @extension(Shared.InternalExtension, true)
-  delete(
+  deletePlan(
     @path planId: Shared.ULID,
+  ): Shared.DeleteResponse | Common.ErrorResponses | Common.NotFound;
+
+  /**
+   *  List all add-ons.
+   */
+  @get
+  @route("/addons")
+  @operationId("list-addons")
+  @summary("List all add-ons.")
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  listAddons(
+    ...Common.PagePaginationQuery,
+  ): Shared.PagePaginatedResponse<Addon> | Common.ErrorResponses;
+
+  /**
+   *  List all add-ons.
+   */
+  @post
+  @route("/addons")
+  @operationId("create-addon")
+  @summary("Create a new add-on")
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  createAddon(
+    addon: Shared.CreateRequest<Addon>,
+  ): Shared.CreateResponse<Addon> | Common.ErrorResponses;
+
+  /**
+   *  Upsert add-on by id.
+   */
+  @put
+  @route("/addons/{addonId}")
+  @operationId("upsert-addon")
+  @summary("Upsert add-on by id")
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  upsertAddon(
+    @path addonId: Shared.ULID,
+
+    @body
+    addon: Shared.UpsertRequest<Addon>,
+  ):
+    | Shared.UpsertResponse<Addon>
+    | Common.ErrorResponses
+    | Common.Gone
+    | Common.NotFound;
+
+  /**
+   *  Get add-on by id.
+   */
+  @get
+  @route("/addons/{addonId}")
+  @operationId("get-addon")
+  @summary("Get add-on by id.")
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  getAddon(@path addonId: Shared.ULID):
+    | Shared.GetResponse<Addon>
+    | Common.ErrorResponses
+    | Common.Gone
+    | Common.NotFound;
+
+  /**
+   * Soft delete add-on by id.
+   */
+  @delete
+  @route("/addons/{addonId}")
+  @operationId("delete-addon")
+  @summary("Soft delete add-on by id.")
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  deleteAddon(
+    @path addonId: Shared.ULID,
   ): Shared.DeleteResponse | Common.ErrorResponses | Common.NotFound;
 }

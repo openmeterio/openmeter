@@ -30,4 +30,3 @@ model Feature {
     filters?: Record<Shared.QueryFilterStringMapItem>;
   };
 }
-
