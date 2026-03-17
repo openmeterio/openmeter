@@ -28,7 +28,7 @@ CREATE INDEX "ledgersubaccountroute_namespace" ON "ledger_sub_account_routes" ("
 -- create index "ledgersubaccountroute_namespace_account_id_routing_key_version_" to table: "ledger_sub_account_routes"
 CREATE UNIQUE INDEX "ledgersubaccountroute_namespace_account_id_routing_key_version_" ON "ledger_sub_account_routes" ("namespace", "account_id", "routing_key_version", "routing_key");
 -- modify "ledger_sub_accounts" table
--- atlas:nolint MF103
+-- atlas:nolint DS103 MF103
 ALTER TABLE "ledger_sub_accounts" DROP COLUMN "ledger_dimension_sub_accounts", DROP COLUMN "currency_dimension_id", DROP COLUMN "tax_code_dimension_id", DROP COLUMN "features_dimension_id", DROP COLUMN "credit_priority_dimension_id", ADD COLUMN "route_id" character(26) NOT NULL, ADD CONSTRAINT "ledger_sub_accounts_ledger_sub_account_routes_sub_accounts" FOREIGN KEY ("route_id") REFERENCES "ledger_sub_account_routes" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION;
 -- create index "ledgersubaccount_namespace_account_id_route_id" to table: "ledger_sub_accounts"
 CREATE UNIQUE INDEX "ledgersubaccount_namespace_account_id_route_id" ON "ledger_sub_accounts" ("namespace", "account_id", "route_id");
