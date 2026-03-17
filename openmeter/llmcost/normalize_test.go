@@ -1,4 +1,4 @@
-package sync
+package llmcost
 
 import (
 	"testing"
@@ -6,9 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNormalizerProviderNames(t *testing.T) {
-	n := NewDefaultNormalizer()
-
+func TestNormalizeModelIDProviderNames(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected string
@@ -36,50 +34,47 @@ func TestNormalizerProviderNames(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			provider, _ := n.Normalize("some-model", tt.input)
+			provider, _ := NormalizeModelID(tt.input, "some-model")
 			assert.Equal(t, tt.expected, provider)
 		})
 	}
 }
 
-func TestNormalizerCaseAndWhitespace(t *testing.T) {
-	n := NewDefaultNormalizer()
-
+func TestNormalizeModelIDCaseAndWhitespace(t *testing.T) {
 	t.Run("lowercases provider", func(t *testing.T) {
-		provider, _ := n.Normalize("model", "OpenAI")
+		provider, _ := NormalizeModelID("OpenAI", "model")
 		assert.Equal(t, "openai", provider)
 	})
 
 	t.Run("lowercases model ID", func(t *testing.T) {
-		_, modelID := n.Normalize("GPT-4o", "openai")
+		_, modelID := NormalizeModelID("openai", "GPT-4o")
 		assert.Equal(t, "gpt-4o", modelID)
 	})
 
 	t.Run("trims whitespace", func(t *testing.T) {
-		provider, modelID := n.Normalize("  gpt-4  ", "  openai  ")
+		provider, modelID := NormalizeModelID("  openai  ", "  gpt-4  ")
 		assert.Equal(t, "openai", provider)
 		assert.Equal(t, "gpt-4", modelID)
 	})
 }
 
-func TestNormalizerVersionSuffix(t *testing.T) {
-	n := NewDefaultNormalizer()
-
+func TestNormalizeModelIDVersionSuffix(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
 		expected string
 	}{
-		{"strips hyphenated date suffix", "gpt-4o-2024-08-06", "gpt-4o"},                  // Hyphenated date, stripped
-		{"strips 8-digit date suffix", "claude-3-5-sonnet-20241022", "claude-3-5-sonnet"}, // 8-digit, stripped
-		{"strips another date suffix", "gpt-4-turbo-20240409", "gpt-4-turbo"},             // 8-digit, stripped
+		{"strips 8-digit date suffix", "claude-3-5-sonnet-20241022", "claude-3-5-sonnet"},
+		{"strips another 8-digit date suffix", "gpt-4-turbo-20240409", "gpt-4-turbo"},
+		{"strips hyphenated date suffix", "gpt-5-nano-2025-08-07", "gpt-5-nano"},
+		{"strips hyphenated date suffix 2", "gpt-4o-2024-08-06", "gpt-4o"},
 		{"no suffix unchanged", "gpt-4o", "gpt-4o"},
-		{"suffix in middle unchanged", "model-20241022-beta", "model-20241022-beta"}, // Not at end
+		{"suffix in middle unchanged", "model-20241022-beta", "model-20241022-beta"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, modelID := n.Normalize(tt.input, "openai")
+			_, modelID := NormalizeModelID("openai", tt.input)
 			assert.Equal(t, tt.expected, modelID)
 		})
 	}

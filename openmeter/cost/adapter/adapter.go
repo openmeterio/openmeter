@@ -176,6 +176,9 @@ func (a *adapter) getLLMPrices(ctx context.Context, feat *feature.Feature, rows 
 			continue
 		}
 
+		// Normalize provider and model ID to match the canonical forms stored in the LLM cost database.
+		provider, modelID = llmcost.NormalizeModelID(provider, modelID)
+
 		// If the price is already in the cache, skip it.
 		key := llmPriceKey{provider, modelID}
 		if _, exists := cache[key]; exists {
@@ -273,6 +276,9 @@ func (a *adapter) resolveLLMUnitCost(ctx context.Context, feat *feature.Feature,
 	if err != nil {
 		return nil, fmt.Errorf("resolving model for feature %s: %w", feat.Key, err)
 	}
+
+	// Normalize provider and model ID to match the canonical forms stored in the LLM cost database.
+	provider, modelID = llmcost.NormalizeModelID(provider, modelID)
 
 	// Resolve token type
 	tokenTypeStr, err := resolveDimension(llmConf.TokenType, llmConf.TokenTypeProperty, groupByValues)
