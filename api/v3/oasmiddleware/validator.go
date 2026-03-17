@@ -2,11 +2,17 @@ package oasmiddleware
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
-	"github.com/getkin/kin-openapi/openapi3filter"
-	"github.com/getkin/kin-openapi/routers"
+	"github.com/pb33f/libopenapi"
+	validator "github.com/pb33f/libopenapi-validator"
+	validatorerrors "github.com/pb33f/libopenapi-validator/errors"
+	"gopkg.in/yaml.v3"
 )
 
 type (
@@ -15,42 +21,130 @@ type (
 	ResponseValidationFunc     = func(error, *http.Request)
 )
 
-// ValidateRequestOption provides the hook functions and the openapi3filter
-// option to be passed in to the underlying library
+// ValidateRequestOption provides the hook functions for the validation middleware.
 type ValidateRequestOption struct {
-	// RouteNotFoundHook is called when the route is not found at the spec level
-	// if the hook returns `true` the request flow is stopped
+	// RouteNotFoundHook is called when the route is not found at the spec level.
+	// If the hook returns `true` the request flow is stopped.
 	RouteNotFoundHook RequestNotFoundHookFunc
 	// RouteValidationErrorHook is called when the route parameters or body are
-	// not validated. if the hook returns `true` the request flow is stopped
+	// not validated. If the hook returns `true` the request flow is stopped.
 	RouteValidationErrorHook RequestValidationErrorFunc
-	// FilterOptions are the openapi3filter option to pass to the underlying lib
-	FilterOptions *openapi3filter.Options
 }
 
-// ValidateRequest is the middleware to be used to validate the request to the spec
-// passed in for the validation router
-func ValidateRequest(validationRouter routers.Router, opts ValidateRequestOption) func(h http.Handler) http.Handler {
+// ValidateResponseOption provides the hook function for response validation.
+type ValidateResponseOption struct {
+	// ResponseValidationErrorHook is called when the route response body is not validated.
+	ResponseValidationErrorHook ResponseValidationFunc
+}
+
+// NewValidator creates a libopenapi-validator from the given spec bytes and base URL.
+// The baseURL is set as the server URL for path matching (e.g. /api/v3).
+func NewValidator(specBytes []byte, baseURL string) (validator.Validator, error) {
+	patched, err := patchSpecServers(specBytes, baseURL)
+	if err != nil {
+		return nil, err
+	}
+
+	document, err := libopenapi.NewDocument(patched)
+	if err != nil {
+		return nil, err
+	}
+
+	v, errs := validator.NewValidator(document)
+	if len(errs) > 0 {
+		return nil, errors.Join(errs...)
+	}
+	return v, nil
+}
+
+// patchSpecServers modifies the OpenAPI spec to set the servers URL for path matching.
+func patchSpecServers(specBytes []byte, baseURL string) ([]byte, error) {
+	var spec map[string]any
+	if err := json.Unmarshal(specBytes, &spec); err != nil {
+		if err := yaml.Unmarshal(specBytes, &spec); err != nil {
+			return nil, fmt.Errorf("parse spec: %w", err)
+		}
+	}
+
+	spec["servers"] = []map[string]any{
+		{"url": baseURL},
+	}
+
+	return json.Marshal(spec)
+}
+
+// filterQueryParamErrors removes validation errors for multi-level nested deepObject
+// query params. libopenapi-validator has a known issue: it works for objects with
+// depth of one but fails for nested objects (e.g. filter[provider][eq]=x).
+// See https://github.com/pb33f/libopenapi-validator/issues/83
+func filterQueryParamErrors(errs []*validatorerrors.ValidationError) []*validatorerrors.ValidationError {
+	if len(errs) == 0 {
+		return errs
+	}
+	var filtered []*validatorerrors.ValidationError
+	for _, e := range errs {
+		if e == nil {
+			continue
+		}
+		// Only skip errors for object-type query params that failed schema validation
+		// (e.g. "The query parameter 'filter' is defined as an object, however it
+		// failed to pass a schema validation"). Simple query params are still validated.
+		msg := strings.ToLower(e.Message)
+		reason := strings.ToLower(e.Reason)
+		isQueryParam := strings.Contains(msg, "query parameter") || strings.Contains(reason, "query parameter")
+		isObjectSchema := strings.Contains(msg, "object") && strings.Contains(msg, "schema validation") ||
+			strings.Contains(reason, "object") && strings.Contains(reason, "schema validation")
+		if isQueryParam && isObjectSchema {
+			continue
+		}
+		filtered = append(filtered, e)
+	}
+	return filtered
+}
+
+// isRouteNotFound returns true if any validation error indicates path or operation not found.
+func isRouteNotFound(errs []*validatorerrors.ValidationError) bool {
+	for _, e := range errs {
+		if e != nil && (e.IsPathMissingError() || e.IsOperationMissingError()) {
+			return true
+		}
+	}
+	return false
+}
+
+// LibopenapiValidationErrors wraps libopenapi validation errors for use in hooks.
+type LibopenapiValidationErrors struct {
+	Errors []*validatorerrors.ValidationError
+}
+
+func (e *LibopenapiValidationErrors) Error() string {
+	if len(e.Errors) == 0 {
+		return "validation failed"
+	}
+	return e.Errors[0].Error()
+}
+
+// ValidateRequest is the middleware to validate the request against the OpenAPI spec.
+// Validation errors for multi-level nested deepObject query params are filtered out
+// due to libopenapi-validator issue #83 (works for depth 1, fails for nested objects).
+func ValidateRequest(v validator.Validator, opts ValidateRequestOption) func(h http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			ctx := r.Context()
 			skipServe := false
-			route, pathParams, err := validationRouter.FindRoute(r.WithContext(ctx))
-			if err != nil {
-				if opts.RouteNotFoundHook != nil {
+			valid, validationErrors := v.ValidateHttpRequest(r)
+			if !valid {
+				// Filter out multi-level nested deepObject query param errors (issue #83).
+				validationErrors = filterQueryParamErrors(validationErrors)
+				if len(validationErrors) == 0 {
+					valid = true
+				}
+			}
+			if !valid {
+				err := &LibopenapiValidationErrors{Errors: validationErrors}
+				if opts.RouteNotFoundHook != nil && isRouteNotFound(validationErrors) {
 					skipServe = opts.RouteNotFoundHook(err, w, r)
-				}
-			} else {
-				requestValidationInput := &openapi3filter.RequestValidationInput{
-					Request:    r,
-					PathParams: pathParams,
-					Route:      route,
-					Options:    opts.FilterOptions,
-				}
-				if err := openapi3filter.ValidateRequest(ctx, requestValidationInput); err != nil {
-					if opts.RouteValidationErrorHook != nil {
-						skipServe = opts.RouteValidationErrorHook(err, w, r)
-					}
+				} else if opts.RouteValidationErrorHook != nil {
+					skipServe = opts.RouteValidationErrorHook(err, w, r)
 				}
 			}
 			if !skipServe {
@@ -61,59 +155,27 @@ func ValidateRequest(validationRouter routers.Router, opts ValidateRequestOption
 	}
 }
 
-// ValidateResponseOption provides the hook function and the openapi3filter
-// option to be passed in to the underlying library
-type ValidateResponseOption struct {
-	// ResponseValidationErrorHook is called when the route response body is not validated
-	ResponseValidationErrorHook ResponseValidationFunc
-	// FilterOptions are the openapi3filter option to pass to the underlying lib
-	FilterOptions *openapi3filter.Options
-}
-
-// ValidateResponse is the middleware to be used to validate the response to the spec
-// passed in for the validation router
-func ValidateResponse(validationRouter routers.Router, opts ValidateResponseOption) func(h http.Handler) http.Handler {
+// ValidateResponse is the middleware to validate the response against the OpenAPI spec.
+func ValidateResponse(v validator.Validator, opts ValidateResponseOption) func(h http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			var err error
+			rww := NewResponseWriterWrapper(w)
+			h.ServeHTTP(rww, r)
 
-			route, pathParams, err := validationRouter.FindRoute(r)
+			b := new(bytes.Buffer)
+			if _, err := b.ReadFrom(rww.Body()); err != nil {
+				return
+			}
 
-			if err != nil {
-				h.ServeHTTP(w, r)
-				if opts.ResponseValidationErrorHook != nil {
-					opts.ResponseValidationErrorHook(err, r)
-				}
-			} else {
-				// need to wrap std lib response to access the body
-				rww := NewResponseWriterWrapper(w)
+			resp := &http.Response{
+				StatusCode: *rww.StatusCode(),
+				Header:     rww.Header(),
+				Body:       io.NopCloser(bytes.NewReader(b.Bytes())),
+			}
 
-				h.ServeHTTP(rww, r)
-
-				b := new(bytes.Buffer)
-				_, err := b.ReadFrom(rww.Body())
-				if err != nil {
-					return
-				}
-				bodyReader := bytes.NewReader(b.Bytes())
-
-				responseValidationInput := &openapi3filter.ResponseValidationInput{
-					RequestValidationInput: &openapi3filter.RequestValidationInput{
-						Request:    r,
-						PathParams: pathParams,
-						Route:      route,
-						Options:    opts.FilterOptions,
-					},
-					Header: rww.Header(),
-					Body:   io.NopCloser(bodyReader),
-					Status: *rww.StatusCode(),
-				}
-
-				if err := openapi3filter.ValidateResponse(r.Context(), responseValidationInput); err != nil {
-					if opts.ResponseValidationErrorHook != nil {
-						opts.ResponseValidationErrorHook(err, r)
-					}
-				}
+			valid, validationErrors := v.ValidateHttpResponse(r, resp)
+			if !valid && opts.ResponseValidationErrorHook != nil {
+				opts.ResponseValidationErrorHook(&LibopenapiValidationErrors{Errors: validationErrors}, r)
 			}
 		}
 		return http.HandlerFunc(fn)

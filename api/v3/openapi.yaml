@@ -3747,15 +3747,18 @@ components:
         eq:
           type: string
           description: The field must match the provided value.
-          x-omitempty: true
+        oeq:
+          type: string
+          description: The field must match the provided value. This is an "override" filter that can be used when the default `eq` filter is not sufficient, e.g. when filtering by `model_name` where the name can have multiple variants for the same model ID.
         neq:
           type: string
           description: The field must not match the provided value.
-          x-omitempty: true
         contains:
           type: string
           description: The field must contain the provided value.
-          x-omitempty: true
+        ocontains:
+          type: string
+          description: The field must contain the provided value. This is an "override" filter that can be used when the default `contains` filter is not sufficient.
       description: |-
         A filter for a single string field.
         TODO: This is a temporary solution to support the filter API.
@@ -3970,21 +3973,29 @@ components:
       type: object
       properties:
         provider:
-          allOf:
+          anyOf:
+            - type: string
             - $ref: '#/components/schemas/FilterSingleString'
           description: Filter by provider. e.g. ?filter[provider][eq]=openai
+          x-go-type: FilterString
         model_id:
-          allOf:
+          anyOf:
+            - type: string
             - $ref: '#/components/schemas/FilterSingleString'
           description: Filter by model ID. e.g. ?filter[model_id][eq]=gpt-4
+          x-go-type: FilterString
         model_name:
-          allOf:
+          anyOf:
+            - type: string
             - $ref: '#/components/schemas/FilterSingleString'
           description: Filter by model name. e.g. ?filter[model_name][contains]=gpt
+          x-go-type: FilterString
         currency:
-          allOf:
+          anyOf:
+            - type: string
             - $ref: '#/components/schemas/FilterSingleString'
           description: Filter by currency code. e.g. ?filter[currency][eq]=USD
+          x-go-type: FilterString
       description: Filter options for listing LLM cost prices.
     Meter:
       type: object

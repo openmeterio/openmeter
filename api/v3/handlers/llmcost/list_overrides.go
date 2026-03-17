@@ -2,7 +2,9 @@ package llmcost
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/samber/lo"
@@ -53,30 +55,40 @@ func (h *handler) ListOverrides() ListOverridesHandler {
 
 			// Filters
 			if params.Filter != nil {
+				params.Filter.Provider.ParseEq("filter[provider]", r)
 				provider, err := filterSingleStringToDomain(params.Filter.Provider)
 				if err != nil {
 					return req, err
 				}
 				req.Provider = provider
 
+				params.Filter.ModelId.ParseEq("filter[model_id]", r)
 				modelID, err := filterSingleStringToDomain(params.Filter.ModelId)
 				if err != nil {
 					return req, err
 				}
 				req.ModelID = modelID
 
+				params.Filter.ModelName.ParseEq("filter[model_name]", r)
 				modelName, err := filterSingleStringToDomain(params.Filter.ModelName)
 				if err != nil {
 					return req, err
 				}
 				req.ModelName = modelName
 
+				params.Filter.Currency.ParseEq("filter[currency]", r)
 				currency, err := filterSingleStringToDomain(params.Filter.Currency)
 				if err != nil {
 					return req, err
 				}
 				req.Currency = currency
 			}
+
+			j, err := json.Marshal(req)
+			if err != nil {
+				return req, err
+			}
+			slog.Info("req", "req", string(j))
 
 			return req, nil
 		},

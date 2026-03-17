@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
 	"github.com/samber/lo"
 
@@ -237,27 +236,20 @@ func NewServer(config *Config) (*Server, error) {
 }
 
 func (s *Server) RegisterRoutes(r chi.Router) error {
-	validationRouter, err := oasmiddleware.NewValidationRouter(
-		context.Background(),
-		s.swagger,
-		&oasmiddleware.ValidationRouterOpts{
-			DeleteServers: true,
-			ServerPrefix:  s.BaseURL,
-		},
-	)
+	specBytes, err := api.GetSpecBytes()
 	if err != nil {
-		return fmt.Errorf("create validation router: %w", err)
+		return fmt.Errorf("get spec bytes: %w", err)
 	}
 
-	validationMiddleware := oasmiddleware.ValidateRequest(validationRouter, oasmiddleware.ValidateRequestOption{
+	validationValidator, err := oasmiddleware.NewValidator(specBytes, s.BaseURL)
+	if err != nil {
+		return fmt.Errorf("create validation validator: %w", err)
+	}
+
+	validationMiddleware := oasmiddleware.ValidateRequest(validationValidator, oasmiddleware.ValidateRequestOption{
 		RouteNotFoundHook: oasmiddleware.OasRouteNotFoundErrorHook,
 		RouteValidationErrorHook: func(err error, w http.ResponseWriter, r *http.Request) bool {
 			return oasmiddleware.OasValidationErrorHook(r.Context(), err, w, r)
-		},
-		FilterOptions: &openapi3filter.Options{
-			// No-op auth: auth is handled by other middleware.
-			AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
-			MultiError:         true,
 		},
 	})
 

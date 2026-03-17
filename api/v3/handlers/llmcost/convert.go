@@ -203,7 +203,7 @@ func validPriceSortField(field string) bool {
 
 // filterSingleStringToDomain converts an API FilterSingleString to the domain StringFilter.
 // Returns nil if the input is nil or empty.
-func filterSingleStringToDomain(f *api.FilterSingleString) (*filters.StringFilter, error) {
+func filterSingleStringToDomain(f *api.FilterString) (*filters.StringFilter, error) {
 	if f == nil {
 		return nil, nil
 	}

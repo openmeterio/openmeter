@@ -24,78 +24,77 @@ type (
 	ListPricesHandler  = httptransport.HandlerWithArgs[ListPricesRequest, ListPricesResponse, ListPricesParams]
 )
 
+var listPricesAuthorizedFilters = map[string]request.AIPFilterOption{
+	"provider": {
+		Filters: []request.QueryFilterOp{
+			request.QueryFilterEQ,
+			request.QueryFilterNEQ,
+			request.QueryFilterContains,
+			request.QueryFilterOrContains,
+		},
+	},
+	"model_id": {
+		Filters: []request.QueryFilterOp{
+			request.QueryFilterEQ,
+			request.QueryFilterNEQ,
+			request.QueryFilterContains,
+		},
+	},
+	"model_name": {
+		Filters: []request.QueryFilterOp{
+			request.QueryFilterEQ,
+			request.QueryFilterNEQ,
+			request.QueryFilterContains,
+		},
+	},
+	"currency": {
+		Filters: []request.QueryFilterOp{
+			request.QueryFilterEQ,
+			request.QueryFilterNEQ,
+			request.QueryFilterContains,
+		},
+	},
+}
+
+var listPricesAuthorizedSorts = []string{
+	"id", "provider.id", "model.id", "effective_from", "effective_to",
+}
+
 func (h *handler) ListPrices() ListPricesHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, params ListPricesParams) (ListPricesRequest, error) {
+		func(ctx context.Context, r *http.Request, _ ListPricesParams) (ListPricesRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return ListPricesRequest{}, err
 			}
 
+			attrs, err := request.GetAipAttributes(r,
+				request.WithDefaultPageSize(20),
+				request.WithMaxPageSize(100),
+				request.WithAuthorizedSorts(listPricesAuthorizedSorts),
+				request.WithAuthorizedFilters(listPricesAuthorizedFilters),
+			)
+			if err != nil {
+				return ListPricesRequest{}, err
+			}
+
+			pageNumber := attrs.Pagination.Number
+			if pageNumber < 1 {
+				pageNumber = 1
+			}
+
 			req := ListPricesRequest{
 				Namespace: ns,
+				Page:      pagination.NewPage(pageNumber, attrs.Pagination.Size),
+				Provider:  request.FilterStringFromAip(attrs.Filters, "provider"),
+				ModelID:   request.FilterStringFromAip(attrs.Filters, "model_id"),
+				ModelName: request.FilterStringFromAip(attrs.Filters, "model_name"),
+				Currency:  request.FilterStringFromAip(attrs.Filters, "currency"),
 			}
 
-			// Pagination
-			req.Page = pagination.NewPage(1, 20)
-
-			if params.Page != nil {
-				req.Page = pagination.NewPage(
-					lo.FromPtrOr(params.Page.Number, 1),
-					lo.FromPtrOr(params.Page.Size, 20),
-				)
-
-				if err := req.Page.Validate(); err != nil {
-					return req, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-						{Field: "page", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
-					})
-				}
-			}
-
-			// Sort
-			if params.Sort != nil {
-				sort, err := request.ParseSortBy(*params.Sort)
-				if err != nil {
-					return req, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
-					})
-				}
-
-				if !validPriceSortField(sort.Field) {
-					return req, apierrors.NewBadRequestError(ctx, fmt.Errorf("unsupported sort field: %s", sort.Field), apierrors.InvalidParameters{
-						{Field: "sort", Reason: fmt.Sprintf("unsupported sort field %q, must be one of: id, provider.id, model.id, effective_from, effective_to", sort.Field), Source: apierrors.InvalidParamSourceQuery},
-					})
-				}
-
-				req.OrderBy = sort.Field
-				req.Order = sort.Order.ToSortxOrder()
-			}
-
-			// Filters
-			if params.Filter != nil {
-				provider, err := filterSingleStringToDomain(params.Filter.Provider)
-				if err != nil {
-					return req, err
-				}
-				req.Provider = provider
-
-				modelID, err := filterSingleStringToDomain(params.Filter.ModelId)
-				if err != nil {
-					return req, err
-				}
-				req.ModelID = modelID
-
-				modelName, err := filterSingleStringToDomain(params.Filter.ModelName)
-				if err != nil {
-					return req, err
-				}
-				req.ModelName = modelName
-
-				currency, err := filterSingleStringToDomain(params.Filter.Currency)
-				if err != nil {
-					return req, err
-				}
-				req.Currency = currency
+			if len(attrs.Sorts) > 0 {
+				req.OrderBy = attrs.Sorts[0].Field
+				req.Order = attrs.Sorts[0].Order.ToSortxOrder()
 			}
 
 			return req, nil
