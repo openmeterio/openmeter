@@ -114,4 +114,3 @@ model Discounts {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   usage?: Shared.Numeric;
 }
-

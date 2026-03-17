@@ -13,6 +13,65 @@ using TypeSpec.OpenAPI;
 
 namespace Features;
 
+interface FeatureOperations {
+  /**
+   *  List all features.
+   */
+  @get
+  @operationId("list-features")
+  @summary("List features")
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  list(
+    ...Common.PagePaginationQuery,
+  ): Shared.PagePaginatedResponse<Feature> | Common.ErrorResponses;
+
+  /**
+   * Create a feature.
+   */
+  @post
+  @operationId("create-feature")
+  @summary("Create a feature.")
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  create(
+    @body
+    feature: Shared.CreateRequest<Feature>,
+  ): Shared.PagePaginatedResponse<Feature> | Common.ErrorResponses;
+
+  /**
+   * Get a feature by id.
+   */
+  @get
+  @route("/{featureId}")
+  @operationId("get-feature")
+  @summary("Get a feature by id.")
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  get(@path featureId: Shared.ULID):
+    | Shared.GetResponse<Feature>
+    | Common.ErrorResponses
+    | Common.Gone
+    | Common.NotFound;
+
+  /**
+   * Delete a feature by id.
+   */
+  @delete
+  @route("/{featureId}")
+  @operationId("delete-feature")
+  @summary("Delete a feature by id.")
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  delete(
+    @path featureId: Shared.ULID,
+  ): Shared.DeleteResponse | Common.ErrorResponses | Common.NotFound;
+}
+
 interface FeatureCostOperations {
   /**
    * Query the cost of a feature.
@@ -28,63 +87,4 @@ interface FeatureCostOperations {
     @path featureId: Shared.ULID,
     @body request?: Meters.MeterQueryRequest,
   ): FeatureCostQueryResult | Common.NotFound | Common.ErrorResponses;
-
-  /**
-   *  List all features.
-   */
-  @get
-  @route("/features")
-  @operationId("list-features")
-  @summary("List features")
-  @extension(Shared.PrivateExtension, true)
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  list(
-    ...Common.PagePaginationQuery,
-  ): Shared.PagePaginatedResponse<Feature> | Common.ErrorResponses;
-
-  /**
-   * Create a feature.
-   */
-  @post
-  @route("/features")
-  @operationId("create-feature")
-  @summary("Create a feature.")
-  @extension(Shared.PrivateExtension, true)
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  create(
-    @body
-    feature: Shared.CreateRequest<Feature>,
-  ): Shared.PagePaginatedResponse<Feature> | Common.ErrorResponses;
-
-  /**
-   * Get a feature by id.
-   */
-  @get
-  @route("/features/{featureId}")
-  @operationId("get-feature")
-  @summary("Get a feature by id.")
-  @extension(Shared.PrivateExtension, true)
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  get(@path featureId: Shared.ULID):
-    | Shared.GetResponse<Feature>
-    | Common.ErrorResponses
-    | Common.Gone
-    | Common.NotFound;
-
-  /**
-   * Delete a feautre by id.
-   */
-  @delete
-  @route("/features/{featureId}")
-  @operationId("delete-feature")
-  @summary("Delete a feature by id.")
-  @extension(Shared.PrivateExtension, true)
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  delete(
-    @path featureId: Shared.ULID,
-  ): Shared.DeleteResponse | Common.ErrorResponses | Common.NotFound;
 }
