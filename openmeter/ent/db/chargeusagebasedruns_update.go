@@ -184,6 +184,26 @@ func (_u *ChargeUsageBasedRunsUpdate) SetNillableAsof(v *time.Time) *ChargeUsage
 	return _u
 }
 
+// SetCollectionEnd sets the "collection_end" field.
+func (_u *ChargeUsageBasedRunsUpdate) SetCollectionEnd(v time.Time) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.SetCollectionEnd(v)
+	return _u
+}
+
+// SetNillableCollectionEnd sets the "collection_end" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdate) SetNillableCollectionEnd(v *time.Time) *ChargeUsageBasedRunsUpdate {
+	if v != nil {
+		_u.SetCollectionEnd(*v)
+	}
+	return _u
+}
+
+// ClearCollectionEnd clears the value of the "collection_end" field.
+func (_u *ChargeUsageBasedRunsUpdate) ClearCollectionEnd() *ChargeUsageBasedRunsUpdate {
+	_u.mutation.ClearCollectionEnd()
+	return _u
+}
+
 // SetMeterValue sets the "meter_value" field.
 func (_u *ChargeUsageBasedRunsUpdate) SetMeterValue(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
 	_u.mutation.SetMeterValue(v)
@@ -380,6 +400,12 @@ func (_u *ChargeUsageBasedRunsUpdate) sqlSave(ctx context.Context) (_node int, e
 	}
 	if value, ok := _u.mutation.Asof(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldAsof, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.CollectionEnd(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldCollectionEnd, field.TypeTime, value)
+	}
+	if _u.mutation.CollectionEndCleared() {
+		_spec.ClearField(chargeusagebasedruns.FieldCollectionEnd, field.TypeTime)
 	}
 	if value, ok := _u.mutation.MeterValue(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldMeterValue, field.TypeOther, value)
@@ -659,6 +685,26 @@ func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableAsof(v *time.Time) *ChargeUs
 	return _u
 }
 
+// SetCollectionEnd sets the "collection_end" field.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetCollectionEnd(v time.Time) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.SetCollectionEnd(v)
+	return _u
+}
+
+// SetNillableCollectionEnd sets the "collection_end" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableCollectionEnd(v *time.Time) *ChargeUsageBasedRunsUpdateOne {
+	if v != nil {
+		_u.SetCollectionEnd(*v)
+	}
+	return _u
+}
+
+// ClearCollectionEnd clears the value of the "collection_end" field.
+func (_u *ChargeUsageBasedRunsUpdateOne) ClearCollectionEnd() *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.ClearCollectionEnd()
+	return _u
+}
+
 // SetMeterValue sets the "meter_value" field.
 func (_u *ChargeUsageBasedRunsUpdateOne) SetMeterValue(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
 	_u.mutation.SetMeterValue(v)
@@ -885,6 +931,12 @@ func (_u *ChargeUsageBasedRunsUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	}
 	if value, ok := _u.mutation.Asof(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldAsof, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.CollectionEnd(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldCollectionEnd, field.TypeTime, value)
+	}
+	if _u.mutation.CollectionEndCleared() {
+		_spec.ClearField(chargeusagebasedruns.FieldCollectionEnd, field.TypeTime)
 	}
 	if value, ok := _u.mutation.MeterValue(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldMeterValue, field.TypeOther, value)

@@ -2301,8 +2301,9 @@ var (
 		{Name: "discounts_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "credits_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
-		{Name: "type", Type: field.TypeEnum, Enums: []string{"invoice"}},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"final_realization"}},
 		{Name: "asof", Type: field.TypeTime},
+		{Name: "collection_end", Type: field.TypeTime, Nullable: true},
 		{Name: "meter_value", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
@@ -2314,7 +2315,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_usage_based_runs_charge_usage_based_runs",
-				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[16]},
+				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[17]},
 				RefColumns: []*schema.Column{ChargeUsageBasedColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -2333,7 +2334,7 @@ var (
 			{
 				Name:    "chargeusagebasedruns_namespace_charge_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedRunsColumns[1], ChargeUsageBasedRunsColumns[16]},
+				Columns: []*schema.Column{ChargeUsageBasedRunsColumns[1], ChargeUsageBasedRunsColumns[17]},
 			},
 		},
 	}

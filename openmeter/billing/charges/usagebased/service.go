@@ -8,16 +8,19 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
 type Service interface {
 	UsageBasedService
-	// InvoiceLifecycleHooks
+	InvoiceLifecycleHooks
 }
 
 type UsageBasedService interface {
 	Create(ctx context.Context, input CreateInput) ([]ChargeWithGatheringLine, error)
 	GetByMetas(ctx context.Context, input GetByMetasInput) ([]Charge, error)
+	GetByID(ctx context.Context, input GetByIDInput) (Charge, error)
+	AdvanceCharge(ctx context.Context, input AdvanceChargeInput) (*Charge, error)
 }
 
 type InvoiceLifecycleHooks interface {
@@ -67,6 +70,51 @@ func (i GetByMetasInput) Validate() error {
 
 	if err := i.Charges.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("charges: %w", err))
+	}
+
+	if err := i.Expands.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("expands: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+type AdvanceChargeInput struct {
+	ChargeID         meta.ChargeID
+	CustomerOverride billing.CustomerOverrideWithDetails
+	FeatureMeter     feature.FeatureMeter
+}
+
+func (i AdvanceChargeInput) Validate() error {
+	var errs []error
+	if err := i.ChargeID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge ID: %w", err))
+	}
+
+	if i.CustomerOverride.Customer == nil {
+		errs = append(errs, errors.New("expanded customer is required"))
+	}
+
+	if err := i.CustomerOverride.MergedProfile.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("merged profile is required: %w", err))
+	}
+
+	if i.FeatureMeter.Meter == nil {
+		errs = append(errs, errors.New("feature meter is required"))
+	}
+
+	return errors.Join(errs...)
+}
+
+type GetByIDInput struct {
+	ChargeID meta.ChargeID
+	Expands  meta.Expands
+}
+
+func (i GetByIDInput) Validate() error {
+	var errs []error
+	if err := i.ChargeID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge ID: %w", err))
 	}
 
 	if err := i.Expands.Validate(); err != nil {

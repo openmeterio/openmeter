@@ -137,6 +137,11 @@ func Asof(v time.Time) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldAsof, v))
 }
 
+// CollectionEnd applies equality check predicate on the "collection_end" field. It's identical to CollectionEndEQ.
+func CollectionEnd(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldCollectionEnd, v))
+}
+
 // MeterValue applies equality check predicate on the "meter_value" field. It's identical to MeterValueEQ.
 func MeterValue(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldMeterValue, v))
@@ -790,6 +795,56 @@ func AsofLT(v time.Time) predicate.ChargeUsageBasedRuns {
 // AsofLTE applies the LTE predicate on the "asof" field.
 func AsofLTE(v time.Time) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldAsof, v))
+}
+
+// CollectionEndEQ applies the EQ predicate on the "collection_end" field.
+func CollectionEndEQ(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldCollectionEnd, v))
+}
+
+// CollectionEndNEQ applies the NEQ predicate on the "collection_end" field.
+func CollectionEndNEQ(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldCollectionEnd, v))
+}
+
+// CollectionEndIn applies the In predicate on the "collection_end" field.
+func CollectionEndIn(vs ...time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldCollectionEnd, vs...))
+}
+
+// CollectionEndNotIn applies the NotIn predicate on the "collection_end" field.
+func CollectionEndNotIn(vs ...time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldCollectionEnd, vs...))
+}
+
+// CollectionEndGT applies the GT predicate on the "collection_end" field.
+func CollectionEndGT(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGT(FieldCollectionEnd, v))
+}
+
+// CollectionEndGTE applies the GTE predicate on the "collection_end" field.
+func CollectionEndGTE(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGTE(FieldCollectionEnd, v))
+}
+
+// CollectionEndLT applies the LT predicate on the "collection_end" field.
+func CollectionEndLT(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLT(FieldCollectionEnd, v))
+}
+
+// CollectionEndLTE applies the LTE predicate on the "collection_end" field.
+func CollectionEndLTE(v time.Time) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldCollectionEnd, v))
+}
+
+// CollectionEndIsNil applies the IsNil predicate on the "collection_end" field.
+func CollectionEndIsNil() predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIsNull(FieldCollectionEnd))
+}
+
+// CollectionEndNotNil applies the NotNil predicate on the "collection_end" field.
+func CollectionEndNotNil() predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotNull(FieldCollectionEnd))
 }
 
 // MeterValueEQ applies the EQ predicate on the "meter_value" field.

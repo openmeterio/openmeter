@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 )
 
 type Service interface {
@@ -23,6 +24,8 @@ type ChargeService interface {
 	GetByID(ctx context.Context, input GetByIDInput) (Charge, error)
 	GetByIDs(ctx context.Context, input GetByIDsInput) (Charges, error)
 	Create(ctx context.Context, input CreateInput) (Charges, error)
+
+	AdvanceCharges(ctx context.Context, input AdvanceChargesInput) (Charges, error)
 }
 
 // InvoiceService contains methods that are over time deprecate the current billing methods.
@@ -113,6 +116,19 @@ func (i HandleCreditPurchaseExternalPaymentStateTransitionInput) Validate() erro
 
 	if err := i.TargetPaymentState.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("target payment state: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+type AdvanceChargesInput struct {
+	Customer customer.CustomerID
+}
+
+func (i AdvanceChargesInput) Validate() error {
+	var errs []error
+	if err := i.Customer.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer ID: %w", err))
 	}
 
 	return errors.Join(errs...)

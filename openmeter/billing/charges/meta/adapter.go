@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -14,6 +15,7 @@ type Adapter interface {
 	Create(ctx context.Context, in CreateInput) (Charges, error)
 
 	GetByIDs(ctx context.Context, ids GetByIDsInput) (Charges, error)
+	ListByCustomer(ctx context.Context, input ListByCustomerInput) (Charges, error)
 
 	entutils.TxCreator
 }
@@ -101,6 +103,20 @@ func (i GetByIDsInput) Validate() error {
 		if id == "" {
 			errs = append(errs, fmt.Errorf("charge ID [%d]: cannot be empty", idx))
 		}
+	}
+
+	return errors.Join(errs...)
+}
+
+type ListByCustomerInput struct {
+	Customer customer.CustomerID
+}
+
+func (i ListByCustomerInput) Validate() error {
+	var errs []error
+
+	if err := i.Customer.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer: %w", err))
 	}
 
 	return errors.Join(errs...)

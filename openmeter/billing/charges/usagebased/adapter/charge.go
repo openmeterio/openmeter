@@ -16,36 +16,72 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.Charge) error {
-	if err := charge.Validate(); err != nil {
-		return err
+var _ usagebased.ChargeAdapter = (*adapter)(nil)
+
+func (a *adapter) UpdateStatus(ctx context.Context, input usagebased.UpdateStatusInput) (usagebased.ChargeBase, error) {
+	if err := input.Validate(); err != nil {
+		return usagebased.ChargeBase{}, err
 	}
 
-	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
-		metaStatus, err := charge.Status.ToMetaChargeStatus()
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.ChargeBase, error) {
+		metaStatus, err := input.NewStatus.ToMetaChargeStatus()
 		if err != nil {
-			return err
+			return usagebased.ChargeBase{}, err
 		}
 
-		_, err = tx.metaAdapter.UpdateStatus(ctx, meta.UpdateStatusInput{
-			ChargeID: charge.GetChargeID(),
-			Status:   metaStatus,
+		updatedMeta, err := tx.metaAdapter.UpdateStatus(ctx, meta.UpdateStatusInput{
+			ChargeID:     input.Charge.GetChargeID(),
+			Status:       metaStatus,
+			AdvanceAfter: input.Charge.State.AdvanceAfter,
 		})
 		if err != nil {
-			return err
+			return usagebased.ChargeBase{}, err
 		}
 
-		_, err = tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
+		dbUpdatedChargeBase, err := tx.db.ChargeUsageBased.UpdateOneID(input.Charge.ID).
+			Where(dbchargeusagebased.NamespaceEQ(input.Charge.Namespace)).
+			SetStatus(input.NewStatus).
+			Save(ctx)
+		if err != nil {
+			return usagebased.ChargeBase{}, err
+		}
+
+		return MapChargeBaseFromDB(dbUpdatedChargeBase, updatedMeta), nil
+	})
+}
+
+func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase) (usagebased.ChargeBase, error) {
+	if err := charge.Validate(); err != nil {
+		return usagebased.ChargeBase{}, err
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.ChargeBase, error) {
+		metaStatus, err := charge.Status.ToMetaChargeStatus()
+		if err != nil {
+			return usagebased.ChargeBase{}, err
+		}
+
+		updatedMeta, err := tx.metaAdapter.UpdateStatus(ctx, meta.UpdateStatusInput{
+			ChargeID:     charge.GetChargeID(),
+			Status:       metaStatus,
+			AdvanceAfter: charge.State.AdvanceAfter,
+		})
+		if err != nil {
+			return usagebased.ChargeBase{}, err
+		}
+
+		update := tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
 			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
 			SetDiscounts(&charge.Intent.Discounts).
 			SetStatus(charge.Status).
-			SetNillableCurrentRealizationRunID(charge.State.CurrentRealizationRunID).
-			Save(ctx)
+			SetOrClearCurrentRealizationRunID(charge.State.CurrentRealizationRunID)
+
+		dbUpdatedChargeBase, err := update.Save(ctx)
 		if err != nil {
-			return err
+			return usagebased.ChargeBase{}, err
 		}
 
-		return nil
+		return MapChargeBaseFromDB(dbUpdatedChargeBase, updatedMeta), nil
 	})
 }
 
@@ -87,11 +123,10 @@ func (a *adapter) CreateCharges(ctx context.Context, in usagebased.CreateInput) 
 
 		out := make([]usagebased.Charge, 0, len(entities))
 		for idx, entity := range entities {
-			charge, err := MapUsageBasedChargeFromDB(entity, chargeMetas[idx], meta.ExpandNone)
-			if err != nil {
-				return nil, err
-			}
-			out = append(out, charge)
+			chargeBase := MapChargeBaseFromDB(entity, chargeMetas[idx])
+			out = append(out, usagebased.Charge{
+				ChargeBase: chargeBase,
+			})
 		}
 		return out, nil
 	})
@@ -128,27 +163,36 @@ func (a *adapter) GetByMetas(ctx context.Context, input usagebased.GetByMetasInp
 
 		entitiesMapped := make([]usagebased.Charge, 0, len(entities))
 		for idx, entity := range entities {
-			charge, err := MapUsageBasedChargeFromDB(entity, input.Charges[idx], input.Expands)
-			if err != nil {
-				return nil, err
+			chargeBase := MapChargeBaseFromDB(entity, input.Charges[idx])
+
+			var realizations usagebased.RealizationRuns
+			if input.Expands.Has(meta.ExpandRealizations) {
+				realizations, err = MapRealizationRunsFromDB(entity)
+				if err != nil {
+					return nil, err
+				}
 			}
-			entitiesMapped = append(entitiesMapped, charge)
+
+			entitiesMapped = append(entitiesMapped, usagebased.Charge{
+				ChargeBase:   chargeBase,
+				Realizations: realizations,
+			})
 		}
 
-		entitiesByID := lo.GroupBy(entitiesMapped, func(charge usagebased.Charge) string {
+		entitiesByID := lo.KeyBy(entitiesMapped, func(charge usagebased.Charge) string {
 			return charge.ID
 		})
 
 		var errs []error
 		out := make([]usagebased.Charge, 0, len(input.Charges))
 		for _, charge := range input.Charges {
-			charges, ok := entitiesByID[charge.ID]
+			mapped, ok := entitiesByID[charge.ID]
 			if !ok {
 				errs = append(errs, fmt.Errorf("charge not found: %s", charge.ID))
 				continue
 			}
 
-			out = append(out, charges[0])
+			out = append(out, mapped)
 		}
 
 		if len(out) != len(input.Charges) {
@@ -160,6 +204,39 @@ func (a *adapter) GetByMetas(ctx context.Context, input usagebased.GetByMetasInp
 		}
 
 		return out, nil
+	})
+}
+
+func (a *adapter) GetByID(ctx context.Context, input usagebased.GetByIDInput) (usagebased.Charge, error) {
+	if err := input.Validate(); err != nil {
+		return usagebased.Charge{}, err
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.Charge, error) {
+		metas, err := tx.metaAdapter.GetByIDs(ctx, meta.GetByIDsInput{
+			Namespace: input.ChargeID.Namespace,
+			ChargeIDs: []string{input.ChargeID.ID},
+		})
+		if err != nil {
+			return usagebased.Charge{}, err
+		}
+		if len(metas) != 1 {
+			return usagebased.Charge{}, fmt.Errorf("expected 1 meta, got %d", len(metas))
+		}
+
+		charges, err := a.GetByMetas(ctx, usagebased.GetByMetasInput{
+			Namespace: input.ChargeID.Namespace,
+			Charges:   meta.Charges{metas[0]},
+			Expands:   input.Expands,
+		})
+		if err != nil {
+			return usagebased.Charge{}, err
+		}
+		if len(charges) != 1 {
+			return usagebased.Charge{}, fmt.Errorf("expected 1 charge, got %d", len(charges))
+		}
+
+		return charges[0], nil
 	})
 }
 

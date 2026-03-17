@@ -11,14 +11,15 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-type chargeProcessorFn[T flatfee.Charge | creditpurchase.Charge] func(ctx context.Context, charge T, lineWithHeader billing.StandardLineWithInvoiceHeader) error
+type chargeProcessorFn[T flatfee.Charge | creditpurchase.Charge | usagebased.Charge] func(ctx context.Context, charge T, lineWithHeader billing.StandardLineWithInvoiceHeader) error
 
-func unsupported[T flatfee.Charge | creditpurchase.Charge](err error) chargeProcessorFn[T] {
+func unsupported[T flatfee.Charge | creditpurchase.Charge | usagebased.Charge](err error) chargeProcessorFn[T] {
 	return func(ctx context.Context, charge T, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
 		return err
 	}
@@ -27,12 +28,14 @@ func unsupported[T flatfee.Charge | creditpurchase.Charge](err error) chargeProc
 type processorByType struct {
 	flatFee        chargeProcessorFn[flatfee.Charge]
 	creditPurchase chargeProcessorFn[creditpurchase.Charge]
+	usageBased     chargeProcessorFn[usagebased.Charge]
 }
 
 func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billing.StandardInvoice) error {
 	if invoice.Status == billing.StandardInvoiceStatusIssued {
 		return s.handleChargeEvent(ctx, invoice, processorByType{
 			flatFee:        s.flatFeeService.PostInvoiceIssued,
+			usageBased:     s.usageBasedService.PostInvoiceIssued,
 			creditPurchase: unsupported[creditpurchase.Charge](fmt.Errorf("invoice credit purchase settlements are not supported: %w", meta.ErrUnsupported)),
 		})
 	}
@@ -40,6 +43,7 @@ func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billi
 	if invoice.Status == billing.StandardInvoiceStatusPaymentProcessingPending {
 		return s.handleChargeEvent(ctx, invoice, processorByType{
 			flatFee:        s.flatFeeService.PostPaymentAuthorized,
+			usageBased:     s.usageBasedService.PostPaymentAuthorized,
 			creditPurchase: unsupported[creditpurchase.Charge](fmt.Errorf("payment authorized for credit purchase settlements are not supported: %w", meta.ErrUnsupported)),
 		})
 	}
@@ -47,6 +51,7 @@ func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billi
 	if invoice.Status == billing.StandardInvoiceStatusPaid {
 		return s.handleChargeEvent(ctx, invoice, processorByType{
 			flatFee:        s.flatFeeService.PostPaymentSettled,
+			usageBased:     s.usageBasedService.PostPaymentSettled,
 			creditPurchase: unsupported[creditpurchase.Charge](fmt.Errorf("payment settled for credit purchase settlements are not supported: %w", meta.ErrUnsupported)),
 		})
 	}

@@ -20,9 +20,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
+	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
@@ -33,6 +35,7 @@ type BaseSuite struct {
 	billingtest.BaseSuite
 
 	Charges                   *service
+	UsageBasedService         usagebased.Service
 	FlatFeeTestHandler        *flatFeeTestHandler
 	CreditPurchaseTestHandler *creditPurchaseTestHandler
 	UsageBasedTestHandler     *usageBasedTestHandler
@@ -72,12 +75,23 @@ func (s *BaseSuite) SetupSuite() {
 	})
 	s.NoError(err)
 
-	usageBasedService, err := usagebasedservice.New(usagebasedservice.Config{
-		Adapter:     usageBasedAdapter,
-		Handler:     s.UsageBasedTestHandler,
-		MetaAdapter: metaAdapter,
+	locker, err := lockr.NewLocker(&lockr.LockerConfig{
+		Logger: slog.Default(),
 	})
 	s.NoError(err)
+
+	usageBasedService, err := usagebasedservice.New(usagebasedservice.Config{
+		Adapter:                 usageBasedAdapter,
+		Handler:                 s.UsageBasedTestHandler,
+		Locker:                  locker,
+		MetaAdapter:             metaAdapter,
+		CustomerOverrideService: s.BillingService,
+		FeatureService:          s.FeatureService,
+		RatingService:           billingratingservice.New(),
+		StreamingConnector:      s.MockStreamingConnector,
+	})
+	s.NoError(err)
+	s.UsageBasedService = usageBasedService
 
 	creditPurchaseAdapter, err := creditpurchaseadapter.New(creditpurchaseadapter.Config{
 		Client:      s.DBClient,
@@ -102,6 +116,7 @@ func (s *BaseSuite) SetupSuite() {
 	chargesService, err := New(Config{
 		Adapter: chargesAdapter,
 
+		FeatureService:        s.FeatureService,
 		MetaAdapter:           metaAdapter,
 		FlatFeeService:        flatFeeService,
 		CreditPurchaseService: creditPurchaseService,
@@ -113,9 +128,11 @@ func (s *BaseSuite) SetupSuite() {
 	s.Charges = chargesService
 }
 
-func (s *BaseSuite) TeardownTest() {
+func (s *BaseSuite) TearDownTest() {
 	s.FlatFeeTestHandler.Reset()
 	s.CreditPurchaseTestHandler.Reset()
+	s.UsageBasedTestHandler.Reset()
+	s.MockStreamingConnector.Reset()
 }
 
 type createMockChargeIntentInput struct {

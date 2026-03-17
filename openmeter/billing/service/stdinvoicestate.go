@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/statelessx"
 )
 
 type InvoiceStateMachine struct {
@@ -87,7 +88,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusDraftInvalid).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerUpdated, billing.StandardInvoiceStatusDraftUpdating).
-		OnActive(allOf(
+		OnActive(statelessx.AllOf(
 			out.calculateInvoice,
 			out.requireDBSave, // so that any new detailed lines have IDs
 		))
@@ -96,7 +97,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 		Permit(
 			billing.TriggerNext,
 			billing.StandardInvoiceStatusDraftCollecting,
-			boolFn(out.isReadyForCollection),
+			statelessx.BoolFn(out.isReadyForCollection),
 		).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerUpdated, billing.StandardInvoiceStatusDraftUpdating).
@@ -108,7 +109,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusDraftInvalid).
 		Permit(billing.TriggerUpdated, billing.StandardInvoiceStatusDraftUpdating).
 		OnActive(
-			allOf(
+			statelessx.AllOf(
 				out.snapshotQuantityAsNeeded,
 				out.calculateInvoice,
 				out.requireDBSave, // so that any new detailed lines have IDs
@@ -121,7 +122,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusDraftInvalid).
 		OnActive(
-			allOf(
+			statelessx.AllOf(
 				out.calculateInvoice,
 				out.validateDraftInvoice,
 				out.requireDBSave, // Due to the calculation, new detailed lines may be added
@@ -132,13 +133,13 @@ func allocateStateMachine() *InvoiceStateMachine {
 		Permit(
 			billing.TriggerNext,
 			billing.StandardInvoiceStatusDraftSyncing,
-			boolFn(out.noCriticalValidationErrors),
+			statelessx.BoolFn(out.noCriticalValidationErrors),
 		).
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusDraftInvalid).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		// NOTE: we should permit update here, but stateless doesn't allow transitions to the same state
 		Permit(billing.TriggerUpdated, billing.StandardInvoiceStatusDraftUpdating).
-		OnActive(allOf(
+		OnActive(statelessx.AllOf(
 			out.calculateInvoice,
 			out.validateDraftInvoice,
 			out.requireDBSave, // Due to the calculation, new detailed lines may be added
@@ -153,20 +154,20 @@ func allocateStateMachine() *InvoiceStateMachine {
 		Permit(
 			billing.TriggerNext,
 			billing.StandardInvoiceStatusDraftManualApprovalNeeded,
-			boolFn(not(out.isAutoAdvanceEnabled)),
-			boolFn(out.noCriticalValidationErrors),
-			boolFn(out.canDraftSyncAdvance),
+			statelessx.BoolFn(statelessx.Not(out.isAutoAdvanceEnabled)),
+			statelessx.BoolFn(out.noCriticalValidationErrors),
+			statelessx.BoolFn(out.canDraftSyncAdvance),
 		).
 		Permit(
 			billing.TriggerNext,
 			billing.StandardInvoiceStatusDraftWaitingAutoApproval,
-			boolFn(out.isAutoAdvanceEnabled),
-			boolFn(out.noCriticalValidationErrors),
-			boolFn(out.canDraftSyncAdvance),
+			statelessx.BoolFn(out.isAutoAdvanceEnabled),
+			statelessx.BoolFn(out.noCriticalValidationErrors),
+			statelessx.BoolFn(out.canDraftSyncAdvance),
 		).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusDraftSyncFailed).
-		OnActive(allOf(
+		OnActive(statelessx.AllOf(
 			out.syncDraftInvoice,
 		))
 
@@ -188,8 +189,8 @@ func allocateStateMachine() *InvoiceStateMachine {
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerNext,
 			billing.StandardInvoiceStatusDraftReadyToIssue,
-			boolFn(out.shouldAutoAdvance),
-			boolFn(out.noCriticalValidationErrors),
+			statelessx.BoolFn(out.shouldAutoAdvance),
+			statelessx.BoolFn(out.noCriticalValidationErrors),
 		)
 
 	// This state is a pre-issuing state where we can halt the execution and execute issuing in the background
@@ -197,7 +198,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 	stateMachine.Configure(billing.StandardInvoiceStatusDraftManualApprovalNeeded).
 		Permit(billing.TriggerApprove,
 			billing.StandardInvoiceStatusDraftReadyToIssue,
-			boolFn(out.noCriticalValidationErrors),
+			statelessx.BoolFn(out.noCriticalValidationErrors),
 		).
 		Permit(billing.TriggerUpdated, billing.StandardInvoiceStatusDraftUpdating).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress)
@@ -223,11 +224,11 @@ func allocateStateMachine() *InvoiceStateMachine {
 	stateMachine.Configure(billing.StandardInvoiceStatusIssuingSyncing).
 		Permit(billing.TriggerNext,
 			billing.StandardInvoiceStatusIssued,
-			boolFn(out.canIssuingSyncAdvance),
+			statelessx.BoolFn(out.canIssuingSyncAdvance),
 		).
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusIssuingSyncFailed).
 		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress).
-		OnActive(allOf(
+		OnActive(statelessx.AllOf(
 			out.finalizeInvoice,
 		))
 
@@ -879,35 +880,4 @@ func (m *InvoiceStateMachine) canIssuingSyncAdvance() bool {
 	}
 
 	return true
-}
-
-func boolFn(fn func() bool) func(context.Context, ...any) bool {
-	return func(context.Context, ...any) bool {
-		return fn()
-	}
-}
-
-func not(fn func() bool) func() bool {
-	return func() bool {
-		return !fn()
-	}
-}
-
-type actionFn func(context.Context) error
-
-// allOf chains multiple action functions into a single action function, all functions
-// will be called, regardless of their error state.
-// The reported errors will be joined into a single error object.
-func allOf(fn ...actionFn) actionFn {
-	return func(ctx context.Context) error {
-		var outErr error
-
-		for _, f := range fn {
-			if err := f(ctx); err != nil {
-				outErr = errors.Join(outErr, err)
-			}
-		}
-
-		return outErr
-	}
 }

@@ -143,6 +143,20 @@ func (_c *ChargeUsageBasedRunsCreate) SetAsof(v time.Time) *ChargeUsageBasedRuns
 	return _c
 }
 
+// SetCollectionEnd sets the "collection_end" field.
+func (_c *ChargeUsageBasedRunsCreate) SetCollectionEnd(v time.Time) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetCollectionEnd(v)
+	return _c
+}
+
+// SetNillableCollectionEnd sets the "collection_end" field if the given value is not nil.
+func (_c *ChargeUsageBasedRunsCreate) SetNillableCollectionEnd(v *time.Time) *ChargeUsageBasedRunsCreate {
+	if v != nil {
+		_c.SetCollectionEnd(*v)
+	}
+	return _c
+}
+
 // SetMeterValue sets the "meter_value" field.
 func (_c *ChargeUsageBasedRunsCreate) SetMeterValue(v alpacadecimal.Decimal) *ChargeUsageBasedRunsCreate {
 	_c.mutation.SetMeterValue(v)
@@ -428,6 +442,10 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 		_spec.SetField(chargeusagebasedruns.FieldAsof, field.TypeTime, value)
 		_node.Asof = value
 	}
+	if value, ok := _c.mutation.CollectionEnd(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldCollectionEnd, field.TypeTime, value)
+		_node.CollectionEnd = &value
+	}
 	if value, ok := _c.mutation.MeterValue(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldMeterValue, field.TypeOther, value)
 		_node.MeterValue = value
@@ -687,6 +705,24 @@ func (u *ChargeUsageBasedRunsUpsert) UpdateAsof() *ChargeUsageBasedRunsUpsert {
 	return u
 }
 
+// SetCollectionEnd sets the "collection_end" field.
+func (u *ChargeUsageBasedRunsUpsert) SetCollectionEnd(v time.Time) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldCollectionEnd, v)
+	return u
+}
+
+// UpdateCollectionEnd sets the "collection_end" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateCollectionEnd() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldCollectionEnd)
+	return u
+}
+
+// ClearCollectionEnd clears the value of the "collection_end" field.
+func (u *ChargeUsageBasedRunsUpsert) ClearCollectionEnd() *ChargeUsageBasedRunsUpsert {
+	u.SetNull(chargeusagebasedruns.FieldCollectionEnd)
+	return u
+}
+
 // SetMeterValue sets the "meter_value" field.
 func (u *ChargeUsageBasedRunsUpsert) SetMeterValue(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsert {
 	u.Set(chargeusagebasedruns.FieldMeterValue, v)
@@ -917,6 +953,27 @@ func (u *ChargeUsageBasedRunsUpsertOne) SetAsof(v time.Time) *ChargeUsageBasedRu
 func (u *ChargeUsageBasedRunsUpsertOne) UpdateAsof() *ChargeUsageBasedRunsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.UpdateAsof()
+	})
+}
+
+// SetCollectionEnd sets the "collection_end" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetCollectionEnd(v time.Time) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetCollectionEnd(v)
+	})
+}
+
+// UpdateCollectionEnd sets the "collection_end" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateCollectionEnd() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateCollectionEnd()
+	})
+}
+
+// ClearCollectionEnd clears the value of the "collection_end" field.
+func (u *ChargeUsageBasedRunsUpsertOne) ClearCollectionEnd() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.ClearCollectionEnd()
 	})
 }
 
@@ -1319,6 +1376,27 @@ func (u *ChargeUsageBasedRunsUpsertBulk) SetAsof(v time.Time) *ChargeUsageBasedR
 func (u *ChargeUsageBasedRunsUpsertBulk) UpdateAsof() *ChargeUsageBasedRunsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.UpdateAsof()
+	})
+}
+
+// SetCollectionEnd sets the "collection_end" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetCollectionEnd(v time.Time) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetCollectionEnd(v)
+	})
+}
+
+// UpdateCollectionEnd sets the "collection_end" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateCollectionEnd() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateCollectionEnd()
+	})
+}
+
+// ClearCollectionEnd clears the value of the "collection_end" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) ClearCollectionEnd() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.ClearCollectionEnd()
 	})
 }
 

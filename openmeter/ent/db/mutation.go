@@ -50904,6 +50904,7 @@ type ChargeUsageBasedRunsMutation struct {
 	total                     *alpacadecimal.Decimal
 	_type                     *usagebased.RealizationRunType
 	asof                      *time.Time
+	collection_end            *time.Time
 	meter_value               *alpacadecimal.Decimal
 	clearedFields             map[string]struct{}
 	usage_based               *string
@@ -51577,6 +51578,55 @@ func (m *ChargeUsageBasedRunsMutation) ResetAsof() {
 	m.asof = nil
 }
 
+// SetCollectionEnd sets the "collection_end" field.
+func (m *ChargeUsageBasedRunsMutation) SetCollectionEnd(t time.Time) {
+	m.collection_end = &t
+}
+
+// CollectionEnd returns the value of the "collection_end" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) CollectionEnd() (r time.Time, exists bool) {
+	v := m.collection_end
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCollectionEnd returns the old "collection_end" field's value of the ChargeUsageBasedRuns entity.
+// If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunsMutation) OldCollectionEnd(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCollectionEnd is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCollectionEnd requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCollectionEnd: %w", err)
+	}
+	return oldValue.CollectionEnd, nil
+}
+
+// ClearCollectionEnd clears the value of the "collection_end" field.
+func (m *ChargeUsageBasedRunsMutation) ClearCollectionEnd() {
+	m.collection_end = nil
+	m.clearedFields[chargeusagebasedruns.FieldCollectionEnd] = struct{}{}
+}
+
+// CollectionEndCleared returns if the "collection_end" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunsMutation) CollectionEndCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedruns.FieldCollectionEnd]
+	return ok
+}
+
+// ResetCollectionEnd resets all changes to the "collection_end" field.
+func (m *ChargeUsageBasedRunsMutation) ResetCollectionEnd() {
+	m.collection_end = nil
+	delete(m.clearedFields, chargeusagebasedruns.FieldCollectionEnd)
+}
+
 // SetMeterValue sets the "meter_value" field.
 func (m *ChargeUsageBasedRunsMutation) SetMeterValue(a alpacadecimal.Decimal) {
 	m.meter_value = &a
@@ -51819,7 +51869,7 @@ func (m *ChargeUsageBasedRunsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedRunsMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 17)
 	if m.namespace != nil {
 		fields = append(fields, chargeusagebasedruns.FieldNamespace)
 	}
@@ -51865,6 +51915,9 @@ func (m *ChargeUsageBasedRunsMutation) Fields() []string {
 	if m.asof != nil {
 		fields = append(fields, chargeusagebasedruns.FieldAsof)
 	}
+	if m.collection_end != nil {
+		fields = append(fields, chargeusagebasedruns.FieldCollectionEnd)
+	}
 	if m.meter_value != nil {
 		fields = append(fields, chargeusagebasedruns.FieldMeterValue)
 	}
@@ -51906,6 +51959,8 @@ func (m *ChargeUsageBasedRunsMutation) Field(name string) (ent.Value, bool) {
 		return m.GetType()
 	case chargeusagebasedruns.FieldAsof:
 		return m.Asof()
+	case chargeusagebasedruns.FieldCollectionEnd:
+		return m.CollectionEnd()
 	case chargeusagebasedruns.FieldMeterValue:
 		return m.MeterValue()
 	}
@@ -51947,6 +52002,8 @@ func (m *ChargeUsageBasedRunsMutation) OldField(ctx context.Context, name string
 		return m.OldType(ctx)
 	case chargeusagebasedruns.FieldAsof:
 		return m.OldAsof(ctx)
+	case chargeusagebasedruns.FieldCollectionEnd:
+		return m.OldCollectionEnd(ctx)
 	case chargeusagebasedruns.FieldMeterValue:
 		return m.OldMeterValue(ctx)
 	}
@@ -52063,6 +52120,13 @@ func (m *ChargeUsageBasedRunsMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetAsof(v)
 		return nil
+	case chargeusagebasedruns.FieldCollectionEnd:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCollectionEnd(v)
+		return nil
 	case chargeusagebasedruns.FieldMeterValue:
 		v, ok := value.(alpacadecimal.Decimal)
 		if !ok {
@@ -52103,6 +52167,9 @@ func (m *ChargeUsageBasedRunsMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeusagebasedruns.FieldDeletedAt) {
 		fields = append(fields, chargeusagebasedruns.FieldDeletedAt)
 	}
+	if m.FieldCleared(chargeusagebasedruns.FieldCollectionEnd) {
+		fields = append(fields, chargeusagebasedruns.FieldCollectionEnd)
+	}
 	return fields
 }
 
@@ -52119,6 +52186,9 @@ func (m *ChargeUsageBasedRunsMutation) ClearField(name string) error {
 	switch name {
 	case chargeusagebasedruns.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case chargeusagebasedruns.FieldCollectionEnd:
+		m.ClearCollectionEnd()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBasedRuns nullable field %s", name)
@@ -52172,6 +52242,9 @@ func (m *ChargeUsageBasedRunsMutation) ResetField(name string) error {
 		return nil
 	case chargeusagebasedruns.FieldAsof:
 		m.ResetAsof()
+		return nil
+	case chargeusagebasedruns.FieldCollectionEnd:
+		m.ResetCollectionEnd()
 		return nil
 	case chargeusagebasedruns.FieldMeterValue:
 		m.ResetMeterValue()

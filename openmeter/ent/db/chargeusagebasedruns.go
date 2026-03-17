@@ -52,6 +52,8 @@ type ChargeUsageBasedRuns struct {
 	Type usagebased.RealizationRunType `json:"type,omitempty"`
 	// Asof holds the value of the "asof" field.
 	Asof time.Time `json:"asof,omitempty"`
+	// CollectionEnd holds the value of the "collection_end" field.
+	CollectionEnd *time.Time `json:"collection_end,omitempty"`
 	// MeterValue holds the value of the "meter_value" field.
 	MeterValue alpacadecimal.Decimal `json:"meter_value,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -126,7 +128,7 @@ func (*ChargeUsageBasedRuns) scanValues(columns []string) ([]any, error) {
 			values[i] = new(alpacadecimal.Decimal)
 		case chargeusagebasedruns.FieldID, chargeusagebasedruns.FieldNamespace, chargeusagebasedruns.FieldChargeID, chargeusagebasedruns.FieldType:
 			values[i] = new(sql.NullString)
-		case chargeusagebasedruns.FieldCreatedAt, chargeusagebasedruns.FieldUpdatedAt, chargeusagebasedruns.FieldDeletedAt, chargeusagebasedruns.FieldAsof:
+		case chargeusagebasedruns.FieldCreatedAt, chargeusagebasedruns.FieldUpdatedAt, chargeusagebasedruns.FieldDeletedAt, chargeusagebasedruns.FieldAsof, chargeusagebasedruns.FieldCollectionEnd:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -240,6 +242,13 @@ func (_m *ChargeUsageBasedRuns) assignValues(columns []string, values []any) err
 			} else if value.Valid {
 				_m.Asof = value.Time
 			}
+		case chargeusagebasedruns.FieldCollectionEnd:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field collection_end", values[i])
+			} else if value.Valid {
+				_m.CollectionEnd = new(time.Time)
+				*_m.CollectionEnd = value.Time
+			}
 		case chargeusagebasedruns.FieldMeterValue:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field meter_value", values[i])
@@ -348,6 +357,11 @@ func (_m *ChargeUsageBasedRuns) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("asof=")
 	builder.WriteString(_m.Asof.Format(time.ANSIC))
+	builder.WriteString(", ")
+	if v := _m.CollectionEnd; v != nil {
+		builder.WriteString("collection_end=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("meter_value=")
 	builder.WriteString(fmt.Sprintf("%v", _m.MeterValue))

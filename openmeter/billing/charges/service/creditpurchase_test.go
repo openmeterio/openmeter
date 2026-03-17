@@ -38,8 +38,8 @@ func (s *CreditPurchaseTestSuite) SetupSuite() {
 	s.BaseSuite.SetupSuite()
 }
 
-func (s *CreditPurchaseTestSuite) TeardownTest() {
-	s.BaseSuite.TeardownTest()
+func (s *CreditPurchaseTestSuite) TearDownTest() {
+	s.BaseSuite.TearDownTest()
 }
 
 func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchase() {
