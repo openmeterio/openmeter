@@ -2,6 +2,7 @@ package feature
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 
@@ -31,6 +32,24 @@ type UpdateFeatureInputs struct {
 	Namespace string    `json:"namespace"`
 	ID        string    `json:"id"`
 	UnitCost  *UnitCost `json:"unitCost"`
+}
+
+func (i UpdateFeatureInputs) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.ID == "" {
+		errs = append(errs, errors.New("id is required"))
+	}
+
+	if i.UnitCost == nil {
+		errs = append(errs, errors.New("unitCost is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // TODO: refactor to service pattern
@@ -208,6 +227,10 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 
 // UpdateFeature updates a feature's unit cost
 func (c *featureConnector) UpdateFeature(ctx context.Context, input UpdateFeatureInputs) (Feature, error) {
+	if err := input.Validate(); err != nil {
+		return Feature{}, err
+	}
+
 	// Get the feature (rejects archived/not found)
 	feat, err := c.GetFeature(ctx, input.Namespace, input.ID, IncludeArchivedFeatureFalse)
 	if err != nil {
