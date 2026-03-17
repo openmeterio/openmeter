@@ -647,8 +647,12 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	health := common.NewHealthChecker(logger)
-	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, telemetryConfig, logger)
+	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, logger)
+	v10, cleanup10 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	terminationConfig := conf.Termination
+	terminationChecker, err := common.NewTerminationChecker(terminationConfig, health)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -660,10 +664,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v10, cleanup10 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
-	terminationConfig := conf.Termination
-	terminationChecker, err := common.NewTerminationChecker(terminationConfig, health)
+	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, logger)
 	if err != nil {
 		cleanup10()
 		cleanup9()

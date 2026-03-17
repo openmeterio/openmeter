@@ -14,6 +14,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-slog/otelslog"
 	"github.com/google/wire"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	slogmulti "github.com/samber/slog-multi"
 	realotelslog "go.opentelemetry.io/contrib/bridges/otelslog"
@@ -224,9 +226,13 @@ type TelemetryHandler http.Handler
 func NewTelemetryHandler(
 	metricsConf config.MetricsTelemetryConfig,
 	healthChecker health.Health,
-	runtimeMetricsCollector RuntimeMetricsCollector,
 	logger *slog.Logger,
 ) TelemetryHandler {
+	if metricsConf.Exporters.Prometheus.DisableDefaultCollectors {
+		prometheus.Unregister(collectors.NewGoCollector())
+		prometheus.Unregister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	}
+
 	router := chi.NewRouter()
 	router.Mount("/debug", middleware.Profiler())
 
@@ -244,13 +250,6 @@ func NewTelemetryHandler(
 			_, _ = w.Write([]byte("ok"))
 		})
 		router.Handle("/healthz/ready", handler)
-	}
-
-	// Start runtime metrics collector
-	{
-		if err := runtimeMetricsCollector.Start(); err != nil {
-			logger.Error("failed to start runtime metrics collector, continuing startup", slog.Any("error", err))
-		}
 	}
 
 	return router
@@ -296,36 +295,22 @@ func NewTelemetryRouterHook(meterProvider metric.MeterProvider, tracerProvider t
 	}
 }
 
-type RuntimeMetricsCollector struct {
-	meterProvider metric.MeterProvider
-	logger        *slog.Logger
-	conf          config.TelemetryConfig
-}
-
-func (c RuntimeMetricsCollector) Start() error {
-	err := runtime.Start(
-		runtime.WithMinimumReadMemStatsInterval(time.Second),
-		runtime.WithMeterProvider(c.meterProvider),
-	)
-	if err != nil {
-		c.logger.Error("failed to start runtime metrics", slog.Any("error", err))
-		return err
-	}
-
-	c.logger.Debug("Started collecting runtime metrics")
-	return nil
-}
+type RuntimeMetricsCollector struct{}
 
 func NewRuntimeMetricsCollector(
 	meterProvider metric.MeterProvider,
-	conf config.TelemetryConfig,
 	logger *slog.Logger,
 ) (RuntimeMetricsCollector, error) {
-	return RuntimeMetricsCollector{
-		meterProvider: meterProvider,
-		logger:        logger,
-		conf:          conf,
-	}, nil
+	err := runtime.Start(
+		runtime.WithMinimumReadMemStatsInterval(time.Second),
+		runtime.WithMeterProvider(meterProvider),
+	)
+	if err != nil {
+		return RuntimeMetricsCollector{}, fmt.Errorf("starting runtime metrics: %w", err)
+	}
+
+	logger.Debug("started collecting runtime metrics")
+	return RuntimeMetricsCollector{}, nil
 }
 
 // Compile-time check LevelHandler implements slog.Handler.

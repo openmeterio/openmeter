@@ -37,8 +37,9 @@ type Application struct {
 	TopicProvisioner pkgkafka.TopicProvisioner
 	TopicResolver    *topicresolver.NamespacedTopicResolver
 	Tracer           trace.Tracer
-	MeterService     meter.Service
-	Sink             *sink.Sink
+	MeterService            meter.Service
+	RuntimeMetricsCollector common.RuntimeMetricsCollector
+	Sink                    *sink.Sink
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {

@@ -180,6 +180,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, logger)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
 	v4, cleanup8, err := common.NewClickHouse(ctx, clickHouseAggregationConfiguration, tracer, meter, logger)
@@ -232,36 +243,25 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	health := common.NewHealthChecker(logger)
-	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, telemetryConfig, logger)
-	if err != nil {
-		cleanup8()
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
+	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, logger)
 	v5, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	application := Application{
-		GlobalInitializer:  globalInitializer,
-		Migrator:           migrator,
-		BrokerOptions:      brokerOptions,
-		EventPublisher:     eventbusPublisher,
-		EntClient:          client,
-		FeatureConnector:   featureConnector,
-		Logger:             logger,
-		MessagePublisher:   publisher,
-		Meter:              meter,
-		Tracer:             tracer,
-		Metadata:           commonMetadata,
-		MeterService:       service,
-		Notification:       notificationService,
-		StreamingConnector: connector,
-		TelemetryServer:    v5,
+		GlobalInitializer:       globalInitializer,
+		Migrator:                migrator,
+		BrokerOptions:           brokerOptions,
+		EventPublisher:          eventbusPublisher,
+		EntClient:               client,
+		FeatureConnector:        featureConnector,
+		Logger:                  logger,
+		MessagePublisher:        publisher,
+		Meter:                   meter,
+		Tracer:                  tracer,
+		Metadata:                commonMetadata,
+		MeterService:            service,
+		Notification:            notificationService,
+		RuntimeMetricsCollector: runtimeMetricsCollector,
+		StreamingConnector:      connector,
+		TelemetryServer:         v5,
 	}
 	return application, func() {
 		cleanup9()
@@ -282,19 +282,20 @@ type Application struct {
 	common.GlobalInitializer
 	common.Migrator
 
-	BrokerOptions      kafka.BrokerOptions
-	EventPublisher     eventbus.Publisher
-	EntClient          *db.Client
-	FeatureConnector   feature.FeatureConnector
-	Logger             *slog.Logger
-	MessagePublisher   message.Publisher
-	Meter              metric.Meter
-	Tracer             trace.Tracer
-	Metadata           common.Metadata
-	MeterService       meter.Service
-	Notification       notification.Service
-	StreamingConnector streaming.Connector
-	TelemetryServer    common.TelemetryServer
+	BrokerOptions           kafka.BrokerOptions
+	EventPublisher          eventbus.Publisher
+	EntClient               *db.Client
+	FeatureConnector        feature.FeatureConnector
+	Logger                  *slog.Logger
+	MessagePublisher        message.Publisher
+	Meter                   metric.Meter
+	Tracer                  trace.Tracer
+	Metadata                common.Metadata
+	MeterService            meter.Service
+	Notification            notification.Service
+	RuntimeMetricsCollector common.RuntimeMetricsCollector
+	StreamingConnector      streaming.Connector
+	TelemetryServer         common.TelemetryServer
 }
 
 func metadata(conf config.Configuration) common.Metadata {

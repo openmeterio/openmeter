@@ -18,7 +18,8 @@ type Application struct {
 	common.Migrator
 	common.Runner
 
-	Logger *slog.Logger
+	Logger                  *slog.Logger
+	RuntimeMetricsCollector common.RuntimeMetricsCollector
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
