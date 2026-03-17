@@ -11,11 +11,11 @@ import (
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
-	ledgersubaccountdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	ledgertransactiongroupdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
-	ledger "github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	accountadapter "github.com/openmeterio/openmeter/openmeter/ledger/account/adapter"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	transactionstestutils "github.com/openmeterio/openmeter/openmeter/ledger/transactions/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -62,31 +62,16 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 
 	ctx := t.Context()
 	namespace := testNamespace()
-	subAccountA := env.createSubAccount(t, namespace, "acc-a", "USD", nil)
-	subAccountB := env.createSubAccount(t, namespace, "acc-b", "USD", nil)
-	routeVersion := ledger.RoutingKeyVersionV1
-	routeA := "route-a"
-	routeB := "route-b"
+	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: "USD"})
+	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: "EUR"})
 
 	txInput := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
 		{
-			Address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
-				SubAccountID:      subAccountA.ID,
-				AccountType:       ledger.AccountTypeCustomerFBO,
-				RouteID:           "r-a",
-				RoutingKeyVersion: routeVersion,
-				RoutingKey:        routeA,
-			}),
+			Address:     testAddress(subAccountA),
 			AmountValue: alpacadecimal.NewFromInt(-100),
 		},
 		{
-			Address: ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
-				SubAccountID:      subAccountB.ID,
-				AccountType:       ledger.AccountTypeCustomerFBO,
-				RouteID:           "r-b",
-				RoutingKeyVersion: routeVersion,
-				RoutingKey:        routeB,
-			}),
+			Address:     testAddress(subAccountB),
 			AmountValue: alpacadecimal.NewFromInt(100),
 		},
 	})
@@ -133,10 +118,10 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 		addr := entry.PostingAddress()
 		addressesBySubAccount[addr.SubAccountID()] = addr
 	}
-	require.Equal(t, routeA, addressesBySubAccount[subAccountA.ID].Route().RoutingKey().Value())
-	require.Equal(t, routeVersion, addressesBySubAccount[subAccountA.ID].Route().RoutingKey().Version())
-	require.Equal(t, routeB, addressesBySubAccount[subAccountB.ID].Route().RoutingKey().Value())
-	require.Equal(t, routeVersion, addressesBySubAccount[subAccountB.ID].Route().RoutingKey().Version())
+	require.Equal(t, subAccountA.RouteMeta.RoutingKey, addressesBySubAccount[subAccountA.ID].Route().RoutingKey().Value())
+	require.Equal(t, ledger.RoutingKeyVersionV1, addressesBySubAccount[subAccountA.ID].Route().RoutingKey().Version())
+	require.Equal(t, subAccountB.RouteMeta.RoutingKey, addressesBySubAccount[subAccountB.ID].Route().RoutingKey().Value())
+	require.Equal(t, ledger.RoutingKeyVersionV1, addressesBySubAccount[subAccountB.ID].Route().RoutingKey().Version())
 }
 
 func TestRepo_BookTransaction_NilInput(t *testing.T) {
@@ -170,8 +155,8 @@ func TestRepo_ListTransactions_PaginatesAndFilters(t *testing.T) {
 
 	ctx := t.Context()
 	namespace := testNamespace()
-	subAccountA := env.createSubAccount(t, namespace, "acc-a", "USD", nil)
-	subAccountB := env.createSubAccount(t, namespace, "acc-b", "USD", nil)
+	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: "USD"})
+	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: "EUR"})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
 		Namespace: namespace,
@@ -247,9 +232,9 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	ctx := t.Context()
 	namespace := testNamespace()
 
-	subAccountA := env.createSubAccount(t, namespace, "acc-a", "USD", lo.ToPtr(1))
-	subAccountB := env.createSubAccount(t, namespace, "acc-b", "USD", lo.ToPtr(2))
-	subAccountC := env.createSubAccount(t, namespace, "acc-c", "EUR", lo.ToPtr(1))
+	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: "USD", CreditPriority: lo.ToPtr(1)})
+	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: "USD", CreditPriority: lo.ToPtr(2)})
+	subAccountC := env.createSubAccount(t, namespace, ledger.Route{Currency: "EUR", CreditPriority: lo.ToPtr(1)})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{Namespace: namespace})
 	require.NoError(t, err)
@@ -367,10 +352,15 @@ func TestSumEntriesQuery_SQL(t *testing.T) {
 	}, args)
 }
 
+// ----------------------------------------------------------------------------
+// Test helpers
+// ----------------------------------------------------------------------------
+
 type TestEnv struct {
-	repo   ledgerhistorical.Repo
-	client *entdb.Client
-	db     *testutils.TestDB
+	repo        ledgerhistorical.Repo
+	accountRepo ledgeraccount.Repo
+	client      *entdb.Client
+	db          *testutils.TestDB
 }
 
 func NewTestEnv(t *testing.T) *TestEnv {
@@ -380,9 +370,10 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	client := db.EntDriver.Client()
 
 	return &TestEnv{
-		repo:   NewRepo(client),
-		client: client,
-		db:     db,
+		repo:        NewRepo(client),
+		accountRepo: accountadapter.NewRepo(client),
+		client:      client,
+		db:          db,
 	}
 }
 
@@ -412,49 +403,26 @@ func (e *TestEnv) Close(t *testing.T) {
 	require.NoError(t, e.db.PGDriver.Close())
 }
 
-func (e *TestEnv) createSubAccount(t *testing.T, namespace string, accountID string, currency string, creditPriority *int) *entdb.LedgerSubAccount {
+// createSubAccount creates an account + sub-account via the account repo for the given route.
+func (e *TestEnv) createSubAccount(t *testing.T, namespace string, route ledger.Route) *ledgeraccount.SubAccountData {
 	t.Helper()
 
-	account, err := e.client.LedgerAccount.Create().
-		SetNamespace(namespace).
-		SetID(accountID).
-		SetAccountType(ledger.AccountTypeCustomerFBO).
-		Save(t.Context())
-	require.NoError(t, err)
+	ctx := t.Context()
 
-	routeKey, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, ledger.Route{
-		Currency:       currency,
-		CreditPriority: creditPriority,
+	acc, err := e.accountRepo.CreateAccount(ctx, ledgeraccount.CreateAccountInput{
+		Namespace: namespace,
+		Type:      ledger.AccountTypeCustomerFBO,
 	})
 	require.NoError(t, err)
 
-	route, err := e.client.LedgerSubAccountRoute.Create().
-		SetNamespace(namespace).
-		SetAccountID(account.ID).
-		SetRoutingKeyVersion(routeKey.Version()).
-		SetRoutingKey(routeKey.Value()).
-		SetCurrency(currency).
-		SetNillableCreditPriority(creditPriority).
-		Save(t.Context())
+	sub, err := e.accountRepo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
+		Namespace: namespace,
+		AccountID: acc.ID.ID,
+		Route:     route,
+	})
 	require.NoError(t, err)
 
-	subAccount, err := e.client.LedgerSubAccount.Create().
-		SetNamespace(namespace).
-		SetAccountID(account.ID).
-		SetRouteID(route.ID).
-		Save(t.Context())
-	require.NoError(t, err)
-
-	subAccount, err = e.client.LedgerSubAccount.Query().
-		Where(
-			ledgersubaccountdb.Namespace(namespace),
-			ledgersubaccountdb.ID(subAccount.ID),
-		).
-		WithRoute().
-		Only(t.Context())
-	require.NoError(t, err)
-
-	return subAccount
+	return sub
 }
 
 func testNamespace() string {
@@ -468,12 +436,12 @@ func mustSetUpHistoricalTransactionInput(_ *testing.T, bookedAt time.Time, entri
 	}
 }
 
-func testAddress(subAccount *entdb.LedgerSubAccount) ledger.PostingAddress {
+func testAddress(sub *ledgeraccount.SubAccountData) ledger.PostingAddress {
 	return ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
-		SubAccountID:      subAccount.ID,
-		AccountType:       ledger.AccountTypeCustomerFBO,
-		RouteID:           subAccount.RouteID,
-		RoutingKeyVersion: ledger.RoutingKeyVersionV1,
-		RoutingKey:        subAccount.Edges.Route.RoutingKey,
+		SubAccountID:      sub.ID,
+		AccountType:       sub.AccountType,
+		RouteID:           sub.RouteMeta.ID,
+		RoutingKeyVersion: sub.RouteMeta.RoutingKeyVersion,
+		RoutingKey:        sub.RouteMeta.RoutingKey,
 	})
 }

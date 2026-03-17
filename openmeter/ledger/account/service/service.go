@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger/account"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -43,12 +44,14 @@ func (s *service) EnsureSubAccount(ctx context.Context, input account.CreateSubA
 		return nil, err
 	}
 
-	subAccountData, err := s.repo.EnsureSubAccount(ctx, input)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create sub-account: %w", err)
-	}
+	return transaction.Run(ctx, s.repo, func(ctx context.Context) (*account.SubAccount, error) {
+		subAccountData, err := s.repo.EnsureSubAccount(ctx, input)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create sub-account: %w", err)
+		}
 
-	return account.NewSubAccountFromData(*subAccountData)
+		return account.NewSubAccountFromData(*subAccountData)
+	})
 }
 
 func (s *service) GetAccountByID(ctx context.Context, id models.NamespacedID) (*account.Account, error) {
