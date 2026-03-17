@@ -5,6 +5,8 @@ import (
 	"log/slog"
 
 	"github.com/invopop/gobl/currency"
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
@@ -20,7 +22,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
-	"github.com/samber/lo"
 )
 
 const USD = currencyx.Code(currency.USD)
