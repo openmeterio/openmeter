@@ -245,7 +245,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 		settledCallback := newCountedLedgerTransactionCallback[flatfee.Charge]()
 		s.FlatFeeTestHandler.onPaymentSettled = settledCallback.Handler(s.T())
 
-		invoice, err := customInvoicing.Service.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
+		invoice, err := s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
 			InvoiceID: stdInvoiceID,
 			Trigger:   billing.TriggerPaid,
 		})

@@ -18,6 +18,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
+	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -33,6 +35,7 @@ type BaseSuite struct {
 	Charges                   *service
 	FlatFeeTestHandler        *flatFeeTestHandler
 	CreditPurchaseTestHandler *creditPurchaseTestHandler
+	UsageBasedTestHandler     *usageBasedTestHandler
 }
 
 func (s *BaseSuite) SetupSuite() {
@@ -40,6 +43,7 @@ func (s *BaseSuite) SetupSuite() {
 
 	s.FlatFeeTestHandler = newFlatFeeTestHandler()
 	s.CreditPurchaseTestHandler = newCreditPurchaseTestHandler()
+	s.UsageBasedTestHandler = newUsageBasedTestHandler()
 
 	metaAdapter, err := metaadapter.New(metaadapter.Config{
 		Client: s.DBClient,
@@ -57,6 +61,20 @@ func (s *BaseSuite) SetupSuite() {
 	flatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
 		Adapter:     flatFeeAdapter,
 		Handler:     s.FlatFeeTestHandler,
+		MetaAdapter: metaAdapter,
+	})
+	s.NoError(err)
+
+	usageBasedAdapter, err := usagebasedadapter.New(usagebasedadapter.Config{
+		Client:      s.DBClient,
+		Logger:      slog.Default(),
+		MetaAdapter: metaAdapter,
+	})
+	s.NoError(err)
+
+	usageBasedService, err := usagebasedservice.New(usagebasedservice.Config{
+		Adapter:     usageBasedAdapter,
+		Handler:     s.UsageBasedTestHandler,
 		MetaAdapter: metaAdapter,
 	})
 	s.NoError(err)
@@ -87,6 +105,7 @@ func (s *BaseSuite) SetupSuite() {
 		MetaAdapter:           metaAdapter,
 		FlatFeeService:        flatFeeService,
 		CreditPurchaseService: creditPurchaseService,
+		UsageBasedService:     usageBasedService,
 
 		BillingService: s.BillingService,
 	})
