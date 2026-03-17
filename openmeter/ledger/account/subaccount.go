@@ -1,6 +1,8 @@
 package account
 
 import (
+	"context"
+	"fmt"
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -26,16 +28,18 @@ type SubAccountRouteData struct {
 	RoutingKey        string
 }
 
-func NewSubAccountFromData(data SubAccountData) (*SubAccount, error) {
+func NewSubAccountFromData(data SubAccountData, account *Account) (*SubAccount, error) {
 	sAcc := &SubAccount{
-		data: data,
+		data:    data,
+		account: account,
 	}
 
 	return sAcc, nil
 }
 
 type SubAccount struct {
-	data SubAccountData
+	data    SubAccountData
+	account *Account
 }
 
 var _ ledger.SubAccount = (*SubAccount)(nil)
@@ -50,6 +54,23 @@ func (s *SubAccount) Address() ledger.PostingAddress {
 	})
 }
 
+func (s *SubAccount) Route() ledger.Route {
+	return s.data.Route
+}
+
 func (s *SubAccount) AccountID() string {
 	return s.data.AccountID
+}
+
+func (s *SubAccount) GetBalance(ctx context.Context) (ledger.Balance, error) {
+	if s.account == nil {
+		return nil, fmt.Errorf("parent account is required")
+	}
+
+	res, err := s.account.GetBalance(ctx, s.data.Route.Filter())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get balance for sub-account %s: %w", s.data.ID, err)
+	}
+
+	return res, nil
 }

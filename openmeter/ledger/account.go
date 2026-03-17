@@ -14,12 +14,14 @@ type AccountType string
 const (
 	AccountTypeCustomerFBO        AccountType = "customer_fbo" // is this the right name?
 	AccountTypeCustomerReceivable AccountType = "customer_receivable"
+	AccountTypeCustomerAccrued    AccountType = "customer_accrued"
 	// AccountTypeCustomerBreakage   AccountType = "customer_breakage"
 )
 
 type CustomerAccounts struct {
 	FBOAccount        CustomerFBOAccount
 	ReceivableAccount CustomerReceivableAccount
+	AccruedAccount    CustomerAccruedAccount
 	// BreakageAccount   Account
 }
 
@@ -38,7 +40,7 @@ type BusinessAccounts struct {
 
 func (t AccountType) Validate() error {
 	switch t {
-	case AccountTypeCustomerFBO, AccountTypeCustomerReceivable:
+	case AccountTypeCustomerFBO, AccountTypeCustomerReceivable, AccountTypeCustomerAccrued:
 		return nil
 	case AccountTypeWash, AccountTypeEarnings, AccountTypeBrokerage:
 		return nil

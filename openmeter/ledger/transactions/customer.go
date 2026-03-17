@@ -36,7 +36,7 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 	}
 
 	fbo, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
-		Currency:       string(t.Currency),
+		Currency:       t.Currency,
 		CreditPriority: priority,
 	})
 	if err != nil {
@@ -44,7 +44,7 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 	}
 
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
-		Currency: string(t.Currency),
+		Currency: t.Currency,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get receivable sub-account: %w", err)
@@ -85,7 +85,7 @@ func (t FundCustomerReceivableTemplate) resolve(ctx context.Context, customerID 
 	}
 
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
-		Currency: string(t.Currency),
+		Currency: t.Currency,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get receivable sub-account: %w", err)
@@ -97,7 +97,7 @@ func (t FundCustomerReceivableTemplate) resolve(ctx context.Context, customerID 
 	}
 
 	wash, err := businessAccounts.WashAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
-		Currency: string(t.Currency),
+		Currency: t.Currency,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get wash sub-account: %w", err)
@@ -142,7 +142,7 @@ func (t CoverCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 	}
 
 	fbo, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
-		Currency:       string(t.Currency),
+		Currency:       t.Currency,
 		CreditPriority: priority,
 	})
 	if err != nil {
@@ -150,7 +150,7 @@ func (t CoverCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 	}
 
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
-		Currency: string(t.Currency),
+		Currency: t.Currency,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get receivable sub-account: %w", err)
@@ -169,38 +169,4 @@ func (t CoverCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 			},
 		},
 	}, nil
-}
-
-// RecognizeEarningsFromCreditsTemplate recognizes earnings from a customer's balance account
-type RecognizeEarningsFromCreditsTemplate struct {
-	At       time.Time
-	Amount   alpacadecimal.Decimal
-	Currency currencyx.Code
-}
-
-func (t RecognizeEarningsFromCreditsTemplate) typeGuard() guard {
-	return true
-}
-
-var _ CustomerTransactionTemplate = (RecognizeEarningsFromCreditsTemplate{})
-
-func (t RecognizeEarningsFromCreditsTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
-	panic("not implemented")
-}
-
-// RecognizeEarningsFromAccruedTemplate recognizes earnings from invoiced values
-type RecognizeEarningsFromAccruedTemplate struct {
-	At       time.Time
-	Amount   alpacadecimal.Decimal
-	Currency currencyx.Code
-}
-
-func (t RecognizeEarningsFromAccruedTemplate) typeGuard() guard {
-	return true
-}
-
-var _ CustomerTransactionTemplate = (RecognizeEarningsFromAccruedTemplate{})
-
-func (t RecognizeEarningsFromAccruedTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
-	panic("not implemented")
 }

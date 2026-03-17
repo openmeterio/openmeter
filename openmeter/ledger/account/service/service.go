@@ -50,7 +50,15 @@ func (s *service) EnsureSubAccount(ctx context.Context, input account.CreateSubA
 			return nil, fmt.Errorf("failed to create sub-account: %w", err)
 		}
 
-		return account.NewSubAccountFromData(*subAccountData)
+		acc, err := s.GetAccountByID(ctx, models.NamespacedID{
+			Namespace: input.Namespace,
+			ID:        input.AccountID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get parent account: %w", err)
+		}
+
+		return account.NewSubAccountFromData(*subAccountData, acc)
 	})
 }
 
@@ -69,7 +77,15 @@ func (s *service) GetSubAccountByID(ctx context.Context, id models.NamespacedID)
 		return nil, fmt.Errorf("failed to get sub-account: %w", err)
 	}
 
-	return account.NewSubAccountFromData(*subAccountData)
+	acc, err := s.GetAccountByID(ctx, models.NamespacedID{
+		Namespace: id.Namespace,
+		ID:        subAccountData.AccountID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get parent account: %w", err)
+	}
+
+	return account.NewSubAccountFromData(*subAccountData, acc)
 }
 
 func (s *service) ListSubAccounts(ctx context.Context, input account.ListSubAccountsInput) ([]*account.SubAccount, error) {
@@ -78,9 +94,24 @@ func (s *service) ListSubAccounts(ctx context.Context, input account.ListSubAcco
 		return nil, fmt.Errorf("failed to list sub-accounts: %w", err)
 	}
 
+	// FIXME: this will be a problem
 	subAccounts := make([]*account.SubAccount, 0, len(subAccountDatas))
+	accountsByID := make(map[string]*account.Account, len(subAccountDatas))
 	for _, subAccountData := range subAccountDatas {
-		subAccount, err := account.NewSubAccountFromData(*subAccountData)
+		acc, ok := accountsByID[subAccountData.AccountID]
+		if !ok {
+			acc, err = s.GetAccountByID(ctx, models.NamespacedID{
+				Namespace: subAccountData.Namespace,
+				ID:        subAccountData.AccountID,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to get parent account: %w", err)
+			}
+
+			accountsByID[subAccountData.AccountID] = acc
+		}
+
+		subAccount, err := account.NewSubAccountFromData(*subAccountData, acc)
 		if err != nil {
 			return nil, fmt.Errorf("failed to map sub-account: %w", err)
 		}

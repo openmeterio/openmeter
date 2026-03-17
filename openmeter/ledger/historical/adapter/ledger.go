@@ -20,7 +20,7 @@ import (
 
 func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID, input ledger.TransactionInput) (*ledgerhistorical.Transaction, error) {
 	if input == nil {
-		return nil, fmt.Errorf("transaction input is required")
+		return nil, ledger.ErrTransactionInputRequired
 	}
 
 	entity, err := r.db.LedgerTransaction.Create().
@@ -109,13 +109,16 @@ func (r *repo) SumEntries(ctx context.Context, query ledger.Query) (alpacadecima
 		query: query,
 	}
 
-	entryQuery := q.Build(r.db)
+	entryQuery, err := q.Build(r.db)
+	if err != nil {
+		return alpacadecimal.Decimal{}, err
+	}
 
 	var rows []struct {
 		SumAmount stdsql.NullString `json:"sum_amount,omitempty"`
 	}
 
-	err := entryQuery.
+	err = entryQuery.
 		Aggregate(db.As(db.Sum(ledgerentrydb.FieldAmount), "sum_amount")).
 		Scan(ctx, &rows)
 	if err != nil {

@@ -55,6 +55,13 @@ type TransactionGroup struct {
 
 var _ ledger.TransactionGroup = (*TransactionGroup)(nil)
 
+func (t *TransactionGroup) ID() models.NamespacedID {
+	return models.NamespacedID{
+		Namespace: t.data.Namespace,
+		ID:        t.data.ID,
+	}
+}
+
 func (t *TransactionGroup) Transactions() []ledger.Transaction {
 	return lo.Map(t.transactions, func(t *Transaction, _ int) ledger.Transaction {
 		return t

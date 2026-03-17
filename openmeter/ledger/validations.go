@@ -2,7 +2,6 @@ package ledger
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -33,19 +32,38 @@ func ValidateRouting(ctx context.Context, entries []EntryInput) error {
 }
 
 func ValidateEntryInput(ctx context.Context, entry EntryInput) error {
+	if entry == nil {
+		return ErrEntryInvalid.WithAttrs(models.Attributes{
+			"reason": "entry_required",
+		})
+	}
+
 	// Let's validate the address
 	if err := ValidateAddress(ctx, entry.PostingAddress()); err != nil {
-		return fmt.Errorf("invalid address: %w", err)
+		return ErrEntryInvalid.WithAttrs(models.Attributes{
+			"reason": "invalid_address",
+			"error":  err,
+		})
 	}
 
 	return nil
 }
 
 func ValidateAddress(ctx context.Context, address PostingAddress) error {
+	if address == nil {
+		return ErrAddressInvalid.WithAttrs(models.Attributes{
+			"reason": "address_required",
+		})
+	}
+
 	return nil
 }
 
 func ValidateTransactionInput(ctx context.Context, transaction TransactionInput) error {
+	if transaction == nil {
+		return ErrTransactionInputRequired
+	}
+
 	// Let's validate that the entries add up
 	if err := ValidateInvariance(ctx, lo.Map(transaction.EntryInputs(), func(e EntryInput, _ int) EntryInput {
 		return e
@@ -61,7 +79,7 @@ func ValidateTransactionInput(ctx context.Context, transaction TransactionInput)
 	// Let's validate the entries themselves
 	for _, entry := range transaction.EntryInputs() {
 		if err := ValidateEntryInput(ctx, entry); err != nil {
-			return fmt.Errorf("invalid entry: %w", err)
+			return err
 		}
 	}
 

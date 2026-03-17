@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -116,6 +117,9 @@ func (LedgerSubAccountRoute) Fields() []ent.Field {
 		field.String("currency").Immutable(),
 		field.String("tax_code").Optional().Nillable().Immutable(),
 		field.Strings("features").Optional().Immutable(),
+		field.Other("cost_basis", alpacadecimal.Decimal{}).
+			Optional().Nillable().Immutable().
+			SchemaType(map[string]string{dialect.Postgres: "numeric"}),
 		field.Int("credit_priority").Optional().Nillable().Immutable(),
 	}
 }

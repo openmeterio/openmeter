@@ -10,7 +10,7 @@ import (
 
 func (a *Account) AsCustomerAccount() (*CustomerAccount, error) {
 	switch a.data.AccountType {
-	case ledger.AccountTypeCustomerFBO, ledger.AccountTypeCustomerReceivable:
+	case ledger.AccountTypeCustomerFBO, ledger.AccountTypeCustomerReceivable, ledger.AccountTypeCustomerAccrued:
 	default:
 		return nil, fmt.Errorf("account type %s is not a customer account", a.data.AccountType)
 	}
@@ -20,8 +20,8 @@ func (a *Account) AsCustomerAccount() (*CustomerAccount, error) {
 	}, nil
 }
 
-// AsCustomerFBOAccount wraps the Account as a CustomerFBOAccountImpl.
-func (a *Account) AsCustomerFBOAccount() (*CustomerFBOAccountImpl, error) {
+// AsCustomerFBOAccount wraps the Account as a CustomerFBOAccount.
+func (a *Account) AsCustomerFBOAccount() (*CustomerFBOAccount, error) {
 	if a.data.AccountType != ledger.AccountTypeCustomerFBO {
 		return nil, fmt.Errorf("account type %s is not a customer FBO account", a.data.AccountType)
 	}
@@ -31,11 +31,11 @@ func (a *Account) AsCustomerFBOAccount() (*CustomerFBOAccountImpl, error) {
 		return nil, err
 	}
 
-	return &CustomerFBOAccountImpl{CustomerAccount: cAcc}, nil
+	return &CustomerFBOAccount{CustomerAccount: cAcc}, nil
 }
 
-// AsCustomerReceivableAccount wraps the Account as a CustomerReceivableAccountImpl.
-func (a *Account) AsCustomerReceivableAccount() (*CustomerReceivableAccountImpl, error) {
+// AsCustomerReceivableAccount wraps the Account as a CustomerReceivableAccount.
+func (a *Account) AsCustomerReceivableAccount() (*CustomerReceivableAccount, error) {
 	if a.data.AccountType != ledger.AccountTypeCustomerReceivable {
 		return nil, fmt.Errorf("account type %s is not a customer receivable account", a.data.AccountType)
 	}
@@ -45,18 +45,21 @@ func (a *Account) AsCustomerReceivableAccount() (*CustomerReceivableAccountImpl,
 		return nil, err
 	}
 
-	return &CustomerReceivableAccountImpl{CustomerAccount: cAcc}, nil
+	return &CustomerReceivableAccount{CustomerAccount: cAcc}, nil
 }
 
-// AsBusinessAccount wraps the Account as a BusinessAccountImpl.
-func (a *Account) AsBusinessAccount() (*BusinessAccountImpl, error) {
-	switch a.data.AccountType {
-	case ledger.AccountTypeWash, ledger.AccountTypeEarnings, ledger.AccountTypeBrokerage:
-	default:
-		return nil, fmt.Errorf("account type %s is not a business account", a.data.AccountType)
+// AsCustomerAccruedAccount wraps the Account as a CustomerAccruedAccount.
+func (a *Account) AsCustomerAccruedAccount() (*CustomerAccruedAccount, error) {
+	if a.data.AccountType != ledger.AccountTypeCustomerAccrued {
+		return nil, fmt.Errorf("account type %s is not a customer accrued account", a.data.AccountType)
 	}
 
-	return &BusinessAccountImpl{Account: a}, nil
+	cAcc, err := a.AsCustomerAccount()
+	if err != nil {
+		return nil, err
+	}
+
+	return &CustomerAccruedAccount{CustomerAccount: cAcc}, nil
 }
 
 // ----------------------------------------------------------------------------
@@ -80,18 +83,18 @@ func (c *CustomerAccount) Lock(ctx context.Context) error {
 }
 
 // ----------------------------------------------------------------------------
-// CustomerFBOAccountImpl
+// CustomerFBOAccount
 // ----------------------------------------------------------------------------
 
-// CustomerFBOAccountImpl implements ledger.CustomerFBOAccount.
-type CustomerFBOAccountImpl struct {
+// CustomerFBOAccount implements ledger.CustomerFBOAccount.
+type CustomerFBOAccount struct {
 	*CustomerAccount
 }
 
-var _ ledger.CustomerFBOAccount = (*CustomerFBOAccountImpl)(nil)
+var _ ledger.CustomerFBOAccount = (*CustomerFBOAccount)(nil)
 
 // GetSubAccountForRoute finds or creates a sub-account for the given route.
-func (a *CustomerFBOAccountImpl) GetSubAccountForRoute(ctx context.Context, params ledger.CustomerFBORouteParams) (ledger.SubAccount, error) {
+func (a *CustomerFBOAccount) GetSubAccountForRoute(ctx context.Context, params ledger.CustomerFBORouteParams) (ledger.SubAccount, error) {
 	if err := params.Validate(); err != nil {
 		return nil, err
 	}
@@ -104,18 +107,18 @@ func (a *CustomerFBOAccountImpl) GetSubAccountForRoute(ctx context.Context, para
 }
 
 // ----------------------------------------------------------------------------
-// CustomerReceivableAccountImpl
+// CustomerReceivableAccount
 // ----------------------------------------------------------------------------
 
-// CustomerReceivableAccountImpl implements ledger.CustomerReceivableAccount.
-type CustomerReceivableAccountImpl struct {
+// CustomerReceivableAccount implements ledger.CustomerReceivableAccount.
+type CustomerReceivableAccount struct {
 	*CustomerAccount
 }
 
-var _ ledger.CustomerReceivableAccount = (*CustomerReceivableAccountImpl)(nil)
+var _ ledger.CustomerReceivableAccount = (*CustomerReceivableAccount)(nil)
 
 // GetSubAccountForRoute finds or creates a sub-account for the given route.
-func (a *CustomerReceivableAccountImpl) GetSubAccountForRoute(ctx context.Context, params ledger.CustomerReceivableRouteParams) (ledger.SubAccount, error) {
+func (a *CustomerReceivableAccount) GetSubAccountForRoute(ctx context.Context, params ledger.CustomerReceivableRouteParams) (ledger.SubAccount, error) {
 	if err := params.Validate(); err != nil {
 		return nil, err
 	}
@@ -128,18 +131,19 @@ func (a *CustomerReceivableAccountImpl) GetSubAccountForRoute(ctx context.Contex
 }
 
 // ----------------------------------------------------------------------------
-// BusinessAccountImpl
+// CustomerAccruedAccount
 // ----------------------------------------------------------------------------
 
-// BusinessAccountImpl implements ledger.BusinessAccount.
-type BusinessAccountImpl struct {
-	*Account
+// CustomerAccruedAccount implements ledger.CustomerAccruedAccount.
+type CustomerAccruedAccount struct {
+	*CustomerAccount
 }
 
-var _ ledger.BusinessAccount = (*BusinessAccountImpl)(nil)
+var _ ledger.CustomerAccruedAccount = (*CustomerAccruedAccount)(nil)
 
 // GetSubAccountForRoute finds or creates a sub-account for the given route.
-func (a *BusinessAccountImpl) GetSubAccountForRoute(ctx context.Context, params ledger.BusinessRouteParams) (ledger.SubAccount, error) {
+// Accrued accounts are routed by currency only.
+func (a *CustomerAccruedAccount) GetSubAccountForRoute(ctx context.Context, params ledger.CustomerAccruedRouteParams) (ledger.SubAccount, error) {
 	if err := params.Validate(); err != nil {
 		return nil, err
 	}

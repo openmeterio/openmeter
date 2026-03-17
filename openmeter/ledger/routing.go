@@ -6,6 +6,11 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/alpacahq/alpacadecimal"
+
+	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type RoutingKeyVersion string
@@ -17,7 +22,9 @@ func (v RoutingKeyVersion) Validate() error {
 	case RoutingKeyVersionV1:
 		return nil
 	default:
-		return fmt.Errorf("invalid routing key version: %s", v)
+		return ErrRoutingKeyVersionInvalid.WithAttrs(models.Attributes{
+			"routing_key_version": v,
+		})
 	}
 }
 
@@ -95,9 +102,10 @@ func (r SubAccountRoute) RoutingKey() RoutingKey {
 // Route holds the literal values that identify a sub-account's routing path.
 // It is used for creation, persistence, and routing key generation.
 type Route struct {
-	Currency       string
+	Currency       currencyx.Code
 	TaxCode        *string
 	Features       []string
+	CostBasis      *alpacadecimal.Decimal
 	CreditPriority *int
 }
 
@@ -110,12 +118,48 @@ func (r Route) Validate() error {
 			return err
 		}
 	}
+	if _, err := normalizeOptionalCostBasis(r.CostBasis); err != nil {
+		return err
+	}
 	return nil
 }
 
 // Filter converts a Route to a RouteFilter for use in queries.
 func (r Route) Filter() RouteFilter {
 	return RouteFilter(r)
+}
+
+// Normalize canonicalizes route values so semantically equivalent routes share
+// the same stored literals and routing keys.
+func (r Route) Normalize() (Route, error) {
+	if err := r.Validate(); err != nil {
+		return Route{}, err
+	}
+
+	normalized := r
+	normalized.Features = SortedFeatures(r.Features)
+
+	costBasis, err := normalizeOptionalCostBasis(r.CostBasis)
+	if err != nil {
+		return Route{}, err
+	}
+	normalized.CostBasis = costBasis
+
+	return normalized, nil
+}
+
+// Normalize canonicalizes route filter values before querying.
+func (f RouteFilter) Normalize() (RouteFilter, error) {
+	if f.Currency == "" && f.TaxCode == nil && len(f.Features) == 0 && f.CostBasis == nil && f.CreditPriority == nil {
+		return f, nil
+	}
+
+	normalized, err := Route(f).Normalize()
+	if err != nil {
+		return RouteFilter{}, err
+	}
+
+	return RouteFilter(normalized), nil
 }
 
 // ----------------------------------------------------------------------------
@@ -131,20 +175,24 @@ func BuildRoutingKey(version RoutingKeyVersion, route Route) (RoutingKey, error)
 	case RoutingKeyVersionV1:
 		return BuildRoutingKeyV1(route)
 	default:
-		return RoutingKey{}, fmt.Errorf("unsupported routing key version: %s", version)
+		return RoutingKey{}, ErrRoutingKeyVersionUnsupported.WithAttrs(models.Attributes{
+			"routing_key_version": version,
+		})
 	}
 }
 
 func BuildRoutingKeyV1(route Route) (RoutingKey, error) {
-	if err := route.Validate(); err != nil {
+	normalizedRoute, err := route.Normalize()
+	if err != nil {
 		return RoutingKey{}, err
 	}
 
 	value := strings.Join([]string{
-		"currency:" + route.Currency,
-		"tax_code:" + optionalStringValue(route.TaxCode),
-		"features:" + canonicalFeatures(route.Features),
-		"credit_priority:" + optionalIntValue(route.CreditPriority),
+		"currency:" + string(normalizedRoute.Currency),
+		"tax_code:" + optionalStringValue(normalizedRoute.TaxCode),
+		"features:" + canonicalFeatures(normalizedRoute.Features),
+		"cost_basis:" + optionalDecimalValue(normalizedRoute.CostBasis),
+		"credit_priority:" + optionalIntValue(normalizedRoute.CreditPriority),
 	}, "|")
 
 	return NewRoutingKey(RoutingKeyVersionV1, value)
@@ -157,16 +205,21 @@ func BuildRoutingKeyV1(route Route) (RoutingKey, error) {
 // ValidateCreditPriority validates a credit priority integer value.
 func ValidateCreditPriority(value int) error {
 	if value < 1 {
-		return fmt.Errorf("credit priority must be a positive integer")
+		return ErrCreditPriorityInvalid.WithAttrs(models.Attributes{
+			"credit_priority": value,
+		})
 	}
 	return nil
 }
 
-// ValidateCurrency validates a currency string.
-func ValidateCurrency(value string) error {
-	if value == "" {
-		return fmt.Errorf("currency is required")
+// ValidateCurrency validates a currency value.
+func ValidateCurrency(value currencyx.Code) error {
+	if err := value.Validate(); err != nil {
+		return ErrCurrencyInvalid.WithAttrs(models.Attributes{
+			"currency": value,
+		})
 	}
+
 	return nil
 }
 
@@ -206,4 +259,30 @@ func optionalIntValue(v *int) string {
 		return "null"
 	}
 	return strconv.Itoa(*v)
+}
+
+func optionalDecimalValue(v *alpacadecimal.Decimal) string {
+	if v == nil {
+		return "null"
+	}
+	return v.String()
+}
+
+func normalizeOptionalCostBasis(v *alpacadecimal.Decimal) (*alpacadecimal.Decimal, error) {
+	if v == nil {
+		return nil, nil
+	}
+
+	if v.IsNegative() {
+		return nil, ErrCostBasisInvalid.WithAttrs(models.Attributes{
+			"cost_basis": v.String(),
+		})
+	}
+
+	normalized, err := alpacadecimal.NewFromString(v.String())
+	if err != nil {
+		return nil, fmt.Errorf("normalize cost basis: %w", err)
+	}
+
+	return &normalized, nil
 }

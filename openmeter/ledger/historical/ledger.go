@@ -2,7 +2,6 @@ package historical
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -60,7 +59,7 @@ func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupI
 	txInputs := group.Transactions()
 
 	if len(txInputs) == 0 {
-		return nil, errors.New("no transactions to commit")
+		return nil, ledger.ErrTransactionGroupEmpty
 	}
 
 	// 1. Validate each transaction sequentially

@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions/testutils"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -100,7 +101,7 @@ func TestGetAccountBalance(t *testing.T) {
 	var acc ledger.Account
 
 	balance, err := acc.GetBalance(t.Context(), ledger.RouteFilter{
-		Currency: "USD",
+		Currency: currencyx.Code("USD"),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, balance)

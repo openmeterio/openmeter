@@ -6,11 +6,14 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // ResolverDependencies are the dependencies required to resolve transactions
 type ResolverDependencies struct {
-	AccountService ledger.AccountResolver
+	AccountService    ledger.AccountResolver
+	SubAccountService ledgeraccount.Service
 }
 
 // ResolutionScope is the scope for which we resolve the transaction templates
@@ -21,7 +24,11 @@ type ResolutionScope struct {
 
 func (s ResolutionScope) Validate() error {
 	if s.CustomerID.Namespace != "" && s.Namespace != "" && s.CustomerID.Namespace != s.Namespace {
-		return fmt.Errorf("customer ID namespace and namespace must match")
+		return ledger.ErrResolutionScopeInvalid.WithAttrs(models.Attributes{
+			"reason":                "namespace_mismatch",
+			"customer_id_namespace": s.CustomerID.Namespace,
+			"namespace":             s.Namespace,
+		})
 	}
 
 	return nil
@@ -29,11 +36,15 @@ func (s ResolutionScope) Validate() error {
 
 func (s ResolutionScope) validateForCustomerTransaction() error {
 	if s.CustomerID.Namespace == "" {
-		return fmt.Errorf("customer ID namespace is required")
+		return ledger.ErrResolutionScopeInvalid.WithAttrs(models.Attributes{
+			"reason": "customer_id_namespace_required",
+		})
 	}
 
 	if s.CustomerID.ID == "" {
-		return fmt.Errorf("customer ID is required")
+		return ledger.ErrResolutionScopeInvalid.WithAttrs(models.Attributes{
+			"reason": "customer_id_required",
+		})
 	}
 
 	return nil
@@ -41,7 +52,9 @@ func (s ResolutionScope) validateForCustomerTransaction() error {
 
 func (s ResolutionScope) validateForOrgTransaction() error {
 	if s.Namespace == "" {
-		return fmt.Errorf("namespace is required")
+		return ledger.ErrResolutionScopeInvalid.WithAttrs(models.Attributes{
+			"reason": "namespace_required",
+		})
 	}
 
 	return nil
@@ -79,7 +92,9 @@ func ResolveTransactions(
 				return nil, err
 			}
 
-			inputs = append(inputs, tx)
+			if tx != nil {
+				inputs = append(inputs, tx)
+			}
 		case OrgTransactionTemplate:
 			if err := scope.validateForOrgTransaction(); err != nil {
 				return nil, err
@@ -90,9 +105,13 @@ func ResolveTransactions(
 				return nil, err
 			}
 
-			inputs = append(inputs, tx)
+			if tx != nil {
+				inputs = append(inputs, tx)
+			}
 		default:
-			return nil, fmt.Errorf("unknown template type: %T", typ)
+			return nil, ledger.ErrResolutionTemplateUnknown.WithAttrs(models.Attributes{
+				"template_type": fmt.Sprintf("%T", typ),
+			})
 		}
 	}
 
