@@ -12,14 +12,13 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// ChargeFlatFeePayment is the model entity for the ChargeFlatFeePayment schema.
-type ChargeFlatFeePayment struct {
+// ChargeUsageBasedRunPayment is the model entity for the ChargeUsageBasedRunPayment schema.
+type ChargeUsageBasedRunPayment struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
@@ -53,59 +52,46 @@ type ChargeFlatFeePayment struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Annotations holds the value of the "annotations" field.
 	Annotations models.Annotations `json:"annotations,omitempty"`
-	// ChargeID holds the value of the "charge_id" field.
-	ChargeID string `json:"charge_id,omitempty"`
+	// RunID holds the value of the "run_id" field.
+	RunID string `json:"run_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
-	// The values are being populated by the ChargeFlatFeePaymentQuery when eager-loading is set.
-	Edges        ChargeFlatFeePaymentEdges `json:"edges"`
+	// The values are being populated by the ChargeUsageBasedRunPaymentQuery when eager-loading is set.
+	Edges        ChargeUsageBasedRunPaymentEdges `json:"edges"`
 	selectValues sql.SelectValues
 }
 
-// ChargeFlatFeePaymentEdges holds the relations/edges for other nodes in the graph.
-type ChargeFlatFeePaymentEdges struct {
-	// BillingInvoiceLine holds the value of the billing_invoice_line edge.
-	BillingInvoiceLine *BillingInvoiceLine `json:"billing_invoice_line,omitempty"`
-	// FlatFee holds the value of the flat_fee edge.
-	FlatFee *ChargeFlatFee `json:"flat_fee,omitempty"`
+// ChargeUsageBasedRunPaymentEdges holds the relations/edges for other nodes in the graph.
+type ChargeUsageBasedRunPaymentEdges struct {
+	// Run holds the value of the run edge.
+	Run *ChargeUsageBasedRuns `json:"run,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [1]bool
 }
 
-// BillingInvoiceLineOrErr returns the BillingInvoiceLine value or an error if the edge
+// RunOrErr returns the Run value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeFlatFeePaymentEdges) BillingInvoiceLineOrErr() (*BillingInvoiceLine, error) {
-	if e.BillingInvoiceLine != nil {
-		return e.BillingInvoiceLine, nil
+func (e ChargeUsageBasedRunPaymentEdges) RunOrErr() (*ChargeUsageBasedRuns, error) {
+	if e.Run != nil {
+		return e.Run, nil
 	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: billinginvoiceline.Label}
+		return nil, &NotFoundError{label: chargeusagebasedruns.Label}
 	}
-	return nil, &NotLoadedError{edge: "billing_invoice_line"}
-}
-
-// FlatFeeOrErr returns the FlatFee value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeFlatFeePaymentEdges) FlatFeeOrErr() (*ChargeFlatFee, error) {
-	if e.FlatFee != nil {
-		return e.FlatFee, nil
-	} else if e.loadedTypes[1] {
-		return nil, &NotFoundError{label: chargeflatfee.Label}
-	}
-	return nil, &NotLoadedError{edge: "flat_fee"}
+	return nil, &NotLoadedError{edge: "run"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
-func (*ChargeFlatFeePayment) scanValues(columns []string) ([]any, error) {
+func (*ChargeUsageBasedRunPayment) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case chargeflatfeepayment.FieldAnnotations:
+		case chargeusagebasedrunpayment.FieldAnnotations:
 			values[i] = new([]byte)
-		case chargeflatfeepayment.FieldAmount:
+		case chargeusagebasedrunpayment.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeflatfeepayment.FieldID, chargeflatfeepayment.FieldLineID, chargeflatfeepayment.FieldInvoiceID, chargeflatfeepayment.FieldStatus, chargeflatfeepayment.FieldAuthorizedTransactionGroupID, chargeflatfeepayment.FieldSettledTransactionGroupID, chargeflatfeepayment.FieldNamespace, chargeflatfeepayment.FieldChargeID:
+		case chargeusagebasedrunpayment.FieldID, chargeusagebasedrunpayment.FieldLineID, chargeusagebasedrunpayment.FieldInvoiceID, chargeusagebasedrunpayment.FieldStatus, chargeusagebasedrunpayment.FieldAuthorizedTransactionGroupID, chargeusagebasedrunpayment.FieldSettledTransactionGroupID, chargeusagebasedrunpayment.FieldNamespace, chargeusagebasedrunpayment.FieldRunID:
 			values[i] = new(sql.NullString)
-		case chargeflatfeepayment.FieldServicePeriodFrom, chargeflatfeepayment.FieldServicePeriodTo, chargeflatfeepayment.FieldAuthorizedAt, chargeflatfeepayment.FieldSettledAt, chargeflatfeepayment.FieldCreatedAt, chargeflatfeepayment.FieldUpdatedAt, chargeflatfeepayment.FieldDeletedAt:
+		case chargeusagebasedrunpayment.FieldServicePeriodFrom, chargeusagebasedrunpayment.FieldServicePeriodTo, chargeusagebasedrunpayment.FieldAuthorizedAt, chargeusagebasedrunpayment.FieldSettledAt, chargeusagebasedrunpayment.FieldCreatedAt, chargeusagebasedrunpayment.FieldUpdatedAt, chargeusagebasedrunpayment.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -115,110 +101,110 @@ func (*ChargeFlatFeePayment) scanValues(columns []string) ([]any, error) {
 }
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
-// to the ChargeFlatFeePayment fields.
-func (_m *ChargeFlatFeePayment) assignValues(columns []string, values []any) error {
+// to the ChargeUsageBasedRunPayment fields.
+func (_m *ChargeUsageBasedRunPayment) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
 	for i := range columns {
 		switch columns[i] {
-		case chargeflatfeepayment.FieldID:
+		case chargeusagebasedrunpayment.FieldID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				_m.ID = value.String
 			}
-		case chargeflatfeepayment.FieldLineID:
+		case chargeusagebasedrunpayment.FieldLineID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field line_id", values[i])
 			} else if value.Valid {
 				_m.LineID = value.String
 			}
-		case chargeflatfeepayment.FieldInvoiceID:
+		case chargeusagebasedrunpayment.FieldInvoiceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_id", values[i])
 			} else if value.Valid {
 				_m.InvoiceID = new(string)
 				*_m.InvoiceID = value.String
 			}
-		case chargeflatfeepayment.FieldServicePeriodFrom:
+		case chargeusagebasedrunpayment.FieldServicePeriodFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field service_period_from", values[i])
 			} else if value.Valid {
 				_m.ServicePeriodFrom = value.Time
 			}
-		case chargeflatfeepayment.FieldServicePeriodTo:
+		case chargeusagebasedrunpayment.FieldServicePeriodTo:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field service_period_to", values[i])
 			} else if value.Valid {
 				_m.ServicePeriodTo = value.Time
 			}
-		case chargeflatfeepayment.FieldStatus:
+		case chargeusagebasedrunpayment.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
 				_m.Status = payment.Status(value.String)
 			}
-		case chargeflatfeepayment.FieldAmount:
+		case chargeusagebasedrunpayment.FieldAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field amount", values[i])
 			} else if value != nil {
 				_m.Amount = *value
 			}
-		case chargeflatfeepayment.FieldAuthorizedTransactionGroupID:
+		case chargeusagebasedrunpayment.FieldAuthorizedTransactionGroupID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field authorized_transaction_group_id", values[i])
 			} else if value.Valid {
 				_m.AuthorizedTransactionGroupID = new(string)
 				*_m.AuthorizedTransactionGroupID = value.String
 			}
-		case chargeflatfeepayment.FieldAuthorizedAt:
+		case chargeusagebasedrunpayment.FieldAuthorizedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field authorized_at", values[i])
 			} else if value.Valid {
 				_m.AuthorizedAt = new(time.Time)
 				*_m.AuthorizedAt = value.Time
 			}
-		case chargeflatfeepayment.FieldSettledTransactionGroupID:
+		case chargeusagebasedrunpayment.FieldSettledTransactionGroupID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field settled_transaction_group_id", values[i])
 			} else if value.Valid {
 				_m.SettledTransactionGroupID = new(string)
 				*_m.SettledTransactionGroupID = value.String
 			}
-		case chargeflatfeepayment.FieldSettledAt:
+		case chargeusagebasedrunpayment.FieldSettledAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field settled_at", values[i])
 			} else if value.Valid {
 				_m.SettledAt = new(time.Time)
 				*_m.SettledAt = value.Time
 			}
-		case chargeflatfeepayment.FieldNamespace:
+		case chargeusagebasedrunpayment.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
 				_m.Namespace = value.String
 			}
-		case chargeflatfeepayment.FieldCreatedAt:
+		case chargeusagebasedrunpayment.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				_m.CreatedAt = value.Time
 			}
-		case chargeflatfeepayment.FieldUpdatedAt:
+		case chargeusagebasedrunpayment.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
 			}
-		case chargeflatfeepayment.FieldDeletedAt:
+		case chargeusagebasedrunpayment.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
 			}
-		case chargeflatfeepayment.FieldAnnotations:
+		case chargeusagebasedrunpayment.FieldAnnotations:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field annotations", values[i])
 			} else if value != nil && len(*value) > 0 {
@@ -226,11 +212,11 @@ func (_m *ChargeFlatFeePayment) assignValues(columns []string, values []any) err
 					return fmt.Errorf("unmarshal field annotations: %w", err)
 				}
 			}
-		case chargeflatfeepayment.FieldChargeID:
+		case chargeusagebasedrunpayment.FieldRunID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field charge_id", values[i])
+				return fmt.Errorf("unexpected type %T for field run_id", values[i])
 			} else if value.Valid {
-				_m.ChargeID = value.String
+				_m.RunID = value.String
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -239,44 +225,39 @@ func (_m *ChargeFlatFeePayment) assignValues(columns []string, values []any) err
 	return nil
 }
 
-// Value returns the ent.Value that was dynamically selected and assigned to the ChargeFlatFeePayment.
+// Value returns the ent.Value that was dynamically selected and assigned to the ChargeUsageBasedRunPayment.
 // This includes values selected through modifiers, order, etc.
-func (_m *ChargeFlatFeePayment) Value(name string) (ent.Value, error) {
+func (_m *ChargeUsageBasedRunPayment) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryBillingInvoiceLine queries the "billing_invoice_line" edge of the ChargeFlatFeePayment entity.
-func (_m *ChargeFlatFeePayment) QueryBillingInvoiceLine() *BillingInvoiceLineQuery {
-	return NewChargeFlatFeePaymentClient(_m.config).QueryBillingInvoiceLine(_m)
+// QueryRun queries the "run" edge of the ChargeUsageBasedRunPayment entity.
+func (_m *ChargeUsageBasedRunPayment) QueryRun() *ChargeUsageBasedRunsQuery {
+	return NewChargeUsageBasedRunPaymentClient(_m.config).QueryRun(_m)
 }
 
-// QueryFlatFee queries the "flat_fee" edge of the ChargeFlatFeePayment entity.
-func (_m *ChargeFlatFeePayment) QueryFlatFee() *ChargeFlatFeeQuery {
-	return NewChargeFlatFeePaymentClient(_m.config).QueryFlatFee(_m)
-}
-
-// Update returns a builder for updating this ChargeFlatFeePayment.
-// Note that you need to call ChargeFlatFeePayment.Unwrap() before calling this method if this ChargeFlatFeePayment
+// Update returns a builder for updating this ChargeUsageBasedRunPayment.
+// Note that you need to call ChargeUsageBasedRunPayment.Unwrap() before calling this method if this ChargeUsageBasedRunPayment
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (_m *ChargeFlatFeePayment) Update() *ChargeFlatFeePaymentUpdateOne {
-	return NewChargeFlatFeePaymentClient(_m.config).UpdateOne(_m)
+func (_m *ChargeUsageBasedRunPayment) Update() *ChargeUsageBasedRunPaymentUpdateOne {
+	return NewChargeUsageBasedRunPaymentClient(_m.config).UpdateOne(_m)
 }
 
-// Unwrap unwraps the ChargeFlatFeePayment entity that was returned from a transaction after it was closed,
+// Unwrap unwraps the ChargeUsageBasedRunPayment entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (_m *ChargeFlatFeePayment) Unwrap() *ChargeFlatFeePayment {
+func (_m *ChargeUsageBasedRunPayment) Unwrap() *ChargeUsageBasedRunPayment {
 	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
-		panic("db: ChargeFlatFeePayment is not a transactional entity")
+		panic("db: ChargeUsageBasedRunPayment is not a transactional entity")
 	}
 	_m.config.driver = _tx.drv
 	return _m
 }
 
 // String implements the fmt.Stringer.
-func (_m *ChargeFlatFeePayment) String() string {
+func (_m *ChargeUsageBasedRunPayment) String() string {
 	var builder strings.Builder
-	builder.WriteString("ChargeFlatFeePayment(")
+	builder.WriteString("ChargeUsageBasedRunPayment(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("line_id=")
 	builder.WriteString(_m.LineID)
@@ -335,11 +316,11 @@ func (_m *ChargeFlatFeePayment) String() string {
 	builder.WriteString("annotations=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
 	builder.WriteString(", ")
-	builder.WriteString("charge_id=")
-	builder.WriteString(_m.ChargeID)
+	builder.WriteString("run_id=")
+	builder.WriteString(_m.RunID)
 	builder.WriteByte(')')
 	return builder.String()
 }
 
-// ChargeFlatFeePayments is a parsable slice of ChargeFlatFeePayment.
-type ChargeFlatFeePayments []*ChargeFlatFeePayment
+// ChargeUsageBasedRunPayments is a parsable slice of ChargeUsageBasedRunPayment.
+type ChargeUsageBasedRunPayments []*ChargeUsageBasedRunPayment

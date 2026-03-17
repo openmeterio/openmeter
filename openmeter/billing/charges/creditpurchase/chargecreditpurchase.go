@@ -90,6 +90,7 @@ func (i Intent) Validate() error {
 type State struct {
 	CreditGrantRealization    *ledgertransaction.TimedGroupReference `json:"creditGrantRealization"`
 	ExternalPaymentSettlement *payment.External                      `json:"externalPaymentSettlement"`
+	InvoiceSettlement         *payment.Invoiced                      `json:"invoiceSettlement"`
 }
 
 func (s State) Validate() error {

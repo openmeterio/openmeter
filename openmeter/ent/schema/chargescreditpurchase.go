@@ -63,11 +63,20 @@ func (ChargeCreditPurchase) Edges() []ent.Edge {
 		edge.To("external_payment", ChargeCreditPurchaseExternalPayment.Type).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("invoiced_payment", ChargeCreditPurchaseInvoicedPayment.Type).
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 
 type ChargeCreditPurchaseExternalPayment struct {
 	ent.Schema
+}
+
+func (ChargeCreditPurchaseExternalPayment) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		payment.ExternalMixin{},
+	}
 }
 
 func (ChargeCreditPurchaseExternalPayment) Fields() []ent.Field {
@@ -77,12 +86,6 @@ func (ChargeCreditPurchaseExternalPayment) Fields() []ent.Field {
 				dialect.Postgres: "char(26)",
 			}).
 			Immutable(),
-	}
-}
-
-func (ChargeCreditPurchaseExternalPayment) Mixin() []ent.Mixin {
-	return []ent.Mixin{
-		payment.ExternalMixin{},
 	}
 }
 
@@ -98,6 +101,50 @@ func (ChargeCreditPurchaseExternalPayment) Edges() []ent.Edge {
 }
 
 func (ChargeCreditPurchaseExternalPayment) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "charge_id").
+			Unique(),
+	}
+}
+
+type ChargeCreditPurchaseInvoicedPayment struct {
+	ent.Schema
+}
+
+func (ChargeCreditPurchaseInvoicedPayment) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		payment.InvoicedMixin{},
+	}
+}
+
+func (ChargeCreditPurchaseInvoicedPayment) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("charge_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Immutable(),
+	}
+}
+
+func (ChargeCreditPurchaseInvoicedPayment) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("billing_invoice_line", BillingInvoiceLine.Type).
+			Ref("charge_credit_purchase_invoiced_payment").
+			Field("line_id").
+			Required().
+			Immutable().
+			Unique(),
+		edge.From("credit_purchase", ChargeCreditPurchase.Type).
+			Ref("invoiced_payment").
+			Field("charge_id").
+			Unique().
+			Required().
+			Immutable(),
+	}
+}
+
+func (ChargeCreditPurchaseInvoicedPayment) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "charge_id").
 			Unique(),
