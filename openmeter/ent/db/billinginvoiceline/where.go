@@ -2028,6 +2028,36 @@ func ChargeIDContainsFold(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldChargeID, v))
 }
 
+// LifecycleHandlerEQ applies the EQ predicate on the "lifecycle_handler" field.
+func LifecycleHandlerEQ(v billing.LifecycleHandler) predicate.BillingInvoiceLine {
+	vc := v
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldLifecycleHandler, vc))
+}
+
+// LifecycleHandlerNEQ applies the NEQ predicate on the "lifecycle_handler" field.
+func LifecycleHandlerNEQ(v billing.LifecycleHandler) predicate.BillingInvoiceLine {
+	vc := v
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldLifecycleHandler, vc))
+}
+
+// LifecycleHandlerIn applies the In predicate on the "lifecycle_handler" field.
+func LifecycleHandlerIn(vs ...billing.LifecycleHandler) predicate.BillingInvoiceLine {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldLifecycleHandler, v...))
+}
+
+// LifecycleHandlerNotIn applies the NotIn predicate on the "lifecycle_handler" field.
+func LifecycleHandlerNotIn(vs ...billing.LifecycleHandler) predicate.BillingInvoiceLine {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldLifecycleHandler, v...))
+}
+
 // LineIdsEQ applies the EQ predicate on the "line_ids" field.
 func LineIdsEQ(v string) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldLineIds, v))

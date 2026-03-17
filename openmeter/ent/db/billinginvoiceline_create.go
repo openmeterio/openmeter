@@ -392,6 +392,20 @@ func (_c *BillingInvoiceLineCreate) SetNillableChargeID(v *string) *BillingInvoi
 	return _c
 }
 
+// SetLifecycleHandler sets the "lifecycle_handler" field.
+func (_c *BillingInvoiceLineCreate) SetLifecycleHandler(v billing.LifecycleHandler) *BillingInvoiceLineCreate {
+	_c.mutation.SetLifecycleHandler(v)
+	return _c
+}
+
+// SetNillableLifecycleHandler sets the "lifecycle_handler" field if the given value is not nil.
+func (_c *BillingInvoiceLineCreate) SetNillableLifecycleHandler(v *billing.LifecycleHandler) *BillingInvoiceLineCreate {
+	if v != nil {
+		_c.SetLifecycleHandler(*v)
+	}
+	return _c
+}
+
 // SetLineIds sets the "line_ids" field.
 func (_c *BillingInvoiceLineCreate) SetLineIds(v string) *BillingInvoiceLineCreate {
 	_c.mutation.SetLineIds(v)
@@ -657,6 +671,10 @@ func (_c *BillingInvoiceLineCreate) defaults() {
 		v := billinginvoiceline.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.LifecycleHandler(); !ok {
+		v := billinginvoiceline.DefaultLifecycleHandler
+		_c.mutation.SetLifecycleHandler(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := billinginvoiceline.DefaultID()
 		_c.mutation.SetID(v)
@@ -753,6 +771,14 @@ func (_c *BillingInvoiceLineCreate) check() error {
 	if v, ok := _c.mutation.Status(); ok {
 		if err := billinginvoiceline.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.LifecycleHandler(); !ok {
+		return &ValidationError{Name: "lifecycle_handler", err: errors.New(`db: missing required field "BillingInvoiceLine.lifecycle_handler"`)}
+	}
+	if v, ok := _c.mutation.LifecycleHandler(); ok {
+		if err := billinginvoiceline.LifecycleHandlerValidator(v); err != nil {
+			return &ValidationError{Name: "lifecycle_handler", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.lifecycle_handler": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.CreditsApplied(); ok {
@@ -925,6 +951,10 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 	if value, ok := _c.mutation.SubscriptionBillingPeriodTo(); ok {
 		_spec.SetField(billinginvoiceline.FieldSubscriptionBillingPeriodTo, field.TypeTime, value)
 		_node.SubscriptionBillingPeriodTo = &value
+	}
+	if value, ok := _c.mutation.LifecycleHandler(); ok {
+		_spec.SetField(billinginvoiceline.FieldLifecycleHandler, field.TypeEnum, value)
+		_node.LifecycleHandler = value
 	}
 	if value, ok := _c.mutation.LineIds(); ok {
 		_spec.SetField(billinginvoiceline.FieldLineIds, field.TypeString, value)
@@ -1753,6 +1783,18 @@ func (u *BillingInvoiceLineUpsert) ClearChargeID() *BillingInvoiceLineUpsert {
 	return u
 }
 
+// SetLifecycleHandler sets the "lifecycle_handler" field.
+func (u *BillingInvoiceLineUpsert) SetLifecycleHandler(v billing.LifecycleHandler) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldLifecycleHandler, v)
+	return u
+}
+
+// UpdateLifecycleHandler sets the "lifecycle_handler" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateLifecycleHandler() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldLifecycleHandler)
+	return u
+}
+
 // SetLineIds sets the "line_ids" field.
 func (u *BillingInvoiceLineUpsert) SetLineIds(v string) *BillingInvoiceLineUpsert {
 	u.Set(billinginvoiceline.FieldLineIds, v)
@@ -2427,6 +2469,20 @@ func (u *BillingInvoiceLineUpsertOne) UpdateChargeID() *BillingInvoiceLineUpsert
 func (u *BillingInvoiceLineUpsertOne) ClearChargeID() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearChargeID()
+	})
+}
+
+// SetLifecycleHandler sets the "lifecycle_handler" field.
+func (u *BillingInvoiceLineUpsertOne) SetLifecycleHandler(v billing.LifecycleHandler) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetLifecycleHandler(v)
+	})
+}
+
+// UpdateLifecycleHandler sets the "lifecycle_handler" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateLifecycleHandler() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateLifecycleHandler()
 	})
 }
 
@@ -3280,6 +3336,20 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateChargeID() *BillingInvoiceLineUpser
 func (u *BillingInvoiceLineUpsertBulk) ClearChargeID() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearChargeID()
+	})
+}
+
+// SetLifecycleHandler sets the "lifecycle_handler" field.
+func (u *BillingInvoiceLineUpsertBulk) SetLifecycleHandler(v billing.LifecycleHandler) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetLifecycleHandler(v)
+	})
+}
+
+// UpdateLifecycleHandler sets the "lifecycle_handler" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateLifecycleHandler() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateLifecycleHandler()
 	})
 }
 

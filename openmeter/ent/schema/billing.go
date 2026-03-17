@@ -398,6 +398,10 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
+		field.Enum("lifecycle_handler").
+			GoType(billing.LifecycleHandler("")).
+			Default(string(billing.DefaultLifecycleHandler)),
+
 		// Deprecated fields
 		field.String("line_ids").
 			Optional().

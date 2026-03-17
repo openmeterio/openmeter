@@ -36,9 +36,10 @@ type StandardLineBase struct {
 	InvoiceAt time.Time `json:"invoiceAt"`
 
 	// Relationships
-	ParentLineID     *string `json:"parentLine,omitempty"`
-	SplitLineGroupID *string `json:"splitLineGroupId,omitempty"`
-	ChargeID         *string `json:"chargeId,omitempty"`
+	ParentLineID     *string          `json:"parentLine,omitempty"`
+	SplitLineGroupID *string          `json:"splitLineGroupId,omitempty"`
+	ChargeID         *string          `json:"chargeId,omitempty"`
+	LifecycleHandler LifecycleHandler `json:"lifecycleHandler"`
 
 	ChildUniqueReferenceID *string `json:"childUniqueReferenceID,omitempty"`
 

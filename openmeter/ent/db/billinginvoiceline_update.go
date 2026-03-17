@@ -578,6 +578,20 @@ func (_u *BillingInvoiceLineUpdate) ClearChargeID() *BillingInvoiceLineUpdate {
 	return _u
 }
 
+// SetLifecycleHandler sets the "lifecycle_handler" field.
+func (_u *BillingInvoiceLineUpdate) SetLifecycleHandler(v billing.LifecycleHandler) *BillingInvoiceLineUpdate {
+	_u.mutation.SetLifecycleHandler(v)
+	return _u
+}
+
+// SetNillableLifecycleHandler sets the "lifecycle_handler" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdate) SetNillableLifecycleHandler(v *billing.LifecycleHandler) *BillingInvoiceLineUpdate {
+	if v != nil {
+		_u.SetLifecycleHandler(*v)
+	}
+	return _u
+}
+
 // SetLineIds sets the "line_ids" field.
 func (_u *BillingInvoiceLineUpdate) SetLineIds(v string) *BillingInvoiceLineUpdate {
 	_u.mutation.SetLineIds(v)
@@ -1042,6 +1056,11 @@ func (_u *BillingInvoiceLineUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.LifecycleHandler(); ok {
+		if err := billinginvoiceline.LifecycleHandlerValidator(v); err != nil {
+			return &ValidationError{Name: "lifecycle_handler", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.lifecycle_handler": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.CreditsApplied(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "credits_applied", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.credits_applied": %w`, err)}
@@ -1179,6 +1198,9 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 	}
 	if _u.mutation.SubscriptionBillingPeriodToCleared() {
 		_spec.ClearField(billinginvoiceline.FieldSubscriptionBillingPeriodTo, field.TypeTime)
+	}
+	if value, ok := _u.mutation.LifecycleHandler(); ok {
+		_spec.SetField(billinginvoiceline.FieldLifecycleHandler, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.LineIds(); ok {
 		_spec.SetField(billinginvoiceline.FieldLineIds, field.TypeString, value)
@@ -2308,6 +2330,20 @@ func (_u *BillingInvoiceLineUpdateOne) ClearChargeID() *BillingInvoiceLineUpdate
 	return _u
 }
 
+// SetLifecycleHandler sets the "lifecycle_handler" field.
+func (_u *BillingInvoiceLineUpdateOne) SetLifecycleHandler(v billing.LifecycleHandler) *BillingInvoiceLineUpdateOne {
+	_u.mutation.SetLifecycleHandler(v)
+	return _u
+}
+
+// SetNillableLifecycleHandler sets the "lifecycle_handler" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdateOne) SetNillableLifecycleHandler(v *billing.LifecycleHandler) *BillingInvoiceLineUpdateOne {
+	if v != nil {
+		_u.SetLifecycleHandler(*v)
+	}
+	return _u
+}
+
 // SetLineIds sets the "line_ids" field.
 func (_u *BillingInvoiceLineUpdateOne) SetLineIds(v string) *BillingInvoiceLineUpdateOne {
 	_u.mutation.SetLineIds(v)
@@ -2785,6 +2821,11 @@ func (_u *BillingInvoiceLineUpdateOne) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.LifecycleHandler(); ok {
+		if err := billinginvoiceline.LifecycleHandlerValidator(v); err != nil {
+			return &ValidationError{Name: "lifecycle_handler", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.lifecycle_handler": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.CreditsApplied(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "credits_applied", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.credits_applied": %w`, err)}
@@ -2939,6 +2980,9 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 	}
 	if _u.mutation.SubscriptionBillingPeriodToCleared() {
 		_spec.ClearField(billinginvoiceline.FieldSubscriptionBillingPeriodTo, field.TypeTime)
+	}
+	if value, ok := _u.mutation.LifecycleHandler(); ok {
+		_spec.SetField(billinginvoiceline.FieldLifecycleHandler, field.TypeEnum, value)
 	}
 	if value, ok := _u.mutation.LineIds(); ok {
 		_spec.SetField(billinginvoiceline.FieldLineIds, field.TypeString, value)

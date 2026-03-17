@@ -375,6 +375,8 @@ type GatheringLineBase struct {
 	SplitLineGroupID       *string                `json:"splitLineGroupID,omitempty"`
 	ChargeID               *string                `json:"chargeId,omitempty"`
 
+	LifecycleHandler LifecycleHandler `json:"lifecycleHandler"`
+
 	// TODO: Remove once we have dedicated db field for gathering invoice lines
 	UBPConfigID string `json:"ubpConfigID"`
 }
@@ -705,7 +707,8 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 				Start: g.ServicePeriod.From,
 				End:   g.ServicePeriod.To,
 			},
-			InvoiceAt: g.InvoiceAt,
+			InvoiceAt:        g.InvoiceAt,
+			LifecycleHandler: g.LifecycleHandler,
 
 			TaxConfig:              taxConfig,
 			RateCardDiscounts:      g.RateCardDiscounts.Clone(),

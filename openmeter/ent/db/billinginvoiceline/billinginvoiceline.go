@@ -91,6 +91,8 @@ const (
 	FieldSplitLineGroupID = "split_line_group_id"
 	// FieldChargeID holds the string denoting the charge_id field in the database.
 	FieldChargeID = "charge_id"
+	// FieldLifecycleHandler holds the string denoting the lifecycle_handler field in the database.
+	FieldLifecycleHandler = "lifecycle_handler"
 	// FieldLineIds holds the string denoting the line_ids field in the database.
 	FieldLineIds = "line_ids"
 	// FieldCreditsApplied holds the string denoting the credits_applied field in the database.
@@ -277,6 +279,7 @@ var Columns = []string{
 	FieldSubscriptionBillingPeriodTo,
 	FieldSplitLineGroupID,
 	FieldChargeID,
+	FieldLifecycleHandler,
 	FieldCreditsApplied,
 }
 
@@ -354,6 +357,18 @@ func StatusValidator(s billing.InvoiceLineStatus) error {
 		return nil
 	default:
 		return fmt.Errorf("billinginvoiceline: invalid enum value for status field: %q", s)
+	}
+}
+
+const DefaultLifecycleHandler billing.LifecycleHandler = "default"
+
+// LifecycleHandlerValidator is a validator for the "lifecycle_handler" field enum values. It is called by the builders before save.
+func LifecycleHandlerValidator(lh billing.LifecycleHandler) error {
+	switch lh {
+	case "default", "charges":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoiceline: invalid enum value for lifecycle_handler field: %q", lh)
 	}
 }
 
@@ -533,6 +548,11 @@ func BySplitLineGroupID(opts ...sql.OrderTermOption) OrderOption {
 // ByChargeID orders the results by the charge_id field.
 func ByChargeID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldChargeID, opts...).ToFunc()
+}
+
+// ByLifecycleHandler orders the results by the lifecycle_handler field.
+func ByLifecycleHandler(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLifecycleHandler, opts...).ToFunc()
 }
 
 // ByLineIds orders the results by the line_ids field.

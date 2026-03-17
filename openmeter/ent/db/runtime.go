@@ -562,7 +562,7 @@ func init() {
 	billinginvoicelineDescRatecardDiscounts := billinginvoicelineFields[9].Descriptor()
 	billinginvoiceline.ValueScanner.RatecardDiscounts = billinginvoicelineDescRatecardDiscounts.ValueScanner.(field.TypeValueScanner[*billing.Discounts])
 	// billinginvoicelineDescCreditsApplied is the schema descriptor for credits_applied field.
-	billinginvoicelineDescCreditsApplied := billinginvoicelineFields[20].Descriptor()
+	billinginvoicelineDescCreditsApplied := billinginvoicelineFields[21].Descriptor()
 	billinginvoiceline.ValueScanner.CreditsApplied = billinginvoicelineDescCreditsApplied.ValueScanner.(field.TypeValueScanner[*billing.CreditsApplied])
 	// billinginvoicelineDescID is the schema descriptor for id field.
 	billinginvoicelineDescID := billinginvoicelineMixinFields1[0].Descriptor()

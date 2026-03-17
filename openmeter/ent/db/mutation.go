@@ -16755,6 +16755,7 @@ type BillingInvoiceLineMutation struct {
 	child_unique_reference_id                 *string
 	subscription_billing_period_from          *time.Time
 	subscription_billing_period_to            *time.Time
+	lifecycle_handler                         *billing.LifecycleHandler
 	line_ids                                  *string
 	credits_applied                           **billing.CreditsApplied
 	clearedFields                             map[string]struct{}
@@ -18458,6 +18459,42 @@ func (m *BillingInvoiceLineMutation) ResetChargeID() {
 	delete(m.clearedFields, billinginvoiceline.FieldChargeID)
 }
 
+// SetLifecycleHandler sets the "lifecycle_handler" field.
+func (m *BillingInvoiceLineMutation) SetLifecycleHandler(bh billing.LifecycleHandler) {
+	m.lifecycle_handler = &bh
+}
+
+// LifecycleHandler returns the value of the "lifecycle_handler" field in the mutation.
+func (m *BillingInvoiceLineMutation) LifecycleHandler() (r billing.LifecycleHandler, exists bool) {
+	v := m.lifecycle_handler
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLifecycleHandler returns the old "lifecycle_handler" field's value of the BillingInvoiceLine entity.
+// If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceLineMutation) OldLifecycleHandler(ctx context.Context) (v billing.LifecycleHandler, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLifecycleHandler is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLifecycleHandler requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLifecycleHandler: %w", err)
+	}
+	return oldValue.LifecycleHandler, nil
+}
+
+// ResetLifecycleHandler resets all changes to the "lifecycle_handler" field.
+func (m *BillingInvoiceLineMutation) ResetLifecycleHandler() {
+	m.lifecycle_handler = nil
+}
+
 // SetLineIds sets the "line_ids" field.
 func (m *BillingInvoiceLineMutation) SetLineIds(s string) {
 	m.line_ids = &s
@@ -19233,7 +19270,7 @@ func (m *BillingInvoiceLineMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceLineMutation) Fields() []string {
-	fields := make([]string, 0, 39)
+	fields := make([]string, 0, 40)
 	if m.annotations != nil {
 		fields = append(fields, billinginvoiceline.FieldAnnotations)
 	}
@@ -19345,6 +19382,9 @@ func (m *BillingInvoiceLineMutation) Fields() []string {
 	if m.charge != nil {
 		fields = append(fields, billinginvoiceline.FieldChargeID)
 	}
+	if m.lifecycle_handler != nil {
+		fields = append(fields, billinginvoiceline.FieldLifecycleHandler)
+	}
 	if m.line_ids != nil {
 		fields = append(fields, billinginvoiceline.FieldLineIds)
 	}
@@ -19433,6 +19473,8 @@ func (m *BillingInvoiceLineMutation) Field(name string) (ent.Value, bool) {
 		return m.SplitLineGroupID()
 	case billinginvoiceline.FieldChargeID:
 		return m.ChargeID()
+	case billinginvoiceline.FieldLifecycleHandler:
+		return m.LifecycleHandler()
 	case billinginvoiceline.FieldLineIds:
 		return m.LineIds()
 	case billinginvoiceline.FieldCreditsApplied:
@@ -19520,6 +19562,8 @@ func (m *BillingInvoiceLineMutation) OldField(ctx context.Context, name string) 
 		return m.OldSplitLineGroupID(ctx)
 	case billinginvoiceline.FieldChargeID:
 		return m.OldChargeID(ctx)
+	case billinginvoiceline.FieldLifecycleHandler:
+		return m.OldLifecycleHandler(ctx)
 	case billinginvoiceline.FieldLineIds:
 		return m.OldLineIds(ctx)
 	case billinginvoiceline.FieldCreditsApplied:
@@ -19791,6 +19835,13 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetChargeID(v)
+		return nil
+	case billinginvoiceline.FieldLifecycleHandler:
+		v, ok := value.(billing.LifecycleHandler)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLifecycleHandler(v)
 		return nil
 	case billinginvoiceline.FieldLineIds:
 		v, ok := value.(string)
@@ -20082,6 +20133,9 @@ func (m *BillingInvoiceLineMutation) ResetField(name string) error {
 		return nil
 	case billinginvoiceline.FieldChargeID:
 		m.ResetChargeID()
+		return nil
+	case billinginvoiceline.FieldLifecycleHandler:
+		m.ResetLifecycleHandler()
 		return nil
 	case billinginvoiceline.FieldLineIds:
 		m.ResetLineIds()
