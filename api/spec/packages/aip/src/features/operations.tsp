@@ -39,7 +39,7 @@ interface FeatureOperations {
   create(
     @body
     feature: Shared.CreateRequest<Feature>,
-  ): Shared.PagePaginatedResponse<Feature> | Common.ErrorResponses;
+  ): Shared.CreateResponse<Feature> | Common.ErrorResponses;
 
   /**
    * Get a feature by id.

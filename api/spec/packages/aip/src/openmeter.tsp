@@ -123,7 +123,14 @@ interface LLMCostPricesEndpoints extends LLMCost.LLMCostPricesOperations {}
 interface LLMCostOverridesEndpoints
   extends LLMCost.LLMCostOverridesOperations {}
 
-@route("/openmeter/product-catalog")
+@route("/openmeter/plans")
 @tag(Shared.ProductCatalogTag)
-interface ProductCatalogEndpoints
-  extends ProductCatalog.ProductCatalogOperations {}
+interface PlansEndpoints extends ProductCatalog.PlanOperations {}
+
+@route("/openmeter/addons")
+@tag(Shared.ProductCatalogTag)
+interface AddonsEndpoints extends ProductCatalog.AddonOperations {}
+
+@route("/openmeter/plans/{planId}/addons")
+@tag(Shared.ProductCatalogTag)
+interface PlanAddonEndpoints extends ProductCatalog.PlanAddonOperations {}
