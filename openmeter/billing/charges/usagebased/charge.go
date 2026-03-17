@@ -176,7 +176,7 @@ func (r RealizationRun) Validate() error {
 	}
 
 	if r.MeterValue.IsNegative() {
-		errs = append(errs, fmt.Errorf("meter value must be positive"))
+		errs = append(errs, fmt.Errorf("meter value must be zero or positive"))
 	}
 
 	if r.AsOf.IsZero() {
