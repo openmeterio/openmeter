@@ -80,7 +80,8 @@ func UpdateInvoiced[T InvoicedUpdater[T]](updater InvoicedUpdater[T], in Invoice
 type Invoiced struct {
 	Payment
 
-	LineID string `json:"lineID"`
+	LineID    string `json:"lineID"`
+	InvoiceID string `json:"invoiceID"`
 }
 
 var _ models.Validator = (*Invoiced)(nil)
@@ -94,6 +95,10 @@ func (r Invoiced) Validate() error {
 
 	if err := r.Payment.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("payment: %w", err))
+	}
+
+	if r.InvoiceID == "" {
+		errs = append(errs, fmt.Errorf("invoice ID is required"))
 	}
 
 	return errors.Join(errs...)
