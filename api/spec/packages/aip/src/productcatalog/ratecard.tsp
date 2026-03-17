@@ -1,9 +1,9 @@
 import "../shared/index.tsp";
+import "../billing/tax.tsp";
+import "../features/feature.tsp";
+import "../tax/codes.tsp";
 import "./price.tsp";
 import "./unitconfig.tsp";
-import "../billing/tax.tsp";
-import "./feature.tsp";
-import "../tax/codes.tsp";
 
 namespace ProductCatalog;
 
@@ -114,3 +114,4 @@ model Discounts {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   usage?: Shared.Numeric;
 }
+

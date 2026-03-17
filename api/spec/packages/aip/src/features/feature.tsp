@@ -4,7 +4,7 @@ import "@typespec/json-schema";
 
 using TypeSpec.JsonSchema;
 
-namespace ProductCatalog;
+namespace Features;
 
 /**
  * A capability or billable dimension offered by a provider.
@@ -30,3 +30,4 @@ model Feature {
     filters?: Record<Shared.QueryFilterStringMapItem>;
   };
 }
+
