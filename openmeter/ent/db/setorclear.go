@@ -3167,6 +3167,174 @@ func (u *LLMCostPriceUpdateOne) SetOrClearEffectiveTo(value *time.Time) *LLMCost
 	return u.SetEffectiveTo(*value)
 }
 
+func (u *LedgerAccountUpdate) SetOrClearAnnotations(value *models.Annotations) *LedgerAccountUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *LedgerAccountUpdateOne) SetOrClearAnnotations(value *models.Annotations) *LedgerAccountUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *LedgerAccountUpdate) SetOrClearDeletedAt(value *time.Time) *LedgerAccountUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LedgerAccountUpdateOne) SetOrClearDeletedAt(value *time.Time) *LedgerAccountUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LedgerCustomerAccountUpdate) SetOrClearDeletedAt(value *time.Time) *LedgerCustomerAccountUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LedgerCustomerAccountUpdateOne) SetOrClearDeletedAt(value *time.Time) *LedgerCustomerAccountUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LedgerEntryUpdate) SetOrClearAnnotations(value *models.Annotations) *LedgerEntryUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *LedgerEntryUpdateOne) SetOrClearAnnotations(value *models.Annotations) *LedgerEntryUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *LedgerEntryUpdate) SetOrClearDeletedAt(value *time.Time) *LedgerEntryUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LedgerEntryUpdateOne) SetOrClearDeletedAt(value *time.Time) *LedgerEntryUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LedgerSubAccountUpdate) SetOrClearAnnotations(value *models.Annotations) *LedgerSubAccountUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *LedgerSubAccountUpdateOne) SetOrClearAnnotations(value *models.Annotations) *LedgerSubAccountUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *LedgerSubAccountUpdate) SetOrClearDeletedAt(value *time.Time) *LedgerSubAccountUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LedgerSubAccountUpdateOne) SetOrClearDeletedAt(value *time.Time) *LedgerSubAccountUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LedgerSubAccountRouteUpdate) SetOrClearDeletedAt(value *time.Time) *LedgerSubAccountRouteUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LedgerSubAccountRouteUpdateOne) SetOrClearDeletedAt(value *time.Time) *LedgerSubAccountRouteUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LedgerTransactionUpdate) SetOrClearAnnotations(value *models.Annotations) *LedgerTransactionUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *LedgerTransactionUpdateOne) SetOrClearAnnotations(value *models.Annotations) *LedgerTransactionUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *LedgerTransactionUpdate) SetOrClearDeletedAt(value *time.Time) *LedgerTransactionUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LedgerTransactionUpdateOne) SetOrClearDeletedAt(value *time.Time) *LedgerTransactionUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LedgerTransactionGroupUpdate) SetOrClearAnnotations(value *models.Annotations) *LedgerTransactionGroupUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *LedgerTransactionGroupUpdateOne) SetOrClearAnnotations(value *models.Annotations) *LedgerTransactionGroupUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *LedgerTransactionGroupUpdate) SetOrClearDeletedAt(value *time.Time) *LedgerTransactionGroupUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LedgerTransactionGroupUpdateOne) SetOrClearDeletedAt(value *time.Time) *LedgerTransactionGroupUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *MeterUpdate) SetOrClearMetadata(value *map[string]string) *MeterUpdate {
 	if value == nil {
 		return u.ClearMetadata()
