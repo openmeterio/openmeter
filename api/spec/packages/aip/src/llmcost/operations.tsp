@@ -25,7 +25,7 @@ model FilterSingleString {
   eq?: string;
 
   /**
-   * aasd
+   * The field must match the provided value. This is an "override" filter that can be used when the default `eq` filter is not sufficient, e.g. when filtering by `model_name` where the name can have multiple variants for the same model ID.
    */
   oeq?: string;
 
@@ -40,7 +40,7 @@ model FilterSingleString {
   contains?: string;
 
   /**
-   * asd
+   * The field must contain the provided value. This is an "override" filter that can be used when the default `contains` filter is not sufficient.
    */
   ocontains?: string;
 }

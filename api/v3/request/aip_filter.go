@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 )
 
@@ -32,12 +34,8 @@ var (
 )
 
 func filterName(value QueryFilterOp) string {
-	for k, v := range filterMap {
-		if v == value {
-			return k
-		}
-	}
-	return ""
+	key, _ := lo.FindKey(filterMap, value)
+	return key
 }
 
 const (
@@ -65,10 +63,8 @@ const (
 	QueryFilterOrContains
 )
 
-var (
-	// lookup to only focus filter[foo] and not filterfoo[bar]
-	prefixLookup = FilterQuery + "["
-)
+// lookup to only focus filter[foo] and not filterfoo[bar]
+var prefixLookup = FilterQuery + "["
 
 // QueryFilter column filter
 type QueryFilter struct {
@@ -82,111 +78,130 @@ type QueryFilter struct {
 type QueryFilterOp int
 
 func extractFilter(ctx context.Context, qs url.Values, c *config) ([]QueryFilter, *apierrors.BaseAPIError) {
-	var out []QueryFilter
+	type filterEntry struct{ key, value string }
 
-	for i, v := range qs {
-		if !strings.HasPrefix(i, prefixLookup) {
-			continue
+	entries := lo.FlatMap(lo.Entries(qs), func(e lo.Entry[string, []string], _ int) []filterEntry {
+		if !strings.HasPrefix(e.Key, prefixLookup) {
+			return nil
 		}
-		for _, filter := range v {
-			o, err := parseFilterQs(ctx, filter, i)
-			if err != nil {
-				return nil, err
-			}
+		return lo.Map(e.Value, func(v string, _ int) filterEntry { return filterEntry{e.Key, v} })
+	})
 
-			// no field name provided is an invalid query filter
-			if o.Name == "" {
-				continue
-			}
-
-			// if there is value that means we're falling back on
-			// EXIST query filter
-			if filter == "" {
-				o.Filter = QueryFilterExists
-			}
-
-			o.Value = filter
-
-			checkFilters := c.authorizedFilters != nil
-			var ok bool
-			var filters AIPFilterOption
-
-			if checkFilters && strings.ContainsRune(o.Name, '.') {
-				parts := strings.SplitN(o.Name, ".", 2) // allow filters[known_custom_field.unknown_key]
-				filters, ok = c.authorizedFilters[parts[0]]
-				if !ok {
-					filters, ok = c.authorizedFilters[o.Name] // specific case where only 1 field is allowed
-				}
-				ok = ok && filters.DotFilter
-			} else if checkFilters {
-				filters, ok = c.authorizedFilters[o.Name]
-				ok = ok && !filters.DotFilter // forbid using whole field for dot filters
-			}
-
-			if checkFilters {
-				if !ok {
-					if c.strictMode {
-						return nil, apierrors.NewBadRequestError(ctx, ErrUnallowedFilterMethod,
-							apierrors.InvalidParameters{
-								apierrors.InvalidParameter{
-									Field:  o.Name,
-									Reason: "unauthorized filter",
-									Source: apierrors.InvalidParamSourceQuery,
-									Rule:   "unknown_property",
-								},
-							})
-					}
-					continue
-				}
-				if !slices.Contains(filters.Filters, o.Filter) {
-					if c.strictMode {
-						return nil, apierrors.NewBadRequestError(ctx, ErrUnallowedFilterColumn,
-							apierrors.InvalidParameters{
-								apierrors.InvalidParameter{
-									Field:  filterName(o.Filter),
-									Reason: "unauthorized filter on column",
-									Source: apierrors.InvalidParamSourceQuery,
-									Rule:   "unknown_property",
-								},
-							})
-					}
-					continue
-				}
-				if filters.ValidationFunc != nil {
-					if err := filters.ValidationFunc(o.Name, o.Value); err != nil {
-						if errors.Is(err, ErrReturnEmptySet) {
-							// for errors in uuid format, we want to handle it by returning an empty list.
-							return nil, apierrors.NewEmptySetResponse(ctx, c.paginationKind == paginationKindCursor)
-						}
-						return nil, apierrors.NewBadRequestError(ctx, ErrUnallowedFilterColumn,
-							apierrors.InvalidParameters{
-								apierrors.InvalidParameter{
-									Field:  filter,
-									Reason: err.Error(),
-									Source: apierrors.InvalidParamSourceQuery,
-									Rule:   "unauthorized filter on column",
-								},
-							})
-					}
-				}
-			}
-
-			if o.Filter == QueryFilterOrEQ || o.Filter == QueryFilterOrContains {
-				o.Values = parseMultipleStringValues(o.Value)
-			}
-			out = append(out, o)
+	var out []QueryFilter
+	for _, e := range entries {
+		qf, skip, err := processFilter(ctx, e.value, e.key, c)
+		if err != nil {
+			return nil, err
+		}
+		if !skip {
+			out = append(out, qf)
 		}
 	}
-
 	return out, nil
 }
 
-func parseMultipleStringValues(strValue string) []string {
-	var out []string
-	for _, v := range strings.Split(strValue, ",") {
-		out = append(out, strings.TrimSpace(v))
+func processFilter(ctx context.Context, filter, key string, c *config) (QueryFilter, bool, *apierrors.BaseAPIError) {
+	o, err := parseFilterQs(ctx, filter, key)
+	if err != nil {
+		return QueryFilter{}, false, err
 	}
-	return out
+	if o.Name == "" {
+		return QueryFilter{}, true, nil
+	}
+	if filter == "" {
+		o.Filter = QueryFilterExists
+	}
+	o.Value = filter
+
+	skip, apiErr := checkFilterAuthorization(ctx, o, filter, c)
+	if apiErr != nil {
+		return QueryFilter{}, false, apiErr
+	}
+	if skip {
+		return QueryFilter{}, true, nil
+	}
+
+	if o.Filter == QueryFilterOrEQ || o.Filter == QueryFilterOrContains {
+		o.Values = parseMultipleStringValues(o.Value)
+	}
+	return o, false, nil
+}
+
+func resolveAuthorizedFilter(name string, authorizedFilters AuthorizedFilters) (AIPFilterOption, bool) {
+	if !strings.ContainsRune(name, '.') {
+		opt, ok := authorizedFilters[name]
+		return opt, ok && !opt.DotFilter
+	}
+	parts := strings.SplitN(name, ".", 2) // allow filters[known_custom_field.unknown_key]
+	if opt, ok := authorizedFilters[parts[0]]; ok && opt.DotFilter {
+		return opt, true
+	}
+	opt, ok := authorizedFilters[name] // specific case where only 1 field is allowed
+	return opt, ok && opt.DotFilter
+}
+
+func checkFilterAuthorization(ctx context.Context, o QueryFilter, rawFilter string, c *config) (bool, *apierrors.BaseAPIError) {
+	if c.authorizedFilters == nil {
+		return false, nil
+	}
+
+	authorizedOpt, ok := resolveAuthorizedFilter(o.Name, c.authorizedFilters)
+	if !ok && c.strictMode {
+		return false, apierrors.NewBadRequestError(ctx, ErrUnallowedFilterMethod,
+			apierrors.InvalidParameters{
+				apierrors.InvalidParameter{
+					Field:  o.Name,
+					Reason: "unauthorized filter",
+					Source: apierrors.InvalidParamSourceQuery,
+					Rule:   "unknown_property",
+				},
+			})
+	}
+	if !ok {
+		return true, nil
+	}
+
+	filterAllowed := slices.Contains(authorizedOpt.Filters, o.Filter)
+	if !filterAllowed && c.strictMode {
+		return false, apierrors.NewBadRequestError(ctx, ErrUnallowedFilterColumn,
+			apierrors.InvalidParameters{
+				apierrors.InvalidParameter{
+					Field:  filterName(o.Filter),
+					Reason: "unauthorized filter on column",
+					Source: apierrors.InvalidParamSourceQuery,
+					Rule:   "unknown_property",
+				},
+			})
+	}
+	if !filterAllowed {
+		return true, nil
+	}
+
+	if authorizedOpt.ValidationFunc == nil {
+		return false, nil
+	}
+
+	err := authorizedOpt.ValidationFunc(o.Name, o.Value)
+	if err == nil {
+		return false, nil
+	}
+	if errors.Is(err, ErrReturnEmptySet) {
+		// for errors in uuid format, we want to handle it by returning an empty list.
+		return false, apierrors.NewEmptySetResponse(ctx, c.paginationKind == paginationKindCursor)
+	}
+	return false, apierrors.NewBadRequestError(ctx, ErrUnallowedFilterColumn,
+		apierrors.InvalidParameters{
+			apierrors.InvalidParameter{
+				Field:  rawFilter,
+				Reason: err.Error(),
+				Source: apierrors.InvalidParamSourceQuery,
+				Rule:   "unauthorized filter on column",
+			},
+		})
+}
+
+func parseMultipleStringValues(strValue string) []string {
+	return lo.Map(strings.Split(strValue, ","), func(v string, _ int) string { return strings.TrimSpace(v) })
 }
 
 func parseFilterQs(ctx context.Context, filter, qs string) (QueryFilter, *apierrors.BaseAPIError) {
@@ -204,27 +219,34 @@ func parseFilterQs(ctx context.Context, filter, qs string) (QueryFilter, *apierr
 	o.Name = qs[i+1 : endFirst]
 
 	qsRest := qs[endFirst+1:]
-
-	if len(qsRest) > 0 {
-		start := strings.IndexRune(qsRest, '[')
-		end := strings.IndexRune(qsRest, ']')
-		op := qsRest[start+1 : end]
-		if len(op) > 0 {
-			if queryOp, ok := filterMap[op]; ok {
-				o.Filter = queryOp
-			} else {
-				return QueryFilter{}, apierrors.NewBadRequestError(ctx, ErrUnallowedFilterColumn,
-					apierrors.InvalidParameters{
-						apierrors.InvalidParameter{
-							Field:  filter,
-							Reason: fmt.Sprintf("invalid operation '%s' on filter", op),
-							Source: apierrors.InvalidParamSourceQuery,
-							Rule:   "unauthorized filter on column",
-						},
-					})
-			}
-		}
+	if len(qsRest) == 0 {
+		return o, nil
 	}
 
+	start := strings.IndexRune(qsRest, '[')
+	end := strings.IndexRune(qsRest, ']')
+	if start == -1 || end == -1 || end <= start {
+		return o, nil
+	}
+
+	op := qsRest[start+1 : end]
+	if len(op) == 0 {
+		return o, nil
+	}
+
+	queryOp, ok := filterMap[op]
+	if !ok {
+		return QueryFilter{}, apierrors.NewBadRequestError(ctx, ErrUnallowedFilterColumn,
+			apierrors.InvalidParameters{
+				apierrors.InvalidParameter{
+					Field:  filter,
+					Reason: fmt.Sprintf("invalid operation '%s' on filter", op),
+					Source: apierrors.InvalidParamSourceQuery,
+					Rule:   "unauthorized filter on column",
+				},
+			})
+	}
+
+	o.Filter = queryOp
 	return o, nil
 }

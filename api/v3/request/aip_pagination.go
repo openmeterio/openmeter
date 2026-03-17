@@ -39,73 +39,27 @@ type Pagination struct {
 }
 
 func extractPagination(ctx context.Context, qs url.Values, c *config) (Pagination, *apierrors.BaseAPIError) {
-	p := Pagination{
-		Size: c.defaultPageSize,
+	size, apiErr := parsePageSize(ctx, qs, c)
+	if apiErr != nil {
+		return Pagination{}, apiErr
 	}
 
-	if qs.Has(PageSizeQuery) {
-		strPageSize := qs.Get(PageSizeQuery)
-		pageSize, err := strconv.ParseInt(strPageSize, 10, 16)
-		if err != nil {
-			if c.strictMode || pageSize < 0 {
-				return p, apierrors.NewBadRequestError(ctx, err,
-					apierrors.InvalidParameters{
-						apierrors.InvalidParameter{
-							Field:  PageSizeQuery,
-							Reason: "unable to parse query field",
-							Source: apierrors.InvalidParamSourceQuery,
-							Rule:   "page size should be a positive integer",
-						},
-					})
-			} else {
-				pageSize = int64(c.defaultPageSize)
-			}
-		}
-		if pageSize < 1 {
-			pageSize = DefaultPaginationSize
-		}
-		p.Size = int(pageSize)
-	}
+	p := Pagination{Size: min(size, c.maxPageSize)}
 
-	if p.Size > c.maxPageSize {
-		p.Size = c.maxPageSize
-	}
-
-	if c.paginationKind == paginationKindOffset {
-		p.Number = DefaultPaginationNumber
-
-		if qs.Has(PageNumberQuery) {
-			strPageNumber := qs.Get(PageNumberQuery)
-			pageNumber, err := strconv.ParseInt(strPageNumber, 10, 16)
-			if err != nil {
-				if c.strictMode || pageNumber < 0 {
-					return p, apierrors.NewBadRequestError(ctx, err,
-						apierrors.InvalidParameters{
-							apierrors.InvalidParameter{
-								Field:  PageNumberQuery,
-								Reason: "unable to parse query field",
-								Source: apierrors.InvalidParamSourceQuery,
-								Rule:   "page number should be a positive integer",
-							},
-						})
-				}
-			}
-			if pageNumber < 1 {
-				pageNumber = DefaultPaginationNumber
-			}
-			p.Number = int(pageNumber)
+	switch c.paginationKind {
+	case paginationKindOffset:
+		number, apiErr := parsePageNumber(ctx, qs, c)
+		if apiErr != nil {
+			return Pagination{}, apiErr
 		}
-
-		var coef int
-		coef = int(p.Number) - 1
-		if coef < 0 {
-			coef = 0
-		}
+		p.Number = number
+		coef := max(p.Number-1, 0)
 		p.Offset = coef * p.Size
 		p.Limit = p.Size
-	} else if c.paginationKind == paginationKindCursor {
+
+	case paginationKindCursor:
 		if qs.Has(PageBeforeQuery) && qs.Has(PageAfterQuery) {
-			return p, apierrors.NewBadRequestError(ctx, ErrCursorRange,
+			return Pagination{}, apierrors.NewBadRequestError(ctx, ErrCursorRange,
 				apierrors.InvalidParameters{
 					apierrors.InvalidParameter{
 						Source: apierrors.InvalidParamSourceQuery,
@@ -114,33 +68,95 @@ func extractPagination(ctx context.Context, qs url.Values, c *config) (Paginatio
 				})
 		}
 
-		if qs.Has(PageBeforeQuery) {
-			b, err := decodeCursorAfterQueryUnescape(c.cursorCipherKey, qs.Get(PageBeforeQuery), c.cursorValidateUUIDs)
-			if err != nil {
-				return p, apierrors.NewBadRequestError(ctx, err,
-					apierrors.InvalidParameters{
-						apierrors.InvalidParameter{
-							Source: apierrors.InvalidParamSourceQuery,
-							Reason: fmt.Sprintf("unable to parse %s cursor", PageBeforeQuery),
-						},
-					})
-			}
-			p.Before = b
+		before, apiErr := parseCursorParam(ctx, qs, PageBeforeQuery, c.cursorCipherKey, c.cursorValidateUUIDs)
+		if apiErr != nil {
+			return Pagination{}, apiErr
 		}
-		if qs.Has(PageAfterQuery) {
-			a, err := decodeCursorAfterQueryUnescape(c.cursorCipherKey, qs.Get(PageAfterQuery), c.cursorValidateUUIDs)
-			if err != nil {
-				return p, apierrors.NewBadRequestError(ctx, err,
-					apierrors.InvalidParameters{
-						apierrors.InvalidParameter{
-							Source: apierrors.InvalidParamSourceQuery,
-							Reason: fmt.Sprintf("unable to parse %s cursor", PageAfterQuery),
-						},
-					})
-			}
-			p.After = a
+		p.Before = before
+
+		after, apiErr := parseCursorParam(ctx, qs, PageAfterQuery, c.cursorCipherKey, c.cursorValidateUUIDs)
+		if apiErr != nil {
+			return Pagination{}, apiErr
 		}
+		p.After = after
 	}
 
 	return p, nil
+}
+
+func parsePageSize(ctx context.Context, qs url.Values, c *config) (int, *apierrors.BaseAPIError) {
+	if !qs.Has(PageSizeQuery) {
+		return c.defaultPageSize, nil
+	}
+
+	pageSize, err := strconv.ParseInt(qs.Get(PageSizeQuery), 10, 16)
+	if err != nil && (c.strictMode || pageSize < 0) {
+		return 0, apierrors.NewBadRequestError(ctx, err,
+			apierrors.InvalidParameters{
+				apierrors.InvalidParameter{
+					Field:  PageSizeQuery,
+					Reason: "unable to parse query field",
+					Source: apierrors.InvalidParamSourceQuery,
+					Rule:   "page size should be a positive integer",
+				},
+			})
+	}
+	if err != nil {
+		return c.defaultPageSize, nil
+	}
+	if pageSize < 1 {
+		return DefaultPaginationSize, nil
+	}
+	return int(pageSize), nil
+}
+
+func parsePageNumber(ctx context.Context, qs url.Values, c *config) (int, *apierrors.BaseAPIError) {
+	if !qs.Has(PageNumberQuery) {
+		return DefaultPaginationNumber, nil
+	}
+
+	pageNumber, err := strconv.ParseInt(qs.Get(PageNumberQuery), 10, 16)
+	if err != nil && c.strictMode {
+		return 0, apierrors.NewBadRequestError(ctx, err,
+			apierrors.InvalidParameters{
+				apierrors.InvalidParameter{
+					Field:  PageNumberQuery,
+					Reason: "unable to parse query field",
+					Source: apierrors.InvalidParamSourceQuery,
+					Rule:   "page number should be a positive integer",
+				},
+			})
+	}
+	if err == nil && pageNumber < 0 {
+		return 0, apierrors.NewBadRequestError(ctx, err,
+			apierrors.InvalidParameters{
+				apierrors.InvalidParameter{
+					Field:  PageNumberQuery,
+					Reason: "unable to parse query field",
+					Source: apierrors.InvalidParamSourceQuery,
+					Rule:   "page number should be a positive integer",
+				},
+			})
+	}
+	if err != nil || pageNumber < 1 {
+		return DefaultPaginationNumber, nil
+	}
+	return int(pageNumber), nil
+}
+
+func parseCursorParam(ctx context.Context, qs url.Values, key, cipherKey string, validateUUIDs bool) (*Cursor, *apierrors.BaseAPIError) {
+	if !qs.Has(key) {
+		return nil, nil
+	}
+	cursor, err := decodeCursorAfterQueryUnescape(cipherKey, qs.Get(key), validateUUIDs)
+	if err != nil {
+		return nil, apierrors.NewBadRequestError(ctx, err,
+			apierrors.InvalidParameters{
+				apierrors.InvalidParameter{
+					Source: apierrors.InvalidParamSourceQuery,
+					Reason: fmt.Sprintf("unable to parse %s cursor", key),
+				},
+			})
+	}
+	return cursor, nil
 }

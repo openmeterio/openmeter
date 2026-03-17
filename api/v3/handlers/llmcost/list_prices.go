@@ -60,7 +60,6 @@ var listPricesAuthorizedSorts = []string{
 	"id", "provider.id", "model.id", "effective_from", "effective_to",
 }
 
-
 func (h *handler) ListPrices() ListPricesHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, _ ListPricesParams) (ListPricesRequest, error) {
@@ -70,7 +69,7 @@ func (h *handler) ListPrices() ListPricesHandler {
 			}
 
 			attrs, err := request.GetAipAttributes(r,
-				request.WithDefaultPageSizeDefault(20),
+				request.WithDefaultPageSize(20),
 				request.WithMaxPageSize(100),
 				request.WithAuthorizedSorts(listPricesAuthorizedSorts),
 				request.WithAuthorizedFilters(listPricesAuthorizedFilters),

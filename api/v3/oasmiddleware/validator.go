@@ -16,8 +16,8 @@ import (
 )
 
 type (
-	RequestNotFoundHookFunc     = func(error, http.ResponseWriter, *http.Request) bool
-	RequestValidationErrorFunc  = func(error, http.ResponseWriter, *http.Request) bool
+	RequestNotFoundHookFunc    = func(error, http.ResponseWriter, *http.Request) bool
+	RequestValidationErrorFunc = func(error, http.ResponseWriter, *http.Request) bool
 	ResponseValidationFunc     = func(error, *http.Request)
 )
 

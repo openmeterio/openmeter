@@ -4,19 +4,19 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api/v3/filters"
 )
 
-// GetAipAttributes return the AipAttributes found in the request query string
-// if the parser is set to Strict using `AipSetStrictMode` is apierrors out
-// with a `BaseApiError`
+// GetAipAttributes returns the AipAttributes parsed from the request query string.
+// If strict mode is enabled via WithAipStrictMode and an invalid parameter is
+// encountered, it returns a *apierrors.BaseAPIError.
 func GetAipAttributes(r *http.Request, opts ...AipParseOption) (*AipAttributes, error) {
 	a := &AipAttributes{}
 
 	conf := newConfig()
-	for _, v := range opts {
-		v(conf)
-	}
+	lo.ForEach(opts, func(v AipParseOption, _ int) { v(conf) })
 
 	queryValues := r.URL.Query()
 
@@ -45,38 +45,26 @@ func GetAipAttributes(r *http.Request, opts ...AipParseOption) (*AipAttributes, 
 // RemapAipAttributes remaps the filters and sorts to another name
 // this is used when API is not inlined with the database entities
 func RemapAipAttributes(attrs *AipAttributes, mappedAttributes map[string]string) {
-	if attrs.Filters != nil {
-		for k, f := range attrs.Filters {
-			if _, ok := mappedAttributes[f.Name]; ok {
-				attrs.Filters[k].Name = mappedAttributes[f.Name]
-				continue
-			}
-			parts := strings.SplitN(f.Name, ".", 2) // allow filters[known_custom_field.unknown_key]
-			if _, ok := mappedAttributes[parts[0]]; ok {
-				if len(parts) == 2 {
-					attrs.Filters[k].Name = mappedAttributes[parts[0]] + "." + parts[1]
-				} else {
-					attrs.Filters[k].Name = mappedAttributes[f.Name]
-				}
-			}
-		}
+	lo.ForEach(attrs.Filters, func(f QueryFilter, k int) {
+		attrs.Filters[k].Name = remapName(f.Name, mappedAttributes)
+	})
+	lo.ForEach(attrs.Sorts, func(s SortBy, k int) {
+		attrs.Sorts[k].Field = remapName(s.Field, mappedAttributes)
+	})
+}
+
+// remapName remaps a field name using the provided mapping.
+// Supports dot-notation: "labels.env" is remapped as "mapped_labels.env" if "labels" is in the map.
+func remapName(name string, mappedAttributes map[string]string) string {
+	if mapped, ok := mappedAttributes[name]; ok {
+		return mapped
 	}
-	if attrs.Sorts != nil {
-		for k, s := range attrs.Sorts {
-			if _, ok := mappedAttributes[s.Field]; ok {
-				attrs.Sorts[k].Field = mappedAttributes[s.Field]
-				continue
-			}
-			parts := strings.SplitN(s.Field, ".", 2) // allow filters[known_custom_field.unknown_key]
-			if _, ok := mappedAttributes[parts[0]]; ok {
-				if len(parts) == 2 {
-					attrs.Sorts[k].Field = mappedAttributes[parts[0]] + "." + parts[1]
-				} else {
-					attrs.Sorts[k].Field = mappedAttributes[s.Field]
-				}
-			}
-		}
+	parts := strings.SplitN(name, ".", 2) // allow known_custom_field.unknown_key
+	mapped, ok := mappedAttributes[parts[0]]
+	if ok && len(parts) == 2 {
+		return mapped + "." + parts[1]
 	}
+	return name
 }
 
 type AipAttributes struct {
@@ -91,6 +79,7 @@ const (
 	paginationKindOffset paginationKind = iota
 	paginationKindCursor
 )
+
 const (
 	defaultPaginationMaxSize = 100
 )
@@ -138,25 +127,28 @@ func WithCursorPagination() AipParseOption {
 	}
 }
 
-// WithCursorPagination sets the AIP request parser to only take the offset AIP
-// attributes in consideration and will ignore other kinds of paginations.
+// WithOffsetPagination sets the AIP request parser to only take the offset AIP
+// attributes (page[number], page[size]) in consideration and will ignore other
+// kinds of paginations.
 //
-// This is the default parser behavior
+// This is the default parser behavior.
 func WithOffsetPagination() AipParseOption {
 	return func(c *config) {
 		c.paginationKind = paginationKindOffset
 	}
 }
 
-// WithDefaultPageSizeDefault sets the AIP request parser default page size.
+// WithDefaultPageSize sets the AIP request parser default page size.
 // This value is used when the client is not setting the page[size] querystring
 // or when the page[size] attribute is not valid and the parser is not using
-// strict mode
+// strict mode. Non-positive values are ignored.
 //
-// Default value is 20
-func WithDefaultPageSizeDefault(value int) AipParseOption {
+// Default value is 20.
+func WithDefaultPageSize(value int) AipParseOption {
 	return func(c *config) {
-		c.defaultPageSize = value
+		if value > 0 {
+			c.defaultPageSize = value
+		}
 	}
 }
 
@@ -200,11 +192,11 @@ func WithAuthorizedFilters(fields map[string]AIPFilterOption) AipParseOption {
 	}
 }
 
-// WithAuthorizedSorts defines the set of sorts that the parser should parse
-// other filters are ignored
+// WithAuthorizedSorts defines the set of allowed sort fields. Sorts on any
+// field not in the provided list are ignored.
 //
-// by default the parser takes all the sorts that are passed to it
-// do not use dot notation (field.subfield) with this method, use WithAuthorizedSorts instead.
+// By default the parser accepts all sort fields.
+// Do not use dot notation (field.subfield) with this method; use WithAuthorizedDotSorts instead.
 func WithAuthorizedSorts(fields []string) AipParseOption {
 	return func(c *config) {
 		c.authorizedSorts = fields
@@ -224,18 +216,20 @@ func WithAuthorizedDotSorts(fields []string) AipParseOption {
 	}
 }
 
-// WithMaxPageSize defines the maximum size of the pagination
+// WithMaxPageSize defines the maximum size of the pagination.
+// Non-positive values are ignored.
 //
-// by default the parser sets it to 100
+// Default value is 100.
 func WithMaxPageSize(size int) AipParseOption {
 	return func(c *config) {
-		c.maxPageSize = size
+		if size > 0 {
+			c.maxPageSize = size
+		}
 	}
 }
 
-// ValidationFunc represents the validation function on a field. If it returns
-// false it means the validation hasn't passed. The string return parameter is
-// used as error message in the apierror
+// ValidationFunc is a field-level validation callback. A non-nil error return
+// indicates validation failure; the error message is included in the API error response.
 type ValidationFunc func(field, value string) error
 
 // AuthorizedFilters reprensents the map of fields that are authorized to be
@@ -253,13 +247,13 @@ type AIPFilterOption struct {
 // FilterStringFromAip extracts a *filters.StringFilter for the named field from AIP query filters.
 // Returns nil if no matching filters are found.
 func FilterStringFromAip(queryFilters []QueryFilter, field string) *filters.StringFilter {
+	matching := lo.Filter(queryFilters, func(qf QueryFilter, _ int) bool { return qf.Name == field })
+	if len(matching) == 0 {
+		return nil
+	}
+
 	var f filters.StringFilter
-	found := false
-	for _, qf := range queryFilters {
-		if qf.Name != field {
-			continue
-		}
-		found = true
+	lo.ForEach(matching, func(qf QueryFilter, _ int) {
 		v := qf.Value
 		switch qf.Filter {
 		case QueryFilterEQ:
@@ -284,10 +278,10 @@ func FilterStringFromAip(queryFilters []QueryFilter, field string) *filters.Stri
 			t := true
 			f.Exists = &t
 		}
-	}
-	if !found || f.IsEmpty() {
+	})
+
+	if f.IsEmpty() {
 		return nil
 	}
 	return &f
 }
-

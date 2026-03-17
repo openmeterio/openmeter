@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/samber/lo"
 )
 
 // ErrInvalidCursor is used when a cursor does not conform to the expected format.
@@ -129,10 +130,8 @@ func decodeCursorAfterQueryUnescape(cipherKey, cursor string, validateAsUUID boo
 
 	if validateAsUUID {
 		ids := strings.Split(c.decoded, ":")
-		for _, id := range ids {
-			if _, err := uuid.Parse(id); err != nil {
-				return nil, ErrInvalidCursor
-			}
+		if !lo.EveryBy(ids, func(id string) bool { _, err := uuid.Parse(id); return err == nil }) {
+			return nil, ErrInvalidCursor
 		}
 	}
 

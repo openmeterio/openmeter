@@ -3749,7 +3749,7 @@ components:
           description: The field must match the provided value.
         oeq:
           type: string
-          description: aasd
+          description: The field must match the provided value. This is an "override" filter that can be used when the default `eq` filter is not sufficient, e.g. when filtering by `model_name` where the name can have multiple variants for the same model ID.
         neq:
           type: string
           description: The field must not match the provided value.
@@ -3758,7 +3758,7 @@ components:
           description: The field must contain the provided value.
         ocontains:
           type: string
-          description: asd
+          description: The field must contain the provided value. This is an "override" filter that can be used when the default `contains` filter is not sufficient.
       description: |-
         A filter for a single string field.
         TODO: This is a temporary solution to support the filter API.

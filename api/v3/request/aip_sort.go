@@ -4,6 +4,8 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+
+	"github.com/samber/lo"
 )
 
 const SortQuery = "sort"
@@ -22,11 +24,10 @@ func extractSort(qs url.Values, c *config) ([]SortBy, error) {
 	}
 
 	segments := strings.Split(qs.Get(SortQuery), ",")
-	out := make([]SortBy, 0, len(segments))
-	for _, v := range segments {
+	out := lo.FilterMap(segments, func(v string, _ int) (SortBy, bool) {
 		parts := strings.Fields(strings.TrimSpace(v))
 		if len(parts) == 0 {
-			continue
+			return SortBy{}, false
 		}
 		sortBy := SortBy{Field: parts[0], Order: SortOrderAsc}
 		if len(parts) > 1 {
@@ -35,10 +36,8 @@ func extractSort(qs url.Values, c *config) ([]SortBy, error) {
 				sortBy.Order = order
 			}
 		}
-		if isAuthorizedSort(sortBy.Field, c) {
-			out = append(out, sortBy)
-		}
-	}
+		return sortBy, isAuthorizedSort(sortBy.Field, c)
+	})
 	return out, nil
 }
 
