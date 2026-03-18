@@ -117,6 +117,9 @@ func ConvertMeterQueryRowToAPI(row meter.MeterQueryRow) api.MeterQueryRow {
 	}
 
 	for key, value := range row.GroupBy {
+		if key == query.DimensionSubject || key == query.DimensionCustomerID {
+			continue
+		}
 		if value != nil {
 			dimensions[key] = *value
 		}

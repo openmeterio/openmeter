@@ -39,6 +39,9 @@ func convertCostQueryRowToAPI(row cost.CostQueryRow) api.FeatureCostQueryRow {
 	}
 
 	for key, value := range row.GroupBy {
+		if key == query.DimensionSubject || key == query.DimensionCustomerID {
+			continue
+		}
 		if value != nil {
 			dimensions[key] = *value
 		}
