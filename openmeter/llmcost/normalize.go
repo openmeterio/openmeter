@@ -12,7 +12,7 @@ var versionSuffix = regexp.MustCompile(`(-\d{8}|-\d{4}-\d{2}-\d{2})$`)
 
 // NormalizeModelID maps a raw model ID and provider to their canonical forms.
 // It lowercases, trims whitespace, strips date version suffixes, and normalizes
-// provider aliases (e.g. "azure" → "openai").
+// provider aliases (e.g. "azure_ai" → "azure", "gemini" → "google").
 func NormalizeModelID(provider string, modelID string) (canonicalProvider string, canonicalModelID string) {
 	provider = strings.ToLower(strings.TrimSpace(provider))
 	modelID = strings.ToLower(strings.TrimSpace(modelID))
@@ -31,14 +31,27 @@ func NormalizeModelID(provider string, modelID string) (canonicalProvider string
 func NormalizeProvider(provider string) string {
 	provider = strings.ToLower(strings.TrimSpace(provider))
 
+	// Normalize vertex_ai sub-providers (e.g., "vertex_ai-language-models", "vertex_ai-text-models")
+	if strings.HasPrefix(provider, "vertex_ai-") || strings.HasPrefix(provider, "vertex_ai_") {
+		return "vertex_ai"
+	}
+
 	switch provider {
-	case "openai", "azure", "azure_ai":
+	// Hosting providers are kept separate from the model vendors they host,
+	// because pricing can differ (e.g., Azure gpt-4 is 2x OpenAI gpt-4).
+	case "openai":
 		return "openai"
+	case "azure", "azure_ai":
+		return "azure"
 	case "anthropic":
 		return "anthropic"
-	case "google", "vertex_ai", "gemini":
+	case "bedrock", "bedrock_converse":
+		return "bedrock"
+	case "google", "gemini":
 		return "google"
-	case "amazon", "aws", "bedrock":
+	case "vertex_ai":
+		return "vertex_ai"
+	case "amazon", "aws":
 		return "amazon"
 	case "meta", "facebook":
 		return "meta"
@@ -48,10 +61,12 @@ func NormalizeProvider(provider string) string {
 		return "mistral"
 	case "cohere":
 		return "cohere"
-	case "xai":
+	case "xai", "x-ai":
 		return "xai"
 	case "minimax":
 		return "minimax"
+	case "nano-gpt", "nano_gpt", "nanogpt":
+		return "nanogpt"
 	default:
 		return provider
 	}

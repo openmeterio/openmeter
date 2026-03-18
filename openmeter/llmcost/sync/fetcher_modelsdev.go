@@ -98,11 +98,17 @@ func (f *modelsDevFetcher) Fetch(ctx context.Context) ([]llmcost.SourcePrice, er
 				modelID = parts[1]
 			}
 
+			// Strip provider prefix from display name (e.g., "azure/gpt-3.5-turbo" → "gpt-3.5-turbo")
+			modelName := model.Name
+			if idx := strings.Index(modelName, "/"); idx > 0 && idx < len(modelName)-1 {
+				modelName = modelName[idx+1:]
+			}
+
 			sp := llmcost.SourcePrice{
 				Source:    "models_dev",
 				Provider:  llmcost.Provider(provider),
 				ModelID:   modelID,
-				ModelName: model.Name,
+				ModelName: modelName,
 				Pricing: llmcost.ModelPricing{
 					InputPerToken:  alpacadecimal.NewFromFloat(*model.Cost.Input).Div(perMillion),
 					OutputPerToken: alpacadecimal.NewFromFloat(*model.Cost.Output).Div(perMillion),

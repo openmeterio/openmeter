@@ -13,18 +13,23 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// providerDisplayNames maps well-known provider IDs to their formatted display names.
+// providerDisplayNames maps canonical provider IDs to their formatted display names.
 var providerDisplayNames = map[string]string{
-	"anthropic":   "Anthropic",
-	"azure":       "Azure",
-	"bedrock":     "Amazon Bedrock",
-	"cohere":      "Cohere",
-	"gemini":      "Google Gemini",
-	"huggingface": "HuggingFace",
-	"llama2":      "Llama",
-	"mistral":     "Mistral",
-	"openai":      "OpenAI",
-	"vertex":      "Google Vertex",
+	"amazon":    "Amazon",
+	"anthropic": "Anthropic",
+	"azure":     "Azure",
+	"bedrock":   "Amazon Bedrock",
+	"cohere":    "Cohere",
+	"deepseek":  "DeepSeek",
+	"google":    "Google",
+	"kilo":      "Kilo",
+	"meta":      "Meta",
+	"minimax":   "MiniMax",
+	"mistral":   "Mistral",
+	"nanogpt":   "NanoGPT",
+	"openai":    "OpenAI",
+	"vertex_ai": "Google Vertex AI",
+	"xai":       "xAI",
 }
 
 // formatProviderName returns the display name for a provider ID.
@@ -39,8 +44,17 @@ func formatProviderName(id string) string {
 		return ""
 	}
 
-	// Fallback: capitalize first letter
-	return strings.ToUpper(id[:1]) + id[1:]
+	// Fallback: split on hyphens/underscores, capitalize each word
+	words := strings.FieldsFunc(id, func(r rune) bool {
+		return r == '-' || r == '_'
+	})
+	for i, w := range words {
+		if len(w) > 0 {
+			words[i] = strings.ToUpper(w[:1]) + w[1:]
+		}
+	}
+
+	return strings.Join(words, " ")
 }
 
 func domainPriceToAPI(p llmcost.Price) api.LLMCostPrice {

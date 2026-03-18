@@ -12,15 +12,16 @@ func TestNormalizeModelIDProviderNames(t *testing.T) {
 		expected string
 	}{
 		{"openai", "openai"},
-		{"azure", "openai"},
-		{"azure_ai", "openai"},
+		{"azure", "azure"},
+		{"azure_ai", "azure"},
 		{"anthropic", "anthropic"},
 		{"google", "google"},
-		{"vertex_ai", "google"},
+		{"vertex_ai", "vertex_ai"},
 		{"gemini", "google"},
 		{"amazon", "amazon"},
 		{"aws", "amazon"},
-		{"bedrock", "amazon"},
+		{"bedrock", "bedrock"},
+		{"bedrock_converse", "bedrock"},
 		{"meta", "meta"},
 		{"facebook", "meta"},
 		{"deepseek", "deepseek"},
@@ -28,7 +29,15 @@ func TestNormalizeModelIDProviderNames(t *testing.T) {
 		{"mistralai", "mistral"},
 		{"cohere", "cohere"},
 		{"xai", "xai"},
+		{"x-ai", "xai"},
 		{"minimax", "minimax"},
+		{"nano-gpt", "nanogpt"},
+		{"nano_gpt", "nanogpt"},
+		{"nanogpt", "nanogpt"},
+		{"vertex_ai-language-models", "vertex_ai"},
+		{"vertex_ai-text-models", "vertex_ai"},
+		{"vertex_ai-chat-models", "vertex_ai"},
+		{"vertex_ai_something", "vertex_ai"},
 		{"unknown_provider", "unknown_provider"},
 	}
 
@@ -64,8 +73,8 @@ func TestNormalizeProviderCaseAndWhitespace(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"lowercases", "Azure", "openai"},
-		{"trims whitespace", "  azure  ", "openai"},
+		{"lowercases", "Azure", "azure"},
+		{"trims whitespace", "  azure  ", "azure"},
 		{"lowercases and trims", "  OpenAI  ", "openai"},
 		{"mixed case unknown", "  MyProvider  ", "myprovider"},
 	}
