@@ -10,8 +10,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
-	"github.com/openmeterio/openmeter/openmeter/billing/pricer"
-	billingpricerservice "github.com/openmeterio/openmeter/openmeter/billing/pricer/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/rating"
+	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	billingcustomer "github.com/openmeterio/openmeter/openmeter/billing/validators/customer"
 	billingsubscription "github.com/openmeterio/openmeter/openmeter/billing/validators/subscription"
@@ -32,7 +32,7 @@ import (
 var Billing = wire.NewSet(
 	BillingService,
 	BillingAdapter,
-	NewBillingPricerService,
+	NewBillingRatingService,
 	wire.Bind(new(billing.CustomerOverrideService), new(billing.Service)),
 )
 
@@ -50,7 +50,7 @@ func BillingService(
 	logger *slog.Logger,
 	appService app.Service,
 	billingAdapter billing.Adapter,
-	billingPricerService pricer.Service,
+	billingRatingService rating.Service,
 	customerService customer.Service,
 	featureConnector feature.FeatureConnector,
 	meterService meter.Service,
@@ -64,7 +64,7 @@ func BillingService(
 ) (billing.Service, error) {
 	service, err := billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
-		Pricer:                       billingPricerService,
+		RatingService:                billingRatingService,
 		AppService:                   appService,
 		CustomerService:              customerService,
 		FeatureService:               featureConnector,
@@ -109,8 +109,8 @@ func BillingService(
 	return service, nil
 }
 
-func NewBillingPricerService() pricer.Service {
-	return billingpricerservice.New()
+func NewBillingRatingService() rating.Service {
+	return billingratingservice.New()
 }
 
 func NewBillingAutoAdvancer(logger *slog.Logger, service billing.Service) (*billingworkerautoadvance.AutoAdvancer, error) {

@@ -8,7 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/pricer"
+	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -123,7 +123,7 @@ func (s Service) checkIfGatheringLinesAreInvoicable(ctx context.Context, invoice
 			if err := line.Validate(); err != nil {
 				return fmt.Errorf("validating line[%s]: %w", line.ID, err)
 			}
-			period, err := s.pricer.ResolveBillablePeriod(pricer.ResolveBillablePeriodInput{
+			period, err := s.ratingService.ResolveBillablePeriod(rating.ResolveBillablePeriodInput{
 				Line:               line,
 				FeatureMeters:      featureMeters,
 				ProgressiveBilling: progressiveBilling,

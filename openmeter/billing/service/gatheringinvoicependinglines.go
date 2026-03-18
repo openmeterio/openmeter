@@ -12,7 +12,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/pricer"
+	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -260,7 +260,7 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 
 	for currency, invoice := range in.GatheringInvoicesByCurrency {
 		linesWithResolvedPeriods, err := slicesx.MapWithErr(invoice.Invoice.Lines.OrEmpty(), func(line billing.GatheringLine) (gatheringLineWithBillablePeriod, error) {
-			period, err := s.pricer.ResolveBillablePeriod(pricer.ResolveBillablePeriodInput{
+			period, err := s.ratingService.ResolveBillablePeriod(rating.ResolveBillablePeriodInput{
 				Line:               line,
 				FeatureMeters:      invoice.FeatureMeters,
 				ProgressiveBilling: in.ProgressiveBilling,

@@ -10,7 +10,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/pricer"
+	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -241,7 +241,7 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 
 	if err := s.invoiceCalculator.CalculateGatheringInvoiceWithLiveData(out, invoicecalc.CalculatorDependencies{
 		FeatureMeters: featureMeters,
-		Pricer:        s.pricer,
+		RatingService: s.ratingService,
 	}); err != nil {
 		return nil, fmt.Errorf("calculating invoice: %w", err)
 	}
@@ -707,7 +707,7 @@ func (s Service) checkIfLinesAreInvoicable(ctx context.Context, invoice *billing
 			// TODO: This check only makes sense for gathering invoices as if a line is put on a standard invoice
 			// we should not care at all about the billable period, as only a non-empty service period is
 			// required.
-			period, err := s.pricer.ResolveBillablePeriod(pricer.ResolveBillablePeriodInput{
+			period, err := s.ratingService.ResolveBillablePeriod(rating.ResolveBillablePeriodInput{
 				Line:               line,
 				FeatureMeters:      featureMeters,
 				ProgressiveBilling: progressiveBilling,
@@ -833,7 +833,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 	// Let's simulate a recalculation of the invoice
 	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.CalculatorDependencies{
 		FeatureMeters: featureMeters,
-		Pricer:        s.pricer,
+		RatingService: s.ratingService,
 	}); err != nil {
 		return billing.StandardInvoice{}, err
 	}

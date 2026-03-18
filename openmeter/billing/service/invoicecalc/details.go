@@ -8,7 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
-	"github.com/openmeterio/openmeter/openmeter/billing/pricer"
+	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -19,8 +19,8 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps Ca
 		return errors.New("cannot recaulculate invoice without expanded lines")
 	}
 
-	if deps.Pricer == nil {
-		return errors.New("pricer is nil")
+	if deps.RatingService == nil {
+		return errors.New("rating service is nil")
 	}
 
 	var outErr error
@@ -30,7 +30,7 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps Ca
 			continue
 		}
 
-		detailedLines, err := deps.Pricer.GenerateDetailedLines(line)
+		detailedLines, err := deps.RatingService.GenerateDetailedLines(line)
 		if err != nil {
 			return fmt.Errorf("calculating detailed lines: %w", err)
 		}
@@ -54,8 +54,8 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps Ca
 	return outErr
 }
 
-func newDetailedLines(line *billing.StandardLine, inputs ...pricer.DetailedLine) (billing.DetailedLines, error) {
-	return slicesx.MapWithErr(inputs, func(in pricer.DetailedLine) (billing.DetailedLine, error) {
+func newDetailedLines(line *billing.StandardLine, inputs ...rating.DetailedLine) (billing.DetailedLines, error) {
+	return slicesx.MapWithErr(inputs, func(in rating.DetailedLine) (billing.DetailedLine, error) {
 		if err := in.Validate(); err != nil {
 			return billing.DetailedLine{}, err
 		}
@@ -103,7 +103,7 @@ func newDetailedLines(line *billing.StandardLine, inputs ...pricer.DetailedLine)
 	})
 }
 
-func mergeGeneratedDetailedLines(parentLine *billing.StandardLine, in pricer.GenerateDetailedLinesResult) error {
+func mergeGeneratedDetailedLines(parentLine *billing.StandardLine, in rating.GenerateDetailedLinesResult) error {
 	detailedLines, err := newDetailedLines(parentLine, in.DetailedLines...)
 	if err != nil {
 		return fmt.Errorf("detailed lines: %w", err)

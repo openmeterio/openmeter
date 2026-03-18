@@ -21,7 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
-	"github.com/openmeterio/openmeter/openmeter/billing/pricer"
+	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -1692,7 +1692,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		// Let's validate detailed line items
 		requireDetailedLines(s.T(), flatPerUnit, lineExpectations{
 			Details: map[string]feeLineExpect{
-				pricer.UnitPriceUsageChildUniqueReferenceID: {
+				rating.UnitPriceUsageChildUniqueReferenceID: {
 					Quantity:      10,
 					PerUnitAmount: 100,
 				},
@@ -1996,7 +1996,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		// Detailed lines
 		requireDetailedLines(s.T(), flatPerUnit, lineExpectations{
 			Details: map[string]feeLineExpect{
-				pricer.UnitPriceUsageChildUniqueReferenceID: {
+				rating.UnitPriceUsageChildUniqueReferenceID: {
 					Quantity:      20,
 					PerUnitAmount: 100,
 					// Given the previously invoiced line has been deleted, we should not have any discounts as the
@@ -2007,11 +2007,11 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		requireDetailedLines(s.T(), tieredGraduated, lineExpectations{
 			Details: map[string]feeLineExpect{
-				fmt.Sprintf(pricer.GraduatedTieredPriceUsageChildUniqueReferenceID, 1): {
+				fmt.Sprintf(rating.GraduatedTieredPriceUsageChildUniqueReferenceID, 1): {
 					Quantity:      10,
 					PerUnitAmount: 100,
 				},
-				fmt.Sprintf(pricer.GraduatedTieredPriceUsageChildUniqueReferenceID, 2): {
+				fmt.Sprintf(rating.GraduatedTieredPriceUsageChildUniqueReferenceID, 2): {
 					Quantity:      5,
 					PerUnitAmount: 90,
 				},
@@ -2217,7 +2217,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		// Details
 		requireDetailedLines(s.T(), flatFee, lineExpectations{
 			Details: map[string]feeLineExpect{
-				pricer.FlatPriceChildUniqueReferenceID: {
+				rating.FlatPriceChildUniqueReferenceID: {
 					Quantity:      1,
 					PerUnitAmount: 100,
 				},
@@ -2231,11 +2231,11 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		requireDetailedLines(s.T(), tieredVolume, lineExpectations{
 			Details: map[string]feeLineExpect{
-				pricer.VolumeUnitPriceChildUniqueReferenceID: {
+				rating.VolumeUnitPriceChildUniqueReferenceID: {
 					Quantity:      25,
 					PerUnitAmount: 80,
 				},
-				pricer.MinSpendChildUniqueReferenceID: {
+				rating.MinSpendChildUniqueReferenceID: {
 					Quantity:      1,
 					PerUnitAmount: 1000,
 				},
@@ -2250,11 +2250,11 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		requireDetailedLines(s.T(), tieredGraduated, lineExpectations{
 			Details: map[string]feeLineExpect{
-				fmt.Sprintf(pricer.GraduatedTieredPriceUsageChildUniqueReferenceID, 2): {
+				fmt.Sprintf(rating.GraduatedTieredPriceUsageChildUniqueReferenceID, 2): {
 					Quantity:      5,
 					PerUnitAmount: 90,
 				},
-				fmt.Sprintf(pricer.GraduatedTieredPriceUsageChildUniqueReferenceID, 3): {
+				fmt.Sprintf(rating.GraduatedTieredPriceUsageChildUniqueReferenceID, 3): {
 					Quantity:      10,
 					PerUnitAmount: 80,
 				},
@@ -2263,7 +2263,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		requireDetailedLines(s.T(), flatPerUnit, lineExpectations{
 			Details: map[string]feeLineExpect{
-				pricer.UnitPriceUsageChildUniqueReferenceID: {
+				rating.UnitPriceUsageChildUniqueReferenceID: {
 					Quantity:      30,
 					PerUnitAmount: 100,
 					AmountDiscounts: map[string]float64{
@@ -2511,15 +2511,15 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 
 		requireDetailedLines(s.T(), invoiceLines[0], lineExpectations{
 			Details: map[string]feeLineExpect{
-				fmt.Sprintf(pricer.GraduatedTieredPriceUsageChildUniqueReferenceID, 1): {
+				fmt.Sprintf(rating.GraduatedTieredPriceUsageChildUniqueReferenceID, 1): {
 					Quantity:      10,
 					PerUnitAmount: 10,
 				},
-				fmt.Sprintf(pricer.GraduatedTieredPriceUsageChildUniqueReferenceID, 2): {
+				fmt.Sprintf(rating.GraduatedTieredPriceUsageChildUniqueReferenceID, 2): {
 					Quantity:      5,
 					PerUnitAmount: 5,
 				},
-				fmt.Sprintf(pricer.GraduatedTieredFlatPriceChildUniqueReferenceID, 2): {
+				fmt.Sprintf(rating.GraduatedTieredFlatPriceChildUniqueReferenceID, 2): {
 					Quantity:      1,
 					PerUnitAmount: 200,
 				},
@@ -2869,7 +2869,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 		// Details
 		requireDetailedLines(s.T(), flatFee, lineExpectations{
 			Details: map[string]feeLineExpect{
-				pricer.FlatPriceChildUniqueReferenceID: {
+				rating.FlatPriceChildUniqueReferenceID: {
 					Quantity:      1,
 					PerUnitAmount: 100,
 				},
@@ -2883,7 +2883,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 
 		requireDetailedLines(s.T(), flatPerUnit, lineExpectations{
 			Details: map[string]feeLineExpect{
-				pricer.UnitPriceUsageChildUniqueReferenceID: {
+				rating.UnitPriceUsageChildUniqueReferenceID: {
 					Quantity:      30,
 					PerUnitAmount: 100,
 					AmountDiscounts: map[string]float64{
@@ -2901,11 +2901,11 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 
 		requireDetailedLines(s.T(), tieredVolume, lineExpectations{
 			Details: map[string]feeLineExpect{
-				pricer.VolumeUnitPriceChildUniqueReferenceID: {
+				rating.VolumeUnitPriceChildUniqueReferenceID: {
 					Quantity:      25,
 					PerUnitAmount: 80,
 				},
-				pricer.MinSpendChildUniqueReferenceID: {
+				rating.MinSpendChildUniqueReferenceID: {
 					Quantity:      1,
 					PerUnitAmount: 1000,
 				},
@@ -2920,15 +2920,15 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 
 		requireDetailedLines(s.T(), tieredGraduated, lineExpectations{
 			Details: map[string]feeLineExpect{
-				fmt.Sprintf(pricer.GraduatedTieredPriceUsageChildUniqueReferenceID, 1): {
+				fmt.Sprintf(rating.GraduatedTieredPriceUsageChildUniqueReferenceID, 1): {
 					Quantity:      10,
 					PerUnitAmount: 100,
 				},
-				fmt.Sprintf(pricer.GraduatedTieredPriceUsageChildUniqueReferenceID, 2): {
+				fmt.Sprintf(rating.GraduatedTieredPriceUsageChildUniqueReferenceID, 2): {
 					Quantity:      10,
 					PerUnitAmount: 90,
 				},
-				fmt.Sprintf(pricer.GraduatedTieredPriceUsageChildUniqueReferenceID, 3): {
+				fmt.Sprintf(rating.GraduatedTieredPriceUsageChildUniqueReferenceID, 3): {
 					Quantity:      10,
 					PerUnitAmount: 80,
 				},

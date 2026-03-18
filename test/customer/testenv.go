@@ -17,7 +17,7 @@ import (
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
-	billingpricerservice "github.com/openmeterio/openmeter/openmeter/billing/pricer/service"
+	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
@@ -383,7 +383,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
-		Pricer:                       billingpricerservice.New(),
+		RatingService:                billingratingservice.New(),
 		CustomerService:              customerService,
 		AppService:                   appService,
 		Logger:                       logger.WithGroup("billing"),
