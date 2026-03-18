@@ -43,26 +43,10 @@ union MeterQueryGranularity {
 model MeterQueryFilters {
   /**
    * Filters to apply to the dimensions of the query.
+   * For `subject` and `customer_id` only equals ("eq", "in") comparisons are supported.
    */
   @maxProperties(10)
-  dimensions?: {
-    /**
-     * Filters to apply to the subject of the query.
-     * Only equals ("eq", "in") comparisons are supported.
-     */
-    subject?: Shared.QueryFilterString;
-
-    /**
-     * Filters to apply to the customer ID of the query.
-     * Only equals ("eq", "in") comparisons are supported.
-     */
-    customer_id?: Shared.QueryFilterString;
-
-    /**
-     * Additional dimensions to filter by.
-     */
-    ...Record<Shared.QueryFilterStringMapItem>;
-  };
+  dimensions?: Record<Shared.QueryFilterStringMapItem>;
 }
 
 /**
@@ -184,22 +168,7 @@ model MeterQueryRow {
 
   /**
    * The dimensions the value is aggregated over.
+   * `subject` and `customer_id` are reserved dimensions.
    */
-  dimensions: {
-    /**
-     * The subject the value is aggregated over.
-     * If not specified, the value is aggregated over all subjects.
-     */
-    subject?: string;
-
-    /**
-     * The customer ID the value is aggregated over.
-     */
-    customer_id?: string;
-
-    /**
-     * Additional dimensions the value is aggregated over.
-     */
-    ...Record<string>;
-  };
+  dimensions: Record<string>;
 }
