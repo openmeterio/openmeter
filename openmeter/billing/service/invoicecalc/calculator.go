@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
@@ -59,6 +60,7 @@ type Calculator interface {
 
 type CalculatorDependencies struct {
 	FeatureMeters feature.FeatureMeters
+	RatingService rating.Service
 }
 
 type calculator struct{}

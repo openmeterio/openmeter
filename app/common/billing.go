@@ -10,6 +10,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
+	"github.com/openmeterio/openmeter/openmeter/billing/rating"
+	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	billingcustomer "github.com/openmeterio/openmeter/openmeter/billing/validators/customer"
 	billingsubscription "github.com/openmeterio/openmeter/openmeter/billing/validators/subscription"
@@ -30,6 +32,7 @@ import (
 var Billing = wire.NewSet(
 	BillingService,
 	BillingAdapter,
+	NewBillingRatingService,
 	wire.Bind(new(billing.CustomerOverrideService), new(billing.Service)),
 )
 
@@ -47,6 +50,7 @@ func BillingService(
 	logger *slog.Logger,
 	appService app.Service,
 	billingAdapter billing.Adapter,
+	billingRatingService rating.Service,
 	customerService customer.Service,
 	featureConnector feature.FeatureConnector,
 	meterService meter.Service,
@@ -60,6 +64,7 @@ func BillingService(
 ) (billing.Service, error) {
 	service, err := billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
+		RatingService:                billingRatingService,
 		AppService:                   appService,
 		CustomerService:              customerService,
 		FeatureService:               featureConnector,
@@ -102,6 +107,10 @@ func BillingService(
 	}
 
 	return service, nil
+}
+
+func NewBillingRatingService() rating.Service {
+	return billingratingservice.New()
 }
 
 func NewBillingAutoAdvancer(logger *slog.Logger, service billing.Service) (*billingworkerautoadvance.AutoAdvancer, error) {

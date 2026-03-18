@@ -410,14 +410,9 @@ func mapSubscriptionReferencesToAPI(optSub *billing.SubscriptionReference) *api.
 	return out
 }
 
-func mapDiscountsToAPI(discounts billing.LineDiscounts) (*api.InvoiceLineDiscounts, error) {
-	if discounts.IsEmpty() {
+func mapDiscountsToAPI(discounts billing.StandardLineDiscounts) (*api.InvoiceLineDiscounts, error) {
+	if len(discounts.Usage) == 0 {
 		return nil, nil
-	}
-
-	mappedAmountDiscounts, err := mapInvoiceLineAmountDiscountsToAPI(discounts.Amount)
-	if err != nil {
-		return nil, fmt.Errorf("failed to map amount discounts: %w", err)
 	}
 
 	mappedUsageDiscounts, err := mapInvoiceLineUsageDiscountsToAPI(discounts.Usage)
@@ -426,8 +421,7 @@ func mapDiscountsToAPI(discounts billing.LineDiscounts) (*api.InvoiceLineDiscoun
 	}
 
 	return &api.InvoiceLineDiscounts{
-		Amount: mappedAmountDiscounts,
-		Usage:  mappedUsageDiscounts,
+		Usage: mappedUsageDiscounts,
 	}, nil
 }
 

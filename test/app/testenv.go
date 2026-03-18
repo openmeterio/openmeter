@@ -17,6 +17,7 @@ import (
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
+	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
@@ -257,8 +258,11 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 	})
 	require.NoError(t, err)
 
+	billingRatingService := billingratingservice.New()
+
 	return billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
+		RatingService:                billingRatingService,
 		CustomerService:              in.CustomerService,
 		AppService:                   in.AppService,
 		Logger:                       slog.Default(),
