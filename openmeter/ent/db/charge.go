@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
@@ -86,6 +87,8 @@ type ChargeEdges struct {
 	FlatFee *ChargeFlatFee `json:"flat_fee,omitempty"`
 	// CreditPurchase holds the value of the credit_purchase edge.
 	CreditPurchase *ChargeCreditPurchase `json:"credit_purchase,omitempty"`
+	// UsageBased holds the value of the usage_based edge.
+	UsageBased *ChargeUsageBased `json:"usage_based,omitempty"`
 	// BillingInvoiceLines holds the value of the billing_invoice_lines edge.
 	BillingInvoiceLines []*BillingInvoiceLine `json:"billing_invoice_lines,omitempty"`
 	// BillingSplitLineGroups holds the value of the billing_split_line_groups edge.
@@ -100,7 +103,7 @@ type ChargeEdges struct {
 	SubscriptionItem *SubscriptionItem `json:"subscription_item,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [8]bool
+	loadedTypes [9]bool
 }
 
 // FlatFeeOrErr returns the FlatFee value or an error if the edge
@@ -125,10 +128,21 @@ func (e ChargeEdges) CreditPurchaseOrErr() (*ChargeCreditPurchase, error) {
 	return nil, &NotLoadedError{edge: "credit_purchase"}
 }
 
+// UsageBasedOrErr returns the UsageBased value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeEdges) UsageBasedOrErr() (*ChargeUsageBased, error) {
+	if e.UsageBased != nil {
+		return e.UsageBased, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: chargeusagebased.Label}
+	}
+	return nil, &NotLoadedError{edge: "usage_based"}
+}
+
 // BillingInvoiceLinesOrErr returns the BillingInvoiceLines value or an error if the edge
 // was not loaded in eager-loading.
 func (e ChargeEdges) BillingInvoiceLinesOrErr() ([]*BillingInvoiceLine, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		return e.BillingInvoiceLines, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice_lines"}
@@ -137,7 +151,7 @@ func (e ChargeEdges) BillingInvoiceLinesOrErr() ([]*BillingInvoiceLine, error) {
 // BillingSplitLineGroupsOrErr returns the BillingSplitLineGroups value or an error if the edge
 // was not loaded in eager-loading.
 func (e ChargeEdges) BillingSplitLineGroupsOrErr() ([]*BillingInvoiceSplitLineGroup, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[4] {
 		return e.BillingSplitLineGroups, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_split_line_groups"}
@@ -148,7 +162,7 @@ func (e ChargeEdges) BillingSplitLineGroupsOrErr() ([]*BillingInvoiceSplitLineGr
 func (e ChargeEdges) CustomerOrErr() (*Customer, error) {
 	if e.Customer != nil {
 		return e.Customer, nil
-	} else if e.loadedTypes[4] {
+	} else if e.loadedTypes[5] {
 		return nil, &NotFoundError{label: customer.Label}
 	}
 	return nil, &NotLoadedError{edge: "customer"}
@@ -159,7 +173,7 @@ func (e ChargeEdges) CustomerOrErr() (*Customer, error) {
 func (e ChargeEdges) SubscriptionOrErr() (*Subscription, error) {
 	if e.Subscription != nil {
 		return e.Subscription, nil
-	} else if e.loadedTypes[5] {
+	} else if e.loadedTypes[6] {
 		return nil, &NotFoundError{label: subscription.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription"}
@@ -170,7 +184,7 @@ func (e ChargeEdges) SubscriptionOrErr() (*Subscription, error) {
 func (e ChargeEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
 	if e.SubscriptionPhase != nil {
 		return e.SubscriptionPhase, nil
-	} else if e.loadedTypes[6] {
+	} else if e.loadedTypes[7] {
 		return nil, &NotFoundError{label: subscriptionphase.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_phase"}
@@ -181,7 +195,7 @@ func (e ChargeEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
 func (e ChargeEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
 	if e.SubscriptionItem != nil {
 		return e.SubscriptionItem, nil
-	} else if e.loadedTypes[7] {
+	} else if e.loadedTypes[8] {
 		return nil, &NotFoundError{label: subscriptionitem.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_item"}
@@ -388,6 +402,11 @@ func (_m *Charge) QueryFlatFee() *ChargeFlatFeeQuery {
 // QueryCreditPurchase queries the "credit_purchase" edge of the Charge entity.
 func (_m *Charge) QueryCreditPurchase() *ChargeCreditPurchaseQuery {
 	return NewChargeClient(_m.config).QueryCreditPurchase(_m)
+}
+
+// QueryUsageBased queries the "usage_based" edge of the Charge entity.
+func (_m *Charge) QueryUsageBased() *ChargeUsageBasedQuery {
+	return NewChargeClient(_m.config).QueryUsageBased(_m)
 }
 
 // QueryBillingInvoiceLines queries the "billing_invoice_lines" edge of the Charge entity.

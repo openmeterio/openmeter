@@ -1085,6 +1085,214 @@ func (e *ChargeFlatFeePayment) GetAnnotations() models.Annotations {
 	return e.Annotations
 }
 
+func (e *ChargeUsageBased) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeUsageBased) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *ChargeUsageBasedRunCreditAllocations) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeUsageBasedRunCreditAllocations) GetLineID() *string {
+	return e.LineID
+}
+
+func (e *ChargeUsageBasedRunCreditAllocations) GetAmount() alpacadecimal.Decimal {
+	return e.Amount
+}
+
+func (e *ChargeUsageBasedRunCreditAllocations) GetServicePeriodFrom() time.Time {
+	return e.ServicePeriodFrom
+}
+
+func (e *ChargeUsageBasedRunCreditAllocations) GetServicePeriodTo() time.Time {
+	return e.ServicePeriodTo
+}
+
+func (e *ChargeUsageBasedRunCreditAllocations) GetLedgerTransactionGroupID() string {
+	return e.LedgerTransactionGroupID
+}
+
+func (e *ChargeUsageBasedRunCreditAllocations) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *ChargeUsageBasedRunCreditAllocations) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeUsageBasedRunCreditAllocations) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeUsageBasedRunCreditAllocations) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *ChargeUsageBasedRunCreditAllocations) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *ChargeUsageBasedRunInvoicedUsage) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeUsageBasedRunInvoicedUsage) GetLineID() *string {
+	return e.LineID
+}
+
+func (e *ChargeUsageBasedRunInvoicedUsage) GetServicePeriodFrom() time.Time {
+	return e.ServicePeriodFrom
+}
+
+func (e *ChargeUsageBasedRunInvoicedUsage) GetServicePeriodTo() time.Time {
+	return e.ServicePeriodTo
+}
+
+func (e *ChargeUsageBasedRunInvoicedUsage) GetMutable() bool {
+	return e.Mutable
+}
+
+func (e *ChargeUsageBasedRunInvoicedUsage) GetLedgerTransactionGroupID() *string {
+	return e.LedgerTransactionGroupID
+}
+
+func (e *ChargeUsageBasedRunInvoicedUsage) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *ChargeUsageBasedRunInvoicedUsage) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeUsageBasedRunInvoicedUsage) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeUsageBasedRunInvoicedUsage) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *ChargeUsageBasedRunInvoicedUsage) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *ChargeUsageBasedRunInvoicedUsage) GetAmount() alpacadecimal.Decimal {
+	return e.Amount
+}
+
+func (e *ChargeUsageBasedRunInvoicedUsage) GetTaxesTotal() alpacadecimal.Decimal {
+	return e.TaxesTotal
+}
+
+func (e *ChargeUsageBasedRunInvoicedUsage) GetTaxesInclusiveTotal() alpacadecimal.Decimal {
+	return e.TaxesInclusiveTotal
+}
+
+func (e *ChargeUsageBasedRunInvoicedUsage) GetTaxesExclusiveTotal() alpacadecimal.Decimal {
+	return e.TaxesExclusiveTotal
+}
+
+func (e *ChargeUsageBasedRunInvoicedUsage) GetChargesTotal() alpacadecimal.Decimal {
+	return e.ChargesTotal
+}
+
+func (e *ChargeUsageBasedRunInvoicedUsage) GetDiscountsTotal() alpacadecimal.Decimal {
+	return e.DiscountsTotal
+}
+
+func (e *ChargeUsageBasedRunInvoicedUsage) GetCreditsTotal() alpacadecimal.Decimal {
+	return e.CreditsTotal
+}
+
+func (e *ChargeUsageBasedRunInvoicedUsage) GetTotal() alpacadecimal.Decimal {
+	return e.Total
+}
+
+func (e *ChargeUsageBasedRunPayment) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeUsageBasedRunPayment) GetLineID() string {
+	return e.LineID
+}
+
+func (e *ChargeUsageBasedRunPayment) GetServicePeriodFrom() time.Time {
+	return e.ServicePeriodFrom
+}
+
+func (e *ChargeUsageBasedRunPayment) GetServicePeriodTo() time.Time {
+	return e.ServicePeriodTo
+}
+
+func (e *ChargeUsageBasedRunPayment) GetStatus() payment.Status {
+	return e.Status
+}
+
+func (e *ChargeUsageBasedRunPayment) GetAmount() alpacadecimal.Decimal {
+	return e.Amount
+}
+
+func (e *ChargeUsageBasedRunPayment) GetAuthorizedTransactionGroupID() *string {
+	return e.AuthorizedTransactionGroupID
+}
+
+func (e *ChargeUsageBasedRunPayment) GetAuthorizedAt() *time.Time {
+	return e.AuthorizedAt
+}
+
+func (e *ChargeUsageBasedRunPayment) GetSettledTransactionGroupID() *string {
+	return e.SettledTransactionGroupID
+}
+
+func (e *ChargeUsageBasedRunPayment) GetSettledAt() *time.Time {
+	return e.SettledAt
+}
+
+func (e *ChargeUsageBasedRunPayment) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *ChargeUsageBasedRunPayment) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeUsageBasedRunPayment) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeUsageBasedRunPayment) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *ChargeUsageBasedRunPayment) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *ChargeUsageBasedRuns) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeUsageBasedRuns) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *ChargeUsageBasedRuns) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeUsageBasedRuns) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeUsageBasedRuns) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
 func (e *CurrencyCostBasis) GetID() string {
 	return e.ID
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -289,6 +290,25 @@ func (_u *ChargeUpdate) SetCreditPurchase(v *ChargeCreditPurchase) *ChargeUpdate
 	return _u.SetCreditPurchaseID(v.ID)
 }
 
+// SetUsageBasedID sets the "usage_based" edge to the ChargeUsageBased entity by ID.
+func (_u *ChargeUpdate) SetUsageBasedID(id string) *ChargeUpdate {
+	_u.mutation.SetUsageBasedID(id)
+	return _u
+}
+
+// SetNillableUsageBasedID sets the "usage_based" edge to the ChargeUsageBased entity by ID if the given value is not nil.
+func (_u *ChargeUpdate) SetNillableUsageBasedID(id *string) *ChargeUpdate {
+	if id != nil {
+		_u = _u.SetUsageBasedID(*id)
+	}
+	return _u
+}
+
+// SetUsageBased sets the "usage_based" edge to the ChargeUsageBased entity.
+func (_u *ChargeUpdate) SetUsageBased(v *ChargeUsageBased) *ChargeUpdate {
+	return _u.SetUsageBasedID(v.ID)
+}
+
 // AddBillingInvoiceLineIDs adds the "billing_invoice_lines" edge to the BillingInvoiceLine entity by IDs.
 func (_u *ChargeUpdate) AddBillingInvoiceLineIDs(ids ...string) *ChargeUpdate {
 	_u.mutation.AddBillingInvoiceLineIDs(ids...)
@@ -333,6 +353,12 @@ func (_u *ChargeUpdate) ClearFlatFee() *ChargeUpdate {
 // ClearCreditPurchase clears the "credit_purchase" edge to the ChargeCreditPurchase entity.
 func (_u *ChargeUpdate) ClearCreditPurchase() *ChargeUpdate {
 	_u.mutation.ClearCreditPurchase()
+	return _u
+}
+
+// ClearUsageBased clears the "usage_based" edge to the ChargeUsageBased entity.
+func (_u *ChargeUpdate) ClearUsageBased() *ChargeUpdate {
+	_u.mutation.ClearUsageBased()
 	return _u
 }
 
@@ -555,6 +581,35 @@ func (_u *ChargeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.UsageBasedCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   charge.UsageBasedTable,
+			Columns: []string{charge.UsageBasedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.UsageBasedIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   charge.UsageBasedTable,
+			Columns: []string{charge.UsageBasedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -926,6 +981,25 @@ func (_u *ChargeUpdateOne) SetCreditPurchase(v *ChargeCreditPurchase) *ChargeUpd
 	return _u.SetCreditPurchaseID(v.ID)
 }
 
+// SetUsageBasedID sets the "usage_based" edge to the ChargeUsageBased entity by ID.
+func (_u *ChargeUpdateOne) SetUsageBasedID(id string) *ChargeUpdateOne {
+	_u.mutation.SetUsageBasedID(id)
+	return _u
+}
+
+// SetNillableUsageBasedID sets the "usage_based" edge to the ChargeUsageBased entity by ID if the given value is not nil.
+func (_u *ChargeUpdateOne) SetNillableUsageBasedID(id *string) *ChargeUpdateOne {
+	if id != nil {
+		_u = _u.SetUsageBasedID(*id)
+	}
+	return _u
+}
+
+// SetUsageBased sets the "usage_based" edge to the ChargeUsageBased entity.
+func (_u *ChargeUpdateOne) SetUsageBased(v *ChargeUsageBased) *ChargeUpdateOne {
+	return _u.SetUsageBasedID(v.ID)
+}
+
 // AddBillingInvoiceLineIDs adds the "billing_invoice_lines" edge to the BillingInvoiceLine entity by IDs.
 func (_u *ChargeUpdateOne) AddBillingInvoiceLineIDs(ids ...string) *ChargeUpdateOne {
 	_u.mutation.AddBillingInvoiceLineIDs(ids...)
@@ -970,6 +1044,12 @@ func (_u *ChargeUpdateOne) ClearFlatFee() *ChargeUpdateOne {
 // ClearCreditPurchase clears the "credit_purchase" edge to the ChargeCreditPurchase entity.
 func (_u *ChargeUpdateOne) ClearCreditPurchase() *ChargeUpdateOne {
 	_u.mutation.ClearCreditPurchase()
+	return _u
+}
+
+// ClearUsageBased clears the "usage_based" edge to the ChargeUsageBased entity.
+func (_u *ChargeUpdateOne) ClearUsageBased() *ChargeUpdateOne {
+	_u.mutation.ClearUsageBased()
 	return _u
 }
 
@@ -1222,6 +1302,35 @@ func (_u *ChargeUpdateOne) sqlSave(ctx context.Context) (_node *Charge, err erro
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.UsageBasedCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   charge.UsageBasedTable,
+			Columns: []string{charge.UsageBasedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.UsageBasedIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   charge.UsageBasedTable,
+			Columns: []string{charge.UsageBasedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

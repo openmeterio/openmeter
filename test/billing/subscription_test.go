@@ -12,7 +12,6 @@ import (
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
-	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	subscriptionsyncadapter "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
@@ -81,13 +80,6 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 
 	// Given we have another non-default profile pinned to a different app
 	appTypeOther := app.AppTypeCustomInvoicing
-
-	appFactoryOther, err := appsandbox.NewMockableFactory(s.T(), appsandbox.Config{
-		AppService:     s.AppService,
-		BillingService: s.BillingService,
-	}, appsandbox.MockWithAppType(appTypeOther))
-	s.NoError(err)
-	s.NotNil(appFactoryOther)
 
 	otherApp, err := s.AppService.CreateApp(ctx, app.CreateAppInput{
 		Namespace: namespace,
