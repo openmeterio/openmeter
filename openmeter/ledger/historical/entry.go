@@ -16,11 +16,11 @@ type EntryData struct {
 	Annotations models.Annotations
 	CreatedAt   time.Time
 
-	AccountID   string
-	AccountType ledger.AccountType
-	RouteID     string
-	RouteKey    string
-	RouteKeyVer ledger.RoutingKeyVersion
+	SubAccountID string
+	AccountType  ledger.AccountType
+	RouteID      string
+	RouteKey     string
+	RouteKeyVer  ledger.RoutingKeyVersion
 
 	Amount        alpacadecimal.Decimal
 	TransactionID string
@@ -38,7 +38,7 @@ var _ ledger.Entry = (*Entry)(nil)
 
 func (e *Entry) PostingAddress() ledger.PostingAddress {
 	return account.NewAddressFromData(account.AddressData{
-		SubAccountID:      e.data.AccountID,
+		SubAccountID:      e.data.SubAccountID,
 		AccountType:       e.data.AccountType,
 		RouteID:           e.data.RouteID,
 		RoutingKeyVersion: e.data.RouteKeyVer,

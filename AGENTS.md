@@ -115,6 +115,20 @@ Uses [ent](https://entgo.io) for schema definition and [Atlas](https://atlasgo.i
 
 Tests require PostgreSQL running locally. Start it with `docker compose up -d postgres`.
 
+Use the repo's Nix CI dev shell when `go`, `gofmt`, or other toolchain binaries are missing from the ambient shell. The CI and local-compatible invocation pattern is:
+
+```bash
+nix develop --impure .#ci -c <command>
+```
+
+Examples:
+
+```bash
+nix develop --impure .#ci -c gofmt -w openmeter/ledger/historical/entry.go
+nix develop --impure .#ci -c make lint-go
+nix develop --impure .#ci -c sh -lc 'POSTGRES_HOST=127.0.0.1 go test -tags=dynamic ./openmeter/ledger/historical/...'
+```
+
 | Command | Description |
 |---------|-------------|
 | `make test` | Run all tests (parallel: `-p 128 -parallel 16`) |
@@ -168,4 +182,3 @@ See the `/service` skill for service/adapter patterns, constructors, input types
 ## Skills
 
 Skills are created inside [.agents/skills](.agents/skills/) by default and then symlinked to [.claude/skills](.claude/skills). Make sure you always treat `.agents/skills` as the source of truth.
-
