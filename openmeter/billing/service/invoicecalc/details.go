@@ -19,6 +19,10 @@ func RecalculateDetailedLinesAndTotals(invoice *billing.StandardInvoice, deps Ca
 		return errors.New("cannot recaulculate invoice without expanded lines")
 	}
 
+	if deps.Pricer == nil {
+		return errors.New("pricer is nil")
+	}
+
 	var outErr error
 
 	for _, line := range invoice.Lines.OrEmpty() {

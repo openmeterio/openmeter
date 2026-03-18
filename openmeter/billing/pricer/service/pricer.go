@@ -12,6 +12,14 @@ import (
 )
 
 func getPricerFor(line pricer.PriceAccessor) (*priceMutator, error) {
+	if line == nil {
+		return nil, errors.New("line is nil")
+	}
+
+	if line.GetPrice() == nil {
+		return nil, errors.New("price is nil")
+	}
+
 	linePrice := line.GetPrice()
 	if linePrice == nil {
 		return nil, errors.New("price is nil")
@@ -63,7 +71,7 @@ type priceMutator struct {
 	PostCalculation []mutator.PostCalculationMutator
 }
 
-func (p *priceMutator) GenerateDetailedLines(l price.PricerCalculateInput) (*pricer.GenerateDetailedLinesResult, error) {
+func (p *priceMutator) GenerateDetailedLines(l price.PricerCalculateInput) (pricer.GenerateDetailedLinesResult, error) {
 	mutatedInput := l
 	// Apply pre-calculation mutators
 	for _, mutator := range p.PreCalculation {
@@ -71,24 +79,24 @@ func (p *priceMutator) GenerateDetailedLines(l price.PricerCalculateInput) (*pri
 
 		mutatedInput, err = mutator.Mutate(mutatedInput)
 		if err != nil {
-			return nil, err
+			return pricer.GenerateDetailedLinesResult{}, err
 		}
 	}
 
 	detailedLines, err := p.Pricer.GenerateDetailedLines(mutatedInput)
 	if err != nil {
-		return nil, err
+		return pricer.GenerateDetailedLinesResult{}, err
 	}
 
 	// Apply post-calculation mutators
 	for _, mutator := range p.PostCalculation {
 		detailedLines, err = mutator.Mutate(mutatedInput, detailedLines)
 		if err != nil {
-			return nil, err
+			return pricer.GenerateDetailedLinesResult{}, err
 		}
 	}
 
-	return &pricer.GenerateDetailedLinesResult{
+	return pricer.GenerateDetailedLinesResult{
 		DetailedLines:              detailedLines,
 		FinalUsage:                 mutatedInput.Usage,
 		FinalStandardLineDiscounts: mutatedInput.StandardLineDiscounts,

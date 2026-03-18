@@ -22,6 +22,9 @@ func (m *Credits) Mutate(i price.PricerCalculateInput, pricerResult pricer.Detai
 			}
 
 			totalAmount := pricerResult[idx].TotalAmount(i.CurrencyCalculator)
+			if totalAmount.IsZero() {
+				continue
+			}
 
 			if totalAmount.LessThanOrEqual(creditValueRemaining) {
 				creditValueRemaining = creditValueRemaining.Sub(totalAmount)

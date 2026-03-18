@@ -84,10 +84,12 @@ type FindTierForQuantityResult struct {
 }
 
 func (p VolumeTiered) FindTierForQuantity(price productcatalog.TieredPrice, quantity alpacadecimal.Decimal) (FindTierForQuantityResult, error) {
-	for i, tier := range price.WithSortedTiers().Tiers {
+	sorted := price.WithSortedTiers()
+
+	for i, tier := range sorted.Tiers {
 		if tier.UpToAmount == nil || quantity.LessThanOrEqual(*tier.UpToAmount) {
 			return FindTierForQuantityResult{
-				Tier:  &price.Tiers[i],
+				Tier:  &sorted.Tiers[i],
 				Index: i,
 			}, nil
 		}

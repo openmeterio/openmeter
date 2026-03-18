@@ -60,9 +60,9 @@ func (NonProgressiveBillingPricer) ResolveBillablePeriod(in pricer.ResolveBillab
 		}
 	}
 
-	if in.AsOf.Before(in.Line.GetServicePeriod().To) {
+	if in.AsOf.Truncate(streaming.MinimumWindowSizeDuration).Before(in.Line.GetServicePeriod().To.Truncate(streaming.MinimumWindowSizeDuration)) {
 		return nil, nil
 	}
 
-	return lo.ToPtr(in.Line.GetServicePeriod()), nil
+	return lo.ToPtr(in.Line.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration)), nil
 }

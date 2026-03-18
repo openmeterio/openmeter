@@ -16,6 +16,10 @@ import (
 
 // ValidateStandardLine validates the standard line and returns an error if the line is invalid/inconsistent
 func validateStandardLine(in pricer.StandardLineAccessor) error {
+	if in == nil {
+		return fmt.Errorf("line is nil")
+	}
+
 	price := in.GetPrice()
 	if price == nil {
 		return fmt.Errorf("price is nil")
@@ -87,11 +91,7 @@ func (s *service) GenerateDetailedLines(in pricer.StandardLineAccessor) (pricer.
 		return pricer.GenerateDetailedLinesResult{}, fmt.Errorf("calculating detailed lines: %w", err)
 	}
 
-	if out == nil {
-		return pricer.GenerateDetailedLinesResult{}, fmt.Errorf("detailed lines are nil")
-	}
-
-	outWithTotals := getTotalsFromDetailedLines(*out, currencyCalc)
+	outWithTotals := getTotalsFromDetailedLines(out, currencyCalc)
 
 	return outWithTotals, nil
 }

@@ -235,7 +235,7 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 		})
 	})
 
-	t.Run("tiered graduated, last line, no usage, minimum price set", func(t *testing.T) {
+	t.Run("tiered graduated, last line, previous usage exists, no current usage, minimum price set", func(t *testing.T) {
 		testutil.RunCalculationTestCase(t, testutil.CalculationTestCase{
 			Price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 				Mode:  productcatalog.GraduatedTieredPrice,

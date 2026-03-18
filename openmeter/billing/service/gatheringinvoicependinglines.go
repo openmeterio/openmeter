@@ -638,7 +638,7 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 
 	// If the line became empty, due to the split, let's remove it from the gathering invoice
 	if preSplitAtLineEmpty {
-		line.DeletedAt = lo.ToPtr(clock.Now())
+		preSplitAtLine.DeletedAt = lo.ToPtr(clock.Now())
 	} else {
 		if err := preSplitAtLine.Validate(); err != nil {
 			return res, fmt.Errorf("validating pre split line: %w", err)

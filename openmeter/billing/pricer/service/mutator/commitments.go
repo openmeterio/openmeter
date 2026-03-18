@@ -79,7 +79,7 @@ func (m *MaxAmountCommitment) Mutate(i price.PricerCalculateInput, pricerResult 
 
 	// Let's start applying the max amount commitment to the new lines
 
-	for idx, line := range pricerResult {
+	for idx := range pricerResult {
 		// Total spends after adding the line's amount
 		pricerResult[idx] = pricerResult[idx].AddDiscountForOverage(pricer.AddDiscountInput{
 			BilledAmountBeforeLine: totalBilled,
@@ -87,7 +87,7 @@ func (m *MaxAmountCommitment) Mutate(i price.PricerCalculateInput, pricerResult 
 			Currency:               i.CurrencyCalculator,
 		})
 
-		totalBilled = totalBilled.Add(line.TotalAmount(i.CurrencyCalculator))
+		totalBilled = totalBilled.Add(pricerResult[idx].TotalAmount(i.CurrencyCalculator))
 	}
 
 	return pricerResult, nil
