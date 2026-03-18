@@ -501,6 +501,36 @@ func (f FilterTime) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) s
 	}
 }
 
+// FilterTimeUnix is a filter for a time, but the generated SQL is using the
+// unix timestamp in seconds.
+type FilterTimeUnix struct {
+	FilterTime
+}
+
+// SelectWhereExpr converts the filter to a SQL WHERE expression.
+func (f FilterTimeUnix) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) string {
+	switch {
+	case f.Gt != nil:
+		return q.GT(field, f.Gt.Unix())
+	case f.Gte != nil:
+		return q.GTE(field, f.Gte.Unix())
+	case f.Lt != nil:
+		return q.LT(field, f.Lt.Unix())
+	case f.Lte != nil:
+		return q.LTE(field, f.Lte.Unix())
+	case f.And != nil:
+		return q.And(lo.Map(*f.And, func(filter FilterTime, _ int) string {
+			return FilterTimeUnix{FilterTime: filter}.SelectWhereExpr(field, q)
+		})...)
+	case f.Or != nil:
+		return q.Or(lo.Map(*f.Or, func(filter FilterTime, _ int) string {
+			return FilterTimeUnix{FilterTime: filter}.SelectWhereExpr(field, q)
+		})...)
+	default:
+		return ""
+	}
+}
+
 // FilterBoolean is a filter for a boolean field.
 type FilterBoolean struct {
 	Eq *bool `json:"$eq,omitempty"`

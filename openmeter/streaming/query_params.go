@@ -19,6 +19,7 @@ type QueryParams struct {
 	FilterCustomer []Customer
 	FilterSubject  []string
 	FilterGroupBy  map[string]filter.FilterString
+	FilterStoredAt *filter.FilterTimeUnix
 	GroupBy        []string
 	WindowSize     *meter.WindowSize
 	WindowTimeZone *time.Location
@@ -69,6 +70,12 @@ func (p *QueryParams) Validate() error {
 	// Validate the group by filters
 	for _, filter := range p.FilterGroupBy {
 		if err := filter.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if p.FilterStoredAt != nil {
+		if err := p.FilterStoredAt.Validate(); err != nil {
 			errs = append(errs, err)
 		}
 	}
