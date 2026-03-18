@@ -154,7 +154,7 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 		FilterCustomer:         params.FilterCustomer,
 		FilterSubject:          params.FilterSubject,
 		FilterGroupBy:          params.FilterGroupBy,
-		FilterStoredAtOffset:   params.FilterStoredAtOffset,
+		FilterStoredAt:         params.FilterStoredAt,
 		GroupBy:                groupBy,
 		WindowSize:             params.WindowSize,
 		WindowTimeZone:         params.WindowTimeZone,

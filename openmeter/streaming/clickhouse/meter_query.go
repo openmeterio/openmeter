@@ -47,7 +47,7 @@ type queryMeter struct {
 	FilterCustomer         []streaming.Customer
 	FilterSubject          []string
 	FilterGroupBy          map[string]filter.FilterString
-	FilterStoredAtOffset   *filter.FilterTimeUnix
+	FilterStoredAt         *filter.FilterTimeUnix
 	From                   *time.Time
 	To                     *time.Time
 	GroupBy                []string
@@ -317,8 +317,8 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 		}
 	}
 
-	if d.FilterStoredAtOffset != nil {
-		whereExpr := d.FilterStoredAtOffset.SelectWhereExpr(getColumn("stored_at"), query)
+	if d.FilterStoredAt != nil && !d.FilterStoredAt.IsEmpty() {
+		whereExpr := d.FilterStoredAt.SelectWhereExpr(getColumn("stored_at"), query)
 		query = query.Where(whereExpr)
 	}
 

@@ -503,21 +503,8 @@ func (f FilterTime) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder) s
 
 // FilterTimeUnix is a filter for a time, but the generated SQL is using the
 // unix timestamp in seconds.
-type FilterTimeUnix FilterTime
-
-// Validate validates the filter.
-func (f FilterTimeUnix) Validate() error {
-	return FilterTime(f).Validate()
-}
-
-// ValidateWithComplexity validates the filter complexity.
-func (f FilterTimeUnix) ValidateWithComplexity(maxDepth int) error {
-	return FilterTime(f).ValidateWithComplexity(maxDepth)
-}
-
-// IsEmpty returns true if the filter is empty.
-func (f FilterTimeUnix) IsEmpty() bool {
-	return FilterTime(f).IsEmpty()
+type FilterTimeUnix struct {
+	FilterTime
 }
 
 // SelectWhereExpr converts the filter to a SQL WHERE expression.
@@ -533,11 +520,11 @@ func (f FilterTimeUnix) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilde
 		return q.LTE(field, f.Lte.Unix())
 	case f.And != nil:
 		return q.And(lo.Map(*f.And, func(filter FilterTime, _ int) string {
-			return filter.SelectWhereExpr(field, q)
+			return FilterTimeUnix{FilterTime: filter}.SelectWhereExpr(field, q)
 		})...)
 	case f.Or != nil:
 		return q.Or(lo.Map(*f.Or, func(filter FilterTime, _ int) string {
-			return filter.SelectWhereExpr(field, q)
+			return FilterTimeUnix{FilterTime: filter}.SelectWhereExpr(field, q)
 		})...)
 	default:
 		return ""

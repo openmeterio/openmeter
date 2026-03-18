@@ -95,8 +95,10 @@ func TestQueryMeter(t *testing.T) {
 						"group2": "$.group2",
 					},
 				},
-				FilterStoredAtOffset: &filter.FilterTimeUnix{
-					Lt: lo.ToPtr(storedAtOffset),
+				FilterStoredAt: &filter.FilterTimeUnix{
+					FilterTime: filter.FilterTime{
+						Lt: &storedAtOffset,
+					},
 				},
 				FilterSubject:          []string{subject},
 				From:                   &from,
