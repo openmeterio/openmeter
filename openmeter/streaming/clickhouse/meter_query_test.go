@@ -18,6 +18,7 @@ func TestQueryMeter(t *testing.T) {
 	subject := "subject1"
 	from, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00.001Z")
 	to, _ := time.Parse(time.RFC3339, "2023-01-02T00:00:00Z")
+	storedAtOffset, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00.001Z")
 	tz, _ := time.LoadLocation("Asia/Shanghai")
 	windowSize := meter.WindowSizeHour
 
@@ -77,6 +78,35 @@ func TestQueryMeter(t *testing.T) {
 			},
 			wantSQL:  "SELECT tumbleStart(om_events.time, toIntervalHour(1), 'UTC') AS windowstart, tumbleEnd(om_events.time, toIntervalHour(1), 'UTC') AS windowend, sum(toDecimal128OrNull(nullIf(JSON_VALUE(om_events.data, '$.value'), 'null'), 19)) AS value, om_events.subject, JSON_VALUE(om_events.data, '$.group1') as group1, JSON_VALUE(om_events.data, '$.group2') as group2 FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND om_events.subject IN (?) AND om_events.time >= ? AND om_events.time < ? GROUP BY windowstart, windowend, subject, group1, group2 ORDER BY windowstart",
 			wantArgs: []interface{}{"my_namespace", "event1", []string{"subject1"}, from.Unix(), to.Unix()},
+		},
+		{
+			name: "basic query with decimal stored at offset",
+			query: queryMeter{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Namespace:       "my_namespace",
+				Meter: meter.Meter{
+					Key:           "meter1",
+					EventType:     "event1",
+					Aggregation:   meter.MeterAggregationSum,
+					ValueProperty: lo.ToPtr("$.value"),
+					GroupBy: map[string]string{
+						"group1": "$.group1",
+						"group2": "$.group2",
+					},
+				},
+				FilterStoredAtOffset: &filter.FilterTimeUnix{
+					Lt: lo.ToPtr(storedAtOffset),
+				},
+				FilterSubject:          []string{subject},
+				From:                   &from,
+				To:                     &to,
+				GroupBy:                []string{"subject", "group1", "group2"},
+				WindowSize:             &windowSize,
+				EnableDecimalPrecision: true,
+			},
+			wantSQL:  "SELECT tumbleStart(om_events.time, toIntervalHour(1), 'UTC') AS windowstart, tumbleEnd(om_events.time, toIntervalHour(1), 'UTC') AS windowend, sum(toDecimal128OrNull(nullIf(JSON_VALUE(om_events.data, '$.value'), 'null'), 19)) AS value, om_events.subject, JSON_VALUE(om_events.data, '$.group1') as group1, JSON_VALUE(om_events.data, '$.group2') as group2 FROM openmeter.om_events WHERE om_events.namespace = ? AND om_events.type = ? AND om_events.subject IN (?) AND om_events.time >= ? AND om_events.time < ? AND om_events.stored_at < ? GROUP BY windowstart, windowend, subject, group1, group2 ORDER BY windowstart",
+			wantArgs: []interface{}{"my_namespace", "event1", []string{"subject1"}, from.Unix(), to.Unix(), storedAtOffset.Unix()},
 		},
 		{
 			name: "Aggregate all available data",

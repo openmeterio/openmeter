@@ -13,15 +13,16 @@ import (
 )
 
 type QueryParams struct {
-	ClientID       *string
-	From           *time.Time
-	To             *time.Time
-	FilterCustomer []Customer
-	FilterSubject  []string
-	FilterGroupBy  map[string]filter.FilterString
-	GroupBy        []string
-	WindowSize     *meter.WindowSize
-	WindowTimeZone *time.Location
+	ClientID             *string
+	From                 *time.Time
+	To                   *time.Time
+	FilterCustomer       []Customer
+	FilterSubject        []string
+	FilterGroupBy        map[string]filter.FilterString
+	FilterStoredAtOffset *filter.FilterTimeUnix
+	GroupBy              []string
+	WindowSize           *meter.WindowSize
+	WindowTimeZone       *time.Location
 }
 
 // Validate validates query params focusing on `from` and `to` being aligned with query and meter window sizes
@@ -69,6 +70,12 @@ func (p *QueryParams) Validate() error {
 	// Validate the group by filters
 	for _, filter := range p.FilterGroupBy {
 		if err := filter.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if p.FilterStoredAtOffset != nil {
+		if err := p.FilterStoredAtOffset.Validate(); err != nil {
 			errs = append(errs, err)
 		}
 	}

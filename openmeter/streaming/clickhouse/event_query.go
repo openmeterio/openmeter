@@ -32,6 +32,7 @@ func (d createEventsTable) toSQL() string {
 	sb.Define("data", "String")
 	sb.Define("ingested_at", "DateTime")
 	sb.Define("stored_at", "DateTime")
+	sb.Define(fmt.Sprintf("INDEX %s_stored_at stored_at TYPE minmax GRANULARITY 4", d.EventsTableName))
 	sb.Define("store_row_id", "String")
 	sb.SQL("ENGINE = MergeTree")
 	sb.SQL("PARTITION BY toYYYYMM(time)")
