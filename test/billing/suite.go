@@ -29,6 +29,7 @@ import (
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
+	billingpricerservice "github.com/openmeterio/openmeter/openmeter/billing/pricer/service"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -213,6 +214,7 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
+		Pricer:                       billingpricerservice.New(),
 		CustomerService:              s.CustomerService,
 		AppService:                   s.AppService,
 		Logger:                       slog.Default(),

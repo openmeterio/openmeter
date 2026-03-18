@@ -351,7 +351,6 @@ func requireDiff(t *testing.T, expected lineDiffExpectation, actual invoiceLineD
 	t.Helper()
 
 	requireIdDiffMatches(t, expected.Line, actual.Line, func(line *billing.StandardLine) *string { return line.GetDescription() }, "line diff")
-	requireIdDiffMatches(t, expected.AmountDiscounts, actual.AmountDiscounts, func(discount amountLineDiscountManagedWithLine) *string { return discount.Entity.Description }, "amount discounts")
 
 	requireIdDiffMatches(t, expected.DetailedLine, actual.DetailedLine, func(line detailedLineWithParent) *string { return line.Entity.GetDescription() }, "detailed line diff")
 	requireIdDiffMatches(t, expected.DetailedLineAmountDiscounts, actual.DetailedLineAmountDiscounts, func(discount detailedLineAmountDiscountWithParent) *string { return discount.Entity.Description }, "detailed line amount discounts")

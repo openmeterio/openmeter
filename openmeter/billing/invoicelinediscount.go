@@ -323,23 +323,16 @@ func (d UsageLineDiscountsManaged) MergeDiscountsByChildUniqueReferenceID(newDis
 // LineDiscounts is a list of line discounts.
 
 var (
-	_ models.Clonable[LineDiscounts] = (*LineDiscounts)(nil)
-	_ models.Validator               = (*LineDiscounts)(nil)
+	_ models.Clonable[StandardLineDiscounts] = (*StandardLineDiscounts)(nil)
+	_ models.Validator                       = (*StandardLineDiscounts)(nil)
 )
 
-type LineDiscounts struct {
-	Amount AmountLineDiscountsManaged `json:"amount,omitempty"`
-	Usage  UsageLineDiscountsManaged  `json:"usage,omitempty"`
+type StandardLineDiscounts struct {
+	Usage UsageLineDiscountsManaged `json:"usage,omitempty"`
 }
 
-func (i LineDiscounts) Clone() LineDiscounts {
-	out := LineDiscounts{}
-
-	if len(i.Amount) > 0 {
-		out.Amount = lo.Map(i.Amount, func(item AmountLineDiscountManaged, _ int) AmountLineDiscountManaged {
-			return item.Clone()
-		})
-	}
+func (i StandardLineDiscounts) Clone() StandardLineDiscounts {
+	out := StandardLineDiscounts{}
 
 	if len(i.Usage) > 0 {
 		out.Usage = lo.Map(i.Usage, func(item UsageLineDiscountManaged, _ int) UsageLineDiscountManaged {
@@ -350,14 +343,8 @@ func (i LineDiscounts) Clone() LineDiscounts {
 	return out
 }
 
-func (i LineDiscounts) Validate() error {
+func (i StandardLineDiscounts) Validate() error {
 	var errs []error
-
-	for _, amount := range i.Amount {
-		if err := amount.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("amount[%s]: %w", amount.ID, err))
-		}
-	}
 
 	for _, usage := range i.Usage {
 		if err := usage.Validate(); err != nil {
@@ -368,15 +355,10 @@ func (i LineDiscounts) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (i LineDiscounts) ReuseIDsFrom(existingItems LineDiscounts) LineDiscounts {
-	return LineDiscounts{
-		Amount: ReuseIDsFrom(i.Amount, existingItems.Amount),
-		Usage:  ReuseIDsFrom(i.Usage, existingItems.Usage),
+func (i StandardLineDiscounts) ReuseIDsFrom(existingItems StandardLineDiscounts) StandardLineDiscounts {
+	return StandardLineDiscounts{
+		Usage: ReuseIDsFrom(i.Usage, existingItems.Usage),
 	}
-}
-
-func (i LineDiscounts) IsEmpty() bool {
-	return len(i.Amount) == 0 && len(i.Usage) == 0
 }
 
 type entityWithReusableIDs[T any] interface {

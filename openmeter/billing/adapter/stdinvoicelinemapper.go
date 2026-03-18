@@ -139,14 +139,6 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 		invoiceLine.Discounts.Usage = discounts
 	}
 
-	if len(dbLine.Edges.LineAmountDiscounts) > 0 {
-		discounts, err := slicesx.MapWithErr(dbLine.Edges.LineAmountDiscounts, a.mapStandardInvoiceLineAmountDiscountFromDB)
-		if err != nil {
-			return nil, fmt.Errorf("mapping invoice line amount discounts[%s] failed: %w", dbLine.ID, err)
-		}
-		invoiceLine.Discounts.Amount = discounts
-	}
-
 	return invoiceLine, nil
 }
 

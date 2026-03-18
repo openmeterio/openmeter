@@ -227,51 +227,6 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 			return nil, fmt.Errorf("upserting usage discounts: %w", err)
 		}
 
-		err = upsertWithOptions(ctx, tx.db, lineDiffs.AmountDiscounts, upsertInput[amountLineDiscountManagedWithLine, *db.BillingInvoiceLineDiscountCreate]{
-			Create: func(tx *db.Client, d amountLineDiscountManagedWithLine) (*db.BillingInvoiceLineDiscountCreate, error) {
-				discount := d.Entity
-
-				if discount.ID == "" {
-					discount.ID = ulid.Make().String()
-				}
-
-				create := tx.BillingInvoiceLineDiscount.Create().
-					SetID(discount.ID).
-					SetNamespace(d.Parent.GetNamespace()).
-					SetLineID(d.Parent.GetID()).
-					SetReason(discount.Reason.Type()).
-					SetSourceDiscount(lo.ToPtr(discount.Reason)).
-					SetAmount(discount.Amount).
-					SetNillableRoundingAmount(lo.EmptyableToPtr(discount.RoundingAmount)).
-					SetNillableDeletedAt(discount.DeletedAt).
-					SetNillableChildUniqueReferenceID(discount.ChildUniqueReferenceID).
-					SetNillableDescription(discount.Description).
-					// ExternalIDs
-					SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(discount.ExternalIDs.Invoicing))
-
-				return create, nil
-			},
-			UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingInvoiceLineDiscountCreate) error {
-				return tx.BillingInvoiceLineDiscount.
-					CreateBulk(items...).
-					OnConflict(
-						sql.ConflictColumns(billinginvoicelinediscount.FieldID),
-						sql.ResolveWithNewValues(),
-						sql.ResolveWith(func(u *sql.UpdateSet) {
-							u.SetIgnore(billinginvoicelinediscount.FieldCreatedAt)
-						}),
-					).Exec(ctx)
-			},
-			MarkDeleted: func(ctx context.Context, d amountLineDiscountManagedWithLine) (amountLineDiscountManagedWithLine, error) {
-				d.Entity.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
-
-				return d, nil
-			},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("upserting amount discounts: %w", err)
-		}
-
 		// Step 4b: Taxes (TODO[later]: implement)
 
 		// Step 5: Update updated_at for all the affected lines

@@ -12,12 +12,14 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
+	"github.com/openmeterio/openmeter/openmeter/billing/pricer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // InvoicePendingLines invoices the pending lines for the customer.
@@ -228,7 +230,10 @@ func (s *Service) PrepareBillableLines(ctx context.Context, input billing.Prepar
 		})
 }
 
-type gatheringLineWithBillablePeriod = lineservice.LineWithBillablePeriod[billing.GatheringLine]
+type gatheringLineWithBillablePeriod struct {
+	Line           billing.GatheringLine
+	BillablePeriod timeutil.ClosedPeriod
+}
 
 type gatheringInvoiceWithFeatureMeters struct {
 	Invoice       billing.GatheringInvoice
@@ -254,16 +259,29 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 	asOfTruncated := in.AsOf.Truncate(streaming.MinimumWindowSizeDuration)
 
 	for currency, invoice := range in.GatheringInvoicesByCurrency {
-		linesWithResolvedPeriods, err := lineservice.GetLinesWithBillablePeriods(
-			lineservice.GetLinesWithBillablePeriodsInput[billing.GatheringLine]{
-				AsOf:               in.AsOf,
-				ProgressiveBilling: in.ProgressiveBilling,
-				Lines:              invoice.Invoice.Lines.OrEmpty(),
+		linesWithResolvedPeriods, err := slicesx.MapWithErr(invoice.Invoice.Lines.OrEmpty(), func(line billing.GatheringLine) (gatheringLineWithBillablePeriod, error) {
+			period, err := s.pricer.ResolveBillablePeriod(pricer.ResolveBillablePeriodInput{
+				Line:               line,
 				FeatureMeters:      invoice.FeatureMeters,
+				ProgressiveBilling: in.ProgressiveBilling,
+				AsOf:               in.AsOf,
 			})
+			if err != nil {
+				return gatheringLineWithBillablePeriod{}, fmt.Errorf("resolving billable period[%s]: %w", line.ID, err)
+			}
+
+			return gatheringLineWithBillablePeriod{
+				Line:           line,
+				BillablePeriod: lo.FromPtr(period),
+			}, nil
+		})
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("gathering lines with resolved periods: %w", err)
 		}
+
+		linesWithResolvedPeriods = lo.Filter(linesWithResolvedPeriods, func(line gatheringLineWithBillablePeriod, _ int) bool {
+			return !lo.IsEmpty(line.BillablePeriod)
+		})
 
 		if !in.ProgressiveBilling {
 			// Somewhat of a hack: Since we are allowing subscriptions with different billing periods for ratecards, invoiceAt not necessarily equals
@@ -274,7 +292,7 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 			// 2. the line does not need to be split but it's invoiceAt is after the line's period end, when the line is technically billable, but
 			//    from the user's perspective as they are not requesting progressive billing we should not include it on the invoice.
 
-			linesWithResolvedPeriods = lo.Filter(linesWithResolvedPeriods, func(line lineservice.LineWithBillablePeriod[billing.GatheringLine], _ int) bool {
+			linesWithResolvedPeriods = lo.Filter(linesWithResolvedPeriods, func(line gatheringLineWithBillablePeriod, _ int) bool {
 				invoiceAtTruncated := line.Line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
 				return invoiceAtTruncated.Before(asOfTruncated) || invoiceAtTruncated.Equal(asOfTruncated)
@@ -592,7 +610,7 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 		return res, fmt.Errorf("cloning post split line: %w", err)
 	}
 
-	postSplitAtLineEmpty, err := lineservice.IsPeriodEmptyConsideringTruncations(postSplitAtLine)
+	postSplitAtLineEmpty, err := isPeriodEmptyConsideringTruncations(postSplitAtLine)
 	if err != nil {
 		return res, fmt.Errorf("checking if post split line is empty: %w", err)
 	}
@@ -613,7 +631,7 @@ func (s *Service) splitGatheringInvoiceLine(ctx context.Context, in splitGatheri
 
 	preSplitAtLine := line
 
-	preSplitAtLineEmpty, err := lineservice.IsPeriodEmptyConsideringTruncations(preSplitAtLine)
+	preSplitAtLineEmpty, err := isPeriodEmptyConsideringTruncations(preSplitAtLine)
 	if err != nil {
 		return res, fmt.Errorf("checking if pre split line is empty: %w", err)
 	}
@@ -1013,4 +1031,18 @@ func (s *Service) resolveSplitLineGroupHeadersForLines(ctx context.Context, ns s
 	}
 
 	return nil
+}
+
+func isPeriodEmptyConsideringTruncations(line billing.GatheringLine) (bool, error) {
+	price := line.GetPrice()
+	if price == nil {
+		return false, fmt.Errorf("price is nil")
+	}
+
+	if price.Type() == productcatalog.FlatPriceType {
+		// Flat prices are always billable even if the period is empty
+		return false, nil
+	}
+
+	return line.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration).IsEmpty(), nil
 }

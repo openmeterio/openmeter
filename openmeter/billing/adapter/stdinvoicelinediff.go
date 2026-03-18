@@ -23,8 +23,7 @@ type invoiceLineDiff struct {
 	Line entitydiff.Diff[*billing.StandardLine]
 
 	// Dependant entities
-	UsageDiscounts  entitydiff.Diff[usageLineDiscountManagedWithLine]
-	AmountDiscounts entitydiff.Diff[amountLineDiscountManagedWithLine]
+	UsageDiscounts entitydiff.Diff[usageLineDiscountManagedWithLine]
 
 	// AffectedLineIDs contains the list of line IDs that are affected by the diff, even if they
 	// are not updated. We can use this to update the UpdatedAt of the lines if any of the dependant
@@ -80,11 +79,6 @@ func diffInvoiceLines(lines []*billing.StandardLine) (invoiceLineDiff, error) {
 			diff.UsageDiscounts = diff.UsageDiscounts.Append(entitydiff.DiffByIDEqualer(
 				entitydiff.NewEqualersWithParent(item.ExpectedState.Discounts.Usage, item.ExpectedState),
 				entitydiff.NewEqualersWithParent(item.PersistedState.Discounts.Usage, item.PersistedState),
-			))
-
-			diff.AmountDiscounts = diff.AmountDiscounts.Append(entitydiff.DiffByIDEqualer(
-				entitydiff.NewEqualersWithParent(item.ExpectedState.Discounts.Amount, item.ExpectedState),
-				entitydiff.NewEqualersWithParent(item.PersistedState.Discounts.Amount, item.PersistedState),
 			))
 
 			// Detailed line diffs
@@ -170,12 +164,6 @@ func (d *invoiceLineDiff) DeleteLine(item *billing.StandardLine) error {
 			Parent: item,
 		})
 	}
-	for _, discount := range item.Discounts.Amount {
-		d.AmountDiscounts.NeedsDelete(amountLineDiscountManagedWithLine{
-			Entity: discount,
-			Parent: item,
-		})
-	}
 
 	for idx := range item.DetailedLines {
 		if err := d.DeleteDetailedLine(&item.DetailedLines[idx], item); err != nil {
@@ -192,12 +180,6 @@ func (d *invoiceLineDiff) CreateLine(item *billing.StandardLine) error {
 	for _, usageDiscount := range item.Discounts.Usage {
 		d.UsageDiscounts.NeedsCreate(usageLineDiscountManagedWithLine{
 			Entity: usageDiscount,
-			Parent: item,
-		})
-	}
-	for _, amountDiscount := range item.Discounts.Amount {
-		d.AmountDiscounts.NeedsCreate(amountLineDiscountManagedWithLine{
-			Entity: amountDiscount,
 			Parent: item,
 		})
 	}
