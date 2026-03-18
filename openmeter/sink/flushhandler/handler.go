@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/sink/models"
 )
@@ -151,10 +152,14 @@ func (f *flushEventHandler) start(ctx context.Context) {
 		return
 	}
 
+	// Capture the trace span from the start context so callbacks can be linked
+	// to the parent trace even though they use context.Background() for cancellation isolation.
+	parentSpan := trace.SpanFromContext(ctx)
+
 	for !f.isShutdown.Load() {
 		select {
 		case event := <-f.events:
-			if err := f.invokeCallbackWithTimeout(event); err != nil {
+			if err := f.invokeCallbackWithTimeout(parentSpan, event); err != nil {
 				f.logger.ErrorContext(ctx, "failed to invoke callback", "error", err)
 			}
 		case <-ctx.Done():
@@ -169,6 +174,9 @@ func (f *flushEventHandler) start(ctx context.Context) {
 	drainContext, cancel := context.WithTimeout(context.Background(), f.drainTimeout)
 	defer cancel()
 
+	// Attach trace context to drain context so drain callbacks are also linked to the parent trace.
+	drainContext = trace.ContextWithSpan(drainContext, parentSpan)
+
 	// NOTE: this will block if the events channel is not closed
 	for event := range f.events {
 		if err := f.invokeCallback(drainContext, event); err != nil {
@@ -177,11 +185,14 @@ func (f *flushEventHandler) start(ctx context.Context) {
 	}
 }
 
-func (f *flushEventHandler) invokeCallbackWithTimeout(events []models.SinkMessage) error {
+func (f *flushEventHandler) invokeCallbackWithTimeout(parentSpan trace.Span, events []models.SinkMessage) error {
 	// We are using a background context here, as if the parent context is canceled, we still want to
 	// allow the callbacks to call external systems. In exchange we are limiting the work with a timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), f.callbackTimeout)
 	defer cancel()
+
+	// Propagate trace context so callback spans are linked to the parent trace.
+	ctx = trace.ContextWithSpan(ctx, parentSpan)
 
 	return f.invokeCallback(ctx, events)
 }
