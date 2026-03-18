@@ -156,7 +156,7 @@ func ConfigureSink(v *viper.Viper) {
 	// FIXME(chrisgacsal): remove as it is deprecated by moving Kafka specific configuration to dedicated config params.
 	v.SetDefault("sink.groupId", "openmeter-sink-worker")
 	v.SetDefault("sink.minCommitCount", 500)
-	v.SetDefault("sink.maxCommitWait", "5s")
+	v.SetDefault("sink.maxCommitWait", "2s")
 	v.SetDefault("sink.maxPollTimeout", "100ms")
 	v.SetDefault("sink.namespaceRefetch", "15s")
 	v.SetDefault("sink.flushSuccessTimeout", "5s")
