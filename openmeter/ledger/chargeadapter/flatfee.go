@@ -25,6 +25,18 @@ type flatFeeHandler struct {
 
 var _ flatfee.Handler = (*flatFeeHandler)(nil)
 
+func NewFlatFeeHandler(
+	ledger ledger.Ledger,
+	accountResolver ledger.AccountResolver,
+	accountService ledgeraccount.Service,
+) flatfee.Handler {
+	return &flatFeeHandler{
+		ledger:          ledger,
+		accountResolver: accountResolver,
+		accountService:  accountService,
+	}
+}
+
 // OnFlatFeeAssignedToInvoice is called when a flat fee is being assigned to an invoice.
 // This acknowledges FBO-backed usage on the ledger by consuming value from prioritized
 // customer FBO subaccounts and moving it into customer_accrued. This is NOT revenue recognition.

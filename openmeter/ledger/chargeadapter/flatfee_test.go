@@ -1,4 +1,4 @@
-package chargeadapter
+package chargeadapter_test
 
 import (
 	"fmt"
@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	ledgertransactiongroupdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -213,21 +214,19 @@ func TestOnFlatFeePaymentUncollectible(t *testing.T) {
 
 type flatFeeHandlerTestEnv struct {
 	*ledgertestutils.IntegrationEnv
-	handler *flatFeeHandler
+	handler chargeflatfee.Handler
 }
 
 func newFlatFeeHandlerTestEnv(t *testing.T) *flatFeeHandlerTestEnv {
 	base := ledgertestutils.NewIntegrationEnv(t, "chargeadapter-flatfee")
 
-	handler := &flatFeeHandler{
-		ledger:          base.Deps.HistoricalLedger,
-		accountResolver: base.Deps.ResolversService,
-		accountService:  base.Deps.AccountService,
-	}
-
 	return &flatFeeHandlerTestEnv{
 		IntegrationEnv: base,
-		handler:        handler,
+		handler: chargeadapter.NewFlatFeeHandler(
+			base.Deps.HistoricalLedger,
+			base.Deps.ResolversService,
+			base.Deps.AccountService,
+		),
 	}
 }
 

@@ -14,9 +14,10 @@ import (
 
 // IssueCustomerReceivableTemplate is a transaction increasing the customer's balance against an outstanding receivable account
 type IssueCustomerReceivableTemplate struct {
-	At       time.Time
-	Amount   alpacadecimal.Decimal
-	Currency currencyx.Code
+	At        time.Time
+	Amount    alpacadecimal.Decimal
+	Currency  currencyx.Code
+	CostBasis *alpacadecimal.Decimal
 	// Optional, defaults to ledger.DefaultCustomerFBOPriority.
 	CreditPriority *int
 }
@@ -37,6 +38,7 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 
 	fbo, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
 		Currency:       t.Currency,
+		CostBasis:      t.CostBasis,
 		CreditPriority: priority,
 	})
 	if err != nil {
@@ -44,7 +46,8 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 	}
 
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
-		Currency: t.Currency,
+		Currency:  t.Currency,
+		CostBasis: t.CostBasis,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get receivable sub-account: %w", err)
@@ -67,9 +70,10 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 
 // FundCustomerReceivableTemplate funds a customer receivable account from wash account
 type FundCustomerReceivableTemplate struct {
-	At       time.Time
-	Amount   alpacadecimal.Decimal
-	Currency currencyx.Code
+	At        time.Time
+	Amount    alpacadecimal.Decimal
+	Currency  currencyx.Code
+	CostBasis *alpacadecimal.Decimal
 }
 
 var _ CustomerTransactionTemplate = (FundCustomerReceivableTemplate{})
@@ -85,7 +89,8 @@ func (t FundCustomerReceivableTemplate) resolve(ctx context.Context, customerID 
 	}
 
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
-		Currency: t.Currency,
+		Currency:  t.Currency,
+		CostBasis: t.CostBasis,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get receivable sub-account: %w", err)
@@ -97,7 +102,8 @@ func (t FundCustomerReceivableTemplate) resolve(ctx context.Context, customerID 
 	}
 
 	wash, err := businessAccounts.WashAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
-		Currency: t.Currency,
+		Currency:  t.Currency,
+		CostBasis: t.CostBasis,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get wash sub-account: %w", err)
@@ -120,9 +126,10 @@ func (t FundCustomerReceivableTemplate) resolve(ctx context.Context, customerID 
 
 // CoverCustomerReceivableTemplate covers a customer receivable account from FBO account
 type CoverCustomerReceivableTemplate struct {
-	At       time.Time
-	Amount   alpacadecimal.Decimal
-	Currency currencyx.Code
+	At        time.Time
+	Amount    alpacadecimal.Decimal
+	Currency  currencyx.Code
+	CostBasis *alpacadecimal.Decimal
 	// Optional, defaults to 100.
 	CreditPriority *int
 }
@@ -143,6 +150,7 @@ func (t CoverCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 
 	fbo, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
 		Currency:       t.Currency,
+		CostBasis:      t.CostBasis,
 		CreditPriority: priority,
 	})
 	if err != nil {
@@ -150,7 +158,8 @@ func (t CoverCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 	}
 
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
-		Currency: t.Currency,
+		Currency:  t.Currency,
+		CostBasis: t.CostBasis,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get receivable sub-account: %w", err)
