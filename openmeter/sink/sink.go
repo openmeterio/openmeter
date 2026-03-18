@@ -35,6 +35,7 @@ type Sink struct {
 	config            SinkConfig
 	buffer            *SinkBuffer
 	flushTimer        *time.Timer
+	flushCh           chan struct{}
 	flushEventCounter metric.Int64Counter
 	messageCounter    metric.Int64Counter
 	namespaceRefetch  *time.Timer
@@ -223,6 +224,7 @@ func NewSink(config SinkConfig) (*Sink, error) {
 	sink := &Sink{
 		config:               config,
 		buffer:               NewSinkBuffer(),
+		flushCh:              make(chan struct{}, 1),
 		flushEventCounter:    flushEventCounter,
 		messageCounter:       messageCounter,
 		kafkaMetrics:         kafkaMetrics,
@@ -582,20 +584,17 @@ func (s *Sink) subscribeToNamespaces(ctx context.Context) error {
 	return nil
 }
 
-// Periodically flush even if MinCommitCount threshold not reached yet but MaxCommitWait time elapsed
+// Periodically flush even if MinCommitCount threshold not reached yet but MaxCommitWait time elapsed.
+// Instead of calling flush() directly in a timer goroutine (which swallows errors), we signal
+// the main loop via flushCh so errors propagate and can stop the consumer.
 func (s *Sink) setFlushTimer(ctx context.Context) {
-	logger := s.config.Logger.With("operation", "setFlushTimer")
-
-	flush := func() {
-		err := s.flush(ctx)
-		if err != nil {
-			// TODO: should we panic?
-			logger.ErrorContext(ctx, "failed to flush", "err", err)
+	s.flushTimer = time.AfterFunc(s.config.MaxCommitWait, func() {
+		// Non-blocking send: if a signal is already pending, no need to send another
+		select {
+		case s.flushCh <- struct{}{}:
+		default:
 		}
-	}
-
-	// Schedule flush
-	s.flushTimer = time.AfterFunc(s.config.MaxCommitWait, flush)
+	})
 }
 
 // Clear flush timer, as there are no parallel flushes there is no need to be thread safe
@@ -658,6 +657,12 @@ func (s *Sink) Run(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			return fmt.Errorf("context canceled: %w", ctx.Err())
+
+		case <-s.flushCh:
+			if err := s.flush(ctx); err != nil {
+				return fmt.Errorf("failed to flush: %w", err)
+			}
+			continue
 
 		default:
 			ev := s.config.Consumer.Poll(int(s.config.MaxPollTimeout.Milliseconds()))
