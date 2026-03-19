@@ -13,13 +13,13 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// ChargeFlatFeePayment is the model entity for the ChargeFlatFeePayment schema.
-type ChargeFlatFeePayment struct {
+// ChargeCreditPurchaseInvoicedPayment is the model entity for the ChargeCreditPurchaseInvoicedPayment schema.
+type ChargeCreditPurchaseInvoicedPayment struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
@@ -56,17 +56,17 @@ type ChargeFlatFeePayment struct {
 	// ChargeID holds the value of the "charge_id" field.
 	ChargeID string `json:"charge_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
-	// The values are being populated by the ChargeFlatFeePaymentQuery when eager-loading is set.
-	Edges        ChargeFlatFeePaymentEdges `json:"edges"`
+	// The values are being populated by the ChargeCreditPurchaseInvoicedPaymentQuery when eager-loading is set.
+	Edges        ChargeCreditPurchaseInvoicedPaymentEdges `json:"edges"`
 	selectValues sql.SelectValues
 }
 
-// ChargeFlatFeePaymentEdges holds the relations/edges for other nodes in the graph.
-type ChargeFlatFeePaymentEdges struct {
+// ChargeCreditPurchaseInvoicedPaymentEdges holds the relations/edges for other nodes in the graph.
+type ChargeCreditPurchaseInvoicedPaymentEdges struct {
 	// BillingInvoiceLine holds the value of the billing_invoice_line edge.
 	BillingInvoiceLine *BillingInvoiceLine `json:"billing_invoice_line,omitempty"`
-	// FlatFee holds the value of the flat_fee edge.
-	FlatFee *ChargeFlatFee `json:"flat_fee,omitempty"`
+	// CreditPurchase holds the value of the credit_purchase edge.
+	CreditPurchase *ChargeCreditPurchase `json:"credit_purchase,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [2]bool
@@ -74,7 +74,7 @@ type ChargeFlatFeePaymentEdges struct {
 
 // BillingInvoiceLineOrErr returns the BillingInvoiceLine value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeFlatFeePaymentEdges) BillingInvoiceLineOrErr() (*BillingInvoiceLine, error) {
+func (e ChargeCreditPurchaseInvoicedPaymentEdges) BillingInvoiceLineOrErr() (*BillingInvoiceLine, error) {
 	if e.BillingInvoiceLine != nil {
 		return e.BillingInvoiceLine, nil
 	} else if e.loadedTypes[0] {
@@ -83,29 +83,29 @@ func (e ChargeFlatFeePaymentEdges) BillingInvoiceLineOrErr() (*BillingInvoiceLin
 	return nil, &NotLoadedError{edge: "billing_invoice_line"}
 }
 
-// FlatFeeOrErr returns the FlatFee value or an error if the edge
+// CreditPurchaseOrErr returns the CreditPurchase value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeFlatFeePaymentEdges) FlatFeeOrErr() (*ChargeFlatFee, error) {
-	if e.FlatFee != nil {
-		return e.FlatFee, nil
+func (e ChargeCreditPurchaseInvoicedPaymentEdges) CreditPurchaseOrErr() (*ChargeCreditPurchase, error) {
+	if e.CreditPurchase != nil {
+		return e.CreditPurchase, nil
 	} else if e.loadedTypes[1] {
-		return nil, &NotFoundError{label: chargeflatfee.Label}
+		return nil, &NotFoundError{label: chargecreditpurchase.Label}
 	}
-	return nil, &NotLoadedError{edge: "flat_fee"}
+	return nil, &NotLoadedError{edge: "credit_purchase"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
-func (*ChargeFlatFeePayment) scanValues(columns []string) ([]any, error) {
+func (*ChargeCreditPurchaseInvoicedPayment) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case chargeflatfeepayment.FieldAnnotations:
+		case chargecreditpurchaseinvoicedpayment.FieldAnnotations:
 			values[i] = new([]byte)
-		case chargeflatfeepayment.FieldAmount:
+		case chargecreditpurchaseinvoicedpayment.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeflatfeepayment.FieldID, chargeflatfeepayment.FieldLineID, chargeflatfeepayment.FieldInvoiceID, chargeflatfeepayment.FieldStatus, chargeflatfeepayment.FieldAuthorizedTransactionGroupID, chargeflatfeepayment.FieldSettledTransactionGroupID, chargeflatfeepayment.FieldNamespace, chargeflatfeepayment.FieldChargeID:
+		case chargecreditpurchaseinvoicedpayment.FieldID, chargecreditpurchaseinvoicedpayment.FieldLineID, chargecreditpurchaseinvoicedpayment.FieldInvoiceID, chargecreditpurchaseinvoicedpayment.FieldStatus, chargecreditpurchaseinvoicedpayment.FieldAuthorizedTransactionGroupID, chargecreditpurchaseinvoicedpayment.FieldSettledTransactionGroupID, chargecreditpurchaseinvoicedpayment.FieldNamespace, chargecreditpurchaseinvoicedpayment.FieldChargeID:
 			values[i] = new(sql.NullString)
-		case chargeflatfeepayment.FieldServicePeriodFrom, chargeflatfeepayment.FieldServicePeriodTo, chargeflatfeepayment.FieldAuthorizedAt, chargeflatfeepayment.FieldSettledAt, chargeflatfeepayment.FieldCreatedAt, chargeflatfeepayment.FieldUpdatedAt, chargeflatfeepayment.FieldDeletedAt:
+		case chargecreditpurchaseinvoicedpayment.FieldServicePeriodFrom, chargecreditpurchaseinvoicedpayment.FieldServicePeriodTo, chargecreditpurchaseinvoicedpayment.FieldAuthorizedAt, chargecreditpurchaseinvoicedpayment.FieldSettledAt, chargecreditpurchaseinvoicedpayment.FieldCreatedAt, chargecreditpurchaseinvoicedpayment.FieldUpdatedAt, chargecreditpurchaseinvoicedpayment.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -115,110 +115,110 @@ func (*ChargeFlatFeePayment) scanValues(columns []string) ([]any, error) {
 }
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
-// to the ChargeFlatFeePayment fields.
-func (_m *ChargeFlatFeePayment) assignValues(columns []string, values []any) error {
+// to the ChargeCreditPurchaseInvoicedPayment fields.
+func (_m *ChargeCreditPurchaseInvoicedPayment) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
 	for i := range columns {
 		switch columns[i] {
-		case chargeflatfeepayment.FieldID:
+		case chargecreditpurchaseinvoicedpayment.FieldID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				_m.ID = value.String
 			}
-		case chargeflatfeepayment.FieldLineID:
+		case chargecreditpurchaseinvoicedpayment.FieldLineID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field line_id", values[i])
 			} else if value.Valid {
 				_m.LineID = value.String
 			}
-		case chargeflatfeepayment.FieldInvoiceID:
+		case chargecreditpurchaseinvoicedpayment.FieldInvoiceID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_id", values[i])
 			} else if value.Valid {
 				_m.InvoiceID = new(string)
 				*_m.InvoiceID = value.String
 			}
-		case chargeflatfeepayment.FieldServicePeriodFrom:
+		case chargecreditpurchaseinvoicedpayment.FieldServicePeriodFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field service_period_from", values[i])
 			} else if value.Valid {
 				_m.ServicePeriodFrom = value.Time
 			}
-		case chargeflatfeepayment.FieldServicePeriodTo:
+		case chargecreditpurchaseinvoicedpayment.FieldServicePeriodTo:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field service_period_to", values[i])
 			} else if value.Valid {
 				_m.ServicePeriodTo = value.Time
 			}
-		case chargeflatfeepayment.FieldStatus:
+		case chargecreditpurchaseinvoicedpayment.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
 				_m.Status = payment.Status(value.String)
 			}
-		case chargeflatfeepayment.FieldAmount:
+		case chargecreditpurchaseinvoicedpayment.FieldAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field amount", values[i])
 			} else if value != nil {
 				_m.Amount = *value
 			}
-		case chargeflatfeepayment.FieldAuthorizedTransactionGroupID:
+		case chargecreditpurchaseinvoicedpayment.FieldAuthorizedTransactionGroupID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field authorized_transaction_group_id", values[i])
 			} else if value.Valid {
 				_m.AuthorizedTransactionGroupID = new(string)
 				*_m.AuthorizedTransactionGroupID = value.String
 			}
-		case chargeflatfeepayment.FieldAuthorizedAt:
+		case chargecreditpurchaseinvoicedpayment.FieldAuthorizedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field authorized_at", values[i])
 			} else if value.Valid {
 				_m.AuthorizedAt = new(time.Time)
 				*_m.AuthorizedAt = value.Time
 			}
-		case chargeflatfeepayment.FieldSettledTransactionGroupID:
+		case chargecreditpurchaseinvoicedpayment.FieldSettledTransactionGroupID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field settled_transaction_group_id", values[i])
 			} else if value.Valid {
 				_m.SettledTransactionGroupID = new(string)
 				*_m.SettledTransactionGroupID = value.String
 			}
-		case chargeflatfeepayment.FieldSettledAt:
+		case chargecreditpurchaseinvoicedpayment.FieldSettledAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field settled_at", values[i])
 			} else if value.Valid {
 				_m.SettledAt = new(time.Time)
 				*_m.SettledAt = value.Time
 			}
-		case chargeflatfeepayment.FieldNamespace:
+		case chargecreditpurchaseinvoicedpayment.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
 				_m.Namespace = value.String
 			}
-		case chargeflatfeepayment.FieldCreatedAt:
+		case chargecreditpurchaseinvoicedpayment.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				_m.CreatedAt = value.Time
 			}
-		case chargeflatfeepayment.FieldUpdatedAt:
+		case chargecreditpurchaseinvoicedpayment.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
 			}
-		case chargeflatfeepayment.FieldDeletedAt:
+		case chargecreditpurchaseinvoicedpayment.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
 			}
-		case chargeflatfeepayment.FieldAnnotations:
+		case chargecreditpurchaseinvoicedpayment.FieldAnnotations:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field annotations", values[i])
 			} else if value != nil && len(*value) > 0 {
@@ -226,7 +226,7 @@ func (_m *ChargeFlatFeePayment) assignValues(columns []string, values []any) err
 					return fmt.Errorf("unmarshal field annotations: %w", err)
 				}
 			}
-		case chargeflatfeepayment.FieldChargeID:
+		case chargecreditpurchaseinvoicedpayment.FieldChargeID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field charge_id", values[i])
 			} else if value.Valid {
@@ -239,44 +239,44 @@ func (_m *ChargeFlatFeePayment) assignValues(columns []string, values []any) err
 	return nil
 }
 
-// Value returns the ent.Value that was dynamically selected and assigned to the ChargeFlatFeePayment.
+// Value returns the ent.Value that was dynamically selected and assigned to the ChargeCreditPurchaseInvoicedPayment.
 // This includes values selected through modifiers, order, etc.
-func (_m *ChargeFlatFeePayment) Value(name string) (ent.Value, error) {
+func (_m *ChargeCreditPurchaseInvoicedPayment) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryBillingInvoiceLine queries the "billing_invoice_line" edge of the ChargeFlatFeePayment entity.
-func (_m *ChargeFlatFeePayment) QueryBillingInvoiceLine() *BillingInvoiceLineQuery {
-	return NewChargeFlatFeePaymentClient(_m.config).QueryBillingInvoiceLine(_m)
+// QueryBillingInvoiceLine queries the "billing_invoice_line" edge of the ChargeCreditPurchaseInvoicedPayment entity.
+func (_m *ChargeCreditPurchaseInvoicedPayment) QueryBillingInvoiceLine() *BillingInvoiceLineQuery {
+	return NewChargeCreditPurchaseInvoicedPaymentClient(_m.config).QueryBillingInvoiceLine(_m)
 }
 
-// QueryFlatFee queries the "flat_fee" edge of the ChargeFlatFeePayment entity.
-func (_m *ChargeFlatFeePayment) QueryFlatFee() *ChargeFlatFeeQuery {
-	return NewChargeFlatFeePaymentClient(_m.config).QueryFlatFee(_m)
+// QueryCreditPurchase queries the "credit_purchase" edge of the ChargeCreditPurchaseInvoicedPayment entity.
+func (_m *ChargeCreditPurchaseInvoicedPayment) QueryCreditPurchase() *ChargeCreditPurchaseQuery {
+	return NewChargeCreditPurchaseInvoicedPaymentClient(_m.config).QueryCreditPurchase(_m)
 }
 
-// Update returns a builder for updating this ChargeFlatFeePayment.
-// Note that you need to call ChargeFlatFeePayment.Unwrap() before calling this method if this ChargeFlatFeePayment
+// Update returns a builder for updating this ChargeCreditPurchaseInvoicedPayment.
+// Note that you need to call ChargeCreditPurchaseInvoicedPayment.Unwrap() before calling this method if this ChargeCreditPurchaseInvoicedPayment
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (_m *ChargeFlatFeePayment) Update() *ChargeFlatFeePaymentUpdateOne {
-	return NewChargeFlatFeePaymentClient(_m.config).UpdateOne(_m)
+func (_m *ChargeCreditPurchaseInvoicedPayment) Update() *ChargeCreditPurchaseInvoicedPaymentUpdateOne {
+	return NewChargeCreditPurchaseInvoicedPaymentClient(_m.config).UpdateOne(_m)
 }
 
-// Unwrap unwraps the ChargeFlatFeePayment entity that was returned from a transaction after it was closed,
+// Unwrap unwraps the ChargeCreditPurchaseInvoicedPayment entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (_m *ChargeFlatFeePayment) Unwrap() *ChargeFlatFeePayment {
+func (_m *ChargeCreditPurchaseInvoicedPayment) Unwrap() *ChargeCreditPurchaseInvoicedPayment {
 	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
-		panic("db: ChargeFlatFeePayment is not a transactional entity")
+		panic("db: ChargeCreditPurchaseInvoicedPayment is not a transactional entity")
 	}
 	_m.config.driver = _tx.drv
 	return _m
 }
 
 // String implements the fmt.Stringer.
-func (_m *ChargeFlatFeePayment) String() string {
+func (_m *ChargeCreditPurchaseInvoicedPayment) String() string {
 	var builder strings.Builder
-	builder.WriteString("ChargeFlatFeePayment(")
+	builder.WriteString("ChargeCreditPurchaseInvoicedPayment(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("line_id=")
 	builder.WriteString(_m.LineID)
@@ -341,5 +341,5 @@ func (_m *ChargeFlatFeePayment) String() string {
 	return builder.String()
 }
 
-// ChargeFlatFeePayments is a parsable slice of ChargeFlatFeePayment.
-type ChargeFlatFeePayments []*ChargeFlatFeePayment
+// ChargeCreditPurchaseInvoicedPayments is a parsable slice of ChargeCreditPurchaseInvoicedPayment.
+type ChargeCreditPurchaseInvoicedPayments []*ChargeCreditPurchaseInvoicedPayment

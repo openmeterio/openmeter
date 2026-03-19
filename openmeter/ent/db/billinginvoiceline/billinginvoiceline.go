@@ -127,6 +127,8 @@ const (
 	EdgeChargeFlatFeeCreditAllocations = "charge_flat_fee_credit_allocations"
 	// EdgeChargeFlatFeeInvoicedUsage holds the string denoting the charge_flat_fee_invoiced_usage edge name in mutations.
 	EdgeChargeFlatFeeInvoicedUsage = "charge_flat_fee_invoiced_usage"
+	// EdgeChargeCreditPurchaseInvoicedPayment holds the string denoting the charge_credit_purchase_invoiced_payment edge name in mutations.
+	EdgeChargeCreditPurchaseInvoicedPayment = "charge_credit_purchase_invoiced_payment"
 	// Table holds the table name of the billinginvoiceline in the database.
 	Table = "billing_invoice_lines"
 	// BillingInvoiceTable is the table that holds the billing_invoice relation/edge.
@@ -235,6 +237,13 @@ const (
 	ChargeFlatFeeInvoicedUsageInverseTable = "charge_flat_fee_invoiced_usages"
 	// ChargeFlatFeeInvoicedUsageColumn is the table column denoting the charge_flat_fee_invoiced_usage relation/edge.
 	ChargeFlatFeeInvoicedUsageColumn = "line_id"
+	// ChargeCreditPurchaseInvoicedPaymentTable is the table that holds the charge_credit_purchase_invoiced_payment relation/edge.
+	ChargeCreditPurchaseInvoicedPaymentTable = "charge_credit_purchase_invoiced_payments"
+	// ChargeCreditPurchaseInvoicedPaymentInverseTable is the table name for the ChargeCreditPurchaseInvoicedPayment entity.
+	// It exists in this package in order to avoid circular dependency with the "chargecreditpurchaseinvoicedpayment" package.
+	ChargeCreditPurchaseInvoicedPaymentInverseTable = "charge_credit_purchase_invoiced_payments"
+	// ChargeCreditPurchaseInvoicedPaymentColumn is the table column denoting the charge_credit_purchase_invoiced_payment relation/edge.
+	ChargeCreditPurchaseInvoicedPaymentColumn = "line_id"
 )
 
 // Columns holds all SQL columns for billinginvoiceline fields.
@@ -698,6 +707,13 @@ func ByChargeFlatFeeInvoicedUsage(term sql.OrderTerm, terms ...sql.OrderTerm) Or
 		sqlgraph.OrderByNeighborTerms(s, newChargeFlatFeeInvoicedUsageStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByChargeCreditPurchaseInvoicedPaymentField orders the results by charge_credit_purchase_invoiced_payment field.
+func ByChargeCreditPurchaseInvoicedPaymentField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChargeCreditPurchaseInvoicedPaymentStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newBillingInvoiceStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -808,5 +824,12 @@ func newChargeFlatFeeInvoicedUsageStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ChargeFlatFeeInvoicedUsageInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeeInvoicedUsageTable, ChargeFlatFeeInvoicedUsageColumn),
+	)
+}
+func newChargeCreditPurchaseInvoicedPaymentStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChargeCreditPurchaseInvoicedPaymentInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, ChargeCreditPurchaseInvoicedPaymentTable, ChargeCreditPurchaseInvoicedPaymentColumn),
 	)
 }

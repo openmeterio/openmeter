@@ -33,6 +33,20 @@ func (_c *ChargeUsageBasedRunPaymentCreate) SetLineID(v string) *ChargeUsageBase
 	return _c
 }
 
+// SetInvoiceID sets the "invoice_id" field.
+func (_c *ChargeUsageBasedRunPaymentCreate) SetInvoiceID(v string) *ChargeUsageBasedRunPaymentCreate {
+	_c.mutation.SetInvoiceID(v)
+	return _c
+}
+
+// SetNillableInvoiceID sets the "invoice_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedRunPaymentCreate) SetNillableInvoiceID(v *string) *ChargeUsageBasedRunPaymentCreate {
+	if v != nil {
+		_c.SetInvoiceID(*v)
+	}
+	return _c
+}
+
 // SetServicePeriodFrom sets the "service_period_from" field.
 func (_c *ChargeUsageBasedRunPaymentCreate) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedRunPaymentCreate {
 	_c.mutation.SetServicePeriodFrom(v)
@@ -332,6 +346,10 @@ func (_c *ChargeUsageBasedRunPaymentCreate) createSpec() (*ChargeUsageBasedRunPa
 	if value, ok := _c.mutation.LineID(); ok {
 		_spec.SetField(chargeusagebasedrunpayment.FieldLineID, field.TypeString, value)
 		_node.LineID = value
+	}
+	if value, ok := _c.mutation.InvoiceID(); ok {
+		_spec.SetField(chargeusagebasedrunpayment.FieldInvoiceID, field.TypeString, value)
+		_node.InvoiceID = &value
 	}
 	if value, ok := _c.mutation.ServicePeriodFrom(); ok {
 		_spec.SetField(chargeusagebasedrunpayment.FieldServicePeriodFrom, field.TypeTime, value)
@@ -641,6 +659,9 @@ func (u *ChargeUsageBasedRunPaymentUpsertOne) UpdateNewValues() *ChargeUsageBase
 		}
 		if _, exists := u.create.mutation.LineID(); exists {
 			s.SetIgnore(chargeusagebasedrunpayment.FieldLineID)
+		}
+		if _, exists := u.create.mutation.InvoiceID(); exists {
+			s.SetIgnore(chargeusagebasedrunpayment.FieldInvoiceID)
 		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(chargeusagebasedrunpayment.FieldNamespace)
@@ -1063,6 +1084,9 @@ func (u *ChargeUsageBasedRunPaymentUpsertBulk) UpdateNewValues() *ChargeUsageBas
 			}
 			if _, exists := b.mutation.LineID(); exists {
 				s.SetIgnore(chargeusagebasedrunpayment.FieldLineID)
+			}
+			if _, exists := b.mutation.InvoiceID(); exists {
+				s.SetIgnore(chargeusagebasedrunpayment.FieldInvoiceID)
 			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(chargeusagebasedrunpayment.FieldNamespace)

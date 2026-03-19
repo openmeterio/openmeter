@@ -897,6 +897,70 @@ func (e *ChargeCreditPurchaseExternalPayment) GetAnnotations() models.Annotation
 	return e.Annotations
 }
 
+func (e *ChargeCreditPurchaseInvoicedPayment) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeCreditPurchaseInvoicedPayment) GetLineID() string {
+	return e.LineID
+}
+
+func (e *ChargeCreditPurchaseInvoicedPayment) GetInvoiceID() *string {
+	return e.InvoiceID
+}
+
+func (e *ChargeCreditPurchaseInvoicedPayment) GetServicePeriodFrom() time.Time {
+	return e.ServicePeriodFrom
+}
+
+func (e *ChargeCreditPurchaseInvoicedPayment) GetServicePeriodTo() time.Time {
+	return e.ServicePeriodTo
+}
+
+func (e *ChargeCreditPurchaseInvoicedPayment) GetStatus() payment.Status {
+	return e.Status
+}
+
+func (e *ChargeCreditPurchaseInvoicedPayment) GetAmount() alpacadecimal.Decimal {
+	return e.Amount
+}
+
+func (e *ChargeCreditPurchaseInvoicedPayment) GetAuthorizedTransactionGroupID() *string {
+	return e.AuthorizedTransactionGroupID
+}
+
+func (e *ChargeCreditPurchaseInvoicedPayment) GetAuthorizedAt() *time.Time {
+	return e.AuthorizedAt
+}
+
+func (e *ChargeCreditPurchaseInvoicedPayment) GetSettledTransactionGroupID() *string {
+	return e.SettledTransactionGroupID
+}
+
+func (e *ChargeCreditPurchaseInvoicedPayment) GetSettledAt() *time.Time {
+	return e.SettledAt
+}
+
+func (e *ChargeCreditPurchaseInvoicedPayment) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *ChargeCreditPurchaseInvoicedPayment) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeCreditPurchaseInvoicedPayment) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeCreditPurchaseInvoicedPayment) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *ChargeCreditPurchaseInvoicedPayment) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
 func (e *ChargeFlatFee) GetID() string {
 	return e.ID
 }
@@ -1031,6 +1095,10 @@ func (e *ChargeFlatFeePayment) GetID() string {
 
 func (e *ChargeFlatFeePayment) GetLineID() string {
 	return e.LineID
+}
+
+func (e *ChargeFlatFeePayment) GetInvoiceID() *string {
+	return e.InvoiceID
 }
 
 func (e *ChargeFlatFeePayment) GetServicePeriodFrom() time.Time {
@@ -1219,6 +1287,10 @@ func (e *ChargeUsageBasedRunPayment) GetID() string {
 
 func (e *ChargeUsageBasedRunPayment) GetLineID() string {
 	return e.LineID
+}
+
+func (e *ChargeUsageBasedRunPayment) GetInvoiceID() *string {
+	return e.InvoiceID
 }
 
 func (e *ChargeUsageBasedRunPayment) GetServicePeriodFrom() time.Time {

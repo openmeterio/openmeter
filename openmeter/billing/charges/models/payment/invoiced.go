@@ -31,6 +31,13 @@ func (invoicedMixin) Fields() []ent.Field {
 				dialect.Postgres: "char(26)",
 			}).
 			Immutable(),
+		field.String("invoice_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable().
+			Immutable(),
 	}
 }
 
@@ -39,6 +46,7 @@ type InvoicedCreate struct {
 
 	Namespace string `json:"namespace"`
 	LineID    string `json:"lineID"`
+	InvoiceID string `json:"invoiceID"`
 }
 
 func (i InvoicedCreate) Validate() error {
@@ -56,16 +64,22 @@ func (i InvoicedCreate) Validate() error {
 		errs = append(errs, fmt.Errorf("line ID is required"))
 	}
 
+	if i.InvoiceID == "" {
+		errs = append(errs, fmt.Errorf("invoice ID is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
 type InvoicedCreator[T any] interface {
 	Creator[T]
 	SetLineID(lineID string) T
+	SetInvoiceID(invoiceID string) T
 }
 
 func CreateInvoiced[T InvoicedCreator[T]](creator InvoicedCreator[T], in InvoicedCreate) T {
 	creator = Create(creator, in.Namespace, in.Base)
+	creator = creator.SetInvoiceID(in.InvoiceID)
 	return creator.SetLineID(in.LineID)
 }
 
@@ -115,11 +129,13 @@ func (r Invoiced) ErrorAttributes() models.Attributes {
 type InvoicedGetter interface {
 	Getter
 	GetLineID() string
+	GetInvoiceID() string
 }
 
 func MapInvoicedFromDB(dbEntity InvoicedGetter) Invoiced {
 	return Invoiced{
-		Payment: mapPaymentFromDB(dbEntity),
-		LineID:  dbEntity.GetLineID(),
+		Payment:   mapPaymentFromDB(dbEntity),
+		LineID:    dbEntity.GetLineID(),
+		InvoiceID: dbEntity.GetInvoiceID(),
 	}
 }

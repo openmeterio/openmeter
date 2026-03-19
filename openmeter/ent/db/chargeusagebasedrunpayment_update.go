@@ -281,6 +281,9 @@ func (_u *ChargeUsageBasedRunPaymentUpdate) sqlSave(ctx context.Context) (_node 
 			}
 		}
 	}
+	if _u.mutation.InvoiceIDCleared() {
+		_spec.ClearField(chargeusagebasedrunpayment.FieldInvoiceID, field.TypeString)
+	}
 	if value, ok := _u.mutation.ServicePeriodFrom(); ok {
 		_spec.SetField(chargeusagebasedrunpayment.FieldServicePeriodFrom, field.TypeTime, value)
 	}
@@ -631,6 +634,9 @@ func (_u *ChargeUsageBasedRunPaymentUpdateOne) sqlSave(ctx context.Context) (_no
 				ps[i](selector)
 			}
 		}
+	}
+	if _u.mutation.InvoiceIDCleared() {
+		_spec.ClearField(chargeusagebasedrunpayment.FieldInvoiceID, field.TypeString)
 	}
 	if value, ok := _u.mutation.ServicePeriodFrom(); ok {
 		_spec.SetField(chargeusagebasedrunpayment.FieldServicePeriodFrom, field.TypeTime, value)
