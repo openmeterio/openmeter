@@ -415,11 +415,13 @@ func TestEnrichFeatureResponseWithPricing(t *testing.T) {
 
 	t.Run("no-op when pricing is nil", func(t *testing.T) {
 		var uc api.FeatureUnitCost
-		_ = uc.FromFeatureLLMUnitCost(api.FeatureLLMUnitCost{})
+		err := uc.FromFeatureLLMUnitCost(api.FeatureLLMUnitCost{})
+		require.NoError(t, err)
 		resp := &api.Feature{UnitCost: &uc}
 		enrichFeatureResponseWithPricing(resp, nil)
 
-		llm, _ := resp.UnitCost.AsFeatureLLMUnitCost()
+		llm, err := resp.UnitCost.AsFeatureLLMUnitCost()
+		require.NoError(t, err)
 		assert.Nil(t, llm.Pricing)
 	})
 }
