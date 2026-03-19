@@ -22,10 +22,10 @@ model Feature {
   @visibility(Lifecycle.Read, Lifecycle.Create)
   meter?: {
     /**
-     * The key of the meter to associate with this feature.
+     * The ID of the meter to associate with this feature.
      */
     @visibility(Lifecycle.Read, Lifecycle.Create)
-    key?: Shared.ResourceKey;
+    id: Shared.ULID;
 
     /**
      * Filters to apply to the dimensions of the meter.
