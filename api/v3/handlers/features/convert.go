@@ -31,7 +31,7 @@ func convertFeatureToAPI(f feature.Feature) (api.Feature, error) {
 		resp.Meter = &struct {
 			Filters *map[string]api.QueryFilterStringMapItem `json:"filters,omitempty"`
 			Id      *api.ULID                                `json:"id,omitempty"`
-			Key     *api.ResourceKey                          `json:"key,omitempty"`
+			Key     *api.ResourceKey                         `json:"key,omitempty"`
 		}{
 			Key: (*api.ResourceKey)(f.MeterSlug),
 		}
