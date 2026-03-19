@@ -17,23 +17,21 @@ import (
 
 func convertFeatureToAPI(f feature.Feature) (api.Feature, error) {
 	resp := api.Feature{
-		Id:          f.ID,
-		Key:         api.ResourceKey(f.Key),
-		Name:        f.Name,
-		Labels:      convertMetadataToLabels(f.Metadata),
-		CreatedAt:   &f.CreatedAt,
-		UpdatedAt:   &f.UpdatedAt,
-		DeletedAt:   f.ArchivedAt,
-		Description: nil,
+		Id:        f.ID,
+		Key:       api.ResourceKey(f.Key),
+		Name:      f.Name,
+		Labels:    convertMetadataToLabels(f.Metadata),
+		CreatedAt: &f.CreatedAt,
+		UpdatedAt: &f.UpdatedAt,
+		DeletedAt: f.ArchivedAt,
 	}
 
 	if f.MeterSlug != nil {
 		resp.Meter = &struct {
 			Filters *map[string]api.QueryFilterStringMapItem `json:"filters,omitempty"`
-			Id      *api.ULID                                `json:"id,omitempty"`
 			Key     *api.ResourceKey                         `json:"key,omitempty"`
 		}{
-			Key: (*api.ResourceKey)(f.MeterSlug),
+			Key: f.MeterSlug,
 		}
 
 		if len(f.MeterGroupByFilters) > 0 {
@@ -57,13 +55,13 @@ func convertCreateRequestToDomain(ns string, body api.CreateFeatureRequest) (fea
 	inputs := feature.CreateFeatureInputs{
 		Namespace: ns,
 		Name:      body.Name,
-		Key:       string(body.Key),
+		Key:       body.Key,
 		Metadata:  convertLabelsToMetadata(body.Labels),
 	}
 
 	if body.Meter != nil {
 		if body.Meter.Key != nil {
-			inputs.MeterSlug = (*string)(body.Meter.Key)
+			inputs.MeterSlug = body.Meter.Key
 		}
 
 		if body.Meter.Filters != nil {

@@ -305,7 +305,6 @@ func TestConvertCreateRequestToDomain(t *testing.T) {
 			Name: "Tokens",
 			Meter: &struct {
 				Filters *map[string]api.QueryFilterStringMapItem `json:"filters,omitempty"`
-				Id      *api.ULID                                `json:"id,omitempty"`
 				Key     *api.ResourceKey                         `json:"key,omitempty"`
 			}{
 				Key: lo.ToPtr(api.ResourceKey("tokens_total")),
