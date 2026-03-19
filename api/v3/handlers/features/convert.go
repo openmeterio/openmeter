@@ -168,6 +168,11 @@ func enrichFeatureResponseWithPricing(resp *api.Feature, pricing *llmcost.ModelP
 		return
 	}
 
+	disc, err := resp.UnitCost.Discriminator()
+	if err != nil || disc != "llm" {
+		return
+	}
+
 	llmCost, err := resp.UnitCost.AsFeatureLLMUnitCost()
 	if err != nil {
 		return
