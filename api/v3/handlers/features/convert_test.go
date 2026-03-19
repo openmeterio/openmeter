@@ -408,6 +408,23 @@ func TestEnrichFeatureResponseWithPricing(t *testing.T) {
 		assert.Nil(t, llm.Pricing.CacheWritePerToken)
 	})
 
+	t.Run("no-op when unit cost is manual", func(t *testing.T) {
+		var uc api.FeatureUnitCost
+		err := uc.FromFeatureManualUnitCost(api.FeatureManualUnitCost{Amount: "0.005"})
+		require.NoError(t, err)
+		resp := &api.Feature{UnitCost: &uc}
+
+		enrichFeatureResponseWithPricing(resp, &llmcost.ModelPricing{
+			InputPerToken:  alpacadecimal.NewFromFloat(0.00001),
+			OutputPerToken: alpacadecimal.NewFromFloat(0.00003),
+		})
+
+		// Manual cost should be unchanged
+		manual, err := resp.UnitCost.AsFeatureManualUnitCost()
+		require.NoError(t, err)
+		assert.Equal(t, api.Numeric("0.005"), manual.Amount)
+	})
+
 	t.Run("no-op when unit cost is nil", func(t *testing.T) {
 		resp := &api.Feature{}
 		enrichFeatureResponseWithPricing(resp, &llmcost.ModelPricing{})
