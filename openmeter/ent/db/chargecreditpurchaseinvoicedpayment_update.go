@@ -284,9 +284,6 @@ func (_u *ChargeCreditPurchaseInvoicedPaymentUpdate) sqlSave(ctx context.Context
 			}
 		}
 	}
-	if _u.mutation.InvoiceIDCleared() {
-		_spec.ClearField(chargecreditpurchaseinvoicedpayment.FieldInvoiceID, field.TypeString)
-	}
 	if value, ok := _u.mutation.ServicePeriodFrom(); ok {
 		_spec.SetField(chargecreditpurchaseinvoicedpayment.FieldServicePeriodFrom, field.TypeTime, value)
 	}
@@ -640,9 +637,6 @@ func (_u *ChargeCreditPurchaseInvoicedPaymentUpdateOne) sqlSave(ctx context.Cont
 				ps[i](selector)
 			}
 		}
-	}
-	if _u.mutation.InvoiceIDCleared() {
-		_spec.ClearField(chargecreditpurchaseinvoicedpayment.FieldInvoiceID, field.TypeString)
 	}
 	if value, ok := _u.mutation.ServicePeriodFrom(); ok {
 		_spec.SetField(chargecreditpurchaseinvoicedpayment.FieldServicePeriodFrom, field.TypeTime, value)

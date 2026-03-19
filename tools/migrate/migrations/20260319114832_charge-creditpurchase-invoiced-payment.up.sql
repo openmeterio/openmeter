@@ -1,11 +1,11 @@
 -- modify "charge_flat_fee_payments" table
-ALTER TABLE "charge_flat_fee_payments" ADD COLUMN "invoice_id" character(26) NULL;
+ALTER TABLE "charge_flat_fee_payments" ADD COLUMN "invoice_id" character(26) NOT NULL;
 -- modify "charge_usage_based_run_payments" table
-ALTER TABLE "charge_usage_based_run_payments" ADD COLUMN "invoice_id" character(26) NULL;
+ALTER TABLE "charge_usage_based_run_payments" ADD COLUMN "invoice_id" character(26) NOT NULL;
 -- create "charge_credit_purchase_invoiced_payments" table
 CREATE TABLE "charge_credit_purchase_invoiced_payments" (
   "id" character(26) NOT NULL,
-  "invoice_id" character(26) NULL,
+  "invoice_id" character(26) NOT NULL,
   "service_period_from" timestamptz NOT NULL,
   "service_period_to" timestamptz NOT NULL,
   "status" character varying NOT NULL,
@@ -30,7 +30,7 @@ CREATE UNIQUE INDEX "charge_credit_purchase_invoiced_payments_charge_id_key" ON 
 -- create index "charge_credit_purchase_invoiced_payments_line_id_key" to table: "charge_credit_purchase_invoiced_payments"
 CREATE UNIQUE INDEX "charge_credit_purchase_invoiced_payments_line_id_key" ON "charge_credit_purchase_invoiced_payments" ("line_id");
 -- create index "chargecreditpurchaseinvoicedpayment_annotations" to table: "charge_credit_purchase_invoiced_payments"
-CREATE INDEX "chargecreditpurchaseinvoicedpayment_annotations" ON "charge_credit_purchase_invoiced_payments" USING GIN ("annotations");
+CREATE INDEX "chargecreditpurchaseinvoicedpayment_annotations" ON "charge_credit_purchase_invoiced_payments" USING gin ("annotations");
 -- create index "chargecreditpurchaseinvoicedpayment_id" to table: "charge_credit_purchase_invoiced_payments"
 CREATE UNIQUE INDEX "chargecreditpurchaseinvoicedpayment_id" ON "charge_credit_purchase_invoiced_payments" ("id");
 -- create index "chargecreditpurchaseinvoicedpayment_namespace" to table: "charge_credit_purchase_invoiced_payments"

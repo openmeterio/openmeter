@@ -905,7 +905,7 @@ func (e *ChargeCreditPurchaseInvoicedPayment) GetLineID() string {
 	return e.LineID
 }
 
-func (e *ChargeCreditPurchaseInvoicedPayment) GetInvoiceID() *string {
+func (e *ChargeCreditPurchaseInvoicedPayment) GetInvoiceID() string {
 	return e.InvoiceID
 }
 
@@ -1097,7 +1097,7 @@ func (e *ChargeFlatFeePayment) GetLineID() string {
 	return e.LineID
 }
 
-func (e *ChargeFlatFeePayment) GetInvoiceID() *string {
+func (e *ChargeFlatFeePayment) GetInvoiceID() string {
 	return e.InvoiceID
 }
 
@@ -1289,7 +1289,7 @@ func (e *ChargeUsageBasedRunPayment) GetLineID() string {
 	return e.LineID
 }
 
-func (e *ChargeUsageBasedRunPayment) GetInvoiceID() *string {
+func (e *ChargeUsageBasedRunPayment) GetInvoiceID() string {
 	return e.InvoiceID
 }
 

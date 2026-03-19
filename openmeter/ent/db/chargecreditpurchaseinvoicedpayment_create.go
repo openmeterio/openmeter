@@ -40,14 +40,6 @@ func (_c *ChargeCreditPurchaseInvoicedPaymentCreate) SetInvoiceID(v string) *Cha
 	return _c
 }
 
-// SetNillableInvoiceID sets the "invoice_id" field if the given value is not nil.
-func (_c *ChargeCreditPurchaseInvoicedPaymentCreate) SetNillableInvoiceID(v *string) *ChargeCreditPurchaseInvoicedPaymentCreate {
-	if v != nil {
-		_c.SetInvoiceID(*v)
-	}
-	return _c
-}
-
 // SetServicePeriodFrom sets the "service_period_from" field.
 func (_c *ChargeCreditPurchaseInvoicedPaymentCreate) SetServicePeriodFrom(v time.Time) *ChargeCreditPurchaseInvoicedPaymentCreate {
 	_c.mutation.SetServicePeriodFrom(v)
@@ -278,6 +270,9 @@ func (_c *ChargeCreditPurchaseInvoicedPaymentCreate) check() error {
 	if _, ok := _c.mutation.LineID(); !ok {
 		return &ValidationError{Name: "line_id", err: errors.New(`db: missing required field "ChargeCreditPurchaseInvoicedPayment.line_id"`)}
 	}
+	if _, ok := _c.mutation.InvoiceID(); !ok {
+		return &ValidationError{Name: "invoice_id", err: errors.New(`db: missing required field "ChargeCreditPurchaseInvoicedPayment.invoice_id"`)}
+	}
 	if _, ok := _c.mutation.ServicePeriodFrom(); !ok {
 		return &ValidationError{Name: "service_period_from", err: errors.New(`db: missing required field "ChargeCreditPurchaseInvoicedPayment.service_period_from"`)}
 	}
@@ -366,7 +361,7 @@ func (_c *ChargeCreditPurchaseInvoicedPaymentCreate) createSpec() (*ChargeCredit
 	}
 	if value, ok := _c.mutation.InvoiceID(); ok {
 		_spec.SetField(chargecreditpurchaseinvoicedpayment.FieldInvoiceID, field.TypeString, value)
-		_node.InvoiceID = &value
+		_node.InvoiceID = value
 	}
 	if value, ok := _c.mutation.ServicePeriodFrom(); ok {
 		_spec.SetField(chargecreditpurchaseinvoicedpayment.FieldServicePeriodFrom, field.TypeTime, value)

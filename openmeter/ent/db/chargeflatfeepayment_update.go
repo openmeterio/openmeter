@@ -284,9 +284,6 @@ func (_u *ChargeFlatFeePaymentUpdate) sqlSave(ctx context.Context) (_node int, e
 			}
 		}
 	}
-	if _u.mutation.InvoiceIDCleared() {
-		_spec.ClearField(chargeflatfeepayment.FieldInvoiceID, field.TypeString)
-	}
 	if value, ok := _u.mutation.ServicePeriodFrom(); ok {
 		_spec.SetField(chargeflatfeepayment.FieldServicePeriodFrom, field.TypeTime, value)
 	}
@@ -640,9 +637,6 @@ func (_u *ChargeFlatFeePaymentUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 				ps[i](selector)
 			}
 		}
-	}
-	if _u.mutation.InvoiceIDCleared() {
-		_spec.ClearField(chargeflatfeepayment.FieldInvoiceID, field.TypeString)
 	}
 	if value, ok := _u.mutation.ServicePeriodFrom(); ok {
 		_spec.SetField(chargeflatfeepayment.FieldServicePeriodFrom, field.TypeTime, value)

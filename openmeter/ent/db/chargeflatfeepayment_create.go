@@ -40,14 +40,6 @@ func (_c *ChargeFlatFeePaymentCreate) SetInvoiceID(v string) *ChargeFlatFeePayme
 	return _c
 }
 
-// SetNillableInvoiceID sets the "invoice_id" field if the given value is not nil.
-func (_c *ChargeFlatFeePaymentCreate) SetNillableInvoiceID(v *string) *ChargeFlatFeePaymentCreate {
-	if v != nil {
-		_c.SetInvoiceID(*v)
-	}
-	return _c
-}
-
 // SetServicePeriodFrom sets the "service_period_from" field.
 func (_c *ChargeFlatFeePaymentCreate) SetServicePeriodFrom(v time.Time) *ChargeFlatFeePaymentCreate {
 	_c.mutation.SetServicePeriodFrom(v)
@@ -278,6 +270,9 @@ func (_c *ChargeFlatFeePaymentCreate) check() error {
 	if _, ok := _c.mutation.LineID(); !ok {
 		return &ValidationError{Name: "line_id", err: errors.New(`db: missing required field "ChargeFlatFeePayment.line_id"`)}
 	}
+	if _, ok := _c.mutation.InvoiceID(); !ok {
+		return &ValidationError{Name: "invoice_id", err: errors.New(`db: missing required field "ChargeFlatFeePayment.invoice_id"`)}
+	}
 	if _, ok := _c.mutation.ServicePeriodFrom(); !ok {
 		return &ValidationError{Name: "service_period_from", err: errors.New(`db: missing required field "ChargeFlatFeePayment.service_period_from"`)}
 	}
@@ -366,7 +361,7 @@ func (_c *ChargeFlatFeePaymentCreate) createSpec() (*ChargeFlatFeePayment, *sqlg
 	}
 	if value, ok := _c.mutation.InvoiceID(); ok {
 		_spec.SetField(chargeflatfeepayment.FieldInvoiceID, field.TypeString, value)
-		_node.InvoiceID = &value
+		_node.InvoiceID = value
 	}
 	if value, ok := _c.mutation.ServicePeriodFrom(); ok {
 		_spec.SetField(chargeflatfeepayment.FieldServicePeriodFrom, field.TypeTime, value)

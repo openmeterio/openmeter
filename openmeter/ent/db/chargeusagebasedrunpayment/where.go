@@ -257,16 +257,6 @@ func InvoiceIDHasSuffix(v string) predicate.ChargeUsageBasedRunPayment {
 	return predicate.ChargeUsageBasedRunPayment(sql.FieldHasSuffix(FieldInvoiceID, v))
 }
 
-// InvoiceIDIsNil applies the IsNil predicate on the "invoice_id" field.
-func InvoiceIDIsNil() predicate.ChargeUsageBasedRunPayment {
-	return predicate.ChargeUsageBasedRunPayment(sql.FieldIsNull(FieldInvoiceID))
-}
-
-// InvoiceIDNotNil applies the NotNil predicate on the "invoice_id" field.
-func InvoiceIDNotNil() predicate.ChargeUsageBasedRunPayment {
-	return predicate.ChargeUsageBasedRunPayment(sql.FieldNotNull(FieldInvoiceID))
-}
-
 // InvoiceIDEqualFold applies the EqualFold predicate on the "invoice_id" field.
 func InvoiceIDEqualFold(v string) predicate.ChargeUsageBasedRunPayment {
 	return predicate.ChargeUsageBasedRunPayment(sql.FieldEqualFold(FieldInvoiceID, v))

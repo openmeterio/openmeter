@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
+	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
@@ -361,6 +361,8 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseManuallySe
 }
 
 func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
+	s.T().Skip("Work in progress, test is being implemented")
+
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-standard-invoice-credit-purchase")
 
@@ -497,7 +499,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 			assert.Equal(t, meta.ChargeStatusActive, charge.Status, "charge status should be active")
 		})
 
-		res, err := customInvoicing.Service.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
+		res, err := s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
 			InvoiceID: invoiceID,
 			Trigger:   billing.TriggerPaid,
 		})

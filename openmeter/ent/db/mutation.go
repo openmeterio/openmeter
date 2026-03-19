@@ -38556,7 +38556,7 @@ func (m *ChargeCreditPurchaseInvoicedPaymentMutation) InvoiceID() (r string, exi
 // OldInvoiceID returns the old "invoice_id" field's value of the ChargeCreditPurchaseInvoicedPayment entity.
 // If the ChargeCreditPurchaseInvoicedPayment object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeCreditPurchaseInvoicedPaymentMutation) OldInvoiceID(ctx context.Context) (v *string, err error) {
+func (m *ChargeCreditPurchaseInvoicedPaymentMutation) OldInvoiceID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldInvoiceID is only allowed on UpdateOne operations")
 	}
@@ -38570,22 +38570,9 @@ func (m *ChargeCreditPurchaseInvoicedPaymentMutation) OldInvoiceID(ctx context.C
 	return oldValue.InvoiceID, nil
 }
 
-// ClearInvoiceID clears the value of the "invoice_id" field.
-func (m *ChargeCreditPurchaseInvoicedPaymentMutation) ClearInvoiceID() {
-	m.invoice_id = nil
-	m.clearedFields[chargecreditpurchaseinvoicedpayment.FieldInvoiceID] = struct{}{}
-}
-
-// InvoiceIDCleared returns if the "invoice_id" field was cleared in this mutation.
-func (m *ChargeCreditPurchaseInvoicedPaymentMutation) InvoiceIDCleared() bool {
-	_, ok := m.clearedFields[chargecreditpurchaseinvoicedpayment.FieldInvoiceID]
-	return ok
-}
-
 // ResetInvoiceID resets all changes to the "invoice_id" field.
 func (m *ChargeCreditPurchaseInvoicedPaymentMutation) ResetInvoiceID() {
 	m.invoice_id = nil
-	delete(m.clearedFields, chargecreditpurchaseinvoicedpayment.FieldInvoiceID)
 }
 
 // SetServicePeriodFrom sets the "service_period_from" field.
@@ -39565,9 +39552,6 @@ func (m *ChargeCreditPurchaseInvoicedPaymentMutation) AddField(name string, valu
 // mutation.
 func (m *ChargeCreditPurchaseInvoicedPaymentMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(chargecreditpurchaseinvoicedpayment.FieldInvoiceID) {
-		fields = append(fields, chargecreditpurchaseinvoicedpayment.FieldInvoiceID)
-	}
 	if m.FieldCleared(chargecreditpurchaseinvoicedpayment.FieldAuthorizedTransactionGroupID) {
 		fields = append(fields, chargecreditpurchaseinvoicedpayment.FieldAuthorizedTransactionGroupID)
 	}
@@ -39600,9 +39584,6 @@ func (m *ChargeCreditPurchaseInvoicedPaymentMutation) FieldCleared(name string) 
 // error if the field is not defined in the schema.
 func (m *ChargeCreditPurchaseInvoicedPaymentMutation) ClearField(name string) error {
 	switch name {
-	case chargecreditpurchaseinvoicedpayment.FieldInvoiceID:
-		m.ClearInvoiceID()
-		return nil
 	case chargecreditpurchaseinvoicedpayment.FieldAuthorizedTransactionGroupID:
 		m.ClearAuthorizedTransactionGroupID()
 		return nil
@@ -43602,7 +43583,7 @@ func (m *ChargeFlatFeePaymentMutation) InvoiceID() (r string, exists bool) {
 // OldInvoiceID returns the old "invoice_id" field's value of the ChargeFlatFeePayment entity.
 // If the ChargeFlatFeePayment object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeePaymentMutation) OldInvoiceID(ctx context.Context) (v *string, err error) {
+func (m *ChargeFlatFeePaymentMutation) OldInvoiceID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldInvoiceID is only allowed on UpdateOne operations")
 	}
@@ -43616,22 +43597,9 @@ func (m *ChargeFlatFeePaymentMutation) OldInvoiceID(ctx context.Context) (v *str
 	return oldValue.InvoiceID, nil
 }
 
-// ClearInvoiceID clears the value of the "invoice_id" field.
-func (m *ChargeFlatFeePaymentMutation) ClearInvoiceID() {
-	m.invoice_id = nil
-	m.clearedFields[chargeflatfeepayment.FieldInvoiceID] = struct{}{}
-}
-
-// InvoiceIDCleared returns if the "invoice_id" field was cleared in this mutation.
-func (m *ChargeFlatFeePaymentMutation) InvoiceIDCleared() bool {
-	_, ok := m.clearedFields[chargeflatfeepayment.FieldInvoiceID]
-	return ok
-}
-
 // ResetInvoiceID resets all changes to the "invoice_id" field.
 func (m *ChargeFlatFeePaymentMutation) ResetInvoiceID() {
 	m.invoice_id = nil
-	delete(m.clearedFields, chargeflatfeepayment.FieldInvoiceID)
 }
 
 // SetServicePeriodFrom sets the "service_period_from" field.
@@ -44611,9 +44579,6 @@ func (m *ChargeFlatFeePaymentMutation) AddField(name string, value ent.Value) er
 // mutation.
 func (m *ChargeFlatFeePaymentMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(chargeflatfeepayment.FieldInvoiceID) {
-		fields = append(fields, chargeflatfeepayment.FieldInvoiceID)
-	}
 	if m.FieldCleared(chargeflatfeepayment.FieldAuthorizedTransactionGroupID) {
 		fields = append(fields, chargeflatfeepayment.FieldAuthorizedTransactionGroupID)
 	}
@@ -44646,9 +44611,6 @@ func (m *ChargeFlatFeePaymentMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *ChargeFlatFeePaymentMutation) ClearField(name string) error {
 	switch name {
-	case chargeflatfeepayment.FieldInvoiceID:
-		m.ClearInvoiceID()
-		return nil
 	case chargeflatfeepayment.FieldAuthorizedTransactionGroupID:
 		m.ClearAuthorizedTransactionGroupID()
 		return nil
@@ -48204,7 +48166,7 @@ func (m *ChargeUsageBasedRunPaymentMutation) InvoiceID() (r string, exists bool)
 // OldInvoiceID returns the old "invoice_id" field's value of the ChargeUsageBasedRunPayment entity.
 // If the ChargeUsageBasedRunPayment object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedRunPaymentMutation) OldInvoiceID(ctx context.Context) (v *string, err error) {
+func (m *ChargeUsageBasedRunPaymentMutation) OldInvoiceID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldInvoiceID is only allowed on UpdateOne operations")
 	}
@@ -48218,22 +48180,9 @@ func (m *ChargeUsageBasedRunPaymentMutation) OldInvoiceID(ctx context.Context) (
 	return oldValue.InvoiceID, nil
 }
 
-// ClearInvoiceID clears the value of the "invoice_id" field.
-func (m *ChargeUsageBasedRunPaymentMutation) ClearInvoiceID() {
-	m.invoice_id = nil
-	m.clearedFields[chargeusagebasedrunpayment.FieldInvoiceID] = struct{}{}
-}
-
-// InvoiceIDCleared returns if the "invoice_id" field was cleared in this mutation.
-func (m *ChargeUsageBasedRunPaymentMutation) InvoiceIDCleared() bool {
-	_, ok := m.clearedFields[chargeusagebasedrunpayment.FieldInvoiceID]
-	return ok
-}
-
 // ResetInvoiceID resets all changes to the "invoice_id" field.
 func (m *ChargeUsageBasedRunPaymentMutation) ResetInvoiceID() {
 	m.invoice_id = nil
-	delete(m.clearedFields, chargeusagebasedrunpayment.FieldInvoiceID)
 }
 
 // SetServicePeriodFrom sets the "service_period_from" field.
@@ -49160,9 +49109,6 @@ func (m *ChargeUsageBasedRunPaymentMutation) AddField(name string, value ent.Val
 // mutation.
 func (m *ChargeUsageBasedRunPaymentMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(chargeusagebasedrunpayment.FieldInvoiceID) {
-		fields = append(fields, chargeusagebasedrunpayment.FieldInvoiceID)
-	}
 	if m.FieldCleared(chargeusagebasedrunpayment.FieldAuthorizedTransactionGroupID) {
 		fields = append(fields, chargeusagebasedrunpayment.FieldAuthorizedTransactionGroupID)
 	}
@@ -49195,9 +49141,6 @@ func (m *ChargeUsageBasedRunPaymentMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *ChargeUsageBasedRunPaymentMutation) ClearField(name string) error {
 	switch name {
-	case chargeusagebasedrunpayment.FieldInvoiceID:
-		m.ClearInvoiceID()
-		return nil
 	case chargeusagebasedrunpayment.FieldAuthorizedTransactionGroupID:
 		m.ClearAuthorizedTransactionGroupID()
 		return nil

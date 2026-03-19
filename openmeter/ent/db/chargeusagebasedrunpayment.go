@@ -25,7 +25,7 @@ type ChargeUsageBasedRunPayment struct {
 	// LineID holds the value of the "line_id" field.
 	LineID string `json:"line_id,omitempty"`
 	// InvoiceID holds the value of the "invoice_id" field.
-	InvoiceID *string `json:"invoice_id,omitempty"`
+	InvoiceID string `json:"invoice_id,omitempty"`
 	// ServicePeriodFrom holds the value of the "service_period_from" field.
 	ServicePeriodFrom time.Time `json:"service_period_from,omitempty"`
 	// ServicePeriodTo holds the value of the "service_period_to" field.
@@ -124,8 +124,7 @@ func (_m *ChargeUsageBasedRunPayment) assignValues(columns []string, values []an
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field invoice_id", values[i])
 			} else if value.Valid {
-				_m.InvoiceID = new(string)
-				*_m.InvoiceID = value.String
+				_m.InvoiceID = value.String
 			}
 		case chargeusagebasedrunpayment.FieldServicePeriodFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -262,10 +261,8 @@ func (_m *ChargeUsageBasedRunPayment) String() string {
 	builder.WriteString("line_id=")
 	builder.WriteString(_m.LineID)
 	builder.WriteString(", ")
-	if v := _m.InvoiceID; v != nil {
-		builder.WriteString("invoice_id=")
-		builder.WriteString(*v)
-	}
+	builder.WriteString("invoice_id=")
+	builder.WriteString(_m.InvoiceID)
 	builder.WriteString(", ")
 	builder.WriteString("service_period_from=")
 	builder.WriteString(_m.ServicePeriodFrom.Format(time.ANSIC))

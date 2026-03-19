@@ -39,14 +39,6 @@ func (_c *ChargeUsageBasedRunPaymentCreate) SetInvoiceID(v string) *ChargeUsageB
 	return _c
 }
 
-// SetNillableInvoiceID sets the "invoice_id" field if the given value is not nil.
-func (_c *ChargeUsageBasedRunPaymentCreate) SetNillableInvoiceID(v *string) *ChargeUsageBasedRunPaymentCreate {
-	if v != nil {
-		_c.SetInvoiceID(*v)
-	}
-	return _c
-}
-
 // SetServicePeriodFrom sets the "service_period_from" field.
 func (_c *ChargeUsageBasedRunPaymentCreate) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedRunPaymentCreate {
 	_c.mutation.SetServicePeriodFrom(v)
@@ -260,6 +252,9 @@ func (_c *ChargeUsageBasedRunPaymentCreate) check() error {
 	if _, ok := _c.mutation.LineID(); !ok {
 		return &ValidationError{Name: "line_id", err: errors.New(`db: missing required field "ChargeUsageBasedRunPayment.line_id"`)}
 	}
+	if _, ok := _c.mutation.InvoiceID(); !ok {
+		return &ValidationError{Name: "invoice_id", err: errors.New(`db: missing required field "ChargeUsageBasedRunPayment.invoice_id"`)}
+	}
 	if _, ok := _c.mutation.ServicePeriodFrom(); !ok {
 		return &ValidationError{Name: "service_period_from", err: errors.New(`db: missing required field "ChargeUsageBasedRunPayment.service_period_from"`)}
 	}
@@ -349,7 +344,7 @@ func (_c *ChargeUsageBasedRunPaymentCreate) createSpec() (*ChargeUsageBasedRunPa
 	}
 	if value, ok := _c.mutation.InvoiceID(); ok {
 		_spec.SetField(chargeusagebasedrunpayment.FieldInvoiceID, field.TypeString, value)
-		_node.InvoiceID = &value
+		_node.InvoiceID = value
 	}
 	if value, ok := _c.mutation.ServicePeriodFrom(); ok {
 		_spec.SetField(chargeusagebasedrunpayment.FieldServicePeriodFrom, field.TypeTime, value)

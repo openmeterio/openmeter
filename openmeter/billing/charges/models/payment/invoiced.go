@@ -35,8 +35,6 @@ func (invoicedMixin) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}).
-			Optional().
-			Nillable().
 			Immutable(),
 	}
 }

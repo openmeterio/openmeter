@@ -1686,7 +1686,7 @@ var (
 	// ChargeCreditPurchaseInvoicedPaymentsColumns holds the columns for the "charge_credit_purchase_invoiced_payments" table.
 	ChargeCreditPurchaseInvoicedPaymentsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "invoice_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "service_period_from", Type: field.TypeTime},
 		{Name: "service_period_to", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"authorized", "settled"}},
@@ -1924,7 +1924,7 @@ var (
 	// ChargeFlatFeePaymentsColumns holds the columns for the "charge_flat_fee_payments" table.
 	ChargeFlatFeePaymentsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "invoice_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "service_period_from", Type: field.TypeTime},
 		{Name: "service_period_to", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"authorized", "settled"}},
@@ -2143,7 +2143,7 @@ var (
 	ChargeUsageBasedRunPaymentsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "line_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "invoice_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "service_period_from", Type: field.TypeTime},
 		{Name: "service_period_to", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"authorized", "settled"}},
