@@ -626,6 +626,118 @@ paths:
                 - type: array
                   items:
                     $ref: '#/components/schemas/MeteringEvent'
+  /openmeter/features:
+    get:
+      operationId: list-features
+      summary: List features
+      description: List all features.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeaturePagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Features
+      x-internal: true
+      x-unstable: true
+      x-private: true
+    post:
+      operationId: create-feature
+      summary: Create a feature.
+      description: Create a feature.
+      responses:
+        '201':
+          description: Feature created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feature'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Features
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFeatureRequest'
+      x-internal: true
+      x-unstable: true
+      x-private: true
+  /openmeter/features/{featureId}:
+    get:
+      operationId: get-feature
+      summary: Get a feature by id.
+      description: Get a feature by id.
+      parameters:
+        - name: featureId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Feature response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feature'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '410':
+          $ref: '#/components/responses/Gone'
+      tags:
+        - OpenMeter Features
+      x-internal: true
+      x-unstable: true
+      x-private: true
+    delete:
+      operationId: delete-feature
+      summary: Delete a feature by id.
+      description: Delete a feature by id.
+      parameters:
+        - name: featureId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: Deleted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Features
+      x-internal: true
+      x-unstable: true
+      x-private: true
   /openmeter/features/{featureId}/cost/query:
     post:
       operationId: query-feature-cost
@@ -3527,6 +3639,50 @@ components:
             Used for tax and invoicing.
           title: Billing Address
       description: Customer create request.
+    CreateFeatureRequest:
+      type: object
+      required:
+        - name
+        - key
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        key:
+          $ref: '#/components/schemas/ResourceKey'
+        meter:
+          type: object
+          properties:
+            id:
+              $ref: '#/components/schemas/ULID'
+            key:
+              $ref: '#/components/schemas/ResourceKey'
+            filters:
+              type: object
+              additionalProperties:
+                $ref: '#/components/schemas/QueryFilterStringMapItem'
+              maxProperties: 10
+              description: Filters to apply to the dimensions of the meter.
+              title: Meter dimensions filters
+          description: |-
+            The meter that the feature is associated with and and based on which usage is calculated.
+            If not specified, the feature is static.
+          title: Meter reference
+      description: Feature create request.
     CreateMeterRequest:
       type: object
       required:
@@ -3672,6 +3828,70 @@ components:
       description: ExternalResourceKey is a unique string that is used to identify a resource in an external system.
       title: External Resource Key
       example: 019ae40f-4258-7f15-9491-842f42a7d6ac
+    Feature:
+      type: object
+      required:
+        - id
+        - name
+        - key
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        key:
+          $ref: '#/components/schemas/ResourceKey'
+        meter:
+          type: object
+          properties:
+            id:
+              $ref: '#/components/schemas/ULID'
+            key:
+              $ref: '#/components/schemas/ResourceKey'
+            filters:
+              type: object
+              additionalProperties:
+                $ref: '#/components/schemas/QueryFilterStringMapItem'
+              maxProperties: 10
+              description: Filters to apply to the dimensions of the meter.
+              title: Meter dimensions filters
+          description: |-
+            The meter that the feature is associated with and and based on which usage is calculated.
+            If not specified, the feature is static.
+          title: Meter reference
+      description: A capability or billable dimension offered by a provider.
     FeatureCostQueryResult:
       type: object
       required:
@@ -3736,6 +3956,19 @@ components:
             The dimensions the value is aggregated over.
             `subject` and `customer_id` are reserved dimensions.
       description: A row in the result of a feature cost query.
+    FeaturePagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Feature'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      description: Page paginated response.
     FilterSingleString:
       type: object
       properties:
