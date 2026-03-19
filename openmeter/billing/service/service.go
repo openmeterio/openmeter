@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -26,6 +27,7 @@ type Service struct {
 	appService         app.Service
 	logger             *slog.Logger
 	invoiceCalculator  invoicecalc.Calculator
+	ratingService      rating.Service
 	featureService     feature.FeatureConnector
 	meterService       meter.Service
 	streamingConnector streaming.Connector
@@ -43,6 +45,7 @@ type Config struct {
 	Adapter                      billing.Adapter
 	CustomerService              customer.Service
 	AppService                   app.Service
+	RatingService                rating.Service
 	Logger                       *slog.Logger
 	FeatureService               feature.FeatureConnector
 	MeterService                 meter.Service
@@ -64,6 +67,10 @@ func (c Config) Validate() error {
 
 	if c.AppService == nil {
 		return errors.New("app service cannot be null")
+	}
+
+	if c.RatingService == nil {
+		return errors.New("rating service cannot be null")
 	}
 
 	if c.Logger == nil {
@@ -107,6 +114,7 @@ func New(config Config) (*Service, error) {
 		customerService:              config.CustomerService,
 		appService:                   config.AppService,
 		logger:                       config.Logger,
+		ratingService:                config.RatingService,
 		featureService:               config.FeatureService,
 		meterService:                 config.MeterService,
 		streamingConnector:           config.StreamingConnector,

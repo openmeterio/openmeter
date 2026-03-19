@@ -141,6 +141,22 @@ func (i StandardLineBase) Clone() StandardLineBase {
 	return out
 }
 
+func (i StandardLineBase) GetCreditsApplied() CreditsApplied {
+	return i.CreditsApplied
+}
+
+func (i StandardLineBase) GetCurrency() currencyx.Code {
+	return i.Currency
+}
+
+func (i StandardLineBase) GetName() string {
+	return i.Name
+}
+
+func (i StandardLineBase) IsProgressivelyBilled() bool {
+	return i.SplitLineGroupID != nil
+}
+
 type SubscriptionReference struct {
 	SubscriptionID string                `json:"subscriptionID"`
 	PhaseID        string                `json:"phaseID"`
@@ -224,7 +240,7 @@ type StandardLine struct {
 	DetailedLines      DetailedLines       `json:"detailedLines,omitempty"`
 	SplitLineHierarchy *SplitLineHierarchy `json:"progressiveLineHierarchy,omitempty"`
 
-	Discounts LineDiscounts `json:"discounts,omitempty"`
+	Discounts StandardLineDiscounts `json:"discounts,omitempty"`
 
 	DBState *StandardLine `json:"-"`
 }
@@ -286,6 +302,55 @@ func (i StandardLine) GetQuantity() *alpacadecimal.Decimal {
 	}
 
 	return i.UsageBased.Quantity
+}
+
+func (i StandardLine) GetMeteredQuantity() (*alpacadecimal.Decimal, error) {
+	if i.UsageBased == nil {
+		return nil, errors.New("usage based line is required")
+	}
+
+	return i.UsageBased.MeteredQuantity, nil
+}
+
+func (i StandardLine) GetMeteredPreLinePeriodQuantity() (*alpacadecimal.Decimal, error) {
+	if i.UsageBased == nil {
+		return nil, errors.New("usage based line is required")
+	}
+
+	return i.UsageBased.MeteredPreLinePeriodQuantity, nil
+}
+
+func (i StandardLine) GetProgressivelyBilledServicePeriod() (timeutil.ClosedPeriod, error) {
+	if i.SplitLineGroupID == nil {
+		return timeutil.ClosedPeriod{
+			From: i.Period.Start,
+			To:   i.Period.End,
+		}, nil
+	}
+
+	if i.SplitLineHierarchy == nil {
+		return timeutil.ClosedPeriod{}, errors.New("split line hierarchy is required")
+	}
+
+	return i.SplitLineHierarchy.Group.ServicePeriod.ToClosedPeriod(), nil
+}
+
+func (i StandardLine) GetPreviouslyBilledAmount() (alpacadecimal.Decimal, error) {
+	if i.SplitLineGroupID == nil {
+		return alpacadecimal.Zero, nil
+	}
+
+	if i.SplitLineHierarchy == nil {
+		return alpacadecimal.Zero, fmt.Errorf("line[%s] does not have a progressive line hierarchy, but is a progressive billed line", i.ID)
+	}
+
+	return i.SplitLineHierarchy.SumNetAmount(SumNetAmountInput{
+		PeriodEndLTE: i.Period.Start,
+	})
+}
+
+func (i StandardLine) GetStandardLineDiscounts() StandardLineDiscounts {
+	return i.Discounts
 }
 
 func (i *StandardLine) SetSplitLineHierarchy(hierarchy *SplitLineHierarchy) {
@@ -866,14 +931,6 @@ func (i StandardLines) AsGenericLines() []GenericInvoiceLine {
 
 func (i StandardLine) SetDiscountExternalIDs(externalIDs map[string]string) []string {
 	foundIDs := []string{}
-
-	for idx := range i.Discounts.Amount {
-		discount := &i.Discounts.Amount[idx]
-		if externalID, ok := externalIDs[discount.ID]; ok {
-			discount.ExternalIDs.Invoicing = externalID
-			foundIDs = append(foundIDs, discount.ID)
-		}
-	}
 
 	for idx := range i.Discounts.Usage {
 		discount := &i.Discounts.Usage[idx]

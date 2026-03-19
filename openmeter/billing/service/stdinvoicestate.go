@@ -668,6 +668,7 @@ func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
 
 	return m.Calculator.Calculate(&m.Invoice, invoicecalc.CalculatorDependencies{
 		FeatureMeters: featureMeters,
+		RatingService: m.Service.ratingService,
 	})
 }
 

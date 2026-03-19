@@ -104,6 +104,10 @@ func (Charge) Edges() []ent.Edge {
 			Annotations(entsql.OnDelete(entsql.Cascade)).
 			StorageKey(edge.Column("id")).
 			Unique(),
+		edge.To("usage_based", ChargeUsageBased.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)).
+			StorageKey(edge.Column("id")).
+			Unique(),
 		// Billing
 		edge.To("billing_invoice_lines", BillingInvoiceLine.Type),
 		edge.To("billing_split_line_groups", BillingInvoiceSplitLineGroup.Type),

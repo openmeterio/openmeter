@@ -120,6 +120,16 @@ func (h *creditPurchaseTestHandler) Reset() {
 	*h = creditPurchaseTestHandler{}
 }
 
+type usageBasedTestHandler struct{}
+
+func newUsageBasedTestHandler() *usageBasedTestHandler {
+	return &usageBasedTestHandler{}
+}
+
+func (h *usageBasedTestHandler) Reset() {
+	*h = usageBasedTestHandler{}
+}
+
 // helpers
 
 type countedLedgerTransactionCallback[T any] struct {

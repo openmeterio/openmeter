@@ -29,6 +29,7 @@ import (
 	appservice "github.com/openmeterio/openmeter/openmeter/app/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
+	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -74,6 +75,8 @@ type BaseSuite struct {
 
 	CustomerService customer.Service
 	SubjectService  subject.Service
+
+	CustomInvoicingService appcustominvoicing.Service
 
 	AppService app.Service
 	SandboxApp *appsandbox.MockableFactory
@@ -211,6 +214,7 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
+		RatingService:                billingratingservice.New(),
 		CustomerService:              s.CustomerService,
 		AppService:                   s.AppService,
 		Logger:                       slog.Default(),
@@ -226,6 +230,9 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 	s.InvoiceCalculator = invoicecalc.NewMockableCalculator(t, billingService.InvoiceCalculator())
 
 	s.BillingService = billingService.WithInvoiceCalculator(s.InvoiceCalculator)
+
+	// Custom invoicing
+	s.CustomInvoicingService = s.SetupCustomInvoicingApp()
 
 	// OpenMeter sandbox (registration as side-effect)
 	sandboxApp, err := appsandbox.NewMockableFactory(t, appsandbox.Config{
@@ -601,9 +608,8 @@ func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, appI
 	return profile
 }
 
-type setupCustomInvoicingResponse struct {
-	Service appcustominvoicing.Service
-	App     app.App
+type SetupCustomInvoicingResponse struct {
+	App app.App
 }
 type setupCustomInvoicingOptions struct {
 	config appcustominvoicing.Configuration
@@ -617,15 +623,7 @@ func WithCustomInvoicingConfig(config appcustominvoicing.Configuration) setupCus
 	}
 }
 
-func (s *BaseSuite) SetupCustomInvoicing(namespace string, opts ...setupCustomInvoicingOption) setupCustomInvoicingResponse {
-	ctx := s.T().Context()
-
-	provisionOpts := setupCustomInvoicingOptions{}
-
-	for _, opt := range opts {
-		opt(&provisionOpts)
-	}
-
+func (s *BaseSuite) SetupCustomInvoicingApp() appcustominvoicing.Service {
 	customInvoicingAdapter, err := adapter.New(adapter.Config{
 		Client: s.DBClient,
 		Logger: slog.Default(),
@@ -649,6 +647,18 @@ func (s *BaseSuite) SetupCustomInvoicing(namespace string, opts ...setupCustomIn
 	})
 	s.NoError(err, "failed to create custom invoicing factory")
 
+	return svc
+}
+
+func (s *BaseSuite) SetupCustomInvoicing(namespace string, opts ...setupCustomInvoicingOption) SetupCustomInvoicingResponse {
+	ctx := s.T().Context()
+
+	provisionOpts := setupCustomInvoicingOptions{}
+
+	for _, opt := range opts {
+		opt(&provisionOpts)
+	}
+
 	// Install custom invoicing app
 	customInvoicingApp, err := s.AppService.InstallMarketplaceListing(ctx, app.InstallAppInput{
 		MarketplaceListingID: app.MarketplaceListingID{
@@ -667,9 +677,8 @@ func (s *BaseSuite) SetupCustomInvoicing(namespace string, opts ...setupCustomIn
 	})
 	s.NoError(err, "failed to upsert custom invoicing config")
 
-	return setupCustomInvoicingResponse{
-		Service: svc,
-		App:     customInvoicingApp,
+	return SetupCustomInvoicingResponse{
+		App: customInvoicingApp,
 	}
 }
 

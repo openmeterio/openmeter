@@ -1920,6 +1920,255 @@ var (
 			},
 		},
 	}
+	// ChargeUsageBasedColumns holds the columns for the "charge_usage_based" table.
+	ChargeUsageBasedColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "invoice_at", Type: field.TypeTime},
+		{Name: "settlement_mode", Type: field.TypeEnum, Enums: []string{"invoice_only", "credit_then_invoice", "credit_only"}},
+		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "feature_key", Type: field.TypeString},
+		{Name: "price", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
+	}
+	// ChargeUsageBasedTable holds the schema information for the "charge_usage_based" table.
+	ChargeUsageBasedTable = &schema.Table{
+		Name:       "charge_usage_based",
+		Columns:    ChargeUsageBasedColumns,
+		PrimaryKey: []*schema.Column{ChargeUsageBasedColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "charge_usage_based_charges_usage_based",
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[0]},
+				RefColumns: []*schema.Column{ChargesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "chargeusagebased_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedColumns[1]},
+			},
+			{
+				Name:    "chargeusagebased_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeUsageBasedColumns[0]},
+			},
+			{
+				Name:    "chargeusagebased_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeUsageBasedColumns[1], ChargeUsageBasedColumns[0]},
+			},
+		},
+	}
+	// ChargeUsageBasedRunCreditAllocationsColumns holds the columns for the "charge_usage_based_run_credit_allocations" table.
+	ChargeUsageBasedRunCreditAllocationsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "line_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "service_period_from", Type: field.TypeTime},
+		{Name: "service_period_to", Type: field.TypeTime},
+		{Name: "ledger_transaction_group_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "run_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// ChargeUsageBasedRunCreditAllocationsTable holds the schema information for the "charge_usage_based_run_credit_allocations" table.
+	ChargeUsageBasedRunCreditAllocationsTable = &schema.Table{
+		Name:       "charge_usage_based_run_credit_allocations",
+		Columns:    ChargeUsageBasedRunCreditAllocationsColumns,
+		PrimaryKey: []*schema.Column{ChargeUsageBasedRunCreditAllocationsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "charge_usage_based_run_credit_allocations_charge_usage_based_runs_credit_allocations",
+				Columns:    []*schema.Column{ChargeUsageBasedRunCreditAllocationsColumns[11]},
+				RefColumns: []*schema.Column{ChargeUsageBasedRunsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "chargeusagebasedruncreditallocations_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRunCreditAllocationsColumns[6]},
+			},
+			{
+				Name:    "chargeusagebasedruncreditallocations_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeUsageBasedRunCreditAllocationsColumns[0]},
+			},
+			{
+				Name:    "chargeusagebasedruncreditallocations_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRunCreditAllocationsColumns[10]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+		},
+	}
+	// ChargeUsageBasedRunInvoicedUsagesColumns holds the columns for the "charge_usage_based_run_invoiced_usages" table.
+	ChargeUsageBasedRunInvoicedUsagesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "line_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "service_period_from", Type: field.TypeTime},
+		{Name: "service_period_to", Type: field.TypeTime},
+		{Name: "mutable", Type: field.TypeBool},
+		{Name: "ledger_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "taxes_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "taxes_inclusive_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "taxes_exclusive_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "charges_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "discounts_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "credits_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "run_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// ChargeUsageBasedRunInvoicedUsagesTable holds the schema information for the "charge_usage_based_run_invoiced_usages" table.
+	ChargeUsageBasedRunInvoicedUsagesTable = &schema.Table{
+		Name:       "charge_usage_based_run_invoiced_usages",
+		Columns:    ChargeUsageBasedRunInvoicedUsagesColumns,
+		PrimaryKey: []*schema.Column{ChargeUsageBasedRunInvoicedUsagesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "charge_usage_based_run_invoiced_usages_charge_usage_based_runs_invoiced_usage",
+				Columns:    []*schema.Column{ChargeUsageBasedRunInvoicedUsagesColumns[19]},
+				RefColumns: []*schema.Column{ChargeUsageBasedRunsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "chargeusagebasedruninvoicedusage_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRunInvoicedUsagesColumns[6]},
+			},
+			{
+				Name:    "chargeusagebasedruninvoicedusage_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeUsageBasedRunInvoicedUsagesColumns[0]},
+			},
+			{
+				Name:    "chargeusagebasedruninvoicedusage_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRunInvoicedUsagesColumns[10]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+		},
+	}
+	// ChargeUsageBasedRunPaymentsColumns holds the columns for the "charge_usage_based_run_payments" table.
+	ChargeUsageBasedRunPaymentsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "line_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "service_period_from", Type: field.TypeTime},
+		{Name: "service_period_to", Type: field.TypeTime},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"authorized", "settled"}},
+		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "authorized_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "authorized_at", Type: field.TypeTime, Nullable: true},
+		{Name: "settled_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "settled_at", Type: field.TypeTime, Nullable: true},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "run_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// ChargeUsageBasedRunPaymentsTable holds the schema information for the "charge_usage_based_run_payments" table.
+	ChargeUsageBasedRunPaymentsTable = &schema.Table{
+		Name:       "charge_usage_based_run_payments",
+		Columns:    ChargeUsageBasedRunPaymentsColumns,
+		PrimaryKey: []*schema.Column{ChargeUsageBasedRunPaymentsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "charge_usage_based_run_payments_charge_usage_based_runs_payment",
+				Columns:    []*schema.Column{ChargeUsageBasedRunPaymentsColumns[15]},
+				RefColumns: []*schema.Column{ChargeUsageBasedRunsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "chargeusagebasedrunpayment_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRunPaymentsColumns[10]},
+			},
+			{
+				Name:    "chargeusagebasedrunpayment_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeUsageBasedRunPaymentsColumns[0]},
+			},
+			{
+				Name:    "chargeusagebasedrunpayment_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRunPaymentsColumns[14]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+		},
+	}
+	// ChargeUsageBasedRunsColumns holds the columns for the "charge_usage_based_runs" table.
+	ChargeUsageBasedRunsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"invoice"}},
+		{Name: "asof", Type: field.TypeTime},
+		{Name: "meter_value", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// ChargeUsageBasedRunsTable holds the schema information for the "charge_usage_based_runs" table.
+	ChargeUsageBasedRunsTable = &schema.Table{
+		Name:       "charge_usage_based_runs",
+		Columns:    ChargeUsageBasedRunsColumns,
+		PrimaryKey: []*schema.Column{ChargeUsageBasedRunsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "charge_usage_based_runs_charge_usage_based_runs",
+				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[8]},
+				RefColumns: []*schema.Column{ChargeUsageBasedColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "chargeusagebasedruns_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRunsColumns[1]},
+			},
+			{
+				Name:    "chargeusagebasedruns_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeUsageBasedRunsColumns[0]},
+			},
+			{
+				Name:    "chargeusagebasedruns_namespace_charge_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRunsColumns[1], ChargeUsageBasedRunsColumns[8]},
+			},
+		},
+	}
 	// CurrencyCostBasesColumns holds the columns for the "currency_cost_bases" table.
 	CurrencyCostBasesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -3936,6 +4185,11 @@ var (
 		ChargeFlatFeeCreditAllocationsTable,
 		ChargeFlatFeeInvoicedUsagesTable,
 		ChargeFlatFeePaymentsTable,
+		ChargeUsageBasedTable,
+		ChargeUsageBasedRunCreditAllocationsTable,
+		ChargeUsageBasedRunInvoicedUsagesTable,
+		ChargeUsageBasedRunPaymentsTable,
+		ChargeUsageBasedRunsTable,
 		CurrencyCostBasesTable,
 		CustomCurrenciesTable,
 		CustomersTable,
@@ -4030,6 +4284,14 @@ func init() {
 	ChargeFlatFeeInvoicedUsagesTable.ForeignKeys[1].RefTable = ChargeFlatFeesTable
 	ChargeFlatFeePaymentsTable.ForeignKeys[0].RefTable = BillingInvoiceLinesTable
 	ChargeFlatFeePaymentsTable.ForeignKeys[1].RefTable = ChargeFlatFeesTable
+	ChargeUsageBasedTable.ForeignKeys[0].RefTable = ChargesTable
+	ChargeUsageBasedTable.Annotation = &entsql.Annotation{
+		Table: "charge_usage_based",
+	}
+	ChargeUsageBasedRunCreditAllocationsTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
+	ChargeUsageBasedRunInvoicedUsagesTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
+	ChargeUsageBasedRunPaymentsTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
+	ChargeUsageBasedRunsTable.ForeignKeys[0].RefTable = ChargeUsageBasedTable
 	CurrencyCostBasesTable.ForeignKeys[0].RefTable = CustomCurrenciesTable
 	CustomerSubjectsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[0].RefTable = CustomersTable

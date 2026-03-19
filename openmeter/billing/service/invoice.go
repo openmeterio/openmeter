@@ -10,8 +10,8 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
-	"github.com/openmeterio/openmeter/openmeter/billing/service/lineservice"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -241,6 +241,7 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 
 	if err := s.invoiceCalculator.CalculateGatheringInvoiceWithLiveData(out, invoicecalc.CalculatorDependencies{
 		FeatureMeters: featureMeters,
+		RatingService: s.ratingService,
 	}); err != nil {
 		return nil, fmt.Errorf("calculating invoice: %w", err)
 	}
@@ -706,7 +707,7 @@ func (s Service) checkIfLinesAreInvoicable(ctx context.Context, invoice *billing
 			// TODO: This check only makes sense for gathering invoices as if a line is put on a standard invoice
 			// we should not care at all about the billable period, as only a non-empty service period is
 			// required.
-			period, err := lineservice.ResolveBillablePeriod(lineservice.ResolveBillablePeriodInput[*billing.StandardLine]{
+			period, err := s.ratingService.ResolveBillablePeriod(rating.ResolveBillablePeriodInput{
 				Line:               line,
 				FeatureMeters:      featureMeters,
 				ProgressiveBilling: progressiveBilling,
@@ -829,29 +830,10 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		return billing.StandardInvoice{}, fmt.Errorf("resolving feature meters: %w", err)
 	}
 
-	// Let's update the lines and the detailed lines
-	for _, line := range invoice.Lines.OrEmpty() {
-		if err := line.Validate(); err != nil {
-			return billing.StandardInvoice{}, fmt.Errorf("validating line[%s]: %w", line.ID, err)
-		}
-
-		lineSvc, err := lineservice.FromEntity(line, featureMeters)
-		if err != nil {
-			return billing.StandardInvoice{}, fmt.Errorf("creating line service: %w", err)
-		}
-
-		if err := lineSvc.CalculateDetailedLines(); err != nil {
-			return billing.StandardInvoice{}, fmt.Errorf("calculating detailed lines: %w", err)
-		}
-
-		if err := lineSvc.UpdateTotals(); err != nil {
-			return billing.StandardInvoice{}, fmt.Errorf("updating totals: %w", err)
-		}
-	}
-
 	// Let's simulate a recalculation of the invoice
 	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.CalculatorDependencies{
 		FeatureMeters: featureMeters,
+		RatingService: s.ratingService,
 	}); err != nil {
 		return billing.StandardInvoice{}, err
 	}

@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 )
 
 type service struct {
@@ -18,6 +19,7 @@ type service struct {
 
 	flatFeeService        flatfee.Service
 	creditPurchaseService creditpurchase.Service
+	usageBasedService     usagebased.Service
 }
 
 type Config struct {
@@ -26,6 +28,7 @@ type Config struct {
 
 	FlatFeeService        flatfee.Service
 	CreditPurchaseService creditpurchase.Service
+	UsageBasedService     usagebased.Service
 
 	BillingService billing.Service
 }
@@ -49,6 +52,10 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("credit purchase service cannot be null"))
 	}
 
+	if c.UsageBasedService == nil {
+		errs = append(errs, errors.New("usage based service cannot be null"))
+	}
+
 	if c.MetaAdapter == nil {
 		errs = append(errs, errors.New("meta adapter cannot be null"))
 	}
@@ -67,6 +74,7 @@ func New(config Config) (*service, error) {
 		metaAdapter:           config.MetaAdapter,
 		flatFeeService:        config.FlatFeeService,
 		creditPurchaseService: config.CreditPurchaseService,
+		usageBasedService:     config.UsageBasedService,
 	}
 
 	standardInvoiceEventHandler := &standardInvoiceEventHandler{

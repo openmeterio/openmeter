@@ -2,7 +2,6 @@ package custominvoicing
 
 import (
 	"context"
-	"log/slog"
 	"testing"
 	"time"
 
@@ -14,8 +13,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
-	"github.com/openmeterio/openmeter/openmeter/app/custominvoicing/adapter"
-	"github.com/openmeterio/openmeter/openmeter/app/custominvoicing/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -30,41 +27,10 @@ import (
 
 type CustomInvoicingTestSuite struct {
 	billingtest.BaseSuite
-
-	CustomInvoicingService appcustominvoicing.Service
 }
 
 func TestApp(t *testing.T) {
 	suite.Run(t, &CustomInvoicingTestSuite{})
-}
-
-func (s *CustomInvoicingTestSuite) SetupSuite() {
-	s.BaseSuite.SetupSuite()
-
-	customInvoicingAdapter, err := adapter.New(adapter.Config{
-		Client: s.DBClient,
-		Logger: slog.Default(),
-	})
-	s.NoError(err, "failed to create custom invoicing adapter")
-
-	svc, err := service.New(service.Config{
-		Adapter:        customInvoicingAdapter,
-		Logger:         slog.Default(),
-		AppService:     s.AppService,
-		BillingService: s.BillingService,
-	})
-	s.NoError(err, "failed to create custom invoicing service")
-
-	s.CustomInvoicingService = svc
-
-	// Let's register the app
-
-	_, err = appcustominvoicing.NewFactory(appcustominvoicing.FactoryConfig{
-		AppService:             s.AppService,
-		CustomInvoicingService: svc,
-		BillingService:         s.BillingService,
-	})
-	s.NoError(err, "failed to create custom invoicing factory")
 }
 
 func (s *CustomInvoicingTestSuite) setupDefaultBillingProfile(ctx context.Context, namespace string, customInvoicingConfig appcustominvoicing.Configuration) {
