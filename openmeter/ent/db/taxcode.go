@@ -36,8 +36,106 @@ type TaxCode struct {
 	// Key holds the value of the "key" field.
 	Key string `json:"key,omitempty"`
 	// AppMappings holds the value of the "app_mappings" field.
-	AppMappings  *taxcode.TaxCodeAppMappings `json:"app_mappings,omitempty"`
+	AppMappings *taxcode.TaxCodeAppMappings `json:"app_mappings,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the TaxCodeQuery when eager-loading is set.
+	Edges        TaxCodeEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// TaxCodeEdges holds the relations/edges for other nodes in the graph.
+type TaxCodeEdges struct {
+	// BillingWorkflowConfigs holds the value of the billing_workflow_configs edge.
+	BillingWorkflowConfigs []*BillingWorkflowConfig `json:"billing_workflow_configs,omitempty"`
+	// BillingCustomerOverrides holds the value of the billing_customer_overrides edge.
+	BillingCustomerOverrides []*BillingCustomerOverride `json:"billing_customer_overrides,omitempty"`
+	// BillingInvoiceLines holds the value of the billing_invoice_lines edge.
+	BillingInvoiceLines []*BillingInvoiceLine `json:"billing_invoice_lines,omitempty"`
+	// BillingInvoiceSplitLineGroups holds the value of the billing_invoice_split_line_groups edge.
+	BillingInvoiceSplitLineGroups []*BillingInvoiceSplitLineGroup `json:"billing_invoice_split_line_groups,omitempty"`
+	// BillingStandardInvoiceDetailedLines holds the value of the billing_standard_invoice_detailed_lines edge.
+	BillingStandardInvoiceDetailedLines []*BillingStandardInvoiceDetailedLine `json:"billing_standard_invoice_detailed_lines,omitempty"`
+	// SubscriptionItems holds the value of the subscription_items edge.
+	SubscriptionItems []*SubscriptionItem `json:"subscription_items,omitempty"`
+	// PlanRateCards holds the value of the plan_rate_cards edge.
+	PlanRateCards []*PlanRateCard `json:"plan_rate_cards,omitempty"`
+	// AddonRateCards holds the value of the addon_rate_cards edge.
+	AddonRateCards []*AddonRateCard `json:"addon_rate_cards,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [8]bool
+}
+
+// BillingWorkflowConfigsOrErr returns the BillingWorkflowConfigs value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaxCodeEdges) BillingWorkflowConfigsOrErr() ([]*BillingWorkflowConfig, error) {
+	if e.loadedTypes[0] {
+		return e.BillingWorkflowConfigs, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_workflow_configs"}
+}
+
+// BillingCustomerOverridesOrErr returns the BillingCustomerOverrides value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaxCodeEdges) BillingCustomerOverridesOrErr() ([]*BillingCustomerOverride, error) {
+	if e.loadedTypes[1] {
+		return e.BillingCustomerOverrides, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_customer_overrides"}
+}
+
+// BillingInvoiceLinesOrErr returns the BillingInvoiceLines value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaxCodeEdges) BillingInvoiceLinesOrErr() ([]*BillingInvoiceLine, error) {
+	if e.loadedTypes[2] {
+		return e.BillingInvoiceLines, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_invoice_lines"}
+}
+
+// BillingInvoiceSplitLineGroupsOrErr returns the BillingInvoiceSplitLineGroups value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaxCodeEdges) BillingInvoiceSplitLineGroupsOrErr() ([]*BillingInvoiceSplitLineGroup, error) {
+	if e.loadedTypes[3] {
+		return e.BillingInvoiceSplitLineGroups, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_invoice_split_line_groups"}
+}
+
+// BillingStandardInvoiceDetailedLinesOrErr returns the BillingStandardInvoiceDetailedLines value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaxCodeEdges) BillingStandardInvoiceDetailedLinesOrErr() ([]*BillingStandardInvoiceDetailedLine, error) {
+	if e.loadedTypes[4] {
+		return e.BillingStandardInvoiceDetailedLines, nil
+	}
+	return nil, &NotLoadedError{edge: "billing_standard_invoice_detailed_lines"}
+}
+
+// SubscriptionItemsOrErr returns the SubscriptionItems value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaxCodeEdges) SubscriptionItemsOrErr() ([]*SubscriptionItem, error) {
+	if e.loadedTypes[5] {
+		return e.SubscriptionItems, nil
+	}
+	return nil, &NotLoadedError{edge: "subscription_items"}
+}
+
+// PlanRateCardsOrErr returns the PlanRateCards value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaxCodeEdges) PlanRateCardsOrErr() ([]*PlanRateCard, error) {
+	if e.loadedTypes[6] {
+		return e.PlanRateCards, nil
+	}
+	return nil, &NotLoadedError{edge: "plan_rate_cards"}
+}
+
+// AddonRateCardsOrErr returns the AddonRateCards value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaxCodeEdges) AddonRateCardsOrErr() ([]*AddonRateCard, error) {
+	if e.loadedTypes[7] {
+		return e.AddonRateCards, nil
+	}
+	return nil, &NotLoadedError{edge: "addon_rate_cards"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -143,6 +241,46 @@ func (_m *TaxCode) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *TaxCode) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QueryBillingWorkflowConfigs queries the "billing_workflow_configs" edge of the TaxCode entity.
+func (_m *TaxCode) QueryBillingWorkflowConfigs() *BillingWorkflowConfigQuery {
+	return NewTaxCodeClient(_m.config).QueryBillingWorkflowConfigs(_m)
+}
+
+// QueryBillingCustomerOverrides queries the "billing_customer_overrides" edge of the TaxCode entity.
+func (_m *TaxCode) QueryBillingCustomerOverrides() *BillingCustomerOverrideQuery {
+	return NewTaxCodeClient(_m.config).QueryBillingCustomerOverrides(_m)
+}
+
+// QueryBillingInvoiceLines queries the "billing_invoice_lines" edge of the TaxCode entity.
+func (_m *TaxCode) QueryBillingInvoiceLines() *BillingInvoiceLineQuery {
+	return NewTaxCodeClient(_m.config).QueryBillingInvoiceLines(_m)
+}
+
+// QueryBillingInvoiceSplitLineGroups queries the "billing_invoice_split_line_groups" edge of the TaxCode entity.
+func (_m *TaxCode) QueryBillingInvoiceSplitLineGroups() *BillingInvoiceSplitLineGroupQuery {
+	return NewTaxCodeClient(_m.config).QueryBillingInvoiceSplitLineGroups(_m)
+}
+
+// QueryBillingStandardInvoiceDetailedLines queries the "billing_standard_invoice_detailed_lines" edge of the TaxCode entity.
+func (_m *TaxCode) QueryBillingStandardInvoiceDetailedLines() *BillingStandardInvoiceDetailedLineQuery {
+	return NewTaxCodeClient(_m.config).QueryBillingStandardInvoiceDetailedLines(_m)
+}
+
+// QuerySubscriptionItems queries the "subscription_items" edge of the TaxCode entity.
+func (_m *TaxCode) QuerySubscriptionItems() *SubscriptionItemQuery {
+	return NewTaxCodeClient(_m.config).QuerySubscriptionItems(_m)
+}
+
+// QueryPlanRateCards queries the "plan_rate_cards" edge of the TaxCode entity.
+func (_m *TaxCode) QueryPlanRateCards() *PlanRateCardQuery {
+	return NewTaxCodeClient(_m.config).QueryPlanRateCards(_m)
+}
+
+// QueryAddonRateCards queries the "addon_rate_cards" edge of the TaxCode entity.
+func (_m *TaxCode) QueryAddonRateCards() *AddonRateCardQuery {
+	return NewTaxCodeClient(_m.config).QueryAddonRateCards(_m)
 }
 
 // Update returns a builder for updating this TaxCode.

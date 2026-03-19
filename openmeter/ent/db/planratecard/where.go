@@ -102,6 +102,11 @@ func Key(v string) predicate.PlanRateCard {
 	return predicate.PlanRateCard(sql.FieldEQ(FieldKey, v))
 }
 
+// TaxCodeID applies equality check predicate on the "tax_code_id" field. It's identical to TaxCodeIDEQ.
+func TaxCodeID(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldEQ(FieldTaxCodeID, v))
+}
+
 // FeatureKey applies equality check predicate on the "feature_key" field. It's identical to FeatureKeyEQ.
 func FeatureKey(v string) predicate.PlanRateCard {
 	return predicate.PlanRateCard(sql.FieldEQ(FieldFeatureKey, v))
@@ -533,6 +538,121 @@ func KeyContainsFold(v string) predicate.PlanRateCard {
 	return predicate.PlanRateCard(sql.FieldContainsFold(FieldKey, v))
 }
 
+// TaxCodeIDEQ applies the EQ predicate on the "tax_code_id" field.
+func TaxCodeIDEQ(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldEQ(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDNEQ applies the NEQ predicate on the "tax_code_id" field.
+func TaxCodeIDNEQ(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldNEQ(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDIn applies the In predicate on the "tax_code_id" field.
+func TaxCodeIDIn(vs ...string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldIn(FieldTaxCodeID, vs...))
+}
+
+// TaxCodeIDNotIn applies the NotIn predicate on the "tax_code_id" field.
+func TaxCodeIDNotIn(vs ...string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldNotIn(FieldTaxCodeID, vs...))
+}
+
+// TaxCodeIDGT applies the GT predicate on the "tax_code_id" field.
+func TaxCodeIDGT(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldGT(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDGTE applies the GTE predicate on the "tax_code_id" field.
+func TaxCodeIDGTE(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldGTE(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDLT applies the LT predicate on the "tax_code_id" field.
+func TaxCodeIDLT(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldLT(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDLTE applies the LTE predicate on the "tax_code_id" field.
+func TaxCodeIDLTE(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldLTE(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDContains applies the Contains predicate on the "tax_code_id" field.
+func TaxCodeIDContains(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldContains(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDHasPrefix applies the HasPrefix predicate on the "tax_code_id" field.
+func TaxCodeIDHasPrefix(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldHasPrefix(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDHasSuffix applies the HasSuffix predicate on the "tax_code_id" field.
+func TaxCodeIDHasSuffix(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldHasSuffix(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDIsNil applies the IsNil predicate on the "tax_code_id" field.
+func TaxCodeIDIsNil() predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldIsNull(FieldTaxCodeID))
+}
+
+// TaxCodeIDNotNil applies the NotNil predicate on the "tax_code_id" field.
+func TaxCodeIDNotNil() predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldNotNull(FieldTaxCodeID))
+}
+
+// TaxCodeIDEqualFold applies the EqualFold predicate on the "tax_code_id" field.
+func TaxCodeIDEqualFold(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldEqualFold(FieldTaxCodeID, v))
+}
+
+// TaxCodeIDContainsFold applies the ContainsFold predicate on the "tax_code_id" field.
+func TaxCodeIDContainsFold(v string) predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldContainsFold(FieldTaxCodeID, v))
+}
+
+// TaxBehaviorEQ applies the EQ predicate on the "tax_behavior" field.
+func TaxBehaviorEQ(v productcatalog.TaxBehavior) predicate.PlanRateCard {
+	vc := v
+	return predicate.PlanRateCard(sql.FieldEQ(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorNEQ applies the NEQ predicate on the "tax_behavior" field.
+func TaxBehaviorNEQ(v productcatalog.TaxBehavior) predicate.PlanRateCard {
+	vc := v
+	return predicate.PlanRateCard(sql.FieldNEQ(FieldTaxBehavior, vc))
+}
+
+// TaxBehaviorIn applies the In predicate on the "tax_behavior" field.
+func TaxBehaviorIn(vs ...productcatalog.TaxBehavior) predicate.PlanRateCard {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.PlanRateCard(sql.FieldIn(FieldTaxBehavior, v...))
+}
+
+// TaxBehaviorNotIn applies the NotIn predicate on the "tax_behavior" field.
+func TaxBehaviorNotIn(vs ...productcatalog.TaxBehavior) predicate.PlanRateCard {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.PlanRateCard(sql.FieldNotIn(FieldTaxBehavior, v...))
+}
+
+// TaxBehaviorIsNil applies the IsNil predicate on the "tax_behavior" field.
+func TaxBehaviorIsNil() predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldIsNull(FieldTaxBehavior))
+}
+
+// TaxBehaviorNotNil applies the NotNil predicate on the "tax_behavior" field.
+func TaxBehaviorNotNil() predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldNotNull(FieldTaxBehavior))
+}
+
 // TypeEQ applies the EQ predicate on the "type" field.
 func TypeEQ(v productcatalog.RateCardType) predicate.PlanRateCard {
 	vc := v
@@ -950,6 +1070,29 @@ func HasFeatures() predicate.PlanRateCard {
 func HasFeaturesWith(preds ...predicate.Feature) predicate.PlanRateCard {
 	return predicate.PlanRateCard(func(s *sql.Selector) {
 		step := newFeaturesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasTaxCode applies the HasEdge predicate on the "tax_code" edge.
+func HasTaxCode() predicate.PlanRateCard {
+	return predicate.PlanRateCard(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTaxCodeWith applies the HasEdge predicate on the "tax_code" edge with a given conditions (other predicates).
+func HasTaxCodeWith(preds ...predicate.TaxCode) predicate.PlanRateCard {
+	return predicate.PlanRateCard(func(s *sql.Selector) {
+		step := newTaxCodeStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

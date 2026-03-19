@@ -115,6 +115,7 @@ func (BillingWorkflowConfig) Mixin() []ent.Mixin {
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
+		TaxMixin{},
 	}
 }
 
@@ -166,6 +167,10 @@ func (BillingWorkflowConfig) Edges() []ent.Edge {
 			Unique(),
 		edge.To("billing_profile", BillingProfile.Type).
 			Unique(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("billing_workflow_configs").
+			Field("tax_code_id").
+			Unique(),
 	}
 }
 
@@ -178,6 +183,7 @@ func (BillingCustomerOverride) Mixin() []ent.Mixin {
 		entutils.IDMixin{},
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
+		TaxMixin{},
 	}
 }
 
@@ -264,6 +270,10 @@ func (BillingCustomerOverride) Edges() []ent.Edge {
 			Ref("billing_customer_override").
 			Field("billing_profile_id").
 			Unique(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("billing_customer_overrides").
+			Field("tax_code_id").
+			Unique(),
 	}
 }
 
@@ -298,6 +308,7 @@ func (BillingInvoiceLine) Mixin() []ent.Mixin {
 		entutils.AnnotationsMixin{},
 		entutils.ResourceMixin{},
 		InvoiceLineBaseMixin{},
+		TaxMixin{},
 		totals.Mixin{},
 	}
 }
@@ -483,6 +494,10 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 		edge.To("charge_credit_purchase_invoiced_payment", ChargeCreditPurchaseInvoicedPayment.Type).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("billing_invoice_lines").
+			Field("tax_code_id").
+			Unique(),
 	}
 }
 
@@ -600,6 +615,7 @@ func (BillingInvoiceSplitLineGroup) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.ResourceMixin{},
 		InvoiceLineBaseMixin{},
+		TaxMixin{},
 	}
 }
 
@@ -696,6 +712,10 @@ func (BillingInvoiceSplitLineGroup) Edges() []ent.Edge {
 		edge.From("charge", Charge.Type).
 			Ref("billing_split_line_groups").
 			Field("charge_id").
+			Unique(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("billing_invoice_split_line_groups").
+			Field("tax_code_id").
 			Unique(),
 	}
 }
@@ -853,6 +873,7 @@ func (BillingStandardInvoiceDetailedLine) Mixin() []ent.Mixin {
 		entutils.AnnotationsMixin{},
 		entutils.ResourceMixin{},
 		InvoiceLineBaseMixin{},
+		TaxMixin{},
 		totals.Mixin{},
 	}
 }
@@ -943,6 +964,10 @@ func (BillingStandardInvoiceDetailedLine) Edges() []ent.Edge {
 			Field("parent_line_id").
 			Unique().
 			Required(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("billing_standard_invoice_detailed_lines").
+			Field("tax_code_id").
+			Unique(),
 		edge.To("amount_discounts", BillingStandardInvoiceDetailedLineAmountDiscount.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}

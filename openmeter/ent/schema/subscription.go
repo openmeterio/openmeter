@@ -140,6 +140,7 @@ func (SubscriptionItem) Mixin() []ent.Mixin {
 		entutils.NamespaceMixin{},
 		entutils.TimeMixin{},
 		entutils.MetadataMixin{},
+		TaxMixin{},
 	}
 }
 
@@ -224,5 +225,9 @@ func (SubscriptionItem) Edges() []ent.Edge {
 		edge.To("billing_lines", BillingInvoiceLine.Type),
 		edge.To("billing_split_line_groups", BillingInvoiceSplitLineGroup.Type),
 		edge.To("charge_intents", Charge.Type),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("subscription_items").
+			Field("tax_code_id").
+			Unique(),
 	}
 }

@@ -142,6 +142,7 @@ type PlanRateCard struct {
 func (PlanRateCard) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.UniqueResourceMixin{},
+		TaxMixin{},
 	}
 }
 
@@ -171,6 +172,10 @@ func (PlanRateCard) Edges() []ent.Edge {
 		edge.From("features", Feature.Type).
 			Ref("ratecard").
 			Field("feature_id").
+			Unique(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("plan_rate_cards").
+			Field("tax_code_id").
 			Unique(),
 	}
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -45,6 +46,10 @@ type BillingStandardInvoiceDetailedLine struct {
 	Currency currencyx.Code `json:"currency,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
 	TaxConfig productcatalog.TaxConfig `json:"tax_config,omitempty"`
+	// TaxCodeID holds the value of the "tax_code_id" field.
+	TaxCodeID *string `json:"tax_code_id,omitempty"`
+	// TaxBehavior holds the value of the "tax_behavior" field.
+	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
 	// TaxesTotal holds the value of the "taxes_total" field.
@@ -97,11 +102,13 @@ type BillingStandardInvoiceDetailedLineEdges struct {
 	BillingInvoice *BillingInvoice `json:"billing_invoice,omitempty"`
 	// BillingInvoiceLine holds the value of the billing_invoice_line edge.
 	BillingInvoiceLine *BillingInvoiceLine `json:"billing_invoice_line,omitempty"`
+	// TaxCode holds the value of the tax_code edge.
+	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// AmountDiscounts holds the value of the amount_discounts edge.
 	AmountDiscounts []*BillingStandardInvoiceDetailedLineAmountDiscount `json:"amount_discounts,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // BillingInvoiceOrErr returns the BillingInvoice value or an error if the edge
@@ -126,10 +133,21 @@ func (e BillingStandardInvoiceDetailedLineEdges) BillingInvoiceLineOrErr() (*Bil
 	return nil, &NotLoadedError{edge: "billing_invoice_line"}
 }
 
+// TaxCodeOrErr returns the TaxCode value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingStandardInvoiceDetailedLineEdges) TaxCodeOrErr() (*TaxCode, error) {
+	if e.TaxCode != nil {
+		return e.TaxCode, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: dbtaxcode.Label}
+	}
+	return nil, &NotLoadedError{edge: "tax_code"}
+}
+
 // AmountDiscountsOrErr returns the AmountDiscounts value or an error if the edge
 // was not loaded in eager-loading.
 func (e BillingStandardInvoiceDetailedLineEdges) AmountDiscountsOrErr() ([]*BillingStandardInvoiceDetailedLineAmountDiscount, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		return e.AmountDiscounts, nil
 	}
 	return nil, &NotLoadedError{edge: "amount_discounts"}
@@ -146,7 +164,7 @@ func (*BillingStandardInvoiceDetailedLine) scanValues(columns []string) ([]any, 
 			values[i] = new(alpacadecimal.Decimal)
 		case billingstandardinvoicedetailedline.FieldIndex:
 			values[i] = new(sql.NullInt64)
-		case billingstandardinvoicedetailedline.FieldID, billingstandardinvoicedetailedline.FieldNamespace, billingstandardinvoicedetailedline.FieldName, billingstandardinvoicedetailedline.FieldDescription, billingstandardinvoicedetailedline.FieldCurrency, billingstandardinvoicedetailedline.FieldInvoiceID, billingstandardinvoicedetailedline.FieldParentLineID, billingstandardinvoicedetailedline.FieldInvoicingAppExternalID, billingstandardinvoicedetailedline.FieldChildUniqueReferenceID, billingstandardinvoicedetailedline.FieldCategory, billingstandardinvoicedetailedline.FieldPaymentTerm:
+		case billingstandardinvoicedetailedline.FieldID, billingstandardinvoicedetailedline.FieldNamespace, billingstandardinvoicedetailedline.FieldName, billingstandardinvoicedetailedline.FieldDescription, billingstandardinvoicedetailedline.FieldCurrency, billingstandardinvoicedetailedline.FieldTaxCodeID, billingstandardinvoicedetailedline.FieldTaxBehavior, billingstandardinvoicedetailedline.FieldInvoiceID, billingstandardinvoicedetailedline.FieldParentLineID, billingstandardinvoicedetailedline.FieldInvoicingAppExternalID, billingstandardinvoicedetailedline.FieldChildUniqueReferenceID, billingstandardinvoicedetailedline.FieldCategory, billingstandardinvoicedetailedline.FieldPaymentTerm:
 			values[i] = new(sql.NullString)
 		case billingstandardinvoicedetailedline.FieldCreatedAt, billingstandardinvoicedetailedline.FieldUpdatedAt, billingstandardinvoicedetailedline.FieldDeletedAt, billingstandardinvoicedetailedline.FieldServicePeriodStart, billingstandardinvoicedetailedline.FieldServicePeriodEnd:
 			values[i] = new(sql.NullTime)
@@ -240,6 +258,20 @@ func (_m *BillingStandardInvoiceDetailedLine) assignValues(columns []string, val
 				if err := json.Unmarshal(*value, &_m.TaxConfig); err != nil {
 					return fmt.Errorf("unmarshal field tax_config: %w", err)
 				}
+			}
+		case billingstandardinvoicedetailedline.FieldTaxCodeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
+			} else if value.Valid {
+				_m.TaxCodeID = new(string)
+				*_m.TaxCodeID = value.String
+			}
+		case billingstandardinvoicedetailedline.FieldTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
+			} else if value.Valid {
+				_m.TaxBehavior = new(productcatalog.TaxBehavior)
+				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
 			}
 		case billingstandardinvoicedetailedline.FieldAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -387,6 +419,11 @@ func (_m *BillingStandardInvoiceDetailedLine) QueryBillingInvoiceLine() *Billing
 	return NewBillingStandardInvoiceDetailedLineClient(_m.config).QueryBillingInvoiceLine(_m)
 }
 
+// QueryTaxCode queries the "tax_code" edge of the BillingStandardInvoiceDetailedLine entity.
+func (_m *BillingStandardInvoiceDetailedLine) QueryTaxCode() *TaxCodeQuery {
+	return NewBillingStandardInvoiceDetailedLineClient(_m.config).QueryTaxCode(_m)
+}
+
 // QueryAmountDiscounts queries the "amount_discounts" edge of the BillingStandardInvoiceDetailedLine entity.
 func (_m *BillingStandardInvoiceDetailedLine) QueryAmountDiscounts() *BillingStandardInvoiceDetailedLineAmountDiscountQuery {
 	return NewBillingStandardInvoiceDetailedLineClient(_m.config).QueryAmountDiscounts(_m)
@@ -448,6 +485,16 @@ func (_m *BillingStandardInvoiceDetailedLine) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("tax_config=")
 	builder.WriteString(fmt.Sprintf("%v", _m.TaxConfig))
+	builder.WriteString(", ")
+	if v := _m.TaxCodeID; v != nil {
+		builder.WriteString("tax_code_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.TaxBehavior; v != nil {
+		builder.WriteString("tax_behavior=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("amount=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Amount))

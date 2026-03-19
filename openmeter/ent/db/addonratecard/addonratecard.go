@@ -33,6 +33,10 @@ const (
 	FieldDescription = "description"
 	// FieldKey holds the string denoting the key field in the database.
 	FieldKey = "key"
+	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
+	FieldTaxCodeID = "tax_code_id"
+	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
+	FieldTaxBehavior = "tax_behavior"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
 	// FieldFeatureKey holds the string denoting the feature_key field in the database.
@@ -55,6 +59,8 @@ const (
 	EdgeAddon = "addon"
 	// EdgeFeatures holds the string denoting the features edge name in mutations.
 	EdgeFeatures = "features"
+	// EdgeTaxCode holds the string denoting the tax_code edge name in mutations.
+	EdgeTaxCode = "tax_code"
 	// Table holds the table name of the addonratecard in the database.
 	Table = "addon_rate_cards"
 	// AddonTable is the table that holds the addon relation/edge.
@@ -71,6 +77,13 @@ const (
 	FeaturesInverseTable = "features"
 	// FeaturesColumn is the table column denoting the features relation/edge.
 	FeaturesColumn = "feature_id"
+	// TaxCodeTable is the table that holds the tax_code relation/edge.
+	TaxCodeTable = "addon_rate_cards"
+	// TaxCodeInverseTable is the table name for the TaxCode entity.
+	// It exists in this package in order to avoid circular dependency with the "dbtaxcode" package.
+	TaxCodeInverseTable = "tax_codes"
+	// TaxCodeColumn is the table column denoting the tax_code relation/edge.
+	TaxCodeColumn = "tax_code_id"
 )
 
 // Columns holds all SQL columns for addonratecard fields.
@@ -84,6 +97,8 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 	FieldKey,
+	FieldTaxCodeID,
+	FieldTaxBehavior,
 	FieldType,
 	FieldFeatureKey,
 	FieldEntitlementTemplate,
@@ -128,6 +143,16 @@ var (
 		Discounts           field.TypeValueScanner[*productcatalog.Discounts]
 	}
 )
+
+// TaxBehaviorValidator is a validator for the "tax_behavior" field enum values. It is called by the builders before save.
+func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
+	switch tb {
+	case "inclusive", "exclusive":
+		return nil
+	default:
+		return fmt.Errorf("addonratecard: invalid enum value for tax_behavior field: %q", tb)
+	}
+}
 
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
 func TypeValidator(_type productcatalog.RateCardType) error {
@@ -180,6 +205,16 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByKey orders the results by the key field.
 func ByKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldKey, opts...).ToFunc()
+}
+
+// ByTaxCodeID orders the results by the tax_code_id field.
+func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
+}
+
+// ByTaxBehavior orders the results by the tax_behavior field.
+func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
 }
 
 // ByType orders the results by the type field.
@@ -240,6 +275,13 @@ func ByFeaturesField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newFeaturesStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByTaxCodeField orders the results by tax_code field.
+func ByTaxCodeField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTaxCodeStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newAddonStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -252,5 +294,12 @@ func newFeaturesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(FeaturesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, FeaturesTable, FeaturesColumn),
+	)
+}
+func newTaxCodeStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TaxCodeInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
 	)
 }

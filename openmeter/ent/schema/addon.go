@@ -91,6 +91,7 @@ type AddonRateCard struct {
 func (AddonRateCard) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.UniqueResourceMixin{},
+		TaxMixin{},
 	}
 }
 
@@ -120,6 +121,10 @@ func (AddonRateCard) Edges() []ent.Edge {
 		edge.From("features", Feature.Type).
 			Ref("addon_ratecard").
 			Field("feature_id").
+			Unique(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("addon_rate_cards").
+			Field("tax_code_id").
 			Unique(),
 	}
 }

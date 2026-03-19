@@ -3,6 +3,7 @@
 package billinginvoicesplitlinegroup
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -35,6 +36,10 @@ const (
 	FieldCurrency = "currency"
 	// FieldTaxConfig holds the string denoting the tax_config field in the database.
 	FieldTaxConfig = "tax_config"
+	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
+	FieldTaxCodeID = "tax_code_id"
+	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
+	FieldTaxBehavior = "tax_behavior"
 	// FieldServicePeriodStart holds the string denoting the service_period_start field in the database.
 	FieldServicePeriodStart = "service_period_start"
 	// FieldServicePeriodEnd holds the string denoting the service_period_end field in the database.
@@ -69,6 +74,8 @@ const (
 	EdgeSubscriptionItem = "subscription_item"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
 	EdgeCharge = "charge"
+	// EdgeTaxCode holds the string denoting the tax_code edge name in mutations.
+	EdgeTaxCode = "tax_code"
 	// Table holds the table name of the billinginvoicesplitlinegroup in the database.
 	Table = "billing_invoice_split_line_groups"
 	// BillingInvoiceLinesTable is the table that holds the billing_invoice_lines relation/edge.
@@ -106,6 +113,13 @@ const (
 	ChargeInverseTable = "charges"
 	// ChargeColumn is the table column denoting the charge relation/edge.
 	ChargeColumn = "charge_id"
+	// TaxCodeTable is the table that holds the tax_code relation/edge.
+	TaxCodeTable = "billing_invoice_split_line_groups"
+	// TaxCodeInverseTable is the table name for the TaxCode entity.
+	// It exists in this package in order to avoid circular dependency with the "dbtaxcode" package.
+	TaxCodeInverseTable = "tax_codes"
+	// TaxCodeColumn is the table column denoting the tax_code relation/edge.
+	TaxCodeColumn = "tax_code_id"
 )
 
 // Columns holds all SQL columns for billinginvoicesplitlinegroup fields.
@@ -120,6 +134,8 @@ var Columns = []string{
 	FieldDescription,
 	FieldCurrency,
 	FieldTaxConfig,
+	FieldTaxCodeID,
+	FieldTaxBehavior,
 	FieldServicePeriodStart,
 	FieldServicePeriodEnd,
 	FieldUniqueReferenceID,
@@ -164,6 +180,16 @@ var (
 	}
 )
 
+// TaxBehaviorValidator is a validator for the "tax_behavior" field enum values. It is called by the builders before save.
+func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
+	switch tb {
+	case "inclusive", "exclusive":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoicesplitlinegroup: invalid enum value for tax_behavior field: %q", tb)
+	}
+}
+
 // OrderOption defines the ordering options for the BillingInvoiceSplitLineGroup queries.
 type OrderOption func(*sql.Selector)
 
@@ -205,6 +231,16 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByTaxCodeID orders the results by the tax_code_id field.
+func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
+}
+
+// ByTaxBehavior orders the results by the tax_behavior field.
+func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
 }
 
 // ByServicePeriodStart orders the results by the service_period_start field.
@@ -308,6 +344,13 @@ func ByChargeField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newChargeStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByTaxCodeField orders the results by tax_code field.
+func ByTaxCodeField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTaxCodeStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newBillingInvoiceLinesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -341,5 +384,12 @@ func newChargeStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ChargeInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, ChargeTable, ChargeColumn),
+	)
+}
+func newTaxCodeStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TaxCodeInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
 	)
 }

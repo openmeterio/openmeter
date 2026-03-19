@@ -1647,6 +1647,7 @@ type AddonRateCardMutation struct {
 	name                 *string
 	description          *string
 	key                  *string
+	tax_behavior         *productcatalog.TaxBehavior
 	_type                *productcatalog.RateCardType
 	feature_key          *string
 	entitlement_template **productcatalog.EntitlementTemplate
@@ -1659,6 +1660,8 @@ type AddonRateCardMutation struct {
 	clearedaddon         bool
 	features             *string
 	clearedfeatures      bool
+	tax_code             *string
+	clearedtax_code      bool
 	done                 bool
 	oldValue             func(context.Context) (*AddonRateCard, error)
 	predicates           []predicate.AddonRateCard
@@ -2093,6 +2096,104 @@ func (m *AddonRateCardMutation) OldKey(ctx context.Context) (v string, err error
 // ResetKey resets all changes to the "key" field.
 func (m *AddonRateCardMutation) ResetKey() {
 	m.key = nil
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (m *AddonRateCardMutation) SetTaxCodeID(s string) {
+	m.tax_code = &s
+}
+
+// TaxCodeID returns the value of the "tax_code_id" field in the mutation.
+func (m *AddonRateCardMutation) TaxCodeID() (r string, exists bool) {
+	v := m.tax_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxCodeID returns the old "tax_code_id" field's value of the AddonRateCard entity.
+// If the AddonRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AddonRateCardMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxCodeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxCodeID: %w", err)
+	}
+	return oldValue.TaxCodeID, nil
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (m *AddonRateCardMutation) ClearTaxCodeID() {
+	m.tax_code = nil
+	m.clearedFields[addonratecard.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
+func (m *AddonRateCardMutation) TaxCodeIDCleared() bool {
+	_, ok := m.clearedFields[addonratecard.FieldTaxCodeID]
+	return ok
+}
+
+// ResetTaxCodeID resets all changes to the "tax_code_id" field.
+func (m *AddonRateCardMutation) ResetTaxCodeID() {
+	m.tax_code = nil
+	delete(m.clearedFields, addonratecard.FieldTaxCodeID)
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (m *AddonRateCardMutation) SetTaxBehavior(pb productcatalog.TaxBehavior) {
+	m.tax_behavior = &pb
+}
+
+// TaxBehavior returns the value of the "tax_behavior" field in the mutation.
+func (m *AddonRateCardMutation) TaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
+	v := m.tax_behavior
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxBehavior returns the old "tax_behavior" field's value of the AddonRateCard entity.
+// If the AddonRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AddonRateCardMutation) OldTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxBehavior is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxBehavior requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxBehavior: %w", err)
+	}
+	return oldValue.TaxBehavior, nil
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (m *AddonRateCardMutation) ClearTaxBehavior() {
+	m.tax_behavior = nil
+	m.clearedFields[addonratecard.FieldTaxBehavior] = struct{}{}
+}
+
+// TaxBehaviorCleared returns if the "tax_behavior" field was cleared in this mutation.
+func (m *AddonRateCardMutation) TaxBehaviorCleared() bool {
+	_, ok := m.clearedFields[addonratecard.FieldTaxBehavior]
+	return ok
+}
+
+// ResetTaxBehavior resets all changes to the "tax_behavior" field.
+func (m *AddonRateCardMutation) ResetTaxBehavior() {
+	m.tax_behavior = nil
+	delete(m.clearedFields, addonratecard.FieldTaxBehavior)
 }
 
 // SetType sets the "type" field.
@@ -2577,6 +2678,33 @@ func (m *AddonRateCardMutation) ResetFeatures() {
 	m.clearedfeatures = false
 }
 
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (m *AddonRateCardMutation) ClearTaxCode() {
+	m.clearedtax_code = true
+	m.clearedFields[addonratecard.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeCleared reports if the "tax_code" edge to the TaxCode entity was cleared.
+func (m *AddonRateCardMutation) TaxCodeCleared() bool {
+	return m.TaxCodeIDCleared() || m.clearedtax_code
+}
+
+// TaxCodeIDs returns the "tax_code" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TaxCodeID instead. It exists only for internal usage by the builders.
+func (m *AddonRateCardMutation) TaxCodeIDs() (ids []string) {
+	if id := m.tax_code; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTaxCode resets all changes to the "tax_code" edge.
+func (m *AddonRateCardMutation) ResetTaxCode() {
+	m.tax_code = nil
+	m.clearedtax_code = false
+}
+
 // Where appends a list predicates to the AddonRateCardMutation builder.
 func (m *AddonRateCardMutation) Where(ps ...predicate.AddonRateCard) {
 	m.predicates = append(m.predicates, ps...)
@@ -2611,7 +2739,7 @@ func (m *AddonRateCardMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AddonRateCardMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 19)
 	if m.namespace != nil {
 		fields = append(fields, addonratecard.FieldNamespace)
 	}
@@ -2635,6 +2763,12 @@ func (m *AddonRateCardMutation) Fields() []string {
 	}
 	if m.key != nil {
 		fields = append(fields, addonratecard.FieldKey)
+	}
+	if m.tax_code != nil {
+		fields = append(fields, addonratecard.FieldTaxCodeID)
+	}
+	if m.tax_behavior != nil {
+		fields = append(fields, addonratecard.FieldTaxBehavior)
 	}
 	if m._type != nil {
 		fields = append(fields, addonratecard.FieldType)
@@ -2687,6 +2821,10 @@ func (m *AddonRateCardMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case addonratecard.FieldKey:
 		return m.Key()
+	case addonratecard.FieldTaxCodeID:
+		return m.TaxCodeID()
+	case addonratecard.FieldTaxBehavior:
+		return m.TaxBehavior()
 	case addonratecard.FieldType:
 		return m.GetType()
 	case addonratecard.FieldFeatureKey:
@@ -2730,6 +2868,10 @@ func (m *AddonRateCardMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldDescription(ctx)
 	case addonratecard.FieldKey:
 		return m.OldKey(ctx)
+	case addonratecard.FieldTaxCodeID:
+		return m.OldTaxCodeID(ctx)
+	case addonratecard.FieldTaxBehavior:
+		return m.OldTaxBehavior(ctx)
 	case addonratecard.FieldType:
 		return m.OldType(ctx)
 	case addonratecard.FieldFeatureKey:
@@ -2812,6 +2954,20 @@ func (m *AddonRateCardMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetKey(v)
+		return nil
+	case addonratecard.FieldTaxCodeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxCodeID(v)
+		return nil
+	case addonratecard.FieldTaxBehavior:
+		v, ok := value.(productcatalog.TaxBehavior)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxBehavior(v)
 		return nil
 	case addonratecard.FieldType:
 		v, ok := value.(productcatalog.RateCardType)
@@ -2915,6 +3071,12 @@ func (m *AddonRateCardMutation) ClearedFields() []string {
 	if m.FieldCleared(addonratecard.FieldDescription) {
 		fields = append(fields, addonratecard.FieldDescription)
 	}
+	if m.FieldCleared(addonratecard.FieldTaxCodeID) {
+		fields = append(fields, addonratecard.FieldTaxCodeID)
+	}
+	if m.FieldCleared(addonratecard.FieldTaxBehavior) {
+		fields = append(fields, addonratecard.FieldTaxBehavior)
+	}
 	if m.FieldCleared(addonratecard.FieldFeatureKey) {
 		fields = append(fields, addonratecard.FieldFeatureKey)
 	}
@@ -2958,6 +3120,12 @@ func (m *AddonRateCardMutation) ClearField(name string) error {
 		return nil
 	case addonratecard.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case addonratecard.FieldTaxCodeID:
+		m.ClearTaxCodeID()
+		return nil
+	case addonratecard.FieldTaxBehavior:
+		m.ClearTaxBehavior()
 		return nil
 	case addonratecard.FieldFeatureKey:
 		m.ClearFeatureKey()
@@ -3012,6 +3180,12 @@ func (m *AddonRateCardMutation) ResetField(name string) error {
 	case addonratecard.FieldKey:
 		m.ResetKey()
 		return nil
+	case addonratecard.FieldTaxCodeID:
+		m.ResetTaxCodeID()
+		return nil
+	case addonratecard.FieldTaxBehavior:
+		m.ResetTaxBehavior()
+		return nil
 	case addonratecard.FieldType:
 		m.ResetType()
 		return nil
@@ -3045,12 +3219,15 @@ func (m *AddonRateCardMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *AddonRateCardMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.addon != nil {
 		edges = append(edges, addonratecard.EdgeAddon)
 	}
 	if m.features != nil {
 		edges = append(edges, addonratecard.EdgeFeatures)
+	}
+	if m.tax_code != nil {
+		edges = append(edges, addonratecard.EdgeTaxCode)
 	}
 	return edges
 }
@@ -3067,13 +3244,17 @@ func (m *AddonRateCardMutation) AddedIDs(name string) []ent.Value {
 		if id := m.features; id != nil {
 			return []ent.Value{*id}
 		}
+	case addonratecard.EdgeTaxCode:
+		if id := m.tax_code; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *AddonRateCardMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	return edges
 }
 
@@ -3085,12 +3266,15 @@ func (m *AddonRateCardMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *AddonRateCardMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedaddon {
 		edges = append(edges, addonratecard.EdgeAddon)
 	}
 	if m.clearedfeatures {
 		edges = append(edges, addonratecard.EdgeFeatures)
+	}
+	if m.clearedtax_code {
+		edges = append(edges, addonratecard.EdgeTaxCode)
 	}
 	return edges
 }
@@ -3103,6 +3287,8 @@ func (m *AddonRateCardMutation) EdgeCleared(name string) bool {
 		return m.clearedaddon
 	case addonratecard.EdgeFeatures:
 		return m.clearedfeatures
+	case addonratecard.EdgeTaxCode:
+		return m.clearedtax_code
 	}
 	return false
 }
@@ -3117,6 +3303,9 @@ func (m *AddonRateCardMutation) ClearEdge(name string) error {
 	case addonratecard.EdgeFeatures:
 		m.ClearFeatures()
 		return nil
+	case addonratecard.EdgeTaxCode:
+		m.ClearTaxCode()
+		return nil
 	}
 	return fmt.Errorf("unknown AddonRateCard unique edge %s", name)
 }
@@ -3130,6 +3319,9 @@ func (m *AddonRateCardMutation) ResetEdge(name string) error {
 		return nil
 	case addonratecard.EdgeFeatures:
 		m.ResetFeatures()
+		return nil
+	case addonratecard.EdgeTaxCode:
+		m.ResetTaxCode()
 		return nil
 	}
 	return fmt.Errorf("unknown AddonRateCard edge %s", name)
@@ -10083,6 +10275,7 @@ type BillingCustomerOverrideMutation struct {
 	created_at                  *time.Time
 	updated_at                  *time.Time
 	deleted_at                  *time.Time
+	tax_behavior                *productcatalog.TaxBehavior
 	collection_alignment        *billing.AlignmentKind
 	anchored_alignment_detail   **billing.AnchoredAlignmentDetail
 	line_collection_period      *datetime.ISODurationString
@@ -10097,6 +10290,8 @@ type BillingCustomerOverrideMutation struct {
 	clearedcustomer             bool
 	billing_profile             *string
 	clearedbilling_profile      bool
+	tax_code                    *string
+	clearedtax_code             bool
 	done                        bool
 	oldValue                    func(context.Context) (*BillingCustomerOverride, error)
 	predicates                  []predicate.BillingCustomerOverride
@@ -10361,6 +10556,104 @@ func (m *BillingCustomerOverrideMutation) DeletedAtCleared() bool {
 func (m *BillingCustomerOverrideMutation) ResetDeletedAt() {
 	m.deleted_at = nil
 	delete(m.clearedFields, billingcustomeroverride.FieldDeletedAt)
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (m *BillingCustomerOverrideMutation) SetTaxCodeID(s string) {
+	m.tax_code = &s
+}
+
+// TaxCodeID returns the value of the "tax_code_id" field in the mutation.
+func (m *BillingCustomerOverrideMutation) TaxCodeID() (r string, exists bool) {
+	v := m.tax_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxCodeID returns the old "tax_code_id" field's value of the BillingCustomerOverride entity.
+// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingCustomerOverrideMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxCodeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxCodeID: %w", err)
+	}
+	return oldValue.TaxCodeID, nil
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (m *BillingCustomerOverrideMutation) ClearTaxCodeID() {
+	m.tax_code = nil
+	m.clearedFields[billingcustomeroverride.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
+func (m *BillingCustomerOverrideMutation) TaxCodeIDCleared() bool {
+	_, ok := m.clearedFields[billingcustomeroverride.FieldTaxCodeID]
+	return ok
+}
+
+// ResetTaxCodeID resets all changes to the "tax_code_id" field.
+func (m *BillingCustomerOverrideMutation) ResetTaxCodeID() {
+	m.tax_code = nil
+	delete(m.clearedFields, billingcustomeroverride.FieldTaxCodeID)
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (m *BillingCustomerOverrideMutation) SetTaxBehavior(pb productcatalog.TaxBehavior) {
+	m.tax_behavior = &pb
+}
+
+// TaxBehavior returns the value of the "tax_behavior" field in the mutation.
+func (m *BillingCustomerOverrideMutation) TaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
+	v := m.tax_behavior
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxBehavior returns the old "tax_behavior" field's value of the BillingCustomerOverride entity.
+// If the BillingCustomerOverride object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingCustomerOverrideMutation) OldTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxBehavior is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxBehavior requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxBehavior: %w", err)
+	}
+	return oldValue.TaxBehavior, nil
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (m *BillingCustomerOverrideMutation) ClearTaxBehavior() {
+	m.tax_behavior = nil
+	m.clearedFields[billingcustomeroverride.FieldTaxBehavior] = struct{}{}
+}
+
+// TaxBehaviorCleared returns if the "tax_behavior" field was cleared in this mutation.
+func (m *BillingCustomerOverrideMutation) TaxBehaviorCleared() bool {
+	_, ok := m.clearedFields[billingcustomeroverride.FieldTaxBehavior]
+	return ok
+}
+
+// ResetTaxBehavior resets all changes to the "tax_behavior" field.
+func (m *BillingCustomerOverrideMutation) ResetTaxBehavior() {
+	m.tax_behavior = nil
+	delete(m.clearedFields, billingcustomeroverride.FieldTaxBehavior)
 }
 
 // SetCustomerID sets the "customer_id" field.
@@ -10943,6 +11236,33 @@ func (m *BillingCustomerOverrideMutation) ResetBillingProfile() {
 	m.clearedbilling_profile = false
 }
 
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (m *BillingCustomerOverrideMutation) ClearTaxCode() {
+	m.clearedtax_code = true
+	m.clearedFields[billingcustomeroverride.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeCleared reports if the "tax_code" edge to the TaxCode entity was cleared.
+func (m *BillingCustomerOverrideMutation) TaxCodeCleared() bool {
+	return m.TaxCodeIDCleared() || m.clearedtax_code
+}
+
+// TaxCodeIDs returns the "tax_code" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TaxCodeID instead. It exists only for internal usage by the builders.
+func (m *BillingCustomerOverrideMutation) TaxCodeIDs() (ids []string) {
+	if id := m.tax_code; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTaxCode resets all changes to the "tax_code" edge.
+func (m *BillingCustomerOverrideMutation) ResetTaxCode() {
+	m.tax_code = nil
+	m.clearedtax_code = false
+}
+
 // Where appends a list predicates to the BillingCustomerOverrideMutation builder.
 func (m *BillingCustomerOverrideMutation) Where(ps ...predicate.BillingCustomerOverride) {
 	m.predicates = append(m.predicates, ps...)
@@ -10977,7 +11297,7 @@ func (m *BillingCustomerOverrideMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingCustomerOverrideMutation) Fields() []string {
-	fields := make([]string, 0, 15)
+	fields := make([]string, 0, 17)
 	if m.namespace != nil {
 		fields = append(fields, billingcustomeroverride.FieldNamespace)
 	}
@@ -10989,6 +11309,12 @@ func (m *BillingCustomerOverrideMutation) Fields() []string {
 	}
 	if m.deleted_at != nil {
 		fields = append(fields, billingcustomeroverride.FieldDeletedAt)
+	}
+	if m.tax_code != nil {
+		fields = append(fields, billingcustomeroverride.FieldTaxCodeID)
+	}
+	if m.tax_behavior != nil {
+		fields = append(fields, billingcustomeroverride.FieldTaxBehavior)
 	}
 	if m.customer != nil {
 		fields = append(fields, billingcustomeroverride.FieldCustomerID)
@@ -11039,6 +11365,10 @@ func (m *BillingCustomerOverrideMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case billingcustomeroverride.FieldDeletedAt:
 		return m.DeletedAt()
+	case billingcustomeroverride.FieldTaxCodeID:
+		return m.TaxCodeID()
+	case billingcustomeroverride.FieldTaxBehavior:
+		return m.TaxBehavior()
 	case billingcustomeroverride.FieldCustomerID:
 		return m.CustomerID()
 	case billingcustomeroverride.FieldBillingProfileID:
@@ -11078,6 +11408,10 @@ func (m *BillingCustomerOverrideMutation) OldField(ctx context.Context, name str
 		return m.OldUpdatedAt(ctx)
 	case billingcustomeroverride.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case billingcustomeroverride.FieldTaxCodeID:
+		return m.OldTaxCodeID(ctx)
+	case billingcustomeroverride.FieldTaxBehavior:
+		return m.OldTaxBehavior(ctx)
 	case billingcustomeroverride.FieldCustomerID:
 		return m.OldCustomerID(ctx)
 	case billingcustomeroverride.FieldBillingProfileID:
@@ -11136,6 +11470,20 @@ func (m *BillingCustomerOverrideMutation) SetField(name string, value ent.Value)
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
+		return nil
+	case billingcustomeroverride.FieldTaxCodeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxCodeID(v)
+		return nil
+	case billingcustomeroverride.FieldTaxBehavior:
+		v, ok := value.(productcatalog.TaxBehavior)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxBehavior(v)
 		return nil
 	case billingcustomeroverride.FieldCustomerID:
 		v, ok := value.(string)
@@ -11247,6 +11595,12 @@ func (m *BillingCustomerOverrideMutation) ClearedFields() []string {
 	if m.FieldCleared(billingcustomeroverride.FieldDeletedAt) {
 		fields = append(fields, billingcustomeroverride.FieldDeletedAt)
 	}
+	if m.FieldCleared(billingcustomeroverride.FieldTaxCodeID) {
+		fields = append(fields, billingcustomeroverride.FieldTaxCodeID)
+	}
+	if m.FieldCleared(billingcustomeroverride.FieldTaxBehavior) {
+		fields = append(fields, billingcustomeroverride.FieldTaxBehavior)
+	}
 	if m.FieldCleared(billingcustomeroverride.FieldBillingProfileID) {
 		fields = append(fields, billingcustomeroverride.FieldBillingProfileID)
 	}
@@ -11293,6 +11647,12 @@ func (m *BillingCustomerOverrideMutation) ClearField(name string) error {
 	switch name {
 	case billingcustomeroverride.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case billingcustomeroverride.FieldTaxCodeID:
+		m.ClearTaxCodeID()
+		return nil
+	case billingcustomeroverride.FieldTaxBehavior:
+		m.ClearTaxBehavior()
 		return nil
 	case billingcustomeroverride.FieldBillingProfileID:
 		m.ClearBillingProfileID()
@@ -11344,6 +11704,12 @@ func (m *BillingCustomerOverrideMutation) ResetField(name string) error {
 	case billingcustomeroverride.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
+	case billingcustomeroverride.FieldTaxCodeID:
+		m.ResetTaxCodeID()
+		return nil
+	case billingcustomeroverride.FieldTaxBehavior:
+		m.ResetTaxBehavior()
+		return nil
 	case billingcustomeroverride.FieldCustomerID:
 		m.ResetCustomerID()
 		return nil
@@ -11383,12 +11749,15 @@ func (m *BillingCustomerOverrideMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingCustomerOverrideMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.customer != nil {
 		edges = append(edges, billingcustomeroverride.EdgeCustomer)
 	}
 	if m.billing_profile != nil {
 		edges = append(edges, billingcustomeroverride.EdgeBillingProfile)
+	}
+	if m.tax_code != nil {
+		edges = append(edges, billingcustomeroverride.EdgeTaxCode)
 	}
 	return edges
 }
@@ -11405,13 +11774,17 @@ func (m *BillingCustomerOverrideMutation) AddedIDs(name string) []ent.Value {
 		if id := m.billing_profile; id != nil {
 			return []ent.Value{*id}
 		}
+	case billingcustomeroverride.EdgeTaxCode:
+		if id := m.tax_code; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BillingCustomerOverrideMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	return edges
 }
 
@@ -11423,12 +11796,15 @@ func (m *BillingCustomerOverrideMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingCustomerOverrideMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedcustomer {
 		edges = append(edges, billingcustomeroverride.EdgeCustomer)
 	}
 	if m.clearedbilling_profile {
 		edges = append(edges, billingcustomeroverride.EdgeBillingProfile)
+	}
+	if m.clearedtax_code {
+		edges = append(edges, billingcustomeroverride.EdgeTaxCode)
 	}
 	return edges
 }
@@ -11441,6 +11817,8 @@ func (m *BillingCustomerOverrideMutation) EdgeCleared(name string) bool {
 		return m.clearedcustomer
 	case billingcustomeroverride.EdgeBillingProfile:
 		return m.clearedbilling_profile
+	case billingcustomeroverride.EdgeTaxCode:
+		return m.clearedtax_code
 	}
 	return false
 }
@@ -11455,6 +11833,9 @@ func (m *BillingCustomerOverrideMutation) ClearEdge(name string) error {
 	case billingcustomeroverride.EdgeBillingProfile:
 		m.ClearBillingProfile()
 		return nil
+	case billingcustomeroverride.EdgeTaxCode:
+		m.ClearTaxCode()
+		return nil
 	}
 	return fmt.Errorf("unknown BillingCustomerOverride unique edge %s", name)
 }
@@ -11468,6 +11849,9 @@ func (m *BillingCustomerOverrideMutation) ResetEdge(name string) error {
 		return nil
 	case billingcustomeroverride.EdgeBillingProfile:
 		m.ResetBillingProfile()
+		return nil
+	case billingcustomeroverride.EdgeTaxCode:
+		m.ResetTaxCode()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingCustomerOverride edge %s", name)
@@ -16752,6 +17136,7 @@ type BillingInvoiceLineMutation struct {
 	description                                    *string
 	currency                                       *currencyx.Code
 	tax_config                                     *productcatalog.TaxConfig
+	tax_behavior                                   *productcatalog.TaxBehavior
 	amount                                         *alpacadecimal.Decimal
 	taxes_total                                    *alpacadecimal.Decimal
 	taxes_inclusive_total                          *alpacadecimal.Decimal
@@ -16815,6 +17200,8 @@ type BillingInvoiceLineMutation struct {
 	clearedcharge_flat_fee_invoiced_usage          bool
 	charge_credit_purchase_invoiced_payment        *string
 	clearedcharge_credit_purchase_invoiced_payment bool
+	tax_code                                       *string
+	clearedtax_code                                bool
 	done                                           bool
 	oldValue                                       func(context.Context) (*BillingInvoiceLine, error)
 	predicates                                     []predicate.BillingInvoiceLine
@@ -17347,6 +17734,104 @@ func (m *BillingInvoiceLineMutation) TaxConfigCleared() bool {
 func (m *BillingInvoiceLineMutation) ResetTaxConfig() {
 	m.tax_config = nil
 	delete(m.clearedFields, billinginvoiceline.FieldTaxConfig)
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (m *BillingInvoiceLineMutation) SetTaxCodeID(s string) {
+	m.tax_code = &s
+}
+
+// TaxCodeID returns the value of the "tax_code_id" field in the mutation.
+func (m *BillingInvoiceLineMutation) TaxCodeID() (r string, exists bool) {
+	v := m.tax_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxCodeID returns the old "tax_code_id" field's value of the BillingInvoiceLine entity.
+// If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceLineMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxCodeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxCodeID: %w", err)
+	}
+	return oldValue.TaxCodeID, nil
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (m *BillingInvoiceLineMutation) ClearTaxCodeID() {
+	m.tax_code = nil
+	m.clearedFields[billinginvoiceline.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
+func (m *BillingInvoiceLineMutation) TaxCodeIDCleared() bool {
+	_, ok := m.clearedFields[billinginvoiceline.FieldTaxCodeID]
+	return ok
+}
+
+// ResetTaxCodeID resets all changes to the "tax_code_id" field.
+func (m *BillingInvoiceLineMutation) ResetTaxCodeID() {
+	m.tax_code = nil
+	delete(m.clearedFields, billinginvoiceline.FieldTaxCodeID)
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (m *BillingInvoiceLineMutation) SetTaxBehavior(pb productcatalog.TaxBehavior) {
+	m.tax_behavior = &pb
+}
+
+// TaxBehavior returns the value of the "tax_behavior" field in the mutation.
+func (m *BillingInvoiceLineMutation) TaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
+	v := m.tax_behavior
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxBehavior returns the old "tax_behavior" field's value of the BillingInvoiceLine entity.
+// If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceLineMutation) OldTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxBehavior is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxBehavior requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxBehavior: %w", err)
+	}
+	return oldValue.TaxBehavior, nil
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (m *BillingInvoiceLineMutation) ClearTaxBehavior() {
+	m.tax_behavior = nil
+	m.clearedFields[billinginvoiceline.FieldTaxBehavior] = struct{}{}
+}
+
+// TaxBehaviorCleared returns if the "tax_behavior" field was cleared in this mutation.
+func (m *BillingInvoiceLineMutation) TaxBehaviorCleared() bool {
+	_, ok := m.clearedFields[billinginvoiceline.FieldTaxBehavior]
+	return ok
+}
+
+// ResetTaxBehavior resets all changes to the "tax_behavior" field.
+func (m *BillingInvoiceLineMutation) ResetTaxBehavior() {
+	m.tax_behavior = nil
+	delete(m.clearedFields, billinginvoiceline.FieldTaxBehavior)
 }
 
 // SetAmount sets the "amount" field.
@@ -19257,6 +19742,33 @@ func (m *BillingInvoiceLineMutation) ResetChargeCreditPurchaseInvoicedPayment() 
 	m.clearedcharge_credit_purchase_invoiced_payment = false
 }
 
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (m *BillingInvoiceLineMutation) ClearTaxCode() {
+	m.clearedtax_code = true
+	m.clearedFields[billinginvoiceline.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeCleared reports if the "tax_code" edge to the TaxCode entity was cleared.
+func (m *BillingInvoiceLineMutation) TaxCodeCleared() bool {
+	return m.TaxCodeIDCleared() || m.clearedtax_code
+}
+
+// TaxCodeIDs returns the "tax_code" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TaxCodeID instead. It exists only for internal usage by the builders.
+func (m *BillingInvoiceLineMutation) TaxCodeIDs() (ids []string) {
+	if id := m.tax_code; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTaxCode resets all changes to the "tax_code" edge.
+func (m *BillingInvoiceLineMutation) ResetTaxCode() {
+	m.tax_code = nil
+	m.clearedtax_code = false
+}
+
 // Where appends a list predicates to the BillingInvoiceLineMutation builder.
 func (m *BillingInvoiceLineMutation) Where(ps ...predicate.BillingInvoiceLine) {
 	m.predicates = append(m.predicates, ps...)
@@ -19291,7 +19803,7 @@ func (m *BillingInvoiceLineMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceLineMutation) Fields() []string {
-	fields := make([]string, 0, 39)
+	fields := make([]string, 0, 41)
 	if m.annotations != nil {
 		fields = append(fields, billinginvoiceline.FieldAnnotations)
 	}
@@ -19321,6 +19833,12 @@ func (m *BillingInvoiceLineMutation) Fields() []string {
 	}
 	if m.tax_config != nil {
 		fields = append(fields, billinginvoiceline.FieldTaxConfig)
+	}
+	if m.tax_code != nil {
+		fields = append(fields, billinginvoiceline.FieldTaxCodeID)
+	}
+	if m.tax_behavior != nil {
+		fields = append(fields, billinginvoiceline.FieldTaxBehavior)
 	}
 	if m.amount != nil {
 		fields = append(fields, billinginvoiceline.FieldAmount)
@@ -19437,6 +19955,10 @@ func (m *BillingInvoiceLineMutation) Field(name string) (ent.Value, bool) {
 		return m.Currency()
 	case billinginvoiceline.FieldTaxConfig:
 		return m.TaxConfig()
+	case billinginvoiceline.FieldTaxCodeID:
+		return m.TaxCodeID()
+	case billinginvoiceline.FieldTaxBehavior:
+		return m.TaxBehavior()
 	case billinginvoiceline.FieldAmount:
 		return m.Amount()
 	case billinginvoiceline.FieldTaxesTotal:
@@ -19524,6 +20046,10 @@ func (m *BillingInvoiceLineMutation) OldField(ctx context.Context, name string) 
 		return m.OldCurrency(ctx)
 	case billinginvoiceline.FieldTaxConfig:
 		return m.OldTaxConfig(ctx)
+	case billinginvoiceline.FieldTaxCodeID:
+		return m.OldTaxCodeID(ctx)
+	case billinginvoiceline.FieldTaxBehavior:
+		return m.OldTaxBehavior(ctx)
 	case billinginvoiceline.FieldAmount:
 		return m.OldAmount(ctx)
 	case billinginvoiceline.FieldTaxesTotal:
@@ -19660,6 +20186,20 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetTaxConfig(v)
+		return nil
+	case billinginvoiceline.FieldTaxCodeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxCodeID(v)
+		return nil
+	case billinginvoiceline.FieldTaxBehavior:
+		v, ok := value.(productcatalog.TaxBehavior)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxBehavior(v)
 		return nil
 	case billinginvoiceline.FieldAmount:
 		v, ok := value.(alpacadecimal.Decimal)
@@ -19909,6 +20449,12 @@ func (m *BillingInvoiceLineMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoiceline.FieldTaxConfig) {
 		fields = append(fields, billinginvoiceline.FieldTaxConfig)
 	}
+	if m.FieldCleared(billinginvoiceline.FieldTaxCodeID) {
+		fields = append(fields, billinginvoiceline.FieldTaxCodeID)
+	}
+	if m.FieldCleared(billinginvoiceline.FieldTaxBehavior) {
+		fields = append(fields, billinginvoiceline.FieldTaxBehavior)
+	}
 	if m.FieldCleared(billinginvoiceline.FieldParentLineID) {
 		fields = append(fields, billinginvoiceline.FieldParentLineID)
 	}
@@ -19979,6 +20525,12 @@ func (m *BillingInvoiceLineMutation) ClearField(name string) error {
 		return nil
 	case billinginvoiceline.FieldTaxConfig:
 		m.ClearTaxConfig()
+		return nil
+	case billinginvoiceline.FieldTaxCodeID:
+		m.ClearTaxCodeID()
+		return nil
+	case billinginvoiceline.FieldTaxBehavior:
+		m.ClearTaxBehavior()
 		return nil
 	case billinginvoiceline.FieldParentLineID:
 		m.ClearParentLineID()
@@ -20059,6 +20611,12 @@ func (m *BillingInvoiceLineMutation) ResetField(name string) error {
 		return nil
 	case billinginvoiceline.FieldTaxConfig:
 		m.ResetTaxConfig()
+		return nil
+	case billinginvoiceline.FieldTaxCodeID:
+		m.ResetTaxCodeID()
+		return nil
+	case billinginvoiceline.FieldTaxBehavior:
+		m.ResetTaxBehavior()
 		return nil
 	case billinginvoiceline.FieldAmount:
 		m.ResetAmount()
@@ -20153,7 +20711,7 @@ func (m *BillingInvoiceLineMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingInvoiceLineMutation) AddedEdges() []string {
-	edges := make([]string, 0, 17)
+	edges := make([]string, 0, 18)
 	if m.billing_invoice != nil {
 		edges = append(edges, billinginvoiceline.EdgeBillingInvoice)
 	}
@@ -20204,6 +20762,9 @@ func (m *BillingInvoiceLineMutation) AddedEdges() []string {
 	}
 	if m.charge_credit_purchase_invoiced_payment != nil {
 		edges = append(edges, billinginvoiceline.EdgeChargeCreditPurchaseInvoicedPayment)
+	}
+	if m.tax_code != nil {
+		edges = append(edges, billinginvoiceline.EdgeTaxCode)
 	}
 	return edges
 }
@@ -20292,13 +20853,17 @@ func (m *BillingInvoiceLineMutation) AddedIDs(name string) []ent.Value {
 		if id := m.charge_credit_purchase_invoiced_payment; id != nil {
 			return []ent.Value{*id}
 		}
+	case billinginvoiceline.EdgeTaxCode:
+		if id := m.tax_code; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BillingInvoiceLineMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 17)
+	edges := make([]string, 0, 18)
 	if m.removeddetailed_lines != nil {
 		edges = append(edges, billinginvoiceline.EdgeDetailedLines)
 	}
@@ -20366,7 +20931,7 @@ func (m *BillingInvoiceLineMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingInvoiceLineMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 17)
+	edges := make([]string, 0, 18)
 	if m.clearedbilling_invoice {
 		edges = append(edges, billinginvoiceline.EdgeBillingInvoice)
 	}
@@ -20418,6 +20983,9 @@ func (m *BillingInvoiceLineMutation) ClearedEdges() []string {
 	if m.clearedcharge_credit_purchase_invoiced_payment {
 		edges = append(edges, billinginvoiceline.EdgeChargeCreditPurchaseInvoicedPayment)
 	}
+	if m.clearedtax_code {
+		edges = append(edges, billinginvoiceline.EdgeTaxCode)
+	}
 	return edges
 }
 
@@ -20459,6 +21027,8 @@ func (m *BillingInvoiceLineMutation) EdgeCleared(name string) bool {
 		return m.clearedcharge_flat_fee_invoiced_usage
 	case billinginvoiceline.EdgeChargeCreditPurchaseInvoicedPayment:
 		return m.clearedcharge_credit_purchase_invoiced_payment
+	case billinginvoiceline.EdgeTaxCode:
+		return m.clearedtax_code
 	}
 	return false
 }
@@ -20499,6 +21069,9 @@ func (m *BillingInvoiceLineMutation) ClearEdge(name string) error {
 		return nil
 	case billinginvoiceline.EdgeChargeCreditPurchaseInvoicedPayment:
 		m.ClearChargeCreditPurchaseInvoicedPayment()
+		return nil
+	case billinginvoiceline.EdgeTaxCode:
+		m.ClearTaxCode()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceLine unique edge %s", name)
@@ -20558,6 +21131,9 @@ func (m *BillingInvoiceLineMutation) ResetEdge(name string) error {
 		return nil
 	case billinginvoiceline.EdgeChargeCreditPurchaseInvoicedPayment:
 		m.ResetChargeCreditPurchaseInvoicedPayment()
+		return nil
+	case billinginvoiceline.EdgeTaxCode:
+		m.ResetTaxCode()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceLine edge %s", name)
@@ -23017,6 +23593,7 @@ type BillingInvoiceSplitLineGroupMutation struct {
 	description                      *string
 	currency                         *currencyx.Code
 	tax_config                       *productcatalog.TaxConfig
+	tax_behavior                     *productcatalog.TaxBehavior
 	service_period_start             *time.Time
 	service_period_end               *time.Time
 	unique_reference_id              *string
@@ -23037,6 +23614,8 @@ type BillingInvoiceSplitLineGroupMutation struct {
 	clearedsubscription_item         bool
 	charge                           *string
 	clearedcharge                    bool
+	tax_code                         *string
+	clearedtax_code                  bool
 	done                             bool
 	oldValue                         func(context.Context) (*BillingInvoiceSplitLineGroup, error)
 	predicates                       []predicate.BillingInvoiceSplitLineGroup
@@ -23520,6 +24099,104 @@ func (m *BillingInvoiceSplitLineGroupMutation) TaxConfigCleared() bool {
 func (m *BillingInvoiceSplitLineGroupMutation) ResetTaxConfig() {
 	m.tax_config = nil
 	delete(m.clearedFields, billinginvoicesplitlinegroup.FieldTaxConfig)
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (m *BillingInvoiceSplitLineGroupMutation) SetTaxCodeID(s string) {
+	m.tax_code = &s
+}
+
+// TaxCodeID returns the value of the "tax_code_id" field in the mutation.
+func (m *BillingInvoiceSplitLineGroupMutation) TaxCodeID() (r string, exists bool) {
+	v := m.tax_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxCodeID returns the old "tax_code_id" field's value of the BillingInvoiceSplitLineGroup entity.
+// If the BillingInvoiceSplitLineGroup object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceSplitLineGroupMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxCodeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxCodeID: %w", err)
+	}
+	return oldValue.TaxCodeID, nil
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (m *BillingInvoiceSplitLineGroupMutation) ClearTaxCodeID() {
+	m.tax_code = nil
+	m.clearedFields[billinginvoicesplitlinegroup.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
+func (m *BillingInvoiceSplitLineGroupMutation) TaxCodeIDCleared() bool {
+	_, ok := m.clearedFields[billinginvoicesplitlinegroup.FieldTaxCodeID]
+	return ok
+}
+
+// ResetTaxCodeID resets all changes to the "tax_code_id" field.
+func (m *BillingInvoiceSplitLineGroupMutation) ResetTaxCodeID() {
+	m.tax_code = nil
+	delete(m.clearedFields, billinginvoicesplitlinegroup.FieldTaxCodeID)
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (m *BillingInvoiceSplitLineGroupMutation) SetTaxBehavior(pb productcatalog.TaxBehavior) {
+	m.tax_behavior = &pb
+}
+
+// TaxBehavior returns the value of the "tax_behavior" field in the mutation.
+func (m *BillingInvoiceSplitLineGroupMutation) TaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
+	v := m.tax_behavior
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxBehavior returns the old "tax_behavior" field's value of the BillingInvoiceSplitLineGroup entity.
+// If the BillingInvoiceSplitLineGroup object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceSplitLineGroupMutation) OldTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxBehavior is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxBehavior requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxBehavior: %w", err)
+	}
+	return oldValue.TaxBehavior, nil
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (m *BillingInvoiceSplitLineGroupMutation) ClearTaxBehavior() {
+	m.tax_behavior = nil
+	m.clearedFields[billinginvoicesplitlinegroup.FieldTaxBehavior] = struct{}{}
+}
+
+// TaxBehaviorCleared returns if the "tax_behavior" field was cleared in this mutation.
+func (m *BillingInvoiceSplitLineGroupMutation) TaxBehaviorCleared() bool {
+	_, ok := m.clearedFields[billinginvoicesplitlinegroup.FieldTaxBehavior]
+	return ok
+}
+
+// ResetTaxBehavior resets all changes to the "tax_behavior" field.
+func (m *BillingInvoiceSplitLineGroupMutation) ResetTaxBehavior() {
+	m.tax_behavior = nil
+	delete(m.clearedFields, billinginvoicesplitlinegroup.FieldTaxBehavior)
 }
 
 // SetServicePeriodStart sets the "service_period_start" field.
@@ -24233,6 +24910,33 @@ func (m *BillingInvoiceSplitLineGroupMutation) ResetCharge() {
 	m.clearedcharge = false
 }
 
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (m *BillingInvoiceSplitLineGroupMutation) ClearTaxCode() {
+	m.clearedtax_code = true
+	m.clearedFields[billinginvoicesplitlinegroup.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeCleared reports if the "tax_code" edge to the TaxCode entity was cleared.
+func (m *BillingInvoiceSplitLineGroupMutation) TaxCodeCleared() bool {
+	return m.TaxCodeIDCleared() || m.clearedtax_code
+}
+
+// TaxCodeIDs returns the "tax_code" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TaxCodeID instead. It exists only for internal usage by the builders.
+func (m *BillingInvoiceSplitLineGroupMutation) TaxCodeIDs() (ids []string) {
+	if id := m.tax_code; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTaxCode resets all changes to the "tax_code" edge.
+func (m *BillingInvoiceSplitLineGroupMutation) ResetTaxCode() {
+	m.tax_code = nil
+	m.clearedtax_code = false
+}
+
 // Where appends a list predicates to the BillingInvoiceSplitLineGroupMutation builder.
 func (m *BillingInvoiceSplitLineGroupMutation) Where(ps ...predicate.BillingInvoiceSplitLineGroup) {
 	m.predicates = append(m.predicates, ps...)
@@ -24267,7 +24971,7 @@ func (m *BillingInvoiceSplitLineGroupMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceSplitLineGroupMutation) Fields() []string {
-	fields := make([]string, 0, 21)
+	fields := make([]string, 0, 23)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldNamespace)
 	}
@@ -24294,6 +24998,12 @@ func (m *BillingInvoiceSplitLineGroupMutation) Fields() []string {
 	}
 	if m.tax_config != nil {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldTaxConfig)
+	}
+	if m.tax_code != nil {
+		fields = append(fields, billinginvoicesplitlinegroup.FieldTaxCodeID)
+	}
+	if m.tax_behavior != nil {
+		fields = append(fields, billinginvoicesplitlinegroup.FieldTaxBehavior)
 	}
 	if m.service_period_start != nil {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldServicePeriodStart)
@@ -24357,6 +25067,10 @@ func (m *BillingInvoiceSplitLineGroupMutation) Field(name string) (ent.Value, bo
 		return m.Currency()
 	case billinginvoicesplitlinegroup.FieldTaxConfig:
 		return m.TaxConfig()
+	case billinginvoicesplitlinegroup.FieldTaxCodeID:
+		return m.TaxCodeID()
+	case billinginvoicesplitlinegroup.FieldTaxBehavior:
+		return m.TaxBehavior()
 	case billinginvoicesplitlinegroup.FieldServicePeriodStart:
 		return m.ServicePeriodStart()
 	case billinginvoicesplitlinegroup.FieldServicePeriodEnd:
@@ -24408,6 +25122,10 @@ func (m *BillingInvoiceSplitLineGroupMutation) OldField(ctx context.Context, nam
 		return m.OldCurrency(ctx)
 	case billinginvoicesplitlinegroup.FieldTaxConfig:
 		return m.OldTaxConfig(ctx)
+	case billinginvoicesplitlinegroup.FieldTaxCodeID:
+		return m.OldTaxCodeID(ctx)
+	case billinginvoicesplitlinegroup.FieldTaxBehavior:
+		return m.OldTaxBehavior(ctx)
 	case billinginvoicesplitlinegroup.FieldServicePeriodStart:
 		return m.OldServicePeriodStart(ctx)
 	case billinginvoicesplitlinegroup.FieldServicePeriodEnd:
@@ -24503,6 +25221,20 @@ func (m *BillingInvoiceSplitLineGroupMutation) SetField(name string, value ent.V
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetTaxConfig(v)
+		return nil
+	case billinginvoicesplitlinegroup.FieldTaxCodeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxCodeID(v)
+		return nil
+	case billinginvoicesplitlinegroup.FieldTaxBehavior:
+		v, ok := value.(productcatalog.TaxBehavior)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxBehavior(v)
 		return nil
 	case billinginvoicesplitlinegroup.FieldServicePeriodStart:
 		v, ok := value.(time.Time)
@@ -24630,6 +25362,12 @@ func (m *BillingInvoiceSplitLineGroupMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoicesplitlinegroup.FieldTaxConfig) {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldTaxConfig)
 	}
+	if m.FieldCleared(billinginvoicesplitlinegroup.FieldTaxCodeID) {
+		fields = append(fields, billinginvoicesplitlinegroup.FieldTaxCodeID)
+	}
+	if m.FieldCleared(billinginvoicesplitlinegroup.FieldTaxBehavior) {
+		fields = append(fields, billinginvoicesplitlinegroup.FieldTaxBehavior)
+	}
 	if m.FieldCleared(billinginvoicesplitlinegroup.FieldUniqueReferenceID) {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldUniqueReferenceID)
 	}
@@ -24682,6 +25420,12 @@ func (m *BillingInvoiceSplitLineGroupMutation) ClearField(name string) error {
 		return nil
 	case billinginvoicesplitlinegroup.FieldTaxConfig:
 		m.ClearTaxConfig()
+		return nil
+	case billinginvoicesplitlinegroup.FieldTaxCodeID:
+		m.ClearTaxCodeID()
+		return nil
+	case billinginvoicesplitlinegroup.FieldTaxBehavior:
+		m.ClearTaxBehavior()
 		return nil
 	case billinginvoicesplitlinegroup.FieldUniqueReferenceID:
 		m.ClearUniqueReferenceID()
@@ -24745,6 +25489,12 @@ func (m *BillingInvoiceSplitLineGroupMutation) ResetField(name string) error {
 	case billinginvoicesplitlinegroup.FieldTaxConfig:
 		m.ResetTaxConfig()
 		return nil
+	case billinginvoicesplitlinegroup.FieldTaxCodeID:
+		m.ResetTaxCodeID()
+		return nil
+	case billinginvoicesplitlinegroup.FieldTaxBehavior:
+		m.ResetTaxBehavior()
+		return nil
 	case billinginvoicesplitlinegroup.FieldServicePeriodStart:
 		m.ResetServicePeriodStart()
 		return nil
@@ -24787,7 +25537,7 @@ func (m *BillingInvoiceSplitLineGroupMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingInvoiceSplitLineGroupMutation) AddedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.billing_invoice_lines != nil {
 		edges = append(edges, billinginvoicesplitlinegroup.EdgeBillingInvoiceLines)
 	}
@@ -24802,6 +25552,9 @@ func (m *BillingInvoiceSplitLineGroupMutation) AddedEdges() []string {
 	}
 	if m.charge != nil {
 		edges = append(edges, billinginvoicesplitlinegroup.EdgeCharge)
+	}
+	if m.tax_code != nil {
+		edges = append(edges, billinginvoicesplitlinegroup.EdgeTaxCode)
 	}
 	return edges
 }
@@ -24832,13 +25585,17 @@ func (m *BillingInvoiceSplitLineGroupMutation) AddedIDs(name string) []ent.Value
 		if id := m.charge; id != nil {
 			return []ent.Value{*id}
 		}
+	case billinginvoicesplitlinegroup.EdgeTaxCode:
+		if id := m.tax_code; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BillingInvoiceSplitLineGroupMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.removedbilling_invoice_lines != nil {
 		edges = append(edges, billinginvoicesplitlinegroup.EdgeBillingInvoiceLines)
 	}
@@ -24861,7 +25618,7 @@ func (m *BillingInvoiceSplitLineGroupMutation) RemovedIDs(name string) []ent.Val
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingInvoiceSplitLineGroupMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.clearedbilling_invoice_lines {
 		edges = append(edges, billinginvoicesplitlinegroup.EdgeBillingInvoiceLines)
 	}
@@ -24876,6 +25633,9 @@ func (m *BillingInvoiceSplitLineGroupMutation) ClearedEdges() []string {
 	}
 	if m.clearedcharge {
 		edges = append(edges, billinginvoicesplitlinegroup.EdgeCharge)
+	}
+	if m.clearedtax_code {
+		edges = append(edges, billinginvoicesplitlinegroup.EdgeTaxCode)
 	}
 	return edges
 }
@@ -24894,6 +25654,8 @@ func (m *BillingInvoiceSplitLineGroupMutation) EdgeCleared(name string) bool {
 		return m.clearedsubscription_item
 	case billinginvoicesplitlinegroup.EdgeCharge:
 		return m.clearedcharge
+	case billinginvoicesplitlinegroup.EdgeTaxCode:
+		return m.clearedtax_code
 	}
 	return false
 }
@@ -24913,6 +25675,9 @@ func (m *BillingInvoiceSplitLineGroupMutation) ClearEdge(name string) error {
 		return nil
 	case billinginvoicesplitlinegroup.EdgeCharge:
 		m.ClearCharge()
+		return nil
+	case billinginvoicesplitlinegroup.EdgeTaxCode:
+		m.ClearTaxCode()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceSplitLineGroup unique edge %s", name)
@@ -24936,6 +25701,9 @@ func (m *BillingInvoiceSplitLineGroupMutation) ResetEdge(name string) error {
 		return nil
 	case billinginvoicesplitlinegroup.EdgeCharge:
 		m.ResetCharge()
+		return nil
+	case billinginvoicesplitlinegroup.EdgeTaxCode:
+		m.ResetTaxCode()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceSplitLineGroup edge %s", name)
@@ -29477,6 +30245,7 @@ type BillingStandardInvoiceDetailedLineMutation struct {
 	description                 *string
 	currency                    *currencyx.Code
 	tax_config                  *productcatalog.TaxConfig
+	tax_behavior                *productcatalog.TaxBehavior
 	amount                      *alpacadecimal.Decimal
 	taxes_total                 *alpacadecimal.Decimal
 	taxes_inclusive_total       *alpacadecimal.Decimal
@@ -29501,6 +30270,8 @@ type BillingStandardInvoiceDetailedLineMutation struct {
 	clearedbilling_invoice      bool
 	billing_invoice_line        *string
 	clearedbilling_invoice_line bool
+	tax_code                    *string
+	clearedtax_code             bool
 	amount_discounts            map[string]struct{}
 	removedamount_discounts     map[string]struct{}
 	clearedamount_discounts     bool
@@ -30036,6 +30807,104 @@ func (m *BillingStandardInvoiceDetailedLineMutation) TaxConfigCleared() bool {
 func (m *BillingStandardInvoiceDetailedLineMutation) ResetTaxConfig() {
 	m.tax_config = nil
 	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldTaxConfig)
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) SetTaxCodeID(s string) {
+	m.tax_code = &s
+}
+
+// TaxCodeID returns the value of the "tax_code_id" field in the mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) TaxCodeID() (r string, exists bool) {
+	v := m.tax_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxCodeID returns the old "tax_code_id" field's value of the BillingStandardInvoiceDetailedLine entity.
+// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingStandardInvoiceDetailedLineMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxCodeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxCodeID: %w", err)
+	}
+	return oldValue.TaxCodeID, nil
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ClearTaxCodeID() {
+	m.tax_code = nil
+	m.clearedFields[billingstandardinvoicedetailedline.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) TaxCodeIDCleared() bool {
+	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldTaxCodeID]
+	return ok
+}
+
+// ResetTaxCodeID resets all changes to the "tax_code_id" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ResetTaxCodeID() {
+	m.tax_code = nil
+	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldTaxCodeID)
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) SetTaxBehavior(pb productcatalog.TaxBehavior) {
+	m.tax_behavior = &pb
+}
+
+// TaxBehavior returns the value of the "tax_behavior" field in the mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) TaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
+	v := m.tax_behavior
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxBehavior returns the old "tax_behavior" field's value of the BillingStandardInvoiceDetailedLine entity.
+// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingStandardInvoiceDetailedLineMutation) OldTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxBehavior is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxBehavior requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxBehavior: %w", err)
+	}
+	return oldValue.TaxBehavior, nil
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ClearTaxBehavior() {
+	m.tax_behavior = nil
+	m.clearedFields[billingstandardinvoicedetailedline.FieldTaxBehavior] = struct{}{}
+}
+
+// TaxBehaviorCleared returns if the "tax_behavior" field was cleared in this mutation.
+func (m *BillingStandardInvoiceDetailedLineMutation) TaxBehaviorCleared() bool {
+	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldTaxBehavior]
+	return ok
+}
+
+// ResetTaxBehavior resets all changes to the "tax_behavior" field.
+func (m *BillingStandardInvoiceDetailedLineMutation) ResetTaxBehavior() {
+	m.tax_behavior = nil
+	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldTaxBehavior)
 }
 
 // SetAmount sets the "amount" field.
@@ -30911,6 +31780,33 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ResetBillingInvoiceLine() {
 	m.clearedbilling_invoice_line = false
 }
 
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (m *BillingStandardInvoiceDetailedLineMutation) ClearTaxCode() {
+	m.clearedtax_code = true
+	m.clearedFields[billingstandardinvoicedetailedline.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeCleared reports if the "tax_code" edge to the TaxCode entity was cleared.
+func (m *BillingStandardInvoiceDetailedLineMutation) TaxCodeCleared() bool {
+	return m.TaxCodeIDCleared() || m.clearedtax_code
+}
+
+// TaxCodeIDs returns the "tax_code" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TaxCodeID instead. It exists only for internal usage by the builders.
+func (m *BillingStandardInvoiceDetailedLineMutation) TaxCodeIDs() (ids []string) {
+	if id := m.tax_code; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTaxCode resets all changes to the "tax_code" edge.
+func (m *BillingStandardInvoiceDetailedLineMutation) ResetTaxCode() {
+	m.tax_code = nil
+	m.clearedtax_code = false
+}
+
 // AddAmountDiscountIDs adds the "amount_discounts" edge to the BillingStandardInvoiceDetailedLineAmountDiscount entity by ids.
 func (m *BillingStandardInvoiceDetailedLineMutation) AddAmountDiscountIDs(ids ...string) {
 	if m.amount_discounts == nil {
@@ -30999,7 +31895,7 @@ func (m *BillingStandardInvoiceDetailedLineMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingStandardInvoiceDetailedLineMutation) Fields() []string {
-	fields := make([]string, 0, 30)
+	fields := make([]string, 0, 32)
 	if m.annotations != nil {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldAnnotations)
 	}
@@ -31029,6 +31925,12 @@ func (m *BillingStandardInvoiceDetailedLineMutation) Fields() []string {
 	}
 	if m.tax_config != nil {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldTaxConfig)
+	}
+	if m.tax_code != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldTaxCodeID)
+	}
+	if m.tax_behavior != nil {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldTaxBehavior)
 	}
 	if m.amount != nil {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldAmount)
@@ -31118,6 +32020,10 @@ func (m *BillingStandardInvoiceDetailedLineMutation) Field(name string) (ent.Val
 		return m.Currency()
 	case billingstandardinvoicedetailedline.FieldTaxConfig:
 		return m.TaxConfig()
+	case billingstandardinvoicedetailedline.FieldTaxCodeID:
+		return m.TaxCodeID()
+	case billingstandardinvoicedetailedline.FieldTaxBehavior:
+		return m.TaxBehavior()
 	case billingstandardinvoicedetailedline.FieldAmount:
 		return m.Amount()
 	case billingstandardinvoicedetailedline.FieldTaxesTotal:
@@ -31187,6 +32093,10 @@ func (m *BillingStandardInvoiceDetailedLineMutation) OldField(ctx context.Contex
 		return m.OldCurrency(ctx)
 	case billingstandardinvoicedetailedline.FieldTaxConfig:
 		return m.OldTaxConfig(ctx)
+	case billingstandardinvoicedetailedline.FieldTaxCodeID:
+		return m.OldTaxCodeID(ctx)
+	case billingstandardinvoicedetailedline.FieldTaxBehavior:
+		return m.OldTaxBehavior(ctx)
 	case billingstandardinvoicedetailedline.FieldAmount:
 		return m.OldAmount(ctx)
 	case billingstandardinvoicedetailedline.FieldTaxesTotal:
@@ -31305,6 +32215,20 @@ func (m *BillingStandardInvoiceDetailedLineMutation) SetField(name string, value
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetTaxConfig(v)
+		return nil
+	case billingstandardinvoicedetailedline.FieldTaxCodeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxCodeID(v)
+		return nil
+	case billingstandardinvoicedetailedline.FieldTaxBehavior:
+		v, ok := value.(productcatalog.TaxBehavior)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxBehavior(v)
 		return nil
 	case billingstandardinvoicedetailedline.FieldAmount:
 		v, ok := value.(alpacadecimal.Decimal)
@@ -31506,6 +32430,12 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ClearedFields() []string {
 	if m.FieldCleared(billingstandardinvoicedetailedline.FieldTaxConfig) {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldTaxConfig)
 	}
+	if m.FieldCleared(billingstandardinvoicedetailedline.FieldTaxCodeID) {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldTaxCodeID)
+	}
+	if m.FieldCleared(billingstandardinvoicedetailedline.FieldTaxBehavior) {
+		fields = append(fields, billingstandardinvoicedetailedline.FieldTaxBehavior)
+	}
 	if m.FieldCleared(billingstandardinvoicedetailedline.FieldInvoicingAppExternalID) {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldInvoicingAppExternalID)
 	}
@@ -31546,6 +32476,12 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ClearField(name string) err
 		return nil
 	case billingstandardinvoicedetailedline.FieldTaxConfig:
 		m.ClearTaxConfig()
+		return nil
+	case billingstandardinvoicedetailedline.FieldTaxCodeID:
+		m.ClearTaxCodeID()
+		return nil
+	case billingstandardinvoicedetailedline.FieldTaxBehavior:
+		m.ClearTaxBehavior()
 		return nil
 	case billingstandardinvoicedetailedline.FieldInvoicingAppExternalID:
 		m.ClearInvoicingAppExternalID()
@@ -31596,6 +32532,12 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ResetField(name string) err
 		return nil
 	case billingstandardinvoicedetailedline.FieldTaxConfig:
 		m.ResetTaxConfig()
+		return nil
+	case billingstandardinvoicedetailedline.FieldTaxCodeID:
+		m.ResetTaxCodeID()
+		return nil
+	case billingstandardinvoicedetailedline.FieldTaxBehavior:
+		m.ResetTaxBehavior()
 		return nil
 	case billingstandardinvoicedetailedline.FieldAmount:
 		m.ResetAmount()
@@ -31663,12 +32605,15 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ResetField(name string) err
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingStandardInvoiceDetailedLineMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.billing_invoice != nil {
 		edges = append(edges, billingstandardinvoicedetailedline.EdgeBillingInvoice)
 	}
 	if m.billing_invoice_line != nil {
 		edges = append(edges, billingstandardinvoicedetailedline.EdgeBillingInvoiceLine)
+	}
+	if m.tax_code != nil {
+		edges = append(edges, billingstandardinvoicedetailedline.EdgeTaxCode)
 	}
 	if m.amount_discounts != nil {
 		edges = append(edges, billingstandardinvoicedetailedline.EdgeAmountDiscounts)
@@ -31688,6 +32633,10 @@ func (m *BillingStandardInvoiceDetailedLineMutation) AddedIDs(name string) []ent
 		if id := m.billing_invoice_line; id != nil {
 			return []ent.Value{*id}
 		}
+	case billingstandardinvoicedetailedline.EdgeTaxCode:
+		if id := m.tax_code; id != nil {
+			return []ent.Value{*id}
+		}
 	case billingstandardinvoicedetailedline.EdgeAmountDiscounts:
 		ids := make([]ent.Value, 0, len(m.amount_discounts))
 		for id := range m.amount_discounts {
@@ -31700,7 +32649,7 @@ func (m *BillingStandardInvoiceDetailedLineMutation) AddedIDs(name string) []ent
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BillingStandardInvoiceDetailedLineMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.removedamount_discounts != nil {
 		edges = append(edges, billingstandardinvoicedetailedline.EdgeAmountDiscounts)
 	}
@@ -31723,12 +32672,15 @@ func (m *BillingStandardInvoiceDetailedLineMutation) RemovedIDs(name string) []e
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingStandardInvoiceDetailedLineMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.clearedbilling_invoice {
 		edges = append(edges, billingstandardinvoicedetailedline.EdgeBillingInvoice)
 	}
 	if m.clearedbilling_invoice_line {
 		edges = append(edges, billingstandardinvoicedetailedline.EdgeBillingInvoiceLine)
+	}
+	if m.clearedtax_code {
+		edges = append(edges, billingstandardinvoicedetailedline.EdgeTaxCode)
 	}
 	if m.clearedamount_discounts {
 		edges = append(edges, billingstandardinvoicedetailedline.EdgeAmountDiscounts)
@@ -31744,6 +32696,8 @@ func (m *BillingStandardInvoiceDetailedLineMutation) EdgeCleared(name string) bo
 		return m.clearedbilling_invoice
 	case billingstandardinvoicedetailedline.EdgeBillingInvoiceLine:
 		return m.clearedbilling_invoice_line
+	case billingstandardinvoicedetailedline.EdgeTaxCode:
+		return m.clearedtax_code
 	case billingstandardinvoicedetailedline.EdgeAmountDiscounts:
 		return m.clearedamount_discounts
 	}
@@ -31760,6 +32714,9 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ClearEdge(name string) erro
 	case billingstandardinvoicedetailedline.EdgeBillingInvoiceLine:
 		m.ClearBillingInvoiceLine()
 		return nil
+	case billingstandardinvoicedetailedline.EdgeTaxCode:
+		m.ClearTaxCode()
+		return nil
 	}
 	return fmt.Errorf("unknown BillingStandardInvoiceDetailedLine unique edge %s", name)
 }
@@ -31773,6 +32730,9 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ResetEdge(name string) erro
 		return nil
 	case billingstandardinvoicedetailedline.EdgeBillingInvoiceLine:
 		m.ResetBillingInvoiceLine()
+		return nil
+	case billingstandardinvoicedetailedline.EdgeTaxCode:
+		m.ResetTaxCode()
 		return nil
 	case billingstandardinvoicedetailedline.EdgeAmountDiscounts:
 		m.ResetAmountDiscounts()
@@ -32901,6 +33861,7 @@ type BillingWorkflowConfigMutation struct {
 	created_at                   *time.Time
 	updated_at                   *time.Time
 	deleted_at                   *time.Time
+	tax_behavior                 *productcatalog.TaxBehavior
 	collection_alignment         *billing.AlignmentKind
 	anchored_alignment_detail    **billing.AnchoredAlignmentDetail
 	line_collection_period       *datetime.ISODurationString
@@ -32917,6 +33878,8 @@ type BillingWorkflowConfigMutation struct {
 	clearedbilling_invoices      bool
 	billing_profile              *string
 	clearedbilling_profile       bool
+	tax_code                     *string
+	clearedtax_code              bool
 	done                         bool
 	oldValue                     func(context.Context) (*BillingWorkflowConfig, error)
 	predicates                   []predicate.BillingWorkflowConfig
@@ -33181,6 +34144,104 @@ func (m *BillingWorkflowConfigMutation) DeletedAtCleared() bool {
 func (m *BillingWorkflowConfigMutation) ResetDeletedAt() {
 	m.deleted_at = nil
 	delete(m.clearedFields, billingworkflowconfig.FieldDeletedAt)
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (m *BillingWorkflowConfigMutation) SetTaxCodeID(s string) {
+	m.tax_code = &s
+}
+
+// TaxCodeID returns the value of the "tax_code_id" field in the mutation.
+func (m *BillingWorkflowConfigMutation) TaxCodeID() (r string, exists bool) {
+	v := m.tax_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxCodeID returns the old "tax_code_id" field's value of the BillingWorkflowConfig entity.
+// If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingWorkflowConfigMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxCodeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxCodeID: %w", err)
+	}
+	return oldValue.TaxCodeID, nil
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (m *BillingWorkflowConfigMutation) ClearTaxCodeID() {
+	m.tax_code = nil
+	m.clearedFields[billingworkflowconfig.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
+func (m *BillingWorkflowConfigMutation) TaxCodeIDCleared() bool {
+	_, ok := m.clearedFields[billingworkflowconfig.FieldTaxCodeID]
+	return ok
+}
+
+// ResetTaxCodeID resets all changes to the "tax_code_id" field.
+func (m *BillingWorkflowConfigMutation) ResetTaxCodeID() {
+	m.tax_code = nil
+	delete(m.clearedFields, billingworkflowconfig.FieldTaxCodeID)
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (m *BillingWorkflowConfigMutation) SetTaxBehavior(pb productcatalog.TaxBehavior) {
+	m.tax_behavior = &pb
+}
+
+// TaxBehavior returns the value of the "tax_behavior" field in the mutation.
+func (m *BillingWorkflowConfigMutation) TaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
+	v := m.tax_behavior
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxBehavior returns the old "tax_behavior" field's value of the BillingWorkflowConfig entity.
+// If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingWorkflowConfigMutation) OldTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxBehavior is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxBehavior requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxBehavior: %w", err)
+	}
+	return oldValue.TaxBehavior, nil
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (m *BillingWorkflowConfigMutation) ClearTaxBehavior() {
+	m.tax_behavior = nil
+	m.clearedFields[billingworkflowconfig.FieldTaxBehavior] = struct{}{}
+}
+
+// TaxBehaviorCleared returns if the "tax_behavior" field was cleared in this mutation.
+func (m *BillingWorkflowConfigMutation) TaxBehaviorCleared() bool {
+	_, ok := m.clearedFields[billingworkflowconfig.FieldTaxBehavior]
+	return ok
+}
+
+// ResetTaxBehavior resets all changes to the "tax_behavior" field.
+func (m *BillingWorkflowConfigMutation) ResetTaxBehavior() {
+	m.tax_behavior = nil
+	delete(m.clearedFields, billingworkflowconfig.FieldTaxBehavior)
 }
 
 // SetCollectionAlignment sets the "collection_alignment" field.
@@ -33683,6 +34744,33 @@ func (m *BillingWorkflowConfigMutation) ResetBillingProfile() {
 	m.clearedbilling_profile = false
 }
 
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (m *BillingWorkflowConfigMutation) ClearTaxCode() {
+	m.clearedtax_code = true
+	m.clearedFields[billingworkflowconfig.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeCleared reports if the "tax_code" edge to the TaxCode entity was cleared.
+func (m *BillingWorkflowConfigMutation) TaxCodeCleared() bool {
+	return m.TaxCodeIDCleared() || m.clearedtax_code
+}
+
+// TaxCodeIDs returns the "tax_code" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TaxCodeID instead. It exists only for internal usage by the builders.
+func (m *BillingWorkflowConfigMutation) TaxCodeIDs() (ids []string) {
+	if id := m.tax_code; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTaxCode resets all changes to the "tax_code" edge.
+func (m *BillingWorkflowConfigMutation) ResetTaxCode() {
+	m.tax_code = nil
+	m.clearedtax_code = false
+}
+
 // Where appends a list predicates to the BillingWorkflowConfigMutation builder.
 func (m *BillingWorkflowConfigMutation) Where(ps ...predicate.BillingWorkflowConfig) {
 	m.predicates = append(m.predicates, ps...)
@@ -33717,7 +34805,7 @@ func (m *BillingWorkflowConfigMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingWorkflowConfigMutation) Fields() []string {
-	fields := make([]string, 0, 15)
+	fields := make([]string, 0, 17)
 	if m.namespace != nil {
 		fields = append(fields, billingworkflowconfig.FieldNamespace)
 	}
@@ -33729,6 +34817,12 @@ func (m *BillingWorkflowConfigMutation) Fields() []string {
 	}
 	if m.deleted_at != nil {
 		fields = append(fields, billingworkflowconfig.FieldDeletedAt)
+	}
+	if m.tax_code != nil {
+		fields = append(fields, billingworkflowconfig.FieldTaxCodeID)
+	}
+	if m.tax_behavior != nil {
+		fields = append(fields, billingworkflowconfig.FieldTaxBehavior)
 	}
 	if m.collection_alignment != nil {
 		fields = append(fields, billingworkflowconfig.FieldCollectionAlignment)
@@ -33779,6 +34873,10 @@ func (m *BillingWorkflowConfigMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case billingworkflowconfig.FieldDeletedAt:
 		return m.DeletedAt()
+	case billingworkflowconfig.FieldTaxCodeID:
+		return m.TaxCodeID()
+	case billingworkflowconfig.FieldTaxBehavior:
+		return m.TaxBehavior()
 	case billingworkflowconfig.FieldCollectionAlignment:
 		return m.CollectionAlignment()
 	case billingworkflowconfig.FieldAnchoredAlignmentDetail:
@@ -33818,6 +34916,10 @@ func (m *BillingWorkflowConfigMutation) OldField(ctx context.Context, name strin
 		return m.OldUpdatedAt(ctx)
 	case billingworkflowconfig.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case billingworkflowconfig.FieldTaxCodeID:
+		return m.OldTaxCodeID(ctx)
+	case billingworkflowconfig.FieldTaxBehavior:
+		return m.OldTaxBehavior(ctx)
 	case billingworkflowconfig.FieldCollectionAlignment:
 		return m.OldCollectionAlignment(ctx)
 	case billingworkflowconfig.FieldAnchoredAlignmentDetail:
@@ -33876,6 +34978,20 @@ func (m *BillingWorkflowConfigMutation) SetField(name string, value ent.Value) e
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
+		return nil
+	case billingworkflowconfig.FieldTaxCodeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxCodeID(v)
+		return nil
+	case billingworkflowconfig.FieldTaxBehavior:
+		v, ok := value.(productcatalog.TaxBehavior)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxBehavior(v)
 		return nil
 	case billingworkflowconfig.FieldCollectionAlignment:
 		v, ok := value.(billing.AlignmentKind)
@@ -33987,6 +35103,12 @@ func (m *BillingWorkflowConfigMutation) ClearedFields() []string {
 	if m.FieldCleared(billingworkflowconfig.FieldDeletedAt) {
 		fields = append(fields, billingworkflowconfig.FieldDeletedAt)
 	}
+	if m.FieldCleared(billingworkflowconfig.FieldTaxCodeID) {
+		fields = append(fields, billingworkflowconfig.FieldTaxCodeID)
+	}
+	if m.FieldCleared(billingworkflowconfig.FieldTaxBehavior) {
+		fields = append(fields, billingworkflowconfig.FieldTaxBehavior)
+	}
 	if m.FieldCleared(billingworkflowconfig.FieldAnchoredAlignmentDetail) {
 		fields = append(fields, billingworkflowconfig.FieldAnchoredAlignmentDetail)
 	}
@@ -34009,6 +35131,12 @@ func (m *BillingWorkflowConfigMutation) ClearField(name string) error {
 	switch name {
 	case billingworkflowconfig.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case billingworkflowconfig.FieldTaxCodeID:
+		m.ClearTaxCodeID()
+		return nil
+	case billingworkflowconfig.FieldTaxBehavior:
+		m.ClearTaxBehavior()
 		return nil
 	case billingworkflowconfig.FieldAnchoredAlignmentDetail:
 		m.ClearAnchoredAlignmentDetail()
@@ -34035,6 +35163,12 @@ func (m *BillingWorkflowConfigMutation) ResetField(name string) error {
 		return nil
 	case billingworkflowconfig.FieldDeletedAt:
 		m.ResetDeletedAt()
+		return nil
+	case billingworkflowconfig.FieldTaxCodeID:
+		m.ResetTaxCodeID()
+		return nil
+	case billingworkflowconfig.FieldTaxBehavior:
+		m.ResetTaxBehavior()
 		return nil
 	case billingworkflowconfig.FieldCollectionAlignment:
 		m.ResetCollectionAlignment()
@@ -34075,12 +35209,15 @@ func (m *BillingWorkflowConfigMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingWorkflowConfigMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.billing_invoices != nil {
 		edges = append(edges, billingworkflowconfig.EdgeBillingInvoices)
 	}
 	if m.billing_profile != nil {
 		edges = append(edges, billingworkflowconfig.EdgeBillingProfile)
+	}
+	if m.tax_code != nil {
+		edges = append(edges, billingworkflowconfig.EdgeTaxCode)
 	}
 	return edges
 }
@@ -34097,13 +35234,17 @@ func (m *BillingWorkflowConfigMutation) AddedIDs(name string) []ent.Value {
 		if id := m.billing_profile; id != nil {
 			return []ent.Value{*id}
 		}
+	case billingworkflowconfig.EdgeTaxCode:
+		if id := m.tax_code; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BillingWorkflowConfigMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	return edges
 }
 
@@ -34115,12 +35256,15 @@ func (m *BillingWorkflowConfigMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingWorkflowConfigMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedbilling_invoices {
 		edges = append(edges, billingworkflowconfig.EdgeBillingInvoices)
 	}
 	if m.clearedbilling_profile {
 		edges = append(edges, billingworkflowconfig.EdgeBillingProfile)
+	}
+	if m.clearedtax_code {
+		edges = append(edges, billingworkflowconfig.EdgeTaxCode)
 	}
 	return edges
 }
@@ -34133,6 +35277,8 @@ func (m *BillingWorkflowConfigMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_invoices
 	case billingworkflowconfig.EdgeBillingProfile:
 		return m.clearedbilling_profile
+	case billingworkflowconfig.EdgeTaxCode:
+		return m.clearedtax_code
 	}
 	return false
 }
@@ -34147,6 +35293,9 @@ func (m *BillingWorkflowConfigMutation) ClearEdge(name string) error {
 	case billingworkflowconfig.EdgeBillingProfile:
 		m.ClearBillingProfile()
 		return nil
+	case billingworkflowconfig.EdgeTaxCode:
+		m.ClearTaxCode()
+		return nil
 	}
 	return fmt.Errorf("unknown BillingWorkflowConfig unique edge %s", name)
 }
@@ -34160,6 +35309,9 @@ func (m *BillingWorkflowConfigMutation) ResetEdge(name string) error {
 		return nil
 	case billingworkflowconfig.EdgeBillingProfile:
 		m.ResetBillingProfile()
+		return nil
+	case billingworkflowconfig.EdgeTaxCode:
+		m.ResetTaxCode()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingWorkflowConfig edge %s", name)
@@ -76070,6 +77222,7 @@ type PlanRateCardMutation struct {
 	name                 *string
 	description          *string
 	key                  *string
+	tax_behavior         *productcatalog.TaxBehavior
 	_type                *productcatalog.RateCardType
 	feature_key          *string
 	entitlement_template **productcatalog.EntitlementTemplate
@@ -76082,6 +77235,8 @@ type PlanRateCardMutation struct {
 	clearedphase         bool
 	features             *string
 	clearedfeatures      bool
+	tax_code             *string
+	clearedtax_code      bool
 	done                 bool
 	oldValue             func(context.Context) (*PlanRateCard, error)
 	predicates           []predicate.PlanRateCard
@@ -76516,6 +77671,104 @@ func (m *PlanRateCardMutation) OldKey(ctx context.Context) (v string, err error)
 // ResetKey resets all changes to the "key" field.
 func (m *PlanRateCardMutation) ResetKey() {
 	m.key = nil
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (m *PlanRateCardMutation) SetTaxCodeID(s string) {
+	m.tax_code = &s
+}
+
+// TaxCodeID returns the value of the "tax_code_id" field in the mutation.
+func (m *PlanRateCardMutation) TaxCodeID() (r string, exists bool) {
+	v := m.tax_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxCodeID returns the old "tax_code_id" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxCodeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxCodeID: %w", err)
+	}
+	return oldValue.TaxCodeID, nil
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (m *PlanRateCardMutation) ClearTaxCodeID() {
+	m.tax_code = nil
+	m.clearedFields[planratecard.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
+func (m *PlanRateCardMutation) TaxCodeIDCleared() bool {
+	_, ok := m.clearedFields[planratecard.FieldTaxCodeID]
+	return ok
+}
+
+// ResetTaxCodeID resets all changes to the "tax_code_id" field.
+func (m *PlanRateCardMutation) ResetTaxCodeID() {
+	m.tax_code = nil
+	delete(m.clearedFields, planratecard.FieldTaxCodeID)
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (m *PlanRateCardMutation) SetTaxBehavior(pb productcatalog.TaxBehavior) {
+	m.tax_behavior = &pb
+}
+
+// TaxBehavior returns the value of the "tax_behavior" field in the mutation.
+func (m *PlanRateCardMutation) TaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
+	v := m.tax_behavior
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxBehavior returns the old "tax_behavior" field's value of the PlanRateCard entity.
+// If the PlanRateCard object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanRateCardMutation) OldTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxBehavior is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxBehavior requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxBehavior: %w", err)
+	}
+	return oldValue.TaxBehavior, nil
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (m *PlanRateCardMutation) ClearTaxBehavior() {
+	m.tax_behavior = nil
+	m.clearedFields[planratecard.FieldTaxBehavior] = struct{}{}
+}
+
+// TaxBehaviorCleared returns if the "tax_behavior" field was cleared in this mutation.
+func (m *PlanRateCardMutation) TaxBehaviorCleared() bool {
+	_, ok := m.clearedFields[planratecard.FieldTaxBehavior]
+	return ok
+}
+
+// ResetTaxBehavior resets all changes to the "tax_behavior" field.
+func (m *PlanRateCardMutation) ResetTaxBehavior() {
+	m.tax_behavior = nil
+	delete(m.clearedFields, planratecard.FieldTaxBehavior)
 }
 
 // SetType sets the "type" field.
@@ -77000,6 +78253,33 @@ func (m *PlanRateCardMutation) ResetFeatures() {
 	m.clearedfeatures = false
 }
 
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (m *PlanRateCardMutation) ClearTaxCode() {
+	m.clearedtax_code = true
+	m.clearedFields[planratecard.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeCleared reports if the "tax_code" edge to the TaxCode entity was cleared.
+func (m *PlanRateCardMutation) TaxCodeCleared() bool {
+	return m.TaxCodeIDCleared() || m.clearedtax_code
+}
+
+// TaxCodeIDs returns the "tax_code" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TaxCodeID instead. It exists only for internal usage by the builders.
+func (m *PlanRateCardMutation) TaxCodeIDs() (ids []string) {
+	if id := m.tax_code; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTaxCode resets all changes to the "tax_code" edge.
+func (m *PlanRateCardMutation) ResetTaxCode() {
+	m.tax_code = nil
+	m.clearedtax_code = false
+}
+
 // Where appends a list predicates to the PlanRateCardMutation builder.
 func (m *PlanRateCardMutation) Where(ps ...predicate.PlanRateCard) {
 	m.predicates = append(m.predicates, ps...)
@@ -77034,7 +78314,7 @@ func (m *PlanRateCardMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlanRateCardMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 19)
 	if m.namespace != nil {
 		fields = append(fields, planratecard.FieldNamespace)
 	}
@@ -77058,6 +78338,12 @@ func (m *PlanRateCardMutation) Fields() []string {
 	}
 	if m.key != nil {
 		fields = append(fields, planratecard.FieldKey)
+	}
+	if m.tax_code != nil {
+		fields = append(fields, planratecard.FieldTaxCodeID)
+	}
+	if m.tax_behavior != nil {
+		fields = append(fields, planratecard.FieldTaxBehavior)
 	}
 	if m._type != nil {
 		fields = append(fields, planratecard.FieldType)
@@ -77110,6 +78396,10 @@ func (m *PlanRateCardMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case planratecard.FieldKey:
 		return m.Key()
+	case planratecard.FieldTaxCodeID:
+		return m.TaxCodeID()
+	case planratecard.FieldTaxBehavior:
+		return m.TaxBehavior()
 	case planratecard.FieldType:
 		return m.GetType()
 	case planratecard.FieldFeatureKey:
@@ -77153,6 +78443,10 @@ func (m *PlanRateCardMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldDescription(ctx)
 	case planratecard.FieldKey:
 		return m.OldKey(ctx)
+	case planratecard.FieldTaxCodeID:
+		return m.OldTaxCodeID(ctx)
+	case planratecard.FieldTaxBehavior:
+		return m.OldTaxBehavior(ctx)
 	case planratecard.FieldType:
 		return m.OldType(ctx)
 	case planratecard.FieldFeatureKey:
@@ -77235,6 +78529,20 @@ func (m *PlanRateCardMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetKey(v)
+		return nil
+	case planratecard.FieldTaxCodeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxCodeID(v)
+		return nil
+	case planratecard.FieldTaxBehavior:
+		v, ok := value.(productcatalog.TaxBehavior)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxBehavior(v)
 		return nil
 	case planratecard.FieldType:
 		v, ok := value.(productcatalog.RateCardType)
@@ -77338,6 +78646,12 @@ func (m *PlanRateCardMutation) ClearedFields() []string {
 	if m.FieldCleared(planratecard.FieldDescription) {
 		fields = append(fields, planratecard.FieldDescription)
 	}
+	if m.FieldCleared(planratecard.FieldTaxCodeID) {
+		fields = append(fields, planratecard.FieldTaxCodeID)
+	}
+	if m.FieldCleared(planratecard.FieldTaxBehavior) {
+		fields = append(fields, planratecard.FieldTaxBehavior)
+	}
 	if m.FieldCleared(planratecard.FieldFeatureKey) {
 		fields = append(fields, planratecard.FieldFeatureKey)
 	}
@@ -77381,6 +78695,12 @@ func (m *PlanRateCardMutation) ClearField(name string) error {
 		return nil
 	case planratecard.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case planratecard.FieldTaxCodeID:
+		m.ClearTaxCodeID()
+		return nil
+	case planratecard.FieldTaxBehavior:
+		m.ClearTaxBehavior()
 		return nil
 	case planratecard.FieldFeatureKey:
 		m.ClearFeatureKey()
@@ -77435,6 +78755,12 @@ func (m *PlanRateCardMutation) ResetField(name string) error {
 	case planratecard.FieldKey:
 		m.ResetKey()
 		return nil
+	case planratecard.FieldTaxCodeID:
+		m.ResetTaxCodeID()
+		return nil
+	case planratecard.FieldTaxBehavior:
+		m.ResetTaxBehavior()
+		return nil
 	case planratecard.FieldType:
 		m.ResetType()
 		return nil
@@ -77468,12 +78794,15 @@ func (m *PlanRateCardMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *PlanRateCardMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.phase != nil {
 		edges = append(edges, planratecard.EdgePhase)
 	}
 	if m.features != nil {
 		edges = append(edges, planratecard.EdgeFeatures)
+	}
+	if m.tax_code != nil {
+		edges = append(edges, planratecard.EdgeTaxCode)
 	}
 	return edges
 }
@@ -77490,13 +78819,17 @@ func (m *PlanRateCardMutation) AddedIDs(name string) []ent.Value {
 		if id := m.features; id != nil {
 			return []ent.Value{*id}
 		}
+	case planratecard.EdgeTaxCode:
+		if id := m.tax_code; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *PlanRateCardMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	return edges
 }
 
@@ -77508,12 +78841,15 @@ func (m *PlanRateCardMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *PlanRateCardMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedphase {
 		edges = append(edges, planratecard.EdgePhase)
 	}
 	if m.clearedfeatures {
 		edges = append(edges, planratecard.EdgeFeatures)
+	}
+	if m.clearedtax_code {
+		edges = append(edges, planratecard.EdgeTaxCode)
 	}
 	return edges
 }
@@ -77526,6 +78862,8 @@ func (m *PlanRateCardMutation) EdgeCleared(name string) bool {
 		return m.clearedphase
 	case planratecard.EdgeFeatures:
 		return m.clearedfeatures
+	case planratecard.EdgeTaxCode:
+		return m.clearedtax_code
 	}
 	return false
 }
@@ -77540,6 +78878,9 @@ func (m *PlanRateCardMutation) ClearEdge(name string) error {
 	case planratecard.EdgeFeatures:
 		m.ClearFeatures()
 		return nil
+	case planratecard.EdgeTaxCode:
+		m.ClearTaxCode()
+		return nil
 	}
 	return fmt.Errorf("unknown PlanRateCard unique edge %s", name)
 }
@@ -77553,6 +78894,9 @@ func (m *PlanRateCardMutation) ResetEdge(name string) error {
 		return nil
 	case planratecard.EdgeFeatures:
 		m.ResetFeatures()
+		return nil
+	case planratecard.EdgeTaxCode:
+		m.ResetTaxCode()
 		return nil
 	}
 	return fmt.Errorf("unknown PlanRateCard edge %s", name)
@@ -82467,6 +83811,7 @@ type SubscriptionItemMutation struct {
 	updated_at                                   *time.Time
 	deleted_at                                   *time.Time
 	metadata                                     *map[string]string
+	tax_behavior                                 *productcatalog.TaxBehavior
 	annotations                                  *models.Annotations
 	active_from                                  *time.Time
 	active_to                                    *time.Time
@@ -82496,6 +83841,8 @@ type SubscriptionItemMutation struct {
 	charge_intents                               map[string]struct{}
 	removedcharge_intents                        map[string]struct{}
 	clearedcharge_intents                        bool
+	tax_code                                     *string
+	clearedtax_code                              bool
 	done                                         bool
 	oldValue                                     func(context.Context) (*SubscriptionItem, error)
 	predicates                                   []predicate.SubscriptionItem
@@ -82809,6 +84156,104 @@ func (m *SubscriptionItemMutation) MetadataCleared() bool {
 func (m *SubscriptionItemMutation) ResetMetadata() {
 	m.metadata = nil
 	delete(m.clearedFields, subscriptionitem.FieldMetadata)
+}
+
+// SetTaxCodeID sets the "tax_code_id" field.
+func (m *SubscriptionItemMutation) SetTaxCodeID(s string) {
+	m.tax_code = &s
+}
+
+// TaxCodeID returns the value of the "tax_code_id" field in the mutation.
+func (m *SubscriptionItemMutation) TaxCodeID() (r string, exists bool) {
+	v := m.tax_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxCodeID returns the old "tax_code_id" field's value of the SubscriptionItem entity.
+// If the SubscriptionItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionItemMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxCodeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxCodeID: %w", err)
+	}
+	return oldValue.TaxCodeID, nil
+}
+
+// ClearTaxCodeID clears the value of the "tax_code_id" field.
+func (m *SubscriptionItemMutation) ClearTaxCodeID() {
+	m.tax_code = nil
+	m.clearedFields[subscriptionitem.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
+func (m *SubscriptionItemMutation) TaxCodeIDCleared() bool {
+	_, ok := m.clearedFields[subscriptionitem.FieldTaxCodeID]
+	return ok
+}
+
+// ResetTaxCodeID resets all changes to the "tax_code_id" field.
+func (m *SubscriptionItemMutation) ResetTaxCodeID() {
+	m.tax_code = nil
+	delete(m.clearedFields, subscriptionitem.FieldTaxCodeID)
+}
+
+// SetTaxBehavior sets the "tax_behavior" field.
+func (m *SubscriptionItemMutation) SetTaxBehavior(pb productcatalog.TaxBehavior) {
+	m.tax_behavior = &pb
+}
+
+// TaxBehavior returns the value of the "tax_behavior" field in the mutation.
+func (m *SubscriptionItemMutation) TaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
+	v := m.tax_behavior
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxBehavior returns the old "tax_behavior" field's value of the SubscriptionItem entity.
+// If the SubscriptionItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionItemMutation) OldTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxBehavior is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxBehavior requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxBehavior: %w", err)
+	}
+	return oldValue.TaxBehavior, nil
+}
+
+// ClearTaxBehavior clears the value of the "tax_behavior" field.
+func (m *SubscriptionItemMutation) ClearTaxBehavior() {
+	m.tax_behavior = nil
+	m.clearedFields[subscriptionitem.FieldTaxBehavior] = struct{}{}
+}
+
+// TaxBehaviorCleared returns if the "tax_behavior" field was cleared in this mutation.
+func (m *SubscriptionItemMutation) TaxBehaviorCleared() bool {
+	_, ok := m.clearedFields[subscriptionitem.FieldTaxBehavior]
+	return ok
+}
+
+// ResetTaxBehavior resets all changes to the "tax_behavior" field.
+func (m *SubscriptionItemMutation) ResetTaxBehavior() {
+	m.tax_behavior = nil
+	delete(m.clearedFields, subscriptionitem.FieldTaxBehavior)
 }
 
 // SetAnnotations sets the "annotations" field.
@@ -83808,6 +85253,33 @@ func (m *SubscriptionItemMutation) ResetChargeIntents() {
 	m.removedcharge_intents = nil
 }
 
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (m *SubscriptionItemMutation) ClearTaxCode() {
+	m.clearedtax_code = true
+	m.clearedFields[subscriptionitem.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeCleared reports if the "tax_code" edge to the TaxCode entity was cleared.
+func (m *SubscriptionItemMutation) TaxCodeCleared() bool {
+	return m.TaxCodeIDCleared() || m.clearedtax_code
+}
+
+// TaxCodeIDs returns the "tax_code" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TaxCodeID instead. It exists only for internal usage by the builders.
+func (m *SubscriptionItemMutation) TaxCodeIDs() (ids []string) {
+	if id := m.tax_code; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTaxCode resets all changes to the "tax_code" edge.
+func (m *SubscriptionItemMutation) ResetTaxCode() {
+	m.tax_code = nil
+	m.clearedtax_code = false
+}
+
 // Where appends a list predicates to the SubscriptionItemMutation builder.
 func (m *SubscriptionItemMutation) Where(ps ...predicate.SubscriptionItem) {
 	m.predicates = append(m.predicates, ps...)
@@ -83842,7 +85314,7 @@ func (m *SubscriptionItemMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionItemMutation) Fields() []string {
-	fields := make([]string, 0, 22)
+	fields := make([]string, 0, 24)
 	if m.namespace != nil {
 		fields = append(fields, subscriptionitem.FieldNamespace)
 	}
@@ -83857,6 +85329,12 @@ func (m *SubscriptionItemMutation) Fields() []string {
 	}
 	if m.metadata != nil {
 		fields = append(fields, subscriptionitem.FieldMetadata)
+	}
+	if m.tax_code != nil {
+		fields = append(fields, subscriptionitem.FieldTaxCodeID)
+	}
+	if m.tax_behavior != nil {
+		fields = append(fields, subscriptionitem.FieldTaxBehavior)
 	}
 	if m.annotations != nil {
 		fields = append(fields, subscriptionitem.FieldAnnotations)
@@ -83927,6 +85405,10 @@ func (m *SubscriptionItemMutation) Field(name string) (ent.Value, bool) {
 		return m.DeletedAt()
 	case subscriptionitem.FieldMetadata:
 		return m.Metadata()
+	case subscriptionitem.FieldTaxCodeID:
+		return m.TaxCodeID()
+	case subscriptionitem.FieldTaxBehavior:
+		return m.TaxBehavior()
 	case subscriptionitem.FieldAnnotations:
 		return m.Annotations()
 	case subscriptionitem.FieldActiveFrom:
@@ -83980,6 +85462,10 @@ func (m *SubscriptionItemMutation) OldField(ctx context.Context, name string) (e
 		return m.OldDeletedAt(ctx)
 	case subscriptionitem.FieldMetadata:
 		return m.OldMetadata(ctx)
+	case subscriptionitem.FieldTaxCodeID:
+		return m.OldTaxCodeID(ctx)
+	case subscriptionitem.FieldTaxBehavior:
+		return m.OldTaxBehavior(ctx)
 	case subscriptionitem.FieldAnnotations:
 		return m.OldAnnotations(ctx)
 	case subscriptionitem.FieldActiveFrom:
@@ -84057,6 +85543,20 @@ func (m *SubscriptionItemMutation) SetField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMetadata(v)
+		return nil
+	case subscriptionitem.FieldTaxCodeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxCodeID(v)
+		return nil
+	case subscriptionitem.FieldTaxBehavior:
+		v, ok := value.(productcatalog.TaxBehavior)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxBehavior(v)
 		return nil
 	case subscriptionitem.FieldAnnotations:
 		v, ok := value.(models.Annotations)
@@ -84213,6 +85713,12 @@ func (m *SubscriptionItemMutation) ClearedFields() []string {
 	if m.FieldCleared(subscriptionitem.FieldMetadata) {
 		fields = append(fields, subscriptionitem.FieldMetadata)
 	}
+	if m.FieldCleared(subscriptionitem.FieldTaxCodeID) {
+		fields = append(fields, subscriptionitem.FieldTaxCodeID)
+	}
+	if m.FieldCleared(subscriptionitem.FieldTaxBehavior) {
+		fields = append(fields, subscriptionitem.FieldTaxBehavior)
+	}
 	if m.FieldCleared(subscriptionitem.FieldAnnotations) {
 		fields = append(fields, subscriptionitem.FieldAnnotations)
 	}
@@ -84271,6 +85777,12 @@ func (m *SubscriptionItemMutation) ClearField(name string) error {
 		return nil
 	case subscriptionitem.FieldMetadata:
 		m.ClearMetadata()
+		return nil
+	case subscriptionitem.FieldTaxCodeID:
+		m.ClearTaxCodeID()
+		return nil
+	case subscriptionitem.FieldTaxBehavior:
+		m.ClearTaxBehavior()
 		return nil
 	case subscriptionitem.FieldAnnotations:
 		m.ClearAnnotations()
@@ -84334,6 +85846,12 @@ func (m *SubscriptionItemMutation) ResetField(name string) error {
 	case subscriptionitem.FieldMetadata:
 		m.ResetMetadata()
 		return nil
+	case subscriptionitem.FieldTaxCodeID:
+		m.ResetTaxCodeID()
+		return nil
+	case subscriptionitem.FieldTaxBehavior:
+		m.ResetTaxBehavior()
+		return nil
 	case subscriptionitem.FieldAnnotations:
 		m.ResetAnnotations()
 		return nil
@@ -84391,7 +85909,7 @@ func (m *SubscriptionItemMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *SubscriptionItemMutation) AddedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.phase != nil {
 		edges = append(edges, subscriptionitem.EdgePhase)
 	}
@@ -84406,6 +85924,9 @@ func (m *SubscriptionItemMutation) AddedEdges() []string {
 	}
 	if m.charge_intents != nil {
 		edges = append(edges, subscriptionitem.EdgeChargeIntents)
+	}
+	if m.tax_code != nil {
+		edges = append(edges, subscriptionitem.EdgeTaxCode)
 	}
 	return edges
 }
@@ -84440,13 +85961,17 @@ func (m *SubscriptionItemMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case subscriptionitem.EdgeTaxCode:
+		if id := m.tax_code; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *SubscriptionItemMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.removedbilling_lines != nil {
 		edges = append(edges, subscriptionitem.EdgeBillingLines)
 	}
@@ -84487,7 +86012,7 @@ func (m *SubscriptionItemMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *SubscriptionItemMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 5)
+	edges := make([]string, 0, 6)
 	if m.clearedphase {
 		edges = append(edges, subscriptionitem.EdgePhase)
 	}
@@ -84502,6 +86027,9 @@ func (m *SubscriptionItemMutation) ClearedEdges() []string {
 	}
 	if m.clearedcharge_intents {
 		edges = append(edges, subscriptionitem.EdgeChargeIntents)
+	}
+	if m.clearedtax_code {
+		edges = append(edges, subscriptionitem.EdgeTaxCode)
 	}
 	return edges
 }
@@ -84520,6 +86048,8 @@ func (m *SubscriptionItemMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_split_line_groups
 	case subscriptionitem.EdgeChargeIntents:
 		return m.clearedcharge_intents
+	case subscriptionitem.EdgeTaxCode:
+		return m.clearedtax_code
 	}
 	return false
 }
@@ -84533,6 +86063,9 @@ func (m *SubscriptionItemMutation) ClearEdge(name string) error {
 		return nil
 	case subscriptionitem.EdgeEntitlement:
 		m.ClearEntitlement()
+		return nil
+	case subscriptionitem.EdgeTaxCode:
+		m.ClearTaxCode()
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionItem unique edge %s", name)
@@ -84556,6 +86089,9 @@ func (m *SubscriptionItemMutation) ResetEdge(name string) error {
 		return nil
 	case subscriptionitem.EdgeChargeIntents:
 		m.ResetChargeIntents()
+		return nil
+	case subscriptionitem.EdgeTaxCode:
+		m.ResetTaxCode()
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionItem edge %s", name)
@@ -85940,22 +87476,46 @@ func (m *SubscriptionPhaseMutation) ResetEdge(name string) error {
 // TaxCodeMutation represents an operation that mutates the TaxCode nodes in the graph.
 type TaxCodeMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *string
-	namespace     *string
-	metadata      *map[string]string
-	created_at    *time.Time
-	updated_at    *time.Time
-	deleted_at    *time.Time
-	name          *string
-	description   *string
-	key           *string
-	app_mappings  **taxcode.TaxCodeAppMappings
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*TaxCode, error)
-	predicates    []predicate.TaxCode
+	op                                             Op
+	typ                                            string
+	id                                             *string
+	namespace                                      *string
+	metadata                                       *map[string]string
+	created_at                                     *time.Time
+	updated_at                                     *time.Time
+	deleted_at                                     *time.Time
+	name                                           *string
+	description                                    *string
+	key                                            *string
+	app_mappings                                   **taxcode.TaxCodeAppMappings
+	clearedFields                                  map[string]struct{}
+	billing_workflow_configs                       map[string]struct{}
+	removedbilling_workflow_configs                map[string]struct{}
+	clearedbilling_workflow_configs                bool
+	billing_customer_overrides                     map[string]struct{}
+	removedbilling_customer_overrides              map[string]struct{}
+	clearedbilling_customer_overrides              bool
+	billing_invoice_lines                          map[string]struct{}
+	removedbilling_invoice_lines                   map[string]struct{}
+	clearedbilling_invoice_lines                   bool
+	billing_invoice_split_line_groups              map[string]struct{}
+	removedbilling_invoice_split_line_groups       map[string]struct{}
+	clearedbilling_invoice_split_line_groups       bool
+	billing_standard_invoice_detailed_lines        map[string]struct{}
+	removedbilling_standard_invoice_detailed_lines map[string]struct{}
+	clearedbilling_standard_invoice_detailed_lines bool
+	subscription_items                             map[string]struct{}
+	removedsubscription_items                      map[string]struct{}
+	clearedsubscription_items                      bool
+	plan_rate_cards                                map[string]struct{}
+	removedplan_rate_cards                         map[string]struct{}
+	clearedplan_rate_cards                         bool
+	addon_rate_cards                               map[string]struct{}
+	removedaddon_rate_cards                        map[string]struct{}
+	clearedaddon_rate_cards                        bool
+	done                                           bool
+	oldValue                                       func(context.Context) (*TaxCode, error)
+	predicates                                     []predicate.TaxCode
 }
 
 var _ ent.Mutation = (*TaxCodeMutation)(nil)
@@ -86438,6 +87998,438 @@ func (m *TaxCodeMutation) ResetAppMappings() {
 	delete(m.clearedFields, dbtaxcode.FieldAppMappings)
 }
 
+// AddBillingWorkflowConfigIDs adds the "billing_workflow_configs" edge to the BillingWorkflowConfig entity by ids.
+func (m *TaxCodeMutation) AddBillingWorkflowConfigIDs(ids ...string) {
+	if m.billing_workflow_configs == nil {
+		m.billing_workflow_configs = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.billing_workflow_configs[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBillingWorkflowConfigs clears the "billing_workflow_configs" edge to the BillingWorkflowConfig entity.
+func (m *TaxCodeMutation) ClearBillingWorkflowConfigs() {
+	m.clearedbilling_workflow_configs = true
+}
+
+// BillingWorkflowConfigsCleared reports if the "billing_workflow_configs" edge to the BillingWorkflowConfig entity was cleared.
+func (m *TaxCodeMutation) BillingWorkflowConfigsCleared() bool {
+	return m.clearedbilling_workflow_configs
+}
+
+// RemoveBillingWorkflowConfigIDs removes the "billing_workflow_configs" edge to the BillingWorkflowConfig entity by IDs.
+func (m *TaxCodeMutation) RemoveBillingWorkflowConfigIDs(ids ...string) {
+	if m.removedbilling_workflow_configs == nil {
+		m.removedbilling_workflow_configs = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.billing_workflow_configs, ids[i])
+		m.removedbilling_workflow_configs[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBillingWorkflowConfigs returns the removed IDs of the "billing_workflow_configs" edge to the BillingWorkflowConfig entity.
+func (m *TaxCodeMutation) RemovedBillingWorkflowConfigsIDs() (ids []string) {
+	for id := range m.removedbilling_workflow_configs {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BillingWorkflowConfigsIDs returns the "billing_workflow_configs" edge IDs in the mutation.
+func (m *TaxCodeMutation) BillingWorkflowConfigsIDs() (ids []string) {
+	for id := range m.billing_workflow_configs {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBillingWorkflowConfigs resets all changes to the "billing_workflow_configs" edge.
+func (m *TaxCodeMutation) ResetBillingWorkflowConfigs() {
+	m.billing_workflow_configs = nil
+	m.clearedbilling_workflow_configs = false
+	m.removedbilling_workflow_configs = nil
+}
+
+// AddBillingCustomerOverrideIDs adds the "billing_customer_overrides" edge to the BillingCustomerOverride entity by ids.
+func (m *TaxCodeMutation) AddBillingCustomerOverrideIDs(ids ...string) {
+	if m.billing_customer_overrides == nil {
+		m.billing_customer_overrides = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.billing_customer_overrides[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBillingCustomerOverrides clears the "billing_customer_overrides" edge to the BillingCustomerOverride entity.
+func (m *TaxCodeMutation) ClearBillingCustomerOverrides() {
+	m.clearedbilling_customer_overrides = true
+}
+
+// BillingCustomerOverridesCleared reports if the "billing_customer_overrides" edge to the BillingCustomerOverride entity was cleared.
+func (m *TaxCodeMutation) BillingCustomerOverridesCleared() bool {
+	return m.clearedbilling_customer_overrides
+}
+
+// RemoveBillingCustomerOverrideIDs removes the "billing_customer_overrides" edge to the BillingCustomerOverride entity by IDs.
+func (m *TaxCodeMutation) RemoveBillingCustomerOverrideIDs(ids ...string) {
+	if m.removedbilling_customer_overrides == nil {
+		m.removedbilling_customer_overrides = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.billing_customer_overrides, ids[i])
+		m.removedbilling_customer_overrides[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBillingCustomerOverrides returns the removed IDs of the "billing_customer_overrides" edge to the BillingCustomerOverride entity.
+func (m *TaxCodeMutation) RemovedBillingCustomerOverridesIDs() (ids []string) {
+	for id := range m.removedbilling_customer_overrides {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BillingCustomerOverridesIDs returns the "billing_customer_overrides" edge IDs in the mutation.
+func (m *TaxCodeMutation) BillingCustomerOverridesIDs() (ids []string) {
+	for id := range m.billing_customer_overrides {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBillingCustomerOverrides resets all changes to the "billing_customer_overrides" edge.
+func (m *TaxCodeMutation) ResetBillingCustomerOverrides() {
+	m.billing_customer_overrides = nil
+	m.clearedbilling_customer_overrides = false
+	m.removedbilling_customer_overrides = nil
+}
+
+// AddBillingInvoiceLineIDs adds the "billing_invoice_lines" edge to the BillingInvoiceLine entity by ids.
+func (m *TaxCodeMutation) AddBillingInvoiceLineIDs(ids ...string) {
+	if m.billing_invoice_lines == nil {
+		m.billing_invoice_lines = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.billing_invoice_lines[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBillingInvoiceLines clears the "billing_invoice_lines" edge to the BillingInvoiceLine entity.
+func (m *TaxCodeMutation) ClearBillingInvoiceLines() {
+	m.clearedbilling_invoice_lines = true
+}
+
+// BillingInvoiceLinesCleared reports if the "billing_invoice_lines" edge to the BillingInvoiceLine entity was cleared.
+func (m *TaxCodeMutation) BillingInvoiceLinesCleared() bool {
+	return m.clearedbilling_invoice_lines
+}
+
+// RemoveBillingInvoiceLineIDs removes the "billing_invoice_lines" edge to the BillingInvoiceLine entity by IDs.
+func (m *TaxCodeMutation) RemoveBillingInvoiceLineIDs(ids ...string) {
+	if m.removedbilling_invoice_lines == nil {
+		m.removedbilling_invoice_lines = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.billing_invoice_lines, ids[i])
+		m.removedbilling_invoice_lines[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBillingInvoiceLines returns the removed IDs of the "billing_invoice_lines" edge to the BillingInvoiceLine entity.
+func (m *TaxCodeMutation) RemovedBillingInvoiceLinesIDs() (ids []string) {
+	for id := range m.removedbilling_invoice_lines {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BillingInvoiceLinesIDs returns the "billing_invoice_lines" edge IDs in the mutation.
+func (m *TaxCodeMutation) BillingInvoiceLinesIDs() (ids []string) {
+	for id := range m.billing_invoice_lines {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBillingInvoiceLines resets all changes to the "billing_invoice_lines" edge.
+func (m *TaxCodeMutation) ResetBillingInvoiceLines() {
+	m.billing_invoice_lines = nil
+	m.clearedbilling_invoice_lines = false
+	m.removedbilling_invoice_lines = nil
+}
+
+// AddBillingInvoiceSplitLineGroupIDs adds the "billing_invoice_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity by ids.
+func (m *TaxCodeMutation) AddBillingInvoiceSplitLineGroupIDs(ids ...string) {
+	if m.billing_invoice_split_line_groups == nil {
+		m.billing_invoice_split_line_groups = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.billing_invoice_split_line_groups[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBillingInvoiceSplitLineGroups clears the "billing_invoice_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity.
+func (m *TaxCodeMutation) ClearBillingInvoiceSplitLineGroups() {
+	m.clearedbilling_invoice_split_line_groups = true
+}
+
+// BillingInvoiceSplitLineGroupsCleared reports if the "billing_invoice_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity was cleared.
+func (m *TaxCodeMutation) BillingInvoiceSplitLineGroupsCleared() bool {
+	return m.clearedbilling_invoice_split_line_groups
+}
+
+// RemoveBillingInvoiceSplitLineGroupIDs removes the "billing_invoice_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity by IDs.
+func (m *TaxCodeMutation) RemoveBillingInvoiceSplitLineGroupIDs(ids ...string) {
+	if m.removedbilling_invoice_split_line_groups == nil {
+		m.removedbilling_invoice_split_line_groups = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.billing_invoice_split_line_groups, ids[i])
+		m.removedbilling_invoice_split_line_groups[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBillingInvoiceSplitLineGroups returns the removed IDs of the "billing_invoice_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity.
+func (m *TaxCodeMutation) RemovedBillingInvoiceSplitLineGroupsIDs() (ids []string) {
+	for id := range m.removedbilling_invoice_split_line_groups {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BillingInvoiceSplitLineGroupsIDs returns the "billing_invoice_split_line_groups" edge IDs in the mutation.
+func (m *TaxCodeMutation) BillingInvoiceSplitLineGroupsIDs() (ids []string) {
+	for id := range m.billing_invoice_split_line_groups {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBillingInvoiceSplitLineGroups resets all changes to the "billing_invoice_split_line_groups" edge.
+func (m *TaxCodeMutation) ResetBillingInvoiceSplitLineGroups() {
+	m.billing_invoice_split_line_groups = nil
+	m.clearedbilling_invoice_split_line_groups = false
+	m.removedbilling_invoice_split_line_groups = nil
+}
+
+// AddBillingStandardInvoiceDetailedLineIDs adds the "billing_standard_invoice_detailed_lines" edge to the BillingStandardInvoiceDetailedLine entity by ids.
+func (m *TaxCodeMutation) AddBillingStandardInvoiceDetailedLineIDs(ids ...string) {
+	if m.billing_standard_invoice_detailed_lines == nil {
+		m.billing_standard_invoice_detailed_lines = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.billing_standard_invoice_detailed_lines[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBillingStandardInvoiceDetailedLines clears the "billing_standard_invoice_detailed_lines" edge to the BillingStandardInvoiceDetailedLine entity.
+func (m *TaxCodeMutation) ClearBillingStandardInvoiceDetailedLines() {
+	m.clearedbilling_standard_invoice_detailed_lines = true
+}
+
+// BillingStandardInvoiceDetailedLinesCleared reports if the "billing_standard_invoice_detailed_lines" edge to the BillingStandardInvoiceDetailedLine entity was cleared.
+func (m *TaxCodeMutation) BillingStandardInvoiceDetailedLinesCleared() bool {
+	return m.clearedbilling_standard_invoice_detailed_lines
+}
+
+// RemoveBillingStandardInvoiceDetailedLineIDs removes the "billing_standard_invoice_detailed_lines" edge to the BillingStandardInvoiceDetailedLine entity by IDs.
+func (m *TaxCodeMutation) RemoveBillingStandardInvoiceDetailedLineIDs(ids ...string) {
+	if m.removedbilling_standard_invoice_detailed_lines == nil {
+		m.removedbilling_standard_invoice_detailed_lines = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.billing_standard_invoice_detailed_lines, ids[i])
+		m.removedbilling_standard_invoice_detailed_lines[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBillingStandardInvoiceDetailedLines returns the removed IDs of the "billing_standard_invoice_detailed_lines" edge to the BillingStandardInvoiceDetailedLine entity.
+func (m *TaxCodeMutation) RemovedBillingStandardInvoiceDetailedLinesIDs() (ids []string) {
+	for id := range m.removedbilling_standard_invoice_detailed_lines {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BillingStandardInvoiceDetailedLinesIDs returns the "billing_standard_invoice_detailed_lines" edge IDs in the mutation.
+func (m *TaxCodeMutation) BillingStandardInvoiceDetailedLinesIDs() (ids []string) {
+	for id := range m.billing_standard_invoice_detailed_lines {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBillingStandardInvoiceDetailedLines resets all changes to the "billing_standard_invoice_detailed_lines" edge.
+func (m *TaxCodeMutation) ResetBillingStandardInvoiceDetailedLines() {
+	m.billing_standard_invoice_detailed_lines = nil
+	m.clearedbilling_standard_invoice_detailed_lines = false
+	m.removedbilling_standard_invoice_detailed_lines = nil
+}
+
+// AddSubscriptionItemIDs adds the "subscription_items" edge to the SubscriptionItem entity by ids.
+func (m *TaxCodeMutation) AddSubscriptionItemIDs(ids ...string) {
+	if m.subscription_items == nil {
+		m.subscription_items = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.subscription_items[ids[i]] = struct{}{}
+	}
+}
+
+// ClearSubscriptionItems clears the "subscription_items" edge to the SubscriptionItem entity.
+func (m *TaxCodeMutation) ClearSubscriptionItems() {
+	m.clearedsubscription_items = true
+}
+
+// SubscriptionItemsCleared reports if the "subscription_items" edge to the SubscriptionItem entity was cleared.
+func (m *TaxCodeMutation) SubscriptionItemsCleared() bool {
+	return m.clearedsubscription_items
+}
+
+// RemoveSubscriptionItemIDs removes the "subscription_items" edge to the SubscriptionItem entity by IDs.
+func (m *TaxCodeMutation) RemoveSubscriptionItemIDs(ids ...string) {
+	if m.removedsubscription_items == nil {
+		m.removedsubscription_items = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.subscription_items, ids[i])
+		m.removedsubscription_items[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedSubscriptionItems returns the removed IDs of the "subscription_items" edge to the SubscriptionItem entity.
+func (m *TaxCodeMutation) RemovedSubscriptionItemsIDs() (ids []string) {
+	for id := range m.removedsubscription_items {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// SubscriptionItemsIDs returns the "subscription_items" edge IDs in the mutation.
+func (m *TaxCodeMutation) SubscriptionItemsIDs() (ids []string) {
+	for id := range m.subscription_items {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetSubscriptionItems resets all changes to the "subscription_items" edge.
+func (m *TaxCodeMutation) ResetSubscriptionItems() {
+	m.subscription_items = nil
+	m.clearedsubscription_items = false
+	m.removedsubscription_items = nil
+}
+
+// AddPlanRateCardIDs adds the "plan_rate_cards" edge to the PlanRateCard entity by ids.
+func (m *TaxCodeMutation) AddPlanRateCardIDs(ids ...string) {
+	if m.plan_rate_cards == nil {
+		m.plan_rate_cards = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.plan_rate_cards[ids[i]] = struct{}{}
+	}
+}
+
+// ClearPlanRateCards clears the "plan_rate_cards" edge to the PlanRateCard entity.
+func (m *TaxCodeMutation) ClearPlanRateCards() {
+	m.clearedplan_rate_cards = true
+}
+
+// PlanRateCardsCleared reports if the "plan_rate_cards" edge to the PlanRateCard entity was cleared.
+func (m *TaxCodeMutation) PlanRateCardsCleared() bool {
+	return m.clearedplan_rate_cards
+}
+
+// RemovePlanRateCardIDs removes the "plan_rate_cards" edge to the PlanRateCard entity by IDs.
+func (m *TaxCodeMutation) RemovePlanRateCardIDs(ids ...string) {
+	if m.removedplan_rate_cards == nil {
+		m.removedplan_rate_cards = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.plan_rate_cards, ids[i])
+		m.removedplan_rate_cards[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedPlanRateCards returns the removed IDs of the "plan_rate_cards" edge to the PlanRateCard entity.
+func (m *TaxCodeMutation) RemovedPlanRateCardsIDs() (ids []string) {
+	for id := range m.removedplan_rate_cards {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// PlanRateCardsIDs returns the "plan_rate_cards" edge IDs in the mutation.
+func (m *TaxCodeMutation) PlanRateCardsIDs() (ids []string) {
+	for id := range m.plan_rate_cards {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetPlanRateCards resets all changes to the "plan_rate_cards" edge.
+func (m *TaxCodeMutation) ResetPlanRateCards() {
+	m.plan_rate_cards = nil
+	m.clearedplan_rate_cards = false
+	m.removedplan_rate_cards = nil
+}
+
+// AddAddonRateCardIDs adds the "addon_rate_cards" edge to the AddonRateCard entity by ids.
+func (m *TaxCodeMutation) AddAddonRateCardIDs(ids ...string) {
+	if m.addon_rate_cards == nil {
+		m.addon_rate_cards = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.addon_rate_cards[ids[i]] = struct{}{}
+	}
+}
+
+// ClearAddonRateCards clears the "addon_rate_cards" edge to the AddonRateCard entity.
+func (m *TaxCodeMutation) ClearAddonRateCards() {
+	m.clearedaddon_rate_cards = true
+}
+
+// AddonRateCardsCleared reports if the "addon_rate_cards" edge to the AddonRateCard entity was cleared.
+func (m *TaxCodeMutation) AddonRateCardsCleared() bool {
+	return m.clearedaddon_rate_cards
+}
+
+// RemoveAddonRateCardIDs removes the "addon_rate_cards" edge to the AddonRateCard entity by IDs.
+func (m *TaxCodeMutation) RemoveAddonRateCardIDs(ids ...string) {
+	if m.removedaddon_rate_cards == nil {
+		m.removedaddon_rate_cards = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.addon_rate_cards, ids[i])
+		m.removedaddon_rate_cards[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedAddonRateCards returns the removed IDs of the "addon_rate_cards" edge to the AddonRateCard entity.
+func (m *TaxCodeMutation) RemovedAddonRateCardsIDs() (ids []string) {
+	for id := range m.removedaddon_rate_cards {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// AddonRateCardsIDs returns the "addon_rate_cards" edge IDs in the mutation.
+func (m *TaxCodeMutation) AddonRateCardsIDs() (ids []string) {
+	for id := range m.addon_rate_cards {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetAddonRateCards resets all changes to the "addon_rate_cards" edge.
+func (m *TaxCodeMutation) ResetAddonRateCards() {
+	m.addon_rate_cards = nil
+	m.clearedaddon_rate_cards = false
+	m.removedaddon_rate_cards = nil
+}
+
 // Where appends a list predicates to the TaxCodeMutation builder.
 func (m *TaxCodeMutation) Where(ps ...predicate.TaxCode) {
 	m.predicates = append(m.predicates, ps...)
@@ -86734,49 +88726,267 @@ func (m *TaxCodeMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *TaxCodeMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 8)
+	if m.billing_workflow_configs != nil {
+		edges = append(edges, dbtaxcode.EdgeBillingWorkflowConfigs)
+	}
+	if m.billing_customer_overrides != nil {
+		edges = append(edges, dbtaxcode.EdgeBillingCustomerOverrides)
+	}
+	if m.billing_invoice_lines != nil {
+		edges = append(edges, dbtaxcode.EdgeBillingInvoiceLines)
+	}
+	if m.billing_invoice_split_line_groups != nil {
+		edges = append(edges, dbtaxcode.EdgeBillingInvoiceSplitLineGroups)
+	}
+	if m.billing_standard_invoice_detailed_lines != nil {
+		edges = append(edges, dbtaxcode.EdgeBillingStandardInvoiceDetailedLines)
+	}
+	if m.subscription_items != nil {
+		edges = append(edges, dbtaxcode.EdgeSubscriptionItems)
+	}
+	if m.plan_rate_cards != nil {
+		edges = append(edges, dbtaxcode.EdgePlanRateCards)
+	}
+	if m.addon_rate_cards != nil {
+		edges = append(edges, dbtaxcode.EdgeAddonRateCards)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *TaxCodeMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case dbtaxcode.EdgeBillingWorkflowConfigs:
+		ids := make([]ent.Value, 0, len(m.billing_workflow_configs))
+		for id := range m.billing_workflow_configs {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbtaxcode.EdgeBillingCustomerOverrides:
+		ids := make([]ent.Value, 0, len(m.billing_customer_overrides))
+		for id := range m.billing_customer_overrides {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbtaxcode.EdgeBillingInvoiceLines:
+		ids := make([]ent.Value, 0, len(m.billing_invoice_lines))
+		for id := range m.billing_invoice_lines {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbtaxcode.EdgeBillingInvoiceSplitLineGroups:
+		ids := make([]ent.Value, 0, len(m.billing_invoice_split_line_groups))
+		for id := range m.billing_invoice_split_line_groups {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbtaxcode.EdgeBillingStandardInvoiceDetailedLines:
+		ids := make([]ent.Value, 0, len(m.billing_standard_invoice_detailed_lines))
+		for id := range m.billing_standard_invoice_detailed_lines {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbtaxcode.EdgeSubscriptionItems:
+		ids := make([]ent.Value, 0, len(m.subscription_items))
+		for id := range m.subscription_items {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbtaxcode.EdgePlanRateCards:
+		ids := make([]ent.Value, 0, len(m.plan_rate_cards))
+		for id := range m.plan_rate_cards {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbtaxcode.EdgeAddonRateCards:
+		ids := make([]ent.Value, 0, len(m.addon_rate_cards))
+		for id := range m.addon_rate_cards {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *TaxCodeMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 8)
+	if m.removedbilling_workflow_configs != nil {
+		edges = append(edges, dbtaxcode.EdgeBillingWorkflowConfigs)
+	}
+	if m.removedbilling_customer_overrides != nil {
+		edges = append(edges, dbtaxcode.EdgeBillingCustomerOverrides)
+	}
+	if m.removedbilling_invoice_lines != nil {
+		edges = append(edges, dbtaxcode.EdgeBillingInvoiceLines)
+	}
+	if m.removedbilling_invoice_split_line_groups != nil {
+		edges = append(edges, dbtaxcode.EdgeBillingInvoiceSplitLineGroups)
+	}
+	if m.removedbilling_standard_invoice_detailed_lines != nil {
+		edges = append(edges, dbtaxcode.EdgeBillingStandardInvoiceDetailedLines)
+	}
+	if m.removedsubscription_items != nil {
+		edges = append(edges, dbtaxcode.EdgeSubscriptionItems)
+	}
+	if m.removedplan_rate_cards != nil {
+		edges = append(edges, dbtaxcode.EdgePlanRateCards)
+	}
+	if m.removedaddon_rate_cards != nil {
+		edges = append(edges, dbtaxcode.EdgeAddonRateCards)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *TaxCodeMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case dbtaxcode.EdgeBillingWorkflowConfigs:
+		ids := make([]ent.Value, 0, len(m.removedbilling_workflow_configs))
+		for id := range m.removedbilling_workflow_configs {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbtaxcode.EdgeBillingCustomerOverrides:
+		ids := make([]ent.Value, 0, len(m.removedbilling_customer_overrides))
+		for id := range m.removedbilling_customer_overrides {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbtaxcode.EdgeBillingInvoiceLines:
+		ids := make([]ent.Value, 0, len(m.removedbilling_invoice_lines))
+		for id := range m.removedbilling_invoice_lines {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbtaxcode.EdgeBillingInvoiceSplitLineGroups:
+		ids := make([]ent.Value, 0, len(m.removedbilling_invoice_split_line_groups))
+		for id := range m.removedbilling_invoice_split_line_groups {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbtaxcode.EdgeBillingStandardInvoiceDetailedLines:
+		ids := make([]ent.Value, 0, len(m.removedbilling_standard_invoice_detailed_lines))
+		for id := range m.removedbilling_standard_invoice_detailed_lines {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbtaxcode.EdgeSubscriptionItems:
+		ids := make([]ent.Value, 0, len(m.removedsubscription_items))
+		for id := range m.removedsubscription_items {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbtaxcode.EdgePlanRateCards:
+		ids := make([]ent.Value, 0, len(m.removedplan_rate_cards))
+		for id := range m.removedplan_rate_cards {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbtaxcode.EdgeAddonRateCards:
+		ids := make([]ent.Value, 0, len(m.removedaddon_rate_cards))
+		for id := range m.removedaddon_rate_cards {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *TaxCodeMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 8)
+	if m.clearedbilling_workflow_configs {
+		edges = append(edges, dbtaxcode.EdgeBillingWorkflowConfigs)
+	}
+	if m.clearedbilling_customer_overrides {
+		edges = append(edges, dbtaxcode.EdgeBillingCustomerOverrides)
+	}
+	if m.clearedbilling_invoice_lines {
+		edges = append(edges, dbtaxcode.EdgeBillingInvoiceLines)
+	}
+	if m.clearedbilling_invoice_split_line_groups {
+		edges = append(edges, dbtaxcode.EdgeBillingInvoiceSplitLineGroups)
+	}
+	if m.clearedbilling_standard_invoice_detailed_lines {
+		edges = append(edges, dbtaxcode.EdgeBillingStandardInvoiceDetailedLines)
+	}
+	if m.clearedsubscription_items {
+		edges = append(edges, dbtaxcode.EdgeSubscriptionItems)
+	}
+	if m.clearedplan_rate_cards {
+		edges = append(edges, dbtaxcode.EdgePlanRateCards)
+	}
+	if m.clearedaddon_rate_cards {
+		edges = append(edges, dbtaxcode.EdgeAddonRateCards)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *TaxCodeMutation) EdgeCleared(name string) bool {
+	switch name {
+	case dbtaxcode.EdgeBillingWorkflowConfigs:
+		return m.clearedbilling_workflow_configs
+	case dbtaxcode.EdgeBillingCustomerOverrides:
+		return m.clearedbilling_customer_overrides
+	case dbtaxcode.EdgeBillingInvoiceLines:
+		return m.clearedbilling_invoice_lines
+	case dbtaxcode.EdgeBillingInvoiceSplitLineGroups:
+		return m.clearedbilling_invoice_split_line_groups
+	case dbtaxcode.EdgeBillingStandardInvoiceDetailedLines:
+		return m.clearedbilling_standard_invoice_detailed_lines
+	case dbtaxcode.EdgeSubscriptionItems:
+		return m.clearedsubscription_items
+	case dbtaxcode.EdgePlanRateCards:
+		return m.clearedplan_rate_cards
+	case dbtaxcode.EdgeAddonRateCards:
+		return m.clearedaddon_rate_cards
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *TaxCodeMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown TaxCode unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *TaxCodeMutation) ResetEdge(name string) error {
+	switch name {
+	case dbtaxcode.EdgeBillingWorkflowConfigs:
+		m.ResetBillingWorkflowConfigs()
+		return nil
+	case dbtaxcode.EdgeBillingCustomerOverrides:
+		m.ResetBillingCustomerOverrides()
+		return nil
+	case dbtaxcode.EdgeBillingInvoiceLines:
+		m.ResetBillingInvoiceLines()
+		return nil
+	case dbtaxcode.EdgeBillingInvoiceSplitLineGroups:
+		m.ResetBillingInvoiceSplitLineGroups()
+		return nil
+	case dbtaxcode.EdgeBillingStandardInvoiceDetailedLines:
+		m.ResetBillingStandardInvoiceDetailedLines()
+		return nil
+	case dbtaxcode.EdgeSubscriptionItems:
+		m.ResetSubscriptionItems()
+		return nil
+	case dbtaxcode.EdgePlanRateCards:
+		m.ResetPlanRateCards()
+		return nil
+	case dbtaxcode.EdgeAddonRateCards:
+		m.ResetAddonRateCards()
+		return nil
+	}
 	return fmt.Errorf("unknown TaxCode edge %s", name)
 }
 

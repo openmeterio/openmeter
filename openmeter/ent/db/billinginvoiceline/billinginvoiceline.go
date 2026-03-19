@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 const (
@@ -37,6 +38,10 @@ const (
 	FieldCurrency = "currency"
 	// FieldTaxConfig holds the string denoting the tax_config field in the database.
 	FieldTaxConfig = "tax_config"
+	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
+	FieldTaxCodeID = "tax_code_id"
+	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
+	FieldTaxBehavior = "tax_behavior"
 	// FieldAmount holds the string denoting the amount field in the database.
 	FieldAmount = "amount"
 	// FieldTaxesTotal holds the string denoting the taxes_total field in the database.
@@ -129,6 +134,8 @@ const (
 	EdgeChargeFlatFeeInvoicedUsage = "charge_flat_fee_invoiced_usage"
 	// EdgeChargeCreditPurchaseInvoicedPayment holds the string denoting the charge_credit_purchase_invoiced_payment edge name in mutations.
 	EdgeChargeCreditPurchaseInvoicedPayment = "charge_credit_purchase_invoiced_payment"
+	// EdgeTaxCode holds the string denoting the tax_code edge name in mutations.
+	EdgeTaxCode = "tax_code"
 	// Table holds the table name of the billinginvoiceline in the database.
 	Table = "billing_invoice_lines"
 	// BillingInvoiceTable is the table that holds the billing_invoice relation/edge.
@@ -244,6 +251,13 @@ const (
 	ChargeCreditPurchaseInvoicedPaymentInverseTable = "charge_credit_purchase_invoiced_payments"
 	// ChargeCreditPurchaseInvoicedPaymentColumn is the table column denoting the charge_credit_purchase_invoiced_payment relation/edge.
 	ChargeCreditPurchaseInvoicedPaymentColumn = "line_id"
+	// TaxCodeTable is the table that holds the tax_code relation/edge.
+	TaxCodeTable = "billing_invoice_lines"
+	// TaxCodeInverseTable is the table name for the TaxCode entity.
+	// It exists in this package in order to avoid circular dependency with the "dbtaxcode" package.
+	TaxCodeInverseTable = "tax_codes"
+	// TaxCodeColumn is the table column denoting the tax_code relation/edge.
+	TaxCodeColumn = "tax_code_id"
 )
 
 // Columns holds all SQL columns for billinginvoiceline fields.
@@ -259,6 +273,8 @@ var Columns = []string{
 	FieldDescription,
 	FieldCurrency,
 	FieldTaxConfig,
+	FieldTaxCodeID,
+	FieldTaxBehavior,
 	FieldAmount,
 	FieldTaxesTotal,
 	FieldTaxesInclusiveTotal,
@@ -336,6 +352,16 @@ var (
 	}
 )
 
+// TaxBehaviorValidator is a validator for the "tax_behavior" field enum values. It is called by the builders before save.
+func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
+	switch tb {
+	case "inclusive", "exclusive":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoiceline: invalid enum value for tax_behavior field: %q", tb)
+	}
+}
+
 // ManagedByValidator is a validator for the "managed_by" field enum values. It is called by the builders before save.
 func ManagedByValidator(mb billing.InvoiceLineManagedBy) error {
 	switch mb {
@@ -407,6 +433,16 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByTaxCodeID orders the results by the tax_code_id field.
+func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
+}
+
+// ByTaxBehavior orders the results by the tax_behavior field.
+func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
 }
 
 // ByAmount orders the results by the amount field.
@@ -714,6 +750,13 @@ func ByChargeCreditPurchaseInvoicedPaymentField(field string, opts ...sql.OrderT
 		sqlgraph.OrderByNeighborTerms(s, newChargeCreditPurchaseInvoicedPaymentStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByTaxCodeField orders the results by tax_code field.
+func ByTaxCodeField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTaxCodeStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newBillingInvoiceStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -831,5 +874,12 @@ func newChargeCreditPurchaseInvoicedPaymentStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ChargeCreditPurchaseInvoicedPaymentInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, ChargeCreditPurchaseInvoicedPaymentTable, ChargeCreditPurchaseInvoicedPaymentColumn),
+	)
+}
+func newTaxCodeStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TaxCodeInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
 	)
 }

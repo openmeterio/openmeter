@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 )
 
 // SubscriptionItemQuery is the builder for querying SubscriptionItem entities.
@@ -34,6 +35,7 @@ type SubscriptionItemQuery struct {
 	withBillingLines           *BillingInvoiceLineQuery
 	withBillingSplitLineGroups *BillingInvoiceSplitLineGroupQuery
 	withChargeIntents          *ChargeQuery
+	withTaxCode                *TaxCodeQuery
 	modifiers                  []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -174,6 +176,28 @@ func (_q *SubscriptionItemQuery) QueryChargeIntents() *ChargeQuery {
 			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, selector),
 			sqlgraph.To(charge.Table, charge.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionitem.ChargeIntentsTable, subscriptionitem.ChargeIntentsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryTaxCode chains the current query on the "tax_code" edge.
+func (_q *SubscriptionItemQuery) QueryTaxCode() *TaxCodeQuery {
+	query := (&TaxCodeClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, selector),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, subscriptionitem.TaxCodeTable, subscriptionitem.TaxCodeColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -378,6 +402,7 @@ func (_q *SubscriptionItemQuery) Clone() *SubscriptionItemQuery {
 		withBillingLines:           _q.withBillingLines.Clone(),
 		withBillingSplitLineGroups: _q.withBillingSplitLineGroups.Clone(),
 		withChargeIntents:          _q.withChargeIntents.Clone(),
+		withTaxCode:                _q.withTaxCode.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -436,6 +461,17 @@ func (_q *SubscriptionItemQuery) WithChargeIntents(opts ...func(*ChargeQuery)) *
 		opt(query)
 	}
 	_q.withChargeIntents = query
+	return _q
+}
+
+// WithTaxCode tells the query-builder to eager-load the nodes that are connected to
+// the "tax_code" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *SubscriptionItemQuery) WithTaxCode(opts ...func(*TaxCodeQuery)) *SubscriptionItemQuery {
+	query := (&TaxCodeClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withTaxCode = query
 	return _q
 }
 
@@ -517,12 +553,13 @@ func (_q *SubscriptionItemQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	var (
 		nodes       = []*SubscriptionItem{}
 		_spec       = _q.querySpec()
-		loadedTypes = [5]bool{
+		loadedTypes = [6]bool{
 			_q.withPhase != nil,
 			_q.withEntitlement != nil,
 			_q.withBillingLines != nil,
 			_q.withBillingSplitLineGroups != nil,
 			_q.withChargeIntents != nil,
+			_q.withTaxCode != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -580,6 +617,12 @@ func (_q *SubscriptionItemQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 		if err := _q.loadChargeIntents(ctx, query, nodes,
 			func(n *SubscriptionItem) { n.Edges.ChargeIntents = []*Charge{} },
 			func(n *SubscriptionItem, e *Charge) { n.Edges.ChargeIntents = append(n.Edges.ChargeIntents, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withTaxCode; query != nil {
+		if err := _q.loadTaxCode(ctx, query, nodes, nil,
+			func(n *SubscriptionItem, e *TaxCode) { n.Edges.TaxCode = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -747,6 +790,38 @@ func (_q *SubscriptionItemQuery) loadChargeIntents(ctx context.Context, query *C
 	}
 	return nil
 }
+func (_q *SubscriptionItemQuery) loadTaxCode(ctx context.Context, query *TaxCodeQuery, nodes []*SubscriptionItem, init func(*SubscriptionItem), assign func(*SubscriptionItem, *TaxCode)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*SubscriptionItem)
+	for i := range nodes {
+		if nodes[i].TaxCodeID == nil {
+			continue
+		}
+		fk := *nodes[i].TaxCodeID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(dbtaxcode.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "tax_code_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (_q *SubscriptionItemQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
@@ -781,6 +856,9 @@ func (_q *SubscriptionItemQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withEntitlement != nil {
 			_spec.Node.AddColumnOnce(subscriptionitem.FieldEntitlementID)
+		}
+		if _q.withTaxCode != nil {
+			_spec.Node.AddColumnOnce(subscriptionitem.FieldTaxCodeID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {
