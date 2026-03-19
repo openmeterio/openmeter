@@ -475,6 +475,10 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 
 					return nil, fmt.Errorf("failed to expand Features for RateCards in PlanPhase: %w", err)
 				}
+
+				if err := s.resolveTaxCodes(ctx, params.Namespace, &phase.RateCards); err != nil {
+					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
+				}
 			}
 		}
 
