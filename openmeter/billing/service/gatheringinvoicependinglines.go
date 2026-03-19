@@ -694,9 +694,10 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 		Customer:  lo.FromPtr(profile.Customer),
 		Profile:   profile.MergedProfile,
 
-		Currency: in.Currency,
-		Number:   invoiceNumber,
-		Status:   billing.StandardInvoiceStatusDraftCreated,
+		Currency:    in.Currency,
+		Number:      invoiceNumber,
+		Status:      billing.StandardInvoiceStatusDraftCreated,
+		Description: in.Description,
 
 		Type: billing.InvoiceTypeStandard,
 	})

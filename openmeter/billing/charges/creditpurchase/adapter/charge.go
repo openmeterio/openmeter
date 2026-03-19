@@ -52,6 +52,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge creditpurchase.Charge
 		}
 
 		mapped.State.ExternalPaymentSettlement = charge.State.ExternalPaymentSettlement
+		mapped.State.InvoiceSettlement = charge.State.InvoiceSettlement
 
 		return mapped, nil
 	})
@@ -117,7 +118,7 @@ func (a *adapter) GetByMetas(ctx context.Context, input creditpurchase.GetByMeta
 			})...))
 
 		if input.Expands.Has(meta.ExpandRealizations) {
-			query = query.WithExternalPayment()
+			query = query.WithExternalPayment().WithInvoicedPayment()
 		}
 
 		entities, err := query.All(ctx)

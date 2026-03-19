@@ -6,6 +6,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -50,5 +51,49 @@ func (a *adapter) UpdateExternalPayment(ctx context.Context, in payment.External
 		}
 
 		return payment.MapExternalFromDB(entity), nil
+	})
+}
+
+func (a *adapter) CreateInvoicedPayment(ctx context.Context, chargeID meta.ChargeID, in payment.InvoicedCreate) (payment.Invoiced, error) {
+	if err := chargeID.Validate(); err != nil {
+		return payment.Invoiced{}, err
+	}
+
+	if err := in.Validate(); err != nil {
+		return payment.Invoiced{}, err
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (payment.Invoiced, error) {
+		create := tx.db.ChargeCreditPurchaseInvoicedPayment.Create().
+			SetChargeID(chargeID.ID)
+
+		create = payment.CreateInvoiced(create, in)
+
+		entity, err := create.Save(ctx)
+		if err != nil {
+			return payment.Invoiced{}, err
+		}
+
+		return payment.MapInvoicedFromDB(entity), nil
+	})
+}
+
+func (a *adapter) UpdateInvoicedPayment(ctx context.Context, in payment.Invoiced) (payment.Invoiced, error) {
+	if err := in.Validate(); err != nil {
+		return payment.Invoiced{}, err
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (payment.Invoiced, error) {
+		update := tx.db.ChargeCreditPurchaseInvoicedPayment.UpdateOneID(in.ID).
+			Where(chargecreditpurchaseinvoicedpayment.Namespace(in.Namespace))
+
+		updated := payment.UpdateInvoiced(update, in)
+
+		entity, err := updated.Save(ctx)
+		if err != nil {
+			return payment.Invoiced{}, err
+		}
+
+		return payment.MapInvoicedFromDB(entity), nil
 	})
 }

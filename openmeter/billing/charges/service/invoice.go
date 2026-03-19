@@ -42,17 +42,21 @@ func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billi
 
 	if invoice.Status == billing.StandardInvoiceStatusPaymentProcessingPending {
 		return s.handleChargeEvent(ctx, invoice, processorByType{
-			flatFee:        s.flatFeeService.PostPaymentAuthorized,
-			usageBased:     s.usageBasedService.PostPaymentAuthorized,
-			creditPurchase: unsupported[creditpurchase.Charge](fmt.Errorf("payment authorized for credit purchase settlements are not supported: %w", meta.ErrUnsupported)),
+			flatFee:    s.flatFeeService.PostPaymentAuthorized,
+			usageBased: s.usageBasedService.PostPaymentAuthorized,
+			// TODO[turip]: Consistency
+			creditPurchase: s.creditPurchaseService.HandleInvoicePaymentAuthorized,
 		})
 	}
 
 	if invoice.Status == billing.StandardInvoiceStatusPaid {
 		return s.handleChargeEvent(ctx, invoice, processorByType{
-			flatFee:        s.flatFeeService.PostPaymentSettled,
-			usageBased:     s.usageBasedService.PostPaymentSettled,
-			creditPurchase: unsupported[creditpurchase.Charge](fmt.Errorf("payment settled for credit purchase settlements are not supported: %w", meta.ErrUnsupported)),
+			flatFee:    s.flatFeeService.PostPaymentSettled,
+			usageBased: s.usageBasedService.PostPaymentSettled,
+			// TODO[turip]: Consistency
+			creditPurchase: func(ctx context.Context, charge creditpurchase.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
+				return s.creditPurchaseService.HandleInvoicePaymentSettled(ctx, charge, lineWithHeader)
+			},
 		})
 	}
 
@@ -78,6 +82,20 @@ func (s *service) handleChargeEvent(ctx context.Context, invoice billing.Standar
 			}
 
 			err = processorByType.flatFee(ctx, flatFee, lineWithCharge.StandardLineWithInvoiceHeader)
+			if err != nil {
+				return err
+			}
+		case meta.ChargeTypeCreditPurchase:
+			cp, err := lineWithCharge.Charge.AsCreditPurchaseCharge()
+			if err != nil {
+				return err
+			}
+
+			if processorByType.creditPurchase == nil {
+				return fmt.Errorf("credit purchase payment post processor is not supported")
+			}
+
+			err = processorByType.creditPurchase(ctx, cp, lineWithCharge.StandardLineWithInvoiceHeader)
 			if err != nil {
 				return err
 			}
