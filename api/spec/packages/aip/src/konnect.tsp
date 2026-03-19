@@ -103,9 +103,13 @@ interface CurrenciesCustomEndpoints
 interface CurrenciesCustomCostBasesEndpoints
   extends Currencies.CurrenciesCustomCostBasesOperations {}
 
+@route("/openmeter/features")
+@tag(Shared.FeaturesTag)
+interface FeaturesEndpoints extends Features.FeatureOperations {}
+
 @route("/openmeter/features/{featureId}/cost")
 @tag(Shared.FeaturesTag)
-interface FeaturesEndpoints extends Features.FeatureCostOperations {}
+interface FeatureCostEndpoints extends Features.FeatureCostOperations {}
 
 @route("/openmeter/llm-cost/prices")
 @tag(Shared.LLMCostTag)

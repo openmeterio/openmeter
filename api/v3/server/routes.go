@@ -185,6 +185,24 @@ func (s *Server) ListCostBases(w http.ResponseWriter, r *http.Request, currencyI
 	s.currenciesHandler.ListCostBases().With(currencieshandler.ListCostBasesArgs{CurrencyID: currencyId, Params: params}).ServeHTTP(w, r)
 }
 
+// Features
+
+func (s *Server) ListFeatures(w http.ResponseWriter, r *http.Request, params api.ListFeaturesParams) {
+	unimplemented.ListFeatures(w, r, params)
+}
+
+func (s *Server) CreateFeature(w http.ResponseWriter, r *http.Request) {
+	unimplemented.CreateFeature(w, r)
+}
+
+func (s *Server) GetFeature(w http.ResponseWriter, r *http.Request, featureId api.ULID) {
+	unimplemented.GetFeature(w, r, featureId)
+}
+
+func (s *Server) DeleteFeature(w http.ResponseWriter, r *http.Request, featureId api.ULID) {
+	unimplemented.DeleteFeature(w, r, featureId)
+}
+
 // Feature Cost
 
 func (s *Server) QueryFeatureCost(w http.ResponseWriter, r *http.Request, featureId api.ULID) {
