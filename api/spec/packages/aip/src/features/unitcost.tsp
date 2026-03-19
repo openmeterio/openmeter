@@ -24,7 +24,8 @@ model FeatureManualUnitCost {
 
 /**
  * LLM cost lookup configuration.
- * Maps meter group-by dimensions to LLM cost database fields.
+ * Each dimension (provider, model, token type) can be specified as either
+ * a static value or a meter group-by property name (mutually exclusive).
  */
 @friendlyName("FeatureLLMUnitCost")
 model FeatureLLMUnitCost {
@@ -82,8 +83,8 @@ model FeatureLLMUnitCost {
 
   /**
    * Resolved per-token pricing from the LLM cost database.
-   * Only populated in responses when the feature's meter group-by filters
-   * specify exact provider and model values.
+   * Populated in responses when the provider and model can be determined,
+   * either from static values or from meter group-by filters with exact matches.
    */
   @summary("Resolved pricing")
   @visibility(Lifecycle.Read)
