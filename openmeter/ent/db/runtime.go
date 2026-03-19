@@ -36,6 +36,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
@@ -992,6 +993,37 @@ func init() {
 	chargecreditpurchaseexternalpaymentDescID := chargecreditpurchaseexternalpaymentMixinFields0[9].Descriptor()
 	// chargecreditpurchaseexternalpayment.DefaultID holds the default value on creation for the id field.
 	chargecreditpurchaseexternalpayment.DefaultID = chargecreditpurchaseexternalpaymentDescID.Default.(func() string)
+	chargecreditpurchaseinvoicedpaymentMixin := schema.ChargeCreditPurchaseInvoicedPayment{}.Mixin()
+	chargecreditpurchaseinvoicedpaymentMixinFields0 := chargecreditpurchaseinvoicedpaymentMixin[0].Fields()
+	_ = chargecreditpurchaseinvoicedpaymentMixinFields0
+	chargecreditpurchaseinvoicedpaymentFields := schema.ChargeCreditPurchaseInvoicedPayment{}.Fields()
+	_ = chargecreditpurchaseinvoicedpaymentFields
+	// chargecreditpurchaseinvoicedpaymentDescAuthorizedTransactionGroupID is the schema descriptor for authorized_transaction_group_id field.
+	chargecreditpurchaseinvoicedpaymentDescAuthorizedTransactionGroupID := chargecreditpurchaseinvoicedpaymentMixinFields0[6].Descriptor()
+	// chargecreditpurchaseinvoicedpayment.AuthorizedTransactionGroupIDValidator is a validator for the "authorized_transaction_group_id" field. It is called by the builders before save.
+	chargecreditpurchaseinvoicedpayment.AuthorizedTransactionGroupIDValidator = chargecreditpurchaseinvoicedpaymentDescAuthorizedTransactionGroupID.Validators[0].(func(string) error)
+	// chargecreditpurchaseinvoicedpaymentDescSettledTransactionGroupID is the schema descriptor for settled_transaction_group_id field.
+	chargecreditpurchaseinvoicedpaymentDescSettledTransactionGroupID := chargecreditpurchaseinvoicedpaymentMixinFields0[8].Descriptor()
+	// chargecreditpurchaseinvoicedpayment.SettledTransactionGroupIDValidator is a validator for the "settled_transaction_group_id" field. It is called by the builders before save.
+	chargecreditpurchaseinvoicedpayment.SettledTransactionGroupIDValidator = chargecreditpurchaseinvoicedpaymentDescSettledTransactionGroupID.Validators[0].(func(string) error)
+	// chargecreditpurchaseinvoicedpaymentDescNamespace is the schema descriptor for namespace field.
+	chargecreditpurchaseinvoicedpaymentDescNamespace := chargecreditpurchaseinvoicedpaymentMixinFields0[10].Descriptor()
+	// chargecreditpurchaseinvoicedpayment.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	chargecreditpurchaseinvoicedpayment.NamespaceValidator = chargecreditpurchaseinvoicedpaymentDescNamespace.Validators[0].(func(string) error)
+	// chargecreditpurchaseinvoicedpaymentDescCreatedAt is the schema descriptor for created_at field.
+	chargecreditpurchaseinvoicedpaymentDescCreatedAt := chargecreditpurchaseinvoicedpaymentMixinFields0[12].Descriptor()
+	// chargecreditpurchaseinvoicedpayment.DefaultCreatedAt holds the default value on creation for the created_at field.
+	chargecreditpurchaseinvoicedpayment.DefaultCreatedAt = chargecreditpurchaseinvoicedpaymentDescCreatedAt.Default.(func() time.Time)
+	// chargecreditpurchaseinvoicedpaymentDescUpdatedAt is the schema descriptor for updated_at field.
+	chargecreditpurchaseinvoicedpaymentDescUpdatedAt := chargecreditpurchaseinvoicedpaymentMixinFields0[13].Descriptor()
+	// chargecreditpurchaseinvoicedpayment.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	chargecreditpurchaseinvoicedpayment.DefaultUpdatedAt = chargecreditpurchaseinvoicedpaymentDescUpdatedAt.Default.(func() time.Time)
+	// chargecreditpurchaseinvoicedpayment.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	chargecreditpurchaseinvoicedpayment.UpdateDefaultUpdatedAt = chargecreditpurchaseinvoicedpaymentDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chargecreditpurchaseinvoicedpaymentDescID is the schema descriptor for id field.
+	chargecreditpurchaseinvoicedpaymentDescID := chargecreditpurchaseinvoicedpaymentMixinFields0[11].Descriptor()
+	// chargecreditpurchaseinvoicedpayment.DefaultID holds the default value on creation for the id field.
+	chargecreditpurchaseinvoicedpayment.DefaultID = chargecreditpurchaseinvoicedpaymentDescID.Default.(func() string)
 	chargeflatfeeMixin := schema.ChargeFlatFee{}.Mixin()
 	chargeflatfeeMixinFields0 := chargeflatfeeMixin[0].Fields()
 	_ = chargeflatfeeMixinFields0
@@ -1086,29 +1118,29 @@ func init() {
 	chargeflatfeepaymentFields := schema.ChargeFlatFeePayment{}.Fields()
 	_ = chargeflatfeepaymentFields
 	// chargeflatfeepaymentDescAuthorizedTransactionGroupID is the schema descriptor for authorized_transaction_group_id field.
-	chargeflatfeepaymentDescAuthorizedTransactionGroupID := chargeflatfeepaymentMixinFields0[5].Descriptor()
+	chargeflatfeepaymentDescAuthorizedTransactionGroupID := chargeflatfeepaymentMixinFields0[6].Descriptor()
 	// chargeflatfeepayment.AuthorizedTransactionGroupIDValidator is a validator for the "authorized_transaction_group_id" field. It is called by the builders before save.
 	chargeflatfeepayment.AuthorizedTransactionGroupIDValidator = chargeflatfeepaymentDescAuthorizedTransactionGroupID.Validators[0].(func(string) error)
 	// chargeflatfeepaymentDescSettledTransactionGroupID is the schema descriptor for settled_transaction_group_id field.
-	chargeflatfeepaymentDescSettledTransactionGroupID := chargeflatfeepaymentMixinFields0[7].Descriptor()
+	chargeflatfeepaymentDescSettledTransactionGroupID := chargeflatfeepaymentMixinFields0[8].Descriptor()
 	// chargeflatfeepayment.SettledTransactionGroupIDValidator is a validator for the "settled_transaction_group_id" field. It is called by the builders before save.
 	chargeflatfeepayment.SettledTransactionGroupIDValidator = chargeflatfeepaymentDescSettledTransactionGroupID.Validators[0].(func(string) error)
 	// chargeflatfeepaymentDescNamespace is the schema descriptor for namespace field.
-	chargeflatfeepaymentDescNamespace := chargeflatfeepaymentMixinFields0[9].Descriptor()
+	chargeflatfeepaymentDescNamespace := chargeflatfeepaymentMixinFields0[10].Descriptor()
 	// chargeflatfeepayment.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	chargeflatfeepayment.NamespaceValidator = chargeflatfeepaymentDescNamespace.Validators[0].(func(string) error)
 	// chargeflatfeepaymentDescCreatedAt is the schema descriptor for created_at field.
-	chargeflatfeepaymentDescCreatedAt := chargeflatfeepaymentMixinFields0[11].Descriptor()
+	chargeflatfeepaymentDescCreatedAt := chargeflatfeepaymentMixinFields0[12].Descriptor()
 	// chargeflatfeepayment.DefaultCreatedAt holds the default value on creation for the created_at field.
 	chargeflatfeepayment.DefaultCreatedAt = chargeflatfeepaymentDescCreatedAt.Default.(func() time.Time)
 	// chargeflatfeepaymentDescUpdatedAt is the schema descriptor for updated_at field.
-	chargeflatfeepaymentDescUpdatedAt := chargeflatfeepaymentMixinFields0[12].Descriptor()
+	chargeflatfeepaymentDescUpdatedAt := chargeflatfeepaymentMixinFields0[13].Descriptor()
 	// chargeflatfeepayment.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	chargeflatfeepayment.DefaultUpdatedAt = chargeflatfeepaymentDescUpdatedAt.Default.(func() time.Time)
 	// chargeflatfeepayment.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	chargeflatfeepayment.UpdateDefaultUpdatedAt = chargeflatfeepaymentDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// chargeflatfeepaymentDescID is the schema descriptor for id field.
-	chargeflatfeepaymentDescID := chargeflatfeepaymentMixinFields0[10].Descriptor()
+	chargeflatfeepaymentDescID := chargeflatfeepaymentMixinFields0[11].Descriptor()
 	// chargeflatfeepayment.DefaultID holds the default value on creation for the id field.
 	chargeflatfeepayment.DefaultID = chargeflatfeepaymentDescID.Default.(func() string)
 	chargeusagebasedMixin := schema.ChargeUsageBased{}.Mixin()
@@ -1204,29 +1236,29 @@ func init() {
 	chargeusagebasedrunpaymentFields := schema.ChargeUsageBasedRunPayment{}.Fields()
 	_ = chargeusagebasedrunpaymentFields
 	// chargeusagebasedrunpaymentDescAuthorizedTransactionGroupID is the schema descriptor for authorized_transaction_group_id field.
-	chargeusagebasedrunpaymentDescAuthorizedTransactionGroupID := chargeusagebasedrunpaymentMixinFields0[5].Descriptor()
+	chargeusagebasedrunpaymentDescAuthorizedTransactionGroupID := chargeusagebasedrunpaymentMixinFields0[6].Descriptor()
 	// chargeusagebasedrunpayment.AuthorizedTransactionGroupIDValidator is a validator for the "authorized_transaction_group_id" field. It is called by the builders before save.
 	chargeusagebasedrunpayment.AuthorizedTransactionGroupIDValidator = chargeusagebasedrunpaymentDescAuthorizedTransactionGroupID.Validators[0].(func(string) error)
 	// chargeusagebasedrunpaymentDescSettledTransactionGroupID is the schema descriptor for settled_transaction_group_id field.
-	chargeusagebasedrunpaymentDescSettledTransactionGroupID := chargeusagebasedrunpaymentMixinFields0[7].Descriptor()
+	chargeusagebasedrunpaymentDescSettledTransactionGroupID := chargeusagebasedrunpaymentMixinFields0[8].Descriptor()
 	// chargeusagebasedrunpayment.SettledTransactionGroupIDValidator is a validator for the "settled_transaction_group_id" field. It is called by the builders before save.
 	chargeusagebasedrunpayment.SettledTransactionGroupIDValidator = chargeusagebasedrunpaymentDescSettledTransactionGroupID.Validators[0].(func(string) error)
 	// chargeusagebasedrunpaymentDescNamespace is the schema descriptor for namespace field.
-	chargeusagebasedrunpaymentDescNamespace := chargeusagebasedrunpaymentMixinFields0[9].Descriptor()
+	chargeusagebasedrunpaymentDescNamespace := chargeusagebasedrunpaymentMixinFields0[10].Descriptor()
 	// chargeusagebasedrunpayment.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	chargeusagebasedrunpayment.NamespaceValidator = chargeusagebasedrunpaymentDescNamespace.Validators[0].(func(string) error)
 	// chargeusagebasedrunpaymentDescCreatedAt is the schema descriptor for created_at field.
-	chargeusagebasedrunpaymentDescCreatedAt := chargeusagebasedrunpaymentMixinFields0[11].Descriptor()
+	chargeusagebasedrunpaymentDescCreatedAt := chargeusagebasedrunpaymentMixinFields0[12].Descriptor()
 	// chargeusagebasedrunpayment.DefaultCreatedAt holds the default value on creation for the created_at field.
 	chargeusagebasedrunpayment.DefaultCreatedAt = chargeusagebasedrunpaymentDescCreatedAt.Default.(func() time.Time)
 	// chargeusagebasedrunpaymentDescUpdatedAt is the schema descriptor for updated_at field.
-	chargeusagebasedrunpaymentDescUpdatedAt := chargeusagebasedrunpaymentMixinFields0[12].Descriptor()
+	chargeusagebasedrunpaymentDescUpdatedAt := chargeusagebasedrunpaymentMixinFields0[13].Descriptor()
 	// chargeusagebasedrunpayment.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	chargeusagebasedrunpayment.DefaultUpdatedAt = chargeusagebasedrunpaymentDescUpdatedAt.Default.(func() time.Time)
 	// chargeusagebasedrunpayment.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	chargeusagebasedrunpayment.UpdateDefaultUpdatedAt = chargeusagebasedrunpaymentDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// chargeusagebasedrunpaymentDescID is the schema descriptor for id field.
-	chargeusagebasedrunpaymentDescID := chargeusagebasedrunpaymentMixinFields0[10].Descriptor()
+	chargeusagebasedrunpaymentDescID := chargeusagebasedrunpaymentMixinFields0[11].Descriptor()
 	// chargeusagebasedrunpayment.DefaultID holds the default value on creation for the id field.
 	chargeusagebasedrunpayment.DefaultID = chargeusagebasedrunpaymentDescID.Default.(func() string)
 	chargeusagebasedrunsMixin := schema.ChargeUsageBasedRuns{}.Mixin()

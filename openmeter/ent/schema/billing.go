@@ -480,6 +480,9 @@ func (BillingInvoiceLine) Edges() []ent.Edge {
 			Unique(),
 		edge.To("charge_flat_fee_credit_allocations", ChargeFlatFeeCreditAllocations.Type),
 		edge.To("charge_flat_fee_invoiced_usage", ChargeFlatFeeInvoicedUsage.Type),
+		edge.To("charge_credit_purchase_invoiced_payment", ChargeCreditPurchaseInvoicedPayment.Type).
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

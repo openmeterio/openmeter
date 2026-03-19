@@ -25,6 +25,8 @@ type ChargeFlatFeePayment struct {
 	ID string `json:"id,omitempty"`
 	// LineID holds the value of the "line_id" field.
 	LineID string `json:"line_id,omitempty"`
+	// InvoiceID holds the value of the "invoice_id" field.
+	InvoiceID string `json:"invoice_id,omitempty"`
 	// ServicePeriodFrom holds the value of the "service_period_from" field.
 	ServicePeriodFrom time.Time `json:"service_period_from,omitempty"`
 	// ServicePeriodTo holds the value of the "service_period_to" field.
@@ -101,7 +103,7 @@ func (*ChargeFlatFeePayment) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case chargeflatfeepayment.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeflatfeepayment.FieldID, chargeflatfeepayment.FieldLineID, chargeflatfeepayment.FieldStatus, chargeflatfeepayment.FieldAuthorizedTransactionGroupID, chargeflatfeepayment.FieldSettledTransactionGroupID, chargeflatfeepayment.FieldNamespace, chargeflatfeepayment.FieldChargeID:
+		case chargeflatfeepayment.FieldID, chargeflatfeepayment.FieldLineID, chargeflatfeepayment.FieldInvoiceID, chargeflatfeepayment.FieldStatus, chargeflatfeepayment.FieldAuthorizedTransactionGroupID, chargeflatfeepayment.FieldSettledTransactionGroupID, chargeflatfeepayment.FieldNamespace, chargeflatfeepayment.FieldChargeID:
 			values[i] = new(sql.NullString)
 		case chargeflatfeepayment.FieldServicePeriodFrom, chargeflatfeepayment.FieldServicePeriodTo, chargeflatfeepayment.FieldAuthorizedAt, chargeflatfeepayment.FieldSettledAt, chargeflatfeepayment.FieldCreatedAt, chargeflatfeepayment.FieldUpdatedAt, chargeflatfeepayment.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -131,6 +133,12 @@ func (_m *ChargeFlatFeePayment) assignValues(columns []string, values []any) err
 				return fmt.Errorf("unexpected type %T for field line_id", values[i])
 			} else if value.Valid {
 				_m.LineID = value.String
+			}
+		case chargeflatfeepayment.FieldInvoiceID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoice_id", values[i])
+			} else if value.Valid {
+				_m.InvoiceID = value.String
 			}
 		case chargeflatfeepayment.FieldServicePeriodFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -271,6 +279,9 @@ func (_m *ChargeFlatFeePayment) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("line_id=")
 	builder.WriteString(_m.LineID)
+	builder.WriteString(", ")
+	builder.WriteString("invoice_id=")
+	builder.WriteString(_m.InvoiceID)
 	builder.WriteString(", ")
 	builder.WriteString("service_period_from=")
 	builder.WriteString(_m.ServicePeriodFrom.Format(time.ANSIC))

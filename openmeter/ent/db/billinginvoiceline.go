@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
@@ -154,9 +155,11 @@ type BillingInvoiceLineEdges struct {
 	ChargeFlatFeeCreditAllocations []*ChargeFlatFeeCreditAllocations `json:"charge_flat_fee_credit_allocations,omitempty"`
 	// ChargeFlatFeeInvoicedUsage holds the value of the charge_flat_fee_invoiced_usage edge.
 	ChargeFlatFeeInvoicedUsage []*ChargeFlatFeeInvoicedUsage `json:"charge_flat_fee_invoiced_usage,omitempty"`
+	// ChargeCreditPurchaseInvoicedPayment holds the value of the charge_credit_purchase_invoiced_payment edge.
+	ChargeCreditPurchaseInvoicedPayment *ChargeCreditPurchaseInvoicedPayment `json:"charge_credit_purchase_invoiced_payment,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [16]bool
+	loadedTypes [17]bool
 }
 
 // BillingInvoiceOrErr returns the BillingInvoice value or an error if the edge
@@ -321,6 +324,17 @@ func (e BillingInvoiceLineEdges) ChargeFlatFeeInvoicedUsageOrErr() ([]*ChargeFla
 		return e.ChargeFlatFeeInvoicedUsage, nil
 	}
 	return nil, &NotLoadedError{edge: "charge_flat_fee_invoiced_usage"}
+}
+
+// ChargeCreditPurchaseInvoicedPaymentOrErr returns the ChargeCreditPurchaseInvoicedPayment value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceLineEdges) ChargeCreditPurchaseInvoicedPaymentOrErr() (*ChargeCreditPurchaseInvoicedPayment, error) {
+	if e.ChargeCreditPurchaseInvoicedPayment != nil {
+		return e.ChargeCreditPurchaseInvoicedPayment, nil
+	} else if e.loadedTypes[16] {
+		return nil, &NotFoundError{label: chargecreditpurchaseinvoicedpayment.Label}
+	}
+	return nil, &NotLoadedError{edge: "charge_credit_purchase_invoiced_payment"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -726,6 +740,11 @@ func (_m *BillingInvoiceLine) QueryChargeFlatFeeCreditAllocations() *ChargeFlatF
 // QueryChargeFlatFeeInvoicedUsage queries the "charge_flat_fee_invoiced_usage" edge of the BillingInvoiceLine entity.
 func (_m *BillingInvoiceLine) QueryChargeFlatFeeInvoicedUsage() *ChargeFlatFeeInvoicedUsageQuery {
 	return NewBillingInvoiceLineClient(_m.config).QueryChargeFlatFeeInvoicedUsage(_m)
+}
+
+// QueryChargeCreditPurchaseInvoicedPayment queries the "charge_credit_purchase_invoiced_payment" edge of the BillingInvoiceLine entity.
+func (_m *BillingInvoiceLine) QueryChargeCreditPurchaseInvoicedPayment() *ChargeCreditPurchaseInvoicedPaymentQuery {
+	return NewBillingInvoiceLineClient(_m.config).QueryChargeCreditPurchaseInvoicedPayment(_m)
 }
 
 // Update returns a builder for updating this BillingInvoiceLine.

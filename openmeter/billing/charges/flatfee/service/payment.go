@@ -29,6 +29,7 @@ func (s *service) PostPaymentAuthorized(ctx context.Context, charge flatfee.Char
 		newPaymentSettlement := payment.InvoicedCreate{
 			Namespace: charge.Namespace,
 			LineID:    lineWithHeader.Line.ID,
+			InvoiceID: lineWithHeader.Invoice.ID,
 			Base: payment.Base{
 				ServicePeriod: charge.Intent.ServicePeriod,
 				Amount:        lineWithHeader.Line.Totals.Total,

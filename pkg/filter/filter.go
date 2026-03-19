@@ -27,6 +27,7 @@ var (
 	_ Filter = (*FilterInteger)(nil)
 	_ Filter = (*FilterFloat)(nil)
 	_ Filter = (*FilterTime)(nil)
+	_ Filter = (*FilterTimeUnix)(nil)
 	_ Filter = (*FilterBoolean)(nil)
 )
 

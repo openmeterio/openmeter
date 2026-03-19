@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
@@ -798,6 +799,25 @@ func (_u *BillingInvoiceLineUpdate) AddChargeFlatFeeInvoicedUsage(v ...*ChargeFl
 	return _u.AddChargeFlatFeeInvoicedUsageIDs(ids...)
 }
 
+// SetChargeCreditPurchaseInvoicedPaymentID sets the "charge_credit_purchase_invoiced_payment" edge to the ChargeCreditPurchaseInvoicedPayment entity by ID.
+func (_u *BillingInvoiceLineUpdate) SetChargeCreditPurchaseInvoicedPaymentID(id string) *BillingInvoiceLineUpdate {
+	_u.mutation.SetChargeCreditPurchaseInvoicedPaymentID(id)
+	return _u
+}
+
+// SetNillableChargeCreditPurchaseInvoicedPaymentID sets the "charge_credit_purchase_invoiced_payment" edge to the ChargeCreditPurchaseInvoicedPayment entity by ID if the given value is not nil.
+func (_u *BillingInvoiceLineUpdate) SetNillableChargeCreditPurchaseInvoicedPaymentID(id *string) *BillingInvoiceLineUpdate {
+	if id != nil {
+		_u = _u.SetChargeCreditPurchaseInvoicedPaymentID(*id)
+	}
+	return _u
+}
+
+// SetChargeCreditPurchaseInvoicedPayment sets the "charge_credit_purchase_invoiced_payment" edge to the ChargeCreditPurchaseInvoicedPayment entity.
+func (_u *BillingInvoiceLineUpdate) SetChargeCreditPurchaseInvoicedPayment(v *ChargeCreditPurchaseInvoicedPayment) *BillingInvoiceLineUpdate {
+	return _u.SetChargeCreditPurchaseInvoicedPaymentID(v.ID)
+}
+
 // Mutation returns the BillingInvoiceLineMutation object of the builder.
 func (_u *BillingInvoiceLineUpdate) Mutation() *BillingInvoiceLineMutation {
 	return _u.mutation
@@ -987,6 +1007,12 @@ func (_u *BillingInvoiceLineUpdate) RemoveChargeFlatFeeInvoicedUsage(v ...*Charg
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveChargeFlatFeeInvoicedUsageIDs(ids...)
+}
+
+// ClearChargeCreditPurchaseInvoicedPayment clears the "charge_credit_purchase_invoiced_payment" edge to the ChargeCreditPurchaseInvoicedPayment entity.
+func (_u *BillingInvoiceLineUpdate) ClearChargeCreditPurchaseInvoicedPayment() *BillingInvoiceLineUpdate {
+	_u.mutation.ClearChargeCreditPurchaseInvoicedPayment()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -1749,6 +1775,35 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeinvoicedusage.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeCreditPurchaseInvoicedPaymentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   billinginvoiceline.ChargeCreditPurchaseInvoicedPaymentTable,
+			Columns: []string{billinginvoiceline.ChargeCreditPurchaseInvoicedPaymentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchaseinvoicedpayment.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeCreditPurchaseInvoicedPaymentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   billinginvoiceline.ChargeCreditPurchaseInvoicedPaymentTable,
+			Columns: []string{billinginvoiceline.ChargeCreditPurchaseInvoicedPaymentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchaseinvoicedpayment.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -2528,6 +2583,25 @@ func (_u *BillingInvoiceLineUpdateOne) AddChargeFlatFeeInvoicedUsage(v ...*Charg
 	return _u.AddChargeFlatFeeInvoicedUsageIDs(ids...)
 }
 
+// SetChargeCreditPurchaseInvoicedPaymentID sets the "charge_credit_purchase_invoiced_payment" edge to the ChargeCreditPurchaseInvoicedPayment entity by ID.
+func (_u *BillingInvoiceLineUpdateOne) SetChargeCreditPurchaseInvoicedPaymentID(id string) *BillingInvoiceLineUpdateOne {
+	_u.mutation.SetChargeCreditPurchaseInvoicedPaymentID(id)
+	return _u
+}
+
+// SetNillableChargeCreditPurchaseInvoicedPaymentID sets the "charge_credit_purchase_invoiced_payment" edge to the ChargeCreditPurchaseInvoicedPayment entity by ID if the given value is not nil.
+func (_u *BillingInvoiceLineUpdateOne) SetNillableChargeCreditPurchaseInvoicedPaymentID(id *string) *BillingInvoiceLineUpdateOne {
+	if id != nil {
+		_u = _u.SetChargeCreditPurchaseInvoicedPaymentID(*id)
+	}
+	return _u
+}
+
+// SetChargeCreditPurchaseInvoicedPayment sets the "charge_credit_purchase_invoiced_payment" edge to the ChargeCreditPurchaseInvoicedPayment entity.
+func (_u *BillingInvoiceLineUpdateOne) SetChargeCreditPurchaseInvoicedPayment(v *ChargeCreditPurchaseInvoicedPayment) *BillingInvoiceLineUpdateOne {
+	return _u.SetChargeCreditPurchaseInvoicedPaymentID(v.ID)
+}
+
 // Mutation returns the BillingInvoiceLineMutation object of the builder.
 func (_u *BillingInvoiceLineUpdateOne) Mutation() *BillingInvoiceLineMutation {
 	return _u.mutation
@@ -2717,6 +2791,12 @@ func (_u *BillingInvoiceLineUpdateOne) RemoveChargeFlatFeeInvoicedUsage(v ...*Ch
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveChargeFlatFeeInvoicedUsageIDs(ids...)
+}
+
+// ClearChargeCreditPurchaseInvoicedPayment clears the "charge_credit_purchase_invoiced_payment" edge to the ChargeCreditPurchaseInvoicedPayment entity.
+func (_u *BillingInvoiceLineUpdateOne) ClearChargeCreditPurchaseInvoicedPayment() *BillingInvoiceLineUpdateOne {
+	_u.mutation.ClearChargeCreditPurchaseInvoicedPayment()
+	return _u
 }
 
 // Where appends a list predicates to the BillingInvoiceLineUpdate builder.
@@ -3509,6 +3589,35 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeinvoicedusage.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeCreditPurchaseInvoicedPaymentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   billinginvoiceline.ChargeCreditPurchaseInvoicedPaymentTable,
+			Columns: []string{billinginvoiceline.ChargeCreditPurchaseInvoicedPaymentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchaseinvoicedpayment.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeCreditPurchaseInvoicedPaymentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   billinginvoiceline.ChargeCreditPurchaseInvoicedPaymentTable,
+			Columns: []string{billinginvoiceline.ChargeCreditPurchaseInvoicedPaymentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchaseinvoicedpayment.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
