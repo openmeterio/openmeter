@@ -2,7 +2,10 @@ package adapter
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+
+	"entgo.io/ent/dialect/sql"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	taxcodedb "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
@@ -112,6 +115,43 @@ func (a *adapter) GetTaxCode(ctx context.Context, input taxcode.GetTaxCodeInput)
 			}
 
 			return taxcode.TaxCode{}, fmt.Errorf("failed to get tax code: %w", err)
+		}
+
+		return mapTaxCodeFromEntity(entity)
+	})
+}
+
+func (a *adapter) GetTaxCodeByAppMapping(ctx context.Context, input taxcode.GetTaxCodeByAppMappingInput) (taxcode.TaxCode, error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.TaxCode, error) {
+		if err := input.Validate(); err != nil {
+			return taxcode.TaxCode{}, err
+		}
+
+		// Build a JSONB containment query: app_mappings @> '[{"app_type": "...", "tax_code": "..."}]'
+		pattern, err := json.Marshal([]taxcode.TaxCodeAppMapping{
+			{AppType: input.AppType, TaxCode: input.TaxCode},
+		})
+		if err != nil {
+			return taxcode.TaxCode{}, fmt.Errorf("failed to marshal app mapping pattern: %w", err)
+		}
+
+		entity, err := a.db.TaxCode.Query().
+			Where(taxcodedb.Namespace(input.Namespace)).
+			Where(taxcodedb.DeletedAtIsNil()).
+			Where(func(s *sql.Selector) {
+				s.Where(sql.P(func(b *sql.Builder) {
+					b.Ident(taxcodedb.FieldAppMappings).WriteString(" @> ").Arg(string(pattern))
+				}))
+			}).
+			Only(ctx)
+		if err != nil {
+			if db.IsNotFound(err) {
+				return taxcode.TaxCode{}, taxcode.NewTaxCodeNotFoundError(
+					fmt.Sprintf("app_mapping[%s:%s]", input.AppType, input.TaxCode),
+				)
+			}
+
+			return taxcode.TaxCode{}, fmt.Errorf("failed to get tax code by app mapping: %w", err)
 		}
 
 		return mapTaxCodeFromEntity(entity)

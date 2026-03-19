@@ -45,6 +45,12 @@ func (s *service) GetTaxCode(ctx context.Context, input taxcode.GetTaxCodeInput)
 	})
 }
 
+func (s *service) GetTaxCodeByAppMapping(ctx context.Context, input taxcode.GetTaxCodeByAppMappingInput) (taxcode.TaxCode, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (taxcode.TaxCode, error) {
+		return s.adapter.GetTaxCodeByAppMapping(ctx, input)
+	})
+}
+
 func (s *service) DeleteTaxCode(ctx context.Context, input taxcode.DeleteTaxCodeInput) error {
 	return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {
 		return s.adapter.DeleteTaxCode(ctx, input)
