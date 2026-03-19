@@ -1,4 +1,7 @@
 import "../shared/index.tsp";
+import "@typespec/json-schema";
+
+using TypeSpec.JsonSchema;
 
 namespace Meters;
 

@@ -1,5 +1,7 @@
 import "../common/properties.tsp";
 
+using TypeSpec.OpenAPI;
+
 namespace Shared;
 
 // See: https://github.com/ulid/spec/issues/94
@@ -146,4 +148,22 @@ model RecurringPeriod {
   @summary("Interval in ISO 8601 duration format")
   @example("P1M")
   interval: ISO8601Duration;
+}
+
+/**
+ * Numeric representation of a percentage.
+ * For example, 50% is represented as 50.
+ */
+@example(50)
+@friendlyName("Percentage")
+scalar Percentage extends float;
+
+// TODO: Figure out if we need this or not.
+/**
+ * Set of key-value pairs managed by the system. Cannot be modified by user.
+ */
+@example(#{ externalId: "019142cc-a016-796a-8113-1a942fecd26d" })
+@friendlyName("Annotations")
+model Annotations {
+  ...Record<unknown>;
 }

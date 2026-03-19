@@ -337,6 +337,129 @@ func (e BillingEntitlementType) Valid() bool {
 	}
 }
 
+// Defines values for BillingPriceDynamicType.
+const (
+	BillingPriceDynamicTypeDynamic BillingPriceDynamicType = "dynamic"
+)
+
+// Valid indicates whether the value is a known member of the BillingPriceDynamicType enum.
+func (e BillingPriceDynamicType) Valid() bool {
+	switch e {
+	case BillingPriceDynamicTypeDynamic:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingPriceFlatType.
+const (
+	BillingPriceFlatTypeFlat BillingPriceFlatType = "flat"
+)
+
+// Valid indicates whether the value is a known member of the BillingPriceFlatType enum.
+func (e BillingPriceFlatType) Valid() bool {
+	switch e {
+	case BillingPriceFlatTypeFlat:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingPriceFreeType.
+const (
+	BillingPriceFreeTypeFree BillingPriceFreeType = "free"
+)
+
+// Valid indicates whether the value is a known member of the BillingPriceFreeType enum.
+func (e BillingPriceFreeType) Valid() bool {
+	switch e {
+	case BillingPriceFreeTypeFree:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingPriceGraduatedType.
+const (
+	BillingPriceGraduatedTypeGraduated BillingPriceGraduatedType = "graduated"
+)
+
+// Valid indicates whether the value is a known member of the BillingPriceGraduatedType enum.
+func (e BillingPriceGraduatedType) Valid() bool {
+	switch e {
+	case BillingPriceGraduatedTypeGraduated:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingPricePackageType.
+const (
+	BillingPricePackageTypePackage BillingPricePackageType = "package"
+)
+
+// Valid indicates whether the value is a known member of the BillingPricePackageType enum.
+func (e BillingPricePackageType) Valid() bool {
+	switch e {
+	case BillingPricePackageTypePackage:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingPricePaymentTerm.
+const (
+	BillingPricePaymentTermInAdvance BillingPricePaymentTerm = "in_advance"
+	BillingPricePaymentTermInArrears BillingPricePaymentTerm = "in_arrears"
+)
+
+// Valid indicates whether the value is a known member of the BillingPricePaymentTerm enum.
+func (e BillingPricePaymentTerm) Valid() bool {
+	switch e {
+	case BillingPricePaymentTermInAdvance:
+		return true
+	case BillingPricePaymentTermInArrears:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingPriceUnitType.
+const (
+	BillingPriceUnitTypeUnit BillingPriceUnitType = "unit"
+)
+
+// Valid indicates whether the value is a known member of the BillingPriceUnitType enum.
+func (e BillingPriceUnitType) Valid() bool {
+	switch e {
+	case BillingPriceUnitTypeUnit:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BillingPriceVolumeType.
+const (
+	BillingPriceVolumeTypeVolume BillingPriceVolumeType = "volume"
+)
+
+// Valid indicates whether the value is a known member of the BillingPriceVolumeType enum.
+func (e BillingPriceVolumeType) Valid() bool {
+	switch e {
+	case BillingPriceVolumeTypeVolume:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for BillingSubscriptionEditTimingEnum.
 const (
 	BillingSubscriptionEditTimingEnumImmediate        BillingSubscriptionEditTimingEnum = "immediate"
@@ -1570,6 +1693,144 @@ type BillingPartyTaxIdentity struct {
 	Code *BillingTaxIdentificationCode `json:"code,omitempty"`
 }
 
+// BillingPrice Price.
+type BillingPrice struct {
+	union json.RawMessage
+}
+
+// BillingPriceDynamic Dynamic price.
+//
+// The underlying meter's value is considered the base price in the
+// customer's currency.
+//
+// The rate specifies the markup over the price.
+type BillingPriceDynamic struct {
+	// Multiplier The multiplier to apply to the base price to get the dynamic price.
+	//
+	// Examples:
+	// - 0.0: the price is zero
+	// - 0.5: the price is 50% of the base price
+	// - 1.0: the price is the same as the base price
+	// - 1.5: the price is 150% of the base price
+	Multiplier *Numeric `json:"multiplier,omitempty"`
+
+	// Type The type of the price.
+	Type BillingPriceDynamicType `json:"type"`
+}
+
+// BillingPriceDynamicType The type of the price.
+type BillingPriceDynamicType string
+
+// BillingPriceFlat Flat price.
+type BillingPriceFlat struct {
+	// Amount The amount of the flat price.
+	Amount Numeric `json:"amount"`
+
+	// Type The type of the price.
+	Type BillingPriceFlatType `json:"type"`
+}
+
+// BillingPriceFlatType The type of the price.
+type BillingPriceFlatType string
+
+// BillingPriceFree Free price.
+type BillingPriceFree struct {
+	// Type The type of the price.
+	Type BillingPriceFreeType `json:"type"`
+}
+
+// BillingPriceFreeType The type of the price.
+type BillingPriceFreeType string
+
+// BillingPriceGraduated Graduated tiered price.
+// Pricing can change as the quantity grows.
+type BillingPriceGraduated struct {
+	// Tiers The tiers of the tiered price.
+	// At least one price component is required in each tier.
+	Tiers []BillingPriceTier `json:"tiers"`
+
+	// Type The type of the price.
+	Type BillingPriceGraduatedType `json:"type"`
+}
+
+// BillingPriceGraduatedType The type of the price.
+type BillingPriceGraduatedType string
+
+// BillingPricePackage Package price.
+//
+// The item is sold in packages. Each package contains quantityPerPackage items, the price of the
+// package is set in amount.
+//
+// The total price of the usage will be enough packages that can accomodate all the usage.
+//
+// Examples (given a package size of 20, and an amount of $10):
+// - if the quantity is 98, the price will be 5*$10=$50.
+// - if the quantity is zero, the price will be 0*$10=$0, as even the first package is not purchased.
+// - if the quantity is 20, the price will be 1*$10=$10, as the usage fits into the first package.
+// - if the quantity is 20.1, the price will be 2*$10=$20, as the additional 0.1 usage (compared to the
+// previous example) requires a new package.
+type BillingPricePackage struct {
+	// Amount The price of one package.
+	Amount Numeric `json:"amount"`
+
+	// QuantityPerPackage The quantity per package.
+	QuantityPerPackage Numeric `json:"quantity_per_package"`
+
+	// Type The type of the price.
+	Type BillingPricePackageType `json:"type"`
+}
+
+// BillingPricePackageType The type of the price.
+type BillingPricePackageType string
+
+// BillingPricePaymentTerm The payment term of a flat price.
+type BillingPricePaymentTerm string
+
+// BillingPriceTier A price tier.
+// At least one price component is required in each tier.
+type BillingPriceTier struct {
+	// FlatPrice The flat price component of the tier.
+	FlatPrice *BillingPriceFlat `json:"flat_price,omitempty"`
+
+	// UpToAmount Up to and including to this quantity will be contained in the tier.
+	// If undefined, the tier is open-ended.
+	UpToAmount *Numeric `json:"up_to_amount,omitempty"`
+
+	// UsagePrice The usage based price component of the tier.
+	UsagePrice *BillingPriceUsageBased `json:"usage_price,omitempty"`
+}
+
+// BillingPriceUnit Unit price.
+type BillingPriceUnit struct {
+	// Amount The amount of the unit price.
+	Amount Numeric `json:"amount"`
+
+	// Type The type of the price.
+	Type BillingPriceUnitType `json:"type"`
+}
+
+// BillingPriceUnitType The type of the price.
+type BillingPriceUnitType string
+
+// BillingPriceUsageBased Usage based price.
+type BillingPriceUsageBased struct {
+	union json.RawMessage
+}
+
+// BillingPriceVolume Volume tiered price.
+// The maximum quantity within a period determines the per unit price.
+type BillingPriceVolume struct {
+	// Tiers The tiers of the tiered price.
+	// At least one price component is required in each tier.
+	Tiers []BillingPriceTier `json:"tiers"`
+
+	// Type The type of the price.
+	Type BillingPriceVolumeType `json:"type"`
+}
+
+// BillingPriceVolumeType The type of the price.
+type BillingPriceVolumeType string
+
 // BillingProfile Billing profiles contain the settings for billing and controls invoice generation.
 type BillingProfile struct {
 	// Apps The applications used by this billing profile.
@@ -1634,6 +1895,70 @@ type BillingProfilePagePaginatedResponse struct {
 type BillingProfileReference struct {
 	// Id The ID of the billing profile.
 	Id ULID `json:"id"`
+}
+
+// BillingRateCard A rate card defines the pricing and entitlement of a feature or service.
+type BillingRateCard struct {
+	// BillingCadence The billing cadence of the rate card.
+	BillingCadence ISO8601Duration `json:"billing_cadence"`
+
+	// Commitments The commitments of the rate card.
+	Commitments *BillingSpendCommitments `json:"commitments,omitempty"`
+
+	// Description Optional description of the resource.
+	//
+	// Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// Feature The feature associated with the rate card.
+	Feature *FeatureKeyReference `json:"feature,omitempty"`
+
+	// Key A key is a unique string that is used to identify a resource.
+	Key ResourceKey `json:"key"`
+
+	// Labels Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types.
+	//
+	// Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "_".
+	Labels *Labels `json:"labels,omitempty"`
+
+	// Name Display name of the resource.
+	//
+	// Between 1 and 256 characters.
+	Name string `json:"name"`
+
+	// PaymentTerm The payment term of the rate card.
+	// In advance payment term can only be used for flat prices.
+	PaymentTerm *BillingPricePaymentTerm `json:"payment_term,omitempty"`
+
+	// Percentage Test
+	Percentage *Percentage `json:"percentage,omitempty"`
+
+	// Price The price of the rate card.
+	Price BillingPrice `json:"price"`
+
+	// TaxConfig The tax config of the rate card.
+	TaxConfig *BillingRateCardTaxConfig `json:"tax_config,omitempty"`
+}
+
+// BillingRateCardTaxConfig The tax config of the rate card.
+type BillingRateCardTaxConfig struct {
+	// Behavior Tax behavior.
+	//
+	// This enum is used to specify whether tax is included in the price or excluded from the price.
+	Behavior *BillingTaxBehavior `json:"behavior,omitempty"`
+
+	// Code TaxCode reference.
+	Code TaxCodeReference `json:"code"`
+}
+
+// BillingSpendCommitments Spending commitments.
+// The customer is committed to spend at least the minimum amount and at most the maximum amount.
+type BillingSpendCommitments struct {
+	// MaximumAmount The customer is limited to spend at most the amount.
+	MaximumAmount *Numeric `json:"maximum_amount,omitempty"`
+
+	// MinimumAmount The customer is committed to spend at least the amount.
+	MinimumAmount *Numeric `json:"minimum_amount,omitempty"`
 }
 
 // BillingSubscription Subscription.
@@ -2695,6 +3020,11 @@ type PaginatedMeta struct {
 	Page PageMeta `json:"page"`
 }
 
+// Percentage Numeric representation of a percentage
+//
+// 50% is represented as 50
+type Percentage = float64
+
 // PricePagePaginatedResponse Page paginated response.
 type PricePagePaginatedResponse struct {
 	Data []LLMCostPrice `json:"data"`
@@ -2796,6 +3126,15 @@ type TaxCodePagePaginatedResponse struct {
 
 	// Meta returns the pagination information
 	Meta PaginatedMeta `json:"meta"`
+}
+
+// TaxCodeReference TaxCode reference.
+type TaxCodeReference struct {
+	// Id ULID (Universally Unique Lexicographically Sortable Identifier).
+	Id *ULID `json:"id,omitempty"`
+
+	// Key A key is a unique string that is used to identify a resource.
+	Key *ResourceKey `json:"key,omitempty"`
 }
 
 // ULID ULID (Universally Unique Lexicographically Sortable Identifier).
@@ -3694,6 +4033,364 @@ func (t *BillingCurrency) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsBillingPriceFree returns the union data inside the BillingPrice as a BillingPriceFree
+func (t BillingPrice) AsBillingPriceFree() (BillingPriceFree, error) {
+	var body BillingPriceFree
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingPriceFree overwrites any union data inside the BillingPrice as the provided BillingPriceFree
+func (t *BillingPrice) FromBillingPriceFree(v BillingPriceFree) error {
+	v.Type = "free"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingPriceFree performs a merge with any union data inside the BillingPrice, using the provided BillingPriceFree
+func (t *BillingPrice) MergeBillingPriceFree(v BillingPriceFree) error {
+	v.Type = "free"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingPriceFlat returns the union data inside the BillingPrice as a BillingPriceFlat
+func (t BillingPrice) AsBillingPriceFlat() (BillingPriceFlat, error) {
+	var body BillingPriceFlat
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingPriceFlat overwrites any union data inside the BillingPrice as the provided BillingPriceFlat
+func (t *BillingPrice) FromBillingPriceFlat(v BillingPriceFlat) error {
+	v.Type = "flat"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingPriceFlat performs a merge with any union data inside the BillingPrice, using the provided BillingPriceFlat
+func (t *BillingPrice) MergeBillingPriceFlat(v BillingPriceFlat) error {
+	v.Type = "flat"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingPriceUnit returns the union data inside the BillingPrice as a BillingPriceUnit
+func (t BillingPrice) AsBillingPriceUnit() (BillingPriceUnit, error) {
+	var body BillingPriceUnit
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingPriceUnit overwrites any union data inside the BillingPrice as the provided BillingPriceUnit
+func (t *BillingPrice) FromBillingPriceUnit(v BillingPriceUnit) error {
+	v.Type = "unit"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingPriceUnit performs a merge with any union data inside the BillingPrice, using the provided BillingPriceUnit
+func (t *BillingPrice) MergeBillingPriceUnit(v BillingPriceUnit) error {
+	v.Type = "unit"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingPriceGraduated returns the union data inside the BillingPrice as a BillingPriceGraduated
+func (t BillingPrice) AsBillingPriceGraduated() (BillingPriceGraduated, error) {
+	var body BillingPriceGraduated
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingPriceGraduated overwrites any union data inside the BillingPrice as the provided BillingPriceGraduated
+func (t *BillingPrice) FromBillingPriceGraduated(v BillingPriceGraduated) error {
+	v.Type = "graduated"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingPriceGraduated performs a merge with any union data inside the BillingPrice, using the provided BillingPriceGraduated
+func (t *BillingPrice) MergeBillingPriceGraduated(v BillingPriceGraduated) error {
+	v.Type = "graduated"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingPriceVolume returns the union data inside the BillingPrice as a BillingPriceVolume
+func (t BillingPrice) AsBillingPriceVolume() (BillingPriceVolume, error) {
+	var body BillingPriceVolume
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingPriceVolume overwrites any union data inside the BillingPrice as the provided BillingPriceVolume
+func (t *BillingPrice) FromBillingPriceVolume(v BillingPriceVolume) error {
+	v.Type = "volume"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingPriceVolume performs a merge with any union data inside the BillingPrice, using the provided BillingPriceVolume
+func (t *BillingPrice) MergeBillingPriceVolume(v BillingPriceVolume) error {
+	v.Type = "volume"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingPriceDynamic returns the union data inside the BillingPrice as a BillingPriceDynamic
+func (t BillingPrice) AsBillingPriceDynamic() (BillingPriceDynamic, error) {
+	var body BillingPriceDynamic
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingPriceDynamic overwrites any union data inside the BillingPrice as the provided BillingPriceDynamic
+func (t *BillingPrice) FromBillingPriceDynamic(v BillingPriceDynamic) error {
+	v.Type = "dynamic"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingPriceDynamic performs a merge with any union data inside the BillingPrice, using the provided BillingPriceDynamic
+func (t *BillingPrice) MergeBillingPriceDynamic(v BillingPriceDynamic) error {
+	v.Type = "dynamic"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingPricePackage returns the union data inside the BillingPrice as a BillingPricePackage
+func (t BillingPrice) AsBillingPricePackage() (BillingPricePackage, error) {
+	var body BillingPricePackage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingPricePackage overwrites any union data inside the BillingPrice as the provided BillingPricePackage
+func (t *BillingPrice) FromBillingPricePackage(v BillingPricePackage) error {
+	v.Type = "package"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingPricePackage performs a merge with any union data inside the BillingPrice, using the provided BillingPricePackage
+func (t *BillingPrice) MergeBillingPricePackage(v BillingPricePackage) error {
+	v.Type = "package"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t BillingPrice) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t BillingPrice) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "dynamic":
+		return t.AsBillingPriceDynamic()
+	case "flat":
+		return t.AsBillingPriceFlat()
+	case "free":
+		return t.AsBillingPriceFree()
+	case "graduated":
+		return t.AsBillingPriceGraduated()
+	case "package":
+		return t.AsBillingPricePackage()
+	case "unit":
+		return t.AsBillingPriceUnit()
+	case "volume":
+		return t.AsBillingPriceVolume()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t BillingPrice) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *BillingPrice) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsBillingPriceUnit returns the union data inside the BillingPriceUsageBased as a BillingPriceUnit
+func (t BillingPriceUsageBased) AsBillingPriceUnit() (BillingPriceUnit, error) {
+	var body BillingPriceUnit
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingPriceUnit overwrites any union data inside the BillingPriceUsageBased as the provided BillingPriceUnit
+func (t *BillingPriceUsageBased) FromBillingPriceUnit(v BillingPriceUnit) error {
+	v.Type = "unit"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingPriceUnit performs a merge with any union data inside the BillingPriceUsageBased, using the provided BillingPriceUnit
+func (t *BillingPriceUsageBased) MergeBillingPriceUnit(v BillingPriceUnit) error {
+	v.Type = "unit"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingPriceDynamic returns the union data inside the BillingPriceUsageBased as a BillingPriceDynamic
+func (t BillingPriceUsageBased) AsBillingPriceDynamic() (BillingPriceDynamic, error) {
+	var body BillingPriceDynamic
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingPriceDynamic overwrites any union data inside the BillingPriceUsageBased as the provided BillingPriceDynamic
+func (t *BillingPriceUsageBased) FromBillingPriceDynamic(v BillingPriceDynamic) error {
+	v.Type = "dynamic"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingPriceDynamic performs a merge with any union data inside the BillingPriceUsageBased, using the provided BillingPriceDynamic
+func (t *BillingPriceUsageBased) MergeBillingPriceDynamic(v BillingPriceDynamic) error {
+	v.Type = "dynamic"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBillingPricePackage returns the union data inside the BillingPriceUsageBased as a BillingPricePackage
+func (t BillingPriceUsageBased) AsBillingPricePackage() (BillingPricePackage, error) {
+	var body BillingPricePackage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBillingPricePackage overwrites any union data inside the BillingPriceUsageBased as the provided BillingPricePackage
+func (t *BillingPriceUsageBased) FromBillingPricePackage(v BillingPricePackage) error {
+	v.Type = "package"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBillingPricePackage performs a merge with any union data inside the BillingPriceUsageBased, using the provided BillingPricePackage
+func (t *BillingPriceUsageBased) MergeBillingPricePackage(v BillingPricePackage) error {
+	v.Type = "package"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t BillingPriceUsageBased) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t BillingPriceUsageBased) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "dynamic":
+		return t.AsBillingPriceDynamic()
+	case "package":
+		return t.AsBillingPricePackage()
+	case "unit":
+		return t.AsBillingPriceUnit()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t BillingPriceUsageBased) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *BillingPriceUsageBased) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // AsBillingSubscriptionEditTimingEnum returns the union data inside the BillingSubscriptionEditTiming as a BillingSubscriptionEditTimingEnum
 func (t BillingSubscriptionEditTiming) AsBillingSubscriptionEditTimingEnum() (BillingSubscriptionEditTimingEnum, error) {
 	var body BillingSubscriptionEditTimingEnum
@@ -4211,6 +4908,9 @@ type ServerInterface interface {
 	// Upsert tax code
 	// (PUT /openmeter/tax-codes/{taxCodeId})
 	UpsertTaxCode(w http.ResponseWriter, r *http.Request, taxCodeId ULID)
+	// List prices
+	// (GET /openmeter/test)
+	ListPrices(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -4484,6 +5184,12 @@ func (_ Unimplemented) GetTaxCode(w http.ResponseWriter, r *http.Request, taxCod
 // Upsert tax code
 // (PUT /openmeter/tax-codes/{taxCodeId})
 func (_ Unimplemented) UpsertTaxCode(w http.ResponseWriter, r *http.Request, taxCodeId ULID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List prices
+// (GET /openmeter/test)
+func (_ Unimplemented) ListPrices(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -5634,6 +6340,20 @@ func (siw *ServerInterfaceWrapper) UpsertTaxCode(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// ListPrices operation middleware
+func (siw *ServerInterfaceWrapper) ListPrices(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListPrices(w, r)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -5881,6 +6601,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/openmeter/tax-codes/{taxCodeId}", wrapper.UpsertTaxCode)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/openmeter/test", wrapper.ListPrices)
 	})
 
 	return r

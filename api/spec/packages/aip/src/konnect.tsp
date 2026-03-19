@@ -11,6 +11,7 @@ import "./subscriptions/index.tsp";
 import "./apps/index.tsp";
 import "./billing/index.tsp";
 import "./tax/index.tsp";
+import "./productcatalog/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -103,9 +104,13 @@ interface CurrenciesCustomEndpoints
 interface CurrenciesCustomCostBasesEndpoints
   extends Currencies.CurrenciesCustomCostBasesOperations {}
 
+@route("/openmeter/features")
+@tag(Shared.FeaturesTag)
+interface FeaturesEndpoints extends Features.FeatureOperations {}
+
 @route("/openmeter/features/{featureId}/cost")
 @tag(Shared.FeaturesTag)
-interface FeaturesEndpoints extends Features.FeatureCostOperations {}
+interface FeaturesCostEndpoints extends Features.FeatureCostOperations {}
 
 @route("/openmeter/llm-cost/prices")
 @tag(Shared.LLMCostTag)
@@ -115,6 +120,18 @@ interface LLMCostPricesEndpoints extends LLMCost.LLMCostPricesOperations {}
 @tag(Shared.LLMCostTag)
 interface LLMCostOverridesEndpoints
   extends LLMCost.LLMCostOverridesOperations {}
+
+@route("/openmeter/plans")
+@tag(Shared.ProductCatalogTag)
+interface PlansEndpoints extends ProductCatalog.PlanOperations {}
+
+@route("/openmeter/addons")
+@tag(Shared.ProductCatalogTag)
+interface AddonsEndpoints extends ProductCatalog.AddonOperations {}
+
+@route("/openmeter/plans/{planId}/addons")
+@tag(Shared.ProductCatalogTag)
+interface PlanAddonEndpoints extends ProductCatalog.PlanAddonOperations {}
 
 /**
  * The system account access token is meant for automations and integrations that are not directly associated with a human identity.
