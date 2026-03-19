@@ -3653,13 +3653,6 @@ components:
             Display name of the resource.
 
             Between 1 and 256 characters.
-        description:
-          type: string
-          maxLength: 1024
-          description: |-
-            Optional description of the resource.
-
-            Maximum 1024 characters.
         labels:
           $ref: '#/components/schemas/Labels'
         key:
@@ -3667,10 +3660,10 @@ components:
         meter:
           type: object
           properties:
-            id:
-              $ref: '#/components/schemas/ULID'
             key:
-              $ref: '#/components/schemas/ResourceKey'
+              allOf:
+                - $ref: '#/components/schemas/ResourceKey'
+              description: The key of the meter to associate with this feature.
             filters:
               type: object
               additionalProperties:
@@ -3855,13 +3848,6 @@ components:
             Display name of the resource.
 
             Between 1 and 256 characters.
-        description:
-          type: string
-          maxLength: 1024
-          description: |-
-            Optional description of the resource.
-
-            Maximum 1024 characters.
         labels:
           $ref: '#/components/schemas/Labels'
         created_at:
@@ -3884,10 +3870,10 @@ components:
         meter:
           type: object
           properties:
-            id:
-              $ref: '#/components/schemas/ULID'
             key:
-              $ref: '#/components/schemas/ResourceKey'
+              allOf:
+                - $ref: '#/components/schemas/ResourceKey'
+              description: The key of the meter to associate with this feature.
             filters:
               type: object
               additionalProperties:

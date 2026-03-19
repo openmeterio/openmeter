@@ -12,7 +12,7 @@ namespace Features;
  */
 @friendlyName("Feature")
 model Feature {
-  ...Shared.ResourceWithKey;
+  ...OmitProperties<Shared.ResourceWithKey, "description">;
 
   /**
    * The meter that the feature is associated with and and based on which usage is calculated.
@@ -21,7 +21,11 @@ model Feature {
   @summary("Meter reference")
   @visibility(Lifecycle.Read, Lifecycle.Create)
   meter?: {
-    ...Shared.ResourceWithKeyReference<Meters.Meter>;
+    /**
+     * The key of the meter to associate with this feature.
+     */
+    @visibility(Lifecycle.Read, Lifecycle.Create)
+    key?: Shared.ResourceKey;
 
     /**
      * Filters to apply to the dimensions of the meter.
