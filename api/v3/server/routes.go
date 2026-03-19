@@ -195,12 +195,12 @@ func (s *Server) CreateFeature(w http.ResponseWriter, r *http.Request) {
 	unimplemented.CreateFeature(w, r)
 }
 
-func (s *Server) getFeature(w http.ResponseWriter, r *http.Request, featureId api.ULID) {
+func (s *Server) GetFeature(w http.ResponseWriter, r *http.Request, featureId api.ULID) {
 	unimplemented.GetFeature(w, r, featureId)
 }
 
-func (s *Server) deleteFeature(w http.ResponseWriter, r *http.Request, featureId api.ULID) {
-	unimplemented.GetFeature(w, r, featureId)
+func (s *Server) DeleteFeature(w http.ResponseWriter, r *http.Request, featureId api.ULID) {
+	unimplemented.DeleteFeature(w, r, featureId)
 }
 
 // Feature Cost
