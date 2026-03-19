@@ -83,7 +83,7 @@ func convertUnitCostToAPI(u *feature.UnitCost) (api.FeatureUnitCost, error) {
 	switch u.Type {
 	case feature.UnitCostTypeManual:
 		if err := out.FromFeatureManualUnitCost(api.FeatureManualUnitCost{
-			Amount: api.Numeric(u.Manual.Amount.String()),
+			Amount: u.Manual.Amount.String(),
 		}); err != nil {
 			return out, fmt.Errorf("failed to convert manual unit cost: %w", err)
 		}
@@ -130,7 +130,7 @@ func convertUnitCostFromAPI(u *api.FeatureUnitCost) (*feature.UnitCost, error) {
 			return nil, fmt.Errorf("failed to parse manual unit cost: %w", err)
 		}
 
-		amount, err := alpacadecimal.NewFromString(string(manual.Amount))
+		amount, err := alpacadecimal.NewFromString(manual.Amount)
 		if err != nil {
 			return nil, fmt.Errorf("invalid manual unit cost amount %q: %w", manual.Amount, err)
 		}
@@ -179,12 +179,12 @@ func enrichFeatureResponseWithPricing(resp *api.Feature, pricing *llmcost.ModelP
 	}
 
 	apiPricing := api.FeatureLLMUnitCostPricing{
-		InputPerToken:  api.Numeric(pricing.InputPerToken.String()),
-		OutputPerToken: api.Numeric(pricing.OutputPerToken.String()),
+		InputPerToken:  pricing.InputPerToken.String(),
+		OutputPerToken: pricing.OutputPerToken.String(),
 	}
 
 	if pricing.CacheReadPerToken != nil {
-		v := api.Numeric(pricing.CacheReadPerToken.String())
+		v := pricing.CacheReadPerToken.String()
 		apiPricing.CacheReadPerToken = &v
 	}
 
