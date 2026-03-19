@@ -7,8 +7,6 @@ import (
 	currencieshandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
 )
 
-var unimplemented = api.Unimplemented{}
-
 // Meters
 
 func (s *Server) CreateMeter(w http.ResponseWriter, r *http.Request) {
@@ -188,19 +186,19 @@ func (s *Server) ListCostBases(w http.ResponseWriter, r *http.Request, currencyI
 // Features
 
 func (s *Server) ListFeatures(w http.ResponseWriter, r *http.Request, params api.ListFeaturesParams) {
-	unimplemented.ListFeatures(w, r, params)
+	s.featuresHandler.ListFeatures().With(params).ServeHTTP(w, r)
 }
 
 func (s *Server) CreateFeature(w http.ResponseWriter, r *http.Request) {
-	unimplemented.CreateFeature(w, r)
+	s.featuresHandler.CreateFeature().ServeHTTP(w, r)
 }
 
 func (s *Server) GetFeature(w http.ResponseWriter, r *http.Request, featureId api.ULID) {
-	unimplemented.GetFeature(w, r, featureId)
+	s.featuresHandler.GetFeature().With(featureId).ServeHTTP(w, r)
 }
 
 func (s *Server) DeleteFeature(w http.ResponseWriter, r *http.Request, featureId api.ULID) {
-	unimplemented.DeleteFeature(w, r, featureId)
+	s.featuresHandler.DeleteFeature().With(featureId).ServeHTTP(w, r)
 }
 
 // Feature Cost
