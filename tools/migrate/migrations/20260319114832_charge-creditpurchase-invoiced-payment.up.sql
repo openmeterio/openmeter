@@ -1,6 +1,8 @@
 -- modify "charge_flat_fee_payments" table
+-- atlas:nolint MF103
 ALTER TABLE "charge_flat_fee_payments" ADD COLUMN "invoice_id" character(26) NOT NULL;
 -- modify "charge_usage_based_run_payments" table
+-- atlas:nolint MF103
 ALTER TABLE "charge_usage_based_run_payments" ADD COLUMN "invoice_id" character(26) NOT NULL;
 -- create "charge_credit_purchase_invoiced_payments" table
 CREATE TABLE "charge_credit_purchase_invoiced_payments" (
