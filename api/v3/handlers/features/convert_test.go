@@ -232,7 +232,7 @@ func TestConvertFeatureToAPI(t *testing.T) {
 		result, err := convertFeatureToAPI(f)
 		require.NoError(t, err)
 		require.NotNil(t, result.Meter)
-		assert.Equal(t, lo.ToPtr(api.ResourceKey("tokens_total")), result.Meter.Key)
+		assert.Equal(t, api.ULID("tokens_total"), result.Meter.Id)
 		require.NotNil(t, result.Meter.Filters)
 		filterMap := *result.Meter.Filters
 		assert.Equal(t, lo.ToPtr("openai"), filterMap["provider"].Eq)
@@ -284,13 +284,13 @@ func TestConvertFeatureToAPI(t *testing.T) {
 }
 
 func TestConvertCreateRequestToDomain(t *testing.T) {
-	t.Run("minimal request", func(t *testing.T) {
+	t.Run("minimal request without meter", func(t *testing.T) {
 		body := api.CreateFeatureRequest{
 			Key:  "my_key",
 			Name: "My Feature",
 		}
 
-		result, err := convertCreateRequestToDomain("test-ns", body)
+		result, err := convertCreateRequestToDomain("test-ns", body, nil)
 		require.NoError(t, err)
 		assert.Equal(t, "test-ns", result.Namespace)
 		assert.Equal(t, "my_key", result.Key)
@@ -299,22 +299,23 @@ func TestConvertCreateRequestToDomain(t *testing.T) {
 		assert.Nil(t, result.UnitCost)
 	})
 
-	t.Run("with meter and filters", func(t *testing.T) {
+	t.Run("with meter slug and filters", func(t *testing.T) {
+		meterSlug := "tokens_total"
 		body := api.CreateFeatureRequest{
 			Key:  "tokens",
 			Name: "Tokens",
 			Meter: &struct {
 				Filters *map[string]api.QueryFilterStringMapItem `json:"filters,omitempty"`
-				Key     *api.ResourceKey                         `json:"key,omitempty"`
+				Id      api.ULID                                 `json:"id"`
 			}{
-				Key: lo.ToPtr(api.ResourceKey("tokens_total")),
+				Id: api.ULID("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 				Filters: &map[string]api.QueryFilterStringMapItem{
 					"model": {Eq: lo.ToPtr("gpt-4")},
 				},
 			},
 		}
 
-		result, err := convertCreateRequestToDomain("ns", body)
+		result, err := convertCreateRequestToDomain("ns", body, &meterSlug)
 		require.NoError(t, err)
 		require.NotNil(t, result.MeterSlug)
 		assert.Equal(t, "tokens_total", *result.MeterSlug)
@@ -333,7 +334,7 @@ func TestConvertCreateRequestToDomain(t *testing.T) {
 			UnitCost: &uc,
 		}
 
-		result, err := convertCreateRequestToDomain("ns", body)
+		result, err := convertCreateRequestToDomain("ns", body, nil)
 		require.NoError(t, err)
 		require.NotNil(t, result.UnitCost)
 		assert.Equal(t, feature.UnitCostTypeManual, result.UnitCost.Type)
@@ -348,7 +349,7 @@ func TestConvertCreateRequestToDomain(t *testing.T) {
 			Labels: &labels,
 		}
 
-		result, err := convertCreateRequestToDomain("ns", body)
+		result, err := convertCreateRequestToDomain("ns", body, nil)
 		require.NoError(t, err)
 		assert.Equal(t, "prod", result.Metadata["env"])
 		assert.Equal(t, "billing", result.Metadata["team"])

@@ -18,7 +18,7 @@ import (
 func convertFeatureToAPI(f feature.Feature) (api.Feature, error) {
 	resp := api.Feature{
 		Id:        f.ID,
-		Key:       api.ResourceKey(f.Key),
+		Key:       f.Key,
 		Name:      f.Name,
 		Labels:    convertMetadataToLabels(f.Metadata),
 		CreatedAt: &f.CreatedAt,
@@ -29,9 +29,9 @@ func convertFeatureToAPI(f feature.Feature) (api.Feature, error) {
 	if f.MeterSlug != nil {
 		resp.Meter = &struct {
 			Filters *map[string]api.QueryFilterStringMapItem `json:"filters,omitempty"`
-			Key     *api.ResourceKey                         `json:"key,omitempty"`
+			Id      api.ULID                                 `json:"id"`
 		}{
-			Key: f.MeterSlug,
+			Id: *f.MeterSlug,
 		}
 
 		if len(f.MeterGroupByFilters) > 0 {
@@ -51,19 +51,16 @@ func convertFeatureToAPI(f feature.Feature) (api.Feature, error) {
 	return resp, nil
 }
 
-func convertCreateRequestToDomain(ns string, body api.CreateFeatureRequest) (feature.CreateFeatureInputs, error) {
+func convertCreateRequestToDomain(ns string, body api.CreateFeatureRequest, meterSlug *string) (feature.CreateFeatureInputs, error) {
 	inputs := feature.CreateFeatureInputs{
 		Namespace: ns,
 		Name:      body.Name,
 		Key:       body.Key,
+		MeterSlug: meterSlug,
 		Metadata:  convertLabelsToMetadata(body.Labels),
 	}
 
 	if body.Meter != nil {
-		if body.Meter.Key != nil {
-			inputs.MeterSlug = body.Meter.Key
-		}
-
 		if body.Meter.Filters != nil {
 			inputs.MeterGroupByFilters = convertFiltersFromAPI(*body.Meter.Filters)
 		}
@@ -187,12 +184,12 @@ func enrichFeatureResponseWithPricing(resp *api.Feature, pricing *llmcost.ModelP
 	}
 
 	if pricing.CacheWritePerToken != nil {
-		v := api.Numeric(pricing.CacheWritePerToken.String())
+		v := pricing.CacheWritePerToken.String()
 		apiPricing.CacheWritePerToken = &v
 	}
 
 	if pricing.ReasoningPerToken != nil {
-		v := api.Numeric(pricing.ReasoningPerToken.String())
+		v := pricing.ReasoningPerToken.String()
 		apiPricing.ReasoningPerToken = &v
 	}
 

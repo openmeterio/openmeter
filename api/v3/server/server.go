@@ -210,7 +210,7 @@ func NewServer(config *Config) (*Server, error) {
 	taxcodesHandler := taxcodeshandler.New(resolveNamespace, config.TaxCodeService, httptransport.WithErrorHandler(config.ErrorHandler))
 	currenciesHandler := currencieshandler.New(config.NamespaceDecoder, config.CurrencyService, httptransport.WithErrorHandler(config.ErrorHandler))
 
-	featuresH := featureshandler.New(resolveNamespace, config.FeatureConnector, config.LLMCostService, httptransport.WithErrorHandler(config.ErrorHandler))
+	featuresH := featureshandler.New(resolveNamespace, config.FeatureConnector, config.MeterService, config.LLMCostService, httptransport.WithErrorHandler(config.ErrorHandler))
 
 	var llmcostH llmcosthandler.Handler
 	if config.LLMCostService != nil {

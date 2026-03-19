@@ -3660,10 +3660,10 @@ components:
         meter:
           type: object
           properties:
-            key:
+            id:
               allOf:
-                - $ref: '#/components/schemas/ResourceKey'
-              description: The key of the meter to associate with this feature.
+                - $ref: '#/components/schemas/ULID'
+              description: The ID of the meter to associate with this feature.
             filters:
               type: object
               additionalProperties:
@@ -3671,6 +3671,8 @@ components:
               maxProperties: 10
               description: Filters to apply to the dimensions of the meter.
               title: Meter dimensions filters
+          required:
+            - id
           description: |-
             The meter that the feature is associated with and and based on which usage is calculated.
             If not specified, the feature is static.
@@ -3870,10 +3872,10 @@ components:
         meter:
           type: object
           properties:
-            key:
+            id:
               allOf:
-                - $ref: '#/components/schemas/ResourceKey'
-              description: The key of the meter to associate with this feature.
+                - $ref: '#/components/schemas/ULID'
+              description: The ID of the meter to associate with this feature.
             filters:
               type: object
               additionalProperties:
@@ -3881,6 +3883,8 @@ components:
               maxProperties: 10
               description: Filters to apply to the dimensions of the meter.
               title: Meter dimensions filters
+          required:
+            - id
           description: |-
             The meter that the feature is associated with and and based on which usage is calculated.
             If not specified, the feature is static.
