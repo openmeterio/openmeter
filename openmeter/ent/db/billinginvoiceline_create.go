@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
@@ -614,6 +615,25 @@ func (_c *BillingInvoiceLineCreate) AddChargeFlatFeeInvoicedUsage(v ...*ChargeFl
 	return _c.AddChargeFlatFeeInvoicedUsageIDs(ids...)
 }
 
+// SetChargeCreditPurchaseInvoicedPaymentID sets the "charge_credit_purchase_invoiced_payment" edge to the ChargeCreditPurchaseInvoicedPayment entity by ID.
+func (_c *BillingInvoiceLineCreate) SetChargeCreditPurchaseInvoicedPaymentID(id string) *BillingInvoiceLineCreate {
+	_c.mutation.SetChargeCreditPurchaseInvoicedPaymentID(id)
+	return _c
+}
+
+// SetNillableChargeCreditPurchaseInvoicedPaymentID sets the "charge_credit_purchase_invoiced_payment" edge to the ChargeCreditPurchaseInvoicedPayment entity by ID if the given value is not nil.
+func (_c *BillingInvoiceLineCreate) SetNillableChargeCreditPurchaseInvoicedPaymentID(id *string) *BillingInvoiceLineCreate {
+	if id != nil {
+		_c = _c.SetChargeCreditPurchaseInvoicedPaymentID(*id)
+	}
+	return _c
+}
+
+// SetChargeCreditPurchaseInvoicedPayment sets the "charge_credit_purchase_invoiced_payment" edge to the ChargeCreditPurchaseInvoicedPayment entity.
+func (_c *BillingInvoiceLineCreate) SetChargeCreditPurchaseInvoicedPayment(v *ChargeCreditPurchaseInvoicedPayment) *BillingInvoiceLineCreate {
+	return _c.SetChargeCreditPurchaseInvoicedPaymentID(v.ID)
+}
+
 // Mutation returns the BillingInvoiceLineMutation object of the builder.
 func (_c *BillingInvoiceLineCreate) Mutation() *BillingInvoiceLineMutation {
 	return _c.mutation
@@ -1196,6 +1216,22 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeinvoicedusage.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargeCreditPurchaseInvoicedPaymentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   billinginvoiceline.ChargeCreditPurchaseInvoicedPaymentTable,
+			Columns: []string{billinginvoiceline.ChargeCreditPurchaseInvoicedPaymentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchaseinvoicedpayment.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -18,6 +18,8 @@ const (
 	FieldID = "id"
 	// FieldLineID holds the string denoting the line_id field in the database.
 	FieldLineID = "line_id"
+	// FieldInvoiceID holds the string denoting the invoice_id field in the database.
+	FieldInvoiceID = "invoice_id"
 	// FieldServicePeriodFrom holds the string denoting the service_period_from field in the database.
 	FieldServicePeriodFrom = "service_period_from"
 	// FieldServicePeriodTo holds the string denoting the service_period_to field in the database.
@@ -72,6 +74,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldLineID,
+	FieldInvoiceID,
 	FieldServicePeriodFrom,
 	FieldServicePeriodTo,
 	FieldStatus,
@@ -136,6 +139,11 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByLineID orders the results by the line_id field.
 func ByLineID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLineID, opts...).ToFunc()
+}
+
+// ByInvoiceID orders the results by the invoice_id field.
+func ByInvoiceID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoiceID, opts...).ToFunc()
 }
 
 // ByServicePeriodFrom orders the results by the service_period_from field.

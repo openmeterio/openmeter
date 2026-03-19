@@ -43,6 +43,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
@@ -150,6 +151,8 @@ type Client struct {
 	ChargeCreditPurchase *ChargeCreditPurchaseClient
 	// ChargeCreditPurchaseExternalPayment is the client for interacting with the ChargeCreditPurchaseExternalPayment builders.
 	ChargeCreditPurchaseExternalPayment *ChargeCreditPurchaseExternalPaymentClient
+	// ChargeCreditPurchaseInvoicedPayment is the client for interacting with the ChargeCreditPurchaseInvoicedPayment builders.
+	ChargeCreditPurchaseInvoicedPayment *ChargeCreditPurchaseInvoicedPaymentClient
 	// ChargeFlatFee is the client for interacting with the ChargeFlatFee builders.
 	ChargeFlatFee *ChargeFlatFeeClient
 	// ChargeFlatFeeCreditAllocations is the client for interacting with the ChargeFlatFeeCreditAllocations builders.
@@ -273,6 +276,7 @@ func (c *Client) init() {
 	c.Charge = NewChargeClient(c.config)
 	c.ChargeCreditPurchase = NewChargeCreditPurchaseClient(c.config)
 	c.ChargeCreditPurchaseExternalPayment = NewChargeCreditPurchaseExternalPaymentClient(c.config)
+	c.ChargeCreditPurchaseInvoicedPayment = NewChargeCreditPurchaseInvoicedPaymentClient(c.config)
 	c.ChargeFlatFee = NewChargeFlatFeeClient(c.config)
 	c.ChargeFlatFeeCreditAllocations = NewChargeFlatFeeCreditAllocationsClient(c.config)
 	c.ChargeFlatFeeInvoicedUsage = NewChargeFlatFeeInvoicedUsageClient(c.config)
@@ -435,6 +439,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Charge:                                           NewChargeClient(cfg),
 		ChargeCreditPurchase:                             NewChargeCreditPurchaseClient(cfg),
 		ChargeCreditPurchaseExternalPayment:              NewChargeCreditPurchaseExternalPaymentClient(cfg),
+		ChargeCreditPurchaseInvoicedPayment:              NewChargeCreditPurchaseInvoicedPaymentClient(cfg),
 		ChargeFlatFee:                                    NewChargeFlatFeeClient(cfg),
 		ChargeFlatFeeCreditAllocations:                   NewChargeFlatFeeCreditAllocationsClient(cfg),
 		ChargeFlatFeeInvoicedUsage:                       NewChargeFlatFeeInvoicedUsageClient(cfg),
@@ -524,6 +529,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Charge:                                           NewChargeClient(cfg),
 		ChargeCreditPurchase:                             NewChargeCreditPurchaseClient(cfg),
 		ChargeCreditPurchaseExternalPayment:              NewChargeCreditPurchaseExternalPaymentClient(cfg),
+		ChargeCreditPurchaseInvoicedPayment:              NewChargeCreditPurchaseInvoicedPaymentClient(cfg),
 		ChargeFlatFee:                                    NewChargeFlatFeeClient(cfg),
 		ChargeFlatFeeCreditAllocations:                   NewChargeFlatFeeCreditAllocationsClient(cfg),
 		ChargeFlatFeeInvoicedUsage:                       NewChargeFlatFeeInvoicedUsageClient(cfg),
@@ -606,8 +612,9 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
 		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditPurchaseExternalPayment,
-		c.ChargeFlatFee, c.ChargeFlatFeeCreditAllocations,
-		c.ChargeFlatFeeInvoicedUsage, c.ChargeFlatFeePayment, c.ChargeUsageBased,
+		c.ChargeCreditPurchaseInvoicedPayment, c.ChargeFlatFee,
+		c.ChargeFlatFeeCreditAllocations, c.ChargeFlatFeeInvoicedUsage,
+		c.ChargeFlatFeePayment, c.ChargeUsageBased,
 		c.ChargeUsageBasedRunCreditAllocations, c.ChargeUsageBasedRunInvoicedUsage,
 		c.ChargeUsageBasedRunPayment, c.ChargeUsageBasedRuns, c.CurrencyCostBasis,
 		c.CustomCurrency, c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature,
@@ -639,8 +646,9 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
 		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditPurchaseExternalPayment,
-		c.ChargeFlatFee, c.ChargeFlatFeeCreditAllocations,
-		c.ChargeFlatFeeInvoicedUsage, c.ChargeFlatFeePayment, c.ChargeUsageBased,
+		c.ChargeCreditPurchaseInvoicedPayment, c.ChargeFlatFee,
+		c.ChargeFlatFeeCreditAllocations, c.ChargeFlatFeeInvoicedUsage,
+		c.ChargeFlatFeePayment, c.ChargeUsageBased,
 		c.ChargeUsageBasedRunCreditAllocations, c.ChargeUsageBasedRunInvoicedUsage,
 		c.ChargeUsageBasedRunPayment, c.ChargeUsageBasedRuns, c.CurrencyCostBasis,
 		c.CustomCurrency, c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature,
@@ -716,6 +724,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ChargeCreditPurchase.mutate(ctx, m)
 	case *ChargeCreditPurchaseExternalPaymentMutation:
 		return c.ChargeCreditPurchaseExternalPayment.mutate(ctx, m)
+	case *ChargeCreditPurchaseInvoicedPaymentMutation:
+		return c.ChargeCreditPurchaseInvoicedPayment.mutate(ctx, m)
 	case *ChargeFlatFeeMutation:
 		return c.ChargeFlatFee.mutate(ctx, m)
 	case *ChargeFlatFeeCreditAllocationsMutation:
@@ -3442,6 +3452,22 @@ func (c *BillingInvoiceLineClient) QueryChargeFlatFeeInvoicedUsage(_m *BillingIn
 	return query
 }
 
+// QueryChargeCreditPurchaseInvoicedPayment queries the charge_credit_purchase_invoiced_payment edge of a BillingInvoiceLine.
+func (c *BillingInvoiceLineClient) QueryChargeCreditPurchaseInvoicedPayment(_m *BillingInvoiceLine) *ChargeCreditPurchaseInvoicedPaymentQuery {
+	query := (&ChargeCreditPurchaseInvoicedPaymentClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, id),
+			sqlgraph.To(chargecreditpurchaseinvoicedpayment.Table, chargecreditpurchaseinvoicedpayment.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, billinginvoiceline.ChargeCreditPurchaseInvoicedPaymentTable, billinginvoiceline.ChargeCreditPurchaseInvoicedPaymentColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *BillingInvoiceLineClient) Hooks() []Hook {
 	return c.hooks.BillingInvoiceLine
@@ -5667,6 +5693,22 @@ func (c *ChargeCreditPurchaseClient) QueryExternalPayment(_m *ChargeCreditPurcha
 	return query
 }
 
+// QueryInvoicedPayment queries the invoiced_payment edge of a ChargeCreditPurchase.
+func (c *ChargeCreditPurchaseClient) QueryInvoicedPayment(_m *ChargeCreditPurchase) *ChargeCreditPurchaseInvoicedPaymentQuery {
+	query := (&ChargeCreditPurchaseInvoicedPaymentClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargecreditpurchase.Table, chargecreditpurchase.FieldID, id),
+			sqlgraph.To(chargecreditpurchaseinvoicedpayment.Table, chargecreditpurchaseinvoicedpayment.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, chargecreditpurchase.InvoicedPaymentTable, chargecreditpurchase.InvoicedPaymentColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ChargeCreditPurchaseClient) Hooks() []Hook {
 	return c.hooks.ChargeCreditPurchase
@@ -5838,6 +5880,171 @@ func (c *ChargeCreditPurchaseExternalPaymentClient) mutate(ctx context.Context, 
 		return (&ChargeCreditPurchaseExternalPaymentDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown ChargeCreditPurchaseExternalPayment mutation op: %q", m.Op())
+	}
+}
+
+// ChargeCreditPurchaseInvoicedPaymentClient is a client for the ChargeCreditPurchaseInvoicedPayment schema.
+type ChargeCreditPurchaseInvoicedPaymentClient struct {
+	config
+}
+
+// NewChargeCreditPurchaseInvoicedPaymentClient returns a client for the ChargeCreditPurchaseInvoicedPayment from the given config.
+func NewChargeCreditPurchaseInvoicedPaymentClient(c config) *ChargeCreditPurchaseInvoicedPaymentClient {
+	return &ChargeCreditPurchaseInvoicedPaymentClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `chargecreditpurchaseinvoicedpayment.Hooks(f(g(h())))`.
+func (c *ChargeCreditPurchaseInvoicedPaymentClient) Use(hooks ...Hook) {
+	c.hooks.ChargeCreditPurchaseInvoicedPayment = append(c.hooks.ChargeCreditPurchaseInvoicedPayment, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `chargecreditpurchaseinvoicedpayment.Intercept(f(g(h())))`.
+func (c *ChargeCreditPurchaseInvoicedPaymentClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ChargeCreditPurchaseInvoicedPayment = append(c.inters.ChargeCreditPurchaseInvoicedPayment, interceptors...)
+}
+
+// Create returns a builder for creating a ChargeCreditPurchaseInvoicedPayment entity.
+func (c *ChargeCreditPurchaseInvoicedPaymentClient) Create() *ChargeCreditPurchaseInvoicedPaymentCreate {
+	mutation := newChargeCreditPurchaseInvoicedPaymentMutation(c.config, OpCreate)
+	return &ChargeCreditPurchaseInvoicedPaymentCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ChargeCreditPurchaseInvoicedPayment entities.
+func (c *ChargeCreditPurchaseInvoicedPaymentClient) CreateBulk(builders ...*ChargeCreditPurchaseInvoicedPaymentCreate) *ChargeCreditPurchaseInvoicedPaymentCreateBulk {
+	return &ChargeCreditPurchaseInvoicedPaymentCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ChargeCreditPurchaseInvoicedPaymentClient) MapCreateBulk(slice any, setFunc func(*ChargeCreditPurchaseInvoicedPaymentCreate, int)) *ChargeCreditPurchaseInvoicedPaymentCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ChargeCreditPurchaseInvoicedPaymentCreateBulk{err: fmt.Errorf("calling to ChargeCreditPurchaseInvoicedPaymentClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ChargeCreditPurchaseInvoicedPaymentCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ChargeCreditPurchaseInvoicedPaymentCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ChargeCreditPurchaseInvoicedPayment.
+func (c *ChargeCreditPurchaseInvoicedPaymentClient) Update() *ChargeCreditPurchaseInvoicedPaymentUpdate {
+	mutation := newChargeCreditPurchaseInvoicedPaymentMutation(c.config, OpUpdate)
+	return &ChargeCreditPurchaseInvoicedPaymentUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ChargeCreditPurchaseInvoicedPaymentClient) UpdateOne(_m *ChargeCreditPurchaseInvoicedPayment) *ChargeCreditPurchaseInvoicedPaymentUpdateOne {
+	mutation := newChargeCreditPurchaseInvoicedPaymentMutation(c.config, OpUpdateOne, withChargeCreditPurchaseInvoicedPayment(_m))
+	return &ChargeCreditPurchaseInvoicedPaymentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ChargeCreditPurchaseInvoicedPaymentClient) UpdateOneID(id string) *ChargeCreditPurchaseInvoicedPaymentUpdateOne {
+	mutation := newChargeCreditPurchaseInvoicedPaymentMutation(c.config, OpUpdateOne, withChargeCreditPurchaseInvoicedPaymentID(id))
+	return &ChargeCreditPurchaseInvoicedPaymentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ChargeCreditPurchaseInvoicedPayment.
+func (c *ChargeCreditPurchaseInvoicedPaymentClient) Delete() *ChargeCreditPurchaseInvoicedPaymentDelete {
+	mutation := newChargeCreditPurchaseInvoicedPaymentMutation(c.config, OpDelete)
+	return &ChargeCreditPurchaseInvoicedPaymentDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ChargeCreditPurchaseInvoicedPaymentClient) DeleteOne(_m *ChargeCreditPurchaseInvoicedPayment) *ChargeCreditPurchaseInvoicedPaymentDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ChargeCreditPurchaseInvoicedPaymentClient) DeleteOneID(id string) *ChargeCreditPurchaseInvoicedPaymentDeleteOne {
+	builder := c.Delete().Where(chargecreditpurchaseinvoicedpayment.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ChargeCreditPurchaseInvoicedPaymentDeleteOne{builder}
+}
+
+// Query returns a query builder for ChargeCreditPurchaseInvoicedPayment.
+func (c *ChargeCreditPurchaseInvoicedPaymentClient) Query() *ChargeCreditPurchaseInvoicedPaymentQuery {
+	return &ChargeCreditPurchaseInvoicedPaymentQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeChargeCreditPurchaseInvoicedPayment},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ChargeCreditPurchaseInvoicedPayment entity by its id.
+func (c *ChargeCreditPurchaseInvoicedPaymentClient) Get(ctx context.Context, id string) (*ChargeCreditPurchaseInvoicedPayment, error) {
+	return c.Query().Where(chargecreditpurchaseinvoicedpayment.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ChargeCreditPurchaseInvoicedPaymentClient) GetX(ctx context.Context, id string) *ChargeCreditPurchaseInvoicedPayment {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryBillingInvoiceLine queries the billing_invoice_line edge of a ChargeCreditPurchaseInvoicedPayment.
+func (c *ChargeCreditPurchaseInvoicedPaymentClient) QueryBillingInvoiceLine(_m *ChargeCreditPurchaseInvoicedPayment) *BillingInvoiceLineQuery {
+	query := (&BillingInvoiceLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargecreditpurchaseinvoicedpayment.Table, chargecreditpurchaseinvoicedpayment.FieldID, id),
+			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, chargecreditpurchaseinvoicedpayment.BillingInvoiceLineTable, chargecreditpurchaseinvoicedpayment.BillingInvoiceLineColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCreditPurchase queries the credit_purchase edge of a ChargeCreditPurchaseInvoicedPayment.
+func (c *ChargeCreditPurchaseInvoicedPaymentClient) QueryCreditPurchase(_m *ChargeCreditPurchaseInvoicedPayment) *ChargeCreditPurchaseQuery {
+	query := (&ChargeCreditPurchaseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargecreditpurchaseinvoicedpayment.Table, chargecreditpurchaseinvoicedpayment.FieldID, id),
+			sqlgraph.To(chargecreditpurchase.Table, chargecreditpurchase.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, chargecreditpurchaseinvoicedpayment.CreditPurchaseTable, chargecreditpurchaseinvoicedpayment.CreditPurchaseColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ChargeCreditPurchaseInvoicedPaymentClient) Hooks() []Hook {
+	return c.hooks.ChargeCreditPurchaseInvoicedPayment
+}
+
+// Interceptors returns the client interceptors.
+func (c *ChargeCreditPurchaseInvoicedPaymentClient) Interceptors() []Interceptor {
+	return c.inters.ChargeCreditPurchaseInvoicedPayment
+}
+
+func (c *ChargeCreditPurchaseInvoicedPaymentClient) mutate(ctx context.Context, m *ChargeCreditPurchaseInvoicedPaymentMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ChargeCreditPurchaseInvoicedPaymentCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ChargeCreditPurchaseInvoicedPaymentUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ChargeCreditPurchaseInvoicedPaymentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ChargeCreditPurchaseInvoicedPaymentDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown ChargeCreditPurchaseInvoicedPayment mutation op: %q", m.Op())
 	}
 }
 
@@ -12880,7 +13087,8 @@ type (
 		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
 		Charge, ChargeCreditPurchase, ChargeCreditPurchaseExternalPayment,
-		ChargeFlatFee, ChargeFlatFeeCreditAllocations, ChargeFlatFeeInvoicedUsage,
+		ChargeCreditPurchaseInvoicedPayment, ChargeFlatFee,
+		ChargeFlatFeeCreditAllocations, ChargeFlatFeeInvoicedUsage,
 		ChargeFlatFeePayment, ChargeUsageBased, ChargeUsageBasedRunCreditAllocations,
 		ChargeUsageBasedRunInvoicedUsage, ChargeUsageBasedRunPayment,
 		ChargeUsageBasedRuns, CurrencyCostBasis, CustomCurrency, Customer,
@@ -12903,7 +13111,8 @@ type (
 		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
 		Charge, ChargeCreditPurchase, ChargeCreditPurchaseExternalPayment,
-		ChargeFlatFee, ChargeFlatFeeCreditAllocations, ChargeFlatFeeInvoicedUsage,
+		ChargeCreditPurchaseInvoicedPayment, ChargeFlatFee,
+		ChargeFlatFeeCreditAllocations, ChargeFlatFeeInvoicedUsage,
 		ChargeFlatFeePayment, ChargeUsageBased, ChargeUsageBasedRunCreditAllocations,
 		ChargeUsageBasedRunInvoicedUsage, ChargeUsageBasedRunPayment,
 		ChargeUsageBasedRuns, CurrencyCostBasis, CustomCurrency, Customer,

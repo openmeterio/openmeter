@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 )
 
 // ChargeCreditPurchase is the model entity for the ChargeCreditPurchase schema.
@@ -43,9 +44,11 @@ type ChargeCreditPurchaseEdges struct {
 	Charge *Charge `json:"charge,omitempty"`
 	// ExternalPayment holds the value of the external_payment edge.
 	ExternalPayment *ChargeCreditPurchaseExternalPayment `json:"external_payment,omitempty"`
+	// InvoicedPayment holds the value of the invoiced_payment edge.
+	InvoicedPayment *ChargeCreditPurchaseInvoicedPayment `json:"invoiced_payment,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // ChargeOrErr returns the Charge value or an error if the edge
@@ -68,6 +71,17 @@ func (e ChargeCreditPurchaseEdges) ExternalPaymentOrErr() (*ChargeCreditPurchase
 		return nil, &NotFoundError{label: chargecreditpurchaseexternalpayment.Label}
 	}
 	return nil, &NotLoadedError{edge: "external_payment"}
+}
+
+// InvoicedPaymentOrErr returns the InvoicedPayment value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeCreditPurchaseEdges) InvoicedPaymentOrErr() (*ChargeCreditPurchaseInvoicedPayment, error) {
+	if e.InvoicedPayment != nil {
+		return e.InvoicedPayment, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: chargecreditpurchaseinvoicedpayment.Label}
+	}
+	return nil, &NotLoadedError{edge: "invoiced_payment"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -157,6 +171,11 @@ func (_m *ChargeCreditPurchase) QueryCharge() *ChargeQuery {
 // QueryExternalPayment queries the "external_payment" edge of the ChargeCreditPurchase entity.
 func (_m *ChargeCreditPurchase) QueryExternalPayment() *ChargeCreditPurchaseExternalPaymentQuery {
 	return NewChargeCreditPurchaseClient(_m.config).QueryExternalPayment(_m)
+}
+
+// QueryInvoicedPayment queries the "invoiced_payment" edge of the ChargeCreditPurchase entity.
+func (_m *ChargeCreditPurchase) QueryInvoicedPayment() *ChargeCreditPurchaseInvoicedPaymentQuery {
+	return NewChargeCreditPurchaseClient(_m.config).QueryInvoicedPayment(_m)
 }
 
 // Update returns a builder for updating this ChargeCreditPurchase.

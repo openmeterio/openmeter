@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
@@ -34,28 +35,29 @@ import (
 // BillingInvoiceLineQuery is the builder for querying BillingInvoiceLine entities.
 type BillingInvoiceLineQuery struct {
 	config
-	ctx                                *QueryContext
-	order                              []billinginvoiceline.OrderOption
-	inters                             []Interceptor
-	predicates                         []predicate.BillingInvoiceLine
-	withBillingInvoice                 *BillingInvoiceQuery
-	withSplitLineGroup                 *BillingInvoiceSplitLineGroupQuery
-	withFlatFeeLine                    *BillingInvoiceFlatFeeLineConfigQuery
-	withUsageBasedLine                 *BillingInvoiceUsageBasedLineConfigQuery
-	withParentLine                     *BillingInvoiceLineQuery
-	withDetailedLines                  *BillingInvoiceLineQuery
-	withDetailedLinesV2                *BillingStandardInvoiceDetailedLineQuery
-	withLineUsageDiscounts             *BillingInvoiceLineUsageDiscountQuery
-	withLineAmountDiscounts            *BillingInvoiceLineDiscountQuery
-	withSubscription                   *SubscriptionQuery
-	withSubscriptionPhase              *SubscriptionPhaseQuery
-	withSubscriptionItem               *SubscriptionItemQuery
-	withCharge                         *ChargeQuery
-	withChargeFlatFeePayment           *ChargeFlatFeePaymentQuery
-	withChargeFlatFeeCreditAllocations *ChargeFlatFeeCreditAllocationsQuery
-	withChargeFlatFeeInvoicedUsage     *ChargeFlatFeeInvoicedUsageQuery
-	withFKs                            bool
-	modifiers                          []func(*sql.Selector)
+	ctx                                     *QueryContext
+	order                                   []billinginvoiceline.OrderOption
+	inters                                  []Interceptor
+	predicates                              []predicate.BillingInvoiceLine
+	withBillingInvoice                      *BillingInvoiceQuery
+	withSplitLineGroup                      *BillingInvoiceSplitLineGroupQuery
+	withFlatFeeLine                         *BillingInvoiceFlatFeeLineConfigQuery
+	withUsageBasedLine                      *BillingInvoiceUsageBasedLineConfigQuery
+	withParentLine                          *BillingInvoiceLineQuery
+	withDetailedLines                       *BillingInvoiceLineQuery
+	withDetailedLinesV2                     *BillingStandardInvoiceDetailedLineQuery
+	withLineUsageDiscounts                  *BillingInvoiceLineUsageDiscountQuery
+	withLineAmountDiscounts                 *BillingInvoiceLineDiscountQuery
+	withSubscription                        *SubscriptionQuery
+	withSubscriptionPhase                   *SubscriptionPhaseQuery
+	withSubscriptionItem                    *SubscriptionItemQuery
+	withCharge                              *ChargeQuery
+	withChargeFlatFeePayment                *ChargeFlatFeePaymentQuery
+	withChargeFlatFeeCreditAllocations      *ChargeFlatFeeCreditAllocationsQuery
+	withChargeFlatFeeInvoicedUsage          *ChargeFlatFeeInvoicedUsageQuery
+	withChargeCreditPurchaseInvoicedPayment *ChargeCreditPurchaseInvoicedPaymentQuery
+	withFKs                                 bool
+	modifiers                               []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -444,6 +446,28 @@ func (_q *BillingInvoiceLineQuery) QueryChargeFlatFeeInvoicedUsage() *ChargeFlat
 	return query
 }
 
+// QueryChargeCreditPurchaseInvoicedPayment chains the current query on the "charge_credit_purchase_invoiced_payment" edge.
+func (_q *BillingInvoiceLineQuery) QueryChargeCreditPurchaseInvoicedPayment() *ChargeCreditPurchaseInvoicedPaymentQuery {
+	query := (&ChargeCreditPurchaseInvoicedPaymentClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoiceline.Table, billinginvoiceline.FieldID, selector),
+			sqlgraph.To(chargecreditpurchaseinvoicedpayment.Table, chargecreditpurchaseinvoicedpayment.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, billinginvoiceline.ChargeCreditPurchaseInvoicedPaymentTable, billinginvoiceline.ChargeCreditPurchaseInvoicedPaymentColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // First returns the first BillingInvoiceLine entity from the query.
 // Returns a *NotFoundError when no BillingInvoiceLine was found.
 func (_q *BillingInvoiceLineQuery) First(ctx context.Context) (*BillingInvoiceLine, error) {
@@ -631,27 +655,28 @@ func (_q *BillingInvoiceLineQuery) Clone() *BillingInvoiceLineQuery {
 		return nil
 	}
 	return &BillingInvoiceLineQuery{
-		config:                             _q.config,
-		ctx:                                _q.ctx.Clone(),
-		order:                              append([]billinginvoiceline.OrderOption{}, _q.order...),
-		inters:                             append([]Interceptor{}, _q.inters...),
-		predicates:                         append([]predicate.BillingInvoiceLine{}, _q.predicates...),
-		withBillingInvoice:                 _q.withBillingInvoice.Clone(),
-		withSplitLineGroup:                 _q.withSplitLineGroup.Clone(),
-		withFlatFeeLine:                    _q.withFlatFeeLine.Clone(),
-		withUsageBasedLine:                 _q.withUsageBasedLine.Clone(),
-		withParentLine:                     _q.withParentLine.Clone(),
-		withDetailedLines:                  _q.withDetailedLines.Clone(),
-		withDetailedLinesV2:                _q.withDetailedLinesV2.Clone(),
-		withLineUsageDiscounts:             _q.withLineUsageDiscounts.Clone(),
-		withLineAmountDiscounts:            _q.withLineAmountDiscounts.Clone(),
-		withSubscription:                   _q.withSubscription.Clone(),
-		withSubscriptionPhase:              _q.withSubscriptionPhase.Clone(),
-		withSubscriptionItem:               _q.withSubscriptionItem.Clone(),
-		withCharge:                         _q.withCharge.Clone(),
-		withChargeFlatFeePayment:           _q.withChargeFlatFeePayment.Clone(),
-		withChargeFlatFeeCreditAllocations: _q.withChargeFlatFeeCreditAllocations.Clone(),
-		withChargeFlatFeeInvoicedUsage:     _q.withChargeFlatFeeInvoicedUsage.Clone(),
+		config:                                  _q.config,
+		ctx:                                     _q.ctx.Clone(),
+		order:                                   append([]billinginvoiceline.OrderOption{}, _q.order...),
+		inters:                                  append([]Interceptor{}, _q.inters...),
+		predicates:                              append([]predicate.BillingInvoiceLine{}, _q.predicates...),
+		withBillingInvoice:                      _q.withBillingInvoice.Clone(),
+		withSplitLineGroup:                      _q.withSplitLineGroup.Clone(),
+		withFlatFeeLine:                         _q.withFlatFeeLine.Clone(),
+		withUsageBasedLine:                      _q.withUsageBasedLine.Clone(),
+		withParentLine:                          _q.withParentLine.Clone(),
+		withDetailedLines:                       _q.withDetailedLines.Clone(),
+		withDetailedLinesV2:                     _q.withDetailedLinesV2.Clone(),
+		withLineUsageDiscounts:                  _q.withLineUsageDiscounts.Clone(),
+		withLineAmountDiscounts:                 _q.withLineAmountDiscounts.Clone(),
+		withSubscription:                        _q.withSubscription.Clone(),
+		withSubscriptionPhase:                   _q.withSubscriptionPhase.Clone(),
+		withSubscriptionItem:                    _q.withSubscriptionItem.Clone(),
+		withCharge:                              _q.withCharge.Clone(),
+		withChargeFlatFeePayment:                _q.withChargeFlatFeePayment.Clone(),
+		withChargeFlatFeeCreditAllocations:      _q.withChargeFlatFeeCreditAllocations.Clone(),
+		withChargeFlatFeeInvoicedUsage:          _q.withChargeFlatFeeInvoicedUsage.Clone(),
+		withChargeCreditPurchaseInvoicedPayment: _q.withChargeCreditPurchaseInvoicedPayment.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -834,6 +859,17 @@ func (_q *BillingInvoiceLineQuery) WithChargeFlatFeeInvoicedUsage(opts ...func(*
 	return _q
 }
 
+// WithChargeCreditPurchaseInvoicedPayment tells the query-builder to eager-load the nodes that are connected to
+// the "charge_credit_purchase_invoiced_payment" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BillingInvoiceLineQuery) WithChargeCreditPurchaseInvoicedPayment(opts ...func(*ChargeCreditPurchaseInvoicedPaymentQuery)) *BillingInvoiceLineQuery {
+	query := (&ChargeCreditPurchaseInvoicedPaymentClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withChargeCreditPurchaseInvoicedPayment = query
+	return _q
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
@@ -913,7 +949,7 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 		nodes       = []*BillingInvoiceLine{}
 		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
-		loadedTypes = [16]bool{
+		loadedTypes = [17]bool{
 			_q.withBillingInvoice != nil,
 			_q.withSplitLineGroup != nil,
 			_q.withFlatFeeLine != nil,
@@ -930,6 +966,7 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 			_q.withChargeFlatFeePayment != nil,
 			_q.withChargeFlatFeeCreditAllocations != nil,
 			_q.withChargeFlatFeeInvoicedUsage != nil,
+			_q.withChargeCreditPurchaseInvoicedPayment != nil,
 		}
 	)
 	if _q.withFlatFeeLine != nil || _q.withUsageBasedLine != nil {
@@ -1071,6 +1108,14 @@ func (_q *BillingInvoiceLineQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 			func(n *BillingInvoiceLine) { n.Edges.ChargeFlatFeeInvoicedUsage = []*ChargeFlatFeeInvoicedUsage{} },
 			func(n *BillingInvoiceLine, e *ChargeFlatFeeInvoicedUsage) {
 				n.Edges.ChargeFlatFeeInvoicedUsage = append(n.Edges.ChargeFlatFeeInvoicedUsage, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withChargeCreditPurchaseInvoicedPayment; query != nil {
+		if err := _q.loadChargeCreditPurchaseInvoicedPayment(ctx, query, nodes, nil,
+			func(n *BillingInvoiceLine, e *ChargeCreditPurchaseInvoicedPayment) {
+				n.Edges.ChargeCreditPurchaseInvoicedPayment = e
 			}); err != nil {
 			return nil, err
 		}
@@ -1575,6 +1620,33 @@ func (_q *BillingInvoiceLineQuery) loadChargeFlatFeeInvoicedUsage(ctx context.Co
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "line_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *BillingInvoiceLineQuery) loadChargeCreditPurchaseInvoicedPayment(ctx context.Context, query *ChargeCreditPurchaseInvoicedPaymentQuery, nodes []*BillingInvoiceLine, init func(*BillingInvoiceLine), assign func(*BillingInvoiceLine, *ChargeCreditPurchaseInvoicedPayment)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*BillingInvoiceLine)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargecreditpurchaseinvoicedpayment.FieldLineID)
+	}
+	query.Where(predicate.ChargeCreditPurchaseInvoicedPayment(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(billinginvoiceline.ChargeCreditPurchaseInvoicedPaymentColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.LineID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "line_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

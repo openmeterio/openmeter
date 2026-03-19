@@ -34,6 +34,12 @@ func (_c *ChargeFlatFeePaymentCreate) SetLineID(v string) *ChargeFlatFeePaymentC
 	return _c
 }
 
+// SetInvoiceID sets the "invoice_id" field.
+func (_c *ChargeFlatFeePaymentCreate) SetInvoiceID(v string) *ChargeFlatFeePaymentCreate {
+	_c.mutation.SetInvoiceID(v)
+	return _c
+}
+
 // SetServicePeriodFrom sets the "service_period_from" field.
 func (_c *ChargeFlatFeePaymentCreate) SetServicePeriodFrom(v time.Time) *ChargeFlatFeePaymentCreate {
 	_c.mutation.SetServicePeriodFrom(v)
@@ -264,6 +270,9 @@ func (_c *ChargeFlatFeePaymentCreate) check() error {
 	if _, ok := _c.mutation.LineID(); !ok {
 		return &ValidationError{Name: "line_id", err: errors.New(`db: missing required field "ChargeFlatFeePayment.line_id"`)}
 	}
+	if _, ok := _c.mutation.InvoiceID(); !ok {
+		return &ValidationError{Name: "invoice_id", err: errors.New(`db: missing required field "ChargeFlatFeePayment.invoice_id"`)}
+	}
 	if _, ok := _c.mutation.ServicePeriodFrom(); !ok {
 		return &ValidationError{Name: "service_period_from", err: errors.New(`db: missing required field "ChargeFlatFeePayment.service_period_from"`)}
 	}
@@ -349,6 +358,10 @@ func (_c *ChargeFlatFeePaymentCreate) createSpec() (*ChargeFlatFeePayment, *sqlg
 	if id, ok := _c.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
+	}
+	if value, ok := _c.mutation.InvoiceID(); ok {
+		_spec.SetField(chargeflatfeepayment.FieldInvoiceID, field.TypeString, value)
+		_node.InvoiceID = value
 	}
 	if value, ok := _c.mutation.ServicePeriodFrom(); ok {
 		_spec.SetField(chargeflatfeepayment.FieldServicePeriodFrom, field.TypeTime, value)
@@ -675,6 +688,9 @@ func (u *ChargeFlatFeePaymentUpsertOne) UpdateNewValues() *ChargeFlatFeePaymentU
 		}
 		if _, exists := u.create.mutation.LineID(); exists {
 			s.SetIgnore(chargeflatfeepayment.FieldLineID)
+		}
+		if _, exists := u.create.mutation.InvoiceID(); exists {
+			s.SetIgnore(chargeflatfeepayment.FieldInvoiceID)
 		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(chargeflatfeepayment.FieldNamespace)
@@ -1097,6 +1113,9 @@ func (u *ChargeFlatFeePaymentUpsertBulk) UpdateNewValues() *ChargeFlatFeePayment
 			}
 			if _, exists := b.mutation.LineID(); exists {
 				s.SetIgnore(chargeflatfeepayment.FieldLineID)
+			}
+			if _, exists := b.mutation.InvoiceID(); exists {
+				s.SetIgnore(chargeflatfeepayment.FieldInvoiceID)
 			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(chargeflatfeepayment.FieldNamespace)

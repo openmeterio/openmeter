@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 )
 
 // ChargeCreditPurchaseCreate is the builder for creating a ChargeCreditPurchase entity.
@@ -115,6 +116,25 @@ func (_c *ChargeCreditPurchaseCreate) SetNillableExternalPaymentID(id *string) *
 // SetExternalPayment sets the "external_payment" edge to the ChargeCreditPurchaseExternalPayment entity.
 func (_c *ChargeCreditPurchaseCreate) SetExternalPayment(v *ChargeCreditPurchaseExternalPayment) *ChargeCreditPurchaseCreate {
 	return _c.SetExternalPaymentID(v.ID)
+}
+
+// SetInvoicedPaymentID sets the "invoiced_payment" edge to the ChargeCreditPurchaseInvoicedPayment entity by ID.
+func (_c *ChargeCreditPurchaseCreate) SetInvoicedPaymentID(id string) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetInvoicedPaymentID(id)
+	return _c
+}
+
+// SetNillableInvoicedPaymentID sets the "invoiced_payment" edge to the ChargeCreditPurchaseInvoicedPayment entity by ID if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableInvoicedPaymentID(id *string) *ChargeCreditPurchaseCreate {
+	if id != nil {
+		_c = _c.SetInvoicedPaymentID(*id)
+	}
+	return _c
+}
+
+// SetInvoicedPayment sets the "invoiced_payment" edge to the ChargeCreditPurchaseInvoicedPayment entity.
+func (_c *ChargeCreditPurchaseCreate) SetInvoicedPayment(v *ChargeCreditPurchaseInvoicedPayment) *ChargeCreditPurchaseCreate {
+	return _c.SetInvoicedPaymentID(v.ID)
 }
 
 // Mutation returns the ChargeCreditPurchaseMutation object of the builder.
@@ -276,6 +296,22 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchaseexternalpayment.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.InvoicedPaymentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargecreditpurchase.InvoicedPaymentTable,
+			Columns: []string{chargecreditpurchase.InvoicedPaymentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchaseinvoicedpayment.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

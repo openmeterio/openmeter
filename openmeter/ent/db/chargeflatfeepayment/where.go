@@ -72,6 +72,11 @@ func LineID(v string) predicate.ChargeFlatFeePayment {
 	return predicate.ChargeFlatFeePayment(sql.FieldEQ(FieldLineID, v))
 }
 
+// InvoiceID applies equality check predicate on the "invoice_id" field. It's identical to InvoiceIDEQ.
+func InvoiceID(v string) predicate.ChargeFlatFeePayment {
+	return predicate.ChargeFlatFeePayment(sql.FieldEQ(FieldInvoiceID, v))
+}
+
 // ServicePeriodFrom applies equality check predicate on the "service_period_from" field. It's identical to ServicePeriodFromEQ.
 func ServicePeriodFrom(v time.Time) predicate.ChargeFlatFeePayment {
 	return predicate.ChargeFlatFeePayment(sql.FieldEQ(FieldServicePeriodFrom, v))
@@ -195,6 +200,71 @@ func LineIDEqualFold(v string) predicate.ChargeFlatFeePayment {
 // LineIDContainsFold applies the ContainsFold predicate on the "line_id" field.
 func LineIDContainsFold(v string) predicate.ChargeFlatFeePayment {
 	return predicate.ChargeFlatFeePayment(sql.FieldContainsFold(FieldLineID, v))
+}
+
+// InvoiceIDEQ applies the EQ predicate on the "invoice_id" field.
+func InvoiceIDEQ(v string) predicate.ChargeFlatFeePayment {
+	return predicate.ChargeFlatFeePayment(sql.FieldEQ(FieldInvoiceID, v))
+}
+
+// InvoiceIDNEQ applies the NEQ predicate on the "invoice_id" field.
+func InvoiceIDNEQ(v string) predicate.ChargeFlatFeePayment {
+	return predicate.ChargeFlatFeePayment(sql.FieldNEQ(FieldInvoiceID, v))
+}
+
+// InvoiceIDIn applies the In predicate on the "invoice_id" field.
+func InvoiceIDIn(vs ...string) predicate.ChargeFlatFeePayment {
+	return predicate.ChargeFlatFeePayment(sql.FieldIn(FieldInvoiceID, vs...))
+}
+
+// InvoiceIDNotIn applies the NotIn predicate on the "invoice_id" field.
+func InvoiceIDNotIn(vs ...string) predicate.ChargeFlatFeePayment {
+	return predicate.ChargeFlatFeePayment(sql.FieldNotIn(FieldInvoiceID, vs...))
+}
+
+// InvoiceIDGT applies the GT predicate on the "invoice_id" field.
+func InvoiceIDGT(v string) predicate.ChargeFlatFeePayment {
+	return predicate.ChargeFlatFeePayment(sql.FieldGT(FieldInvoiceID, v))
+}
+
+// InvoiceIDGTE applies the GTE predicate on the "invoice_id" field.
+func InvoiceIDGTE(v string) predicate.ChargeFlatFeePayment {
+	return predicate.ChargeFlatFeePayment(sql.FieldGTE(FieldInvoiceID, v))
+}
+
+// InvoiceIDLT applies the LT predicate on the "invoice_id" field.
+func InvoiceIDLT(v string) predicate.ChargeFlatFeePayment {
+	return predicate.ChargeFlatFeePayment(sql.FieldLT(FieldInvoiceID, v))
+}
+
+// InvoiceIDLTE applies the LTE predicate on the "invoice_id" field.
+func InvoiceIDLTE(v string) predicate.ChargeFlatFeePayment {
+	return predicate.ChargeFlatFeePayment(sql.FieldLTE(FieldInvoiceID, v))
+}
+
+// InvoiceIDContains applies the Contains predicate on the "invoice_id" field.
+func InvoiceIDContains(v string) predicate.ChargeFlatFeePayment {
+	return predicate.ChargeFlatFeePayment(sql.FieldContains(FieldInvoiceID, v))
+}
+
+// InvoiceIDHasPrefix applies the HasPrefix predicate on the "invoice_id" field.
+func InvoiceIDHasPrefix(v string) predicate.ChargeFlatFeePayment {
+	return predicate.ChargeFlatFeePayment(sql.FieldHasPrefix(FieldInvoiceID, v))
+}
+
+// InvoiceIDHasSuffix applies the HasSuffix predicate on the "invoice_id" field.
+func InvoiceIDHasSuffix(v string) predicate.ChargeFlatFeePayment {
+	return predicate.ChargeFlatFeePayment(sql.FieldHasSuffix(FieldInvoiceID, v))
+}
+
+// InvoiceIDEqualFold applies the EqualFold predicate on the "invoice_id" field.
+func InvoiceIDEqualFold(v string) predicate.ChargeFlatFeePayment {
+	return predicate.ChargeFlatFeePayment(sql.FieldEqualFold(FieldInvoiceID, v))
+}
+
+// InvoiceIDContainsFold applies the ContainsFold predicate on the "invoice_id" field.
+func InvoiceIDContainsFold(v string) predicate.ChargeFlatFeePayment {
+	return predicate.ChargeFlatFeePayment(sql.FieldContainsFold(FieldInvoiceID, v))
 }
 
 // ServicePeriodFromEQ applies the EQ predicate on the "service_period_from" field.
