@@ -260,8 +260,9 @@ type TelemetryServer = *http.Server
 
 func NewTelemetryServer(conf config.TelemetryConfig, handler TelemetryHandler) (TelemetryServer, func()) {
 	server := &http.Server{
-		Addr:    conf.Address,
-		Handler: handler,
+		Addr:              conf.Address,
+		Handler:           handler,
+		ReadHeaderTimeout: conf.ReadHeaderTimeout,
 	}
 
 	return server, func() { server.Close() }

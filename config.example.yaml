@@ -22,6 +22,18 @@ termination:
   # propagationTimeout must always less than GracefulShutdownTimeout.
   propagationTimeout: 3s
 
+server:
+  # readHeaderTimeout is the maximum time allowed to read request headers.
+  # Protects against Slowloris attacks. Should be short.
+  readHeaderTimeout: 10s
+  # readTimeout is the maximum time allowed to read the entire request including the body.
+  readTimeout: 60s
+  # writeTimeout is the maximum time allowed to write a response.
+  # Must be shorter than the ingress gateway's upstream timeout.
+  writeTimeout: 90s
+  # idleTimeout is the maximum time a keep-alive connection remains idle before being closed.
+  idleTimeout: 120s
+
 #ingest:
 #  kafka:
 #    # To enable stats reporting set this value to >=5s.
