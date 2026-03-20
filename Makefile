@@ -5,7 +5,8 @@ SVIX_JWT_SECRET = DUMMY_JWT_SECRET
 
 # dynamic forces confluent-kafka-go to build against local librdkafka
 GO_BUILD_FLAGS = -tags=dynamic
-GO_TEST_FLAGS = -p 128 -parallel 16 ${GO_BUILD_FLAGS}
+GO_TEST_PACKAGE_PARALLELISM ?= 128
+GO_TEST_FLAGS = -p ${GO_TEST_PACKAGE_PARALLELISM} -parallel 16 ${GO_BUILD_FLAGS}
 
 .PHONY: up
 up: ## Start the dependencies via docker compose. `export COMPOSE_PROFILES=dev,redis,...`
