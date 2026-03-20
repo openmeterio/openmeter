@@ -185,6 +185,11 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 		return Feature{}, err
 	}
 
+	// Populate MeterSlug from resolved meter for v1 API backward compat
+	if resolvedMeter != nil {
+		createdFeature.MeterSlug = &resolvedMeter.Key
+	}
+
 	// Publish the feature created event
 	featureCreatedEvent := NewFeatureCreateEvent(ctx, &createdFeature)
 	if err := c.publisher.Publish(ctx, featureCreatedEvent); err != nil {

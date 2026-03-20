@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	db_meter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
+	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	dbplanphase "github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	dbratecard "github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
@@ -84,6 +85,10 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feat feature.Creat
 
 func (c *featureDBAdapter) GetByIdOrKey(ctx context.Context, namespace string, idOrKey string, includeArchived bool) (*feature.Feature, error) {
 	query := c.db.Feature.Query().
+		// We only need Meter Key for v1 API backward compatibility
+		WithMeter(func(mq *db.MeterQuery) {
+			mq.Select(dbmeter.FieldID, dbmeter.FieldKey)
+		}).
 		Where(db_feature.Namespace(namespace)).
 		Where(db_feature.Or(db_feature.Key(idOrKey), db_feature.ID(idOrKey)))
 
@@ -195,6 +200,10 @@ func (c *featureDBAdapter) HasActiveFeatureForMeter(ctx context.Context, namespa
 
 func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.ListFeaturesParams) (pagination.Result[feature.Feature], error) {
 	query := c.db.Feature.Query().
+		// We only need Meter Key for v1 API backward compatibility
+		WithMeter(func(mq *db.MeterQuery) {
+			mq.Select(dbmeter.FieldID, dbmeter.FieldKey)
+		}).
 		Where(db_feature.Namespace(params.Namespace))
 
 	if len(params.MeterIDs) > 0 {
@@ -285,11 +294,15 @@ func MapFeatureEntity(entity *db.Feature) feature.Feature {
 		Name:       entity.Name,
 		Key:        entity.Key,
 		MeterID:    entity.MeterID,
-		MeterSlug:  entity.MeterSlug, // Deprecated: kept for v1 API backward compat
 		ArchivedAt: entity.ArchivedAt,
 		CreatedAt:  entity.CreatedAt.In(time.UTC),
 		UpdatedAt:  entity.UpdatedAt.In(time.UTC),
 		Metadata:   entity.Metadata,
+	}
+
+	// Deprecated: kept for v1 API backward compatibility
+	if entity.Edges.Meter != nil {
+		f.MeterSlug = &entity.Edges.Meter.Key
 	}
 
 	// Use advanced meter group by filters if available
