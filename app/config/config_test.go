@@ -65,7 +65,8 @@ func TestComplete(t *testing.T) {
 		},
 		Environment: "local",
 		Telemetry: TelemetryConfig{
-			Address: "127.0.0.1:10000",
+			Address:           "127.0.0.1:10000",
+			ReadHeaderTimeout: 10 * time.Second,
 			Trace: TraceTelemetryConfig{
 				Sampler: "always",
 				Exporters: ExportersTraceTelemetryConfig{
@@ -399,6 +400,12 @@ func TestComplete(t *testing.T) {
 			CheckInterval:           7 * time.Second,
 			GracefulShutdownTimeout: 43 * time.Second,
 			PropagationTimeout:      18 * time.Second,
+		},
+		Server: ServerConfig{
+			ReadHeaderTimeout: 10 * time.Second,
+			ReadTimeout:       60 * time.Second,
+			WriteTimeout:      90 * time.Second,
+			IdleTimeout:       120 * time.Second,
 		},
 		ProgressManager: ProgressManagerConfiguration{
 			Enabled:    false,
