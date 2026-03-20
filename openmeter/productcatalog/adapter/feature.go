@@ -11,8 +11,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
-	db_meter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	dbplanphase "github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
@@ -83,7 +82,7 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feat feature.Creat
 	// Re-fetch with meter edge for MeterSlug backward compatibility
 	if entity.MeterID != nil {
 		entity, err = c.db.Feature.Query().
-			Where(db_feature.ID(entity.ID)).
+			Where(dbfeature.ID(entity.ID)).
 			WithMeter(func(mq *db.MeterQuery) {
 				mq.Select(dbmeter.FieldID, dbmeter.FieldKey)
 			}).
@@ -102,15 +101,15 @@ func (c *featureDBAdapter) GetByIdOrKey(ctx context.Context, namespace string, i
 		WithMeter(func(mq *db.MeterQuery) {
 			mq.Select(dbmeter.FieldID, dbmeter.FieldKey)
 		}).
-		Where(db_feature.Namespace(namespace)).
-		Where(db_feature.Or(db_feature.Key(idOrKey), db_feature.ID(idOrKey)))
+		Where(dbfeature.Namespace(namespace)).
+		Where(dbfeature.Or(dbfeature.Key(idOrKey), dbfeature.ID(idOrKey)))
 
 	if !includeArchived {
-		query = query.Where(db_feature.ArchivedAtIsNil())
+		query = query.Where(dbfeature.ArchivedAtIsNil())
 	}
 
 	// This ensures that the first item is the most recent one
-	query = query.Order(db_feature.ByArchivedAt(sql.OrderDesc(), sql.OrderNullsFirst()))
+	query = query.Order(dbfeature.ByArchivedAt(sql.OrderDesc(), sql.OrderNullsFirst()))
 
 	entities, err := query.All(ctx)
 	if err != nil {
@@ -188,8 +187,8 @@ func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, params feature.Ar
 
 	err = c.db.Feature.Update().
 		SetArchivedAt(archivedAt).
-		Where(db_feature.ID(params.ID)).
-		Where(db_feature.Namespace(params.Namespace)).
+		Where(dbfeature.ID(params.ID)).
+		Where(dbfeature.Namespace(params.Namespace)).
 		Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to archive feature: %w", err)
@@ -200,9 +199,9 @@ func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, params feature.Ar
 
 func (c *featureDBAdapter) HasActiveFeatureForMeter(ctx context.Context, namespace string, meterID string) (bool, error) {
 	exists, err := c.db.Feature.Query().
-		Where(db_feature.Namespace(namespace)).
-		Where(db_feature.MeterID(meterID)).
-		Where(db_feature.Or(db_feature.ArchivedAtIsNil(), db_feature.ArchivedAtGT(clock.Now()))).
+		Where(dbfeature.Namespace(namespace)).
+		Where(dbfeature.MeterID(meterID)).
+		Where(dbfeature.Or(dbfeature.ArchivedAtIsNil(), dbfeature.ArchivedAtGT(clock.Now()))).
 		Exist(ctx)
 	if err != nil {
 		return false, err
@@ -217,22 +216,22 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 		WithMeter(func(mq *db.MeterQuery) {
 			mq.Select(dbmeter.FieldID, dbmeter.FieldKey)
 		}).
-		Where(db_feature.Namespace(params.Namespace))
+		Where(dbfeature.Namespace(params.Namespace))
 
 	if len(params.MeterIDs) > 0 {
-		query = query.Where(db_feature.MeterIDIn(params.MeterIDs...))
+		query = query.Where(dbfeature.MeterIDIn(params.MeterIDs...))
 	}
 
 	if len(params.MeterSlugs) > 0 {
-		query = query.Where(db_feature.HasMeterWith(db_meter.KeyIn(params.MeterSlugs...)))
+		query = query.Where(dbfeature.HasMeterWith(dbmeter.KeyIn(params.MeterSlugs...)))
 	}
 
 	if len(params.IDsOrKeys) > 0 {
-		query = query.Where(db_feature.Or(db_feature.IDIn(params.IDsOrKeys...), db_feature.KeyIn(params.IDsOrKeys...)))
+		query = query.Where(dbfeature.Or(dbfeature.IDIn(params.IDsOrKeys...), dbfeature.KeyIn(params.IDsOrKeys...)))
 	}
 
 	if !params.IncludeArchived {
-		query = query.Where(db_feature.Or(db_feature.ArchivedAtIsNil(), db_feature.ArchivedAtGT(clock.Now())))
+		query = query.Where(dbfeature.Or(dbfeature.ArchivedAtIsNil(), dbfeature.ArchivedAtGT(clock.Now())))
 	}
 
 	if params.OrderBy != "" {
@@ -243,15 +242,15 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 
 		switch params.OrderBy {
 		case feature.FeatureOrderByKey:
-			query = query.Order(db_feature.ByKey(order...))
+			query = query.Order(dbfeature.ByKey(order...))
 		case feature.FeatureOrderByName:
-			query = query.Order(db_feature.ByName(order...))
+			query = query.Order(dbfeature.ByName(order...))
 		case feature.FeatureOrderByCreatedAt:
-			query = query.Order(db_feature.ByCreatedAt(order...))
+			query = query.Order(dbfeature.ByCreatedAt(order...))
 		case feature.FeatureOrderByUpdatedAt:
-			query = query.Order(db_feature.ByUpdatedAt(order...))
+			query = query.Order(dbfeature.ByUpdatedAt(order...))
 		default:
-			query = query.Order(db_feature.ByCreatedAt(order...))
+			query = query.Order(dbfeature.ByCreatedAt(order...))
 		}
 	}
 
