@@ -52,6 +52,8 @@ import (
 	subscriptioncustomer "github.com/openmeterio/openmeter/openmeter/subscription/validators/customer"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	subscriptionworkflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
+	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
+	taxcodeservice "github.com/openmeterio/openmeter/openmeter/taxcode/service"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/ffx"
@@ -253,9 +255,20 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create plan adapter: %w", err)
 	}
 
+	taxCodeAdapter, err := taxcodeadapter.New(taxcodeadapter.Config{
+		Client: dbDeps.DBClient,
+		Logger: logger.WithGroup("taxcode"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create tax code adapter: %w", err)
+	}
+
+	taxCodeService := taxcodeservice.New(taxCodeAdapter, logger.WithGroup("taxcode"))
+
 	planService, err := planservice.New(planservice.Config{
 		Adapter:   planAdapter,
 		Feature:   entitlementRegistry.Feature,
+		TaxCode:   taxCodeService,
 		Logger:    logger.WithGroup("plan"),
 		Publisher: publisher,
 	})

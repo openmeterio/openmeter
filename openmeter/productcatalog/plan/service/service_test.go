@@ -211,6 +211,9 @@ func TestPlanService(t *testing.T) {
 			assert.Equalf(t, productcatalog.PlanStatusDraft, draftPlanV1.Status(),
 				"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusDraft, draftPlanV1.Status())
 
+			// Extract the resolved TaxCodeID so we can include it in expected values for new phases.
+			taxCodeID := draftPlanV1.Phases[0].RateCards[0].AsMeta().TaxConfig.TaxCodeID
+
 			t.Run("Get", func(t *testing.T) {
 				var getPlanV1 *plan.Plan
 
@@ -281,6 +284,7 @@ func TestPlanService(t *testing.T) {
 										Stripe: &productcatalog.StripeTaxConfig{
 											Code: "txcd_10000000",
 										},
+										TaxCodeID: taxCodeID,
 									},
 									Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 										Mode: productcatalog.VolumeTieredPrice,
@@ -390,6 +394,7 @@ func TestPlanService(t *testing.T) {
 												Stripe: &productcatalog.StripeTaxConfig{
 													Code: "txcd_10000000",
 												},
+												TaxCodeID: taxCodeID,
 											},
 											Price: productcatalog.NewPriceFrom(
 												productcatalog.TieredPrice{

@@ -328,8 +328,9 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 
 					return nil, fmt.Errorf("failed to expand Features for RateCards in PlanPhase: %w", err)
 				}
-
-				if err = s.resolveTaxCodes(ctx, params.Namespace, &phase.RateCards); err != nil {
+			}
+			for i := range params.Phases {
+				if err = s.resolveTaxCodes(ctx, params.Namespace, &params.Phases[i].RateCards); err != nil {
 					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
 				}
 			}
@@ -475,8 +476,9 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 
 					return nil, fmt.Errorf("failed to expand Features for RateCards in PlanPhase: %w", err)
 				}
-
-				if err := s.resolveTaxCodes(ctx, params.Namespace, &phase.RateCards); err != nil {
+			}
+			for i := range *params.Phases {
+				if err := s.resolveTaxCodes(ctx, params.Namespace, &(*params.Phases)[i].RateCards); err != nil {
 					return nil, fmt.Errorf("failed to resolve TaxCodes for RateCards in PlanPhase: %w", err)
 				}
 			}

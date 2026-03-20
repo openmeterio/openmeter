@@ -19,6 +19,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
+	taxcodeservice "github.com/openmeterio/openmeter/openmeter/taxcode/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	planaddonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/adapter"
 	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
@@ -62,6 +65,7 @@ type SubscriptionDependencies struct {
 	SubscriptionAddonService subscriptionaddon.Service
 	AddonService             *testAddonService
 	PlanAddonService         planaddon.Service
+	TaxCodeService           taxcode.Service
 }
 
 func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
@@ -155,11 +159,20 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	})
 	require.NoError(t, err)
 
+	taxCodeAdapter, err := taxcodeadapter.New(taxcodeadapter.Config{
+		Client: dbDeps.DBClient,
+		Logger: logger,
+	})
+	require.NoError(t, err)
+
+	taxCodeService := taxcodeservice.New(taxCodeAdapter, logger)
+
 	planService, err := planservice.New(planservice.Config{
 		Feature:   entitlementRegistry.Feature,
 		Logger:    logger,
 		Adapter:   planRepo,
 		Publisher: publisher,
+		TaxCode:   taxCodeService,
 	})
 	require.NoError(t, err)
 
@@ -258,5 +271,6 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		PlanAddonService:         planAddonService,
 		MeterService:             meterAdapter,
 		MockStreamingConnector:   mockStreaming,
+		TaxCodeService:           taxCodeService,
 	}
 }
