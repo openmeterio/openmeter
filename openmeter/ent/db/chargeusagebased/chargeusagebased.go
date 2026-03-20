@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -28,10 +29,16 @@ const (
 	FieldFeatureKey = "feature_key"
 	// FieldPrice holds the string denoting the price field in the database.
 	FieldPrice = "price"
+	// FieldCurrentRealizationRunID holds the string denoting the current_realization_run_id field in the database.
+	FieldCurrentRealizationRunID = "current_realization_run_id"
+	// FieldStatus holds the string denoting the status field in the database.
+	FieldStatus = "status"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
 	EdgeCharge = "charge"
 	// EdgeRuns holds the string denoting the runs edge name in mutations.
 	EdgeRuns = "runs"
+	// EdgeCurrentRun holds the string denoting the current_run edge name in mutations.
+	EdgeCurrentRun = "current_run"
 	// Table holds the table name of the chargeusagebased in the database.
 	Table = "charge_usage_based"
 	// ChargeTable is the table that holds the charge relation/edge.
@@ -48,6 +55,13 @@ const (
 	RunsInverseTable = "charge_usage_based_runs"
 	// RunsColumn is the table column denoting the runs relation/edge.
 	RunsColumn = "charge_id"
+	// CurrentRunTable is the table that holds the current_run relation/edge.
+	CurrentRunTable = "charge_usage_based"
+	// CurrentRunInverseTable is the table name for the ChargeUsageBasedRuns entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeusagebasedruns" package.
+	CurrentRunInverseTable = "charge_usage_based_runs"
+	// CurrentRunColumn is the table column denoting the current_run relation/edge.
+	CurrentRunColumn = "current_realization_run_id"
 )
 
 // Columns holds all SQL columns for chargeusagebased fields.
@@ -59,6 +73,8 @@ var Columns = []string{
 	FieldDiscounts,
 	FieldFeatureKey,
 	FieldPrice,
+	FieldCurrentRealizationRunID,
+	FieldStatus,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -92,6 +108,16 @@ func SettlementModeValidator(sm productcatalog.SettlementMode) error {
 		return nil
 	default:
 		return fmt.Errorf("chargeusagebased: invalid enum value for settlement_mode field: %q", sm)
+	}
+}
+
+// StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
+func StatusValidator(s usagebased.Status) error {
+	switch s {
+	case "created", "active", "active.final_realization.started", "active.final_realization.waiting_for_collection", "active.final_realization.processing", "active.final_realization.completed", "final":
+		return nil
+	default:
+		return fmt.Errorf("chargeusagebased: invalid enum value for status field: %q", s)
 	}
 }
 
@@ -133,6 +159,16 @@ func ByPrice(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPrice, opts...).ToFunc()
 }
 
+// ByCurrentRealizationRunID orders the results by the current_realization_run_id field.
+func ByCurrentRealizationRunID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCurrentRealizationRunID, opts...).ToFunc()
+}
+
+// ByStatus orders the results by the status field.
+func ByStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
 // ByChargeField orders the results by charge field.
 func ByChargeField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -153,6 +189,13 @@ func ByRuns(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newRunsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByCurrentRunField orders the results by current_run field.
+func ByCurrentRunField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCurrentRunStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newChargeStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -165,5 +208,12 @@ func newRunsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(RunsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, RunsTable, RunsColumn),
+	)
+}
+func newCurrentRunStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CurrentRunInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, CurrentRunTable, CurrentRunColumn),
 	)
 }

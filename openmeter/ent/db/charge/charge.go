@@ -63,6 +63,8 @@ const (
 	FieldSubscriptionPhaseID = "subscription_phase_id"
 	// FieldSubscriptionItemID holds the string denoting the subscription_item_id field in the database.
 	FieldSubscriptionItemID = "subscription_item_id"
+	// FieldAdvanceAfter holds the string denoting the advance_after field in the database.
+	FieldAdvanceAfter = "advance_after"
 	// EdgeFlatFee holds the string denoting the flat_fee edge name in mutations.
 	EdgeFlatFee = "flat_fee"
 	// EdgeCreditPurchase holds the string denoting the credit_purchase edge name in mutations.
@@ -174,6 +176,7 @@ var Columns = []string{
 	FieldSubscriptionID,
 	FieldSubscriptionPhaseID,
 	FieldSubscriptionItemID,
+	FieldAdvanceAfter,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -344,6 +347,11 @@ func BySubscriptionPhaseID(opts ...sql.OrderTermOption) OrderOption {
 // BySubscriptionItemID orders the results by the subscription_item_id field.
 func BySubscriptionItemID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSubscriptionItemID, opts...).ToFunc()
+}
+
+// ByAdvanceAfter orders the results by the advance_after field.
+func ByAdvanceAfter(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAdvanceAfter, opts...).ToFunc()
 }
 
 // ByFlatFeeField orders the results by flat_fee field.

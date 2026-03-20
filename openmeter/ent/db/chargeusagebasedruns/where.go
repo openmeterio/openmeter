@@ -87,6 +87,46 @@ func DeletedAt(v time.Time) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldDeletedAt, v))
 }
 
+// Amount applies equality check predicate on the "amount" field. It's identical to AmountEQ.
+func Amount(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldAmount, v))
+}
+
+// TaxesTotal applies equality check predicate on the "taxes_total" field. It's identical to TaxesTotalEQ.
+func TaxesTotal(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldTaxesTotal, v))
+}
+
+// TaxesInclusiveTotal applies equality check predicate on the "taxes_inclusive_total" field. It's identical to TaxesInclusiveTotalEQ.
+func TaxesInclusiveTotal(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldTaxesInclusiveTotal, v))
+}
+
+// TaxesExclusiveTotal applies equality check predicate on the "taxes_exclusive_total" field. It's identical to TaxesExclusiveTotalEQ.
+func TaxesExclusiveTotal(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldTaxesExclusiveTotal, v))
+}
+
+// ChargesTotal applies equality check predicate on the "charges_total" field. It's identical to ChargesTotalEQ.
+func ChargesTotal(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldChargesTotal, v))
+}
+
+// DiscountsTotal applies equality check predicate on the "discounts_total" field. It's identical to DiscountsTotalEQ.
+func DiscountsTotal(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldDiscountsTotal, v))
+}
+
+// CreditsTotal applies equality check predicate on the "credits_total" field. It's identical to CreditsTotalEQ.
+func CreditsTotal(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldCreditsTotal, v))
+}
+
+// Total applies equality check predicate on the "total" field. It's identical to TotalEQ.
+func Total(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldTotal, v))
+}
+
 // ChargeID applies equality check predicate on the "charge_id" field. It's identical to ChargeIDEQ.
 func ChargeID(v string) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldChargeID, v))
@@ -295,6 +335,326 @@ func DeletedAtIsNil() predicate.ChargeUsageBasedRuns {
 // DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
 func DeletedAtNotNil() predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldNotNull(FieldDeletedAt))
+}
+
+// AmountEQ applies the EQ predicate on the "amount" field.
+func AmountEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldAmount, v))
+}
+
+// AmountNEQ applies the NEQ predicate on the "amount" field.
+func AmountNEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldAmount, v))
+}
+
+// AmountIn applies the In predicate on the "amount" field.
+func AmountIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldAmount, vs...))
+}
+
+// AmountNotIn applies the NotIn predicate on the "amount" field.
+func AmountNotIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldAmount, vs...))
+}
+
+// AmountGT applies the GT predicate on the "amount" field.
+func AmountGT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGT(FieldAmount, v))
+}
+
+// AmountGTE applies the GTE predicate on the "amount" field.
+func AmountGTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGTE(FieldAmount, v))
+}
+
+// AmountLT applies the LT predicate on the "amount" field.
+func AmountLT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLT(FieldAmount, v))
+}
+
+// AmountLTE applies the LTE predicate on the "amount" field.
+func AmountLTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldAmount, v))
+}
+
+// TaxesTotalEQ applies the EQ predicate on the "taxes_total" field.
+func TaxesTotalEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldTaxesTotal, v))
+}
+
+// TaxesTotalNEQ applies the NEQ predicate on the "taxes_total" field.
+func TaxesTotalNEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldTaxesTotal, v))
+}
+
+// TaxesTotalIn applies the In predicate on the "taxes_total" field.
+func TaxesTotalIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldTaxesTotal, vs...))
+}
+
+// TaxesTotalNotIn applies the NotIn predicate on the "taxes_total" field.
+func TaxesTotalNotIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldTaxesTotal, vs...))
+}
+
+// TaxesTotalGT applies the GT predicate on the "taxes_total" field.
+func TaxesTotalGT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGT(FieldTaxesTotal, v))
+}
+
+// TaxesTotalGTE applies the GTE predicate on the "taxes_total" field.
+func TaxesTotalGTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGTE(FieldTaxesTotal, v))
+}
+
+// TaxesTotalLT applies the LT predicate on the "taxes_total" field.
+func TaxesTotalLT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLT(FieldTaxesTotal, v))
+}
+
+// TaxesTotalLTE applies the LTE predicate on the "taxes_total" field.
+func TaxesTotalLTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldTaxesTotal, v))
+}
+
+// TaxesInclusiveTotalEQ applies the EQ predicate on the "taxes_inclusive_total" field.
+func TaxesInclusiveTotalEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldTaxesInclusiveTotal, v))
+}
+
+// TaxesInclusiveTotalNEQ applies the NEQ predicate on the "taxes_inclusive_total" field.
+func TaxesInclusiveTotalNEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldTaxesInclusiveTotal, v))
+}
+
+// TaxesInclusiveTotalIn applies the In predicate on the "taxes_inclusive_total" field.
+func TaxesInclusiveTotalIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldTaxesInclusiveTotal, vs...))
+}
+
+// TaxesInclusiveTotalNotIn applies the NotIn predicate on the "taxes_inclusive_total" field.
+func TaxesInclusiveTotalNotIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldTaxesInclusiveTotal, vs...))
+}
+
+// TaxesInclusiveTotalGT applies the GT predicate on the "taxes_inclusive_total" field.
+func TaxesInclusiveTotalGT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGT(FieldTaxesInclusiveTotal, v))
+}
+
+// TaxesInclusiveTotalGTE applies the GTE predicate on the "taxes_inclusive_total" field.
+func TaxesInclusiveTotalGTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGTE(FieldTaxesInclusiveTotal, v))
+}
+
+// TaxesInclusiveTotalLT applies the LT predicate on the "taxes_inclusive_total" field.
+func TaxesInclusiveTotalLT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLT(FieldTaxesInclusiveTotal, v))
+}
+
+// TaxesInclusiveTotalLTE applies the LTE predicate on the "taxes_inclusive_total" field.
+func TaxesInclusiveTotalLTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldTaxesInclusiveTotal, v))
+}
+
+// TaxesExclusiveTotalEQ applies the EQ predicate on the "taxes_exclusive_total" field.
+func TaxesExclusiveTotalEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldTaxesExclusiveTotal, v))
+}
+
+// TaxesExclusiveTotalNEQ applies the NEQ predicate on the "taxes_exclusive_total" field.
+func TaxesExclusiveTotalNEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldTaxesExclusiveTotal, v))
+}
+
+// TaxesExclusiveTotalIn applies the In predicate on the "taxes_exclusive_total" field.
+func TaxesExclusiveTotalIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldTaxesExclusiveTotal, vs...))
+}
+
+// TaxesExclusiveTotalNotIn applies the NotIn predicate on the "taxes_exclusive_total" field.
+func TaxesExclusiveTotalNotIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldTaxesExclusiveTotal, vs...))
+}
+
+// TaxesExclusiveTotalGT applies the GT predicate on the "taxes_exclusive_total" field.
+func TaxesExclusiveTotalGT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGT(FieldTaxesExclusiveTotal, v))
+}
+
+// TaxesExclusiveTotalGTE applies the GTE predicate on the "taxes_exclusive_total" field.
+func TaxesExclusiveTotalGTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGTE(FieldTaxesExclusiveTotal, v))
+}
+
+// TaxesExclusiveTotalLT applies the LT predicate on the "taxes_exclusive_total" field.
+func TaxesExclusiveTotalLT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLT(FieldTaxesExclusiveTotal, v))
+}
+
+// TaxesExclusiveTotalLTE applies the LTE predicate on the "taxes_exclusive_total" field.
+func TaxesExclusiveTotalLTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldTaxesExclusiveTotal, v))
+}
+
+// ChargesTotalEQ applies the EQ predicate on the "charges_total" field.
+func ChargesTotalEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldChargesTotal, v))
+}
+
+// ChargesTotalNEQ applies the NEQ predicate on the "charges_total" field.
+func ChargesTotalNEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldChargesTotal, v))
+}
+
+// ChargesTotalIn applies the In predicate on the "charges_total" field.
+func ChargesTotalIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldChargesTotal, vs...))
+}
+
+// ChargesTotalNotIn applies the NotIn predicate on the "charges_total" field.
+func ChargesTotalNotIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldChargesTotal, vs...))
+}
+
+// ChargesTotalGT applies the GT predicate on the "charges_total" field.
+func ChargesTotalGT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGT(FieldChargesTotal, v))
+}
+
+// ChargesTotalGTE applies the GTE predicate on the "charges_total" field.
+func ChargesTotalGTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGTE(FieldChargesTotal, v))
+}
+
+// ChargesTotalLT applies the LT predicate on the "charges_total" field.
+func ChargesTotalLT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLT(FieldChargesTotal, v))
+}
+
+// ChargesTotalLTE applies the LTE predicate on the "charges_total" field.
+func ChargesTotalLTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldChargesTotal, v))
+}
+
+// DiscountsTotalEQ applies the EQ predicate on the "discounts_total" field.
+func DiscountsTotalEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldDiscountsTotal, v))
+}
+
+// DiscountsTotalNEQ applies the NEQ predicate on the "discounts_total" field.
+func DiscountsTotalNEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldDiscountsTotal, v))
+}
+
+// DiscountsTotalIn applies the In predicate on the "discounts_total" field.
+func DiscountsTotalIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldDiscountsTotal, vs...))
+}
+
+// DiscountsTotalNotIn applies the NotIn predicate on the "discounts_total" field.
+func DiscountsTotalNotIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldDiscountsTotal, vs...))
+}
+
+// DiscountsTotalGT applies the GT predicate on the "discounts_total" field.
+func DiscountsTotalGT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGT(FieldDiscountsTotal, v))
+}
+
+// DiscountsTotalGTE applies the GTE predicate on the "discounts_total" field.
+func DiscountsTotalGTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGTE(FieldDiscountsTotal, v))
+}
+
+// DiscountsTotalLT applies the LT predicate on the "discounts_total" field.
+func DiscountsTotalLT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLT(FieldDiscountsTotal, v))
+}
+
+// DiscountsTotalLTE applies the LTE predicate on the "discounts_total" field.
+func DiscountsTotalLTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldDiscountsTotal, v))
+}
+
+// CreditsTotalEQ applies the EQ predicate on the "credits_total" field.
+func CreditsTotalEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldCreditsTotal, v))
+}
+
+// CreditsTotalNEQ applies the NEQ predicate on the "credits_total" field.
+func CreditsTotalNEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldCreditsTotal, v))
+}
+
+// CreditsTotalIn applies the In predicate on the "credits_total" field.
+func CreditsTotalIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldCreditsTotal, vs...))
+}
+
+// CreditsTotalNotIn applies the NotIn predicate on the "credits_total" field.
+func CreditsTotalNotIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldCreditsTotal, vs...))
+}
+
+// CreditsTotalGT applies the GT predicate on the "credits_total" field.
+func CreditsTotalGT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGT(FieldCreditsTotal, v))
+}
+
+// CreditsTotalGTE applies the GTE predicate on the "credits_total" field.
+func CreditsTotalGTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGTE(FieldCreditsTotal, v))
+}
+
+// CreditsTotalLT applies the LT predicate on the "credits_total" field.
+func CreditsTotalLT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLT(FieldCreditsTotal, v))
+}
+
+// CreditsTotalLTE applies the LTE predicate on the "credits_total" field.
+func CreditsTotalLTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldCreditsTotal, v))
+}
+
+// TotalEQ applies the EQ predicate on the "total" field.
+func TotalEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldTotal, v))
+}
+
+// TotalNEQ applies the NEQ predicate on the "total" field.
+func TotalNEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldTotal, v))
+}
+
+// TotalIn applies the In predicate on the "total" field.
+func TotalIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldTotal, vs...))
+}
+
+// TotalNotIn applies the NotIn predicate on the "total" field.
+func TotalNotIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldTotal, vs...))
+}
+
+// TotalGT applies the GT predicate on the "total" field.
+func TotalGT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGT(FieldTotal, v))
+}
+
+// TotalGTE applies the GTE predicate on the "total" field.
+func TotalGTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGTE(FieldTotal, v))
+}
+
+// TotalLT applies the LT predicate on the "total" field.
+func TotalLT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLT(FieldTotal, v))
+}
+
+// TotalLTE applies the LTE predicate on the "total" field.
+func TotalLTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldTotal, v))
 }
 
 // ChargeIDEQ applies the EQ predicate on the "charge_id" field.

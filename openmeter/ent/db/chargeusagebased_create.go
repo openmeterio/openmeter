@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
@@ -62,6 +63,26 @@ func (_c *ChargeUsageBasedCreate) SetPrice(v *productcatalog.Price) *ChargeUsage
 	return _c
 }
 
+// SetCurrentRealizationRunID sets the "current_realization_run_id" field.
+func (_c *ChargeUsageBasedCreate) SetCurrentRealizationRunID(v string) *ChargeUsageBasedCreate {
+	_c.mutation.SetCurrentRealizationRunID(v)
+	return _c
+}
+
+// SetNillableCurrentRealizationRunID sets the "current_realization_run_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableCurrentRealizationRunID(v *string) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetCurrentRealizationRunID(*v)
+	}
+	return _c
+}
+
+// SetStatus sets the "status" field.
+func (_c *ChargeUsageBasedCreate) SetStatus(v usagebased.Status) *ChargeUsageBasedCreate {
+	_c.mutation.SetStatus(v)
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ChargeUsageBasedCreate) SetID(v string) *ChargeUsageBasedCreate {
 	_c.mutation.SetID(v)
@@ -100,6 +121,25 @@ func (_c *ChargeUsageBasedCreate) AddRuns(v ...*ChargeUsageBasedRuns) *ChargeUsa
 		ids[i] = v[i].ID
 	}
 	return _c.AddRunIDs(ids...)
+}
+
+// SetCurrentRunID sets the "current_run" edge to the ChargeUsageBasedRuns entity by ID.
+func (_c *ChargeUsageBasedCreate) SetCurrentRunID(id string) *ChargeUsageBasedCreate {
+	_c.mutation.SetCurrentRunID(id)
+	return _c
+}
+
+// SetNillableCurrentRunID sets the "current_run" edge to the ChargeUsageBasedRuns entity by ID if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableCurrentRunID(id *string) *ChargeUsageBasedCreate {
+	if id != nil {
+		_c = _c.SetCurrentRunID(*id)
+	}
+	return _c
+}
+
+// SetCurrentRun sets the "current_run" edge to the ChargeUsageBasedRuns entity.
+func (_c *ChargeUsageBasedCreate) SetCurrentRun(v *ChargeUsageBasedRuns) *ChargeUsageBasedCreate {
+	return _c.SetCurrentRunID(v.ID)
 }
 
 // Mutation returns the ChargeUsageBasedMutation object of the builder.
@@ -185,6 +225,14 @@ func (_c *ChargeUsageBasedCreate) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.price": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.Status(); !ok {
+		return &ValidationError{Name: "status", err: errors.New(`db: missing required field "ChargeUsageBased.status"`)}
+	}
+	if v, ok := _c.mutation.Status(); ok {
+		if err := chargeusagebased.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status": %w`, err)}
+		}
+	}
 	if len(_c.mutation.ChargeIDs()) == 0 {
 		return &ValidationError{Name: "charge", err: errors.New(`db: missing required edge "ChargeUsageBased.charge"`)}
 	}
@@ -259,6 +307,10 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 		_spec.SetField(chargeusagebased.FieldPrice, field.TypeString, vv)
 		_node.Price = value
 	}
+	if value, ok := _c.mutation.Status(); ok {
+		_spec.SetField(chargeusagebased.FieldStatus, field.TypeEnum, value)
+		_node.Status = value
+	}
 	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
@@ -290,6 +342,23 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CurrentRunIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeusagebased.CurrentRunTable,
+			Columns: []string{chargeusagebased.CurrentRunColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CurrentRealizationRunID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -359,6 +428,36 @@ func (u *ChargeUsageBasedUpsert) UpdateDiscounts() *ChargeUsageBasedUpsert {
 // ClearDiscounts clears the value of the "discounts" field.
 func (u *ChargeUsageBasedUpsert) ClearDiscounts() *ChargeUsageBasedUpsert {
 	u.SetNull(chargeusagebased.FieldDiscounts)
+	return u
+}
+
+// SetCurrentRealizationRunID sets the "current_realization_run_id" field.
+func (u *ChargeUsageBasedUpsert) SetCurrentRealizationRunID(v string) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldCurrentRealizationRunID, v)
+	return u
+}
+
+// UpdateCurrentRealizationRunID sets the "current_realization_run_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateCurrentRealizationRunID() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldCurrentRealizationRunID)
+	return u
+}
+
+// ClearCurrentRealizationRunID clears the value of the "current_realization_run_id" field.
+func (u *ChargeUsageBasedUpsert) ClearCurrentRealizationRunID() *ChargeUsageBasedUpsert {
+	u.SetNull(chargeusagebased.FieldCurrentRealizationRunID)
+	return u
+}
+
+// SetStatus sets the "status" field.
+func (u *ChargeUsageBasedUpsert) SetStatus(v usagebased.Status) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldStatus, v)
+	return u
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateStatus() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldStatus)
 	return u
 }
 
@@ -443,6 +542,41 @@ func (u *ChargeUsageBasedUpsertOne) UpdateDiscounts() *ChargeUsageBasedUpsertOne
 func (u *ChargeUsageBasedUpsertOne) ClearDiscounts() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.ClearDiscounts()
+	})
+}
+
+// SetCurrentRealizationRunID sets the "current_realization_run_id" field.
+func (u *ChargeUsageBasedUpsertOne) SetCurrentRealizationRunID(v string) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetCurrentRealizationRunID(v)
+	})
+}
+
+// UpdateCurrentRealizationRunID sets the "current_realization_run_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateCurrentRealizationRunID() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateCurrentRealizationRunID()
+	})
+}
+
+// ClearCurrentRealizationRunID clears the value of the "current_realization_run_id" field.
+func (u *ChargeUsageBasedUpsertOne) ClearCurrentRealizationRunID() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearCurrentRealizationRunID()
+	})
+}
+
+// SetStatus sets the "status" field.
+func (u *ChargeUsageBasedUpsertOne) SetStatus(v usagebased.Status) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetStatus(v)
+	})
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateStatus() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateStatus()
 	})
 }
 
@@ -697,6 +831,41 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateDiscounts() *ChargeUsageBasedUpsertBu
 func (u *ChargeUsageBasedUpsertBulk) ClearDiscounts() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.ClearDiscounts()
+	})
+}
+
+// SetCurrentRealizationRunID sets the "current_realization_run_id" field.
+func (u *ChargeUsageBasedUpsertBulk) SetCurrentRealizationRunID(v string) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetCurrentRealizationRunID(v)
+	})
+}
+
+// UpdateCurrentRealizationRunID sets the "current_realization_run_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateCurrentRealizationRunID() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateCurrentRealizationRunID()
+	})
+}
+
+// ClearCurrentRealizationRunID clears the value of the "current_realization_run_id" field.
+func (u *ChargeUsageBasedUpsertBulk) ClearCurrentRealizationRunID() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearCurrentRealizationRunID()
+	})
+}
+
+// SetStatus sets the "status" field.
+func (u *ChargeUsageBasedUpsertBulk) SetStatus(v usagebased.Status) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetStatus(v)
+	})
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateStatus() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateStatus()
 	})
 }
 

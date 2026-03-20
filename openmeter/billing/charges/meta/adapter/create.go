@@ -52,7 +52,8 @@ func (a *adapter) buildCreateMeta(ctx context.Context, ns string, intent meta.In
 		SetStatus(lo.CoalesceOrEmpty(intent.InitialStatus, meta.ChargeStatusCreated)).
 		SetCurrency(intent.Currency).
 		SetManagedBy(intent.ManagedBy).
-		SetNillableUniqueReferenceID(intent.UniqueReferenceID)
+		SetNillableUniqueReferenceID(intent.UniqueReferenceID).
+		SetNillableAdvanceAfter(intent.AdvanceAfter)
 
 	if intent.Metadata != nil {
 		create = create.SetMetadata(intent.Metadata)

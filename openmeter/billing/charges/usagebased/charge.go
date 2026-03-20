@@ -21,8 +21,8 @@ var _ meta.ChargeAccessor = (*Charge)(nil)
 type Charge struct {
 	meta.ManagedResource
 
-	Intent Intent            `json:"intent"`
-	Status meta.ChargeStatus `json:"status"`
+	Intent Intent `json:"intent"`
+	Status Status `json:"status"`
 
 	State State `json:"state"`
 }
@@ -108,7 +108,8 @@ func (i Intent) Validate() error {
 }
 
 type State struct {
-	RealizationRuns RealizationRuns `json:"realizationRuns"`
+	RealizationRuns         RealizationRuns `json:"realizationRuns"`
+	CurrentRealizationRunID *string         `json:"currentRealizationRunID"`
 }
 
 func (s State) Validate() error {

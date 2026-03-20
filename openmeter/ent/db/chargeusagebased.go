@@ -9,8 +9,10 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -31,6 +33,10 @@ type ChargeUsageBased struct {
 	FeatureKey string `json:"feature_key,omitempty"`
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
+	// CurrentRealizationRunID holds the value of the "current_realization_run_id" field.
+	CurrentRealizationRunID *string `json:"current_realization_run_id,omitempty"`
+	// Status holds the value of the "status" field.
+	Status usagebased.Status `json:"status,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeUsageBasedQuery when eager-loading is set.
 	Edges        ChargeUsageBasedEdges `json:"edges"`
@@ -43,9 +49,11 @@ type ChargeUsageBasedEdges struct {
 	Charge *Charge `json:"charge,omitempty"`
 	// Runs holds the value of the runs edge.
 	Runs []*ChargeUsageBasedRuns `json:"runs,omitempty"`
+	// CurrentRun holds the value of the current_run edge.
+	CurrentRun *ChargeUsageBasedRuns `json:"current_run,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // ChargeOrErr returns the Charge value or an error if the edge
@@ -68,12 +76,23 @@ func (e ChargeUsageBasedEdges) RunsOrErr() ([]*ChargeUsageBasedRuns, error) {
 	return nil, &NotLoadedError{edge: "runs"}
 }
 
+// CurrentRunOrErr returns the CurrentRun value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeUsageBasedEdges) CurrentRunOrErr() (*ChargeUsageBasedRuns, error) {
+	if e.CurrentRun != nil {
+		return e.CurrentRun, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: chargeusagebasedruns.Label}
+	}
+	return nil, &NotLoadedError{edge: "current_run"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*ChargeUsageBased) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case chargeusagebased.FieldID, chargeusagebased.FieldNamespace, chargeusagebased.FieldSettlementMode, chargeusagebased.FieldFeatureKey:
+		case chargeusagebased.FieldID, chargeusagebased.FieldNamespace, chargeusagebased.FieldSettlementMode, chargeusagebased.FieldFeatureKey, chargeusagebased.FieldCurrentRealizationRunID, chargeusagebased.FieldStatus:
 			values[i] = new(sql.NullString)
 		case chargeusagebased.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
@@ -138,6 +157,19 @@ func (_m *ChargeUsageBased) assignValues(columns []string, values []any) error {
 			} else {
 				_m.Price = value
 			}
+		case chargeusagebased.FieldCurrentRealizationRunID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field current_realization_run_id", values[i])
+			} else if value.Valid {
+				_m.CurrentRealizationRunID = new(string)
+				*_m.CurrentRealizationRunID = value.String
+			}
+		case chargeusagebased.FieldStatus:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field status", values[i])
+			} else if value.Valid {
+				_m.Status = usagebased.Status(value.String)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -159,6 +191,11 @@ func (_m *ChargeUsageBased) QueryCharge() *ChargeQuery {
 // QueryRuns queries the "runs" edge of the ChargeUsageBased entity.
 func (_m *ChargeUsageBased) QueryRuns() *ChargeUsageBasedRunsQuery {
 	return NewChargeUsageBasedClient(_m.config).QueryRuns(_m)
+}
+
+// QueryCurrentRun queries the "current_run" edge of the ChargeUsageBased entity.
+func (_m *ChargeUsageBased) QueryCurrentRun() *ChargeUsageBasedRunsQuery {
+	return NewChargeUsageBasedClient(_m.config).QueryCurrentRun(_m)
 }
 
 // Update returns a builder for updating this ChargeUsageBased.
@@ -203,6 +240,14 @@ func (_m *ChargeUsageBased) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("price=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Price))
+	builder.WriteString(", ")
+	if v := _m.CurrentRealizationRunID; v != nil {
+		builder.WriteString("current_realization_run_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("status=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Status))
 	builder.WriteByte(')')
 	return builder.String()
 }

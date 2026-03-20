@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -18,8 +19,9 @@ type Adapter interface {
 }
 
 type UpdateStatusInput struct {
-	ChargeID ChargeID
-	Status   ChargeStatus
+	ChargeID     ChargeID
+	Status       ChargeStatus
+	AdvanceAfter *time.Time
 }
 
 func (i UpdateStatusInput) Validate() error {
@@ -61,6 +63,7 @@ type IntentCreate struct {
 
 	Type          ChargeType   `json:"type"`
 	InitialStatus ChargeStatus `json:"status"`
+	AdvanceAfter  *time.Time   `json:"advanceAfter"`
 }
 
 func (i IntentCreate) Validate() error {

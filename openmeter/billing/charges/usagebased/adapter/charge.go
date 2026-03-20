@@ -22,9 +22,14 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.Charge) er
 	}
 
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
-		_, err := tx.metaAdapter.UpdateStatus(ctx, meta.UpdateStatusInput{
+		metaStatus, err := charge.Status.ToMetaChargeStatus()
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.metaAdapter.UpdateStatus(ctx, meta.UpdateStatusInput{
 			ChargeID: charge.GetChargeID(),
-			Status:   charge.Status,
+			Status:   metaStatus,
 		})
 		if err != nil {
 			return err
@@ -33,6 +38,8 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.Charge) er
 		_, err = tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
 			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
 			SetDiscounts(&charge.Intent.Discounts).
+			SetStatus(charge.Status).
+			SetNillableCurrentRealizationRunID(charge.State.CurrentRealizationRunID).
 			Save(ctx)
 		if err != nil {
 			return err
@@ -163,6 +170,7 @@ func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, chargeMeta me
 		SetChargeID(chargeMeta.ID).
 		SetDiscounts(&intent.Discounts).
 		SetPrice(&intent.Price).
+		SetStatus(usagebased.Status(chargeMeta.Status)).
 		SetFeatureKey(intent.FeatureKey).
 		SetInvoiceAt(intent.InvoiceAt.In(time.UTC)).
 		SetSettlementMode(intent.SettlementMode), nil

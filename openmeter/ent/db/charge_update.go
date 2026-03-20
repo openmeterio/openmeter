@@ -252,6 +252,26 @@ func (_u *ChargeUpdate) SetNillableManagedBy(v *billing.InvoiceLineManagedBy) *C
 	return _u
 }
 
+// SetAdvanceAfter sets the "advance_after" field.
+func (_u *ChargeUpdate) SetAdvanceAfter(v time.Time) *ChargeUpdate {
+	_u.mutation.SetAdvanceAfter(v)
+	return _u
+}
+
+// SetNillableAdvanceAfter sets the "advance_after" field if the given value is not nil.
+func (_u *ChargeUpdate) SetNillableAdvanceAfter(v *time.Time) *ChargeUpdate {
+	if v != nil {
+		_u.SetAdvanceAfter(*v)
+	}
+	return _u
+}
+
+// ClearAdvanceAfter clears the value of the "advance_after" field.
+func (_u *ChargeUpdate) ClearAdvanceAfter() *ChargeUpdate {
+	_u.mutation.ClearAdvanceAfter()
+	return _u
+}
+
 // SetFlatFeeID sets the "flat_fee" edge to the ChargeFlatFee entity by ID.
 func (_u *ChargeUpdate) SetFlatFeeID(id string) *ChargeUpdate {
 	_u.mutation.SetFlatFeeID(id)
@@ -529,6 +549,12 @@ func (_u *ChargeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.ManagedBy(); ok {
 		_spec.SetField(charge.FieldManagedBy, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.AdvanceAfter(); ok {
+		_spec.SetField(charge.FieldAdvanceAfter, field.TypeTime, value)
+	}
+	if _u.mutation.AdvanceAfterCleared() {
+		_spec.ClearField(charge.FieldAdvanceAfter, field.TypeTime)
 	}
 	if _u.mutation.FlatFeeCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -943,6 +969,26 @@ func (_u *ChargeUpdateOne) SetNillableManagedBy(v *billing.InvoiceLineManagedBy)
 	return _u
 }
 
+// SetAdvanceAfter sets the "advance_after" field.
+func (_u *ChargeUpdateOne) SetAdvanceAfter(v time.Time) *ChargeUpdateOne {
+	_u.mutation.SetAdvanceAfter(v)
+	return _u
+}
+
+// SetNillableAdvanceAfter sets the "advance_after" field if the given value is not nil.
+func (_u *ChargeUpdateOne) SetNillableAdvanceAfter(v *time.Time) *ChargeUpdateOne {
+	if v != nil {
+		_u.SetAdvanceAfter(*v)
+	}
+	return _u
+}
+
+// ClearAdvanceAfter clears the value of the "advance_after" field.
+func (_u *ChargeUpdateOne) ClearAdvanceAfter() *ChargeUpdateOne {
+	_u.mutation.ClearAdvanceAfter()
+	return _u
+}
+
 // SetFlatFeeID sets the "flat_fee" edge to the ChargeFlatFee entity by ID.
 func (_u *ChargeUpdateOne) SetFlatFeeID(id string) *ChargeUpdateOne {
 	_u.mutation.SetFlatFeeID(id)
@@ -1250,6 +1296,12 @@ func (_u *ChargeUpdateOne) sqlSave(ctx context.Context) (_node *Charge, err erro
 	}
 	if value, ok := _u.mutation.ManagedBy(); ok {
 		_spec.SetField(charge.FieldManagedBy, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.AdvanceAfter(); ok {
+		_spec.SetField(charge.FieldAdvanceAfter, field.TypeTime, value)
+	}
+	if _u.mutation.AdvanceAfterCleared() {
+		_spec.ClearField(charge.FieldAdvanceAfter, field.TypeTime)
 	}
 	if _u.mutation.FlatFeeCleared() {
 		edge := &sqlgraph.EdgeSpec{
