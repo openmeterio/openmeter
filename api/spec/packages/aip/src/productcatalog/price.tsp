@@ -4,6 +4,11 @@ namespace ProductCatalog;
 
 /**
  * The type of the price.
+ * - `free`: No charge, the rate card is included at no cost.
+ * - `flat`: A fixed amount charged once per billing period, regardless of usage.
+ * - `unit`: A fixed rate charged per billing unit consumed.
+ * - `graduated`: Tiered pricing where each tier's rate applies only to usage within that tier.
+ * - `volume`: Tiered pricing where the rate for the highest tier reached applies to all units in the period.
  */
 @friendlyName("BillingPriceType")
 enum PriceType {
