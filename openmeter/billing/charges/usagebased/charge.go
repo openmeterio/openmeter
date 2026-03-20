@@ -113,7 +113,19 @@ type State struct {
 }
 
 func (s State) Validate() error {
-	return s.RealizationRuns.Validate()
+	var errs []error
+
+	if s.CurrentRealizationRunID != nil && !slices.ContainsFunc(s.RealizationRuns, func(run RealizationRun) bool {
+		return run.ID == *s.CurrentRealizationRunID
+	}) {
+		errs = append(errs, fmt.Errorf("current realization run id must reference one of the realization runs"))
+	}
+
+	if err := s.RealizationRuns.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("realization runs: %w", err))
+	}
+
+	return errors.Join(errs...)
 }
 
 type RealizationRuns []RealizationRun
