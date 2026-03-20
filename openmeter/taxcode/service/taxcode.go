@@ -58,11 +58,7 @@ func (s *service) GetTaxCodeByAppMapping(ctx context.Context, input taxcode.GetT
 func (s *service) GetOrCreateByAppMapping(ctx context.Context, input taxcode.GetOrCreateByAppMappingInput) (taxcode.TaxCode, error) {
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (taxcode.TaxCode, error) {
 		// Try to find an existing TaxCode with this app mapping.
-		tc, err := s.adapter.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
-			Namespace: input.Namespace,
-			AppType:   input.AppType,
-			TaxCode:   input.TaxCode,
-		})
+		tc, err := s.adapter.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput(input))
 		if err == nil {
 			return tc, nil
 		}
@@ -81,11 +77,7 @@ func (s *service) GetOrCreateByAppMapping(ctx context.Context, input taxcode.Get
 		if err != nil {
 			// Another request may have created it concurrently.
 			if models.IsGenericConflictError(err) {
-				return s.adapter.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
-					Namespace: input.Namespace,
-					AppType:   input.AppType,
-					TaxCode:   input.TaxCode,
-				})
+				return s.adapter.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput(input))
 			}
 
 			return taxcode.TaxCode{}, err
