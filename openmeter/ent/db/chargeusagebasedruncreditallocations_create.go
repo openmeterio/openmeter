@@ -64,6 +64,12 @@ func (_c *ChargeUsageBasedRunCreditAllocationsCreate) SetLedgerTransactionGroupI
 	return _c
 }
 
+// SetSortHint sets the "sort_hint" field.
+func (_c *ChargeUsageBasedRunCreditAllocationsCreate) SetSortHint(v int) *ChargeUsageBasedRunCreditAllocationsCreate {
+	_c.mutation.SetSortHint(v)
+	return _c
+}
+
 // SetNamespace sets the "namespace" field.
 func (_c *ChargeUsageBasedRunCreditAllocationsCreate) SetNamespace(v string) *ChargeUsageBasedRunCreditAllocationsCreate {
 	_c.mutation.SetNamespace(v)
@@ -216,6 +222,9 @@ func (_c *ChargeUsageBasedRunCreditAllocationsCreate) check() error {
 			return &ValidationError{Name: "ledger_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunCreditAllocations.ledger_transaction_group_id": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.SortHint(); !ok {
+		return &ValidationError{Name: "sort_hint", err: errors.New(`db: missing required field "ChargeUsageBasedRunCreditAllocations.sort_hint"`)}
+	}
 	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "ChargeUsageBasedRunCreditAllocations.namespace"`)}
 	}
@@ -291,6 +300,10 @@ func (_c *ChargeUsageBasedRunCreditAllocationsCreate) createSpec() (*ChargeUsage
 	if value, ok := _c.mutation.LedgerTransactionGroupID(); ok {
 		_spec.SetField(chargeusagebasedruncreditallocations.FieldLedgerTransactionGroupID, field.TypeString, value)
 		_node.LedgerTransactionGroupID = value
+	}
+	if value, ok := _c.mutation.SortHint(); ok {
+		_spec.SetField(chargeusagebasedruncreditallocations.FieldSortHint, field.TypeInt, value)
+		_node.SortHint = value
 	}
 	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(chargeusagebasedruncreditallocations.FieldNamespace, field.TypeString, value)
@@ -432,6 +445,24 @@ func (u *ChargeUsageBasedRunCreditAllocationsUpsert) SetServicePeriodTo(v time.T
 // UpdateServicePeriodTo sets the "service_period_to" field to the value that was provided on create.
 func (u *ChargeUsageBasedRunCreditAllocationsUpsert) UpdateServicePeriodTo() *ChargeUsageBasedRunCreditAllocationsUpsert {
 	u.SetExcluded(chargeusagebasedruncreditallocations.FieldServicePeriodTo)
+	return u
+}
+
+// SetSortHint sets the "sort_hint" field.
+func (u *ChargeUsageBasedRunCreditAllocationsUpsert) SetSortHint(v int) *ChargeUsageBasedRunCreditAllocationsUpsert {
+	u.Set(chargeusagebasedruncreditallocations.FieldSortHint, v)
+	return u
+}
+
+// UpdateSortHint sets the "sort_hint" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunCreditAllocationsUpsert) UpdateSortHint() *ChargeUsageBasedRunCreditAllocationsUpsert {
+	u.SetExcluded(chargeusagebasedruncreditallocations.FieldSortHint)
+	return u
+}
+
+// AddSortHint adds v to the "sort_hint" field.
+func (u *ChargeUsageBasedRunCreditAllocationsUpsert) AddSortHint(v int) *ChargeUsageBasedRunCreditAllocationsUpsert {
+	u.Add(chargeusagebasedruncreditallocations.FieldSortHint, v)
 	return u
 }
 
@@ -603,6 +634,27 @@ func (u *ChargeUsageBasedRunCreditAllocationsUpsertOne) SetServicePeriodTo(v tim
 func (u *ChargeUsageBasedRunCreditAllocationsUpsertOne) UpdateServicePeriodTo() *ChargeUsageBasedRunCreditAllocationsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunCreditAllocationsUpsert) {
 		s.UpdateServicePeriodTo()
+	})
+}
+
+// SetSortHint sets the "sort_hint" field.
+func (u *ChargeUsageBasedRunCreditAllocationsUpsertOne) SetSortHint(v int) *ChargeUsageBasedRunCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunCreditAllocationsUpsert) {
+		s.SetSortHint(v)
+	})
+}
+
+// AddSortHint adds v to the "sort_hint" field.
+func (u *ChargeUsageBasedRunCreditAllocationsUpsertOne) AddSortHint(v int) *ChargeUsageBasedRunCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunCreditAllocationsUpsert) {
+		s.AddSortHint(v)
+	})
+}
+
+// UpdateSortHint sets the "sort_hint" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunCreditAllocationsUpsertOne) UpdateSortHint() *ChargeUsageBasedRunCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunCreditAllocationsUpsert) {
+		s.UpdateSortHint()
 	})
 }
 
@@ -949,6 +1001,27 @@ func (u *ChargeUsageBasedRunCreditAllocationsUpsertBulk) SetServicePeriodTo(v ti
 func (u *ChargeUsageBasedRunCreditAllocationsUpsertBulk) UpdateServicePeriodTo() *ChargeUsageBasedRunCreditAllocationsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunCreditAllocationsUpsert) {
 		s.UpdateServicePeriodTo()
+	})
+}
+
+// SetSortHint sets the "sort_hint" field.
+func (u *ChargeUsageBasedRunCreditAllocationsUpsertBulk) SetSortHint(v int) *ChargeUsageBasedRunCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunCreditAllocationsUpsert) {
+		s.SetSortHint(v)
+	})
+}
+
+// AddSortHint adds v to the "sort_hint" field.
+func (u *ChargeUsageBasedRunCreditAllocationsUpsertBulk) AddSortHint(v int) *ChargeUsageBasedRunCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunCreditAllocationsUpsert) {
+		s.AddSortHint(v)
+	})
+}
+
+// UpdateSortHint sets the "sort_hint" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunCreditAllocationsUpsertBulk) UpdateSortHint() *ChargeUsageBasedRunCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunCreditAllocationsUpsert) {
+		s.UpdateSortHint()
 	})
 }
 

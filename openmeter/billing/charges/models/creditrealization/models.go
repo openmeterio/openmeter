@@ -65,6 +65,10 @@ type Realization struct {
 	models.NamespacedID
 	models.ManagedModel
 	CreateInput
+
+	// SortHint is the hint for the order of the credit realizations created in the same batch.
+	// Given collection is in priority order, reverting any transaction group should happen in reverse order.
+	SortHint int `json:"sortHint"`
 }
 
 func (r Realization) Validate() error {

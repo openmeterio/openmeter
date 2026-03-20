@@ -93,6 +93,27 @@ func (_u *ChargeFlatFeeCreditAllocationsUpdate) SetNillableServicePeriodTo(v *ti
 	return _u
 }
 
+// SetSortHint sets the "sort_hint" field.
+func (_u *ChargeFlatFeeCreditAllocationsUpdate) SetSortHint(v int) *ChargeFlatFeeCreditAllocationsUpdate {
+	_u.mutation.ResetSortHint()
+	_u.mutation.SetSortHint(v)
+	return _u
+}
+
+// SetNillableSortHint sets the "sort_hint" field if the given value is not nil.
+func (_u *ChargeFlatFeeCreditAllocationsUpdate) SetNillableSortHint(v *int) *ChargeFlatFeeCreditAllocationsUpdate {
+	if v != nil {
+		_u.SetSortHint(*v)
+	}
+	return _u
+}
+
+// AddSortHint adds value to the "sort_hint" field.
+func (_u *ChargeFlatFeeCreditAllocationsUpdate) AddSortHint(v int) *ChargeFlatFeeCreditAllocationsUpdate {
+	_u.mutation.AddSortHint(v)
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *ChargeFlatFeeCreditAllocationsUpdate) SetUpdatedAt(v time.Time) *ChargeFlatFeeCreditAllocationsUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -231,6 +252,12 @@ func (_u *ChargeFlatFeeCreditAllocationsUpdate) sqlSave(ctx context.Context) (_n
 	if value, ok := _u.mutation.ServicePeriodTo(); ok {
 		_spec.SetField(chargeflatfeecreditallocations.FieldServicePeriodTo, field.TypeTime, value)
 	}
+	if value, ok := _u.mutation.SortHint(); ok {
+		_spec.SetField(chargeflatfeecreditallocations.FieldSortHint, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedSortHint(); ok {
+		_spec.AddField(chargeflatfeecreditallocations.FieldSortHint, field.TypeInt, value)
+	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(chargeflatfeecreditallocations.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -354,6 +381,27 @@ func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) SetNillableServicePeriodTo(v 
 	if v != nil {
 		_u.SetServicePeriodTo(*v)
 	}
+	return _u
+}
+
+// SetSortHint sets the "sort_hint" field.
+func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) SetSortHint(v int) *ChargeFlatFeeCreditAllocationsUpdateOne {
+	_u.mutation.ResetSortHint()
+	_u.mutation.SetSortHint(v)
+	return _u
+}
+
+// SetNillableSortHint sets the "sort_hint" field if the given value is not nil.
+func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) SetNillableSortHint(v *int) *ChargeFlatFeeCreditAllocationsUpdateOne {
+	if v != nil {
+		_u.SetSortHint(*v)
+	}
+	return _u
+}
+
+// AddSortHint adds value to the "sort_hint" field.
+func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) AddSortHint(v int) *ChargeFlatFeeCreditAllocationsUpdateOne {
+	_u.mutation.AddSortHint(v)
 	return _u
 }
 
@@ -524,6 +572,12 @@ func (_u *ChargeFlatFeeCreditAllocationsUpdateOne) sqlSave(ctx context.Context) 
 	}
 	if value, ok := _u.mutation.ServicePeriodTo(); ok {
 		_spec.SetField(chargeflatfeecreditallocations.FieldServicePeriodTo, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.SortHint(); ok {
+		_spec.SetField(chargeflatfeecreditallocations.FieldSortHint, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedSortHint(); ok {
+		_spec.AddField(chargeflatfeecreditallocations.FieldSortHint, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(chargeflatfeecreditallocations.FieldUpdatedAt, field.TypeTime, value)

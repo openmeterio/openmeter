@@ -24,6 +24,8 @@ const (
 	FieldServicePeriodTo = "service_period_to"
 	// FieldLedgerTransactionGroupID holds the string denoting the ledger_transaction_group_id field in the database.
 	FieldLedgerTransactionGroupID = "ledger_transaction_group_id"
+	// FieldSortHint holds the string denoting the sort_hint field in the database.
+	FieldSortHint = "sort_hint"
 	// FieldNamespace holds the string denoting the namespace field in the database.
 	FieldNamespace = "namespace"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -66,6 +68,7 @@ var Columns = []string{
 	FieldServicePeriodFrom,
 	FieldServicePeriodTo,
 	FieldLedgerTransactionGroupID,
+	FieldSortHint,
 	FieldNamespace,
 	FieldCreatedAt,
 	FieldUpdatedAt,
@@ -132,6 +135,11 @@ func ByServicePeriodTo(opts ...sql.OrderTermOption) OrderOption {
 // ByLedgerTransactionGroupID orders the results by the ledger_transaction_group_id field.
 func ByLedgerTransactionGroupID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLedgerTransactionGroupID, opts...).ToFunc()
+}
+
+// BySortHint orders the results by the sort_hint field.
+func BySortHint(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSortHint, opts...).ToFunc()
 }
 
 // ByNamespace orders the results by the namespace field.

@@ -1041,6 +1041,10 @@ func (e *ChargeFlatFeeCreditAllocations) GetLedgerTransactionGroupID() string {
 	return e.LedgerTransactionGroupID
 }
 
+func (e *ChargeFlatFeeCreditAllocations) GetSortHint() int {
+	return e.SortHint
+}
+
 func (e *ChargeFlatFeeCreditAllocations) GetNamespace() string {
 	return e.Namespace
 }
@@ -1231,6 +1235,10 @@ func (e *ChargeUsageBasedRunCreditAllocations) GetServicePeriodTo() time.Time {
 
 func (e *ChargeUsageBasedRunCreditAllocations) GetLedgerTransactionGroupID() string {
 	return e.LedgerTransactionGroupID
+}
+
+func (e *ChargeUsageBasedRunCreditAllocations) GetSortHint() int {
+	return e.SortHint
 }
 
 func (e *ChargeUsageBasedRunCreditAllocations) GetNamespace() string {

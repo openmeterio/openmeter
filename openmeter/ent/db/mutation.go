@@ -42064,6 +42064,8 @@ type ChargeFlatFeeCreditAllocationsMutation struct {
 	service_period_from         *time.Time
 	service_period_to           *time.Time
 	ledger_transaction_group_id *string
+	sort_hint                   *int
+	addsort_hint                *int
 	namespace                   *string
 	created_at                  *time.Time
 	updated_at                  *time.Time
@@ -42374,6 +42376,62 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) OldLedgerTransactionGroupID(ctx
 // ResetLedgerTransactionGroupID resets all changes to the "ledger_transaction_group_id" field.
 func (m *ChargeFlatFeeCreditAllocationsMutation) ResetLedgerTransactionGroupID() {
 	m.ledger_transaction_group_id = nil
+}
+
+// SetSortHint sets the "sort_hint" field.
+func (m *ChargeFlatFeeCreditAllocationsMutation) SetSortHint(i int) {
+	m.sort_hint = &i
+	m.addsort_hint = nil
+}
+
+// SortHint returns the value of the "sort_hint" field in the mutation.
+func (m *ChargeFlatFeeCreditAllocationsMutation) SortHint() (r int, exists bool) {
+	v := m.sort_hint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSortHint returns the old "sort_hint" field's value of the ChargeFlatFeeCreditAllocations entity.
+// If the ChargeFlatFeeCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeCreditAllocationsMutation) OldSortHint(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSortHint is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSortHint requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSortHint: %w", err)
+	}
+	return oldValue.SortHint, nil
+}
+
+// AddSortHint adds i to the "sort_hint" field.
+func (m *ChargeFlatFeeCreditAllocationsMutation) AddSortHint(i int) {
+	if m.addsort_hint != nil {
+		*m.addsort_hint += i
+	} else {
+		m.addsort_hint = &i
+	}
+}
+
+// AddedSortHint returns the value that was added to the "sort_hint" field in this mutation.
+func (m *ChargeFlatFeeCreditAllocationsMutation) AddedSortHint() (r int, exists bool) {
+	v := m.addsort_hint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSortHint resets all changes to the "sort_hint" field.
+func (m *ChargeFlatFeeCreditAllocationsMutation) ResetSortHint() {
+	m.sort_hint = nil
+	m.addsort_hint = nil
 }
 
 // SetNamespace sets the "namespace" field.
@@ -42732,7 +42790,7 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeFlatFeeCreditAllocationsMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 12)
 	if m.billing_invoice_line != nil {
 		fields = append(fields, chargeflatfeecreditallocations.FieldLineID)
 	}
@@ -42747,6 +42805,9 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) Fields() []string {
 	}
 	if m.ledger_transaction_group_id != nil {
 		fields = append(fields, chargeflatfeecreditallocations.FieldLedgerTransactionGroupID)
+	}
+	if m.sort_hint != nil {
+		fields = append(fields, chargeflatfeecreditallocations.FieldSortHint)
 	}
 	if m.namespace != nil {
 		fields = append(fields, chargeflatfeecreditallocations.FieldNamespace)
@@ -42784,6 +42845,8 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) Field(name string) (ent.Value, 
 		return m.ServicePeriodTo()
 	case chargeflatfeecreditallocations.FieldLedgerTransactionGroupID:
 		return m.LedgerTransactionGroupID()
+	case chargeflatfeecreditallocations.FieldSortHint:
+		return m.SortHint()
 	case chargeflatfeecreditallocations.FieldNamespace:
 		return m.Namespace()
 	case chargeflatfeecreditallocations.FieldCreatedAt:
@@ -42815,6 +42878,8 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) OldField(ctx context.Context, n
 		return m.OldServicePeriodTo(ctx)
 	case chargeflatfeecreditallocations.FieldLedgerTransactionGroupID:
 		return m.OldLedgerTransactionGroupID(ctx)
+	case chargeflatfeecreditallocations.FieldSortHint:
+		return m.OldSortHint(ctx)
 	case chargeflatfeecreditallocations.FieldNamespace:
 		return m.OldNamespace(ctx)
 	case chargeflatfeecreditallocations.FieldCreatedAt:
@@ -42871,6 +42936,13 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) SetField(name string, value ent
 		}
 		m.SetLedgerTransactionGroupID(v)
 		return nil
+	case chargeflatfeecreditallocations.FieldSortHint:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSortHint(v)
+		return nil
 	case chargeflatfeecreditallocations.FieldNamespace:
 		v, ok := value.(string)
 		if !ok {
@@ -42920,13 +42992,21 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) SetField(name string, value ent
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *ChargeFlatFeeCreditAllocationsMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addsort_hint != nil {
+		fields = append(fields, chargeflatfeecreditallocations.FieldSortHint)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *ChargeFlatFeeCreditAllocationsMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case chargeflatfeecreditallocations.FieldSortHint:
+		return m.AddedSortHint()
+	}
 	return nil, false
 }
 
@@ -42935,6 +43015,13 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) AddedField(name string) (ent.Va
 // type.
 func (m *ChargeFlatFeeCreditAllocationsMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case chargeflatfeecreditallocations.FieldSortHint:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSortHint(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFeeCreditAllocations numeric field %s", name)
 }
@@ -42997,6 +43084,9 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) ResetField(name string) error {
 		return nil
 	case chargeflatfeecreditallocations.FieldLedgerTransactionGroupID:
 		m.ResetLedgerTransactionGroupID()
+		return nil
+	case chargeflatfeecreditallocations.FieldSortHint:
+		m.ResetSortHint()
 		return nil
 	case chargeflatfeecreditallocations.FieldNamespace:
 		m.ResetNamespace()
@@ -46979,6 +47069,8 @@ type ChargeUsageBasedRunCreditAllocationsMutation struct {
 	service_period_from         *time.Time
 	service_period_to           *time.Time
 	ledger_transaction_group_id *string
+	sort_hint                   *int
+	addsort_hint                *int
 	namespace                   *string
 	created_at                  *time.Time
 	updated_at                  *time.Time
@@ -47289,6 +47381,62 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) ResetLedgerTransactionGro
 	m.ledger_transaction_group_id = nil
 }
 
+// SetSortHint sets the "sort_hint" field.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) SetSortHint(i int) {
+	m.sort_hint = &i
+	m.addsort_hint = nil
+}
+
+// SortHint returns the value of the "sort_hint" field in the mutation.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) SortHint() (r int, exists bool) {
+	v := m.sort_hint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSortHint returns the old "sort_hint" field's value of the ChargeUsageBasedRunCreditAllocations entity.
+// If the ChargeUsageBasedRunCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) OldSortHint(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSortHint is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSortHint requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSortHint: %w", err)
+	}
+	return oldValue.SortHint, nil
+}
+
+// AddSortHint adds i to the "sort_hint" field.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) AddSortHint(i int) {
+	if m.addsort_hint != nil {
+		*m.addsort_hint += i
+	} else {
+		m.addsort_hint = &i
+	}
+}
+
+// AddedSortHint returns the value that was added to the "sort_hint" field in this mutation.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) AddedSortHint() (r int, exists bool) {
+	v := m.addsort_hint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSortHint resets all changes to the "sort_hint" field.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) ResetSortHint() {
+	m.sort_hint = nil
+	m.addsort_hint = nil
+}
+
 // SetNamespace sets the "namespace" field.
 func (m *ChargeUsageBasedRunCreditAllocationsMutation) SetNamespace(s string) {
 	m.namespace = &s
@@ -47592,7 +47740,7 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedRunCreditAllocationsMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 12)
 	if m.line_id != nil {
 		fields = append(fields, chargeusagebasedruncreditallocations.FieldLineID)
 	}
@@ -47607,6 +47755,9 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) Fields() []string {
 	}
 	if m.ledger_transaction_group_id != nil {
 		fields = append(fields, chargeusagebasedruncreditallocations.FieldLedgerTransactionGroupID)
+	}
+	if m.sort_hint != nil {
+		fields = append(fields, chargeusagebasedruncreditallocations.FieldSortHint)
 	}
 	if m.namespace != nil {
 		fields = append(fields, chargeusagebasedruncreditallocations.FieldNamespace)
@@ -47644,6 +47795,8 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) Field(name string) (ent.V
 		return m.ServicePeriodTo()
 	case chargeusagebasedruncreditallocations.FieldLedgerTransactionGroupID:
 		return m.LedgerTransactionGroupID()
+	case chargeusagebasedruncreditallocations.FieldSortHint:
+		return m.SortHint()
 	case chargeusagebasedruncreditallocations.FieldNamespace:
 		return m.Namespace()
 	case chargeusagebasedruncreditallocations.FieldCreatedAt:
@@ -47675,6 +47828,8 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) OldField(ctx context.Cont
 		return m.OldServicePeriodTo(ctx)
 	case chargeusagebasedruncreditallocations.FieldLedgerTransactionGroupID:
 		return m.OldLedgerTransactionGroupID(ctx)
+	case chargeusagebasedruncreditallocations.FieldSortHint:
+		return m.OldSortHint(ctx)
 	case chargeusagebasedruncreditallocations.FieldNamespace:
 		return m.OldNamespace(ctx)
 	case chargeusagebasedruncreditallocations.FieldCreatedAt:
@@ -47731,6 +47886,13 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) SetField(name string, val
 		}
 		m.SetLedgerTransactionGroupID(v)
 		return nil
+	case chargeusagebasedruncreditallocations.FieldSortHint:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSortHint(v)
+		return nil
 	case chargeusagebasedruncreditallocations.FieldNamespace:
 		v, ok := value.(string)
 		if !ok {
@@ -47780,13 +47942,21 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) SetField(name string, val
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *ChargeUsageBasedRunCreditAllocationsMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addsort_hint != nil {
+		fields = append(fields, chargeusagebasedruncreditallocations.FieldSortHint)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *ChargeUsageBasedRunCreditAllocationsMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case chargeusagebasedruncreditallocations.FieldSortHint:
+		return m.AddedSortHint()
+	}
 	return nil, false
 }
 
@@ -47795,6 +47965,13 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) AddedField(name string) (
 // type.
 func (m *ChargeUsageBasedRunCreditAllocationsMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case chargeusagebasedruncreditallocations.FieldSortHint:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSortHint(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBasedRunCreditAllocations numeric field %s", name)
 }
@@ -47857,6 +48034,9 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) ResetField(name string) e
 		return nil
 	case chargeusagebasedruncreditallocations.FieldLedgerTransactionGroupID:
 		m.ResetLedgerTransactionGroupID()
+		return nil
+	case chargeusagebasedruncreditallocations.FieldSortHint:
+		m.ResetSortHint()
 		return nil
 	case chargeusagebasedruncreditallocations.FieldNamespace:
 		m.ResetNamespace()

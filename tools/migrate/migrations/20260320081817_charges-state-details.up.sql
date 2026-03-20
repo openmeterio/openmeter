@@ -6,3 +6,9 @@ ALTER TABLE "charges" ADD COLUMN "advance_after" timestamptz NULL;
 -- modify "charge_usage_based" table
 -- atlas:nolint MF103
 ALTER TABLE "charge_usage_based" ADD COLUMN "status" character varying NOT NULL, ADD COLUMN "current_realization_run_id" character(26) NULL, ADD CONSTRAINT "charge_usage_based_charge_usage_based_runs_current_run" FOREIGN KEY ("current_realization_run_id") REFERENCES "charge_usage_based_runs" ("id") ON UPDATE NO ACTION ON DELETE CASCADE;
+-- modify "charge_flat_fee_credit_allocations" table
+-- atlas:nolint MF103
+ALTER TABLE "charge_flat_fee_credit_allocations" ADD COLUMN "sort_hint" bigint NOT NULL;
+-- modify "charge_usage_based_run_credit_allocations" table
+-- atlas:nolint MF103
+ALTER TABLE "charge_usage_based_run_credit_allocations" ADD COLUMN "sort_hint" bigint NOT NULL;

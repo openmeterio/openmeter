@@ -31,6 +31,8 @@ type ChargeUsageBasedRunCreditAllocations struct {
 	ServicePeriodTo time.Time `json:"service_period_to,omitempty"`
 	// LedgerTransactionGroupID holds the value of the "ledger_transaction_group_id" field.
 	LedgerTransactionGroupID string `json:"ledger_transaction_group_id,omitempty"`
+	// SortHint holds the value of the "sort_hint" field.
+	SortHint int `json:"sort_hint,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -78,6 +80,8 @@ func (*ChargeUsageBasedRunCreditAllocations) scanValues(columns []string) ([]any
 			values[i] = new([]byte)
 		case chargeusagebasedruncreditallocations.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
+		case chargeusagebasedruncreditallocations.FieldSortHint:
+			values[i] = new(sql.NullInt64)
 		case chargeusagebasedruncreditallocations.FieldID, chargeusagebasedruncreditallocations.FieldLineID, chargeusagebasedruncreditallocations.FieldLedgerTransactionGroupID, chargeusagebasedruncreditallocations.FieldNamespace, chargeusagebasedruncreditallocations.FieldRunID:
 			values[i] = new(sql.NullString)
 		case chargeusagebasedruncreditallocations.FieldServicePeriodFrom, chargeusagebasedruncreditallocations.FieldServicePeriodTo, chargeusagebasedruncreditallocations.FieldCreatedAt, chargeusagebasedruncreditallocations.FieldUpdatedAt, chargeusagebasedruncreditallocations.FieldDeletedAt:
@@ -133,6 +137,12 @@ func (_m *ChargeUsageBasedRunCreditAllocations) assignValues(columns []string, v
 				return fmt.Errorf("unexpected type %T for field ledger_transaction_group_id", values[i])
 			} else if value.Valid {
 				_m.LedgerTransactionGroupID = value.String
+			}
+		case chargeusagebasedruncreditallocations.FieldSortHint:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field sort_hint", values[i])
+			} else if value.Valid {
+				_m.SortHint = int(value.Int64)
 			}
 		case chargeusagebasedruncreditallocations.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -230,6 +240,9 @@ func (_m *ChargeUsageBasedRunCreditAllocations) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("ledger_transaction_group_id=")
 	builder.WriteString(_m.LedgerTransactionGroupID)
+	builder.WriteString(", ")
+	builder.WriteString("sort_hint=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SortHint))
 	builder.WriteString(", ")
 	builder.WriteString("namespace=")
 	builder.WriteString(_m.Namespace)
