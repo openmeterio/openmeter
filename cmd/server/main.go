@@ -213,7 +213,10 @@ func main() {
 		telemetryServerShutdown := func(err error) {
 			logger.Debug("shutting down telemetry server gracefully...", "error", err)
 
-			if err = app.TelemetryServer.Shutdown(ctx); err != nil {
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), conf.Termination.GracefulShutdownTimeout)
+			defer cancel()
+
+			if err = app.TelemetryServer.Shutdown(shutdownCtx); err != nil {
 				logger.Warn("failed to shutdown telemetry server", "error", err)
 			}
 		}
@@ -227,8 +230,12 @@ func main() {
 	// Set up server
 	{
 		apiServer := &http.Server{
-			Addr:    conf.Address,
-			Handler: s,
+			Addr:              conf.Address,
+			Handler:           s,
+			ReadHeaderTimeout: conf.Server.ReadHeaderTimeout,
+			ReadTimeout:       conf.Server.ReadTimeout,
+			WriteTimeout:      conf.Server.WriteTimeout,
+			IdleTimeout:       conf.Server.IdleTimeout,
 		}
 
 		// Close API server on exit. It drops all connections regardless of their states.
@@ -247,7 +254,10 @@ func main() {
 		apiServerShutdown := func(err error) {
 			logger.Debug("shutting down API server gracefully...", "error", err)
 
-			if err = apiServer.Shutdown(ctx); err != nil {
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), conf.Termination.GracefulShutdownTimeout)
+			defer cancel()
+
+			if err = apiServer.Shutdown(shutdownCtx); err != nil {
 				logger.Warn("failed to shutdown API server", "error", err)
 			}
 		}

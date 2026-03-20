@@ -65,6 +65,8 @@ type TelemetryConfig struct {
 	// Telemetry HTTP server address
 	Address string
 
+	ReadHeaderTimeout time.Duration
+
 	Trace TraceTelemetryConfig
 
 	Metrics MetricsTelemetryConfig
@@ -669,4 +671,5 @@ func ConfigureTelemetry(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("telemetry.log.exporters.file.prettyprint", false)
 
 	v.SetDefault("telemetry.readiness.interval", 3*time.Second)
+	v.SetDefault("telemetry.readHeaderTimeout", 10*time.Second)
 }
