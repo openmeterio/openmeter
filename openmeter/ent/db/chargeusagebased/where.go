@@ -7,6 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
@@ -79,6 +80,11 @@ func InvoiceAt(v time.Time) predicate.ChargeUsageBased {
 // FeatureKey applies equality check predicate on the "feature_key" field. It's identical to FeatureKeyEQ.
 func FeatureKey(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldEQ(FieldFeatureKey, v))
+}
+
+// CurrentRealizationRunID applies equality check predicate on the "current_realization_run_id" field. It's identical to CurrentRealizationRunIDEQ.
+func CurrentRealizationRunID(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldCurrentRealizationRunID, v))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -291,6 +297,111 @@ func FeatureKeyContainsFold(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldContainsFold(FieldFeatureKey, v))
 }
 
+// CurrentRealizationRunIDEQ applies the EQ predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDEQ(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldCurrentRealizationRunID, v))
+}
+
+// CurrentRealizationRunIDNEQ applies the NEQ predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDNEQ(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNEQ(FieldCurrentRealizationRunID, v))
+}
+
+// CurrentRealizationRunIDIn applies the In predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDIn(vs ...string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIn(FieldCurrentRealizationRunID, vs...))
+}
+
+// CurrentRealizationRunIDNotIn applies the NotIn predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDNotIn(vs ...string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldCurrentRealizationRunID, vs...))
+}
+
+// CurrentRealizationRunIDGT applies the GT predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDGT(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGT(FieldCurrentRealizationRunID, v))
+}
+
+// CurrentRealizationRunIDGTE applies the GTE predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDGTE(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGTE(FieldCurrentRealizationRunID, v))
+}
+
+// CurrentRealizationRunIDLT applies the LT predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDLT(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLT(FieldCurrentRealizationRunID, v))
+}
+
+// CurrentRealizationRunIDLTE applies the LTE predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDLTE(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLTE(FieldCurrentRealizationRunID, v))
+}
+
+// CurrentRealizationRunIDContains applies the Contains predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDContains(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldContains(FieldCurrentRealizationRunID, v))
+}
+
+// CurrentRealizationRunIDHasPrefix applies the HasPrefix predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDHasPrefix(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldHasPrefix(FieldCurrentRealizationRunID, v))
+}
+
+// CurrentRealizationRunIDHasSuffix applies the HasSuffix predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDHasSuffix(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldHasSuffix(FieldCurrentRealizationRunID, v))
+}
+
+// CurrentRealizationRunIDIsNil applies the IsNil predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldCurrentRealizationRunID))
+}
+
+// CurrentRealizationRunIDNotNil applies the NotNil predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldCurrentRealizationRunID))
+}
+
+// CurrentRealizationRunIDEqualFold applies the EqualFold predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDEqualFold(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEqualFold(FieldCurrentRealizationRunID, v))
+}
+
+// CurrentRealizationRunIDContainsFold applies the ContainsFold predicate on the "current_realization_run_id" field.
+func CurrentRealizationRunIDContainsFold(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldContainsFold(FieldCurrentRealizationRunID, v))
+}
+
+// StatusEQ applies the EQ predicate on the "status" field.
+func StatusEQ(v usagebased.Status) predicate.ChargeUsageBased {
+	vc := v
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldStatus, vc))
+}
+
+// StatusNEQ applies the NEQ predicate on the "status" field.
+func StatusNEQ(v usagebased.Status) predicate.ChargeUsageBased {
+	vc := v
+	return predicate.ChargeUsageBased(sql.FieldNEQ(FieldStatus, vc))
+}
+
+// StatusIn applies the In predicate on the "status" field.
+func StatusIn(vs ...usagebased.Status) predicate.ChargeUsageBased {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeUsageBased(sql.FieldIn(FieldStatus, v...))
+}
+
+// StatusNotIn applies the NotIn predicate on the "status" field.
+func StatusNotIn(vs ...usagebased.Status) predicate.ChargeUsageBased {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldStatus, v...))
+}
+
 // HasCharge applies the HasEdge predicate on the "charge" edge.
 func HasCharge() predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(func(s *sql.Selector) {
@@ -329,6 +440,29 @@ func HasRuns() predicate.ChargeUsageBased {
 func HasRunsWith(preds ...predicate.ChargeUsageBasedRuns) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(func(s *sql.Selector) {
 		step := newRunsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCurrentRun applies the HasEdge predicate on the "current_run" edge.
+func HasCurrentRun() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, CurrentRunTable, CurrentRunColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCurrentRunWith applies the HasEdge predicate on the "current_run" edge with a given conditions (other predicates).
+func HasCurrentRunWith(preds ...predicate.ChargeUsageBasedRuns) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(func(s *sql.Selector) {
+		step := newCurrentRunStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

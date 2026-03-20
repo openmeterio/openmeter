@@ -20,7 +20,7 @@ import (
 func MapUsageBasedChargeFromDB(entity *entdb.ChargeUsageBased, chargeMeta meta.Charge, expands meta.Expands) (usagebased.Charge, error) {
 	charge := usagebased.Charge{
 		ManagedResource: chargeMeta.ManagedResource,
-		Status:          chargeMeta.Status,
+		Status:          entity.Status,
 		Intent: usagebased.Intent{
 			Intent:         chargeMeta.Intent,
 			InvoiceAt:      entity.InvoiceAt.UTC(),
@@ -28,6 +28,9 @@ func MapUsageBasedChargeFromDB(entity *entdb.ChargeUsageBased, chargeMeta meta.C
 			FeatureKey:     entity.FeatureKey,
 			Discounts:      lo.FromPtr(entity.Discounts),
 			Price:          lo.FromPtr(entity.Price),
+		},
+		State: usagebased.State{
+			CurrentRealizationRunID: entity.CurrentRealizationRunID,
 		},
 	}
 

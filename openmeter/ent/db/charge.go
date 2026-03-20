@@ -75,6 +75,8 @@ type Charge struct {
 	SubscriptionPhaseID *string `json:"subscription_phase_id,omitempty"`
 	// SubscriptionItemID holds the value of the "subscription_item_id" field.
 	SubscriptionItemID *string `json:"subscription_item_id,omitempty"`
+	// AdvanceAfter holds the value of the "advance_after" field.
+	AdvanceAfter *time.Time `json:"advance_after,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeQuery when eager-loading is set.
 	Edges        ChargeEdges `json:"edges"`
@@ -210,7 +212,7 @@ func (*Charge) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case charge.FieldID, charge.FieldNamespace, charge.FieldName, charge.FieldDescription, charge.FieldCustomerID, charge.FieldType, charge.FieldStatus, charge.FieldUniqueReferenceID, charge.FieldCurrency, charge.FieldManagedBy, charge.FieldSubscriptionID, charge.FieldSubscriptionPhaseID, charge.FieldSubscriptionItemID:
 			values[i] = new(sql.NullString)
-		case charge.FieldCreatedAt, charge.FieldUpdatedAt, charge.FieldDeletedAt, charge.FieldServicePeriodFrom, charge.FieldServicePeriodTo, charge.FieldBillingPeriodFrom, charge.FieldBillingPeriodTo, charge.FieldFullServicePeriodFrom, charge.FieldFullServicePeriodTo:
+		case charge.FieldCreatedAt, charge.FieldUpdatedAt, charge.FieldDeletedAt, charge.FieldServicePeriodFrom, charge.FieldServicePeriodTo, charge.FieldBillingPeriodFrom, charge.FieldBillingPeriodTo, charge.FieldFullServicePeriodFrom, charge.FieldFullServicePeriodTo, charge.FieldAdvanceAfter:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -381,6 +383,13 @@ func (_m *Charge) assignValues(columns []string, values []any) error {
 				_m.SubscriptionItemID = new(string)
 				*_m.SubscriptionItemID = value.String
 			}
+		case charge.FieldAdvanceAfter:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field advance_after", values[i])
+			} else if value.Valid {
+				_m.AdvanceAfter = new(time.Time)
+				*_m.AdvanceAfter = value.Time
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -541,6 +550,11 @@ func (_m *Charge) String() string {
 	if v := _m.SubscriptionItemID; v != nil {
 		builder.WriteString("subscription_item_id=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.AdvanceAfter; v != nil {
+		builder.WriteString("advance_after=")
+		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteByte(')')
 	return builder.String()

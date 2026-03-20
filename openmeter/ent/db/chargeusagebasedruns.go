@@ -30,6 +30,22 @@ type ChargeUsageBasedRuns struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// Amount holds the value of the "amount" field.
+	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
+	// TaxesTotal holds the value of the "taxes_total" field.
+	TaxesTotal alpacadecimal.Decimal `json:"taxes_total,omitempty"`
+	// TaxesInclusiveTotal holds the value of the "taxes_inclusive_total" field.
+	TaxesInclusiveTotal alpacadecimal.Decimal `json:"taxes_inclusive_total,omitempty"`
+	// TaxesExclusiveTotal holds the value of the "taxes_exclusive_total" field.
+	TaxesExclusiveTotal alpacadecimal.Decimal `json:"taxes_exclusive_total,omitempty"`
+	// ChargesTotal holds the value of the "charges_total" field.
+	ChargesTotal alpacadecimal.Decimal `json:"charges_total,omitempty"`
+	// DiscountsTotal holds the value of the "discounts_total" field.
+	DiscountsTotal alpacadecimal.Decimal `json:"discounts_total,omitempty"`
+	// CreditsTotal holds the value of the "credits_total" field.
+	CreditsTotal alpacadecimal.Decimal `json:"credits_total,omitempty"`
+	// Total holds the value of the "total" field.
+	Total alpacadecimal.Decimal `json:"total,omitempty"`
 	// ChargeID holds the value of the "charge_id" field.
 	ChargeID string `json:"charge_id,omitempty"`
 	// Type holds the value of the "type" field.
@@ -106,7 +122,7 @@ func (*ChargeUsageBasedRuns) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case chargeusagebasedruns.FieldMeterValue:
+		case chargeusagebasedruns.FieldAmount, chargeusagebasedruns.FieldTaxesTotal, chargeusagebasedruns.FieldTaxesInclusiveTotal, chargeusagebasedruns.FieldTaxesExclusiveTotal, chargeusagebasedruns.FieldChargesTotal, chargeusagebasedruns.FieldDiscountsTotal, chargeusagebasedruns.FieldCreditsTotal, chargeusagebasedruns.FieldTotal, chargeusagebasedruns.FieldMeterValue:
 			values[i] = new(alpacadecimal.Decimal)
 		case chargeusagebasedruns.FieldID, chargeusagebasedruns.FieldNamespace, chargeusagebasedruns.FieldChargeID, chargeusagebasedruns.FieldType:
 			values[i] = new(sql.NullString)
@@ -157,6 +173,54 @@ func (_m *ChargeUsageBasedRuns) assignValues(columns []string, values []any) err
 			} else if value.Valid {
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
+			}
+		case chargeusagebasedruns.FieldAmount:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field amount", values[i])
+			} else if value != nil {
+				_m.Amount = *value
+			}
+		case chargeusagebasedruns.FieldTaxesTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field taxes_total", values[i])
+			} else if value != nil {
+				_m.TaxesTotal = *value
+			}
+		case chargeusagebasedruns.FieldTaxesInclusiveTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field taxes_inclusive_total", values[i])
+			} else if value != nil {
+				_m.TaxesInclusiveTotal = *value
+			}
+		case chargeusagebasedruns.FieldTaxesExclusiveTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field taxes_exclusive_total", values[i])
+			} else if value != nil {
+				_m.TaxesExclusiveTotal = *value
+			}
+		case chargeusagebasedruns.FieldChargesTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field charges_total", values[i])
+			} else if value != nil {
+				_m.ChargesTotal = *value
+			}
+		case chargeusagebasedruns.FieldDiscountsTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field discounts_total", values[i])
+			} else if value != nil {
+				_m.DiscountsTotal = *value
+			}
+		case chargeusagebasedruns.FieldCreditsTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field credits_total", values[i])
+			} else if value != nil {
+				_m.CreditsTotal = *value
+			}
+		case chargeusagebasedruns.FieldTotal:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field total", values[i])
+			} else if value != nil {
+				_m.Total = *value
 			}
 		case chargeusagebasedruns.FieldChargeID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -251,6 +315,30 @@ func (_m *ChargeUsageBasedRuns) String() string {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("amount=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Amount))
+	builder.WriteString(", ")
+	builder.WriteString("taxes_total=")
+	builder.WriteString(fmt.Sprintf("%v", _m.TaxesTotal))
+	builder.WriteString(", ")
+	builder.WriteString("taxes_inclusive_total=")
+	builder.WriteString(fmt.Sprintf("%v", _m.TaxesInclusiveTotal))
+	builder.WriteString(", ")
+	builder.WriteString("taxes_exclusive_total=")
+	builder.WriteString(fmt.Sprintf("%v", _m.TaxesExclusiveTotal))
+	builder.WriteString(", ")
+	builder.WriteString("charges_total=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ChargesTotal))
+	builder.WriteString(", ")
+	builder.WriteString("discounts_total=")
+	builder.WriteString(fmt.Sprintf("%v", _m.DiscountsTotal))
+	builder.WriteString(", ")
+	builder.WriteString("credits_total=")
+	builder.WriteString(fmt.Sprintf("%v", _m.CreditsTotal))
+	builder.WriteString(", ")
+	builder.WriteString("total=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Total))
 	builder.WriteString(", ")
 	builder.WriteString("charge_id=")
 	builder.WriteString(_m.ChargeID)

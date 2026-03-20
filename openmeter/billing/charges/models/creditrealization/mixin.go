@@ -54,6 +54,8 @@ func (m mixinBase) Fields() []ent.Field {
 			}).
 			NotEmpty().
 			Immutable(),
+
+		field.Int("sort_hint"),
 	}
 }
 
@@ -66,16 +68,18 @@ type Creator[T any] interface {
 	SetServicePeriodFrom(servicePeriodFrom time.Time) T
 	SetServicePeriodTo(servicePeriodTo time.Time) T
 	SetLedgerTransactionGroupID(ledgerTransactionGroupID string) T
+	SetSortHint(sortHint int) T
 }
 
-func Create[T Creator[T]](creator Creator[T], ns string, realization CreateInput) T {
+func Create[T Creator[T]](creator Creator[T], ns string, sortHint int, realization CreateInput) T {
 	return creator.SetAnnotations(realization.Annotations).
 		SetNamespace(ns).
 		SetNillableLineID(realization.LineID).
 		SetAmount(realization.Amount).
 		SetServicePeriodFrom(realization.ServicePeriod.From.In(time.UTC)).
 		SetServicePeriodTo(realization.ServicePeriod.To.In(time.UTC)).
-		SetLedgerTransactionGroupID(realization.LedgerTransaction.TransactionGroupID)
+		SetLedgerTransactionGroupID(realization.LedgerTransaction.TransactionGroupID).
+		SetSortHint(sortHint)
 }
 
 type Getter interface {
@@ -89,6 +93,7 @@ type Getter interface {
 	GetServicePeriodFrom() time.Time
 	GetServicePeriodTo() time.Time
 	GetLedgerTransactionGroupID() string
+	GetSortHint() int
 }
 
 func MapFromDB(dbEntity Getter) Realization {
@@ -112,5 +117,6 @@ func MapFromDB(dbEntity Getter) Realization {
 			},
 			LineID: dbEntity.GetLineID(),
 		},
+		SortHint: dbEntity.GetSortHint(),
 	}
 }

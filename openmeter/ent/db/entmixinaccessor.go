@@ -1041,6 +1041,10 @@ func (e *ChargeFlatFeeCreditAllocations) GetLedgerTransactionGroupID() string {
 	return e.LedgerTransactionGroupID
 }
 
+func (e *ChargeFlatFeeCreditAllocations) GetSortHint() int {
+	return e.SortHint
+}
+
 func (e *ChargeFlatFeeCreditAllocations) GetNamespace() string {
 	return e.Namespace
 }
@@ -1233,6 +1237,10 @@ func (e *ChargeUsageBasedRunCreditAllocations) GetLedgerTransactionGroupID() str
 	return e.LedgerTransactionGroupID
 }
 
+func (e *ChargeUsageBasedRunCreditAllocations) GetSortHint() int {
+	return e.SortHint
+}
+
 func (e *ChargeUsageBasedRunCreditAllocations) GetNamespace() string {
 	return e.Namespace
 }
@@ -1411,6 +1419,38 @@ func (e *ChargeUsageBasedRuns) GetUpdatedAt() time.Time {
 
 func (e *ChargeUsageBasedRuns) GetDeletedAt() *time.Time {
 	return e.DeletedAt
+}
+
+func (e *ChargeUsageBasedRuns) GetAmount() alpacadecimal.Decimal {
+	return e.Amount
+}
+
+func (e *ChargeUsageBasedRuns) GetTaxesTotal() alpacadecimal.Decimal {
+	return e.TaxesTotal
+}
+
+func (e *ChargeUsageBasedRuns) GetTaxesInclusiveTotal() alpacadecimal.Decimal {
+	return e.TaxesInclusiveTotal
+}
+
+func (e *ChargeUsageBasedRuns) GetTaxesExclusiveTotal() alpacadecimal.Decimal {
+	return e.TaxesExclusiveTotal
+}
+
+func (e *ChargeUsageBasedRuns) GetChargesTotal() alpacadecimal.Decimal {
+	return e.ChargesTotal
+}
+
+func (e *ChargeUsageBasedRuns) GetDiscountsTotal() alpacadecimal.Decimal {
+	return e.DiscountsTotal
+}
+
+func (e *ChargeUsageBasedRuns) GetCreditsTotal() alpacadecimal.Decimal {
+	return e.CreditsTotal
+}
+
+func (e *ChargeUsageBasedRuns) GetTotal() alpacadecimal.Decimal {
+	return e.Total
 }
 
 func (e *CurrencyCostBasis) GetID() string {

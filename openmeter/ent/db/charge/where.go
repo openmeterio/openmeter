@@ -159,6 +159,11 @@ func SubscriptionItemID(v string) predicate.Charge {
 	return predicate.Charge(sql.FieldEQ(FieldSubscriptionItemID, v))
 }
 
+// AdvanceAfter applies equality check predicate on the "advance_after" field. It's identical to AdvanceAfterEQ.
+func AdvanceAfter(v time.Time) predicate.Charge {
+	return predicate.Charge(sql.FieldEQ(FieldAdvanceAfter, v))
+}
+
 // AnnotationsIsNil applies the IsNil predicate on the "annotations" field.
 func AnnotationsIsNil() predicate.Charge {
 	return predicate.Charge(sql.FieldIsNull(FieldAnnotations))
@@ -1291,6 +1296,56 @@ func SubscriptionItemIDEqualFold(v string) predicate.Charge {
 // SubscriptionItemIDContainsFold applies the ContainsFold predicate on the "subscription_item_id" field.
 func SubscriptionItemIDContainsFold(v string) predicate.Charge {
 	return predicate.Charge(sql.FieldContainsFold(FieldSubscriptionItemID, v))
+}
+
+// AdvanceAfterEQ applies the EQ predicate on the "advance_after" field.
+func AdvanceAfterEQ(v time.Time) predicate.Charge {
+	return predicate.Charge(sql.FieldEQ(FieldAdvanceAfter, v))
+}
+
+// AdvanceAfterNEQ applies the NEQ predicate on the "advance_after" field.
+func AdvanceAfterNEQ(v time.Time) predicate.Charge {
+	return predicate.Charge(sql.FieldNEQ(FieldAdvanceAfter, v))
+}
+
+// AdvanceAfterIn applies the In predicate on the "advance_after" field.
+func AdvanceAfterIn(vs ...time.Time) predicate.Charge {
+	return predicate.Charge(sql.FieldIn(FieldAdvanceAfter, vs...))
+}
+
+// AdvanceAfterNotIn applies the NotIn predicate on the "advance_after" field.
+func AdvanceAfterNotIn(vs ...time.Time) predicate.Charge {
+	return predicate.Charge(sql.FieldNotIn(FieldAdvanceAfter, vs...))
+}
+
+// AdvanceAfterGT applies the GT predicate on the "advance_after" field.
+func AdvanceAfterGT(v time.Time) predicate.Charge {
+	return predicate.Charge(sql.FieldGT(FieldAdvanceAfter, v))
+}
+
+// AdvanceAfterGTE applies the GTE predicate on the "advance_after" field.
+func AdvanceAfterGTE(v time.Time) predicate.Charge {
+	return predicate.Charge(sql.FieldGTE(FieldAdvanceAfter, v))
+}
+
+// AdvanceAfterLT applies the LT predicate on the "advance_after" field.
+func AdvanceAfterLT(v time.Time) predicate.Charge {
+	return predicate.Charge(sql.FieldLT(FieldAdvanceAfter, v))
+}
+
+// AdvanceAfterLTE applies the LTE predicate on the "advance_after" field.
+func AdvanceAfterLTE(v time.Time) predicate.Charge {
+	return predicate.Charge(sql.FieldLTE(FieldAdvanceAfter, v))
+}
+
+// AdvanceAfterIsNil applies the IsNil predicate on the "advance_after" field.
+func AdvanceAfterIsNil() predicate.Charge {
+	return predicate.Charge(sql.FieldIsNull(FieldAdvanceAfter))
+}
+
+// AdvanceAfterNotNil applies the NotNil predicate on the "advance_after" field.
+func AdvanceAfterNotNil() predicate.Charge {
+	return predicate.Charge(sql.FieldNotNull(FieldAdvanceAfter))
 }
 
 // HasFlatFee applies the HasEdge predicate on the "flat_fee" edge.

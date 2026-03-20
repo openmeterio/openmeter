@@ -22,13 +22,14 @@ import (
 // ChargeUsageBasedQuery is the builder for querying ChargeUsageBased entities.
 type ChargeUsageBasedQuery struct {
 	config
-	ctx        *QueryContext
-	order      []chargeusagebased.OrderOption
-	inters     []Interceptor
-	predicates []predicate.ChargeUsageBased
-	withCharge *ChargeQuery
-	withRuns   *ChargeUsageBasedRunsQuery
-	modifiers  []func(*sql.Selector)
+	ctx            *QueryContext
+	order          []chargeusagebased.OrderOption
+	inters         []Interceptor
+	predicates     []predicate.ChargeUsageBased
+	withCharge     *ChargeQuery
+	withRuns       *ChargeUsageBasedRunsQuery
+	withCurrentRun *ChargeUsageBasedRunsQuery
+	modifiers      []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -102,6 +103,28 @@ func (_q *ChargeUsageBasedQuery) QueryRuns() *ChargeUsageBasedRunsQuery {
 			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, selector),
 			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebased.RunsTable, chargeusagebased.RunsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCurrentRun chains the current query on the "current_run" edge.
+func (_q *ChargeUsageBasedQuery) QueryCurrentRun() *ChargeUsageBasedRunsQuery {
+	query := (&ChargeUsageBasedRunsClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, selector),
+			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargeusagebased.CurrentRunTable, chargeusagebased.CurrentRunColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -296,13 +319,14 @@ func (_q *ChargeUsageBasedQuery) Clone() *ChargeUsageBasedQuery {
 		return nil
 	}
 	return &ChargeUsageBasedQuery{
-		config:     _q.config,
-		ctx:        _q.ctx.Clone(),
-		order:      append([]chargeusagebased.OrderOption{}, _q.order...),
-		inters:     append([]Interceptor{}, _q.inters...),
-		predicates: append([]predicate.ChargeUsageBased{}, _q.predicates...),
-		withCharge: _q.withCharge.Clone(),
-		withRuns:   _q.withRuns.Clone(),
+		config:         _q.config,
+		ctx:            _q.ctx.Clone(),
+		order:          append([]chargeusagebased.OrderOption{}, _q.order...),
+		inters:         append([]Interceptor{}, _q.inters...),
+		predicates:     append([]predicate.ChargeUsageBased{}, _q.predicates...),
+		withCharge:     _q.withCharge.Clone(),
+		withRuns:       _q.withRuns.Clone(),
+		withCurrentRun: _q.withCurrentRun.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -328,6 +352,17 @@ func (_q *ChargeUsageBasedQuery) WithRuns(opts ...func(*ChargeUsageBasedRunsQuer
 		opt(query)
 	}
 	_q.withRuns = query
+	return _q
+}
+
+// WithCurrentRun tells the query-builder to eager-load the nodes that are connected to
+// the "current_run" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeUsageBasedQuery) WithCurrentRun(opts ...func(*ChargeUsageBasedRunsQuery)) *ChargeUsageBasedQuery {
+	query := (&ChargeUsageBasedRunsClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCurrentRun = query
 	return _q
 }
 
@@ -409,9 +444,10 @@ func (_q *ChargeUsageBasedQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	var (
 		nodes       = []*ChargeUsageBased{}
 		_spec       = _q.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			_q.withCharge != nil,
 			_q.withRuns != nil,
+			_q.withCurrentRun != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -445,6 +481,12 @@ func (_q *ChargeUsageBasedQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 		if err := _q.loadRuns(ctx, query, nodes,
 			func(n *ChargeUsageBased) { n.Edges.Runs = []*ChargeUsageBasedRuns{} },
 			func(n *ChargeUsageBased, e *ChargeUsageBasedRuns) { n.Edges.Runs = append(n.Edges.Runs, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withCurrentRun; query != nil {
+		if err := _q.loadCurrentRun(ctx, query, nodes, nil,
+			func(n *ChargeUsageBased, e *ChargeUsageBasedRuns) { n.Edges.CurrentRun = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -510,6 +552,38 @@ func (_q *ChargeUsageBasedQuery) loadRuns(ctx context.Context, query *ChargeUsag
 	}
 	return nil
 }
+func (_q *ChargeUsageBasedQuery) loadCurrentRun(ctx context.Context, query *ChargeUsageBasedRunsQuery, nodes []*ChargeUsageBased, init func(*ChargeUsageBased), assign func(*ChargeUsageBased, *ChargeUsageBasedRuns)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*ChargeUsageBased)
+	for i := range nodes {
+		if nodes[i].CurrentRealizationRunID == nil {
+			continue
+		}
+		fk := *nodes[i].CurrentRealizationRunID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(chargeusagebasedruns.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "current_realization_run_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (_q *ChargeUsageBasedQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
@@ -538,6 +612,9 @@ func (_q *ChargeUsageBasedQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != chargeusagebased.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withCurrentRun != nil {
+			_spec.Node.AddColumnOnce(chargeusagebased.FieldCurrentRealizationRunID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

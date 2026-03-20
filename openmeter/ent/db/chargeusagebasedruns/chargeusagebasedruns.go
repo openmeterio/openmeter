@@ -24,6 +24,22 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
+	// FieldAmount holds the string denoting the amount field in the database.
+	FieldAmount = "amount"
+	// FieldTaxesTotal holds the string denoting the taxes_total field in the database.
+	FieldTaxesTotal = "taxes_total"
+	// FieldTaxesInclusiveTotal holds the string denoting the taxes_inclusive_total field in the database.
+	FieldTaxesInclusiveTotal = "taxes_inclusive_total"
+	// FieldTaxesExclusiveTotal holds the string denoting the taxes_exclusive_total field in the database.
+	FieldTaxesExclusiveTotal = "taxes_exclusive_total"
+	// FieldChargesTotal holds the string denoting the charges_total field in the database.
+	FieldChargesTotal = "charges_total"
+	// FieldDiscountsTotal holds the string denoting the discounts_total field in the database.
+	FieldDiscountsTotal = "discounts_total"
+	// FieldCreditsTotal holds the string denoting the credits_total field in the database.
+	FieldCreditsTotal = "credits_total"
+	// FieldTotal holds the string denoting the total field in the database.
+	FieldTotal = "total"
 	// FieldChargeID holds the string denoting the charge_id field in the database.
 	FieldChargeID = "charge_id"
 	// FieldType holds the string denoting the type field in the database.
@@ -79,6 +95,14 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
+	FieldAmount,
+	FieldTaxesTotal,
+	FieldTaxesInclusiveTotal,
+	FieldTaxesExclusiveTotal,
+	FieldChargesTotal,
+	FieldDiscountsTotal,
+	FieldCreditsTotal,
+	FieldTotal,
 	FieldChargeID,
 	FieldType,
 	FieldAsof,
@@ -144,6 +168,46 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByDeletedAt orders the results by the deleted_at field.
 func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
+}
+
+// ByAmount orders the results by the amount field.
+func ByAmount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAmount, opts...).ToFunc()
+}
+
+// ByTaxesTotal orders the results by the taxes_total field.
+func ByTaxesTotal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxesTotal, opts...).ToFunc()
+}
+
+// ByTaxesInclusiveTotal orders the results by the taxes_inclusive_total field.
+func ByTaxesInclusiveTotal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxesInclusiveTotal, opts...).ToFunc()
+}
+
+// ByTaxesExclusiveTotal orders the results by the taxes_exclusive_total field.
+func ByTaxesExclusiveTotal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxesExclusiveTotal, opts...).ToFunc()
+}
+
+// ByChargesTotal orders the results by the charges_total field.
+func ByChargesTotal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldChargesTotal, opts...).ToFunc()
+}
+
+// ByDiscountsTotal orders the results by the discounts_total field.
+func ByDiscountsTotal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDiscountsTotal, opts...).ToFunc()
+}
+
+// ByCreditsTotal orders the results by the credits_total field.
+func ByCreditsTotal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreditsTotal, opts...).ToFunc()
+}
+
+// ByTotal orders the results by the total field.
+func ByTotal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTotal, opts...).ToFunc()
 }
 
 // ByChargeID orders the results by the charge_id field.

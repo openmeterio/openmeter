@@ -19,11 +19,11 @@ func (a *adapter) CreateCreditAllocations(ctx context.Context, chargeID meta.Cha
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (creditrealization.Realizations, error) {
 		dbEntities, err := tx.db.ChargeFlatFeeCreditAllocations.CreateBulk(
-			lo.Map(creditAllocations, func(creditAllocation creditrealization.CreateInput, _ int) *db.ChargeFlatFeeCreditAllocationsCreate {
+			lo.Map(creditAllocations, func(creditAllocation creditrealization.CreateInput, idx int) *db.ChargeFlatFeeCreditAllocationsCreate {
 				create := tx.db.ChargeFlatFeeCreditAllocations.Create().
 					SetChargeID(chargeID.ID)
 
-				create = creditrealization.Create(create, chargeID.Namespace, creditAllocation)
+				create = creditrealization.Create(create, chargeID.Namespace, idx, creditAllocation)
 
 				return create
 			})...,

@@ -238,6 +238,20 @@ func (_c *ChargeCreate) SetNillableSubscriptionItemID(v *string) *ChargeCreate {
 	return _c
 }
 
+// SetAdvanceAfter sets the "advance_after" field.
+func (_c *ChargeCreate) SetAdvanceAfter(v time.Time) *ChargeCreate {
+	_c.mutation.SetAdvanceAfter(v)
+	return _c
+}
+
+// SetNillableAdvanceAfter sets the "advance_after" field if the given value is not nil.
+func (_c *ChargeCreate) SetNillableAdvanceAfter(v *time.Time) *ChargeCreate {
+	if v != nil {
+		_c.SetAdvanceAfter(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ChargeCreate) SetID(v string) *ChargeCreate {
 	_c.mutation.SetID(v)
@@ -599,6 +613,10 @@ func (_c *ChargeCreate) createSpec() (*Charge, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.ManagedBy(); ok {
 		_spec.SetField(charge.FieldManagedBy, field.TypeEnum, value)
 		_node.ManagedBy = value
+	}
+	if value, ok := _c.mutation.AdvanceAfter(); ok {
+		_spec.SetField(charge.FieldAdvanceAfter, field.TypeTime, value)
+		_node.AdvanceAfter = &value
 	}
 	if nodes := _c.mutation.FlatFeeIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -1010,6 +1028,24 @@ func (u *ChargeUpsert) UpdateManagedBy() *ChargeUpsert {
 	return u
 }
 
+// SetAdvanceAfter sets the "advance_after" field.
+func (u *ChargeUpsert) SetAdvanceAfter(v time.Time) *ChargeUpsert {
+	u.Set(charge.FieldAdvanceAfter, v)
+	return u
+}
+
+// UpdateAdvanceAfter sets the "advance_after" field to the value that was provided on create.
+func (u *ChargeUpsert) UpdateAdvanceAfter() *ChargeUpsert {
+	u.SetExcluded(charge.FieldAdvanceAfter)
+	return u
+}
+
+// ClearAdvanceAfter clears the value of the "advance_after" field.
+func (u *ChargeUpsert) ClearAdvanceAfter() *ChargeUpsert {
+	u.SetNull(charge.FieldAdvanceAfter)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -1324,6 +1360,27 @@ func (u *ChargeUpsertOne) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeUp
 func (u *ChargeUpsertOne) UpdateManagedBy() *ChargeUpsertOne {
 	return u.Update(func(s *ChargeUpsert) {
 		s.UpdateManagedBy()
+	})
+}
+
+// SetAdvanceAfter sets the "advance_after" field.
+func (u *ChargeUpsertOne) SetAdvanceAfter(v time.Time) *ChargeUpsertOne {
+	return u.Update(func(s *ChargeUpsert) {
+		s.SetAdvanceAfter(v)
+	})
+}
+
+// UpdateAdvanceAfter sets the "advance_after" field to the value that was provided on create.
+func (u *ChargeUpsertOne) UpdateAdvanceAfter() *ChargeUpsertOne {
+	return u.Update(func(s *ChargeUpsert) {
+		s.UpdateAdvanceAfter()
+	})
+}
+
+// ClearAdvanceAfter clears the value of the "advance_after" field.
+func (u *ChargeUpsertOne) ClearAdvanceAfter() *ChargeUpsertOne {
+	return u.Update(func(s *ChargeUpsert) {
+		s.ClearAdvanceAfter()
 	})
 }
 
@@ -1808,6 +1865,27 @@ func (u *ChargeUpsertBulk) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeU
 func (u *ChargeUpsertBulk) UpdateManagedBy() *ChargeUpsertBulk {
 	return u.Update(func(s *ChargeUpsert) {
 		s.UpdateManagedBy()
+	})
+}
+
+// SetAdvanceAfter sets the "advance_after" field.
+func (u *ChargeUpsertBulk) SetAdvanceAfter(v time.Time) *ChargeUpsertBulk {
+	return u.Update(func(s *ChargeUpsert) {
+		s.SetAdvanceAfter(v)
+	})
+}
+
+// UpdateAdvanceAfter sets the "advance_after" field to the value that was provided on create.
+func (u *ChargeUpsertBulk) UpdateAdvanceAfter() *ChargeUpsertBulk {
+	return u.Update(func(s *ChargeUpsert) {
+		s.UpdateAdvanceAfter()
+	})
+}
+
+// ClearAdvanceAfter clears the value of the "advance_after" field.
+func (u *ChargeUpsertBulk) ClearAdvanceAfter() *ChargeUpsertBulk {
+	return u.Update(func(s *ChargeUpsert) {
+		s.ClearAdvanceAfter()
 	})
 }
 

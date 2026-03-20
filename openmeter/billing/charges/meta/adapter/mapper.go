@@ -3,6 +3,7 @@ package adapter
 import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -13,6 +14,7 @@ func MapChargeFromDB(entity *entdb.Charge) meta.Charge {
 		Intent:          MapIntentFromDB(entity),
 		Type:            entity.Type,
 		Status:          entity.Status,
+		AdvanceAfter:    convert.SafeToUTC(entity.AdvanceAfter),
 	}
 }
 

@@ -58,6 +58,118 @@ func (_u *ChargeUsageBasedRunsUpdate) ClearDeletedAt() *ChargeUsageBasedRunsUpda
 	return _u
 }
 
+// SetAmount sets the "amount" field.
+func (_u *ChargeUsageBasedRunsUpdate) SetAmount(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.SetAmount(v)
+	return _u
+}
+
+// SetNillableAmount sets the "amount" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdate) SetNillableAmount(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
+	if v != nil {
+		_u.SetAmount(*v)
+	}
+	return _u
+}
+
+// SetTaxesTotal sets the "taxes_total" field.
+func (_u *ChargeUsageBasedRunsUpdate) SetTaxesTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.SetTaxesTotal(v)
+	return _u
+}
+
+// SetNillableTaxesTotal sets the "taxes_total" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdate) SetNillableTaxesTotal(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
+	if v != nil {
+		_u.SetTaxesTotal(*v)
+	}
+	return _u
+}
+
+// SetTaxesInclusiveTotal sets the "taxes_inclusive_total" field.
+func (_u *ChargeUsageBasedRunsUpdate) SetTaxesInclusiveTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.SetTaxesInclusiveTotal(v)
+	return _u
+}
+
+// SetNillableTaxesInclusiveTotal sets the "taxes_inclusive_total" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdate) SetNillableTaxesInclusiveTotal(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
+	if v != nil {
+		_u.SetTaxesInclusiveTotal(*v)
+	}
+	return _u
+}
+
+// SetTaxesExclusiveTotal sets the "taxes_exclusive_total" field.
+func (_u *ChargeUsageBasedRunsUpdate) SetTaxesExclusiveTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.SetTaxesExclusiveTotal(v)
+	return _u
+}
+
+// SetNillableTaxesExclusiveTotal sets the "taxes_exclusive_total" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdate) SetNillableTaxesExclusiveTotal(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
+	if v != nil {
+		_u.SetTaxesExclusiveTotal(*v)
+	}
+	return _u
+}
+
+// SetChargesTotal sets the "charges_total" field.
+func (_u *ChargeUsageBasedRunsUpdate) SetChargesTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.SetChargesTotal(v)
+	return _u
+}
+
+// SetNillableChargesTotal sets the "charges_total" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdate) SetNillableChargesTotal(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
+	if v != nil {
+		_u.SetChargesTotal(*v)
+	}
+	return _u
+}
+
+// SetDiscountsTotal sets the "discounts_total" field.
+func (_u *ChargeUsageBasedRunsUpdate) SetDiscountsTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.SetDiscountsTotal(v)
+	return _u
+}
+
+// SetNillableDiscountsTotal sets the "discounts_total" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdate) SetNillableDiscountsTotal(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
+	if v != nil {
+		_u.SetDiscountsTotal(*v)
+	}
+	return _u
+}
+
+// SetCreditsTotal sets the "credits_total" field.
+func (_u *ChargeUsageBasedRunsUpdate) SetCreditsTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.SetCreditsTotal(v)
+	return _u
+}
+
+// SetNillableCreditsTotal sets the "credits_total" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdate) SetNillableCreditsTotal(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
+	if v != nil {
+		_u.SetCreditsTotal(*v)
+	}
+	return _u
+}
+
+// SetTotal sets the "total" field.
+func (_u *ChargeUsageBasedRunsUpdate) SetTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
+	_u.mutation.SetTotal(v)
+	return _u
+}
+
+// SetNillableTotal sets the "total" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdate) SetNillableTotal(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdate {
+	if v != nil {
+		_u.SetTotal(*v)
+	}
+	return _u
+}
+
 // SetAsof sets the "asof" field.
 func (_u *ChargeUsageBasedRunsUpdate) SetAsof(v time.Time) *ChargeUsageBasedRunsUpdate {
 	_u.mutation.SetAsof(v)
@@ -242,6 +354,30 @@ func (_u *ChargeUsageBasedRunsUpdate) sqlSave(ctx context.Context) (_node int, e
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(chargeusagebasedruns.FieldDeletedAt, field.TypeTime)
 	}
+	if value, ok := _u.mutation.Amount(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldAmount, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.TaxesTotal(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldTaxesTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.TaxesInclusiveTotal(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldTaxesInclusiveTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.TaxesExclusiveTotal(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldTaxesExclusiveTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.ChargesTotal(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldChargesTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.DiscountsTotal(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldDiscountsTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.CreditsTotal(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldCreditsTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.Total(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldTotal, field.TypeOther, value)
+	}
 	if value, ok := _u.mutation.Asof(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldAsof, field.TypeTime, value)
 	}
@@ -394,6 +530,118 @@ func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableDeletedAt(v *time.Time) *Cha
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (_u *ChargeUsageBasedRunsUpdateOne) ClearDeletedAt() *ChargeUsageBasedRunsUpdateOne {
 	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetAmount sets the "amount" field.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetAmount(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.SetAmount(v)
+	return _u
+}
+
+// SetNillableAmount sets the "amount" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableAmount(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
+	if v != nil {
+		_u.SetAmount(*v)
+	}
+	return _u
+}
+
+// SetTaxesTotal sets the "taxes_total" field.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetTaxesTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.SetTaxesTotal(v)
+	return _u
+}
+
+// SetNillableTaxesTotal sets the "taxes_total" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableTaxesTotal(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
+	if v != nil {
+		_u.SetTaxesTotal(*v)
+	}
+	return _u
+}
+
+// SetTaxesInclusiveTotal sets the "taxes_inclusive_total" field.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetTaxesInclusiveTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.SetTaxesInclusiveTotal(v)
+	return _u
+}
+
+// SetNillableTaxesInclusiveTotal sets the "taxes_inclusive_total" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableTaxesInclusiveTotal(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
+	if v != nil {
+		_u.SetTaxesInclusiveTotal(*v)
+	}
+	return _u
+}
+
+// SetTaxesExclusiveTotal sets the "taxes_exclusive_total" field.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetTaxesExclusiveTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.SetTaxesExclusiveTotal(v)
+	return _u
+}
+
+// SetNillableTaxesExclusiveTotal sets the "taxes_exclusive_total" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableTaxesExclusiveTotal(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
+	if v != nil {
+		_u.SetTaxesExclusiveTotal(*v)
+	}
+	return _u
+}
+
+// SetChargesTotal sets the "charges_total" field.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetChargesTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.SetChargesTotal(v)
+	return _u
+}
+
+// SetNillableChargesTotal sets the "charges_total" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableChargesTotal(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
+	if v != nil {
+		_u.SetChargesTotal(*v)
+	}
+	return _u
+}
+
+// SetDiscountsTotal sets the "discounts_total" field.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetDiscountsTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.SetDiscountsTotal(v)
+	return _u
+}
+
+// SetNillableDiscountsTotal sets the "discounts_total" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableDiscountsTotal(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
+	if v != nil {
+		_u.SetDiscountsTotal(*v)
+	}
+	return _u
+}
+
+// SetCreditsTotal sets the "credits_total" field.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetCreditsTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.SetCreditsTotal(v)
+	return _u
+}
+
+// SetNillableCreditsTotal sets the "credits_total" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableCreditsTotal(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
+	if v != nil {
+		_u.SetCreditsTotal(*v)
+	}
+	return _u
+}
+
+// SetTotal sets the "total" field.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
+	_u.mutation.SetTotal(v)
+	return _u
+}
+
+// SetNillableTotal sets the "total" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunsUpdateOne) SetNillableTotal(v *alpacadecimal.Decimal) *ChargeUsageBasedRunsUpdateOne {
+	if v != nil {
+		_u.SetTotal(*v)
+	}
 	return _u
 }
 
@@ -610,6 +858,30 @@ func (_u *ChargeUsageBasedRunsUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(chargeusagebasedruns.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Amount(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldAmount, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.TaxesTotal(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldTaxesTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.TaxesInclusiveTotal(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldTaxesInclusiveTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.TaxesExclusiveTotal(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldTaxesExclusiveTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.ChargesTotal(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldChargesTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.DiscountsTotal(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldDiscountsTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.CreditsTotal(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldCreditsTotal, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.Total(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldTotal, field.TypeOther, value)
 	}
 	if value, ok := _u.mutation.Asof(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldAsof, field.TypeTime, value)

@@ -79,6 +79,9 @@ func (Charge) Fields() []ent.Field {
 			Nillable().
 			Immutable(),
 
+		field.Time("advance_after").
+			Optional().
+			Nillable(),
 		// TODO: Tax config!
 	}
 }

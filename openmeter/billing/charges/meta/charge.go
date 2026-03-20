@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/openmeterio/openmeter/pkg/expand"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -95,9 +96,10 @@ func (s ChargeStatus) Validate() error {
 type Charge struct {
 	ManagedResource
 
-	Intent Intent
-	Type   ChargeType
-	Status ChargeStatus
+	Intent       Intent
+	Type         ChargeType
+	Status       ChargeStatus
+	AdvanceAfter *time.Time
 }
 
 func (c Charge) Validate() error {

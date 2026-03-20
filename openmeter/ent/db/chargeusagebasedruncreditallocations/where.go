@@ -91,6 +91,11 @@ func LedgerTransactionGroupID(v string) predicate.ChargeUsageBasedRunCreditAlloc
 	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldEQ(FieldLedgerTransactionGroupID, v))
 }
 
+// SortHint applies equality check predicate on the "sort_hint" field. It's identical to SortHintEQ.
+func SortHint(v int) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldEQ(FieldSortHint, v))
+}
+
 // Namespace applies equality check predicate on the "namespace" field. It's identical to NamespaceEQ.
 func Namespace(v string) predicate.ChargeUsageBasedRunCreditAllocations {
 	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldEQ(FieldNamespace, v))
@@ -374,6 +379,46 @@ func LedgerTransactionGroupIDEqualFold(v string) predicate.ChargeUsageBasedRunCr
 // LedgerTransactionGroupIDContainsFold applies the ContainsFold predicate on the "ledger_transaction_group_id" field.
 func LedgerTransactionGroupIDContainsFold(v string) predicate.ChargeUsageBasedRunCreditAllocations {
 	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldContainsFold(FieldLedgerTransactionGroupID, v))
+}
+
+// SortHintEQ applies the EQ predicate on the "sort_hint" field.
+func SortHintEQ(v int) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldEQ(FieldSortHint, v))
+}
+
+// SortHintNEQ applies the NEQ predicate on the "sort_hint" field.
+func SortHintNEQ(v int) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldNEQ(FieldSortHint, v))
+}
+
+// SortHintIn applies the In predicate on the "sort_hint" field.
+func SortHintIn(vs ...int) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldIn(FieldSortHint, vs...))
+}
+
+// SortHintNotIn applies the NotIn predicate on the "sort_hint" field.
+func SortHintNotIn(vs ...int) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldNotIn(FieldSortHint, vs...))
+}
+
+// SortHintGT applies the GT predicate on the "sort_hint" field.
+func SortHintGT(v int) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldGT(FieldSortHint, v))
+}
+
+// SortHintGTE applies the GTE predicate on the "sort_hint" field.
+func SortHintGTE(v int) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldGTE(FieldSortHint, v))
+}
+
+// SortHintLT applies the LT predicate on the "sort_hint" field.
+func SortHintLT(v int) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldLT(FieldSortHint, v))
+}
+
+// SortHintLTE applies the LTE predicate on the "sort_hint" field.
+func SortHintLTE(v int) predicate.ChargeUsageBasedRunCreditAllocations {
+	return predicate.ChargeUsageBasedRunCreditAllocations(sql.FieldLTE(FieldSortHint, v))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.

@@ -91,6 +91,11 @@ func LedgerTransactionGroupID(v string) predicate.ChargeFlatFeeCreditAllocations
 	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldEQ(FieldLedgerTransactionGroupID, v))
 }
 
+// SortHint applies equality check predicate on the "sort_hint" field. It's identical to SortHintEQ.
+func SortHint(v int) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldEQ(FieldSortHint, v))
+}
+
 // Namespace applies equality check predicate on the "namespace" field. It's identical to NamespaceEQ.
 func Namespace(v string) predicate.ChargeFlatFeeCreditAllocations {
 	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldEQ(FieldNamespace, v))
@@ -374,6 +379,46 @@ func LedgerTransactionGroupIDEqualFold(v string) predicate.ChargeFlatFeeCreditAl
 // LedgerTransactionGroupIDContainsFold applies the ContainsFold predicate on the "ledger_transaction_group_id" field.
 func LedgerTransactionGroupIDContainsFold(v string) predicate.ChargeFlatFeeCreditAllocations {
 	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldContainsFold(FieldLedgerTransactionGroupID, v))
+}
+
+// SortHintEQ applies the EQ predicate on the "sort_hint" field.
+func SortHintEQ(v int) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldEQ(FieldSortHint, v))
+}
+
+// SortHintNEQ applies the NEQ predicate on the "sort_hint" field.
+func SortHintNEQ(v int) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldNEQ(FieldSortHint, v))
+}
+
+// SortHintIn applies the In predicate on the "sort_hint" field.
+func SortHintIn(vs ...int) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldIn(FieldSortHint, vs...))
+}
+
+// SortHintNotIn applies the NotIn predicate on the "sort_hint" field.
+func SortHintNotIn(vs ...int) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldNotIn(FieldSortHint, vs...))
+}
+
+// SortHintGT applies the GT predicate on the "sort_hint" field.
+func SortHintGT(v int) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldGT(FieldSortHint, v))
+}
+
+// SortHintGTE applies the GTE predicate on the "sort_hint" field.
+func SortHintGTE(v int) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldGTE(FieldSortHint, v))
+}
+
+// SortHintLT applies the LT predicate on the "sort_hint" field.
+func SortHintLT(v int) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldLT(FieldSortHint, v))
+}
+
+// SortHintLTE applies the LTE predicate on the "sort_hint" field.
+func SortHintLTE(v int) predicate.ChargeFlatFeeCreditAllocations {
+	return predicate.ChargeFlatFeeCreditAllocations(sql.FieldLTE(FieldSortHint, v))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.

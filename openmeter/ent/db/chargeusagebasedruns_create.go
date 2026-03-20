@@ -77,6 +77,54 @@ func (_c *ChargeUsageBasedRunsCreate) SetNillableDeletedAt(v *time.Time) *Charge
 	return _c
 }
 
+// SetAmount sets the "amount" field.
+func (_c *ChargeUsageBasedRunsCreate) SetAmount(v alpacadecimal.Decimal) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetAmount(v)
+	return _c
+}
+
+// SetTaxesTotal sets the "taxes_total" field.
+func (_c *ChargeUsageBasedRunsCreate) SetTaxesTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetTaxesTotal(v)
+	return _c
+}
+
+// SetTaxesInclusiveTotal sets the "taxes_inclusive_total" field.
+func (_c *ChargeUsageBasedRunsCreate) SetTaxesInclusiveTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetTaxesInclusiveTotal(v)
+	return _c
+}
+
+// SetTaxesExclusiveTotal sets the "taxes_exclusive_total" field.
+func (_c *ChargeUsageBasedRunsCreate) SetTaxesExclusiveTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetTaxesExclusiveTotal(v)
+	return _c
+}
+
+// SetChargesTotal sets the "charges_total" field.
+func (_c *ChargeUsageBasedRunsCreate) SetChargesTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetChargesTotal(v)
+	return _c
+}
+
+// SetDiscountsTotal sets the "discounts_total" field.
+func (_c *ChargeUsageBasedRunsCreate) SetDiscountsTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetDiscountsTotal(v)
+	return _c
+}
+
+// SetCreditsTotal sets the "credits_total" field.
+func (_c *ChargeUsageBasedRunsCreate) SetCreditsTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetCreditsTotal(v)
+	return _c
+}
+
+// SetTotal sets the "total" field.
+func (_c *ChargeUsageBasedRunsCreate) SetTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetTotal(v)
+	return _c
+}
+
 // SetChargeID sets the "charge_id" field.
 func (_c *ChargeUsageBasedRunsCreate) SetChargeID(v string) *ChargeUsageBasedRunsCreate {
 	_c.mutation.SetChargeID(v)
@@ -244,6 +292,30 @@ func (_c *ChargeUsageBasedRunsCreate) check() error {
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.updated_at"`)}
 	}
+	if _, ok := _c.mutation.Amount(); !ok {
+		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.amount"`)}
+	}
+	if _, ok := _c.mutation.TaxesTotal(); !ok {
+		return &ValidationError{Name: "taxes_total", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.taxes_total"`)}
+	}
+	if _, ok := _c.mutation.TaxesInclusiveTotal(); !ok {
+		return &ValidationError{Name: "taxes_inclusive_total", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.taxes_inclusive_total"`)}
+	}
+	if _, ok := _c.mutation.TaxesExclusiveTotal(); !ok {
+		return &ValidationError{Name: "taxes_exclusive_total", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.taxes_exclusive_total"`)}
+	}
+	if _, ok := _c.mutation.ChargesTotal(); !ok {
+		return &ValidationError{Name: "charges_total", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.charges_total"`)}
+	}
+	if _, ok := _c.mutation.DiscountsTotal(); !ok {
+		return &ValidationError{Name: "discounts_total", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.discounts_total"`)}
+	}
+	if _, ok := _c.mutation.CreditsTotal(); !ok {
+		return &ValidationError{Name: "credits_total", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.credits_total"`)}
+	}
+	if _, ok := _c.mutation.Total(); !ok {
+		return &ValidationError{Name: "total", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.total"`)}
+	}
 	if _, ok := _c.mutation.ChargeID(); !ok {
 		return &ValidationError{Name: "charge_id", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.charge_id"`)}
 	}
@@ -315,6 +387,38 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
+	}
+	if value, ok := _c.mutation.Amount(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldAmount, field.TypeOther, value)
+		_node.Amount = value
+	}
+	if value, ok := _c.mutation.TaxesTotal(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldTaxesTotal, field.TypeOther, value)
+		_node.TaxesTotal = value
+	}
+	if value, ok := _c.mutation.TaxesInclusiveTotal(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldTaxesInclusiveTotal, field.TypeOther, value)
+		_node.TaxesInclusiveTotal = value
+	}
+	if value, ok := _c.mutation.TaxesExclusiveTotal(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldTaxesExclusiveTotal, field.TypeOther, value)
+		_node.TaxesExclusiveTotal = value
+	}
+	if value, ok := _c.mutation.ChargesTotal(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldChargesTotal, field.TypeOther, value)
+		_node.ChargesTotal = value
+	}
+	if value, ok := _c.mutation.DiscountsTotal(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldDiscountsTotal, field.TypeOther, value)
+		_node.DiscountsTotal = value
+	}
+	if value, ok := _c.mutation.CreditsTotal(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldCreditsTotal, field.TypeOther, value)
+		_node.CreditsTotal = value
+	}
+	if value, ok := _c.mutation.Total(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldTotal, field.TypeOther, value)
+		_node.Total = value
 	}
 	if value, ok := _c.mutation.GetType(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldType, field.TypeEnum, value)
@@ -475,6 +579,102 @@ func (u *ChargeUsageBasedRunsUpsert) ClearDeletedAt() *ChargeUsageBasedRunsUpser
 	return u
 }
 
+// SetAmount sets the "amount" field.
+func (u *ChargeUsageBasedRunsUpsert) SetAmount(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldAmount, v)
+	return u
+}
+
+// UpdateAmount sets the "amount" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateAmount() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldAmount)
+	return u
+}
+
+// SetTaxesTotal sets the "taxes_total" field.
+func (u *ChargeUsageBasedRunsUpsert) SetTaxesTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldTaxesTotal, v)
+	return u
+}
+
+// UpdateTaxesTotal sets the "taxes_total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateTaxesTotal() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldTaxesTotal)
+	return u
+}
+
+// SetTaxesInclusiveTotal sets the "taxes_inclusive_total" field.
+func (u *ChargeUsageBasedRunsUpsert) SetTaxesInclusiveTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldTaxesInclusiveTotal, v)
+	return u
+}
+
+// UpdateTaxesInclusiveTotal sets the "taxes_inclusive_total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateTaxesInclusiveTotal() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldTaxesInclusiveTotal)
+	return u
+}
+
+// SetTaxesExclusiveTotal sets the "taxes_exclusive_total" field.
+func (u *ChargeUsageBasedRunsUpsert) SetTaxesExclusiveTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldTaxesExclusiveTotal, v)
+	return u
+}
+
+// UpdateTaxesExclusiveTotal sets the "taxes_exclusive_total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateTaxesExclusiveTotal() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldTaxesExclusiveTotal)
+	return u
+}
+
+// SetChargesTotal sets the "charges_total" field.
+func (u *ChargeUsageBasedRunsUpsert) SetChargesTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldChargesTotal, v)
+	return u
+}
+
+// UpdateChargesTotal sets the "charges_total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateChargesTotal() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldChargesTotal)
+	return u
+}
+
+// SetDiscountsTotal sets the "discounts_total" field.
+func (u *ChargeUsageBasedRunsUpsert) SetDiscountsTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldDiscountsTotal, v)
+	return u
+}
+
+// UpdateDiscountsTotal sets the "discounts_total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateDiscountsTotal() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldDiscountsTotal)
+	return u
+}
+
+// SetCreditsTotal sets the "credits_total" field.
+func (u *ChargeUsageBasedRunsUpsert) SetCreditsTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldCreditsTotal, v)
+	return u
+}
+
+// UpdateCreditsTotal sets the "credits_total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateCreditsTotal() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldCreditsTotal)
+	return u
+}
+
+// SetTotal sets the "total" field.
+func (u *ChargeUsageBasedRunsUpsert) SetTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsert {
+	u.Set(chargeusagebasedruns.FieldTotal, v)
+	return u
+}
+
+// UpdateTotal sets the "total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsert) UpdateTotal() *ChargeUsageBasedRunsUpsert {
+	u.SetExcluded(chargeusagebasedruns.FieldTotal)
+	return u
+}
+
 // SetAsof sets the "asof" field.
 func (u *ChargeUsageBasedRunsUpsert) SetAsof(v time.Time) *ChargeUsageBasedRunsUpsert {
 	u.Set(chargeusagebasedruns.FieldAsof, v)
@@ -591,6 +791,118 @@ func (u *ChargeUsageBasedRunsUpsertOne) UpdateDeletedAt() *ChargeUsageBasedRunsU
 func (u *ChargeUsageBasedRunsUpsertOne) ClearDeletedAt() *ChargeUsageBasedRunsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetAmount sets the "amount" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetAmount(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetAmount(v)
+	})
+}
+
+// UpdateAmount sets the "amount" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateAmount() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateAmount()
+	})
+}
+
+// SetTaxesTotal sets the "taxes_total" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetTaxesTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetTaxesTotal(v)
+	})
+}
+
+// UpdateTaxesTotal sets the "taxes_total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateTaxesTotal() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateTaxesTotal()
+	})
+}
+
+// SetTaxesInclusiveTotal sets the "taxes_inclusive_total" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetTaxesInclusiveTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetTaxesInclusiveTotal(v)
+	})
+}
+
+// UpdateTaxesInclusiveTotal sets the "taxes_inclusive_total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateTaxesInclusiveTotal() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateTaxesInclusiveTotal()
+	})
+}
+
+// SetTaxesExclusiveTotal sets the "taxes_exclusive_total" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetTaxesExclusiveTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetTaxesExclusiveTotal(v)
+	})
+}
+
+// UpdateTaxesExclusiveTotal sets the "taxes_exclusive_total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateTaxesExclusiveTotal() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateTaxesExclusiveTotal()
+	})
+}
+
+// SetChargesTotal sets the "charges_total" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetChargesTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetChargesTotal(v)
+	})
+}
+
+// UpdateChargesTotal sets the "charges_total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateChargesTotal() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateChargesTotal()
+	})
+}
+
+// SetDiscountsTotal sets the "discounts_total" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetDiscountsTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetDiscountsTotal(v)
+	})
+}
+
+// UpdateDiscountsTotal sets the "discounts_total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateDiscountsTotal() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateDiscountsTotal()
+	})
+}
+
+// SetCreditsTotal sets the "credits_total" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetCreditsTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetCreditsTotal(v)
+	})
+}
+
+// UpdateCreditsTotal sets the "credits_total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateCreditsTotal() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateCreditsTotal()
+	})
+}
+
+// SetTotal sets the "total" field.
+func (u *ChargeUsageBasedRunsUpsertOne) SetTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetTotal(v)
+	})
+}
+
+// UpdateTotal sets the "total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertOne) UpdateTotal() *ChargeUsageBasedRunsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateTotal()
 	})
 }
 
@@ -881,6 +1193,118 @@ func (u *ChargeUsageBasedRunsUpsertBulk) UpdateDeletedAt() *ChargeUsageBasedRuns
 func (u *ChargeUsageBasedRunsUpsertBulk) ClearDeletedAt() *ChargeUsageBasedRunsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetAmount sets the "amount" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetAmount(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetAmount(v)
+	})
+}
+
+// UpdateAmount sets the "amount" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateAmount() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateAmount()
+	})
+}
+
+// SetTaxesTotal sets the "taxes_total" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetTaxesTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetTaxesTotal(v)
+	})
+}
+
+// UpdateTaxesTotal sets the "taxes_total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateTaxesTotal() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateTaxesTotal()
+	})
+}
+
+// SetTaxesInclusiveTotal sets the "taxes_inclusive_total" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetTaxesInclusiveTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetTaxesInclusiveTotal(v)
+	})
+}
+
+// UpdateTaxesInclusiveTotal sets the "taxes_inclusive_total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateTaxesInclusiveTotal() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateTaxesInclusiveTotal()
+	})
+}
+
+// SetTaxesExclusiveTotal sets the "taxes_exclusive_total" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetTaxesExclusiveTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetTaxesExclusiveTotal(v)
+	})
+}
+
+// UpdateTaxesExclusiveTotal sets the "taxes_exclusive_total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateTaxesExclusiveTotal() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateTaxesExclusiveTotal()
+	})
+}
+
+// SetChargesTotal sets the "charges_total" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetChargesTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetChargesTotal(v)
+	})
+}
+
+// UpdateChargesTotal sets the "charges_total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateChargesTotal() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateChargesTotal()
+	})
+}
+
+// SetDiscountsTotal sets the "discounts_total" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetDiscountsTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetDiscountsTotal(v)
+	})
+}
+
+// UpdateDiscountsTotal sets the "discounts_total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateDiscountsTotal() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateDiscountsTotal()
+	})
+}
+
+// SetCreditsTotal sets the "credits_total" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetCreditsTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetCreditsTotal(v)
+	})
+}
+
+// UpdateCreditsTotal sets the "credits_total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateCreditsTotal() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateCreditsTotal()
+	})
+}
+
+// SetTotal sets the "total" field.
+func (u *ChargeUsageBasedRunsUpsertBulk) SetTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.SetTotal(v)
+	})
+}
+
+// UpdateTotal sets the "total" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunsUpsertBulk) UpdateTotal() *ChargeUsageBasedRunsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunsUpsert) {
+		s.UpdateTotal()
 	})
 }
 

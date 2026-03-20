@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
@@ -42,6 +43,40 @@ func (_u *ChargeUsageBasedUpdate) ClearDiscounts() *ChargeUsageBasedUpdate {
 	return _u
 }
 
+// SetCurrentRealizationRunID sets the "current_realization_run_id" field.
+func (_u *ChargeUsageBasedUpdate) SetCurrentRealizationRunID(v string) *ChargeUsageBasedUpdate {
+	_u.mutation.SetCurrentRealizationRunID(v)
+	return _u
+}
+
+// SetNillableCurrentRealizationRunID sets the "current_realization_run_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableCurrentRealizationRunID(v *string) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetCurrentRealizationRunID(*v)
+	}
+	return _u
+}
+
+// ClearCurrentRealizationRunID clears the value of the "current_realization_run_id" field.
+func (_u *ChargeUsageBasedUpdate) ClearCurrentRealizationRunID() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearCurrentRealizationRunID()
+	return _u
+}
+
+// SetStatus sets the "status" field.
+func (_u *ChargeUsageBasedUpdate) SetStatus(v usagebased.Status) *ChargeUsageBasedUpdate {
+	_u.mutation.SetStatus(v)
+	return _u
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableStatus(v *usagebased.Status) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetStatus(*v)
+	}
+	return _u
+}
+
 // SetChargeID sets the "charge" edge to the Charge entity by ID.
 func (_u *ChargeUsageBasedUpdate) SetChargeID(id string) *ChargeUsageBasedUpdate {
 	_u.mutation.SetChargeID(id)
@@ -66,6 +101,25 @@ func (_u *ChargeUsageBasedUpdate) AddRuns(v ...*ChargeUsageBasedRuns) *ChargeUsa
 		ids[i] = v[i].ID
 	}
 	return _u.AddRunIDs(ids...)
+}
+
+// SetCurrentRunID sets the "current_run" edge to the ChargeUsageBasedRuns entity by ID.
+func (_u *ChargeUsageBasedUpdate) SetCurrentRunID(id string) *ChargeUsageBasedUpdate {
+	_u.mutation.SetCurrentRunID(id)
+	return _u
+}
+
+// SetNillableCurrentRunID sets the "current_run" edge to the ChargeUsageBasedRuns entity by ID if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableCurrentRunID(id *string) *ChargeUsageBasedUpdate {
+	if id != nil {
+		_u = _u.SetCurrentRunID(*id)
+	}
+	return _u
+}
+
+// SetCurrentRun sets the "current_run" edge to the ChargeUsageBasedRuns entity.
+func (_u *ChargeUsageBasedUpdate) SetCurrentRun(v *ChargeUsageBasedRuns) *ChargeUsageBasedUpdate {
+	return _u.SetCurrentRunID(v.ID)
 }
 
 // Mutation returns the ChargeUsageBasedMutation object of the builder.
@@ -98,6 +152,12 @@ func (_u *ChargeUsageBasedUpdate) RemoveRuns(v ...*ChargeUsageBasedRuns) *Charge
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveRunIDs(ids...)
+}
+
+// ClearCurrentRun clears the "current_run" edge to the ChargeUsageBasedRuns entity.
+func (_u *ChargeUsageBasedUpdate) ClearCurrentRun() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearCurrentRun()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -134,6 +194,11 @@ func (_u *ChargeUsageBasedUpdate) check() error {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.discounts": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Status(); ok {
+		if err := chargeusagebased.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status": %w`, err)}
+		}
+	}
 	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.charge"`)
 	}
@@ -161,6 +226,9 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if _u.mutation.DiscountsCleared() {
 		_spec.ClearField(chargeusagebased.FieldDiscounts, field.TypeString)
+	}
+	if value, ok := _u.mutation.Status(); ok {
+		_spec.SetField(chargeusagebased.FieldStatus, field.TypeEnum, value)
 	}
 	if _u.mutation.ChargeCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -236,6 +304,35 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.CurrentRunCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeusagebased.CurrentRunTable,
+			Columns: []string{chargeusagebased.CurrentRunColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CurrentRunIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeusagebased.CurrentRunTable,
+			Columns: []string{chargeusagebased.CurrentRunColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{chargeusagebased.Label}
@@ -268,6 +365,40 @@ func (_u *ChargeUsageBasedUpdateOne) ClearDiscounts() *ChargeUsageBasedUpdateOne
 	return _u
 }
 
+// SetCurrentRealizationRunID sets the "current_realization_run_id" field.
+func (_u *ChargeUsageBasedUpdateOne) SetCurrentRealizationRunID(v string) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetCurrentRealizationRunID(v)
+	return _u
+}
+
+// SetNillableCurrentRealizationRunID sets the "current_realization_run_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableCurrentRealizationRunID(v *string) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetCurrentRealizationRunID(*v)
+	}
+	return _u
+}
+
+// ClearCurrentRealizationRunID clears the value of the "current_realization_run_id" field.
+func (_u *ChargeUsageBasedUpdateOne) ClearCurrentRealizationRunID() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearCurrentRealizationRunID()
+	return _u
+}
+
+// SetStatus sets the "status" field.
+func (_u *ChargeUsageBasedUpdateOne) SetStatus(v usagebased.Status) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetStatus(v)
+	return _u
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableStatus(v *usagebased.Status) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetStatus(*v)
+	}
+	return _u
+}
+
 // SetChargeID sets the "charge" edge to the Charge entity by ID.
 func (_u *ChargeUsageBasedUpdateOne) SetChargeID(id string) *ChargeUsageBasedUpdateOne {
 	_u.mutation.SetChargeID(id)
@@ -292,6 +423,25 @@ func (_u *ChargeUsageBasedUpdateOne) AddRuns(v ...*ChargeUsageBasedRuns) *Charge
 		ids[i] = v[i].ID
 	}
 	return _u.AddRunIDs(ids...)
+}
+
+// SetCurrentRunID sets the "current_run" edge to the ChargeUsageBasedRuns entity by ID.
+func (_u *ChargeUsageBasedUpdateOne) SetCurrentRunID(id string) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetCurrentRunID(id)
+	return _u
+}
+
+// SetNillableCurrentRunID sets the "current_run" edge to the ChargeUsageBasedRuns entity by ID if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableCurrentRunID(id *string) *ChargeUsageBasedUpdateOne {
+	if id != nil {
+		_u = _u.SetCurrentRunID(*id)
+	}
+	return _u
+}
+
+// SetCurrentRun sets the "current_run" edge to the ChargeUsageBasedRuns entity.
+func (_u *ChargeUsageBasedUpdateOne) SetCurrentRun(v *ChargeUsageBasedRuns) *ChargeUsageBasedUpdateOne {
+	return _u.SetCurrentRunID(v.ID)
 }
 
 // Mutation returns the ChargeUsageBasedMutation object of the builder.
@@ -324,6 +474,12 @@ func (_u *ChargeUsageBasedUpdateOne) RemoveRuns(v ...*ChargeUsageBasedRuns) *Cha
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveRunIDs(ids...)
+}
+
+// ClearCurrentRun clears the "current_run" edge to the ChargeUsageBasedRuns entity.
+func (_u *ChargeUsageBasedUpdateOne) ClearCurrentRun() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearCurrentRun()
+	return _u
 }
 
 // Where appends a list predicates to the ChargeUsageBasedUpdate builder.
@@ -373,6 +529,11 @@ func (_u *ChargeUsageBasedUpdateOne) check() error {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.discounts": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Status(); ok {
+		if err := chargeusagebased.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status": %w`, err)}
+		}
+	}
 	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.charge"`)
 	}
@@ -417,6 +578,9 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	}
 	if _u.mutation.DiscountsCleared() {
 		_spec.ClearField(chargeusagebased.FieldDiscounts, field.TypeString)
+	}
+	if value, ok := _u.mutation.Status(); ok {
+		_spec.SetField(chargeusagebased.FieldStatus, field.TypeEnum, value)
 	}
 	if _u.mutation.ChargeCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -482,6 +646,35 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 			Inverse: false,
 			Table:   chargeusagebased.RunsTable,
 			Columns: []string{chargeusagebased.RunsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CurrentRunCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeusagebased.CurrentRunTable,
+			Columns: []string{chargeusagebased.CurrentRunColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CurrentRunIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   chargeusagebased.CurrentRunTable,
+			Columns: []string{chargeusagebased.CurrentRunColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),

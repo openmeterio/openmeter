@@ -6976,6 +6976,22 @@ func (c *ChargeUsageBasedClient) QueryRuns(_m *ChargeUsageBased) *ChargeUsageBas
 	return query
 }
 
+// QueryCurrentRun queries the current_run edge of a ChargeUsageBased.
+func (c *ChargeUsageBasedClient) QueryCurrentRun(_m *ChargeUsageBased) *ChargeUsageBasedRunsQuery {
+	query := (&ChargeUsageBasedRunsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, id),
+			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, chargeusagebased.CurrentRunTable, chargeusagebased.CurrentRunColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ChargeUsageBasedClient) Hooks() []Hook {
 	return c.hooks.ChargeUsageBased

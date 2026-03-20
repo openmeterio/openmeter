@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -58,6 +59,16 @@ func (ChargeUsageBased) Fields() []ent.Field {
 				dialect.Postgres: "jsonb",
 			}).
 			Immutable(),
+
+		field.String("current_realization_run_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable(),
+
+		field.Enum("status").
+			GoType(usagebased.Status("")),
 	}
 }
 
@@ -69,6 +80,9 @@ func (ChargeUsageBased) Edges() []ent.Edge {
 			Required(),
 		edge.To("runs", ChargeUsageBasedRuns.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("current_run", ChargeUsageBasedRuns.Type).
+			Field("current_realization_run_id").
+			Unique(),
 	}
 }
 
@@ -94,6 +108,7 @@ func (ChargeUsageBasedRuns) Mixin() []ent.Mixin {
 		entutils.NamespaceMixin{},
 		entutils.IDMixin{},
 		entutils.TimeMixin{},
+		totals.Mixin{},
 	}
 }
 

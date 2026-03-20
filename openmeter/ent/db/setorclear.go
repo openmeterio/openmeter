@@ -2355,6 +2355,20 @@ func (u *ChargeUpdateOne) SetOrClearUniqueReferenceID(value *string) *ChargeUpda
 	return u.SetUniqueReferenceID(*value)
 }
 
+func (u *ChargeUpdate) SetOrClearAdvanceAfter(value *time.Time) *ChargeUpdate {
+	if value == nil {
+		return u.ClearAdvanceAfter()
+	}
+	return u.SetAdvanceAfter(*value)
+}
+
+func (u *ChargeUpdateOne) SetOrClearAdvanceAfter(value *time.Time) *ChargeUpdateOne {
+	if value == nil {
+		return u.ClearAdvanceAfter()
+	}
+	return u.SetAdvanceAfter(*value)
+}
+
 func (u *ChargeCreditPurchaseUpdate) SetOrClearCreditGrantTransactionGroupID(value *string) *ChargeCreditPurchaseUpdate {
 	if value == nil {
 		return u.ClearCreditGrantTransactionGroupID()
@@ -2773,6 +2787,20 @@ func (u *ChargeUsageBasedUpdateOne) SetOrClearDiscounts(value **productcatalog.D
 		return u.ClearDiscounts()
 	}
 	return u.SetDiscounts(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearCurrentRealizationRunID(value *string) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearCurrentRealizationRunID()
+	}
+	return u.SetCurrentRealizationRunID(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearCurrentRealizationRunID(value *string) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearCurrentRealizationRunID()
+	}
+	return u.SetCurrentRealizationRunID(*value)
 }
 
 func (u *ChargeUsageBasedRunCreditAllocationsUpdate) SetOrClearLineID(value *string) *ChargeUsageBasedRunCreditAllocationsUpdate {

@@ -65,6 +65,12 @@ func (_c *ChargeFlatFeeCreditAllocationsCreate) SetLedgerTransactionGroupID(v st
 	return _c
 }
 
+// SetSortHint sets the "sort_hint" field.
+func (_c *ChargeFlatFeeCreditAllocationsCreate) SetSortHint(v int) *ChargeFlatFeeCreditAllocationsCreate {
+	_c.mutation.SetSortHint(v)
+	return _c
+}
+
 // SetNamespace sets the "namespace" field.
 func (_c *ChargeFlatFeeCreditAllocationsCreate) SetNamespace(v string) *ChargeFlatFeeCreditAllocationsCreate {
 	_c.mutation.SetNamespace(v)
@@ -242,6 +248,9 @@ func (_c *ChargeFlatFeeCreditAllocationsCreate) check() error {
 			return &ValidationError{Name: "ledger_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeCreditAllocations.ledger_transaction_group_id": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.SortHint(); !ok {
+		return &ValidationError{Name: "sort_hint", err: errors.New(`db: missing required field "ChargeFlatFeeCreditAllocations.sort_hint"`)}
+	}
 	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "ChargeFlatFeeCreditAllocations.namespace"`)}
 	}
@@ -313,6 +322,10 @@ func (_c *ChargeFlatFeeCreditAllocationsCreate) createSpec() (*ChargeFlatFeeCred
 	if value, ok := _c.mutation.LedgerTransactionGroupID(); ok {
 		_spec.SetField(chargeflatfeecreditallocations.FieldLedgerTransactionGroupID, field.TypeString, value)
 		_node.LedgerTransactionGroupID = value
+	}
+	if value, ok := _c.mutation.SortHint(); ok {
+		_spec.SetField(chargeflatfeecreditallocations.FieldSortHint, field.TypeInt, value)
+		_node.SortHint = value
 	}
 	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(chargeflatfeecreditallocations.FieldNamespace, field.TypeString, value)
@@ -471,6 +484,24 @@ func (u *ChargeFlatFeeCreditAllocationsUpsert) SetServicePeriodTo(v time.Time) *
 // UpdateServicePeriodTo sets the "service_period_to" field to the value that was provided on create.
 func (u *ChargeFlatFeeCreditAllocationsUpsert) UpdateServicePeriodTo() *ChargeFlatFeeCreditAllocationsUpsert {
 	u.SetExcluded(chargeflatfeecreditallocations.FieldServicePeriodTo)
+	return u
+}
+
+// SetSortHint sets the "sort_hint" field.
+func (u *ChargeFlatFeeCreditAllocationsUpsert) SetSortHint(v int) *ChargeFlatFeeCreditAllocationsUpsert {
+	u.Set(chargeflatfeecreditallocations.FieldSortHint, v)
+	return u
+}
+
+// UpdateSortHint sets the "sort_hint" field to the value that was provided on create.
+func (u *ChargeFlatFeeCreditAllocationsUpsert) UpdateSortHint() *ChargeFlatFeeCreditAllocationsUpsert {
+	u.SetExcluded(chargeflatfeecreditallocations.FieldSortHint)
+	return u
+}
+
+// AddSortHint adds v to the "sort_hint" field.
+func (u *ChargeFlatFeeCreditAllocationsUpsert) AddSortHint(v int) *ChargeFlatFeeCreditAllocationsUpsert {
+	u.Add(chargeflatfeecreditallocations.FieldSortHint, v)
 	return u
 }
 
@@ -642,6 +673,27 @@ func (u *ChargeFlatFeeCreditAllocationsUpsertOne) SetServicePeriodTo(v time.Time
 func (u *ChargeFlatFeeCreditAllocationsUpsertOne) UpdateServicePeriodTo() *ChargeFlatFeeCreditAllocationsUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeCreditAllocationsUpsert) {
 		s.UpdateServicePeriodTo()
+	})
+}
+
+// SetSortHint sets the "sort_hint" field.
+func (u *ChargeFlatFeeCreditAllocationsUpsertOne) SetSortHint(v int) *ChargeFlatFeeCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeCreditAllocationsUpsert) {
+		s.SetSortHint(v)
+	})
+}
+
+// AddSortHint adds v to the "sort_hint" field.
+func (u *ChargeFlatFeeCreditAllocationsUpsertOne) AddSortHint(v int) *ChargeFlatFeeCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeCreditAllocationsUpsert) {
+		s.AddSortHint(v)
+	})
+}
+
+// UpdateSortHint sets the "sort_hint" field to the value that was provided on create.
+func (u *ChargeFlatFeeCreditAllocationsUpsertOne) UpdateSortHint() *ChargeFlatFeeCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeCreditAllocationsUpsert) {
+		s.UpdateSortHint()
 	})
 }
 
@@ -988,6 +1040,27 @@ func (u *ChargeFlatFeeCreditAllocationsUpsertBulk) SetServicePeriodTo(v time.Tim
 func (u *ChargeFlatFeeCreditAllocationsUpsertBulk) UpdateServicePeriodTo() *ChargeFlatFeeCreditAllocationsUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeCreditAllocationsUpsert) {
 		s.UpdateServicePeriodTo()
+	})
+}
+
+// SetSortHint sets the "sort_hint" field.
+func (u *ChargeFlatFeeCreditAllocationsUpsertBulk) SetSortHint(v int) *ChargeFlatFeeCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeCreditAllocationsUpsert) {
+		s.SetSortHint(v)
+	})
+}
+
+// AddSortHint adds v to the "sort_hint" field.
+func (u *ChargeFlatFeeCreditAllocationsUpsertBulk) AddSortHint(v int) *ChargeFlatFeeCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeCreditAllocationsUpsert) {
+		s.AddSortHint(v)
+	})
+}
+
+// UpdateSortHint sets the "sort_hint" field to the value that was provided on create.
+func (u *ChargeFlatFeeCreditAllocationsUpsertBulk) UpdateSortHint() *ChargeFlatFeeCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeCreditAllocationsUpsert) {
+		s.UpdateSortHint()
 	})
 }
 

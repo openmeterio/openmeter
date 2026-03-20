@@ -35342,6 +35342,7 @@ type ChargeMutation struct {
 	unique_reference_id              *string
 	currency                         *currencyx.Code
 	managed_by                       *billing.InvoiceLineManagedBy
+	advance_after                    *time.Time
 	clearedFields                    map[string]struct{}
 	flat_fee                         *string
 	clearedflat_fee                  bool
@@ -36404,6 +36405,55 @@ func (m *ChargeMutation) ResetSubscriptionItemID() {
 	delete(m.clearedFields, charge.FieldSubscriptionItemID)
 }
 
+// SetAdvanceAfter sets the "advance_after" field.
+func (m *ChargeMutation) SetAdvanceAfter(t time.Time) {
+	m.advance_after = &t
+}
+
+// AdvanceAfter returns the value of the "advance_after" field in the mutation.
+func (m *ChargeMutation) AdvanceAfter() (r time.Time, exists bool) {
+	v := m.advance_after
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAdvanceAfter returns the old "advance_after" field's value of the Charge entity.
+// If the Charge object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeMutation) OldAdvanceAfter(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAdvanceAfter is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAdvanceAfter requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAdvanceAfter: %w", err)
+	}
+	return oldValue.AdvanceAfter, nil
+}
+
+// ClearAdvanceAfter clears the value of the "advance_after" field.
+func (m *ChargeMutation) ClearAdvanceAfter() {
+	m.advance_after = nil
+	m.clearedFields[charge.FieldAdvanceAfter] = struct{}{}
+}
+
+// AdvanceAfterCleared returns if the "advance_after" field was cleared in this mutation.
+func (m *ChargeMutation) AdvanceAfterCleared() bool {
+	_, ok := m.clearedFields[charge.FieldAdvanceAfter]
+	return ok
+}
+
+// ResetAdvanceAfter resets all changes to the "advance_after" field.
+func (m *ChargeMutation) ResetAdvanceAfter() {
+	m.advance_after = nil
+	delete(m.clearedFields, charge.FieldAdvanceAfter)
+}
+
 // SetFlatFeeID sets the "flat_fee" edge to the ChargeFlatFee entity by id.
 func (m *ChargeMutation) SetFlatFeeID(id string) {
 	m.flat_fee = &id
@@ -36771,7 +36821,7 @@ func (m *ChargeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeMutation) Fields() []string {
-	fields := make([]string, 0, 23)
+	fields := make([]string, 0, 24)
 	if m.annotations != nil {
 		fields = append(fields, charge.FieldAnnotations)
 	}
@@ -36841,6 +36891,9 @@ func (m *ChargeMutation) Fields() []string {
 	if m.subscription_item != nil {
 		fields = append(fields, charge.FieldSubscriptionItemID)
 	}
+	if m.advance_after != nil {
+		fields = append(fields, charge.FieldAdvanceAfter)
+	}
 	return fields
 }
 
@@ -36895,6 +36948,8 @@ func (m *ChargeMutation) Field(name string) (ent.Value, bool) {
 		return m.SubscriptionPhaseID()
 	case charge.FieldSubscriptionItemID:
 		return m.SubscriptionItemID()
+	case charge.FieldAdvanceAfter:
+		return m.AdvanceAfter()
 	}
 	return nil, false
 }
@@ -36950,6 +37005,8 @@ func (m *ChargeMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldSubscriptionPhaseID(ctx)
 	case charge.FieldSubscriptionItemID:
 		return m.OldSubscriptionItemID(ctx)
+	case charge.FieldAdvanceAfter:
+		return m.OldAdvanceAfter(ctx)
 	}
 	return nil, fmt.Errorf("unknown Charge field %s", name)
 }
@@ -37120,6 +37177,13 @@ func (m *ChargeMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetSubscriptionItemID(v)
 		return nil
+	case charge.FieldAdvanceAfter:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAdvanceAfter(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Charge field %s", name)
 }
@@ -37174,6 +37238,9 @@ func (m *ChargeMutation) ClearedFields() []string {
 	if m.FieldCleared(charge.FieldSubscriptionItemID) {
 		fields = append(fields, charge.FieldSubscriptionItemID)
 	}
+	if m.FieldCleared(charge.FieldAdvanceAfter) {
+		fields = append(fields, charge.FieldAdvanceAfter)
+	}
 	return fields
 }
 
@@ -37211,6 +37278,9 @@ func (m *ChargeMutation) ClearField(name string) error {
 		return nil
 	case charge.FieldSubscriptionItemID:
 		m.ClearSubscriptionItemID()
+		return nil
+	case charge.FieldAdvanceAfter:
+		m.ClearAdvanceAfter()
 		return nil
 	}
 	return fmt.Errorf("unknown Charge nullable field %s", name)
@@ -37288,6 +37358,9 @@ func (m *ChargeMutation) ResetField(name string) error {
 		return nil
 	case charge.FieldSubscriptionItemID:
 		m.ResetSubscriptionItemID()
+		return nil
+	case charge.FieldAdvanceAfter:
+		m.ResetAdvanceAfter()
 		return nil
 	}
 	return fmt.Errorf("unknown Charge field %s", name)
@@ -41991,6 +42064,8 @@ type ChargeFlatFeeCreditAllocationsMutation struct {
 	service_period_from         *time.Time
 	service_period_to           *time.Time
 	ledger_transaction_group_id *string
+	sort_hint                   *int
+	addsort_hint                *int
 	namespace                   *string
 	created_at                  *time.Time
 	updated_at                  *time.Time
@@ -42301,6 +42376,62 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) OldLedgerTransactionGroupID(ctx
 // ResetLedgerTransactionGroupID resets all changes to the "ledger_transaction_group_id" field.
 func (m *ChargeFlatFeeCreditAllocationsMutation) ResetLedgerTransactionGroupID() {
 	m.ledger_transaction_group_id = nil
+}
+
+// SetSortHint sets the "sort_hint" field.
+func (m *ChargeFlatFeeCreditAllocationsMutation) SetSortHint(i int) {
+	m.sort_hint = &i
+	m.addsort_hint = nil
+}
+
+// SortHint returns the value of the "sort_hint" field in the mutation.
+func (m *ChargeFlatFeeCreditAllocationsMutation) SortHint() (r int, exists bool) {
+	v := m.sort_hint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSortHint returns the old "sort_hint" field's value of the ChargeFlatFeeCreditAllocations entity.
+// If the ChargeFlatFeeCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeCreditAllocationsMutation) OldSortHint(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSortHint is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSortHint requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSortHint: %w", err)
+	}
+	return oldValue.SortHint, nil
+}
+
+// AddSortHint adds i to the "sort_hint" field.
+func (m *ChargeFlatFeeCreditAllocationsMutation) AddSortHint(i int) {
+	if m.addsort_hint != nil {
+		*m.addsort_hint += i
+	} else {
+		m.addsort_hint = &i
+	}
+}
+
+// AddedSortHint returns the value that was added to the "sort_hint" field in this mutation.
+func (m *ChargeFlatFeeCreditAllocationsMutation) AddedSortHint() (r int, exists bool) {
+	v := m.addsort_hint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSortHint resets all changes to the "sort_hint" field.
+func (m *ChargeFlatFeeCreditAllocationsMutation) ResetSortHint() {
+	m.sort_hint = nil
+	m.addsort_hint = nil
 }
 
 // SetNamespace sets the "namespace" field.
@@ -42659,7 +42790,7 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeFlatFeeCreditAllocationsMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 12)
 	if m.billing_invoice_line != nil {
 		fields = append(fields, chargeflatfeecreditallocations.FieldLineID)
 	}
@@ -42674,6 +42805,9 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) Fields() []string {
 	}
 	if m.ledger_transaction_group_id != nil {
 		fields = append(fields, chargeflatfeecreditallocations.FieldLedgerTransactionGroupID)
+	}
+	if m.sort_hint != nil {
+		fields = append(fields, chargeflatfeecreditallocations.FieldSortHint)
 	}
 	if m.namespace != nil {
 		fields = append(fields, chargeflatfeecreditallocations.FieldNamespace)
@@ -42711,6 +42845,8 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) Field(name string) (ent.Value, 
 		return m.ServicePeriodTo()
 	case chargeflatfeecreditallocations.FieldLedgerTransactionGroupID:
 		return m.LedgerTransactionGroupID()
+	case chargeflatfeecreditallocations.FieldSortHint:
+		return m.SortHint()
 	case chargeflatfeecreditallocations.FieldNamespace:
 		return m.Namespace()
 	case chargeflatfeecreditallocations.FieldCreatedAt:
@@ -42742,6 +42878,8 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) OldField(ctx context.Context, n
 		return m.OldServicePeriodTo(ctx)
 	case chargeflatfeecreditallocations.FieldLedgerTransactionGroupID:
 		return m.OldLedgerTransactionGroupID(ctx)
+	case chargeflatfeecreditallocations.FieldSortHint:
+		return m.OldSortHint(ctx)
 	case chargeflatfeecreditallocations.FieldNamespace:
 		return m.OldNamespace(ctx)
 	case chargeflatfeecreditallocations.FieldCreatedAt:
@@ -42798,6 +42936,13 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) SetField(name string, value ent
 		}
 		m.SetLedgerTransactionGroupID(v)
 		return nil
+	case chargeflatfeecreditallocations.FieldSortHint:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSortHint(v)
+		return nil
 	case chargeflatfeecreditallocations.FieldNamespace:
 		v, ok := value.(string)
 		if !ok {
@@ -42847,13 +42992,21 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) SetField(name string, value ent
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *ChargeFlatFeeCreditAllocationsMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addsort_hint != nil {
+		fields = append(fields, chargeflatfeecreditallocations.FieldSortHint)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *ChargeFlatFeeCreditAllocationsMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case chargeflatfeecreditallocations.FieldSortHint:
+		return m.AddedSortHint()
+	}
 	return nil, false
 }
 
@@ -42862,6 +43015,13 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) AddedField(name string) (ent.Va
 // type.
 func (m *ChargeFlatFeeCreditAllocationsMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case chargeflatfeecreditallocations.FieldSortHint:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSortHint(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFeeCreditAllocations numeric field %s", name)
 }
@@ -42924,6 +43084,9 @@ func (m *ChargeFlatFeeCreditAllocationsMutation) ResetField(name string) error {
 		return nil
 	case chargeflatfeecreditallocations.FieldLedgerTransactionGroupID:
 		m.ResetLedgerTransactionGroupID()
+		return nil
+	case chargeflatfeecreditallocations.FieldSortHint:
+		m.ResetSortHint()
 		return nil
 	case chargeflatfeecreditallocations.FieldNamespace:
 		m.ResetNamespace()
@@ -45936,24 +46099,27 @@ func (m *ChargeFlatFeePaymentMutation) ResetEdge(name string) error {
 // ChargeUsageBasedMutation represents an operation that mutates the ChargeUsageBased nodes in the graph.
 type ChargeUsageBasedMutation struct {
 	config
-	op              Op
-	typ             string
-	id              *string
-	namespace       *string
-	invoice_at      *time.Time
-	settlement_mode *productcatalog.SettlementMode
-	discounts       **productcatalog.Discounts
-	feature_key     *string
-	price           **productcatalog.Price
-	clearedFields   map[string]struct{}
-	charge          *string
-	clearedcharge   bool
-	runs            map[string]struct{}
-	removedruns     map[string]struct{}
-	clearedruns     bool
-	done            bool
-	oldValue        func(context.Context) (*ChargeUsageBased, error)
-	predicates      []predicate.ChargeUsageBased
+	op                 Op
+	typ                string
+	id                 *string
+	namespace          *string
+	invoice_at         *time.Time
+	settlement_mode    *productcatalog.SettlementMode
+	discounts          **productcatalog.Discounts
+	feature_key        *string
+	price              **productcatalog.Price
+	status             *usagebased.Status
+	clearedFields      map[string]struct{}
+	charge             *string
+	clearedcharge      bool
+	runs               map[string]struct{}
+	removedruns        map[string]struct{}
+	clearedruns        bool
+	current_run        *string
+	clearedcurrent_run bool
+	done               bool
+	oldValue           func(context.Context) (*ChargeUsageBased, error)
+	predicates         []predicate.ChargeUsageBased
 }
 
 var _ ent.Mutation = (*ChargeUsageBasedMutation)(nil)
@@ -46289,6 +46455,91 @@ func (m *ChargeUsageBasedMutation) ResetPrice() {
 	m.price = nil
 }
 
+// SetCurrentRealizationRunID sets the "current_realization_run_id" field.
+func (m *ChargeUsageBasedMutation) SetCurrentRealizationRunID(s string) {
+	m.current_run = &s
+}
+
+// CurrentRealizationRunID returns the value of the "current_realization_run_id" field in the mutation.
+func (m *ChargeUsageBasedMutation) CurrentRealizationRunID() (r string, exists bool) {
+	v := m.current_run
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrentRealizationRunID returns the old "current_realization_run_id" field's value of the ChargeUsageBased entity.
+// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedMutation) OldCurrentRealizationRunID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrentRealizationRunID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrentRealizationRunID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrentRealizationRunID: %w", err)
+	}
+	return oldValue.CurrentRealizationRunID, nil
+}
+
+// ClearCurrentRealizationRunID clears the value of the "current_realization_run_id" field.
+func (m *ChargeUsageBasedMutation) ClearCurrentRealizationRunID() {
+	m.current_run = nil
+	m.clearedFields[chargeusagebased.FieldCurrentRealizationRunID] = struct{}{}
+}
+
+// CurrentRealizationRunIDCleared returns if the "current_realization_run_id" field was cleared in this mutation.
+func (m *ChargeUsageBasedMutation) CurrentRealizationRunIDCleared() bool {
+	_, ok := m.clearedFields[chargeusagebased.FieldCurrentRealizationRunID]
+	return ok
+}
+
+// ResetCurrentRealizationRunID resets all changes to the "current_realization_run_id" field.
+func (m *ChargeUsageBasedMutation) ResetCurrentRealizationRunID() {
+	m.current_run = nil
+	delete(m.clearedFields, chargeusagebased.FieldCurrentRealizationRunID)
+}
+
+// SetStatus sets the "status" field.
+func (m *ChargeUsageBasedMutation) SetStatus(u usagebased.Status) {
+	m.status = &u
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *ChargeUsageBasedMutation) Status() (r usagebased.Status, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the ChargeUsageBased entity.
+// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedMutation) OldStatus(ctx context.Context) (v usagebased.Status, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *ChargeUsageBasedMutation) ResetStatus() {
+	m.status = nil
+}
+
 // SetChargeID sets the "charge" edge to the Charge entity by id.
 func (m *ChargeUsageBasedMutation) SetChargeID(id string) {
 	m.charge = &id
@@ -46382,6 +46633,46 @@ func (m *ChargeUsageBasedMutation) ResetRuns() {
 	m.removedruns = nil
 }
 
+// SetCurrentRunID sets the "current_run" edge to the ChargeUsageBasedRuns entity by id.
+func (m *ChargeUsageBasedMutation) SetCurrentRunID(id string) {
+	m.current_run = &id
+}
+
+// ClearCurrentRun clears the "current_run" edge to the ChargeUsageBasedRuns entity.
+func (m *ChargeUsageBasedMutation) ClearCurrentRun() {
+	m.clearedcurrent_run = true
+	m.clearedFields[chargeusagebased.FieldCurrentRealizationRunID] = struct{}{}
+}
+
+// CurrentRunCleared reports if the "current_run" edge to the ChargeUsageBasedRuns entity was cleared.
+func (m *ChargeUsageBasedMutation) CurrentRunCleared() bool {
+	return m.CurrentRealizationRunIDCleared() || m.clearedcurrent_run
+}
+
+// CurrentRunID returns the "current_run" edge ID in the mutation.
+func (m *ChargeUsageBasedMutation) CurrentRunID() (id string, exists bool) {
+	if m.current_run != nil {
+		return *m.current_run, true
+	}
+	return
+}
+
+// CurrentRunIDs returns the "current_run" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CurrentRunID instead. It exists only for internal usage by the builders.
+func (m *ChargeUsageBasedMutation) CurrentRunIDs() (ids []string) {
+	if id := m.current_run; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCurrentRun resets all changes to the "current_run" edge.
+func (m *ChargeUsageBasedMutation) ResetCurrentRun() {
+	m.current_run = nil
+	m.clearedcurrent_run = false
+}
+
 // Where appends a list predicates to the ChargeUsageBasedMutation builder.
 func (m *ChargeUsageBasedMutation) Where(ps ...predicate.ChargeUsageBased) {
 	m.predicates = append(m.predicates, ps...)
@@ -46416,7 +46707,7 @@ func (m *ChargeUsageBasedMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 8)
 	if m.namespace != nil {
 		fields = append(fields, chargeusagebased.FieldNamespace)
 	}
@@ -46434,6 +46725,12 @@ func (m *ChargeUsageBasedMutation) Fields() []string {
 	}
 	if m.price != nil {
 		fields = append(fields, chargeusagebased.FieldPrice)
+	}
+	if m.current_run != nil {
+		fields = append(fields, chargeusagebased.FieldCurrentRealizationRunID)
+	}
+	if m.status != nil {
+		fields = append(fields, chargeusagebased.FieldStatus)
 	}
 	return fields
 }
@@ -46455,6 +46752,10 @@ func (m *ChargeUsageBasedMutation) Field(name string) (ent.Value, bool) {
 		return m.FeatureKey()
 	case chargeusagebased.FieldPrice:
 		return m.Price()
+	case chargeusagebased.FieldCurrentRealizationRunID:
+		return m.CurrentRealizationRunID()
+	case chargeusagebased.FieldStatus:
+		return m.Status()
 	}
 	return nil, false
 }
@@ -46476,6 +46777,10 @@ func (m *ChargeUsageBasedMutation) OldField(ctx context.Context, name string) (e
 		return m.OldFeatureKey(ctx)
 	case chargeusagebased.FieldPrice:
 		return m.OldPrice(ctx)
+	case chargeusagebased.FieldCurrentRealizationRunID:
+		return m.OldCurrentRealizationRunID(ctx)
+	case chargeusagebased.FieldStatus:
+		return m.OldStatus(ctx)
 	}
 	return nil, fmt.Errorf("unknown ChargeUsageBased field %s", name)
 }
@@ -46527,6 +46832,20 @@ func (m *ChargeUsageBasedMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetPrice(v)
 		return nil
+	case chargeusagebased.FieldCurrentRealizationRunID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrentRealizationRunID(v)
+		return nil
+	case chargeusagebased.FieldStatus:
+		v, ok := value.(usagebased.Status)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBased field %s", name)
 }
@@ -46560,6 +46879,9 @@ func (m *ChargeUsageBasedMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeusagebased.FieldDiscounts) {
 		fields = append(fields, chargeusagebased.FieldDiscounts)
 	}
+	if m.FieldCleared(chargeusagebased.FieldCurrentRealizationRunID) {
+		fields = append(fields, chargeusagebased.FieldCurrentRealizationRunID)
+	}
 	return fields
 }
 
@@ -46576,6 +46898,9 @@ func (m *ChargeUsageBasedMutation) ClearField(name string) error {
 	switch name {
 	case chargeusagebased.FieldDiscounts:
 		m.ClearDiscounts()
+		return nil
+	case chargeusagebased.FieldCurrentRealizationRunID:
+		m.ClearCurrentRealizationRunID()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBased nullable field %s", name)
@@ -46603,18 +46928,27 @@ func (m *ChargeUsageBasedMutation) ResetField(name string) error {
 	case chargeusagebased.FieldPrice:
 		m.ResetPrice()
 		return nil
+	case chargeusagebased.FieldCurrentRealizationRunID:
+		m.ResetCurrentRealizationRunID()
+		return nil
+	case chargeusagebased.FieldStatus:
+		m.ResetStatus()
+		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBased field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeUsageBasedMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.charge != nil {
 		edges = append(edges, chargeusagebased.EdgeCharge)
 	}
 	if m.runs != nil {
 		edges = append(edges, chargeusagebased.EdgeRuns)
+	}
+	if m.current_run != nil {
+		edges = append(edges, chargeusagebased.EdgeCurrentRun)
 	}
 	return edges
 }
@@ -46633,13 +46967,17 @@ func (m *ChargeUsageBasedMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case chargeusagebased.EdgeCurrentRun:
+		if id := m.current_run; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeUsageBasedMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removedruns != nil {
 		edges = append(edges, chargeusagebased.EdgeRuns)
 	}
@@ -46662,12 +47000,15 @@ func (m *ChargeUsageBasedMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeUsageBasedMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedcharge {
 		edges = append(edges, chargeusagebased.EdgeCharge)
 	}
 	if m.clearedruns {
 		edges = append(edges, chargeusagebased.EdgeRuns)
+	}
+	if m.clearedcurrent_run {
+		edges = append(edges, chargeusagebased.EdgeCurrentRun)
 	}
 	return edges
 }
@@ -46680,6 +47021,8 @@ func (m *ChargeUsageBasedMutation) EdgeCleared(name string) bool {
 		return m.clearedcharge
 	case chargeusagebased.EdgeRuns:
 		return m.clearedruns
+	case chargeusagebased.EdgeCurrentRun:
+		return m.clearedcurrent_run
 	}
 	return false
 }
@@ -46690,6 +47033,9 @@ func (m *ChargeUsageBasedMutation) ClearEdge(name string) error {
 	switch name {
 	case chargeusagebased.EdgeCharge:
 		m.ClearCharge()
+		return nil
+	case chargeusagebased.EdgeCurrentRun:
+		m.ClearCurrentRun()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBased unique edge %s", name)
@@ -46704,6 +47050,9 @@ func (m *ChargeUsageBasedMutation) ResetEdge(name string) error {
 		return nil
 	case chargeusagebased.EdgeRuns:
 		m.ResetRuns()
+		return nil
+	case chargeusagebased.EdgeCurrentRun:
+		m.ResetCurrentRun()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBased edge %s", name)
@@ -46720,6 +47069,8 @@ type ChargeUsageBasedRunCreditAllocationsMutation struct {
 	service_period_from         *time.Time
 	service_period_to           *time.Time
 	ledger_transaction_group_id *string
+	sort_hint                   *int
+	addsort_hint                *int
 	namespace                   *string
 	created_at                  *time.Time
 	updated_at                  *time.Time
@@ -47030,6 +47381,62 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) ResetLedgerTransactionGro
 	m.ledger_transaction_group_id = nil
 }
 
+// SetSortHint sets the "sort_hint" field.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) SetSortHint(i int) {
+	m.sort_hint = &i
+	m.addsort_hint = nil
+}
+
+// SortHint returns the value of the "sort_hint" field in the mutation.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) SortHint() (r int, exists bool) {
+	v := m.sort_hint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSortHint returns the old "sort_hint" field's value of the ChargeUsageBasedRunCreditAllocations entity.
+// If the ChargeUsageBasedRunCreditAllocations object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) OldSortHint(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSortHint is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSortHint requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSortHint: %w", err)
+	}
+	return oldValue.SortHint, nil
+}
+
+// AddSortHint adds i to the "sort_hint" field.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) AddSortHint(i int) {
+	if m.addsort_hint != nil {
+		*m.addsort_hint += i
+	} else {
+		m.addsort_hint = &i
+	}
+}
+
+// AddedSortHint returns the value that was added to the "sort_hint" field in this mutation.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) AddedSortHint() (r int, exists bool) {
+	v := m.addsort_hint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSortHint resets all changes to the "sort_hint" field.
+func (m *ChargeUsageBasedRunCreditAllocationsMutation) ResetSortHint() {
+	m.sort_hint = nil
+	m.addsort_hint = nil
+}
+
 // SetNamespace sets the "namespace" field.
 func (m *ChargeUsageBasedRunCreditAllocationsMutation) SetNamespace(s string) {
 	m.namespace = &s
@@ -47333,7 +47740,7 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedRunCreditAllocationsMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 12)
 	if m.line_id != nil {
 		fields = append(fields, chargeusagebasedruncreditallocations.FieldLineID)
 	}
@@ -47348,6 +47755,9 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) Fields() []string {
 	}
 	if m.ledger_transaction_group_id != nil {
 		fields = append(fields, chargeusagebasedruncreditallocations.FieldLedgerTransactionGroupID)
+	}
+	if m.sort_hint != nil {
+		fields = append(fields, chargeusagebasedruncreditallocations.FieldSortHint)
 	}
 	if m.namespace != nil {
 		fields = append(fields, chargeusagebasedruncreditallocations.FieldNamespace)
@@ -47385,6 +47795,8 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) Field(name string) (ent.V
 		return m.ServicePeriodTo()
 	case chargeusagebasedruncreditallocations.FieldLedgerTransactionGroupID:
 		return m.LedgerTransactionGroupID()
+	case chargeusagebasedruncreditallocations.FieldSortHint:
+		return m.SortHint()
 	case chargeusagebasedruncreditallocations.FieldNamespace:
 		return m.Namespace()
 	case chargeusagebasedruncreditallocations.FieldCreatedAt:
@@ -47416,6 +47828,8 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) OldField(ctx context.Cont
 		return m.OldServicePeriodTo(ctx)
 	case chargeusagebasedruncreditallocations.FieldLedgerTransactionGroupID:
 		return m.OldLedgerTransactionGroupID(ctx)
+	case chargeusagebasedruncreditallocations.FieldSortHint:
+		return m.OldSortHint(ctx)
 	case chargeusagebasedruncreditallocations.FieldNamespace:
 		return m.OldNamespace(ctx)
 	case chargeusagebasedruncreditallocations.FieldCreatedAt:
@@ -47472,6 +47886,13 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) SetField(name string, val
 		}
 		m.SetLedgerTransactionGroupID(v)
 		return nil
+	case chargeusagebasedruncreditallocations.FieldSortHint:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSortHint(v)
+		return nil
 	case chargeusagebasedruncreditallocations.FieldNamespace:
 		v, ok := value.(string)
 		if !ok {
@@ -47521,13 +47942,21 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) SetField(name string, val
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *ChargeUsageBasedRunCreditAllocationsMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addsort_hint != nil {
+		fields = append(fields, chargeusagebasedruncreditallocations.FieldSortHint)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *ChargeUsageBasedRunCreditAllocationsMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case chargeusagebasedruncreditallocations.FieldSortHint:
+		return m.AddedSortHint()
+	}
 	return nil, false
 }
 
@@ -47536,6 +47965,13 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) AddedField(name string) (
 // type.
 func (m *ChargeUsageBasedRunCreditAllocationsMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case chargeusagebasedruncreditallocations.FieldSortHint:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSortHint(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBasedRunCreditAllocations numeric field %s", name)
 }
@@ -47598,6 +48034,9 @@ func (m *ChargeUsageBasedRunCreditAllocationsMutation) ResetField(name string) e
 		return nil
 	case chargeusagebasedruncreditallocations.FieldLedgerTransactionGroupID:
 		m.ResetLedgerTransactionGroupID()
+		return nil
+	case chargeusagebasedruncreditallocations.FieldSortHint:
+		m.ResetSortHint()
 		return nil
 	case chargeusagebasedruncreditallocations.FieldNamespace:
 		m.ResetNamespace()
@@ -50455,6 +50894,14 @@ type ChargeUsageBasedRunsMutation struct {
 	created_at                *time.Time
 	updated_at                *time.Time
 	deleted_at                *time.Time
+	amount                    *alpacadecimal.Decimal
+	taxes_total               *alpacadecimal.Decimal
+	taxes_inclusive_total     *alpacadecimal.Decimal
+	taxes_exclusive_total     *alpacadecimal.Decimal
+	charges_total             *alpacadecimal.Decimal
+	discounts_total           *alpacadecimal.Decimal
+	credits_total             *alpacadecimal.Decimal
+	total                     *alpacadecimal.Decimal
 	_type                     *usagebased.RealizationRunType
 	asof                      *time.Time
 	meter_value               *alpacadecimal.Decimal
@@ -50732,6 +51179,294 @@ func (m *ChargeUsageBasedRunsMutation) DeletedAtCleared() bool {
 func (m *ChargeUsageBasedRunsMutation) ResetDeletedAt() {
 	m.deleted_at = nil
 	delete(m.clearedFields, chargeusagebasedruns.FieldDeletedAt)
+}
+
+// SetAmount sets the "amount" field.
+func (m *ChargeUsageBasedRunsMutation) SetAmount(a alpacadecimal.Decimal) {
+	m.amount = &a
+}
+
+// Amount returns the value of the "amount" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) Amount() (r alpacadecimal.Decimal, exists bool) {
+	v := m.amount
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAmount returns the old "amount" field's value of the ChargeUsageBasedRuns entity.
+// If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunsMutation) OldAmount(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAmount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAmount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAmount: %w", err)
+	}
+	return oldValue.Amount, nil
+}
+
+// ResetAmount resets all changes to the "amount" field.
+func (m *ChargeUsageBasedRunsMutation) ResetAmount() {
+	m.amount = nil
+}
+
+// SetTaxesTotal sets the "taxes_total" field.
+func (m *ChargeUsageBasedRunsMutation) SetTaxesTotal(a alpacadecimal.Decimal) {
+	m.taxes_total = &a
+}
+
+// TaxesTotal returns the value of the "taxes_total" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) TaxesTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.taxes_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxesTotal returns the old "taxes_total" field's value of the ChargeUsageBasedRuns entity.
+// If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunsMutation) OldTaxesTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxesTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxesTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxesTotal: %w", err)
+	}
+	return oldValue.TaxesTotal, nil
+}
+
+// ResetTaxesTotal resets all changes to the "taxes_total" field.
+func (m *ChargeUsageBasedRunsMutation) ResetTaxesTotal() {
+	m.taxes_total = nil
+}
+
+// SetTaxesInclusiveTotal sets the "taxes_inclusive_total" field.
+func (m *ChargeUsageBasedRunsMutation) SetTaxesInclusiveTotal(a alpacadecimal.Decimal) {
+	m.taxes_inclusive_total = &a
+}
+
+// TaxesInclusiveTotal returns the value of the "taxes_inclusive_total" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) TaxesInclusiveTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.taxes_inclusive_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxesInclusiveTotal returns the old "taxes_inclusive_total" field's value of the ChargeUsageBasedRuns entity.
+// If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunsMutation) OldTaxesInclusiveTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxesInclusiveTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxesInclusiveTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxesInclusiveTotal: %w", err)
+	}
+	return oldValue.TaxesInclusiveTotal, nil
+}
+
+// ResetTaxesInclusiveTotal resets all changes to the "taxes_inclusive_total" field.
+func (m *ChargeUsageBasedRunsMutation) ResetTaxesInclusiveTotal() {
+	m.taxes_inclusive_total = nil
+}
+
+// SetTaxesExclusiveTotal sets the "taxes_exclusive_total" field.
+func (m *ChargeUsageBasedRunsMutation) SetTaxesExclusiveTotal(a alpacadecimal.Decimal) {
+	m.taxes_exclusive_total = &a
+}
+
+// TaxesExclusiveTotal returns the value of the "taxes_exclusive_total" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) TaxesExclusiveTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.taxes_exclusive_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxesExclusiveTotal returns the old "taxes_exclusive_total" field's value of the ChargeUsageBasedRuns entity.
+// If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunsMutation) OldTaxesExclusiveTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxesExclusiveTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxesExclusiveTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxesExclusiveTotal: %w", err)
+	}
+	return oldValue.TaxesExclusiveTotal, nil
+}
+
+// ResetTaxesExclusiveTotal resets all changes to the "taxes_exclusive_total" field.
+func (m *ChargeUsageBasedRunsMutation) ResetTaxesExclusiveTotal() {
+	m.taxes_exclusive_total = nil
+}
+
+// SetChargesTotal sets the "charges_total" field.
+func (m *ChargeUsageBasedRunsMutation) SetChargesTotal(a alpacadecimal.Decimal) {
+	m.charges_total = &a
+}
+
+// ChargesTotal returns the value of the "charges_total" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) ChargesTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.charges_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChargesTotal returns the old "charges_total" field's value of the ChargeUsageBasedRuns entity.
+// If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunsMutation) OldChargesTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChargesTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChargesTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChargesTotal: %w", err)
+	}
+	return oldValue.ChargesTotal, nil
+}
+
+// ResetChargesTotal resets all changes to the "charges_total" field.
+func (m *ChargeUsageBasedRunsMutation) ResetChargesTotal() {
+	m.charges_total = nil
+}
+
+// SetDiscountsTotal sets the "discounts_total" field.
+func (m *ChargeUsageBasedRunsMutation) SetDiscountsTotal(a alpacadecimal.Decimal) {
+	m.discounts_total = &a
+}
+
+// DiscountsTotal returns the value of the "discounts_total" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) DiscountsTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.discounts_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDiscountsTotal returns the old "discounts_total" field's value of the ChargeUsageBasedRuns entity.
+// If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunsMutation) OldDiscountsTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDiscountsTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDiscountsTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDiscountsTotal: %w", err)
+	}
+	return oldValue.DiscountsTotal, nil
+}
+
+// ResetDiscountsTotal resets all changes to the "discounts_total" field.
+func (m *ChargeUsageBasedRunsMutation) ResetDiscountsTotal() {
+	m.discounts_total = nil
+}
+
+// SetCreditsTotal sets the "credits_total" field.
+func (m *ChargeUsageBasedRunsMutation) SetCreditsTotal(a alpacadecimal.Decimal) {
+	m.credits_total = &a
+}
+
+// CreditsTotal returns the value of the "credits_total" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) CreditsTotal() (r alpacadecimal.Decimal, exists bool) {
+	v := m.credits_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreditsTotal returns the old "credits_total" field's value of the ChargeUsageBasedRuns entity.
+// If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunsMutation) OldCreditsTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreditsTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreditsTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreditsTotal: %w", err)
+	}
+	return oldValue.CreditsTotal, nil
+}
+
+// ResetCreditsTotal resets all changes to the "credits_total" field.
+func (m *ChargeUsageBasedRunsMutation) ResetCreditsTotal() {
+	m.credits_total = nil
+}
+
+// SetTotal sets the "total" field.
+func (m *ChargeUsageBasedRunsMutation) SetTotal(a alpacadecimal.Decimal) {
+	m.total = &a
+}
+
+// Total returns the value of the "total" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) Total() (r alpacadecimal.Decimal, exists bool) {
+	v := m.total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTotal returns the old "total" field's value of the ChargeUsageBasedRuns entity.
+// If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunsMutation) OldTotal(ctx context.Context) (v alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTotal: %w", err)
+	}
+	return oldValue.Total, nil
+}
+
+// ResetTotal resets all changes to the "total" field.
+func (m *ChargeUsageBasedRunsMutation) ResetTotal() {
+	m.total = nil
 }
 
 // SetChargeID sets the "charge_id" field.
@@ -51084,7 +51819,7 @@ func (m *ChargeUsageBasedRunsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedRunsMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 16)
 	if m.namespace != nil {
 		fields = append(fields, chargeusagebasedruns.FieldNamespace)
 	}
@@ -51096,6 +51831,30 @@ func (m *ChargeUsageBasedRunsMutation) Fields() []string {
 	}
 	if m.deleted_at != nil {
 		fields = append(fields, chargeusagebasedruns.FieldDeletedAt)
+	}
+	if m.amount != nil {
+		fields = append(fields, chargeusagebasedruns.FieldAmount)
+	}
+	if m.taxes_total != nil {
+		fields = append(fields, chargeusagebasedruns.FieldTaxesTotal)
+	}
+	if m.taxes_inclusive_total != nil {
+		fields = append(fields, chargeusagebasedruns.FieldTaxesInclusiveTotal)
+	}
+	if m.taxes_exclusive_total != nil {
+		fields = append(fields, chargeusagebasedruns.FieldTaxesExclusiveTotal)
+	}
+	if m.charges_total != nil {
+		fields = append(fields, chargeusagebasedruns.FieldChargesTotal)
+	}
+	if m.discounts_total != nil {
+		fields = append(fields, chargeusagebasedruns.FieldDiscountsTotal)
+	}
+	if m.credits_total != nil {
+		fields = append(fields, chargeusagebasedruns.FieldCreditsTotal)
+	}
+	if m.total != nil {
+		fields = append(fields, chargeusagebasedruns.FieldTotal)
 	}
 	if m.usage_based != nil {
 		fields = append(fields, chargeusagebasedruns.FieldChargeID)
@@ -51125,6 +51884,22 @@ func (m *ChargeUsageBasedRunsMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case chargeusagebasedruns.FieldDeletedAt:
 		return m.DeletedAt()
+	case chargeusagebasedruns.FieldAmount:
+		return m.Amount()
+	case chargeusagebasedruns.FieldTaxesTotal:
+		return m.TaxesTotal()
+	case chargeusagebasedruns.FieldTaxesInclusiveTotal:
+		return m.TaxesInclusiveTotal()
+	case chargeusagebasedruns.FieldTaxesExclusiveTotal:
+		return m.TaxesExclusiveTotal()
+	case chargeusagebasedruns.FieldChargesTotal:
+		return m.ChargesTotal()
+	case chargeusagebasedruns.FieldDiscountsTotal:
+		return m.DiscountsTotal()
+	case chargeusagebasedruns.FieldCreditsTotal:
+		return m.CreditsTotal()
+	case chargeusagebasedruns.FieldTotal:
+		return m.Total()
 	case chargeusagebasedruns.FieldChargeID:
 		return m.ChargeID()
 	case chargeusagebasedruns.FieldType:
@@ -51150,6 +51925,22 @@ func (m *ChargeUsageBasedRunsMutation) OldField(ctx context.Context, name string
 		return m.OldUpdatedAt(ctx)
 	case chargeusagebasedruns.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case chargeusagebasedruns.FieldAmount:
+		return m.OldAmount(ctx)
+	case chargeusagebasedruns.FieldTaxesTotal:
+		return m.OldTaxesTotal(ctx)
+	case chargeusagebasedruns.FieldTaxesInclusiveTotal:
+		return m.OldTaxesInclusiveTotal(ctx)
+	case chargeusagebasedruns.FieldTaxesExclusiveTotal:
+		return m.OldTaxesExclusiveTotal(ctx)
+	case chargeusagebasedruns.FieldChargesTotal:
+		return m.OldChargesTotal(ctx)
+	case chargeusagebasedruns.FieldDiscountsTotal:
+		return m.OldDiscountsTotal(ctx)
+	case chargeusagebasedruns.FieldCreditsTotal:
+		return m.OldCreditsTotal(ctx)
+	case chargeusagebasedruns.FieldTotal:
+		return m.OldTotal(ctx)
 	case chargeusagebasedruns.FieldChargeID:
 		return m.OldChargeID(ctx)
 	case chargeusagebasedruns.FieldType:
@@ -51194,6 +51985,62 @@ func (m *ChargeUsageBasedRunsMutation) SetField(name string, value ent.Value) er
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
+		return nil
+	case chargeusagebasedruns.FieldAmount:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAmount(v)
+		return nil
+	case chargeusagebasedruns.FieldTaxesTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxesTotal(v)
+		return nil
+	case chargeusagebasedruns.FieldTaxesInclusiveTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxesInclusiveTotal(v)
+		return nil
+	case chargeusagebasedruns.FieldTaxesExclusiveTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxesExclusiveTotal(v)
+		return nil
+	case chargeusagebasedruns.FieldChargesTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChargesTotal(v)
+		return nil
+	case chargeusagebasedruns.FieldDiscountsTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDiscountsTotal(v)
+		return nil
+	case chargeusagebasedruns.FieldCreditsTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreditsTotal(v)
+		return nil
+	case chargeusagebasedruns.FieldTotal:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTotal(v)
 		return nil
 	case chargeusagebasedruns.FieldChargeID:
 		v, ok := value.(string)
@@ -51292,6 +52139,30 @@ func (m *ChargeUsageBasedRunsMutation) ResetField(name string) error {
 		return nil
 	case chargeusagebasedruns.FieldDeletedAt:
 		m.ResetDeletedAt()
+		return nil
+	case chargeusagebasedruns.FieldAmount:
+		m.ResetAmount()
+		return nil
+	case chargeusagebasedruns.FieldTaxesTotal:
+		m.ResetTaxesTotal()
+		return nil
+	case chargeusagebasedruns.FieldTaxesInclusiveTotal:
+		m.ResetTaxesInclusiveTotal()
+		return nil
+	case chargeusagebasedruns.FieldTaxesExclusiveTotal:
+		m.ResetTaxesExclusiveTotal()
+		return nil
+	case chargeusagebasedruns.FieldChargesTotal:
+		m.ResetChargesTotal()
+		return nil
+	case chargeusagebasedruns.FieldDiscountsTotal:
+		m.ResetDiscountsTotal()
+		return nil
+	case chargeusagebasedruns.FieldCreditsTotal:
+		m.ResetCreditsTotal()
+		return nil
+	case chargeusagebasedruns.FieldTotal:
+		m.ResetTotal()
 		return nil
 	case chargeusagebasedruns.FieldChargeID:
 		m.ResetChargeID()
