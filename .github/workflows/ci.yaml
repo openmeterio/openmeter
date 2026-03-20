@@ -225,6 +225,7 @@ jobs:
 
       - name: Run tests
         env:
+          GO_TEST_PACKAGE_PARALLELISM: 32
           SVIX_HOST: localhost
           TEST_CLICKHOUSE_DSN: ${{ vars.TEST_CLICKHOUSE_DSN }}
           # Dev JWT secret, non-sensitive
