@@ -5,13 +5,12 @@ namespace ProductCatalog;
 
 /**
  * The arithmetic operation used to convert raw metered units into billing units.
+ * - `divide`: Divide the metered quantity by the conversion factor (e.g., bytes ÷ 1e9 = GB).
+ * - `multiply`: Multiply the metered quantity by the conversion factor (e.g., cost × 1.2 = cost + 20% margin).
  */
 @friendlyName("BillingUnitConfigOperation")
 enum UnitConfigOperation {
-  /** Divide the metered quantity by the conversion factor (e.g., bytes ÷ 1e9 = GB). */
   Divide: "divide",
-
-  /** Multiply the metered quantity by the conversion factor (e.g., cost × 1.2 = cost + 20% margin). */
   Multiply: "multiply",
 }
 
@@ -20,19 +19,16 @@ enum UnitConfigOperation {
  *
  * Rounding is applied only to the invoiced quantity.
  * Entitlement balance checks use the precise decimal value after conversion.
+ * - `ceiling`: Round up to the next integer (typical for package-style billing).
+ * - `floor`: Round down to the previous integer.
+ * - `half_up`: Round to the nearest integer, with 0.5 rounding up.
+ * - `none`: No rounding; the converted value is used as-is.
  */
 @friendlyName("BillingUnitConfigRoundingMode")
 enum UnitConfigRoundingMode {
-  /** Round up to the next integer (typical for package-style billing). */
   Ceiling: "ceiling",
-
-  /** Round down to the previous integer. */
   Floor: "floor",
-
-  /** Round to the nearest integer, with 0.5 rounding up. */
   HalfUp: "half_up",
-
-  /** No rounding; the converted value is used as-is. */
   None: "none",
 }
 
@@ -103,45 +99,6 @@ model UnitConfig {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Display unit label")
   display_unit?: string;
-}
-
-/**
- * Metered entitlement configuration for a usage-based rate card.
- *
- * When UnitConfig is present on the rate card, quota is expressed in
- * converted units (e.g., 100 means 100 GB if UnitConfig divides by 1e9).
- *
- * Entitlement balance checks use the precise (unrounded) converted value.
- */
-@friendlyName("BillingMeteredEntitlement")
-model MeteredEntitlement {
-  /**
-   * The usage quota in billing units (converted via UnitConfig when present).
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Quota")
-  quota: Shared.Numeric;
-
-  /**
-   * The period over which the quota is enforced, as an ISO 8601 duration.
-   *
-   * Defaults to the billing cadence when omitted.
-   * Can be shorter than the billing cadence for rate-limiting use cases
-   * (e.g., "PT1H" for 1,000 tokens per hour on a monthly billing cycle).
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Quota enforcement period (ISO 8601 duration)")
-  quota_period?: Shared.ISO8601Duration;
-
-  /**
-   * Whether usage beyond the quota is allowed (soft limit) or blocked (hard limit).
-   *
-   * - false (default): hard limit – access is denied when quota is exceeded.
-   * - true: soft limit – overage is allowed and billed at the rate card's price.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Allow overage (soft limit)")
-  is_soft_limit?: boolean = false;
 }
 
 /**
