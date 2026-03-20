@@ -79,11 +79,6 @@
       "name": "svix",
       "source": "github.com/sagikazarmark/daggerverse/svix@ceffda4aebd349a24fc00e591b4ed9b801535b65",
       "pin": "ceffda4aebd349a24fc00e591b4ed9b801535b65"
-    },
-    {
-      "name": "trivy",
-      "source": "github.com/sagikazarmark/daggerverse/trivy@ceffda4aebd349a24fc00e591b4ed9b801535b65",
-      "pin": "ceffda4aebd349a24fc00e591b4ed9b801535b65"
     }
   ],
   "source": ".dagger"
