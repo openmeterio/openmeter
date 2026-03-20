@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -283,7 +284,7 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 	// Map TaxCode if eagerly loaded.
 	taxCodeRow, err := r.Edges.TaxCodeOrErr()
 	if err == nil {
-		tc, err := fromTaxCodeRow(taxCodeRow)
+		tc, err := taxcodeadapter.MapTaxCodeFromEntity(taxCodeRow)
 		if err != nil {
 			return nil, fmt.Errorf("invalid tax code for rate card %s: %w", r.ID, err)
 		}
@@ -377,38 +378,13 @@ func asPlanRateCardRow(r productcatalog.RateCard) (entdb.PlanRateCard, error) {
 	return ratecard, nil
 }
 
-func fromTaxCodeRow(r *entdb.TaxCode) (taxcode.TaxCode, error) {
-	if r == nil {
-		return taxcode.TaxCode{}, errors.New("tax code is nil")
-	}
-
-	return taxcode.TaxCode{
-		NamespacedID: models.NamespacedID{
-			Namespace: r.Namespace,
-			ID:        r.ID,
-		},
-		ManagedModel: models.ManagedModel{
-			CreatedAt: r.CreatedAt,
-			UpdatedAt: r.UpdatedAt,
-			DeletedAt: r.DeletedAt,
-		},
-		Key:         r.Key,
-		Name:        r.Name,
-		Description: r.Description,
-		AppMappings: lo.FromPtr(r.AppMappings),
-		Metadata:    models.NewMetadata(r.Metadata),
-	}, nil
-}
-
 // backfillTaxConfig fills in missing legacy TaxConfig fields from the new tax_behavior column
 // and the TaxCode entity's app mappings.
 func backfillTaxConfig(cfg *productcatalog.TaxConfig, taxBehavior *productcatalog.TaxBehavior, tc *taxcode.TaxCode) *productcatalog.TaxConfig {
 	// Resolve Stripe code from TaxCode app mappings.
 	var stripeCode string
 	if tc != nil {
-		if m, ok := lo.Find(tc.AppMappings, func(m taxcode.TaxCodeAppMapping) bool {
-			return m.AppType == app.AppTypeStripe
-		}); ok {
+		if m, ok := tc.GetAppMapping(app.AppTypeStripe); ok {
 			stripeCode = m.TaxCode
 		}
 	}

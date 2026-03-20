@@ -42,7 +42,7 @@ func (a *adapter) CreateTaxCode(ctx context.Context, input taxcode.CreateTaxCode
 			return taxcode.TaxCode{}, fmt.Errorf("failed to create tax code: %w", err)
 		}
 
-		return mapTaxCodeFromEntity(entity)
+		return MapTaxCodeFromEntity(entity)
 	})
 }
 
@@ -74,7 +74,7 @@ func (a *adapter) UpdateTaxCode(ctx context.Context, input taxcode.UpdateTaxCode
 			return taxcode.TaxCode{}, fmt.Errorf("failed to update tax code: %w", err)
 		}
 
-		return mapTaxCodeFromEntity(entity)
+		return MapTaxCodeFromEntity(entity)
 	})
 }
 
@@ -95,7 +95,7 @@ func (a *adapter) ListTaxCodes(ctx context.Context, input taxcode.ListTaxCodesIn
 			return pagination.Result[taxcode.TaxCode]{}, fmt.Errorf("failed to list tax codes: %w", err)
 		}
 
-		return pagination.MapResultErr(entities, mapTaxCodeFromEntity)
+		return pagination.MapResultErr(entities, MapTaxCodeFromEntity)
 	})
 }
 
@@ -117,7 +117,7 @@ func (a *adapter) GetTaxCode(ctx context.Context, input taxcode.GetTaxCodeInput)
 			return taxcode.TaxCode{}, fmt.Errorf("failed to get tax code: %w", err)
 		}
 
-		return mapTaxCodeFromEntity(entity)
+		return MapTaxCodeFromEntity(entity)
 	})
 }
 
@@ -154,7 +154,7 @@ func (a *adapter) GetTaxCodeByAppMapping(ctx context.Context, input taxcode.GetT
 			return taxcode.TaxCode{}, fmt.Errorf("failed to get tax code by app mapping: %w", err)
 		}
 
-		return mapTaxCodeFromEntity(entity)
+		return MapTaxCodeFromEntity(entity)
 	})
 }
 

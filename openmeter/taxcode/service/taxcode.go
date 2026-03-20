@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -48,6 +50,48 @@ func (s *service) GetTaxCode(ctx context.Context, input taxcode.GetTaxCodeInput)
 func (s *service) GetTaxCodeByAppMapping(ctx context.Context, input taxcode.GetTaxCodeByAppMappingInput) (taxcode.TaxCode, error) {
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (taxcode.TaxCode, error) {
 		return s.adapter.GetTaxCodeByAppMapping(ctx, input)
+	})
+}
+
+// GetOrCreateByAppMapping looks up a TaxCode by its app mapping. If none exists,
+// it creates one with a key derived from the app-specific code.
+func (s *service) GetOrCreateByAppMapping(ctx context.Context, input taxcode.GetOrCreateByAppMappingInput) (taxcode.TaxCode, error) {
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (taxcode.TaxCode, error) {
+		// Try to find an existing TaxCode with this app mapping.
+		tc, err := s.adapter.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
+			Namespace: input.Namespace,
+			AppType:   input.AppType,
+			TaxCode:   input.TaxCode,
+		})
+		if err == nil {
+			return tc, nil
+		}
+
+		// Not found — create a new TaxCode.
+		key := fmt.Sprintf("%s_%s", input.AppType, input.TaxCode)
+
+		tc, err = s.adapter.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+			Namespace: input.Namespace,
+			Key:       key,
+			Name:      input.TaxCode,
+			AppMappings: taxcode.TaxCodeAppMappings{
+				{AppType: input.AppType, TaxCode: input.TaxCode},
+			},
+		})
+		if err != nil {
+			// Another request may have created it concurrently.
+			if models.IsGenericConflictError(err) {
+				return s.adapter.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
+					Namespace: input.Namespace,
+					AppType:   input.AppType,
+					TaxCode:   input.TaxCode,
+				})
+			}
+
+			return taxcode.TaxCode{}, err
+		}
+
+		return tc, nil
 	})
 }
 

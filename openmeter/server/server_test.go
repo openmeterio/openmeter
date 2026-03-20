@@ -1896,6 +1896,10 @@ func (n NoopTaxCodeService) GetTaxCodeByAppMapping(ctx context.Context, input ta
 	return taxcode.TaxCode{}, nil
 }
 
+func (n NoopTaxCodeService) GetOrCreateByAppMapping(ctx context.Context, input taxcode.GetOrCreateByAppMappingInput) (taxcode.TaxCode, error) {
+	return taxcode.TaxCode{}, nil
+}
+
 // SubjectService methods
 
 var _ subject.Service = &NoopSubjectService{}

@@ -10,7 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func mapTaxCodeFromEntity(entity *db.TaxCode) (taxcode.TaxCode, error) {
+func MapTaxCodeFromEntity(entity *db.TaxCode) (taxcode.TaxCode, error) {
 	if entity == nil {
 		return taxcode.TaxCode{}, errors.New("entity is required")
 	}

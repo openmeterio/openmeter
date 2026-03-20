@@ -198,7 +198,11 @@ func (s service) resolveTaxCodes(ctx context.Context, namespace string, rateCard
 
 		stripeCode := meta.TaxConfig.Stripe.Code
 
-		tc, err := s.getOrCreateTaxCode(ctx, namespace, stripeCode)
+		tc, err := s.taxCode.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
+			Namespace: namespace,
+			AppType:   app.AppTypeStripe,
+			TaxCode:   stripeCode,
+		})
 		if err != nil {
 			return fmt.Errorf("failed to resolve tax code for stripe code %s: %w", stripeCode, err)
 		}
@@ -233,46 +237,6 @@ func (s service) resolveTaxCodes(ctx context.Context, namespace string, rateCard
 	}
 
 	return nil
-}
-
-// getOrCreateTaxCode looks up a TaxCode by its Stripe app mapping. If none exists,
-// it creates one with a key derived from the Stripe code.
-func (s service) getOrCreateTaxCode(ctx context.Context, namespace string, stripeCode string) (taxcode.TaxCode, error) {
-	// Try to find an existing TaxCode with this Stripe mapping.
-	tc, err := s.taxCode.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
-		Namespace: namespace,
-		AppType:   app.AppTypeStripe,
-		TaxCode:   stripeCode,
-	})
-	if err == nil {
-		return tc, nil
-	}
-
-	// Not found — create a new TaxCode.
-	key := fmt.Sprintf("stripe_%s", stripeCode)
-
-	tc, err = s.taxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-		Namespace: namespace,
-		Key:       key,
-		Name:      stripeCode,
-		AppMappings: taxcode.TaxCodeAppMappings{
-			{AppType: app.AppTypeStripe, TaxCode: stripeCode},
-		},
-	})
-	if err != nil {
-		// Another request may have created it concurrently.
-		if models.IsGenericConflictError(err) {
-			return s.taxCode.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
-				Namespace: namespace,
-				AppType:   app.AppTypeStripe,
-				TaxCode:   stripeCode,
-			})
-		}
-
-		return taxcode.TaxCode{}, err
-	}
-
-	return tc, nil
 }
 
 func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*plan.Plan, error) {

@@ -15,6 +15,7 @@ type Service interface {
 	ListTaxCodes(ctx context.Context, input ListTaxCodesInput) (pagination.Result[TaxCode], error)
 	GetTaxCode(ctx context.Context, input GetTaxCodeInput) (TaxCode, error)
 	GetTaxCodeByAppMapping(ctx context.Context, input GetTaxCodeByAppMappingInput) (TaxCode, error)
+	GetOrCreateByAppMapping(ctx context.Context, input GetOrCreateByAppMappingInput) (TaxCode, error)
 	DeleteTaxCode(ctx context.Context, input DeleteTaxCodeInput) error
 }
 
@@ -24,6 +25,7 @@ var (
 	_ models.Validator = (*ListTaxCodesInput)(nil)
 	_ models.Validator = (*GetTaxCodeInput)(nil)
 	_ models.Validator = (*GetTaxCodeByAppMappingInput)(nil)
+	_ models.Validator = (*GetOrCreateByAppMappingInput)(nil)
 	_ models.Validator = (*DeleteTaxCodeInput)(nil)
 )
 
@@ -127,6 +129,30 @@ type GetTaxCodeByAppMappingInput struct {
 }
 
 func (i GetTaxCodeByAppMappingInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, ErrResourceNamespaceEmpty)
+	}
+
+	if err := i.AppType.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if i.TaxCode == "" {
+		errs = append(errs, ErrTaxCodeEmpty)
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type GetOrCreateByAppMappingInput struct {
+	Namespace string
+	AppType   app.AppType
+	TaxCode   string
+}
+
+func (i GetOrCreateByAppMappingInput) Validate() error {
 	var errs []error
 
 	if i.Namespace == "" {
