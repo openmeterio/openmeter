@@ -108,3 +108,10 @@ var ErrTransactionGroupEmpty = models.NewValidationIssue(
 	ErrCodeTransactionGroupEmpty,
 	"ledger transaction group must contain at least one transaction",
 )
+
+const ErrCodeRoutingRuleViolated models.ErrorCode = "ledger_routing_rule_violated"
+
+var ErrRoutingRuleViolated = models.NewValidationIssue(
+	ErrCodeRoutingRuleViolated,
+	"ledger routing rule violated",
+)

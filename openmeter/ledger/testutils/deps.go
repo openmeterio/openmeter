@@ -8,6 +8,7 @@ import (
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	"github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
+	"github.com/openmeterio/openmeter/openmeter/ledger/routingrules"
 )
 
 type Deps struct {
@@ -28,7 +29,7 @@ func InitDeps(db *entdb.Client, logger *slog.Logger) (Deps, error) {
 	customerAccountRepo := common.NewLedgerResolversRepo(db)
 	accountResolver := common.NewLedgerResolversService(accountService, customerAccountRepo)
 	historicalRepo := common.NewLedgerHistoricalRepo(db)
-	historicalLedger := common.NewLedgerHistoricalLedger(historicalRepo, accountService, locker)
+	historicalLedger := common.NewLedgerHistoricalLedger(historicalRepo, accountService, locker, routingrules.DefaultValidator)
 
 	return Deps{
 		AccountService:   accountService,

@@ -18,6 +18,7 @@ import (
 	accountservice "github.com/openmeterio/openmeter/openmeter/ledger/account/service"
 	"github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	"github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
+	"github.com/openmeterio/openmeter/openmeter/ledger/routingrules"
 	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -83,7 +84,7 @@ func NewIntegrationEnv(t *testing.T, namespacePrefix string) *IntegrationEnv {
 	accountSvc := accountservice.New(accountRepo, live)
 
 	historicalRepo := common.NewLedgerHistoricalRepo(db)
-	historicalLedger := historical.NewLedger(historicalRepo, accountSvc, locker)
+	historicalLedger := historical.NewLedger(historicalRepo, accountSvc, locker, routingrules.DefaultValidator)
 	lq.querier = historicalLedger
 
 	resolversRepo := common.NewLedgerResolversRepo(db)

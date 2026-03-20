@@ -1,6 +1,7 @@
 package historical
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/samber/lo"
@@ -14,13 +15,20 @@ type Transaction struct {
 	entries []*Entry
 }
 
-func NewTransactionFromData(data TransactionData, entries []EntryData) *Transaction {
-	return &Transaction{
-		data: data,
-		entries: lo.Map(entries, func(e EntryData, _ int) *Entry {
-			return &Entry{data: e}
-		}),
+func NewTransactionFromData(data TransactionData, entries []EntryData) (*Transaction, error) {
+	ents := make([]*Entry, 0, len(entries))
+	for _, e := range entries {
+		entry, err := newEntryFromData(e)
+		if err != nil {
+			return nil, fmt.Errorf("entry %s: %w", e.ID, err)
+		}
+		ents = append(ents, entry)
 	}
+
+	return &Transaction{
+		data:    data,
+		entries: ents,
+	}, nil
 }
 
 // ----------------------------------------------------------------------------

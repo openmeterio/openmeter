@@ -13,6 +13,7 @@ import (
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -37,6 +38,7 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 	routeIDBySubAccountID := make(map[string]string, len(entryInputs))
 	routeKeyBySubAccountID := make(map[string]string, len(entryInputs))
 	routeKeyVersionBySubAccountID := make(map[string]ledger.RoutingKeyVersion, len(entryInputs))
+	routeBySubAccountID := make(map[string]ledger.Route, len(entryInputs))
 	createInputs := make([]*db.LedgerEntryCreate, 0, len(entryInputs))
 	for _, entryInput := range entryInputs {
 		subAccountID := entryInput.PostingAddress().SubAccountID()
@@ -45,6 +47,7 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 		routeIDBySubAccountID[subAccountID] = route.ID()
 		routeKeyBySubAccountID[subAccountID] = route.RoutingKey().Value()
 		routeKeyVersionBySubAccountID[subAccountID] = route.RoutingKey().Version()
+		routeBySubAccountID[subAccountID] = route.Route()
 
 		createInputs = append(createInputs, r.db.LedgerEntry.Create().
 			SetNamespace(groupID.Namespace).
@@ -61,7 +64,7 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 		}
 	}
 
-	return ledgerhistorical.NewTransactionFromData(
+	tx, err := ledgerhistorical.NewTransactionFromData(
 		ledgerhistorical.TransactionData{
 			ID:          entity.ID,
 			Namespace:   entity.Namespace,
@@ -77,6 +80,7 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 				CreatedAt:     e.CreatedAt,
 				SubAccountID:  e.SubAccountID,
 				AccountType:   accountTypesBySubAccountID[e.SubAccountID],
+				Route:         routeBySubAccountID[e.SubAccountID],
 				RouteID:       routeIDBySubAccountID[e.SubAccountID],
 				RouteKey:      routeKeyBySubAccountID[e.SubAccountID],
 				RouteKeyVer:   routeKeyVersionBySubAccountID[e.SubAccountID],
@@ -84,7 +88,12 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 				TransactionID: e.TransactionID,
 			}
 		}),
-	), nil
+	)
+	if err != nil {
+		return nil, fmt.Errorf("ledger transaction view: %w", err)
+	}
+
+	return tx, nil
 }
 
 func (r *repo) CreateTransactionGroup(ctx context.Context, transactionGroup ledgerhistorical.CreateTransactionGroupInput) (ledgerhistorical.TransactionGroupData, error) {
@@ -186,12 +195,19 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 			}
 
 			return ledgerhistorical.EntryData{
-				ID:            entry.ID,
-				Namespace:     entry.Namespace,
-				Annotations:   entry.Annotations,
-				CreatedAt:     entry.CreatedAt,
-				SubAccountID:  entry.SubAccountID,
-				AccountType:   account.AccountType,
+				ID:           entry.ID,
+				Namespace:    entry.Namespace,
+				Annotations:  entry.Annotations,
+				CreatedAt:    entry.CreatedAt,
+				SubAccountID: entry.SubAccountID,
+				AccountType:  account.AccountType,
+				Route: ledger.Route{
+					Currency:       currencyx.Code(route.Currency),
+					TaxCode:        route.TaxCode,
+					Features:       route.Features,
+					CostBasis:      route.CostBasis,
+					CreditPriority: route.CreditPriority,
+				},
 				RouteID:       route.ID,
 				RouteKey:      route.RoutingKey,
 				RouteKeyVer:   route.RoutingKeyVersion,
@@ -203,7 +219,7 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 			return nil, fmt.Errorf("transaction %s entry hydration failed: %w", tx.ID, err)
 		}
 
-		return ledgerhistorical.NewTransactionFromData(
+		reconstructed, err := ledgerhistorical.NewTransactionFromData(
 			ledgerhistorical.TransactionData{
 				ID:          tx.ID,
 				Namespace:   tx.Namespace,
@@ -212,7 +228,12 @@ func (r *repo) ListTransactions(ctx context.Context, input ledger.ListTransactio
 				BookedAt:    tx.BookedAt,
 			},
 			entryData,
-		), nil
+		)
+		if err != nil {
+			return nil, fmt.Errorf("transaction %s: %w", tx.ID, err)
+		}
+
+		return reconstructed, nil
 	})
 	if err != nil {
 		return pagination.Result[*ledgerhistorical.Transaction]{}, fmt.Errorf("failed to hydrate listed transactions: %w", err)

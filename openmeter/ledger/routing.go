@@ -55,36 +55,58 @@ func (k RoutingKey) Value() string {
 	return k.value
 }
 
-func MustNewRoutingKey(version RoutingKeyVersion, value string) RoutingKey {
-	key, err := NewRoutingKey(version, value)
-	if err != nil {
-		panic(err)
-	}
-	return key
-}
-
 type SubAccountRoute struct {
-	id  string
-	key RoutingKey
+	id    string
+	key   RoutingKey
+	route Route
 }
 
-func NewSubAccountRoute(id string, key RoutingKey) (SubAccountRoute, error) {
+// NewSubAccountRouteFromData hydrates a sub-account route from persisted data.
+// Does not enforce Route & RoutingKey equality due to possible version mismatch
+func NewSubAccountRouteFromData(id string, key RoutingKey, route Route) (SubAccountRoute, error) {
 	if id == "" {
 		return SubAccountRoute{}, errors.New("route id is required")
 	}
+	if err := route.Validate(); err != nil {
+		return SubAccountRoute{}, fmt.Errorf("route: %w", err)
+	}
+
+	normalizedRoute, err := route.Normalize()
+	if err != nil {
+		return SubAccountRoute{}, fmt.Errorf("normalize route: %w", err)
+	}
 
 	return SubAccountRoute{
-		id:  id,
-		key: key,
+		id:    id,
+		key:   key,
+		route: normalizedRoute,
 	}, nil
 }
 
-func MustNewSubAccountRoute(id string, key RoutingKey) SubAccountRoute {
-	route, err := NewSubAccountRoute(id, key)
-	if err != nil {
-		panic(err)
+// NewSubAccountRouteFromRoute creates a new sub-account route from a literal route
+func NewSubAccountRouteFromRoute(id string, version RoutingKeyVersion, route Route) (SubAccountRoute, error) {
+	if id == "" {
+		return SubAccountRoute{}, errors.New("route id is required")
 	}
-	return route
+	if err := route.Validate(); err != nil {
+		return SubAccountRoute{}, fmt.Errorf("route: %w", err)
+	}
+
+	normalizedRoute, err := route.Normalize()
+	if err != nil {
+		return SubAccountRoute{}, fmt.Errorf("normalize route: %w", err)
+	}
+
+	key, err := BuildRoutingKey(version, normalizedRoute)
+	if err != nil {
+		return SubAccountRoute{}, fmt.Errorf("build routing key from route: %w", err)
+	}
+
+	return SubAccountRoute{
+		id:    id,
+		key:   key,
+		route: normalizedRoute,
+	}, nil
 }
 
 func (r SubAccountRoute) ID() string {
@@ -93,6 +115,10 @@ func (r SubAccountRoute) ID() string {
 
 func (r SubAccountRoute) RoutingKey() RoutingKey {
 	return r.key
+}
+
+func (r SubAccountRoute) Route() Route {
+	return r.route
 }
 
 // ----------------------------------------------------------------------------

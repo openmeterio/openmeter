@@ -29,29 +29,39 @@ type SubAccountRouteData struct {
 }
 
 func NewSubAccountFromData(data SubAccountData, account *Account) (*SubAccount, error) {
-	sAcc := &SubAccount{
-		data:    data,
-		account: account,
+	routingKey, err := ledger.NewRoutingKey(data.RouteMeta.RoutingKeyVersion, data.RouteMeta.RoutingKey)
+	if err != nil {
+		return nil, fmt.Errorf("routing key: %w", err)
 	}
 
-	return sAcc, nil
+	addr, err := NewAddressFromData(AddressData{
+		SubAccountID: data.ID,
+		AccountType:  data.AccountType,
+		Route:        data.Route,
+		RouteID:      data.RouteMeta.ID,
+		RoutingKey:   routingKey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("posting address: %w", err)
+	}
+
+	return &SubAccount{
+		data:    data,
+		account: account,
+		address: addr,
+	}, nil
 }
 
 type SubAccount struct {
 	data    SubAccountData
 	account *Account
+	address *Address
 }
 
 var _ ledger.SubAccount = (*SubAccount)(nil)
 
 func (s *SubAccount) Address() ledger.PostingAddress {
-	return NewAddressFromData(AddressData{
-		SubAccountID:      s.data.ID,
-		AccountType:       s.data.AccountType,
-		RouteID:           s.data.RouteMeta.ID,
-		RoutingKeyVersion: s.data.RouteMeta.RoutingKeyVersion,
-		RoutingKey:        s.data.RouteMeta.RoutingKey,
-	})
+	return s.address
 }
 
 func (s *SubAccount) Route() ledger.Route {

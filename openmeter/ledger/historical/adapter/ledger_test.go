@@ -68,11 +68,11 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 
 	txInput := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
 		{
-			Address:     testAddress(subAccountA),
+			Address:     testAddress(t, subAccountA),
 			AmountValue: alpacadecimal.NewFromInt(-100),
 		},
 		{
-			Address:     testAddress(subAccountB),
+			Address:     testAddress(t, subAccountB),
 			AmountValue: alpacadecimal.NewFromInt(100),
 		},
 	})
@@ -166,11 +166,11 @@ func TestRepo_ListTransactions_PaginatesAndFilters(t *testing.T) {
 
 	txInput1 := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
 		{
-			Address:     testAddress(subAccountA),
+			Address:     testAddress(t, subAccountA),
 			AmountValue: alpacadecimal.NewFromInt(-10),
 		},
 		{
-			Address:     testAddress(subAccountB),
+			Address:     testAddress(t, subAccountB),
 			AmountValue: alpacadecimal.NewFromInt(10),
 		},
 	})
@@ -181,11 +181,11 @@ func TestRepo_ListTransactions_PaginatesAndFilters(t *testing.T) {
 
 	txInput2 := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
 		{
-			Address:     testAddress(subAccountA),
+			Address:     testAddress(t, subAccountA),
 			AmountValue: alpacadecimal.NewFromInt(-20),
 		},
 		{
-			Address:     testAddress(subAccountB),
+			Address:     testAddress(t, subAccountB),
 			AmountValue: alpacadecimal.NewFromInt(20),
 		},
 	})
@@ -257,11 +257,11 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	bookedAtEarly := time.Now().UTC().Add(-2 * time.Hour)
 	txInputEarly := mustSetUpHistoricalTransactionInput(t, bookedAtEarly, []*transactionstestutils.AnyEntryInput{
 		{
-			Address:     testAddress(subAccountA),
+			Address:     testAddress(t, subAccountA),
 			AmountValue: alpacadecimal.NewFromInt(100),
 		},
 		{
-			Address:     testAddress(subAccountB),
+			Address:     testAddress(t, subAccountB),
 			AmountValue: alpacadecimal.NewFromInt(-100),
 		},
 	})
@@ -271,11 +271,11 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	bookedAtLate := time.Now().UTC().Add(-30 * time.Minute)
 	txInputLate := mustSetUpHistoricalTransactionInput(t, bookedAtLate, []*transactionstestutils.AnyEntryInput{
 		{
-			Address:     testAddress(subAccountA),
+			Address:     testAddress(t, subAccountA),
 			AmountValue: alpacadecimal.NewFromInt(50),
 		},
 		{
-			Address:     testAddress(subAccountC),
+			Address:     testAddress(t, subAccountC),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 	})
@@ -284,11 +284,11 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 
 	txInputCostBasis := mustSetUpHistoricalTransactionInput(t, time.Now().UTC().Add(-15*time.Minute), []*transactionstestutils.AnyEntryInput{
 		{
-			Address:     testAddress(subAccountD),
+			Address:     testAddress(t, subAccountD),
 			AmountValue: alpacadecimal.NewFromInt(25),
 		},
 		{
-			Address:     testAddress(subAccountC),
+			Address:     testAddress(t, subAccountC),
 			AmountValue: alpacadecimal.NewFromInt(-25),
 		},
 	})
@@ -480,14 +480,22 @@ func mustSetUpHistoricalTransactionInput(_ *testing.T, bookedAt time.Time, entri
 	}
 }
 
-func testAddress(sub *ledgeraccount.SubAccountData) ledger.PostingAddress {
-	return ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
-		SubAccountID:      sub.ID,
-		AccountType:       sub.AccountType,
-		RouteID:           sub.RouteMeta.ID,
-		RoutingKeyVersion: sub.RouteMeta.RoutingKeyVersion,
-		RoutingKey:        sub.RouteMeta.RoutingKey,
+func testAddress(t *testing.T, sub *ledgeraccount.SubAccountData) ledger.PostingAddress {
+	t.Helper()
+
+	routingKey, err := ledger.NewRoutingKey(sub.RouteMeta.RoutingKeyVersion, sub.RouteMeta.RoutingKey)
+	require.NoError(t, err)
+
+	addr, err := ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
+		SubAccountID: sub.ID,
+		AccountType:  sub.AccountType,
+		Route:        sub.Route,
+		RouteID:      sub.RouteMeta.ID,
+		RoutingKey:   routingKey,
 	})
+	require.NoError(t, err)
+
+	return addr
 }
 
 func mustDecimal(t *testing.T, raw string) alpacadecimal.Decimal {

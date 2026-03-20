@@ -27,7 +27,7 @@ func ValidateInvariance(ctx context.Context, entries []EntryInput) error {
 }
 
 func ValidateRouting(ctx context.Context, entries []EntryInput) error {
-	// TODO: Implement
+	// Routing validation is implementation-specific and can be injected by the concrete ledger.
 	return nil
 }
 
@@ -60,6 +60,10 @@ func ValidateAddress(ctx context.Context, address PostingAddress) error {
 }
 
 func ValidateTransactionInput(ctx context.Context, transaction TransactionInput) error {
+	return ValidateTransactionInputWith(ctx, transaction, nil)
+}
+
+func ValidateTransactionInputWith(ctx context.Context, transaction TransactionInput, routingValidator RoutingValidator) error {
 	if transaction == nil {
 		return ErrTransactionInputRequired
 	}
@@ -71,14 +75,15 @@ func ValidateTransactionInput(ctx context.Context, transaction TransactionInput)
 		return err
 	}
 
-	// Let's validate routing
-	if err := ValidateRouting(ctx, transaction.EntryInputs()); err != nil {
-		return err
-	}
-
 	// Let's validate the entries themselves
 	for _, entry := range transaction.EntryInputs() {
 		if err := ValidateEntryInput(ctx, entry); err != nil {
+			return err
+		}
+	}
+
+	if routingValidator != nil {
+		if err := routingValidator.ValidateEntries(transaction.EntryInputs()); err != nil {
 			return err
 		}
 	}

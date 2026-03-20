@@ -121,6 +121,8 @@ Use the repo's Nix CI dev shell when `go`, `gofmt`, or other toolchain binaries 
 nix develop --impure .#ci -c <command>
 ```
 
+Codex's default shell may not auto-load `.envrc`, so `direnv`-managed tools like `go` can be missing even when the repo is configured correctly. In that case, run commands through `nix develop --impure .#ci -c ...` explicitly instead of assuming the ambient shell reflects the flake environment. `direnv exec . <command>` is also a valid one-off fallback when `direnv` is installed and the repo has already been allowed.
+
 Examples:
 
 ```bash

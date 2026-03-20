@@ -61,8 +61,9 @@ func NewLedgerHistoricalLedger(
 	repo historical.Repo,
 	accountSvc ledgeraccount.Service,
 	locker *lockr.Locker,
+	routingValidator ledger.RoutingValidator,
 ) *historical.Ledger {
-	return historical.NewLedger(repo, accountSvc, locker)
+	return historical.NewLedger(repo, accountSvc, locker, routingValidator)
 }
 
 func NewLedgerResolversService(

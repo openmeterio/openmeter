@@ -1,6 +1,7 @@
 package historical
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -18,6 +19,7 @@ type EntryData struct {
 
 	SubAccountID string
 	AccountType  ledger.AccountType
+	Route        ledger.Route
 	RouteID      string
 	RouteKey     string
 	RouteKeyVer  ledger.RoutingKeyVersion
@@ -27,7 +29,8 @@ type EntryData struct {
 }
 
 type Entry struct {
-	data EntryData
+	data           EntryData
+	postingAddress ledger.PostingAddress
 }
 
 var _ ledger.Entry = (*Entry)(nil)
@@ -36,14 +39,28 @@ var _ ledger.Entry = (*Entry)(nil)
 // Let's implement ledger.Entry interface
 // ----------------------------------------------------------------------------
 
-func (e *Entry) PostingAddress() ledger.PostingAddress {
-	return account.NewAddressFromData(account.AddressData{
-		SubAccountID:      e.data.SubAccountID,
-		AccountType:       e.data.AccountType,
-		RouteID:           e.data.RouteID,
-		RoutingKeyVersion: e.data.RouteKeyVer,
-		RoutingKey:        e.data.RouteKey,
+func newEntryFromData(data EntryData) (*Entry, error) {
+	routingKey, err := ledger.NewRoutingKey(data.RouteKeyVer, data.RouteKey)
+	if err != nil {
+		return nil, fmt.Errorf("routing key: %w", err)
+	}
+
+	addr, err := account.NewAddressFromData(account.AddressData{
+		SubAccountID: data.SubAccountID,
+		AccountType:  data.AccountType,
+		Route:        data.Route,
+		RouteID:      data.RouteID,
+		RoutingKey:   routingKey,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &Entry{data: data, postingAddress: addr}, nil
+}
+
+func (e *Entry) PostingAddress() ledger.PostingAddress {
+	return e.postingAddress
 }
 
 func (e *Entry) Amount() alpacadecimal.Decimal {

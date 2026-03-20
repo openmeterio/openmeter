@@ -19,15 +19,17 @@ type Ledger struct {
 	accountService account.Service
 	repo           Repo
 
-	locker *lockr.Locker
+	locker           *lockr.Locker
+	routingValidator ledger.RoutingValidator
 }
 
 // NewLedger constructs a Ledger with the given repo, account service and locker.
-func NewLedger(repo Repo, accountService account.Service, locker *lockr.Locker) *Ledger {
+func NewLedger(repo Repo, accountService account.Service, locker *lockr.Locker, routingValidator ledger.RoutingValidator) *Ledger {
 	return &Ledger{
-		repo:           repo,
-		accountService: accountService,
-		locker:         locker,
+		repo:             repo,
+		accountService:   accountService,
+		locker:           locker,
+		routingValidator: routingValidator,
 	}
 }
 
@@ -64,7 +66,7 @@ func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupI
 
 	// 1. Validate each transaction sequentially
 	for idx, txInput := range txInputs {
-		if err := ledger.ValidateTransactionInput(ctx, txInput); err != nil {
+		if err := ledger.ValidateTransactionInputWith(ctx, txInput, l.routingValidator); err != nil {
 			return nil, fmt.Errorf("failed to validate transaction at index %d in group: %w", idx, err)
 		}
 	}
