@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -34,12 +35,14 @@ type featureHandlers struct {
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
 	connector        feature.FeatureConnector
+	meterService     meter.Service
 	llmcostService   llmcost.Service
 }
 
 func NewFeatureHandler(
 	connector feature.FeatureConnector,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
+	meterService meter.Service,
 	llmcostService llmcost.Service,
 	options ...httptransport.HandlerOption,
 ) FeatureHandler {
@@ -47,6 +50,7 @@ func NewFeatureHandler(
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
 		connector:        connector,
+		meterService:     meterService,
 		llmcostService:   llmcostService,
 	}
 }
@@ -123,7 +127,20 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 				return emptyFeature, err
 			}
 
-			return MapFeatureCreateInputsRequest(ns, parsedBody)
+			// Resolve meter slug to meter ID
+			var meterID *string
+			if parsedBody.MeterSlug != nil {
+				m, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
+					Namespace: ns,
+					IDOrSlug:  *parsedBody.MeterSlug,
+				})
+				if err != nil {
+					return emptyFeature, err
+				}
+				meterID = &m.ID
+			}
+
+			return MapFeatureCreateInputsRequest(ns, parsedBody, meterID)
 		},
 		func(ctx context.Context, feature feature.CreateFeatureInputs) (api.Feature, error) {
 			createdFeature, err := h.connector.CreateFeature(ctx, feature)

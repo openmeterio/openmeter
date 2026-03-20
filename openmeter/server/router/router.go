@@ -291,6 +291,7 @@ func NewRouter(config Config) (*Router, error) {
 	router.featureHandler = productcatalog_httpdriver.NewFeatureHandler(
 		config.FeatureConnector,
 		staticNamespaceDecoder,
+		config.MeterManageService,
 		config.LLMCostService,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
