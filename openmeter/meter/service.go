@@ -95,6 +95,14 @@ func (p ListMetersParams) Validate() error {
 		errs = append(errs, fmt.Errorf("invalid order: %s", p.Order))
 	}
 
+	if p.IDFilter != nil {
+		for _, id := range *p.IDFilter {
+			if id == "" {
+				errs = append(errs, errors.New("id filter must not contain empty string"))
+			}
+		}
+	}
+
 	if p.SlugFilter != nil {
 		for _, slug := range *p.SlugFilter {
 			if slug == "" {

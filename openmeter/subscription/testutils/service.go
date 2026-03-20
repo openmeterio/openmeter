@@ -95,7 +95,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	}})
 	require.NoError(t, err)
 	require.NotNil(t, meterAdapter)
-	meterAdapter.SetDBClient(dbDeps.DBClient)
+	require.NoError(t, meterAdapter.SetDBClient(dbDeps.DBClient))
 
 	mockStreaming := streamingtestutils.NewMockStreamingConnector(t)
 

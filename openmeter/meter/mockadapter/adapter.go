@@ -69,13 +69,18 @@ type manageAdapter struct {
 // SetDBClient sets the ent DB client so that meter mutations are also persisted to PG.
 // This ensures FK constraints on features.meter_id are satisfied in tests.
 // It also syncs any existing in-memory meters to PG.
-func (c *adapter) SetDBClient(client *entdb.Client) {
+func (c *adapter) SetDBClient(client *entdb.Client) error {
 	c.dbClient = client
 
 	// Sync existing meters to PG.
 	if len(c.meters) > 0 {
-		_ = c.ReplaceMeters(context.Background(), c.meters)
+		if err := c.ReplaceMeters(context.Background(), c.meters); err != nil {
+			c.dbClient = nil
+			return fmt.Errorf("failed to sync meters to PG: %w", err)
+		}
 	}
+
+	return nil
 }
 
 type TestAdapter = adapter

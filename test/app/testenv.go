@@ -228,7 +228,7 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 	meterAdapter, err := meteradapter.New(nil)
 	require.NoError(t, err)
 	require.NotNil(t, meterAdapter)
-	meterAdapter.SetDBClient(in.DBClient)
+	require.NoError(t, meterAdapter.SetDBClient(in.DBClient))
 
 	locker, err := lockr.NewLocker(&lockr.LockerConfig{
 		Logger: slog.Default(),

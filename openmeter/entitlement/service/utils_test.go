@@ -186,7 +186,7 @@ func createMeterInPG(t *testing.T, dbClient *db.Client, mtr meter.Meter) {
 		SetAggregation(mtr.Aggregation).
 		SetEventType(mtr.EventType).
 		SetNillableValueProperty(mtr.ValueProperty).
-		Save(context.Background())
+		Save(t.Context())
 	if err != nil {
 		t.Fatalf("failed to create meter in PG: %v", err)
 	}

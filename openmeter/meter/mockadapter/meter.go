@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 
+	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -103,6 +104,12 @@ func (c *adapter) ReplaceMeters(ctx context.Context, meters []meter.Meter) error
 			exists, err := c.dbClient.Meter.Get(ctx, m.ID)
 			if err == nil && exists != nil {
 				continue
+			}
+
+			// Only proceed to create if the meter was not found.
+			// For any other error, fail fast.
+			if !entdb.IsNotFound(err) {
+				return fmt.Errorf("failed to check meter in PG: %w", err)
 			}
 
 			_, err = c.dbClient.Meter.Create().

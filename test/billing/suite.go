@@ -141,7 +141,7 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 
 	meterAdapter, err := meteradapter.New(nil)
 	require.NoError(t, err)
-	meterAdapter.SetDBClient(dbClient)
+	require.NoError(s.T(), meterAdapter.SetDBClient(dbClient))
 
 	s.MeterAdapter = meterAdapter
 

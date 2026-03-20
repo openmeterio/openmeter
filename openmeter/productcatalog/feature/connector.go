@@ -122,7 +122,10 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 			IDOrSlug:  meterID,
 		})
 		if err != nil {
-			return Feature{}, meterpkg.NewMeterNotFoundError(meterID)
+			if meterpkg.IsMeterNotFoundError(err) {
+				return Feature{}, meterpkg.NewMeterNotFoundError(meterID)
+			}
+			return Feature{}, fmt.Errorf("get meter %s: %w", meterID, err)
 		}
 
 		// Normalize to meter ID

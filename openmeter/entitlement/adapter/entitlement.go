@@ -273,6 +273,10 @@ func (a *entitlementDBAdapter) ListEntitlementsAffectedByIngestEvents(ctx contex
 				return nil, fmt.Errorf("failed to query features by meters: %w", err)
 			}
 
+			if len(customers) == 0 || len(features) == 0 {
+				return result, nil
+			}
+
 			entitlements, err := repo.db.Entitlement.Query().
 				Where(
 					db_entitlement.Namespace(eventFilter.Namespace),
