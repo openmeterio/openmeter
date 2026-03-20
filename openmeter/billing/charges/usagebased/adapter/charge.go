@@ -97,7 +97,7 @@ func (a *adapter) CreateCharges(ctx context.Context, in usagebased.CreateInput) 
 	})
 }
 
-func (a *adapter) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) ([]usagebased.Charge, error) {
+func (a *adapter) GetByMetas(ctx context.Context, input usagebased.GetByMetasInput) ([]usagebased.Charge, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}

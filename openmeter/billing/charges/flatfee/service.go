@@ -17,7 +17,7 @@ type Service interface {
 
 type FlatFeeService interface {
 	Create(ctx context.Context, input CreateInput) ([]ChargeWithGatheringLine, error)
-	GetByIDs(ctx context.Context, input GetByIDsInput) ([]Charge, error)
+	GetByMetas(ctx context.Context, input GetByMetasInput) ([]Charge, error)
 }
 
 type InvoiceLifecycleHooks interface {
@@ -52,13 +52,13 @@ type ChargeWithGatheringLine struct {
 	GatheringLineToCreate *billing.GatheringLine
 }
 
-type GetByIDsInput struct {
+type GetByMetasInput struct {
 	Namespace string
 	Expands   meta.Expands
 	Charges   meta.Charges
 }
 
-func (i GetByIDsInput) Validate() error {
+func (i GetByMetasInput) Validate() error {
 	var errs []error
 
 	if i.Namespace == "" {

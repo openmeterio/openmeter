@@ -116,7 +116,7 @@ func (a *adapter) CreateCharges(ctx context.Context, in flatfee.CreateChargesInp
 	})
 }
 
-func (a *adapter) GetByIDs(ctx context.Context, input flatfee.GetByIDsInput) ([]flatfee.Charge, error) {
+func (a *adapter) GetByMetas(ctx context.Context, input flatfee.GetByMetasInput) ([]flatfee.Charge, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}

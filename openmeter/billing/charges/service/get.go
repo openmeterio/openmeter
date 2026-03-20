@@ -77,7 +77,7 @@ func (s *service) GetByIDs(ctx context.Context, input charges.GetByIDsInput) (ch
 		nrFetched := 0
 
 		// Let's fetch flat fees
-		flatFees, err := s.flatFeeService.GetByIDs(ctx, flatfee.GetByIDsInput{
+		flatFees, err := s.flatFeeService.GetByMetas(ctx, flatfee.GetByMetasInput{
 			Namespace: input.Namespace,
 			Charges: lo.Map(chargesByType[meta.ChargeTypeFlatFee], func(chargeMeta charges.WithIndex[meta.Charge], _ int) meta.Charge {
 				return chargeMeta.Value
@@ -95,7 +95,7 @@ func (s *service) GetByIDs(ctx context.Context, input charges.GetByIDsInput) (ch
 		}
 
 		// Let's fetch usage based charges
-		usageBasedCharges, err := s.usageBasedService.GetByIDs(ctx, usagebased.GetByIDsInput{
+		usageBasedCharges, err := s.usageBasedService.GetByMetas(ctx, usagebased.GetByMetasInput{
 			Namespace: input.Namespace,
 			Charges: lo.Map(chargesByType[meta.ChargeTypeUsageBased], func(chargeMeta charges.WithIndex[meta.Charge], _ int) meta.Charge {
 				return chargeMeta.Value
@@ -113,7 +113,7 @@ func (s *service) GetByIDs(ctx context.Context, input charges.GetByIDsInput) (ch
 		}
 
 		// Let's fetch credit purchases
-		creditPurchases, err := s.creditPurchaseService.GetByIDs(ctx, creditpurchase.GetByIDsInput{
+		creditPurchases, err := s.creditPurchaseService.GetByMetas(ctx, creditpurchase.GetByMetasInput{
 			Namespace: input.Namespace,
 			Charges: lo.Map(chargesByType[meta.ChargeTypeCreditPurchase], func(chargeMeta charges.WithIndex[meta.Charge], _ int) meta.Charge {
 				return chargeMeta.Value

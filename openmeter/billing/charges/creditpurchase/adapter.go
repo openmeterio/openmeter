@@ -15,7 +15,7 @@ type Adapter interface {
 
 	UpdateCharge(ctx context.Context, charge Charge) (Charge, error)
 	CreateCharge(ctx context.Context, in CreateChargeInput) (Charge, error)
-	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
+	GetByMetas(ctx context.Context, ids GetByMetasInput) ([]Charge, error)
 
 	CreateExternalPayment(ctx context.Context, chargeID meta.ChargeID, payment payment.ExternalCreateInput) (payment.External, error)
 	UpdateExternalPayment(ctx context.Context, payment payment.External) (payment.External, error)

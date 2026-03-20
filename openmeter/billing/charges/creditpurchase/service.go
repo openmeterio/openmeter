@@ -18,7 +18,7 @@ type CreditPurchaseService interface {
 	// as based on current state of credits we are not going to create multiple credit purchases at once.
 	Create(ctx context.Context, input CreateInput) (Charge, error)
 
-	GetByIDs(ctx context.Context, input GetByIDsInput) ([]Charge, error)
+	GetByMetas(ctx context.Context, input GetByMetasInput) ([]Charge, error)
 }
 
 type ExternalPaymentLifecycle interface {
@@ -44,13 +44,13 @@ func (i CreateInput) Validate() error {
 	return errors.Join(errs...)
 }
 
-type GetByIDsInput struct {
+type GetByMetasInput struct {
 	Namespace string
 	Expands   meta.Expands
 	Charges   meta.Charges
 }
 
-func (i GetByIDsInput) Validate() error {
+func (i GetByMetasInput) Validate() error {
 	var errs []error
 	if i.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))

@@ -9,7 +9,7 @@ import (
 type Adapter interface {
 	CreateCharges(ctx context.Context, charges CreateInput) ([]Charge, error)
 	UpdateCharge(ctx context.Context, charge Charge) error
-	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
+	GetByMetas(ctx context.Context, ids GetByMetasInput) ([]Charge, error)
 
 	entutils.TxCreator
 }
