@@ -136,24 +136,28 @@ func eventPayloadFromJSON(data []byte) (notification.EventPayload, error) {
 	case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
 		switch meta.Version {
 		case notification.EventPayloadVersionLegacy: // v0 legacy: stored as billing.EventStandardInvoice
-			var v1 struct {
+			var v0 struct {
 				notification.EventPayloadMeta
 				Invoice *billing.EventStandardInvoice `json:"invoice,omitempty"`
 			}
 
-			if err := json.Unmarshal(data, &v1); err != nil {
-				return notification.EventPayload{}, fmt.Errorf("failed to deserialize notification event payload to legacy v1 schema: %w", err)
+			if err := json.Unmarshal(data, &v0); err != nil {
+				return notification.EventPayload{}, fmt.Errorf("failed to deserialize notification event payload to legacy v0 schema: %w", err)
 			}
 
-			if v1.Invoice == nil {
+			if v0.Invoice == nil {
 				return notification.EventPayload{}, fmt.Errorf("missing invoice in legacy event payload")
 			}
 
-			apiInvoice, err := billinghttp.MapEventInvoiceToAPI(*v1.Invoice)
+			apiInvoice, err := billinghttp.MapEventInvoiceToAPI(*v0.Invoice)
 			if err != nil {
 				return notification.EventPayload{}, fmt.Errorf("failed to map legacy event invoice to API: %w", err)
 			}
 
+			payload.EventPayloadMeta = notification.EventPayloadMeta{
+				Type:    meta.Type,
+				Version: notification.EventPayloadVersionCurrent,
+			}
 			payload.Invoice = &notification.InvoicePayload{Invoice: apiInvoice}
 
 		case notification.EventPayloadVersionCurrent: // v1: stored as api.Invoice directly

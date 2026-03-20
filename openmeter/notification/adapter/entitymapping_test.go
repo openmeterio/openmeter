@@ -73,6 +73,8 @@ func TestEventPayloadFromJSON_V0LegacyInvoice(t *testing.T) {
 	payload, err := eventPayloadFromJSON(data)
 	require.NoError(t, err)
 
+	assert.Equal(t, notification.EventTypeInvoiceCreated, payload.Type)
+	assert.Equal(t, notification.EventPayloadVersionCurrent, payload.Version)
 	require.NotNil(t, payload.Invoice)
 	assert.Equal(t, expectedInvoice, payload.Invoice.Invoice)
 }
