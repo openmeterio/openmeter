@@ -82,8 +82,7 @@ func (ChargeUsageBased) Edges() []ent.Edge {
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("current_run", ChargeUsageBasedRuns.Type).
 			Field("current_realization_run_id").
-			Unique().
-			Annotations(entsql.OnDelete(entsql.Cascade)),
+			Unique(),
 	}
 }
 

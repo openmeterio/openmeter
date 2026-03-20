@@ -2098,7 +2098,7 @@ var (
 				Symbol:     "charge_usage_based_charge_usage_based_runs_current_run",
 				Columns:    []*schema.Column{ChargeUsageBasedColumns[8]},
 				RefColumns: []*schema.Column{ChargeUsageBasedRunsColumns[0]},
-				OnDelete:   schema.Cascade,
+				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{

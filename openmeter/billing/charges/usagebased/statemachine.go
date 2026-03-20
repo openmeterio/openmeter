@@ -44,6 +44,10 @@ func (s Status) Validate() error {
 }
 
 func (s Status) ToMetaChargeStatus() (meta.ChargeStatus, error) {
+	if err := s.Validate(); err != nil {
+		return meta.ChargeStatusCreated, err
+	}
+
 	split := strings.SplitN(string(s), ".", 2)
 	if len(split) == 0 {
 		return meta.ChargeStatusCreated, fmt.Errorf("invalid status: %s", s)
