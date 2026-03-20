@@ -54,7 +54,7 @@ func (h *handler) QueryFeatureCost() QueryFeatureCostHandler {
 				return QueryFeatureCostResponse{}, err
 			}
 
-			if feat.MeterSlug == nil {
+			if feat.MeterID == nil {
 				return QueryFeatureCostResponse{}, models.NewGenericValidationError(
 					fmt.Errorf("feature %s has no meter associated", feat.Key),
 				)
@@ -63,7 +63,7 @@ func (h *handler) QueryFeatureCost() QueryFeatureCostHandler {
 			// Get the meter for query param validation
 			m, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
 				Namespace: req.Namespace,
-				IDOrSlug:  *feat.MeterSlug,
+				IDOrSlug:  *feat.MeterID,
 			})
 			if err != nil {
 				return QueryFeatureCostResponse{}, fmt.Errorf("failed to get meter: %w", err)

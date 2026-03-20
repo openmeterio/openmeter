@@ -72,7 +72,7 @@ func (s Service) ListFeature(ctx context.Context, namespace string, features ...
 	resp, err := s.feature.ListFeatures(ctx, feature.ListFeaturesParams{
 		IDsOrKeys:       features,
 		Namespace:       namespace,
-		MeterSlugs:      nil,
+		MeterIDs:        nil,
 		IncludeArchived: false,
 	})
 	if err != nil {

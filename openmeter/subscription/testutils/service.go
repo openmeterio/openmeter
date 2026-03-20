@@ -75,9 +75,10 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	lockr, err := lockr.NewLocker(&lockr.LockerConfig{Logger: logger})
 	require.NoError(t, err)
 
+	ExampleFeatureMeterID = ulid.Make().String()
 	meterAdapter, err := meteradapter.New([]meter.Meter{{
 		ManagedResource: models.ManagedResource{
-			ID: ulid.Make().String(),
+			ID: ExampleFeatureMeterID,
 			NamespacedModel: models.NamespacedModel{
 				Namespace: ExampleNamespace,
 			},
@@ -94,6 +95,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	}})
 	require.NoError(t, err)
 	require.NotNil(t, meterAdapter)
+	meterAdapter.SetDBClient(dbDeps.DBClient)
 
 	mockStreaming := streamingtestutils.NewMockStreamingConnector(t)
 

@@ -90,6 +90,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	meterAdapter, err := meteradapter.New(nil)
 	require.NoErrorf(t, err, "initializing meter adapter must not fail")
 	require.NotNilf(t, meterAdapter, "meter adapter must not be nil")
+	meterAdapter.SetDBClient(client)
 
 	// Init feature service
 	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(client, logger)

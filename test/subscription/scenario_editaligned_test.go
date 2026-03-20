@@ -43,7 +43,7 @@ func TestEditingEntitlementOfAlignedSub(t *testing.T) {
 		Name:      "Example Feature",
 		Key:       "test_feature_1",
 		Namespace: namespace,
-		MeterSlug: lo.ToPtr(subscriptiontestutils.ExampleFeatureMeterSlug),
+		MeterID:   lo.ToPtr(subscriptiontestutils.ExampleFeatureMeterID),
 	})
 	require.NoError(t, err)
 

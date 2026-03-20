@@ -101,6 +101,11 @@ func MeterSlug(v string) predicate.Feature {
 	return predicate.Feature(sql.FieldEQ(FieldMeterSlug, v))
 }
 
+// MeterID applies equality check predicate on the "meter_id" field. It's identical to MeterIDEQ.
+func MeterID(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldMeterID, v))
+}
+
 // UnitCostType applies equality check predicate on the "unit_cost_type" field. It's identical to UnitCostTypeEQ.
 func UnitCostType(v string) predicate.Feature {
 	return predicate.Feature(sql.FieldEQ(FieldUnitCostType, v))
@@ -554,6 +559,81 @@ func MeterSlugEqualFold(v string) predicate.Feature {
 // MeterSlugContainsFold applies the ContainsFold predicate on the "meter_slug" field.
 func MeterSlugContainsFold(v string) predicate.Feature {
 	return predicate.Feature(sql.FieldContainsFold(FieldMeterSlug, v))
+}
+
+// MeterIDEQ applies the EQ predicate on the "meter_id" field.
+func MeterIDEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldMeterID, v))
+}
+
+// MeterIDNEQ applies the NEQ predicate on the "meter_id" field.
+func MeterIDNEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldNEQ(FieldMeterID, v))
+}
+
+// MeterIDIn applies the In predicate on the "meter_id" field.
+func MeterIDIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldIn(FieldMeterID, vs...))
+}
+
+// MeterIDNotIn applies the NotIn predicate on the "meter_id" field.
+func MeterIDNotIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldNotIn(FieldMeterID, vs...))
+}
+
+// MeterIDGT applies the GT predicate on the "meter_id" field.
+func MeterIDGT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGT(FieldMeterID, v))
+}
+
+// MeterIDGTE applies the GTE predicate on the "meter_id" field.
+func MeterIDGTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGTE(FieldMeterID, v))
+}
+
+// MeterIDLT applies the LT predicate on the "meter_id" field.
+func MeterIDLT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLT(FieldMeterID, v))
+}
+
+// MeterIDLTE applies the LTE predicate on the "meter_id" field.
+func MeterIDLTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLTE(FieldMeterID, v))
+}
+
+// MeterIDContains applies the Contains predicate on the "meter_id" field.
+func MeterIDContains(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContains(FieldMeterID, v))
+}
+
+// MeterIDHasPrefix applies the HasPrefix predicate on the "meter_id" field.
+func MeterIDHasPrefix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasPrefix(FieldMeterID, v))
+}
+
+// MeterIDHasSuffix applies the HasSuffix predicate on the "meter_id" field.
+func MeterIDHasSuffix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasSuffix(FieldMeterID, v))
+}
+
+// MeterIDIsNil applies the IsNil predicate on the "meter_id" field.
+func MeterIDIsNil() predicate.Feature {
+	return predicate.Feature(sql.FieldIsNull(FieldMeterID))
+}
+
+// MeterIDNotNil applies the NotNil predicate on the "meter_id" field.
+func MeterIDNotNil() predicate.Feature {
+	return predicate.Feature(sql.FieldNotNull(FieldMeterID))
+}
+
+// MeterIDEqualFold applies the EqualFold predicate on the "meter_id" field.
+func MeterIDEqualFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEqualFold(FieldMeterID, v))
+}
+
+// MeterIDContainsFold applies the ContainsFold predicate on the "meter_id" field.
+func MeterIDContainsFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContainsFold(FieldMeterID, v))
 }
 
 // MeterGroupByFiltersIsNil applies the IsNil predicate on the "meter_group_by_filters" field.
@@ -1262,6 +1342,29 @@ func HasAddonRatecard() predicate.Feature {
 func HasAddonRatecardWith(preds ...predicate.AddonRateCard) predicate.Feature {
 	return predicate.Feature(func(s *sql.Selector) {
 		step := newAddonRatecardStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasMeter applies the HasEdge predicate on the "meter" edge.
+func HasMeter() predicate.Feature {
+	return predicate.Feature(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, MeterTable, MeterColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasMeterWith applies the HasEdge predicate on the "meter" edge with a given conditions (other predicates).
+func HasMeterWith(preds ...predicate.Meter) predicate.Feature {
+	return predicate.Feature(func(s *sql.Selector) {
+		step := newMeterStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

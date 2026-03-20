@@ -14,27 +14,39 @@ var (
 	ExampleFeatureKey2      = "test-feature-2"
 	ExampleFeatureKey3      = "test-feature-3"
 	ExampleFeatureMeterSlug = "meter1"
+
+	// ExampleFeatureMeterID is set dynamically in SetupServices when the meter is created.
+	// It holds the ULID ID of the meter created for the example features.
+	ExampleFeatureMeterID string
 )
 
-var ExampleFeature = feature.CreateFeatureInputs{
-	Name:      "Example Feature",
-	Key:       ExampleFeatureKey,
-	Namespace: ExampleNamespace,
-	MeterSlug: lo.ToPtr(ExampleFeatureMeterSlug),
+// ExampleFeature returns CreateFeatureInputs for the example meter.
+// Must be called after NewService which sets ExampleFeatureMeterID.
+func ExampleFeature() feature.CreateFeatureInputs {
+	return feature.CreateFeatureInputs{
+		Name:      "Example Feature",
+		Key:       ExampleFeatureKey,
+		Namespace: ExampleNamespace,
+		MeterID:   lo.ToPtr(ExampleFeatureMeterID),
+	}
 }
 
-var ExampleFeature2 = feature.CreateFeatureInputs{
-	Name:      "Example Feature 2",
-	Key:       ExampleFeatureKey2,
-	Namespace: ExampleNamespace,
-	MeterSlug: lo.ToPtr(ExampleFeatureMeterSlug),
+func ExampleFeature2() feature.CreateFeatureInputs {
+	return feature.CreateFeatureInputs{
+		Name:      "Example Feature 2",
+		Key:       ExampleFeatureKey2,
+		Namespace: ExampleNamespace,
+		MeterID:   lo.ToPtr(ExampleFeatureMeterID),
+	}
 }
 
-var ExampleFeature3 = feature.CreateFeatureInputs{
-	Name:      "Example Feature 3",
-	Key:       ExampleFeatureKey3,
-	Namespace: ExampleNamespace,
-	MeterSlug: lo.ToPtr(ExampleFeatureMeterSlug),
+func ExampleFeature3() feature.CreateFeatureInputs {
+	return feature.CreateFeatureInputs{
+		Name:      "Example Feature 3",
+		Key:       ExampleFeatureKey3,
+		Namespace: ExampleNamespace,
+		MeterID:   lo.ToPtr(ExampleFeatureMeterID),
+	}
 }
 
 type testFeatureConnector struct {
@@ -47,15 +59,15 @@ func NewTestFeatureConnector(conn feature.FeatureConnector) *testFeatureConnecto
 
 func (c *testFeatureConnector) CreateExampleFeatures(t *testing.T) []feature.Feature {
 	t.Helper()
-	feat1, err := c.FeatureConnector.CreateFeature(context.Background(), ExampleFeature)
+	feat1, err := c.FeatureConnector.CreateFeature(context.Background(), ExampleFeature())
 	if err != nil {
 		t.Fatalf("failed to create feature: %v", err)
 	}
-	feat2, err := c.FeatureConnector.CreateFeature(context.Background(), ExampleFeature2)
+	feat2, err := c.FeatureConnector.CreateFeature(context.Background(), ExampleFeature2())
 	if err != nil {
 		t.Fatalf("failed to create feature: %v", err)
 	}
-	feat3, err := c.FeatureConnector.CreateFeature(context.Background(), ExampleFeature3)
+	feat3, err := c.FeatureConnector.CreateFeature(context.Background(), ExampleFeature3())
 	if err != nil {
 		t.Fatalf("failed to create feature: %v", err)
 	}

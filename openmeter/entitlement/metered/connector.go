@@ -151,7 +151,7 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 		return nil, &entitlement.InvalidValueError{Message: "UsagePeriod is required for metered entitlements", Type: entitlement.EntitlementTypeMetered}
 	}
 
-	if feature.MeterSlug == nil {
+	if feature.MeterID == nil {
 		return nil, &entitlement.InvalidFeatureError{FeatureID: feature.ID, Message: "Feature has no meter"}
 	}
 

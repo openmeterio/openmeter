@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
@@ -36,6 +37,8 @@ type Feature struct {
 	Key string `json:"key,omitempty"`
 	// MeterSlug holds the value of the "meter_slug" field.
 	MeterSlug *string `json:"meter_slug,omitempty"`
+	// MeterID holds the value of the "meter_id" field.
+	MeterID *string `json:"meter_id,omitempty"`
 	// MeterGroupByFilters holds the value of the "meter_group_by_filters" field.
 	MeterGroupByFilters map[string]string `json:"meter_group_by_filters,omitempty"`
 	// AdvancedMeterGroupByFilters holds the value of the "advanced_meter_group_by_filters" field.
@@ -72,9 +75,11 @@ type FeatureEdges struct {
 	Ratecard []*PlanRateCard `json:"ratecard,omitempty"`
 	// AddonRatecard holds the value of the addon_ratecard edge.
 	AddonRatecard []*AddonRateCard `json:"addon_ratecard,omitempty"`
+	// Meter holds the value of the meter edge.
+	Meter *Meter `json:"meter,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // EntitlementOrErr returns the Entitlement value or an error if the edge
@@ -104,6 +109,17 @@ func (e FeatureEdges) AddonRatecardOrErr() ([]*AddonRateCard, error) {
 	return nil, &NotLoadedError{edge: "addon_ratecard"}
 }
 
+// MeterOrErr returns the Meter value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e FeatureEdges) MeterOrErr() (*Meter, error) {
+	if e.Meter != nil {
+		return e.Meter, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: dbmeter.Label}
+	}
+	return nil, &NotLoadedError{edge: "meter"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Feature) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -113,7 +129,7 @@ func (*Feature) scanValues(columns []string) ([]any, error) {
 			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case dbfeature.FieldMetadata, dbfeature.FieldMeterGroupByFilters, dbfeature.FieldAdvancedMeterGroupByFilters:
 			values[i] = new([]byte)
-		case dbfeature.FieldID, dbfeature.FieldNamespace, dbfeature.FieldName, dbfeature.FieldKey, dbfeature.FieldMeterSlug, dbfeature.FieldUnitCostType, dbfeature.FieldUnitCostLlmProviderProperty, dbfeature.FieldUnitCostLlmProvider, dbfeature.FieldUnitCostLlmModelProperty, dbfeature.FieldUnitCostLlmModel, dbfeature.FieldUnitCostLlmTokenTypeProperty, dbfeature.FieldUnitCostLlmTokenType:
+		case dbfeature.FieldID, dbfeature.FieldNamespace, dbfeature.FieldName, dbfeature.FieldKey, dbfeature.FieldMeterSlug, dbfeature.FieldMeterID, dbfeature.FieldUnitCostType, dbfeature.FieldUnitCostLlmProviderProperty, dbfeature.FieldUnitCostLlmProvider, dbfeature.FieldUnitCostLlmModelProperty, dbfeature.FieldUnitCostLlmModel, dbfeature.FieldUnitCostLlmTokenTypeProperty, dbfeature.FieldUnitCostLlmTokenType:
 			values[i] = new(sql.NullString)
 		case dbfeature.FieldCreatedAt, dbfeature.FieldUpdatedAt, dbfeature.FieldDeletedAt, dbfeature.FieldArchivedAt:
 			values[i] = new(sql.NullTime)
@@ -189,6 +205,13 @@ func (_m *Feature) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.MeterSlug = new(string)
 				*_m.MeterSlug = value.String
+			}
+		case dbfeature.FieldMeterID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field meter_id", values[i])
+			} else if value.Valid {
+				_m.MeterID = new(string)
+				*_m.MeterID = value.String
 			}
 		case dbfeature.FieldMeterGroupByFilters:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -297,6 +320,11 @@ func (_m *Feature) QueryAddonRatecard() *AddonRateCardQuery {
 	return NewFeatureClient(_m.config).QueryAddonRatecard(_m)
 }
 
+// QueryMeter queries the "meter" edge of the Feature entity.
+func (_m *Feature) QueryMeter() *MeterQuery {
+	return NewFeatureClient(_m.config).QueryMeter(_m)
+}
+
 // Update returns a builder for updating this Feature.
 // Note that you need to call Feature.Unwrap() before calling this method if this Feature
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -345,6 +373,11 @@ func (_m *Feature) String() string {
 	builder.WriteString(", ")
 	if v := _m.MeterSlug; v != nil {
 		builder.WriteString("meter_slug=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.MeterID; v != nil {
+		builder.WriteString("meter_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

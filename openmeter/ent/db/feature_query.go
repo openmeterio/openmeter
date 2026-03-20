@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
@@ -30,6 +31,7 @@ type FeatureQuery struct {
 	withEntitlement   *EntitlementQuery
 	withRatecard      *PlanRateCardQuery
 	withAddonRatecard *AddonRateCardQuery
+	withMeter         *MeterQuery
 	modifiers         []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -126,6 +128,28 @@ func (_q *FeatureQuery) QueryAddonRatecard() *AddonRateCardQuery {
 			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, selector),
 			sqlgraph.To(addonratecard.Table, addonratecard.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, dbfeature.AddonRatecardTable, dbfeature.AddonRatecardColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryMeter chains the current query on the "meter" edge.
+func (_q *FeatureQuery) QueryMeter() *MeterQuery {
+	query := (&MeterClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, selector),
+			sqlgraph.To(dbmeter.Table, dbmeter.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, dbfeature.MeterTable, dbfeature.MeterColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -328,6 +352,7 @@ func (_q *FeatureQuery) Clone() *FeatureQuery {
 		withEntitlement:   _q.withEntitlement.Clone(),
 		withRatecard:      _q.withRatecard.Clone(),
 		withAddonRatecard: _q.withAddonRatecard.Clone(),
+		withMeter:         _q.withMeter.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -364,6 +389,17 @@ func (_q *FeatureQuery) WithAddonRatecard(opts ...func(*AddonRateCardQuery)) *Fe
 		opt(query)
 	}
 	_q.withAddonRatecard = query
+	return _q
+}
+
+// WithMeter tells the query-builder to eager-load the nodes that are connected to
+// the "meter" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *FeatureQuery) WithMeter(opts ...func(*MeterQuery)) *FeatureQuery {
+	query := (&MeterClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withMeter = query
 	return _q
 }
 
@@ -445,10 +481,11 @@ func (_q *FeatureQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Feat
 	var (
 		nodes       = []*Feature{}
 		_spec       = _q.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			_q.withEntitlement != nil,
 			_q.withRatecard != nil,
 			_q.withAddonRatecard != nil,
+			_q.withMeter != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -490,6 +527,12 @@ func (_q *FeatureQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Feat
 		if err := _q.loadAddonRatecard(ctx, query, nodes,
 			func(n *Feature) { n.Edges.AddonRatecard = []*AddonRateCard{} },
 			func(n *Feature, e *AddonRateCard) { n.Edges.AddonRatecard = append(n.Edges.AddonRatecard, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withMeter; query != nil {
+		if err := _q.loadMeter(ctx, query, nodes, nil,
+			func(n *Feature, e *Meter) { n.Edges.Meter = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -592,6 +635,38 @@ func (_q *FeatureQuery) loadAddonRatecard(ctx context.Context, query *AddonRateC
 	}
 	return nil
 }
+func (_q *FeatureQuery) loadMeter(ctx context.Context, query *MeterQuery, nodes []*Feature, init func(*Feature), assign func(*Feature, *Meter)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*Feature)
+	for i := range nodes {
+		if nodes[i].MeterID == nil {
+			continue
+		}
+		fk := *nodes[i].MeterID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(dbmeter.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "meter_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (_q *FeatureQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
@@ -620,6 +695,9 @@ func (_q *FeatureQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != dbfeature.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withMeter != nil {
+			_spec.Node.AddColumnOnce(dbfeature.FieldMeterID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

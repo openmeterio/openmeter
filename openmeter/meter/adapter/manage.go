@@ -122,7 +122,7 @@ func (a *Adapter) DeleteMeter(ctx context.Context, meter meterpkg.Meter) error {
 	})
 }
 
-func (a *Adapter) HasActiveFeatureForMeter(ctx context.Context, namespace, key string) (bool, error) {
+func (a *Adapter) HasActiveFeatureForMeter(ctx context.Context, namespace, meterID string) (bool, error) {
 	return transaction.Run(ctx, a, func(ctx context.Context) (bool, error) {
 		return entutils.TransactingRepo(
 			ctx,
@@ -130,7 +130,7 @@ func (a *Adapter) HasActiveFeatureForMeter(ctx context.Context, namespace, key s
 			func(ctx context.Context, repo *Adapter) (bool, error) {
 				exists, err := repo.db.Feature.Query().
 					Where(featuredb.Namespace(namespace)).
-					Where(featuredb.MeterSlug(key)).
+					Where(featuredb.MeterID(meterID)).
 					Where(featuredb.Or(featuredb.ArchivedAtIsNil(), featuredb.ArchivedAtGT(clock.Now()))).
 					Exist(ctx)
 				if err != nil {
@@ -142,7 +142,7 @@ func (a *Adapter) HasActiveFeatureForMeter(ctx context.Context, namespace, key s
 	})
 }
 
-func (a *Adapter) HasEntitlementForMeter(ctx context.Context, namespace, key string) (bool, error) {
+func (a *Adapter) HasEntitlementForMeter(ctx context.Context, namespace, meterID string) (bool, error) {
 	return transaction.Run(ctx, a, func(ctx context.Context) (bool, error) {
 		return entutils.TransactingRepo(
 			ctx,
@@ -152,7 +152,7 @@ func (a *Adapter) HasEntitlementForMeter(ctx context.Context, namespace, key str
 					Where(
 						entitlementdb.Or(entitlementdb.DeletedAtGT(clock.Now()), entitlementdb.DeletedAtIsNil()),
 						entitlementdb.Namespace(namespace),
-						entitlementdb.HasFeatureWith(featuredb.MeterSlugEQ(key)),
+						entitlementdb.HasFeatureWith(featuredb.MeterIDEQ(meterID)),
 					).
 					Exist(ctx)
 				if err != nil {
@@ -164,7 +164,7 @@ func (a *Adapter) HasEntitlementForMeter(ctx context.Context, namespace, key str
 	})
 }
 
-func (a *Adapter) ListFeaturesForMeter(ctx context.Context, namespace, key string) ([]feature.Feature, error) {
+func (a *Adapter) ListFeaturesForMeter(ctx context.Context, namespace, meterID string) ([]feature.Feature, error) {
 	return transaction.Run(ctx, a, func(ctx context.Context) ([]feature.Feature, error) {
 		return entutils.TransactingRepo(
 			ctx,
@@ -172,7 +172,7 @@ func (a *Adapter) ListFeaturesForMeter(ctx context.Context, namespace, key strin
 			func(ctx context.Context, repo *Adapter) ([]feature.Feature, error) {
 				featureRows, err := repo.db.Feature.Query().
 					Where(featuredb.Namespace(namespace)).
-					Where(featuredb.MeterSlug(key)).
+					Where(featuredb.MeterID(meterID)).
 					Where(featuredb.And(
 						featuredb.Or(featuredb.DeletedAtIsNil(), featuredb.DeletedAtGT(clock.Now())),
 						featuredb.Or(featuredb.ArchivedAtIsNil(), featuredb.ArchivedAtGT(clock.Now())),

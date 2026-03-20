@@ -12,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	db_meter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	dbplanphase "github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	dbratecard "github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
@@ -44,7 +45,7 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feat feature.Creat
 		SetKey(feat.Key).
 		SetNamespace(feat.Namespace).
 		SetMetadata(feat.Metadata).
-		SetNillableMeterSlug(feat.MeterSlug)
+		SetNillableMeterID(feat.MeterID)
 
 	if len(feat.MeterGroupByFilters) > 0 {
 		query = query.
@@ -179,10 +180,10 @@ func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, params feature.Ar
 	return nil
 }
 
-func (c *featureDBAdapter) HasActiveFeatureForMeter(ctx context.Context, namespace string, meterSlug string) (bool, error) {
+func (c *featureDBAdapter) HasActiveFeatureForMeter(ctx context.Context, namespace string, meterID string) (bool, error) {
 	exists, err := c.db.Feature.Query().
 		Where(db_feature.Namespace(namespace)).
-		Where(db_feature.MeterSlug(meterSlug)).
+		Where(db_feature.MeterID(meterID)).
 		Where(db_feature.Or(db_feature.ArchivedAtIsNil(), db_feature.ArchivedAtGT(clock.Now()))).
 		Exist(ctx)
 	if err != nil {
@@ -196,8 +197,12 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 	query := c.db.Feature.Query().
 		Where(db_feature.Namespace(params.Namespace))
 
+	if len(params.MeterIDs) > 0 {
+		query = query.Where(db_feature.MeterIDIn(params.MeterIDs...))
+	}
+
 	if len(params.MeterSlugs) > 0 {
-		query = query.Where(db_feature.MeterSlugIn(params.MeterSlugs...))
+		query = query.Where(db_feature.HasMeterWith(db_meter.KeyIn(params.MeterSlugs...)))
 	}
 
 	if len(params.IDsOrKeys) > 0 {
@@ -279,7 +284,8 @@ func MapFeatureEntity(entity *db.Feature) feature.Feature {
 		Namespace:  entity.Namespace,
 		Name:       entity.Name,
 		Key:        entity.Key,
-		MeterSlug:  entity.MeterSlug,
+		MeterID:    entity.MeterID,
+		MeterSlug:  entity.MeterSlug, // Deprecated: kept for v1 API backward compat
 		ArchivedAt: entity.ArchivedAt,
 		CreatedAt:  entity.CreatedAt.In(time.UTC),
 		UpdatedAt:  entity.UpdatedAt.In(time.UTC),

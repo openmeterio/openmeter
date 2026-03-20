@@ -24,6 +24,10 @@ func (c *adapter) ListMeters(_ context.Context, params meter.ListMetersParams) (
 			continue
 		}
 
+		if params.IDFilter != nil && !slices.Contains(*params.IDFilter, meter.ID) {
+			continue
+		}
+
 		if params.SlugFilter != nil && !slices.Contains(*params.SlugFilter, meter.Key) {
 			continue
 		}
@@ -80,7 +84,7 @@ func (c *adapter) GetMeterByIDOrSlug(_ context.Context, input meter.GetMeterInpu
 }
 
 // ReplaceMeters can be used to replace all meters in the repository.
-func (c *adapter) ReplaceMeters(_ context.Context, meters []meter.Meter) error {
+func (c *adapter) ReplaceMeters(ctx context.Context, meters []meter.Meter) error {
 	c.init()
 
 	for _, m := range meters {
@@ -92,6 +96,30 @@ func (c *adapter) ReplaceMeters(_ context.Context, meters []meter.Meter) error {
 	}
 
 	c.meters = slices.Clone(meters)
+
+	// Sync to PG if DB client is set (for FK constraints on features.meter_id).
+	if c.dbClient != nil {
+		for _, m := range meters {
+			exists, err := c.dbClient.Meter.Get(ctx, m.ID)
+			if err == nil && exists != nil {
+				continue
+			}
+
+			_, err = c.dbClient.Meter.Create().
+				SetID(m.ID).
+				SetNamespace(m.Namespace).
+				SetName(m.Name).
+				SetKey(m.Key).
+				SetGroupBy(m.GroupBy).
+				SetAggregation(m.Aggregation).
+				SetEventType(m.EventType).
+				SetNillableValueProperty(m.ValueProperty).
+				Save(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to sync meter to PG: %w", err)
+			}
+		}
+	}
 
 	return nil
 }

@@ -105,7 +105,7 @@ func (s *ManageService) DeleteMeter(ctx context.Context, input meter.DeleteMeter
 	}
 
 	// Check if the meter has active features
-	hasFeatures, err := s.adapter.HasActiveFeatureForMeter(ctx, input.Namespace, getMeter.Key)
+	hasFeatures, err := s.adapter.HasActiveFeatureForMeter(ctx, input.Namespace, getMeter.ID)
 	if err != nil {
 		return fmt.Errorf("failed to check if meter has features [namespace=%s, key=%s]: %w",
 			input.Namespace, getMeter.Key, err)
@@ -118,7 +118,7 @@ func (s *ManageService) DeleteMeter(ctx context.Context, input meter.DeleteMeter
 	}
 
 	// Check if the meter has active entitlements
-	hasEntitlements, err := s.adapter.HasEntitlementForMeter(ctx, getMeter.Namespace, getMeter.Key)
+	hasEntitlements, err := s.adapter.HasEntitlementForMeter(ctx, getMeter.Namespace, getMeter.ID)
 	if err != nil {
 		return fmt.Errorf("failed to check if meter has entitlements [namespace=%s, key=%s]: %w",
 			input.Namespace, getMeter.Key, err)
@@ -186,12 +186,11 @@ func (s *ManageService) UpdateMeter(ctx context.Context, input meter.UpdateMeter
 		}
 	}
 
-	// FIXME: use foreign keys after we migrate Feature reference on meter id
 	// Check if features are compatible with the new group by values
 	// We only need to check deleted group bys because only those can be incompatible
 	if len(groupByToDelete) > 0 {
 		// List features depending on the meter
-		features, err := s.adapter.ListFeaturesForMeter(ctx, input.ID.Namespace, currentMeter.Key)
+		features, err := s.adapter.ListFeaturesForMeter(ctx, input.ID.Namespace, currentMeter.ID)
 		if err != nil {
 			return meter.Meter{}, fmt.Errorf("failed to list features for meter: %w", err)
 		}

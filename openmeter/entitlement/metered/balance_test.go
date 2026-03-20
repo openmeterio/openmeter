@@ -33,13 +33,15 @@ func getAnchor(t *testing.T) time.Time {
 
 func TestGetEntitlementBalance(t *testing.T) {
 	namespace := "ns1"
-	meterSlug := "meter1"
+
+	connector, deps := setupConnector(t)
+	defer deps.Teardown()
 
 	exampleFeature := feature.CreateFeatureInputs{
 		Namespace:           namespace,
 		Name:                "feature1",
 		Key:                 "feature-1",
-		MeterSlug:           &meterSlug,
+		MeterID:             &deps.meterID,
 		MeterGroupByFilters: map[string]filter.FilterString{},
 	}
 
@@ -66,10 +68,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 		return input
 	}
 
-	connector, deps := setupConnector(t)
-	defer deps.Teardown()
-
-	// create featute in db
+	// create feature in db
 	feat, err := deps.featureRepo.CreateFeature(t.Context(), exampleFeature)
 	require.NoError(t, err)
 
@@ -850,13 +849,15 @@ func TestGetEntitlementBalance(t *testing.T) {
 
 func TestGetEntitlementHistory(t *testing.T) {
 	namespace := "ns1"
-	meterSlug := "meter1"
+
+	connector, deps := setupConnector(t)
+	defer deps.Teardown()
 
 	exampleFeature := feature.CreateFeatureInputs{
 		Namespace:           namespace,
 		Name:                "feature1",
 		Key:                 "feature1",
-		MeterSlug:           &meterSlug,
+		MeterID:             &deps.meterID,
 		MeterGroupByFilters: map[string]filter.FilterString{},
 	}
 
@@ -882,9 +883,6 @@ func TestGetEntitlementHistory(t *testing.T) {
 		input.CurrentUsagePeriod = &currentUsagePeriod
 		return input
 	}
-
-	connector, deps := setupConnector(t)
-	defer deps.Teardown()
 
 	_, _ = deps.dbClient.Subject.Create().SetNamespace(namespace).SetKey("subject1").Save(t.Context())
 

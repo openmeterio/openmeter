@@ -41,13 +41,14 @@ func TestCreateEntitlementWithGrants(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, mtr)
+	createMeterInPG(t, deps.dbClient, mtr)
 
 	// Create feature
 	feat, err := deps.featureRepo.CreateFeature(t.Context(), feature.CreateFeatureInputs{
 		Name:      "feature1",
 		Key:       "feature1",
 		Namespace: namespace,
-		MeterSlug: lo.ToPtr(mtr.Key),
+		MeterID:   lo.ToPtr(mtr.ID),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, feat)
@@ -177,13 +178,14 @@ func TestScheduling(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, mtr)
+	createMeterInPG(t, deps.dbClient, mtr)
 
 	// Create feature
 	feat, err := deps.featureRepo.CreateFeature(t.Context(), feature.CreateFeatureInputs{
 		Name:      "feature1",
 		Key:       "feature1",
 		Namespace: namespace,
-		MeterSlug: lo.ToPtr(mtr.Key),
+		MeterID:   lo.ToPtr(mtr.ID),
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, feat)

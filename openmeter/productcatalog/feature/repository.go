@@ -38,7 +38,7 @@ type FeatureRepo interface {
 	CreateFeature(ctx context.Context, feature CreateFeatureInputs) (Feature, error)
 	ArchiveFeature(ctx context.Context, params ArchiveFeatureInput) error
 	ListFeatures(ctx context.Context, params ListFeaturesParams) (pagination.Result[Feature], error)
-	HasActiveFeatureForMeter(ctx context.Context, namespace string, meterSlug string) (bool, error)
+	HasActiveFeatureForMeter(ctx context.Context, namespace string, meterID string) (bool, error)
 
 	GetByIdOrKey(ctx context.Context, namespace string, idOrKey string, includeArchived bool) (*Feature, error)
 	entutils.TxCreator

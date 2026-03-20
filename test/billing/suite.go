@@ -141,6 +141,7 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 
 	meterAdapter, err := meteradapter.New(nil)
 	require.NoError(t, err)
+	meterAdapter.SetDBClient(dbClient)
 
 	s.MeterAdapter = meterAdapter
 
@@ -511,11 +512,12 @@ type TestFeature struct {
 
 func (s *BaseSuite) SetupApiRequestsTotalFeature(ctx context.Context, ns string) TestFeature {
 	apiRequestsTotalMeterSlug := "api-requests-total"
+	apiRequestsTotalMeterID := ulid.Make().String()
 
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: apiRequestsTotalMeterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: ns,
 				},
@@ -541,7 +543,7 @@ func (s *BaseSuite) SetupApiRequestsTotalFeature(ctx context.Context, ns string)
 		Namespace: ns,
 		Name:      "api-requests-total",
 		Key:       apiRequestsTotalFeatureKey,
-		MeterSlug: lo.ToPtr("api-requests-total"),
+		MeterID:   lo.ToPtr(apiRequestsTotalMeterID),
 	})
 	s.NoError(err)
 

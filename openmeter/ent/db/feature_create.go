@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
@@ -104,6 +105,20 @@ func (_c *FeatureCreate) SetMeterSlug(v string) *FeatureCreate {
 func (_c *FeatureCreate) SetNillableMeterSlug(v *string) *FeatureCreate {
 	if v != nil {
 		_c.SetMeterSlug(*v)
+	}
+	return _c
+}
+
+// SetMeterID sets the "meter_id" field.
+func (_c *FeatureCreate) SetMeterID(v string) *FeatureCreate {
+	_c.mutation.SetMeterID(v)
+	return _c
+}
+
+// SetNillableMeterID sets the "meter_id" field if the given value is not nil.
+func (_c *FeatureCreate) SetNillableMeterID(v *string) *FeatureCreate {
+	if v != nil {
+		_c.SetMeterID(*v)
 	}
 	return _c
 }
@@ -303,6 +318,11 @@ func (_c *FeatureCreate) AddAddonRatecard(v ...*AddonRateCard) *FeatureCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddAddonRatecardIDs(ids...)
+}
+
+// SetMeter sets the "meter" edge to the Meter entity.
+func (_c *FeatureCreate) SetMeter(v *Meter) *FeatureCreate {
+	return _c.SetMeterID(v.ID)
 }
 
 // Mutation returns the FeatureMutation object of the builder.
@@ -544,6 +564,23 @@ func (_c *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.MeterIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   dbfeature.MeterTable,
+			Columns: []string{dbfeature.MeterColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbmeter.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.MeterID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -884,6 +921,9 @@ func (u *FeatureUpsertOne) UpdateNewValues() *FeatureUpsertOne {
 		}
 		if _, exists := u.create.mutation.MeterSlug(); exists {
 			s.SetIgnore(dbfeature.FieldMeterSlug)
+		}
+		if _, exists := u.create.mutation.MeterID(); exists {
+			s.SetIgnore(dbfeature.FieldMeterID)
 		}
 	}))
 	return u
@@ -1411,6 +1451,9 @@ func (u *FeatureUpsertBulk) UpdateNewValues() *FeatureUpsertBulk {
 			}
 			if _, exists := b.mutation.MeterSlug(); exists {
 				s.SetIgnore(dbfeature.FieldMeterSlug)
+			}
+			if _, exists := b.mutation.MeterID(); exists {
+				s.SetIgnore(dbfeature.FieldMeterID)
 			}
 		}
 	}))

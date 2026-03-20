@@ -69,6 +69,8 @@ type Dependencies struct {
 	CustomerService customer.Service
 	SubjectService  subject.Service
 
+	Meter1ID string
+
 	Log *slog.Logger
 }
 
@@ -92,10 +94,11 @@ func setupDependencies(t *testing.T) Dependencies {
 	// Init product catalog
 	featureRepo := productcatalogrepo.NewPostgresFeatureRepo(dbClient, log)
 
+	meter1ID := ulid.Make().String()
 	meters := []meter.Meter{
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: meter1ID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: "namespace-1",
 				},
@@ -117,6 +120,7 @@ func setupDependencies(t *testing.T) Dependencies {
 	if err != nil {
 		t.Fatalf("failed to create meter adapter: %v", err)
 	}
+	meterAdapter.SetDBClient(dbClient)
 
 	featureConnector := feature.NewFeatureConnector(featureRepo, meterAdapter, eventbus.NewMock(t)) // TODO: meter repo is needed
 
@@ -248,6 +252,8 @@ func setupDependencies(t *testing.T) Dependencies {
 
 		CustomerService: customerService,
 		SubjectService:  subjectService,
+
+		Meter1ID: meter1ID,
 
 		Log: log,
 	}

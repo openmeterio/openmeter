@@ -155,11 +155,12 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithProgressiveBilling())
 
 	meterSlug := "flat-per-unit"
+	meterID := ulid.Make().String()
 
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: meterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -186,7 +187,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 		Namespace: namespace,
 		Name:      meterSlug,
 		Key:       meterSlug,
-		MeterSlug: lo.ToPtr(meterSlug),
+		MeterID:   lo.ToPtr(meterID),
 	})
 	s.NoError(err)
 

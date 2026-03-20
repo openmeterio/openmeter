@@ -71,11 +71,12 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 
 	s.Run("Given a metered feature exists with usage", func() {
 		meterSlug := "flat-per-unit"
+		meterID := ulid.Make().String()
 
 		s.NoError(s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 			{
 				ManagedResource: models.ManagedResource{
-					ID: ulid.Make().String(),
+					ID: meterID,
 					NamespacedModel: models.NamespacedModel{
 						Namespace: namespace,
 					},
@@ -103,7 +104,7 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 			Namespace: namespace,
 			Name:      meterSlug,
 			Key:       meterSlug,
-			MeterSlug: lo.ToPtr(meterSlug),
+			MeterID:   lo.ToPtr(meterID),
 		}))
 	})
 

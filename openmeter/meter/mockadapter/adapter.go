@@ -1,10 +1,12 @@
 package adapter
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"sync"
 
+	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -32,6 +34,8 @@ var _ meter.Service = (*adapter)(nil)
 type adapter struct {
 	meters   []meter.Meter
 	initOnce sync.Once
+	// dbClient is optionally set to sync meters to PG for FK constraints on features.meter_id.
+	dbClient *entdb.Client
 }
 
 func (c *adapter) init() {
@@ -60,6 +64,18 @@ type manageAdapter struct {
 	adapter *adapter
 
 	meter.Service
+}
+
+// SetDBClient sets the ent DB client so that meter mutations are also persisted to PG.
+// This ensures FK constraints on features.meter_id are satisfied in tests.
+// It also syncs any existing in-memory meters to PG.
+func (c *adapter) SetDBClient(client *entdb.Client) {
+	c.dbClient = client
+
+	// Sync existing meters to PG.
+	if len(c.meters) > 0 {
+		_ = c.ReplaceMeters(context.Background(), c.meters)
+	}
 }
 
 type TestAdapter = adapter

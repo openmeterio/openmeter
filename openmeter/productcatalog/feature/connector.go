@@ -20,7 +20,7 @@ type CreateFeatureInputs struct {
 	Name                string              `json:"name"`
 	Key                 string              `json:"key"`
 	Namespace           string              `json:"namespace"`
-	MeterSlug           *string             `json:"meterSlug"`
+	MeterID             *string             `json:"meterID"`
 	MeterGroupByFilters MeterGroupByFilters `json:"meterGroupByFilters"`
 	UnitCost            *UnitCost           `json:"unitCost"`
 	Metadata            map[string]string   `json:"metadata"`
@@ -69,7 +69,8 @@ func (f FeatureOrderBy) Values() []FeatureOrderBy {
 type ListFeaturesParams struct {
 	IDsOrKeys       []string
 	Namespace       string
-	MeterSlugs      []string
+	MeterIDs        []string
+	MeterSlugs      []string // Kept for ingest pipeline compat (queries via ent edge on meter key)
 	IncludeArchived bool
 	Page            pagination.Page
 	OrderBy         FeatureOrderBy
@@ -112,17 +113,20 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 	// Validate meter configuration
 	var resolvedMeter *meterpkg.Meter
 
-	if feature.MeterSlug != nil {
-		slug := *feature.MeterSlug
+	if feature.MeterID != nil {
+		meterID := *feature.MeterID
 
 		// nosemgrep: trailofbits.go.invalid-usage-of-modified-variable.invalid-usage-of-modified-variable
 		meter, err := c.meterService.GetMeterByIDOrSlug(ctx, meterpkg.GetMeterInput{
 			Namespace: feature.Namespace,
-			IDOrSlug:  slug,
+			IDOrSlug:  meterID,
 		})
 		if err != nil {
-			return Feature{}, meterpkg.NewMeterNotFoundError(slug)
+			return Feature{}, meterpkg.NewMeterNotFoundError(meterID)
 		}
+
+		// Normalize to meter ID
+		feature.MeterID = &meter.ID
 
 		resolvedMeter = &meter
 

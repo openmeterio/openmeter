@@ -23,9 +23,10 @@ import (
 
 func TestCreateFeature(t *testing.T) {
 	namespace := "default"
-	meter := meter.Meter{
+	meterID := ulid.Make().String()
+	testMeter := meter.Meter{
 		ManagedResource: models.ManagedResource{
-			ID: "meter-1",
+			ID: meterID,
 			NamespacedModel: models.NamespacedModel{
 				Namespace: namespace,
 			},
@@ -45,7 +46,7 @@ func TestCreateFeature(t *testing.T) {
 		Namespace: namespace,
 		Name:      "feature-1",
 		Key:       "feature-1",
-		MeterSlug: &meter.Key,
+		MeterID:   &meterID,
 		MeterGroupByFilters: feature.MeterGroupByFilters{
 			"key": filter.FilterString{
 				Eq: lo.ToPtr("value"),
@@ -241,6 +242,20 @@ func TestCreateFeature(t *testing.T) {
 				t.Fatalf("failed to create schema: %v", err)
 			}
 
+			// Create the meter in the DB so FK constraint is satisfied.
+			_, err := dbClient.Meter.Create().
+				SetID(testMeter.ID).
+				SetNamespace(testMeter.Namespace).
+				SetName(testMeter.Name).
+				SetKey(testMeter.Key).
+				SetGroupBy(testMeter.GroupBy).
+				SetAggregation(testMeter.Aggregation).
+				SetEventType(testMeter.EventType).
+				Save(context.Background())
+			if err != nil {
+				t.Fatalf("failed to create meter: %v", err)
+			}
+
 			dbConnector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
 			tc.run(t, dbConnector)
 		})
@@ -260,6 +275,20 @@ func TestCreateFeature(t *testing.T) {
 			t.Fatalf("failed to create schema: %v", err)
 		}
 
+		// Create the meter in the DB so FK constraint is satisfied.
+		_, err := dbClient.Meter.Create().
+			SetID(testMeter.ID).
+			SetNamespace(testMeter.Namespace).
+			SetName(testMeter.Name).
+			SetKey(testMeter.Key).
+			SetGroupBy(testMeter.GroupBy).
+			SetAggregation(testMeter.Aggregation).
+			SetEventType(testMeter.EventType).
+			Save(context.Background())
+		if err != nil {
+			t.Fatalf("failed to create meter: %v", err)
+		}
+
 		dbConnector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
 		ctx := context.Background()
 		featureIn := testFeature
@@ -276,9 +305,10 @@ func TestCreateFeature(t *testing.T) {
 
 func TestArchiveFeature(t *testing.T) {
 	namespace := "default"
-	meter := meter.Meter{
+	archiveMeterID := ulid.Make().String()
+	testMeter := meter.Meter{
 		ManagedResource: models.ManagedResource{
-			ID: "meter-1",
+			ID: archiveMeterID,
 			NamespacedModel: models.NamespacedModel{
 				Namespace: namespace,
 			},
@@ -298,7 +328,7 @@ func TestArchiveFeature(t *testing.T) {
 		Namespace: namespace,
 		Name:      "feature-1",
 		Key:       "feature-1",
-		MeterSlug: &meter.Key,
+		MeterID:   &archiveMeterID,
 		MeterGroupByFilters: feature.MeterGroupByFilters{
 			"key": filter.FilterString{
 				Eq: lo.ToPtr("value"),
@@ -317,6 +347,20 @@ func TestArchiveFeature(t *testing.T) {
 		}
 
 		ctx := context.Background()
+
+		// Create the meter in the DB so FK constraint is satisfied.
+		_, err := dbClient.Meter.Create().
+			SetID(testMeter.ID).
+			SetNamespace(testMeter.Namespace).
+			SetName(testMeter.Name).
+			SetKey(testMeter.Key).
+			SetGroupBy(testMeter.GroupBy).
+			SetAggregation(testMeter.Aggregation).
+			SetEventType(testMeter.EventType).
+			Save(ctx)
+		if err != nil {
+			t.Fatalf("failed to create meter: %v", err)
+		}
 
 		// Let's set up any plan with phases and ratecards
 		p, err := dbClient.Plan.Create().
@@ -368,9 +412,10 @@ func TestArchiveFeature(t *testing.T) {
 
 func TestFetchingArchivedFeature(t *testing.T) {
 	namespace := "default"
-	meter := meter.Meter{
+	fetchMeterID := ulid.Make().String()
+	testMeter := meter.Meter{
 		ManagedResource: models.ManagedResource{
-			ID: "meter-1",
+			ID: fetchMeterID,
 			NamespacedModel: models.NamespacedModel{
 				Namespace: namespace,
 			},
@@ -390,7 +435,7 @@ func TestFetchingArchivedFeature(t *testing.T) {
 		Namespace: namespace,
 		Name:      "feature-1",
 		Key:       "feature-1",
-		MeterSlug: &meter.Key,
+		MeterID:   &fetchMeterID,
 		MeterGroupByFilters: feature.MeterGroupByFilters{
 			"key": filter.FilterString{
 				Eq: lo.ToPtr("value"),
@@ -409,6 +454,21 @@ func TestFetchingArchivedFeature(t *testing.T) {
 		}
 
 		ctx := context.Background()
+
+		// Create the meter in the DB so FK constraint is satisfied.
+		_, err := dbClient.Meter.Create().
+			SetID(testMeter.ID).
+			SetNamespace(testMeter.Namespace).
+			SetName(testMeter.Name).
+			SetKey(testMeter.Key).
+			SetGroupBy(testMeter.GroupBy).
+			SetAggregation(testMeter.Aggregation).
+			SetEventType(testMeter.EventType).
+			Save(ctx)
+		if err != nil {
+			t.Fatalf("failed to create meter: %v", err)
+		}
+
 		connector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
 
 		featureIn := testFeature

@@ -133,10 +133,16 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
+	flatPerUnitMeterID := ulid.Make().String()
+	flatPerUsageMeterID := ulid.Make().String()
+	tieredGraduatedMeterID := ulid.Make().String()
+	tieredVolumeMeterID := ulid.Make().String()
+	aiFlatPerUnitMeterID := ulid.Make().String()
+
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: flatPerUnitMeterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -153,7 +159,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		},
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: flatPerUsageMeterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -170,7 +176,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		},
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: tieredGraduatedMeterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -187,7 +193,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		},
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: tieredVolumeMeterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -204,7 +210,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		},
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: aiFlatPerUnitMeterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -243,31 +249,31 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			Namespace: namespace,
 			Name:      "flat-per-unit",
 			Key:       "flat-per-unit",
-			MeterSlug: lo.ToPtr("flat-per-unit"),
+			MeterID:   lo.ToPtr(flatPerUnitMeterID),
 		})),
 		flatPerUsage: lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
 			Namespace: namespace,
 			Name:      "flat-per-usage",
 			Key:       "flat-per-usage",
-			MeterSlug: lo.ToPtr("flat-per-usage"),
+			MeterID:   lo.ToPtr(flatPerUsageMeterID),
 		})),
 		tieredGraduated: lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
 			Namespace: namespace,
 			Name:      "tiered-graduated",
 			Key:       "tiered-graduated",
-			MeterSlug: lo.ToPtr("tiered-graduated"),
+			MeterID:   lo.ToPtr(tieredGraduatedMeterID),
 		})),
 		tieredVolume: lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
 			Namespace: namespace,
 			Name:      "tiered-volume",
 			Key:       "tiered-volume",
-			MeterSlug: lo.ToPtr("tiered-volume"),
+			MeterID:   lo.ToPtr(tieredVolumeMeterID),
 		})),
 		aiFlatPerUnit: lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
 			Namespace: namespace,
 			Name:      "ai-flat-per-unit",
 			Key:       "ai-flat-per-unit",
-			MeterSlug: lo.ToPtr("ai-flat-per-unit"),
+			MeterID:   lo.ToPtr(aiFlatPerUnitMeterID),
 		})),
 	}
 
@@ -1000,11 +1006,12 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	_ = s.InstallSandboxApp(s.T(), namespace)
 
 	meterSlug := "flat-per-unit"
+	flatPerUnitMeterID := ulid.Make().String()
 
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: flatPerUnitMeterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -1037,7 +1044,7 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 		Namespace: namespace,
 		Name:      "flat-per-unit",
 		Key:       "flat-per-unit",
-		MeterSlug: lo.ToPtr("flat-per-unit"),
+		MeterID:   lo.ToPtr(flatPerUnitMeterID),
 	}))
 
 	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{

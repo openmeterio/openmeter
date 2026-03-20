@@ -64,6 +64,7 @@ type ListMetersParams struct {
 
 	Namespace string
 
+	IDFilter   *[]string
 	SlugFilter *[]string
 
 	// WithoutNamespace is a flag to list meters without a namespace.
