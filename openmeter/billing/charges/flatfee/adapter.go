@@ -15,7 +15,7 @@ import (
 type Adapter interface {
 	CreateCharges(ctx context.Context, charges CreateChargesInput) ([]Charge, error)
 	UpdateCharge(ctx context.Context, charge Charge) error
-	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
+	GetByMetas(ctx context.Context, ids GetByMetasInput) ([]Charge, error)
 
 	CreateInvoicedUsage(ctx context.Context, chargeID meta.ChargeID, invoicedUsage invoicedusage.AccruedUsage) (invoicedusage.AccruedUsage, error)
 

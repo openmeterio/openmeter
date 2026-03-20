@@ -104,7 +104,7 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChar
 	})
 }
 
-func (a *adapter) GetByIDs(ctx context.Context, input creditpurchase.GetByIDsInput) ([]creditpurchase.Charge, error) {
+func (a *adapter) GetByMetas(ctx context.Context, input creditpurchase.GetByMetasInput) ([]creditpurchase.Charge, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
