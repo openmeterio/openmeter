@@ -80,6 +80,19 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feat feature.Creat
 		return feature.Feature{}, err
 	}
 
+	// Re-fetch with meter edge for MeterSlug backward compatibility
+	if entity.MeterID != nil {
+		entity, err = c.db.Feature.Query().
+			Where(db_feature.ID(entity.ID)).
+			WithMeter(func(mq *db.MeterQuery) {
+				mq.Select(dbmeter.FieldID, dbmeter.FieldKey)
+			}).
+			Only(ctx)
+		if err != nil {
+			return feature.Feature{}, err
+		}
+	}
+
 	return MapFeatureEntity(entity), nil
 }
 
