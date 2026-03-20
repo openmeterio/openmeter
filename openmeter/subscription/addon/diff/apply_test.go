@@ -31,7 +31,10 @@ func TestApply(t *testing.T) {
 
 	// TODO: we could write purer tests here (without depending on the services) but this is simply more convenient for now
 	runWithDeps := func(t *testing.T, fn func(t *testing.T, deps *tcDeps)) {
-		clock.SetTime(now)
+		// Freeze the clock so EffectiveFrom validation (which allows only a small jitter window)
+		// doesn't become flaky when CI runs slow.
+		clock.FreezeTime(now)
+		defer clock.UnFreeze()
 		defer clock.ResetTime()
 
 		dbDeps := subscriptiontestutils.SetupDBDeps(t)
