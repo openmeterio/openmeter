@@ -7,6 +7,8 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
+	billinghttp "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -83,9 +85,9 @@ func RuleFromDBEntity(e db.NotificationRule) *notification.Rule {
 }
 
 func EventFromDBEntity(e db.NotificationEvent) (*notification.Event, error) {
-	payload := notification.EventPayload{}
-	if err := json.Unmarshal([]byte(e.Payload), &payload); err != nil {
-		return nil, fmt.Errorf("failed to serialize notification event payload: %w", err)
+	payload, err := eventPayloadFromJSON([]byte(e.Payload))
+	if err != nil {
+		return nil, err
 	}
 
 	var statuses []notification.EventDeliveryStatus
@@ -118,6 +120,57 @@ func EventFromDBEntity(e db.NotificationEvent) (*notification.Event, error) {
 		DeliveryStatus: statuses,
 		Annotations:    e.Annotations,
 	}, nil
+}
+
+func eventPayloadFromJSON(data []byte) (notification.EventPayload, error) {
+	// First pass: read-only meta to get "type + version"
+	meta := notification.EventPayloadMeta{}
+	if err := json.Unmarshal(data, &meta); err != nil {
+		return notification.EventPayload{}, fmt.Errorf("failed to deserialize notification event payload meta: %w", err)
+	}
+
+	payload := notification.EventPayload{}
+
+	// Second pass: version-aware deserialization for invoice types
+	switch meta.Type {
+	case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
+		switch meta.Version {
+		case notification.EventPayloadVersionLegacy: // v0 legacy: stored as billing.EventStandardInvoice
+			var v1 struct {
+				notification.EventPayloadMeta
+				Invoice *billing.EventStandardInvoice `json:"invoice,omitempty"`
+			}
+
+			if err := json.Unmarshal(data, &v1); err != nil {
+				return notification.EventPayload{}, fmt.Errorf("failed to deserialize notification event payload to legacy v1 schema: %w", err)
+			}
+
+			if v1.Invoice == nil {
+				return notification.EventPayload{}, fmt.Errorf("missing invoice in legacy event payload")
+			}
+
+			apiInvoice, err := billinghttp.MapEventInvoiceToAPI(*v1.Invoice)
+			if err != nil {
+				return notification.EventPayload{}, fmt.Errorf("failed to map legacy event invoice to API: %w", err)
+			}
+
+			payload.Invoice = &notification.InvoicePayload{Invoice: apiInvoice}
+
+		case notification.EventPayloadVersionCurrent: // v1: stored as api.Invoice directly
+			if err := json.Unmarshal(data, &payload); err != nil {
+				return notification.EventPayload{}, fmt.Errorf("failed to deserialize notification event payload: %w", err)
+			}
+		default:
+			return notification.EventPayload{}, fmt.Errorf("unsupported notification event payload version: %d", meta.Version)
+		}
+	default:
+		// all non-invoice types: unaffected, single-pass as before
+		if err := json.Unmarshal(data, &payload); err != nil {
+			return notification.EventPayload{}, fmt.Errorf("failed to deserialize notification event payload: %w", err)
+		}
+	}
+
+	return payload, nil
 }
 
 func EventDeliveryStatusFromDBEntity(e db.NotificationEventDeliveryStatus) *notification.EventDeliveryStatus {

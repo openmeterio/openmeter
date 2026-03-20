@@ -1,7 +1,7 @@
 package notification
 
 import (
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -10,7 +10,22 @@ const (
 	EventTypeInvoiceUpdated EventType = "invoice.updated"
 )
 
-type InvoicePayload = billing.EventStandardInvoice
+var (
+	_ models.Validator                       = (*InvoicePayload)(nil)
+	_ models.CustomValidator[InvoicePayload] = (*InvoicePayload)(nil)
+)
+
+type InvoicePayload struct {
+	api.Invoice
+}
+
+func (ip InvoicePayload) ValidateWith(validators ...models.ValidatorFunc[InvoicePayload]) error {
+	return models.Validate(ip, validators...)
+}
+
+func (ip InvoicePayload) Validate() error {
+	return nil
+}
 
 var (
 	_ models.Validator                          = (*InvoiceRuleConfig)(nil)
