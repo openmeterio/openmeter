@@ -142,21 +142,8 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 		}
 
 		// Create meters in PG so FK constraints on features are satisfied.
-		for _, met := range testMeters {
-			_, err := dbClient.Meter.Create().
-				SetID(met.ID).
-				SetNamespace(met.Namespace).
-				SetName(met.Name).
-				SetKey(met.Key).
-				SetGroupBy(met.GroupBy).
-				SetAggregation(met.Aggregation).
-				SetEventType(met.EventType).
-				SetNillableValueProperty(met.ValueProperty).
-				Save(context.Background())
-			if err != nil {
-				t.Fatalf("failed to create meter in PG: %v", err)
-			}
-		}
+		require.NoError(t, meterAdapter.SetDBClient(dbClient))
+		require.NoError(t, meterAdapter.ReplaceMeters(context.Background(), testMeters))
 
 		mockPublisher := eventbus.NewMock(t)
 

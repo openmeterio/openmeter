@@ -97,11 +97,12 @@ func (c *adapter) ReplaceMeters(ctx context.Context, meters []meter.Meter) error
 		}
 	}
 
-	c.meters = slices.Clone(meters)
-
 	// Sync to PG if DB client is set (for FK constraints on features.meter_id).
+	// We clone meters so we can update IDs without mutating the caller's slice.
+	synced := slices.Clone(meters)
+
 	if c.dbClient != nil {
-		for i, m := range meters {
+		for i, m := range synced {
 			exists, err := c.dbClient.Meter.Get(ctx, m.ID)
 			if err == nil && exists != nil {
 				continue
@@ -123,7 +124,7 @@ func (c *adapter) ReplaceMeters(ctx context.Context, meters []meter.Meter) error
 				Only(ctx)
 			if findErr == nil && existing != nil {
 				// Reuse the existing DB meter ID for consistency with FK references
-				c.meters[i].ID = existing.ID
+				synced[i].ID = existing.ID
 				continue
 			}
 
@@ -142,6 +143,9 @@ func (c *adapter) ReplaceMeters(ctx context.Context, meters []meter.Meter) error
 			}
 		}
 	}
+
+	// Only update in-memory state after PG sync succeeds to avoid inconsistency on partial failure.
+	c.meters = synced
 
 	return nil
 }
