@@ -639,19 +639,6 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 		}
 		require.NoError(t, deps.meterAdapter.ReplaceMeters(ctx, []meter.Meter{latestMeter}))
 
-		// Create the LATEST meter in PG so FK constraints on features are satisfied.
-		_, err := deps.dbClient.Meter.Create().
-			SetID(latestMeterID).
-			SetNamespace(namespace).
-			SetName(latestMeter.Name).
-			SetKey(latestMeterSlug).
-			SetGroupBy(latestMeter.GroupBy).
-			SetAggregation(latestMeter.Aggregation).
-			SetEventType(latestMeter.EventType).
-			SetNillableValueProperty(latestMeter.ValueProperty).
-			Save(ctx)
-		require.NoError(t, err)
-
 		// Create feature with the LATEST meter
 		f, err := deps.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
 			Name:      "latest_feature",
