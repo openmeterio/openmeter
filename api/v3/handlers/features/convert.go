@@ -26,12 +26,12 @@ func convertFeatureToAPI(f feature.Feature) (api.Feature, error) {
 		DeletedAt: f.ArchivedAt,
 	}
 
-	if f.MeterSlug != nil {
+	if f.MeterID != nil {
 		resp.Meter = &struct {
 			Filters *map[string]api.QueryFilterStringMapItem `json:"filters,omitempty"`
 			Id      api.ULID                                 `json:"id"`
 		}{
-			Id: *f.MeterSlug,
+			Id: *f.MeterID,
 		}
 
 		if len(f.MeterGroupByFilters) > 0 {
@@ -51,12 +51,12 @@ func convertFeatureToAPI(f feature.Feature) (api.Feature, error) {
 	return resp, nil
 }
 
-func convertCreateRequestToDomain(ns string, body api.CreateFeatureRequest, meterSlug *string) (feature.CreateFeatureInputs, error) {
+func convertCreateRequestToDomain(ns string, body api.CreateFeatureRequest, meterID *string) (feature.CreateFeatureInputs, error) {
 	inputs := feature.CreateFeatureInputs{
 		Namespace: ns,
 		Name:      body.Name,
 		Key:       body.Key,
-		MeterSlug: meterSlug,
+		MeterID:   meterID,
 		Metadata:  convertLabelsToMetadata(body.Labels),
 	}
 

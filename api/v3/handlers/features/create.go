@@ -35,8 +35,8 @@ func (h *handler) CreateFeature() CreateFeatureHandler {
 				return CreateFeatureRequest{}, err
 			}
 
-			// Resolve meter ID to slug for the domain layer.
-			var meterSlug *string
+			// Resolve and validate the meter reference.
+			var meterID *string
 			if body.Meter != nil {
 				m, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
 					Namespace: ns,
@@ -45,7 +45,7 @@ func (h *handler) CreateFeature() CreateFeatureHandler {
 				if err != nil {
 					return CreateFeatureRequest{}, err
 				}
-				meterSlug = &m.Key
+				meterID = &m.ID
 
 				// Validate meter filters.
 				if body.Meter.Filters != nil {
@@ -55,7 +55,7 @@ func (h *handler) CreateFeature() CreateFeatureHandler {
 				}
 			}
 
-			return convertCreateRequestToDomain(ns, body, meterSlug)
+			return convertCreateRequestToDomain(ns, body, meterID)
 		},
 		func(ctx context.Context, req CreateFeatureRequest) (CreateFeatureResponse, error) {
 			created, err := h.connector.CreateFeature(ctx, req)

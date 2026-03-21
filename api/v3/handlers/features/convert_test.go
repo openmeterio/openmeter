@@ -221,7 +221,7 @@ func TestConvertFeatureToAPI(t *testing.T) {
 			ID:        "feat-2",
 			Name:      "Token Feature",
 			Key:       "tokens",
-			MeterSlug: lo.ToPtr("tokens_total"),
+			MeterID: lo.ToPtr("tokens_total"),
 			MeterGroupByFilters: feature.MeterGroupByFilters{
 				"provider": {Eq: lo.ToPtr("openai")},
 			},
@@ -244,7 +244,7 @@ func TestConvertFeatureToAPI(t *testing.T) {
 			ID:        "feat-3",
 			Name:      "API Calls",
 			Key:       "api_calls",
-			MeterSlug: lo.ToPtr("api_requests"),
+			MeterID: lo.ToPtr("api_requests"),
 			UnitCost: &feature.UnitCost{
 				Type: feature.UnitCostTypeManual,
 				Manual: &feature.ManualUnitCost{
@@ -295,12 +295,12 @@ func TestConvertCreateRequestToDomain(t *testing.T) {
 		assert.Equal(t, "test-ns", result.Namespace)
 		assert.Equal(t, "my_key", result.Key)
 		assert.Equal(t, "My Feature", result.Name)
-		assert.Nil(t, result.MeterSlug)
+		assert.Nil(t, result.MeterID)
 		assert.Nil(t, result.UnitCost)
 	})
 
-	t.Run("with meter slug and filters", func(t *testing.T) {
-		meterSlug := "tokens_total"
+	t.Run("with meter ID and filters", func(t *testing.T) {
+		meterID := "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 		body := api.CreateFeatureRequest{
 			Key:  "tokens",
 			Name: "Tokens",
@@ -315,10 +315,10 @@ func TestConvertCreateRequestToDomain(t *testing.T) {
 			},
 		}
 
-		result, err := convertCreateRequestToDomain("ns", body, &meterSlug)
+		result, err := convertCreateRequestToDomain("ns", body, &meterID)
 		require.NoError(t, err)
-		require.NotNil(t, result.MeterSlug)
-		assert.Equal(t, "tokens_total", *result.MeterSlug)
+		require.NotNil(t, result.MeterID)
+		assert.Equal(t, "01ARZ3NDEKTSV4RRFFQ69G5FAV", *result.MeterID)
 		require.NotNil(t, result.MeterGroupByFilters)
 		assert.Equal(t, lo.ToPtr("gpt-4"), result.MeterGroupByFilters["model"].Eq)
 	})
