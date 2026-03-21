@@ -138,13 +138,9 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 		}
 
 		if feature.MeterGroupByFilters != nil {
-			err = feature.MeterGroupByFilters.Validate(meter)
-			if err != nil {
+			if err = feature.MeterGroupByFilters.Validate(meter); err != nil {
 				return Feature{}, err
 			}
-		}
-		if err != nil {
-			return Feature{}, err
 		}
 	}
 
