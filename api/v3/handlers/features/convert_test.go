@@ -221,7 +221,7 @@ func TestConvertFeatureToAPI(t *testing.T) {
 			ID:        "feat-2",
 			Name:      "Token Feature",
 			Key:       "tokens",
-			MeterID: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+			MeterID:   lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 			MeterGroupByFilters: feature.MeterGroupByFilters{
 				"provider": {Eq: lo.ToPtr("openai")},
 			},
@@ -244,7 +244,7 @@ func TestConvertFeatureToAPI(t *testing.T) {
 			ID:        "feat-3",
 			Name:      "API Calls",
 			Key:       "api_calls",
-			MeterID: lo.ToPtr("api_requests"),
+			MeterID:   lo.ToPtr("api_requests"),
 			UnitCost: &feature.UnitCost{
 				Type: feature.UnitCostTypeManual,
 				Manual: &feature.ManualUnitCost{
