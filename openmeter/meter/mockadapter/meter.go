@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -100,16 +101,30 @@ func (c *adapter) ReplaceMeters(ctx context.Context, meters []meter.Meter) error
 
 	// Sync to PG if DB client is set (for FK constraints on features.meter_id).
 	if c.dbClient != nil {
-		for _, m := range meters {
+		for i, m := range meters {
 			exists, err := c.dbClient.Meter.Get(ctx, m.ID)
 			if err == nil && exists != nil {
 				continue
 			}
 
-			// Only proceed to create if the meter was not found.
+			// Only proceed to create if the meter was not found by ID.
 			// For any other error, fail fast.
 			if !entdb.IsNotFound(err) {
 				return fmt.Errorf("failed to check meter in PG: %w", err)
+			}
+
+			// Check if a meter with the same (namespace, key) already exists with a different ID.
+			// This can happen with shared test template DBs. Reuse the existing DB ID.
+			existing, findErr := c.dbClient.Meter.Query().
+				Where(
+					dbmeter.Namespace(m.Namespace),
+					dbmeter.Key(m.Key),
+				).
+				Only(ctx)
+			if findErr == nil && existing != nil {
+				// Reuse the existing DB meter ID for consistency with FK references
+				c.meters[i].ID = existing.ID
+				continue
 			}
 
 			_, err = c.dbClient.Meter.Create().
