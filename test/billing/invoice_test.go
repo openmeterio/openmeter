@@ -84,10 +84,11 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 	require.NotNil(s.T(), customerEntity)
 	require.NotEmpty(s.T(), customerEntity.ID)
 
+	testMeterID := ulid.Make().String()
 	err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: testMeterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -114,7 +115,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		Namespace: namespace,
 		Name:      "test",
 		Key:       "test",
-		MeterSlug: lo.ToPtr("test"),
+		MeterID:   lo.ToPtr(testMeterID),
 	})
 	require.NoError(s.T(), err)
 
@@ -1368,10 +1369,14 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
+	flatPerUnitMeterID := ulid.Make().String()
+	tieredGraduatedMeterID := ulid.Make().String()
+	tieredVolumeMeterID := ulid.Make().String()
+
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: flatPerUnitMeterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -1388,7 +1393,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		},
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: tieredGraduatedMeterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -1405,7 +1410,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		},
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: tieredVolumeMeterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -1444,19 +1449,19 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			Namespace: namespace,
 			Name:      "flat-per-unit",
 			Key:       "flat-per-unit",
-			MeterSlug: lo.ToPtr("flat-per-unit"),
+			MeterID:   lo.ToPtr(flatPerUnitMeterID),
 		})),
 		tieredGraduated: lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
 			Namespace: namespace,
 			Name:      "tiered-graduated",
 			Key:       "tiered-graduated",
-			MeterSlug: lo.ToPtr("tiered-graduated"),
+			MeterID:   lo.ToPtr(tieredGraduatedMeterID),
 		})),
 		tieredVolume: lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
 			Namespace: namespace,
 			Name:      "tiered-volume",
 			Key:       "tiered-volume",
-			MeterSlug: lo.ToPtr("tiered-volume"),
+			MeterID:   lo.ToPtr(tieredVolumeMeterID),
 		})),
 	}
 
@@ -2297,10 +2302,12 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
+	tieredGraduatedMeterID := ulid.Make().String()
+
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: tieredGraduatedMeterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -2337,7 +2344,7 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 			Namespace: namespace,
 			Name:      "tiered-graduated",
 			Key:       "tiered-graduated",
-			MeterSlug: lo.ToPtr("tiered-graduated"),
+			MeterID:   lo.ToPtr(tieredGraduatedMeterID),
 		})),
 	}
 
@@ -2540,10 +2547,14 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
+	flatPerUnitMeterID := ulid.Make().String()
+	tieredGraduatedMeterID := ulid.Make().String()
+	tieredVolumeMeterID := ulid.Make().String()
+
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: flatPerUnitMeterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -2560,7 +2571,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 		},
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: tieredGraduatedMeterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -2577,7 +2588,7 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 		},
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: tieredVolumeMeterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -2616,19 +2627,19 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 			Namespace: namespace,
 			Name:      "flat-per-unit",
 			Key:       "flat-per-unit",
-			MeterSlug: lo.ToPtr("flat-per-unit"),
+			MeterID:   lo.ToPtr(flatPerUnitMeterID),
 		})),
 		tieredGraduated: lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
 			Namespace: namespace,
 			Name:      "tiered-graduated",
 			Key:       "tiered-graduated",
-			MeterSlug: lo.ToPtr("tiered-graduated"),
+			MeterID:   lo.ToPtr(tieredGraduatedMeterID),
 		})),
 		tieredVolume: lo.Must(s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
 			Namespace: namespace,
 			Name:      "tiered-volume",
 			Key:       "tiered-volume",
-			MeterSlug: lo.ToPtr("tiered-volume"),
+			MeterID:   lo.ToPtr(tieredVolumeMeterID),
 		})),
 	}
 
@@ -3098,11 +3109,12 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	meterSlug := "flat-per-unit"
+	flatPerUnitMeterID := ulid.Make().String()
 
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: flatPerUnitMeterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -3135,7 +3147,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 		Namespace: namespace,
 		Name:      "flat-per-unit",
 		Key:       "flat-per-unit",
-		MeterSlug: lo.ToPtr("flat-per-unit"),
+		MeterID:   lo.ToPtr(flatPerUnitMeterID),
 	}))
 
 	// Given we have a test customer
@@ -3271,11 +3283,12 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	meterSlug := "flat-per-unit"
+	flatPerUnitMeterID := ulid.Make().String()
 
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: flatPerUnitMeterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -3308,7 +3321,7 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 		Namespace: namespace,
 		Name:      "flat-per-unit",
 		Key:       "flat-per-unit",
-		MeterSlug: lo.ToPtr("flat-per-unit"),
+		MeterID:   lo.ToPtr(flatPerUnitMeterID),
 	}))
 
 	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
@@ -3389,11 +3402,12 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 	meterSlug := "flat-per-unit"
+	flatPerUnitMeterID := ulid.Make().String()
 
 	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: flatPerUnitMeterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -3426,7 +3440,7 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
 		Namespace: namespace,
 		Name:      "flat-per-unit",
 		Key:       "flat-per-unit",
-		MeterSlug: lo.ToPtr("flat-per-unit"),
+		MeterID:   lo.ToPtr(flatPerUnitMeterID),
 	}))
 
 	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
@@ -4129,10 +4143,11 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityInvalidDatabaseState() {
 		sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
 		meterSlug := "snapshot-meter"
+		snapshotMeterID := ulid.Make().String()
 		err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 			{
 				ManagedResource: models.ManagedResource{
-					ID: ulid.Make().String(),
+					ID: snapshotMeterID,
 					NamespacedModel: models.NamespacedModel{
 						Namespace: namespace,
 					},
@@ -4154,7 +4169,7 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityInvalidDatabaseState() {
 			Namespace: namespace,
 			Name:      "snapshot-feature",
 			Key:       "snapshot-feature",
-			MeterSlug: lo.ToPtr(meterSlug),
+			MeterID:   lo.ToPtr(snapshotMeterID),
 		}))
 
 		customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{

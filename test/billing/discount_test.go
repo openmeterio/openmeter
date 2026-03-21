@@ -41,10 +41,11 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 	s.NotNil(customerEntity)
 
 	meterSlug := "flat-per-unit"
+	meterID := ulid.Make().String()
 	s.NoError(s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: meterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -77,7 +78,7 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		Namespace: namespace,
 		Name:      meterSlug,
 		Key:       meterSlug,
-		MeterSlug: lo.ToPtr(meterSlug),
+		MeterID:   lo.ToPtr(meterID),
 	}))
 
 	// When we provision a new pending line with a 10% discount, without a correlation ID set
@@ -244,10 +245,11 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 	s.NotNil(customerEntity)
 
 	meterSlug := "flat-per-unit"
+	meterID := ulid.Make().String()
 	s.NoError(s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: meterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -278,7 +280,7 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 		Namespace: namespace,
 		Name:      meterSlug,
 		Key:       meterSlug,
-		MeterSlug: lo.ToPtr(meterSlug),
+		MeterID:   lo.ToPtr(meterID),
 	}))
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,

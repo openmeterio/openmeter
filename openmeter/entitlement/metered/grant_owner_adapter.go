@@ -78,14 +78,14 @@ func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.Nam
 		return def, fmt.Errorf("failed to get feature of entitlement: %w", err)
 	}
 
-	if feature.MeterSlug == nil {
+	if feature.MeterID == nil {
 		return def, fmt.Errorf("feature does not have a meter")
 	}
 
 	// meterrepo is not transactional
 	met, err := e.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
 		Namespace: id.Namespace,
-		IDOrSlug:  *feature.MeterSlug,
+		IDOrSlug:  *feature.MeterID,
 	})
 	if err != nil {
 		return def, fmt.Errorf("failed to get meter: %w", err)

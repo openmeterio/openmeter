@@ -55,7 +55,7 @@ func MapFeatureCreateInputsRequest(namespace string, f api.FeatureCreateInputs) 
 		Namespace:           namespace,
 		Name:                f.Name,
 		Key:                 f.Key,
-		MeterSlug:           f.MeterSlug,
+		MeterID:             f.MeterSlug, // v1 API sends meter slug; connector resolves to meter ID
 		MeterGroupByFilters: meterGroupByFilters,
 		Metadata:            convert.DerefHeaderPtr[string](f.Metadata),
 	}

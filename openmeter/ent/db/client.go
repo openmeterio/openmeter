@@ -8738,6 +8738,22 @@ func (c *FeatureClient) QueryAddonRatecard(_m *Feature) *AddonRateCardQuery {
 	return query
 }
 
+// QueryMeter queries the meter edge of a Feature.
+func (c *FeatureClient) QueryMeter(_m *Feature) *MeterQuery {
+	query := (&MeterClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, id),
+			sqlgraph.To(dbmeter.Table, dbmeter.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, dbfeature.MeterTable, dbfeature.MeterColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *FeatureClient) Hooks() []Hook {
 	return c.hooks.Feature
@@ -10274,6 +10290,22 @@ func (c *MeterClient) GetX(ctx context.Context, id string) *Meter {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryFeature queries the feature edge of a Meter.
+func (c *MeterClient) QueryFeature(_m *Meter) *FeatureQuery {
+	query := (&FeatureClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbmeter.Table, dbmeter.FieldID, id),
+			sqlgraph.To(dbfeature.Table, dbfeature.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbmeter.FeatureTable, dbmeter.FeatureColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.

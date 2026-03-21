@@ -2686,12 +2686,21 @@ var (
 		{Name: "unit_cost_llm_token_type_property", Type: field.TypeString, Nullable: true},
 		{Name: "unit_cost_llm_token_type", Type: field.TypeString, Nullable: true},
 		{Name: "archived_at", Type: field.TypeTime, Nullable: true},
+		{Name: "meter_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// FeaturesTable holds the schema information for the "features" table.
 	FeaturesTable = &schema.Table{
 		Name:       "features",
 		Columns:    FeaturesColumns,
 		PrimaryKey: []*schema.Column{FeaturesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "features_meters_feature",
+				Columns:    []*schema.Column{FeaturesColumns[20]},
+				RefColumns: []*schema.Column{MetersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "feature_id",
@@ -2715,6 +2724,14 @@ var (
 				Name:    "feature_namespace_meter_slug",
 				Unique:  false,
 				Columns: []*schema.Column{FeaturesColumns[5], FeaturesColumns[8]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "archived_at IS NULL",
+				},
+			},
+			{
+				Name:    "feature_namespace_meter_id",
+				Unique:  false,
+				Columns: []*schema.Column{FeaturesColumns[5], FeaturesColumns[20]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "archived_at IS NULL",
 				},
@@ -4500,6 +4517,7 @@ func init() {
 	CustomerSubjectsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[1].RefTable = FeaturesTable
+	FeaturesTable.ForeignKeys[0].RefTable = MetersTable
 	FeaturesTable.Annotation = &entsql.Annotation{}
 	FeaturesTable.Annotation.Checks = map[string]string{
 		"unit_cost_llm_model_mutual_exclusive":      "NOT (unit_cost_llm_model_property IS NOT NULL AND unit_cost_llm_model IS NOT NULL)",

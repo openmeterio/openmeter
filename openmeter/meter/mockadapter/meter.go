@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"slices"
 
+	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -21,6 +23,10 @@ func (c *adapter) ListMeters(_ context.Context, params meter.ListMetersParams) (
 	// In memory filtering
 	for _, meter := range c.getMeters() {
 		if !params.WithoutNamespace && meter.Namespace != params.Namespace {
+			continue
+		}
+
+		if params.IDFilter != nil && !slices.Contains(*params.IDFilter, meter.ID) {
 			continue
 		}
 
@@ -80,7 +86,7 @@ func (c *adapter) GetMeterByIDOrSlug(_ context.Context, input meter.GetMeterInpu
 }
 
 // ReplaceMeters can be used to replace all meters in the repository.
-func (c *adapter) ReplaceMeters(_ context.Context, meters []meter.Meter) error {
+func (c *adapter) ReplaceMeters(ctx context.Context, meters []meter.Meter) error {
 	c.init()
 
 	for _, m := range meters {
@@ -91,7 +97,55 @@ func (c *adapter) ReplaceMeters(_ context.Context, meters []meter.Meter) error {
 		}
 	}
 
-	c.meters = slices.Clone(meters)
+	// Sync to PG if DB client is set (for FK constraints on features.meter_id).
+	// We clone meters so we can update IDs without mutating the caller's slice.
+	synced := slices.Clone(meters)
+
+	if c.dbClient != nil {
+		for i, m := range synced {
+			exists, err := c.dbClient.Meter.Get(ctx, m.ID)
+			if err == nil && exists != nil {
+				continue
+			}
+
+			// Only proceed to create if the meter was not found by ID.
+			// For any other error, fail fast.
+			if !entdb.IsNotFound(err) {
+				return fmt.Errorf("failed to check meter in PG: %w", err)
+			}
+
+			// Check if a meter with the same (namespace, key) already exists with a different ID.
+			// This can happen with shared test template DBs. Reuse the existing DB ID.
+			existing, findErr := c.dbClient.Meter.Query().
+				Where(
+					dbmeter.Namespace(m.Namespace),
+					dbmeter.Key(m.Key),
+				).
+				Only(ctx)
+			if findErr == nil && existing != nil {
+				// Reuse the existing DB meter ID for consistency with FK references
+				synced[i].ID = existing.ID
+				continue
+			}
+
+			_, err = c.dbClient.Meter.Create().
+				SetID(m.ID).
+				SetNamespace(m.Namespace).
+				SetName(m.Name).
+				SetKey(m.Key).
+				SetGroupBy(m.GroupBy).
+				SetAggregation(m.Aggregation).
+				SetEventType(m.EventType).
+				SetNillableValueProperty(m.ValueProperty).
+				Save(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to sync meter to PG: %w", err)
+			}
+		}
+	}
+
+	// Only update in-memory state after PG sync succeeds to avoid inconsistency on partial failure.
+	c.meters = synced
 
 	return nil
 }

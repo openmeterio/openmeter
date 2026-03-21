@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -12,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
@@ -19,11 +21,12 @@ import (
 // MeterQuery is the builder for querying Meter entities.
 type MeterQuery struct {
 	config
-	ctx        *QueryContext
-	order      []dbmeter.OrderOption
-	inters     []Interceptor
-	predicates []predicate.Meter
-	modifiers  []func(*sql.Selector)
+	ctx         *QueryContext
+	order       []dbmeter.OrderOption
+	inters      []Interceptor
+	predicates  []predicate.Meter
+	withFeature *FeatureQuery
+	modifiers   []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -58,6 +61,28 @@ func (_q *MeterQuery) Unique(unique bool) *MeterQuery {
 func (_q *MeterQuery) Order(o ...dbmeter.OrderOption) *MeterQuery {
 	_q.order = append(_q.order, o...)
 	return _q
+}
+
+// QueryFeature chains the current query on the "feature" edge.
+func (_q *MeterQuery) QueryFeature() *FeatureQuery {
+	query := (&FeatureClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbmeter.Table, dbmeter.FieldID, selector),
+			sqlgraph.To(dbfeature.Table, dbfeature.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbmeter.FeatureTable, dbmeter.FeatureColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Meter entity from the query.
@@ -247,15 +272,27 @@ func (_q *MeterQuery) Clone() *MeterQuery {
 		return nil
 	}
 	return &MeterQuery{
-		config:     _q.config,
-		ctx:        _q.ctx.Clone(),
-		order:      append([]dbmeter.OrderOption{}, _q.order...),
-		inters:     append([]Interceptor{}, _q.inters...),
-		predicates: append([]predicate.Meter{}, _q.predicates...),
+		config:      _q.config,
+		ctx:         _q.ctx.Clone(),
+		order:       append([]dbmeter.OrderOption{}, _q.order...),
+		inters:      append([]Interceptor{}, _q.inters...),
+		predicates:  append([]predicate.Meter{}, _q.predicates...),
+		withFeature: _q.withFeature.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
+}
+
+// WithFeature tells the query-builder to eager-load the nodes that are connected to
+// the "feature" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *MeterQuery) WithFeature(opts ...func(*FeatureQuery)) *MeterQuery {
+	query := (&FeatureClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withFeature = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -334,8 +371,11 @@ func (_q *MeterQuery) prepareQuery(ctx context.Context) error {
 
 func (_q *MeterQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Meter, error) {
 	var (
-		nodes = []*Meter{}
-		_spec = _q.querySpec()
+		nodes       = []*Meter{}
+		_spec       = _q.querySpec()
+		loadedTypes = [1]bool{
+			_q.withFeature != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Meter).scanValues(nil, columns)
@@ -343,6 +383,7 @@ func (_q *MeterQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Meter,
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Meter{config: _q.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if len(_q.modifiers) > 0 {
@@ -357,7 +398,48 @@ func (_q *MeterQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Meter,
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := _q.withFeature; query != nil {
+		if err := _q.loadFeature(ctx, query, nodes,
+			func(n *Meter) { n.Edges.Feature = []*Feature{} },
+			func(n *Meter, e *Feature) { n.Edges.Feature = append(n.Edges.Feature, e) }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (_q *MeterQuery) loadFeature(ctx context.Context, query *FeatureQuery, nodes []*Meter, init func(*Meter), assign func(*Meter, *Feature)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Meter)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(dbfeature.FieldMeterID)
+	}
+	query.Where(predicate.Feature(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(dbmeter.FeatureColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.MeterID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "meter_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "meter_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (_q *MeterQuery) sqlCount(ctx context.Context) (int, error) {

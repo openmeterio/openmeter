@@ -97,7 +97,7 @@ func TestAddonServiceList(t *testing.T) {
 
 			ctx := context.Background()
 
-			_ = deps.FeatureConnector.CreateExampleFeatures(t)
+			_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
 			// Let's create a plan
 

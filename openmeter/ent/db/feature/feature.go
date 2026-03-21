@@ -30,6 +30,8 @@ const (
 	FieldKey = "key"
 	// FieldMeterSlug holds the string denoting the meter_slug field in the database.
 	FieldMeterSlug = "meter_slug"
+	// FieldMeterID holds the string denoting the meter_id field in the database.
+	FieldMeterID = "meter_id"
 	// FieldMeterGroupByFilters holds the string denoting the meter_group_by_filters field in the database.
 	FieldMeterGroupByFilters = "meter_group_by_filters"
 	// FieldAdvancedMeterGroupByFilters holds the string denoting the advanced_meter_group_by_filters field in the database.
@@ -58,6 +60,8 @@ const (
 	EdgeRatecard = "ratecard"
 	// EdgeAddonRatecard holds the string denoting the addon_ratecard edge name in mutations.
 	EdgeAddonRatecard = "addon_ratecard"
+	// EdgeMeter holds the string denoting the meter edge name in mutations.
+	EdgeMeter = "meter"
 	// Table holds the table name of the feature in the database.
 	Table = "features"
 	// EntitlementTable is the table that holds the entitlement relation/edge.
@@ -81,6 +85,13 @@ const (
 	AddonRatecardInverseTable = "addon_rate_cards"
 	// AddonRatecardColumn is the table column denoting the addon_ratecard relation/edge.
 	AddonRatecardColumn = "feature_id"
+	// MeterTable is the table that holds the meter relation/edge.
+	MeterTable = "features"
+	// MeterInverseTable is the table name for the Meter entity.
+	// It exists in this package in order to avoid circular dependency with the "dbmeter" package.
+	MeterInverseTable = "meters"
+	// MeterColumn is the table column denoting the meter relation/edge.
+	MeterColumn = "meter_id"
 )
 
 // Columns holds all SQL columns for feature fields.
@@ -94,6 +105,7 @@ var Columns = []string{
 	FieldName,
 	FieldKey,
 	FieldMeterSlug,
+	FieldMeterID,
 	FieldMeterGroupByFilters,
 	FieldAdvancedMeterGroupByFilters,
 	FieldUnitCostType,
@@ -175,6 +187,11 @@ func ByKey(opts ...sql.OrderTermOption) OrderOption {
 // ByMeterSlug orders the results by the meter_slug field.
 func ByMeterSlug(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMeterSlug, opts...).ToFunc()
+}
+
+// ByMeterID orders the results by the meter_id field.
+func ByMeterID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMeterID, opts...).ToFunc()
 }
 
 // ByUnitCostType orders the results by the unit_cost_type field.
@@ -263,6 +280,13 @@ func ByAddonRatecard(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newAddonRatecardStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByMeterField orders the results by meter field.
+func ByMeterField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newMeterStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newEntitlementStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -282,5 +306,12 @@ func newAddonRatecardStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(AddonRatecardInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, AddonRatecardTable, AddonRatecardColumn),
+	)
+}
+func newMeterStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(MeterInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, MeterTable, MeterColumn),
 	)
 }

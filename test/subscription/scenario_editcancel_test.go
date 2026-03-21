@@ -17,7 +17,6 @@ import (
 	pcsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
-	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -44,7 +43,7 @@ func TestEditingAndCanceling(t *testing.T) {
 		Name:      "Example Feature",
 		Key:       "test_feature_1",
 		Namespace: namespace,
-		MeterSlug: lo.ToPtr(subscriptiontestutils.ExampleFeatureMeterSlug),
+		MeterID:   lo.ToPtr(tDeps.ExampleMeterID),
 	})
 	require.NoError(t, err)
 

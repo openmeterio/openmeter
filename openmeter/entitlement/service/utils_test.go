@@ -172,6 +172,26 @@ func setupDependecies(t *testing.T) (entitlement.Service, *dependencies) {
 	return entitlementRegistry.Entitlement, deps
 }
 
+// createMeterInPG creates a meter record in PostgreSQL so that FK constraints
+// on the features table (meter_id) are satisfied. The mock meter adapter only
+// stores meters in memory, so this must be called after CreateMeter.
+func createMeterInPG(t *testing.T, dbClient *db.Client, mtr meter.Meter) {
+	t.Helper()
+
+	_, err := dbClient.Meter.Create().
+		SetID(mtr.ID).
+		SetNamespace(mtr.Namespace).
+		SetName(mtr.Name).
+		SetKey(mtr.Key).
+		SetAggregation(mtr.Aggregation).
+		SetEventType(mtr.EventType).
+		SetNillableValueProperty(mtr.ValueProperty).
+		Save(t.Context())
+	if err != nil {
+		t.Fatalf("failed to create meter in PG: %v", err)
+	}
+}
+
 func createCustomerAndSubject(t *testing.T, subjectService subject.Service, customerService customer.Service, ns, key, name string) *customer.Customer {
 	t.Helper()
 

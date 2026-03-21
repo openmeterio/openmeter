@@ -111,7 +111,7 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 			Name:                TestFeatureName,
 			Key:                 TestFeatureKey,
 			Namespace:           s.Env.Namespace(),
-			MeterSlug:           convert.ToPointer(meter.Key),
+			MeterID:             convert.ToPointer(meter.ID),
 			MeterGroupByFilters: feature.ConvertMapStringToMeterGroupByFilters(meter.GroupBy),
 		})
 	}

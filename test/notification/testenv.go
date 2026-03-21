@@ -136,6 +136,9 @@ func NewTestEnv(t *testing.T, ctx context.Context, namespace string) (TestEnv, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to create meter service: %w", err)
 	}
+	if err := meterService.SetDBClient(entClient); err != nil {
+		return nil, fmt.Errorf("failed to set meter DB client: %w", err)
+	}
 
 	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(entClient, logger.WithGroup("feature.postgres"))
 	featureConnector := feature.NewFeatureConnector(featureAdapter, meterService, eventbus.NewMock(t))

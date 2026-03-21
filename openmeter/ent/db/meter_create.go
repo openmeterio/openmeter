@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -169,6 +170,21 @@ func (_c *MeterCreate) SetNillableID(v *string) *MeterCreate {
 		_c.SetID(*v)
 	}
 	return _c
+}
+
+// AddFeatureIDs adds the "feature" edge to the Feature entity by IDs.
+func (_c *MeterCreate) AddFeatureIDs(ids ...string) *MeterCreate {
+	_c.mutation.AddFeatureIDs(ids...)
+	return _c
+}
+
+// AddFeature adds the "feature" edges to the Feature entity.
+func (_c *MeterCreate) AddFeature(v ...*Feature) *MeterCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddFeatureIDs(ids...)
 }
 
 // Mutation returns the MeterMutation object of the builder.
@@ -354,6 +370,22 @@ func (_c *MeterCreate) createSpec() (*Meter, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.EventFrom(); ok {
 		_spec.SetField(dbmeter.FieldEventFrom, field.TypeTime, value)
 		_node.EventFrom = &value
+	}
+	if nodes := _c.mutation.FeatureIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbmeter.FeatureTable,
+			Columns: []string{dbmeter.FeatureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

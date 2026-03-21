@@ -163,7 +163,7 @@ func TestUsageBasedRateCard(t *testing.T) {
 		ID:                  "01JBP3SGZ20Y7VRVC351TDFXYZ",
 		Name:                "Feature 1",
 		Key:                 "feat-1",
-		MeterSlug:           lo.ToPtr("meter-1"),
+		MeterID:             lo.ToPtr("meter-1"),
 		MeterGroupByFilters: nil,
 		Metadata: map[string]string{
 			"name": "Feature 1",
@@ -358,7 +358,7 @@ func TestRateCardsEqual(t *testing.T) {
 		ID:                  "01JBP3SGZ20Y7VRVC351TDFXYZ",
 		Name:                "Feature 1",
 		Key:                 "feat-1",
-		MeterSlug:           lo.ToPtr("meter-1"),
+		MeterID:             lo.ToPtr("meter-1"),
 		MeterGroupByFilters: nil,
 		Metadata: map[string]string{
 			"name": "Feature 1",

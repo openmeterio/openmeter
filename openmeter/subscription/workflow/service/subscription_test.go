@@ -106,7 +106,7 @@ func TestCreateFromPlan(t *testing.T) {
 			defer dbDeps.Cleanup(t)
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeatures(t)
+			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
@@ -131,7 +131,7 @@ func TestCreateFromPlan(t *testing.T) {
 		defer dbDeps.Cleanup(t)
 
 		deps := subscriptiontestutils.NewService(t, dbDeps)
-		deps.FeatureConnector.CreateExampleFeatures(t)
+		deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
 		p := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
 			AddPhase(nil, &subscriptiontestutils.ExampleRateCard3ForAddons, &subscriptiontestutils.ExampleRateCard4ForAddons).
@@ -349,7 +349,7 @@ func TestEditRunning(t *testing.T) {
 			defer dbDeps.Cleanup(t)
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeatures(t)
+			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
@@ -542,7 +542,7 @@ func TestEditingCurrentPhase(t *testing.T) {
 			defer dbDeps.Cleanup(t)
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeatures(t)
+			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 			require.NotNil(t, cust)
@@ -782,7 +782,7 @@ func TestEditingWithTiming(t *testing.T) {
 			defer dbDeps.Cleanup(t)
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeatures(t)
+			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 			planInput := subscriptiontestutils.GetExamplePlanInput(t)
 
 			plan := deps.PlanHelper.CreatePlan(t, planInput)
@@ -938,7 +938,7 @@ func TestChangeToPlan(t *testing.T) {
 			defer dbDeps.Cleanup(t)
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeatures(t)
+			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
 			// Let's create the two plans
 			plan1 := deps.PlanHelper.CreatePlan(t, examplePlanInput1)
@@ -1040,7 +1040,7 @@ func TestEditCombinations(t *testing.T) {
 			defer dbDeps.Cleanup(t)
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeatures(t)
+			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
 			// Let's create the plan
 			plan1 := deps.PlanHelper.CreatePlan(t, examplePlanInput1)
@@ -1410,7 +1410,7 @@ func TestRestore(t *testing.T) {
 			defer dbDeps.Cleanup(t)
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeatures(t)
+			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
 			// Let's create the plan
 			plan1 := deps.PlanHelper.CreatePlan(t, examplePlanInput1)
@@ -1599,7 +1599,7 @@ func TestMultiSubscription(t *testing.T) {
 			defer dbDeps.Cleanup(t)
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeatures(t)
+			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
 			// Let's create the plan
 			plan1 := deps.PlanHelper.CreatePlan(t, examplePlanInput1)
@@ -1798,7 +1798,7 @@ func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
 			defer dbDeps.Cleanup(t)
 
 			deps := subscriptiontestutils.NewService(t, dbDeps)
-			deps.FeatureConnector.CreateExampleFeatures(t)
+			deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
 			// Let's create the two plans
 			plan1 := deps.PlanHelper.CreatePlan(t, examplePlanInput1)

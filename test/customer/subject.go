@@ -236,7 +236,7 @@ func (s *CustomerHandlerTestSuite) TestMultiSubjectIntegrationFlow(ctx context.C
 		Name:      "Integration Feature One",
 		Key:       featureOneKey,
 		Namespace: s.namespace,
-		MeterSlug: lo.ToPtr(met.Key),
+		MeterID:   lo.ToPtr(met.ID),
 	})
 	require.NoError(t, err, "creating first feature should not error")
 
@@ -244,7 +244,7 @@ func (s *CustomerHandlerTestSuite) TestMultiSubjectIntegrationFlow(ctx context.C
 		Name:      "Integration Feature Two",
 		Key:       featureTwoKey,
 		Namespace: s.namespace,
-		MeterSlug: lo.ToPtr(met.Key),
+		MeterID:   lo.ToPtr(met.ID),
 	})
 	require.NoError(t, err, "creating second feature should not error")
 

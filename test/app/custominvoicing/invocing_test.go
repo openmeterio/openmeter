@@ -87,10 +87,11 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 	s.NotNil(customerEntity, "customer should not be nil")
 
 	// Let's set up a meter for ubp testing
+	testMeterID := ulid.Make().String()
 	err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: testMeterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -123,7 +124,7 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 		Namespace: namespace,
 		Name:      "test",
 		Key:       "test",
-		MeterSlug: lo.ToPtr("test"),
+		MeterID:   lo.ToPtr(testMeterID),
 	})
 	s.NoError(err)
 
