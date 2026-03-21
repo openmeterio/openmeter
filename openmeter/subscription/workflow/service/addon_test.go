@@ -122,7 +122,7 @@ func TestAddAddon(t *testing.T) {
 	}))
 
 	t.Run("Should add a new addon to a subscription that already has a different addon", runWithDeps(func(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies) {
-		_ = deps.FeatureConnector.CreateExampleFeatures(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
 		// Let's create a plan
 		p, err := deps.PlanService.CreatePlan(context.Background(), subscriptiontestutils.BuildTestPlanInput(t).

@@ -34,7 +34,7 @@ func TestCreation(t *testing.T) {
 		service := deps.SubscriptionService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
-		_ = deps.FeatureConnector.CreateExampleFeatures(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
@@ -105,7 +105,7 @@ func TestCreation(t *testing.T) {
 		service := deps.SubscriptionService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
-		_ = deps.FeatureConnector.CreateExampleFeatures(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		specWithAnnotations, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
@@ -163,7 +163,7 @@ func TestCreation(t *testing.T) {
 		})
 		require.Nil(t, err)
 
-		_ = deps.FeatureConnector.CreateExampleFeatures(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
@@ -208,7 +208,7 @@ func TestCreation(t *testing.T) {
 		})
 		require.Nil(t, err)
 
-		_ = deps.FeatureConnector.CreateExampleFeatures(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		defaultSpecFromPlan, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
@@ -251,7 +251,7 @@ func TestCancellation(t *testing.T) {
 		service := deps.SubscriptionService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
-		_ = deps.FeatureConnector.CreateExampleFeatures(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		// First, let's create a subscription
@@ -368,7 +368,7 @@ func TestContinuing(t *testing.T) {
 		service := deps.SubscriptionService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
-		_ = deps.FeatureConnector.CreateExampleFeatures(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		// First, let's create a subscription
@@ -455,7 +455,7 @@ func TestContinuing(t *testing.T) {
 		service := deps.SubscriptionService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
-		_ = deps.FeatureConnector.CreateExampleFeatures(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		// First, let's create a subscription
@@ -563,7 +563,7 @@ func TestList(t *testing.T) {
 		})
 		require.Nil(t, err)
 
-		_ = deps.FeatureConnector.CreateExampleFeatures(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		// Let's create some subscriptions:
@@ -688,7 +688,7 @@ func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
 		workflowService := deps.WorkflowService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
-		_ = deps.FeatureConnector.CreateExampleFeatures(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 		plan1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		// Create first subscription
@@ -751,7 +751,7 @@ func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
 		workflowService := deps.WorkflowService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
-		_ = deps.FeatureConnector.CreateExampleFeatures(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 		plan1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		// Create first subscription
@@ -815,7 +815,7 @@ func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
 		workflowService := deps.WorkflowService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
-		_ = deps.FeatureConnector.CreateExampleFeatures(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 		plan1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		// Create first subscription
@@ -879,7 +879,7 @@ func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
 		workflowService := deps.WorkflowService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
-		_ = deps.FeatureConnector.CreateExampleFeatures(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 		plan1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		// Create standalone scheduled subscription (can be deleted)
@@ -921,7 +921,7 @@ func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
 		workflowService := deps.WorkflowService
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
-		_ = deps.FeatureConnector.CreateExampleFeatures(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 		plan1 := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 		// Create scheduled subscription with nil annotations (can be deleted)
