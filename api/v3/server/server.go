@@ -144,6 +144,10 @@ func (c *Config) Validate() error {
 		errs = append(errs, errors.New("currency service is required"))
 	}
 
+	if c.FeatureConnector == nil {
+		errs = append(errs, errors.New("feature connector is required"))
+	}
+
 	return errors.Join(errs...)
 }
 

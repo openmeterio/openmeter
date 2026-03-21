@@ -221,7 +221,7 @@ func TestConvertFeatureToAPI(t *testing.T) {
 			ID:        "feat-2",
 			Name:      "Token Feature",
 			Key:       "tokens",
-			MeterID: lo.ToPtr("tokens_total"),
+			MeterID: lo.ToPtr("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
 			MeterGroupByFilters: feature.MeterGroupByFilters{
 				"provider": {Eq: lo.ToPtr("openai")},
 			},
@@ -232,7 +232,7 @@ func TestConvertFeatureToAPI(t *testing.T) {
 		result, err := convertFeatureToAPI(f)
 		require.NoError(t, err)
 		require.NotNil(t, result.Meter)
-		assert.Equal(t, api.ULID("tokens_total"), result.Meter.Id)
+		assert.Equal(t, api.ULID("01ARZ3NDEKTSV4RRFFQ69G5FAV"), result.Meter.Id)
 		require.NotNil(t, result.Meter.Filters)
 		filterMap := *result.Meter.Filters
 		assert.Equal(t, lo.ToPtr("openai"), filterMap["provider"].Eq)
@@ -495,10 +495,9 @@ func TestConvertMetadataLabels(t *testing.T) {
 		assert.Equal(t, "2", (*labels)["b"])
 	})
 
-	t.Run("nil metadata returns empty labels", func(t *testing.T) {
+	t.Run("nil metadata returns nil labels", func(t *testing.T) {
 		labels := convertMetadataToLabels(nil)
-		require.NotNil(t, labels)
-		assert.Empty(t, *labels)
+		assert.Nil(t, labels)
 	})
 
 	t.Run("labels to metadata", func(t *testing.T) {

@@ -3,6 +3,7 @@ package features
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -269,15 +270,64 @@ func convertFiltersToAPI(filters feature.MeterGroupByFilters) map[string]api.Que
 
 func convertFilterStringToAPIMapItem(f filter.FilterString) api.QueryFilterStringMapItem {
 	return api.QueryFilterStringMapItem{
-		Exists: f.Exists,
-		Eq:     f.Eq,
-		Neq:    f.Ne,
-		In:     f.In,
-		Nin:    f.Nin,
+		Exists:    f.Exists,
+		Eq:        f.Eq,
+		Neq:       f.Ne,
+		In:        f.In,
+		Nin:       f.Nin,
+		Contains:  reverseContainsPattern(f.Like),
+		Ncontains: reverseContainsPattern(f.Nlike),
+		And:       convertFilterStringListToAPI(f.And),
+		Or:        convertFilterStringListToAPI(f.Or),
+	}
+}
+
+// reverseContainsPattern extracts the plain value from a LIKE pattern
+// produced by filter.ContainsPattern (e.g. "%foo%" → "foo").
+func reverseContainsPattern(like *string) *string {
+	if like == nil {
+		return nil
+	}
+	v := *like
+	// Strip outer % added by ContainsPattern.
+	v = strings.TrimPrefix(v, "%")
+	v = strings.TrimSuffix(v, "%")
+	// Reverse EscapeLikePattern: unescape \_, \%, \\.
+	v = strings.ReplaceAll(v, `\_`, "_")
+	v = strings.ReplaceAll(v, `\%`, "%")
+	v = strings.ReplaceAll(v, `\\`, `\`)
+	return &v
+}
+
+func convertFilterStringListToAPI(filters *[]filter.FilterString) *[]api.QueryFilterString {
+	if filters == nil {
+		return nil
+	}
+	result := make([]api.QueryFilterString, len(*filters))
+	for i, f := range *filters {
+		result[i] = convertFilterStringToAPIQueryFilter(f)
+	}
+	return &result
+}
+
+func convertFilterStringToAPIQueryFilter(f filter.FilterString) api.QueryFilterString {
+	return api.QueryFilterString{
+		Eq:        f.Eq,
+		Neq:       f.Ne,
+		In:        f.In,
+		Nin:       f.Nin,
+		Contains:  reverseContainsPattern(f.Like),
+		Ncontains: reverseContainsPattern(f.Nlike),
+		And:       convertFilterStringListToAPI(f.And),
+		Or:        convertFilterStringListToAPI(f.Or),
 	}
 }
 
 func convertMetadataToLabels(metadata models.Metadata) *api.Labels {
+	if len(metadata) == 0 {
+		return nil
+	}
+
 	labels := make(api.Labels)
 	for k, v := range metadata {
 		labels[k] = v

@@ -38,6 +38,12 @@ func (h *handler) CreateFeature() CreateFeatureHandler {
 			// Resolve and validate the meter reference.
 			var meterID *string
 			if body.Meter != nil {
+				if body.Meter.Id == "" {
+					return CreateFeatureRequest{}, models.NewGenericValidationError(
+						fmt.Errorf("meter id is required"),
+					)
+				}
+
 				m, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{
 					Namespace: ns,
 					IDOrSlug:  body.Meter.Id,
