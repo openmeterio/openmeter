@@ -85,6 +85,26 @@ func (_u *FeatureUpdate) SetNillableName(v *string) *FeatureUpdate {
 	return _u
 }
 
+// SetDescription sets the "description" field.
+func (_u *FeatureUpdate) SetDescription(v string) *FeatureUpdate {
+	_u.mutation.SetDescription(v)
+	return _u
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (_u *FeatureUpdate) SetNillableDescription(v *string) *FeatureUpdate {
+	if v != nil {
+		_u.SetDescription(*v)
+	}
+	return _u
+}
+
+// ClearDescription clears the value of the "description" field.
+func (_u *FeatureUpdate) ClearDescription() *FeatureUpdate {
+	_u.mutation.ClearDescription()
+	return _u
+}
+
 // SetMeterGroupByFilters sets the "meter_group_by_filters" field.
 func (_u *FeatureUpdate) SetMeterGroupByFilters(v map[string]string) *FeatureUpdate {
 	_u.mutation.SetMeterGroupByFilters(v)
@@ -445,6 +465,11 @@ func (_u *FeatureUpdate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "Feature.name": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Description(); ok {
+		if err := dbfeature.DescriptionValidator(v); err != nil {
+			return &ValidationError{Name: "description", err: fmt.Errorf(`db: validator failed for field "Feature.description": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -477,6 +502,12 @@ func (_u *FeatureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(dbfeature.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Description(); ok {
+		_spec.SetField(dbfeature.FieldDescription, field.TypeString, value)
+	}
+	if _u.mutation.DescriptionCleared() {
+		_spec.ClearField(dbfeature.FieldDescription, field.TypeString)
 	}
 	if _u.mutation.MeterSlugCleared() {
 		_spec.ClearField(dbfeature.FieldMeterSlug, field.TypeString)
@@ -751,6 +782,26 @@ func (_u *FeatureUpdateOne) SetNillableName(v *string) *FeatureUpdateOne {
 	if v != nil {
 		_u.SetName(*v)
 	}
+	return _u
+}
+
+// SetDescription sets the "description" field.
+func (_u *FeatureUpdateOne) SetDescription(v string) *FeatureUpdateOne {
+	_u.mutation.SetDescription(v)
+	return _u
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (_u *FeatureUpdateOne) SetNillableDescription(v *string) *FeatureUpdateOne {
+	if v != nil {
+		_u.SetDescription(*v)
+	}
+	return _u
+}
+
+// ClearDescription clears the value of the "description" field.
+func (_u *FeatureUpdateOne) ClearDescription() *FeatureUpdateOne {
+	_u.mutation.ClearDescription()
 	return _u
 }
 
@@ -1127,6 +1178,11 @@ func (_u *FeatureUpdateOne) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "Feature.name": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Description(); ok {
+		if err := dbfeature.DescriptionValidator(v); err != nil {
+			return &ValidationError{Name: "description", err: fmt.Errorf(`db: validator failed for field "Feature.description": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -1176,6 +1232,12 @@ func (_u *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err er
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(dbfeature.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Description(); ok {
+		_spec.SetField(dbfeature.FieldDescription, field.TypeString, value)
+	}
+	if _u.mutation.DescriptionCleared() {
+		_spec.ClearField(dbfeature.FieldDescription, field.TypeString)
 	}
 	if _u.mutation.MeterSlugCleared() {
 		_spec.ClearField(dbfeature.FieldMeterSlug, field.TypeString)

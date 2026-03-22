@@ -30,6 +30,7 @@ func (Feature) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("namespace").NotEmpty().Immutable(),
 		field.String("name").NotEmpty(),
+		field.String("description").Optional().Nillable().MaxLen(1024),
 		field.String("key").NotEmpty().Immutable(),
 		field.String("meter_slug").Optional().Nillable().Immutable(), // Deprecated: use meter_id. Will be removed in Phase 2.
 		field.String("meter_id").Optional().Nillable().Immutable(),

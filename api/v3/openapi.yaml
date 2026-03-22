@@ -2769,6 +2769,143 @@ components:
         - static
         - boolean
       description: The type of the entitlement.
+    BillingFeatureLLMTokenType:
+      type: string
+      enum:
+        - input
+        - output
+        - cache_read
+        - cache_write
+        - reasoning
+        - request
+        - response
+      description: Token type for LLM cost lookup.
+    BillingFeatureLLMUnitCost:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - llm
+        provider_property:
+          type: string
+          description: |-
+            Meter group-by property that holds the LLM provider.
+            Use this when the meter has a group-by dimension for provider.
+            Mutually exclusive with `provider`.
+          title: Provider property
+        provider:
+          type: string
+          description: |-
+            Static LLM provider value (e.g., "openai", "anthropic").
+            Use this when the feature tracks a single provider.
+            Mutually exclusive with `provider_property`.
+          title: Provider
+        model_property:
+          type: string
+          description: |-
+            Meter group-by property that holds the model ID.
+            Use this when the meter has a group-by dimension for model.
+            Mutually exclusive with `model`.
+          title: Model property
+        model:
+          type: string
+          description: |-
+            Static model ID value (e.g., "gpt-4", "claude-3-5-sonnet").
+            Use this when the feature tracks a single model.
+            Mutually exclusive with `model_property`.
+          title: Model
+        token_type_property:
+          type: string
+          description: |-
+            Meter group-by property that holds the token type.
+            Use this when the meter has a group-by dimension for token type.
+            Mutually exclusive with `token_type`.
+          title: Token type property
+        token_type:
+          allOf:
+            - $ref: '#/components/schemas/BillingFeatureLLMTokenType'
+          description: |-
+            Static token type value.
+            Use this when the feature tracks a single token type (e.g., only input tokens).
+            `request` is an alias for `input`, `response` is an alias for `output`.
+            Mutually exclusive with `token_type_property`.
+          title: Token type
+        pricing:
+          allOf:
+            - $ref: '#/components/schemas/BillingFeatureLLMUnitCostPricing'
+          description: |-
+            Resolved per-token pricing from the LLM cost database.
+            Populated in responses when the provider and model can be determined,
+            either from static values or from meter group-by filters with exact matches.
+          title: Resolved pricing
+          readOnly: true
+      description: |-
+        LLM cost lookup configuration.
+        Each dimension (provider, model, token type) can be specified as either
+        a static value or a meter group-by property name (mutually exclusive).
+    BillingFeatureLLMUnitCostPricing:
+      type: object
+      required:
+        - input_per_token
+        - output_per_token
+      properties:
+        input_per_token:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Cost per input token in USD.
+          title: Input per token
+        output_per_token:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Cost per output token in USD.
+          title: Output per token
+        cache_read_per_token:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Cost per cache read token in USD.
+          title: Cache read per token
+        reasoning_per_token:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Cost per reasoning token in USD.
+          title: Reasoning per token
+        cache_write_per_token:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Cost per cache write token in USD.
+          title: Cache write per token
+      description: Resolved per-token pricing from the LLM cost database.
+    BillingFeatureManualUnitCost:
+      type: object
+      required:
+        - type
+        - amount
+      properties:
+        type:
+          type: string
+          enum:
+            - manual
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Fixed per-unit cost amount in USD.
+      description: A fixed per-unit cost amount.
+    BillingFeatureUnitCost:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingFeatureManualUnitCost'
+        - $ref: '#/components/schemas/BillingFeatureLLMUnitCost'
+      discriminator:
+        propertyName: type
+        mapping:
+          manual: '#/components/schemas/BillingFeatureManualUnitCost'
+          llm: '#/components/schemas/BillingFeatureLLMUnitCost'
+      description: |-
+        Per-unit cost configuration for a feature.
+        Either a fixed manual amount or a dynamic LLM cost lookup.
     BillingParty:
       type: object
       properties:
@@ -3653,6 +3790,13 @@ components:
             Display name of the resource.
 
             Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
         labels:
           $ref: '#/components/schemas/Labels'
         key:
@@ -3679,7 +3823,7 @@ components:
           title: Meter reference
         unit_cost:
           allOf:
-            - $ref: '#/components/schemas/FeatureUnitCost'
+            - $ref: '#/components/schemas/BillingFeatureUnitCost'
           description: |-
             Optional per-unit cost configuration.
             Use "manual" for a fixed per-unit cost, or "llm" to look up cost
@@ -3850,6 +3994,13 @@ components:
             Display name of the resource.
 
             Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
         labels:
           $ref: '#/components/schemas/Labels'
         created_at:
@@ -3891,7 +4042,7 @@ components:
           title: Meter reference
         unit_cost:
           allOf:
-            - $ref: '#/components/schemas/FeatureUnitCost'
+            - $ref: '#/components/schemas/BillingFeatureUnitCost'
           description: |-
             Optional per-unit cost configuration.
             Use "manual" for a fixed per-unit cost, or "llm" to look up cost
@@ -3962,119 +4113,6 @@ components:
             The dimensions the value is aggregated over.
             `subject` and `customer_id` are reserved dimensions.
       description: A row in the result of a feature cost query.
-    FeatureLLMUnitCost:
-      type: object
-      required:
-        - type
-      properties:
-        type:
-          type: string
-          enum:
-            - llm
-        provider_property:
-          type: string
-          description: |-
-            Meter group-by property that holds the LLM provider.
-            Use this when the meter has a group-by dimension for provider.
-            Mutually exclusive with `provider`.
-          title: Provider property
-        provider:
-          type: string
-          description: |-
-            Static LLM provider value (e.g., "openai", "anthropic").
-            Use this when the feature tracks a single provider.
-            Mutually exclusive with `provider_property`.
-          title: Provider
-        model_property:
-          type: string
-          description: |-
-            Meter group-by property that holds the model ID.
-            Use this when the meter has a group-by dimension for model.
-            Mutually exclusive with `model`.
-          title: Model property
-        model:
-          type: string
-          description: |-
-            Static model ID value (e.g., "gpt-4", "claude-3-5-sonnet").
-            Use this when the feature tracks a single model.
-            Mutually exclusive with `model_property`.
-          title: Model
-        token_type_property:
-          type: string
-          description: |-
-            Meter group-by property that holds the token type.
-            Use this when the meter has a group-by dimension for token type.
-            Mutually exclusive with `token_type`.
-          title: Token type property
-        token_type:
-          type: string
-          description: |-
-            Static token type value.
-            Use this when the feature tracks a single token type (e.g., only input tokens).
-            Expected values: input, output, cache_read, reasoning, cache_write, request, response.
-            `request` is an alias for `input`, `response` is an alias for `output`.
-            Mutually exclusive with `token_type_property`.
-          title: Token type
-        pricing:
-          allOf:
-            - $ref: '#/components/schemas/FeatureLLMUnitCostPricing'
-          description: |-
-            Resolved per-token pricing from the LLM cost database.
-            Populated in responses when the provider and model can be determined,
-            either from static values or from meter group-by filters with exact matches.
-          title: Resolved pricing
-          readOnly: true
-      description: |-
-        LLM cost lookup configuration.
-        Each dimension (provider, model, token type) can be specified as either
-        a static value or a meter group-by property name (mutually exclusive).
-    FeatureLLMUnitCostPricing:
-      type: object
-      required:
-        - input_per_token
-        - output_per_token
-      properties:
-        input_per_token:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: Cost per input token in USD.
-          title: Input per token
-        output_per_token:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: Cost per output token in USD.
-          title: Output per token
-        cache_read_per_token:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: Cost per cache read token in USD.
-          title: Cache read per token
-        reasoning_per_token:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: Cost per reasoning token in USD.
-          title: Reasoning per token
-        cache_write_per_token:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: Cost per cache write token in USD.
-          title: Cache write per token
-      description: Resolved per-token pricing from the LLM cost database.
-    FeatureManualUnitCost:
-      type: object
-      required:
-        - type
-        - amount
-      properties:
-        type:
-          type: string
-          enum:
-            - manual
-        amount:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: Fixed per-unit cost amount in USD.
-      description: A fixed per-unit cost amount.
     FeaturePagePaginatedResponse:
       type: object
       required:
@@ -4088,19 +4126,6 @@ components:
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
       description: Page paginated response.
-    FeatureUnitCost:
-      type: object
-      oneOf:
-        - $ref: '#/components/schemas/FeatureManualUnitCost'
-        - $ref: '#/components/schemas/FeatureLLMUnitCost'
-      discriminator:
-        propertyName: type
-        mapping:
-          manual: '#/components/schemas/FeatureManualUnitCost'
-          llm: '#/components/schemas/FeatureLLMUnitCost'
-      description: |-
-        Per-unit cost configuration for a feature.
-        Either a fixed manual amount or a dynamic LLM cost lookup.
     FilterSingleString:
       type: object
       properties:

@@ -89,6 +89,20 @@ func (_c *FeatureCreate) SetName(v string) *FeatureCreate {
 	return _c
 }
 
+// SetDescription sets the "description" field.
+func (_c *FeatureCreate) SetDescription(v string) *FeatureCreate {
+	_c.mutation.SetDescription(v)
+	return _c
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (_c *FeatureCreate) SetNillableDescription(v *string) *FeatureCreate {
+	if v != nil {
+		_c.SetDescription(*v)
+	}
+	return _c
+}
+
 // SetKey sets the "key" field.
 func (_c *FeatureCreate) SetKey(v string) *FeatureCreate {
 	_c.mutation.SetKey(v)
@@ -398,6 +412,11 @@ func (_c *FeatureCreate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "Feature.name": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.Description(); ok {
+		if err := dbfeature.DescriptionValidator(v); err != nil {
+			return &ValidationError{Name: "description", err: fmt.Errorf(`db: validator failed for field "Feature.description": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Key(); !ok {
 		return &ValidationError{Name: "key", err: errors.New(`db: missing required field "Feature.key"`)}
 	}
@@ -465,6 +484,10 @@ func (_c *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(dbfeature.FieldName, field.TypeString, value)
 		_node.Name = value
+	}
+	if value, ok := _c.mutation.Description(); ok {
+		_spec.SetField(dbfeature.FieldDescription, field.TypeString, value)
+		_node.Description = &value
 	}
 	if value, ok := _c.mutation.Key(); ok {
 		_spec.SetField(dbfeature.FieldKey, field.TypeString, value)
@@ -692,6 +715,24 @@ func (u *FeatureUpsert) SetName(v string) *FeatureUpsert {
 // UpdateName sets the "name" field to the value that was provided on create.
 func (u *FeatureUpsert) UpdateName() *FeatureUpsert {
 	u.SetExcluded(dbfeature.FieldName)
+	return u
+}
+
+// SetDescription sets the "description" field.
+func (u *FeatureUpsert) SetDescription(v string) *FeatureUpsert {
+	u.Set(dbfeature.FieldDescription, v)
+	return u
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *FeatureUpsert) UpdateDescription() *FeatureUpsert {
+	u.SetExcluded(dbfeature.FieldDescription)
+	return u
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *FeatureUpsert) ClearDescription() *FeatureUpsert {
+	u.SetNull(dbfeature.FieldDescription)
 	return u
 }
 
@@ -1023,6 +1064,27 @@ func (u *FeatureUpsertOne) SetName(v string) *FeatureUpsertOne {
 func (u *FeatureUpsertOne) UpdateName() *FeatureUpsertOne {
 	return u.Update(func(s *FeatureUpsert) {
 		s.UpdateName()
+	})
+}
+
+// SetDescription sets the "description" field.
+func (u *FeatureUpsertOne) SetDescription(v string) *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetDescription(v)
+	})
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *FeatureUpsertOne) UpdateDescription() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *FeatureUpsertOne) ClearDescription() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearDescription()
 	})
 }
 
@@ -1554,6 +1616,27 @@ func (u *FeatureUpsertBulk) SetName(v string) *FeatureUpsertBulk {
 func (u *FeatureUpsertBulk) UpdateName() *FeatureUpsertBulk {
 	return u.Update(func(s *FeatureUpsert) {
 		s.UpdateName()
+	})
+}
+
+// SetDescription sets the "description" field.
+func (u *FeatureUpsertBulk) SetDescription(v string) *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetDescription(v)
+	})
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *FeatureUpsertBulk) UpdateDescription() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *FeatureUpsertBulk) ClearDescription() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearDescription()
 	})
 }
 

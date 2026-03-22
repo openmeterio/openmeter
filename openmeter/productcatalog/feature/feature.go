@@ -123,6 +123,8 @@ type Feature struct {
 
 	// Name The name of the feature.
 	Name string `json:"name"`
+	// Description Optional description of the feature.
+	Description *string `json:"description,omitempty"`
 	// Key The unique key of the feature.
 	Key string `json:"key"`
 

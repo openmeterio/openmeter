@@ -3,7 +3,6 @@ package features
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -18,13 +17,14 @@ import (
 
 func convertFeatureToAPI(f feature.Feature) (api.Feature, error) {
 	resp := api.Feature{
-		Id:        f.ID,
-		Key:       f.Key,
-		Name:      f.Name,
-		Labels:    convertMetadataToLabels(f.Metadata),
-		CreatedAt: &f.CreatedAt,
-		UpdatedAt: &f.UpdatedAt,
-		DeletedAt: f.ArchivedAt,
+		Id:          f.ID,
+		Key:         f.Key,
+		Name:        f.Name,
+		Description: f.Description,
+		Labels:      convertMetadataToLabels(f.Metadata),
+		CreatedAt:   &f.CreatedAt,
+		UpdatedAt:   &f.UpdatedAt,
+		DeletedAt:   f.ArchivedAt,
 	}
 
 	if f.MeterID != nil {
@@ -54,11 +54,12 @@ func convertFeatureToAPI(f feature.Feature) (api.Feature, error) {
 
 func convertCreateRequestToDomain(ns string, body api.CreateFeatureRequest, meterID *string) (feature.CreateFeatureInputs, error) {
 	inputs := feature.CreateFeatureInputs{
-		Namespace: ns,
-		Name:      body.Name,
-		Key:       body.Key,
-		MeterID:   meterID,
-		Metadata:  convertLabelsToMetadata(body.Labels),
+		Namespace:   ns,
+		Name:        body.Name,
+		Description: body.Description,
+		Key:         body.Key,
+		MeterID:     meterID,
+		Metadata:    convertLabelsToMetadata(body.Labels),
 	}
 
 	if body.Meter != nil {
@@ -78,18 +79,18 @@ func convertCreateRequestToDomain(ns string, body api.CreateFeatureRequest, mete
 	return inputs, nil
 }
 
-func convertUnitCostToAPI(u *feature.UnitCost) (api.FeatureUnitCost, error) {
-	var out api.FeatureUnitCost
+func convertUnitCostToAPI(u *feature.UnitCost) (api.BillingFeatureUnitCost, error) {
+	var out api.BillingFeatureUnitCost
 
 	switch u.Type {
 	case feature.UnitCostTypeManual:
-		if err := out.FromFeatureManualUnitCost(api.FeatureManualUnitCost{
+		if err := out.FromBillingFeatureManualUnitCost(api.BillingFeatureManualUnitCost{
 			Amount: u.Manual.Amount.String(),
 		}); err != nil {
 			return out, fmt.Errorf("failed to convert manual unit cost: %w", err)
 		}
 	case feature.UnitCostTypeLLM:
-		llmCost := api.FeatureLLMUnitCost{}
+		llmCost := api.BillingFeatureLLMUnitCost{}
 		if u.LLM.ProviderProperty != "" {
 			llmCost.ProviderProperty = lo.ToPtr(u.LLM.ProviderProperty)
 		}
@@ -106,9 +107,9 @@ func convertUnitCostToAPI(u *feature.UnitCost) (api.FeatureUnitCost, error) {
 			llmCost.TokenTypeProperty = lo.ToPtr(u.LLM.TokenTypeProperty)
 		}
 		if u.LLM.TokenType != "" {
-			llmCost.TokenType = lo.ToPtr(u.LLM.TokenType)
+			llmCost.TokenType = lo.ToPtr(api.BillingFeatureLLMTokenType(u.LLM.TokenType))
 		}
-		if err := out.FromFeatureLLMUnitCost(llmCost); err != nil {
+		if err := out.FromBillingFeatureLLMUnitCost(llmCost); err != nil {
 			return out, fmt.Errorf("failed to convert LLM unit cost: %w", err)
 		}
 	default:
@@ -118,7 +119,7 @@ func convertUnitCostToAPI(u *feature.UnitCost) (api.FeatureUnitCost, error) {
 	return out, nil
 }
 
-func convertUnitCostFromAPI(u *api.FeatureUnitCost) (*feature.UnitCost, error) {
+func convertUnitCostFromAPI(u *api.BillingFeatureUnitCost) (*feature.UnitCost, error) {
 	discriminator, err := u.Discriminator()
 	if err != nil {
 		return nil, fmt.Errorf("failed to determine unit cost type: %w", err)
@@ -126,7 +127,7 @@ func convertUnitCostFromAPI(u *api.FeatureUnitCost) (*feature.UnitCost, error) {
 
 	switch discriminator {
 	case "manual":
-		manual, err := u.AsFeatureManualUnitCost()
+		manual, err := u.AsBillingFeatureManualUnitCost()
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse manual unit cost: %w", err)
 		}
@@ -143,7 +144,7 @@ func convertUnitCostFromAPI(u *api.FeatureUnitCost) (*feature.UnitCost, error) {
 			},
 		}, nil
 	case "llm":
-		llm, err := u.AsFeatureLLMUnitCost()
+		llm, err := u.AsBillingFeatureLLMUnitCost()
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse LLM unit cost: %w", err)
 		}
@@ -156,7 +157,7 @@ func convertUnitCostFromAPI(u *api.FeatureUnitCost) (*feature.UnitCost, error) {
 				ModelProperty:     lo.FromPtrOr(llm.ModelProperty, ""),
 				Model:             lo.FromPtrOr(llm.Model, ""),
 				TokenTypeProperty: lo.FromPtrOr(llm.TokenTypeProperty, ""),
-				TokenType:         lo.FromPtrOr(llm.TokenType, ""),
+				TokenType:         string(lo.FromPtrOr(llm.TokenType, "")),
 			},
 		}, nil
 	default:
@@ -174,12 +175,12 @@ func enrichFeatureResponseWithPricing(resp *api.Feature, pricing *llmcost.ModelP
 		return
 	}
 
-	llmCost, err := resp.UnitCost.AsFeatureLLMUnitCost()
+	llmCost, err := resp.UnitCost.AsBillingFeatureLLMUnitCost()
 	if err != nil {
 		return
 	}
 
-	apiPricing := api.FeatureLLMUnitCostPricing{
+	apiPricing := api.BillingFeatureLLMUnitCostPricing{
 		InputPerToken:  pricing.InputPerToken.String(),
 		OutputPerToken: pricing.OutputPerToken.String(),
 	}
@@ -200,7 +201,7 @@ func enrichFeatureResponseWithPricing(resp *api.Feature, pricing *llmcost.ModelP
 	}
 
 	llmCost.Pricing = &apiPricing
-	_ = resp.UnitCost.FromFeatureLLMUnitCost(llmCost)
+	_ = resp.UnitCost.FromBillingFeatureLLMUnitCost(llmCost)
 }
 
 // resolveLLMPricing resolves LLM pricing for a feature from the LLM cost database.
@@ -275,28 +276,11 @@ func convertFilterStringToAPIMapItem(f filter.FilterString) api.QueryFilterStrin
 		Neq:       f.Ne,
 		In:        f.In,
 		Nin:       f.Nin,
-		Contains:  reverseContainsPattern(f.Like),
-		Ncontains: reverseContainsPattern(f.Nlike),
+		Contains:  filter.ReverseContainsPattern(f.Like),
+		Ncontains: filter.ReverseContainsPattern(f.Nlike),
 		And:       convertFilterStringListToAPI(f.And),
 		Or:        convertFilterStringListToAPI(f.Or),
 	}
-}
-
-// reverseContainsPattern extracts the plain value from a LIKE pattern
-// produced by filter.ContainsPattern (e.g. "%foo%" → "foo").
-func reverseContainsPattern(like *string) *string {
-	if like == nil {
-		return nil
-	}
-	v := *like
-	// Strip outer % added by ContainsPattern.
-	v = strings.TrimPrefix(v, "%")
-	v = strings.TrimSuffix(v, "%")
-	// Reverse EscapeLikePattern: unescape \_, \%, \\.
-	v = strings.ReplaceAll(v, `\_`, "_")
-	v = strings.ReplaceAll(v, `\%`, "%")
-	v = strings.ReplaceAll(v, `\\`, `\`)
-	return &v
 }
 
 func convertFilterStringListToAPI(filters *[]filter.FilterString) *[]api.QueryFilterString {
@@ -316,8 +300,8 @@ func convertFilterStringToAPIQueryFilter(f filter.FilterString) api.QueryFilterS
 		Neq:       f.Ne,
 		In:        f.In,
 		Nin:       f.Nin,
-		Contains:  reverseContainsPattern(f.Like),
-		Ncontains: reverseContainsPattern(f.Nlike),
+		Contains:  filter.ReverseContainsPattern(f.Like),
+		Ncontains: filter.ReverseContainsPattern(f.Nlike),
 		And:       convertFilterStringListToAPI(f.And),
 		Or:        convertFilterStringListToAPI(f.Or),
 	}

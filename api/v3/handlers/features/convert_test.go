@@ -31,7 +31,7 @@ func TestConvertUnitCostToAPI(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "manual", disc)
 
-		manual, err := result.AsFeatureManualUnitCost()
+		manual, err := result.AsBillingFeatureManualUnitCost()
 		require.NoError(t, err)
 		assert.Equal(t, api.Numeric("0.005"), manual.Amount)
 	})
@@ -53,7 +53,7 @@ func TestConvertUnitCostToAPI(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "llm", disc)
 
-		llm, err := result.AsFeatureLLMUnitCost()
+		llm, err := result.AsBillingFeatureLLMUnitCost()
 		require.NoError(t, err)
 		assert.Equal(t, lo.ToPtr("provider"), llm.ProviderProperty)
 		assert.Equal(t, lo.ToPtr("model"), llm.ModelProperty)
@@ -76,11 +76,11 @@ func TestConvertUnitCostToAPI(t *testing.T) {
 		result, err := convertUnitCostToAPI(uc)
 		require.NoError(t, err)
 
-		llm, err := result.AsFeatureLLMUnitCost()
+		llm, err := result.AsBillingFeatureLLMUnitCost()
 		require.NoError(t, err)
 		assert.Equal(t, lo.ToPtr("openai"), llm.Provider)
 		assert.Equal(t, lo.ToPtr("gpt-4"), llm.Model)
-		assert.Equal(t, lo.ToPtr("input"), llm.TokenType)
+		assert.Equal(t, lo.ToPtr(api.BillingFeatureLLMTokenTypeInput), llm.TokenType)
 		assert.Nil(t, llm.ProviderProperty)
 		assert.Nil(t, llm.ModelProperty)
 		assert.Nil(t, llm.TokenTypeProperty)
@@ -96,8 +96,8 @@ func TestConvertUnitCostToAPI(t *testing.T) {
 
 func TestConvertUnitCostFromAPI(t *testing.T) {
 	t.Run("manual unit cost", func(t *testing.T) {
-		var apiUC api.FeatureUnitCost
-		err := apiUC.FromFeatureManualUnitCost(api.FeatureManualUnitCost{
+		var apiUC api.BillingFeatureUnitCost
+		err := apiUC.FromBillingFeatureManualUnitCost(api.BillingFeatureManualUnitCost{
 			Amount: "0.123",
 		})
 		require.NoError(t, err)
@@ -111,8 +111,8 @@ func TestConvertUnitCostFromAPI(t *testing.T) {
 	})
 
 	t.Run("llm unit cost with properties", func(t *testing.T) {
-		var apiUC api.FeatureUnitCost
-		err := apiUC.FromFeatureLLMUnitCost(api.FeatureLLMUnitCost{
+		var apiUC api.BillingFeatureUnitCost
+		err := apiUC.FromBillingFeatureLLMUnitCost(api.BillingFeatureLLMUnitCost{
 			ProviderProperty:  lo.ToPtr("provider"),
 			ModelProperty:     lo.ToPtr("model"),
 			TokenTypeProperty: lo.ToPtr("type"),
@@ -132,11 +132,11 @@ func TestConvertUnitCostFromAPI(t *testing.T) {
 	})
 
 	t.Run("llm unit cost with static values", func(t *testing.T) {
-		var apiUC api.FeatureUnitCost
-		err := apiUC.FromFeatureLLMUnitCost(api.FeatureLLMUnitCost{
+		var apiUC api.BillingFeatureUnitCost
+		err := apiUC.FromBillingFeatureLLMUnitCost(api.BillingFeatureLLMUnitCost{
 			Provider:  lo.ToPtr("anthropic"),
 			Model:     lo.ToPtr("claude-3-5-sonnet"),
-			TokenType: lo.ToPtr("output"),
+			TokenType: lo.ToPtr(api.BillingFeatureLLMTokenTypeOutput),
 		})
 		require.NoError(t, err)
 
@@ -324,8 +324,8 @@ func TestConvertCreateRequestToDomain(t *testing.T) {
 	})
 
 	t.Run("with manual unit cost", func(t *testing.T) {
-		var uc api.FeatureUnitCost
-		err := uc.FromFeatureManualUnitCost(api.FeatureManualUnitCost{Amount: "0.05"})
+		var uc api.BillingFeatureUnitCost
+		err := uc.FromBillingFeatureManualUnitCost(api.BillingFeatureManualUnitCost{Amount: "0.05"})
 		require.NoError(t, err)
 
 		body := api.CreateFeatureRequest{
@@ -358,8 +358,8 @@ func TestConvertCreateRequestToDomain(t *testing.T) {
 
 func TestEnrichFeatureResponseWithPricing(t *testing.T) {
 	t.Run("adds pricing to llm unit cost", func(t *testing.T) {
-		var uc api.FeatureUnitCost
-		err := uc.FromFeatureLLMUnitCost(api.FeatureLLMUnitCost{
+		var uc api.BillingFeatureUnitCost
+		err := uc.FromBillingFeatureLLMUnitCost(api.BillingFeatureLLMUnitCost{
 			ProviderProperty: lo.ToPtr("provider"),
 			ModelProperty:    lo.ToPtr("model"),
 		})
@@ -373,7 +373,7 @@ func TestEnrichFeatureResponseWithPricing(t *testing.T) {
 
 		enrichFeatureResponseWithPricing(resp, pricing)
 
-		llm, err := resp.UnitCost.AsFeatureLLMUnitCost()
+		llm, err := resp.UnitCost.AsBillingFeatureLLMUnitCost()
 		require.NoError(t, err)
 		require.NotNil(t, llm.Pricing)
 		assert.Equal(t, api.Numeric("0.00001"), llm.Pricing.InputPerToken)
@@ -382,8 +382,8 @@ func TestEnrichFeatureResponseWithPricing(t *testing.T) {
 	})
 
 	t.Run("adds optional pricing fields", func(t *testing.T) {
-		var uc api.FeatureUnitCost
-		err := uc.FromFeatureLLMUnitCost(api.FeatureLLMUnitCost{
+		var uc api.BillingFeatureUnitCost
+		err := uc.FromBillingFeatureLLMUnitCost(api.BillingFeatureLLMUnitCost{
 			Provider: lo.ToPtr("openai"),
 			Model:    lo.ToPtr("gpt-4"),
 		})
@@ -399,7 +399,7 @@ func TestEnrichFeatureResponseWithPricing(t *testing.T) {
 
 		enrichFeatureResponseWithPricing(resp, pricing)
 
-		llm, err := resp.UnitCost.AsFeatureLLMUnitCost()
+		llm, err := resp.UnitCost.AsBillingFeatureLLMUnitCost()
 		require.NoError(t, err)
 		require.NotNil(t, llm.Pricing.CacheReadPerToken)
 		assert.Equal(t, api.Numeric("0.000005"), *llm.Pricing.CacheReadPerToken)
@@ -409,8 +409,8 @@ func TestEnrichFeatureResponseWithPricing(t *testing.T) {
 	})
 
 	t.Run("no-op when unit cost is manual", func(t *testing.T) {
-		var uc api.FeatureUnitCost
-		err := uc.FromFeatureManualUnitCost(api.FeatureManualUnitCost{Amount: "0.005"})
+		var uc api.BillingFeatureUnitCost
+		err := uc.FromBillingFeatureManualUnitCost(api.BillingFeatureManualUnitCost{Amount: "0.005"})
 		require.NoError(t, err)
 		resp := &api.Feature{UnitCost: &uc}
 
@@ -420,7 +420,7 @@ func TestEnrichFeatureResponseWithPricing(t *testing.T) {
 		})
 
 		// Manual cost should be unchanged
-		manual, err := resp.UnitCost.AsFeatureManualUnitCost()
+		manual, err := resp.UnitCost.AsBillingFeatureManualUnitCost()
 		require.NoError(t, err)
 		assert.Equal(t, api.Numeric("0.005"), manual.Amount)
 	})
@@ -432,13 +432,13 @@ func TestEnrichFeatureResponseWithPricing(t *testing.T) {
 	})
 
 	t.Run("no-op when pricing is nil", func(t *testing.T) {
-		var uc api.FeatureUnitCost
-		err := uc.FromFeatureLLMUnitCost(api.FeatureLLMUnitCost{})
+		var uc api.BillingFeatureUnitCost
+		err := uc.FromBillingFeatureLLMUnitCost(api.BillingFeatureLLMUnitCost{})
 		require.NoError(t, err)
 		resp := &api.Feature{UnitCost: &uc}
 		enrichFeatureResponseWithPricing(resp, nil)
 
-		llm, err := resp.UnitCost.AsFeatureLLMUnitCost()
+		llm, err := resp.UnitCost.AsBillingFeatureLLMUnitCost()
 		require.NoError(t, err)
 		assert.Nil(t, llm.Pricing)
 	})

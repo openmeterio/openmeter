@@ -5,7 +5,7 @@ namespace Features;
 /**
  * The type of unit cost.
  */
-@friendlyName("FeatureUnitCostType")
+@friendlyName("BillingFeatureUnitCostType")
 enum FeatureUnitCostType {
   llm: "llm",
   manual: "manual",
@@ -14,7 +14,7 @@ enum FeatureUnitCostType {
 /**
  * A fixed per-unit cost amount.
  */
-@friendlyName("FeatureManualUnitCost")
+@friendlyName("BillingFeatureManualUnitCost")
 model FeatureManualUnitCost {
   type: FeatureUnitCostType.manual;
 
@@ -23,11 +23,29 @@ model FeatureManualUnitCost {
 }
 
 /**
+ * Token type for LLM cost lookup.
+ */
+@friendlyName("BillingFeatureLLMTokenType")
+enum FeatureLLMTokenType {
+  input: "input",
+  output: "output",
+  cache_read: "cache_read",
+  cache_write: "cache_write",
+  reasoning: "reasoning",
+
+  /** Alias for `input`. */
+  request: "request",
+
+  /** Alias for `output`. */
+  response: "response",
+}
+
+/**
  * LLM cost lookup configuration.
  * Each dimension (provider, model, token type) can be specified as either
  * a static value or a meter group-by property name (mutually exclusive).
  */
-@friendlyName("FeatureLLMUnitCost")
+@friendlyName("BillingFeatureLLMUnitCost")
 model FeatureLLMUnitCost {
   type: FeatureUnitCostType.llm;
 
@@ -74,12 +92,11 @@ model FeatureLLMUnitCost {
   /**
    * Static token type value.
    * Use this when the feature tracks a single token type (e.g., only input tokens).
-   * Expected values: input, output, cache_read, reasoning, cache_write, request, response.
    * `request` is an alias for `input`, `response` is an alias for `output`.
    * Mutually exclusive with `token_type_property`.
    */
   @summary("Token type")
-  token_type?: string;
+  token_type?: FeatureLLMTokenType;
 
   /**
    * Resolved per-token pricing from the LLM cost database.
@@ -94,7 +111,7 @@ model FeatureLLMUnitCost {
 /**
  * Resolved per-token pricing from the LLM cost database.
  */
-@friendlyName("FeatureLLMUnitCostPricing")
+@friendlyName("BillingFeatureLLMUnitCostPricing")
 model FeatureLLMUnitCostPricing {
   /** Cost per input token in USD. */
   @summary("Input per token")
@@ -121,7 +138,7 @@ model FeatureLLMUnitCostPricing {
  * Per-unit cost configuration for a feature.
  * Either a fixed manual amount or a dynamic LLM cost lookup.
  */
-@friendlyName("FeatureUnitCost")
+@friendlyName("BillingFeatureUnitCost")
 @discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
 union FeatureUnitCost {
   @summary("Manual unit cost")

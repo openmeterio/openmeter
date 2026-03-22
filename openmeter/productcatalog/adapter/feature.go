@@ -42,6 +42,7 @@ func NewPostgresFeatureRepo(db *db.Client, logger *slog.Logger) feature.FeatureR
 func (c *featureDBAdapter) CreateFeature(ctx context.Context, feat feature.CreateFeatureInputs) (feature.Feature, error) {
 	query := c.db.Feature.Create().
 		SetName(feat.Name).
+		SetNillableDescription(feat.Description).
 		SetKey(feat.Key).
 		SetNamespace(feat.Namespace).
 		SetMetadata(feat.Metadata).
@@ -301,15 +302,16 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 // mapFeatureEntity maps a database feature entity to a feature model.
 func MapFeatureEntity(entity *db.Feature) feature.Feature {
 	f := feature.Feature{
-		ID:         entity.ID,
-		Namespace:  entity.Namespace,
-		Name:       entity.Name,
-		Key:        entity.Key,
-		MeterID:    entity.MeterID,
-		ArchivedAt: entity.ArchivedAt,
-		CreatedAt:  entity.CreatedAt.In(time.UTC),
-		UpdatedAt:  entity.UpdatedAt.In(time.UTC),
-		Metadata:   entity.Metadata,
+		ID:          entity.ID,
+		Namespace:   entity.Namespace,
+		Name:        entity.Name,
+		Description: entity.Description,
+		Key:         entity.Key,
+		MeterID:     entity.MeterID,
+		ArchivedAt:  entity.ArchivedAt,
+		CreatedAt:   entity.CreatedAt.In(time.UTC),
+		UpdatedAt:   entity.UpdatedAt.In(time.UTC),
+		Metadata:    entity.Metadata,
 	}
 
 	// Deprecated: kept for v1 API backward compatibility

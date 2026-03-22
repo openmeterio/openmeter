@@ -33,6 +33,8 @@ type Feature struct {
 	Namespace string `json:"namespace,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
+	// Description holds the value of the "description" field.
+	Description *string `json:"description,omitempty"`
 	// Key holds the value of the "key" field.
 	Key string `json:"key,omitempty"`
 	// MeterSlug holds the value of the "meter_slug" field.
@@ -129,7 +131,7 @@ func (*Feature) scanValues(columns []string) ([]any, error) {
 			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case dbfeature.FieldMetadata, dbfeature.FieldMeterGroupByFilters, dbfeature.FieldAdvancedMeterGroupByFilters:
 			values[i] = new([]byte)
-		case dbfeature.FieldID, dbfeature.FieldNamespace, dbfeature.FieldName, dbfeature.FieldKey, dbfeature.FieldMeterSlug, dbfeature.FieldMeterID, dbfeature.FieldUnitCostType, dbfeature.FieldUnitCostLlmProviderProperty, dbfeature.FieldUnitCostLlmProvider, dbfeature.FieldUnitCostLlmModelProperty, dbfeature.FieldUnitCostLlmModel, dbfeature.FieldUnitCostLlmTokenTypeProperty, dbfeature.FieldUnitCostLlmTokenType:
+		case dbfeature.FieldID, dbfeature.FieldNamespace, dbfeature.FieldName, dbfeature.FieldDescription, dbfeature.FieldKey, dbfeature.FieldMeterSlug, dbfeature.FieldMeterID, dbfeature.FieldUnitCostType, dbfeature.FieldUnitCostLlmProviderProperty, dbfeature.FieldUnitCostLlmProvider, dbfeature.FieldUnitCostLlmModelProperty, dbfeature.FieldUnitCostLlmModel, dbfeature.FieldUnitCostLlmTokenTypeProperty, dbfeature.FieldUnitCostLlmTokenType:
 			values[i] = new(sql.NullString)
 		case dbfeature.FieldCreatedAt, dbfeature.FieldUpdatedAt, dbfeature.FieldDeletedAt, dbfeature.FieldArchivedAt:
 			values[i] = new(sql.NullTime)
@@ -192,6 +194,13 @@ func (_m *Feature) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
 				_m.Name = value.String
+			}
+		case dbfeature.FieldDescription:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field description", values[i])
+			} else if value.Valid {
+				_m.Description = new(string)
+				*_m.Description = value.String
 			}
 		case dbfeature.FieldKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -367,6 +376,11 @@ func (_m *Feature) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)
+	builder.WriteString(", ")
+	if v := _m.Description; v != nil {
+		builder.WriteString("description=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("key=")
 	builder.WriteString(_m.Key)

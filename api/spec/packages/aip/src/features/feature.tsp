@@ -12,7 +12,7 @@ namespace Features;
  */
 @friendlyName("Feature")
 model Feature {
-  ...OmitProperties<Shared.ResourceWithKey, "description">;
+  ...Shared.ResourceWithKey;
 
   /**
    * The meter that the feature is associated with and and based on which usage is calculated.

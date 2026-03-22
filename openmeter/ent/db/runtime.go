@@ -1528,8 +1528,12 @@ func init() {
 	dbfeatureDescName := dbfeatureFields[1].Descriptor()
 	// dbfeature.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	dbfeature.NameValidator = dbfeatureDescName.Validators[0].(func(string) error)
+	// dbfeatureDescDescription is the schema descriptor for description field.
+	dbfeatureDescDescription := dbfeatureFields[2].Descriptor()
+	// dbfeature.DescriptionValidator is a validator for the "description" field. It is called by the builders before save.
+	dbfeature.DescriptionValidator = dbfeatureDescDescription.Validators[0].(func(string) error)
 	// dbfeatureDescKey is the schema descriptor for key field.
-	dbfeatureDescKey := dbfeatureFields[2].Descriptor()
+	dbfeatureDescKey := dbfeatureFields[3].Descriptor()
 	// dbfeature.KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	dbfeature.KeyValidator = dbfeatureDescKey.Validators[0].(func(string) error)
 	// dbfeatureDescID is the schema descriptor for id field.
