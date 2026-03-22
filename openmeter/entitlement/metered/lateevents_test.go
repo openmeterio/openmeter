@@ -44,7 +44,7 @@ import (
 // To test late events well add events before and after execution
 type inconsistentCreditConnector struct {
 	credit.CreditConnector
-	AddSimpleEvent func(meterSlug string, value float64, at time.Time)
+	AddSimpleEvent func(meterSlug string, value float64, at time.Time, opts ...streamingtestutils.AddOption)
 }
 
 func (c *inconsistentCreditConnector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedID, at time.Time) (engine.RunResult, error) {
