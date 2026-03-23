@@ -12,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/filter"
 )
 
 var _ streaming.Connector = &MockStreamingConnector{}
@@ -27,6 +28,7 @@ type SimpleEvent struct {
 	MeterSlug string
 	Value     float64
 	Time      time.Time
+	StoredAt  time.Time
 }
 
 type MockStreamingConnector struct {
@@ -39,12 +41,25 @@ func (m *MockStreamingConnector) Reset() {
 	m.events = map[string][]SimpleEvent{}
 }
 
-func (m *MockStreamingConnector) AddSimpleEvent(meterSlug string, value float64, at time.Time) {
-	m.events[meterSlug] = append(m.events[meterSlug], SimpleEvent{
+type AddOption func(event *SimpleEvent)
+
+func WithStoredAt(storedAt time.Time) AddOption {
+	return func(event *SimpleEvent) {
+		event.StoredAt = storedAt
+	}
+}
+
+func (m *MockStreamingConnector) AddSimpleEvent(meterSlug string, value float64, at time.Time, opts ...AddOption) {
+	event := SimpleEvent{
 		MeterSlug: meterSlug,
 		Value:     value,
 		Time:      at,
-	})
+		StoredAt:  at,
+	}
+	for _, opt := range opts {
+		opt(&event)
+	}
+	m.events[meterSlug] = append(m.events[meterSlug], event)
 	m.sortMeterEvents(meterSlug)
 }
 
@@ -131,6 +146,44 @@ func (m *MockStreamingConnector) windowSizeDuration(windowSize meter.WindowSize)
 	}
 }
 
+// filterStoredAt evaluates a FilterTimeUnix predicate against storedAt using Unix-second precision,
+// matching the ClickHouse stored_at column behavior. Composite $and/$or filters are evaluated
+// recursively.
+func filterStoredAt(f *filter.FilterTimeUnix, storedAt time.Time) bool {
+	if f == nil || f.IsEmpty() {
+		return true
+	}
+
+	unix := storedAt.Unix()
+
+	switch {
+	case f.Gt != nil:
+		return unix > f.Gt.Unix()
+	case f.Gte != nil:
+		return unix >= f.Gte.Unix()
+	case f.Lt != nil:
+		return unix < f.Lt.Unix()
+	case f.Lte != nil:
+		return unix <= f.Lte.Unix()
+	case f.And != nil:
+		for _, sub := range *f.And {
+			if !filterStoredAt(&filter.FilterTimeUnix{FilterTime: sub}, storedAt) {
+				return false
+			}
+		}
+		return true
+	case f.Or != nil:
+		for _, sub := range *f.Or {
+			if filterStoredAt(&filter.FilterTimeUnix{FilterTime: sub}, storedAt) {
+				return true
+			}
+		}
+		return false
+	default:
+		return true
+	}
+}
+
 // We approximate the actual logic by a simple filter + aggregation for most cases
 func (m *MockStreamingConnector) aggregateEvents(mm meter.Meter, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
 	events, ok := m.events[mm.Key]
@@ -140,6 +193,12 @@ func (m *MockStreamingConnector) aggregateEvents(mm meter.Meter, params streamin
 
 	if params.From == nil || params.To == nil {
 		return nil, fmt.Errorf("streaming mock connector does not support filtering without from and to")
+	}
+
+	if params.FilterStoredAt != nil && !params.FilterStoredAt.IsEmpty() {
+		events = lo.Filter(events, func(event SimpleEvent, _ int) bool {
+			return filterStoredAt(params.FilterStoredAt, event.StoredAt)
+		})
 	}
 
 	// Let's truncate the window size to the second, as clickhouse does not support sub-second precision

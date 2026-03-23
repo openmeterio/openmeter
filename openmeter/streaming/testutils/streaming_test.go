@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/filter"
 )
 
 func TestMockStreamingConnector(t *testing.T) {
@@ -315,6 +316,140 @@ func TestMockStreamingConnector(t *testing.T) {
 				{MeterSlug: defaultMeterSlug, Value: 4, Time: testutils.GetRFC3339Time(t, "2024-01-01T00:00:02Z")},
 			},
 		},
+		// FilterStoredAt tests
+		{
+			Name: "StoredAt defaults to Time when no WithStoredAt option is provided",
+			Query: streaming.QueryParams{
+				From: convert.ToPointer(testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z")),
+				To:   convert.ToPointer(testutils.GetRFC3339Time(t, "2024-01-01T01:00:00Z")),
+				FilterStoredAt: &filter.FilterTimeUnix{
+					FilterTime: filter.FilterTime{
+						// Include only events stored at or before 00:00; default StoredAt == Time
+						Lte: convert.ToPointer(testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z")),
+					},
+				},
+			},
+			Expected: []meter.MeterQueryRow{{
+				Value:       1,
+				WindowStart: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z"),
+				WindowEnd:   testutils.GetRFC3339Time(t, "2024-01-01T01:00:00Z"),
+				GroupBy:     map[string]*string{},
+			}},
+			Events: []SimpleEvent{
+				// No StoredAt set → AddSimpleEvent defaults it to Time (00:00), passes Lte filter
+				{MeterSlug: defaultMeterSlug, Value: 1, Time: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z")},
+				// No StoredAt set → defaults to Time (00:30) which is > 00:00, excluded by filter
+				{MeterSlug: defaultMeterSlug, Value: 2, Time: testutils.GetRFC3339Time(t, "2024-01-01T00:30:00Z")},
+			},
+		},
+		{
+			Name: "Should filter events by FilterStoredAt using Lt predicate with WithStoredAt override",
+			Query: streaming.QueryParams{
+				From: convert.ToPointer(testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z")),
+				To:   convert.ToPointer(testutils.GetRFC3339Time(t, "2024-01-01T01:00:00Z")),
+				FilterStoredAt: &filter.FilterTimeUnix{
+					FilterTime: filter.FilterTime{
+						Lt: convert.ToPointer(testutils.GetRFC3339Time(t, "2024-01-01T00:30:00Z")),
+					},
+				},
+			},
+			Expected: []meter.MeterQueryRow{{
+				Value:       1,
+				WindowStart: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z"),
+				WindowEnd:   testutils.GetRFC3339Time(t, "2024-01-01T01:00:00Z"),
+				GroupBy:     map[string]*string{},
+			}},
+			Events: []SimpleEvent{
+				// StoredAt 00:00 < Lt 00:30 → included
+				{MeterSlug: defaultMeterSlug, Value: 1, Time: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z"), StoredAt: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z")},
+				// StoredAt 01:00 is NOT < Lt 00:30 → excluded
+				{MeterSlug: defaultMeterSlug, Value: 2, Time: testutils.GetRFC3339Time(t, "2024-01-01T00:30:00Z"), StoredAt: testutils.GetRFC3339Time(t, "2024-01-01T01:00:00Z")},
+			},
+		},
+		{
+			Name: "Should filter events by FilterStoredAt using Gte predicate with WithStoredAt override",
+			Query: streaming.QueryParams{
+				From: convert.ToPointer(testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z")),
+				To:   convert.ToPointer(testutils.GetRFC3339Time(t, "2024-01-01T01:00:00Z")),
+				FilterStoredAt: &filter.FilterTimeUnix{
+					FilterTime: filter.FilterTime{
+						Gte: convert.ToPointer(testutils.GetRFC3339Time(t, "2024-01-01T01:00:00Z")),
+					},
+				},
+			},
+			Expected: []meter.MeterQueryRow{{
+				Value:       2,
+				WindowStart: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z"),
+				WindowEnd:   testutils.GetRFC3339Time(t, "2024-01-01T01:00:00Z"),
+				GroupBy:     map[string]*string{},
+			}},
+			Events: []SimpleEvent{
+				// StoredAt 00:00 < Gte 01:00 → excluded
+				{MeterSlug: defaultMeterSlug, Value: 1, Time: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z"), StoredAt: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z")},
+				// StoredAt 01:00 >= Gte 01:00 → included
+				{MeterSlug: defaultMeterSlug, Value: 2, Time: testutils.GetRFC3339Time(t, "2024-01-01T00:30:00Z"), StoredAt: testutils.GetRFC3339Time(t, "2024-01-01T01:00:00Z")},
+			},
+		},
+		{
+			Name: "Should filter events by FilterStoredAt using $and composite predicate",
+			Query: streaming.QueryParams{
+				From: convert.ToPointer(testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z")),
+				To:   convert.ToPointer(testutils.GetRFC3339Time(t, "2024-01-01T02:00:00Z")),
+				FilterStoredAt: &filter.FilterTimeUnix{
+					FilterTime: filter.FilterTime{
+						And: &[]filter.FilterTime{
+							// StoredAt >= 00:30 AND StoredAt < 01:30 → only middle event
+							{Gte: convert.ToPointer(testutils.GetRFC3339Time(t, "2024-01-01T00:30:00Z"))},
+							{Lt: convert.ToPointer(testutils.GetRFC3339Time(t, "2024-01-01T01:30:00Z"))},
+						},
+					},
+				},
+			},
+			Expected: []meter.MeterQueryRow{{
+				Value:       2,
+				WindowStart: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z"),
+				WindowEnd:   testutils.GetRFC3339Time(t, "2024-01-01T02:00:00Z"),
+				GroupBy:     map[string]*string{},
+			}},
+			Events: []SimpleEvent{
+				// StoredAt 00:00: fails Gte 00:30 → excluded
+				{MeterSlug: defaultMeterSlug, Value: 1, Time: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z"), StoredAt: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z")},
+				// StoredAt 01:00: passes both Gte 00:30 and Lt 01:30 → included
+				{MeterSlug: defaultMeterSlug, Value: 2, Time: testutils.GetRFC3339Time(t, "2024-01-01T00:30:00Z"), StoredAt: testutils.GetRFC3339Time(t, "2024-01-01T01:00:00Z")},
+				// StoredAt 02:00: fails Lt 01:30 → excluded
+				{MeterSlug: defaultMeterSlug, Value: 4, Time: testutils.GetRFC3339Time(t, "2024-01-01T01:00:00Z"), StoredAt: testutils.GetRFC3339Time(t, "2024-01-01T02:00:00Z")},
+			},
+		},
+		{
+			Name: "Should filter events by FilterStoredAt using $or composite predicate",
+			Query: streaming.QueryParams{
+				From: convert.ToPointer(testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z")),
+				To:   convert.ToPointer(testutils.GetRFC3339Time(t, "2024-01-01T02:00:00Z")),
+				FilterStoredAt: &filter.FilterTimeUnix{
+					FilterTime: filter.FilterTime{
+						Or: &[]filter.FilterTime{
+							// StoredAt < 00:30 OR StoredAt >= 01:30 → first and last events
+							{Lt: convert.ToPointer(testutils.GetRFC3339Time(t, "2024-01-01T00:30:00Z"))},
+							{Gte: convert.ToPointer(testutils.GetRFC3339Time(t, "2024-01-01T01:30:00Z"))},
+						},
+					},
+				},
+			},
+			Expected: []meter.MeterQueryRow{{
+				Value:       5,
+				WindowStart: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z"),
+				WindowEnd:   testutils.GetRFC3339Time(t, "2024-01-01T02:00:00Z"),
+				GroupBy:     map[string]*string{},
+			}},
+			Events: []SimpleEvent{
+				// StoredAt 00:00: passes Lt 00:30 → included
+				{MeterSlug: defaultMeterSlug, Value: 1, Time: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z"), StoredAt: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z")},
+				// StoredAt 01:00: fails both arms → excluded
+				{MeterSlug: defaultMeterSlug, Value: 2, Time: testutils.GetRFC3339Time(t, "2024-01-01T00:30:00Z"), StoredAt: testutils.GetRFC3339Time(t, "2024-01-01T01:00:00Z")},
+				// StoredAt 02:00: passes Gte 01:30 → included
+				{MeterSlug: defaultMeterSlug, Value: 4, Time: testutils.GetRFC3339Time(t, "2024-01-01T01:00:00Z"), StoredAt: testutils.GetRFC3339Time(t, "2024-01-01T02:00:00Z")},
+			},
+		},
 		{
 			Name: "Should use latest value if meter.Aggregation is LATEST when windowed",
 			Query: streaming.QueryParams{
@@ -358,7 +493,11 @@ func TestMockStreamingConnector(t *testing.T) {
 			streamingConnector := NewMockStreamingConnector(t)
 
 			for _, event := range tc.Events {
-				streamingConnector.AddSimpleEvent(event.MeterSlug, event.Value, event.Time)
+				var opts []AddOption
+				if !event.StoredAt.IsZero() {
+					opts = append(opts, WithStoredAt(event.StoredAt))
+				}
+				streamingConnector.AddSimpleEvent(event.MeterSlug, event.Value, event.Time, opts...)
 			}
 
 			for _, row := range tc.Rows {
