@@ -109,6 +109,7 @@ func NewAddonService(
 	logger *slog.Logger,
 	db *entdb.Client,
 	featureConnector feature.FeatureConnector,
+	taxCodeService taxcode.Service,
 	publisher eventbus.Publisher,
 ) (addon.Service, error) {
 	adapter, err := addonadapter.New(addonadapter.Config{
@@ -122,6 +123,7 @@ func NewAddonService(
 	return addonservice.New(addonservice.Config{
 		Adapter:   adapter,
 		Feature:   featureConnector,
+		TaxCode:   taxCodeService,
 		Logger:    logger.With("subsystem", "productcatalog.addon"),
 		Publisher: publisher,
 	})

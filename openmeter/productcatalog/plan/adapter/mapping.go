@@ -7,11 +7,10 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/app"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -186,6 +185,20 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (productcatalog.RateCard, error
 		Discounts:           lo.FromPtr(r.Discounts),
 	}
 
+	// Map TaxCode if eagerly loaded.
+	taxCodeRow, err := r.Edges.TaxCodeOrErr()
+	if err == nil {
+		tc, err := taxcodeadapter.MapTaxCodeFromEntity(taxCodeRow)
+		if err != nil {
+			return nil, fmt.Errorf("invalid tax code for rate card %s: %w", r.ID, err)
+		}
+
+		meta.TaxCode = &tc
+	}
+
+	// Backfill legacy TaxConfig fields from new columns and TaxCode entity.
+	meta.TaxConfig = productcatalogadapter.BackfillTaxConfig(meta.TaxConfig, r.TaxBehavior, meta.TaxCode)
+
 	// Get billing cadence
 
 	billingCadence, err := r.BillingCadence.ParsePtrOrNil()
@@ -293,7 +306,7 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 	}
 
 	// Backfill legacy TaxConfig fields from new columns and TaxCode entity.
-	meta.TaxConfig = backfillTaxConfig(meta.TaxConfig, r.TaxBehavior, meta.TaxCode)
+	meta.TaxConfig = productcatalogadapter.BackfillTaxConfig(meta.TaxConfig, r.TaxBehavior, meta.TaxCode)
 
 	// Get billing cadence
 
@@ -376,37 +389,4 @@ func asPlanRateCardRow(r productcatalog.RateCard) (entdb.PlanRateCard, error) {
 	ratecard.BillingCadence = r.GetBillingCadence().ISOStringPtrOrNil()
 
 	return ratecard, nil
-}
-
-// backfillTaxConfig fills in missing legacy TaxConfig fields from the new tax_behavior column
-// and the TaxCode entity's app mappings.
-func backfillTaxConfig(cfg *productcatalog.TaxConfig, taxBehavior *productcatalog.TaxBehavior, tc *taxcode.TaxCode) *productcatalog.TaxConfig {
-	// Resolve Stripe code from TaxCode app mappings.
-	var stripeCode string
-	if tc != nil {
-		if m, ok := tc.GetAppMapping(app.AppTypeStripe); ok {
-			stripeCode = m.TaxCode
-		}
-	}
-
-	// Nothing to backfill.
-	if taxBehavior == nil && stripeCode == "" {
-		return cfg
-	}
-
-	if cfg == nil {
-		cfg = &productcatalog.TaxConfig{}
-	}
-
-	if cfg.Behavior == nil && taxBehavior != nil {
-		cfg.Behavior = taxBehavior
-	}
-
-	if cfg.Stripe == nil && stripeCode != "" {
-		cfg.Stripe = &productcatalog.StripeTaxConfig{
-			Code: stripeCode,
-		}
-	}
-
-	return cfg
 }

@@ -510,6 +510,7 @@ var planEagerLoadActiveAddons = func(paq *entdb.PlanAddonQuery) {
 	).WithAddon(func(aq *entdb.AddonQuery) {
 		aq.WithRatecards(func(arq *entdb.AddonRateCardQuery) {
 			arq.WithFeatures()
+			arq.WithTaxCode()
 		})
 	})
 }

@@ -9,7 +9,9 @@ import (
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
+	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -96,6 +98,20 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
 		Price:               r.Price,
 		Discounts:           lo.FromPtr(r.Discounts),
 	}
+
+	// Map TaxCode if eagerly loaded.
+	taxCodeRow, err := r.Edges.TaxCodeOrErr()
+	if err == nil {
+		tc, err := taxcodeadapter.MapTaxCodeFromEntity(taxCodeRow)
+		if err != nil {
+			return nil, fmt.Errorf("invalid tax code for rate card %s: %w", r.ID, err)
+		}
+
+		meta.TaxCode = &tc
+	}
+
+	// Backfill legacy TaxConfig fields from new columns and TaxCode entity.
+	meta.TaxConfig = productcatalogadapter.BackfillTaxConfig(meta.TaxConfig, r.TaxBehavior, meta.TaxCode)
 
 	// Get billing cadence
 
@@ -340,6 +356,11 @@ func asAddonRateCardRow(r productcatalog.RateCard) (entdb.AddonRateCard, error) 
 		ratecard.BillingCadence = v.BillingCadence.ISOStringPtrOrNil()
 	default:
 		return ratecard, fmt.Errorf("invalid ratecard [key=%s]: invalid type: %T", r.Key(), r)
+	}
+
+	if meta.TaxConfig != nil {
+		ratecard.TaxCodeID = meta.TaxConfig.TaxCodeID
+		ratecard.TaxBehavior = meta.TaxConfig.Behavior
 	}
 
 	return ratecard, nil

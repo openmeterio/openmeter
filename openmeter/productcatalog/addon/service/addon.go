@@ -8,9 +8,11 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -185,6 +187,63 @@ func (s service) resolveFeatures(ctx context.Context, namespace string, rateCard
 	return nil
 }
 
+// resolveTaxCodes ensures that each RateCard with a Stripe tax code in its TaxConfig
+// has a corresponding TaxCode entity in the namespace. If no matching TaxCode exists,
+// one is created. The RateCard's TaxConfig.TaxCodeID is then populated.
+func (s service) resolveTaxCodes(ctx context.Context, namespace string, rateCards *productcatalog.RateCards) error {
+	if rateCards == nil || len(*rateCards) == 0 {
+		return nil
+	}
+
+	for _, rc := range *rateCards {
+		meta := rc.AsMeta()
+		if meta.TaxConfig == nil || meta.TaxConfig.Stripe == nil || meta.TaxConfig.Stripe.Code == "" {
+			continue
+		}
+
+		stripeCode := meta.TaxConfig.Stripe.Code
+
+		tc, err := s.taxCode.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
+			Namespace: namespace,
+			AppType:   app.AppTypeStripe,
+			TaxCode:   stripeCode,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to resolve tax code for stripe code %s: %w", stripeCode, err)
+		}
+
+		meta.TaxConfig.TaxCodeID = lo.ToPtr(tc.ID)
+
+		var rcNew productcatalog.RateCard
+
+		switch rc.Type() {
+		case productcatalog.FlatFeeRateCardType:
+			rcNew = &productcatalog.FlatFeeRateCard{
+				RateCardMeta:   meta,
+				BillingCadence: rc.GetBillingCadence(),
+			}
+		case productcatalog.UsageBasedRateCardType:
+			bc := rc.GetBillingCadence()
+			if bc == nil {
+				return fmt.Errorf("billing cadence is required for usage-based rate card")
+			}
+
+			rcNew = &productcatalog.UsageBasedRateCard{
+				RateCardMeta:   meta,
+				BillingCadence: *bc,
+			}
+		default:
+			return fmt.Errorf("unsupported RateCard type: %s", rc.Type())
+		}
+
+		if err = rc.Merge(rcNew); err != nil {
+			return fmt.Errorf("failed to merge RateCard: %w", err)
+		}
+	}
+
+	return nil
+}
+
 // addonVersions is a collection of add-ons versions (all of them have the same namespace key pair).
 type addonVersions []addon.Addon
 
@@ -281,6 +340,10 @@ func (s service) CreateAddon(ctx context.Context, params addon.CreateAddonInput)
 				}
 
 				return nil, fmt.Errorf("failed to expand features for ratecards in add-on: %w", err)
+			}
+
+			if err = s.resolveTaxCodes(ctx, params.Namespace, &params.RateCards); err != nil {
+				return nil, fmt.Errorf("failed to resolve tax codes for ratecards in add-on: %w", err)
 			}
 		}
 
@@ -436,6 +499,10 @@ func (s service) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput)
 				}
 
 				return nil, fmt.Errorf("failed to expand features for ratecards in add-on: %w", err)
+			}
+
+			if err := s.resolveTaxCodes(ctx, params.Namespace, params.RateCards); err != nil {
+				return nil, fmt.Errorf("failed to resolve tax codes for ratecards in add-on: %w", err)
 			}
 		}
 

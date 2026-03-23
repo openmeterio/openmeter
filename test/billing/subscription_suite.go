@@ -173,6 +173,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		Logger:    slog.Default(),
 		Publisher: publisher,
 		Feature:   deps.FeatureService,
+		TaxCode:   taxCodeService,
 	})
 	require.NoError(t, err)
 

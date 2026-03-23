@@ -532,3 +532,96 @@ func TestPlanTaxCodeDualWrite(t *testing.T) {
 		})
 	})
 }
+
+func TestPlanTaxCodeBackfill(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+	env.DBSchemaMigrate(t)
+
+	namespace := pctestutils.NewTestNamespace(t)
+	MonthPeriod := datetime.MustParseDuration(t, "P1M")
+
+	// Setup meters and features
+	err := env.Meter.ReplaceMeters(ctx, pctestutils.NewTestMeters(t, namespace))
+	require.NoError(t, err)
+
+	result, err := env.Meter.ListMeters(ctx, meter.ListMetersParams{
+		Page:      pagination.Page{PageSize: 1000, PageNumber: 1},
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, result.Items)
+
+	features := make([]feature.Feature, 0, len(result.Items))
+	for _, m := range result.Items {
+		feat, err := env.Feature.CreateFeature(ctx, pctestutils.NewTestFeatureFromMeter(t, &m))
+		require.NoError(t, err)
+		features = append(features, feat)
+	}
+
+	t.Run("BackfillFromDedicatedColumns", func(t *testing.T) {
+		// Create a plan via service to get a phase ID
+		input := newTestPlanInput(t, namespace, newTestFlatRateCard(features[0], nil, &MonthPeriod))
+		input.Key = "backfill-plan-test"
+		input.Name = "Backfill Plan Test"
+
+		p, err := env.Plan.CreatePlan(ctx, input)
+		require.NoError(t, err)
+		require.NotEmpty(t, p.Phases)
+
+		phaseID := p.Phases[0].PhaseManagedFields.NamespacedID.ID
+
+		// Create TaxCode entity directly (bypassing service)
+		tcEntity, err := env.Client.TaxCode.Create().
+			SetNamespace(namespace).
+			SetKey("stripe_txcd_99000001").
+			SetName("txcd_99000001").
+			SetMetadata(map[string]string{}).
+			SetAppMappings(&taxcode.TaxCodeAppMappings{
+				{AppType: app.AppTypeStripe, TaxCode: "txcd_99000001"},
+			}).
+			Save(ctx)
+		require.NoError(t, err)
+
+		// Insert a PlanRateCard row directly — no tax_config JSONB, only dedicated columns
+		behavior := productcatalog.ExclusiveTaxBehavior
+		_, err = env.Client.PlanRateCard.Create().
+			SetPhaseID(phaseID).
+			SetNamespace(namespace).
+			SetKey("backfill-rc").
+			SetType(productcatalog.FlatFeeRateCardType).
+			SetName("Backfill RC").
+			SetMetadata(map[string]string{}).
+			SetEntitlementTemplate(nil).
+			SetDiscounts(nil).
+			SetTaxCodeID(tcEntity.ID).
+			SetTaxBehavior(behavior).
+			Save(ctx)
+		require.NoError(t, err)
+
+		// Read via service — adapter must backfill TaxConfig from dedicated columns
+		fetched, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
+			NamespacedID: p.NamespacedID,
+		})
+		require.NoError(t, err)
+
+		var backfillRC productcatalog.RateCard
+		for _, rc := range fetched.Phases[0].RateCards {
+			if rc.AsMeta().Key == "backfill-rc" {
+				backfillRC = rc
+				break
+			}
+		}
+		require.NotNil(t, backfillRC, "backfill rate card must be present in plan")
+
+		tc := backfillRC.AsMeta().TaxConfig
+		require.NotNil(t, tc, "TaxConfig must be backfilled from dedicated columns")
+		require.NotNil(t, tc.Stripe, "Stripe code must be backfilled from TaxCode entity")
+		assert.Equal(t, "txcd_99000001", tc.Stripe.Code)
+		require.NotNil(t, tc.Behavior, "Behavior must be backfilled from tax_behavior column")
+		assert.Equal(t, productcatalog.ExclusiveTaxBehavior, *tc.Behavior)
+	})
+}

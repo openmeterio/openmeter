@@ -138,6 +138,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	addonService, err := addonservice.New(addonservice.Config{
 		Adapter:   addonAdapter,
 		Feature:   featureService,
+		TaxCode:   taxCodeService,
 		Logger:    logger,
 		Publisher: publisher,
 	})

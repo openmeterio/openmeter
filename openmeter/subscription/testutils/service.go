@@ -207,6 +207,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		Logger:    logger,
 		Publisher: publisher,
 		Feature:   entitlementRegistry.Feature,
+		TaxCode:   taxCodeService,
 	})
 	require.NoError(t, err)
 

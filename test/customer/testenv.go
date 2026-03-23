@@ -332,6 +332,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		Logger:    logger,
 		Publisher: publisher,
 		Feature:   entitlementRegistry.Feature,
+		TaxCode:   taxCodeService,
 	})
 	require.NoError(t, err)
 
