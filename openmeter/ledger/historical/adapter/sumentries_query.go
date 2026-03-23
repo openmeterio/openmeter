@@ -12,31 +12,42 @@ import (
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type sumEntriesQuery struct {
 	query ledger.Query
 }
 
-func (b *sumEntriesQuery) Build(client *db.Client) *db.LedgerEntryQuery {
-	entryPredicates := b.entryPredicates()
-	return client.LedgerEntry.Query().Where(entryPredicates...)
+func (b *sumEntriesQuery) Build(client *db.Client) (*db.LedgerEntryQuery, error) {
+	entryPredicates, err := b.entryPredicates()
+	if err != nil {
+		return nil, err
+	}
+
+	return client.LedgerEntry.Query().Where(entryPredicates...), nil
 }
 
 // SQL returns the final SQL shape and args used for sum aggregation.
-func (b *sumEntriesQuery) SQL() (string, []any) {
+func (b *sumEntriesQuery) SQL() (string, []any, error) {
 	e := sql.Table(ledgerentrydb.Table)
 	selector := sql.Select(sql.As(sql.Sum(e.C(ledgerentrydb.FieldAmount)), "sum_amount")).From(e)
 	selector.SetDialect(dialect.Postgres)
 
-	for _, predicate := range b.entryPredicates() {
+	entryPredicates, err := b.entryPredicates()
+	if err != nil {
+		return "", nil, err
+	}
+
+	for _, predicate := range entryPredicates {
 		predicate(selector)
 	}
 
-	return selector.Query()
+	sql, args := selector.Query()
+	return sql, args, nil
 }
 
-func (b *sumEntriesQuery) entryPredicates() []predicate.LedgerEntry {
+func (b *sumEntriesQuery) entryPredicates() ([]predicate.LedgerEntry, error) {
 	entryPredicates := make([]predicate.LedgerEntry, 0, 4)
 	entryPredicates = append(entryPredicates, ledgerentrydb.Namespace(b.query.Namespace))
 
@@ -57,39 +68,57 @@ func (b *sumEntriesQuery) entryPredicates() []predicate.LedgerEntry {
 		}
 	}
 
-	subAccountPredicates := b.subAccountPredicates()
+	subAccountPredicates, err := b.subAccountPredicates()
+	if err != nil {
+		return nil, err
+	}
 	if len(subAccountPredicates) > 0 {
 		entryPredicates = append(entryPredicates, ledgerentrydb.HasSubAccountWith(subAccountPredicates...))
 	}
 
-	return entryPredicates
+	return entryPredicates, nil
 }
 
-func (b *sumEntriesQuery) subAccountPredicates() []predicate.LedgerSubAccount {
+func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, error) {
 	subAccountPredicates := make([]predicate.LedgerSubAccount, 0, 1)
-	routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 4)
-	if b.query.Filters.Route.Currency != "" {
-		routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(b.query.Filters.Route.Currency))
+	if b.query.Filters.AccountID != nil {
+		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.AccountID(*b.query.Filters.AccountID))
 	}
-	if b.query.Filters.Route.CreditPriority != nil {
+	normalizedRoute, err := b.query.Filters.Route.Normalize()
+	if err != nil {
+		return nil, ledger.ErrLedgerQueryInvalid.WithAttrs(models.Attributes{
+			"reason": "route_invalid",
+			"route":  b.query.Filters.Route,
+			"error":  err,
+		})
+	}
+
+	routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 5)
+	if normalizedRoute.Currency != "" {
+		routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(normalizedRoute.Currency)))
+	}
+	if normalizedRoute.CreditPriority != nil {
 		routePredicates = append(routePredicates,
-			ledgersubaccountroutedb.CreditPriority(*b.query.Filters.Route.CreditPriority),
+			ledgersubaccountroutedb.CreditPriority(*normalizedRoute.CreditPriority),
 		)
 	}
 	// DEFERRED: tax/feature route filters are not active yet but plumbing is in place.
-	if b.query.Filters.Route.TaxCode != nil {
-		routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxCode(*b.query.Filters.Route.TaxCode))
+	if normalizedRoute.TaxCode != nil {
+		routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxCode(*normalizedRoute.TaxCode))
 	}
-	if len(b.query.Filters.Route.Features) > 0 {
+	if len(normalizedRoute.Features) > 0 {
 		// DB stores features as a sorted jsonb array; filter value is also sorted for canonical comparison.
 		routePredicates = append(routePredicates, func(s *sql.Selector) {
-			s.Where(sqljson.ValueEQ(ledgersubaccountroutedb.FieldFeatures, ledger.SortedFeatures(b.query.Filters.Route.Features)))
+			s.Where(sqljson.ValueEQ(ledgersubaccountroutedb.FieldFeatures, normalizedRoute.Features))
 		})
+	}
+	if normalizedRoute.CostBasis != nil {
+		routePredicates = append(routePredicates, ledgersubaccountroutedb.CostBasis(*normalizedRoute.CostBasis))
 	}
 
 	if len(routePredicates) > 0 {
 		subAccountPredicates = append(subAccountPredicates, ledgersubaccountdb.HasRouteWith(routePredicates...))
 	}
 
-	return subAccountPredicates
+	return subAccountPredicates, nil
 }

@@ -66949,6 +66949,7 @@ type LedgerSubAccountRouteMutation struct {
 	tax_code            *string
 	features            *[]string
 	appendfeatures      []string
+	cost_basis          *alpacadecimal.Decimal
 	credit_priority     *int
 	addcredit_priority  *int
 	clearedFields       map[string]struct{}
@@ -67481,6 +67482,55 @@ func (m *LedgerSubAccountRouteMutation) ResetFeatures() {
 	delete(m.clearedFields, ledgersubaccountroute.FieldFeatures)
 }
 
+// SetCostBasis sets the "cost_basis" field.
+func (m *LedgerSubAccountRouteMutation) SetCostBasis(a alpacadecimal.Decimal) {
+	m.cost_basis = &a
+}
+
+// CostBasis returns the value of the "cost_basis" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) CostBasis() (r alpacadecimal.Decimal, exists bool) {
+	v := m.cost_basis
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCostBasis returns the old "cost_basis" field's value of the LedgerSubAccountRoute entity.
+// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerSubAccountRouteMutation) OldCostBasis(ctx context.Context) (v *alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCostBasis is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCostBasis requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCostBasis: %w", err)
+	}
+	return oldValue.CostBasis, nil
+}
+
+// ClearCostBasis clears the value of the "cost_basis" field.
+func (m *LedgerSubAccountRouteMutation) ClearCostBasis() {
+	m.cost_basis = nil
+	m.clearedFields[ledgersubaccountroute.FieldCostBasis] = struct{}{}
+}
+
+// CostBasisCleared returns if the "cost_basis" field was cleared in this mutation.
+func (m *LedgerSubAccountRouteMutation) CostBasisCleared() bool {
+	_, ok := m.clearedFields[ledgersubaccountroute.FieldCostBasis]
+	return ok
+}
+
+// ResetCostBasis resets all changes to the "cost_basis" field.
+func (m *LedgerSubAccountRouteMutation) ResetCostBasis() {
+	m.cost_basis = nil
+	delete(m.clearedFields, ledgersubaccountroute.FieldCostBasis)
+}
+
 // SetCreditPriority sets the "credit_priority" field.
 func (m *LedgerSubAccountRouteMutation) SetCreditPriority(i int) {
 	m.credit_priority = &i
@@ -67666,7 +67716,7 @@ func (m *LedgerSubAccountRouteMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LedgerSubAccountRouteMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 12)
 	if m.namespace != nil {
 		fields = append(fields, ledgersubaccountroute.FieldNamespace)
 	}
@@ -67696,6 +67746,9 @@ func (m *LedgerSubAccountRouteMutation) Fields() []string {
 	}
 	if m.features != nil {
 		fields = append(fields, ledgersubaccountroute.FieldFeatures)
+	}
+	if m.cost_basis != nil {
+		fields = append(fields, ledgersubaccountroute.FieldCostBasis)
 	}
 	if m.credit_priority != nil {
 		fields = append(fields, ledgersubaccountroute.FieldCreditPriority)
@@ -67728,6 +67781,8 @@ func (m *LedgerSubAccountRouteMutation) Field(name string) (ent.Value, bool) {
 		return m.TaxCode()
 	case ledgersubaccountroute.FieldFeatures:
 		return m.Features()
+	case ledgersubaccountroute.FieldCostBasis:
+		return m.CostBasis()
 	case ledgersubaccountroute.FieldCreditPriority:
 		return m.CreditPriority()
 	}
@@ -67759,6 +67814,8 @@ func (m *LedgerSubAccountRouteMutation) OldField(ctx context.Context, name strin
 		return m.OldTaxCode(ctx)
 	case ledgersubaccountroute.FieldFeatures:
 		return m.OldFeatures(ctx)
+	case ledgersubaccountroute.FieldCostBasis:
+		return m.OldCostBasis(ctx)
 	case ledgersubaccountroute.FieldCreditPriority:
 		return m.OldCreditPriority(ctx)
 	}
@@ -67840,6 +67897,13 @@ func (m *LedgerSubAccountRouteMutation) SetField(name string, value ent.Value) e
 		}
 		m.SetFeatures(v)
 		return nil
+	case ledgersubaccountroute.FieldCostBasis:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCostBasis(v)
+		return nil
 	case ledgersubaccountroute.FieldCreditPriority:
 		v, ok := value.(int)
 		if !ok {
@@ -67901,6 +67965,9 @@ func (m *LedgerSubAccountRouteMutation) ClearedFields() []string {
 	if m.FieldCleared(ledgersubaccountroute.FieldFeatures) {
 		fields = append(fields, ledgersubaccountroute.FieldFeatures)
 	}
+	if m.FieldCleared(ledgersubaccountroute.FieldCostBasis) {
+		fields = append(fields, ledgersubaccountroute.FieldCostBasis)
+	}
 	if m.FieldCleared(ledgersubaccountroute.FieldCreditPriority) {
 		fields = append(fields, ledgersubaccountroute.FieldCreditPriority)
 	}
@@ -67926,6 +67993,9 @@ func (m *LedgerSubAccountRouteMutation) ClearField(name string) error {
 		return nil
 	case ledgersubaccountroute.FieldFeatures:
 		m.ClearFeatures()
+		return nil
+	case ledgersubaccountroute.FieldCostBasis:
+		m.ClearCostBasis()
 		return nil
 	case ledgersubaccountroute.FieldCreditPriority:
 		m.ClearCreditPriority()
@@ -67967,6 +68037,9 @@ func (m *LedgerSubAccountRouteMutation) ResetField(name string) error {
 		return nil
 	case ledgersubaccountroute.FieldFeatures:
 		m.ResetFeatures()
+		return nil
+	case ledgersubaccountroute.FieldCostBasis:
+		m.ResetCostBasis()
 		return nil
 	case ledgersubaccountroute.FieldCreditPriority:
 		m.ResetCreditPriority()

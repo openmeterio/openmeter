@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
@@ -81,6 +82,7 @@ func (a *Account) GetBalance(ctx context.Context, query ledger.RouteFilter) (led
 		Cursor:    lastClosingCursor,
 		Filters: ledger.Filters{
 			BookedAtPeriod: periodSinceListClosing,
+			AccountID:      lo.ToPtr(a.data.ID.ID),
 			Route:          query,
 		},
 	}

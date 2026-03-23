@@ -12,6 +12,14 @@ type OpenPeriod struct {
 
 var _ Period = OpenPeriod{}
 
+func (p OpenPeriod) Validate() error {
+	if p.From != nil && p.To != nil && !p.From.Before(*p.To) {
+		return fmt.Errorf("from must be before to")
+	}
+
+	return nil
+}
+
 func (p OpenPeriod) Equals(other OpenPeriod) bool {
 	// For From: both should be nil, or both non-nil and equal
 	if (p.From == nil) != (other.From == nil) {

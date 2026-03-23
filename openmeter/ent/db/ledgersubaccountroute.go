@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -40,6 +41,8 @@ type LedgerSubAccountRoute struct {
 	TaxCode *string `json:"tax_code,omitempty"`
 	// Features holds the value of the "features" field.
 	Features []string `json:"features,omitempty"`
+	// CostBasis holds the value of the "cost_basis" field.
+	CostBasis *alpacadecimal.Decimal `json:"cost_basis,omitempty"`
 	// CreditPriority holds the value of the "credit_priority" field.
 	CreditPriority *int `json:"credit_priority,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -84,6 +87,8 @@ func (*LedgerSubAccountRoute) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case ledgersubaccountroute.FieldCostBasis:
+			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case ledgersubaccountroute.FieldFeatures:
 			values[i] = new([]byte)
 		case ledgersubaccountroute.FieldCreditPriority:
@@ -177,6 +182,13 @@ func (_m *LedgerSubAccountRoute) assignValues(columns []string, values []any) er
 					return fmt.Errorf("unmarshal field features: %w", err)
 				}
 			}
+		case ledgersubaccountroute.FieldCostBasis:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field cost_basis", values[i])
+			} else if value.Valid {
+				_m.CostBasis = new(alpacadecimal.Decimal)
+				*_m.CostBasis = *value.S.(*alpacadecimal.Decimal)
+			}
 		case ledgersubaccountroute.FieldCreditPriority:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field credit_priority", values[i])
@@ -263,6 +275,11 @@ func (_m *LedgerSubAccountRoute) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("features=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Features))
+	builder.WriteString(", ")
+	if v := _m.CostBasis; v != nil {
+		builder.WriteString("cost_basis=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	if v := _m.CreditPriority; v != nil {
 		builder.WriteString("credit_priority=")

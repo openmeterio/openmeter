@@ -7,6 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 )
@@ -110,6 +111,11 @@ func Currency(v string) predicate.LedgerSubAccountRoute {
 // TaxCode applies equality check predicate on the "tax_code" field. It's identical to TaxCodeEQ.
 func TaxCode(v string) predicate.LedgerSubAccountRoute {
 	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldTaxCode, v))
+}
+
+// CostBasis applies equality check predicate on the "cost_basis" field. It's identical to CostBasisEQ.
+func CostBasis(v alpacadecimal.Decimal) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldCostBasis, v))
 }
 
 // CreditPriority applies equality check predicate on the "credit_priority" field. It's identical to CreditPriorityEQ.
@@ -674,6 +680,56 @@ func FeaturesIsNil() predicate.LedgerSubAccountRoute {
 // FeaturesNotNil applies the NotNil predicate on the "features" field.
 func FeaturesNotNil() predicate.LedgerSubAccountRoute {
 	return predicate.LedgerSubAccountRoute(sql.FieldNotNull(FieldFeatures))
+}
+
+// CostBasisEQ applies the EQ predicate on the "cost_basis" field.
+func CostBasisEQ(v alpacadecimal.Decimal) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldCostBasis, v))
+}
+
+// CostBasisNEQ applies the NEQ predicate on the "cost_basis" field.
+func CostBasisNEQ(v alpacadecimal.Decimal) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldNEQ(FieldCostBasis, v))
+}
+
+// CostBasisIn applies the In predicate on the "cost_basis" field.
+func CostBasisIn(vs ...alpacadecimal.Decimal) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldIn(FieldCostBasis, vs...))
+}
+
+// CostBasisNotIn applies the NotIn predicate on the "cost_basis" field.
+func CostBasisNotIn(vs ...alpacadecimal.Decimal) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldNotIn(FieldCostBasis, vs...))
+}
+
+// CostBasisGT applies the GT predicate on the "cost_basis" field.
+func CostBasisGT(v alpacadecimal.Decimal) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldGT(FieldCostBasis, v))
+}
+
+// CostBasisGTE applies the GTE predicate on the "cost_basis" field.
+func CostBasisGTE(v alpacadecimal.Decimal) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldGTE(FieldCostBasis, v))
+}
+
+// CostBasisLT applies the LT predicate on the "cost_basis" field.
+func CostBasisLT(v alpacadecimal.Decimal) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldLT(FieldCostBasis, v))
+}
+
+// CostBasisLTE applies the LTE predicate on the "cost_basis" field.
+func CostBasisLTE(v alpacadecimal.Decimal) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldLTE(FieldCostBasis, v))
+}
+
+// CostBasisIsNil applies the IsNil predicate on the "cost_basis" field.
+func CostBasisIsNil() predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldIsNull(FieldCostBasis))
+}
+
+// CostBasisNotNil applies the NotNil predicate on the "cost_basis" field.
+func CostBasisNotNil() predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldNotNull(FieldCostBasis))
 }
 
 // CreditPriorityEQ applies the EQ predicate on the "credit_priority" field.

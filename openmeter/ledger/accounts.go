@@ -3,6 +3,10 @@ package ledger
 import (
 	"context"
 	"fmt"
+
+	"github.com/alpacahq/alpacadecimal"
+
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // ----------------------------------------------------------------------------
@@ -27,10 +31,11 @@ type CustomerFBOAccount interface {
 // CustomerFBORouteParams are routing parameters specific to customer FBO sub-accounts.
 // CreditPriority is required (non-pointer) — the type system enforces its presence.
 type CustomerFBORouteParams struct {
-	Currency       string
+	Currency       currencyx.Code
 	CreditPriority int
 	TaxCode        *string
 	Features       []string
+	CostBasis      *alpacadecimal.Decimal
 }
 
 func (p CustomerFBORouteParams) Validate() error {
@@ -50,6 +55,7 @@ func (p CustomerFBORouteParams) Route() Route {
 		Currency:       p.Currency,
 		TaxCode:        p.TaxCode,
 		Features:       p.Features,
+		CostBasis:      p.CostBasis,
 		CreditPriority: &p.CreditPriority,
 	}
 }
@@ -65,7 +71,8 @@ type CustomerReceivableAccount interface {
 
 // CustomerReceivableRouteParams are routing parameters specific to customer receivable sub-accounts.
 type CustomerReceivableRouteParams struct {
-	Currency string
+	Currency  currencyx.Code
+	CostBasis *alpacadecimal.Decimal
 }
 
 func (p CustomerReceivableRouteParams) Validate() error {
@@ -73,6 +80,31 @@ func (p CustomerReceivableRouteParams) Validate() error {
 }
 
 func (p CustomerReceivableRouteParams) Route() Route {
+	return Route{
+		Currency:  p.Currency,
+		CostBasis: p.CostBasis,
+	}
+}
+
+// CustomerAccruedAccount is a customer accrued account used as a staging area for
+// usage that has been acknowledged but not yet recognized as earnings.
+type CustomerAccruedAccount interface {
+	CustomerAccount
+
+	GetSubAccountForRoute(ctx context.Context, route CustomerAccruedRouteParams) (SubAccount, error)
+}
+
+// CustomerAccruedRouteParams are routing parameters specific to customer accrued sub-accounts.
+// Routed by currency only for now.
+type CustomerAccruedRouteParams struct {
+	Currency currencyx.Code
+}
+
+func (p CustomerAccruedRouteParams) Validate() error {
+	return p.Route().Validate()
+}
+
+func (p CustomerAccruedRouteParams) Route() Route {
 	return Route{
 		Currency: p.Currency,
 	}
@@ -90,7 +122,8 @@ type BusinessAccount interface {
 }
 
 type BusinessRouteParams struct {
-	Currency string
+	Currency  currencyx.Code
+	CostBasis *alpacadecimal.Decimal
 }
 
 func (p BusinessRouteParams) Validate() error {
@@ -99,6 +132,7 @@ func (p BusinessRouteParams) Validate() error {
 
 func (p BusinessRouteParams) Route() Route {
 	return Route{
-		Currency: p.Currency,
+		Currency:  p.Currency,
+		CostBasis: p.CostBasis,
 	}
 }

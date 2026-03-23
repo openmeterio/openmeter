@@ -11,9 +11,10 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/testutil"
+	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
@@ -64,7 +65,7 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 	dbClient := testDB.EntDriver.Client()
 
 	// === Build stack via wire ===
-	deps, err := testutil.InitDeps(dbClient, slog.Default())
+	deps, err := ledgertestutils.InitDeps(dbClient, slog.Default())
 	require.NoError(t, err)
 
 	resolversSvc := deps.ResolversService
@@ -81,26 +82,27 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 	require.NoError(t, err)
 
 	fboSub1, err := customerAccounts1.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
-		Currency:       "USD",
+		Currency:       currencyx.Code("USD"),
 		CreditPriority: ledger.DefaultCustomerFBOPriority,
 	})
 	require.NoError(t, err)
 	fboSub2, err := customerAccounts2.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
-		Currency:       "USD",
+		Currency:       currencyx.Code("USD"),
 		CreditPriority: ledger.DefaultCustomerFBOPriority,
 	})
 	require.NoError(t, err)
 	require.Equal(t, fboSub1.Address().SubAccountID(), fboSub2.Address().SubAccountID())
 
 	// We're simulating the scenario where we're effectively converting
-	// an outstanding CRD balance to an outstanding FIAT balance.
+	// an outstanding EUR balance to an outstanding FIAT balance.
 	t.Run("Transactions", func(t *testing.T) {
 		amountUSD := alpacadecimal.NewFromInt(100)
 		costBasis := alpacadecimal.NewFromFloat(0.5)
 		bookedAt := time.Now()
 
 		deps := transactions.ResolverDependencies{
-			AccountService: resolversSvc,
+			AccountService:    resolversSvc,
+			SubAccountService: deps.AccountService,
 		}
 
 		scope := transactions.ResolutionScope{
@@ -112,23 +114,23 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 		tx1 := transactions.IssueCustomerReceivableTemplate{
 			At:       bookedAt,
 			Amount:   amountUSD,
-			Currency: "USD",
+			Currency: currencyx.Code("USD"),
 		}
 
-		// Step 2: Convert USD to CRD into customer account
+		// Step 2: Convert USD to EUR into customer account
 		tx2 := transactions.ConvertCurrencyTemplate{
 			At:             bookedAt,
 			TargetAmount:   amountUSD,
 			CostBasis:      costBasis,
-			SourceCurrency: "USD",
-			TargetCurrency: "CRD",
+			SourceCurrency: currencyx.Code("USD"),
+			TargetCurrency: currencyx.Code("EUR"),
 		}
 
-		// Step 3: Cover outstanding CRD from customer account
+		// Step 3: Cover outstanding EUR from customer account
 		tx3 := transactions.CoverCustomerReceivableTemplate{
 			At:       bookedAt,
 			Amount:   amountUSD,
-			Currency: "CRD",
+			Currency: currencyx.Code("EUR"),
 		}
 
 		inputs, err := transactions.ResolveTransactions(ctx, deps, scope, tx1, tx2, tx3)

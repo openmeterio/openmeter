@@ -167,6 +167,9 @@ func (_u *LedgerSubAccountRouteUpdate) sqlSave(ctx context.Context) (_node int, 
 	if _u.mutation.FeaturesCleared() {
 		_spec.ClearField(ledgersubaccountroute.FieldFeatures, field.TypeJSON)
 	}
+	if _u.mutation.CostBasisCleared() {
+		_spec.ClearField(ledgersubaccountroute.FieldCostBasis, field.TypeOther)
+	}
 	if _u.mutation.CreditPriorityCleared() {
 		_spec.ClearField(ledgersubaccountroute.FieldCreditPriority, field.TypeInt)
 	}
@@ -402,6 +405,9 @@ func (_u *LedgerSubAccountRouteUpdateOne) sqlSave(ctx context.Context) (_node *L
 	}
 	if _u.mutation.FeaturesCleared() {
 		_spec.ClearField(ledgersubaccountroute.FieldFeatures, field.TypeJSON)
+	}
+	if _u.mutation.CostBasisCleared() {
+		_spec.ClearField(ledgersubaccountroute.FieldCostBasis, field.TypeOther)
 	}
 	if _u.mutation.CreditPriorityCleared() {
 		_spec.ClearField(ledgersubaccountroute.FieldCreditPriority, field.TypeInt)

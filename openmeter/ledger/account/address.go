@@ -8,46 +8,47 @@ import (
 )
 
 type AddressData struct {
-	SubAccountID      string
-	AccountType       ledger.AccountType
-	RouteID           string
-	RoutingKeyVersion ledger.RoutingKeyVersion
-	RoutingKey        string
+	SubAccountID string
+	AccountType  ledger.AccountType
+	Route        ledger.Route
+	RouteID      string
+	RoutingKey   ledger.RoutingKey
 }
 
-func NewAddressFromData(data AddressData) *Address {
-	if err := validateAddressData(data); err != nil {
-		panic(err)
+func NewAddressFromData(data AddressData) (*Address, error) {
+	subRoute, err := newSubAccountRouteFromAddressData(data)
+	if err != nil {
+		return nil, err
 	}
 
 	return &Address{
-		data: data,
-	}
+		data:     data,
+		subRoute: subRoute,
+	}, nil
 }
 
-func validateAddressData(data AddressData) error {
+func newSubAccountRouteFromAddressData(data AddressData) (ledger.SubAccountRoute, error) {
 	if data.SubAccountID == "" {
-		return errors.New("sub-account id is required")
+		return ledger.SubAccountRoute{}, errors.New("sub-account id is required")
 	}
 	if err := data.AccountType.Validate(); err != nil {
-		return fmt.Errorf("account type: %w", err)
+		return ledger.SubAccountRoute{}, fmt.Errorf("account type: %w", err)
 	}
 	if data.RouteID == "" {
-		return errors.New("route id is required")
-	}
-	routingKey, err := ledger.NewRoutingKey(data.RoutingKeyVersion, data.RoutingKey)
-	if err != nil {
-		return fmt.Errorf("routing key: %w", err)
-	}
-	if _, err := ledger.NewSubAccountRoute(data.RouteID, routingKey); err != nil {
-		return fmt.Errorf("route: %w", err)
+		return ledger.SubAccountRoute{}, errors.New("route id is required")
 	}
 
-	return nil
+	subRoute, err := ledger.NewSubAccountRouteFromData(data.RouteID, data.RoutingKey, data.Route)
+	if err != nil {
+		return ledger.SubAccountRoute{}, fmt.Errorf("route: %w", err)
+	}
+
+	return subRoute, nil
 }
 
 type Address struct {
-	data AddressData
+	data     AddressData
+	subRoute ledger.SubAccountRoute
 }
 
 // ----------------------------------------------------------------------------
@@ -65,10 +66,7 @@ func (a *Address) AccountType() ledger.AccountType {
 }
 
 func (a *Address) Route() ledger.SubAccountRoute {
-	return ledger.MustNewSubAccountRoute(
-		a.data.RouteID,
-		ledger.MustNewRoutingKey(a.data.RoutingKeyVersion, a.data.RoutingKey),
-	)
+	return a.subRoute
 }
 
 func (a *Address) Equal(other ledger.PostingAddress) bool {

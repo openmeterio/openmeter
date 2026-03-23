@@ -11,6 +11,23 @@ func TestOpenPeriod(t *testing.T) {
 	after := now.Add(time.Hour)
 	thirtyMinLater := now.Add(30 * time.Minute)
 
+	t.Run("Validate", func(t *testing.T) {
+		valid := OpenPeriod{From: &before, To: &after}
+		if err := valid.Validate(); err != nil {
+			t.Fatalf("expected valid period, got %v", err)
+		}
+
+		invalid := OpenPeriod{From: &after, To: &before}
+		if err := invalid.Validate(); err == nil {
+			t.Fatal("expected invalid period error")
+		}
+
+		touching := OpenPeriod{From: &now, To: &now}
+		if err := touching.Validate(); err == nil {
+			t.Fatal("expected touching period error")
+		}
+	})
+
 	t.Run("ContainsInclusive", func(t *testing.T) {
 		tests := []struct {
 			name     string

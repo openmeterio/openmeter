@@ -2,7 +2,6 @@ package ledger
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -28,24 +27,47 @@ func ValidateInvariance(ctx context.Context, entries []EntryInput) error {
 }
 
 func ValidateRouting(ctx context.Context, entries []EntryInput) error {
-	// TODO: Implement
+	// Routing validation is implementation-specific and can be injected by the concrete ledger.
 	return nil
 }
 
 func ValidateEntryInput(ctx context.Context, entry EntryInput) error {
+	if entry == nil {
+		return ErrEntryInvalid.WithAttrs(models.Attributes{
+			"reason": "entry_required",
+		})
+	}
+
 	// Let's validate the address
 	if err := ValidateAddress(ctx, entry.PostingAddress()); err != nil {
-		return fmt.Errorf("invalid address: %w", err)
+		return ErrEntryInvalid.WithAttrs(models.Attributes{
+			"reason": "invalid_address",
+			"error":  err,
+		})
 	}
 
 	return nil
 }
 
 func ValidateAddress(ctx context.Context, address PostingAddress) error {
+	if address == nil {
+		return ErrAddressInvalid.WithAttrs(models.Attributes{
+			"reason": "address_required",
+		})
+	}
+
 	return nil
 }
 
 func ValidateTransactionInput(ctx context.Context, transaction TransactionInput) error {
+	return ValidateTransactionInputWith(ctx, transaction, nil)
+}
+
+func ValidateTransactionInputWith(ctx context.Context, transaction TransactionInput, routingValidator RoutingValidator) error {
+	if transaction == nil {
+		return ErrTransactionInputRequired
+	}
+
 	// Let's validate that the entries add up
 	if err := ValidateInvariance(ctx, lo.Map(transaction.EntryInputs(), func(e EntryInput, _ int) EntryInput {
 		return e
@@ -53,15 +75,16 @@ func ValidateTransactionInput(ctx context.Context, transaction TransactionInput)
 		return err
 	}
 
-	// Let's validate routing
-	if err := ValidateRouting(ctx, transaction.EntryInputs()); err != nil {
-		return err
-	}
-
 	// Let's validate the entries themselves
 	for _, entry := range transaction.EntryInputs() {
 		if err := ValidateEntryInput(ctx, entry); err != nil {
-			return fmt.Errorf("invalid entry: %w", err)
+			return err
+		}
+	}
+
+	if routingValidator != nil {
+		if err := routingValidator.ValidateEntries(transaction.EntryInputs()); err != nil {
+			return err
 		}
 	}
 

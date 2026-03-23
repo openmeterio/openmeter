@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
@@ -115,6 +116,20 @@ func (_c *LedgerSubAccountRouteCreate) SetNillableTaxCode(v *string) *LedgerSubA
 // SetFeatures sets the "features" field.
 func (_c *LedgerSubAccountRouteCreate) SetFeatures(v []string) *LedgerSubAccountRouteCreate {
 	_c.mutation.SetFeatures(v)
+	return _c
+}
+
+// SetCostBasis sets the "cost_basis" field.
+func (_c *LedgerSubAccountRouteCreate) SetCostBasis(v alpacadecimal.Decimal) *LedgerSubAccountRouteCreate {
+	_c.mutation.SetCostBasis(v)
+	return _c
+}
+
+// SetNillableCostBasis sets the "cost_basis" field if the given value is not nil.
+func (_c *LedgerSubAccountRouteCreate) SetNillableCostBasis(v *alpacadecimal.Decimal) *LedgerSubAccountRouteCreate {
+	if v != nil {
+		_c.SetCostBasis(*v)
+	}
 	return _c
 }
 
@@ -323,6 +338,10 @@ func (_c *LedgerSubAccountRouteCreate) createSpec() (*LedgerSubAccountRoute, *sq
 		_spec.SetField(ledgersubaccountroute.FieldFeatures, field.TypeJSON, value)
 		_node.Features = value
 	}
+	if value, ok := _c.mutation.CostBasis(); ok {
+		_spec.SetField(ledgersubaccountroute.FieldCostBasis, field.TypeOther, value)
+		_node.CostBasis = &value
+	}
 	if value, ok := _c.mutation.CreditPriority(); ok {
 		_spec.SetField(ledgersubaccountroute.FieldCreditPriority, field.TypeInt, value)
 		_node.CreditPriority = &value
@@ -482,6 +501,9 @@ func (u *LedgerSubAccountRouteUpsertOne) UpdateNewValues() *LedgerSubAccountRout
 		}
 		if _, exists := u.create.mutation.Features(); exists {
 			s.SetIgnore(ledgersubaccountroute.FieldFeatures)
+		}
+		if _, exists := u.create.mutation.CostBasis(); exists {
+			s.SetIgnore(ledgersubaccountroute.FieldCostBasis)
 		}
 		if _, exists := u.create.mutation.CreditPriority(); exists {
 			s.SetIgnore(ledgersubaccountroute.FieldCreditPriority)
@@ -758,6 +780,9 @@ func (u *LedgerSubAccountRouteUpsertBulk) UpdateNewValues() *LedgerSubAccountRou
 			}
 			if _, exists := b.mutation.Features(); exists {
 				s.SetIgnore(ledgersubaccountroute.FieldFeatures)
+			}
+			if _, exists := b.mutation.CostBasis(); exists {
+				s.SetIgnore(ledgersubaccountroute.FieldCostBasis)
 			}
 			if _, exists := b.mutation.CreditPriority(); exists {
 				s.SetIgnore(ledgersubaccountroute.FieldCreditPriority)

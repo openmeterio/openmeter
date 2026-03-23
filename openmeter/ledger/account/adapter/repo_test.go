@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
@@ -15,6 +16,7 @@ import (
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/openmeter/ledger/account/adapter"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
@@ -100,28 +102,38 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 	subA1, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 		Namespace: namespace,
 		AccountID: accountA.ID.ID,
-		Route:     ledger.Route{Currency: "USD"},
+		Route:     ledger.Route{Currency: currencyx.Code("USD")},
 	})
 	require.NoError(t, err)
 
 	_, err = env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 		Namespace: namespace,
 		AccountID: accountA.ID.ID,
-		Route:     ledger.Route{Currency: "EUR"},
+		Route:     ledger.Route{Currency: currencyx.Code("EUR")},
 	})
 	require.NoError(t, err)
 
 	subA3Priority7, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 		Namespace: namespace,
 		AccountID: accountA.ID.ID,
-		Route:     ledger.Route{Currency: "USD", CreditPriority: lo.ToPtr(7)},
+		Route:     ledger.Route{Currency: currencyx.Code("USD"), CreditPriority: lo.ToPtr(7)},
+	})
+	require.NoError(t, err)
+
+	subA4CostBasis, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
+		Namespace: namespace,
+		AccountID: accountA.ID.ID,
+		Route: ledger.Route{
+			Currency:  currencyx.Code("USD"),
+			CostBasis: lo.ToPtr(mustDecimal(t, "0.7")),
+		},
 	})
 	require.NoError(t, err)
 
 	_, err = env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 		Namespace: namespace,
 		AccountID: accountB.ID.ID,
-		Route:     ledger.Route{Currency: "USD"},
+		Route:     ledger.Route{Currency: currencyx.Code("USD")},
 	})
 	require.NoError(t, err)
 
@@ -131,7 +143,7 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 			AccountID: accountA.ID.ID,
 		})
 		require.NoError(t, err)
-		require.Len(t, items, 3)
+		require.Len(t, items, 4)
 	})
 
 	t.Run("filters by route", func(t *testing.T) {
@@ -139,7 +151,7 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 			Namespace: namespace,
 			AccountID: accountA.ID.ID,
 			Route: ledger.RouteFilter{
-				Currency:       "USD",
+				Currency:       currencyx.Code("USD"),
 				CreditPriority: lo.ToPtr(7),
 			},
 		})
@@ -148,14 +160,43 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 		require.Equal(t, subA3Priority7.ID, items[0].ID)
 	})
 
+	t.Run("filters by canonicalized cost basis", func(t *testing.T) {
+		items, err := env.repo.ListSubAccounts(ctx, ledgeraccount.ListSubAccountsInput{
+			Namespace: namespace,
+			AccountID: accountA.ID.ID,
+			Route: ledger.RouteFilter{
+				Currency:  currencyx.Code("USD"),
+				CostBasis: lo.ToPtr(mustDecimal(t, "0.70")),
+			},
+		})
+		require.NoError(t, err)
+		require.Len(t, items, 1)
+		require.Equal(t, subA4CostBasis.ID, items[0].ID)
+		require.NotNil(t, items[0].Route.CostBasis)
+		require.True(t, items[0].Route.CostBasis.Equal(mustDecimal(t, "0.7")))
+	})
+
 	t.Run("create uses route uniqueness", func(t *testing.T) {
 		dup, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 			Namespace: namespace,
 			AccountID: accountA.ID.ID,
-			Route:     ledger.Route{Currency: "USD"},
+			Route:     ledger.Route{Currency: currencyx.Code("USD")},
 		})
 		require.NoError(t, err)
 		require.Equal(t, subA1.ID, dup.ID)
+	})
+
+	t.Run("create canonicalizes cost basis uniqueness", func(t *testing.T) {
+		dup, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
+			Namespace: namespace,
+			AccountID: accountA.ID.ID,
+			Route: ledger.Route{
+				Currency:  currencyx.Code("USD"),
+				CostBasis: lo.ToPtr(mustDecimal(t, "0.70")),
+			},
+		})
+		require.NoError(t, err)
+		require.Equal(t, subA4CostBasis.ID, dup.ID)
 	})
 }
 
@@ -181,9 +222,10 @@ func TestRepo_SubAccountRouteUniquenessConstraints(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	createRoute := func(accountID string, creditPriority *int) error {
+	createRoute := func(accountID string, creditPriority *int, costBasis *alpacadecimal.Decimal) error {
 		key, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, ledger.Route{
-			Currency:       "USD",
+			Currency:       currencyx.Code("USD"),
+			CostBasis:      costBasis,
 			CreditPriority: creditPriority,
 		})
 		require.NoError(t, err)
@@ -194,6 +236,7 @@ func TestRepo_SubAccountRouteUniquenessConstraints(t *testing.T) {
 			SetRoutingKeyVersion(key.Version()).
 			SetRoutingKey(key.Value()).
 			SetCurrency("USD").
+			SetNillableCostBasis(costBasis).
 			SetNillableCreditPriority(creditPriority)
 
 		_, err = create.Save(ctx)
@@ -201,22 +244,31 @@ func TestRepo_SubAccountRouteUniquenessConstraints(t *testing.T) {
 	}
 
 	t.Run("rejects duplicate route for same account and key", func(t *testing.T) {
-		err := createRoute(accountA.ID.ID, nil)
+		err := createRoute(accountA.ID.ID, nil, nil)
 		require.NoError(t, err)
 
-		err = createRoute(accountA.ID.ID, nil)
+		err = createRoute(accountA.ID.ID, nil, nil)
 		require.Error(t, err)
 		require.True(t, entdb.IsConstraintError(err))
 	})
 
 	t.Run("allows same key across different accounts", func(t *testing.T) {
-		err := createRoute(accountB.ID.ID, nil)
+		err := createRoute(accountB.ID.ID, nil, nil)
 		require.NoError(t, err)
 	})
 
 	t.Run("allows different keys within same account", func(t *testing.T) {
-		err := createRoute(accountA.ID.ID, lo.ToPtr(7))
+		err := createRoute(accountA.ID.ID, lo.ToPtr(7), nil)
 		require.NoError(t, err)
+	})
+
+	t.Run("canonical cost basis produces duplicate key", func(t *testing.T) {
+		err := createRoute(accountA.ID.ID, nil, lo.ToPtr(mustDecimal(t, "0.7")))
+		require.NoError(t, err)
+
+		err = createRoute(accountA.ID.ID, nil, lo.ToPtr(mustDecimal(t, "0.70")))
+		require.Error(t, err)
+		require.True(t, entdb.IsConstraintError(err))
 	})
 
 	countA, err := env.client.LedgerSubAccountRoute.Query().
@@ -226,7 +278,16 @@ func TestRepo_SubAccountRouteUniquenessConstraints(t *testing.T) {
 		).
 		Count(ctx)
 	require.NoError(t, err)
-	require.Equal(t, 2, countA)
+	require.Equal(t, 3, countA)
+}
+
+func mustDecimal(t *testing.T, raw string) alpacadecimal.Decimal {
+	t.Helper()
+
+	value, err := alpacadecimal.NewFromString(raw)
+	require.NoError(t, err)
+
+	return value
 }
 
 type TestEnv struct {
