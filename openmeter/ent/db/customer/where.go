@@ -1430,21 +1430,67 @@ func HasEntitlementsWith(preds ...predicate.Entitlement) predicate.Customer {
 	})
 }
 
-// HasChargeIntents applies the HasEdge predicate on the "charge_intents" edge.
-func HasChargeIntents() predicate.Customer {
+// HasChargesCreditPurchase applies the HasEdge predicate on the "charges_credit_purchase" edge.
+func HasChargesCreditPurchase() predicate.Customer {
 	return predicate.Customer(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, ChargeIntentsTable, ChargeIntentsColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChargesCreditPurchaseTable, ChargesCreditPurchaseColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasChargeIntentsWith applies the HasEdge predicate on the "charge_intents" edge with a given conditions (other predicates).
-func HasChargeIntentsWith(preds ...predicate.Charge) predicate.Customer {
+// HasChargesCreditPurchaseWith applies the HasEdge predicate on the "charges_credit_purchase" edge with a given conditions (other predicates).
+func HasChargesCreditPurchaseWith(preds ...predicate.ChargeCreditPurchase) predicate.Customer {
 	return predicate.Customer(func(s *sql.Selector) {
-		step := newChargeIntentsStep()
+		step := newChargesCreditPurchaseStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasChargesFlatFee applies the HasEdge predicate on the "charges_flat_fee" edge.
+func HasChargesFlatFee() predicate.Customer {
+	return predicate.Customer(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChargesFlatFeeTable, ChargesFlatFeeColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChargesFlatFeeWith applies the HasEdge predicate on the "charges_flat_fee" edge with a given conditions (other predicates).
+func HasChargesFlatFeeWith(preds ...predicate.ChargeFlatFee) predicate.Customer {
+	return predicate.Customer(func(s *sql.Selector) {
+		step := newChargesFlatFeeStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasChargesUsageBased applies the HasEdge predicate on the "charges_usage_based" edge.
+func HasChargesUsageBased() predicate.Customer {
+	return predicate.Customer(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChargesUsageBasedTable, ChargesUsageBasedColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChargesUsageBasedWith applies the HasEdge predicate on the "charges_usage_based" edge with a given conditions (other predicates).
+func HasChargesUsageBasedWith(preds ...predicate.ChargeUsageBased) predicate.Customer {
+	return predicate.Customer(func(s *sql.Selector) {
+		step := newChargesUsageBasedStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

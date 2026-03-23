@@ -13,7 +13,9 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
@@ -397,19 +399,49 @@ func (_u *SubscriptionItemUpdate) AddBillingSplitLineGroups(v ...*BillingInvoice
 	return _u.AddBillingSplitLineGroupIDs(ids...)
 }
 
-// AddChargeIntentIDs adds the "charge_intents" edge to the Charge entity by IDs.
-func (_u *SubscriptionItemUpdate) AddChargeIntentIDs(ids ...string) *SubscriptionItemUpdate {
-	_u.mutation.AddChargeIntentIDs(ids...)
+// AddChargesUsageBasedIDs adds the "charges_usage_based" edge to the ChargeUsageBased entity by IDs.
+func (_u *SubscriptionItemUpdate) AddChargesUsageBasedIDs(ids ...string) *SubscriptionItemUpdate {
+	_u.mutation.AddChargesUsageBasedIDs(ids...)
 	return _u
 }
 
-// AddChargeIntents adds the "charge_intents" edges to the Charge entity.
-func (_u *SubscriptionItemUpdate) AddChargeIntents(v ...*Charge) *SubscriptionItemUpdate {
+// AddChargesUsageBased adds the "charges_usage_based" edges to the ChargeUsageBased entity.
+func (_u *SubscriptionItemUpdate) AddChargesUsageBased(v ...*ChargeUsageBased) *SubscriptionItemUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddChargeIntentIDs(ids...)
+	return _u.AddChargesUsageBasedIDs(ids...)
+}
+
+// AddChargesCreditPurchaseIDs adds the "charges_credit_purchase" edge to the ChargeCreditPurchase entity by IDs.
+func (_u *SubscriptionItemUpdate) AddChargesCreditPurchaseIDs(ids ...string) *SubscriptionItemUpdate {
+	_u.mutation.AddChargesCreditPurchaseIDs(ids...)
+	return _u
+}
+
+// AddChargesCreditPurchase adds the "charges_credit_purchase" edges to the ChargeCreditPurchase entity.
+func (_u *SubscriptionItemUpdate) AddChargesCreditPurchase(v ...*ChargeCreditPurchase) *SubscriptionItemUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargesCreditPurchaseIDs(ids...)
+}
+
+// AddChargesFlatFeeIDs adds the "charges_flat_fee" edge to the ChargeFlatFee entity by IDs.
+func (_u *SubscriptionItemUpdate) AddChargesFlatFeeIDs(ids ...string) *SubscriptionItemUpdate {
+	_u.mutation.AddChargesFlatFeeIDs(ids...)
+	return _u
+}
+
+// AddChargesFlatFee adds the "charges_flat_fee" edges to the ChargeFlatFee entity.
+func (_u *SubscriptionItemUpdate) AddChargesFlatFee(v ...*ChargeFlatFee) *SubscriptionItemUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargesFlatFeeIDs(ids...)
 }
 
 // SetTaxCode sets the "tax_code" edge to the TaxCode entity.
@@ -470,25 +502,67 @@ func (_u *SubscriptionItemUpdate) RemoveBillingSplitLineGroups(v ...*BillingInvo
 	return _u.RemoveBillingSplitLineGroupIDs(ids...)
 }
 
-// ClearChargeIntents clears all "charge_intents" edges to the Charge entity.
-func (_u *SubscriptionItemUpdate) ClearChargeIntents() *SubscriptionItemUpdate {
-	_u.mutation.ClearChargeIntents()
+// ClearChargesUsageBased clears all "charges_usage_based" edges to the ChargeUsageBased entity.
+func (_u *SubscriptionItemUpdate) ClearChargesUsageBased() *SubscriptionItemUpdate {
+	_u.mutation.ClearChargesUsageBased()
 	return _u
 }
 
-// RemoveChargeIntentIDs removes the "charge_intents" edge to Charge entities by IDs.
-func (_u *SubscriptionItemUpdate) RemoveChargeIntentIDs(ids ...string) *SubscriptionItemUpdate {
-	_u.mutation.RemoveChargeIntentIDs(ids...)
+// RemoveChargesUsageBasedIDs removes the "charges_usage_based" edge to ChargeUsageBased entities by IDs.
+func (_u *SubscriptionItemUpdate) RemoveChargesUsageBasedIDs(ids ...string) *SubscriptionItemUpdate {
+	_u.mutation.RemoveChargesUsageBasedIDs(ids...)
 	return _u
 }
 
-// RemoveChargeIntents removes "charge_intents" edges to Charge entities.
-func (_u *SubscriptionItemUpdate) RemoveChargeIntents(v ...*Charge) *SubscriptionItemUpdate {
+// RemoveChargesUsageBased removes "charges_usage_based" edges to ChargeUsageBased entities.
+func (_u *SubscriptionItemUpdate) RemoveChargesUsageBased(v ...*ChargeUsageBased) *SubscriptionItemUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveChargeIntentIDs(ids...)
+	return _u.RemoveChargesUsageBasedIDs(ids...)
+}
+
+// ClearChargesCreditPurchase clears all "charges_credit_purchase" edges to the ChargeCreditPurchase entity.
+func (_u *SubscriptionItemUpdate) ClearChargesCreditPurchase() *SubscriptionItemUpdate {
+	_u.mutation.ClearChargesCreditPurchase()
+	return _u
+}
+
+// RemoveChargesCreditPurchaseIDs removes the "charges_credit_purchase" edge to ChargeCreditPurchase entities by IDs.
+func (_u *SubscriptionItemUpdate) RemoveChargesCreditPurchaseIDs(ids ...string) *SubscriptionItemUpdate {
+	_u.mutation.RemoveChargesCreditPurchaseIDs(ids...)
+	return _u
+}
+
+// RemoveChargesCreditPurchase removes "charges_credit_purchase" edges to ChargeCreditPurchase entities.
+func (_u *SubscriptionItemUpdate) RemoveChargesCreditPurchase(v ...*ChargeCreditPurchase) *SubscriptionItemUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargesCreditPurchaseIDs(ids...)
+}
+
+// ClearChargesFlatFee clears all "charges_flat_fee" edges to the ChargeFlatFee entity.
+func (_u *SubscriptionItemUpdate) ClearChargesFlatFee() *SubscriptionItemUpdate {
+	_u.mutation.ClearChargesFlatFee()
+	return _u
+}
+
+// RemoveChargesFlatFeeIDs removes the "charges_flat_fee" edge to ChargeFlatFee entities by IDs.
+func (_u *SubscriptionItemUpdate) RemoveChargesFlatFeeIDs(ids ...string) *SubscriptionItemUpdate {
+	_u.mutation.RemoveChargesFlatFeeIDs(ids...)
+	return _u
+}
+
+// RemoveChargesFlatFee removes "charges_flat_fee" edges to ChargeFlatFee entities.
+func (_u *SubscriptionItemUpdate) RemoveChargesFlatFee(v ...*ChargeFlatFee) *SubscriptionItemUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargesFlatFeeIDs(ids...)
 }
 
 // ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
@@ -821,28 +895,28 @@ func (_u *SubscriptionItemUpdate) sqlSave(ctx context.Context) (_node int, err e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.ChargeIntentsCleared() {
+	if _u.mutation.ChargesUsageBasedCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   subscriptionitem.ChargeIntentsTable,
-			Columns: []string{subscriptionitem.ChargeIntentsColumn},
+			Table:   subscriptionitem.ChargesUsageBasedTable,
+			Columns: []string{subscriptionitem.ChargesUsageBasedColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedChargeIntentsIDs(); len(nodes) > 0 && !_u.mutation.ChargeIntentsCleared() {
+	if nodes := _u.mutation.RemovedChargesUsageBasedIDs(); len(nodes) > 0 && !_u.mutation.ChargesUsageBasedCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   subscriptionitem.ChargeIntentsTable,
-			Columns: []string{subscriptionitem.ChargeIntentsColumn},
+			Table:   subscriptionitem.ChargesUsageBasedTable,
+			Columns: []string{subscriptionitem.ChargesUsageBasedColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -850,15 +924,105 @@ func (_u *SubscriptionItemUpdate) sqlSave(ctx context.Context) (_node int, err e
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.ChargeIntentsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.ChargesUsageBasedIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   subscriptionitem.ChargeIntentsTable,
-			Columns: []string{subscriptionitem.ChargeIntentsColumn},
+			Table:   subscriptionitem.ChargesUsageBasedTable,
+			Columns: []string{subscriptionitem.ChargesUsageBasedColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargesCreditPurchaseCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.ChargesCreditPurchaseTable,
+			Columns: []string{subscriptionitem.ChargesCreditPurchaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargesCreditPurchaseIDs(); len(nodes) > 0 && !_u.mutation.ChargesCreditPurchaseCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.ChargesCreditPurchaseTable,
+			Columns: []string{subscriptionitem.ChargesCreditPurchaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargesCreditPurchaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.ChargesCreditPurchaseTable,
+			Columns: []string{subscriptionitem.ChargesCreditPurchaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargesFlatFeeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.ChargesFlatFeeTable,
+			Columns: []string{subscriptionitem.ChargesFlatFeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargesFlatFeeIDs(); len(nodes) > 0 && !_u.mutation.ChargesFlatFeeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.ChargesFlatFeeTable,
+			Columns: []string{subscriptionitem.ChargesFlatFeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargesFlatFeeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.ChargesFlatFeeTable,
+			Columns: []string{subscriptionitem.ChargesFlatFeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1276,19 +1440,49 @@ func (_u *SubscriptionItemUpdateOne) AddBillingSplitLineGroups(v ...*BillingInvo
 	return _u.AddBillingSplitLineGroupIDs(ids...)
 }
 
-// AddChargeIntentIDs adds the "charge_intents" edge to the Charge entity by IDs.
-func (_u *SubscriptionItemUpdateOne) AddChargeIntentIDs(ids ...string) *SubscriptionItemUpdateOne {
-	_u.mutation.AddChargeIntentIDs(ids...)
+// AddChargesUsageBasedIDs adds the "charges_usage_based" edge to the ChargeUsageBased entity by IDs.
+func (_u *SubscriptionItemUpdateOne) AddChargesUsageBasedIDs(ids ...string) *SubscriptionItemUpdateOne {
+	_u.mutation.AddChargesUsageBasedIDs(ids...)
 	return _u
 }
 
-// AddChargeIntents adds the "charge_intents" edges to the Charge entity.
-func (_u *SubscriptionItemUpdateOne) AddChargeIntents(v ...*Charge) *SubscriptionItemUpdateOne {
+// AddChargesUsageBased adds the "charges_usage_based" edges to the ChargeUsageBased entity.
+func (_u *SubscriptionItemUpdateOne) AddChargesUsageBased(v ...*ChargeUsageBased) *SubscriptionItemUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddChargeIntentIDs(ids...)
+	return _u.AddChargesUsageBasedIDs(ids...)
+}
+
+// AddChargesCreditPurchaseIDs adds the "charges_credit_purchase" edge to the ChargeCreditPurchase entity by IDs.
+func (_u *SubscriptionItemUpdateOne) AddChargesCreditPurchaseIDs(ids ...string) *SubscriptionItemUpdateOne {
+	_u.mutation.AddChargesCreditPurchaseIDs(ids...)
+	return _u
+}
+
+// AddChargesCreditPurchase adds the "charges_credit_purchase" edges to the ChargeCreditPurchase entity.
+func (_u *SubscriptionItemUpdateOne) AddChargesCreditPurchase(v ...*ChargeCreditPurchase) *SubscriptionItemUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargesCreditPurchaseIDs(ids...)
+}
+
+// AddChargesFlatFeeIDs adds the "charges_flat_fee" edge to the ChargeFlatFee entity by IDs.
+func (_u *SubscriptionItemUpdateOne) AddChargesFlatFeeIDs(ids ...string) *SubscriptionItemUpdateOne {
+	_u.mutation.AddChargesFlatFeeIDs(ids...)
+	return _u
+}
+
+// AddChargesFlatFee adds the "charges_flat_fee" edges to the ChargeFlatFee entity.
+func (_u *SubscriptionItemUpdateOne) AddChargesFlatFee(v ...*ChargeFlatFee) *SubscriptionItemUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargesFlatFeeIDs(ids...)
 }
 
 // SetTaxCode sets the "tax_code" edge to the TaxCode entity.
@@ -1349,25 +1543,67 @@ func (_u *SubscriptionItemUpdateOne) RemoveBillingSplitLineGroups(v ...*BillingI
 	return _u.RemoveBillingSplitLineGroupIDs(ids...)
 }
 
-// ClearChargeIntents clears all "charge_intents" edges to the Charge entity.
-func (_u *SubscriptionItemUpdateOne) ClearChargeIntents() *SubscriptionItemUpdateOne {
-	_u.mutation.ClearChargeIntents()
+// ClearChargesUsageBased clears all "charges_usage_based" edges to the ChargeUsageBased entity.
+func (_u *SubscriptionItemUpdateOne) ClearChargesUsageBased() *SubscriptionItemUpdateOne {
+	_u.mutation.ClearChargesUsageBased()
 	return _u
 }
 
-// RemoveChargeIntentIDs removes the "charge_intents" edge to Charge entities by IDs.
-func (_u *SubscriptionItemUpdateOne) RemoveChargeIntentIDs(ids ...string) *SubscriptionItemUpdateOne {
-	_u.mutation.RemoveChargeIntentIDs(ids...)
+// RemoveChargesUsageBasedIDs removes the "charges_usage_based" edge to ChargeUsageBased entities by IDs.
+func (_u *SubscriptionItemUpdateOne) RemoveChargesUsageBasedIDs(ids ...string) *SubscriptionItemUpdateOne {
+	_u.mutation.RemoveChargesUsageBasedIDs(ids...)
 	return _u
 }
 
-// RemoveChargeIntents removes "charge_intents" edges to Charge entities.
-func (_u *SubscriptionItemUpdateOne) RemoveChargeIntents(v ...*Charge) *SubscriptionItemUpdateOne {
+// RemoveChargesUsageBased removes "charges_usage_based" edges to ChargeUsageBased entities.
+func (_u *SubscriptionItemUpdateOne) RemoveChargesUsageBased(v ...*ChargeUsageBased) *SubscriptionItemUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveChargeIntentIDs(ids...)
+	return _u.RemoveChargesUsageBasedIDs(ids...)
+}
+
+// ClearChargesCreditPurchase clears all "charges_credit_purchase" edges to the ChargeCreditPurchase entity.
+func (_u *SubscriptionItemUpdateOne) ClearChargesCreditPurchase() *SubscriptionItemUpdateOne {
+	_u.mutation.ClearChargesCreditPurchase()
+	return _u
+}
+
+// RemoveChargesCreditPurchaseIDs removes the "charges_credit_purchase" edge to ChargeCreditPurchase entities by IDs.
+func (_u *SubscriptionItemUpdateOne) RemoveChargesCreditPurchaseIDs(ids ...string) *SubscriptionItemUpdateOne {
+	_u.mutation.RemoveChargesCreditPurchaseIDs(ids...)
+	return _u
+}
+
+// RemoveChargesCreditPurchase removes "charges_credit_purchase" edges to ChargeCreditPurchase entities.
+func (_u *SubscriptionItemUpdateOne) RemoveChargesCreditPurchase(v ...*ChargeCreditPurchase) *SubscriptionItemUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargesCreditPurchaseIDs(ids...)
+}
+
+// ClearChargesFlatFee clears all "charges_flat_fee" edges to the ChargeFlatFee entity.
+func (_u *SubscriptionItemUpdateOne) ClearChargesFlatFee() *SubscriptionItemUpdateOne {
+	_u.mutation.ClearChargesFlatFee()
+	return _u
+}
+
+// RemoveChargesFlatFeeIDs removes the "charges_flat_fee" edge to ChargeFlatFee entities by IDs.
+func (_u *SubscriptionItemUpdateOne) RemoveChargesFlatFeeIDs(ids ...string) *SubscriptionItemUpdateOne {
+	_u.mutation.RemoveChargesFlatFeeIDs(ids...)
+	return _u
+}
+
+// RemoveChargesFlatFee removes "charges_flat_fee" edges to ChargeFlatFee entities.
+func (_u *SubscriptionItemUpdateOne) RemoveChargesFlatFee(v ...*ChargeFlatFee) *SubscriptionItemUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargesFlatFeeIDs(ids...)
 }
 
 // ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
@@ -1730,28 +1966,28 @@ func (_u *SubscriptionItemUpdateOne) sqlSave(ctx context.Context) (_node *Subscr
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.ChargeIntentsCleared() {
+	if _u.mutation.ChargesUsageBasedCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   subscriptionitem.ChargeIntentsTable,
-			Columns: []string{subscriptionitem.ChargeIntentsColumn},
+			Table:   subscriptionitem.ChargesUsageBasedTable,
+			Columns: []string{subscriptionitem.ChargesUsageBasedColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedChargeIntentsIDs(); len(nodes) > 0 && !_u.mutation.ChargeIntentsCleared() {
+	if nodes := _u.mutation.RemovedChargesUsageBasedIDs(); len(nodes) > 0 && !_u.mutation.ChargesUsageBasedCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   subscriptionitem.ChargeIntentsTable,
-			Columns: []string{subscriptionitem.ChargeIntentsColumn},
+			Table:   subscriptionitem.ChargesUsageBasedTable,
+			Columns: []string{subscriptionitem.ChargesUsageBasedColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1759,15 +1995,105 @@ func (_u *SubscriptionItemUpdateOne) sqlSave(ctx context.Context) (_node *Subscr
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.ChargeIntentsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.ChargesUsageBasedIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   subscriptionitem.ChargeIntentsTable,
-			Columns: []string{subscriptionitem.ChargeIntentsColumn},
+			Table:   subscriptionitem.ChargesUsageBasedTable,
+			Columns: []string{subscriptionitem.ChargesUsageBasedColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargesCreditPurchaseCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.ChargesCreditPurchaseTable,
+			Columns: []string{subscriptionitem.ChargesCreditPurchaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargesCreditPurchaseIDs(); len(nodes) > 0 && !_u.mutation.ChargesCreditPurchaseCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.ChargesCreditPurchaseTable,
+			Columns: []string{subscriptionitem.ChargesCreditPurchaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargesCreditPurchaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.ChargesCreditPurchaseTable,
+			Columns: []string{subscriptionitem.ChargesCreditPurchaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargesFlatFeeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.ChargesFlatFeeTable,
+			Columns: []string{subscriptionitem.ChargesFlatFeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargesFlatFeeIDs(); len(nodes) > 0 && !_u.mutation.ChargesFlatFeeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.ChargesFlatFeeTable,
+			Columns: []string{subscriptionitem.ChargesFlatFeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargesFlatFeeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionitem.ChargesFlatFeeTable,
+			Columns: []string{subscriptionitem.ChargesFlatFeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

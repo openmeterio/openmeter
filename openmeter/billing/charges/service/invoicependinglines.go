@@ -104,8 +104,12 @@ func (s *service) allocateCreditAmountsToBillableLines(ctx context.Context, name
 	}
 
 	affectedCharges, err := s.GetByIDs(ctx, charges.GetByIDsInput{
-		Namespace: namespace,
-		ChargeIDs: chargeIDs,
+		ChargeIDs: lo.Map(chargeIDs, func(id string, _ int) meta.ChargeID {
+			return meta.ChargeID{
+				Namespace: namespace,
+				ID:        id,
+			}
+		}),
 		Expands: meta.Expands{
 			meta.ExpandRealizations,
 		},

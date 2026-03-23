@@ -13,11 +13,19 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // ChargeCreditPurchaseCreate is the builder for creating a ChargeCreditPurchase entity.
@@ -28,9 +36,213 @@ type ChargeCreditPurchaseCreate struct {
 	conflict []sql.ConflictOption
 }
 
+// SetCustomerID sets the "customer_id" field.
+func (_c *ChargeCreditPurchaseCreate) SetCustomerID(v string) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetCustomerID(v)
+	return _c
+}
+
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (_c *ChargeCreditPurchaseCreate) SetServicePeriodFrom(v time.Time) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetServicePeriodFrom(v)
+	return _c
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (_c *ChargeCreditPurchaseCreate) SetServicePeriodTo(v time.Time) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetServicePeriodTo(v)
+	return _c
+}
+
+// SetBillingPeriodFrom sets the "billing_period_from" field.
+func (_c *ChargeCreditPurchaseCreate) SetBillingPeriodFrom(v time.Time) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetBillingPeriodFrom(v)
+	return _c
+}
+
+// SetBillingPeriodTo sets the "billing_period_to" field.
+func (_c *ChargeCreditPurchaseCreate) SetBillingPeriodTo(v time.Time) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetBillingPeriodTo(v)
+	return _c
+}
+
+// SetFullServicePeriodFrom sets the "full_service_period_from" field.
+func (_c *ChargeCreditPurchaseCreate) SetFullServicePeriodFrom(v time.Time) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetFullServicePeriodFrom(v)
+	return _c
+}
+
+// SetFullServicePeriodTo sets the "full_service_period_to" field.
+func (_c *ChargeCreditPurchaseCreate) SetFullServicePeriodTo(v time.Time) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetFullServicePeriodTo(v)
+	return _c
+}
+
+// SetStatus sets the "status" field.
+func (_c *ChargeCreditPurchaseCreate) SetStatus(v meta.ChargeStatus) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetStatus(v)
+	return _c
+}
+
+// SetUniqueReferenceID sets the "unique_reference_id" field.
+func (_c *ChargeCreditPurchaseCreate) SetUniqueReferenceID(v string) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetUniqueReferenceID(v)
+	return _c
+}
+
+// SetNillableUniqueReferenceID sets the "unique_reference_id" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableUniqueReferenceID(v *string) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetUniqueReferenceID(*v)
+	}
+	return _c
+}
+
+// SetCurrency sets the "currency" field.
+func (_c *ChargeCreditPurchaseCreate) SetCurrency(v currencyx.Code) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetCurrency(v)
+	return _c
+}
+
+// SetManagedBy sets the "managed_by" field.
+func (_c *ChargeCreditPurchaseCreate) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetManagedBy(v)
+	return _c
+}
+
+// SetSubscriptionID sets the "subscription_id" field.
+func (_c *ChargeCreditPurchaseCreate) SetSubscriptionID(v string) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetSubscriptionID(v)
+	return _c
+}
+
+// SetNillableSubscriptionID sets the "subscription_id" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableSubscriptionID(v *string) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetSubscriptionID(*v)
+	}
+	return _c
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (_c *ChargeCreditPurchaseCreate) SetSubscriptionPhaseID(v string) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetSubscriptionPhaseID(v)
+	return _c
+}
+
+// SetNillableSubscriptionPhaseID sets the "subscription_phase_id" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableSubscriptionPhaseID(v *string) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetSubscriptionPhaseID(*v)
+	}
+	return _c
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (_c *ChargeCreditPurchaseCreate) SetSubscriptionItemID(v string) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetSubscriptionItemID(v)
+	return _c
+}
+
+// SetNillableSubscriptionItemID sets the "subscription_item_id" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableSubscriptionItemID(v *string) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetSubscriptionItemID(*v)
+	}
+	return _c
+}
+
+// SetAdvanceAfter sets the "advance_after" field.
+func (_c *ChargeCreditPurchaseCreate) SetAdvanceAfter(v time.Time) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetAdvanceAfter(v)
+	return _c
+}
+
+// SetNillableAdvanceAfter sets the "advance_after" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableAdvanceAfter(v *time.Time) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetAdvanceAfter(*v)
+	}
+	return _c
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_c *ChargeCreditPurchaseCreate) SetAnnotations(v models.Annotations) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetAnnotations(v)
+	return _c
+}
+
 // SetNamespace sets the "namespace" field.
 func (_c *ChargeCreditPurchaseCreate) SetNamespace(v string) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetNamespace(v)
+	return _c
+}
+
+// SetMetadata sets the "metadata" field.
+func (_c *ChargeCreditPurchaseCreate) SetMetadata(v map[string]string) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetMetadata(v)
+	return _c
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (_c *ChargeCreditPurchaseCreate) SetCreatedAt(v time.Time) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableCreatedAt(v *time.Time) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
+	}
+	return _c
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_c *ChargeCreditPurchaseCreate) SetUpdatedAt(v time.Time) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableUpdatedAt(v *time.Time) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
+	}
+	return _c
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (_c *ChargeCreditPurchaseCreate) SetDeletedAt(v time.Time) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableDeletedAt(v *time.Time) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
+	}
+	return _c
+}
+
+// SetName sets the "name" field.
+func (_c *ChargeCreditPurchaseCreate) SetName(v string) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetName(v)
+	return _c
+}
+
+// SetDescription sets the "description" field.
+func (_c *ChargeCreditPurchaseCreate) SetDescription(v string) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetDescription(v)
+	return _c
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableDescription(v *string) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetDescription(*v)
+	}
 	return _c
 }
 
@@ -88,17 +300,6 @@ func (_c *ChargeCreditPurchaseCreate) SetNillableID(v *string) *ChargeCreditPurc
 	return _c
 }
 
-// SetChargeID sets the "charge" edge to the Charge entity by ID.
-func (_c *ChargeCreditPurchaseCreate) SetChargeID(id string) *ChargeCreditPurchaseCreate {
-	_c.mutation.SetChargeID(id)
-	return _c
-}
-
-// SetCharge sets the "charge" edge to the Charge entity.
-func (_c *ChargeCreditPurchaseCreate) SetCharge(v *Charge) *ChargeCreditPurchaseCreate {
-	return _c.SetChargeID(v.ID)
-}
-
 // SetExternalPaymentID sets the "external_payment" edge to the ChargeCreditPurchaseExternalPayment entity by ID.
 func (_c *ChargeCreditPurchaseCreate) SetExternalPaymentID(id string) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetExternalPaymentID(id)
@@ -137,6 +338,45 @@ func (_c *ChargeCreditPurchaseCreate) SetInvoicedPayment(v *ChargeCreditPurchase
 	return _c.SetInvoicedPaymentID(v.ID)
 }
 
+// SetChargeID sets the "charge" edge to the Charge entity by ID.
+func (_c *ChargeCreditPurchaseCreate) SetChargeID(id string) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetChargeID(id)
+	return _c
+}
+
+// SetNillableChargeID sets the "charge" edge to the Charge entity by ID if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableChargeID(id *string) *ChargeCreditPurchaseCreate {
+	if id != nil {
+		_c = _c.SetChargeID(*id)
+	}
+	return _c
+}
+
+// SetCharge sets the "charge" edge to the Charge entity.
+func (_c *ChargeCreditPurchaseCreate) SetCharge(v *Charge) *ChargeCreditPurchaseCreate {
+	return _c.SetChargeID(v.ID)
+}
+
+// SetSubscription sets the "subscription" edge to the Subscription entity.
+func (_c *ChargeCreditPurchaseCreate) SetSubscription(v *Subscription) *ChargeCreditPurchaseCreate {
+	return _c.SetSubscriptionID(v.ID)
+}
+
+// SetSubscriptionPhase sets the "subscription_phase" edge to the SubscriptionPhase entity.
+func (_c *ChargeCreditPurchaseCreate) SetSubscriptionPhase(v *SubscriptionPhase) *ChargeCreditPurchaseCreate {
+	return _c.SetSubscriptionPhaseID(v.ID)
+}
+
+// SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
+func (_c *ChargeCreditPurchaseCreate) SetSubscriptionItem(v *SubscriptionItem) *ChargeCreditPurchaseCreate {
+	return _c.SetSubscriptionItemID(v.ID)
+}
+
+// SetCustomer sets the "customer" edge to the Customer entity.
+func (_c *ChargeCreditPurchaseCreate) SetCustomer(v *Customer) *ChargeCreditPurchaseCreate {
+	return _c.SetCustomerID(v.ID)
+}
+
 // Mutation returns the ChargeCreditPurchaseMutation object of the builder.
 func (_c *ChargeCreditPurchaseCreate) Mutation() *ChargeCreditPurchaseMutation {
 	return _c.mutation
@@ -172,6 +412,14 @@ func (_c *ChargeCreditPurchaseCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *ChargeCreditPurchaseCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		v := chargecreditpurchase.DefaultCreatedAt()
+		_c.mutation.SetCreatedAt(v)
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		v := chargecreditpurchase.DefaultUpdatedAt()
+		_c.mutation.SetUpdatedAt(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := chargecreditpurchase.DefaultID()
 		_c.mutation.SetID(v)
@@ -180,6 +428,56 @@ func (_c *ChargeCreditPurchaseCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *ChargeCreditPurchaseCreate) check() error {
+	if _, ok := _c.mutation.CustomerID(); !ok {
+		return &ValidationError{Name: "customer_id", err: errors.New(`db: missing required field "ChargeCreditPurchase.customer_id"`)}
+	}
+	if v, ok := _c.mutation.CustomerID(); ok {
+		if err := chargecreditpurchase.CustomerIDValidator(v); err != nil {
+			return &ValidationError{Name: "customer_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.customer_id": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.ServicePeriodFrom(); !ok {
+		return &ValidationError{Name: "service_period_from", err: errors.New(`db: missing required field "ChargeCreditPurchase.service_period_from"`)}
+	}
+	if _, ok := _c.mutation.ServicePeriodTo(); !ok {
+		return &ValidationError{Name: "service_period_to", err: errors.New(`db: missing required field "ChargeCreditPurchase.service_period_to"`)}
+	}
+	if _, ok := _c.mutation.BillingPeriodFrom(); !ok {
+		return &ValidationError{Name: "billing_period_from", err: errors.New(`db: missing required field "ChargeCreditPurchase.billing_period_from"`)}
+	}
+	if _, ok := _c.mutation.BillingPeriodTo(); !ok {
+		return &ValidationError{Name: "billing_period_to", err: errors.New(`db: missing required field "ChargeCreditPurchase.billing_period_to"`)}
+	}
+	if _, ok := _c.mutation.FullServicePeriodFrom(); !ok {
+		return &ValidationError{Name: "full_service_period_from", err: errors.New(`db: missing required field "ChargeCreditPurchase.full_service_period_from"`)}
+	}
+	if _, ok := _c.mutation.FullServicePeriodTo(); !ok {
+		return &ValidationError{Name: "full_service_period_to", err: errors.New(`db: missing required field "ChargeCreditPurchase.full_service_period_to"`)}
+	}
+	if _, ok := _c.mutation.Status(); !ok {
+		return &ValidationError{Name: "status", err: errors.New(`db: missing required field "ChargeCreditPurchase.status"`)}
+	}
+	if v, ok := _c.mutation.Status(); ok {
+		if err := chargecreditpurchase.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.status": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.Currency(); !ok {
+		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "ChargeCreditPurchase.currency"`)}
+	}
+	if v, ok := _c.mutation.Currency(); ok {
+		if err := chargecreditpurchase.CurrencyValidator(string(v)); err != nil {
+			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.currency": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.ManagedBy(); !ok {
+		return &ValidationError{Name: "managed_by", err: errors.New(`db: missing required field "ChargeCreditPurchase.managed_by"`)}
+	}
+	if v, ok := _c.mutation.ManagedBy(); ok {
+		if err := chargecreditpurchase.ManagedByValidator(v); err != nil {
+			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.managed_by": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "ChargeCreditPurchase.namespace"`)}
 	}
@@ -187,6 +485,15 @@ func (_c *ChargeCreditPurchaseCreate) check() error {
 		if err := chargecreditpurchase.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.namespace": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "ChargeCreditPurchase.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "ChargeCreditPurchase.updated_at"`)}
+	}
+	if _, ok := _c.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "ChargeCreditPurchase.name"`)}
 	}
 	if _, ok := _c.mutation.CreditAmount(); !ok {
 		return &ValidationError{Name: "credit_amount", err: errors.New(`db: missing required field "ChargeCreditPurchase.credit_amount"`)}
@@ -204,8 +511,8 @@ func (_c *ChargeCreditPurchaseCreate) check() error {
 			return &ValidationError{Name: "credit_grant_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.credit_grant_transaction_group_id": %w`, err)}
 		}
 	}
-	if len(_c.mutation.ChargeIDs()) == 0 {
-		return &ValidationError{Name: "charge", err: errors.New(`db: missing required edge "ChargeCreditPurchase.charge"`)}
+	if len(_c.mutation.CustomerIDs()) == 0 {
+		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "ChargeCreditPurchase.customer"`)}
 	}
 	return nil
 }
@@ -246,9 +553,81 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 		_node.ID = id
 		_spec.ID.Value = id
 	}
+	if value, ok := _c.mutation.ServicePeriodFrom(); ok {
+		_spec.SetField(chargecreditpurchase.FieldServicePeriodFrom, field.TypeTime, value)
+		_node.ServicePeriodFrom = value
+	}
+	if value, ok := _c.mutation.ServicePeriodTo(); ok {
+		_spec.SetField(chargecreditpurchase.FieldServicePeriodTo, field.TypeTime, value)
+		_node.ServicePeriodTo = value
+	}
+	if value, ok := _c.mutation.BillingPeriodFrom(); ok {
+		_spec.SetField(chargecreditpurchase.FieldBillingPeriodFrom, field.TypeTime, value)
+		_node.BillingPeriodFrom = value
+	}
+	if value, ok := _c.mutation.BillingPeriodTo(); ok {
+		_spec.SetField(chargecreditpurchase.FieldBillingPeriodTo, field.TypeTime, value)
+		_node.BillingPeriodTo = value
+	}
+	if value, ok := _c.mutation.FullServicePeriodFrom(); ok {
+		_spec.SetField(chargecreditpurchase.FieldFullServicePeriodFrom, field.TypeTime, value)
+		_node.FullServicePeriodFrom = value
+	}
+	if value, ok := _c.mutation.FullServicePeriodTo(); ok {
+		_spec.SetField(chargecreditpurchase.FieldFullServicePeriodTo, field.TypeTime, value)
+		_node.FullServicePeriodTo = value
+	}
+	if value, ok := _c.mutation.Status(); ok {
+		_spec.SetField(chargecreditpurchase.FieldStatus, field.TypeEnum, value)
+		_node.Status = value
+	}
+	if value, ok := _c.mutation.UniqueReferenceID(); ok {
+		_spec.SetField(chargecreditpurchase.FieldUniqueReferenceID, field.TypeString, value)
+		_node.UniqueReferenceID = &value
+	}
+	if value, ok := _c.mutation.Currency(); ok {
+		_spec.SetField(chargecreditpurchase.FieldCurrency, field.TypeString, value)
+		_node.Currency = value
+	}
+	if value, ok := _c.mutation.ManagedBy(); ok {
+		_spec.SetField(chargecreditpurchase.FieldManagedBy, field.TypeEnum, value)
+		_node.ManagedBy = value
+	}
+	if value, ok := _c.mutation.AdvanceAfter(); ok {
+		_spec.SetField(chargecreditpurchase.FieldAdvanceAfter, field.TypeTime, value)
+		_node.AdvanceAfter = &value
+	}
+	if value, ok := _c.mutation.Annotations(); ok {
+		_spec.SetField(chargecreditpurchase.FieldAnnotations, field.TypeJSON, value)
+		_node.Annotations = value
+	}
 	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(chargecreditpurchase.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
+	}
+	if value, ok := _c.mutation.Metadata(); ok {
+		_spec.SetField(chargecreditpurchase.FieldMetadata, field.TypeJSON, value)
+		_node.Metadata = value
+	}
+	if value, ok := _c.mutation.CreatedAt(); ok {
+		_spec.SetField(chargecreditpurchase.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.UpdatedAt(); ok {
+		_spec.SetField(chargecreditpurchase.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
+	}
+	if value, ok := _c.mutation.DeletedAt(); ok {
+		_spec.SetField(chargecreditpurchase.FieldDeletedAt, field.TypeTime, value)
+		_node.DeletedAt = &value
+	}
+	if value, ok := _c.mutation.Name(); ok {
+		_spec.SetField(chargecreditpurchase.FieldName, field.TypeString, value)
+		_node.Name = value
+	}
+	if value, ok := _c.mutation.Description(); ok {
+		_spec.SetField(chargecreditpurchase.FieldDescription, field.TypeString, value)
+		_node.Description = &value
 	}
 	if value, ok := _c.mutation.CreditAmount(); ok {
 		_spec.SetField(chargecreditpurchase.FieldCreditAmount, field.TypeOther, value)
@@ -269,23 +648,6 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 	if value, ok := _c.mutation.CreditGrantedAt(); ok {
 		_spec.SetField(chargecreditpurchase.FieldCreditGrantedAt, field.TypeTime, value)
 		_node.CreditGrantedAt = &value
-	}
-	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: true,
-			Table:   chargecreditpurchase.ChargeTable,
-			Columns: []string{chargecreditpurchase.ChargeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.ID = nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.ExternalPaymentIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -319,6 +681,90 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargecreditpurchase.ChargeTable,
+			Columns: []string{chargecreditpurchase.ChargeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SubscriptionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.SubscriptionTable,
+			Columns: []string{chargecreditpurchase.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SubscriptionID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SubscriptionPhaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.SubscriptionPhaseTable,
+			Columns: []string{chargecreditpurchase.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SubscriptionPhaseID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.SubscriptionItemTable,
+			Columns: []string{chargecreditpurchase.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SubscriptionItemID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CustomerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargecreditpurchase.CustomerTable,
+			Columns: []string{chargecreditpurchase.CustomerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CustomerID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec, nil
 }
 
@@ -326,7 +772,7 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 // of the `INSERT` statement. For example:
 //
 //	client.ChargeCreditPurchase.Create().
-//		SetNamespace(v).
+//		SetCustomerID(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -335,7 +781,7 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.ChargeCreditPurchaseUpsert) {
-//			SetNamespace(v+v).
+//			SetCustomerID(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *ChargeCreditPurchaseCreate) OnConflict(opts ...sql.ConflictOption) *ChargeCreditPurchaseUpsertOne {
@@ -370,6 +816,216 @@ type (
 		*sql.UpdateSet
 	}
 )
+
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (u *ChargeCreditPurchaseUpsert) SetServicePeriodFrom(v time.Time) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldServicePeriodFrom, v)
+	return u
+}
+
+// UpdateServicePeriodFrom sets the "service_period_from" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateServicePeriodFrom() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldServicePeriodFrom)
+	return u
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (u *ChargeCreditPurchaseUpsert) SetServicePeriodTo(v time.Time) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldServicePeriodTo, v)
+	return u
+}
+
+// UpdateServicePeriodTo sets the "service_period_to" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateServicePeriodTo() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldServicePeriodTo)
+	return u
+}
+
+// SetBillingPeriodFrom sets the "billing_period_from" field.
+func (u *ChargeCreditPurchaseUpsert) SetBillingPeriodFrom(v time.Time) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldBillingPeriodFrom, v)
+	return u
+}
+
+// UpdateBillingPeriodFrom sets the "billing_period_from" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateBillingPeriodFrom() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldBillingPeriodFrom)
+	return u
+}
+
+// SetBillingPeriodTo sets the "billing_period_to" field.
+func (u *ChargeCreditPurchaseUpsert) SetBillingPeriodTo(v time.Time) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldBillingPeriodTo, v)
+	return u
+}
+
+// UpdateBillingPeriodTo sets the "billing_period_to" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateBillingPeriodTo() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldBillingPeriodTo)
+	return u
+}
+
+// SetFullServicePeriodFrom sets the "full_service_period_from" field.
+func (u *ChargeCreditPurchaseUpsert) SetFullServicePeriodFrom(v time.Time) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldFullServicePeriodFrom, v)
+	return u
+}
+
+// UpdateFullServicePeriodFrom sets the "full_service_period_from" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateFullServicePeriodFrom() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldFullServicePeriodFrom)
+	return u
+}
+
+// SetFullServicePeriodTo sets the "full_service_period_to" field.
+func (u *ChargeCreditPurchaseUpsert) SetFullServicePeriodTo(v time.Time) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldFullServicePeriodTo, v)
+	return u
+}
+
+// UpdateFullServicePeriodTo sets the "full_service_period_to" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateFullServicePeriodTo() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldFullServicePeriodTo)
+	return u
+}
+
+// SetStatus sets the "status" field.
+func (u *ChargeCreditPurchaseUpsert) SetStatus(v meta.ChargeStatus) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldStatus, v)
+	return u
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateStatus() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldStatus)
+	return u
+}
+
+// SetManagedBy sets the "managed_by" field.
+func (u *ChargeCreditPurchaseUpsert) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldManagedBy, v)
+	return u
+}
+
+// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateManagedBy() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldManagedBy)
+	return u
+}
+
+// SetAdvanceAfter sets the "advance_after" field.
+func (u *ChargeCreditPurchaseUpsert) SetAdvanceAfter(v time.Time) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldAdvanceAfter, v)
+	return u
+}
+
+// UpdateAdvanceAfter sets the "advance_after" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateAdvanceAfter() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldAdvanceAfter)
+	return u
+}
+
+// ClearAdvanceAfter clears the value of the "advance_after" field.
+func (u *ChargeCreditPurchaseUpsert) ClearAdvanceAfter() *ChargeCreditPurchaseUpsert {
+	u.SetNull(chargecreditpurchase.FieldAdvanceAfter)
+	return u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *ChargeCreditPurchaseUpsert) SetAnnotations(v models.Annotations) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldAnnotations, v)
+	return u
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateAnnotations() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldAnnotations)
+	return u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *ChargeCreditPurchaseUpsert) ClearAnnotations() *ChargeCreditPurchaseUpsert {
+	u.SetNull(chargecreditpurchase.FieldAnnotations)
+	return u
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *ChargeCreditPurchaseUpsert) SetMetadata(v map[string]string) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldMetadata, v)
+	return u
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateMetadata() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldMetadata)
+	return u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *ChargeCreditPurchaseUpsert) ClearMetadata() *ChargeCreditPurchaseUpsert {
+	u.SetNull(chargecreditpurchase.FieldMetadata)
+	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *ChargeCreditPurchaseUpsert) SetUpdatedAt(v time.Time) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldUpdatedAt, v)
+	return u
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateUpdatedAt() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldUpdatedAt)
+	return u
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (u *ChargeCreditPurchaseUpsert) SetDeletedAt(v time.Time) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldDeletedAt, v)
+	return u
+}
+
+// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateDeletedAt() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldDeletedAt)
+	return u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (u *ChargeCreditPurchaseUpsert) ClearDeletedAt() *ChargeCreditPurchaseUpsert {
+	u.SetNull(chargecreditpurchase.FieldDeletedAt)
+	return u
+}
+
+// SetName sets the "name" field.
+func (u *ChargeCreditPurchaseUpsert) SetName(v string) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateName() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldName)
+	return u
+}
+
+// SetDescription sets the "description" field.
+func (u *ChargeCreditPurchaseUpsert) SetDescription(v string) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldDescription, v)
+	return u
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateDescription() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldDescription)
+	return u
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *ChargeCreditPurchaseUpsert) ClearDescription() *ChargeCreditPurchaseUpsert {
+	u.SetNull(chargecreditpurchase.FieldDescription)
+	return u
+}
 
 // SetCreditAmount sets the "credit_amount" field.
 func (u *ChargeCreditPurchaseUpsert) SetCreditAmount(v alpacadecimal.Decimal) *ChargeCreditPurchaseUpsert {
@@ -448,8 +1104,29 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateNewValues() *ChargeCreditPurchaseU
 		if _, exists := u.create.mutation.ID(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldID)
 		}
+		if _, exists := u.create.mutation.CustomerID(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldCustomerID)
+		}
+		if _, exists := u.create.mutation.UniqueReferenceID(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldUniqueReferenceID)
+		}
+		if _, exists := u.create.mutation.Currency(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldCurrency)
+		}
+		if _, exists := u.create.mutation.SubscriptionID(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldSubscriptionID)
+		}
+		if _, exists := u.create.mutation.SubscriptionPhaseID(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldSubscriptionPhaseID)
+		}
+		if _, exists := u.create.mutation.SubscriptionItemID(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldSubscriptionItemID)
+		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldNamespace)
+		}
+		if _, exists := u.create.mutation.CreatedAt(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldCreatedAt)
 		}
 	}))
 	return u
@@ -480,6 +1157,251 @@ func (u *ChargeCreditPurchaseUpsertOne) Update(set func(*ChargeCreditPurchaseUps
 		set(&ChargeCreditPurchaseUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetServicePeriodFrom(v time.Time) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetServicePeriodFrom(v)
+	})
+}
+
+// UpdateServicePeriodFrom sets the "service_period_from" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateServicePeriodFrom() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateServicePeriodFrom()
+	})
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetServicePeriodTo(v time.Time) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetServicePeriodTo(v)
+	})
+}
+
+// UpdateServicePeriodTo sets the "service_period_to" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateServicePeriodTo() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateServicePeriodTo()
+	})
+}
+
+// SetBillingPeriodFrom sets the "billing_period_from" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetBillingPeriodFrom(v time.Time) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetBillingPeriodFrom(v)
+	})
+}
+
+// UpdateBillingPeriodFrom sets the "billing_period_from" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateBillingPeriodFrom() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateBillingPeriodFrom()
+	})
+}
+
+// SetBillingPeriodTo sets the "billing_period_to" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetBillingPeriodTo(v time.Time) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetBillingPeriodTo(v)
+	})
+}
+
+// UpdateBillingPeriodTo sets the "billing_period_to" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateBillingPeriodTo() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateBillingPeriodTo()
+	})
+}
+
+// SetFullServicePeriodFrom sets the "full_service_period_from" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetFullServicePeriodFrom(v time.Time) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetFullServicePeriodFrom(v)
+	})
+}
+
+// UpdateFullServicePeriodFrom sets the "full_service_period_from" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateFullServicePeriodFrom() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateFullServicePeriodFrom()
+	})
+}
+
+// SetFullServicePeriodTo sets the "full_service_period_to" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetFullServicePeriodTo(v time.Time) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetFullServicePeriodTo(v)
+	})
+}
+
+// UpdateFullServicePeriodTo sets the "full_service_period_to" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateFullServicePeriodTo() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateFullServicePeriodTo()
+	})
+}
+
+// SetStatus sets the "status" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetStatus(v meta.ChargeStatus) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetStatus(v)
+	})
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateStatus() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateStatus()
+	})
+}
+
+// SetManagedBy sets the "managed_by" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetManagedBy(v)
+	})
+}
+
+// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateManagedBy() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateManagedBy()
+	})
+}
+
+// SetAdvanceAfter sets the "advance_after" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetAdvanceAfter(v time.Time) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetAdvanceAfter(v)
+	})
+}
+
+// UpdateAdvanceAfter sets the "advance_after" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateAdvanceAfter() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateAdvanceAfter()
+	})
+}
+
+// ClearAdvanceAfter clears the value of the "advance_after" field.
+func (u *ChargeCreditPurchaseUpsertOne) ClearAdvanceAfter() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearAdvanceAfter()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetAnnotations(v models.Annotations) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateAnnotations() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *ChargeCreditPurchaseUpsertOne) ClearAnnotations() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearAnnotations()
+	})
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetMetadata(v map[string]string) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateMetadata() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *ChargeCreditPurchaseUpsertOne) ClearMetadata() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearMetadata()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetUpdatedAt(v time.Time) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateUpdatedAt() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetDeletedAt(v time.Time) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetDeletedAt(v)
+	})
+}
+
+// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateDeletedAt() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateDeletedAt()
+	})
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (u *ChargeCreditPurchaseUpsertOne) ClearDeletedAt() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearDeletedAt()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetName(v string) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateName() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetDescription sets the "description" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetDescription(v string) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetDescription(v)
+	})
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateDescription() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *ChargeCreditPurchaseUpsertOne) ClearDescription() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearDescription()
+	})
 }
 
 // SetCreditAmount sets the "credit_amount" field.
@@ -691,7 +1613,7 @@ func (_c *ChargeCreditPurchaseCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.ChargeCreditPurchaseUpsert) {
-//			SetNamespace(v+v).
+//			SetCustomerID(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *ChargeCreditPurchaseCreateBulk) OnConflict(opts ...sql.ConflictOption) *ChargeCreditPurchaseUpsertBulk {
@@ -738,8 +1660,29 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateNewValues() *ChargeCreditPurchase
 			if _, exists := b.mutation.ID(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldID)
 			}
+			if _, exists := b.mutation.CustomerID(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldCustomerID)
+			}
+			if _, exists := b.mutation.UniqueReferenceID(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldUniqueReferenceID)
+			}
+			if _, exists := b.mutation.Currency(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldCurrency)
+			}
+			if _, exists := b.mutation.SubscriptionID(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldSubscriptionID)
+			}
+			if _, exists := b.mutation.SubscriptionPhaseID(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldSubscriptionPhaseID)
+			}
+			if _, exists := b.mutation.SubscriptionItemID(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldSubscriptionItemID)
+			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldNamespace)
+			}
+			if _, exists := b.mutation.CreatedAt(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldCreatedAt)
 			}
 		}
 	}))
@@ -771,6 +1714,251 @@ func (u *ChargeCreditPurchaseUpsertBulk) Update(set func(*ChargeCreditPurchaseUp
 		set(&ChargeCreditPurchaseUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetServicePeriodFrom(v time.Time) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetServicePeriodFrom(v)
+	})
+}
+
+// UpdateServicePeriodFrom sets the "service_period_from" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateServicePeriodFrom() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateServicePeriodFrom()
+	})
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetServicePeriodTo(v time.Time) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetServicePeriodTo(v)
+	})
+}
+
+// UpdateServicePeriodTo sets the "service_period_to" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateServicePeriodTo() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateServicePeriodTo()
+	})
+}
+
+// SetBillingPeriodFrom sets the "billing_period_from" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetBillingPeriodFrom(v time.Time) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetBillingPeriodFrom(v)
+	})
+}
+
+// UpdateBillingPeriodFrom sets the "billing_period_from" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateBillingPeriodFrom() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateBillingPeriodFrom()
+	})
+}
+
+// SetBillingPeriodTo sets the "billing_period_to" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetBillingPeriodTo(v time.Time) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetBillingPeriodTo(v)
+	})
+}
+
+// UpdateBillingPeriodTo sets the "billing_period_to" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateBillingPeriodTo() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateBillingPeriodTo()
+	})
+}
+
+// SetFullServicePeriodFrom sets the "full_service_period_from" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetFullServicePeriodFrom(v time.Time) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetFullServicePeriodFrom(v)
+	})
+}
+
+// UpdateFullServicePeriodFrom sets the "full_service_period_from" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateFullServicePeriodFrom() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateFullServicePeriodFrom()
+	})
+}
+
+// SetFullServicePeriodTo sets the "full_service_period_to" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetFullServicePeriodTo(v time.Time) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetFullServicePeriodTo(v)
+	})
+}
+
+// UpdateFullServicePeriodTo sets the "full_service_period_to" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateFullServicePeriodTo() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateFullServicePeriodTo()
+	})
+}
+
+// SetStatus sets the "status" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetStatus(v meta.ChargeStatus) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetStatus(v)
+	})
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateStatus() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateStatus()
+	})
+}
+
+// SetManagedBy sets the "managed_by" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetManagedBy(v)
+	})
+}
+
+// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateManagedBy() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateManagedBy()
+	})
+}
+
+// SetAdvanceAfter sets the "advance_after" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetAdvanceAfter(v time.Time) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetAdvanceAfter(v)
+	})
+}
+
+// UpdateAdvanceAfter sets the "advance_after" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateAdvanceAfter() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateAdvanceAfter()
+	})
+}
+
+// ClearAdvanceAfter clears the value of the "advance_after" field.
+func (u *ChargeCreditPurchaseUpsertBulk) ClearAdvanceAfter() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearAdvanceAfter()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetAnnotations(v models.Annotations) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateAnnotations() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *ChargeCreditPurchaseUpsertBulk) ClearAnnotations() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearAnnotations()
+	})
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetMetadata(v map[string]string) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateMetadata() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *ChargeCreditPurchaseUpsertBulk) ClearMetadata() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearMetadata()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetUpdatedAt(v time.Time) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateUpdatedAt() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetDeletedAt(v time.Time) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetDeletedAt(v)
+	})
+}
+
+// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateDeletedAt() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateDeletedAt()
+	})
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (u *ChargeCreditPurchaseUpsertBulk) ClearDeletedAt() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearDeletedAt()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetName(v string) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateName() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetDescription sets the "description" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetDescription(v string) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetDescription(v)
+	})
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateDescription() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *ChargeCreditPurchaseUpsertBulk) ClearDescription() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearDescription()
+	})
 }
 
 // SetCreditAmount sets the "credit_amount" field.

@@ -3,6 +3,7 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -10,11 +11,19 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // ChargeCreditPurchase is the model entity for the ChargeCreditPurchase schema.
@@ -22,8 +31,52 @@ type ChargeCreditPurchase struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
+	// CustomerID holds the value of the "customer_id" field.
+	CustomerID string `json:"customer_id,omitempty"`
+	// ServicePeriodFrom holds the value of the "service_period_from" field.
+	ServicePeriodFrom time.Time `json:"service_period_from,omitempty"`
+	// ServicePeriodTo holds the value of the "service_period_to" field.
+	ServicePeriodTo time.Time `json:"service_period_to,omitempty"`
+	// BillingPeriodFrom holds the value of the "billing_period_from" field.
+	BillingPeriodFrom time.Time `json:"billing_period_from,omitempty"`
+	// BillingPeriodTo holds the value of the "billing_period_to" field.
+	BillingPeriodTo time.Time `json:"billing_period_to,omitempty"`
+	// FullServicePeriodFrom holds the value of the "full_service_period_from" field.
+	FullServicePeriodFrom time.Time `json:"full_service_period_from,omitempty"`
+	// FullServicePeriodTo holds the value of the "full_service_period_to" field.
+	FullServicePeriodTo time.Time `json:"full_service_period_to,omitempty"`
+	// Status holds the value of the "status" field.
+	Status meta.ChargeStatus `json:"status,omitempty"`
+	// UniqueReferenceID holds the value of the "unique_reference_id" field.
+	UniqueReferenceID *string `json:"unique_reference_id,omitempty"`
+	// Currency holds the value of the "currency" field.
+	Currency currencyx.Code `json:"currency,omitempty"`
+	// ManagedBy holds the value of the "managed_by" field.
+	ManagedBy billing.InvoiceLineManagedBy `json:"managed_by,omitempty"`
+	// SubscriptionID holds the value of the "subscription_id" field.
+	SubscriptionID *string `json:"subscription_id,omitempty"`
+	// SubscriptionPhaseID holds the value of the "subscription_phase_id" field.
+	SubscriptionPhaseID *string `json:"subscription_phase_id,omitempty"`
+	// SubscriptionItemID holds the value of the "subscription_item_id" field.
+	SubscriptionItemID *string `json:"subscription_item_id,omitempty"`
+	// AdvanceAfter holds the value of the "advance_after" field.
+	AdvanceAfter *time.Time `json:"advance_after,omitempty"`
+	// Annotations holds the value of the "annotations" field.
+	Annotations models.Annotations `json:"annotations,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
+	// Metadata holds the value of the "metadata" field.
+	Metadata map[string]string `json:"metadata,omitempty"`
+	// CreatedAt holds the value of the "created_at" field.
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// DeletedAt holds the value of the "deleted_at" field.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
+	// Description holds the value of the "description" field.
+	Description *string `json:"description,omitempty"`
 	// CreditAmount holds the value of the "credit_amount" field.
 	CreditAmount alpacadecimal.Decimal `json:"credit_amount,omitempty"`
 	// Settlement holds the value of the "settlement" field.
@@ -40,26 +93,23 @@ type ChargeCreditPurchase struct {
 
 // ChargeCreditPurchaseEdges holds the relations/edges for other nodes in the graph.
 type ChargeCreditPurchaseEdges struct {
-	// Charge holds the value of the charge edge.
-	Charge *Charge `json:"charge,omitempty"`
 	// ExternalPayment holds the value of the external_payment edge.
 	ExternalPayment *ChargeCreditPurchaseExternalPayment `json:"external_payment,omitempty"`
 	// InvoicedPayment holds the value of the invoiced_payment edge.
 	InvoicedPayment *ChargeCreditPurchaseInvoicedPayment `json:"invoiced_payment,omitempty"`
+	// Charge holds the value of the charge edge.
+	Charge *Charge `json:"charge,omitempty"`
+	// Subscription holds the value of the subscription edge.
+	Subscription *Subscription `json:"subscription,omitempty"`
+	// SubscriptionPhase holds the value of the subscription_phase edge.
+	SubscriptionPhase *SubscriptionPhase `json:"subscription_phase,omitempty"`
+	// SubscriptionItem holds the value of the subscription_item edge.
+	SubscriptionItem *SubscriptionItem `json:"subscription_item,omitempty"`
+	// Customer holds the value of the customer edge.
+	Customer *Customer `json:"customer,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
-}
-
-// ChargeOrErr returns the Charge value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeCreditPurchaseEdges) ChargeOrErr() (*Charge, error) {
-	if e.Charge != nil {
-		return e.Charge, nil
-	} else if e.loadedTypes[0] {
-		return nil, &NotFoundError{label: charge.Label}
-	}
-	return nil, &NotLoadedError{edge: "charge"}
+	loadedTypes [7]bool
 }
 
 // ExternalPaymentOrErr returns the ExternalPayment value or an error if the edge
@@ -67,7 +117,7 @@ func (e ChargeCreditPurchaseEdges) ChargeOrErr() (*Charge, error) {
 func (e ChargeCreditPurchaseEdges) ExternalPaymentOrErr() (*ChargeCreditPurchaseExternalPayment, error) {
 	if e.ExternalPayment != nil {
 		return e.ExternalPayment, nil
-	} else if e.loadedTypes[1] {
+	} else if e.loadedTypes[0] {
 		return nil, &NotFoundError{label: chargecreditpurchaseexternalpayment.Label}
 	}
 	return nil, &NotLoadedError{edge: "external_payment"}
@@ -78,10 +128,65 @@ func (e ChargeCreditPurchaseEdges) ExternalPaymentOrErr() (*ChargeCreditPurchase
 func (e ChargeCreditPurchaseEdges) InvoicedPaymentOrErr() (*ChargeCreditPurchaseInvoicedPayment, error) {
 	if e.InvoicedPayment != nil {
 		return e.InvoicedPayment, nil
-	} else if e.loadedTypes[2] {
+	} else if e.loadedTypes[1] {
 		return nil, &NotFoundError{label: chargecreditpurchaseinvoicedpayment.Label}
 	}
 	return nil, &NotLoadedError{edge: "invoiced_payment"}
+}
+
+// ChargeOrErr returns the Charge value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeCreditPurchaseEdges) ChargeOrErr() (*Charge, error) {
+	if e.Charge != nil {
+		return e.Charge, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: charge.Label}
+	}
+	return nil, &NotLoadedError{edge: "charge"}
+}
+
+// SubscriptionOrErr returns the Subscription value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeCreditPurchaseEdges) SubscriptionOrErr() (*Subscription, error) {
+	if e.Subscription != nil {
+		return e.Subscription, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: subscription.Label}
+	}
+	return nil, &NotLoadedError{edge: "subscription"}
+}
+
+// SubscriptionPhaseOrErr returns the SubscriptionPhase value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeCreditPurchaseEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
+	if e.SubscriptionPhase != nil {
+		return e.SubscriptionPhase, nil
+	} else if e.loadedTypes[4] {
+		return nil, &NotFoundError{label: subscriptionphase.Label}
+	}
+	return nil, &NotLoadedError{edge: "subscription_phase"}
+}
+
+// SubscriptionItemOrErr returns the SubscriptionItem value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeCreditPurchaseEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
+	if e.SubscriptionItem != nil {
+		return e.SubscriptionItem, nil
+	} else if e.loadedTypes[5] {
+		return nil, &NotFoundError{label: subscriptionitem.Label}
+	}
+	return nil, &NotLoadedError{edge: "subscription_item"}
+}
+
+// CustomerOrErr returns the Customer value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeCreditPurchaseEdges) CustomerOrErr() (*Customer, error) {
+	if e.Customer != nil {
+		return e.Customer, nil
+	} else if e.loadedTypes[6] {
+		return nil, &NotFoundError{label: customer.Label}
+	}
+	return nil, &NotLoadedError{edge: "customer"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -89,11 +194,13 @@ func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case chargecreditpurchase.FieldAnnotations, chargecreditpurchase.FieldMetadata:
+			values[i] = new([]byte)
 		case chargecreditpurchase.FieldCreditAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldCreditGrantTransactionGroupID:
+		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldCustomerID, chargecreditpurchase.FieldStatus, chargecreditpurchase.FieldUniqueReferenceID, chargecreditpurchase.FieldCurrency, chargecreditpurchase.FieldManagedBy, chargecreditpurchase.FieldSubscriptionID, chargecreditpurchase.FieldSubscriptionPhaseID, chargecreditpurchase.FieldSubscriptionItemID, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldName, chargecreditpurchase.FieldDescription, chargecreditpurchase.FieldCreditGrantTransactionGroupID:
 			values[i] = new(sql.NullString)
-		case chargecreditpurchase.FieldCreditGrantedAt:
+		case chargecreditpurchase.FieldServicePeriodFrom, chargecreditpurchase.FieldServicePeriodTo, chargecreditpurchase.FieldBillingPeriodFrom, chargecreditpurchase.FieldBillingPeriodTo, chargecreditpurchase.FieldFullServicePeriodFrom, chargecreditpurchase.FieldFullServicePeriodTo, chargecreditpurchase.FieldAdvanceAfter, chargecreditpurchase.FieldCreatedAt, chargecreditpurchase.FieldUpdatedAt, chargecreditpurchase.FieldDeletedAt, chargecreditpurchase.FieldCreditGrantedAt:
 			values[i] = new(sql.NullTime)
 		case chargecreditpurchase.FieldSettlement:
 			values[i] = chargecreditpurchase.ValueScanner.Settlement.ScanValue()
@@ -118,11 +225,154 @@ func (_m *ChargeCreditPurchase) assignValues(columns []string, values []any) err
 			} else if value.Valid {
 				_m.ID = value.String
 			}
+		case chargecreditpurchase.FieldCustomerID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field customer_id", values[i])
+			} else if value.Valid {
+				_m.CustomerID = value.String
+			}
+		case chargecreditpurchase.FieldServicePeriodFrom:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field service_period_from", values[i])
+			} else if value.Valid {
+				_m.ServicePeriodFrom = value.Time
+			}
+		case chargecreditpurchase.FieldServicePeriodTo:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field service_period_to", values[i])
+			} else if value.Valid {
+				_m.ServicePeriodTo = value.Time
+			}
+		case chargecreditpurchase.FieldBillingPeriodFrom:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field billing_period_from", values[i])
+			} else if value.Valid {
+				_m.BillingPeriodFrom = value.Time
+			}
+		case chargecreditpurchase.FieldBillingPeriodTo:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field billing_period_to", values[i])
+			} else if value.Valid {
+				_m.BillingPeriodTo = value.Time
+			}
+		case chargecreditpurchase.FieldFullServicePeriodFrom:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field full_service_period_from", values[i])
+			} else if value.Valid {
+				_m.FullServicePeriodFrom = value.Time
+			}
+		case chargecreditpurchase.FieldFullServicePeriodTo:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field full_service_period_to", values[i])
+			} else if value.Valid {
+				_m.FullServicePeriodTo = value.Time
+			}
+		case chargecreditpurchase.FieldStatus:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field status", values[i])
+			} else if value.Valid {
+				_m.Status = meta.ChargeStatus(value.String)
+			}
+		case chargecreditpurchase.FieldUniqueReferenceID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field unique_reference_id", values[i])
+			} else if value.Valid {
+				_m.UniqueReferenceID = new(string)
+				*_m.UniqueReferenceID = value.String
+			}
+		case chargecreditpurchase.FieldCurrency:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field currency", values[i])
+			} else if value.Valid {
+				_m.Currency = currencyx.Code(value.String)
+			}
+		case chargecreditpurchase.FieldManagedBy:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field managed_by", values[i])
+			} else if value.Valid {
+				_m.ManagedBy = billing.InvoiceLineManagedBy(value.String)
+			}
+		case chargecreditpurchase.FieldSubscriptionID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field subscription_id", values[i])
+			} else if value.Valid {
+				_m.SubscriptionID = new(string)
+				*_m.SubscriptionID = value.String
+			}
+		case chargecreditpurchase.FieldSubscriptionPhaseID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field subscription_phase_id", values[i])
+			} else if value.Valid {
+				_m.SubscriptionPhaseID = new(string)
+				*_m.SubscriptionPhaseID = value.String
+			}
+		case chargecreditpurchase.FieldSubscriptionItemID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field subscription_item_id", values[i])
+			} else if value.Valid {
+				_m.SubscriptionItemID = new(string)
+				*_m.SubscriptionItemID = value.String
+			}
+		case chargecreditpurchase.FieldAdvanceAfter:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field advance_after", values[i])
+			} else if value.Valid {
+				_m.AdvanceAfter = new(time.Time)
+				*_m.AdvanceAfter = value.Time
+			}
+		case chargecreditpurchase.FieldAnnotations:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field annotations", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Annotations); err != nil {
+					return fmt.Errorf("unmarshal field annotations: %w", err)
+				}
+			}
 		case chargecreditpurchase.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
 				_m.Namespace = value.String
+			}
+		case chargecreditpurchase.FieldMetadata:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field metadata", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
+					return fmt.Errorf("unmarshal field metadata: %w", err)
+				}
+			}
+		case chargecreditpurchase.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				_m.CreatedAt = value.Time
+			}
+		case chargecreditpurchase.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				_m.UpdatedAt = value.Time
+			}
+		case chargecreditpurchase.FieldDeletedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
+			} else if value.Valid {
+				_m.DeletedAt = new(time.Time)
+				*_m.DeletedAt = value.Time
+			}
+		case chargecreditpurchase.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				_m.Name = value.String
+			}
+		case chargecreditpurchase.FieldDescription:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field description", values[i])
+			} else if value.Valid {
+				_m.Description = new(string)
+				*_m.Description = value.String
 			}
 		case chargecreditpurchase.FieldCreditAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -163,11 +413,6 @@ func (_m *ChargeCreditPurchase) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryCharge queries the "charge" edge of the ChargeCreditPurchase entity.
-func (_m *ChargeCreditPurchase) QueryCharge() *ChargeQuery {
-	return NewChargeCreditPurchaseClient(_m.config).QueryCharge(_m)
-}
-
 // QueryExternalPayment queries the "external_payment" edge of the ChargeCreditPurchase entity.
 func (_m *ChargeCreditPurchase) QueryExternalPayment() *ChargeCreditPurchaseExternalPaymentQuery {
 	return NewChargeCreditPurchaseClient(_m.config).QueryExternalPayment(_m)
@@ -176,6 +421,31 @@ func (_m *ChargeCreditPurchase) QueryExternalPayment() *ChargeCreditPurchaseExte
 // QueryInvoicedPayment queries the "invoiced_payment" edge of the ChargeCreditPurchase entity.
 func (_m *ChargeCreditPurchase) QueryInvoicedPayment() *ChargeCreditPurchaseInvoicedPaymentQuery {
 	return NewChargeCreditPurchaseClient(_m.config).QueryInvoicedPayment(_m)
+}
+
+// QueryCharge queries the "charge" edge of the ChargeCreditPurchase entity.
+func (_m *ChargeCreditPurchase) QueryCharge() *ChargeQuery {
+	return NewChargeCreditPurchaseClient(_m.config).QueryCharge(_m)
+}
+
+// QuerySubscription queries the "subscription" edge of the ChargeCreditPurchase entity.
+func (_m *ChargeCreditPurchase) QuerySubscription() *SubscriptionQuery {
+	return NewChargeCreditPurchaseClient(_m.config).QuerySubscription(_m)
+}
+
+// QuerySubscriptionPhase queries the "subscription_phase" edge of the ChargeCreditPurchase entity.
+func (_m *ChargeCreditPurchase) QuerySubscriptionPhase() *SubscriptionPhaseQuery {
+	return NewChargeCreditPurchaseClient(_m.config).QuerySubscriptionPhase(_m)
+}
+
+// QuerySubscriptionItem queries the "subscription_item" edge of the ChargeCreditPurchase entity.
+func (_m *ChargeCreditPurchase) QuerySubscriptionItem() *SubscriptionItemQuery {
+	return NewChargeCreditPurchaseClient(_m.config).QuerySubscriptionItem(_m)
+}
+
+// QueryCustomer queries the "customer" edge of the ChargeCreditPurchase entity.
+func (_m *ChargeCreditPurchase) QueryCustomer() *CustomerQuery {
+	return NewChargeCreditPurchaseClient(_m.config).QueryCustomer(_m)
 }
 
 // Update returns a builder for updating this ChargeCreditPurchase.
@@ -201,8 +471,88 @@ func (_m *ChargeCreditPurchase) String() string {
 	var builder strings.Builder
 	builder.WriteString("ChargeCreditPurchase(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	builder.WriteString("customer_id=")
+	builder.WriteString(_m.CustomerID)
+	builder.WriteString(", ")
+	builder.WriteString("service_period_from=")
+	builder.WriteString(_m.ServicePeriodFrom.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("service_period_to=")
+	builder.WriteString(_m.ServicePeriodTo.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("billing_period_from=")
+	builder.WriteString(_m.BillingPeriodFrom.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("billing_period_to=")
+	builder.WriteString(_m.BillingPeriodTo.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("full_service_period_from=")
+	builder.WriteString(_m.FullServicePeriodFrom.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("full_service_period_to=")
+	builder.WriteString(_m.FullServicePeriodTo.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("status=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Status))
+	builder.WriteString(", ")
+	if v := _m.UniqueReferenceID; v != nil {
+		builder.WriteString("unique_reference_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("currency=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
+	builder.WriteString(", ")
+	builder.WriteString("managed_by=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ManagedBy))
+	builder.WriteString(", ")
+	if v := _m.SubscriptionID; v != nil {
+		builder.WriteString("subscription_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.SubscriptionPhaseID; v != nil {
+		builder.WriteString("subscription_phase_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.SubscriptionItemID; v != nil {
+		builder.WriteString("subscription_item_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.AdvanceAfter; v != nil {
+		builder.WriteString("advance_after=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("annotations=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
+	builder.WriteString(", ")
 	builder.WriteString("namespace=")
 	builder.WriteString(_m.Namespace)
+	builder.WriteString(", ")
+	builder.WriteString("metadata=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
+	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	if v := _m.DeletedAt; v != nil {
+		builder.WriteString("deleted_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("name=")
+	builder.WriteString(_m.Name)
+	builder.WriteString(", ")
+	if v := _m.Description; v != nil {
+		builder.WriteString("description=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("credit_amount=")
 	builder.WriteString(fmt.Sprintf("%v", _m.CreditAmount))

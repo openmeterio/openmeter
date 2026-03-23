@@ -20,7 +20,7 @@ type CreditPurchaseService interface {
 	// as based on current state of credits we are not going to create multiple credit purchases at once.
 	Create(ctx context.Context, input CreateInput) (ChargeWithGatheringLine, error)
 
-	GetByMetas(ctx context.Context, input GetByMetasInput) ([]Charge, error)
+	GetByIDs(ctx context.Context, input GetByIDsInput) ([]Charge, error)
 }
 
 type ChargeWithGatheringLine struct {

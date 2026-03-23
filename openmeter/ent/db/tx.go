@@ -90,6 +90,8 @@ type Tx struct {
 	ChargeUsageBasedRunPayment *ChargeUsageBasedRunPaymentClient
 	// ChargeUsageBasedRuns is the client for interacting with the ChargeUsageBasedRuns builders.
 	ChargeUsageBasedRuns *ChargeUsageBasedRunsClient
+	// ChargesSearchV1 is the client for interacting with the ChargesSearchV1 builders.
+	ChargesSearchV1 *ChargesSearchV1Client
 	// CurrencyCostBasis is the client for interacting with the CurrencyCostBasis builders.
 	CurrencyCostBasis *CurrencyCostBasisClient
 	// CustomCurrency is the client for interacting with the CustomCurrency builders.
@@ -325,6 +327,7 @@ func (tx *Tx) init() {
 	tx.ChargeUsageBasedRunInvoicedUsage = NewChargeUsageBasedRunInvoicedUsageClient(tx.config)
 	tx.ChargeUsageBasedRunPayment = NewChargeUsageBasedRunPaymentClient(tx.config)
 	tx.ChargeUsageBasedRuns = NewChargeUsageBasedRunsClient(tx.config)
+	tx.ChargesSearchV1 = NewChargesSearchV1Client(tx.config)
 	tx.CurrencyCostBasis = NewCurrencyCostBasisClient(tx.config)
 	tx.CustomCurrency = NewCustomCurrencyClient(tx.config)
 	tx.Customer = NewCustomerClient(tx.config)

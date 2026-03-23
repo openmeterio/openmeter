@@ -62,8 +62,12 @@ const (
 	EdgeSubscription = "subscription"
 	// EdgeEntitlements holds the string denoting the entitlements edge name in mutations.
 	EdgeEntitlements = "entitlements"
-	// EdgeChargeIntents holds the string denoting the charge_intents edge name in mutations.
-	EdgeChargeIntents = "charge_intents"
+	// EdgeChargesCreditPurchase holds the string denoting the charges_credit_purchase edge name in mutations.
+	EdgeChargesCreditPurchase = "charges_credit_purchase"
+	// EdgeChargesFlatFee holds the string denoting the charges_flat_fee edge name in mutations.
+	EdgeChargesFlatFee = "charges_flat_fee"
+	// EdgeChargesUsageBased holds the string denoting the charges_usage_based edge name in mutations.
+	EdgeChargesUsageBased = "charges_usage_based"
 	// Table holds the table name of the customer in the database.
 	Table = "customers"
 	// AppsTable is the table that holds the apps relation/edge.
@@ -108,13 +112,27 @@ const (
 	EntitlementsInverseTable = "entitlements"
 	// EntitlementsColumn is the table column denoting the entitlements relation/edge.
 	EntitlementsColumn = "customer_id"
-	// ChargeIntentsTable is the table that holds the charge_intents relation/edge.
-	ChargeIntentsTable = "charges"
-	// ChargeIntentsInverseTable is the table name for the Charge entity.
-	// It exists in this package in order to avoid circular dependency with the "charge" package.
-	ChargeIntentsInverseTable = "charges"
-	// ChargeIntentsColumn is the table column denoting the charge_intents relation/edge.
-	ChargeIntentsColumn = "customer_id"
+	// ChargesCreditPurchaseTable is the table that holds the charges_credit_purchase relation/edge.
+	ChargesCreditPurchaseTable = "charge_credit_purchases"
+	// ChargesCreditPurchaseInverseTable is the table name for the ChargeCreditPurchase entity.
+	// It exists in this package in order to avoid circular dependency with the "chargecreditpurchase" package.
+	ChargesCreditPurchaseInverseTable = "charge_credit_purchases"
+	// ChargesCreditPurchaseColumn is the table column denoting the charges_credit_purchase relation/edge.
+	ChargesCreditPurchaseColumn = "customer_id"
+	// ChargesFlatFeeTable is the table that holds the charges_flat_fee relation/edge.
+	ChargesFlatFeeTable = "charge_flat_fees"
+	// ChargesFlatFeeInverseTable is the table name for the ChargeFlatFee entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeflatfee" package.
+	ChargesFlatFeeInverseTable = "charge_flat_fees"
+	// ChargesFlatFeeColumn is the table column denoting the charges_flat_fee relation/edge.
+	ChargesFlatFeeColumn = "customer_id"
+	// ChargesUsageBasedTable is the table that holds the charges_usage_based relation/edge.
+	ChargesUsageBasedTable = "charge_usage_based"
+	// ChargesUsageBasedInverseTable is the table name for the ChargeUsageBased entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeusagebased" package.
+	ChargesUsageBasedInverseTable = "charge_usage_based"
+	// ChargesUsageBasedColumn is the table column denoting the charges_usage_based relation/edge.
+	ChargesUsageBasedColumn = "customer_id"
 )
 
 // Columns holds all SQL columns for customer fields.
@@ -332,17 +350,45 @@ func ByEntitlements(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
-// ByChargeIntentsCount orders the results by charge_intents count.
-func ByChargeIntentsCount(opts ...sql.OrderTermOption) OrderOption {
+// ByChargesCreditPurchaseCount orders the results by charges_credit_purchase count.
+func ByChargesCreditPurchaseCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newChargeIntentsStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newChargesCreditPurchaseStep(), opts...)
 	}
 }
 
-// ByChargeIntents orders the results by charge_intents terms.
-func ByChargeIntents(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByChargesCreditPurchase orders the results by charges_credit_purchase terms.
+func ByChargesCreditPurchase(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newChargeIntentsStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newChargesCreditPurchaseStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByChargesFlatFeeCount orders the results by charges_flat_fee count.
+func ByChargesFlatFeeCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newChargesFlatFeeStep(), opts...)
+	}
+}
+
+// ByChargesFlatFee orders the results by charges_flat_fee terms.
+func ByChargesFlatFee(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChargesFlatFeeStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByChargesUsageBasedCount orders the results by charges_usage_based count.
+func ByChargesUsageBasedCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newChargesUsageBasedStep(), opts...)
+	}
+}
+
+// ByChargesUsageBased orders the results by charges_usage_based terms.
+func ByChargesUsageBased(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChargesUsageBasedStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 func newAppsStep() *sqlgraph.Step {
@@ -387,10 +433,24 @@ func newEntitlementsStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2M, false, EntitlementsTable, EntitlementsColumn),
 	)
 }
-func newChargeIntentsStep() *sqlgraph.Step {
+func newChargesCreditPurchaseStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ChargeIntentsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, ChargeIntentsTable, ChargeIntentsColumn),
+		sqlgraph.To(ChargesCreditPurchaseInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ChargesCreditPurchaseTable, ChargesCreditPurchaseColumn),
+	)
+}
+func newChargesFlatFeeStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChargesFlatFeeInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ChargesFlatFeeTable, ChargesFlatFeeColumn),
+	)
+}
+func newChargesUsageBasedStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChargesUsageBasedInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ChargesUsageBasedTable, ChargesUsageBasedColumn),
 	)
 }

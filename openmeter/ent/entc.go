@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entmixinaccessor"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entpaginate"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entsetorclear"
+	"github.com/openmeterio/openmeter/tools/migrate/viewgen"
 )
 
 func main() {
@@ -38,5 +39,9 @@ func main() {
 	)
 	if err != nil {
 		log.Fatal("running ent codegen:", err)
+	}
+
+	if err := viewgen.GenerateFile("./schema", "../../tools/migrate/views.sql"); err != nil {
+		log.Fatal("generating views SQL:", err)
 	}
 }

@@ -71,9 +71,8 @@ var (
 )
 
 type UpdateStatusInput struct {
-	Charge    ChargeBase
-	NewStatus Status
-	OldStatus Status
+	Charge ChargeBase
+	Status Status
 }
 
 func (i UpdateStatusInput) Validate() error {
@@ -81,12 +80,8 @@ func (i UpdateStatusInput) Validate() error {
 		return fmt.Errorf("charge ID: %w", err)
 	}
 
-	if err := i.NewStatus.Validate(); err != nil {
+	if err := i.Status.Validate(); err != nil {
 		return fmt.Errorf("new status: %w", err)
-	}
-
-	if err := i.OldStatus.Validate(); err != nil {
-		return fmt.Errorf("old status: %w", err)
 	}
 
 	return nil

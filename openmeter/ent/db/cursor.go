@@ -1084,6 +1084,57 @@ func (_m *ChargeQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (p
 
 // Cursor runs the query and returns a cursor-paginated response.
 // Ordering is always by created_at asc, id asc.
+func (_m *ChargeCreditPurchaseQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*ChargeCreditPurchase], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*ChargeCreditPurchase]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*ChargeCreditPurchase]{}, err
+	}
+
+	if items == nil {
+		items = make([]*ChargeCreditPurchase, 0)
+	}
+
+	result := pagination.Result[*ChargeCreditPurchase]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
 func (_m *ChargeCreditPurchaseExternalPaymentQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*ChargeCreditPurchaseExternalPayment], error) {
 	if cursor != nil {
 		if err := cursor.Validate(); err != nil {
@@ -1173,6 +1224,57 @@ func (_m *ChargeCreditPurchaseInvoicedPaymentQuery) Cursor(ctx context.Context, 
 	}
 
 	result := pagination.Result[*ChargeCreditPurchaseInvoicedPayment]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
+func (_m *ChargeFlatFeeQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*ChargeFlatFee], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*ChargeFlatFee]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*ChargeFlatFee]{}, err
+	}
+
+	if items == nil {
+		items = make([]*ChargeFlatFee, 0)
+	}
+
+	result := pagination.Result[*ChargeFlatFee]{
 		Items: items,
 	}
 
@@ -1326,6 +1428,57 @@ func (_m *ChargeFlatFeePaymentQuery) Cursor(ctx context.Context, cursor *paginat
 	}
 
 	result := pagination.Result[*ChargeFlatFeePayment]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
+func (_m *ChargeUsageBasedQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*ChargeUsageBased], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*ChargeUsageBased]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*ChargeUsageBased]{}, err
+	}
+
+	if items == nil {
+		items = make([]*ChargeUsageBased, 0)
+	}
+
+	result := pagination.Result[*ChargeUsageBased]{
 		Items: items,
 	}
 
@@ -1530,6 +1683,57 @@ func (_m *ChargeUsageBasedRunsQuery) Cursor(ctx context.Context, cursor *paginat
 	}
 
 	result := pagination.Result[*ChargeUsageBasedRuns]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
+func (_m *ChargesSearchV1Query) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*ChargesSearchV1], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*ChargesSearchV1]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*ChargesSearchV1]{}, err
+	}
+
+	if items == nil {
+		items = make([]*ChargesSearchV1, 0)
+	}
+
+	result := pagination.Result[*ChargesSearchV1]{
 		Items: items,
 	}
 

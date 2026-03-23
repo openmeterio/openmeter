@@ -154,9 +154,11 @@ func (s *service) getLinesWithChargesForStandardInvoice(ctx context.Context, ns 
 	})
 
 	referencedCharges, err := s.GetByIDs(ctx, charges.GetByIDsInput{
-		Namespace: ns,
-		ChargeIDs: lo.Map(linesWithChargeID, func(l billing.StandardLineWithInvoiceHeader, _ int) string {
-			return *l.Line.ChargeID
+		ChargeIDs: lo.Map(linesWithChargeID, func(l billing.StandardLineWithInvoiceHeader, _ int) meta.ChargeID {
+			return meta.ChargeID{
+				Namespace: ns,
+				ID:        *l.Line.ChargeID,
+			}
 		}),
 		Expands: meta.Expands{
 			meta.ExpandRealizations,

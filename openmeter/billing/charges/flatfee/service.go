@@ -17,7 +17,7 @@ type Service interface {
 
 type FlatFeeService interface {
 	Create(ctx context.Context, input CreateInput) ([]ChargeWithGatheringLine, error)
-	GetByMetas(ctx context.Context, input GetByMetasInput) ([]Charge, error)
+	GetByIDs(ctx context.Context, input GetByIDsInput) ([]Charge, error)
 }
 
 type InvoiceLifecycleHooks interface {

@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"fmt"
+	"slices"
 
 	"github.com/samber/lo"
 
@@ -11,7 +11,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func (s *service) GetByID(ctx context.Context, input charges.GetByIDInput) (charges.Charge, error) {
@@ -20,8 +22,7 @@ func (s *service) GetByID(ctx context.Context, input charges.GetByIDInput) (char
 	}
 
 	res, err := s.GetByIDs(ctx, charges.GetByIDsInput{
-		Namespace: input.ChargeID.Namespace,
-		ChargeIDs: []string{input.ChargeID.ID},
+		ChargeIDs: meta.ChargeIDs{input.ChargeID},
 		Expands:   input.Expands,
 	})
 	if err != nil {
@@ -41,99 +42,73 @@ func (s *service) GetByIDs(ctx context.Context, input charges.GetByIDsInput) (ch
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (charges.Charges, error) {
-		// Let's fetch the metas so that we know the charge types
-		chargeMetas, err := s.metaAdapter.GetByIDs(ctx, meta.GetByIDsInput{
-			Namespace: input.Namespace,
-			ChargeIDs: input.ChargeIDs,
-		})
+		chargesWithTypes, err := s.adapter.GetTypesByIDs(ctx, input.ChargeIDs)
 		if err != nil {
 			return nil, err
 		}
 
-		if len(chargeMetas) == 0 {
-			return nil, nil
-		}
-
-		chargesWithIndex := lo.Map(chargeMetas, func(chargeMeta meta.Charge, idx int) charges.WithIndex[meta.Charge] {
-			return charges.WithIndex[meta.Charge]{
-				Index: idx,
-				Value: chargeMeta,
-			}
-		})
-
-		chargesByType := lo.GroupBy(chargesWithIndex, func(chargeMeta charges.WithIndex[meta.Charge]) meta.ChargeType {
-			return chargeMeta.Value.Type
-		})
-
-		// Let's validate the type support
-		referencedTypes := lo.Keys(chargesByType)
-		for _, refType := range referencedTypes {
-			if err := refType.Validate(); err != nil {
-				return nil, err
-			}
-		}
-
-		out := make(charges.Charges, len(chargesWithIndex))
-		nrFetched := 0
-
-		// Let's fetch flat fees
-		flatFees, err := s.flatFeeService.GetByMetas(ctx, flatfee.GetByMetasInput{
-			Namespace: input.Namespace,
-			Charges: lo.Map(chargesByType[meta.ChargeTypeFlatFee], func(chargeMeta charges.WithIndex[meta.Charge], _ int) meta.Charge {
-				return chargeMeta.Value
-			}),
-			Expands: input.Expands,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		for i, flatFee := range flatFees {
-			targetIndex := chargesByType[meta.ChargeTypeFlatFee][i].Index
-			out[targetIndex] = charges.NewCharge(flatFee)
-			nrFetched++
-		}
-
-		// Let's fetch usage based charges
-		usageBasedCharges, err := s.usageBasedService.GetByMetas(ctx, usagebased.GetByMetasInput{
-			Namespace: input.Namespace,
-			Charges: lo.Map(chargesByType[meta.ChargeTypeUsageBased], func(chargeMeta charges.WithIndex[meta.Charge], _ int) meta.Charge {
-				return chargeMeta.Value
-			}),
-			Expands: input.Expands,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		for i, usageBasedCharge := range usageBasedCharges {
-			targetIndex := chargesByType[meta.ChargeTypeUsageBased][i].Index
-			out[targetIndex] = charges.NewCharge(usageBasedCharge)
-			nrFetched++
-		}
-
-		// Let's fetch credit purchases
-		creditPurchases, err := s.creditPurchaseService.GetByMetas(ctx, creditpurchase.GetByMetasInput{
-			Namespace: input.Namespace,
-			Charges: lo.Map(chargesByType[meta.ChargeTypeCreditPurchase], func(chargeMeta charges.WithIndex[meta.Charge], _ int) meta.Charge {
-				return chargeMeta.Value
-			}),
-			Expands: input.Expands,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		for i, creditPurchase := range creditPurchases {
-			targetIndex := chargesByType[meta.ChargeTypeCreditPurchase][i].Index
-			out[targetIndex] = charges.NewCharge(creditPurchase)
-			nrFetched++
-		}
-
-		if nrFetched != len(out) {
-			return nil, fmt.Errorf("expected to fetch %d charges, got %d", len(out), nrFetched)
-		}
-
-		return out, nil
+		return s.expandChargesWithTypes(ctx, chargesWithTypes, input.Expands)
 	})
+}
+
+// expandChargesWithTypes fetches the charges by type and expands them with the given expands.
+func (s *service) expandChargesWithTypes(ctx context.Context, chargesWithTypes []charges.ChargeWithType, expands meta.Expands) (charges.Charges, error) {
+	chargesByType := lo.GroupByMap(chargesWithTypes, func(chargeMeta charges.ChargeWithType) (meta.ChargeType, meta.ChargeID) {
+		return chargeMeta.Type, chargeMeta.ChargeID
+	})
+
+	// Let's validate the type support
+	referencedTypes := lo.Keys(chargesByType)
+	for _, refType := range referencedTypes {
+		if err := refType.Validate(); err != nil {
+			return nil, err
+		}
+	}
+
+	usageBased, err := s.usageBasedService.GetByIDs(ctx, usagebased.GetByIDsInput{
+		IDs:     chargesByType[meta.ChargeTypeUsageBased],
+		Expands: expands,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	flatFees, err := s.flatFeeService.GetByIDs(ctx, flatfee.GetByIDsInput{
+		IDs:     chargesByType[meta.ChargeTypeFlatFee],
+		Expands: expands,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	creditPurchases, err := s.creditPurchaseService.GetByIDs(ctx, creditpurchase.GetByIDsInput{
+		IDs:     chargesByType[meta.ChargeTypeCreditPurchase],
+		Expands: expands,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	out := slices.Concat(
+		lo.Map(usageBased, func(charge usagebased.Charge, _ int) charges.Charge {
+			return charges.NewCharge(charge)
+		}),
+		lo.Map(flatFees, func(charge flatfee.Charge, _ int) charges.Charge {
+			return charges.NewCharge(charge)
+		}),
+		lo.Map(creditPurchases, func(charge creditpurchase.Charge, _ int) charges.Charge {
+			return charges.NewCharge(charge)
+		}),
+	)
+
+	return entutils.InIDOrder(
+		lo.Map(
+			chargesWithTypes,
+			func(charge charges.ChargeWithType, _ int) models.NamespacedID {
+				return models.NamespacedID{
+					Namespace: charge.ChargeID.Namespace,
+					ID:        charge.ChargeID.ID,
+				}
+			},
+		), out)
 }

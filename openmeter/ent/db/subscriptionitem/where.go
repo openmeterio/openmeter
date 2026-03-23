@@ -1429,21 +1429,67 @@ func HasBillingSplitLineGroupsWith(preds ...predicate.BillingInvoiceSplitLineGro
 	})
 }
 
-// HasChargeIntents applies the HasEdge predicate on the "charge_intents" edge.
-func HasChargeIntents() predicate.SubscriptionItem {
+// HasChargesUsageBased applies the HasEdge predicate on the "charges_usage_based" edge.
+func HasChargesUsageBased() predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, ChargeIntentsTable, ChargeIntentsColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChargesUsageBasedTable, ChargesUsageBasedColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasChargeIntentsWith applies the HasEdge predicate on the "charge_intents" edge with a given conditions (other predicates).
-func HasChargeIntentsWith(preds ...predicate.Charge) predicate.SubscriptionItem {
+// HasChargesUsageBasedWith applies the HasEdge predicate on the "charges_usage_based" edge with a given conditions (other predicates).
+func HasChargesUsageBasedWith(preds ...predicate.ChargeUsageBased) predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(func(s *sql.Selector) {
-		step := newChargeIntentsStep()
+		step := newChargesUsageBasedStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasChargesCreditPurchase applies the HasEdge predicate on the "charges_credit_purchase" edge.
+func HasChargesCreditPurchase() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChargesCreditPurchaseTable, ChargesCreditPurchaseColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChargesCreditPurchaseWith applies the HasEdge predicate on the "charges_credit_purchase" edge with a given conditions (other predicates).
+func HasChargesCreditPurchaseWith(preds ...predicate.ChargeCreditPurchase) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(func(s *sql.Selector) {
+		step := newChargesCreditPurchaseStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasChargesFlatFee applies the HasEdge predicate on the "charges_flat_fee" edge.
+func HasChargesFlatFee() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChargesFlatFeeTable, ChargesFlatFeeColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChargesFlatFeeWith applies the HasEdge predicate on the "charges_flat_fee" edge with a given conditions (other predicates).
+func HasChargesFlatFeeWith(preds ...predicate.ChargeFlatFee) predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(func(s *sql.Selector) {
+		step := newChargesFlatFeeStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

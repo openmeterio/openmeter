@@ -10,6 +10,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -22,8 +23,7 @@ type ChargeCreditPurchase struct {
 
 func (ChargeCreditPurchase) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.NamespaceMixin{},
-		entutils.IDMixin{},
+		chargemeta.Mixin{},
 	}
 }
 
@@ -56,16 +56,37 @@ func (ChargeCreditPurchase) Fields() []ent.Field {
 
 func (ChargeCreditPurchase) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("charge", Charge.Type).
-			Ref("credit_purchase").
-			Unique().
-			Required(),
 		edge.To("external_payment", ChargeCreditPurchaseExternalPayment.Type).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("invoiced_payment", ChargeCreditPurchaseInvoicedPayment.Type).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("charge", Charge.Type).
+			Unique().
+			Immutable().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("subscription", Subscription.Type).
+			Ref("charges_credit_purchase").
+			Field("subscription_id").
+			Immutable().
+			Unique(),
+		edge.From("subscription_phase", SubscriptionPhase.Type).
+			Ref("charges_credit_purchase").
+			Field("subscription_phase_id").
+			Immutable().
+			Unique(),
+		edge.From("subscription_item", SubscriptionItem.Type).
+			Ref("charges_credit_purchase").
+			Field("subscription_item_id").
+			Immutable().
+			Unique(),
+		edge.From("customer", Customer.Type).
+			Field("customer_id").
+			Ref("charges_credit_purchase").
+			Unique().
+			Required().
+			Immutable(),
 	}
 }
 
@@ -101,10 +122,7 @@ func (ChargeCreditPurchaseExternalPayment) Edges() []ent.Edge {
 }
 
 func (ChargeCreditPurchaseExternalPayment) Indexes() []ent.Index {
-	return []ent.Index{
-		index.Fields("namespace", "charge_id").
-			Unique(),
-	}
+	return nil
 }
 
 type ChargeCreditPurchaseInvoicedPayment struct {

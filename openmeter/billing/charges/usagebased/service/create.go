@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -27,6 +28,20 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]usagebased.ChargeWithGatheringLine, error) {
 		// Let's create all the flat fee charges in bulk
 		charges, err := s.adapter.CreateCharges(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+
+		err = s.metaAdapter.RegisterCharges(ctx, meta.RegisterChargesInput{
+			Namespace: input.Namespace,
+			Type:      meta.ChargeTypeUsageBased,
+			Charges: lo.Map(charges, func(charge usagebased.Charge, idx int) meta.IDWithUniqueReferenceID {
+				return meta.IDWithUniqueReferenceID{
+					ID:                charge.ID,
+					UniqueReferenceID: charge.Intent.UniqueReferenceID,
+				}
+			}),
+		})
 		if err != nil {
 			return nil, err
 		}

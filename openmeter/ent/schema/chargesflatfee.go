@@ -10,11 +10,11 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
 type ChargeFlatFee struct {
@@ -23,8 +23,7 @@ type ChargeFlatFee struct {
 
 func (ChargeFlatFee) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.NamespaceMixin{},
-		entutils.IDMixin{},
+		chargemeta.Mixin{},
 	}
 }
 
@@ -71,10 +70,6 @@ func (ChargeFlatFee) Fields() []ent.Field {
 
 func (ChargeFlatFee) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("charge", Charge.Type).
-			Ref("flat_fee").
-			Unique().
-			Required(),
 		edge.To("credit_allocations", ChargeFlatFeeCreditAllocations.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("invoiced_usage", ChargeFlatFeeInvoicedUsage.Type).
@@ -83,13 +78,31 @@ func (ChargeFlatFee) Edges() []ent.Edge {
 		edge.To("payment", ChargeFlatFeePayment.Type).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
-	}
-}
-
-func (ChargeFlatFee) Indexes() []ent.Index {
-	return []ent.Index{
-		index.Fields("namespace", "id").
+		edge.To("charge", Charge.Type).
+			Unique().
+			Immutable().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("subscription", Subscription.Type).
+			Ref("charges_flat_fee").
+			Field("subscription_id").
+			Immutable().
 			Unique(),
+		edge.From("subscription_phase", SubscriptionPhase.Type).
+			Ref("charges_flat_fee").
+			Field("subscription_phase_id").
+			Immutable().
+			Unique(),
+		edge.From("subscription_item", SubscriptionItem.Type).
+			Ref("charges_flat_fee").
+			Field("subscription_item_id").
+			Immutable().
+			Unique(),
+		edge.From("customer", Customer.Type).
+			Ref("charges_flat_fee").
+			Field("customer_id").
+			Unique().
+			Required().
+			Immutable(),
 	}
 }
 
@@ -131,10 +144,7 @@ func (ChargeFlatFeePayment) Edges() []ent.Edge {
 }
 
 func (ChargeFlatFeePayment) Indexes() []ent.Index {
-	return []ent.Index{
-		index.Fields("namespace", "charge_id").
-			Unique(),
-	}
+	return nil
 }
 
 type ChargeFlatFeeInvoicedUsage struct {

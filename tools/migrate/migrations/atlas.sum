@@ -1,4 +1,4 @@
-h1:JQU0NE0cChl2SKwj0JnqJA/ZVuXOx5Dg6Kxg9o9rk8g=
+h1:ckhfBbU3bQUDxTULVhfnTm2/1LPjIgK28fhJp0JDA4o=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -168,3 +168,4 @@ h1:JQU0NE0cChl2SKwj0JnqJA/ZVuXOx5Dg6Kxg9o9rk8g=
 20260323132723_ledger-route-cost-basis.up.sql h1:s6SkSQQ4jQf/ntGaymwz/MW81cPaNi9UhYYEMtl1Wlw=
 20260323141807_add-feature-description.up.sql h1:D1H73owBZ/GP4otq3TMJ12Ewz0NOBw7VBXmvzsqd91c=
 20260324140705_charges-run-collection-period.up.sql h1:QF4K7f16kW6c+x1jQOaxgCpWPBOrzqKH8zzPBJh35cU=
+20260325084446_charges-refactor-tables.up.sql h1:Ow8OXgVDg3XeKiF5SxuZRUihMu9R1XtQ4hnyDhBpTRs=

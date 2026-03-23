@@ -6,16 +6,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // ChargeUsageBasedUpdate is the builder for updating ChargeUsageBased entities.
@@ -28,6 +31,222 @@ type ChargeUsageBasedUpdate struct {
 // Where appends a list predicates to the ChargeUsageBasedUpdate builder.
 func (_u *ChargeUsageBasedUpdate) Where(ps ...predicate.ChargeUsageBased) *ChargeUsageBasedUpdate {
 	_u.mutation.Where(ps...)
+	return _u
+}
+
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (_u *ChargeUsageBasedUpdate) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedUpdate {
+	_u.mutation.SetServicePeriodFrom(v)
+	return _u
+}
+
+// SetNillableServicePeriodFrom sets the "service_period_from" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableServicePeriodFrom(v *time.Time) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetServicePeriodFrom(*v)
+	}
+	return _u
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (_u *ChargeUsageBasedUpdate) SetServicePeriodTo(v time.Time) *ChargeUsageBasedUpdate {
+	_u.mutation.SetServicePeriodTo(v)
+	return _u
+}
+
+// SetNillableServicePeriodTo sets the "service_period_to" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableServicePeriodTo(v *time.Time) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetServicePeriodTo(*v)
+	}
+	return _u
+}
+
+// SetBillingPeriodFrom sets the "billing_period_from" field.
+func (_u *ChargeUsageBasedUpdate) SetBillingPeriodFrom(v time.Time) *ChargeUsageBasedUpdate {
+	_u.mutation.SetBillingPeriodFrom(v)
+	return _u
+}
+
+// SetNillableBillingPeriodFrom sets the "billing_period_from" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableBillingPeriodFrom(v *time.Time) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetBillingPeriodFrom(*v)
+	}
+	return _u
+}
+
+// SetBillingPeriodTo sets the "billing_period_to" field.
+func (_u *ChargeUsageBasedUpdate) SetBillingPeriodTo(v time.Time) *ChargeUsageBasedUpdate {
+	_u.mutation.SetBillingPeriodTo(v)
+	return _u
+}
+
+// SetNillableBillingPeriodTo sets the "billing_period_to" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableBillingPeriodTo(v *time.Time) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetBillingPeriodTo(*v)
+	}
+	return _u
+}
+
+// SetFullServicePeriodFrom sets the "full_service_period_from" field.
+func (_u *ChargeUsageBasedUpdate) SetFullServicePeriodFrom(v time.Time) *ChargeUsageBasedUpdate {
+	_u.mutation.SetFullServicePeriodFrom(v)
+	return _u
+}
+
+// SetNillableFullServicePeriodFrom sets the "full_service_period_from" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableFullServicePeriodFrom(v *time.Time) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetFullServicePeriodFrom(*v)
+	}
+	return _u
+}
+
+// SetFullServicePeriodTo sets the "full_service_period_to" field.
+func (_u *ChargeUsageBasedUpdate) SetFullServicePeriodTo(v time.Time) *ChargeUsageBasedUpdate {
+	_u.mutation.SetFullServicePeriodTo(v)
+	return _u
+}
+
+// SetNillableFullServicePeriodTo sets the "full_service_period_to" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableFullServicePeriodTo(v *time.Time) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetFullServicePeriodTo(*v)
+	}
+	return _u
+}
+
+// SetStatus sets the "status" field.
+func (_u *ChargeUsageBasedUpdate) SetStatus(v meta.ChargeStatus) *ChargeUsageBasedUpdate {
+	_u.mutation.SetStatus(v)
+	return _u
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableStatus(v *meta.ChargeStatus) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetStatus(*v)
+	}
+	return _u
+}
+
+// SetManagedBy sets the "managed_by" field.
+func (_u *ChargeUsageBasedUpdate) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeUsageBasedUpdate {
+	_u.mutation.SetManagedBy(v)
+	return _u
+}
+
+// SetNillableManagedBy sets the "managed_by" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableManagedBy(v *billing.InvoiceLineManagedBy) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetManagedBy(*v)
+	}
+	return _u
+}
+
+// SetAdvanceAfter sets the "advance_after" field.
+func (_u *ChargeUsageBasedUpdate) SetAdvanceAfter(v time.Time) *ChargeUsageBasedUpdate {
+	_u.mutation.SetAdvanceAfter(v)
+	return _u
+}
+
+// SetNillableAdvanceAfter sets the "advance_after" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableAdvanceAfter(v *time.Time) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetAdvanceAfter(*v)
+	}
+	return _u
+}
+
+// ClearAdvanceAfter clears the value of the "advance_after" field.
+func (_u *ChargeUsageBasedUpdate) ClearAdvanceAfter() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearAdvanceAfter()
+	return _u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_u *ChargeUsageBasedUpdate) SetAnnotations(v models.Annotations) *ChargeUsageBasedUpdate {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *ChargeUsageBasedUpdate) ClearAnnotations() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearAnnotations()
+	return _u
+}
+
+// SetMetadata sets the "metadata" field.
+func (_u *ChargeUsageBasedUpdate) SetMetadata(v map[string]string) *ChargeUsageBasedUpdate {
+	_u.mutation.SetMetadata(v)
+	return _u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (_u *ChargeUsageBasedUpdate) ClearMetadata() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearMetadata()
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *ChargeUsageBasedUpdate) SetUpdatedAt(v time.Time) *ChargeUsageBasedUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (_u *ChargeUsageBasedUpdate) SetDeletedAt(v time.Time) *ChargeUsageBasedUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableDeletedAt(v *time.Time) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (_u *ChargeUsageBasedUpdate) ClearDeletedAt() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetName sets the "name" field.
+func (_u *ChargeUsageBasedUpdate) SetName(v string) *ChargeUsageBasedUpdate {
+	_u.mutation.SetName(v)
+	return _u
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableName(v *string) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetName(*v)
+	}
+	return _u
+}
+
+// SetDescription sets the "description" field.
+func (_u *ChargeUsageBasedUpdate) SetDescription(v string) *ChargeUsageBasedUpdate {
+	_u.mutation.SetDescription(v)
+	return _u
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableDescription(v *string) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetDescription(*v)
+	}
+	return _u
+}
+
+// ClearDescription clears the value of the "description" field.
+func (_u *ChargeUsageBasedUpdate) ClearDescription() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearDescription()
 	return _u
 }
 
@@ -63,29 +282,18 @@ func (_u *ChargeUsageBasedUpdate) ClearCurrentRealizationRunID() *ChargeUsageBas
 	return _u
 }
 
-// SetStatus sets the "status" field.
-func (_u *ChargeUsageBasedUpdate) SetStatus(v usagebased.Status) *ChargeUsageBasedUpdate {
-	_u.mutation.SetStatus(v)
+// SetStatusDetailed sets the "status_detailed" field.
+func (_u *ChargeUsageBasedUpdate) SetStatusDetailed(v usagebased.Status) *ChargeUsageBasedUpdate {
+	_u.mutation.SetStatusDetailed(v)
 	return _u
 }
 
-// SetNillableStatus sets the "status" field if the given value is not nil.
-func (_u *ChargeUsageBasedUpdate) SetNillableStatus(v *usagebased.Status) *ChargeUsageBasedUpdate {
+// SetNillableStatusDetailed sets the "status_detailed" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableStatusDetailed(v *usagebased.Status) *ChargeUsageBasedUpdate {
 	if v != nil {
-		_u.SetStatus(*v)
+		_u.SetStatusDetailed(*v)
 	}
 	return _u
-}
-
-// SetChargeID sets the "charge" edge to the Charge entity by ID.
-func (_u *ChargeUsageBasedUpdate) SetChargeID(id string) *ChargeUsageBasedUpdate {
-	_u.mutation.SetChargeID(id)
-	return _u
-}
-
-// SetCharge sets the "charge" edge to the Charge entity.
-func (_u *ChargeUsageBasedUpdate) SetCharge(v *Charge) *ChargeUsageBasedUpdate {
-	return _u.SetChargeID(v.ID)
 }
 
 // AddRunIDs adds the "runs" edge to the ChargeUsageBasedRuns entity by IDs.
@@ -127,12 +335,6 @@ func (_u *ChargeUsageBasedUpdate) Mutation() *ChargeUsageBasedMutation {
 	return _u.mutation
 }
 
-// ClearCharge clears the "charge" edge to the Charge entity.
-func (_u *ChargeUsageBasedUpdate) ClearCharge() *ChargeUsageBasedUpdate {
-	_u.mutation.ClearCharge()
-	return _u
-}
-
 // ClearRuns clears all "runs" edges to the ChargeUsageBasedRuns entity.
 func (_u *ChargeUsageBasedUpdate) ClearRuns() *ChargeUsageBasedUpdate {
 	_u.mutation.ClearRuns()
@@ -162,6 +364,7 @@ func (_u *ChargeUsageBasedUpdate) ClearCurrentRun() *ChargeUsageBasedUpdate {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (_u *ChargeUsageBasedUpdate) Save(ctx context.Context) (int, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -187,20 +390,38 @@ func (_u *ChargeUsageBasedUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_u *ChargeUsageBasedUpdate) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := chargeusagebased.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeUsageBasedUpdate) check() error {
-	if v, ok := _u.mutation.Discounts(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.discounts": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Status(); ok {
 		if err := chargeusagebased.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status": %w`, err)}
 		}
 	}
-	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.charge"`)
+	if v, ok := _u.mutation.ManagedBy(); ok {
+		if err := chargeusagebased.ManagedByValidator(v); err != nil {
+			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.managed_by": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Discounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.discounts": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.StatusDetailed(); ok {
+		if err := chargeusagebased.StatusDetailedValidator(v); err != nil {
+			return &ValidationError{Name: "status_detailed", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status_detailed": %w`, err)}
+		}
+	}
+	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.customer"`)
 	}
 	return nil
 }
@@ -217,6 +438,69 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 			}
 		}
 	}
+	if value, ok := _u.mutation.ServicePeriodFrom(); ok {
+		_spec.SetField(chargeusagebased.FieldServicePeriodFrom, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.ServicePeriodTo(); ok {
+		_spec.SetField(chargeusagebased.FieldServicePeriodTo, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.BillingPeriodFrom(); ok {
+		_spec.SetField(chargeusagebased.FieldBillingPeriodFrom, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.BillingPeriodTo(); ok {
+		_spec.SetField(chargeusagebased.FieldBillingPeriodTo, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.FullServicePeriodFrom(); ok {
+		_spec.SetField(chargeusagebased.FieldFullServicePeriodFrom, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.FullServicePeriodTo(); ok {
+		_spec.SetField(chargeusagebased.FieldFullServicePeriodTo, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.Status(); ok {
+		_spec.SetField(chargeusagebased.FieldStatus, field.TypeEnum, value)
+	}
+	if _u.mutation.UniqueReferenceIDCleared() {
+		_spec.ClearField(chargeusagebased.FieldUniqueReferenceID, field.TypeString)
+	}
+	if value, ok := _u.mutation.ManagedBy(); ok {
+		_spec.SetField(chargeusagebased.FieldManagedBy, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.AdvanceAfter(); ok {
+		_spec.SetField(chargeusagebased.FieldAdvanceAfter, field.TypeTime, value)
+	}
+	if _u.mutation.AdvanceAfterCleared() {
+		_spec.ClearField(chargeusagebased.FieldAdvanceAfter, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(chargeusagebased.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(chargeusagebased.FieldAnnotations, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Metadata(); ok {
+		_spec.SetField(chargeusagebased.FieldMetadata, field.TypeJSON, value)
+	}
+	if _u.mutation.MetadataCleared() {
+		_spec.ClearField(chargeusagebased.FieldMetadata, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(chargeusagebased.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.DeletedAt(); ok {
+		_spec.SetField(chargeusagebased.FieldDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.DeletedAtCleared() {
+		_spec.ClearField(chargeusagebased.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(chargeusagebased.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Description(); ok {
+		_spec.SetField(chargeusagebased.FieldDescription, field.TypeString, value)
+	}
+	if _u.mutation.DescriptionCleared() {
+		_spec.ClearField(chargeusagebased.FieldDescription, field.TypeString)
+	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := chargeusagebased.ValueScanner.Discounts.Value(value)
 		if err != nil {
@@ -227,37 +511,8 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 	if _u.mutation.DiscountsCleared() {
 		_spec.ClearField(chargeusagebased.FieldDiscounts, field.TypeString)
 	}
-	if value, ok := _u.mutation.Status(); ok {
-		_spec.SetField(chargeusagebased.FieldStatus, field.TypeEnum, value)
-	}
-	if _u.mutation.ChargeCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: true,
-			Table:   chargeusagebased.ChargeTable,
-			Columns: []string{chargeusagebased.ChargeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.ChargeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: true,
-			Table:   chargeusagebased.ChargeTable,
-			Columns: []string{chargeusagebased.ChargeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	if value, ok := _u.mutation.StatusDetailed(); ok {
+		_spec.SetField(chargeusagebased.FieldStatusDetailed, field.TypeEnum, value)
 	}
 	if _u.mutation.RunsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -353,6 +608,222 @@ type ChargeUsageBasedUpdateOne struct {
 	mutation *ChargeUsageBasedMutation
 }
 
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (_u *ChargeUsageBasedUpdateOne) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetServicePeriodFrom(v)
+	return _u
+}
+
+// SetNillableServicePeriodFrom sets the "service_period_from" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableServicePeriodFrom(v *time.Time) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetServicePeriodFrom(*v)
+	}
+	return _u
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (_u *ChargeUsageBasedUpdateOne) SetServicePeriodTo(v time.Time) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetServicePeriodTo(v)
+	return _u
+}
+
+// SetNillableServicePeriodTo sets the "service_period_to" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableServicePeriodTo(v *time.Time) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetServicePeriodTo(*v)
+	}
+	return _u
+}
+
+// SetBillingPeriodFrom sets the "billing_period_from" field.
+func (_u *ChargeUsageBasedUpdateOne) SetBillingPeriodFrom(v time.Time) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetBillingPeriodFrom(v)
+	return _u
+}
+
+// SetNillableBillingPeriodFrom sets the "billing_period_from" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableBillingPeriodFrom(v *time.Time) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetBillingPeriodFrom(*v)
+	}
+	return _u
+}
+
+// SetBillingPeriodTo sets the "billing_period_to" field.
+func (_u *ChargeUsageBasedUpdateOne) SetBillingPeriodTo(v time.Time) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetBillingPeriodTo(v)
+	return _u
+}
+
+// SetNillableBillingPeriodTo sets the "billing_period_to" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableBillingPeriodTo(v *time.Time) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetBillingPeriodTo(*v)
+	}
+	return _u
+}
+
+// SetFullServicePeriodFrom sets the "full_service_period_from" field.
+func (_u *ChargeUsageBasedUpdateOne) SetFullServicePeriodFrom(v time.Time) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetFullServicePeriodFrom(v)
+	return _u
+}
+
+// SetNillableFullServicePeriodFrom sets the "full_service_period_from" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableFullServicePeriodFrom(v *time.Time) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetFullServicePeriodFrom(*v)
+	}
+	return _u
+}
+
+// SetFullServicePeriodTo sets the "full_service_period_to" field.
+func (_u *ChargeUsageBasedUpdateOne) SetFullServicePeriodTo(v time.Time) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetFullServicePeriodTo(v)
+	return _u
+}
+
+// SetNillableFullServicePeriodTo sets the "full_service_period_to" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableFullServicePeriodTo(v *time.Time) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetFullServicePeriodTo(*v)
+	}
+	return _u
+}
+
+// SetStatus sets the "status" field.
+func (_u *ChargeUsageBasedUpdateOne) SetStatus(v meta.ChargeStatus) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetStatus(v)
+	return _u
+}
+
+// SetNillableStatus sets the "status" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableStatus(v *meta.ChargeStatus) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetStatus(*v)
+	}
+	return _u
+}
+
+// SetManagedBy sets the "managed_by" field.
+func (_u *ChargeUsageBasedUpdateOne) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetManagedBy(v)
+	return _u
+}
+
+// SetNillableManagedBy sets the "managed_by" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableManagedBy(v *billing.InvoiceLineManagedBy) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetManagedBy(*v)
+	}
+	return _u
+}
+
+// SetAdvanceAfter sets the "advance_after" field.
+func (_u *ChargeUsageBasedUpdateOne) SetAdvanceAfter(v time.Time) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetAdvanceAfter(v)
+	return _u
+}
+
+// SetNillableAdvanceAfter sets the "advance_after" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableAdvanceAfter(v *time.Time) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetAdvanceAfter(*v)
+	}
+	return _u
+}
+
+// ClearAdvanceAfter clears the value of the "advance_after" field.
+func (_u *ChargeUsageBasedUpdateOne) ClearAdvanceAfter() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearAdvanceAfter()
+	return _u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_u *ChargeUsageBasedUpdateOne) SetAnnotations(v models.Annotations) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *ChargeUsageBasedUpdateOne) ClearAnnotations() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearAnnotations()
+	return _u
+}
+
+// SetMetadata sets the "metadata" field.
+func (_u *ChargeUsageBasedUpdateOne) SetMetadata(v map[string]string) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetMetadata(v)
+	return _u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (_u *ChargeUsageBasedUpdateOne) ClearMetadata() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearMetadata()
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *ChargeUsageBasedUpdateOne) SetUpdatedAt(v time.Time) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (_u *ChargeUsageBasedUpdateOne) SetDeletedAt(v time.Time) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableDeletedAt(v *time.Time) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (_u *ChargeUsageBasedUpdateOne) ClearDeletedAt() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetName sets the "name" field.
+func (_u *ChargeUsageBasedUpdateOne) SetName(v string) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetName(v)
+	return _u
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableName(v *string) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetName(*v)
+	}
+	return _u
+}
+
+// SetDescription sets the "description" field.
+func (_u *ChargeUsageBasedUpdateOne) SetDescription(v string) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetDescription(v)
+	return _u
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableDescription(v *string) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetDescription(*v)
+	}
+	return _u
+}
+
+// ClearDescription clears the value of the "description" field.
+func (_u *ChargeUsageBasedUpdateOne) ClearDescription() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearDescription()
+	return _u
+}
+
 // SetDiscounts sets the "discounts" field.
 func (_u *ChargeUsageBasedUpdateOne) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpdateOne {
 	_u.mutation.SetDiscounts(v)
@@ -385,29 +856,18 @@ func (_u *ChargeUsageBasedUpdateOne) ClearCurrentRealizationRunID() *ChargeUsage
 	return _u
 }
 
-// SetStatus sets the "status" field.
-func (_u *ChargeUsageBasedUpdateOne) SetStatus(v usagebased.Status) *ChargeUsageBasedUpdateOne {
-	_u.mutation.SetStatus(v)
+// SetStatusDetailed sets the "status_detailed" field.
+func (_u *ChargeUsageBasedUpdateOne) SetStatusDetailed(v usagebased.Status) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetStatusDetailed(v)
 	return _u
 }
 
-// SetNillableStatus sets the "status" field if the given value is not nil.
-func (_u *ChargeUsageBasedUpdateOne) SetNillableStatus(v *usagebased.Status) *ChargeUsageBasedUpdateOne {
+// SetNillableStatusDetailed sets the "status_detailed" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableStatusDetailed(v *usagebased.Status) *ChargeUsageBasedUpdateOne {
 	if v != nil {
-		_u.SetStatus(*v)
+		_u.SetStatusDetailed(*v)
 	}
 	return _u
-}
-
-// SetChargeID sets the "charge" edge to the Charge entity by ID.
-func (_u *ChargeUsageBasedUpdateOne) SetChargeID(id string) *ChargeUsageBasedUpdateOne {
-	_u.mutation.SetChargeID(id)
-	return _u
-}
-
-// SetCharge sets the "charge" edge to the Charge entity.
-func (_u *ChargeUsageBasedUpdateOne) SetCharge(v *Charge) *ChargeUsageBasedUpdateOne {
-	return _u.SetChargeID(v.ID)
 }
 
 // AddRunIDs adds the "runs" edge to the ChargeUsageBasedRuns entity by IDs.
@@ -447,12 +907,6 @@ func (_u *ChargeUsageBasedUpdateOne) SetCurrentRun(v *ChargeUsageBasedRuns) *Cha
 // Mutation returns the ChargeUsageBasedMutation object of the builder.
 func (_u *ChargeUsageBasedUpdateOne) Mutation() *ChargeUsageBasedMutation {
 	return _u.mutation
-}
-
-// ClearCharge clears the "charge" edge to the Charge entity.
-func (_u *ChargeUsageBasedUpdateOne) ClearCharge() *ChargeUsageBasedUpdateOne {
-	_u.mutation.ClearCharge()
-	return _u
 }
 
 // ClearRuns clears all "runs" edges to the ChargeUsageBasedRuns entity.
@@ -497,6 +951,7 @@ func (_u *ChargeUsageBasedUpdateOne) Select(field string, fields ...string) *Cha
 
 // Save executes the query and returns the updated ChargeUsageBased entity.
 func (_u *ChargeUsageBasedUpdateOne) Save(ctx context.Context) (*ChargeUsageBased, error) {
+	_u.defaults()
 	return withHooks(ctx, _u.sqlSave, _u.mutation, _u.hooks)
 }
 
@@ -522,20 +977,38 @@ func (_u *ChargeUsageBasedUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (_u *ChargeUsageBasedUpdateOne) defaults() {
+	if _, ok := _u.mutation.UpdatedAt(); !ok {
+		v := chargeusagebased.UpdateDefaultUpdatedAt()
+		_u.mutation.SetUpdatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeUsageBasedUpdateOne) check() error {
-	if v, ok := _u.mutation.Discounts(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.discounts": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.Status(); ok {
 		if err := chargeusagebased.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status": %w`, err)}
 		}
 	}
-	if _u.mutation.ChargeCleared() && len(_u.mutation.ChargeIDs()) > 0 {
-		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.charge"`)
+	if v, ok := _u.mutation.ManagedBy(); ok {
+		if err := chargeusagebased.ManagedByValidator(v); err != nil {
+			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.managed_by": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Discounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.discounts": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.StatusDetailed(); ok {
+		if err := chargeusagebased.StatusDetailedValidator(v); err != nil {
+			return &ValidationError{Name: "status_detailed", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status_detailed": %w`, err)}
+		}
+	}
+	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.customer"`)
 	}
 	return nil
 }
@@ -569,6 +1042,69 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 			}
 		}
 	}
+	if value, ok := _u.mutation.ServicePeriodFrom(); ok {
+		_spec.SetField(chargeusagebased.FieldServicePeriodFrom, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.ServicePeriodTo(); ok {
+		_spec.SetField(chargeusagebased.FieldServicePeriodTo, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.BillingPeriodFrom(); ok {
+		_spec.SetField(chargeusagebased.FieldBillingPeriodFrom, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.BillingPeriodTo(); ok {
+		_spec.SetField(chargeusagebased.FieldBillingPeriodTo, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.FullServicePeriodFrom(); ok {
+		_spec.SetField(chargeusagebased.FieldFullServicePeriodFrom, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.FullServicePeriodTo(); ok {
+		_spec.SetField(chargeusagebased.FieldFullServicePeriodTo, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.Status(); ok {
+		_spec.SetField(chargeusagebased.FieldStatus, field.TypeEnum, value)
+	}
+	if _u.mutation.UniqueReferenceIDCleared() {
+		_spec.ClearField(chargeusagebased.FieldUniqueReferenceID, field.TypeString)
+	}
+	if value, ok := _u.mutation.ManagedBy(); ok {
+		_spec.SetField(chargeusagebased.FieldManagedBy, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.AdvanceAfter(); ok {
+		_spec.SetField(chargeusagebased.FieldAdvanceAfter, field.TypeTime, value)
+	}
+	if _u.mutation.AdvanceAfterCleared() {
+		_spec.ClearField(chargeusagebased.FieldAdvanceAfter, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Annotations(); ok {
+		_spec.SetField(chargeusagebased.FieldAnnotations, field.TypeJSON, value)
+	}
+	if _u.mutation.AnnotationsCleared() {
+		_spec.ClearField(chargeusagebased.FieldAnnotations, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Metadata(); ok {
+		_spec.SetField(chargeusagebased.FieldMetadata, field.TypeJSON, value)
+	}
+	if _u.mutation.MetadataCleared() {
+		_spec.ClearField(chargeusagebased.FieldMetadata, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.UpdatedAt(); ok {
+		_spec.SetField(chargeusagebased.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.DeletedAt(); ok {
+		_spec.SetField(chargeusagebased.FieldDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.DeletedAtCleared() {
+		_spec.ClearField(chargeusagebased.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(chargeusagebased.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Description(); ok {
+		_spec.SetField(chargeusagebased.FieldDescription, field.TypeString, value)
+	}
+	if _u.mutation.DescriptionCleared() {
+		_spec.ClearField(chargeusagebased.FieldDescription, field.TypeString)
+	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := chargeusagebased.ValueScanner.Discounts.Value(value)
 		if err != nil {
@@ -579,37 +1115,8 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	if _u.mutation.DiscountsCleared() {
 		_spec.ClearField(chargeusagebased.FieldDiscounts, field.TypeString)
 	}
-	if value, ok := _u.mutation.Status(); ok {
-		_spec.SetField(chargeusagebased.FieldStatus, field.TypeEnum, value)
-	}
-	if _u.mutation.ChargeCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: true,
-			Table:   chargeusagebased.ChargeTable,
-			Columns: []string{chargeusagebased.ChargeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.ChargeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: true,
-			Table:   chargeusagebased.ChargeTable,
-			Columns: []string{chargeusagebased.ChargeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	if value, ok := _u.mutation.StatusDetailed(); ok {
+		_spec.SetField(chargeusagebased.FieldStatusDetailed, field.TypeEnum, value)
 	}
 	if _u.mutation.RunsCleared() {
 		edge := &sqlgraph.EdgeSpec{

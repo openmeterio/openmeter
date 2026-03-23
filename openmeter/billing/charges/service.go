@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type Service interface {
@@ -26,6 +27,7 @@ type ChargeService interface {
 	Create(ctx context.Context, input CreateInput) (Charges, error)
 
 	AdvanceCharges(ctx context.Context, input AdvanceChargesInput) (Charges, error)
+	ListCharges(ctx context.Context, input ListChargesInput) (pagination.Result[Charge], error)
 }
 
 // InvoiceService contains methods that are over time deprecate the current billing methods.
@@ -76,22 +78,15 @@ func (i GetByIDInput) Validate() error {
 }
 
 type GetByIDsInput struct {
-	Namespace string
-	ChargeIDs []string
+	ChargeIDs meta.ChargeIDs
 	Expands   meta.Expands
 }
 
 func (i GetByIDsInput) Validate() error {
 	var errs []error
 
-	if i.Namespace == "" {
-		errs = append(errs, fmt.Errorf("namespace is required"))
-	}
-
-	for idx, id := range i.ChargeIDs {
-		if id == "" {
-			errs = append(errs, fmt.Errorf("charge ID [%d]: cannot be empty", idx))
-		}
+	if err := i.ChargeIDs.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge IDs: %w", err))
 	}
 
 	if err := i.Expands.Validate(); err != nil {
@@ -129,6 +124,28 @@ func (i AdvanceChargesInput) Validate() error {
 	var errs []error
 	if err := i.Customer.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("customer ID: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+type ListChargesInput struct {
+	pagination.Page
+
+	Namespaces  []string
+	CustomerIDs []string
+	StatusNotIn []meta.ChargeStatus
+
+	Expands meta.Expands
+}
+
+func (i ListChargesInput) Validate() error {
+	var errs []error
+
+	for _, status := range i.StatusNotIn {
+		if err := status.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("status: %w", err))
+		}
 	}
 
 	return errors.Join(errs...)

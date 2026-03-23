@@ -15,7 +15,7 @@ import (
 type Adapter interface {
 	CreateCharges(ctx context.Context, charges CreateChargesInput) ([]Charge, error)
 	UpdateCharge(ctx context.Context, charge Charge) error
-	GetByMetas(ctx context.Context, ids GetByMetasInput) ([]Charge, error)
+	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
 
 	CreateInvoicedUsage(ctx context.Context, chargeID meta.ChargeID, invoicedUsage invoicedusage.AccruedUsage) (invoicedusage.AccruedUsage, error)
 
@@ -44,6 +44,26 @@ func (i IntentWithInitialStatus) Validate() error {
 			errs = append(errs, fmt.Errorf("initial status: %w", err))
 		}
 	}
+	return errors.Join(errs...)
+}
+
+type GetByIDsInput struct {
+	IDs meta.ChargeIDs
+
+	Expands meta.Expands
+}
+
+func (i GetByIDsInput) Validate() error {
+	var errs []error
+
+	if err := i.IDs.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("IDs: %w", err))
+	}
+
+	if err := i.Expands.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("expands: %w", err))
+	}
+
 	return errors.Join(errs...)
 }
 

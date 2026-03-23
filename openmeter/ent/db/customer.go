@@ -77,11 +77,15 @@ type CustomerEdges struct {
 	Subscription []*Subscription `json:"subscription,omitempty"`
 	// Entitlements holds the value of the entitlements edge.
 	Entitlements []*Entitlement `json:"entitlements,omitempty"`
-	// ChargeIntents holds the value of the charge_intents edge.
-	ChargeIntents []*Charge `json:"charge_intents,omitempty"`
+	// ChargesCreditPurchase holds the value of the charges_credit_purchase edge.
+	ChargesCreditPurchase []*ChargeCreditPurchase `json:"charges_credit_purchase,omitempty"`
+	// ChargesFlatFee holds the value of the charges_flat_fee edge.
+	ChargesFlatFee []*ChargeFlatFee `json:"charges_flat_fee,omitempty"`
+	// ChargesUsageBased holds the value of the charges_usage_based edge.
+	ChargesUsageBased []*ChargeUsageBased `json:"charges_usage_based,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [7]bool
+	loadedTypes [9]bool
 }
 
 // AppsOrErr returns the Apps value or an error if the edge
@@ -140,13 +144,31 @@ func (e CustomerEdges) EntitlementsOrErr() ([]*Entitlement, error) {
 	return nil, &NotLoadedError{edge: "entitlements"}
 }
 
-// ChargeIntentsOrErr returns the ChargeIntents value or an error if the edge
+// ChargesCreditPurchaseOrErr returns the ChargesCreditPurchase value or an error if the edge
 // was not loaded in eager-loading.
-func (e CustomerEdges) ChargeIntentsOrErr() ([]*Charge, error) {
+func (e CustomerEdges) ChargesCreditPurchaseOrErr() ([]*ChargeCreditPurchase, error) {
 	if e.loadedTypes[6] {
-		return e.ChargeIntents, nil
+		return e.ChargesCreditPurchase, nil
 	}
-	return nil, &NotLoadedError{edge: "charge_intents"}
+	return nil, &NotLoadedError{edge: "charges_credit_purchase"}
+}
+
+// ChargesFlatFeeOrErr returns the ChargesFlatFee value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomerEdges) ChargesFlatFeeOrErr() ([]*ChargeFlatFee, error) {
+	if e.loadedTypes[7] {
+		return e.ChargesFlatFee, nil
+	}
+	return nil, &NotLoadedError{edge: "charges_flat_fee"}
+}
+
+// ChargesUsageBasedOrErr returns the ChargesUsageBased value or an error if the edge
+// was not loaded in eager-loading.
+func (e CustomerEdges) ChargesUsageBasedOrErr() ([]*ChargeUsageBased, error) {
+	if e.loadedTypes[8] {
+		return e.ChargesUsageBased, nil
+	}
+	return nil, &NotLoadedError{edge: "charges_usage_based"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -347,9 +369,19 @@ func (_m *Customer) QueryEntitlements() *EntitlementQuery {
 	return NewCustomerClient(_m.config).QueryEntitlements(_m)
 }
 
-// QueryChargeIntents queries the "charge_intents" edge of the Customer entity.
-func (_m *Customer) QueryChargeIntents() *ChargeQuery {
-	return NewCustomerClient(_m.config).QueryChargeIntents(_m)
+// QueryChargesCreditPurchase queries the "charges_credit_purchase" edge of the Customer entity.
+func (_m *Customer) QueryChargesCreditPurchase() *ChargeCreditPurchaseQuery {
+	return NewCustomerClient(_m.config).QueryChargesCreditPurchase(_m)
+}
+
+// QueryChargesFlatFee queries the "charges_flat_fee" edge of the Customer entity.
+func (_m *Customer) QueryChargesFlatFee() *ChargeFlatFeeQuery {
+	return NewCustomerClient(_m.config).QueryChargesFlatFee(_m)
+}
+
+// QueryChargesUsageBased queries the "charges_usage_based" edge of the Customer entity.
+func (_m *Customer) QueryChargesUsageBased() *ChargeUsageBasedQuery {
+	return NewCustomerClient(_m.config).QueryChargesUsageBased(_m)
 }
 
 // Update returns a builder for updating this Customer.

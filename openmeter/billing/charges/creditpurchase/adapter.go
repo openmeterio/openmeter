@@ -15,13 +15,33 @@ type Adapter interface {
 
 	UpdateCharge(ctx context.Context, charge Charge) (Charge, error)
 	CreateCharge(ctx context.Context, in CreateChargeInput) (Charge, error)
-	GetByMetas(ctx context.Context, ids GetByMetasInput) ([]Charge, error)
+	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
 
 	CreateExternalPayment(ctx context.Context, chargeID meta.ChargeID, payment payment.ExternalCreateInput) (payment.External, error)
 	UpdateExternalPayment(ctx context.Context, payment payment.External) (payment.External, error)
 
 	CreateInvoicedPayment(ctx context.Context, chargeID meta.ChargeID, payment payment.InvoicedCreate) (payment.Invoiced, error)
 	UpdateInvoicedPayment(ctx context.Context, payment payment.Invoiced) (payment.Invoiced, error)
+}
+
+type GetByIDsInput struct {
+	IDs meta.ChargeIDs
+
+	Expands meta.Expands
+}
+
+func (i GetByIDsInput) Validate() error {
+	var errs []error
+
+	if err := i.IDs.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("IDs: %w", err))
+	}
+
+	if err := i.Expands.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("expands: %w", err))
+	}
+
+	return errors.Join(errs...)
 }
 
 type CreateChargeInput struct {
