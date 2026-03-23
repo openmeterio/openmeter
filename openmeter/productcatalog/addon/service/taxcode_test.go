@@ -531,4 +531,98 @@ func TestAddonTaxCodeBackfill(t *testing.T) {
 		require.NotNil(t, tc.Behavior, "Behavior must be backfilled from tax_behavior column")
 		assert.Equal(t, productcatalog.ExclusiveTaxBehavior, *tc.Behavior)
 	})
+
+	t.Run("BackfillTaxCodeOnly", func(t *testing.T) {
+		input := newTestAddonInput(t, namespace, newTestAddonFlatRateCard(features[0], nil))
+		input.Key = "backfill-taxcode-only"
+		input.Name = "Backfill TaxCode Only"
+
+		a, err := env.Addon.CreateAddon(ctx, input)
+		require.NoError(t, err)
+
+		tcEntity, err := env.Client.TaxCode.Create().
+			SetNamespace(namespace).
+			SetKey("stripe_txcd_99000010").
+			SetName("txcd_99000010").
+			SetMetadata(map[string]string{}).
+			SetAppMappings(&taxcode.TaxCodeAppMappings{
+				{AppType: app.AppTypeStripe, TaxCode: "txcd_99000010"},
+			}).
+			Save(ctx)
+		require.NoError(t, err)
+
+		// Only tax_code_id, no tax_behavior
+		_, err = env.Client.AddonRateCard.Create().
+			SetAddonID(a.ID).
+			SetNamespace(namespace).
+			SetKey("backfill-tc-only").
+			SetType(productcatalog.FlatFeeRateCardType).
+			SetName("Backfill TC Only").
+			SetMetadata(map[string]string{}).
+			SetEntitlementTemplate(nil).
+			SetDiscounts(nil).
+			SetTaxCodeID(tcEntity.ID).
+			Save(ctx)
+		require.NoError(t, err)
+
+		fetched, err := env.Addon.GetAddon(ctx, addon.GetAddonInput{NamespacedID: a.NamespacedID})
+		require.NoError(t, err)
+
+		var backfillRC *addon.RateCard
+		for i, rc := range fetched.RateCards {
+			if rc.AsMeta().Key == "backfill-tc-only" {
+				backfillRC = &fetched.RateCards[i]
+				break
+			}
+		}
+		require.NotNil(t, backfillRC)
+
+		tc := backfillRC.AsMeta().TaxConfig
+		require.NotNil(t, tc, "TaxConfig must be backfilled from TaxCode entity alone")
+		require.NotNil(t, tc.Stripe)
+		assert.Equal(t, "txcd_99000010", tc.Stripe.Code)
+		assert.Nil(t, tc.Behavior, "Behavior must be nil when tax_behavior column is not set")
+	})
+
+	t.Run("BackfillBehaviorOnly", func(t *testing.T) {
+		input := newTestAddonInput(t, namespace, newTestAddonFlatRateCard(features[0], nil))
+		input.Key = "backfill-behavior-only"
+		input.Name = "Backfill Behavior Only"
+
+		a, err := env.Addon.CreateAddon(ctx, input)
+		require.NoError(t, err)
+
+		// Only tax_behavior, no tax_code_id
+		behavior := productcatalog.InclusiveTaxBehavior
+		_, err = env.Client.AddonRateCard.Create().
+			SetAddonID(a.ID).
+			SetNamespace(namespace).
+			SetKey("backfill-beh-only").
+			SetType(productcatalog.FlatFeeRateCardType).
+			SetName("Backfill Behavior Only").
+			SetMetadata(map[string]string{}).
+			SetEntitlementTemplate(nil).
+			SetDiscounts(nil).
+			SetTaxBehavior(behavior).
+			Save(ctx)
+		require.NoError(t, err)
+
+		fetched, err := env.Addon.GetAddon(ctx, addon.GetAddonInput{NamespacedID: a.NamespacedID})
+		require.NoError(t, err)
+
+		var backfillRC *addon.RateCard
+		for i, rc := range fetched.RateCards {
+			if rc.AsMeta().Key == "backfill-beh-only" {
+				backfillRC = &fetched.RateCards[i]
+				break
+			}
+		}
+		require.NotNil(t, backfillRC)
+
+		tc := backfillRC.AsMeta().TaxConfig
+		require.NotNil(t, tc, "TaxConfig must be backfilled from tax_behavior column alone")
+		require.NotNil(t, tc.Behavior)
+		assert.Equal(t, productcatalog.InclusiveTaxBehavior, *tc.Behavior)
+		assert.Nil(t, tc.Stripe, "Stripe must be nil when no TaxCode entity is linked")
+	})
 }
