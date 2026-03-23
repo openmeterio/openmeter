@@ -47,6 +47,21 @@ func ContainsPattern(value string) string {
 	return fmt.Sprintf("%%%s%%", EscapeLikePattern(value))
 }
 
+// ReverseContainsPattern extracts the plain value from a LIKE pattern
+// produced by ContainsPattern (e.g. "%foo%" → "foo").
+func ReverseContainsPattern(like *string) *string {
+	if like == nil {
+		return nil
+	}
+	v := *like
+	v = strings.TrimPrefix(v, "%")
+	v = strings.TrimSuffix(v, "%")
+	v = strings.ReplaceAll(v, `\_`, "_")
+	v = strings.ReplaceAll(v, `\%`, "%")
+	v = strings.ReplaceAll(v, `\\`, `\`)
+	return &v
+}
+
 // FilterString is a filter for a string field.
 type FilterString struct {
 	Eq     *string         `json:"$eq,omitempty"`

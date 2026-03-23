@@ -2673,6 +2673,7 @@ var (
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true, Size: 1024},
 		{Name: "key", Type: field.TypeString},
 		{Name: "meter_slug", Type: field.TypeString, Nullable: true},
 		{Name: "meter_group_by_filters", Type: field.TypeJSON, Nullable: true},
@@ -2696,7 +2697,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "features_meters_feature",
-				Columns:    []*schema.Column{FeaturesColumns[20]},
+				Columns:    []*schema.Column{FeaturesColumns[21]},
 				RefColumns: []*schema.Column{MetersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -2715,7 +2716,7 @@ var (
 			{
 				Name:    "feature_namespace_key",
 				Unique:  true,
-				Columns: []*schema.Column{FeaturesColumns[5], FeaturesColumns[7]},
+				Columns: []*schema.Column{FeaturesColumns[5], FeaturesColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "archived_at IS NULL",
 				},
@@ -2723,7 +2724,7 @@ var (
 			{
 				Name:    "feature_namespace_meter_slug",
 				Unique:  false,
-				Columns: []*schema.Column{FeaturesColumns[5], FeaturesColumns[8]},
+				Columns: []*schema.Column{FeaturesColumns[5], FeaturesColumns[9]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "archived_at IS NULL",
 				},
@@ -2731,7 +2732,7 @@ var (
 			{
 				Name:    "feature_namespace_meter_id",
 				Unique:  false,
-				Columns: []*schema.Column{FeaturesColumns[5], FeaturesColumns[20]},
+				Columns: []*schema.Column{FeaturesColumns[5], FeaturesColumns[21]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "archived_at IS NULL",
 				},

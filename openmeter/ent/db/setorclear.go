@@ -3377,6 +3377,20 @@ func (u *FeatureUpdateOne) SetOrClearMetadata(value *map[string]string) *Feature
 	return u.SetMetadata(*value)
 }
 
+func (u *FeatureUpdate) SetOrClearDescription(value *string) *FeatureUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearDescription(value *string) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
 func (u *FeatureUpdate) SetOrClearMeterGroupByFilters(value *map[string]string) *FeatureUpdate {
 	if value == nil {
 		return u.ClearMeterGroupByFilters()

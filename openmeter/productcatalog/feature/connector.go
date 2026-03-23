@@ -18,6 +18,7 @@ import (
 
 type CreateFeatureInputs struct {
 	Name                string              `json:"name"`
+	Description         *string             `json:"description,omitempty"`
 	Key                 string              `json:"key"`
 	Namespace           string              `json:"namespace"`
 	MeterID             *string             `json:"meterID"`

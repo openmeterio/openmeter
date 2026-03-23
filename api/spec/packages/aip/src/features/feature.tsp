@@ -1,5 +1,6 @@
 import "../shared/index.tsp";
 import "../meters/index.tsp";
+import "./unitcost.tsp";
 import "@typespec/json-schema";
 
 using TypeSpec.JsonSchema;
@@ -20,7 +21,11 @@ model Feature {
   @summary("Meter reference")
   @visibility(Lifecycle.Read, Lifecycle.Create)
   meter?: {
-    ...Shared.ResourceWithKeyReference<Meters.Meter>;
+    /**
+     * The ID of the meter to associate with this feature.
+     */
+    @visibility(Lifecycle.Read, Lifecycle.Create)
+    id: Shared.ULID;
 
     /**
      * Filters to apply to the dimensions of the meter.
@@ -29,4 +34,13 @@ model Feature {
     @summary("Meter dimensions filters")
     filters?: Record<Shared.QueryFilterStringMapItem>;
   };
+
+  /**
+   * Optional per-unit cost configuration.
+   * Use "manual" for a fixed per-unit cost, or "llm" to look up cost
+   * from the LLM cost database based on meter group-by properties.
+   */
+  @summary("Unit cost")
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  unit_cost?: FeatureUnitCost;
 }

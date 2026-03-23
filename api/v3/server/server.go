@@ -22,6 +22,7 @@ import (
 	customersentitlementhandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlementaccess"
 	eventshandler "github.com/openmeterio/openmeter/api/v3/handlers/events"
 	featurecosthandler "github.com/openmeterio/openmeter/api/v3/handlers/featurecost"
+	featureshandler "github.com/openmeterio/openmeter/api/v3/handlers/features"
 	llmcosthandler "github.com/openmeterio/openmeter/api/v3/handlers/llmcost"
 	metershandler "github.com/openmeterio/openmeter/api/v3/handlers/meters"
 	subscriptionshandler "github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
@@ -143,6 +144,10 @@ func (c *Config) Validate() error {
 		errs = append(errs, errors.New("currency service is required"))
 	}
 
+	if c.FeatureConnector == nil {
+		errs = append(errs, errors.New("feature connector is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -163,6 +168,7 @@ type Server struct {
 	billingProfilesHandler      billingprofileshandler.Handler
 	taxcodesHandler             taxcodeshandler.Handler
 	currenciesHandler           currencieshandler.Handler
+	featuresHandler             featureshandler.Handler
 	featureCostHandler          featurecosthandler.Handler
 }
 
@@ -208,6 +214,8 @@ func NewServer(config *Config) (*Server, error) {
 	taxcodesHandler := taxcodeshandler.New(resolveNamespace, config.TaxCodeService, httptransport.WithErrorHandler(config.ErrorHandler))
 	currenciesHandler := currencieshandler.New(config.NamespaceDecoder, config.CurrencyService, httptransport.WithErrorHandler(config.ErrorHandler))
 
+	featuresH := featureshandler.New(resolveNamespace, config.FeatureConnector, config.MeterService, config.LLMCostService, httptransport.WithErrorHandler(config.ErrorHandler))
+
 	var llmcostH llmcosthandler.Handler
 	if config.LLMCostService != nil {
 		llmcostH = llmcosthandler.New(resolveNamespace, config.LLMCostService, httptransport.WithErrorHandler(config.ErrorHandler))
@@ -232,6 +240,7 @@ func NewServer(config *Config) (*Server, error) {
 		billingProfilesHandler:      billingProfilesHandler,
 		taxcodesHandler:             taxcodesHandler,
 		currenciesHandler:           currenciesHandler,
+		featuresHandler:             featuresH,
 		featureCostHandler:          featureCostH,
 	}, nil
 }

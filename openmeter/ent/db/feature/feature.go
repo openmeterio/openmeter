@@ -26,6 +26,8 @@ const (
 	FieldNamespace = "namespace"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
+	// FieldDescription holds the string denoting the description field in the database.
+	FieldDescription = "description"
 	// FieldKey holds the string denoting the key field in the database.
 	FieldKey = "key"
 	// FieldMeterSlug holds the string denoting the meter_slug field in the database.
@@ -103,6 +105,7 @@ var Columns = []string{
 	FieldMetadata,
 	FieldNamespace,
 	FieldName,
+	FieldDescription,
 	FieldKey,
 	FieldMeterSlug,
 	FieldMeterID,
@@ -140,6 +143,8 @@ var (
 	NamespaceValidator func(string) error
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
+	// DescriptionValidator is a validator for the "description" field. It is called by the builders before save.
+	DescriptionValidator func(string) error
 	// KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	KeyValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
@@ -177,6 +182,11 @@ func ByNamespace(opts ...sql.OrderTermOption) OrderOption {
 // ByName orders the results by the name field.
 func ByName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByDescription orders the results by the description field.
+func ByDescription(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDescription, opts...).ToFunc()
 }
 
 // ByKey orders the results by the key field.

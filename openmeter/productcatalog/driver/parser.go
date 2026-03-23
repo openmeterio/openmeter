@@ -43,7 +43,7 @@ func MapFeatureToResponse(f feature.Feature) (api.Feature, error) {
 	return resp, nil
 }
 
-func MapFeatureCreateInputsRequest(namespace string, f api.FeatureCreateInputs) (feature.CreateFeatureInputs, error) {
+func MapFeatureCreateInputsRequest(namespace string, f api.FeatureCreateInputs, meterID *string) (feature.CreateFeatureInputs, error) {
 	// if advancedMeterGroupByFilters is set, use it
 	// otherwise, use legacy meterGroupByFilters
 	meterGroupByFilters := lo.FromPtrOr(apiconverter.ConvertStringMapPtr(f.AdvancedMeterGroupByFilters), map[string]filter.FilterString{})
@@ -55,7 +55,7 @@ func MapFeatureCreateInputsRequest(namespace string, f api.FeatureCreateInputs) 
 		Namespace:           namespace,
 		Name:                f.Name,
 		Key:                 f.Key,
-		MeterID:             f.MeterSlug, // v1 API sends meter slug; connector resolves to meter ID
+		MeterID:             meterID,
 		MeterGroupByFilters: meterGroupByFilters,
 		Metadata:            convert.DerefHeaderPtr[string](f.Metadata),
 	}

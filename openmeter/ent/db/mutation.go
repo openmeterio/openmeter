@@ -58863,6 +58863,7 @@ type FeatureMutation struct {
 	metadata                          *map[string]string
 	namespace                         *string
 	name                              *string
+	description                       *string
 	key                               *string
 	meter_slug                        *string
 	meter_group_by_filters            *map[string]string
@@ -59237,6 +59238,55 @@ func (m *FeatureMutation) OldName(ctx context.Context) (v string, err error) {
 // ResetName resets all changes to the "name" field.
 func (m *FeatureMutation) ResetName() {
 	m.name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *FeatureMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *FeatureMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FeatureMutation) OldDescription(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *FeatureMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[dbfeature.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *FeatureMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[dbfeature.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *FeatureMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, dbfeature.FieldDescription)
 }
 
 // SetKey sets the "key" field.
@@ -60135,7 +60185,7 @@ func (m *FeatureMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *FeatureMutation) Fields() []string {
-	fields := make([]string, 0, 20)
+	fields := make([]string, 0, 21)
 	if m.created_at != nil {
 		fields = append(fields, dbfeature.FieldCreatedAt)
 	}
@@ -60153,6 +60203,9 @@ func (m *FeatureMutation) Fields() []string {
 	}
 	if m.name != nil {
 		fields = append(fields, dbfeature.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, dbfeature.FieldDescription)
 	}
 	if m.key != nil {
 		fields = append(fields, dbfeature.FieldKey)
@@ -60216,6 +60269,8 @@ func (m *FeatureMutation) Field(name string) (ent.Value, bool) {
 		return m.Namespace()
 	case dbfeature.FieldName:
 		return m.Name()
+	case dbfeature.FieldDescription:
+		return m.Description()
 	case dbfeature.FieldKey:
 		return m.Key()
 	case dbfeature.FieldMeterSlug:
@@ -60265,6 +60320,8 @@ func (m *FeatureMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldNamespace(ctx)
 	case dbfeature.FieldName:
 		return m.OldName(ctx)
+	case dbfeature.FieldDescription:
+		return m.OldDescription(ctx)
 	case dbfeature.FieldKey:
 		return m.OldKey(ctx)
 	case dbfeature.FieldMeterSlug:
@@ -60343,6 +60400,13 @@ func (m *FeatureMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetName(v)
+		return nil
+	case dbfeature.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
 		return nil
 	case dbfeature.FieldKey:
 		v, ok := value.(string)
@@ -60478,6 +60542,9 @@ func (m *FeatureMutation) ClearedFields() []string {
 	if m.FieldCleared(dbfeature.FieldMetadata) {
 		fields = append(fields, dbfeature.FieldMetadata)
 	}
+	if m.FieldCleared(dbfeature.FieldDescription) {
+		fields = append(fields, dbfeature.FieldDescription)
+	}
 	if m.FieldCleared(dbfeature.FieldMeterSlug) {
 		fields = append(fields, dbfeature.FieldMeterSlug)
 	}
@@ -60536,6 +60603,9 @@ func (m *FeatureMutation) ClearField(name string) error {
 		return nil
 	case dbfeature.FieldMetadata:
 		m.ClearMetadata()
+		return nil
+	case dbfeature.FieldDescription:
+		m.ClearDescription()
 		return nil
 	case dbfeature.FieldMeterSlug:
 		m.ClearMeterSlug()
@@ -60601,6 +60671,9 @@ func (m *FeatureMutation) ResetField(name string) error {
 		return nil
 	case dbfeature.FieldName:
 		m.ResetName()
+		return nil
+	case dbfeature.FieldDescription:
+		m.ResetDescription()
 		return nil
 	case dbfeature.FieldKey:
 		m.ResetKey()
