@@ -100,7 +100,7 @@ func main() {
 	debugConnector := debug.NewDebugConnector(app.StreamingConnector)
 
 	// Migrate database
-	if err := app.Migrate(ctx); err != nil {
+	if err := app.Migrator.Migrate(ctx); err != nil {
 		logger.Error("failed to initialize database", "error", err)
 		os.Exit(1)
 	}
@@ -123,6 +123,12 @@ func main() {
 	err = initNamespace(app.NamespaceManager, logger)
 	if err != nil {
 		logger.Error("failed to initialize namespace", "error", err)
+		os.Exit(1)
+	}
+
+	// Migrate ClickHouse
+	if err := app.ClickHouseMigrator.Migrate(ctx); err != nil {
+		logger.Error("failed to initialize clickhouse", "error", err)
 		os.Exit(1)
 	}
 

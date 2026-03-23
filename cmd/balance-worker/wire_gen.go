@@ -8,11 +8,12 @@ package main
 
 import (
 	"context"
+	"log/slog"
+
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
-	"log/slog"
 )
 
 // Injectors from wire.go:
@@ -63,6 +64,12 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	migrator := common.Migrator{
 		Config: postgresConfig,
 		Client: client,
+		Logger: logger,
+	}
+	aggregationConfiguration := conf.Aggregation
+	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
+	clickHouseMigrator := common.ClickHouseMigrator{
+		Config: clickHouseAggregationConfiguration,
 		Logger: logger,
 	}
 	eventsConfiguration := conf.Events
@@ -126,8 +133,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	entitlementsConfiguration := conf.Entitlements
-	aggregationConfiguration := conf.Aggregation
-	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
 	v3, cleanup7, err := common.NewClickHouse(ctx, clickHouseAggregationConfiguration, tracer, meter, logger)
 	if err != nil {
 		cleanup6()
@@ -324,6 +329,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	application := Application{
 		GlobalInitializer:       globalInitializer,
 		Migrator:                migrator,
+		ClickHouseMigrator:      clickHouseMigrator,
 		Runner:                  runner,
 		Logger:                  logger,
 		RuntimeMetricsCollector: runtimeMetricsCollector,
@@ -345,6 +351,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 type Application struct {
 	common.GlobalInitializer
 	common.Migrator
+	common.ClickHouseMigrator
 	common.Runner
 
 	Logger                  *slog.Logger

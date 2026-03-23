@@ -317,6 +317,10 @@ caRootCertificates: {}
 #    ...
 #    -----END CERTIFICATE-----
 
+migration:
+  # -- Number of retries before considering a migration job failed.
+  backoffLimit: 3
+
 jobs:
   # -- Subscription sync job is a backup reconciler to make sure that all subscriptions are properly billed even
   # if there is some kind of issue with the billing worker.

@@ -87,6 +87,12 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Client: client,
 		Logger: logger,
 	}
+	aggregationConfiguration := conf.Aggregation
+	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
+	clickHouseMigrator := common.ClickHouseMigrator{
+		Config: clickHouseAggregationConfiguration,
+		Logger: logger,
+	}
 	ingestConfiguration := conf.Ingest
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
@@ -181,8 +187,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	meterService := common.NewMeterService(adapterAdapter)
 	featureConnector := common.NewFeatureConnector(logger, client, meterService, eventbusPublisher)
-	aggregationConfiguration := conf.Aggregation
-	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
 	tracer := common.NewTracer(tracerProvider, commonMetadata)
 	v3, cleanup7, err := common.NewClickHouse(ctx, clickHouseAggregationConfiguration, tracer, meter, logger)
 	if err != nil {
@@ -550,6 +554,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	application := Application{
 		GlobalInitializer:             globalInitializer,
 		Migrator:                      migrator,
+		ClickHouseMigrator:            clickHouseMigrator,
 		App:                           service,
 		AppStripe:                     appstripeService,
 		AppSandboxProvisioner:         appSandboxProvisioner,
@@ -593,6 +598,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 type Application struct {
 	common.GlobalInitializer
 	common.Migrator
+	common.ClickHouseMigrator
 
 	App                           app.Service
 	AppStripe                     appstripe.Service
