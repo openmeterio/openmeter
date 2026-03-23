@@ -66,7 +66,7 @@ func (l *MockLedger) OnAssignedToInvoice(ctx context.Context, input flatfee.OnAs
 		})
 
 		l.customerCredits -= creditsToAllocate
-		totalToAllocate -= creditsToAllocate
+		// totalToAllocate -= creditsToAllocate
 	}
 
 	return out, nil
