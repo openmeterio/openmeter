@@ -39,6 +39,13 @@ var ErrCostBasisInvalid = models.NewValidationIssue(
 	"ledger cost basis is invalid",
 )
 
+const ErrCodeTransactionAmountInvalid models.ErrorCode = "ledger_transaction_amount_invalid"
+
+var ErrTransactionAmountInvalid = models.NewValidationIssue(
+	ErrCodeTransactionAmountInvalid,
+	"ledger transaction amount is invalid",
+)
+
 const ErrCodeRoutingKeyVersionInvalid models.ErrorCode = "ledger_routing_key_version_invalid"
 
 var ErrRoutingKeyVersionInvalid = models.NewValidationIssue(

@@ -64,6 +64,7 @@ type (
 	guard    bool // private type guard
 	Resolver interface {
 		typeGuard() guard
+		Validate() error
 	}
 )
 
@@ -81,6 +82,10 @@ func ResolveTransactions(
 	var inputs []ledger.TransactionInput
 
 	for _, template := range templates {
+		if err := template.Validate(); err != nil {
+			return nil, err
+		}
+
 		switch typ := any(template).(type) {
 		case CustomerTransactionTemplate:
 			if err := scope.validateForCustomerTransaction(); err != nil {

@@ -20,6 +20,22 @@ type TransferCustomerFBOToAccruedTemplate struct {
 	Currency currencyx.Code
 }
 
+func (t TransferCustomerFBOToAccruedTemplate) Validate() error {
+	if t.At.IsZero() {
+		return fmt.Errorf("at is required")
+	}
+
+	if err := ledger.ValidateTransactionAmount(t.Amount); err != nil {
+		return fmt.Errorf("amount: %w", err)
+	}
+
+	if err := ledger.ValidateCurrency(t.Currency); err != nil {
+		return fmt.Errorf("currency: %w", err)
+	}
+
+	return nil
+}
+
 func (t TransferCustomerFBOToAccruedTemplate) typeGuard() guard {
 	return true
 }
@@ -74,6 +90,22 @@ type TransferCustomerReceivableToAccruedTemplate struct {
 	At       time.Time
 	Amount   alpacadecimal.Decimal
 	Currency currencyx.Code
+}
+
+func (t TransferCustomerReceivableToAccruedTemplate) Validate() error {
+	if t.At.IsZero() {
+		return fmt.Errorf("at is required")
+	}
+
+	if err := ledger.ValidateTransactionAmount(t.Amount); err != nil {
+		return fmt.Errorf("amount: %w", err)
+	}
+
+	if err := ledger.ValidateCurrency(t.Currency); err != nil {
+		return fmt.Errorf("currency: %w", err)
+	}
+
+	return nil
 }
 
 func (t TransferCustomerReceivableToAccruedTemplate) typeGuard() guard {

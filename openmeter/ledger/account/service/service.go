@@ -94,7 +94,8 @@ func (s *service) ListSubAccounts(ctx context.Context, input account.ListSubAcco
 		return nil, fmt.Errorf("failed to list sub-accounts: %w", err)
 	}
 
-	// FIXME: this will be a problem
+	// FIXME: this can be a problem if we ever intend to query this without an account ID
+	// it will work correctly, it will just be an N+1 situation, which should be solved in ent
 	subAccounts := make([]*account.SubAccount, 0, len(subAccountDatas))
 	accountsByID := make(map[string]*account.Account, len(subAccountDatas))
 	for _, subAccountData := range subAccountDatas {

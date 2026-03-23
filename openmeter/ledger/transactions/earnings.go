@@ -19,6 +19,22 @@ type RecognizeEarningsFromAccruedTemplate struct {
 	Currency currencyx.Code
 }
 
+func (t RecognizeEarningsFromAccruedTemplate) Validate() error {
+	if t.At.IsZero() {
+		return fmt.Errorf("at is required")
+	}
+
+	if err := ledger.ValidateTransactionAmount(t.Amount); err != nil {
+		return fmt.Errorf("amount: %w", err)
+	}
+
+	if err := ledger.ValidateCurrency(t.Currency); err != nil {
+		return fmt.Errorf("currency: %w", err)
+	}
+
+	return nil
+}
+
 func (t RecognizeEarningsFromAccruedTemplate) typeGuard() guard {
 	return true
 }

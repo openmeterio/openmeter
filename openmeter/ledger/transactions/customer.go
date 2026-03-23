@@ -22,6 +22,38 @@ type IssueCustomerReceivableTemplate struct {
 	CreditPriority *int
 }
 
+func (t IssueCustomerReceivableTemplate) Validate() error {
+	if t.Amount.IsNegative() {
+		return fmt.Errorf("amount must be positive")
+	}
+
+	if t.Amount.IsZero() {
+		return fmt.Errorf("amount must be non-zero")
+	}
+
+	if t.At.IsZero() {
+		return fmt.Errorf("at is required")
+	}
+
+	if err := ledger.ValidateCurrency(t.Currency); err != nil {
+		return fmt.Errorf("currency: %w", err)
+	}
+
+	if t.CostBasis != nil {
+		if err := ledger.ValidateCostBasis(*t.CostBasis); err != nil {
+			return fmt.Errorf("cost basis: %w", err)
+		}
+	}
+
+	if t.CreditPriority != nil {
+		if err := ledger.ValidateCreditPriority(*t.CreditPriority); err != nil {
+			return fmt.Errorf("credit priority: %w", err)
+		}
+	}
+
+	return nil
+}
+
 func (t IssueCustomerReceivableTemplate) typeGuard() guard {
 	return true
 }
@@ -74,6 +106,28 @@ type FundCustomerReceivableTemplate struct {
 	Amount    alpacadecimal.Decimal
 	Currency  currencyx.Code
 	CostBasis *alpacadecimal.Decimal
+}
+
+func (t FundCustomerReceivableTemplate) Validate() error {
+	if t.At.IsZero() {
+		return fmt.Errorf("at is required")
+	}
+
+	if err := ledger.ValidateTransactionAmount(t.Amount); err != nil {
+		return fmt.Errorf("amount: %w", err)
+	}
+
+	if err := ledger.ValidateCurrency(t.Currency); err != nil {
+		return fmt.Errorf("currency: %w", err)
+	}
+
+	if t.CostBasis != nil {
+		if err := ledger.ValidateCostBasis(*t.CostBasis); err != nil {
+			return fmt.Errorf("cost basis: %w", err)
+		}
+	}
+
+	return nil
 }
 
 var _ CustomerTransactionTemplate = (FundCustomerReceivableTemplate{})
@@ -132,6 +186,34 @@ type CoverCustomerReceivableTemplate struct {
 	CostBasis *alpacadecimal.Decimal
 	// Optional, defaults to 100.
 	CreditPriority *int
+}
+
+func (t CoverCustomerReceivableTemplate) Validate() error {
+	if t.At.IsZero() {
+		return fmt.Errorf("at is required")
+	}
+
+	if err := ledger.ValidateTransactionAmount(t.Amount); err != nil {
+		return fmt.Errorf("amount: %w", err)
+	}
+
+	if err := ledger.ValidateCurrency(t.Currency); err != nil {
+		return fmt.Errorf("currency: %w", err)
+	}
+
+	if t.CostBasis != nil {
+		if err := ledger.ValidateCostBasis(*t.CostBasis); err != nil {
+			return fmt.Errorf("cost basis: %w", err)
+		}
+	}
+
+	if t.CreditPriority != nil {
+		if err := ledger.ValidateCreditPriority(*t.CreditPriority); err != nil {
+			return fmt.Errorf("credit priority: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (t CoverCustomerReceivableTemplate) typeGuard() guard {

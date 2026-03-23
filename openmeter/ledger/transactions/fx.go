@@ -23,6 +23,36 @@ type ConvertCurrencyTemplate struct {
 	CreditPriority *int
 }
 
+func (t ConvertCurrencyTemplate) Validate() error {
+	if t.At.IsZero() {
+		return fmt.Errorf("at is required")
+	}
+
+	if err := ledger.ValidateTransactionAmount(t.TargetAmount); err != nil {
+		return fmt.Errorf("target amount: %w", err)
+	}
+
+	if err := ledger.ValidateTransactionAmount(t.CostBasis); err != nil {
+		return fmt.Errorf("cost basis: %w", err)
+	}
+
+	if err := ledger.ValidateCurrency(t.SourceCurrency); err != nil {
+		return fmt.Errorf("source currency: %w", err)
+	}
+
+	if err := ledger.ValidateCurrency(t.TargetCurrency); err != nil {
+		return fmt.Errorf("target currency: %w", err)
+	}
+
+	if t.CreditPriority != nil {
+		if err := ledger.ValidateCreditPriority(*t.CreditPriority); err != nil {
+			return fmt.Errorf("credit priority: %w", err)
+		}
+	}
+
+	return nil
+}
+
 var _ CustomerTransactionTemplate = (ConvertCurrencyTemplate{})
 
 func (t ConvertCurrencyTemplate) typeGuard() guard {

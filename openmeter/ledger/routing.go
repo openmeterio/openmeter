@@ -139,14 +139,19 @@ func (r Route) Validate() error {
 	if err := ValidateCurrency(r.Currency); err != nil {
 		return err
 	}
+
 	if r.CreditPriority != nil {
 		if err := ValidateCreditPriority(*r.CreditPriority); err != nil {
 			return err
 		}
 	}
-	if _, err := normalizeOptionalCostBasis(r.CostBasis); err != nil {
-		return err
+
+	if r.CostBasis != nil {
+		if err := ValidateCostBasis(*r.CostBasis); err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 
@@ -164,12 +169,6 @@ func (r Route) Normalize() (Route, error) {
 
 	normalized := r
 	normalized.Features = SortedFeatures(r.Features)
-
-	costBasis, err := normalizeOptionalCostBasis(r.CostBasis)
-	if err != nil {
-		return Route{}, err
-	}
-	normalized.CostBasis = costBasis
 
 	return normalized, nil
 }
@@ -228,6 +227,22 @@ func BuildRoutingKeyV1(route Route) (RoutingKey, error) {
 // Validation helpers
 // ----------------------------------------------------------------------------
 
+func ValidateTransactionAmount(value alpacadecimal.Decimal) error {
+	if value.IsNegative() {
+		return ErrTransactionAmountInvalid.WithAttrs(models.Attributes{
+			"transaction_amount": value.String(),
+		})
+	}
+
+	if value.IsZero() {
+		return ErrTransactionAmountInvalid.WithAttrs(models.Attributes{
+			"transaction_amount": value.String(),
+		})
+	}
+
+	return nil
+}
+
 // ValidateCreditPriority validates a credit priority integer value.
 func ValidateCreditPriority(value int) error {
 	if value < 1 {
@@ -243,6 +258,16 @@ func ValidateCurrency(value currencyx.Code) error {
 	if err := value.Validate(); err != nil {
 		return ErrCurrencyInvalid.WithAttrs(models.Attributes{
 			"currency": value,
+		})
+	}
+
+	return nil
+}
+
+func ValidateCostBasis(value alpacadecimal.Decimal) error {
+	if value.IsNegative() {
+		return ErrCostBasisInvalid.WithAttrs(models.Attributes{
+			"cost_basis": value.String(),
 		})
 	}
 
@@ -292,23 +317,4 @@ func optionalDecimalValue(v *alpacadecimal.Decimal) string {
 		return "null"
 	}
 	return v.String()
-}
-
-func normalizeOptionalCostBasis(v *alpacadecimal.Decimal) (*alpacadecimal.Decimal, error) {
-	if v == nil {
-		return nil, nil
-	}
-
-	if v.IsNegative() {
-		return nil, ErrCostBasisInvalid.WithAttrs(models.Attributes{
-			"cost_basis": v.String(),
-		})
-	}
-
-	normalized, err := alpacadecimal.NewFromString(v.String())
-	if err != nil {
-		return nil, fmt.Errorf("normalize cost basis: %w", err)
-	}
-
-	return &normalized, nil
 }
