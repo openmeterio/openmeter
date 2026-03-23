@@ -146,7 +146,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	featureConnector := common.NewFeatureConnector(logger, client, service, eventbusPublisher)
-	addonService, err := common.NewAddonService(logger, client, featureConnector, eventbusPublisher)
+	repository, err := common.NewTaxCodeAdapter(logger, client)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	taxcodeService := common.NewTaxCodeService(logger, repository)
+	addonService, err := common.NewAddonService(logger, client, featureConnector, taxcodeService, eventbusPublisher)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -260,18 +271,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	productCatalogConfiguration := conf.ProductCatalog
-	repository, err := common.NewTaxCodeAdapter(logger, client)
-	if err != nil {
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	taxcodeService := common.NewTaxCodeService(logger, repository)
 	planService, err := common.NewPlanService(logger, client, productCatalogConfiguration, featureConnector, taxcodeService, eventbusPublisher)
 	if err != nil {
 		cleanup7()

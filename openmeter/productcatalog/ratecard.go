@@ -136,6 +136,9 @@ func (r RateCardMeta) Clone() RateCardMeta {
 
 	clone.Discounts = r.Discounts.Clone()
 
+	// TaxCode is an eagerly loaded reference, shallow copy is sufficient
+	clone.TaxCode = r.TaxCode
+
 	return clone
 }
 

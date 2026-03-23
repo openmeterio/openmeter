@@ -356,3 +356,36 @@ func TestMergeTaxConfigs(t *testing.T) {
 		})
 	}
 }
+
+func TestTaxConfigClone(t *testing.T) {
+	original := TaxConfig{
+		Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+		TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV3"),
+		Stripe: &StripeTaxConfig{
+			Code: "txcd_99999999",
+		},
+	}
+
+	cloned := original.Clone()
+
+	// Cloned value must be equal to the original
+	assert.True(t, original.Equal(&cloned))
+
+	// Mutate the clone's pointer fields
+	*cloned.TaxCodeID = "01AN4Z07BY79KA1307SR9X4MV4"
+	*cloned.Behavior = ExclusiveTaxBehavior
+	cloned.Stripe.Code = "txcd_00000000"
+
+	// Original must be unchanged
+	assert.Equal(t, "01AN4Z07BY79KA1307SR9X4MV3", *original.TaxCodeID)
+	assert.Equal(t, InclusiveTaxBehavior, *original.Behavior)
+	assert.Equal(t, "txcd_99999999", original.Stripe.Code)
+
+	// Pointers must not be shared
+	assert.NotSame(t, original.TaxCodeID, cloned.TaxCodeID)
+	assert.NotSame(t, original.Behavior, cloned.Behavior)
+	assert.NotSame(t, original.Stripe, cloned.Stripe)
+
+	// Values must now differ
+	assert.False(t, original.Equal(&cloned))
+}

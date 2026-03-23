@@ -86,8 +86,10 @@ func (c *TaxConfig) Validate() error {
 }
 
 func (c TaxConfig) Clone() TaxConfig {
-	out := TaxConfig{
-		Behavior: c.Behavior,
+	out := TaxConfig{}
+
+	if c.Behavior != nil {
+		out.Behavior = lo.ToPtr(*c.Behavior)
 	}
 
 	if c.Stripe != nil {
