@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.25.5-alpine3.23@sha256:ac09a5f469f307e5da71e766b0bd59c9c49ea460a528cc3e6686513d64a6f1fb AS builder
+FROM --platform=$BUILDPLATFORM public.ecr.aws/t3d5i9m2/konnect-public-base-go:1.25@sha256:11f068689a53c7fa4ac75ebbac4c1778989cd2655f587414d2bc772353404728 AS builder
 
 RUN apk add --update --no-cache ca-certificates make git curl
 
@@ -29,9 +29,13 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/go/cache \
     go build -ldflags "-X main.version=${VERSION}" -o /usr/local/bin/benthos ./cmd/benthos-collector
 
-FROM alpine:3.23.2@sha256:865b95f46d98cf867a156fe4a135ad3fe50d2056aa3f25ed31662dff6da4eb62
+FROM public.ecr.aws/t3d5i9m2/konnect-public-base-alpine:3.21@sha256:69921597598341cd859428a4cc6a46ed62bcfd609bfb62fee7c5d7533397c71c
+
+USER root
 
 RUN apk add --update --no-cache ca-certificates tzdata bash
+
+USER kong
 
 SHELL ["/bin/bash", "-c"]
 

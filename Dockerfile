@@ -1,6 +1,6 @@
 FROM --platform=$BUILDPLATFORM tonistiigi/xx:1.9.0@sha256:c64defb9ed5a91eacb37f96ccc3d4cd72521c4bd18d5442905b95e2226b0e707 AS xx
 
-FROM --platform=$BUILDPLATFORM golang:1.25.5-alpine3.23@sha256:ac09a5f469f307e5da71e766b0bd59c9c49ea460a528cc3e6686513d64a6f1fb AS builder
+FROM --platform=$BUILDPLATFORM public.ecr.aws/t3d5i9m2/konnect-public-base-go:1.25@sha256:11f068689a53c7fa4ac75ebbac4c1778989cd2655f587414d2bc772353404728 AS builder
 
 COPY --link --from=xx / /
 
@@ -75,9 +75,13 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 RUN xx-verify /usr/local/bin/openmeter-jobs
 
-FROM alpine:3.23.2@sha256:865b95f46d98cf867a156fe4a135ad3fe50d2056aa3f25ed31662dff6da4eb62
+FROM public.ecr.aws/t3d5i9m2/konnect-public-base-alpine:3.21@sha256:69921597598341cd859428a4cc6a46ed62bcfd609bfb62fee7c5d7533397c71c
+
+USER root
 
 RUN apk add --update --no-cache ca-certificates tzdata bash
+
+USER kong
 
 SHELL ["/bin/bash", "-c"]
 
