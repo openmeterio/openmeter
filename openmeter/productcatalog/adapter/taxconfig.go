@@ -36,5 +36,9 @@ func BackfillTaxConfig(cfg *productcatalog.TaxConfig, taxBehavior *productcatalo
 		}
 	}
 
+	if cfg.TaxCodeID == nil && tc != nil && tc.ID != "" {
+		cfg.TaxCodeID = &tc.ID
+	}
+
 	return cfg
 }

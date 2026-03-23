@@ -627,6 +627,8 @@ func TestPlanTaxCodeBackfill(t *testing.T) {
 		assert.Equal(t, "txcd_99000001", tc.Stripe.Code)
 		require.NotNil(t, tc.Behavior, "Behavior must be backfilled from tax_behavior column")
 		assert.Equal(t, productcatalog.ExclusiveTaxBehavior, *tc.Behavior)
+		require.NotNil(t, tc.TaxCodeID, "TaxCodeID must be backfilled from TaxCode entity")
+		assert.Equal(t, tcEntity.ID, *tc.TaxCodeID)
 	})
 
 	t.Run("BackfillTaxCodeOnly", func(t *testing.T) {
@@ -681,6 +683,8 @@ func TestPlanTaxCodeBackfill(t *testing.T) {
 		require.NotNil(t, tc.Stripe)
 		assert.Equal(t, "txcd_99000010", tc.Stripe.Code)
 		assert.Nil(t, tc.Behavior, "Behavior must be nil when tax_behavior column is not set")
+		require.NotNil(t, tc.TaxCodeID, "TaxCodeID must be backfilled from TaxCode entity")
+		assert.Equal(t, tcEntity.ID, *tc.TaxCodeID)
 	})
 
 	t.Run("BackfillBehaviorOnly", func(t *testing.T) {
