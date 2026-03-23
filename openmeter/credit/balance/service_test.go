@@ -94,7 +94,7 @@ func (m *MockOwnerConnector) EndCurrentUsagePeriod(ctx context.Context, id model
 	return nil
 }
 
-func (m *MockOwnerConnector) LockOwnerForTx(ctx context.Context, id models.NamespacedID) error {
+func (m *MockOwnerConnector) LockOwnerForTx(ctx context.Context, id models.NamespacedID, wait bool) error {
 	return nil
 }
 

@@ -283,7 +283,7 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriod(ctx context.Context, owner
 	return err
 }
 
-func (e *entitlementGrantOwner) LockOwnerForTx(ctx context.Context, owner models.NamespacedID) error {
+func (e *entitlementGrantOwner) LockOwnerForTx(ctx context.Context, owner models.NamespacedID, wait bool) error {
 	ctx, span := e.tracer.Start(ctx, "meteredentitlement.LockOwnerForTx", mTrace.WithOwner(owner))
 	defer span.End()
 
@@ -292,7 +292,7 @@ func (e *entitlementGrantOwner) LockOwnerForTx(ctx context.Context, owner models
 	if err != nil {
 		return fmt.Errorf("lock owner for tx must be called in a transaction: %w", err)
 	}
-	return e.entitlementRepo.LockEntitlementForTx(ctx, tx, owner)
+	return e.entitlementRepo.LockEntitlementForTx(ctx, tx, owner, wait)
 }
 
 // FIXME: this is a terrible hack to conditionally catch transactions

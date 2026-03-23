@@ -78,7 +78,7 @@ func (m *connector) CreateGrant(ctx context.Context, ownerID models.NamespacedID
 			return nil, models.NewGenericValidationError(fmt.Errorf("grant effective date %s is before the current usage period %s", input.EffectiveAt, periodStart))
 		}
 
-		err = m.OwnerConnector.LockOwnerForTx(ctx, ownerID)
+		err = m.OwnerConnector.LockOwnerForTx(ctx, ownerID, true)
 		if err != nil {
 			return nil, err
 		}
@@ -170,7 +170,7 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID, 
 			return nil, err
 		}
 
-		err = m.OwnerConnector.LockOwnerForTx(ctx, ownerID)
+		err = m.OwnerConnector.LockOwnerForTx(ctx, ownerID, true)
 		if err != nil {
 			return nil, err
 		}

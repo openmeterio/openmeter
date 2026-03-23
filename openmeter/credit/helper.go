@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -175,6 +176,13 @@ type snapshotParams struct {
 func (m *connector) snapshotEngineResult(ctx context.Context, snapParams snapshotParams, runRes engine.RunResult) error {
 	ctx, span := m.Tracer.Start(ctx, "credit.snapshotEngineResult", cTrace.WithOwner(snapParams.owner))
 	defer span.End()
+
+	if err := transaction.RunWithNoValue(ctx, m.GrantRepo, func(ctx context.Context) error {
+		return m.OwnerConnector.LockOwnerForTx(ctx, snapParams.owner, false)
+	}); err != nil {
+		// If we failed to acquire the lock we simply don't save the snapshot
+		return nil
+	}
 
 	// Skip snapshotting for LATEST type entitlements as the values fluctuate and snapshots can't be used
 	if snapParams.meter.Aggregation == meter.MeterAggregationLatest {

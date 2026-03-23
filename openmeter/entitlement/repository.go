@@ -68,7 +68,7 @@ type EntitlementRepo interface {
 	// - If any update fails, the entire operation will fail
 	UpsertEntitlementCurrentPeriods(ctx context.Context, updates []UpsertEntitlementCurrentPeriodElement) error
 
-	LockEntitlementForTx(ctx context.Context, tx *entutils.TxDriver, entitlementID models.NamespacedID) error
+	LockEntitlementForTx(ctx context.Context, tx *entutils.TxDriver, entitlementID models.NamespacedID, wait bool) error
 
 	entutils.TxCreator
 }

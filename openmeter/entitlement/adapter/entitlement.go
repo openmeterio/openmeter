@@ -739,7 +739,7 @@ func (a *entitlementDBAdapter) ListActiveEntitlementsWithExpiredUsagePeriod(ctx 
 	)
 }
 
-func (a *entitlementDBAdapter) LockEntitlementForTx(ctx context.Context, tx *entutils.TxDriver, entitlementID models.NamespacedID) error {
+func (a *entitlementDBAdapter) LockEntitlementForTx(ctx context.Context, tx *entutils.TxDriver, entitlementID models.NamespacedID, wait bool) error {
 	pgLockNotAvailableErrorCode := "55P03"
 
 	if tx == nil {
@@ -748,7 +748,13 @@ func (a *entitlementDBAdapter) LockEntitlementForTx(ctx context.Context, tx *ent
 	_, err := a.WithTx(ctx, tx).db.Entitlement.
 		Query().
 		Where(db_entitlement.ID(entitlementID.ID), db_entitlement.Namespace(entitlementID.Namespace)).
-		ForUpdate().
+		ForUpdate(func() []sql.LockOption {
+			if !wait {
+				return []sql.LockOption{sql.WithLockAction(sql.NoWait)}
+			}
+
+			return nil
+		}()...).
 		Only(ctx)
 	if err != nil {
 		if strings.Contains(err.Error(), pgLockNotAvailableErrorCode) {
