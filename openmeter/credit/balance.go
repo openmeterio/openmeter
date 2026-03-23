@@ -310,7 +310,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 	snap := res.Snapshot
 
 	_, err = transaction.Run(ctx, m.TransactionManager, func(ctx context.Context) (*balance.Snapshot, error) {
-		err = m.OwnerConnector.LockOwnerForTx(ctx, ownerID)
+		err = m.OwnerConnector.LockOwnerForTx(ctx, ownerID, true)
 		if err != nil {
 			return nil, fmt.Errorf("failed to lock owner %s: %w", ownerID.ID, err)
 		}

@@ -45,7 +45,7 @@ type OwnerConnector interface {
 	GetStartOfMeasurement(ctx context.Context, id models.NamespacedID) (time.Time, error)
 
 	EndCurrentUsagePeriod(ctx context.Context, id models.NamespacedID, params EndCurrentUsagePeriodParams) error
-	LockOwnerForTx(ctx context.Context, id models.NamespacedID) error
+	LockOwnerForTx(ctx context.Context, id models.NamespacedID, wait bool) error
 }
 
 type OwnerNotFoundError struct {
