@@ -837,16 +837,6 @@ func CollectionEndLTE(v time.Time) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldCollectionEnd, v))
 }
 
-// CollectionEndIsNil applies the IsNil predicate on the "collection_end" field.
-func CollectionEndIsNil() predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldIsNull(FieldCollectionEnd))
-}
-
-// CollectionEndNotNil applies the NotNil predicate on the "collection_end" field.
-func CollectionEndNotNil() predicate.ChargeUsageBasedRuns {
-	return predicate.ChargeUsageBasedRuns(sql.FieldNotNull(FieldCollectionEnd))
-}
-
 // MeterValueEQ applies the EQ predicate on the "meter_value" field.
 func MeterValueEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldMeterValue, v))

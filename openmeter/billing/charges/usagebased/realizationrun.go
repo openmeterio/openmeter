@@ -43,7 +43,7 @@ func (i RealizationRunID) Validate() error {
 type CreateRealizationRunInput struct {
 	Type          RealizationRunType    `json:"type"`
 	AsOf          time.Time             `json:"asOf"`
-	CollectionEnd *time.Time            `json:"collectionEnd,omitempty"`
+	CollectionEnd time.Time             `json:"collectionEnd,omitempty"`
 	MeterValue    alpacadecimal.Decimal `json:"meterValue"`
 	Totals        totals.Totals         `json:"totals"`
 }
@@ -67,16 +67,19 @@ func (r CreateRealizationRunInput) Validate() error {
 		errs = append(errs, fmt.Errorf("totals: %w", err))
 	}
 
+	if r.CollectionEnd.IsZero() {
+		errs = append(errs, fmt.Errorf("collection end must be set"))
+	}
+
 	return errors.Join(errs...)
 }
 
 type UpdateRealizationRunInput struct {
 	ID RealizationRunID
 
-	AsOf          time.Time             `json:"asOf"`
-	CollectionEnd *time.Time            `json:"collectionEnd,omitempty"`
-	MeterValue    alpacadecimal.Decimal `json:"meterValue"`
-	Totals        totals.Totals         `json:"totals"`
+	AsOf       time.Time             `json:"asOf"`
+	MeterValue alpacadecimal.Decimal `json:"meterValue"`
+	Totals     totals.Totals         `json:"totals"`
 }
 
 func (r UpdateRealizationRunInput) Validate() error {
@@ -94,6 +97,10 @@ func (r UpdateRealizationRunInput) Validate() error {
 		errs = append(errs, fmt.Errorf("meter value must be zero or positive"))
 	}
 
+	if err := r.Totals.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("totals: %w", err))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -103,7 +110,7 @@ type RealizationRunBase struct {
 
 	Type          RealizationRunType    `json:"type"`
 	AsOf          time.Time             `json:"asOf"`
-	CollectionEnd *time.Time            `json:"collectionEnd,omitempty"`
+	CollectionEnd time.Time             `json:"collectionEnd,omitempty"`
 	MeterValue    alpacadecimal.Decimal `json:"meterValue"`
 	Totals        totals.Totals         `json:"totals"`
 }
@@ -133,6 +140,10 @@ func (r RealizationRunBase) Validate() error {
 
 	if err := r.Totals.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("totals: %w", err))
+	}
+
+	if r.CollectionEnd.IsZero() {
+		errs = append(errs, fmt.Errorf("collection end must be set"))
 	}
 
 	return errors.Join(errs...)

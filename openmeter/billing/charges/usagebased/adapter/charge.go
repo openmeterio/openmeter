@@ -161,9 +161,18 @@ func (a *adapter) GetByMetas(ctx context.Context, input usagebased.GetByMetasInp
 			return nil, err
 		}
 
+		metaByID := lo.KeyBy(input.Charges, func(charge meta.Charge) string {
+			return charge.ID
+		})
+
 		entitiesMapped := make([]usagebased.Charge, 0, len(entities))
-		for idx, entity := range entities {
-			chargeBase := MapChargeBaseFromDB(entity, input.Charges[idx])
+		for _, entity := range entities {
+			chargeMeta, found := metaByID[entity.ID]
+			if !found {
+				return nil, fmt.Errorf("meta not found: %s", entity.ID)
+			}
+
+			chargeBase := MapChargeBaseFromDB(entity, chargeMeta)
 
 			var realizations usagebased.RealizationRuns
 			if input.Expands.Has(meta.ExpandRealizations) {

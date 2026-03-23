@@ -2999,20 +2999,6 @@ func (u *ChargeUsageBasedRunsUpdateOne) SetOrClearDeletedAt(value *time.Time) *C
 	return u.SetDeletedAt(*value)
 }
 
-func (u *ChargeUsageBasedRunsUpdate) SetOrClearCollectionEnd(value *time.Time) *ChargeUsageBasedRunsUpdate {
-	if value == nil {
-		return u.ClearCollectionEnd()
-	}
-	return u.SetCollectionEnd(*value)
-}
-
-func (u *ChargeUsageBasedRunsUpdateOne) SetOrClearCollectionEnd(value *time.Time) *ChargeUsageBasedRunsUpdateOne {
-	if value == nil {
-		return u.ClearCollectionEnd()
-	}
-	return u.SetCollectionEnd(*value)
-}
-
 func (u *CurrencyCostBasisUpdate) SetOrClearDeletedAt(value *time.Time) *CurrencyCostBasisUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

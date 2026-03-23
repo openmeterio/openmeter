@@ -23,6 +23,7 @@ import (
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -133,6 +134,8 @@ func (s *BaseSuite) TearDownTest() {
 	s.CreditPurchaseTestHandler.Reset()
 	s.UsageBasedTestHandler.Reset()
 	s.MockStreamingConnector.Reset()
+	clock.UnFreeze()
+	clock.ResetTime()
 }
 
 type createMockChargeIntentInput struct {

@@ -1,7 +1,9 @@
 package adapter
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
 
 	"github.com/samber/lo"
 
@@ -53,6 +55,11 @@ func MapRealizationRunsFromDB(entity *entdb.ChargeUsageBased) (usagebased.Realiz
 		// Force nil value for easier testing
 		runs = nil
 	}
+
+	// Let's keep the runs sorted by AsOf
+	slices.SortStableFunc(runs, func(a, b usagebased.RealizationRun) int {
+		return cmp.Compare(a.AsOf.UnixNano(), b.AsOf.UnixNano())
+	})
 
 	return runs, nil
 }

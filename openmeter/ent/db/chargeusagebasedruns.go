@@ -53,7 +53,7 @@ type ChargeUsageBasedRuns struct {
 	// Asof holds the value of the "asof" field.
 	Asof time.Time `json:"asof,omitempty"`
 	// CollectionEnd holds the value of the "collection_end" field.
-	CollectionEnd *time.Time `json:"collection_end,omitempty"`
+	CollectionEnd time.Time `json:"collection_end,omitempty"`
 	// MeterValue holds the value of the "meter_value" field.
 	MeterValue alpacadecimal.Decimal `json:"meter_value,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -246,8 +246,7 @@ func (_m *ChargeUsageBasedRuns) assignValues(columns []string, values []any) err
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field collection_end", values[i])
 			} else if value.Valid {
-				_m.CollectionEnd = new(time.Time)
-				*_m.CollectionEnd = value.Time
+				_m.CollectionEnd = value.Time
 			}
 		case chargeusagebasedruns.FieldMeterValue:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -358,10 +357,8 @@ func (_m *ChargeUsageBasedRuns) String() string {
 	builder.WriteString("asof=")
 	builder.WriteString(_m.Asof.Format(time.ANSIC))
 	builder.WriteString(", ")
-	if v := _m.CollectionEnd; v != nil {
-		builder.WriteString("collection_end=")
-		builder.WriteString(v.Format(time.ANSIC))
-	}
+	builder.WriteString("collection_end=")
+	builder.WriteString(_m.CollectionEnd.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("meter_value=")
 	builder.WriteString(fmt.Sprintf("%v", _m.MeterValue))

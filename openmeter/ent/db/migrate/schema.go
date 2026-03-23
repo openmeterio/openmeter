@@ -2303,7 +2303,7 @@ var (
 		{Name: "total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"final_realization"}},
 		{Name: "asof", Type: field.TypeTime},
-		{Name: "collection_end", Type: field.TypeTime, Nullable: true},
+		{Name: "collection_end", Type: field.TypeTime},
 		{Name: "meter_value", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	chargeslock "github.com/openmeterio/openmeter/openmeter/billing/charges/lock"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -18,7 +18,7 @@ func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceCha
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*usagebased.Charge, error) {
-		key, err := chargeslock.NewChargeKey(input.ChargeID)
+		key, err := charges.NewLockKeyForCharge(input.ChargeID)
 		if err != nil {
 			return nil, fmt.Errorf("get charge lock key: %w", err)
 		}

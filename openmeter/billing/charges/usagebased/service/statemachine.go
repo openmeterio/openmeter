@@ -89,16 +89,7 @@ func NewStateMachine(config StateMachineConfig) (*StateMachine, error) {
 				return fmt.Errorf("invalid status: %w", err)
 			}
 
-			updatedChargeBase, err := out.Adapter.UpdateStatus(ctx, usagebased.UpdateStatusInput{
-				Charge:    out.Charge.ChargeBase,
-				NewStatus: newStatus,
-				OldStatus: out.Charge.Status,
-			})
-			if err != nil {
-				return fmt.Errorf("update status: %w", err)
-			}
-
-			out.Charge.ChargeBase = updatedChargeBase
+			out.Charge.Status = newStatus
 			return nil
 		},
 		stateless.FiringImmediate,
@@ -182,10 +173,6 @@ func (s *StateMachine) getCurrentRunCollectionEnd() (time.Time, error) {
 	currentRun, err := s.Charge.Realizations.GetByID(*s.Charge.State.CurrentRealizationRunID)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("get current realization run: %w", err)
-	}
-
-	if currentRun.CollectionEnd == nil {
-		return time.Time{}, fmt.Errorf("current realization run has no collection end [run_id=%s]", currentRun.ID.ID)
 	}
 
 	return currentRun.CollectionEnd.UTC(), nil

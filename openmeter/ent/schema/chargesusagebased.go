@@ -127,8 +127,7 @@ func (ChargeUsageBasedRuns) Fields() []ent.Field {
 		field.Time("asof"),
 
 		field.Time("collection_end").
-			Optional().
-			Nillable(),
+			Immutable(),
 
 		field.Other("meter_value", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{

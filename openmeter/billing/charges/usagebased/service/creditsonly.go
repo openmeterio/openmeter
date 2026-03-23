@@ -181,7 +181,7 @@ func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) 
 		Run: usagebased.CreateRealizationRunInput{
 			Type:          usagebased.RealizationRunTypeFinalRealization,
 			AsOf:          storedAtOffset,
-			CollectionEnd: &collectionEnd,
+			CollectionEnd: collectionEnd,
 			MeterValue:    ratingResult.Quantity,
 			Totals:        totals,
 		},
@@ -204,10 +204,6 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 	currentRun, err := s.Charge.Realizations.GetByID(*s.Charge.State.CurrentRealizationRunID)
 	if err != nil {
 		return fmt.Errorf("get current realization run: %w", err)
-	}
-
-	if currentRun.CollectionEnd == nil {
-		return fmt.Errorf("current realization run has no collection end [run_id=%s]", currentRun.ID.ID)
 	}
 
 	storedAtOffset := clock.Now().Add(-usagebased.InternalCollectionPeriod)
@@ -254,11 +250,10 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 	}
 
 	if _, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
-		ID:            currentRun.ID,
-		AsOf:          storedAtOffset,
-		CollectionEnd: currentRun.CollectionEnd,
-		MeterValue:    ratingResult.Quantity,
-		Totals:        currentTotals,
+		ID:         currentRun.ID,
+		AsOf:       storedAtOffset,
+		MeterValue: ratingResult.Quantity,
+		Totals:     currentTotals,
 	}); err != nil {
 		return fmt.Errorf("update realization run: %w", err)
 	}
