@@ -6,7 +6,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
-	billinghttp "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -624,15 +623,10 @@ func FromEventAsInvoiceCreatedPayload(e notification.Event) (api.NotificationEve
 		return api.NotificationEventInvoiceCreatedPayload{}, fmt.Errorf("invoice is nil")
 	}
 
-	data, err := billinghttp.MapEventInvoiceToAPI(*e.Payload.Invoice)
-	if err != nil {
-		return api.NotificationEventInvoiceCreatedPayload{}, fmt.Errorf("failed to map event invoice to API: %w", err)
-	}
-
 	return api.NotificationEventInvoiceCreatedPayload{
 		Id:        e.ID,
 		Timestamp: e.CreatedAt,
-		Data:      data,
+		Data:      e.Payload.Invoice.Invoice,
 		Type:      api.NotificationEventInvoiceCreatedPayloadTypeInvoiceCreated,
 	}, nil
 }
@@ -642,15 +636,10 @@ func FromEventAsInvoiceUpdatedPayload(e notification.Event) (api.NotificationEve
 		return api.NotificationEventInvoiceUpdatedPayload{}, fmt.Errorf("invoice is nil")
 	}
 
-	data, err := billinghttp.MapEventInvoiceToAPI(*e.Payload.Invoice)
-	if err != nil {
-		return api.NotificationEventInvoiceUpdatedPayload{}, fmt.Errorf("failed to map event invoice to API: %w", err)
-	}
-
 	return api.NotificationEventInvoiceUpdatedPayload{
 		Id:        e.ID,
 		Timestamp: e.CreatedAt,
-		Data:      data,
+		Data:      e.Payload.Invoice.Invoice,
 		Type:      api.NotificationEventInvoiceUpdatedPayloadTypeInvoiceUpdated,
 	}, nil
 }

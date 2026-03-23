@@ -13,6 +13,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billinghttp "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -214,10 +215,16 @@ func (t *TestEventGenerator) newTestInvoicePayload(ctx context.Context, namespac
 		return notification.EventPayload{}, err
 	}
 
+	apiInvoice, err := billinghttp.MapEventInvoiceToAPI(eventInvoice)
+	if err != nil {
+		return notification.EventPayload{}, err
+	}
+
 	return notification.EventPayload{
 		EventPayloadMeta: notification.EventPayloadMeta{
-			Type: eventType,
+			Type:    eventType,
+			Version: notification.EventPayloadVersionCurrent,
 		},
-		Invoice: &eventInvoice,
+		Invoice: &notification.InvoicePayload{Invoice: apiInvoice},
 	}, nil
 }
