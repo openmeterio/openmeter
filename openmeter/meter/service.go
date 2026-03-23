@@ -64,6 +64,7 @@ type ListMetersParams struct {
 
 	Namespace string
 
+	IDFilter   *[]string
 	SlugFilter *[]string
 
 	// WithoutNamespace is a flag to list meters without a namespace.
@@ -92,6 +93,14 @@ func (p ListMetersParams) Validate() error {
 
 	if p.Order != sortx.OrderNone && (p.Order != sortx.OrderAsc && p.Order != sortx.OrderDesc) {
 		errs = append(errs, fmt.Errorf("invalid order: %s", p.Order))
+	}
+
+	if p.IDFilter != nil {
+		for _, id := range *p.IDFilter {
+			if id == "" {
+				errs = append(errs, errors.New("id filter must not contain empty string"))
+			}
+		}
 	}
 
 	if p.SlugFilter != nil {

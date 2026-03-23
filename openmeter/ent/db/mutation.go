@@ -58886,6 +58886,8 @@ type FeatureMutation struct {
 	addon_ratecard                    map[string]struct{}
 	removedaddon_ratecard             map[string]struct{}
 	clearedaddon_ratecard             bool
+	meter                             *string
+	clearedmeter                      bool
 	done                              bool
 	oldValue                          func(context.Context) (*Feature, error)
 	predicates                        []predicate.Feature
@@ -59320,6 +59322,55 @@ func (m *FeatureMutation) MeterSlugCleared() bool {
 func (m *FeatureMutation) ResetMeterSlug() {
 	m.meter_slug = nil
 	delete(m.clearedFields, dbfeature.FieldMeterSlug)
+}
+
+// SetMeterID sets the "meter_id" field.
+func (m *FeatureMutation) SetMeterID(s string) {
+	m.meter = &s
+}
+
+// MeterID returns the value of the "meter_id" field in the mutation.
+func (m *FeatureMutation) MeterID() (r string, exists bool) {
+	v := m.meter
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMeterID returns the old "meter_id" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FeatureMutation) OldMeterID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMeterID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMeterID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMeterID: %w", err)
+	}
+	return oldValue.MeterID, nil
+}
+
+// ClearMeterID clears the value of the "meter_id" field.
+func (m *FeatureMutation) ClearMeterID() {
+	m.meter = nil
+	m.clearedFields[dbfeature.FieldMeterID] = struct{}{}
+}
+
+// MeterIDCleared returns if the "meter_id" field was cleared in this mutation.
+func (m *FeatureMutation) MeterIDCleared() bool {
+	_, ok := m.clearedFields[dbfeature.FieldMeterID]
+	return ok
+}
+
+// ResetMeterID resets all changes to the "meter_id" field.
+func (m *FeatureMutation) ResetMeterID() {
+	m.meter = nil
+	delete(m.clearedFields, dbfeature.FieldMeterID)
 }
 
 // SetMeterGroupByFilters sets the "meter_group_by_filters" field.
@@ -60023,6 +60074,33 @@ func (m *FeatureMutation) ResetAddonRatecard() {
 	m.removedaddon_ratecard = nil
 }
 
+// ClearMeter clears the "meter" edge to the Meter entity.
+func (m *FeatureMutation) ClearMeter() {
+	m.clearedmeter = true
+	m.clearedFields[dbfeature.FieldMeterID] = struct{}{}
+}
+
+// MeterCleared reports if the "meter" edge to the Meter entity was cleared.
+func (m *FeatureMutation) MeterCleared() bool {
+	return m.MeterIDCleared() || m.clearedmeter
+}
+
+// MeterIDs returns the "meter" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// MeterID instead. It exists only for internal usage by the builders.
+func (m *FeatureMutation) MeterIDs() (ids []string) {
+	if id := m.meter; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetMeter resets all changes to the "meter" edge.
+func (m *FeatureMutation) ResetMeter() {
+	m.meter = nil
+	m.clearedmeter = false
+}
+
 // Where appends a list predicates to the FeatureMutation builder.
 func (m *FeatureMutation) Where(ps ...predicate.Feature) {
 	m.predicates = append(m.predicates, ps...)
@@ -60057,7 +60135,7 @@ func (m *FeatureMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *FeatureMutation) Fields() []string {
-	fields := make([]string, 0, 19)
+	fields := make([]string, 0, 20)
 	if m.created_at != nil {
 		fields = append(fields, dbfeature.FieldCreatedAt)
 	}
@@ -60081,6 +60159,9 @@ func (m *FeatureMutation) Fields() []string {
 	}
 	if m.meter_slug != nil {
 		fields = append(fields, dbfeature.FieldMeterSlug)
+	}
+	if m.meter != nil {
+		fields = append(fields, dbfeature.FieldMeterID)
 	}
 	if m.meter_group_by_filters != nil {
 		fields = append(fields, dbfeature.FieldMeterGroupByFilters)
@@ -60139,6 +60220,8 @@ func (m *FeatureMutation) Field(name string) (ent.Value, bool) {
 		return m.Key()
 	case dbfeature.FieldMeterSlug:
 		return m.MeterSlug()
+	case dbfeature.FieldMeterID:
+		return m.MeterID()
 	case dbfeature.FieldMeterGroupByFilters:
 		return m.MeterGroupByFilters()
 	case dbfeature.FieldAdvancedMeterGroupByFilters:
@@ -60186,6 +60269,8 @@ func (m *FeatureMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldKey(ctx)
 	case dbfeature.FieldMeterSlug:
 		return m.OldMeterSlug(ctx)
+	case dbfeature.FieldMeterID:
+		return m.OldMeterID(ctx)
 	case dbfeature.FieldMeterGroupByFilters:
 		return m.OldMeterGroupByFilters(ctx)
 	case dbfeature.FieldAdvancedMeterGroupByFilters:
@@ -60272,6 +60357,13 @@ func (m *FeatureMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMeterSlug(v)
+		return nil
+	case dbfeature.FieldMeterID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMeterID(v)
 		return nil
 	case dbfeature.FieldMeterGroupByFilters:
 		v, ok := value.(map[string]string)
@@ -60389,6 +60481,9 @@ func (m *FeatureMutation) ClearedFields() []string {
 	if m.FieldCleared(dbfeature.FieldMeterSlug) {
 		fields = append(fields, dbfeature.FieldMeterSlug)
 	}
+	if m.FieldCleared(dbfeature.FieldMeterID) {
+		fields = append(fields, dbfeature.FieldMeterID)
+	}
 	if m.FieldCleared(dbfeature.FieldMeterGroupByFilters) {
 		fields = append(fields, dbfeature.FieldMeterGroupByFilters)
 	}
@@ -60444,6 +60539,9 @@ func (m *FeatureMutation) ClearField(name string) error {
 		return nil
 	case dbfeature.FieldMeterSlug:
 		m.ClearMeterSlug()
+		return nil
+	case dbfeature.FieldMeterID:
+		m.ClearMeterID()
 		return nil
 	case dbfeature.FieldMeterGroupByFilters:
 		m.ClearMeterGroupByFilters()
@@ -60510,6 +60608,9 @@ func (m *FeatureMutation) ResetField(name string) error {
 	case dbfeature.FieldMeterSlug:
 		m.ResetMeterSlug()
 		return nil
+	case dbfeature.FieldMeterID:
+		m.ResetMeterID()
+		return nil
 	case dbfeature.FieldMeterGroupByFilters:
 		m.ResetMeterGroupByFilters()
 		return nil
@@ -60549,7 +60650,7 @@ func (m *FeatureMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *FeatureMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.entitlement != nil {
 		edges = append(edges, dbfeature.EdgeEntitlement)
 	}
@@ -60558,6 +60659,9 @@ func (m *FeatureMutation) AddedEdges() []string {
 	}
 	if m.addon_ratecard != nil {
 		edges = append(edges, dbfeature.EdgeAddonRatecard)
+	}
+	if m.meter != nil {
+		edges = append(edges, dbfeature.EdgeMeter)
 	}
 	return edges
 }
@@ -60584,13 +60688,17 @@ func (m *FeatureMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case dbfeature.EdgeMeter:
+		if id := m.meter; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *FeatureMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.removedentitlement != nil {
 		edges = append(edges, dbfeature.EdgeEntitlement)
 	}
@@ -60631,7 +60739,7 @@ func (m *FeatureMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *FeatureMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.clearedentitlement {
 		edges = append(edges, dbfeature.EdgeEntitlement)
 	}
@@ -60640,6 +60748,9 @@ func (m *FeatureMutation) ClearedEdges() []string {
 	}
 	if m.clearedaddon_ratecard {
 		edges = append(edges, dbfeature.EdgeAddonRatecard)
+	}
+	if m.clearedmeter {
+		edges = append(edges, dbfeature.EdgeMeter)
 	}
 	return edges
 }
@@ -60654,6 +60765,8 @@ func (m *FeatureMutation) EdgeCleared(name string) bool {
 		return m.clearedratecard
 	case dbfeature.EdgeAddonRatecard:
 		return m.clearedaddon_ratecard
+	case dbfeature.EdgeMeter:
+		return m.clearedmeter
 	}
 	return false
 }
@@ -60662,6 +60775,9 @@ func (m *FeatureMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *FeatureMutation) ClearEdge(name string) error {
 	switch name {
+	case dbfeature.EdgeMeter:
+		m.ClearMeter()
+		return nil
 	}
 	return fmt.Errorf("unknown Feature unique edge %s", name)
 }
@@ -60678,6 +60794,9 @@ func (m *FeatureMutation) ResetEdge(name string) error {
 		return nil
 	case dbfeature.EdgeAddonRatecard:
 		m.ResetAddonRatecard()
+		return nil
+	case dbfeature.EdgeMeter:
+		m.ResetMeter()
 		return nil
 	}
 	return fmt.Errorf("unknown Feature edge %s", name)
@@ -66830,6 +66949,7 @@ type LedgerSubAccountRouteMutation struct {
 	tax_code            *string
 	features            *[]string
 	appendfeatures      []string
+	cost_basis          *alpacadecimal.Decimal
 	credit_priority     *int
 	addcredit_priority  *int
 	clearedFields       map[string]struct{}
@@ -67362,6 +67482,55 @@ func (m *LedgerSubAccountRouteMutation) ResetFeatures() {
 	delete(m.clearedFields, ledgersubaccountroute.FieldFeatures)
 }
 
+// SetCostBasis sets the "cost_basis" field.
+func (m *LedgerSubAccountRouteMutation) SetCostBasis(a alpacadecimal.Decimal) {
+	m.cost_basis = &a
+}
+
+// CostBasis returns the value of the "cost_basis" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) CostBasis() (r alpacadecimal.Decimal, exists bool) {
+	v := m.cost_basis
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCostBasis returns the old "cost_basis" field's value of the LedgerSubAccountRoute entity.
+// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerSubAccountRouteMutation) OldCostBasis(ctx context.Context) (v *alpacadecimal.Decimal, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCostBasis is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCostBasis requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCostBasis: %w", err)
+	}
+	return oldValue.CostBasis, nil
+}
+
+// ClearCostBasis clears the value of the "cost_basis" field.
+func (m *LedgerSubAccountRouteMutation) ClearCostBasis() {
+	m.cost_basis = nil
+	m.clearedFields[ledgersubaccountroute.FieldCostBasis] = struct{}{}
+}
+
+// CostBasisCleared returns if the "cost_basis" field was cleared in this mutation.
+func (m *LedgerSubAccountRouteMutation) CostBasisCleared() bool {
+	_, ok := m.clearedFields[ledgersubaccountroute.FieldCostBasis]
+	return ok
+}
+
+// ResetCostBasis resets all changes to the "cost_basis" field.
+func (m *LedgerSubAccountRouteMutation) ResetCostBasis() {
+	m.cost_basis = nil
+	delete(m.clearedFields, ledgersubaccountroute.FieldCostBasis)
+}
+
 // SetCreditPriority sets the "credit_priority" field.
 func (m *LedgerSubAccountRouteMutation) SetCreditPriority(i int) {
 	m.credit_priority = &i
@@ -67547,7 +67716,7 @@ func (m *LedgerSubAccountRouteMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LedgerSubAccountRouteMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 12)
 	if m.namespace != nil {
 		fields = append(fields, ledgersubaccountroute.FieldNamespace)
 	}
@@ -67577,6 +67746,9 @@ func (m *LedgerSubAccountRouteMutation) Fields() []string {
 	}
 	if m.features != nil {
 		fields = append(fields, ledgersubaccountroute.FieldFeatures)
+	}
+	if m.cost_basis != nil {
+		fields = append(fields, ledgersubaccountroute.FieldCostBasis)
 	}
 	if m.credit_priority != nil {
 		fields = append(fields, ledgersubaccountroute.FieldCreditPriority)
@@ -67609,6 +67781,8 @@ func (m *LedgerSubAccountRouteMutation) Field(name string) (ent.Value, bool) {
 		return m.TaxCode()
 	case ledgersubaccountroute.FieldFeatures:
 		return m.Features()
+	case ledgersubaccountroute.FieldCostBasis:
+		return m.CostBasis()
 	case ledgersubaccountroute.FieldCreditPriority:
 		return m.CreditPriority()
 	}
@@ -67640,6 +67814,8 @@ func (m *LedgerSubAccountRouteMutation) OldField(ctx context.Context, name strin
 		return m.OldTaxCode(ctx)
 	case ledgersubaccountroute.FieldFeatures:
 		return m.OldFeatures(ctx)
+	case ledgersubaccountroute.FieldCostBasis:
+		return m.OldCostBasis(ctx)
 	case ledgersubaccountroute.FieldCreditPriority:
 		return m.OldCreditPriority(ctx)
 	}
@@ -67721,6 +67897,13 @@ func (m *LedgerSubAccountRouteMutation) SetField(name string, value ent.Value) e
 		}
 		m.SetFeatures(v)
 		return nil
+	case ledgersubaccountroute.FieldCostBasis:
+		v, ok := value.(alpacadecimal.Decimal)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCostBasis(v)
+		return nil
 	case ledgersubaccountroute.FieldCreditPriority:
 		v, ok := value.(int)
 		if !ok {
@@ -67782,6 +67965,9 @@ func (m *LedgerSubAccountRouteMutation) ClearedFields() []string {
 	if m.FieldCleared(ledgersubaccountroute.FieldFeatures) {
 		fields = append(fields, ledgersubaccountroute.FieldFeatures)
 	}
+	if m.FieldCleared(ledgersubaccountroute.FieldCostBasis) {
+		fields = append(fields, ledgersubaccountroute.FieldCostBasis)
+	}
 	if m.FieldCleared(ledgersubaccountroute.FieldCreditPriority) {
 		fields = append(fields, ledgersubaccountroute.FieldCreditPriority)
 	}
@@ -67807,6 +67993,9 @@ func (m *LedgerSubAccountRouteMutation) ClearField(name string) error {
 		return nil
 	case ledgersubaccountroute.FieldFeatures:
 		m.ClearFeatures()
+		return nil
+	case ledgersubaccountroute.FieldCostBasis:
+		m.ClearCostBasis()
 		return nil
 	case ledgersubaccountroute.FieldCreditPriority:
 		m.ClearCreditPriority()
@@ -67848,6 +68037,9 @@ func (m *LedgerSubAccountRouteMutation) ResetField(name string) error {
 		return nil
 	case ledgersubaccountroute.FieldFeatures:
 		m.ResetFeatures()
+		return nil
+	case ledgersubaccountroute.FieldCostBasis:
+		m.ResetCostBasis()
 		return nil
 	case ledgersubaccountroute.FieldCreditPriority:
 		m.ResetCreditPriority()
@@ -69497,6 +69689,9 @@ type MeterMutation struct {
 	aggregation    *meter.MeterAggregation
 	event_from     *time.Time
 	clearedFields  map[string]struct{}
+	feature        map[string]struct{}
+	removedfeature map[string]struct{}
+	clearedfeature bool
 	done           bool
 	oldValue       func(context.Context) (*Meter, error)
 	predicates     []predicate.Meter
@@ -70201,6 +70396,60 @@ func (m *MeterMutation) ResetEventFrom() {
 	delete(m.clearedFields, dbmeter.FieldEventFrom)
 }
 
+// AddFeatureIDs adds the "feature" edge to the Feature entity by ids.
+func (m *MeterMutation) AddFeatureIDs(ids ...string) {
+	if m.feature == nil {
+		m.feature = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.feature[ids[i]] = struct{}{}
+	}
+}
+
+// ClearFeature clears the "feature" edge to the Feature entity.
+func (m *MeterMutation) ClearFeature() {
+	m.clearedfeature = true
+}
+
+// FeatureCleared reports if the "feature" edge to the Feature entity was cleared.
+func (m *MeterMutation) FeatureCleared() bool {
+	return m.clearedfeature
+}
+
+// RemoveFeatureIDs removes the "feature" edge to the Feature entity by IDs.
+func (m *MeterMutation) RemoveFeatureIDs(ids ...string) {
+	if m.removedfeature == nil {
+		m.removedfeature = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.feature, ids[i])
+		m.removedfeature[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedFeature returns the removed IDs of the "feature" edge to the Feature entity.
+func (m *MeterMutation) RemovedFeatureIDs() (ids []string) {
+	for id := range m.removedfeature {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// FeatureIDs returns the "feature" edge IDs in the mutation.
+func (m *MeterMutation) FeatureIDs() (ids []string) {
+	for id := range m.feature {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetFeature resets all changes to the "feature" edge.
+func (m *MeterMutation) ResetFeature() {
+	m.feature = nil
+	m.clearedfeature = false
+	m.removedfeature = nil
+}
+
 // Where appends a list predicates to the MeterMutation builder.
 func (m *MeterMutation) Where(ps ...predicate.Meter) {
 	m.predicates = append(m.predicates, ps...)
@@ -70600,49 +70849,85 @@ func (m *MeterMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *MeterMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.feature != nil {
+		edges = append(edges, dbmeter.EdgeFeature)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *MeterMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case dbmeter.EdgeFeature:
+		ids := make([]ent.Value, 0, len(m.feature))
+		for id := range m.feature {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *MeterMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.removedfeature != nil {
+		edges = append(edges, dbmeter.EdgeFeature)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *MeterMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case dbmeter.EdgeFeature:
+		ids := make([]ent.Value, 0, len(m.removedfeature))
+		for id := range m.removedfeature {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *MeterMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedfeature {
+		edges = append(edges, dbmeter.EdgeFeature)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *MeterMutation) EdgeCleared(name string) bool {
+	switch name {
+	case dbmeter.EdgeFeature:
+		return m.clearedfeature
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *MeterMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown Meter unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *MeterMutation) ResetEdge(name string) error {
+	switch name {
+	case dbmeter.EdgeFeature:
+		m.ResetFeature()
+		return nil
+	}
 	return fmt.Errorf("unknown Meter edge %s", name)
 }
 

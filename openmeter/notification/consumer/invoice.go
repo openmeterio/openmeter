@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billinghttp "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -47,11 +48,17 @@ func (h *InvoiceEventHandler) Handle(ctx context.Context, event billing.EventSta
 		return nil
 	}
 
+	apiInvoice, err := billinghttp.MapEventInvoiceToAPI(event)
+	if err != nil {
+		return fmt.Errorf("failed to map event invoice to API: %w", err)
+	}
+
 	payload := notification.EventPayload{
 		EventPayloadMeta: notification.EventPayloadMeta{
-			Type: eventType,
+			Type:    eventType,
+			Version: notification.EventPayloadVersionCurrent,
 		},
-		Invoice: &event,
+		Invoice: &notification.InvoicePayload{Invoice: apiInvoice},
 	}
 
 	for _, rule := range rules.Items {

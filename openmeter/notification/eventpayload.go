@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -26,12 +25,22 @@ func AsRawPayload(t any) (RawPayload, error) {
 }
 
 type EventPayloadMeta struct {
-	Type EventType `json:"type"`
+	Type    EventType `json:"type"`
+	Version int       `json:"version,omitempty"`
 }
 
 func (m EventPayloadMeta) Validate() error {
 	return m.Type.Validate()
 }
+
+const (
+	// EventPayloadVersionLegacy is the implicit version for events stored before versioning was
+	// introduced. Never explicitly written; absence of the field unmarshals to 0.
+	EventPayloadVersionLegacy int = 0
+
+	// EventPayloadVersionCurrent is the version written for all new events.
+	EventPayloadVersionCurrent int = 1
+)
 
 // EventPayload is a union type capturing payload for all EventType of Events.
 type EventPayload struct {
@@ -42,7 +51,7 @@ type EventPayload struct {
 	EntitlementReset *EntitlementResetPayload `json:"entitlementReset,omitempty"`
 
 	// Invoice
-	Invoice *billing.EventStandardInvoice `json:"invoice,omitempty"`
+	Invoice *InvoicePayload `json:"invoice,omitempty"`
 }
 
 func (p EventPayload) Validate() error {

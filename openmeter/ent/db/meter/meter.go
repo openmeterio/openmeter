@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 )
 
@@ -43,8 +44,17 @@ const (
 	FieldAggregation = "aggregation"
 	// FieldEventFrom holds the string denoting the event_from field in the database.
 	FieldEventFrom = "event_from"
+	// EdgeFeature holds the string denoting the feature edge name in mutations.
+	EdgeFeature = "feature"
 	// Table holds the table name of the meter in the database.
 	Table = "meters"
+	// FeatureTable is the table that holds the feature relation/edge.
+	FeatureTable = "features"
+	// FeatureInverseTable is the table name for the Feature entity.
+	// It exists in this package in order to avoid circular dependency with the "dbfeature" package.
+	FeatureInverseTable = "features"
+	// FeatureColumn is the table column denoting the feature relation/edge.
+	FeatureColumn = "meter_id"
 )
 
 // Columns holds all SQL columns for meter fields.
@@ -164,4 +174,25 @@ func ByAggregation(opts ...sql.OrderTermOption) OrderOption {
 // ByEventFrom orders the results by the event_from field.
 func ByEventFrom(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEventFrom, opts...).ToFunc()
+}
+
+// ByFeatureCount orders the results by feature count.
+func ByFeatureCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newFeatureStep(), opts...)
+	}
+}
+
+// ByFeature orders the results by feature terms.
+func ByFeature(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newFeatureStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newFeatureStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(FeatureInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, FeatureTable, FeatureColumn),
+	)
 }

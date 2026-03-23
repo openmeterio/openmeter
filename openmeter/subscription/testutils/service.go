@@ -1,6 +1,7 @@
 package subscriptiontestutils
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -53,6 +54,7 @@ type SubscriptionDependencies struct {
 	CustomerService          customer.Service
 	SubjectService           subject.Service
 	FeatureConnector         *testFeatureConnector
+	ExampleMeterID           string
 	MeterService             meter.Service
 	MockStreamingConnector   *streamingtestutils.MockStreamingConnector
 	EntitlementAdapter       subscription.EntitlementAdapter
@@ -79,9 +81,10 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	lockr, err := lockr.NewLocker(&lockr.LockerConfig{Logger: logger})
 	require.NoError(t, err)
 
+	meterID := ulid.Make().String()
 	meterAdapter, err := meteradapter.New([]meter.Meter{{
 		ManagedResource: models.ManagedResource{
-			ID: ulid.Make().String(),
+			ID: meterID,
 			NamespacedModel: models.NamespacedModel{
 				Namespace: ExampleNamespace,
 			},
@@ -98,6 +101,16 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	}})
 	require.NoError(t, err)
 	require.NotNil(t, meterAdapter)
+	require.NoError(t, meterAdapter.SetDBClient(dbDeps.DBClient))
+
+	// After SetDBClient, the adapter may have resolved to an existing DB meter ID
+	// (e.g., from a shared template DB). Read back the resolved ID.
+	resolvedMeter, err := meterAdapter.GetMeterByIDOrSlug(context.Background(), meter.GetMeterInput{
+		Namespace: ExampleNamespace,
+		IDOrSlug:  ExampleFeatureMeterSlug,
+	})
+	require.NoError(t, err)
+	meterID = resolvedMeter.ID
 
 	mockStreaming := streamingtestutils.NewMockStreamingConnector(t)
 
@@ -261,6 +274,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		CustomerService:          customerService,
 		SubjectService:           subjectService,
 		FeatureConnector:         NewTestFeatureConnector(entitlementRegistry.Feature),
+		ExampleMeterID:           meterID,
 		EntitlementAdapter:       entitlementAdapter,
 		DBDeps:                   dbDeps,
 		PlanHelper:               planHelper,

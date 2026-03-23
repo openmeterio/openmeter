@@ -11,7 +11,8 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	dbplanphase "github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	dbratecard "github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
@@ -44,7 +45,7 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feat feature.Creat
 		SetKey(feat.Key).
 		SetNamespace(feat.Namespace).
 		SetMetadata(feat.Metadata).
-		SetNillableMeterSlug(feat.MeterSlug)
+		SetNillableMeterID(feat.MeterID)
 
 	if len(feat.MeterGroupByFilters) > 0 {
 		query = query.
@@ -78,20 +79,37 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feat feature.Creat
 		return feature.Feature{}, err
 	}
 
+	// Re-fetch with meter edge for MeterSlug backward compatibility
+	if entity.MeterID != nil {
+		entity, err = c.db.Feature.Query().
+			Where(dbfeature.ID(entity.ID)).
+			WithMeter(func(mq *db.MeterQuery) {
+				mq.Select(dbmeter.FieldID, dbmeter.FieldKey)
+			}).
+			Only(ctx)
+		if err != nil {
+			return feature.Feature{}, err
+		}
+	}
+
 	return MapFeatureEntity(entity), nil
 }
 
 func (c *featureDBAdapter) GetByIdOrKey(ctx context.Context, namespace string, idOrKey string, includeArchived bool) (*feature.Feature, error) {
 	query := c.db.Feature.Query().
-		Where(db_feature.Namespace(namespace)).
-		Where(db_feature.Or(db_feature.Key(idOrKey), db_feature.ID(idOrKey)))
+		// We only need Meter Key for v1 API backward compatibility
+		WithMeter(func(mq *db.MeterQuery) {
+			mq.Select(dbmeter.FieldID, dbmeter.FieldKey)
+		}).
+		Where(dbfeature.Namespace(namespace)).
+		Where(dbfeature.Or(dbfeature.Key(idOrKey), dbfeature.ID(idOrKey)))
 
 	if !includeArchived {
-		query = query.Where(db_feature.ArchivedAtIsNil())
+		query = query.Where(dbfeature.ArchivedAtIsNil())
 	}
 
 	// This ensures that the first item is the most recent one
-	query = query.Order(db_feature.ByArchivedAt(sql.OrderDesc(), sql.OrderNullsFirst()))
+	query = query.Order(dbfeature.ByArchivedAt(sql.OrderDesc(), sql.OrderNullsFirst()))
 
 	entities, err := query.All(ctx)
 	if err != nil {
@@ -169,8 +187,8 @@ func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, params feature.Ar
 
 	err = c.db.Feature.Update().
 		SetArchivedAt(archivedAt).
-		Where(db_feature.ID(params.ID)).
-		Where(db_feature.Namespace(params.Namespace)).
+		Where(dbfeature.ID(params.ID)).
+		Where(dbfeature.Namespace(params.Namespace)).
 		Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to archive feature: %w", err)
@@ -179,11 +197,11 @@ func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, params feature.Ar
 	return nil
 }
 
-func (c *featureDBAdapter) HasActiveFeatureForMeter(ctx context.Context, namespace string, meterSlug string) (bool, error) {
+func (c *featureDBAdapter) HasActiveFeatureForMeter(ctx context.Context, namespace string, meterID string) (bool, error) {
 	exists, err := c.db.Feature.Query().
-		Where(db_feature.Namespace(namespace)).
-		Where(db_feature.MeterSlug(meterSlug)).
-		Where(db_feature.Or(db_feature.ArchivedAtIsNil(), db_feature.ArchivedAtGT(clock.Now()))).
+		Where(dbfeature.Namespace(namespace)).
+		Where(dbfeature.MeterID(meterID)).
+		Where(dbfeature.Or(dbfeature.ArchivedAtIsNil(), dbfeature.ArchivedAtGT(clock.Now()))).
 		Exist(ctx)
 	if err != nil {
 		return false, err
@@ -194,18 +212,26 @@ func (c *featureDBAdapter) HasActiveFeatureForMeter(ctx context.Context, namespa
 
 func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.ListFeaturesParams) (pagination.Result[feature.Feature], error) {
 	query := c.db.Feature.Query().
-		Where(db_feature.Namespace(params.Namespace))
+		// We only need Meter Key for v1 API backward compatibility
+		WithMeter(func(mq *db.MeterQuery) {
+			mq.Select(dbmeter.FieldID, dbmeter.FieldKey)
+		}).
+		Where(dbfeature.Namespace(params.Namespace))
+
+	if len(params.MeterIDs) > 0 {
+		query = query.Where(dbfeature.MeterIDIn(params.MeterIDs...))
+	}
 
 	if len(params.MeterSlugs) > 0 {
-		query = query.Where(db_feature.MeterSlugIn(params.MeterSlugs...))
+		query = query.Where(dbfeature.HasMeterWith(dbmeter.KeyIn(params.MeterSlugs...)))
 	}
 
 	if len(params.IDsOrKeys) > 0 {
-		query = query.Where(db_feature.Or(db_feature.IDIn(params.IDsOrKeys...), db_feature.KeyIn(params.IDsOrKeys...)))
+		query = query.Where(dbfeature.Or(dbfeature.IDIn(params.IDsOrKeys...), dbfeature.KeyIn(params.IDsOrKeys...)))
 	}
 
 	if !params.IncludeArchived {
-		query = query.Where(db_feature.Or(db_feature.ArchivedAtIsNil(), db_feature.ArchivedAtGT(clock.Now())))
+		query = query.Where(dbfeature.Or(dbfeature.ArchivedAtIsNil(), dbfeature.ArchivedAtGT(clock.Now())))
 	}
 
 	if params.OrderBy != "" {
@@ -216,15 +242,15 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params feature.List
 
 		switch params.OrderBy {
 		case feature.FeatureOrderByKey:
-			query = query.Order(db_feature.ByKey(order...))
+			query = query.Order(dbfeature.ByKey(order...))
 		case feature.FeatureOrderByName:
-			query = query.Order(db_feature.ByName(order...))
+			query = query.Order(dbfeature.ByName(order...))
 		case feature.FeatureOrderByCreatedAt:
-			query = query.Order(db_feature.ByCreatedAt(order...))
+			query = query.Order(dbfeature.ByCreatedAt(order...))
 		case feature.FeatureOrderByUpdatedAt:
-			query = query.Order(db_feature.ByUpdatedAt(order...))
+			query = query.Order(dbfeature.ByUpdatedAt(order...))
 		default:
-			query = query.Order(db_feature.ByCreatedAt(order...))
+			query = query.Order(dbfeature.ByCreatedAt(order...))
 		}
 	}
 
@@ -279,11 +305,16 @@ func MapFeatureEntity(entity *db.Feature) feature.Feature {
 		Namespace:  entity.Namespace,
 		Name:       entity.Name,
 		Key:        entity.Key,
-		MeterSlug:  entity.MeterSlug,
+		MeterID:    entity.MeterID,
 		ArchivedAt: entity.ArchivedAt,
 		CreatedAt:  entity.CreatedAt.In(time.UTC),
 		UpdatedAt:  entity.UpdatedAt.In(time.UTC),
 		Metadata:   entity.Metadata,
+	}
+
+	// Deprecated: kept for v1 API backward compatibility
+	if entity.Edges.Meter != nil {
+		f.MeterSlug = &entity.Edges.Meter.Key
 	}
 
 	// Use advanced meter group by filters if available

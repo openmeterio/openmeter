@@ -29,7 +29,7 @@ func CreatePlanWithAddon(
 ) (subscription.Plan, addon.Addon) {
 	t.Helper()
 
-	_ = deps.FeatureConnector.CreateExampleFeatures(t)
+	_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
 	p, err := deps.PlanService.CreatePlan(context.Background(), planInp)
 	require.Nil(t, err)

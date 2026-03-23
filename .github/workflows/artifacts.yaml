@@ -111,28 +111,30 @@ jobs:
         env:
           VARS_DEPOT_PROJECT: ${{ vars.DEPOT_PROJECT }}
 
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
-        with:
-          image-ref: registry.depot.dev/${{ vars.DEPOT_PROJECT }}:${{ steps.build.outputs.build-id }}
-          format: sarif
-          output: trivy-results.sarif
-        env:
-          TRIVY_USERNAME: x-token
-          TRIVY_PASSWORD: ${{ steps.pull-token.outputs.token }}
-          TRIVY_DB_REPOSITORY: ghcr.io/openmeterio/trivy-db:2
+      ### Trivy is comporomised
+      #
+      # - name: Run Trivy vulnerability scanner
+      #   uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
+      #   with:
+      #     image-ref: registry.depot.dev/${{ vars.DEPOT_PROJECT }}:${{ steps.build.outputs.build-id }}
+      #     format: sarif
+      #     output: trivy-results.sarif
+      #   env:
+      #     TRIVY_USERNAME: x-token
+      #     TRIVY_PASSWORD: ${{ steps.pull-token.outputs.token }}
+      #     TRIVY_DB_REPOSITORY: ghcr.io/openmeterio/trivy-db:2
 
-      - name: Upload Trivy scan results as artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        with:
-          name: "[${{ github.job }}] Trivy scan results"
-          path: trivy-results.sarif
-          retention-days: 5
+      # - name: Upload Trivy scan results as artifact
+      #   uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      #   with:
+      #     name: "[${{ github.job }}] Trivy scan results"
+      #     path: trivy-results.sarif
+      #     retention-days: 5
 
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@5d4e8d1aca955e8d8589aabd499c5cae939e33c7 # v3.29.5
-        with:
-          sarif_file: trivy-results.sarif
+      # - name: Upload Trivy scan results to GitHub Security tab
+      #   uses: github/codeql-action/upload-sarif@5d4e8d1aca955e8d8589aabd499c5cae939e33c7 # v3.29.5
+      #   with:
+      #     sarif_file: trivy-results.sarif
 
   benthos-collector-container-image:
     name: Benthos Collector Container image
@@ -216,25 +218,25 @@ jobs:
         env:
           VARS_DEPOT_PROJECT: ${{ vars.DEPOT_PROJECT }}
 
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
-        with:
-          image-ref: registry.depot.dev/${{ vars.DEPOT_PROJECT }}:${{ steps.build.outputs.build-id }}
-          format: sarif
-          output: trivy-results.sarif
-        env:
-          TRIVY_USERNAME: x-token
-          TRIVY_PASSWORD: ${{ steps.pull-token.outputs.token }}
-          TRIVY_DB_REPOSITORY: ghcr.io/openmeterio/trivy-db:2
+      # - name: Run Trivy vulnerability scanner
+      #   uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
+      #   with:
+      #     image-ref: registry.depot.dev/${{ vars.DEPOT_PROJECT }}:${{ steps.build.outputs.build-id }}
+      #     format: sarif
+      #     output: trivy-results.sarif
+      #   env:
+      #     TRIVY_USERNAME: x-token
+      #     TRIVY_PASSWORD: ${{ steps.pull-token.outputs.token }}
+      #     TRIVY_DB_REPOSITORY: ghcr.io/openmeterio/trivy-db:2
 
-      - name: Upload Trivy scan results as artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        with:
-          name: "[${{ github.job }}] Trivy scan results"
-          path: trivy-results.sarif
-          retention-days: 5
+      # - name: Upload Trivy scan results as artifact
+      #   uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      #   with:
+      #     name: "[${{ github.job }}] Trivy scan results"
+      #     path: trivy-results.sarif
+      #     retention-days: 5
 
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@5d4e8d1aca955e8d8589aabd499c5cae939e33c7 # v3.29.5
-        with:
-          sarif_file: trivy-results.sarif
+      # - name: Upload Trivy scan results to GitHub Security tab
+      #   uses: github/codeql-action/upload-sarif@5d4e8d1aca955e8d8589aabd499c5cae939e33c7 # v3.29.5
+      #   with:
+      #     sarif_file: trivy-results.sarif

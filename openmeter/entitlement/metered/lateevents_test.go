@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -43,7 +44,7 @@ import (
 // To test late events well add events before and after execution
 type inconsistentCreditConnector struct {
 	credit.CreditConnector
-	AddSimpleEvent func(meterSlug string, value float64, at time.Time)
+	AddSimpleEvent func(meterSlug string, value float64, at time.Time, opts ...streamingtestutils.AddOption)
 }
 
 func (c *inconsistentCreditConnector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedID, at time.Time) (engine.RunResult, error) {
@@ -67,14 +68,6 @@ func (c *inconsistentCreditConnector) GetBalanceForPeriod(ctx context.Context, o
 }
 
 func TestGetEntitlementBalanceConsistency(t *testing.T) {
-	exampleFeature := feature.CreateFeatureInputs{
-		Namespace:           namespace,
-		Name:                "feature1",
-		Key:                 "feature-1",
-		MeterSlug:           &meterSlug,
-		MeterGroupByFilters: map[string]filter.FilterString{},
-	}
-
 	getEntitlement := func(t *testing.T, feature feature.Feature, usageAttribution streaming.CustomerUsageAttribution) entitlement.CreateEntitlementRepoInputs {
 		t.Helper()
 		input := entitlement.CreateEntitlementRepoInputs{
@@ -103,14 +96,14 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 		testLogger := testutils.NewLogger(t)
 		tracer := noop.NewTracerProvider().Tracer("test")
 
-		streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
-		meterAdapter, err := meteradapter.New([]meter.Meter{{
+		localMeterID := ulid.Make().String()
+		testMeters := []meter.Meter{{
 			Key: meterSlug,
 			ManagedResource: models.ManagedResource{
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
-				ID:   "managed-resource-1",
+				ID:   localMeterID,
 				Name: "managed-resource-1",
 				ManagedModel: models.ManagedModel{
 					CreatedAt: testutils.GetRFC3339Time(t, "2024-01-01T00:00:00Z"),
@@ -121,7 +114,10 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 			// These will be ignored in tests
 			EventType:     "test",
 			ValueProperty: convert.ToPointer("$.value"),
-		}})
+		}}
+
+		streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
+		meterAdapter, err := meteradapter.New(testMeters)
 		if err != nil {
 			t.Fatalf("failed to create meter adapter: %v", err)
 		}
@@ -144,6 +140,10 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 		if err := dbClient.Schema.Create(context.Background()); err != nil {
 			t.Fatalf("failed to create schema: %v", err)
 		}
+
+		// Create meters in PG so FK constraints on features are satisfied.
+		require.NoError(t, meterAdapter.SetDBClient(dbClient))
+		require.NoError(t, meterAdapter.ReplaceMeters(context.Background(), testMeters))
 
 		mockPublisher := eventbus.NewMock(t)
 
@@ -221,27 +221,36 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 		)
 
 		return connector, &dependencies{
-			dbClient,
-			pgDriver,
-			entDriver,
-			featureRepo,
-			entitlementRepo,
-			usageResetRepo,
-			grantRepo,
-			balanceSnapshotService,
-			inconsistentCreditConnector,
-			ownerConnector,
-			streamingConnector,
-			inconsistentCreditConnector,
-			meterAdapter,
-			subjectService,
-			customerService,
+			dbClient:               dbClient,
+			pgDriver:               pgDriver,
+			entDriver:              entDriver,
+			featureRepo:            featureRepo,
+			entitlementRepo:        entitlementRepo,
+			usageResetRepo:         usageResetRepo,
+			grantRepo:              grantRepo,
+			balanceSnapshotService: balanceSnapshotService,
+			balanceConnector:       inconsistentCreditConnector,
+			ownerConnector:         ownerConnector,
+			streamingConnector:     streamingConnector,
+			creditConnector:        inconsistentCreditConnector,
+			meterAdapter:           meterAdapter,
+			meterID:                localMeterID,
+			subjectService:         subjectService,
+			customerService:        customerService,
 		}
 	}
 
 	t.Run("Should return consistent balance and usage values if there are late events", func(t *testing.T) {
 		connector, deps := setupMockedConnector(t)
 		defer deps.Teardown()
+
+		exampleFeature := feature.CreateFeatureInputs{
+			Namespace:           namespace,
+			Name:                "feature1",
+			Key:                 "feature-1",
+			MeterID:             &deps.meterID,
+			MeterGroupByFilters: map[string]filter.FilterString{},
+		}
 
 		ctx := context.Background()
 		startTime := getAnchor(t)

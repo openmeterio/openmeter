@@ -16,25 +16,31 @@ var (
 	ExampleFeatureMeterSlug = "meter1"
 )
 
-var ExampleFeature = feature.CreateFeatureInputs{
-	Name:      "Example Feature",
-	Key:       ExampleFeatureKey,
-	Namespace: ExampleNamespace,
-	MeterSlug: lo.ToPtr(ExampleFeatureMeterSlug),
+func ExampleFeature(meterID string) feature.CreateFeatureInputs {
+	return feature.CreateFeatureInputs{
+		Name:      "Example Feature",
+		Key:       ExampleFeatureKey,
+		Namespace: ExampleNamespace,
+		MeterID:   lo.ToPtr(meterID),
+	}
 }
 
-var ExampleFeature2 = feature.CreateFeatureInputs{
-	Name:      "Example Feature 2",
-	Key:       ExampleFeatureKey2,
-	Namespace: ExampleNamespace,
-	MeterSlug: lo.ToPtr(ExampleFeatureMeterSlug),
+func ExampleFeature2(meterID string) feature.CreateFeatureInputs {
+	return feature.CreateFeatureInputs{
+		Name:      "Example Feature 2",
+		Key:       ExampleFeatureKey2,
+		Namespace: ExampleNamespace,
+		MeterID:   lo.ToPtr(meterID),
+	}
 }
 
-var ExampleFeature3 = feature.CreateFeatureInputs{
-	Name:      "Example Feature 3",
-	Key:       ExampleFeatureKey3,
-	Namespace: ExampleNamespace,
-	MeterSlug: lo.ToPtr(ExampleFeatureMeterSlug),
+func ExampleFeature3(meterID string) feature.CreateFeatureInputs {
+	return feature.CreateFeatureInputs{
+		Name:      "Example Feature 3",
+		Key:       ExampleFeatureKey3,
+		Namespace: ExampleNamespace,
+		MeterID:   lo.ToPtr(meterID),
+	}
 }
 
 type testFeatureConnector struct {
@@ -45,17 +51,17 @@ func NewTestFeatureConnector(conn feature.FeatureConnector) *testFeatureConnecto
 	return &testFeatureConnector{conn}
 }
 
-func (c *testFeatureConnector) CreateExampleFeatures(t *testing.T) []feature.Feature {
+func (c *testFeatureConnector) CreateExampleFeatures(t *testing.T, meterID string) []feature.Feature {
 	t.Helper()
-	feat1, err := c.FeatureConnector.CreateFeature(context.Background(), ExampleFeature)
+	feat1, err := c.FeatureConnector.CreateFeature(context.Background(), ExampleFeature(meterID))
 	if err != nil {
 		t.Fatalf("failed to create feature: %v", err)
 	}
-	feat2, err := c.FeatureConnector.CreateFeature(context.Background(), ExampleFeature2)
+	feat2, err := c.FeatureConnector.CreateFeature(context.Background(), ExampleFeature2(meterID))
 	if err != nil {
 		t.Fatalf("failed to create feature: %v", err)
 	}
-	feat3, err := c.FeatureConnector.CreateFeature(context.Background(), ExampleFeature3)
+	feat3, err := c.FeatureConnector.CreateFeature(context.Background(), ExampleFeature3(meterID))
 	if err != nil {
 		t.Fatalf("failed to create feature: %v", err)
 	}

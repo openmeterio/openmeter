@@ -47,8 +47,29 @@ type Meter struct {
 	// Aggregation holds the value of the "aggregation" field.
 	Aggregation meter.MeterAggregation `json:"aggregation,omitempty"`
 	// EventFrom holds the value of the "event_from" field.
-	EventFrom    *time.Time `json:"event_from,omitempty"`
+	EventFrom *time.Time `json:"event_from,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the MeterQuery when eager-loading is set.
+	Edges        MeterEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// MeterEdges holds the relations/edges for other nodes in the graph.
+type MeterEdges struct {
+	// Feature holds the value of the feature edge.
+	Feature []*Feature `json:"feature,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// FeatureOrErr returns the Feature value or an error if the edge
+// was not loaded in eager-loading.
+func (e MeterEdges) FeatureOrErr() ([]*Feature, error) {
+	if e.loadedTypes[0] {
+		return e.Feature, nil
+	}
+	return nil, &NotLoadedError{edge: "feature"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -188,6 +209,11 @@ func (_m *Meter) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *Meter) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QueryFeature queries the "feature" edge of the Meter entity.
+func (_m *Meter) QueryFeature() *FeatureQuery {
+	return NewMeterClient(_m.config).QueryFeature(_m)
 }
 
 // Update returns a builder for updating this Meter.

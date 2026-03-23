@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -59,8 +60,15 @@ func (r *repo) EnsureSubAccount(ctx context.Context, input ledgeraccount.CreateS
 	})
 }
 
+// We can use this upsert pattern for routes as they're a hidden internal & in practice routes would be shared between subaccounts.
+// Not making Routes a dependent of SubAccounts makes sense as the Routes table gives us meaningful information on what "type of currencies" we hold without the structural details of how subaccounts are grouped, e.g. its easy to see from the routes table if we hold EUR or USD...
 func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.CreateSubAccountInput) (*db.LedgerSubAccountRoute, error) {
-	routeKey, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, input.Route)
+	normalizedRoute, err := input.Route.Normalize()
+	if err != nil {
+		return nil, fmt.Errorf("failed to normalize route: %w", err)
+	}
+
+	routeKey, err := ledger.BuildRoutingKey(ledger.RoutingKeyVersionV1, normalizedRoute)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build routing key: %w", err)
 	}
@@ -70,21 +78,22 @@ func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.Cre
 		SetAccountID(input.AccountID).
 		SetRoutingKeyVersion(routeKey.Version()).
 		SetRoutingKey(routeKey.Value()).
-		SetCurrency(input.Route.Currency).
-		SetNillableTaxCode(input.Route.TaxCode).
-		SetFeatures(ledger.SortedFeatures(input.Route.Features)).
-		SetNillableCreditPriority(input.Route.CreditPriority)
+		SetCurrency(string(normalizedRoute.Currency)).
+		SetNillableTaxCode(normalizedRoute.TaxCode).
+		SetFeatures(normalizedRoute.Features).
+		SetNillableCostBasis(normalizedRoute.CostBasis).
+		SetNillableCreditPriority(normalizedRoute.CreditPriority)
 
-	route, err := create.Save(ctx)
+	routeEntity, err := create.Save(ctx)
 	if err == nil {
-		return route, nil
+		return routeEntity, nil
 	}
 
 	if !db.IsConstraintError(err) {
 		return nil, fmt.Errorf("failed to create sub-account route: %w", err)
 	}
 
-	route, err = r.db.LedgerSubAccountRoute.Query().
+	routeEntity, err = r.db.LedgerSubAccountRoute.Query().
 		Where(
 			dbledgersubaccountroute.Namespace(input.Namespace),
 			dbledgersubaccountroute.AccountID(input.AccountID),
@@ -96,7 +105,7 @@ func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.Cre
 		return nil, fmt.Errorf("failed to resolve existing route after conflict: %w", err)
 	}
 
-	return route, nil
+	return routeEntity, nil
 }
 
 func (r *repo) GetSubAccountByID(ctx context.Context, id models.NamespacedID) (*ledgeraccount.SubAccountData, error) {
@@ -127,24 +136,32 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 			dbledgersubaccount.AccountID(input.AccountID),
 		}
 
-		routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 4)
-		if input.Route.Currency != "" {
-			routePredicates = append(routePredicates, dbledgersubaccountroute.Currency(input.Route.Currency))
+		normalizedRoute, err := input.Route.Normalize()
+		if err != nil {
+			return nil, fmt.Errorf("failed to normalize route filter: %w", err)
 		}
-		if input.Route.CreditPriority != nil {
+
+		routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 5)
+		if normalizedRoute.Currency != "" {
+			routePredicates = append(routePredicates, dbledgersubaccountroute.Currency(string(normalizedRoute.Currency)))
+		}
+		if normalizedRoute.CreditPriority != nil {
 			routePredicates = append(routePredicates,
-				dbledgersubaccountroute.CreditPriority(*input.Route.CreditPriority),
+				dbledgersubaccountroute.CreditPriority(*normalizedRoute.CreditPriority),
 			)
 		}
 		// DEFERRED: tax/feature route filters are not active yet but plumbing is in place.
-		if input.Route.TaxCode != nil {
-			routePredicates = append(routePredicates, dbledgersubaccountroute.TaxCode(*input.Route.TaxCode))
+		if normalizedRoute.TaxCode != nil {
+			routePredicates = append(routePredicates, dbledgersubaccountroute.TaxCode(*normalizedRoute.TaxCode))
 		}
-		if len(input.Route.Features) > 0 {
+		if len(normalizedRoute.Features) > 0 {
 			// DB stores features as a sorted jsonb array; filter value is also sorted for canonical comparison.
 			routePredicates = append(routePredicates, func(s *sql.Selector) {
-				s.Where(sqljson.ValueEQ(dbledgersubaccountroute.FieldFeatures, ledger.SortedFeatures(input.Route.Features)))
+				s.Where(sqljson.ValueEQ(dbledgersubaccountroute.FieldFeatures, normalizedRoute.Features))
 			})
+		}
+		if normalizedRoute.CostBasis != nil {
+			routePredicates = append(routePredicates, dbledgersubaccountroute.CostBasis(*normalizedRoute.CostBasis))
 		}
 		if len(routePredicates) > 0 {
 			predicates = append(predicates, dbledgersubaccount.HasRouteWith(routePredicates...))
@@ -190,9 +207,10 @@ func MapSubAccountData(entity *db.LedgerSubAccount) (ledgeraccount.SubAccountDat
 		AccountID:   entity.AccountID,
 		AccountType: entity.Edges.Account.AccountType,
 		Route: ledger.Route{
-			Currency:       dbRoute.Currency,
+			Currency:       currencyx.Code(dbRoute.Currency),
 			TaxCode:        dbRoute.TaxCode,
 			Features:       dbRoute.Features,
+			CostBasis:      dbRoute.CostBasis,
 			CreditPriority: dbRoute.CreditPriority,
 		},
 		RouteMeta: ledgeraccount.SubAccountRouteData{

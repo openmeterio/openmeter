@@ -126,7 +126,10 @@ type Feature struct {
 	// Key The unique key of the feature.
 	Key string `json:"key"`
 
-	// MeterSlug The meter that the feature is associated with and decreases grants by usage.
+	// MeterID The ID of the meter that the feature is associated with.
+	MeterID *string `json:"meterID,omitempty"`
+
+	// Deprecated: MeterSlug is kept temporarily for v1 API backward compatibility. Use MeterID.
 	MeterSlug *string `json:"meterSlug,omitempty"`
 
 	// MeterGroupByFilters Optional meter group by filters. Useful if the meter scope is broader than what feature tracks.
@@ -165,9 +168,9 @@ func (f *Feature) Validate() error {
 		errs = append(errs, fmt.Errorf("key is required"))
 	}
 
-	if f.MeterSlug != nil {
-		if *f.MeterSlug == "" {
-			errs = append(errs, fmt.Errorf("meter slug cannot be empty"))
+	if f.MeterID != nil {
+		if *f.MeterID == "" {
+			errs = append(errs, fmt.Errorf("meter id cannot be empty"))
 		}
 	}
 

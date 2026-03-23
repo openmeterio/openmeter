@@ -23,6 +23,36 @@ type ConvertCurrencyTemplate struct {
 	CreditPriority *int
 }
 
+func (t ConvertCurrencyTemplate) Validate() error {
+	if t.At.IsZero() {
+		return fmt.Errorf("at is required")
+	}
+
+	if err := ledger.ValidateTransactionAmount(t.TargetAmount); err != nil {
+		return fmt.Errorf("target amount: %w", err)
+	}
+
+	if err := ledger.ValidateTransactionAmount(t.CostBasis); err != nil {
+		return fmt.Errorf("cost basis: %w", err)
+	}
+
+	if err := ledger.ValidateCurrency(t.SourceCurrency); err != nil {
+		return fmt.Errorf("source currency: %w", err)
+	}
+
+	if err := ledger.ValidateCurrency(t.TargetCurrency); err != nil {
+		return fmt.Errorf("target currency: %w", err)
+	}
+
+	if t.CreditPriority != nil {
+		if err := ledger.ValidateCreditPriority(*t.CreditPriority); err != nil {
+			return fmt.Errorf("credit priority: %w", err)
+		}
+	}
+
+	return nil
+}
+
 var _ CustomerTransactionTemplate = (ConvertCurrencyTemplate{})
 
 func (t ConvertCurrencyTemplate) typeGuard() guard {
@@ -31,6 +61,10 @@ func (t ConvertCurrencyTemplate) typeGuard() guard {
 
 func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
 	priority := resolveCustomerFBOCreditPriority(t.CreditPriority)
+	if t.CostBasis.IsNegative() {
+		return nil, fmt.Errorf("failed to normalize cost basis: cost basis must be non-negative")
+	}
+	costBasis := t.CostBasis
 
 	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
@@ -38,7 +72,8 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 	}
 
 	sourceAccount, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
-		Currency:       string(t.SourceCurrency),
+		Currency:       t.SourceCurrency,
+		CostBasis:      &costBasis,
 		CreditPriority: priority,
 	})
 	if err != nil {
@@ -46,7 +81,8 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 	}
 
 	targetAccount, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
-		Currency:       string(t.TargetCurrency),
+		Currency:       t.TargetCurrency,
+		CostBasis:      &costBasis,
 		CreditPriority: priority,
 	})
 	if err != nil {
@@ -59,14 +95,16 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 	}
 
 	brokerageSource, err := businessAccounts.BrokerageAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
-		Currency: string(t.SourceCurrency),
+		Currency:  t.SourceCurrency,
+		CostBasis: &costBasis,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get brokerage source sub-account: %w", err)
 	}
 
 	brokerageTarget, err := businessAccounts.BrokerageAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
-		Currency: string(t.TargetCurrency),
+		Currency:  t.TargetCurrency,
+		CostBasis: &costBasis,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get brokerage target sub-account: %w", err)

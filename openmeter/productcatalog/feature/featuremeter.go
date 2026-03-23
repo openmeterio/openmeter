@@ -62,20 +62,20 @@ func (c *featureConnector) ResolveFeatureMeters(ctx context.Context, namespace s
 	metersToResolve := lo.Uniq(
 		lo.Filter(
 			lo.Map(lo.Values(featuresByKey), func(f Feature, _ int) string {
-				if f.MeterSlug == nil {
+				if f.MeterID == nil {
 					return ""
 				}
 
-				return *f.MeterSlug
+				return *f.MeterID
 			}),
-			func(meterSlug string, _ int) bool {
-				return meterSlug != ""
+			func(meterID string, _ int) bool {
+				return meterID != ""
 			},
 		),
 	)
 
 	meters, err := c.meterService.ListMeters(ctx, meter.ListMetersParams{
-		SlugFilter:     lo.ToPtr(metersToResolve),
+		IDFilter:       lo.ToPtr(metersToResolve),
 		Namespace:      namespace,
 		IncludeDeleted: true,
 	})
@@ -83,11 +83,13 @@ func (c *featureConnector) ResolveFeatureMeters(ctx context.Context, namespace s
 		return nil, fmt.Errorf("listing meters: %w", err)
 	}
 
-	metersByKey := getLastMeters(meters.Items)
+	metersByID := lo.SliceToMap(meters.Items, func(m meter.Meter) (string, meter.Meter) {
+		return m.ID, m
+	})
 
 	out := make(FeatureMeterCollection, len(featuresByKey))
 	for featureKey, feat := range featuresByKey {
-		if feat.MeterSlug == nil {
+		if feat.MeterID == nil {
 			out[featureKey] = FeatureMeter{
 				Feature: feat,
 			}
@@ -95,7 +97,7 @@ func (c *featureConnector) ResolveFeatureMeters(ctx context.Context, namespace s
 			continue
 		}
 
-		meter, exists := metersByKey[*feat.MeterSlug]
+		meter, exists := metersByID[*feat.MeterID]
 		if !exists {
 			out[featureKey] = FeatureMeter{
 				Feature: feat,
@@ -166,20 +168,4 @@ func (a featureAccessor) GetDeletedAt(f Feature) *time.Time {
 
 func getLastFeatures(features []Feature) map[string]Feature {
 	return getLastEntity(features, featureAccessor{})
-}
-
-type meterAccessor struct{}
-
-var _ lastEntityAccessor[meter.Meter] = (*meterAccessor)(nil)
-
-func (a meterAccessor) GetKey(meter meter.Meter) string {
-	return meter.Key
-}
-
-func (a meterAccessor) GetDeletedAt(meter meter.Meter) *time.Time {
-	return meter.DeletedAt
-}
-
-func getLastMeters(meters []meter.Meter) map[string]meter.Meter {
-	return getLastEntity(meters, meterAccessor{})
 }

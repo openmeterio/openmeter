@@ -34,6 +34,10 @@ func (a *Adapter) ListMeters(ctx context.Context, params meter.ListMetersParams)
 		query = query.Where(meterdb.DeletedAtIsNil())
 	}
 
+	if params.IDFilter != nil {
+		query = query.Where(meterdb.IDIn(*params.IDFilter...))
+	}
+
 	if params.SlugFilter != nil {
 		query = query.Where(meterdb.KeyIn(*params.SlugFilter...))
 	}

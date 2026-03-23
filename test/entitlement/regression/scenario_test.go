@@ -36,7 +36,7 @@ func TestGrantExpiringAtReset(t *testing.T) {
 		Name:      "feature-1",
 		Key:       "feature-1",
 		Namespace: "namespace-1",
-		MeterSlug: convert.ToPointer("meter-1"),
+		MeterID:   convert.ToPointer(deps.Meter1ID),
 	})
 	assert.NoError(err)
 	assert.NotNil(feature)
@@ -188,7 +188,7 @@ func TestGrantExpiringAndRecurringAtReset(t *testing.T) {
 		Name:      "feature-1",
 		Key:       "feature-1",
 		Namespace: "namespace-1",
-		MeterSlug: convert.ToPointer("meter-1"),
+		MeterID:   convert.ToPointer(deps.Meter1ID),
 	})
 	assert.NoError(err)
 	assert.NotNil(feature)
@@ -292,7 +292,7 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 		Name:      "feature-1",
 		Key:       "feature-1",
 		Namespace: "namespace-1",
-		MeterSlug: convert.ToPointer("meter-1"),
+		MeterID:   convert.ToPointer(deps.Meter1ID),
 	})
 	assert.NoError(err)
 	assert.NotNil(feature)
@@ -395,7 +395,7 @@ func TestCreatingEntitlementsForKeyOfArchivedFeatures(t *testing.T) {
 		Name:      "feature-1",
 		Key:       "feature-1",
 		Namespace: "namespace-1",
-		MeterSlug: convert.ToPointer("meter-1"),
+		MeterID:   convert.ToPointer(deps.Meter1ID),
 	})
 	assert.NoError(err)
 	assert.NotNil(feat)
@@ -433,7 +433,7 @@ func TestCreatingEntitlementsForKeyOfArchivedFeatures(t *testing.T) {
 		Name:      "feature-1-2",
 		Key:       "feature-1",
 		Namespace: "namespace-1",
-		MeterSlug: convert.ToPointer("meter-1"),
+		MeterID:   convert.ToPointer(deps.Meter1ID),
 	})
 	assert.NoError(err)
 	assert.NotNil(feature2)
@@ -471,7 +471,7 @@ func TestGrantingAfterOverage(t *testing.T) {
 		Name:      "feature-1",
 		Key:       "feature-1",
 		Namespace: "namespace-1",
-		MeterSlug: convert.ToPointer("meter-1"),
+		MeterID:   convert.ToPointer(deps.Meter1ID),
 	})
 	assert.NoError(err)
 	assert.NotNil(feature)
@@ -582,7 +582,7 @@ func TestBalanceWorkerActiveToFromEntitlementsMapping(t *testing.T) {
 		Name:      "feature-1",
 		Key:       "feature-1",
 		Namespace: "namespace-1",
-		MeterSlug: convert.ToPointer("meter-1"),
+		MeterID:   convert.ToPointer(deps.Meter1ID),
 	})
 	assert.NoError(err)
 	assert.NotNil(feature)

@@ -20,7 +20,7 @@ type CreateFeatureInputs struct {
 	Name                string              `json:"name"`
 	Key                 string              `json:"key"`
 	Namespace           string              `json:"namespace"`
-	MeterSlug           *string             `json:"meterSlug"`
+	MeterID             *string             `json:"meterID"`
 	MeterGroupByFilters MeterGroupByFilters `json:"meterGroupByFilters"`
 	UnitCost            *UnitCost           `json:"unitCost"`
 	Metadata            map[string]string   `json:"metadata"`
@@ -69,7 +69,8 @@ func (f FeatureOrderBy) Values() []FeatureOrderBy {
 type ListFeaturesParams struct {
 	IDsOrKeys       []string
 	Namespace       string
-	MeterSlugs      []string
+	MeterIDs        []string
+	MeterSlugs      []string // Kept for ingest pipeline compat (queries via ent edge on meter key)
 	IncludeArchived bool
 	Page            pagination.Page
 	OrderBy         FeatureOrderBy
@@ -112,17 +113,23 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 	// Validate meter configuration
 	var resolvedMeter *meterpkg.Meter
 
-	if feature.MeterSlug != nil {
-		slug := *feature.MeterSlug
+	if feature.MeterID != nil {
+		meterID := *feature.MeterID
 
 		// nosemgrep: trailofbits.go.invalid-usage-of-modified-variable.invalid-usage-of-modified-variable
 		meter, err := c.meterService.GetMeterByIDOrSlug(ctx, meterpkg.GetMeterInput{
 			Namespace: feature.Namespace,
-			IDOrSlug:  slug,
+			IDOrSlug:  meterID,
 		})
 		if err != nil {
-			return Feature{}, meterpkg.NewMeterNotFoundError(slug)
+			if meterpkg.IsMeterNotFoundError(err) {
+				return Feature{}, meterpkg.NewMeterNotFoundError(meterID)
+			}
+			return Feature{}, fmt.Errorf("get meter %s: %w", meterID, err)
 		}
+
+		// Normalize to meter ID
+		feature.MeterID = &meter.ID
 
 		resolvedMeter = &meter
 
@@ -131,13 +138,9 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 		}
 
 		if feature.MeterGroupByFilters != nil {
-			err = feature.MeterGroupByFilters.Validate(meter)
-			if err != nil {
+			if err = feature.MeterGroupByFilters.Validate(meter); err != nil {
 				return Feature{}, err
 			}
-		}
-		if err != nil {
-			return Feature{}, err
 		}
 	}
 
@@ -179,6 +182,11 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 	createdFeature, err := c.featureRepo.CreateFeature(ctx, feature)
 	if err != nil {
 		return Feature{}, err
+	}
+
+	// Populate MeterSlug from resolved meter for v1 API backward compat
+	if resolvedMeter != nil {
+		createdFeature.MeterSlug = &resolvedMeter.Key
 	}
 
 	// Publish the feature created event

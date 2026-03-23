@@ -8,10 +8,10 @@ import (
 )
 
 // NewMeterNotFoundError returns a new MeterNotFoundError.
-func NewMeterNotFoundError(meterSlug string) error {
+func NewMeterNotFoundError(meterIDOrSlug string) error {
 	return &MeterNotFoundError{
 		err: models.NewGenericNotFoundError(
-			fmt.Errorf("meter not found: %s", meterSlug),
+			fmt.Errorf("meter not found: %s", meterIDOrSlug),
 		),
 	}
 }

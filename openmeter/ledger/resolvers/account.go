@@ -47,6 +47,7 @@ func (s *AccountResolver) CreateCustomerAccounts(ctx context.Context, customerID
 		requiredTypes := []ledger.AccountType{
 			ledger.AccountTypeCustomerFBO,
 			ledger.AccountTypeCustomerReceivable,
+			ledger.AccountTypeCustomerAccrued,
 		}
 
 		for _, accountType := range requiredTypes {
@@ -92,12 +93,29 @@ func (s *AccountResolver) GetCustomerAccounts(ctx context.Context, customerID cu
 
 	fboID, ok := accountIDs[ledger.AccountTypeCustomerFBO]
 	if !ok {
-		return ledger.CustomerAccounts{}, fmt.Errorf("FBO account not found for customer %s", customerID.ID)
+		return ledger.CustomerAccounts{}, ledger.ErrCustomerAccountMissing.WithAttrs(models.Attributes{
+			"namespace":    customerID.Namespace,
+			"customer_id":  customerID.ID,
+			"account_type": ledger.AccountTypeCustomerFBO,
+		})
 	}
 
 	receivableID, ok := accountIDs[ledger.AccountTypeCustomerReceivable]
 	if !ok {
-		return ledger.CustomerAccounts{}, fmt.Errorf("receivable account not found for customer %s", customerID.ID)
+		return ledger.CustomerAccounts{}, ledger.ErrCustomerAccountMissing.WithAttrs(models.Attributes{
+			"namespace":    customerID.Namespace,
+			"customer_id":  customerID.ID,
+			"account_type": ledger.AccountTypeCustomerReceivable,
+		})
+	}
+
+	accruedID, ok := accountIDs[ledger.AccountTypeCustomerAccrued]
+	if !ok {
+		return ledger.CustomerAccounts{}, ledger.ErrCustomerAccountMissing.WithAttrs(models.Attributes{
+			"namespace":    customerID.Namespace,
+			"customer_id":  customerID.ID,
+			"account_type": ledger.AccountTypeCustomerAccrued,
+		})
 	}
 
 	fboAcc, err := s.AccountService.GetAccountByID(ctx, models.NamespacedID{Namespace: ns, ID: fboID})
@@ -120,9 +138,20 @@ func (s *AccountResolver) GetCustomerAccounts(ctx context.Context, customerID cu
 		return ledger.CustomerAccounts{}, err
 	}
 
+	accruedAcc, err := s.AccountService.GetAccountByID(ctx, models.NamespacedID{Namespace: ns, ID: accruedID})
+	if err != nil {
+		return ledger.CustomerAccounts{}, fmt.Errorf("failed to get Accrued account: %w", err)
+	}
+
+	accruedAccount, err := accruedAcc.AsCustomerAccruedAccount()
+	if err != nil {
+		return ledger.CustomerAccounts{}, err
+	}
+
 	return ledger.CustomerAccounts{
 		FBOAccount:        fboAccount,
 		ReceivableAccount: receivableAccount,
+		AccruedAccount:    accruedAccount,
 	}, nil
 }
 

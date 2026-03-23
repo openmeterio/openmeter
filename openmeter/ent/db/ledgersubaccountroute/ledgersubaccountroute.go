@@ -34,6 +34,8 @@ const (
 	FieldTaxCode = "tax_code"
 	// FieldFeatures holds the string denoting the features field in the database.
 	FieldFeatures = "features"
+	// FieldCostBasis holds the string denoting the cost_basis field in the database.
+	FieldCostBasis = "cost_basis"
 	// FieldCreditPriority holds the string denoting the credit_priority field in the database.
 	FieldCreditPriority = "credit_priority"
 	// EdgeAccount holds the string denoting the account edge name in mutations.
@@ -71,6 +73,7 @@ var Columns = []string{
 	FieldCurrency,
 	FieldTaxCode,
 	FieldFeatures,
+	FieldCostBasis,
 	FieldCreditPriority,
 }
 
@@ -148,6 +151,11 @@ func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 // ByTaxCode orders the results by the tax_code field.
 func ByTaxCode(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTaxCode, opts...).ToFunc()
+}
+
+// ByCostBasis orders the results by the cost_basis field.
+func ByCostBasis(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCostBasis, opts...).ToFunc()
 }
 
 // ByCreditPriority orders the results by the credit_priority field.

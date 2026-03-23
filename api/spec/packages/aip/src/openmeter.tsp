@@ -12,6 +12,7 @@ import "./billing/index.tsp";
 import "./currencies/index.tsp";
 import "./features/index.tsp";
 import "./llmcost/index.tsp";
+import "./productcatalog/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;

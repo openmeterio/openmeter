@@ -19,6 +19,7 @@ import (
 	ledgerhistorical "github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	transactionstestutils "github.com/openmeterio/openmeter/openmeter/ledger/transactions/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	"github.com/openmeterio/openmeter/tools/migrate"
@@ -62,16 +63,16 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 
 	ctx := t.Context()
 	namespace := testNamespace()
-	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: "USD"})
-	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: "EUR"})
+	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
+	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("EUR")})
 
 	txInput := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
 		{
-			Address:     testAddress(subAccountA),
+			Address:     testAddress(t, subAccountA),
 			AmountValue: alpacadecimal.NewFromInt(-100),
 		},
 		{
-			Address:     testAddress(subAccountB),
+			Address:     testAddress(t, subAccountB),
 			AmountValue: alpacadecimal.NewFromInt(100),
 		},
 	})
@@ -155,8 +156,8 @@ func TestRepo_ListTransactions_PaginatesAndFilters(t *testing.T) {
 
 	ctx := t.Context()
 	namespace := testNamespace()
-	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: "USD"})
-	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: "EUR"})
+	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
+	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("EUR")})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
 		Namespace: namespace,
@@ -165,11 +166,11 @@ func TestRepo_ListTransactions_PaginatesAndFilters(t *testing.T) {
 
 	txInput1 := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
 		{
-			Address:     testAddress(subAccountA),
+			Address:     testAddress(t, subAccountA),
 			AmountValue: alpacadecimal.NewFromInt(-10),
 		},
 		{
-			Address:     testAddress(subAccountB),
+			Address:     testAddress(t, subAccountB),
 			AmountValue: alpacadecimal.NewFromInt(10),
 		},
 	})
@@ -180,11 +181,11 @@ func TestRepo_ListTransactions_PaginatesAndFilters(t *testing.T) {
 
 	txInput2 := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
 		{
-			Address:     testAddress(subAccountA),
+			Address:     testAddress(t, subAccountA),
 			AmountValue: alpacadecimal.NewFromInt(-20),
 		},
 		{
-			Address:     testAddress(subAccountB),
+			Address:     testAddress(t, subAccountB),
 			AmountValue: alpacadecimal.NewFromInt(20),
 		},
 	})
@@ -232,9 +233,23 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	ctx := t.Context()
 	namespace := testNamespace()
 
-	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: "USD", CreditPriority: lo.ToPtr(1)})
-	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: "USD", CreditPriority: lo.ToPtr(2)})
-	subAccountC := env.createSubAccount(t, namespace, ledger.Route{Currency: "EUR", CreditPriority: lo.ToPtr(1)})
+	subAccountA := env.createSubAccount(t, namespace, ledger.Route{
+		Currency:       currencyx.Code("USD"),
+		CreditPriority: lo.ToPtr(1),
+	})
+	subAccountB := env.createSubAccount(t, namespace, ledger.Route{
+		Currency:       currencyx.Code("USD"),
+		CreditPriority: lo.ToPtr(2),
+	})
+	subAccountC := env.createSubAccount(t, namespace, ledger.Route{
+		Currency:       currencyx.Code("EUR"),
+		CreditPriority: lo.ToPtr(1),
+	})
+	subAccountD := env.createSubAccount(t, namespace, ledger.Route{
+		Currency:       currencyx.Code("USD"),
+		CreditPriority: lo.ToPtr(1),
+		CostBasis:      lo.ToPtr(mustDecimal(t, "0.7")),
+	})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{Namespace: namespace})
 	require.NoError(t, err)
@@ -242,11 +257,11 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	bookedAtEarly := time.Now().UTC().Add(-2 * time.Hour)
 	txInputEarly := mustSetUpHistoricalTransactionInput(t, bookedAtEarly, []*transactionstestutils.AnyEntryInput{
 		{
-			Address:     testAddress(subAccountA),
+			Address:     testAddress(t, subAccountA),
 			AmountValue: alpacadecimal.NewFromInt(100),
 		},
 		{
-			Address:     testAddress(subAccountB),
+			Address:     testAddress(t, subAccountB),
 			AmountValue: alpacadecimal.NewFromInt(-100),
 		},
 	})
@@ -256,27 +271,40 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	bookedAtLate := time.Now().UTC().Add(-30 * time.Minute)
 	txInputLate := mustSetUpHistoricalTransactionInput(t, bookedAtLate, []*transactionstestutils.AnyEntryInput{
 		{
-			Address:     testAddress(subAccountA),
+			Address:     testAddress(t, subAccountA),
 			AmountValue: alpacadecimal.NewFromInt(50),
 		},
 		{
-			Address:     testAddress(subAccountC),
+			Address:     testAddress(t, subAccountC),
 			AmountValue: alpacadecimal.NewFromInt(-50),
 		},
 	})
 	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInputLate)
 	require.NoError(t, err)
 
+	txInputCostBasis := mustSetUpHistoricalTransactionInput(t, time.Now().UTC().Add(-15*time.Minute), []*transactionstestutils.AnyEntryInput{
+		{
+			Address:     testAddress(t, subAccountD),
+			AmountValue: alpacadecimal.NewFromInt(25),
+		},
+		{
+			Address:     testAddress(t, subAccountC),
+			AmountValue: alpacadecimal.NewFromInt(-25),
+		},
+	})
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInputCostBasis)
+	require.NoError(t, err)
+
 	// Sum by currency
 	sumUSD, err := env.repo.SumEntries(ctx, ledger.Query{
 		Namespace: namespace,
 		Filters: ledger.Filters{
-			Route: ledger.RouteFilter{Currency: "USD"},
+			Route: ledger.RouteFilter{Currency: currencyx.Code("USD")},
 		},
 	})
 	require.NoError(t, err)
-	// subAccountA(USD,p1): 100+50=150, subAccountB(USD,p2): -100 => total=50
-	require.True(t, sumUSD.Equal(alpacadecimal.NewFromInt(50)))
+	// subAccountA(USD,p1): 100+50=150, subAccountB(USD,p2): -100, subAccountD(USD,p1,cb=0.7): +25 => total=75
+	require.True(t, sumUSD.Equal(alpacadecimal.NewFromInt(75)))
 
 	// Sum by currency + credit priority
 	creditPriority := 1
@@ -284,14 +312,14 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			Route: ledger.RouteFilter{
-				Currency:       "USD",
+				Currency:       currencyx.Code("USD"),
 				CreditPriority: &creditPriority,
 			},
 		},
 	})
 	require.NoError(t, err)
-	// Only subAccountA(USD,p1): 100+50=150
-	require.True(t, sumPriority.Equal(alpacadecimal.NewFromInt(150)))
+	// subAccountA(USD,p1): 100+50=150, subAccountD(USD,p1,cb=0.7): +25 => total=175
+	require.True(t, sumPriority.Equal(alpacadecimal.NewFromInt(175)))
 
 	// Sum by transaction ID
 	txID := txEarly.ID().ID
@@ -299,7 +327,7 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			TransactionID: &txID,
-			Route:         ledger.RouteFilter{Currency: "USD"},
+			Route:         ledger.RouteFilter{Currency: currencyx.Code("USD")},
 		},
 	})
 	require.NoError(t, err)
@@ -312,12 +340,25 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Namespace: namespace,
 		Filters: ledger.Filters{
 			BookedAtPeriod: &timeutil.OpenPeriod{From: &from},
-			Route:          ledger.RouteFilter{Currency: "USD"},
+			Route:          ledger.RouteFilter{Currency: currencyx.Code("USD")},
 		},
 	})
 	require.NoError(t, err)
-	// Only late tx: subAccountA(USD): +50
-	require.True(t, sumLate.Equal(alpacadecimal.NewFromInt(50)))
+	// Late-window USD entries: subAccountA +50 and subAccountD +25
+	require.True(t, sumLate.Equal(alpacadecimal.NewFromInt(75)))
+
+	// Sum by canonicalized cost basis
+	sumCostBasis, err := env.repo.SumEntries(ctx, ledger.Query{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			Route: ledger.RouteFilter{
+				Currency:  currencyx.Code("USD"),
+				CostBasis: lo.ToPtr(mustDecimal(t, "0.70")),
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, sumCostBasis.Equal(alpacadecimal.NewFromInt(25)))
 }
 
 func TestSumEntriesQuery_SQL(t *testing.T) {
@@ -333,22 +374,25 @@ func TestSumEntriesQuery_SQL(t *testing.T) {
 					From: &bookedFrom,
 				},
 				Route: ledger.RouteFilter{
-					Currency:       "USD",
+					Currency:       currencyx.Code("USD"),
+					CostBasis:      lo.ToPtr(mustDecimal(t, "0.70")),
 					CreditPriority: lo.ToPtr(7),
 				},
 			},
 		},
 	}
 
-	sqlStr, args := q.SQL()
+	sqlStr, args, err := q.SQL()
+	require.NoError(t, err)
 
-	require.Equal(t, `SELECT SUM("ledger_entries"."amount") AS "sum_amount" FROM "ledger_entries" WHERE (("ledger_entries"."namespace" = $1 AND "ledger_entries"."transaction_id" = $2) AND EXISTS (SELECT "ledger_transactions"."id" FROM "ledger_transactions" WHERE "ledger_entries"."transaction_id" = "ledger_transactions"."id" AND "ledger_transactions"."booked_at" >= $3)) AND EXISTS (SELECT "ledger_sub_accounts"."id" FROM "ledger_sub_accounts" WHERE "ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id" AND EXISTS (SELECT "ledger_sub_account_routes"."id" FROM "ledger_sub_account_routes" WHERE ("ledger_sub_accounts"."route_id" = "ledger_sub_account_routes"."id" AND "ledger_sub_account_routes"."currency" = $4) AND "ledger_sub_account_routes"."credit_priority" = $5))`, sqlStr)
+	require.Equal(t, `SELECT SUM("ledger_entries"."amount") AS "sum_amount" FROM "ledger_entries" WHERE (("ledger_entries"."namespace" = $1 AND "ledger_entries"."transaction_id" = $2) AND EXISTS (SELECT "ledger_transactions"."id" FROM "ledger_transactions" WHERE "ledger_entries"."transaction_id" = "ledger_transactions"."id" AND "ledger_transactions"."booked_at" >= $3)) AND EXISTS (SELECT "ledger_sub_accounts"."id" FROM "ledger_sub_accounts" WHERE "ledger_entries"."sub_account_id" = "ledger_sub_accounts"."id" AND EXISTS (SELECT "ledger_sub_account_routes"."id" FROM "ledger_sub_account_routes" WHERE (("ledger_sub_accounts"."route_id" = "ledger_sub_account_routes"."id" AND "ledger_sub_account_routes"."currency" = $4) AND "ledger_sub_account_routes"."credit_priority" = $5) AND "ledger_sub_account_routes"."cost_basis" = $6))`, sqlStr)
 	require.Equal(t, []any{
 		"ns-test",
 		txID,
 		bookedFrom,
 		"USD",
 		7,
+		mustDecimal(t, "0.7"),
 	}, args)
 }
 
@@ -436,12 +480,29 @@ func mustSetUpHistoricalTransactionInput(_ *testing.T, bookedAt time.Time, entri
 	}
 }
 
-func testAddress(sub *ledgeraccount.SubAccountData) ledger.PostingAddress {
-	return ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
-		SubAccountID:      sub.ID,
-		AccountType:       sub.AccountType,
-		RouteID:           sub.RouteMeta.ID,
-		RoutingKeyVersion: sub.RouteMeta.RoutingKeyVersion,
-		RoutingKey:        sub.RouteMeta.RoutingKey,
+func testAddress(t *testing.T, sub *ledgeraccount.SubAccountData) ledger.PostingAddress {
+	t.Helper()
+
+	routingKey, err := ledger.NewRoutingKey(sub.RouteMeta.RoutingKeyVersion, sub.RouteMeta.RoutingKey)
+	require.NoError(t, err)
+
+	addr, err := ledgeraccount.NewAddressFromData(ledgeraccount.AddressData{
+		SubAccountID: sub.ID,
+		AccountType:  sub.AccountType,
+		Route:        sub.Route,
+		RouteID:      sub.RouteMeta.ID,
+		RoutingKey:   routingKey,
 	})
+	require.NoError(t, err)
+
+	return addr
+}
+
+func mustDecimal(t *testing.T, raw string) alpacadecimal.Decimal {
+	t.Helper()
+
+	value, err := alpacadecimal.NewFromString(raw)
+	require.NoError(t, err)
+
+	return value
 }

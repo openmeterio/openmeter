@@ -47,6 +47,7 @@ func TestGetAccess(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.NotNil(t, mtr)
+		createMeterInPG(t, deps.dbClient, mtr)
 
 		// First, create the subject and the customer
 		randName := testutils.NameGenerator.Generate()
@@ -61,7 +62,7 @@ func TestGetAccess(t *testing.T) {
 			Key:       randName.Key,
 			Name:      randName.Name,
 			Namespace: namespace,
-			MeterSlug: lo.ToPtr(mtr.Key),
+			MeterID:   lo.ToPtr(mtr.ID),
 		})
 		require.NoError(t, err)
 		require.NotNil(t, feat)
@@ -110,6 +111,7 @@ func TestGetAccess(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.NotNil(t, mtr)
+		createMeterInPG(t, deps.dbClient, mtr)
 
 		// First, create the subject and the customer
 		randName := testutils.NameGenerator.Generate()
@@ -124,7 +126,7 @@ func TestGetAccess(t *testing.T) {
 				Key:       fmt.Sprintf("test-%d", i),
 				Name:      "test",
 				Namespace: namespace,
-				MeterSlug: lo.ToPtr(mtr.Key),
+				MeterID:   lo.ToPtr(mtr.ID),
 			})
 			require.NoError(t, err)
 			require.NotNil(t, feat)
@@ -176,6 +178,7 @@ func TestGetAccess(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.NotNil(t, mtr)
+		createMeterInPG(t, deps.dbClient, mtr)
 
 		// First, create the subject
 		randName := testutils.NameGenerator.Generate()
@@ -188,7 +191,7 @@ func TestGetAccess(t *testing.T) {
 			Key:       "test-bool",
 			Name:      "test",
 			Namespace: namespace,
-			MeterSlug: lo.ToPtr(mtr.Key),
+			MeterID:   lo.ToPtr(mtr.ID),
 		})
 		require.NoError(t, err)
 		require.NotNil(t, feat)
@@ -208,7 +211,7 @@ func TestGetAccess(t *testing.T) {
 			Key:       "test-static",
 			Name:      "test",
 			Namespace: namespace,
-			MeterSlug: lo.ToPtr(mtr.Key),
+			MeterID:   lo.ToPtr(mtr.ID),
 		})
 		require.NoError(t, err)
 		require.NotNil(t, feat)
@@ -229,7 +232,7 @@ func TestGetAccess(t *testing.T) {
 			Key:       "test-metered",
 			Name:      "test",
 			Namespace: namespace,
-			MeterSlug: lo.ToPtr(mtr.Key),
+			MeterID:   lo.ToPtr(mtr.ID),
 		})
 		require.NoError(t, err)
 		require.NotNil(t, feat)
@@ -290,6 +293,7 @@ func TestGetAccess(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.NotNil(t, mtr)
+		createMeterInPG(t, deps.dbClient, mtr)
 
 		randName := testutils.NameGenerator.Generate()
 
@@ -303,7 +307,7 @@ func TestGetAccess(t *testing.T) {
 				Key:       fmt.Sprintf("test-%d", i),
 				Name:      "test",
 				Namespace: namespace,
-				MeterSlug: lo.ToPtr(mtr.Key),
+				MeterID:   lo.ToPtr(mtr.ID),
 			})
 			require.NoError(t, err)
 			require.NotNil(t, feat)

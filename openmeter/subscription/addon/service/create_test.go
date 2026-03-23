@@ -122,7 +122,7 @@ func TestAddonServiceCreate(t *testing.T) {
 			defer clock.ResetTime()
 
 			// Let's NOT create a subscription
-			_ = deps.FeatureConnector.CreateExampleFeatures(t)
+			_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
 			// Let's create an add
 			add := deps.AddonService.CreateTestAddon(t, subscriptiontestutils.GetExampleAddonInput(t, productcatalog.EffectivePeriod{
@@ -254,7 +254,7 @@ func TestAddonServiceCreate(t *testing.T) {
 				EffectiveFrom: lo.ToPtr(now),
 			})
 
-			_ = deps.FeatureConnector.CreateExampleFeatures(t)
+			_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
 			p, err := deps.PlanService.CreatePlan(context.Background(), planInp)
 			require.Nil(t, err)
@@ -330,7 +330,7 @@ func TestAddonServiceCreate(t *testing.T) {
 				EffectiveFrom: lo.ToPtr(now),
 			}, productcatalog.AddonInstanceTypeMultiple, &subscriptiontestutils.ExampleAddonRateCard1)
 
-			_ = deps.FeatureConnector.CreateExampleFeatures(t)
+			_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
 			p, err := deps.PlanService.CreatePlan(context.Background(), planInp)
 			require.Nil(t, err)
@@ -403,7 +403,7 @@ func TestAddonServiceCreate(t *testing.T) {
 
 			// Let's create a subscription without a plan reference
 			cust := deps.CustomerAdapter.CreateExampleCustomer(t)
-			_ = deps.FeatureConnector.CreateExampleFeatures(t)
+			_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 			plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 			spec1, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
@@ -518,7 +518,7 @@ func createPlanWithAddon(
 ) (subscription.Plan, addon.Addon) {
 	t.Helper()
 
-	_ = deps.FeatureConnector.CreateExampleFeatures(t)
+	_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
 	p, err := deps.PlanService.CreatePlan(context.Background(), planInp)
 	require.Nil(t, err)
@@ -553,7 +553,7 @@ func createPlanWithAddon(
 
 func createExampleSubscription(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies, currentTime time.Time) subscription.SubscriptionView {
 	cust := deps.CustomerAdapter.CreateExampleCustomer(t)
-	_ = deps.FeatureConnector.CreateExampleFeatures(t)
+	_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 	plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
 
 	spec1, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{

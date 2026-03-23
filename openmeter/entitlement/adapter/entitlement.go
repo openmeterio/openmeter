@@ -15,6 +15,7 @@ import (
 	customersubjectsdb "github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	db_entitlement "github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	db_meter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	db_usagereset "github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -262,14 +263,18 @@ func (a *entitlementDBAdapter) ListEntitlementsAffectedByIngestEvents(ctx contex
 				return nil, fmt.Errorf("failed to query customers: %w", err)
 			}
 
-			// resolve feature IDs
+			// resolve feature IDs via meter edge (ingest pipeline provides meter keys)
 			features, err := repo.db.Feature.Query().Where(
 				db_feature.Namespace(eventFilter.Namespace),
-				db_feature.MeterSlugIn(eventFilter.MeterSlugs...),
+				db_feature.HasMeterWith(db_meter.KeyIn(eventFilter.MeterSlugs...)),
 				db_feature.ArchivedAtIsNil(),
 			).All(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("failed to query features by meters: %w", err)
+			}
+
+			if len(customers) == 0 || len(features) == 0 {
+				return result, nil
 			}
 
 			entitlements, err := repo.db.Entitlement.Query().

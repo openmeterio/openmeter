@@ -75,26 +75,26 @@ func (s *SuiteBase) BeforeTest(ctx context.Context, suiteName, testName string) 
 	s.ProvisionBillingProfile(ctx, s.Namespace, appSandbox.GetID())
 
 	apiRequestsTotalMeterSlug := "api-requests-total"
+	apiRequestsTotalMeterID := ulid.Make().String()
 
-	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
-		{
-			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
-				NamespacedModel: models.NamespacedModel{
-					Namespace: s.Namespace,
-				},
-				ManagedModel: models.ManagedModel{
-					CreatedAt: time.Now(),
-					UpdatedAt: time.Now(),
-				},
-				Name: "API Requests Total",
+	testMeter := meter.Meter{
+		ManagedResource: models.ManagedResource{
+			ID: apiRequestsTotalMeterID,
+			NamespacedModel: models.NamespacedModel{
+				Namespace: s.Namespace,
 			},
-			Key:           apiRequestsTotalMeterSlug,
-			Aggregation:   meter.MeterAggregationSum,
-			EventType:     "test",
-			ValueProperty: lo.ToPtr("$.value"),
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "API Requests Total",
 		},
-	})
+		Key:           apiRequestsTotalMeterSlug,
+		Aggregation:   meter.MeterAggregationSum,
+		EventType:     "test",
+		ValueProperty: lo.ToPtr("$.value"),
+	}
+	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{testMeter})
 	s.NoError(err, "Replacing meters must not return error")
 
 	apiRequestsTotalFeatureKey := "api-requests-total"
@@ -103,7 +103,7 @@ func (s *SuiteBase) BeforeTest(ctx context.Context, suiteName, testName string) 
 		Namespace: s.Namespace,
 		Name:      "api-requests-total",
 		Key:       apiRequestsTotalFeatureKey,
-		MeterSlug: lo.ToPtr("api-requests-total"),
+		MeterID:   lo.ToPtr(apiRequestsTotalMeterID),
 	})
 	s.NoError(err)
 	s.APIRequestsTotalFeature = apiRequestsTotalFeature

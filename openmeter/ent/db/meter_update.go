@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbmeter "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -165,9 +166,45 @@ func (_u *MeterUpdate) ClearEventFrom() *MeterUpdate {
 	return _u
 }
 
+// AddFeatureIDs adds the "feature" edge to the Feature entity by IDs.
+func (_u *MeterUpdate) AddFeatureIDs(ids ...string) *MeterUpdate {
+	_u.mutation.AddFeatureIDs(ids...)
+	return _u
+}
+
+// AddFeature adds the "feature" edges to the Feature entity.
+func (_u *MeterUpdate) AddFeature(v ...*Feature) *MeterUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddFeatureIDs(ids...)
+}
+
 // Mutation returns the MeterMutation object of the builder.
 func (_u *MeterUpdate) Mutation() *MeterMutation {
 	return _u.mutation
+}
+
+// ClearFeature clears all "feature" edges to the Feature entity.
+func (_u *MeterUpdate) ClearFeature() *MeterUpdate {
+	_u.mutation.ClearFeature()
+	return _u
+}
+
+// RemoveFeatureIDs removes the "feature" edge to Feature entities by IDs.
+func (_u *MeterUpdate) RemoveFeatureIDs(ids ...string) *MeterUpdate {
+	_u.mutation.RemoveFeatureIDs(ids...)
+	return _u
+}
+
+// RemoveFeature removes "feature" edges to Feature entities.
+func (_u *MeterUpdate) RemoveFeature(v ...*Feature) *MeterUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveFeatureIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -262,6 +299,51 @@ func (_u *MeterUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.EventFromCleared() {
 		_spec.ClearField(dbmeter.FieldEventFrom, field.TypeTime)
+	}
+	if _u.mutation.FeatureCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbmeter.FeatureTable,
+			Columns: []string{dbmeter.FeatureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedFeatureIDs(); len(nodes) > 0 && !_u.mutation.FeatureCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbmeter.FeatureTable,
+			Columns: []string{dbmeter.FeatureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.FeatureIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbmeter.FeatureTable,
+			Columns: []string{dbmeter.FeatureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -419,9 +501,45 @@ func (_u *MeterUpdateOne) ClearEventFrom() *MeterUpdateOne {
 	return _u
 }
 
+// AddFeatureIDs adds the "feature" edge to the Feature entity by IDs.
+func (_u *MeterUpdateOne) AddFeatureIDs(ids ...string) *MeterUpdateOne {
+	_u.mutation.AddFeatureIDs(ids...)
+	return _u
+}
+
+// AddFeature adds the "feature" edges to the Feature entity.
+func (_u *MeterUpdateOne) AddFeature(v ...*Feature) *MeterUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddFeatureIDs(ids...)
+}
+
 // Mutation returns the MeterMutation object of the builder.
 func (_u *MeterUpdateOne) Mutation() *MeterMutation {
 	return _u.mutation
+}
+
+// ClearFeature clears all "feature" edges to the Feature entity.
+func (_u *MeterUpdateOne) ClearFeature() *MeterUpdateOne {
+	_u.mutation.ClearFeature()
+	return _u
+}
+
+// RemoveFeatureIDs removes the "feature" edge to Feature entities by IDs.
+func (_u *MeterUpdateOne) RemoveFeatureIDs(ids ...string) *MeterUpdateOne {
+	_u.mutation.RemoveFeatureIDs(ids...)
+	return _u
+}
+
+// RemoveFeature removes "feature" edges to Feature entities.
+func (_u *MeterUpdateOne) RemoveFeature(v ...*Feature) *MeterUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveFeatureIDs(ids...)
 }
 
 // Where appends a list predicates to the MeterUpdate builder.
@@ -546,6 +664,51 @@ func (_u *MeterUpdateOne) sqlSave(ctx context.Context) (_node *Meter, err error)
 	}
 	if _u.mutation.EventFromCleared() {
 		_spec.ClearField(dbmeter.FieldEventFrom, field.TypeTime)
+	}
+	if _u.mutation.FeatureCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbmeter.FeatureTable,
+			Columns: []string{dbmeter.FeatureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedFeatureIDs(); len(nodes) > 0 && !_u.mutation.FeatureCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbmeter.FeatureTable,
+			Columns: []string{dbmeter.FeatureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.FeatureIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbmeter.FeatureTable,
+			Columns: []string{dbmeter.FeatureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbfeature.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Meter{config: _u.config}
 	_spec.Assign = _node.assignValues

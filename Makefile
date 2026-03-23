@@ -7,6 +7,7 @@ SVIX_JWT_SECRET = DUMMY_JWT_SECRET
 GO_BUILD_FLAGS = -tags=dynamic
 GO_TEST_PACKAGE_PARALLELISM ?= 128
 GO_TEST_FLAGS = -p ${GO_TEST_PACKAGE_PARALLELISM} -parallel 16 ${GO_BUILD_FLAGS}
+GO_LINT_PATH ?= ./...
 
 .PHONY: up
 up: ## Start the dependencies via docker compose. `export COMPOSE_PROFILES=dev,redis,...`
@@ -188,7 +189,17 @@ lint-helm: ## Lint Helm charts
 .PHONY: lint-go
 lint-go: ## Lint Go code
 	$(call print-target)
-	golangci-lint run -v
+	golangci-lint run -v $(GO_LINT_PATH)
+
+.PHONY: lint-go-fast
+lint-go-fast: ## Lint Go bug-finding checks (set GO_LINT_PATH=./openmeter/ledger/...)
+	$(call print-target)
+	golangci-lint run -v --config .golangci-fast.yaml $(GO_LINT_PATH)
+
+.PHONY: lint-go-style
+lint-go-style: ## Lint Go formatting and import order
+	$(call print-target)
+	golangci-lint fmt -v -d $(GO_LINT_PATH)
 
 .PHONY: ci
 ci: ## Run CI checks

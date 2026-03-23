@@ -61,7 +61,7 @@ func (a *adapter) QueryFeatureCost(ctx context.Context, input cost.QueryFeatureC
 	}
 
 	// Validate feature has a meter
-	if feat.MeterSlug == nil {
+	if feat.MeterID == nil {
 		return nil, models.NewGenericValidationError(
 			fmt.Errorf("feature %s has no meter associated", feat.Key),
 		)
@@ -77,7 +77,7 @@ func (a *adapter) QueryFeatureCost(ctx context.Context, input cost.QueryFeatureC
 	// Get corresponding meter
 	m, err := a.meterService.GetMeterByIDOrSlug(ctx, meterpkg.GetMeterInput{
 		Namespace: input.Namespace,
-		IDOrSlug:  *feat.MeterSlug,
+		IDOrSlug:  *feat.MeterID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get meter: %w", err)

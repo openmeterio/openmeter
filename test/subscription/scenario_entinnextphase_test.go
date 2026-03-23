@@ -36,7 +36,7 @@ func TestSubWithMeteredEntitlement(t *testing.T) {
 	clock.SetTime(currentTime)
 
 	// 1st, let's create the features
-	feats := tDeps.FeatureConnector.CreateExampleFeatures(t)
+	feats := tDeps.FeatureConnector.CreateExampleFeatures(t, tDeps.ExampleMeterID)
 	require.Len(t, feats, 3)
 
 	// 2nd, let's create the plan

@@ -3,6 +3,7 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
@@ -51,9 +52,6 @@ func (Meter) Indexes() []ent.Index {
 // Edges of the Meter.
 func (Meter) Edges() []ent.Edge {
 	return []ent.Edge{
-		// FIXME: enable foreign key constraints
-		// Ent doesn't support foreign key constraints on non ID fields (key)
-		// https://github.com/ent/ent/issues/2549
-		// edge.To("feature", Feature.Type),
+		edge.To("feature", Feature.Type),
 	}
 }

@@ -31,7 +31,7 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 		f, err := deps.featureRepo.CreateFeature(context.Background(), feature.CreateFeatureInputs{
 			Name:      "f1",
 			Key:       "f1",
-			MeterSlug: lo.ToPtr(meterSlug),
+			MeterID:   &deps.meterID,
 			Namespace: namespace,
 		})
 		require.NoError(t, err)
@@ -617,11 +617,12 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 		defer deps.Teardown()
 
 		latestMeterSlug := "latest_meter"
+		latestMeterID := ulid.Make().String()
 
 		// Create a meter with LATEST aggregation type
-		require.NoError(t, deps.meterAdapter.ReplaceMeters(ctx, []meter.Meter{{
+		latestMeter := meter.Meter{
 			ManagedResource: models.ManagedResource{
-				ID: ulid.Make().String(),
+				ID: latestMeterID,
 				NamespacedModel: models.NamespacedModel{
 					Namespace: namespace,
 				},
@@ -635,13 +636,14 @@ func TestEntitlementGrantOwnerAdapter(t *testing.T) {
 			Aggregation:   meter.MeterAggregationLatest,
 			EventType:     "test",
 			ValueProperty: lo.ToPtr("$.value"),
-		}}))
+		}
+		require.NoError(t, deps.meterAdapter.ReplaceMeters(ctx, []meter.Meter{latestMeter}))
 
 		// Create feature with the LATEST meter
 		f, err := deps.featureRepo.CreateFeature(ctx, feature.CreateFeatureInputs{
 			Name:      "latest_feature",
 			Key:       "latest_feature",
-			MeterSlug: lo.ToPtr(latestMeterSlug),
+			MeterID:   &latestMeterID,
 			Namespace: namespace,
 		})
 		require.NoError(t, err)

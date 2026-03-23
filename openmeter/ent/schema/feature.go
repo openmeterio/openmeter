@@ -31,7 +31,8 @@ func (Feature) Fields() []ent.Field {
 		field.String("namespace").NotEmpty().Immutable(),
 		field.String("name").NotEmpty(),
 		field.String("key").NotEmpty().Immutable(),
-		field.String("meter_slug").Optional().Nillable().Immutable(),
+		field.String("meter_slug").Optional().Nillable().Immutable(), // Deprecated: use meter_id. Will be removed in Phase 2.
+		field.String("meter_id").Optional().Nillable().Immutable(),
 		field.JSON("meter_group_by_filters", map[string]string{}).Optional(),
 		field.JSON("advanced_meter_group_by_filters", feature.MeterGroupByFilters{}).Optional(),
 		field.String("unit_cost_type").Optional().Nillable(),
@@ -70,6 +71,10 @@ func (Feature) Indexes() []ent.Index {
 			Annotations(
 				entsql.IndexWhere("archived_at IS NULL"),
 			),
+		index.Fields("namespace", "meter_id").
+			Annotations(
+				entsql.IndexWhere("archived_at IS NULL"),
+			),
 	}
 }
 
@@ -78,11 +83,10 @@ func (Feature) Edges() []ent.Edge {
 		edge.To("entitlement", Entitlement.Type),
 		edge.To("ratecard", PlanRateCard.Type),
 		edge.To("addon_ratecard", AddonRateCard.Type),
-		// FIXME: enable foreign key constraints
-		// edge.From("meter", Meter.Type).
-		// 	Ref("feature").
-		// 	Field("meter_slug").
-		// 	Required().
-		// 	Immutable(),
+		edge.From("meter", Meter.Type).
+			Ref("feature").
+			Field("meter_id").
+			Unique().
+			Immutable(),
 	}
 }

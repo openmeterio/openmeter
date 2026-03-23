@@ -55,6 +55,7 @@ type dependencies struct {
 	streamingConnector     *streamingtestutils.MockStreamingConnector
 	creditConnector        credit.CreditConnector
 	meterAdapter           *meteradapter.TestAdapter
+	meterID                string
 	subjectService         subject.Service
 	customerService        customer.Service
 }
@@ -79,9 +80,10 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	testLogger := testutils.NewLogger(t)
 	tracer := noop.NewTracerProvider().Tracer("test")
 	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
-	meterAdapter, err := meteradapter.New([]meter.Meter{{
+	testMeterID := ulid.Make().String()
+	testMeters := []meter.Meter{{
 		ManagedResource: models.ManagedResource{
-			ID: ulid.Make().String(),
+			ID: testMeterID,
 			NamespacedModel: models.NamespacedModel{
 				Namespace: namespace,
 			},
@@ -96,7 +98,8 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		// These will be ignored in tests
 		EventType:     "test",
 		ValueProperty: lo.ToPtr("$.value"),
-	}})
+	}}
+	meterAdapter, err := meteradapter.New(testMeters)
 	if err != nil {
 		t.Fatalf("failed to create meter adapter: %v", err)
 	}
@@ -119,6 +122,9 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	if err := dbClient.Schema.Create(context.Background()); err != nil {
 		t.Fatalf("failed to create schema: %v", err)
 	}
+
+	require.NoError(t, meterAdapter.SetDBClient(dbClient))
+	require.NoError(t, meterAdapter.ReplaceMeters(context.Background(), testMeters))
 
 	mockPublisher := eventbus.NewMock(t)
 
@@ -191,21 +197,22 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	)
 
 	return connector, &dependencies{
-		dbClient,
-		pgDriver,
-		entDriver,
-		featureRepo,
-		entitlementRepo,
-		usageResetRepo,
-		grantRepo,
-		snapshotService,
-		creditConnector,
-		ownerConnector,
-		streamingConnector,
-		creditConnector,
-		meterAdapter,
-		subjectService,
-		customerService,
+		dbClient:               dbClient,
+		pgDriver:               pgDriver,
+		entDriver:              entDriver,
+		featureRepo:            featureRepo,
+		entitlementRepo:        entitlementRepo,
+		usageResetRepo:         usageResetRepo,
+		grantRepo:              grantRepo,
+		balanceSnapshotService: snapshotService,
+		balanceConnector:       creditConnector,
+		ownerConnector:         ownerConnector,
+		streamingConnector:     streamingConnector,
+		creditConnector:        creditConnector,
+		meterAdapter:           meterAdapter,
+		meterID:                testMeterID,
+		subjectService:         subjectService,
+		customerService:        customerService,
 	}
 }
 

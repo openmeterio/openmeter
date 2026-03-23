@@ -81,7 +81,7 @@ func TestAddonServiceChangeQuantity(t *testing.T) {
 				EffectiveFrom: lo.ToPtr(now),
 			}, productcatalog.AddonInstanceTypeMultiple, &subscriptiontestutils.ExampleAddonRateCard1)
 
-			_ = deps.FeatureConnector.CreateExampleFeatures(t)
+			_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
 
 			p, err := deps.PlanService.CreatePlan(context.Background(), planInp)
 			require.Nil(t, err)

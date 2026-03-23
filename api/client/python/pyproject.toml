@@ -23,14 +23,14 @@ keywords = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
-isodate = ">=0.6.1,<0.8.0"
-corehttp = { version = ">=1.0.0b6", extras = ["requests", "aiohttp"] }
-typing-extensions = ">=4.6.0"
-cloudevents = "^1.10.0"
-urllib3 = "^2.0.0"
+isodate = ">=0.7.2,<0.8.0"
+corehttp = { version = ">=1.0.0b7", extras = ["requests", "aiohttp"] }
+typing-extensions = ">=4.15.0"
+cloudevents = "^1.12.1"
+urllib3 = "^2.6.3"
 
 [tool.poetry.group.dev.dependencies]
-black = ">=24.3,<26.0"
+black = ">=25.11,<27.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
