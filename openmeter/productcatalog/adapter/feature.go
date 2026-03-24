@@ -99,9 +99,9 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feat feature.Creat
 func (c *featureDBAdapter) UpdateFeature(ctx context.Context, input feature.UpdateFeatureInputs) (feature.Feature, error) {
 	query := c.db.Feature.Update().
 		Where(
-			db_feature.Or(db_feature.ID(input.ID), db_feature.Key(input.ID)),
-			db_feature.Namespace(input.Namespace),
-			db_feature.ArchivedAtIsNil(),
+			dbfeature.Or(dbfeature.ID(input.ID), dbfeature.Key(input.ID)),
+			dbfeature.Namespace(input.Namespace),
+			dbfeature.ArchivedAtIsNil(),
 		)
 
 	// Clear previous unit cost fields that won't be set, then set new ones

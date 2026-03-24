@@ -71,23 +71,6 @@ func MapFeatureCreateInputsRequest(namespace string, f api.FeatureCreateInputs, 
 	return inputs, nil
 }
 
-func MapFeatureUpdateInputsRequest(namespace string, featureID string, f api.FeatureUpdateInputs) (feature.UpdateFeatureInputs, error) {
-	input := feature.UpdateFeatureInputs{
-		Namespace: namespace,
-		ID:        featureID,
-	}
-
-	if f.UnitCost != nil {
-		unitCost, err := apiUnitCostToDomain(f.UnitCost)
-		if err != nil {
-			return feature.UpdateFeatureInputs{}, fmt.Errorf("invalid unit cost: %w", err)
-		}
-		input.UnitCost = unitCost
-	}
-
-	return input, nil
-}
-
 func domainUnitCostToAPI(u *feature.UnitCost) (api.FeatureUnitCost, error) {
 	var out api.FeatureUnitCost
 

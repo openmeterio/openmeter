@@ -93,7 +93,6 @@ from ...operations._operations import (
     build_features_delete_request,
     build_features_get_request,
     build_features_list_request,
-    build_features_update_request,
     build_grants_delete_request,
     build_grants_list_request,
     build_grants_v2_list_request,
@@ -2316,8 +2315,7 @@ class FeaturesOperations:
         Features are either metered or static. A feature is metered if meterSlug is provided at
         creation. For metered features you can pass additional filters that will be applied when
         calculating feature usage, based on the meter's groupBy fields. Meters with SUM, COUNT,
-        UNIQUE_COUNT and LATEST aggregations are supported for features. Only the unitCost field can be
-        updated after creation.
+        UNIQUE_COUNT and LATEST aggregations are supported for features.
 
         :param feature: Required.
         :type feature: ~openmeter._generated.models.FeatureCreateInputs
@@ -2336,8 +2334,7 @@ class FeaturesOperations:
         Features are either metered or static. A feature is metered if meterSlug is provided at
         creation. For metered features you can pass additional filters that will be applied when
         calculating feature usage, based on the meter's groupBy fields. Meters with SUM, COUNT,
-        UNIQUE_COUNT and LATEST aggregations are supported for features. Only the unitCost field can be
-        updated after creation.
+        UNIQUE_COUNT and LATEST aggregations are supported for features.
 
         :param feature: Required.
         :type feature: JSON
@@ -2358,8 +2355,7 @@ class FeaturesOperations:
         Features are either metered or static. A feature is metered if meterSlug is provided at
         creation. For metered features you can pass additional filters that will be applied when
         calculating feature usage, based on the meter's groupBy fields. Meters with SUM, COUNT,
-        UNIQUE_COUNT and LATEST aggregations are supported for features. Only the unitCost field can be
-        updated after creation.
+        UNIQUE_COUNT and LATEST aggregations are supported for features.
 
         :param feature: Required.
         :type feature: IO[bytes]
@@ -2379,8 +2375,7 @@ class FeaturesOperations:
         Features are either metered or static. A feature is metered if meterSlug is provided at
         creation. For metered features you can pass additional filters that will be applied when
         calculating feature usage, based on the meter's groupBy fields. Meters with SUM, COUNT,
-        UNIQUE_COUNT and LATEST aggregations are supported for features. Only the unitCost field can be
-        updated after creation.
+        UNIQUE_COUNT and LATEST aggregations are supported for features.
 
         :param feature: Is one of the following types: FeatureCreateInputs, JSON, IO[bytes] Required.
         :type feature: ~openmeter._generated.models.FeatureCreateInputs or JSON or IO[bytes]
@@ -2433,164 +2428,6 @@ class FeaturesOperations:
                     pass
             map_error(status_code=response.status_code, response=response, error_map=error_map)
             error = None
-            if response.status_code == 400:
-                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
-            elif response.status_code == 401:
-                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
-                raise ClientAuthenticationError(response=response, model=error)
-            if response.status_code == 403:
-                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
-            elif response.status_code == 500:
-                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
-            elif response.status_code == 503:
-                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
-            elif response.status_code == 412:
-                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
-            else:
-                error = _failsafe_deserialize(
-                    _models.UnexpectedProblemResponse,
-                    response,
-                )
-            raise HttpResponseError(response=response, model=error)
-
-        if _stream:
-            deserialized = response.iter_bytes() if _decompress else response.iter_raw()
-        else:
-            deserialized = _deserialize(_models.Feature, response.json())
-
-        if cls:
-            return cls(pipeline_response, deserialized, {})  # type: ignore
-
-        return deserialized  # type: ignore
-
-    @overload
-    async def update(
-        self,
-        feature_id: str,
-        body: _models.FeatureUpdateInputs,
-        *,
-        content_type: str = "application/json",
-        **kwargs: Any
-    ) -> _models.Feature:
-        """Update feature.
-
-        Update a feature by ID. Currently only the unitCost field can be updated.
-
-        :param feature_id: Required.
-        :type feature_id: str
-        :param body: Required.
-        :type body: ~openmeter._generated.models.FeatureUpdateInputs
-        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
-         Default value is "application/json".
-        :paramtype content_type: str
-        :return: Feature. The Feature is compatible with MutableMapping
-        :rtype: ~openmeter._generated.models.Feature
-        :raises ~corehttp.exceptions.HttpResponseError:
-        """
-
-    @overload
-    async def update(
-        self, feature_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
-    ) -> _models.Feature:
-        """Update feature.
-
-        Update a feature by ID. Currently only the unitCost field can be updated.
-
-        :param feature_id: Required.
-        :type feature_id: str
-        :param body: Required.
-        :type body: JSON
-        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
-         Default value is "application/json".
-        :paramtype content_type: str
-        :return: Feature. The Feature is compatible with MutableMapping
-        :rtype: ~openmeter._generated.models.Feature
-        :raises ~corehttp.exceptions.HttpResponseError:
-        """
-
-    @overload
-    async def update(
-        self, feature_id: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
-    ) -> _models.Feature:
-        """Update feature.
-
-        Update a feature by ID. Currently only the unitCost field can be updated.
-
-        :param feature_id: Required.
-        :type feature_id: str
-        :param body: Required.
-        :type body: IO[bytes]
-        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
-         Default value is "application/json".
-        :paramtype content_type: str
-        :return: Feature. The Feature is compatible with MutableMapping
-        :rtype: ~openmeter._generated.models.Feature
-        :raises ~corehttp.exceptions.HttpResponseError:
-        """
-
-    async def update(
-        self, feature_id: str, body: Union[_models.FeatureUpdateInputs, JSON, IO[bytes]], **kwargs: Any
-    ) -> _models.Feature:
-        """Update feature.
-
-        Update a feature by ID. Currently only the unitCost field can be updated.
-
-        :param feature_id: Required.
-        :type feature_id: str
-        :param body: Is one of the following types: FeatureUpdateInputs, JSON, IO[bytes] Required.
-        :type body: ~openmeter._generated.models.FeatureUpdateInputs or JSON or IO[bytes]
-        :return: Feature. The Feature is compatible with MutableMapping
-        :rtype: ~openmeter._generated.models.Feature
-        :raises ~corehttp.exceptions.HttpResponseError:
-        """
-        error_map: MutableMapping = {
-            409: ResourceExistsError,
-            304: ResourceNotModifiedError,
-        }
-        error_map.update(kwargs.pop("error_map", {}) or {})
-
-        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
-        _params = kwargs.pop("params", {}) or {}
-
-        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
-        cls: ClsType[_models.Feature] = kwargs.pop("cls", None)
-
-        content_type = content_type or "application/json"
-        _content = None
-        if isinstance(body, (IOBase, bytes)):
-            _content = body
-        else:
-            _content = json.dumps(body, cls=SdkJSONEncoder, exclude_readonly=True)  # type: ignore
-
-        _request = build_features_update_request(
-            feature_id=feature_id,
-            content_type=content_type,
-            content=_content,
-            headers=_headers,
-            params=_params,
-        )
-        path_format_arguments = {
-            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
-        }
-        _request.url = self._client.format_url(_request.url, **path_format_arguments)
-
-        _decompress = kwargs.pop("decompress", True)
-        _stream = kwargs.pop("stream", False)
-        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
-
-        response = pipeline_response.http_response
-
-        if response.status_code not in [200]:
-            if _stream:
-                try:
-                    await response.read()  # Load the body in memory and close the socket
-                except (StreamConsumedError, StreamClosedError):
-                    pass
-            map_error(status_code=response.status_code, response=response, error_map=error_map)
-            error = None
-            if response.status_code == 404:
-                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
-                raise ResourceNotFoundError(response=response, model=error)
             if response.status_code == 400:
                 error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
             elif response.status_code == 401:

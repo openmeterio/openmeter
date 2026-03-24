@@ -328,7 +328,7 @@ func TestUpdateFeature(t *testing.T) {
 		Namespace: namespace,
 		Name:      "feature-1",
 		Key:       "feature-1",
-		MeterSlug: &meter.Key,
+		MeterID: &meter.ID,
 		MeterGroupByFilters: feature.MeterGroupByFilters{
 			"key": filter.FilterString{
 				Eq: lo.ToPtr("value"),

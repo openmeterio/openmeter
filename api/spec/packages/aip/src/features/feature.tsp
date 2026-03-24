@@ -41,6 +41,6 @@ model Feature {
    * from the LLM cost database based on meter group-by properties.
    */
   @summary("Unit cost")
-  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   unit_cost?: FeatureUnitCost;
 }

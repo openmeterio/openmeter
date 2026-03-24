@@ -975,7 +975,6 @@ export interface paths {
      * @description Features are either metered or static. A feature is metered if meterSlug is provided at creation.
      *     For metered features you can pass additional filters that will be applied when calculating feature usage, based on the meter's groupBy fields.
      *     Meters with SUM, COUNT, UNIQUE_COUNT and LATEST aggregations are supported for features.
-     *     Only the unitCost field can be updated after creation.
      */
     post: operations['createFeature']
     delete?: never
@@ -1008,12 +1007,7 @@ export interface paths {
     delete: operations['deleteFeature']
     options?: never
     head?: never
-    /**
-     * Update feature
-     * @description Update a feature by ID.
-     *     Currently only the unitCost field can be updated.
-     */
-    patch: operations['updateFeature']
+    patch?: never
     trace?: never
   }
   '/api/v1/grants': {
@@ -6326,16 +6320,6 @@ export interface components {
     FeatureUnitCost:
       | components['schemas']['FeatureManualUnitCost']
       | components['schemas']['FeatureLLMUnitCost']
-    /** @description Inputs for updating a feature. */
-    FeatureUpdateInputs: {
-      /**
-       * Unit cost
-       * @description Optional per-unit cost configuration.
-       *     Use "manual" for a fixed per-unit cost, or "llm" to look up cost
-       *     from the LLM cost database based on meter group-by properties.
-       */
-      unitCost?: components['schemas']['FeatureUnitCost']
-    }
     /** @description A filter for a ID (ULID) field allowing only equality or inclusion. */
     FilterIDExact: {
       /** @description The field must be in the provided list of values. */
@@ -12567,7 +12551,6 @@ export type FeatureOrderBy = components['schemas']['FeatureOrderBy']
 export type FeaturePaginatedResponse =
   components['schemas']['FeaturePaginatedResponse']
 export type FeatureUnitCost = components['schemas']['FeatureUnitCost']
-export type FeatureUpdateInputs = components['schemas']['FeatureUpdateInputs']
 export type FilterIdExact = components['schemas']['FilterIDExact']
 export type FilterString = components['schemas']['FilterString']
 export type FilterTime = components['schemas']['FilterTime']
@@ -18992,104 +18975,6 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
-      }
-      /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['BadRequestProblemResponse']
-        }
-      }
-      /** @description The request has not been applied because it lacks valid authentication credentials for the target resource. */
-      401: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnauthorizedProblemResponse']
-        }
-      }
-      /** @description The server understood the request but refuses to authorize it. */
-      403: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ForbiddenProblemResponse']
-        }
-      }
-      /** @description The origin server did not find a current representation for the target resource or is not willing to disclose that one exists. */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['NotFoundProblemResponse']
-        }
-      }
-      /** @description One or more conditions given in the request header fields evaluated to false when tested on the server. */
-      412: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['PreconditionFailedProblemResponse']
-        }
-      }
-      /** @description The server encountered an unexpected condition that prevented it from fulfilling the request. */
-      500: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['InternalServerErrorProblemResponse']
-        }
-      }
-      /** @description The server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. */
-      503: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['ServiceUnavailableProblemResponse']
-        }
-      }
-      /** @description An unexpected error response. */
-      default: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/problem+json': components['schemas']['UnexpectedProblemResponse']
-        }
-      }
-    }
-  }
-  updateFeature: {
-    parameters: {
-      query?: never
-      header?: never
-      path: {
-        featureId: string
-      }
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['FeatureUpdateInputs']
-      }
-    }
-    responses: {
-      /** @description The request has succeeded. */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['Feature']
-        }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
       400: {

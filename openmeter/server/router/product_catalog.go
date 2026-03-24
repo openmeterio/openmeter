@@ -18,12 +18,6 @@ func (a *Router) CreateFeature(w http.ResponseWriter, r *http.Request) {
 	a.featureHandler.CreateFeature().ServeHTTP(w, r)
 }
 
-// Update feature
-// (PATCH /api/v1/features/{featureId})
-func (a *Router) UpdateFeature(w http.ResponseWriter, r *http.Request, featureId string) {
-	a.featureHandler.UpdateFeature().With(featureId).ServeHTTP(w, r)
-}
-
 // Delete feature
 // (DELETE /api/v1/features/{featureId})
 func (a *Router) DeleteFeature(w http.ResponseWriter, r *http.Request, featureId string) {

@@ -42,7 +42,6 @@ interface FeaturesEndpoints {
    * Features are either metered or static. A feature is metered if meterSlug is provided at creation.
    * For metered features you can pass additional filters that will be applied when calculating feature usage, based on the meter's groupBy fields.
    * Meters with SUM, COUNT, UNIQUE_COUNT and LATEST aggregations are supported for features.
-   * Only the unitCost field can be updated after creation.
    */
   @post
   @operationId("createFeature")
@@ -51,19 +50,6 @@ interface FeaturesEndpoints {
     @statusCode _: 201;
     @body body: Feature;
   } | CommonErrors;
-
-  /**
-   * Update a feature by ID.
-   * Currently only the unitCost field can be updated.
-   */
-  @patch
-  @route("/{featureId}")
-  @operationId("updateFeature")
-  @summary("Update feature")
-  update(
-    @path featureId: string,
-    @body body: FeatureUpdateInputs,
-  ): Feature | NotFoundError | CommonErrors;
 
   /**
    * Get a feature by ID.
