@@ -37,6 +37,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription/service"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	subscriptionworkflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
+	taxcodeservice "github.com/openmeterio/openmeter/openmeter/taxcode/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -64,6 +67,7 @@ type SubscriptionDependencies struct {
 	SubscriptionAddonService subscriptionaddon.Service
 	AddonService             *testAddonService
 	PlanAddonService         planaddon.Service
+	TaxCodeService           taxcode.Service
 }
 
 func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
@@ -168,11 +172,20 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	})
 	require.NoError(t, err)
 
+	taxCodeAdapter, err := taxcodeadapter.New(taxcodeadapter.Config{
+		Client: dbDeps.DBClient,
+		Logger: logger,
+	})
+	require.NoError(t, err)
+
+	taxCodeService := taxcodeservice.New(taxCodeAdapter, logger)
+
 	planService, err := planservice.New(planservice.Config{
 		Feature:   entitlementRegistry.Feature,
 		Logger:    logger,
 		Adapter:   planRepo,
 		Publisher: publisher,
+		TaxCode:   taxCodeService,
 	})
 	require.NoError(t, err)
 
@@ -207,6 +220,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		Logger:    logger,
 		Publisher: publisher,
 		Feature:   entitlementRegistry.Feature,
+		TaxCode:   taxCodeService,
 	})
 	require.NoError(t, err)
 
@@ -272,5 +286,6 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 		PlanAddonService:         planAddonService,
 		MeterService:             meterAdapter,
 		MockStreamingConnector:   mockStreaming,
+		TaxCodeService:           taxCodeService,
 	}
 }

@@ -14,5 +14,6 @@ type Repository interface {
 	UpdateTaxCode(ctx context.Context, input UpdateTaxCodeInput) (TaxCode, error)
 	ListTaxCodes(ctx context.Context, input ListTaxCodesInput) (pagination.Result[TaxCode], error)
 	GetTaxCode(ctx context.Context, input GetTaxCodeInput) (TaxCode, error)
+	GetTaxCodeByAppMapping(ctx context.Context, input GetTaxCodeByAppMappingInput) (TaxCode, error)
 	DeleteTaxCode(ctx context.Context, input DeleteTaxCodeInput) error
 }

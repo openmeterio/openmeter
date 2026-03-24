@@ -153,6 +153,42 @@ func TestTaxConfigEqual(t *testing.T) {
 			},
 			ExpectedResult: false,
 		},
+		{
+			Name: "Equal - TaxCodeID",
+			Left: &TaxConfig{
+				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV3"),
+			},
+			Right: &TaxConfig{
+				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV3"),
+			},
+			ExpectedResult: true,
+		},
+		{
+			Name: "Left diff - TaxCodeID",
+			Left: &TaxConfig{
+				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV3"),
+			},
+			Right:          &TaxConfig{},
+			ExpectedResult: false,
+		},
+		{
+			Name: "Right diff - TaxCodeID",
+			Left: nil,
+			Right: &TaxConfig{
+				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV3"),
+			},
+			ExpectedResult: false,
+		},
+		{
+			Name: "Complete diff - TaxCodeID",
+			Left: &TaxConfig{
+				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV3"),
+			},
+			Right: &TaxConfig{
+				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV4"),
+			},
+			ExpectedResult: false,
+		},
 	}
 
 	for _, test := range tests {
@@ -267,6 +303,50 @@ func TestMergeTaxConfigs(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name: "Right overrides left partially - TaxCodeID",
+			Left: &TaxConfig{
+				Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV3"),
+				Stripe: &StripeTaxConfig{
+					Code: "txcd_99999999",
+				},
+			},
+			Right: &TaxConfig{
+				Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV4"),
+			},
+			Expected: &TaxConfig{
+				Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV4"),
+				Stripe: &StripeTaxConfig{
+					Code: "txcd_99999999",
+				},
+			},
+		},
+		{
+			Name: "Right overrides left partially - TaxCodeID and Stripe",
+			Left: &TaxConfig{
+				Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV3"),
+				Stripe: &StripeTaxConfig{
+					Code: "txcd_99999999",
+				},
+			},
+			Right: &TaxConfig{
+				Stripe: &StripeTaxConfig{
+					Code: "txcd_99999998",
+				},
+				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV4"),
+			},
+			Expected: &TaxConfig{
+				Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+				TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV4"),
+				Stripe: &StripeTaxConfig{
+					Code: "txcd_99999998",
+				},
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -275,4 +355,37 @@ func TestMergeTaxConfigs(t *testing.T) {
 			assert.Equal(t, test.Expected, merged)
 		})
 	}
+}
+
+func TestTaxConfigClone(t *testing.T) {
+	original := TaxConfig{
+		Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+		TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV3"),
+		Stripe: &StripeTaxConfig{
+			Code: "txcd_99999999",
+		},
+	}
+
+	cloned := original.Clone()
+
+	// Cloned value must be equal to the original
+	assert.True(t, original.Equal(&cloned))
+
+	// Mutate the clone's pointer fields
+	*cloned.TaxCodeID = "01AN4Z07BY79KA1307SR9X4MV4"
+	*cloned.Behavior = ExclusiveTaxBehavior
+	cloned.Stripe.Code = "txcd_00000000"
+
+	// Original must be unchanged
+	assert.Equal(t, "01AN4Z07BY79KA1307SR9X4MV3", *original.TaxCodeID)
+	assert.Equal(t, InclusiveTaxBehavior, *original.Behavior)
+	assert.Equal(t, "txcd_99999999", original.Stripe.Code)
+
+	// Pointers must not be shared
+	assert.NotSame(t, original.TaxCodeID, cloned.TaxCodeID)
+	assert.NotSame(t, original.Behavior, cloned.Behavior)
+	assert.NotSame(t, original.Stripe, cloned.Stripe)
+
+	// Values must now differ
+	assert.False(t, original.Equal(&cloned))
 }

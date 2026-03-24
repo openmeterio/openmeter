@@ -21,6 +21,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	planaddonadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/adapter"
 	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
+	taxcodeservice "github.com/openmeterio/openmeter/openmeter/taxcode/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
@@ -30,6 +33,7 @@ type TestEnv struct {
 	Publisher           eventbus.Publisher
 	Meter               *meteradapter.TestAdapter
 	Feature             feature.FeatureConnector
+	TaxCode             taxcode.Service
 	Plan                plan.Service
 	PlanRepository      plan.Repository
 	PlanAddon           planaddon.Service
@@ -96,6 +100,16 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(client, logger)
 	featureService := feature.NewFeatureConnector(featureAdapter, meterAdapter, publisher)
 
+	// Init tax code service
+	taxCodeAdapter, err := taxcodeadapter.New(taxcodeadapter.Config{
+		Client: client,
+		Logger: logger,
+	})
+	require.NoErrorf(t, err, "initializing tax code adapter must not fail")
+	require.NotNilf(t, taxCodeAdapter, "tax code adapter must not be nil")
+
+	taxCodeService := taxcodeservice.New(taxCodeAdapter, logger)
+
 	// Init plan service
 	planAdapter, err := planadapter.New(planadapter.Config{
 		Client: client,
@@ -107,6 +121,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	planService, err := planservice.New(planservice.Config{
 		Adapter:   planAdapter,
 		Feature:   featureService,
+		TaxCode:   taxCodeService,
 		Logger:    logger,
 		Publisher: publisher,
 	})
@@ -124,6 +139,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	addonService, err := addonservice.New(addonservice.Config{
 		Adapter:   addonAdapter,
 		Feature:   featureService,
+		TaxCode:   taxCodeService,
 		Logger:    logger,
 		Publisher: publisher,
 	})
@@ -153,6 +169,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 		Publisher:           publisher,
 		Meter:               meterAdapter,
 		Feature:             featureService,
+		TaxCode:             taxCodeService,
 		Plan:                planService,
 		PlanRepository:      planAdapter,
 		PlanAddon:           planAddonService,

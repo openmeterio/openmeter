@@ -43,6 +43,8 @@ import (
 	subscriptionservice "github.com/openmeterio/openmeter/openmeter/subscription/service"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	subscriptionworkflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
+	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
+	taxcodeservice "github.com/openmeterio/openmeter/openmeter/taxcode/service"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/ffx"
@@ -111,9 +113,18 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	})
 	require.NoError(t, err)
 
+	taxCodeAdapter, err := taxcodeadapter.New(taxcodeadapter.Config{
+		Client: deps.DBClient,
+		Logger: slog.Default(),
+	})
+	require.NoError(t, err)
+
+	taxCodeService := taxcodeservice.New(taxCodeAdapter, slog.Default())
+
 	planService, err := planservice.New(planservice.Config{
 		Feature:   deps.FeatureService,
 		Adapter:   planAdapter,
+		TaxCode:   taxCodeService,
 		Logger:    slog.Default(),
 		Publisher: publisher,
 	})
@@ -162,6 +173,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		Logger:    slog.Default(),
 		Publisher: publisher,
 		Feature:   deps.FeatureService,
+		TaxCode:   taxCodeService,
 	})
 	require.NoError(t, err)
 

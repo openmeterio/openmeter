@@ -146,7 +146,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	featureConnector := common.NewFeatureConnector(logger, client, service, eventbusPublisher)
-	addonService, err := common.NewAddonService(logger, client, featureConnector, eventbusPublisher)
+	repository, err := common.NewTaxCodeAdapter(logger, client)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	taxcodeService := common.NewTaxCodeService(logger, repository)
+	addonService, err := common.NewAddonService(logger, client, featureConnector, taxcodeService, eventbusPublisher)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -260,7 +271,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	productCatalogConfiguration := conf.ProductCatalog
-	planService, err := common.NewPlanService(logger, client, productCatalogConfiguration, featureConnector, eventbusPublisher)
+	planService, err := common.NewPlanService(logger, client, productCatalogConfiguration, featureConnector, taxcodeService, eventbusPublisher)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -538,7 +549,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	manageService := common.NewMeterManageService(adapter, manager, eventbusPublisher, v6)
 	v7 := common.NewMeterConfigInitializer(logger, v4, manageService, manager)
 	metereventService := common.NewMeterEventService(connector, customerService, service)
-	repository, err := common.NewNotificationAdapter(logger, client)
+	notificationRepository, err := common.NewNotificationAdapter(logger, client)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -577,7 +588,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	eventHandler, cleanup9, err := common.NewNotificationEventHandler(notificationConfiguration, logger, tracer, repository, handler)
+	eventHandler, cleanup9, err := common.NewNotificationEventHandler(notificationConfiguration, logger, tracer, notificationRepository, handler)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -589,7 +600,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	notificationService, err := common.NewNotificationService(logger, repository, handler, eventHandler, featureConnector)
+	notificationService, err := common.NewNotificationService(logger, notificationRepository, handler, eventHandler, featureConnector)
 	if err != nil {
 		cleanup9()
 		cleanup8()
@@ -635,20 +646,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	taxcodeRepository, err := common.NewTaxCodeAdapter(logger, client)
-	if err != nil {
-		cleanup9()
-		cleanup8()
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	taxcodeService := common.NewTaxCodeService(logger, taxcodeRepository)
 	health := common.NewHealthChecker(logger)
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, telemetryConfig, logger)
 	if err != nil {

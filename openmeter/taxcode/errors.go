@@ -1,6 +1,7 @@
 package taxcode
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -52,13 +53,26 @@ const ErrCodeTaxCodeNotFound models.ErrorCode = "tax_code_not_found"
 var ErrTaxCodeNotFound = models.NewValidationIssue(
 	ErrCodeTaxCodeNotFound,
 	"tax code not found",
-	models.WithFieldString("id"),
 	models.WithCriticalSeverity(),
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusNotFound),
 )
 
 func NewTaxCodeNotFoundError(id string) error {
-	return ErrTaxCodeNotFound.WithAttr("id", id)
+	return ErrTaxCodeNotFound.
+		WithPathString("id").
+		WithAttr("id", id)
+}
+
+func NewTaxCodeByAppMappingNotFoundError(appType, taxCode string) error {
+	return ErrTaxCodeNotFound.
+		WithPathString("app_mappings").
+		WithAttr("app_type", appType).
+		WithAttr("tax_code", taxCode)
+}
+
+func IsTaxCodeNotFoundError(err error) bool {
+	var vi models.ValidationIssue
+	return errors.As(err, &vi) && vi.Code() == ErrCodeTaxCodeNotFound
 }
 
 const ErrCodeTaxCodeEmpty models.ErrorCode = "tax_code_empty"

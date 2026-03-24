@@ -10,11 +10,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -66,6 +68,22 @@ func TestAddonService(t *testing.T) {
 				features = append(features, feat)
 			}
 
+			taxcode, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+				Namespace:   namespace,
+				Key:         "txcd_10000000",
+				Name:        "Test Tax Code",
+				Description: lo.ToPtr("Test Tax Code"),
+				AppMappings: []taxcode.TaxCodeAppMapping{
+					{
+						AppType: app.AppTypeStripe,
+						TaxCode: "txcd_10000000",
+					},
+				},
+				Metadata: models.Metadata{"name": "Test Tax Code"},
+			})
+			require.NoErrorf(t, err, "creating tax code must not fail")
+			require.NotNil(t, taxcode, "tax code must not be empty")
+
 			addonV1Input := pctestutils.NewTestAddon(t, namespace, productcatalog.RateCards{
 				&productcatalog.UsageBasedRateCard{
 					RateCardMeta: productcatalog.RateCardMeta{
@@ -80,6 +98,7 @@ func TestAddonService(t *testing.T) {
 							Stripe: &productcatalog.StripeTaxConfig{
 								Code: "txcd_10000000",
 							},
+							TaxCodeID: lo.ToPtr(taxcode.ID),
 						},
 						Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 							Mode: productcatalog.VolumeTieredPrice,
@@ -164,6 +183,7 @@ func TestAddonService(t *testing.T) {
 									Stripe: &productcatalog.StripeTaxConfig{
 										Code: "txcd_10000000",
 									},
+									TaxCodeID: lo.ToPtr(taxcode.ID),
 								},
 								Price: productcatalog.NewPriceFrom(
 									productcatalog.FlatPrice{
@@ -186,6 +206,7 @@ func TestAddonService(t *testing.T) {
 									Stripe: &productcatalog.StripeTaxConfig{
 										Code: "txcd_10000000",
 									},
+									TaxCodeID: lo.ToPtr(taxcode.ID),
 								},
 								Price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{
 									Mode: productcatalog.VolumeTieredPrice,

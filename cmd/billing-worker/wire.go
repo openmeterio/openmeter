@@ -45,6 +45,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.NewKafkaTopicProvisioner,
 		common.ProgressManager,
 		common.Streaming,
+		common.TaxCode,
 		common.Telemetry,
 		common.TelemetryLoggerNoAdditionalMiddlewares,
 		common.Watermill,

@@ -11,11 +11,13 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	addondiff "github.com/openmeterio/openmeter/openmeter/subscription/addon/diff"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -402,6 +404,9 @@ func TestApply(t *testing.T) {
 
 			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
 
+			taxCodeID := lookupTaxCodeID(t, deps.deps, "txcd_10000000")
+			rc3 := withTaxCodeID(&subscriptiontestutils.ExampleRateCard3ForAddons, taxCodeID)
+
 			subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, models.CadencedModel{
 				ActiveFrom: *effPer.EffectiveFrom,
 				ActiveTo:   effPer.EffectiveTo,
@@ -430,7 +435,7 @@ func TestApply(t *testing.T) {
 
 				require.True(t, cad.ActiveFrom.Equal(pc.ActiveFrom))
 
-				compareRateCardsWithAmountChange(t, &subscriptiontestutils.ExampleRateCard3ForAddons, 100*2, item.RateCard, "phase %s", p.PhaseKey)
+				compareRateCardsWithAmountChange(t, rc3, 100*2, item.RateCard, "phase %s", p.PhaseKey)
 			}
 		})
 	})
@@ -457,6 +462,9 @@ func TestApply(t *testing.T) {
 			)
 
 			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+
+			taxCodeID := lookupTaxCodeID(t, deps.deps, "txcd_10000000")
+			rc3 := withTaxCodeID(&subscriptiontestutils.ExampleRateCard3ForAddons, taxCodeID)
 
 			subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, models.CadencedModel{
 				ActiveFrom: now.AddDate(0, 0, 5),
@@ -494,10 +502,10 @@ func TestApply(t *testing.T) {
 			require.True(t, cad2.ActiveTo.Equal(*pCad.ActiveTo))
 
 			// First item should have the original rate card
-			compareRateCardsWithAmountChange(t, &subscriptiontestutils.ExampleRateCard3ForAddons, 100, items[0].RateCard, "phase %s", p1.PhaseKey)
+			compareRateCardsWithAmountChange(t, rc3, 100, items[0].RateCard, "phase %s", p1.PhaseKey)
 
 			// Second item should have the updated rate card
-			compareRateCardsWithAmountChange(t, &subscriptiontestutils.ExampleRateCard3ForAddons, 100*2, items[1].RateCard, "phase %s", p1.PhaseKey)
+			compareRateCardsWithAmountChange(t, rc3, 100*2, items[1].RateCard, "phase %s", p1.PhaseKey)
 		})
 	})
 
@@ -523,6 +531,9 @@ func TestApply(t *testing.T) {
 			)
 
 			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, p, now)
+
+			taxCodeID := lookupTaxCodeID(t, deps.deps, "txcd_10000000")
+			rc3 := withTaxCodeID(&subscriptiontestutils.ExampleRateCard3ForAddons, taxCodeID)
 
 			subsAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, models.CadencedModel{
 				ActiveFrom: now.AddDate(0, 0, 5),
@@ -567,10 +578,10 @@ func TestApply(t *testing.T) {
 				require.True(t, cad2.ActiveTo.Equal(*pCad.ActiveTo))
 
 				// First item should have the original rate card
-				compareRateCardsWithAmountChange(t, &subscriptiontestutils.ExampleRateCard3ForAddons, 100, items[0].RateCard, "phase %s", p1.PhaseKey)
+				compareRateCardsWithAmountChange(t, rc3, 100, items[0].RateCard, "phase %s", p1.PhaseKey)
 
 				// Second item should have the updated rate card
-				compareRateCardsWithAmountChange(t, &subscriptiontestutils.ExampleRateCard3ForAddons, 100*(1+4), items[1].RateCard, "phase %s", p1.PhaseKey)
+				compareRateCardsWithAmountChange(t, rc3, 100*(1+4), items[1].RateCard, "phase %s", p1.PhaseKey)
 			}
 
 			// Lets check the second phase
@@ -590,7 +601,7 @@ func TestApply(t *testing.T) {
 				require.True(t, cad.ActiveFrom.Equal(pCad.ActiveFrom))
 				require.Nil(t, cad.ActiveTo)
 
-				compareRateCardsWithAmountChange(t, &subscriptiontestutils.ExampleRateCard3ForAddons, 100*(1+4), item.RateCard, "phase %s", p2.PhaseKey)
+				compareRateCardsWithAmountChange(t, rc3, 100*(1+4), item.RateCard, "phase %s", p2.PhaseKey)
 			}
 		})
 	})
@@ -743,6 +754,9 @@ func TestApply(t *testing.T) {
 
 			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, pl, now)
 
+			taxCodeID := lookupTaxCodeID(t, deps.deps, "txcd_10000000")
+			rc3 := withTaxCodeID(&subscriptiontestutils.ExampleRateCard3ForAddons, taxCodeID)
+
 			subAdd := subscriptiontestutils.CreateAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, models.CadencedModel{
 				ActiveFrom: *effPer.EffectiveFrom,
 				ActiveTo:   effPer.EffectiveTo,
@@ -773,7 +787,7 @@ func TestApply(t *testing.T) {
 			require.True(t, item.GetCadence(pCad).ActiveFrom.Equal(now))
 			require.Nil(t, item.GetCadence(pCad).ActiveTo)
 
-			compareRateCardsWithAmountChange(t, &subscriptiontestutils.ExampleRateCard3ForAddons, 100*2, item.RateCard, "phase %s", p.PhaseKey)
+			compareRateCardsWithAmountChange(t, rc3, 100*2, item.RateCard, "phase %s", p.PhaseKey)
 
 			// Should create ExampleAddonRateCard3
 			require.Contains(t, p.ItemsByKey, subscriptiontestutils.ExampleAddonRateCard3.Key())
@@ -838,6 +852,9 @@ func TestApplyWithMultiInstance(t *testing.T) {
 
 			subView := subscriptiontestutils.CreateSubscriptionFromPlan(t, &deps.deps, pl, now)
 
+			taxCodeID := lookupTaxCodeID(t, deps.deps, "txcd_10000000")
+			rc3 := withTaxCodeID(&subscriptiontestutils.ExampleRateCard3ForAddons, taxCodeID)
+
 			subAdd := subscriptiontestutils.CreateMultiInstanceAddonForSubscription(t, &deps.deps, subView.Subscription.NamespacedID, a.NamespacedID, []subscriptionaddon.CreateSubscriptionAddonQuantityInput{
 				{
 					ActiveFrom: t1,
@@ -871,21 +888,46 @@ func TestApplyWithMultiInstance(t *testing.T) {
 			// First item: from t0 to t1, ExampleRateCard3ForAddons
 			require.True(t, items[0].GetCadence(pCad).ActiveFrom.Equal(t0))
 			require.True(t, items[0].GetCadence(pCad).ActiveTo.Equal(t1))
-			compareRateCardsWithAmountChange(t, &subscriptiontestutils.ExampleRateCard3ForAddons, 100*1, items[0].RateCard, "phase %s", p.PhaseKey)
+			compareRateCardsWithAmountChange(t, rc3, 100*1, items[0].RateCard, "phase %s", p.PhaseKey)
 
 			// Second item: from t1 to t2, ExampleRateCard3ForAddons + ExampleAddonRateCard4
 			require.True(t, items[1].GetCadence(pCad).ActiveFrom.Equal(t1))
 			require.True(t, items[1].GetCadence(pCad).ActiveTo.Equal(t2))
 
-			compareRateCardsWithAmountChange(t, &subscriptiontestutils.ExampleRateCard3ForAddons, 100*2, items[1].RateCard, "phase %s", p.PhaseKey)
+			compareRateCardsWithAmountChange(t, rc3, 100*2, items[1].RateCard, "phase %s", p.PhaseKey)
 
 			// Third item: from t2 to open, ExampleRateCard3ForAddons + 2 x ExampleAddonRateCard4
 			require.True(t, items[2].GetCadence(pCad).ActiveFrom.Equal(t2))
 			require.Nil(t, items[2].GetCadence(pCad).ActiveTo)
 
-			compareRateCardsWithAmountChange(t, &subscriptiontestutils.ExampleRateCard3ForAddons, 100*3, items[2].RateCard, "phase %s", p.PhaseKey)
+			compareRateCardsWithAmountChange(t, rc3, 100*3, items[2].RateCard, "phase %s", p.PhaseKey)
 		})
 	})
+}
+
+// lookupTaxCodeID resolves the TaxCode entity ID for a given Stripe tax code from the database.
+// This is used to set the expected TaxCodeID on test rate cards after plan creation resolves them.
+func lookupTaxCodeID(t *testing.T, deps subscriptiontestutils.SubscriptionDependencies, stripeCode string) *string {
+	t.Helper()
+
+	tc, err := deps.TaxCodeService.GetTaxCodeByAppMapping(context.Background(), taxcode.GetTaxCodeByAppMappingInput{
+		Namespace: subscriptiontestutils.ExampleNamespace,
+		AppType:   app.AppTypeStripe,
+		TaxCode:   stripeCode,
+	})
+	require.NoError(t, err)
+
+	return &tc.ID
+}
+
+// withTaxCodeID clones a FlatFeeRateCard and sets the TaxCodeID on its TaxConfig.
+func withTaxCodeID(rc *productcatalog.FlatFeeRateCard, taxCodeID *string) *productcatalog.FlatFeeRateCard {
+	clone := rc.Clone().(*productcatalog.FlatFeeRateCard)
+	if clone.TaxConfig != nil {
+		clone.TaxConfig.TaxCodeID = taxCodeID
+	}
+
+	return clone
 }
 
 func compareRateCardsWithAmountChange(t *testing.T, baseTarget *productcatalog.FlatFeeRateCard, targetAmount int, value productcatalog.RateCard, msgAndArgs ...interface{}) {

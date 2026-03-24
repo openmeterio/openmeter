@@ -116,7 +116,10 @@ func (r *subscriptionAddonRepo) List(ctx context.Context, namespace string, filt
 func querySubscriptionAddon(query *db.SubscriptionAddonQuery) *db.SubscriptionAddonQuery {
 	return query.
 		WithAddon(func(aq *db.AddonQuery) {
-			aq.WithRatecards()
+			aq.WithRatecards(func(arq *db.AddonRateCardQuery) {
+				arq.WithFeatures()
+				arq.WithTaxCode()
+			})
 		}).
 		WithQuantities(func(saqq *db.SubscriptionAddonQuantityQuery) {
 			saqq.Order(

@@ -83,6 +83,13 @@ type TaxCode struct {
 	Metadata models.Metadata `json:"metadata,omitempty"`
 }
 
+// GetAppMapping returns the app mapping for the given app type, if it exists.
+func (t TaxCode) GetAppMapping(appType app.AppType) (TaxCodeAppMapping, bool) {
+	return lo.Find(t.AppMappings, func(m TaxCodeAppMapping) bool {
+		return m.AppType == appType
+	})
+}
+
 func (t TaxCode) Validate() error {
 	var errs []error
 
