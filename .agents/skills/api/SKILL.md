@@ -275,6 +275,7 @@ issues, err := models.AsValidationIssues(domainErr)
 ```
 
 Key types from `pkg/models/validationissue.go`:
+
 - `models.NewValidationError(code, message)` — critical severity
 - `models.NewValidationWarning(code, message)` — warning severity
 - `models.NewValidationIssue(code, message, opts...)` — with options
@@ -321,9 +322,13 @@ Reference: `api/v3/server/server.go:138-218`, `api/v3/server/routes.go`
 - Check the generated `api/openapi.yaml` or `api/v3/api.gen.go` to verify the endpoints look correct
 - Present a summary of the API changes to the user
 
+## AIP Standards (Kong AIP)
+
+Follow the API design standards in `api/spec/packages/aip/README.md` (symlinked as `AIP.md` next to this file). That document is the single source of truth for all AIP conventions including naming, enums, resources, visibility, CRUD templates, pagination, filtering, labels, errors, time/duration, content-type, bulk operations, versioning, and empty fields.
+
 ## Important Reminders
 
-- All new APIs go in v3 (`api/spec/src/v3/`)
+- All new APIs go in v3 directory (`api/spec/src/v3/`)
 - Never edit generated files manually (`api/openapi.yaml`, `api/client/`, `api/*.gen.go`)
 - Run `make gen-api` to generate Go types
 - Follow existing TypeSpec patterns and conventions from other v3 domains
