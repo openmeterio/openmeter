@@ -394,6 +394,7 @@ func (i StandardLine) ToGatheringLineBase() (GatheringLineBase, error) {
 		ChildUniqueReferenceID: i.ChildUniqueReferenceID,
 		Subscription:           i.Subscription,
 		SplitLineGroupID:       i.SplitLineGroupID,
+		UnitConfig:             i.UsageBased.UnitConfig,
 		UBPConfigID:            i.UsageBased.ConfigID,
 	}, nil
 }
@@ -489,6 +490,14 @@ func (i StandardLine) GetPrice() *productcatalog.Price {
 	}
 
 	return i.UsageBased.Price
+}
+
+func (i StandardLine) GetUnitConfig() *productcatalog.UnitConfig {
+	if i.UsageBased == nil {
+		return nil
+	}
+
+	return i.UsageBased.UnitConfig
 }
 
 func (i *StandardLine) SetPrice(price productcatalog.Price) {
@@ -963,6 +972,32 @@ type UsageBasedLine struct {
 
 	PreLinePeriodQuantity        *alpacadecimal.Decimal `json:"preLinePeriodQuantity,omitempty"`
 	MeteredPreLinePeriodQuantity *alpacadecimal.Decimal `json:"meteredPreLinePeriodQuantity,omitempty"`
+
+	// UnitConfig defines unit conversion applied before pricing. Snapshot from rate card at billing time.
+	UnitConfig *productcatalog.UnitConfig `json:"unitConfig,omitempty"`
+
+	// UsageQuantityDetail provides the audit trail from raw metered quantity to invoiced quantity
+	// when UnitConfig is in effect. Nil when no UnitConfig is applied.
+	UsageQuantityDetail *UsageQuantityDetail `json:"usageQuantityDetail,omitempty"`
+}
+
+// UsageQuantityDetail provides the full audit trail from raw meter output to invoiced amount
+// when UnitConfig is in effect.
+type UsageQuantityDetail struct {
+	// RawQuantity is the quantity as reported by the meter (native units).
+	RawQuantity alpacadecimal.Decimal `json:"raw_quantity"`
+
+	// ConvertedQuantity is the precise value after applying the conversion operation and factor, before rounding.
+	ConvertedQuantity alpacadecimal.Decimal `json:"converted_quantity"`
+
+	// InvoicedQuantity is the quantity after rounding, used for pricing.
+	InvoicedQuantity alpacadecimal.Decimal `json:"invoiced_quantity"`
+
+	// DisplayUnit is the human-readable unit label (e.g., "GB", "hours", "M tokens").
+	DisplayUnit *string `json:"display_unit,omitempty"`
+
+	// AppliedUnitConfig is the snapshot of the UnitConfig that was in effect at billing time.
+	AppliedUnitConfig productcatalog.UnitConfig `json:"applied_unit_config"`
 }
 
 func (i UsageBasedLine) Equal(other *UsageBasedLine) bool {

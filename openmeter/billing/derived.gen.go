@@ -27,6 +27,7 @@ func deriveEqualGatheringLineBase(this, that *GatheringLineBase) bool {
 			deriveEqual_1(this.Subscription, that.Subscription) &&
 			((this.SplitLineGroupID == nil && that.SplitLineGroupID == nil) || (this.SplitLineGroupID != nil && that.SplitLineGroupID != nil && *(this.SplitLineGroupID) == *(that.SplitLineGroupID))) &&
 			((this.ChargeID == nil && that.ChargeID == nil) || (this.ChargeID != nil && that.ChargeID != nil && *(this.ChargeID) == *(that.ChargeID))) &&
+			this.UnitConfig.Equal(that.UnitConfig) &&
 			this.UBPConfigID == that.UBPConfigID
 }
 
@@ -129,7 +130,9 @@ func deriveEqualUsageBasedLine(this, that *UsageBasedLine) bool {
 			((this.Quantity == nil && that.Quantity == nil) || (this.Quantity != nil && that.Quantity != nil && (*(this.Quantity)).Equal(*(that.Quantity)))) &&
 			((this.MeteredQuantity == nil && that.MeteredQuantity == nil) || (this.MeteredQuantity != nil && that.MeteredQuantity != nil && (*(this.MeteredQuantity)).Equal(*(that.MeteredQuantity)))) &&
 			((this.PreLinePeriodQuantity == nil && that.PreLinePeriodQuantity == nil) || (this.PreLinePeriodQuantity != nil && that.PreLinePeriodQuantity != nil && (*(this.PreLinePeriodQuantity)).Equal(*(that.PreLinePeriodQuantity)))) &&
-			((this.MeteredPreLinePeriodQuantity == nil && that.MeteredPreLinePeriodQuantity == nil) || (this.MeteredPreLinePeriodQuantity != nil && that.MeteredPreLinePeriodQuantity != nil && (*(this.MeteredPreLinePeriodQuantity)).Equal(*(that.MeteredPreLinePeriodQuantity))))
+			((this.MeteredPreLinePeriodQuantity == nil && that.MeteredPreLinePeriodQuantity == nil) || (this.MeteredPreLinePeriodQuantity != nil && that.MeteredPreLinePeriodQuantity != nil && (*(this.MeteredPreLinePeriodQuantity)).Equal(*(that.MeteredPreLinePeriodQuantity)))) &&
+			this.UnitConfig.Equal(that.UnitConfig) &&
+			deriveEqual_5(this.UsageQuantityDetail, that.UsageQuantityDetail)
 }
 
 // deriveEqual returns whether this and that are equal.
@@ -184,7 +187,7 @@ func deriveEqual_3(this, that []CreditApplied) bool {
 		return false
 	}
 	for i := 0; i < len(this); i++ {
-		if !(deriveEqual_5(&this[i], &that[i])) {
+		if !(deriveEqual_6(&this[i], &that[i])) {
 			return false
 		}
 	}
@@ -201,7 +204,18 @@ func deriveEqual_4(this, that *DiscountReason) bool {
 }
 
 // deriveEqual_5 returns whether this and that are equal.
-func deriveEqual_5(this, that *CreditApplied) bool {
+func deriveEqual_5(this, that *UsageQuantityDetail) bool {
+	return (this == nil && that == nil) ||
+		this != nil && that != nil &&
+			this.RawQuantity.Equal(that.RawQuantity) &&
+			this.ConvertedQuantity.Equal(that.ConvertedQuantity) &&
+			this.InvoicedQuantity.Equal(that.InvoicedQuantity) &&
+			((this.DisplayUnit == nil && that.DisplayUnit == nil) || (this.DisplayUnit != nil && that.DisplayUnit != nil && *(this.DisplayUnit) == *(that.DisplayUnit))) &&
+			this.AppliedUnitConfig.Equal(&that.AppliedUnitConfig)
+}
+
+// deriveEqual_6 returns whether this and that are equal.
+func deriveEqual_6(this, that *CreditApplied) bool {
 	return (this == nil && that == nil) ||
 		this != nil && that != nil &&
 			this.Amount.Equal(that.Amount) &&

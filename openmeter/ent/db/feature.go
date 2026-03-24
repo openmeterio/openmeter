@@ -61,6 +61,8 @@ type Feature struct {
 	UnitCostLlmTokenTypeProperty *string `json:"unit_cost_llm_token_type_property,omitempty"`
 	// UnitCostLlmTokenType holds the value of the "unit_cost_llm_token_type" field.
 	UnitCostLlmTokenType *string `json:"unit_cost_llm_token_type,omitempty"`
+	// UnitConfig holds the value of the "unit_config" field.
+	UnitConfig *string `json:"unit_config,omitempty"`
 	// ArchivedAt holds the value of the "archived_at" field.
 	ArchivedAt *time.Time `json:"archived_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -131,7 +133,7 @@ func (*Feature) scanValues(columns []string) ([]any, error) {
 			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case dbfeature.FieldMetadata, dbfeature.FieldMeterGroupByFilters, dbfeature.FieldAdvancedMeterGroupByFilters:
 			values[i] = new([]byte)
-		case dbfeature.FieldID, dbfeature.FieldNamespace, dbfeature.FieldName, dbfeature.FieldDescription, dbfeature.FieldKey, dbfeature.FieldMeterSlug, dbfeature.FieldMeterID, dbfeature.FieldUnitCostType, dbfeature.FieldUnitCostLlmProviderProperty, dbfeature.FieldUnitCostLlmProvider, dbfeature.FieldUnitCostLlmModelProperty, dbfeature.FieldUnitCostLlmModel, dbfeature.FieldUnitCostLlmTokenTypeProperty, dbfeature.FieldUnitCostLlmTokenType:
+		case dbfeature.FieldID, dbfeature.FieldNamespace, dbfeature.FieldName, dbfeature.FieldDescription, dbfeature.FieldKey, dbfeature.FieldMeterSlug, dbfeature.FieldMeterID, dbfeature.FieldUnitCostType, dbfeature.FieldUnitCostLlmProviderProperty, dbfeature.FieldUnitCostLlmProvider, dbfeature.FieldUnitCostLlmModelProperty, dbfeature.FieldUnitCostLlmModel, dbfeature.FieldUnitCostLlmTokenTypeProperty, dbfeature.FieldUnitCostLlmTokenType, dbfeature.FieldUnitConfig:
 			values[i] = new(sql.NullString)
 		case dbfeature.FieldCreatedAt, dbfeature.FieldUpdatedAt, dbfeature.FieldDeletedAt, dbfeature.FieldArchivedAt:
 			values[i] = new(sql.NullTime)
@@ -294,6 +296,13 @@ func (_m *Feature) assignValues(columns []string, values []any) error {
 				_m.UnitCostLlmTokenType = new(string)
 				*_m.UnitCostLlmTokenType = value.String
 			}
+		case dbfeature.FieldUnitConfig:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field unit_config", values[i])
+			} else if value.Valid {
+				_m.UnitConfig = new(string)
+				*_m.UnitConfig = value.String
+			}
 		case dbfeature.FieldArchivedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field archived_at", values[i])
@@ -438,6 +447,11 @@ func (_m *Feature) String() string {
 	builder.WriteString(", ")
 	if v := _m.UnitCostLlmTokenType; v != nil {
 		builder.WriteString("unit_cost_llm_token_type=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.UnitConfig; v != nil {
+		builder.WriteString("unit_config=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

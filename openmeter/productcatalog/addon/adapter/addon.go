@@ -257,6 +257,10 @@ func rateCardBulkCreate(c *entdb.AddonRateCardClient, rateCards productcatalog.R
 			q.SetPrice(rateCardEntity.Price)
 		}
 
+		if rateCardEntity.UnitConfig != nil {
+			q.SetUnitConfig(rateCardEntity.UnitConfig)
+		}
+
 		bulk = append(bulk, q)
 	}
 

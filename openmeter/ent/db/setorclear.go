@@ -255,6 +255,20 @@ func (u *AddonRateCardUpdateOne) SetOrClearDiscounts(value **productcatalog.Disc
 	return u.SetDiscounts(*value)
 }
 
+func (u *AddonRateCardUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
 func (u *AddonRateCardUpdate) SetOrClearFeatureID(value *string) *AddonRateCardUpdate {
 	if value == nil {
 		return u.ClearFeatureID()
@@ -1779,6 +1793,20 @@ func (u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetOrClearMeteredQuantity(
 		return u.ClearMeteredQuantity()
 	}
 	return u.SetMeteredQuantity(*value)
+}
+
+func (u *BillingInvoiceUsageBasedLineConfigUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpdate {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
+func (u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
 }
 
 func (u *BillingInvoiceValidationIssueUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceValidationIssueUpdate {
@@ -3531,6 +3559,20 @@ func (u *FeatureUpdateOne) SetOrClearUnitCostLlmTokenType(value *string) *Featur
 	return u.SetUnitCostLlmTokenType(*value)
 }
 
+func (u *FeatureUpdate) SetOrClearUnitConfig(value *string) *FeatureUpdate {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
+func (u *FeatureUpdateOne) SetOrClearUnitConfig(value *string) *FeatureUpdateOne {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
 func (u *FeatureUpdate) SetOrClearArchivedAt(value *time.Time) *FeatureUpdate {
 	if value == nil {
 		return u.ClearArchivedAt()
@@ -4455,6 +4497,20 @@ func (u *PlanRateCardUpdateOne) SetOrClearDiscounts(value **productcatalog.Disco
 	return u.SetDiscounts(*value)
 }
 
+func (u *PlanRateCardUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
 func (u *PlanRateCardUpdate) SetOrClearFeatureID(value *string) *PlanRateCardUpdate {
 	if value == nil {
 		return u.ClearFeatureID()
@@ -4901,6 +4957,20 @@ func (u *SubscriptionItemUpdateOne) SetOrClearDiscounts(value **productcatalog.D
 		return u.ClearDiscounts()
 	}
 	return u.SetDiscounts(*value)
+}
+
+func (u *SubscriptionItemUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
 }
 
 func (u *SubscriptionPhaseUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionPhaseUpdate {

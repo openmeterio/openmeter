@@ -363,6 +363,69 @@ func TestTieredGraduatedCalculation(t *testing.T) {
 	})
 }
 
+func TestGraduatedTieredWithUnitConfig(t *testing.T) {
+	// UnitConfig divide by 1e6, ceil → graduated tiered with unit pricing
+	// Tiers: 0-5 at $10/unit, 5+ at $8/unit
+	// Input: 7,500,001 tokens → 7.500001M → ceil → 8M
+	// Tier 1: 5 units at $10 = $50
+	// Tier 2: 3 units at $8 = $24
+	// Total: $74
+	t.Run("unit config divide+ceil with graduated tiered price", func(t *testing.T) {
+		testutil.RunCalculationTestCase(t, testutil.CalculationTestCase{
+			Price: *productcatalog.NewPriceFrom(productcatalog.TieredPrice{
+				Mode: productcatalog.GraduatedTieredPrice,
+				Tiers: []productcatalog.PriceTier{
+					{
+						UpToAmount: lo.ToPtr(alpacadecimal.NewFromFloat(5)),
+						UnitPrice: &productcatalog.PriceTierUnitPrice{
+							Amount: alpacadecimal.NewFromFloat(10),
+						},
+					},
+					{
+						UnitPrice: &productcatalog.PriceTierUnitPrice{
+							Amount: alpacadecimal.NewFromFloat(8),
+						},
+					},
+				},
+			}),
+			UnitConfig: &productcatalog.UnitConfig{
+				Operation:        productcatalog.ConversionOperationDivide,
+				ConversionFactor: alpacadecimal.NewFromFloat(1e6),
+				Rounding:         productcatalog.RoundingModeCeiling,
+				Precision:        0,
+			},
+			LineMode: testutil.SinglePerPeriodLineMode,
+			Usage: testutil.FeatureUsageResponse{
+				LinePeriodQty: alpacadecimal.NewFromFloat(7500001),
+			},
+			Expect: rating.DetailedLines{
+				{
+					Name:                   "feature: usage price for tier 1",
+					PerUnitAmount:          alpacadecimal.NewFromFloat(10),
+					Quantity:               alpacadecimal.NewFromFloat(5),
+					ChildUniqueReferenceID: "graduated-tiered-1-price-usage",
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+					Totals: totals.Totals{
+						Amount: alpacadecimal.NewFromFloat(50),
+						Total:  alpacadecimal.NewFromFloat(50),
+					},
+				},
+				{
+					Name:                   "feature: usage price for tier 2",
+					PerUnitAmount:          alpacadecimal.NewFromFloat(8),
+					Quantity:               alpacadecimal.NewFromFloat(3),
+					ChildUniqueReferenceID: "graduated-tiered-2-price-usage",
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+					Totals: totals.Totals{
+						Amount: alpacadecimal.NewFromFloat(24),
+						Total:  alpacadecimal.NewFromFloat(24),
+					},
+				},
+			},
+		})
+	})
+}
+
 func TestTieredPriceCalculator(t *testing.T) {
 	currency := lo.Must(currencyx.Code(currency.USD).Calculator())
 

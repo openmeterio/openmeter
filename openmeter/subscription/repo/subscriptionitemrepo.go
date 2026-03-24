@@ -158,6 +158,10 @@ func (r *subscriptionItemRepo) Create(ctx context.Context, input subscription.Cr
 			cmd.SetDiscounts(lo.EmptyableToPtr(input.RateCard.AsMeta().Discounts))
 		}
 
+		if uc := input.RateCard.GetUnitConfig(); uc != nil {
+			cmd.SetUnitConfig(uc)
+		}
+
 		i, err := cmd.Save(ctx)
 		if err != nil {
 			return def, err

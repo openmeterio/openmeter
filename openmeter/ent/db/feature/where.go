@@ -151,6 +151,11 @@ func UnitCostLlmTokenType(v string) predicate.Feature {
 	return predicate.Feature(sql.FieldEQ(FieldUnitCostLlmTokenType, v))
 }
 
+// UnitConfig applies equality check predicate on the "unit_config" field. It's identical to UnitConfigEQ.
+func UnitConfig(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldUnitConfig, v))
+}
+
 // ArchivedAt applies equality check predicate on the "archived_at" field. It's identical to ArchivedAtEQ.
 func ArchivedAt(v time.Time) predicate.Feature {
 	return predicate.Feature(sql.FieldEQ(FieldArchivedAt, v))
@@ -1309,6 +1314,81 @@ func UnitCostLlmTokenTypeEqualFold(v string) predicate.Feature {
 // UnitCostLlmTokenTypeContainsFold applies the ContainsFold predicate on the "unit_cost_llm_token_type" field.
 func UnitCostLlmTokenTypeContainsFold(v string) predicate.Feature {
 	return predicate.Feature(sql.FieldContainsFold(FieldUnitCostLlmTokenType, v))
+}
+
+// UnitConfigEQ applies the EQ predicate on the "unit_config" field.
+func UnitConfigEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldUnitConfig, v))
+}
+
+// UnitConfigNEQ applies the NEQ predicate on the "unit_config" field.
+func UnitConfigNEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldNEQ(FieldUnitConfig, v))
+}
+
+// UnitConfigIn applies the In predicate on the "unit_config" field.
+func UnitConfigIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldIn(FieldUnitConfig, vs...))
+}
+
+// UnitConfigNotIn applies the NotIn predicate on the "unit_config" field.
+func UnitConfigNotIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldNotIn(FieldUnitConfig, vs...))
+}
+
+// UnitConfigGT applies the GT predicate on the "unit_config" field.
+func UnitConfigGT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGT(FieldUnitConfig, v))
+}
+
+// UnitConfigGTE applies the GTE predicate on the "unit_config" field.
+func UnitConfigGTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGTE(FieldUnitConfig, v))
+}
+
+// UnitConfigLT applies the LT predicate on the "unit_config" field.
+func UnitConfigLT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLT(FieldUnitConfig, v))
+}
+
+// UnitConfigLTE applies the LTE predicate on the "unit_config" field.
+func UnitConfigLTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLTE(FieldUnitConfig, v))
+}
+
+// UnitConfigContains applies the Contains predicate on the "unit_config" field.
+func UnitConfigContains(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContains(FieldUnitConfig, v))
+}
+
+// UnitConfigHasPrefix applies the HasPrefix predicate on the "unit_config" field.
+func UnitConfigHasPrefix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasPrefix(FieldUnitConfig, v))
+}
+
+// UnitConfigHasSuffix applies the HasSuffix predicate on the "unit_config" field.
+func UnitConfigHasSuffix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasSuffix(FieldUnitConfig, v))
+}
+
+// UnitConfigIsNil applies the IsNil predicate on the "unit_config" field.
+func UnitConfigIsNil() predicate.Feature {
+	return predicate.Feature(sql.FieldIsNull(FieldUnitConfig))
+}
+
+// UnitConfigNotNil applies the NotNil predicate on the "unit_config" field.
+func UnitConfigNotNil() predicate.Feature {
+	return predicate.Feature(sql.FieldNotNull(FieldUnitConfig))
+}
+
+// UnitConfigEqualFold applies the EqualFold predicate on the "unit_config" field.
+func UnitConfigEqualFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEqualFold(FieldUnitConfig, v))
+}
+
+// UnitConfigContainsFold applies the ContainsFold predicate on the "unit_config" field.
+func UnitConfigContainsFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContainsFold(FieldUnitConfig, v))
 }
 
 // ArchivedAtEQ applies the EQ predicate on the "archived_at" field.

@@ -892,6 +892,16 @@ func DiscountsNotNil() predicate.PlanRateCard {
 	return predicate.PlanRateCard(sql.FieldNotNull(FieldDiscounts))
 }
 
+// UnitConfigIsNil applies the IsNil predicate on the "unit_config" field.
+func UnitConfigIsNil() predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldIsNull(FieldUnitConfig))
+}
+
+// UnitConfigNotNil applies the NotNil predicate on the "unit_config" field.
+func UnitConfigNotNil() predicate.PlanRateCard {
+	return predicate.PlanRateCard(sql.FieldNotNull(FieldUnitConfig))
+}
+
 // PhaseIDEQ applies the EQ predicate on the "phase_id" field.
 func PhaseIDEQ(v string) predicate.PlanRateCard {
 	return predicate.PlanRateCard(sql.FieldEQ(FieldPhaseID, v))

@@ -230,6 +230,103 @@ func TestUnitPriceCalculation(t *testing.T) {
 		})
 	})
 
+	// UnitConfig tests
+
+	// 1,500,001 tokens / 1e6 = 1.500001, ceil → 2, at $10/unit = $20
+	t.Run("unit config divide+ceil with unit price", func(t *testing.T) {
+		testutil.RunCalculationTestCase(t, testutil.CalculationTestCase{
+			Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromFloat(10),
+			}),
+			UnitConfig: &productcatalog.UnitConfig{
+				Operation:        productcatalog.ConversionOperationDivide,
+				ConversionFactor: alpacadecimal.NewFromFloat(1e6),
+				Rounding:         productcatalog.RoundingModeCeiling,
+				Precision:        0,
+			},
+			LineMode: testutil.SinglePerPeriodLineMode,
+			Usage: testutil.FeatureUsageResponse{
+				LinePeriodQty: alpacadecimal.NewFromFloat(1500001),
+			},
+			Expect: rating.DetailedLines{
+				{
+					Name:                   "feature: usage in period",
+					PerUnitAmount:          alpacadecimal.NewFromFloat(10),
+					Quantity:               alpacadecimal.NewFromFloat(2),
+					ChildUniqueReferenceID: rating.UnitPriceUsageChildUniqueReferenceID,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+					Totals: totals.Totals{
+						Amount: alpacadecimal.NewFromFloat(20),
+						Total:  alpacadecimal.NewFromFloat(20),
+					},
+				},
+			},
+		})
+	})
+
+	// 100 calls * 1.2 margin = 120, at $1/unit = $120
+	t.Run("unit config multiply with unit price", func(t *testing.T) {
+		testutil.RunCalculationTestCase(t, testutil.CalculationTestCase{
+			Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromFloat(1),
+			}),
+			UnitConfig: &productcatalog.UnitConfig{
+				Operation:        productcatalog.ConversionOperationMultiply,
+				ConversionFactor: alpacadecimal.NewFromFloat(1.2),
+				Rounding:         productcatalog.RoundingModeNone,
+			},
+			LineMode: testutil.SinglePerPeriodLineMode,
+			Usage: testutil.FeatureUsageResponse{
+				LinePeriodQty: alpacadecimal.NewFromFloat(100),
+			},
+			Expect: rating.DetailedLines{
+				{
+					Name:                   "feature: usage in period",
+					PerUnitAmount:          alpacadecimal.NewFromFloat(1),
+					Quantity:               alpacadecimal.NewFromFloat(120),
+					ChildUniqueReferenceID: rating.UnitPriceUsageChildUniqueReferenceID,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+					Totals: totals.Totals{
+						Amount: alpacadecimal.NewFromFloat(120),
+						Total:  alpacadecimal.NewFromFloat(120),
+					},
+				},
+			},
+		})
+	})
+
+	// 1999 tokens / 1000 = 1.999, floor → 1, at $5/unit = $5
+	t.Run("unit config divide+floor with unit price", func(t *testing.T) {
+		testutil.RunCalculationTestCase(t, testutil.CalculationTestCase{
+			Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: alpacadecimal.NewFromFloat(5),
+			}),
+			UnitConfig: &productcatalog.UnitConfig{
+				Operation:        productcatalog.ConversionOperationDivide,
+				ConversionFactor: alpacadecimal.NewFromFloat(1000),
+				Rounding:         productcatalog.RoundingModeFloor,
+				Precision:        0,
+			},
+			LineMode: testutil.SinglePerPeriodLineMode,
+			Usage: testutil.FeatureUsageResponse{
+				LinePeriodQty: alpacadecimal.NewFromFloat(1999),
+			},
+			Expect: rating.DetailedLines{
+				{
+					Name:                   "feature: usage in period",
+					PerUnitAmount:          alpacadecimal.NewFromFloat(5),
+					Quantity:               alpacadecimal.NewFromFloat(1),
+					ChildUniqueReferenceID: rating.UnitPriceUsageChildUniqueReferenceID,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+					Totals: totals.Totals{
+						Amount: alpacadecimal.NewFromFloat(5),
+						Total:  alpacadecimal.NewFromFloat(5),
+					},
+				},
+			},
+		})
+	})
+
 	// Discount + max spend
 	t.Run("usage present, 50% discount +max spend set and hit", func(t *testing.T) {
 		discount50pct := billing.PercentageDiscount{

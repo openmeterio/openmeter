@@ -156,6 +156,7 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		rc = &productcatalog.UsageBasedRateCard{
 			BillingCadence: *cadence,
 			RateCardMeta:   rcMeta,
+			UnitConfig:     item.UnitConfig,
 		}
 	}
 

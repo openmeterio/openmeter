@@ -289,6 +289,26 @@ func (_u *FeatureUpdate) ClearUnitCostLlmTokenType() *FeatureUpdate {
 	return _u
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_u *FeatureUpdate) SetUnitConfig(v string) *FeatureUpdate {
+	_u.mutation.SetUnitConfig(v)
+	return _u
+}
+
+// SetNillableUnitConfig sets the "unit_config" field if the given value is not nil.
+func (_u *FeatureUpdate) SetNillableUnitConfig(v *string) *FeatureUpdate {
+	if v != nil {
+		_u.SetUnitConfig(*v)
+	}
+	return _u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (_u *FeatureUpdate) ClearUnitConfig() *FeatureUpdate {
+	_u.mutation.ClearUnitConfig()
+	return _u
+}
+
 // SetArchivedAt sets the "archived_at" field.
 func (_u *FeatureUpdate) SetArchivedAt(v time.Time) *FeatureUpdate {
 	_u.mutation.SetArchivedAt(v)
@@ -571,6 +591,12 @@ func (_u *FeatureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.UnitCostLlmTokenTypeCleared() {
 		_spec.ClearField(dbfeature.FieldUnitCostLlmTokenType, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitConfig(); ok {
+		_spec.SetField(dbfeature.FieldUnitConfig, field.TypeString, value)
+	}
+	if _u.mutation.UnitConfigCleared() {
+		_spec.ClearField(dbfeature.FieldUnitConfig, field.TypeString)
 	}
 	if value, ok := _u.mutation.ArchivedAt(); ok {
 		_spec.SetField(dbfeature.FieldArchivedAt, field.TypeTime, value)
@@ -989,6 +1015,26 @@ func (_u *FeatureUpdateOne) ClearUnitCostLlmTokenType() *FeatureUpdateOne {
 	return _u
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_u *FeatureUpdateOne) SetUnitConfig(v string) *FeatureUpdateOne {
+	_u.mutation.SetUnitConfig(v)
+	return _u
+}
+
+// SetNillableUnitConfig sets the "unit_config" field if the given value is not nil.
+func (_u *FeatureUpdateOne) SetNillableUnitConfig(v *string) *FeatureUpdateOne {
+	if v != nil {
+		_u.SetUnitConfig(*v)
+	}
+	return _u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (_u *FeatureUpdateOne) ClearUnitConfig() *FeatureUpdateOne {
+	_u.mutation.ClearUnitConfig()
+	return _u
+}
+
 // SetArchivedAt sets the "archived_at" field.
 func (_u *FeatureUpdateOne) SetArchivedAt(v time.Time) *FeatureUpdateOne {
 	_u.mutation.SetArchivedAt(v)
@@ -1301,6 +1347,12 @@ func (_u *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err er
 	}
 	if _u.mutation.UnitCostLlmTokenTypeCleared() {
 		_spec.ClearField(dbfeature.FieldUnitCostLlmTokenType, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitConfig(); ok {
+		_spec.SetField(dbfeature.FieldUnitConfig, field.TypeString, value)
+	}
+	if _u.mutation.UnitConfigCleared() {
+		_spec.ClearField(dbfeature.FieldUnitConfig, field.TypeString)
 	}
 	if value, ok := _u.mutation.ArchivedAt(); ok {
 		_spec.SetField(dbfeature.FieldArchivedAt, field.TypeTime, value)

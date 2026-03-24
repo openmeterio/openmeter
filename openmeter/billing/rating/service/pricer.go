@@ -50,9 +50,11 @@ func getPricerFor(line rating.PriceAccessor) (*priceMutator, error) {
 		return nil, fmt.Errorf("unsupported price type: %s", linePrice.Type())
 	}
 
-	// This priceMutator captures the calculation flow for discounts and commitments:
+	// This priceMutator captures the calculation flow for unit config, discounts and commitments:
 	return &priceMutator{
 		PreCalculation: []mutator.PreCalculationMutator{
+			&mutator.UnitConfigConversion{},
+			&mutator.UnitConfigRounding{},
 			&mutator.DiscountUsage{},
 		},
 		Pricer: basePricer,

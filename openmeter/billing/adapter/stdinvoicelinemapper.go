@@ -128,6 +128,23 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 		MeteredQuantity:              ubpLine.MeteredQuantity,
 		PreLinePeriodQuantity:        ubpLine.PreLinePeriodQuantity,
 		MeteredPreLinePeriodQuantity: ubpLine.MeteredPreLinePeriodQuantity,
+		UnitConfig:                   ubpLine.UnitConfig,
+	}
+
+	// Compute UsageQuantityDetail from persisted UnitConfig and MeteredQuantity
+	if invoiceLine.UsageBased.UnitConfig != nil && invoiceLine.UsageBased.MeteredQuantity != nil {
+		rawQty := *invoiceLine.UsageBased.MeteredQuantity
+		uc := invoiceLine.UsageBased.UnitConfig
+		convertedQty := uc.Convert(rawQty)
+		invoicedQty := uc.Round(convertedQty)
+
+		invoiceLine.UsageBased.UsageQuantityDetail = &billing.UsageQuantityDetail{
+			RawQuantity:       rawQty,
+			ConvertedQuantity: convertedQty,
+			InvoicedQuantity:  invoicedQty,
+			DisplayUnit:       uc.DisplayUnit,
+			AppliedUnitConfig: uc.Clone(),
+		}
 	}
 
 	if len(dbLine.Edges.LineUsageDiscounts) > 0 {

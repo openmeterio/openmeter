@@ -362,6 +362,18 @@ func (_u *SubscriptionItemUpdate) ClearDiscounts() *SubscriptionItemUpdate {
 	return _u
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_u *SubscriptionItemUpdate) SetUnitConfig(v *productcatalog.UnitConfig) *SubscriptionItemUpdate {
+	_u.mutation.SetUnitConfig(v)
+	return _u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (_u *SubscriptionItemUpdate) ClearUnitConfig() *SubscriptionItemUpdate {
+	_u.mutation.ClearUnitConfig()
+	return _u
+}
+
 // SetEntitlement sets the "entitlement" edge to the Entitlement entity.
 func (_u *SubscriptionItemUpdate) SetEntitlement(v *Entitlement) *SubscriptionItemUpdate {
 	return _u.SetEntitlementID(v.ID)
@@ -565,6 +577,11 @@ func (_u *SubscriptionItemUpdate) check() error {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.discounts": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.unit_config": %w`, err)}
+		}
+	}
 	if _u.mutation.PhaseCleared() && len(_u.mutation.PhaseIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "SubscriptionItem.phase"`)
 	}
@@ -701,6 +718,16 @@ func (_u *SubscriptionItemUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if _u.mutation.DiscountsCleared() {
 		_spec.ClearField(subscriptionitem.FieldDiscounts, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitConfig(); ok {
+		vv, err := subscriptionitem.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(subscriptionitem.FieldUnitConfig, field.TypeString, vv)
+	}
+	if _u.mutation.UnitConfigCleared() {
+		_spec.ClearField(subscriptionitem.FieldUnitConfig, field.TypeString)
 	}
 	if _u.mutation.EntitlementCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1241,6 +1268,18 @@ func (_u *SubscriptionItemUpdateOne) ClearDiscounts() *SubscriptionItemUpdateOne
 	return _u
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_u *SubscriptionItemUpdateOne) SetUnitConfig(v *productcatalog.UnitConfig) *SubscriptionItemUpdateOne {
+	_u.mutation.SetUnitConfig(v)
+	return _u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (_u *SubscriptionItemUpdateOne) ClearUnitConfig() *SubscriptionItemUpdateOne {
+	_u.mutation.ClearUnitConfig()
+	return _u
+}
+
 // SetEntitlement sets the "entitlement" edge to the Entitlement entity.
 func (_u *SubscriptionItemUpdateOne) SetEntitlement(v *Entitlement) *SubscriptionItemUpdateOne {
 	return _u.SetEntitlementID(v.ID)
@@ -1457,6 +1496,11 @@ func (_u *SubscriptionItemUpdateOne) check() error {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.discounts": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "SubscriptionItem.unit_config": %w`, err)}
+		}
+	}
 	if _u.mutation.PhaseCleared() && len(_u.mutation.PhaseIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "SubscriptionItem.phase"`)
 	}
@@ -1610,6 +1654,16 @@ func (_u *SubscriptionItemUpdateOne) sqlSave(ctx context.Context) (_node *Subscr
 	}
 	if _u.mutation.DiscountsCleared() {
 		_spec.ClearField(subscriptionitem.FieldDiscounts, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitConfig(); ok {
+		vv, err := subscriptionitem.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(subscriptionitem.FieldUnitConfig, field.TypeString, vv)
+	}
+	if _u.mutation.UnitConfigCleared() {
+		_spec.ClearField(subscriptionitem.FieldUnitConfig, field.TypeString)
 	}
 	if _u.mutation.EntitlementCleared() {
 		edge := &sqlgraph.EdgeSpec{

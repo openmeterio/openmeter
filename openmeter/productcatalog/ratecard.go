@@ -41,6 +41,7 @@ type RateCard interface {
 	Clone() RateCard
 	Compatible(RateCard) error
 	GetBillingCadence() *datetime.ISODuration
+	GetUnitConfig() *UnitConfig
 	IsBillable() bool
 }
 
@@ -268,6 +269,10 @@ func (r *FlatFeeRateCard) GetBillingCadence() *datetime.ISODuration {
 	return r.BillingCadence
 }
 
+func (r *FlatFeeRateCard) GetUnitConfig() *UnitConfig {
+	return nil
+}
+
 func (r *FlatFeeRateCard) ChangeMeta(fn func(m RateCardMeta) (RateCardMeta, error)) error {
 	var err error
 	r.RateCardMeta, err = fn(r.RateCardMeta)
@@ -400,6 +405,15 @@ type UsageBasedRateCard struct {
 	// BillingCadence defines the billing cadence of the RateCard in ISO8601 format.
 	// Example: "P1D12H"
 	BillingCadence datetime.ISODuration `json:"billingCadence"`
+
+	// UnitConfig defines how to convert raw metered quantities into billing units.
+	// When set, all quantity-bearing fields (price tier boundaries, entitlement quota)
+	// are expressed in converted units.
+	UnitConfig *UnitConfig `json:"unitConfig,omitempty"`
+}
+
+func (r *UsageBasedRateCard) GetUnitConfig() *UnitConfig {
+	return r.UnitConfig
 }
 
 func (r *UsageBasedRateCard) Compatible(v RateCard) error {
@@ -417,6 +431,11 @@ func (r *UsageBasedRateCard) Clone() RateCard {
 	clone := &UsageBasedRateCard{
 		RateCardMeta:   r.RateCardMeta.Clone(),
 		BillingCadence: r.BillingCadence,
+	}
+
+	if r.UnitConfig != nil {
+		uc := r.UnitConfig.Clone()
+		clone.UnitConfig = &uc
 	}
 
 	return clone
@@ -444,6 +463,7 @@ func (r *UsageBasedRateCard) Merge(v RateCard) error {
 
 	r.RateCardMeta = vv.RateCardMeta
 	r.BillingCadence = vv.BillingCadence
+	r.UnitConfig = vv.UnitConfig
 
 	return nil
 }
@@ -471,6 +491,10 @@ func (r *UsageBasedRateCard) Equal(v RateCard) bool {
 	}
 
 	if r.BillingCadence.ISOString() != vv.BillingCadence.ISOString() {
+		return false
+	}
+
+	if !r.UnitConfig.Equal(vv.UnitConfig) {
 		return false
 	}
 
@@ -505,6 +529,16 @@ func (r *UsageBasedRateCard) Validate() error {
 		errs = append(errs, ErrUsageDiscountWithFlatPrice)
 	}
 
+	if r.UnitConfig != nil {
+		if err := r.UnitConfig.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid unit config: %w",
+				models.ErrorWithFieldPrefix(
+					models.NewFieldSelectorGroup(models.NewFieldSelector("unitConfig")),
+					err),
+			))
+		}
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -513,9 +547,11 @@ func (r *UsageBasedRateCard) MarshalJSON() ([]byte, error) {
 		RateCardSerde
 		RateCardMeta
 		BillingCadence datetime.ISODuration `json:"billingCadence"`
+		UnitConfig     *UnitConfig          `json:"unitConfig,omitempty"`
 	}{
 		RateCardMeta:   r.RateCardMeta,
 		BillingCadence: r.BillingCadence,
+		UnitConfig:     r.UnitConfig,
 		RateCardSerde: RateCardSerde{
 			Type: r.Type(),
 		},
@@ -675,6 +711,7 @@ func (r RateCardWithOverlay) Validate() error {
 		ValidateRateCardsHaveCompatibleBillingCadence,
 		ValidateRateCardsHaveCompatibleEntitlementTemplate,
 		ValidateRateCardsHaveCompatibleDiscounts,
+		ValidateRateCardsHaveCompatibleUnitConfig,
 	)
 }
 
@@ -852,6 +889,33 @@ var ValidateRateCardsHaveCompatibleDiscounts = models.ValidatorFunc[RateCardWith
 		)
 
 		return models.ErrorWithFieldPrefix(fieldSelector, err)
+	}
+
+	return nil
+})
+
+var ValidateRateCardsHaveCompatibleUnitConfig = models.ValidatorFunc[RateCardWithOverlay](func(r RateCardWithOverlay) error {
+	if r.base == nil || r.overlay == nil {
+		return nil
+	}
+
+	// UnitConfig is only on UsageBasedRateCard
+	baseUBRC, baseOk := r.base.(*UsageBasedRateCard)
+	overlayUBRC, overlayOk := r.overlay.(*UsageBasedRateCard)
+
+	if !baseOk || !overlayOk {
+		return nil
+	}
+
+	// Both must have the same UnitConfig presence
+	if (baseUBRC.UnitConfig == nil) != (overlayUBRC.UnitConfig == nil) {
+		fieldSelector := models.NewFieldSelectorGroup(
+			models.NewFieldSelector("ratecards").
+				WithExpression(models.NewFieldAttrValue("key", r.base.Key())),
+			models.NewFieldSelector("unitConfig"),
+		)
+
+		return models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardUnitConfigMismatch)
 	}
 
 	return nil

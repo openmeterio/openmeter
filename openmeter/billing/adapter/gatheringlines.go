@@ -160,6 +160,10 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 				SetFeatureKey(line.FeatureKey).
 				SetID(line.UBPConfigID)
 
+			if line.UnitConfig != nil {
+				create.SetUnitConfig(line.UnitConfig)
+			}
+
 			return create, nil
 		},
 		UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingInvoiceUsageBasedLineConfigCreate) error {
@@ -307,6 +311,7 @@ func (a *adapter) mapGatheringInvoiceLineFromDB(schemaLevel int, dbLine *db.Bill
 			UBPConfigID: ubpLine.ID,
 			FeatureKey:  lo.FromPtr(ubpLine.FeatureKey),
 			Price:       lo.FromPtr(ubpLine.Price),
+			UnitConfig:  ubpLine.UnitConfig,
 		},
 	}
 

@@ -347,6 +347,7 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 			RateCard: &productcatalog.UsageBasedRateCard{
 				RateCardMeta:   meta,
 				BillingCadence: lo.FromPtr(billingCadence),
+				UnitConfig:     r.UnitConfig,
 			},
 		}
 	default:
@@ -387,6 +388,8 @@ func asPlanRateCardRow(r productcatalog.RateCard) (entdb.PlanRateCard, error) {
 	}
 
 	ratecard.BillingCadence = r.GetBillingCadence().ISOStringPtrOrNil()
+
+	ratecard.UnitConfig = r.GetUnitConfig()
 
 	return ratecard, nil
 }

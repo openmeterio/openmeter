@@ -46,6 +46,12 @@ func (Feature) Fields() []ent.Field {
 		field.String("unit_cost_llm_model").Optional().Nillable(),
 		field.String("unit_cost_llm_token_type_property").Optional().Nillable(),
 		field.String("unit_cost_llm_token_type").Optional().Nillable(),
+		field.String("unit_config").
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable(),
 		field.Time("archived_at").Optional().Nillable(),
 	}
 }

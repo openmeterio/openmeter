@@ -908,6 +908,10 @@ func (n nonPointerRateCard) GetBillingCadence() *datetime.ISODuration {
 	return nil
 }
 
+func (n nonPointerRateCard) GetUnitConfig() *productcatalog.UnitConfig {
+	return nil
+}
+
 func (n nonPointerRateCard) Key() string {
 	return subscriptiontestutils.ExampleFeatureKey
 }

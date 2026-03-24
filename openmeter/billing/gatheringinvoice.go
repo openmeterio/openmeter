@@ -375,6 +375,9 @@ type GatheringLineBase struct {
 	SplitLineGroupID       *string                `json:"splitLineGroupID,omitempty"`
 	ChargeID               *string                `json:"chargeId,omitempty"`
 
+	// UnitConfig defines unit conversion applied before pricing. Snapshot from rate card.
+	UnitConfig *productcatalog.UnitConfig `json:"unitConfig,omitempty"`
+
 	// TODO: Remove once we have dedicated db field for gathering invoice lines
 	UBPConfigID string `json:"ubpConfigID"`
 }
@@ -717,6 +720,7 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 		UsageBased: &UsageBasedLine{
 			Price:      lo.ToPtr(g.Price),
 			FeatureKey: g.FeatureKey,
+			UnitConfig: g.UnitConfig,
 		},
 
 		SplitLineHierarchy: splitLineHierarchy,

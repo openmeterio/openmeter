@@ -50,4 +50,7 @@ type StandardLineAccessor interface {
 
 	// GetPreviouslyBilledAmount returns the amount that has already been billed for the line before the current line
 	GetPreviouslyBilledAmount() (alpacadecimal.Decimal, error)
+
+	// GetUnitConfig returns the unit conversion config for the line (nil if not set)
+	GetUnitConfig() *productcatalog.UnitConfig
 }

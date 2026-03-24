@@ -199,6 +199,16 @@ var ErrRateCardPercentageDiscountNotAllowed = models.NewValidationIssue(
 	models.WithWarningSeverity(),
 )
 
+const ErrCodeRateCardUnitConfigMismatch models.ErrorCode = "rate_card_unit_config_mismatch"
+
+var ErrRateCardUnitConfigMismatch = models.NewValidationIssue(
+	ErrCodeRateCardUnitConfigMismatch,
+	"unit config presence must match between base and overlay rate cards",
+	models.WithFieldString("unitConfig"),
+	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
 const ErrCodeRateCardDuplicatedKey models.ErrorCode = "rate_card_duplicated_key"
 
 var ErrRateCardDuplicatedKey = models.NewValidationIssue(

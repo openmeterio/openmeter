@@ -1,6 +1,7 @@
 package feature
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -139,6 +140,11 @@ type Feature struct {
 
 	// UnitCost is an optional per-unit cost: either a fixed manual amount or dynamic LLM cost lookup.
 	UnitCost *UnitCost `json:"unitCost,omitempty"`
+
+	// UnitConfig is an optional unit conversion config stored as raw JSON.
+	// Typed as json.RawMessage to avoid import cycle with productcatalog package.
+	// Use productcatalog.UnitConfig for typed access at the boundary layer.
+	UnitConfig json.RawMessage `json:"unitConfig,omitempty"`
 
 	// Metadata Additional metadata.
 	Metadata map[string]string `json:"metadata,omitempty"`

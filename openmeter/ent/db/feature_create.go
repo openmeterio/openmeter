@@ -261,6 +261,20 @@ func (_c *FeatureCreate) SetNillableUnitCostLlmTokenType(v *string) *FeatureCrea
 	return _c
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_c *FeatureCreate) SetUnitConfig(v string) *FeatureCreate {
+	_c.mutation.SetUnitConfig(v)
+	return _c
+}
+
+// SetNillableUnitConfig sets the "unit_config" field if the given value is not nil.
+func (_c *FeatureCreate) SetNillableUnitConfig(v *string) *FeatureCreate {
+	if v != nil {
+		_c.SetUnitConfig(*v)
+	}
+	return _c
+}
+
 // SetArchivedAt sets the "archived_at" field.
 func (_c *FeatureCreate) SetArchivedAt(v time.Time) *FeatureCreate {
 	_c.mutation.SetArchivedAt(v)
@@ -536,6 +550,10 @@ func (_c *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.UnitCostLlmTokenType(); ok {
 		_spec.SetField(dbfeature.FieldUnitCostLlmTokenType, field.TypeString, value)
 		_node.UnitCostLlmTokenType = &value
+	}
+	if value, ok := _c.mutation.UnitConfig(); ok {
+		_spec.SetField(dbfeature.FieldUnitConfig, field.TypeString, value)
+		_node.UnitConfig = &value
 	}
 	if value, ok := _c.mutation.ArchivedAt(); ok {
 		_spec.SetField(dbfeature.FieldArchivedAt, field.TypeTime, value)
@@ -913,6 +931,24 @@ func (u *FeatureUpsert) UpdateUnitCostLlmTokenType() *FeatureUpsert {
 // ClearUnitCostLlmTokenType clears the value of the "unit_cost_llm_token_type" field.
 func (u *FeatureUpsert) ClearUnitCostLlmTokenType() *FeatureUpsert {
 	u.SetNull(dbfeature.FieldUnitCostLlmTokenType)
+	return u
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *FeatureUpsert) SetUnitConfig(v string) *FeatureUpsert {
+	u.Set(dbfeature.FieldUnitConfig, v)
+	return u
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *FeatureUpsert) UpdateUnitConfig() *FeatureUpsert {
+	u.SetExcluded(dbfeature.FieldUnitConfig)
+	return u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *FeatureUpsert) ClearUnitConfig() *FeatureUpsert {
+	u.SetNull(dbfeature.FieldUnitConfig)
 	return u
 }
 
@@ -1295,6 +1331,27 @@ func (u *FeatureUpsertOne) UpdateUnitCostLlmTokenType() *FeatureUpsertOne {
 func (u *FeatureUpsertOne) ClearUnitCostLlmTokenType() *FeatureUpsertOne {
 	return u.Update(func(s *FeatureUpsert) {
 		s.ClearUnitCostLlmTokenType()
+	})
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *FeatureUpsertOne) SetUnitConfig(v string) *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetUnitConfig(v)
+	})
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *FeatureUpsertOne) UpdateUnitConfig() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateUnitConfig()
+	})
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *FeatureUpsertOne) ClearUnitConfig() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearUnitConfig()
 	})
 }
 
@@ -1847,6 +1904,27 @@ func (u *FeatureUpsertBulk) UpdateUnitCostLlmTokenType() *FeatureUpsertBulk {
 func (u *FeatureUpsertBulk) ClearUnitCostLlmTokenType() *FeatureUpsertBulk {
 	return u.Update(func(s *FeatureUpsert) {
 		s.ClearUnitCostLlmTokenType()
+	})
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *FeatureUpsertBulk) SetUnitConfig(v string) *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetUnitConfig(v)
+	})
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *FeatureUpsertBulk) UpdateUnitConfig() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateUnitConfig()
+	})
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *FeatureUpsertBulk) ClearUnitConfig() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearUnitConfig()
 	})
 }
 

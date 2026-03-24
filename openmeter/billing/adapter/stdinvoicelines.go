@@ -531,6 +531,10 @@ func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs entitydi
 				SetNillableMeteredQuantity(line.UsageBased.MeteredQuantity).
 				SetNillableMeteredPreLinePeriodQuantity(line.UsageBased.MeteredPreLinePeriodQuantity)
 
+			if line.UsageBased.UnitConfig != nil {
+				create.SetUnitConfig(line.UsageBased.UnitConfig)
+			}
+
 			return create, nil
 		},
 		UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingInvoiceUsageBasedLineConfigCreate) error {

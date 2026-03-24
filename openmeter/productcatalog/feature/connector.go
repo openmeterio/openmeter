@@ -2,6 +2,7 @@ package feature
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"slices"
 
@@ -24,6 +25,7 @@ type CreateFeatureInputs struct {
 	MeterID             *string             `json:"meterID"`
 	MeterGroupByFilters MeterGroupByFilters `json:"meterGroupByFilters"`
 	UnitCost            *UnitCost           `json:"unitCost"`
+	UnitConfig          json.RawMessage     `json:"unitConfig,omitempty"`
 	Metadata            map[string]string   `json:"metadata"`
 }
 
@@ -163,6 +165,9 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 			}
 		}
 	}
+
+	// Note: UnitConfig validation is done at the API boundary layer (parser.go)
+	// since the feature package stores it as raw JSON to avoid import cycles.
 
 	// Validate feature key
 	if _, err := ulid.Parse(feature.Key); err == nil {

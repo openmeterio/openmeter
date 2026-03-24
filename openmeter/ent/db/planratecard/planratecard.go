@@ -51,6 +51,8 @@ const (
 	FieldPrice = "price"
 	// FieldDiscounts holds the string denoting the discounts field in the database.
 	FieldDiscounts = "discounts"
+	// FieldUnitConfig holds the string denoting the unit_config field in the database.
+	FieldUnitConfig = "unit_config"
 	// FieldPhaseID holds the string denoting the phase_id field in the database.
 	FieldPhaseID = "phase_id"
 	// FieldFeatureID holds the string denoting the feature_id field in the database.
@@ -106,6 +108,7 @@ var Columns = []string{
 	FieldBillingCadence,
 	FieldPrice,
 	FieldDiscounts,
+	FieldUnitConfig,
 	FieldPhaseID,
 	FieldFeatureID,
 }
@@ -141,6 +144,7 @@ var (
 		TaxConfig           field.TypeValueScanner[*productcatalog.TaxConfig]
 		Price               field.TypeValueScanner[*productcatalog.Price]
 		Discounts           field.TypeValueScanner[*productcatalog.Discounts]
+		UnitConfig          field.TypeValueScanner[*productcatalog.UnitConfig]
 	}
 )
 
@@ -250,6 +254,11 @@ func ByPrice(opts ...sql.OrderTermOption) OrderOption {
 // ByDiscounts orders the results by the discounts field.
 func ByDiscounts(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDiscounts, opts...).ToFunc()
+}
+
+// ByUnitConfig orders the results by the unit_config field.
+func ByUnitConfig(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUnitConfig, opts...).ToFunc()
 }
 
 // ByPhaseID orders the results by the phase_id field.

@@ -66,6 +66,8 @@ const (
 	FieldPrice = "price"
 	// FieldDiscounts holds the string denoting the discounts field in the database.
 	FieldDiscounts = "discounts"
+	// FieldUnitConfig holds the string denoting the unit_config field in the database.
+	FieldUnitConfig = "unit_config"
 	// EdgePhase holds the string denoting the phase edge name in mutations.
 	EdgePhase = "phase"
 	// EdgeEntitlement holds the string denoting the entitlement edge name in mutations.
@@ -151,6 +153,7 @@ var Columns = []string{
 	FieldBillingCadence,
 	FieldPrice,
 	FieldDiscounts,
+	FieldUnitConfig,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -187,6 +190,7 @@ var (
 		TaxConfig           field.TypeValueScanner[*productcatalog.TaxConfig]
 		Price               field.TypeValueScanner[*productcatalog.Price]
 		Discounts           field.TypeValueScanner[*productcatalog.Discounts]
+		UnitConfig          field.TypeValueScanner[*productcatalog.UnitConfig]
 	}
 )
 
@@ -321,6 +325,11 @@ func ByPrice(opts ...sql.OrderTermOption) OrderOption {
 // ByDiscounts orders the results by the discounts field.
 func ByDiscounts(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDiscounts, opts...).ToFunc()
+}
+
+// ByUnitConfig orders the results by the unit_config field.
+func ByUnitConfig(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUnitConfig, opts...).ToFunc()
 }
 
 // ByPhaseField orders the results by phase field.

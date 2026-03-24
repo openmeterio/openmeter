@@ -712,6 +712,12 @@ func (s *Service) lineFromSubscriptionRateCard(subs subscription.SubscriptionVie
 
 		line.Price = lo.FromPtr(item.SubscriptionItem.RateCard.AsMeta().Price)
 		line.FeatureKey = lo.FromPtr(item.SubscriptionItem.RateCard.AsMeta().FeatureKey)
+
+		// Propagate UnitConfig from the rate card to the billing line
+		if uc := item.SubscriptionItem.RateCard.GetUnitConfig(); uc != nil {
+			cloned := uc.Clone()
+			line.UnitConfig = &cloned
+		}
 	}
 
 	return &line, nil

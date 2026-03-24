@@ -37,6 +37,7 @@ type FeatureUsageResponse struct {
 
 type CalculationTestCase struct {
 	Price                productcatalog.Price
+	UnitConfig           *productcatalog.UnitConfig
 	Discounts            billing.Discounts
 	LineMode             TestLineMode
 	Usage                FeatureUsageResponse
@@ -64,7 +65,8 @@ func RunCalculationTestCase(t *testing.T, tc CalculationTestCase) {
 			CreditsApplied:    tc.CreditsApplied,
 		},
 		UsageBased: &billing.UsageBasedLine{
-			Price: lo.ToPtr(tc.Price),
+			Price:      lo.ToPtr(tc.Price),
+			UnitConfig: tc.UnitConfig,
 		},
 	}
 

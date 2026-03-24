@@ -54,6 +54,8 @@ const (
 	FieldUnitCostLlmTokenTypeProperty = "unit_cost_llm_token_type_property"
 	// FieldUnitCostLlmTokenType holds the string denoting the unit_cost_llm_token_type field in the database.
 	FieldUnitCostLlmTokenType = "unit_cost_llm_token_type"
+	// FieldUnitConfig holds the string denoting the unit_config field in the database.
+	FieldUnitConfig = "unit_config"
 	// FieldArchivedAt holds the string denoting the archived_at field in the database.
 	FieldArchivedAt = "archived_at"
 	// EdgeEntitlement holds the string denoting the entitlement edge name in mutations.
@@ -119,6 +121,7 @@ var Columns = []string{
 	FieldUnitCostLlmModel,
 	FieldUnitCostLlmTokenTypeProperty,
 	FieldUnitCostLlmTokenType,
+	FieldUnitConfig,
 	FieldArchivedAt,
 }
 
@@ -242,6 +245,11 @@ func ByUnitCostLlmTokenTypeProperty(opts ...sql.OrderTermOption) OrderOption {
 // ByUnitCostLlmTokenType orders the results by the unit_cost_llm_token_type field.
 func ByUnitCostLlmTokenType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUnitCostLlmTokenType, opts...).ToFunc()
+}
+
+// ByUnitConfig orders the results by the unit_config field.
+func ByUnitConfig(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUnitConfig, opts...).ToFunc()
 }
 
 // ByArchivedAt orders the results by the archived_at field.

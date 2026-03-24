@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
@@ -72,6 +73,10 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feat feature.Creat
 					SetNillableUnitCostLlmTokenType(lo.EmptyableToPtr(feat.UnitCost.LLM.TokenType))
 			}
 		}
+	}
+
+	if len(feat.UnitConfig) > 0 {
+		query = query.SetUnitConfig(string(feat.UnitConfig))
 	}
 
 	entity, err := query.
@@ -352,6 +357,10 @@ func MapFeatureEntity(entity *db.Feature) feature.Feature {
 				},
 			}
 		}
+	}
+
+	if entity.UnitConfig != nil && *entity.UnitConfig != "" {
+		f.UnitConfig = json.RawMessage(*entity.UnitConfig)
 	}
 
 	return f

@@ -152,6 +152,7 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
 			RateCard: &productcatalog.UsageBasedRateCard{
 				RateCardMeta:   meta,
 				BillingCadence: lo.FromPtr(billingCadence),
+				UnitConfig:     r.UnitConfig,
 			},
 		}
 	default:
@@ -363,11 +364,13 @@ func asAddonRateCardRow(r productcatalog.RateCard) (entdb.AddonRateCard, error) 
 		ratecard.ID = managedFields.ID
 	}
 
-	switch v := r.(type) {
-	case *productcatalog.FlatFeeRateCard:
-		ratecard.BillingCadence = v.BillingCadence.ISOStringPtrOrNil()
-	case *productcatalog.UsageBasedRateCard:
-		ratecard.BillingCadence = v.BillingCadence.ISOStringPtrOrNil()
+	ratecard.UnitConfig = r.GetUnitConfig()
+
+	switch r.Type() {
+	case productcatalog.FlatFeeRateCardType:
+		ratecard.BillingCadence = r.GetBillingCadence().ISOStringPtrOrNil()
+	case productcatalog.UsageBasedRateCardType:
+		ratecard.BillingCadence = r.GetBillingCadence().ISOStringPtrOrNil()
 	default:
 		return ratecard, fmt.Errorf("invalid ratecard [key=%s]: invalid type: %T", r.Key(), r)
 	}

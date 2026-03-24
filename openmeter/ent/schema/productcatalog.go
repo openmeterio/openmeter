@@ -201,4 +201,5 @@ var (
 	PriceValueScanner               = entutils.JSONStringValueScanner[*productcatalog.Price]()
 	DiscountsValueScanner           = entutils.JSONStringValueScanner[*productcatalog.Discounts]()
 	ProRatingConfigValueScanner     = entutils.JSONStringValueScanner[productcatalog.ProRatingConfig]()
+	UnitConfigValueScanner          = entutils.JSONStringValueScanner[*productcatalog.UnitConfig]()
 )

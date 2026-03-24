@@ -125,5 +125,20 @@ func mergeGeneratedDetailedLines(parentLine *billing.StandardLine, in rating.Gen
 
 	parentLine.Discounts = in.FinalStandardLineDiscounts
 
+	// Populate usage quantity detail when UnitConfig is in effect
+	if uc := parentLine.GetUnitConfig(); uc != nil && parentLine.UsageBased.MeteredQuantity != nil {
+		rawQty := *parentLine.UsageBased.MeteredQuantity
+		convertedQty := uc.Convert(rawQty)
+		invoicedQty := uc.Round(convertedQty)
+
+		parentLine.UsageBased.UsageQuantityDetail = &billing.UsageQuantityDetail{
+			RawQuantity:       rawQty,
+			ConvertedQuantity: convertedQty,
+			InvoicedQuantity:  invoicedQty,
+			DisplayUnit:       uc.DisplayUnit,
+			AppliedUnitConfig: uc.Clone(),
+		}
+	}
+
 	return nil
 }
