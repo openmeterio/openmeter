@@ -561,14 +561,14 @@ func (s *BaseSuite) SetupApiRequestsTotalFeature(ctx context.Context, ns string)
 type BillingProfileEditFn func(p *billing.CreateProfileInput)
 
 type BillingProfileProvisionOptions struct {
-	editFn BillingProfileEditFn
+	editFns []BillingProfileEditFn
 }
 
 type BillingProfileProvisionOption func(*BillingProfileProvisionOptions)
 
 func WithBillingProfileEditFn(editFn BillingProfileEditFn) BillingProfileProvisionOption {
 	return func(opts *BillingProfileProvisionOptions) {
-		opts.editFn = editFn
+		opts.editFns = append(opts.editFns, editFn)
 	}
 }
 
@@ -600,8 +600,8 @@ func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, appI
 	clonedCreateProfileInput := minimalCreateProfileInputTemplate(appID)
 	clonedCreateProfileInput.Namespace = ns
 
-	if provisionOpts.editFn != nil {
-		provisionOpts.editFn(&clonedCreateProfileInput)
+	for _, editFn := range provisionOpts.editFns {
+		editFn(&clonedCreateProfileInput)
 	}
 
 	profile, err := s.BillingService.CreateProfile(ctx, clonedCreateProfileInput)

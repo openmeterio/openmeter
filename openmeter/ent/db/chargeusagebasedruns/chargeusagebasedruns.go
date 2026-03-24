@@ -46,6 +46,8 @@ const (
 	FieldType = "type"
 	// FieldAsof holds the string denoting the asof field in the database.
 	FieldAsof = "asof"
+	// FieldCollectionEnd holds the string denoting the collection_end field in the database.
+	FieldCollectionEnd = "collection_end"
 	// FieldMeterValue holds the string denoting the meter_value field in the database.
 	FieldMeterValue = "meter_value"
 	// EdgeUsageBased holds the string denoting the usage_based edge name in mutations.
@@ -106,6 +108,7 @@ var Columns = []string{
 	FieldChargeID,
 	FieldType,
 	FieldAsof,
+	FieldCollectionEnd,
 	FieldMeterValue,
 }
 
@@ -135,7 +138,7 @@ var (
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
 func TypeValidator(_type usagebased.RealizationRunType) error {
 	switch _type {
-	case "invoice":
+	case "final_realization":
 		return nil
 	default:
 		return fmt.Errorf("chargeusagebasedruns: invalid enum value for type field: %q", _type)
@@ -223,6 +226,11 @@ func ByType(opts ...sql.OrderTermOption) OrderOption {
 // ByAsof orders the results by the asof field.
 func ByAsof(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAsof, opts...).ToFunc()
+}
+
+// ByCollectionEnd orders the results by the collection_end field.
+func ByCollectionEnd(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCollectionEnd, opts...).ToFunc()
 }
 
 // ByMeterValue orders the results by the meter_value field.

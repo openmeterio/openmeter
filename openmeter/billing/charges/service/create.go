@@ -10,8 +10,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
@@ -21,7 +23,7 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 		return nil, err
 	}
 
-	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (charges.Charges, error) {
+	out, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (charges.Charges, error) {
 		intentsByType, err := input.Intents.ByType()
 		if err != nil {
 			return nil, err
@@ -118,13 +120,85 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 		}
 
 		// Let's map the created charges to the original intents
-		out := make([]charges.Charge, len(input.Intents))
+		result := make([]charges.Charge, len(input.Intents))
 		for _, createdCharge := range createdCharges {
-			out[createdCharge.Index] = createdCharge.Value
+			result[createdCharge.Index] = createdCharge.Value
 		}
 
-		return out, nil
+		return result, nil
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	return s.autoAdvanceCreatedCharges(ctx, out)
+}
+
+// autoAdvanceCreatedCharges post-processes newly created charges
+// right now it only handles credit-only usage-based charges
+// a separate transaction is used to make sure that we persist the creation state even if the advancing fails (as
+// a worker will try to advance the charges again).
+func (s *service) autoAdvanceCreatedCharges(ctx context.Context, created charges.Charges) (charges.Charges, error) {
+	// Collect unique customer IDs that have newly created credit-only usage-based charges.
+	customerIDs := make(map[customer.CustomerID]struct{})
+	for _, c := range created {
+		if c.Type() != meta.ChargeTypeUsageBased {
+			continue
+		}
+
+		ub, err := c.AsUsageBasedCharge()
+		if err != nil {
+			return nil, err
+		}
+
+		if ub.Intent.SettlementMode != productcatalog.CreditOnlySettlementMode {
+			continue
+		}
+
+		customerIDs[customer.CustomerID{Namespace: ub.Namespace, ID: ub.Intent.CustomerID}] = struct{}{}
+	}
+
+	if len(customerIDs) == 0 {
+		return created, nil
+	}
+
+	advancedByID := make(map[string]charges.Charge)
+	for custID := range customerIDs {
+		advancedCharges, err := s.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+			Customer: custID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("auto-advance charges for customer %s: %w", custID.ID, err)
+		}
+
+		for _, advanced := range advancedCharges {
+			chargeID, err := advanced.GetChargeID()
+			if err != nil {
+				return nil, err
+			}
+			advancedByID[chargeID.ID] = advanced
+		}
+	}
+
+	if len(advancedByID) == 0 {
+		return created, nil
+	}
+
+	out := make(charges.Charges, len(created))
+	for i, c := range created {
+		chargeID, err := c.GetChargeID()
+		if err != nil {
+			return nil, err
+		}
+
+		if advanced, ok := advancedByID[chargeID.ID]; ok {
+			out[i] = advanced
+		} else {
+			out[i] = c
+		}
+	}
+
+	return out, nil
 }
 
 type currencyAndCustomerID struct {

@@ -5,6 +5,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/qmuntal/stateless"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 )
 
@@ -59,4 +61,33 @@ func (s Status) ToMetaChargeStatus() (meta.ChargeStatus, error) {
 	}
 
 	return metaStatus, nil
+}
+
+type Trigger = stateless.Trigger
+
+var (
+	TriggerNext           Trigger = "trigger_next"
+	TriggerInvoicePending Trigger = "trigger_invoice_pending"
+)
+
+type UpdateStatusInput struct {
+	Charge    ChargeBase
+	NewStatus Status
+	OldStatus Status
+}
+
+func (i UpdateStatusInput) Validate() error {
+	if err := i.Charge.Validate(); err != nil {
+		return fmt.Errorf("charge ID: %w", err)
+	}
+
+	if err := i.NewStatus.Validate(); err != nil {
+		return fmt.Errorf("new status: %w", err)
+	}
+
+	if err := i.OldStatus.Validate(); err != nil {
+		return fmt.Errorf("old status: %w", err)
+	}
+
+	return nil
 }

@@ -1,7 +1,9 @@
 package adapter
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
 
 	"github.com/samber/lo"
 
@@ -10,15 +12,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-// MapUsageBasedChargeFromDB converts a DB Charge entity (with loaded UsageBased edge) to a UsageBasedCharge.
-func MapUsageBasedChargeFromDB(entity *entdb.ChargeUsageBased, chargeMeta meta.Charge, expands meta.Expands) (usagebased.Charge, error) {
-	charge := usagebased.Charge{
+func MapChargeBaseFromDB(entity *entdb.ChargeUsageBased, chargeMeta meta.Charge) usagebased.ChargeBase {
+	return usagebased.ChargeBase{
 		ManagedResource: chargeMeta.ManagedResource,
 		Status:          entity.Status,
 		Intent: usagebased.Intent{
@@ -31,41 +32,57 @@ func MapUsageBasedChargeFromDB(entity *entdb.ChargeUsageBased, chargeMeta meta.C
 		},
 		State: usagebased.State{
 			CurrentRealizationRunID: entity.CurrentRealizationRunID,
+			AdvanceAfter:            chargeMeta.AdvanceAfter,
 		},
 	}
-
-	if expands.Has(meta.ExpandRealizations) {
-		dbRuns, err := entity.Edges.RunsOrErr()
-		if err != nil {
-			return usagebased.Charge{}, fmt.Errorf("mapping usage based charge [id=%s]: %w", entity.ID, err)
-		}
-
-		runs, err := slicesx.MapWithErr(dbRuns, func(run *entdb.ChargeUsageBasedRuns) (usagebased.RealizationRun, error) {
-			return MapRealizationRunFromDB(run)
-		})
-		if err != nil {
-			return usagebased.Charge{}, fmt.Errorf("mapping usage based charge [id=%s]: %w", entity.ID, err)
-		}
-
-		if len(runs) > 0 {
-			// Force nil value for easier testing
-			charge.State.RealizationRuns = runs
-		}
-	}
-
-	return charge, nil
 }
 
-func MapRealizationRunFromDB(dbRun *entdb.ChargeUsageBasedRuns) (usagebased.RealizationRun, error) {
-	run := usagebased.RealizationRun{
-		NamespacedID: models.NamespacedID{
+// MapRealizationRunsFromDB converts a DB Charge entity (with loaded UsageBased edge) to a UsageBasedCharge.
+func MapRealizationRunsFromDB(entity *entdb.ChargeUsageBased) (usagebased.RealizationRuns, error) {
+	dbRuns, err := entity.Edges.RunsOrErr()
+	if err != nil {
+		return nil, fmt.Errorf("mapping usage based charge [id=%s]: %w", entity.ID, err)
+	}
+
+	runs, err := slicesx.MapWithErr(dbRuns, func(run *entdb.ChargeUsageBasedRuns) (usagebased.RealizationRun, error) {
+		return MapRealizationRunFromDB(run)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("mapping usage based charge [id=%s]: %w", entity.ID, err)
+	}
+
+	if len(runs) == 0 {
+		// Force nil value for easier testing
+		runs = nil
+	}
+
+	// Let's keep the runs sorted by AsOf
+	slices.SortStableFunc(runs, func(a, b usagebased.RealizationRun) int {
+		return cmp.Compare(a.AsOf.UnixNano(), b.AsOf.UnixNano())
+	})
+
+	return runs, nil
+}
+
+func MapRealizationRunBaseFromDB(dbRun *entdb.ChargeUsageBasedRuns) usagebased.RealizationRunBase {
+	return usagebased.RealizationRunBase{
+		ID: usagebased.RealizationRunID{
 			Namespace: dbRun.Namespace,
 			ID:        dbRun.ID,
 		},
 		ManagedModel: entutils.MapTimeMixinFromDB(dbRun),
-		Type:         dbRun.Type,
-		AsOf:         dbRun.Asof,
-		MeterValue:   dbRun.MeterValue,
+
+		Type:          dbRun.Type,
+		AsOf:          dbRun.Asof.UTC(),
+		CollectionEnd: dbRun.CollectionEnd,
+		MeterValue:    dbRun.MeterValue,
+		Totals:        totals.FromDB(dbRun),
+	}
+}
+
+func MapRealizationRunFromDB(dbRun *entdb.ChargeUsageBasedRuns) (usagebased.RealizationRun, error) {
+	run := usagebased.RealizationRun{
+		RealizationRunBase: MapRealizationRunBaseFromDB(dbRun),
 	}
 
 	dbCreditsAllocated, err := dbRun.Edges.CreditAllocationsOrErr()

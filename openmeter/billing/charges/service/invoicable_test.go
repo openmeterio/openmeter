@@ -18,7 +18,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -38,8 +41,8 @@ func (s *InvoicableChargesTestSuite) SetupSuite() {
 	s.BaseSuite.SetupSuite()
 }
 
-func (s *InvoicableChargesTestSuite) TeardownTest() {
-	s.BaseSuite.TeardownTest()
+func (s *InvoicableChargesTestSuite) TearDownTest() {
+	s.BaseSuite.TearDownTest()
 }
 
 func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
@@ -260,37 +263,60 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 	})
 }
 
-func (s *InvoicableChargesTestSuite) TestUsageBasedPartialCreditRealizations() {
+func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 	ctx := context.Background()
-	ns := s.GetUniqueNamespace("charges-service-usage-based-partial-credit-realizations")
+	ns := s.GetUniqueNamespace("charges-service-usage-based-credit-only-lifecycle")
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
 
-	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+	profile := s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
 		billingtest.WithProgressiveBilling(),
-		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
 		billingtest.WithManualApproval(),
 	)
+	s.True(profile.Default)
+
+	defaultProfile, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{
+		Namespace: ns,
+	})
+	s.NoError(err)
+	s.NotNil(defaultProfile)
+	s.Equal(profile.ID, defaultProfile.ID)
 
 	const (
 		usageBasedName = "usage-based"
 	)
 
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime()
 	servicePeriod := timeutil.ClosedPeriod{
 		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
 		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
 	}
+	firstCollectionAdvanceAt := datetime.MustParseTimeInLocation(s.T(), "2026-02-01T12:00:00Z", time.UTC).AsTime()
+	waitingAdvanceAt := datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:00:00Z", time.UTC).AsTime()
+	finalAdvanceAt := datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:01:00Z", time.UTC).AsTime()
+	// These are explicit cutoff timestamps rather than computed values so the test asserts the
+	// one-minute internal collection period boundary directly.
+	firstStoredAtOffset := datetime.MustParseTimeInLocation(s.T(), "2026-02-01T11:59:00Z", time.UTC).AsTime()
+	finalStoredAtOffset := datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:00:00Z", time.UTC).AsTime()
+	expectedCollectionEnd := datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:00:00Z", time.UTC).AsTime()
 
 	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+	meterSlug := apiRequestsTotal.Feature.Key
 
-	clock.SetTime(servicePeriod.From)
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
 
 	usageBasedChargeID := meta.ChargeID{}
 
-	s.Run("create new upcoming charges", func() {
+	s.Run("#1 create before service period start", func() {
+		// Given current wall clock is 2025-12-01T00:00:00Z.
+		clock.FreezeTime(createAt)
+
+		// When creating a credit-only usage-based charge for 2026-01-01T00:00:00Z...2026-02-01T00:00:00Z at $1/unit.
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
 			Intents: []charges.ChargeIntent{
@@ -298,14 +324,14 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedPartialCreditRealizations() {
 					customer:       cust.GetID(),
 					currency:       USD,
 					servicePeriod:  servicePeriod,
-					settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					settlementMode: productcatalog.CreditOnlySettlementMode,
 					price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-						Amount: alpacadecimal.NewFromFloat(100),
+						Amount: alpacadecimal.NewFromFloat(1),
 					}),
 					name:              usageBasedName,
 					managedBy:         billing.SubscriptionManagedLine,
 					uniqueReferenceID: usageBasedName,
-					featureKey:        apiRequestsTotal.Feature.Key,
+					featureKey:        meterSlug,
 				}),
 			},
 		})
@@ -323,24 +349,450 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedPartialCreditRealizations() {
 			Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
 		})
 		s.NoError(err)
-		s.Len(gatheringInvoices.Items, 1)
-		gatheringInvoice := gatheringInvoices.Items[0]
-
-		lines := gatheringInvoice.Lines.OrEmpty()
-		s.Len(lines, 1)
-		gatheringLine := lines[0]
-
-		s.Equal(usageBasedCharge.ID, *gatheringLine.ChargeID)
-
-		// TODO: validate periods, price, etc.
+		s.Len(gatheringInvoices.Items, 0)
 
 		fetchedCharge := s.mustGetChargeByID(usageBasedCharge.GetChargeID())
 		fetchedUsageBasedCharge, err := fetchedCharge.AsUsageBasedCharge()
 		s.NoError(err)
-		s.Equal(usageBasedCharge, fetchedUsageBasedCharge)
 
 		usageBasedChargeID = usageBasedCharge.GetChargeID()
+
+		// Then the created charge stays in created state, no realization is done, and advancing it is a noop.
+		s.Equal(usageBasedCharge.ID, fetchedUsageBasedCharge.ID)
+		s.Equal(meta.ChargeStatusCreated, meta.ChargeStatus(fetchedUsageBasedCharge.Status))
+		s.Empty(fetchedUsageBasedCharge.Realizations)
+		s.Nil(fetchedUsageBasedCharge.State.CurrentRealizationRunID)
+		s.Nil(fetchedUsageBasedCharge.State.AdvanceAfter)
+
+		advancedCharge := s.mustAdvanceSingleUsageBasedCharge(ctx, cust.GetID())
+		usageBasedFromDB := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+
+		s.Nil(advancedCharge)
+		s.Equal(meta.ChargeStatusCreated, meta.ChargeStatus(usageBasedFromDB.Status))
+		s.Empty(usageBasedFromDB.Realizations)
 	})
 
 	s.NotEmpty(usageBasedChargeID)
+
+	s.Run("#2.1 advance into active state", func() {
+		// Given the wall clock advances to 2026-01-01T00:00:00Z.
+		clock.FreezeTime(servicePeriod.From)
+
+		// When advancing the usage-based charge.
+		advancedCharge := s.mustAdvanceSingleUsageBasedCharge(ctx, cust.GetID())
+		usageBasedFromDB := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+
+		// Then the charge becomes active and no collection is run.
+		s.Require().NotNil(advancedCharge)
+		s.Equal(usageBasedFromDB.Status, advancedCharge.Status)
+		s.Equal(meta.ChargeStatusActive, meta.ChargeStatus(usageBasedFromDB.Status))
+		s.Empty(usageBasedFromDB.Realizations)
+		s.Nil(usageBasedFromDB.State.CurrentRealizationRunID)
+		s.NotNil(usageBasedFromDB.State.AdvanceAfter)
+		s.True(servicePeriod.To.Equal(*usageBasedFromDB.State.AdvanceAfter))
+	})
+
+	s.Run("#2.2 second advance is noop", func() {
+		// Given the charge is already active.
+		// When advancing the usage-based charge again.
+		advancedCharge := s.mustAdvanceSingleUsageBasedCharge(ctx, cust.GetID())
+		usageBasedFromDB := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+
+		// Then the advancing does not happen.
+		s.Nil(advancedCharge)
+		s.Equal(meta.ChargeStatusActive, meta.ChargeStatus(usageBasedFromDB.Status))
+		s.Empty(usageBasedFromDB.Realizations)
+	})
+
+	s.Run("#3.1 start final realization with stored_at filtering", func() {
+		defer s.UsageBasedTestHandler.Reset()
+
+		type callbackInvocation struct {
+			Input usagebased.AllocateCreditsInput
+		}
+
+		var startedCallbacks []callbackInvocation
+
+		s.UsageBasedTestHandler.onCollectionStarted = func(ctx context.Context, input usagebased.AllocateCreditsInput) (creditrealization.CreateInputs, error) {
+			startedCallbacks = append(startedCallbacks, callbackInvocation{Input: input})
+
+			return creditrealization.CreateInputs{
+				{
+					ServicePeriod: input.Charge.Intent.ServicePeriod,
+					Amount:        input.AmountToAllocate,
+					LedgerTransaction: ledgertransaction.GroupReference{
+						TransactionGroupID: ulid.Make().String(),
+					},
+				},
+			}, nil
+		}
+
+		// Given the current customer's billing profile makes the collection window end at 2026-02-03T00:00:00Z
+		// and the wall clock advances to 2026-02-01T12:00:00Z.
+		clock.FreezeTime(firstCollectionAdvanceAt)
+		s.MockStreamingConnector.AddSimpleEvent(
+			meterSlug,
+			1,
+			datetime.MustParseTimeInLocation(s.T(), "2026-01-15T00:00:00Z", time.UTC).AsTime(),
+		)
+		s.MockStreamingConnector.AddSimpleEvent(
+			meterSlug,
+			2,
+			datetime.MustParseTimeInLocation(s.T(), "2026-01-15T01:00:00Z", time.UTC).AsTime(),
+			streamingtestutils.WithStoredAt(datetime.MustParseTimeInLocation(s.T(), "2026-02-01T11:00:00Z", time.UTC).AsTime()),
+		)
+		s.MockStreamingConnector.AddSimpleEvent(
+			meterSlug,
+			3,
+			datetime.MustParseTimeInLocation(s.T(), "2026-01-15T02:00:00Z", time.UTC).AsTime(),
+			streamingtestutils.WithStoredAt(datetime.MustParseTimeInLocation(s.T(), "2026-02-01T12:00:00Z", time.UTC).AsTime()),
+		)
+
+		// When advancing the usage-based charge.
+		advancedCharge := s.mustAdvanceSingleUsageBasedCharge(ctx, cust.GetID())
+		usageBasedFromDB := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+
+		// Then a new run is added, only the first two events are considered, totals are persisted,
+		// stored_at uses current time minus the internal collection period, and the start callback receives $3.
+		s.Require().NotNil(advancedCharge)
+		s.Equal(usageBasedFromDB.Status, advancedCharge.Status)
+		s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, usageBasedFromDB.Status)
+		s.Len(usageBasedFromDB.Realizations, 1)
+		s.NotNil(usageBasedFromDB.State.CurrentRealizationRunID)
+		s.NotNil(usageBasedFromDB.State.AdvanceAfter)
+		s.True(finalAdvanceAt.Equal(*usageBasedFromDB.State.AdvanceAfter))
+
+		currentRun, err := usageBasedFromDB.Realizations.GetByID(*usageBasedFromDB.State.CurrentRealizationRunID)
+		s.NoError(err)
+		s.True(firstStoredAtOffset.Equal(currentRun.AsOf))
+		s.NotNil(currentRun.CollectionEnd)
+		s.True(expectedCollectionEnd.Equal(currentRun.CollectionEnd.UTC()))
+		s.Equal(float64(3), currentRun.MeterValue.InexactFloat64())
+		s.Equal(float64(0), currentRun.Totals.Total.InexactFloat64())
+		s.Equal(float64(3), currentRun.Totals.CreditsTotal.InexactFloat64())
+		s.Len(currentRun.CreditsAllocated, 1)
+		s.Equal(float64(3), currentRun.CreditsAllocated[0].Amount.InexactFloat64())
+
+		s.Len(startedCallbacks, 1)
+		s.Equal(float64(3), startedCallbacks[0].Input.AmountToAllocate.InexactFloat64())
+		s.Equal(usagebased.RealizationRunTypeFinalRealization, startedCallbacks[0].Input.CollectionType)
+		s.True(firstStoredAtOffset.Equal(startedCallbacks[0].Input.AllocateAt))
+	})
+
+	s.Run("#3.2 second realization advance is noop", func() {
+		// Given the charge is waiting for collection.
+		// When advancing the usage-based charge again.
+		advancedCharge := s.mustAdvanceSingleUsageBasedCharge(ctx, cust.GetID())
+		usageBasedFromDB := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+
+		// Then nothing happens.
+		s.Nil(advancedCharge)
+		s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, usageBasedFromDB.Status)
+		s.Len(usageBasedFromDB.Realizations, 1)
+	})
+
+	s.Run("#4.1 still waiting for the stored_at window", func() {
+		// Given time advances to 2026-02-03T00:00:00Z.
+		clock.FreezeTime(waitingAdvanceAt)
+
+		// When advancing the usage-based charge.
+		advancedCharge := s.mustAdvanceSingleUsageBasedCharge(ctx, cust.GetID())
+		usageBasedFromDB := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+
+		// Then advancing does nothing because the stored_at cutoff is not ready until 2026-02-03T00:01:00Z.
+		s.Nil(advancedCharge)
+		s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, usageBasedFromDB.Status)
+		s.Len(usageBasedFromDB.Realizations, 1)
+	})
+
+	s.Run("#4.2 finalize realization with incremental credits", func() {
+		defer s.UsageBasedTestHandler.Reset()
+
+		type callbackInvocation struct {
+			Input usagebased.AllocateCreditsInput
+		}
+
+		var finalizedCallbacks []callbackInvocation
+
+		s.UsageBasedTestHandler.onCollectionFinalized = func(ctx context.Context, input usagebased.AllocateCreditsInput) (creditrealization.CreateInputs, error) {
+			finalizedCallbacks = append(finalizedCallbacks, callbackInvocation{Input: input})
+
+			return creditrealization.CreateInputs{
+				{
+					ServicePeriod: input.Charge.Intent.ServicePeriod,
+					Amount:        input.AmountToAllocate,
+					LedgerTransaction: ledgertransaction.GroupReference{
+						TransactionGroupID: ulid.Make().String(),
+					},
+				},
+			}, nil
+		}
+
+		// Given time advances to 2026-02-03T00:01:00Z and new events arrive.
+		clock.FreezeTime(finalAdvanceAt)
+		s.MockStreamingConnector.AddSimpleEvent(
+			meterSlug,
+			5,
+			datetime.MustParseTimeInLocation(s.T(), "2026-01-15T03:00:00Z", time.UTC).AsTime(),
+			streamingtestutils.WithStoredAt(datetime.MustParseTimeInLocation(s.T(), "2026-02-01T23:59:00Z", time.UTC).AsTime()),
+		)
+		s.MockStreamingConnector.AddSimpleEvent(
+			meterSlug,
+			7,
+			servicePeriod.To,
+			streamingtestutils.WithStoredAt(datetime.MustParseTimeInLocation(s.T(), "2026-02-02T00:00:00Z", time.UTC).AsTime()),
+		)
+
+		// When advancing the usage-based charge.
+		advancedCharge := s.mustAdvanceSingleUsageBasedCharge(ctx, cust.GetID())
+		usageBasedFromDB := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+
+		// Then the previously late $3 event and the new $5 event are both included,
+		// the finalization callback receives incremental $8, totals are updated to $11,
+		// and the charge becomes final.
+		s.Require().NotNil(advancedCharge)
+		s.Equal(usageBasedFromDB.Status, advancedCharge.Status)
+		s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(usageBasedFromDB.Status))
+		s.Len(usageBasedFromDB.Realizations, 1)
+		s.Nil(usageBasedFromDB.State.CurrentRealizationRunID)
+		s.Nil(usageBasedFromDB.State.AdvanceAfter)
+
+		finalRun := usageBasedFromDB.Realizations[0]
+		s.True(finalStoredAtOffset.Equal(finalRun.AsOf))
+		s.NotNil(finalRun.CollectionEnd)
+		s.True(expectedCollectionEnd.Equal(finalRun.CollectionEnd.UTC()))
+		s.Equal(float64(11), finalRun.MeterValue.InexactFloat64())
+		s.Equal(float64(0), finalRun.Totals.Total.InexactFloat64())
+		s.Equal(float64(11), finalRun.Totals.CreditsTotal.InexactFloat64())
+		s.Len(finalRun.CreditsAllocated, 2)
+		s.Equal(float64(3), finalRun.CreditsAllocated[0].Amount.InexactFloat64())
+		s.Equal(float64(8), finalRun.CreditsAllocated[1].Amount.InexactFloat64())
+
+		s.Len(finalizedCallbacks, 1)
+		s.Equal(float64(8), finalizedCallbacks[0].Input.AmountToAllocate.InexactFloat64())
+		s.Equal(usagebased.RealizationRunTypeFinalRealization, finalizedCallbacks[0].Input.CollectionType)
+		s.True(finalStoredAtOffset.Equal(finalizedCallbacks[0].Input.AllocateAt))
+	})
+
+	s.Run("#5 final charge advance is noop", func() {
+		// Given the charge is already final.
+		// When advancing the usage-based charge.
+		advancedCharge := s.mustAdvanceSingleUsageBasedCharge(ctx, cust.GetID())
+		usageBasedFromDB := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
+
+		// Then no further allocation occurs.
+		s.Nil(advancedCharge)
+		s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(usageBasedFromDB.Status))
+	})
+}
+
+func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyActive() {
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("charges-service-usage-based-create-immediately-active")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithProgressiveBilling(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+	meterSlug := apiRequestsTotal.Feature.Key
+
+	// Given clock is frozen at the service period start.
+	clock.FreezeTime(servicePeriod.From)
+	defer clock.UnFreeze()
+
+	// When creating a credit-only usage-based charge at service period start.
+	res, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: []charges.ChargeIntent{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditOnlySettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromFloat(1),
+				}),
+				name:              "usage-based",
+				managedBy:         billing.SubscriptionManagedLine,
+				uniqueReferenceID: "usage-based",
+				featureKey:        meterSlug,
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(res, 1)
+
+	// Then the returned charge is already active.
+	s.Equal(meta.ChargeTypeUsageBased, res[0].Type())
+	returnedCharge, err := res[0].AsUsageBasedCharge()
+	s.NoError(err)
+	s.Equal(meta.ChargeStatusActive, meta.ChargeStatus(returnedCharge.Status))
+	s.NotNil(returnedCharge.State.AdvanceAfter)
+	s.True(servicePeriod.To.Equal(*returnedCharge.State.AdvanceAfter))
+	s.Empty(returnedCharge.Realizations)
+	s.Nil(returnedCharge.State.CurrentRealizationRunID)
+
+	// And the DB state matches the returned charge.
+	dbCharge := s.mustGetUsageBasedChargeByID(returnedCharge.GetChargeID())
+	s.Equal(returnedCharge.Status, dbCharge.Status)
+	s.Equal(meta.ChargeStatusActive, meta.ChargeStatus(dbCharge.Status))
+	s.NotNil(dbCharge.State.AdvanceAfter)
+	s.True(servicePeriod.To.Equal(*dbCharge.State.AdvanceAfter))
+	s.Empty(dbCharge.Realizations)
+	s.Nil(dbCharge.State.CurrentRealizationRunID)
+}
+
+func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyFinal() {
+	defer s.UsageBasedTestHandler.Reset()
+
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("charges-service-usage-based-create-immediately-final")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithProgressiveBilling(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	// collectionEnd = servicePeriod.To + P2D = 2026-02-03T00:00:00Z
+	// finalAdvanceAt = collectionEnd + InternalCollectionPeriod (1 minute) = 2026-02-03T00:01:00Z
+	// storedAtOffset = clock.Now() - InternalCollectionPeriod = finalAdvanceAt - 1min = collectionEnd
+	finalAdvanceAt := datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:01:00Z", time.UTC).AsTime()
+	expectedCollectionEnd := datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:00:00Z", time.UTC).AsTime()
+	expectedAsOf := finalAdvanceAt.Add(-usagebased.InternalCollectionPeriod) // == expectedCollectionEnd
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+	meterSlug := apiRequestsTotal.Feature.Key
+
+	// Two events inside the service period; default StoredAt == event time so both are well below
+	// storedAtOffset (2026-02-03T00:00:00Z) and will be included in the rating.
+	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 3,
+		datetime.MustParseTimeInLocation(s.T(), "2026-01-15T00:00:00Z", time.UTC).AsTime(),
+	)
+	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 5,
+		datetime.MustParseTimeInLocation(s.T(), "2026-01-20T00:00:00Z", time.UTC).AsTime(),
+	)
+
+	const expectedUsage = float64(8) // 3 + 5
+
+	// OnCollectionStarted is called during StartFinalRealizationRun because usage > 0.
+	// OnCollectionFinalized is not called because the finalize rating is identical to the start
+	// rating (frozen clock) so additionalAmount == 0.
+	s.UsageBasedTestHandler.onCollectionStarted = func(ctx context.Context, input usagebased.AllocateCreditsInput) (creditrealization.CreateInputs, error) {
+		return creditrealization.CreateInputs{
+			{
+				ServicePeriod: input.Charge.Intent.ServicePeriod,
+				Amount:        input.AmountToAllocate,
+				LedgerTransaction: ledgertransaction.GroupReference{
+					TransactionGroupID: ulid.Make().String(),
+				},
+			},
+		}, nil
+	}
+
+	// Given clock is frozen past the collection period end.
+	clock.FreezeTime(finalAdvanceAt)
+	defer clock.UnFreeze()
+
+	// When creating a credit-only usage-based charge well after the service period.
+	res, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: []charges.ChargeIntent{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditOnlySettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromFloat(1),
+				}),
+				name:              "usage-based",
+				managedBy:         billing.SubscriptionManagedLine,
+				uniqueReferenceID: "usage-based",
+				featureKey:        meterSlug,
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(res, 1)
+
+	// Then the returned charge is already final.
+	s.Equal(meta.ChargeTypeUsageBased, res[0].Type())
+	returnedCharge, err := res[0].AsUsageBasedCharge()
+	s.NoError(err)
+	s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(returnedCharge.Status))
+	s.Nil(returnedCharge.State.AdvanceAfter)
+	s.Nil(returnedCharge.State.CurrentRealizationRunID)
+	s.Len(returnedCharge.Realizations, 1)
+
+	finalRun := returnedCharge.Realizations[0]
+	s.True(expectedAsOf.Equal(finalRun.AsOf))
+	s.NotNil(finalRun.CollectionEnd)
+	s.True(expectedCollectionEnd.Equal(finalRun.CollectionEnd.UTC()))
+	s.Equal(expectedUsage, finalRun.MeterValue.InexactFloat64())
+	s.Equal(float64(0), finalRun.Totals.Total.InexactFloat64())
+	s.Equal(expectedUsage, finalRun.Totals.CreditsTotal.InexactFloat64())
+	s.Len(finalRun.CreditsAllocated, 1)
+	s.Equal(expectedUsage, finalRun.CreditsAllocated[0].Amount.InexactFloat64())
+
+	// And the DB state matches the returned charge.
+	dbCharge := s.mustGetUsageBasedChargeByID(returnedCharge.GetChargeID())
+	s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(dbCharge.Status))
+	s.Nil(dbCharge.State.AdvanceAfter)
+	s.Nil(dbCharge.State.CurrentRealizationRunID)
+	s.Len(dbCharge.Realizations, 1)
+}
+
+func (s *InvoicableChargesTestSuite) mustAdvanceSingleUsageBasedCharge(ctx context.Context, customerID customer.CustomerID) *usagebased.Charge {
+	s.T().Helper()
+
+	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+		Customer: customerID,
+	})
+	s.NoError(err)
+
+	if len(advancedCharges) == 0 {
+		return nil
+	}
+
+	s.Len(advancedCharges, 1)
+	s.Equal(meta.ChargeTypeUsageBased, advancedCharges[0].Type())
+
+	advancedCharge, err := advancedCharges[0].AsUsageBasedCharge()
+	s.NoError(err)
+
+	return &advancedCharge
+}
+
+func (s *InvoicableChargesTestSuite) mustGetUsageBasedChargeByID(chargeID meta.ChargeID) usagebased.Charge {
+	s.T().Helper()
+
+	charge := s.mustGetChargeByID(chargeID)
+	usageBasedCharge, err := charge.AsUsageBasedCharge()
+	s.NoError(err)
+
+	return usageBasedCharge
 }

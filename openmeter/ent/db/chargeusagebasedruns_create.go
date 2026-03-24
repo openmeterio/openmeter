@@ -143,6 +143,12 @@ func (_c *ChargeUsageBasedRunsCreate) SetAsof(v time.Time) *ChargeUsageBasedRuns
 	return _c
 }
 
+// SetCollectionEnd sets the "collection_end" field.
+func (_c *ChargeUsageBasedRunsCreate) SetCollectionEnd(v time.Time) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetCollectionEnd(v)
+	return _c
+}
+
 // SetMeterValue sets the "meter_value" field.
 func (_c *ChargeUsageBasedRunsCreate) SetMeterValue(v alpacadecimal.Decimal) *ChargeUsageBasedRunsCreate {
 	_c.mutation.SetMeterValue(v)
@@ -330,6 +336,9 @@ func (_c *ChargeUsageBasedRunsCreate) check() error {
 	if _, ok := _c.mutation.Asof(); !ok {
 		return &ValidationError{Name: "asof", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.asof"`)}
 	}
+	if _, ok := _c.mutation.CollectionEnd(); !ok {
+		return &ValidationError{Name: "collection_end", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.collection_end"`)}
+	}
 	if _, ok := _c.mutation.MeterValue(); !ok {
 		return &ValidationError{Name: "meter_value", err: errors.New(`db: missing required field "ChargeUsageBasedRuns.meter_value"`)}
 	}
@@ -427,6 +436,10 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 	if value, ok := _c.mutation.Asof(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldAsof, field.TypeTime, value)
 		_node.Asof = value
+	}
+	if value, ok := _c.mutation.CollectionEnd(); ok {
+		_spec.SetField(chargeusagebasedruns.FieldCollectionEnd, field.TypeTime, value)
+		_node.CollectionEnd = value
 	}
 	if value, ok := _c.mutation.MeterValue(); ok {
 		_spec.SetField(chargeusagebasedruns.FieldMeterValue, field.TypeOther, value)
@@ -727,6 +740,9 @@ func (u *ChargeUsageBasedRunsUpsertOne) UpdateNewValues() *ChargeUsageBasedRunsU
 		}
 		if _, exists := u.create.mutation.GetType(); exists {
 			s.SetIgnore(chargeusagebasedruns.FieldType)
+		}
+		if _, exists := u.create.mutation.CollectionEnd(); exists {
+			s.SetIgnore(chargeusagebasedruns.FieldCollectionEnd)
 		}
 	}))
 	return u
@@ -1128,6 +1144,9 @@ func (u *ChargeUsageBasedRunsUpsertBulk) UpdateNewValues() *ChargeUsageBasedRuns
 			}
 			if _, exists := b.mutation.GetType(); exists {
 				s.SetIgnore(chargeusagebasedruns.FieldType)
+			}
+			if _, exists := b.mutation.CollectionEnd(); exists {
+				s.SetIgnore(chargeusagebasedruns.FieldCollectionEnd)
 			}
 		}
 	}))

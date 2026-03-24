@@ -22,6 +22,8 @@ var (
 )
 
 type MockLedger struct {
+	usagebased.UnimplementedHandler
+
 	customerCredits            float64
 	customerPromotionalCredits float64
 

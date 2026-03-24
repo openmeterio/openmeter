@@ -61,6 +61,14 @@ func (i CreateInputs) Validate() error {
 	return errors.Join(errs...)
 }
 
+func (i CreateInputs) Sum() alpacadecimal.Decimal {
+	sum := alpacadecimal.Zero
+	for _, input := range i {
+		sum = sum.Add(input.Amount)
+	}
+	return sum
+}
+
 type Realization struct {
 	models.NamespacedID
 	models.ManagedModel
@@ -93,4 +101,12 @@ func (r Realizations) Validate() error {
 	}
 
 	return errors.Join(errs...)
+}
+
+func (r Realizations) Sum() alpacadecimal.Decimal {
+	sum := alpacadecimal.Zero
+	for _, realization := range r {
+		sum = sum.Add(realization.Amount)
+	}
+	return sum
 }

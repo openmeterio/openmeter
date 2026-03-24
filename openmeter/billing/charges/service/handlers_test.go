@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 )
 
 var _ flatfee.Handler = (*flatFeeTestHandler)(nil)
@@ -120,10 +121,31 @@ func (h *creditPurchaseTestHandler) Reset() {
 	*h = creditPurchaseTestHandler{}
 }
 
-type usageBasedTestHandler struct{}
+var _ usagebased.Handler = (*usageBasedTestHandler)(nil)
+
+type usageBasedTestHandler struct {
+	onCollectionStarted   func(ctx context.Context, input usagebased.AllocateCreditsInput) (creditrealization.CreateInputs, error)
+	onCollectionFinalized func(ctx context.Context, input usagebased.AllocateCreditsInput) (creditrealization.CreateInputs, error)
+}
 
 func newUsageBasedTestHandler() *usageBasedTestHandler {
 	return &usageBasedTestHandler{}
+}
+
+func (h *usageBasedTestHandler) OnCollectionStarted(ctx context.Context, input usagebased.AllocateCreditsInput) (creditrealization.CreateInputs, error) {
+	if h.onCollectionStarted == nil {
+		return nil, errors.New("onCollectionStarted is not set")
+	}
+
+	return h.onCollectionStarted(ctx, input)
+}
+
+func (h *usageBasedTestHandler) OnCollectionFinalized(ctx context.Context, input usagebased.AllocateCreditsInput) (creditrealization.CreateInputs, error) {
+	if h.onCollectionFinalized == nil {
+		return nil, errors.New("onCollectionFinalized is not set")
+	}
+
+	return h.onCollectionFinalized(ctx, input)
 }
 
 func (h *usageBasedTestHandler) Reset() {

@@ -35,3 +35,28 @@ func (a *adapter) GetByIDs(ctx context.Context, input meta.GetByIDsInput) (meta.
 		}), nil
 	})
 }
+
+func (a *adapter) ListByCustomer(ctx context.Context, input meta.ListByCustomerInput) (meta.Charges, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid input: %w", err)
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (meta.Charges, error) {
+		dbEntities, err := tx.db.Charge.Query().
+			Where(dbcharge.Namespace(input.Customer.Namespace)).
+			Where(dbcharge.CustomerID(input.Customer.ID)).
+			Where(dbcharge.StatusNEQ(meta.ChargeStatusFinal)).
+			Order(
+				dbcharge.ByCreatedAt(),
+				dbcharge.ByID(),
+			).
+			All(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("querying charges by customer: %w", err)
+		}
+
+		return lo.Map(dbEntities, func(entity *entdb.Charge, idx int) meta.Charge {
+			return MapChargeFromDB(entity)
+		}), nil
+	})
+}

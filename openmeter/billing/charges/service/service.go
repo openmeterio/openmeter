@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
 type service struct {
@@ -16,6 +17,7 @@ type service struct {
 	// Note: if meta has a service layer, we should use it here instead of the adapter
 	metaAdapter    meta.Adapter
 	billingService billing.Service
+	featureService feature.FeatureConnector
 
 	flatFeeService        flatfee.Service
 	creditPurchaseService creditpurchase.Service
@@ -26,6 +28,7 @@ type Config struct {
 	Adapter     charges.Adapter
 	MetaAdapter meta.Adapter
 
+	FeatureService        feature.FeatureConnector
 	FlatFeeService        flatfee.Service
 	CreditPurchaseService creditpurchase.Service
 	UsageBasedService     usagebased.Service
@@ -42,6 +45,10 @@ func (c Config) Validate() error {
 
 	if c.BillingService == nil {
 		errs = append(errs, errors.New("billing service cannot be null"))
+	}
+
+	if c.FeatureService == nil {
+		errs = append(errs, errors.New("feature service cannot be null"))
 	}
 
 	if c.FlatFeeService == nil {
@@ -71,6 +78,7 @@ func New(config Config) (*service, error) {
 	svc := &service{
 		adapter:               config.Adapter,
 		billingService:        config.BillingService,
+		featureService:        config.FeatureService,
 		metaAdapter:           config.MetaAdapter,
 		flatFeeService:        config.FlatFeeService,
 		creditPurchaseService: config.CreditPurchaseService,
