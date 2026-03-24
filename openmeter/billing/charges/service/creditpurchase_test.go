@@ -641,16 +641,6 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchaseDeferred() {
 	var chargeID meta.ChargeID
 
 	s.Run("initiated", func() {
-		defer s.CreditPurchaseTestHandler.Reset()
-
-		// First the initiated callback should be called, without any grant realizations or payment settlements
-		initatedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
-		s.CreditPurchaseTestHandler.onCreditPurchaseInitiated = initatedCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
-			assert.Equal(t, charge.Intent.Settlement.Type(), creditpurchase.SettlementTypeInvoice)
-			assert.Nil(t, charge.State.CreditGrantRealization, "credit grant realization should not be set")
-			assert.Nil(t, charge.State.InvoiceSettlement, "invoice settlement should not be set for deferred invoicing")
-		})
-
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
 			Intents: charges.ChargeIntents{
@@ -663,9 +653,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchaseDeferred() {
 
 		creditPurchaseCharge, err := res[0].AsCreditPurchaseCharge()
 		s.NoError(err)
-		s.Equal(1, initatedCallback.nrInvocations)
-		s.Equal(initatedCallback.id, creditPurchaseCharge.State.CreditGrantRealization.GroupReference.TransactionGroupID)
-		s.Equal(meta.ChargeStatusActive, creditPurchaseCharge.Status)
+		s.Equal(meta.ChargeStatusCreated, creditPurchaseCharge.Status)
 
 		// For deferred invoicing, InvoiceSettlement should be nil at this point
 		// because the invoice hasn't been created yet (InvoiceAt is in the future)
@@ -675,28 +663,22 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchaseDeferred() {
 	})
 
 	s.Run("gathering_line_created", func() {
-		// Verify that the gathering line was created but not yet invoiced
-		// In production, InvoicePendingLines would be called when InvoiceAt arrives
-		charge := s.mustGetChargeByID(chargeID)
-		creditPurchaseCharge, err := charge.AsCreditPurchaseCharge()
+		gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+			Namespaces: []string{ns},
+			Customers:  []string{cust.ID},
+		})
 		s.NoError(err)
+		s.Len(gatheringInvoices.Items, 1)
+		gatheringInvoice := gatheringInvoices.Items[0]
 
-		// InvoiceSettlement should still be nil because the gathering line
-		// has InvoiceAt in the future and hasn't been invoiced yet
-		assert.Nil(s.T(), creditPurchaseCharge.State.InvoiceSettlement, "invoice settlement should remain nil until invoicing")
+		lines := gatheringInvoice.Lines.OrEmpty()
+		s.Len(lines, 1)
+		line := lines[0]
 
-		// The charge should be active and ready for when the invoice date arrives
-		assert.Equal(s.T(), meta.ChargeStatusActive, creditPurchaseCharge.Status)
+		s.Equal(*line.ChargeID, chargeID)
 	})
 
-	// Note: We cannot test the full deferred invoicing flow in a unit test because
-	// InvoicePendingLines requires AsOf to be in the past. In production, the deferred
-	// path would work as follows:
-	// 1. When InvoiceAt arrives (2027-01-01), a background job calls InvoicePendingLines
-	// 2. The gathering line is converted to a standard invoice
-	// 3. InvoiceSettlement is populated via LinkInvoicedPayment
-	// 4. The invoice goes through the normal approve/paid flow
-	//
-	// The TestStandardInvoiceCreditPurchase test covers steps 2-4 with a past-dated invoice,
-	// verifying that InvoiceSettlement is correctly populated and the callbacks fire properly.
+	// The TestStandardInvoiceCreditPurchase test covers the full non-deferred invoicing path.
+	// This path only covers parts up to the point where the gathering line is created, as for
+	// invoice based triggers the lifecycle is governed by the invocing lifecycle hooks.
 }
