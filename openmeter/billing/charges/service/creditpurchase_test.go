@@ -430,20 +430,20 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 
 		clock.FreezeTime(datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime())
 		now := clock.Now()
-		stinvoides, err := s.Charges.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		standardInvoices, err := s.Charges.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: cust.GetID(),
 			AsOf:     &now,
 		})
 
 		s.NoError(err)
-		s.Len(stinvoides, 1)
+		s.Len(standardInvoices, 1)
 
-		stdinvoicesres, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
+		invoicesResult, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
 			Namespaces: []string{ns},
 		})
 
 		s.NoError(err)
-		s.Len(stdinvoicesres.Items, 1)
+		s.Len(invoicesResult.Items, 1)
 
 		localChargeID, err := res[0].GetChargeID()
 		s.NoError(err)
@@ -461,7 +461,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 
 		invoiceID = billing.InvoiceID{
 			Namespace: ns,
-			ID:        stdinvoicesres.Items[0].GetInvoiceID().ID,
+			ID:        invoicesResult.Items[0].GetInvoiceID().ID,
 		}
 		s.NotEmpty(invoiceID)
 	})
