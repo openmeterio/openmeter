@@ -255,7 +255,7 @@ func (c *featureConnector) UpdateFeature(ctx context.Context, input UpdateFeatur
 				IDOrSlug:  *feat.MeterSlug,
 			})
 			if err != nil {
-				return Feature{}, meterpkg.NewMeterNotFoundError(*feat.MeterSlug)
+				return Feature{}, err
 			}
 
 			if err := input.UnitCost.ValidateWithMeter(meter); err != nil {
