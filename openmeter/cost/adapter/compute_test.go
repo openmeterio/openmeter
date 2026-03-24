@@ -753,7 +753,7 @@ func TestGetLLMPricesEmptyProvider(t *testing.T) {
 		assert.True(t, models.IsGenericNotFoundError(result.err))
 	})
 
-	t.Run("empty provider surfaces as detail not fatal error", func(t *testing.T) {
+	t.Run("price lookup failure surfaces as detail not fatal error", func(t *testing.T) {
 		now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 		windowEnd := now.Add(time.Hour)
 
