@@ -8,7 +8,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 )
@@ -58,11 +57,6 @@ func (s *service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 			})
 			if err != nil {
 				return nil, fmt.Errorf("creating standard invoice from gathering lines: %w", err)
-			}
-
-			// Step 4: Link invoice settlement for credit purchase charges
-			if err := s.linkInvoiceSettlementForCreditPurchases(ctx, *createdInvoice, linesWithCreditAllocations.chargesByID); err != nil {
-				return nil, fmt.Errorf("linking invoice settlement for credit purchases: %w", err)
 			}
 
 			createdInvoices = append(createdInvoices, *createdInvoice)
@@ -177,41 +171,6 @@ func (s *service) allocateCreditAmountsToBillableLines(ctx context.Context, name
 		chargesManagedLines: chargesManagedGatheringLines,
 		chargesByID:         chargesById,
 	}, nil
-}
-
-func (s *service) linkInvoiceSettlementForCreditPurchases(ctx context.Context, invoice billing.StandardInvoice, chargesByID map[meta.ChargeID]charges.Charge) error {
-	invoiceID := invoice.GetInvoiceID()
-
-	for _, line := range invoice.Lines.OrEmpty() {
-		if line.ChargeID == nil {
-			continue
-		}
-
-		chargeID := meta.ChargeID{
-			Namespace: invoiceID.Namespace,
-			ID:        *line.ChargeID,
-		}
-
-		charge, ok := chargesByID[chargeID]
-		if !ok || charge.Type() != meta.ChargeTypeCreditPurchase {
-			continue
-		}
-
-		cpCharge, err := charge.AsCreditPurchaseCharge()
-		if err != nil {
-			return fmt.Errorf("converting charge to credit purchase: %w", err)
-		}
-
-		if err := s.creditPurchaseService.PostLineAssignedToInvoice(ctx, creditpurchase.PostLineAssignedToInvoiceInput{
-			Charge:    cpCharge,
-			LineID:    line.ID,
-			InvoiceID: invoiceID.ID,
-		}); err != nil {
-			return fmt.Errorf("post line assigned to invoice for credit purchase [chargeID=%s]: %w", chargeID.ID, err)
-		}
-	}
-
-	return nil
 }
 
 func convertCreditRealizationToCreditsApplied(creditRealizations creditrealization.Realizations) billing.CreditsApplied {

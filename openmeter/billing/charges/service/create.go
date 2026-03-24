@@ -20,9 +20,9 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
-type createResult struct {
-	charges                       charges.Charges
-	pendingInvoiceCreditPurchases []charges.WithIndex[*creditPurchaseWithPendingGatheringLine]
+type chargesWithInvoiceNowActions struct {
+	charges         charges.Charges
+	invoiceNowLines []invoicePendingLinesInput
 }
 
 func (s *service) Create(ctx context.Context, input charges.CreateInput) (charges.Charges, error) {
@@ -30,15 +30,14 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 		return nil, err
 	}
 
-	result, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (createResult, error) {
+	result, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (*chargesWithInvoiceNowActions, error) {
 		intentsByType, err := input.Intents.ByType()
 		if err != nil {
-			return createResult{}, err
+			return nil, err
 		}
 
 		createdCharges := make([]charges.WithIndex[charges.Charge], 0, len(input.Intents))
 		gatheringLinesToCreate := make([]gatheringLineWithCustomerID, 0, len(input.Intents))
-		var pendingInvoiceCreditPurchases []charges.WithIndex[*creditPurchaseWithPendingGatheringLine]
 
 		// Let's create all the flat fee charges in bulk and record any gathering lines to create
 		flatFees, err := s.flatFeeService.Create(ctx, flatfee.CreateInput{
@@ -48,7 +47,7 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 			}),
 		})
 		if err != nil {
-			return createResult{}, err
+			return nil, err
 		}
 
 		createdCharges = append(
@@ -81,7 +80,7 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 			}),
 		})
 		if err != nil {
-			return createResult{}, err
+			return nil, err
 		}
 
 		createdCharges = append(
@@ -106,11 +105,6 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 			}
 		}
 
-		// Let's generate the gathering lines for the flat fees
-		if err := s.createGatheringLines(ctx, gatheringLinesToCreate); err != nil {
-			return createResult{}, err
-		}
-
 		// Let's create all the credit purchase charges
 		for _, intent := range intentsByType.CreditPurchase {
 			result, err := s.creditPurchaseService.Create(ctx, creditpurchase.CreateInput{
@@ -118,22 +112,23 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 				Intent:    intent.Value,
 			})
 			if err != nil {
-				return createResult{}, err
+				return nil, err
 			}
 
 			// For invoice settlement, prepare the gathering line (actual invoicing happens after TX commits)
 			if result.GatheringLineToCreate != nil {
-				pendingInvoiceCreditPurchases = append(pendingInvoiceCreditPurchases, charges.WithIndex[*creditPurchaseWithPendingGatheringLine]{
-					Index: intent.Index,
-					Value: &creditPurchaseWithPendingGatheringLine{
-						charge:        result.Charge,
-						gatheringLine: *result.GatheringLineToCreate,
-						customerID: customer.CustomerID{
-							Namespace: input.Namespace,
-							ID:        result.Charge.Intent.CustomerID,
-						},
-						currency: result.GatheringLineToCreate.Currency,
+				shouldInvoiceNow := false
+				if !result.Charge.Intent.ServicePeriod.From.After(clock.Now()) {
+					shouldInvoiceNow = true
+				}
+
+				gatheringLinesToCreate = append(gatheringLinesToCreate, gatheringLineWithCustomerID{
+					gatheringLine: *result.GatheringLineToCreate,
+					customerID: customer.CustomerID{
+						Namespace: input.Namespace,
+						ID:        result.Charge.Intent.CustomerID,
 					},
+					ShouldInvoiceNow: shouldInvoiceNow,
 				})
 			}
 
@@ -143,36 +138,40 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 			})
 		}
 
+		// Let's generate the gathering lines for the flat fees
+		invoiceNowLines, err := s.createGatheringLines(ctx, gatheringLinesToCreate)
+		if err != nil {
+			return nil, err
+		}
+
 		// Let's map the created charges to the original intents
 		result := make([]charges.Charge, len(input.Intents))
 		for _, createdCharge := range createdCharges {
 			result[createdCharge.Index] = createdCharge.Value
 		}
 
-		return createResult{
-			charges:                       result,
-			pendingInvoiceCreditPurchases: pendingInvoiceCreditPurchases,
+		return &chargesWithInvoiceNowActions{
+			charges:         result,
+			invoiceNowLines: invoiceNowLines,
 		}, nil
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: mark
-	out := result.charges
-
-	// Handle invoice credit purchase post-creation steps outside the main transaction
-	// to avoid lock contention with transactionForInvoiceManipulation.
-	for _, pending := range result.pendingInvoiceCreditPurchases {
-		updatedCharge, err := s.handleInvoiceCreditPurchasePostCreate(ctx, pending.Value)
-		if err != nil {
-			return nil, fmt.Errorf("post-create invoice credit purchase: %w", err)
-		}
-
-		out[pending.Index] = charges.NewCharge(updatedCharge)
+	if result == nil {
+		return nil, fmt.Errorf("result is nil")
 	}
 
-	return s.autoAdvanceCreatedCharges(ctx, out)
+	// TODO: once we have proper state machine for credit purchases, we can remove this and mek the
+	// autoAdvanceCreatedCharges handle the invoice now actions.
+	if len(result.invoiceNowLines) > 0 {
+		if err := s.invokeInvoiceNowOnCreate(ctx, result.invoiceNowLines); err != nil {
+			return nil, fmt.Errorf("invoking invoice now on create: %w", err)
+		}
+	}
+
+	return s.autoAdvanceCreatedCharges(ctx, result.charges)
 }
 
 // autoAdvanceCreatedCharges post-processes newly created charges
@@ -248,8 +247,31 @@ type currencyAndCustomerID struct {
 }
 
 type gatheringLineWithCustomerID struct {
-	gatheringLine billing.GatheringLine
-	customerID    customer.CustomerID
+	gatheringLine    billing.GatheringLine
+	customerID       customer.CustomerID
+	ShouldInvoiceNow bool
+}
+
+func (s *service) invokeInvoiceNowOnCreate(ctx context.Context, invoiceNowLines []invoicePendingLinesInput) error {
+	if len(invoiceNowLines) == 0 {
+		return nil
+	}
+
+	invoiceNowArgs := lo.GroupByMap(invoiceNowLines, func(item invoicePendingLinesInput) (customer.CustomerID, string) {
+		return item.CustomerID, item.LineID
+	})
+
+	for customerID, lines := range invoiceNowArgs {
+		if _, err := s.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer:            customerID,
+			IncludePendingLines: mo.Some(lines),
+			AsOf:                lo.ToPtr(clock.Now()),
+		}); err != nil {
+			return fmt.Errorf("invoking invoice now on create: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // creditPurchaseWithPendingGatheringLine holds a credit purchase charge and its associated gathering line
@@ -261,83 +283,14 @@ type creditPurchaseWithPendingGatheringLine struct {
 	currency      currencyx.Code
 }
 
-// handleInvoiceCreditPurchasePostCreate handles the post-creation steps for invoice credit purchases.
-// This MUST be called outside the Create transaction to avoid lock contention.
-// This function is idempotent - it can be safely called multiple times.
-func (s *service) handleInvoiceCreditPurchasePostCreate(ctx context.Context, pending *creditPurchaseWithPendingGatheringLine) (creditpurchase.Charge, error) {
-	charge := pending.charge
-
-	// Idempotency check: if InvoiceSettlement is already set, processing was already done.
-	if charge.State.InvoiceSettlement != nil {
-		return charge, nil
-	}
-
-	// Create the gathering line on the billing side
-	result, err := s.billingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: pending.customerID,
-		Currency: pending.currency,
-		Lines:    []billing.GatheringLine{pending.gatheringLine},
-	})
-	if err != nil {
-		return creditpurchase.Charge{}, fmt.Errorf("creating pending invoice lines for credit purchase: %w", err)
-	}
-
-	if result == nil || len(result.Lines) == 0 {
-		return creditpurchase.Charge{}, fmt.Errorf("no gathering lines created for credit purchase")
-	}
-
-	createdLine := result.Lines[0]
-
-	// Invoke InvoicePendingLines to convert the gathering line to a standard invoice
-	// if the invoice_at is in the past or now. InvoicePendingLines will also create
-	// the InvoiceSettlement via PostLineAssignedToInvoice.
-	if !createdLine.InvoiceAt.After(clock.Now()) {
-		invoices, err := s.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer:            pending.customerID,
-			IncludePendingLines: mo.Some([]string{createdLine.ID}),
-			AsOf:                lo.ToPtr(clock.Now()),
-		})
-		if err != nil {
-			return creditpurchase.Charge{}, fmt.Errorf("invoicing pending lines for credit purchase: %w", err)
-		}
-
-		if len(invoices) == 0 || len(invoices[0].Lines.OrEmpty()) == 0 {
-			return creditpurchase.Charge{}, fmt.Errorf("no standard invoice created for credit purchase")
-		}
-
-		// Re-fetch the charge to get the updated state with InvoiceSettlement
-		updatedCharges, err := s.GetByIDs(ctx, charges.GetByIDsInput{
-			Namespace: charge.Namespace,
-			ChargeIDs: []string{charge.ID},
-			Expands: meta.Expands{
-				meta.ExpandRealizations,
-			},
-		})
-		if err != nil {
-			return creditpurchase.Charge{}, fmt.Errorf("re-fetching credit purchase charge: %w", err)
-		}
-
-		if len(updatedCharges) == 0 {
-			return creditpurchase.Charge{}, fmt.Errorf("credit purchase charge not found after invoicing [id=%s]", charge.ID)
-		}
-
-		cpCharge, err := updatedCharges[0].AsCreditPurchaseCharge()
-		if err != nil {
-			return creditpurchase.Charge{}, fmt.Errorf("converting to credit purchase charge: %w", err)
-		}
-
-		return cpCharge, nil
-	}
-	// For future-dated lines (InvoiceAt > now), the gathering line is created but
-	// InvoiceSettlement is not set yet. It will be created later by InvoicePendingLines
-	// via PostLineAssignedToInvoice when InvoiceAt arrives.
-
-	return charge, nil
+type invoicePendingLinesInput struct {
+	CustomerID customer.CustomerID
+	LineID     string
 }
 
-func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCreate []gatheringLineWithCustomerID) error {
+func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCreate []gatheringLineWithCustomerID) ([]invoicePendingLinesInput, error) {
 	if len(gatheringLinesToCreate) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	gatheringLinesByCurrencyAndCustomer := lo.GroupBy(gatheringLinesToCreate, func(item gatheringLineWithCustomerID) currencyAndCustomerID {
@@ -347,9 +300,11 @@ func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCrea
 		}
 	})
 
+	invoiceNowLines := make([]invoicePendingLinesInput, 0, len(gatheringLinesToCreate))
+
 	for custAndCurrency, lines := range gatheringLinesByCurrencyAndCustomer {
 		// Let's create the gathering invoice on invoicing side
-		_, err := s.billingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		result, err := s.billingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 			Customer: custAndCurrency.customerID,
 			Currency: custAndCurrency.currency,
 			Lines: lo.Map(lines, func(item gatheringLineWithCustomerID, _ int) billing.GatheringLine {
@@ -357,9 +312,18 @@ func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCrea
 			}),
 		})
 		if err != nil {
-			return fmt.Errorf("creating pending invoice lines for charges: %w", err)
+			return nil, fmt.Errorf("creating pending invoice lines for charges: %w", err)
+		}
+
+		for idx, line := range result.Lines {
+			if lines[idx].ShouldInvoiceNow {
+				invoiceNowLines = append(invoiceNowLines, invoicePendingLinesInput{
+					CustomerID: custAndCurrency.customerID,
+					LineID:     line.ID,
+				})
+			}
 		}
 	}
 
-	return nil
+	return invoiceNowLines, nil
 }
