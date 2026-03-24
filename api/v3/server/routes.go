@@ -230,3 +230,35 @@ func (s *Server) CreateLlmCostOverride(w http.ResponseWriter, r *http.Request) {
 func (s *Server) DeleteLlmCostOverride(w http.ResponseWriter, r *http.Request, priceId api.ULID) {
 	s.llmcostHandler.DeleteOverride().With(priceId).ServeHTTP(w, r)
 }
+
+// Credits
+
+var unimplemented = api.Unimplemented{}
+
+func (s *Server) GetCustomerCreditBalance(w http.ResponseWriter, r *http.Request, customerId api.ULID, params api.GetCustomerCreditBalanceParams) {
+	unimplemented.GetCustomerCreditBalance(w, r, customerId, params)
+}
+
+func (s *Server) ListCreditGrants(w http.ResponseWriter, r *http.Request, customerId api.ULID, params api.ListCreditGrantsParams) {
+	unimplemented.ListCreditGrants(w, r, customerId, params)
+}
+
+func (s *Server) CreateCreditGrant(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
+	unimplemented.CreateCreditGrant(w, r, customerId)
+}
+
+func (s *Server) GetCreditGrant(w http.ResponseWriter, r *http.Request, customerId api.ULID, creditGrantId api.ULID) {
+	unimplemented.GetCreditGrant(w, r, customerId, creditGrantId)
+}
+
+func (s *Server) VoidCreditGrant(w http.ResponseWriter, r *http.Request, customerId api.ULID, creditGrantId api.ULID) {
+	unimplemented.VoidCreditGrant(w, r, customerId, creditGrantId)
+}
+
+func (s *Server) UpdateCreditGrantExternalSettlement(w http.ResponseWriter, r *http.Request, customerId api.ULID, creditGrantId api.ULID) {
+	unimplemented.UpdateCreditGrantExternalSettlement(w, r, customerId, creditGrantId)
+}
+
+func (s *Server) ListCreditTransactions(w http.ResponseWriter, r *http.Request, customerId api.ULID, params api.ListCreditTransactionsParams) {
+	unimplemented.ListCreditTransactions(w, r, customerId, params)
+}
