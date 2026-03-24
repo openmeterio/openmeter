@@ -117,18 +117,7 @@ func (a *adapter) QueryFeatureCost(ctx context.Context, input cost.QueryFeatureC
 	priceCache := a.getLLMPrices(ctx, feat, rows)
 
 	// Calculate cost
-	costRows, currency, err := computeCostRows(rows, internalGroupByKeys, func(groupByValues map[string]string) (*cost.ResolvedUnitCost, string, error) {
-		resolved, err := a.resolveUnitCost(ctx, feat, groupByValues, priceCache)
-		if err != nil {
-			// If the error is a not found error we surface it directly as detail
-			// explaining why pricing is unavailable.
-			if models.IsGenericNotFoundError(err) {
-				return nil, err.Error(), nil
-			}
-			return nil, "", fmt.Errorf("failed to resolve unit cost: %w", err)
-		}
-		return resolved, "", nil
-	})
+	costRows, currency, err := computeCostRows(rows, internalGroupByKeys, a.makeCostResolver(ctx, feat, priceCache))
 	if err != nil {
 		return nil, err
 	}
@@ -230,6 +219,23 @@ func addLLMGroupByKeys(feat *feature.Feature, params *streaming.QueryParams) []s
 	}
 
 	return internalKeys
+}
+
+// makeCostResolver returns a costResolverFunc that resolves per-unit costs and
+// converts not-found errors into non-fatal detail messages on the cost row.
+func (a *adapter) makeCostResolver(ctx context.Context, feat *feature.Feature, priceCache map[llmPriceKey]llmPriceResult) costResolverFunc {
+	return func(groupByValues map[string]string) (*cost.ResolvedUnitCost, string, error) {
+		resolved, err := a.resolveUnitCost(ctx, feat, groupByValues, priceCache)
+		if err != nil {
+			// If the error is a not found error we surface it directly as detail
+			// explaining why pricing is unavailable.
+			if models.IsGenericNotFoundError(err) {
+				return nil, err.Error(), nil
+			}
+			return nil, "", fmt.Errorf("failed to resolve unit cost: %w", err)
+		}
+		return resolved, "", nil
+	}
 }
 
 // resolveUnitCost resolves the per-unit cost for a feature given group-by dimension values.
