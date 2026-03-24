@@ -771,6 +771,10 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("updating target invoice: %w", err)
 	}
 
+	if err := s.standardInvoiceHooks.PostCreate(ctx, &invoice); err != nil {
+		return nil, fmt.Errorf("invoking post create hooks: %w", err)
+	}
+
 	// Let's make sure that the invoice is in an up-to-date state
 	invoice, err = s.withLockedInvoiceStateMachine(ctx, withLockedStateMachineInput{
 		InvoiceID: invoice.GetInvoiceID(),

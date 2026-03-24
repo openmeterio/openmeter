@@ -21,30 +21,6 @@ type CreditPurchaseService interface {
 	Create(ctx context.Context, input CreateInput) (ChargeWithGatheringLine, error)
 
 	GetByMetas(ctx context.Context, input GetByMetasInput) ([]Charge, error)
-
-	// PostLineAssignedToInvoice creates the initial InvoiceSettlement (payment.Invoiced) record
-	// when a credit purchase gathering line is assigned to a standard invoice.
-	PostLineAssignedToInvoice(ctx context.Context, input PostLineAssignedToInvoiceInput) error
-}
-
-type PostLineAssignedToInvoiceInput struct {
-	Charge    Charge
-	LineID    string
-	InvoiceID string
-}
-
-func (i PostLineAssignedToInvoiceInput) Validate() error {
-	var errs []error
-
-	if i.LineID == "" {
-		errs = append(errs, fmt.Errorf("line ID is required"))
-	}
-
-	if i.InvoiceID == "" {
-		errs = append(errs, fmt.Errorf("invoice ID is required"))
-	}
-
-	return errors.Join(errs...)
 }
 
 type ChargeWithGatheringLine struct {
@@ -58,8 +34,9 @@ type ExternalPaymentLifecycle interface {
 }
 
 type InvoicePaymentLifecycle interface {
-	HandleInvoicePaymentAuthorized(ctx context.Context, charge Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
-	HandleInvoicePaymentSettled(ctx context.Context, charge Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
+	PostInvoicePaymentAuthorized(ctx context.Context, charge Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
+	PostInvoicePaymentSettled(ctx context.Context, charge Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
+	PostInvoiceDraftCreated(ctx context.Context, charge Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
 }
 
 type CreateInput struct {

@@ -25,6 +25,10 @@ func unsupported[T flatfee.Charge | creditpurchase.Charge | usagebased.Charge](e
 	}
 }
 
+func noop[T flatfee.Charge | creditpurchase.Charge | usagebased.Charge](ctx context.Context, charge T, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
+	return nil
+}
+
 type processorByType struct {
 	flatFee        chargeProcessorFn[flatfee.Charge]
 	creditPurchase chargeProcessorFn[creditpurchase.Charge]
@@ -32,31 +36,34 @@ type processorByType struct {
 }
 
 func (s *service) handleStandardInvoiceUpdate(ctx context.Context, invoice billing.StandardInvoice) error {
-	if invoice.Status == billing.StandardInvoiceStatusIssued {
+	switch invoice.Status {
+	case billing.StandardInvoiceStatusDraftCreated:
 		return s.handleChargeEvent(ctx, invoice, processorByType{
-			flatFee:        s.flatFeeService.PostInvoiceIssued,
-			usageBased:     s.usageBasedService.PostInvoiceIssued,
-			creditPurchase: unsupported[creditpurchase.Charge](fmt.Errorf("invoice credit purchase settlements are not supported: %w", meta.ErrUnsupported)),
+			flatFee:        noop[flatfee.Charge],
+			usageBased:     noop[usagebased.Charge],
+			creditPurchase: s.creditPurchaseService.PostInvoiceDraftCreated,
 		})
-	}
 
-	if invoice.Status == billing.StandardInvoiceStatusPaymentProcessingPending {
+	case billing.StandardInvoiceStatusIssued:
 		return s.handleChargeEvent(ctx, invoice, processorByType{
-			flatFee:    s.flatFeeService.PostPaymentAuthorized,
-			usageBased: s.usageBasedService.PostPaymentAuthorized,
-			// TODO[turip]: Consistency
-			creditPurchase: s.creditPurchaseService.HandleInvoicePaymentAuthorized,
+			flatFee:    s.flatFeeService.PostInvoiceIssued,
+			usageBased: s.usageBasedService.PostInvoiceIssued,
+			// Invoice credit purchase settlements are not requiring any special handling at this point
+			creditPurchase: noop[creditpurchase.Charge],
 		})
-	}
 
-	if invoice.Status == billing.StandardInvoiceStatusPaid {
+	case billing.StandardInvoiceStatusPaymentProcessingPending:
 		return s.handleChargeEvent(ctx, invoice, processorByType{
-			flatFee:    s.flatFeeService.PostPaymentSettled,
-			usageBased: s.usageBasedService.PostPaymentSettled,
-			// TODO[turip]: Consistency
-			creditPurchase: func(ctx context.Context, charge creditpurchase.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
-				return s.creditPurchaseService.HandleInvoicePaymentSettled(ctx, charge, lineWithHeader)
-			},
+			flatFee:        s.flatFeeService.PostInvoicePaymentAuthorized,
+			usageBased:     s.usageBasedService.PostInvoicePaymentAuthorized,
+			creditPurchase: s.creditPurchaseService.PostInvoicePaymentAuthorized,
+		})
+
+	case billing.StandardInvoiceStatusPaid:
+		return s.handleChargeEvent(ctx, invoice, processorByType{
+			flatFee:        s.flatFeeService.PostInvoicePaymentSettled,
+			usageBased:     s.usageBasedService.PostInvoicePaymentSettled,
+			creditPurchase: s.creditPurchaseService.PostInvoicePaymentSettled,
 		})
 	}
 
@@ -117,6 +124,11 @@ type standardInvoiceEventHandler struct {
 }
 
 func (h *standardInvoiceEventHandler) PostUpdate(ctx context.Context, invoice *billing.StandardInvoice) error {
+	return h.chargesService.handleStandardInvoiceUpdate(ctx, *invoice)
+}
+
+func (h *standardInvoiceEventHandler) PostCreate(ctx context.Context, invoice *billing.StandardInvoice) error {
+	// The creation can be treated as an update from out perspective for the draft.created state.
 	return h.chargesService.handleStandardInvoiceUpdate(ctx, *invoice)
 }
 

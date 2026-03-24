@@ -30,7 +30,9 @@ func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) 
 		case creditpurchase.SettlementTypePromotional:
 			charge, err = s.onPromotionalCreditPurchase(ctx, charge)
 		case creditpurchase.SettlementTypeInvoice:
-			charge, err = s.onInvoiceSettlementPurchase(ctx, charge)
+			// noop, as we will transition to active state when the invoice is created, as
+			// - invocing based charges are driven by the invoice state machine
+			// - we should set the active state when the invoice is created, not when the credit purchase is created
 		case creditpurchase.SettlementTypeExternal:
 			charge, err = s.onExternalCreditPurchase(ctx, charge)
 		default:

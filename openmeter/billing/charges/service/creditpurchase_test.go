@@ -404,18 +404,11 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 	var initatedTrnsID string
 
 	var invoiceID billing.InvoiceID
-	var creditPurchaseCharge creditpurchase.Charge
 
 	s.Run("initiated", func() {
 		defer s.CreditPurchaseTestHandler.Reset()
 
 		// First the initiated callback should be called, without any grant realizations or payment settlements
-		initatedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
-		s.CreditPurchaseTestHandler.onCreditPurchaseInitiated = initatedCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
-			assert.Equal(t, charge.Intent.Settlement.Type(), creditpurchase.SettlementTypeInvoice)
-			assert.Nil(t, charge.State.CreditGrantRealization, "credit grant realization should not be set")
-			assert.Nil(t, charge.State.InvoiceSettlement, "invoice settlement should not be set")
-		})
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
@@ -429,15 +422,37 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		chargeID, err = res[0].GetChargeID()
 		s.NoError(err)
 
+		charge := s.mustGetChargeByID(chargeID)
+		creditPurchaseCharge, err := charge.AsCreditPurchaseCharge()
+		s.NoError(err)
+		s.Equal(meta.ChargeStatusCreated, creditPurchaseCharge.Status)
+		s.Nil(creditPurchaseCharge.State.CreditGrantRealization)
+		s.Nil(creditPurchaseCharge.State.InvoiceSettlement)
+	})
+
+	s.Run("invoice pending lines", func() {
+		defer s.CreditPurchaseTestHandler.Reset()
+
+		initatedCallback := newCountedLedgerTransactionCallback[creditpurchase.Charge]()
+		s.CreditPurchaseTestHandler.onCreditPurchaseInitiated = initatedCallback.Handler(s.T(), func(t *testing.T, charge creditpurchase.Charge) {
+			assert.Equal(t, charge.Intent.Settlement.Type(), creditpurchase.SettlementTypeInvoice)
+			assert.Nil(t, charge.State.CreditGrantRealization, "credit grant realization should not be set")
+			assert.Nil(t, charge.State.InvoiceSettlement, "invoice settlement should not be set")
+		})
+
 		clock.FreezeTime(datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime())
 		now := clock.Now()
-		standardInvoices, err := s.Charges.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		createdInvoices, err := s.Charges.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: cust.GetID(),
 			AsOf:     &now,
 		})
 
 		s.NoError(err)
-		s.Len(standardInvoices, 1)
+		s.Len(createdInvoices, 1)
+		s.Len(createdInvoices[0].Lines.OrEmpty(), 1)
+		invoiceID = createdInvoices[0].GetInvoiceID()
+		s.NotEmpty(invoiceID)
+		s.NoError(invoiceID.Validate())
 
 		invoicesResult, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
 			Namespaces: []string{ns},
@@ -446,13 +461,11 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		s.NoError(err)
 		s.Len(invoicesResult.Items, 1)
 
-		localChargeID, err := res[0].GetChargeID()
+		updatedCharge := s.mustGetChargeByID(chargeID)
+
+		creditPurchaseCharge, err := updatedCharge.AsCreditPurchaseCharge()
 		s.NoError(err)
 
-		updatedCharge := s.mustGetChargeByID(localChargeID)
-
-		creditPurchaseCharge, err = updatedCharge.AsCreditPurchaseCharge()
-		s.NoError(err)
 		s.Equal(1, initatedCallback.nrInvocations)
 		s.Equal(initatedCallback.id, creditPurchaseCharge.State.CreditGrantRealization.GroupReference.TransactionGroupID)
 		s.Equal(meta.ChargeStatusActive, creditPurchaseCharge.Status)
@@ -460,10 +473,6 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		chargeID = creditPurchaseCharge.GetChargeID()
 		initatedTrnsID = initatedCallback.id
 
-		invoiceID = billing.InvoiceID{
-			Namespace: ns,
-			ID:        invoicesResult.Items[0].GetInvoiceID().ID,
-		}
 		s.NotEmpty(invoiceID)
 	})
 
@@ -477,16 +486,9 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 			assert.Equal(t, charge.Intent.Settlement.Type(), creditpurchase.SettlementTypeInvoice)
 			assert.NotNil(t, charge.State.CreditGrantRealization, "credit grant realization should be set")
 			assert.Equal(t, initatedTrnsID, charge.State.CreditGrantRealization.GroupReference.TransactionGroupID)
-			assert.NotNil(t, charge.State.InvoiceSettlement)
-			assert.Equal(t, invoiceID.ID, charge.State.InvoiceSettlement.InvoiceID)
+			assert.Nil(t, charge.State.InvoiceSettlement)
 			assert.Equal(t, meta.ChargeStatusActive, charge.Status, "charge status should be active")
 		})
-
-		invoiceID = billing.InvoiceID{
-			Namespace: ns,
-			ID:        creditPurchaseCharge.State.InvoiceSettlement.InvoiceID,
-		}
-		s.NotEmpty(invoiceID)
 
 		invoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: invoiceID,
@@ -502,15 +504,21 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, res.Status)
 
+		invoice, err = s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoiceID,
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+
+		charge := s.mustGetChargeByID(chargeID)
+		creditPurchaseCharge, err := charge.AsCreditPurchaseCharge()
+		s.NoError(err)
+
 		// Invoice settlement should be set
 		s.NotNil(creditPurchaseCharge.State.InvoiceSettlement)
 		lineID := creditPurchaseCharge.State.InvoiceSettlement.LineID
 		s.NotEmpty(lineID)
-
-		charge := s.mustGetChargeByID(chargeID)
-		updatedCreditPurchaseCharge, err := charge.AsCreditPurchaseCharge()
-		s.NoError(err)
-		creditPurchaseCharge = updatedCreditPurchaseCharge
 
 		s.Equal(1, authorizedCallback.nrInvocations)
 		s.NotNil(creditPurchaseCharge.State.InvoiceSettlement)
@@ -550,12 +558,6 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		authorizedTrnsID = authorizedCallback.id
 	})
 
-	betweenInvoice, betweenErr := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-		Invoice: invoiceID,
-	})
-	s.Require().NoError(betweenErr)
-	s.Require().Equal(invoiceID, betweenInvoice.GetInvoiceID())
-
 	s.Run("settled", func() {
 		defer s.CreditPurchaseTestHandler.Reset()
 		// Then the settled callback should be called, with a grant realization and a payment settlement
@@ -570,12 +572,13 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
 		})
 
 		// First verify the invoice is in the expected state
-		verifyInvoice, verifyErr := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		invoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 			Invoice: invoiceID,
 		})
 
-		s.Require().NoError(verifyErr)
-		s.Require().Equal(invoiceID, verifyInvoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(invoiceID, invoice.GetInvoiceID())
+		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
 
 		res, err := s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
 			InvoiceID: invoiceID,
