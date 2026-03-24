@@ -51,3 +51,15 @@ type Handler interface {
 	// TODO: implement this after we have decided on who should be responsible for deciding what to roll back.
 	// OnCollectionFinalizedRollback(ctx context.Context, input AllocateCreditsInput) error
 }
+
+type UnimplementedHandler struct{}
+
+var _ Handler = (*UnimplementedHandler)(nil)
+
+func (h UnimplementedHandler) OnCollectionStarted(ctx context.Context, input AllocateCreditsInput) (creditrealization.CreateInputs, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (h UnimplementedHandler) OnCollectionFinalized(ctx context.Context, input AllocateCreditsInput) (creditrealization.CreateInputs, error) {
+	return nil, errors.New("not implemented")
+}

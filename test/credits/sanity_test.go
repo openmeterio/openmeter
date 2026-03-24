@@ -30,11 +30,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
 	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
+	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
@@ -84,10 +86,20 @@ func (s *CreditsTestSuite) SetupSuite() {
 	})
 	s.NoError(err)
 
+	locker, err := lockr.NewLocker(&lockr.LockerConfig{
+		Logger: slog.Default(),
+	})
+	s.NoError(err)
+
 	usageBasedService, err := usagebasedservice.New(usagebasedservice.Config{
-		Adapter:     usageBasedAdapter,
-		Handler:     s.Ledger,
-		MetaAdapter: metaAdapter,
+		Adapter:                 usageBasedAdapter,
+		Handler:                 s.Ledger,
+		Locker:                  locker,
+		MetaAdapter:             metaAdapter,
+		CustomerOverrideService: s.BillingService,
+		FeatureService:          s.FeatureService,
+		RatingService:           billingratingservice.New(),
+		StreamingConnector:      s.MockStreamingConnector,
 	})
 	s.NoError(err)
 
@@ -115,6 +127,7 @@ func (s *CreditsTestSuite) SetupSuite() {
 		Adapter:     chargesAdapter,
 		MetaAdapter: metaAdapter,
 
+		FeatureService:        s.FeatureService,
 		FlatFeeService:        flatFeeService,
 		CreditPurchaseService: creditPurchaseService,
 		UsageBasedService:     usageBasedService,
