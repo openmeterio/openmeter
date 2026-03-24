@@ -362,6 +362,7 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseManuallySe
 }
 
 func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchase() {
+	defer clock.UnFreeze()
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-standard-invoice-credit-purchase")
 
