@@ -1,6 +1,6 @@
 module github.com/openmeterio/openmeter/.dagger
 
-go 1.25.0
+go 1.25.5
 
 require (
 	github.com/99designs/gqlgen v0.17.70
@@ -54,4 +54,3 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
-
