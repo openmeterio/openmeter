@@ -17,11 +17,11 @@ import (
 )
 
 func (a *adapter) CreateTaxCode(ctx context.Context, input taxcode.CreateTaxCodeInput) (taxcode.TaxCode, error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.TaxCode, error) {
-		if err := input.Validate(); err != nil {
-			return taxcode.TaxCode{}, err
-		}
+	if err := input.Validate(); err != nil {
+		return taxcode.TaxCode{}, err
+	}
 
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.TaxCode, error) {
 		query := a.db.TaxCode.Create().
 			SetNamespace(input.Namespace).
 			SetKey(input.Key).
@@ -47,11 +47,11 @@ func (a *adapter) CreateTaxCode(ctx context.Context, input taxcode.CreateTaxCode
 }
 
 func (a *adapter) UpdateTaxCode(ctx context.Context, input taxcode.UpdateTaxCodeInput) (taxcode.TaxCode, error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.TaxCode, error) {
-		if err := input.Validate(); err != nil {
-			return taxcode.TaxCode{}, err
-		}
+	if err := input.Validate(); err != nil {
+		return taxcode.TaxCode{}, err
+	}
 
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.TaxCode, error) {
 		query := a.db.TaxCode.UpdateOneID(input.ID).
 			Where(taxcodedb.NamespaceEQ(input.Namespace)).
 			Where(taxcodedb.DeletedAtIsNil()).
@@ -79,11 +79,11 @@ func (a *adapter) UpdateTaxCode(ctx context.Context, input taxcode.UpdateTaxCode
 }
 
 func (a *adapter) ListTaxCodes(ctx context.Context, input taxcode.ListTaxCodesInput) (pagination.Result[taxcode.TaxCode], error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (pagination.Result[taxcode.TaxCode], error) {
-		if err := input.Validate(); err != nil {
-			return pagination.Result[taxcode.TaxCode]{}, err
-		}
+	if err := input.Validate(); err != nil {
+		return pagination.Result[taxcode.TaxCode]{}, err
+	}
 
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (pagination.Result[taxcode.TaxCode], error) {
 		query := a.db.TaxCode.Query().
 			Where(taxcodedb.Namespace(input.Namespace))
 		if !input.IncludeDeleted {
@@ -100,11 +100,11 @@ func (a *adapter) ListTaxCodes(ctx context.Context, input taxcode.ListTaxCodesIn
 }
 
 func (a *adapter) GetTaxCode(ctx context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.TaxCode, error) {
-		if err := input.Validate(); err != nil {
-			return taxcode.TaxCode{}, err
-		}
+	if err := input.Validate(); err != nil {
+		return taxcode.TaxCode{}, err
+	}
 
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.TaxCode, error) {
 		entity, err := a.db.TaxCode.Query().
 			Where(taxcodedb.Namespace(input.Namespace)).
 			Where(taxcodedb.ID(input.ID)).
@@ -122,11 +122,11 @@ func (a *adapter) GetTaxCode(ctx context.Context, input taxcode.GetTaxCodeInput)
 }
 
 func (a *adapter) GetTaxCodeByAppMapping(ctx context.Context, input taxcode.GetTaxCodeByAppMappingInput) (taxcode.TaxCode, error) {
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.TaxCode, error) {
-		if err := input.Validate(); err != nil {
-			return taxcode.TaxCode{}, err
-		}
+	if err := input.Validate(); err != nil {
+		return taxcode.TaxCode{}, err
+	}
 
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.TaxCode, error) {
 		// Build a JSONB containment query: app_mappings @> '[{"app_type": "...", "tax_code": "..."}]'
 		pattern, err := json.Marshal([]taxcode.TaxCodeAppMapping{
 			{AppType: input.AppType, TaxCode: input.TaxCode},
@@ -146,8 +146,8 @@ func (a *adapter) GetTaxCodeByAppMapping(ctx context.Context, input taxcode.GetT
 			Only(ctx)
 		if err != nil {
 			if db.IsNotFound(err) {
-				return taxcode.TaxCode{}, taxcode.NewTaxCodeNotFoundError(
-					fmt.Sprintf("app_mapping[%s:%s]", input.AppType, input.TaxCode),
+				return taxcode.TaxCode{}, taxcode.NewTaxCodeByAppMappingNotFoundError(
+					string(input.AppType), input.TaxCode,
 				)
 			}
 
@@ -159,11 +159,11 @@ func (a *adapter) GetTaxCodeByAppMapping(ctx context.Context, input taxcode.GetT
 }
 
 func (a *adapter) DeleteTaxCode(ctx context.Context, input taxcode.DeleteTaxCodeInput) error {
-	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, a *adapter) error {
-		if err := input.Validate(); err != nil {
-			return err
-		}
+	if err := input.Validate(); err != nil {
+		return err
+	}
 
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, a *adapter) error {
 		entity, err := a.db.TaxCode.Query().
 			Where(taxcodedb.Namespace(input.Namespace)).
 			Where(taxcodedb.ID(input.ID)).

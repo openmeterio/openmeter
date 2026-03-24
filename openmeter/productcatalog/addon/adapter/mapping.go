@@ -299,6 +299,20 @@ func FromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 		Discounts:           lo.FromPtr(r.Discounts),
 	}
 
+	// Map TaxCode if eagerly loaded.
+	taxCodeRow, err := r.Edges.TaxCodeOrErr()
+	if err == nil {
+		tc, err := taxcodeadapter.MapTaxCodeFromEntity(taxCodeRow)
+		if err != nil {
+			return nil, fmt.Errorf("invalid tax code for rate card %s: %w", r.ID, err)
+		}
+
+		meta.TaxCode = &tc
+	}
+
+	// Backfill legacy TaxConfig fields from new columns and TaxCode entity.
+	meta.TaxConfig = productcatalogadapter.BackfillTaxConfig(meta.TaxConfig, r.TaxBehavior, meta.TaxCode)
+
 	// Get billing cadence
 
 	billingCadence, err := r.BillingCadence.ParsePtrOrNil()
@@ -320,7 +334,7 @@ func FromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 			BillingCadence: lo.FromPtr(billingCadence),
 		}
 	default:
-		return nil, fmt.Errorf("invalid RateCard type %s: %w", r.Type, err)
+		return nil, fmt.Errorf("invalid RateCard type %s", r.Type)
 	}
 
 	return ratecard, nil

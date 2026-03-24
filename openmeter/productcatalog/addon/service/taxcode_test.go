@@ -3,6 +3,7 @@ package service_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -14,8 +15,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
@@ -628,5 +632,148 @@ func TestAddonTaxCodeBackfill(t *testing.T) {
 		require.NotNil(t, tc.Behavior)
 		assert.Equal(t, productcatalog.InclusiveTaxBehavior, *tc.Behavior)
 		assert.Nil(t, tc.Stripe, "Stripe must be nil when no TaxCode entity is linked")
+	})
+}
+
+func TestAddonWithPlanTaxCode(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+	env.DBSchemaMigrate(t)
+
+	namespace := pctestutils.NewTestNamespace(t)
+
+	err := env.Meter.ReplaceMeters(ctx, pctestutils.NewTestMeters(t, namespace))
+	require.NoError(t, err)
+
+	result, err := env.Meter.ListMeters(ctx, meter.ListMetersParams{
+		Page:      pagination.Page{PageSize: 1000, PageNumber: 1},
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, result.Items)
+
+	features := make([]feature.Feature, 0, len(result.Items))
+	for _, m := range result.Items {
+		feat, err := env.Feature.CreateFeature(ctx, pctestutils.NewTestFeatureFromMeter(t, &m))
+		require.NoError(t, err)
+		features = append(features, feat)
+	}
+
+	t.Run("BackfillPlanRateCardInAddonResponse", func(t *testing.T) {
+		// Create and publish an addon so it can be attached to a plan.
+		addonInput := newTestAddonInput(t, namespace, newTestAddonFlatRateCard(features[0], nil))
+		addonInput.Key = "addon-with-plan-backfill"
+		addonInput.Name = "Addon With Plan Backfill"
+
+		a, err := env.Addon.CreateAddon(ctx, addonInput)
+		require.NoError(t, err)
+
+		publishAt := time.Now().Truncate(time.Microsecond)
+		a, err = env.Addon.PublishAddon(ctx, addon.PublishAddonInput{
+			NamespacedID:    a.NamespacedID,
+			EffectivePeriod: productcatalog.EffectivePeriod{EffectiveFrom: &publishAt},
+		})
+		require.NoError(t, err)
+
+		// Create a plan. Rate card billing cadence must match the plan's P1M cadence.
+		planMonthPeriod := datetime.MustParseDuration(t, "P1M")
+		planInput := pctestutils.NewTestPlan(t, namespace, productcatalog.Phase{
+			PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+			RateCards: productcatalog.RateCards{
+				&productcatalog.FlatFeeRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:        features[0].Key,
+						Name:       features[0].Name,
+						FeatureKey: lo.ToPtr(features[0].Key),
+						FeatureID:  lo.ToPtr(features[0].ID),
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      decimal.NewFromInt(100),
+							PaymentTerm: productcatalog.InArrearsPaymentTerm,
+						}),
+					},
+					BillingCadence: &planMonthPeriod,
+				},
+			},
+		})
+		planInput.Key = "plan-for-addon-backfill"
+		planInput.Name = "Plan For Addon Backfill"
+
+		p, err := env.Plan.CreatePlan(ctx, planInput)
+		require.NoError(t, err)
+		require.NotEmpty(t, p.Phases)
+
+		// Attach the plan to the addon.
+		_, err = env.PlanAddon.CreatePlanAddon(ctx, planaddon.CreatePlanAddonInput{
+			NamespacedModel: models.NamespacedModel{Namespace: namespace},
+			PlanID:          p.ID,
+			AddonID:         a.ID,
+			FromPlanPhase:   p.Phases[0].Key,
+		})
+		require.NoError(t, err)
+
+		phaseID := p.Phases[0].PhaseManagedFields.NamespacedID.ID
+
+		// Insert a TaxCode entity directly (bypassing service).
+		tcEntity, err := env.Client.TaxCode.Create().
+			SetNamespace(namespace).
+			SetKey("stripe_txcd_99000020").
+			SetName("txcd_99000020").
+			SetMetadata(map[string]string{}).
+			SetAppMappings(&taxcode.TaxCodeAppMappings{
+				{AppType: app.AppTypeStripe, TaxCode: "txcd_99000020"},
+			}).
+			Save(ctx)
+		require.NoError(t, err)
+
+		// Insert a PlanRateCard row directly with only dedicated tax columns — no tax_config JSONB.
+		// This simulates the legacy schema where TaxConfig is stored in separate columns rather than JSONB.
+		behavior := productcatalog.ExclusiveTaxBehavior
+		_, err = env.Client.PlanRateCard.Create().
+			SetPhaseID(phaseID).
+			SetNamespace(namespace).
+			SetKey("backfill-plan-rc").
+			SetType(productcatalog.FlatFeeRateCardType).
+			SetName("Backfill Plan RC").
+			SetMetadata(map[string]string{}).
+			SetEntitlementTemplate(nil).
+			SetDiscounts(nil).
+			SetTaxCodeID(tcEntity.ID).
+			SetTaxBehavior(behavior).
+			Save(ctx)
+		require.NoError(t, err)
+
+		// Fetch the addon with plans expanded. Plan rate cards are mapped through
+		// addon/adapter.FromPlanRateCardRow — the path fixed by the backfill change.
+		fetched, err := env.Addon.GetAddon(ctx, addon.GetAddonInput{
+			NamespacedID: a.NamespacedID,
+			Expand:       addon.ExpandFields{PlanAddons: true},
+		})
+		require.NoError(t, err)
+		require.NotNil(t, fetched.Plans, "Plans must be expanded in addon response")
+		require.Len(t, *fetched.Plans, 1)
+
+		planInAddon := (*fetched.Plans)[0]
+		require.NotEmpty(t, planInAddon.Phases, "plan phases must be present in addon response")
+
+		var backfillRC productcatalog.RateCard
+		for _, rc := range planInAddon.Phases[0].RateCards {
+			if rc.AsMeta().Key == "backfill-plan-rc" {
+				backfillRC = rc
+				break
+			}
+		}
+		require.NotNil(t, backfillRC, "backfill plan rate card must be present in addon response")
+
+		tc := backfillRC.AsMeta().TaxConfig
+		require.NotNil(t, tc, "TaxConfig must be backfilled from dedicated columns via addon adapter path")
+		require.NotNil(t, tc.Stripe, "Stripe code must be backfilled from TaxCode entity")
+		assert.Equal(t, "txcd_99000020", tc.Stripe.Code)
+		require.NotNil(t, tc.Behavior, "Behavior must be backfilled from tax_behavior column")
+		assert.Equal(t, productcatalog.ExclusiveTaxBehavior, *tc.Behavior)
+		require.NotNil(t, tc.TaxCodeID, "TaxCodeID must be backfilled from TaxCode entity")
+		assert.Equal(t, tcEntity.ID, *tc.TaxCodeID)
 	})
 }

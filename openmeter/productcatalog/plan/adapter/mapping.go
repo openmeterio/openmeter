@@ -350,7 +350,7 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 			},
 		}
 	default:
-		return nil, fmt.Errorf("invalid RateCard type %s: %w", r.Type, err)
+		return nil, fmt.Errorf("invalid RateCard type %s", r.Type)
 	}
 
 	return ratecard, nil
