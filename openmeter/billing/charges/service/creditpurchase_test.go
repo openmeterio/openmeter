@@ -607,6 +607,9 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchaseDeferred() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-standard-invoice-credit-purchase-deferred")
 
+	clock.FreezeTime(datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime())
+	defer clock.ResetTime()
+
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
 
@@ -626,8 +629,8 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchaseDeferred() {
 			currency: USD,
 			amount:   alpacadecimal.NewFromFloat(100),
 			servicePeriod: timeutil.ClosedPeriod{
-				From: datetime.MustParseTimeInLocation(s.T(), "2037-01-01T00:00:00Z", time.UTC).AsTime(),
-				To:   datetime.MustParseTimeInLocation(s.T(), "2037-02-01T00:00:00Z", time.UTC).AsTime(),
+				From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+				To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
 			},
 			settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
 				GenericSettlement: creditpurchase.GenericSettlement{
@@ -666,6 +669,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchaseDeferred() {
 		gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 			Namespaces: []string{ns},
 			Customers:  []string{cust.ID},
+			Expand:     billing.GatheringInvoiceExpandAll,
 		})
 		s.NoError(err)
 		s.Len(gatheringInvoices.Items, 1)
@@ -675,7 +679,7 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchaseDeferred() {
 		s.Len(lines, 1)
 		line := lines[0]
 
-		s.Equal(*line.ChargeID, chargeID)
+		s.Equal(*line.ChargeID, chargeID.ID)
 	})
 
 	// The TestStandardInvoiceCreditPurchase test covers the full non-deferred invoicing path.
