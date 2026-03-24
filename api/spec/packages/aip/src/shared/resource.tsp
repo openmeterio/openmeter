@@ -83,14 +83,6 @@ model ResourceReference<T extends {}> {
 }
 
 @doc("{name} reference.", T)
-@friendlyName("{name}IdReference", T)
-model ResourceReference<T extends {}> {
-  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
-  @visibility(Lifecycle.Read, Lifecycle.Create)
-  id?: ULID;
-}
-
-@doc("{name} reference.", T)
 @friendlyName("{name}KeyReference", T)
 model ResourceKeyReference<T extends {}> {
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"

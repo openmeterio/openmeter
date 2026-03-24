@@ -3,7 +3,6 @@ import "../billing/tax.tsp";
 import "../features/index.tsp";
 import "../tax/codes.tsp";
 import "./price.tsp";
-import "./unitconfig.tsp";
 
 namespace ProductCatalog;
 
@@ -22,7 +21,7 @@ model RateCard {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Feature reference")
-  feature?: Shared.ResourceKeyReference<Features.Feature>;
+  feature?: Shared.ResourceReference<Features.Feature>;
 
   /**
    * The billing cadence of the rate card.
@@ -46,18 +45,6 @@ model RateCard {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Payment term")
   payment_term?: PricePaymentTerm = PricePaymentTerm.InArrears;
-
-  /**
-   * Unit conversion configuration applied before pricing.
-   *
-   * When set, raw metered quantities are transformed into billing units
-   * before being passed to the price model and entitlement checks.
-   * Tier boundaries (up_to_amount) are also expressed in billing units.
-   * Only applicable to usage-based prices (unit, graduated, volume).
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Unit conversion config")
-  unit_config?: UnitConfig;
 
   /**
    * Spend commitments for this rate card.
