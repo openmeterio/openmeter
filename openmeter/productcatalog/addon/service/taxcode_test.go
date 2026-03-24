@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -60,6 +61,22 @@ func findAddonTaxCodeByStripeCode(t *testing.T, ctx context.Context, svc taxcode
 	})
 }
 
+// assertAddonRCDBCols queries the AddonRateCard row directly from the database and asserts the
+// dedicated tax_code_id and tax_behavior columns match the expected values.
+func assertAddonRCDBCols(t *testing.T, ctx context.Context, env *pctestutils.TestEnv, addonID string, rcKey string, wantTaxCodeID *string, wantBehavior *productcatalog.TaxBehavior) {
+	t.Helper()
+	row, err := env.Client.AddonRateCard.Query().
+		Where(
+			addonratecard.AddonID(addonID),
+			addonratecard.Key(rcKey),
+			addonratecard.DeletedAtIsNil(),
+		).
+		Only(ctx)
+	require.NoError(t, err, "direct DB read of AddonRateCard must succeed")
+	assert.Equal(t, wantTaxCodeID, row.TaxCodeID, "tax_code_id column mismatch")
+	assert.Equal(t, wantBehavior, row.TaxBehavior, "tax_behavior column mismatch")
+}
+
 func TestAddonTaxCodeDualWrite(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -105,6 +122,8 @@ func TestAddonTaxCodeDualWrite(t *testing.T) {
 
 			tc := getFirstAddonRCTaxConfig(t, a)
 			assert.Nil(t, tc, "TaxConfig should be nil")
+
+			assertAddonRCDBCols(t, ctx, env, a.ID, features[0].Key, nil, nil)
 		})
 
 		t.Run("StripeCodeOnly", func(t *testing.T) {
@@ -134,6 +153,8 @@ func TestAddonTaxCodeDualWrite(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, *tc.TaxCodeID, tcEntity.ID)
 			assert.Equal(t, namespace, tcEntity.Namespace)
+
+			assertAddonRCDBCols(t, ctx, env, a.ID, features[0].Key, lo.ToPtr(tcEntity.ID), nil)
 		})
 
 		t.Run("StripeCodeAndBehavior", func(t *testing.T) {
@@ -163,6 +184,8 @@ func TestAddonTaxCodeDualWrite(t *testing.T) {
 			tcEntity, err := findAddonTaxCodeByStripeCode(t, ctx, env.TaxCode, namespace, "txcd_20000001")
 			require.NoError(t, err)
 			assert.Equal(t, *tc.TaxCodeID, tcEntity.ID)
+
+			assertAddonRCDBCols(t, ctx, env, a.ID, features[0].Key, lo.ToPtr(tcEntity.ID), lo.ToPtr(productcatalog.ExclusiveTaxBehavior))
 		})
 
 		t.Run("BehaviorOnlyNoStripe", func(t *testing.T) {
@@ -183,6 +206,8 @@ func TestAddonTaxCodeDualWrite(t *testing.T) {
 
 			assert.Nil(t, tc.Stripe, "Stripe should be nil when not provided")
 			assert.Nil(t, tc.TaxCodeID, "TaxCodeID should be nil when no Stripe code")
+
+			assertAddonRCDBCols(t, ctx, env, a.ID, features[0].Key, nil, lo.ToPtr(productcatalog.InclusiveTaxBehavior))
 		})
 
 		t.Run("ReuseExistingTaxCode", func(t *testing.T) {
@@ -216,6 +241,9 @@ func TestAddonTaxCodeDualWrite(t *testing.T) {
 
 			// Both addons should reference the same TaxCode entity
 			assert.Equal(t, *tc1.TaxCodeID, *tc2.TaxCodeID, "both addons must reference the same TaxCode entity")
+
+			assertAddonRCDBCols(t, ctx, env, a1.ID, features[0].Key, lo.ToPtr(*tc1.TaxCodeID), nil)
+			assertAddonRCDBCols(t, ctx, env, a2.ID, features[0].Key, lo.ToPtr(*tc2.TaxCodeID), nil)
 		})
 
 		t.Run("MultipleDifferentStripeCodes", func(t *testing.T) {
@@ -272,6 +300,13 @@ func TestAddonTaxCodeDualWrite(t *testing.T) {
 			require.NotNil(t, tcB.TaxCodeID)
 
 			assert.NotEqual(t, *tcA.TaxCodeID, *tcB.TaxCodeID, "different stripe codes must create different TaxCode entities")
+
+			tcEntityA, err := findAddonTaxCodeByStripeCode(t, ctx, env.TaxCode, namespace, "txcd_40000001")
+			require.NoError(t, err)
+			tcEntityB, err := findAddonTaxCodeByStripeCode(t, ctx, env.TaxCode, namespace, "txcd_50000001")
+			require.NoError(t, err)
+			assertAddonRCDBCols(t, ctx, env, a.ID, "rc-a", lo.ToPtr(tcEntityA.ID), nil)
+			assertAddonRCDBCols(t, ctx, env, a.ID, "rc-b", lo.ToPtr(tcEntityB.ID), nil)
 		})
 	})
 
@@ -310,6 +345,8 @@ func TestAddonTaxCodeDualWrite(t *testing.T) {
 			tcEntity, err := findAddonTaxCodeByStripeCode(t, ctx, env.TaxCode, namespace, "txcd_70000001")
 			require.NoError(t, err)
 			assert.Equal(t, *tc.TaxCodeID, tcEntity.ID)
+
+			assertAddonRCDBCols(t, ctx, env, updated.ID, features[0].Key, lo.ToPtr(tcEntity.ID), nil)
 		})
 
 		t.Run("ChangeStripeCode", func(t *testing.T) {
@@ -351,6 +388,10 @@ func TestAddonTaxCodeDualWrite(t *testing.T) {
 			// Old TaxCode entity should still exist
 			_, err = findAddonTaxCodeByStripeCode(t, ctx, env.TaxCode, namespace, "txcd_80000001")
 			assert.NoError(t, err, "old TaxCode entity should still exist")
+
+			newTCEntity, err := findAddonTaxCodeByStripeCode(t, ctx, env.TaxCode, namespace, "txcd_90000001")
+			require.NoError(t, err)
+			assertAddonRCDBCols(t, ctx, env, updated.ID, features[0].Key, lo.ToPtr(newTCEntity.ID), nil)
 		})
 
 		t.Run("RemoveTaxConfig", func(t *testing.T) {
@@ -384,6 +425,8 @@ func TestAddonTaxCodeDualWrite(t *testing.T) {
 			// TaxCode entity should still exist (orphaned, not deleted)
 			_, err = findAddonTaxCodeByStripeCode(t, ctx, env.TaxCode, namespace, "txcd_11000001")
 			assert.NoError(t, err, "TaxCode entity should not be deleted")
+
+			assertAddonRCDBCols(t, ctx, env, updated.ID, features[0].Key, nil, nil)
 		})
 
 		t.Run("MetadataOnlyUpdate", func(t *testing.T) {
@@ -412,6 +455,8 @@ func TestAddonTaxCodeDualWrite(t *testing.T) {
 			require.NotNil(t, tc)
 			require.NotNil(t, tc.TaxCodeID)
 			assert.Equal(t, originalTaxCodeID, *tc.TaxCodeID, "TaxCodeID should be unchanged on metadata-only update")
+
+			assertAddonRCDBCols(t, ctx, env, updated.ID, features[0].Key, lo.ToPtr(originalTaxCodeID), nil)
 		})
 	})
 
@@ -444,6 +489,10 @@ func TestAddonTaxCodeDualWrite(t *testing.T) {
 			// Stripe should be present
 			require.NotNil(t, tc.Stripe)
 			assert.Equal(t, "txcd_13000001", tc.Stripe.Code)
+
+			tcEntity13, err := findAddonTaxCodeByStripeCode(t, ctx, env.TaxCode, namespace, "txcd_13000001")
+			require.NoError(t, err)
+			assertAddonRCDBCols(t, ctx, env, fetched.ID, features[0].Key, lo.ToPtr(tcEntity13.ID), lo.ToPtr(productcatalog.ExclusiveTaxBehavior))
 		})
 	})
 }

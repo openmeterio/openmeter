@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -68,6 +69,22 @@ func findTaxCodeByStripeCode(t *testing.T, ctx context.Context, svc taxcode.Serv
 	})
 }
 
+// assertPlanRCDBCols queries the PlanRateCard row directly from the database and asserts the
+// dedicated tax_code_id and tax_behavior columns match the expected values.
+func assertPlanRCDBCols(t *testing.T, ctx context.Context, env *pctestutils.TestEnv, phaseID string, rcKey string, wantTaxCodeID *string, wantBehavior *productcatalog.TaxBehavior) {
+	t.Helper()
+	row, err := env.Client.PlanRateCard.Query().
+		Where(
+			planratecard.PhaseID(phaseID),
+			planratecard.Key(rcKey),
+			planratecard.DeletedAtIsNil(),
+		).
+		Only(ctx)
+	require.NoError(t, err, "direct DB read of PlanRateCard must succeed")
+	assert.Equal(t, wantTaxCodeID, row.TaxCodeID, "tax_code_id column mismatch")
+	assert.Equal(t, wantBehavior, row.TaxBehavior, "tax_behavior column mismatch")
+}
+
 func TestPlanTaxCodeDualWrite(t *testing.T) {
 	MonthPeriod := datetime.MustParseDuration(t, "P1M")
 
@@ -115,6 +132,9 @@ func TestPlanTaxCodeDualWrite(t *testing.T) {
 
 			tc := getFirstRCTaxConfig(t, p)
 			assert.Nil(t, tc, "TaxConfig should be nil")
+
+			phaseID := p.Phases[0].PhaseManagedFields.NamespacedID.ID
+			assertPlanRCDBCols(t, ctx, env, phaseID, features[0].Key, nil, nil)
 		})
 
 		t.Run("StripeCodeOnly", func(t *testing.T) {
@@ -144,6 +164,9 @@ func TestPlanTaxCodeDualWrite(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, *tc.TaxCodeID, tcEntity.ID)
 			assert.Equal(t, namespace, tcEntity.Namespace)
+
+			phaseID := p.Phases[0].PhaseManagedFields.NamespacedID.ID
+			assertPlanRCDBCols(t, ctx, env, phaseID, features[0].Key, lo.ToPtr(tcEntity.ID), nil)
 		})
 
 		t.Run("StripeCodeAndBehavior", func(t *testing.T) {
@@ -173,6 +196,9 @@ func TestPlanTaxCodeDualWrite(t *testing.T) {
 			tcEntity, err := findTaxCodeByStripeCode(t, ctx, env.TaxCode, namespace, "txcd_20000000")
 			require.NoError(t, err)
 			assert.Equal(t, *tc.TaxCodeID, tcEntity.ID)
+
+			phaseID := p.Phases[0].PhaseManagedFields.NamespacedID.ID
+			assertPlanRCDBCols(t, ctx, env, phaseID, features[0].Key, lo.ToPtr(tcEntity.ID), lo.ToPtr(productcatalog.ExclusiveTaxBehavior))
 		})
 
 		t.Run("BehaviorOnlyNoStripe", func(t *testing.T) {
@@ -193,6 +219,9 @@ func TestPlanTaxCodeDualWrite(t *testing.T) {
 
 			assert.Nil(t, tc.Stripe, "Stripe should be nil when not provided")
 			assert.Nil(t, tc.TaxCodeID, "TaxCodeID should be nil when no Stripe code")
+
+			phaseID := p.Phases[0].PhaseManagedFields.NamespacedID.ID
+			assertPlanRCDBCols(t, ctx, env, phaseID, features[0].Key, nil, lo.ToPtr(productcatalog.InclusiveTaxBehavior))
 		})
 
 		t.Run("ReuseExistingTaxCode", func(t *testing.T) {
@@ -226,6 +255,9 @@ func TestPlanTaxCodeDualWrite(t *testing.T) {
 
 			// Both plans should reference the same TaxCode entity
 			assert.Equal(t, *tc1.TaxCodeID, *tc2.TaxCodeID, "both plans must reference the same TaxCode entity")
+
+			assertPlanRCDBCols(t, ctx, env, p1.Phases[0].PhaseManagedFields.NamespacedID.ID, features[0].Key, lo.ToPtr(*tc1.TaxCodeID), nil)
+			assertPlanRCDBCols(t, ctx, env, p2.Phases[0].PhaseManagedFields.NamespacedID.ID, features[0].Key, lo.ToPtr(*tc2.TaxCodeID), nil)
 		})
 
 		t.Run("MultipleDifferentStripeCodes", func(t *testing.T) {
@@ -288,6 +320,14 @@ func TestPlanTaxCodeDualWrite(t *testing.T) {
 			require.NotNil(t, tcB.TaxCodeID)
 
 			assert.NotEqual(t, *tcA.TaxCodeID, *tcB.TaxCodeID, "different stripe codes must create different TaxCode entities")
+
+			tcEntityA, err := findTaxCodeByStripeCode(t, ctx, env.TaxCode, namespace, "txcd_40000000")
+			require.NoError(t, err)
+			tcEntityB, err := findTaxCodeByStripeCode(t, ctx, env.TaxCode, namespace, "txcd_50000000")
+			require.NoError(t, err)
+			phaseID := p.Phases[0].PhaseManagedFields.NamespacedID.ID
+			assertPlanRCDBCols(t, ctx, env, phaseID, "rc-a", lo.ToPtr(tcEntityA.ID), nil)
+			assertPlanRCDBCols(t, ctx, env, phaseID, "rc-b", lo.ToPtr(tcEntityB.ID), nil)
 		})
 
 		t.Run("MultiplePhasesSameStripeCode", func(t *testing.T) {
@@ -337,6 +377,11 @@ func TestPlanTaxCodeDualWrite(t *testing.T) {
 			require.NotNil(t, tcB.TaxCodeID)
 
 			assert.Equal(t, *tcA.TaxCodeID, *tcB.TaxCodeID, "same stripe code across phases must reuse the same TaxCode entity")
+
+			tcEntity60, err := findTaxCodeByStripeCode(t, ctx, env.TaxCode, namespace, "txcd_60000000")
+			require.NoError(t, err)
+			assertPlanRCDBCols(t, ctx, env, p.Phases[0].PhaseManagedFields.NamespacedID.ID, features[0].Key, lo.ToPtr(tcEntity60.ID), nil)
+			assertPlanRCDBCols(t, ctx, env, p.Phases[1].PhaseManagedFields.NamespacedID.ID, features[0].Key, lo.ToPtr(tcEntity60.ID), nil)
 		})
 	})
 
@@ -383,6 +428,8 @@ func TestPlanTaxCodeDualWrite(t *testing.T) {
 			tcEntity, err := findTaxCodeByStripeCode(t, ctx, env.TaxCode, namespace, "txcd_70000000")
 			require.NoError(t, err)
 			assert.Equal(t, *tc.TaxCodeID, tcEntity.ID)
+
+			assertPlanRCDBCols(t, ctx, env, updated.Phases[0].PhaseManagedFields.NamespacedID.ID, features[0].Key, lo.ToPtr(tcEntity.ID), nil)
 		})
 
 		t.Run("ChangeStripeCode", func(t *testing.T) {
@@ -432,6 +479,10 @@ func TestPlanTaxCodeDualWrite(t *testing.T) {
 			// Old TaxCode entity should still exist
 			_, err = findTaxCodeByStripeCode(t, ctx, env.TaxCode, namespace, "txcd_80000000")
 			assert.NoError(t, err, "old TaxCode entity should still exist")
+
+			newTCEntity, err := findTaxCodeByStripeCode(t, ctx, env.TaxCode, namespace, "txcd_90000000")
+			require.NoError(t, err)
+			assertPlanRCDBCols(t, ctx, env, updated.Phases[0].PhaseManagedFields.NamespacedID.ID, features[0].Key, lo.ToPtr(newTCEntity.ID), nil)
 		})
 
 		t.Run("RemoveTaxConfig", func(t *testing.T) {
@@ -473,6 +524,8 @@ func TestPlanTaxCodeDualWrite(t *testing.T) {
 			// TaxCode entity should still exist (orphaned, not deleted)
 			_, err = findTaxCodeByStripeCode(t, ctx, env.TaxCode, namespace, "txcd_11000000")
 			assert.NoError(t, err, "TaxCode entity should not be deleted")
+
+			assertPlanRCDBCols(t, ctx, env, updated.Phases[0].PhaseManagedFields.NamespacedID.ID, features[0].Key, nil, nil)
 		})
 
 		t.Run("MetadataOnlyUpdate", func(t *testing.T) {
@@ -501,6 +554,8 @@ func TestPlanTaxCodeDualWrite(t *testing.T) {
 			require.NotNil(t, tc)
 			require.NotNil(t, tc.TaxCodeID)
 			assert.Equal(t, originalTaxCodeID, *tc.TaxCodeID, "TaxCodeID should be unchanged on metadata-only update")
+
+			assertPlanRCDBCols(t, ctx, env, updated.Phases[0].PhaseManagedFields.NamespacedID.ID, features[0].Key, lo.ToPtr(originalTaxCodeID), nil)
 		})
 	})
 
@@ -533,6 +588,10 @@ func TestPlanTaxCodeDualWrite(t *testing.T) {
 			// Stripe should be present (from JSONB or backfilled from TaxCode entity)
 			require.NotNil(t, tc.Stripe)
 			assert.Equal(t, "txcd_13000000", tc.Stripe.Code)
+
+			tcEntity13, err := findTaxCodeByStripeCode(t, ctx, env.TaxCode, namespace, "txcd_13000000")
+			require.NoError(t, err)
+			assertPlanRCDBCols(t, ctx, env, fetched.Phases[0].PhaseManagedFields.NamespacedID.ID, features[0].Key, lo.ToPtr(tcEntity13.ID), lo.ToPtr(productcatalog.ExclusiveTaxBehavior))
 		})
 	})
 }
