@@ -120,7 +120,9 @@ func (a *adapter) QueryFeatureCost(ctx context.Context, input cost.QueryFeatureC
 	costRows, currency, err := computeCostRows(rows, internalGroupByKeys, func(groupByValues map[string]string) (*cost.ResolvedUnitCost, string, error) {
 		resolved, err := a.resolveUnitCost(ctx, feat, groupByValues, priceCache)
 		if err != nil {
-			if llmcost.IsPriceNotFoundError(err) {
+			// If the error is a not found error we surface it directly as detail
+			// explaining why pricing is unavailable.
+			if models.IsGenericNotFoundError(err) {
 				return nil, err.Error(), nil
 			}
 			return nil, "", fmt.Errorf("failed to resolve unit cost: %w", err)
@@ -171,13 +173,20 @@ func (a *adapter) getLLMPrices(ctx context.Context, feat *feature.Feature, rows 
 			}
 		}
 
-		// If the provider or model is not resolved, skip it.
-		if provider == "" || modelID == "" {
-			continue
-		}
-
 		// Normalize provider and model ID to match the canonical forms stored in the LLM cost database.
 		provider, modelID = llmcost.NormalizeModelID(provider, modelID)
+
+		// If the provider or model is not resolved, cache a PriceNotFoundError so the
+		// downstream lookup in resolveLLMUnitCost gets a graceful error instead of a
+		// fatal "price not in cache" panic.
+		if provider == "" || modelID == "" {
+			key := llmPriceKey{provider, modelID}
+			if _, exists := cache[key]; !exists {
+				cache[key] = llmPriceResult{err: llmcost.NewPriceNotFoundError(provider, modelID)}
+			}
+
+			continue
+		}
 
 		// If the price is already in the cache, skip it.
 		key := llmPriceKey{provider, modelID}
@@ -295,9 +304,9 @@ func (a *adapter) resolveLLMUnitCost(ctx context.Context, feat *feature.Feature,
 		return nil, fmt.Errorf("resolving LLM price for provider=%s model=%s: price not in cache", provider, modelID)
 	}
 
-	// If the price is not found, return an error.
+	// If the price is not found, return the cached error directly.
 	if cached.err != nil {
-		return nil, fmt.Errorf("resolving LLM price for provider=%s model=%s: %w", provider, modelID, cached.err)
+		return nil, cached.err
 	}
 
 	// Resolve token type cost

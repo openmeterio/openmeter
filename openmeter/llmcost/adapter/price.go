@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -86,7 +85,7 @@ func (a *adapter) GetPrice(ctx context.Context, input llmcost.GetPriceInput) (ll
 			Only(ctx)
 		if err != nil {
 			if entdb.IsNotFound(err) {
-				return llmcost.Price{}, llmcost.NewPriceNotFoundError(input.ID)
+				return llmcost.Price{}, llmcost.NewPriceOverrideNotFoundError(input.ID)
 			}
 
 			return llmcost.Price{}, fmt.Errorf("failed to get price: %w", err)
@@ -136,7 +135,7 @@ func (a *adapter) ResolvePrice(ctx context.Context, input llmcost.ResolvePriceIn
 		First(ctx)
 	if err != nil {
 		if entdb.IsNotFound(err) {
-			return llmcost.Price{}, models.NewGenericNotFoundError(llmcost.NewPriceNotFoundError(input.ModelID))
+			return llmcost.Price{}, llmcost.NewPriceNotFoundError(string(input.Provider), input.ModelID)
 		}
 
 		return llmcost.Price{}, fmt.Errorf("failed to resolve price: %w", err)
@@ -202,7 +201,7 @@ func (a *adapter) DeleteOverride(ctx context.Context, input llmcost.DeleteOverri
 			Only(ctx)
 		if err != nil {
 			if entdb.IsNotFound(err) {
-				return llmcost.NewPriceNotFoundError(input.ID)
+				return llmcost.NewPriceOverrideNotFoundError(input.ID)
 			}
 
 			return fmt.Errorf("failed to get override: %w", err)
