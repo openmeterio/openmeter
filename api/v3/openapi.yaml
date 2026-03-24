@@ -570,6 +570,268 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingCustomerStripeCreateCustomerPortalSessionRequest'
+  /openmeter/customers/{customerId}/credits/balance:
+    get:
+      operationId: get-customer-credit-balance
+      summary: Get a customer's credit balance
+      description: Get a credit balance.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: filter
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/GetCreditBalanceParamsFilter'
+          style: deepObject
+      responses:
+        '200':
+          description: CreditBalances response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCreditBalances'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Customers
+  /openmeter/customers/{customerId}/credits/grants:
+    post:
+      operationId: create-credit-grant
+      summary: Create a new credit grant
+      description: |-
+        Create a new credit grant.
+        A credit grant represents an allocation of prepaid credits to a customer.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '201':
+          description: CreditGrant created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCreditGrant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Customers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCreditGrantRequest'
+    get:
+      operationId: list-credit-grants
+      summary: List credit grants
+      description: List credit grants.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: filter
+          in: query
+          required: false
+          description: Filter credit grants returned in the response.
+          schema:
+            $ref: '#/components/schemas/ListCreditGrantsParamsFilter'
+          style: deepObject
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditGrantPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Customers
+  /openmeter/customers/{customerId}/credits/grants/{creditGrantId}:
+    get:
+      operationId: get-credit-grant
+      summary: Get a credit grant
+      description: Get a credit grant.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: creditGrantId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: CreditGrant response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCreditGrant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Customers
+  /openmeter/customers/{customerId}/credits/grants/{creditGrantId}/settlement/external:
+    post:
+      operationId: update-credit-grant-external-settlement
+      summary: Update credit grant external settlement status
+      description: |-
+        Update the payment settlement status of an externally funded credit grant.
+
+        Use this endpoint to synchronize the payment state of an external payment
+        with the system so that revenue recognition and credit availability work as expected.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: creditGrantId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: CreditGrant updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCreditGrant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Customers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCreditGrantExternalSettlementRequest'
+  /openmeter/customers/{customerId}/credits/grants/{creditGrantId}/void:
+    post:
+      operationId: void-credit-grant
+      summary: Void credit grant
+      description: |-
+        Void a credit grant, forfeiting the remaining unused balance.
+
+        Voiding is a forward-looking, irreversible operation. Credits already
+        consumed by usage remain unaffected — only the remaining balance is
+        forfeited. The grant transitions to `voided` status and a breakage
+        ledger entry is recorded for the forfeited amount. Only `pending`
+        and `active` grants can be voided.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: creditGrantId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: CreditGrant updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCreditGrant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Customers
+  /openmeter/customers/{customerId}/credits/transactions:
+    get:
+      operationId: list-credit-transactions
+      summary: List credit transactions
+      description: |-
+        List credit transactions for a customer.
+
+        Returns an immutable, chronological record of all credit movements:
+        grants funded, credits consumed, expirations, voids, and adjustments.
+        Transactions are returned in reverse chronological order by default.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: filter
+          in: query
+          required: false
+          description: Filter credit transactions returned in the response.
+          schema:
+            $ref: '#/components/schemas/ListCreditTransactionsParamsFilter'
+          style: deepObject
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditTransactionPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Customers
   /openmeter/customers/{customerId}/entitlement-access:
     get:
       operationId: list-customer-entitlement-access
@@ -2529,6 +2791,420 @@ components:
           description: An ISO-8601 timestamp representation of entity creation date.
           readOnly: true
       description: Describes currency basis supported by billing system.
+    BillingCreditAvailabilityPolicy:
+      type: string
+      enum:
+        - on_creation
+        - on_authorization
+        - on_settlement
+      description: |-
+        When credits become available for consumption.
+
+        - `on_creation`: Credits are available as soon as the grant is created.
+        - `on_authorization`: Credits are available once the payment is authorized.
+        - `on_settlement`: Credits are available once the payment is settled.
+      title: Credit availability policy
+    BillingCreditBalances:
+      type: object
+      required:
+        - retrieved_at
+        - balances
+      properties:
+        retrieved_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The timestamp of the balance retrieval.
+          readOnly: true
+        balances:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreditBalance'
+          description: The balances by currencies.
+          readOnly: true
+      description: The balances of the credits of a customer.
+      title: Credit balances
+    BillingCreditFundingMethod:
+      type: string
+      enum:
+        - none
+        - invoice
+        - external
+      description: |-
+        The funding method describes how the grant is funded.
+
+        - `none`: No funding workflow applies, for example promotional grants
+        - `invoice`: The grant is funded by an in-system invoice flow
+        - `external`: The grant is funded outside the system (e.g., wire transfer, external invoice, or manual reconciliation)
+      title: Credit funding method
+    BillingCreditGrant:
+      type: object
+      required:
+        - id
+        - name
+        - funding_method
+        - currency
+        - amount
+        - priority
+        - status
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        funding_method:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditFundingMethod'
+          description: Funding method of the grant.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingCurrencyCode'
+          description: The currency of the granted credits.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Granted credit amount.
+        purchase:
+          type: object
+          properties:
+            currency:
+              allOf:
+                - $ref: '#/components/schemas/CurrencyCode'
+              description: Currency of the purchase amount.
+            per_unit_cost_basis:
+              allOf:
+                - $ref: '#/components/schemas/Numeric'
+              description: |-
+                Cost basis per credit unit used to calculate the purchase amount.
+
+                If `per_unit_cost_basis` is 0.50 and credit amount is $100.00,
+                the total charge is $50.00.
+                The value must be greater than 0. If the cost basis is 0, use
+                `funding_method=none` instead.
+
+                Defaults to 1.0.
+              default: '1.0'
+            amount:
+              allOf:
+                - $ref: '#/components/schemas/Numeric'
+              description: |-
+                The purchase amount.
+                Calculated from `per_unit_cost_basis` and credit `amount`.
+              readOnly: true
+            availability_policy:
+              allOf:
+                - $ref: '#/components/schemas/BillingCreditAvailabilityPolicy'
+              description: |-
+                Controls when credits become available for consumption.
+
+                Defaults to `on_creation`.
+              default: on_creation
+            settlement_status:
+              allOf:
+                - $ref: '#/components/schemas/BillingCreditPurchasePaymentSettlementStatus'
+              description: Current payment settlement status.
+              readOnly: true
+          required:
+            - currency
+            - amount
+          description: |-
+            Purchase and payment terms of the grant.
+            Present when a funding workflow applies (funding_method is not `none`).
+        tax_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditGrantTaxConfig'
+          description: |-
+            Tax configuration for the grant.
+
+            For `invoice` and `external` funding methods, tax configuration should be provided to ensure correct revenue recognition.
+
+            Defaults to the billing profile's tax configuration when not provided.
+        invoice:
+          type: object
+          properties:
+            id:
+              allOf:
+                - $ref: '#/components/schemas/ULID'
+              description: Identifier of the invoice associated with the grant.
+              readOnly: true
+            line:
+              type: object
+              properties:
+                id:
+                  $ref: '#/components/schemas/ULID'
+              required:
+                - id
+              description: Identifier of the invoice line associated with the grant.
+              readOnly: true
+          description: |-
+            Invoice references for the grant.
+            Available when `funding_method` is `invoice`.
+          readOnly: true
+        filters:
+          type: object
+          properties:
+            features:
+              type: array
+              items:
+                $ref: '#/components/schemas/ResourceKey'
+              description: |-
+                Limit the credit grant to specific features.
+                If no features are specified, the credit grant can be used for any feature.
+              example:
+                - input_tokens
+                - output_tokens
+          description: Filters for the credit grant.
+        priority:
+          type: integer
+          format: int16
+          minimum: 1
+          maximum: 1000
+          description: |-
+            Draw-down priority of the grant.
+            Lower values have higher priority.
+          default: 10
+        effective_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The timestamp when the credit grant becomes effective.
+
+            Defaults to the current date and time.
+        expires_after:
+          allOf:
+            - $ref: '#/components/schemas/ISO8601Duration'
+          description: |-
+            The duration after which the credit grant expires.
+
+            Defaults to never expiring.
+        expires_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The timestamp when the credit grant expires.
+            Calculated from `effective_at` and `expires_after` if provided.
+          readOnly: true
+        voided_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp when the grant was voided.
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditGrantStatus'
+          description: Current lifecycle status of the grant.
+          readOnly: true
+      description: |-
+        A credit grant allocates credits to a customer.
+
+        Credits are drawn down against charges according to the
+        settlement mode configured on the rate card.
+      title: Credit grant
+    BillingCreditGrantStatus:
+      type: string
+      enum:
+        - pending
+        - active
+        - expired
+        - voided
+      description: |-
+        Credit grant lifecycle status.
+
+        - `pending`: The credit block has been created but is not yet valid. (`effective_at` is in the future or availability_policy is not met)
+        - `active`: The credit block is currently valid and eligible for consumption. (`effective_at` is in the past, `expires_at` is in the future and availability_policy is met)
+        - `expired`: The credit block expired with remaining unused balance, `expires_at` time has passed.
+        - `voided`: The credit block was voided. Remaining balance is forfeited.
+      title: Credit grant lifecycle status
+    BillingCreditGrantTaxConfig:
+      type: object
+      properties:
+        behavior:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxBehavior'
+          description: Tax behavior applied to the invoice line item.
+        tax_code:
+          type: object
+          properties:
+            id:
+              $ref: '#/components/schemas/ULID'
+          required:
+            - id
+          description: Tax code applied to the invoice line item.
+      description: |-
+        Tax configuration for a credit grant.
+
+        Tax configuration should be provided to ensure correct revenue recognition,
+        including for externally funded grants.
+      title: Tax configuration for a credit grant
+    BillingCreditPurchasePaymentSettlementStatus:
+      type: string
+      enum:
+        - pending
+        - authorized
+        - settled
+      description: |-
+        Credit purchase payment settlement status.
+
+        - `pending`: Payment has been initiated and is not yet authorized.
+        - `authorized`: Payment has been authorized.
+        - `settled`: Payment has been settled.
+      title: Credit purchase payment settlement status
+    BillingCreditTransaction:
+      type: object
+      required:
+        - id
+        - name
+        - booked_at
+        - type
+        - currency
+        - amount
+        - available_balance
+        - actor
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        booked_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The date and time the transaction was booked.
+          readOnly: true
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditTransactionType'
+          description: The type of credit transaction.
+          readOnly: true
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingCurrencyCode'
+          description: Currency of the balance affected by the transaction.
+          readOnly: true
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            Signed amount of the credit movement.
+            Positive values add balance, negative values reduce balance.
+          readOnly: true
+        available_balance:
+          type: object
+          properties:
+            before:
+              $ref: '#/components/schemas/Numeric'
+            after:
+              $ref: '#/components/schemas/Numeric'
+          required:
+            - before
+            - after
+          description: The available balance before and after the transaction.
+          readOnly: true
+        actor:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditTransactionActor'
+          description: The actor that caused this credit transaction.
+          readOnly: true
+      description: |-
+        A credit transaction represents a single credit movement on the customer's balance.
+
+        Credit transactions are immutable.
+      title: Credit transaction
+    BillingCreditTransactionActor:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditTransactionActorType'
+          description: The type of actor.
+          readOnly: true
+      description: The actor that caused the credit transaction.
+      title: Credit transaction actor
+    BillingCreditTransactionActorType:
+      type: string
+      enum:
+        - system
+        - customer
+        - admin
+        - payment_provider
+      description: |-
+        The type of actor that caused the credit transaction.
+
+        - `system`: Automated system operations (consumption, expiry).
+        - `customer`: Initiated by the customer.
+        - `admin`: Initiated by the admin.
+        - `payment_provider`: Initiated by the payment provider.
+      title: Credit transaction actor type
+    BillingCreditTransactionType:
+      type: string
+      enum:
+        - funded
+        - consumed
+        - expired
+        - voided
+        - adjusted
+      description: |-
+        The type of the credit transaction.
+
+        - `funded`: Credit granted and available for consumption.
+        - `consumed`: Credit consumed.
+        - `expired`: Credit expired.
+        - `voided`: Credit voided.
+        - `adjusted`: Manual or system adjustment.
     BillingCurrency:
       type: object
       oneOf:
@@ -2540,6 +3216,12 @@ components:
           fiat: '#/components/schemas/BillingCurrencyFiat'
           custom: '#/components/schemas/BillingCurrencyCustom'
       description: Fiat or custom currency.
+    BillingCurrencyCode:
+      type: string
+      allOf:
+        - $ref: '#/components/schemas/CurrencyCode'
+      description: Fiat or custom currency code.
+      x-go-type: string
     BillingCurrencyCodeCustom:
       type: string
       minLength: 3
@@ -3747,6 +4429,137 @@ components:
             An ISO-8601 timestamp representation of the date from which the cost basis is effective.
             If not provided, it will be effective immediately and will set to `now` by the system.
       description: CostBasis create request.
+    CreateCreditGrantRequest:
+      type: object
+      required:
+        - name
+        - funding_method
+        - currency
+        - amount
+        - priority
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        funding_method:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditFundingMethod'
+          description: Funding method of the grant.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingCurrencyCode'
+          description: The currency of the granted credits.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Granted credit amount.
+        purchase:
+          type: object
+          properties:
+            currency:
+              allOf:
+                - $ref: '#/components/schemas/CurrencyCode'
+              description: Currency of the purchase amount.
+            per_unit_cost_basis:
+              allOf:
+                - $ref: '#/components/schemas/Numeric'
+              description: |-
+                Cost basis per credit unit used to calculate the purchase amount.
+
+                If `per_unit_cost_basis` is 0.50 and credit amount is $100.00,
+                the total charge is $50.00.
+                The value must be greater than 0. If the cost basis is 0, use
+                `funding_method=none` instead.
+
+                Defaults to 1.0.
+              default: '1.0'
+            amount:
+              allOf:
+                - $ref: '#/components/schemas/Numeric'
+              description: |-
+                The purchase amount.
+                Calculated from `per_unit_cost_basis` and credit `amount`.
+              readOnly: true
+            availability_policy:
+              allOf:
+                - $ref: '#/components/schemas/BillingCreditAvailabilityPolicy'
+              description: |-
+                Controls when credits become available for consumption.
+
+                Defaults to `on_creation`.
+              default: on_creation
+            settlement_status:
+              allOf:
+                - $ref: '#/components/schemas/BillingCreditPurchasePaymentSettlementStatus'
+              description: Current payment settlement status.
+              readOnly: true
+          required:
+            - currency
+            - amount
+          description: |-
+            Purchase and payment terms of the grant.
+            Present when a funding workflow applies (funding_method is not `none`).
+        tax_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditGrantTaxConfig'
+          description: |-
+            Tax configuration for the grant.
+
+            For `invoice` and `external` funding methods, tax configuration should be provided to ensure correct revenue recognition.
+
+            Defaults to the billing profile's tax configuration when not provided.
+        filters:
+          type: object
+          properties:
+            features:
+              type: array
+              items:
+                $ref: '#/components/schemas/ResourceKey'
+              description: |-
+                Limit the credit grant to specific features.
+                If no features are specified, the credit grant can be used for any feature.
+              example:
+                - input_tokens
+                - output_tokens
+          description: Filters for the credit grant.
+        priority:
+          type: integer
+          format: int16
+          minimum: 1
+          maximum: 1000
+          description: |-
+            Draw-down priority of the grant.
+            Lower values have higher priority.
+          default: 10
+        effective_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The timestamp when the credit grant becomes effective.
+
+            Defaults to the current date and time.
+        expires_after:
+          allOf:
+            - $ref: '#/components/schemas/ISO8601Duration'
+          description: |-
+            The duration after which the credit grant expires.
+
+            Defaults to never expiring.
+      description: CreditGrant create request.
     CreateCurrencyCustomRequest:
       type: object
       required:
@@ -3970,6 +4783,61 @@ components:
           description: Mapping of app types to tax codes.
           title: App type to tax code mappings
       description: TaxCode create request.
+    CreditBalance:
+      type: object
+      required:
+        - currency
+        - pending
+        - available
+      properties:
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingCurrencyCode'
+          readOnly: true
+        pending:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            Credits that have been granted but cannot yet be consumed.
+            Includes grants awaiting payment clearance or with a future effective date.
+          example: '200.00'
+          readOnly: true
+        available:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            Credits that can be consumed right now.
+            Derived from cleared grants after applying eligibility and restriction rules.
+          example: '150.00'
+          readOnly: true
+      description: The credit balance by currency.
+      title: Credit balance
+    CreditGrantPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingCreditGrant'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      description: Page paginated response.
+    CreditTransactionPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingCreditTransaction'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      description: Page paginated response.
     CurrencyCode:
       type: string
       minLength: 3
@@ -4187,6 +5055,18 @@ components:
       description: |-
         A filter for a single string field.
         TODO: This is a temporary solution to support the filter API.
+    GetCreditBalanceParamsFilter:
+      type: object
+      properties:
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingCurrencyCode'
+          description: Filter credit balance by currency.
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: Filter by specific feature.
+      description: Filter options for getting a credit balance.
     ISO8601Duration:
       type: string
       pattern: ^P(?:\d+(?:\.\d+)?Y)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?W)?(?:\d+(?:\.\d+)?D)?(?:T(?:\d+(?:\.\d+)?H)?(?:\d+(?:\.\d+)?M)?(?:\d+(?:\.\d+)?S)?)?$
@@ -4364,6 +5244,34 @@ components:
             - $ref: '#/components/schemas/CurrencyCode'
           description: Filter cost bases by fiat currency code.
       description: Filter options for listing cost bases.
+    ListCreditGrantsParamsFilter:
+      type: object
+      properties:
+        funding_method:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditFundingMethod'
+          description: Filter credit grants by funding method.
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditGrantStatus'
+          description: Filter credit grants by status.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: Filter credit grants by currency.
+      description: Filter options for listing credit grants.
+    ListCreditTransactionsParamsFilter:
+      type: object
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditTransactionType'
+          description: Filter credit transactions by type.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingCurrencyCode'
+          description: Filter credit transactions by currency.
+      description: Filter options for listing credit transactions.
     ListCurrenciesParamsFilter:
       type: object
       properties:
@@ -4926,6 +5834,16 @@ components:
       description: ULID (Universally Unique Lexicographically Sortable Identifier).
       title: ULID
       example: 01G65Z755AFWAKHE12NY0CQ9FH
+    UpdateCreditGrantExternalSettlementRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditPurchasePaymentSettlementStatus'
+          description: The new payment settlement status.
+      description: Request body for updating the external payment settlement status of a credit grant.
     UpdateFeatureRequest:
       type: object
       properties:
