@@ -328,7 +328,7 @@ func TestUpdateFeature(t *testing.T) {
 		Namespace: namespace,
 		Name:      "feature-1",
 		Key:       "feature-1",
-		MeterID: &meter.ID,
+		MeterID:   &meter.ID,
 		MeterGroupByFilters: feature.MeterGroupByFilters{
 			"key": filter.FilterString{
 				Eq: lo.ToPtr("value"),
@@ -564,6 +564,20 @@ func TestUpdateFeature(t *testing.T) {
 
 			if err := dbClient.Schema.Create(context.Background()); err != nil {
 				t.Fatalf("failed to create schema: %v", err)
+			}
+
+			// Create the meter in the DB so FK constraint is satisfied.
+			_, err := dbClient.Meter.Create().
+				SetID(meter.ID).
+				SetNamespace(meter.Namespace).
+				SetName(meter.Name).
+				SetKey(meter.Key).
+				SetGroupBy(meter.GroupBy).
+				SetAggregation(meter.Aggregation).
+				SetEventType(meter.EventType).
+				Save(context.Background())
+			if err != nil {
+				t.Fatalf("failed to create meter: %v", err)
 			}
 
 			dbConnector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
