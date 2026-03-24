@@ -10,6 +10,11 @@ info:
     OpenMeter is a cloud native usage metering and billing service.
     The OpenMeter API allows you to ingest events, query meter usage, and manage resources.
 servers:
+  - url: http://localhost:{port}/api/v3
+    description: Local
+    variables:
+      port:
+        default: '8888'
   - url: https://openmeter.cloud/api/v3
     description: Cloud
     variables: {}

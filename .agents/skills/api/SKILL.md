@@ -13,6 +13,7 @@ You are helping the user add or modify API endpoints in OpenMeter.
 ## Context
 
 - **API spec source:** `api/spec/packages/` — TypeSpec definitions (two packages: `aip` for v3, `legacy` for v1)
+- **Local server port:** The server runs on port 8888 by default locally (`http://localhost:8888/api/v3`)
 - **New APIs go in AIP package:** `api/spec/packages/aip/src/` — all new endpoints must be added here
 - **Generated outputs (DO NOT edit manually):**
   - `api/openapi.yaml`, `api/openapi.cloud.yaml` — OpenAPI specs

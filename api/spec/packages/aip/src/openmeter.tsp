@@ -31,6 +31,13 @@ using TypeSpec.OpenAPI;
   termsOfService: "https://openmeter.cloud/terms-of-service",
 })
 @server("https://openmeter.cloud/api/v3", "Cloud")
+@server(
+  "http://localhost:{port}/api/v3",
+  "Local",
+  {
+    port?: string = "8888",
+  }
+)
 @tagMetadata(Shared.MetersTag, #{ description: Shared.MetersDescription })
 @tagMetadata(Shared.EventsTag, #{ description: Shared.EventsDescription })
 @tagMetadata(Shared.CustomersTag, #{ description: Shared.CustomersDescription })
