@@ -19,6 +19,9 @@ type Adapter interface {
 
 	CreateExternalPayment(ctx context.Context, chargeID meta.ChargeID, payment payment.ExternalCreateInput) (payment.External, error)
 	UpdateExternalPayment(ctx context.Context, payment payment.External) (payment.External, error)
+
+	CreateInvoicedPayment(ctx context.Context, chargeID meta.ChargeID, payment payment.InvoicedCreate) (payment.Invoiced, error)
+	UpdateInvoicedPayment(ctx context.Context, payment payment.Invoiced) (payment.Invoiced, error)
 }
 
 type CreateChargeInput struct {

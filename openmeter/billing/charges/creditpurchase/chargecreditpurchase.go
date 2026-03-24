@@ -108,6 +108,12 @@ func (s State) Validate() error {
 		}
 	}
 
+	if s.InvoiceSettlement != nil {
+		if err := s.InvoiceSettlement.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invoice settlement: %w", err))
+		}
+	}
+
 	return errors.Join(errs...)
 }
 

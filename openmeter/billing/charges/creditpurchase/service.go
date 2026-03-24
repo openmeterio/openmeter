@@ -5,25 +5,38 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 )
 
 type Service interface {
 	CreditPurchaseService
 	ExternalPaymentLifecycle
+	InvoicePaymentLifecycle
 }
 
 type CreditPurchaseService interface {
 	// Create creates a new credit purchase charge. It can only handle a single intent at a time
 	// as based on current state of credits we are not going to create multiple credit purchases at once.
-	Create(ctx context.Context, input CreateInput) (Charge, error)
+	Create(ctx context.Context, input CreateInput) (ChargeWithGatheringLine, error)
 
 	GetByMetas(ctx context.Context, input GetByMetasInput) ([]Charge, error)
+}
+
+type ChargeWithGatheringLine struct {
+	Charge                Charge
+	GatheringLineToCreate *billing.GatheringLine
 }
 
 type ExternalPaymentLifecycle interface {
 	HandleExternalPaymentAuthorized(ctx context.Context, charge Charge) (Charge, error)
 	HandleExternalPaymentSettled(ctx context.Context, charge Charge) (Charge, error)
+}
+
+type InvoicePaymentLifecycle interface {
+	PostInvoicePaymentAuthorized(ctx context.Context, charge Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
+	PostInvoicePaymentSettled(ctx context.Context, charge Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
+	PostInvoiceDraftCreated(ctx context.Context, charge Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error
 }
 
 type CreateInput struct {

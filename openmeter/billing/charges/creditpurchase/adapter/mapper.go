@@ -33,6 +33,7 @@ func MapCreditPurchaseChargeFromDB(m meta.Charge, dbEntity *entdb.ChargeCreditPu
 	}
 
 	var externalPaymentSettlement *payment.External
+	var invoiceSettlement *payment.Invoiced
 	if expands.Has(meta.ExpandRealizations) {
 		dbExternalPaymentSettlement, err := dbEntity.Edges.ExternalPaymentOrErr()
 		if _, ok := lo.ErrorsAs[*entdb.NotLoadedError](err); ok {
@@ -41,6 +42,15 @@ func MapCreditPurchaseChargeFromDB(m meta.Charge, dbEntity *entdb.ChargeCreditPu
 
 		if dbExternalPaymentSettlement != nil {
 			externalPaymentSettlement = lo.ToPtr(payment.MapExternalFromDB(dbExternalPaymentSettlement))
+		}
+
+		dbInvoicedPaymentSettlement, err := dbEntity.Edges.InvoicedPaymentOrErr()
+		if _, ok := lo.ErrorsAs[*entdb.NotLoadedError](err); ok {
+			return creditpurchase.Charge{}, fmt.Errorf("invoiced payment settlement not loaded for credit purchase charge [id=%s]: %w", dbEntity.ID, err)
+		}
+
+		if dbInvoicedPaymentSettlement != nil {
+			invoiceSettlement = lo.ToPtr(payment.MapInvoicedFromDB(dbInvoicedPaymentSettlement))
 		}
 	}
 
@@ -55,6 +65,7 @@ func MapCreditPurchaseChargeFromDB(m meta.Charge, dbEntity *entdb.ChargeCreditPu
 		State: creditpurchase.State{
 			CreditGrantRealization:    grantLedgerTransactionReference,
 			ExternalPaymentSettlement: externalPaymentSettlement,
+			InvoiceSettlement:         invoiceSettlement,
 		},
 	}, nil
 }

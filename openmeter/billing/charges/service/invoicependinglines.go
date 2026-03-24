@@ -73,6 +73,7 @@ type gatheringLineWithCreditAllocations struct {
 
 type gatheringLinesWithCreditAllocationsResult struct {
 	chargesManagedLines map[billing.LineID]gatheringLineWithCreditAllocations
+	chargesByID         map[meta.ChargeID]charges.Charge
 }
 
 func (s *service) allocateCreditAmountsToBillableLines(ctx context.Context, namespace string, billableLines billing.GatheringLines) (*gatheringLinesWithCreditAllocationsResult, error) {
@@ -156,6 +157,9 @@ func (s *service) allocateCreditAmountsToBillableLines(ctx context.Context, name
 			}
 
 			gatheringLine.Realizations = creditAllocations
+		case meta.ChargeTypeCreditPurchase:
+			// Credit purchases don't need credit allocation — they represent the credit grant itself.
+			// The gathering line is invoiced as-is.
 		default:
 			return nil, fmt.Errorf("charge type is not supported: %s", charge.Type())
 		}
@@ -165,6 +169,7 @@ func (s *service) allocateCreditAmountsToBillableLines(ctx context.Context, name
 
 	return &gatheringLinesWithCreditAllocationsResult{
 		chargesManagedLines: chargesManagedGatheringLines,
+		chargesByID:         chargesById,
 	}, nil
 }
 

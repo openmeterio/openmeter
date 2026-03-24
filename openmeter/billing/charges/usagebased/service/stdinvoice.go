@@ -18,10 +18,10 @@ func (s *service) PostInvoiceIssued(ctx context.Context, charge usagebased.Charg
 	return fmt.Errorf("usage based invoice lifecycle is not implemented: %w", meta.ErrUnsupported)
 }
 
-func (s *service) PostPaymentAuthorized(ctx context.Context, charge usagebased.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
+func (s *service) PostInvoicePaymentAuthorized(ctx context.Context, charge usagebased.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
 	return fmt.Errorf("usage based invoice lifecycle is not implemented: %w", meta.ErrUnsupported)
 }
 
-func (s *service) PostPaymentSettled(ctx context.Context, charge usagebased.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
+func (s *service) PostInvoicePaymentSettled(ctx context.Context, charge usagebased.Charge, lineWithHeader billing.StandardLineWithInvoiceHeader) error {
 	return fmt.Errorf("usage based invoice lifecycle is not implemented: %w", meta.ErrUnsupported)
 }

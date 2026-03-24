@@ -992,8 +992,9 @@ func (i ListStandardInvoicesInput) Validate() error {
 type ListStandardInvoicesResponse = pagination.Result[StandardInvoice]
 
 type CreateStandardInvoiceFromGatheringLinesInput struct {
-	Customer customer.CustomerID
-	Currency currencyx.Code
+	Customer    customer.CustomerID
+	Currency    currencyx.Code
+	Description *string
 
 	Lines                       GatheringLines
 	PostCreationCalculationHook PostCreationCalculationHook

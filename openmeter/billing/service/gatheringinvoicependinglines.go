@@ -694,9 +694,10 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 		Customer:  lo.FromPtr(profile.Customer),
 		Profile:   profile.MergedProfile,
 
-		Currency: in.Currency,
-		Number:   invoiceNumber,
-		Status:   billing.StandardInvoiceStatusDraftCreated,
+		Currency:    in.Currency,
+		Number:      invoiceNumber,
+		Status:      billing.StandardInvoiceStatusDraftCreated,
+		Description: in.Description,
 
 		Type: billing.InvoiceTypeStandard,
 	})
@@ -768,6 +769,10 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 	invoice, err = s.updateInvoice(ctx, invoice)
 	if err != nil {
 		return nil, fmt.Errorf("updating target invoice: %w", err)
+	}
+
+	if err := s.standardInvoiceHooks.PostCreate(ctx, &invoice); err != nil {
+		return nil, fmt.Errorf("invoking post create hooks: %w", err)
 	}
 
 	// Let's make sure that the invoice is in an up-to-date state
