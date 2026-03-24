@@ -70,7 +70,7 @@ interface FeatureOperations {
   @extension(Shared.InternalExtension, true)
   update(
     @path featureId: Shared.ULID,
-    @body feature: Shared.UpdateRequest<Feature>,
+    @body feature: FeatureUpdateRequest,
   ): Shared.UpdateResponse<Feature> | Common.ErrorResponses | Common.NotFound;
 
   /**

@@ -41,6 +41,21 @@ model Feature {
    * from the LLM cost database based on meter group-by properties.
    */
   @summary("Unit cost")
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  unit_cost?: FeatureUnitCost;
+}
+
+/**
+ * Request body for updating a feature.
+ * Currently only the unit_cost field can be updated.
+ */
+@friendlyName("UpdateFeatureRequest")
+model FeatureUpdateRequest {
+  /**
+   * Optional per-unit cost configuration.
+   * Use "manual" for a fixed per-unit cost, or "llm" to look up cost
+   * from the LLM cost database based on meter group-by properties.
+   */
+  @summary("Unit cost")
   unit_cost?: FeatureUnitCost;
 }

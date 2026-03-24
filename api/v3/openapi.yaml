@@ -4929,23 +4929,6 @@ components:
     UpdateFeatureRequest:
       type: object
       properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: |-
-            Display name of the resource.
-
-            Between 1 and 256 characters.
-        description:
-          type: string
-          maxLength: 1024
-          description: |-
-            Optional description of the resource.
-
-            Maximum 1024 characters.
-        labels:
-          $ref: '#/components/schemas/Labels'
         unit_cost:
           allOf:
             - $ref: '#/components/schemas/BillingFeatureUnitCost'
@@ -4954,7 +4937,9 @@ components:
             Use "manual" for a fixed per-unit cost, or "llm" to look up cost
             from the LLM cost database based on meter group-by properties.
           title: Unit cost
-      description: Feature update request.
+      description: |-
+        Request body for updating a feature.
+        Currently only the unit_cost field can be updated.
     UpsertAppCustomerDataRequest:
       type: object
       properties:
