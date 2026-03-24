@@ -13,6 +13,7 @@ This package defines OpenMeter v3 and Konnect metering & billing APIs using Type
 | Model names        | `PascalCase` | `BillingProfile`, `MeterQueryResult`    |
 | Model properties   | `snake_case` | `created_at`, `billing_profile_id`      |
 | Path parameters    | `camelCase`  | `meterId`, `customerId`                 |
+| URL paths          | `kebab-case` | `/api/v3/openmeter/llm-cost`            |
 | Enum names         | `PascalCase` | `MeterAggregation`                      |
 | Enum member names  | `PascalCase` | `UniqueCount`                           |
 | Enum values (wire) | `snake_case` | `"unique_count"`                        |
@@ -83,14 +84,17 @@ Use the generic templates from `shared/request.tsp` and `shared/responses.tsp`. 
 
 **AIP-135 delete rules:**
 
-- DELETE returns `204 No Content`. No request body is accepted.
+- DELETE returns `204 No Content`. No request body is accepted. All params go in the URL path.
 - Return `403 Forbidden` before `404 Not Found` — check permissions before existence to prevent resource enumeration.
+- Cascading deletes: require `?force=true` query param; without it, return `400` listing affected resource types.
 
 ---
 
 ## List endpoints ([AIP-132](https://kong-aip.netlify.app/aips/132))
 
 List endpoints are `GET` requests to the entity root (e.g. `GET /meters`). Items go under the `data` key provided by the pagination response templates.
+
+Trailing slash returns `404` (e.g., `GET /meters/` → 404).
 
 **Sort order is mandatory** — it must be deterministic. Prefer `name asc`, `created_at asc`, or `updated_at desc`. Never use a UUID as the sort key.
 
@@ -134,6 +138,10 @@ Use the filter types from `common/parameters.tsp` (backed by the shared `aip_fil
 
 **Operators** (appended as `[op]`): `eq` (default), `neq`, `oeq` (OR-equal, comma-separated), `contains`, `ocontains` (OR-contains), `lt`, `lte`, `gt`, `gte`. `filter[field]` without a value matches records where the field is not null.
 
+**List field quantifiers:** `?filter[field][operator][any]=value` or `[all]`.
+
+Multiple filters use AND logic. Unsupported filter fields return `400` with `invalid_parameters`.
+
 **Label filtering** uses dot-notation to address individual keys: `filter[labels.owner]=alice`, `filter[labels.env][ocontains]=dev,test`.
 
 > **Note:** `Shared.QueryFilter*` in `shared/filters.tsp` are structured filter objects for JSON request bodies (e.g. POST query endpoints). Use `Common.*FieldFilter` for URL query parameters on list endpoints.
@@ -144,7 +152,9 @@ Use the filter types from `common/parameters.tsp` (backed by the shared `aip_fil
 
 `Common.Labels` stores mutable user-managed metadata. `Common.PublicLabels` is for publicly visible labels. Both are included in `Shared.Resource` via the `labels` and `public_labels` fields.
 
-Key constraints: 1–63 characters, cannot start with `kong`, `konnect`, `mesh`, `kic`, or `_`.
+Key constraints: 1–63 characters, pattern `[a-z0-9._-]`, cannot start with `kong`, `konnect`, `mesh`, `kic`, or `_`. Values ≤255 chars. Max 50 entries per resource.
+
+`PATCH` with `null` value deletes a label key.
 
 Labels support filtering via dot-notation (see Filtering section above).
 
@@ -203,3 +213,35 @@ Mark non-public operations with `@extension` using the constants from `shared/co
 | `Shared.PrivateExtension`  | `x-private`   | Not exposed in public documentation       |
 | `Shared.UnstableExtension` | `x-unstable`  | Subject to breaking changes               |
 | `Shared.InternalExtension` | `x-internal`  | Hidden from the API documentation website |
+
+---
+
+## Time & duration ([AIP-142](https://kong-aip.netlify.app/aips/142))
+
+- Timestamp fields: `<verb_past_participle>_at` (e.g., `created_at`, `updated_at`, `expires_at`)
+- Format: RFC 3339, must be UTC with `Z` suffix: `2023-02-27T02:15:00Z`
+- Duration fields: We defer from the AIP standard here. We use the ISO 8601 duration format. Key components include Years (Y), Months (M), Weeks (W), Days (D), a time separator 'T', and Hours (H). Example: `PT1M` (one minute), `PT1H` (one hour), `P1D` (one day), `P1M` (one month)
+
+---
+
+## Content-Type ([AIP-137](https://kong-aip.netlify.app/aips/137))
+
+Validate `Content-Type` header; return `415 Unsupported Media Type` for unsupported types. Default to `application/json` when no `Content-Type` is provided.
+
+---
+
+## Bulk delete ([AIP-235](https://kong-aip.netlify.app/aips/235))
+
+`POST /api/v3/openmeter/<entity>/bulk-delete` with `{ "ids": [...] }` body, max 100 items. Transactional (all-or-nothing) returns `204`; partial success returns `207 Multi-Status` with per-item results.
+
+---
+
+## Versioning ([AIP-3101](https://kong-aip.netlify.app/aips/3101))
+
+Version in URL path (e.g., `/api/v3/openmeter/`). Per-resource versioning, no minor versions.
+
+---
+
+## Empty fields ([AIP-3106](https://kong-aip.netlify.app/aips/3106))
+
+Always return all fields in responses. Use `null` for absent scalars, `[]` for empty lists, `{}` for empty objects. Never omit fields.
