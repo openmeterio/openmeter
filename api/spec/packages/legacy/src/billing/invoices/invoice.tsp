@@ -638,6 +638,33 @@ model InvoiceReference {
 }
 
 /**
+ * Usage quantity details when UnitConfig is in effect.
+ * Provides the full audit trail from raw meter output to the invoiced amount.
+ */
+@friendlyName("InvoiceUsageQuantityDetail")
+model InvoiceUsageQuantityDetail {
+  /** The raw quantity as reported by the meter (native units). */
+  @visibility(Lifecycle.Read)
+  @summary("Raw metered quantity")
+  rawQuantity: Numeric;
+
+  /** The precise value after applying conversion, before rounding. */
+  @visibility(Lifecycle.Read)
+  @summary("Converted quantity (precise)")
+  convertedQuantity: Numeric;
+
+  /** The quantity after rounding, used for pricing. */
+  @visibility(Lifecycle.Read)
+  @summary("Invoiced quantity (rounded)")
+  invoicedQuantity: Numeric;
+
+  /** Snapshot of the UnitConfig that was in effect at billing time. */
+  @visibility(Lifecycle.Read)
+  @summary("Applied unit config")
+  appliedUnitConfig: FeatureUnitConfig;
+}
+
+/**
  * InvoiceUsageBasedRateCard represents the rate card (intent) for an usage-based line.
  */
 @friendlyName("InvoiceUsageBasedRateCard")
@@ -725,6 +752,14 @@ model InvoiceLine {
    */
   @visibility(Lifecycle.Read)
   meteredPreLinePeriodQuantity?: Numeric;
+
+  /**
+   * Usage quantity details when UnitConfig is in effect.
+   * Provides the audit trail from raw meter output to the invoiced amount.
+   * Only present when a UnitConfig was applied to this line.
+   */
+  @visibility(Lifecycle.Read)
+  usageQuantityDetail?: InvoiceUsageQuantityDetail;
 }
 
 /**

@@ -17475,6 +17475,14 @@ components:
             Use "manual" for a fixed per-unit cost, or "llm" to look up cost
             from the LLM cost database based on meter group-by properties.
           title: Unit cost
+        unitConfig:
+          allOf:
+            - $ref: '#/components/schemas/FeatureUnitConfig'
+          description: |-
+            Optional unit conversion configuration.
+            Transforms raw metered quantities into billing-ready units before pricing.
+            Example: divide by 1e9 to convert bytes to GB, or multiply by 1.2 for a 20% margin.
+          title: Unit config
         id:
           type: string
           pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
@@ -17553,6 +17561,14 @@ components:
             Use "manual" for a fixed per-unit cost, or "llm" to look up cost
             from the LLM cost database based on meter group-by properties.
           title: Unit cost
+        unitConfig:
+          allOf:
+            - $ref: '#/components/schemas/FeatureUnitConfig'
+          description: |-
+            Optional unit conversion configuration.
+            Transforms raw metered quantities into billing-ready units before pricing.
+            Example: divide by 1e9 to convert bytes to GB, or multiply by 1.2 for a 20% margin.
+          title: Unit config
       description: |-
         Represents a feature that can be enabled or disabled for a plan.
         Used both for product catalog and entitlements.
@@ -17723,6 +17739,54 @@ components:
             $ref: '#/components/schemas/Feature'
           description: The items in the current page.
       description: Paginated response
+    FeatureUnitConfig:
+      type: object
+      required:
+        - operation
+        - conversion_factor
+      properties:
+        operation:
+          allOf:
+            - $ref: '#/components/schemas/FeatureUnitConfigOperation'
+          description: The arithmetic operation to apply to the raw metered quantity.
+          title: Conversion operation
+        conversion_factor:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The factor used in the conversion operation. Must be positive and non-zero.
+          title: Conversion factor
+        rounding:
+          allOf:
+            - $ref: '#/components/schemas/FeatureUnitConfigRoundingMode'
+          description: The rounding mode applied to the converted quantity for invoicing.
+          title: Rounding mode
+          default: none
+        precision:
+          type: integer
+          description: The number of decimal places to retain after rounding.
+          title: Rounding precision
+          default: 0
+        display_unit:
+          type: string
+          description: A human-readable label for the converted unit (e.g., "GB", "hours", "M tokens").
+          title: Display unit label
+      description: |-
+        Unit conversion configuration.
+        Transforms raw metered quantities into billing-ready units before pricing.
+    FeatureUnitConfigOperation:
+      type: string
+      enum:
+        - divide
+        - multiply
+      description: The arithmetic operation used to convert raw metered units into billing units.
+    FeatureUnitConfigRoundingMode:
+      type: string
+      enum:
+        - ceiling
+        - floor
+        - half_up
+        - none
+      description: The rounding mode applied to the converted quantity for invoicing.
     FeatureUnitCost:
       type: object
       oneOf:
@@ -18880,6 +18944,14 @@ components:
 
             It is non-zero in case of progressive billing, when this shows how much of the usage was already billed.
           readOnly: true
+        usageQuantityDetail:
+          allOf:
+            - $ref: '#/components/schemas/InvoiceUsageQuantityDetail'
+          description: |-
+            Usage quantity details when UnitConfig is in effect.
+            Provides the audit trail from raw meter output to the invoiced amount.
+            Only present when a UnitConfig was applied to this line.
+          readOnly: true
       description: InvoiceUsageBasedLine represents a line item that is sold to the customer based on usage.
     InvoiceLineAmountDiscount:
       type: object
@@ -19694,6 +19766,41 @@ components:
             - $ref: '#/components/schemas/BillingDiscounts'
           description: The discounts that are applied to the line.
       description: InvoiceUsageBasedRateCard represents the rate card (intent) for an usage-based line.
+    InvoiceUsageQuantityDetail:
+      type: object
+      required:
+        - rawQuantity
+        - convertedQuantity
+        - invoicedQuantity
+        - appliedUnitConfig
+      properties:
+        rawQuantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The raw quantity as reported by the meter (native units).
+          title: Raw metered quantity
+          readOnly: true
+        convertedQuantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The precise value after applying conversion, before rounding.
+          title: Converted quantity (precise)
+          readOnly: true
+        invoicedQuantity:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The quantity after rounding, used for pricing.
+          title: Invoiced quantity (rounded)
+          readOnly: true
+        appliedUnitConfig:
+          allOf:
+            - $ref: '#/components/schemas/FeatureUnitConfig'
+          description: Snapshot of the UnitConfig that was in effect at billing time.
+          title: Applied unit config
+          readOnly: true
+      description: |-
+        Usage quantity details when UnitConfig is in effect.
+        Provides the full audit trail from raw meter output to the invoiced amount.
     InvoiceWorkflowInvoicingSettingsReplaceUpdate:
       type: object
       properties:
@@ -22955,6 +23062,13 @@ components:
           description: |-
             The price of the rate card.
             When null, the feature or service is free.
+        unitConfig:
+          allOf:
+            - $ref: '#/components/schemas/FeatureUnitConfig'
+          description: |-
+            Optional unit conversion configuration.
+            Transforms raw metered quantities into billing-ready units before pricing.
+          title: Unit config
         discounts:
           allOf:
             - $ref: '#/components/schemas/Discounts'

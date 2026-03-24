@@ -6099,6 +6099,13 @@ export interface components {
        */
       unitCost?: components['schemas']['FeatureUnitCost']
       /**
+       * Unit config
+       * @description Optional unit conversion configuration.
+       *     Transforms raw metered quantities into billing-ready units before pricing.
+       *     Example: divide by 1e9 to convert bytes to GB, or multiply by 1.2 for a 20% margin.
+       */
+      unitConfig?: components['schemas']['FeatureUnitConfig']
+      /**
        * @description Readonly unique ULID identifier.
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
@@ -6172,6 +6179,13 @@ export interface components {
        *     from the LLM cost database based on meter group-by properties.
        */
       unitCost?: components['schemas']['FeatureUnitCost']
+      /**
+       * Unit config
+       * @description Optional unit conversion configuration.
+       *     Transforms raw metered quantities into billing-ready units before pricing.
+       *     Example: divide by 1e9 to convert bytes to GB, or multiply by 1.2 for a 20% margin.
+       */
+      unitConfig?: components['schemas']['FeatureUnitConfig']
     }
     /**
      * @description LLM cost lookup configuration.
@@ -6314,6 +6328,49 @@ export interface components {
       /** @description The items in the current page. */
       items: components['schemas']['Feature'][]
     }
+    /**
+     * @description Unit conversion configuration.
+     *     Transforms raw metered quantities into billing-ready units before pricing.
+     */
+    FeatureUnitConfig: {
+      /**
+       * Conversion operation
+       * @description The arithmetic operation to apply to the raw metered quantity.
+       */
+      operation: components['schemas']['FeatureUnitConfigOperation']
+      /**
+       * Conversion factor
+       * @description The factor used in the conversion operation. Must be positive and non-zero.
+       */
+      conversion_factor: components['schemas']['Numeric']
+      /**
+       * Rounding mode
+       * @description The rounding mode applied to the converted quantity for invoicing.
+       * @default none
+       */
+      rounding?: components['schemas']['FeatureUnitConfigRoundingMode']
+      /**
+       * Rounding precision
+       * @description The number of decimal places to retain after rounding.
+       * @default 0
+       */
+      precision?: number
+      /**
+       * Display unit label
+       * @description A human-readable label for the converted unit (e.g., "GB", "hours", "M tokens").
+       */
+      display_unit?: string
+    }
+    /**
+     * @description The arithmetic operation used to convert raw metered units into billing units.
+     * @enum {string}
+     */
+    FeatureUnitConfigOperation: 'divide' | 'multiply'
+    /**
+     * @description The rounding mode applied to the converted quantity for invoicing.
+     * @enum {string}
+     */
+    FeatureUnitConfigRoundingMode: 'ceiling' | 'floor' | 'half_up' | 'none'
     /**
      * @description Per-unit cost configuration for a feature.
      *     Either a fixed manual amount or a dynamic LLM cost lookup.
@@ -7104,6 +7161,12 @@ export interface components {
        *     It is non-zero in case of progressive billing, when this shows how much of the usage was already billed.
        */
       readonly meteredPreLinePeriodQuantity?: components['schemas']['Numeric']
+      /**
+       * @description Usage quantity details when UnitConfig is in effect.
+       *     Provides the audit trail from raw meter output to the invoiced amount.
+       *     Only present when a UnitConfig was applied to this line.
+       */
+      readonly usageQuantityDetail?: components['schemas']['InvoiceUsageQuantityDetail']
     }
     /** @description InvoiceLineAmountDiscount represents an amount deducted from the line, and will be applied before taxes. */
     InvoiceLineAmountDiscount: {
@@ -7667,6 +7730,32 @@ export interface components {
       price: components['schemas']['RateCardUsageBasedPrice'] | null
       /** @description The discounts that are applied to the line. */
       discounts?: components['schemas']['BillingDiscounts']
+    }
+    /**
+     * @description Usage quantity details when UnitConfig is in effect.
+     *     Provides the full audit trail from raw meter output to the invoiced amount.
+     */
+    InvoiceUsageQuantityDetail: {
+      /**
+       * Raw metered quantity
+       * @description The raw quantity as reported by the meter (native units).
+       */
+      readonly rawQuantity: components['schemas']['Numeric']
+      /**
+       * Converted quantity (precise)
+       * @description The precise value after applying conversion, before rounding.
+       */
+      readonly convertedQuantity: components['schemas']['Numeric']
+      /**
+       * Invoiced quantity (rounded)
+       * @description The quantity after rounding, used for pricing.
+       */
+      readonly invoicedQuantity: components['schemas']['Numeric']
+      /**
+       * Applied unit config
+       * @description Snapshot of the UnitConfig that was in effect at billing time.
+       */
+      readonly appliedUnitConfig: components['schemas']['FeatureUnitConfig']
     }
     /** @description InvoiceWorkflowInvoicingSettingsReplaceUpdate represents the update model for the invoicing settings of an invoice workflow. */
     InvoiceWorkflowInvoicingSettingsReplaceUpdate: {
@@ -10181,6 +10270,12 @@ export interface components {
        */
       price: components['schemas']['RateCardUsageBasedPrice'] | null
       /**
+       * Unit config
+       * @description Optional unit conversion configuration.
+       *     Transforms raw metered quantities into billing-ready units before pricing.
+       */
+      unitConfig?: components['schemas']['FeatureUnitConfig']
+      /**
        * Discounts
        * @description The discounts of the rate card.
        *
@@ -12551,6 +12646,11 @@ export type FeatureMeta = components['schemas']['FeatureMeta']
 export type FeatureOrderBy = components['schemas']['FeatureOrderBy']
 export type FeaturePaginatedResponse =
   components['schemas']['FeaturePaginatedResponse']
+export type FeatureUnitConfig = components['schemas']['FeatureUnitConfig']
+export type FeatureUnitConfigOperation =
+  components['schemas']['FeatureUnitConfigOperation']
+export type FeatureUnitConfigRoundingMode =
+  components['schemas']['FeatureUnitConfigRoundingMode']
 export type FeatureUnitCost = components['schemas']['FeatureUnitCost']
 export type FilterIdExact = components['schemas']['FilterIDExact']
 export type FilterString = components['schemas']['FilterString']
@@ -12642,6 +12742,8 @@ export type InvoiceTotals = components['schemas']['InvoiceTotals']
 export type InvoiceType = components['schemas']['InvoiceType']
 export type InvoiceUsageBasedRateCard =
   components['schemas']['InvoiceUsageBasedRateCard']
+export type InvoiceUsageQuantityDetail =
+  components['schemas']['InvoiceUsageQuantityDetail']
 export type InvoiceWorkflowInvoicingSettingsReplaceUpdate =
   components['schemas']['InvoiceWorkflowInvoicingSettingsReplaceUpdate']
 export type InvoiceWorkflowReplaceUpdate =

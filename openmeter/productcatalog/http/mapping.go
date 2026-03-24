@@ -93,6 +93,12 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 			return resp, errors.New("invalid UsageBasedRateCard: billing cadence must be set")
 		}
 
+		var apiUnitConfig *api.FeatureUnitConfig
+		if uc := r.GetUnitConfig(); uc != nil {
+			v := FromUnitConfig(*uc)
+			apiUnitConfig = &v
+		}
+
 		err = resp.FromRateCardUsageBased(api.RateCardUsageBased{
 			Type:                api.RateCardUsageBasedTypeUsageBased,
 			BillingCadence:      billingCadence.ISOString().String(),
@@ -105,6 +111,7 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 			Price:               price,
 			TaxConfig:           taxConfig,
 			Discounts:           FromDiscounts(meta.Discounts),
+			UnitConfig:          apiUnitConfig,
 		})
 		if err != nil {
 			return resp, fmt.Errorf("failed to cast UsageBasedRateCard: %w", err)
@@ -248,6 +255,49 @@ func FromTaxConfig(c productcatalog.TaxConfig) api.TaxConfig {
 		Stripe:   stripe,
 		Behavior: (*api.TaxBehavior)(c.Behavior),
 	}
+}
+
+func FromUnitConfig(uc productcatalog.UnitConfig) api.FeatureUnitConfig {
+	result := api.FeatureUnitConfig{
+		Operation:        api.FeatureUnitConfigOperation(uc.Operation),
+		ConversionFactor: uc.ConversionFactor.String(),
+		DisplayUnit:      uc.DisplayUnit,
+	}
+
+	if uc.Rounding != "" {
+		rounding := api.FeatureUnitConfigRoundingMode(uc.Rounding)
+		result.Rounding = &rounding
+	}
+
+	if uc.Precision != 0 {
+		result.Precision = lo.ToPtr(uc.Precision)
+	}
+
+	return result
+}
+
+func AsUnitConfig(uc api.FeatureUnitConfig) (productcatalog.UnitConfig, error) {
+	conversionFactor, err := decimal.NewFromString(uc.ConversionFactor)
+	if err != nil {
+		return productcatalog.UnitConfig{}, fmt.Errorf("failed to parse conversion_factor: %w", err)
+	}
+
+	result := productcatalog.UnitConfig{
+		Operation:        productcatalog.ConversionOperation(uc.Operation),
+		ConversionFactor: conversionFactor,
+	}
+
+	if uc.Rounding != nil {
+		result.Rounding = productcatalog.RoundingMode(*uc.Rounding)
+	}
+
+	if uc.Precision != nil {
+		result.Precision = *uc.Precision
+	}
+
+	result.DisplayUnit = uc.DisplayUnit
+
+	return result, nil
 }
 
 func FromPaymentTerm(t productcatalog.PaymentTermType) api.PricePaymentTerm {
@@ -508,6 +558,14 @@ func AsUsageBasedRateCard(usage api.RateCardUsageBased) (productcatalog.UsageBas
 		}
 
 		rc.Price = price
+	}
+
+	if usage.UnitConfig != nil {
+		uc, err := AsUnitConfig(*usage.UnitConfig)
+		if err != nil {
+			return rc, fmt.Errorf("failed to cast UnitConfig: %w", err)
+		}
+		rc.UnitConfig = &uc
 	}
 
 	discounts, err := AsDiscounts(usage.Discounts)

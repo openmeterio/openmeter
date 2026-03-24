@@ -2,6 +2,7 @@ package productcatalogdriver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -10,7 +11,9 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/apiconverter"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/filter"
 )
@@ -40,6 +43,14 @@ func MapFeatureToResponse(f feature.Feature) (api.Feature, error) {
 		resp.UnitCost = &apiUnitCost
 	}
 
+	if len(f.UnitConfig) > 0 {
+		var uc productcatalog.UnitConfig
+		if err := json.Unmarshal(f.UnitConfig, &uc); err == nil {
+			apiUC := productcataloghttp.FromUnitConfig(uc)
+			resp.UnitConfig = &apiUC
+		}
+	}
+
 	return resp, nil
 }
 
@@ -66,6 +77,21 @@ func MapFeatureCreateInputsRequest(namespace string, f api.FeatureCreateInputs, 
 			return feature.CreateFeatureInputs{}, fmt.Errorf("invalid unit cost: %w", err)
 		}
 		inputs.UnitCost = unitCost
+	}
+
+	if f.UnitConfig != nil {
+		uc, err := productcataloghttp.AsUnitConfig(*f.UnitConfig)
+		if err != nil {
+			return feature.CreateFeatureInputs{}, fmt.Errorf("invalid unit config: %w", err)
+		}
+		if err := uc.Validate(); err != nil {
+			return feature.CreateFeatureInputs{}, fmt.Errorf("invalid unit config: %w", err)
+		}
+		ucJSON, err := json.Marshal(uc)
+		if err != nil {
+			return feature.CreateFeatureInputs{}, fmt.Errorf("failed to marshal unit config: %w", err)
+		}
+		inputs.UnitConfig = ucJSON
 	}
 
 	return inputs, nil

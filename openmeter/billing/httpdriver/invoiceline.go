@@ -224,6 +224,21 @@ func mapTaxConfigToAPI(to *productcatalog.TaxConfig) *api.TaxConfig {
 	return lo.ToPtr(productcataloghttp.FromTaxConfig(*to))
 }
 
+func mapUsageQuantityDetailToAPI(ubp *billing.UsageBasedLine) *api.InvoiceUsageQuantityDetail {
+	if ubp == nil || ubp.UsageQuantityDetail == nil {
+		return nil
+	}
+
+	d := ubp.UsageQuantityDetail
+
+	return &api.InvoiceUsageQuantityDetail{
+		RawQuantity:       d.RawQuantity.String(),
+		ConvertedQuantity: d.ConvertedQuantity.String(),
+		InvoicedQuantity:  d.InvoicedQuantity.String(),
+		AppliedUnitConfig: productcataloghttp.FromUnitConfig(d.AppliedUnitConfig),
+	}
+}
+
 func mapDetailedLinesToAPI(lines billing.DetailedLines, invoiceAt time.Time) (*[]api.InvoiceDetailedLine, error) {
 	mappedLines, err := slicesx.MapWithErr(lines, func(line billing.DetailedLine) (api.InvoiceDetailedLine, error) {
 		return mapDetailedLineToAPI(line, invoiceAt)
@@ -374,9 +389,10 @@ func mapInvoiceLineToAPI(line *billing.StandardLine) (api.InvoiceLine, error) {
 			FeatureKey: lo.EmptyableToPtr(line.UsageBased.FeatureKey),
 		},
 
-		Discounts: discountsAPI,
-		Children:  children,
-		Totals:    mapTotalsToAPI(line.Totals),
+		Discounts:           discountsAPI,
+		Children:            children,
+		Totals:              mapTotalsToAPI(line.Totals),
+		UsageQuantityDetail: mapUsageQuantityDetailToAPI(line.UsageBased),
 
 		ExternalIds:  mapLineAppExternalIdsToAPI(line.ExternalIDs),
 		Subscription: mapSubscriptionReferencesToAPI(line.Subscription),

@@ -222,6 +222,12 @@ export const createAddonBodyRateCardsItemTwoPriceOneFiveMinimumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createAddonBodyRateCardsItemTwoPriceOneFiveMaximumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
+export const createAddonBodyRateCardsItemTwoUnitConfigOneConversionFactorOneRegExp =
+  /^-?[0-9]+(\.[0-9]+)?$/
+export const createAddonBodyRateCardsItemTwoUnitConfigOneRoundingDefault =
+  'none' as const
+export const createAddonBodyRateCardsItemTwoUnitConfigOnePrecisionDefault =
+  0 as const
 export const createAddonBodyRateCardsItemTwoDiscountsOneUsageOneQuantityOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 
@@ -1035,6 +1041,60 @@ export const CreateAddonBody = zod
                 type: zod
                   .enum(['usage_based'])
                   .describe('The type of the RateCard.'),
+                unitConfig: zod
+                  .object({
+                    conversion_factor: zod.coerce
+                      .string()
+                      .regex(
+                        createAddonBodyRateCardsItemTwoUnitConfigOneConversionFactorOneRegExp,
+                      )
+                      .describe(
+                        'Numeric represents an arbitrary precision number.',
+                      )
+                      .describe(
+                        'The factor used in the conversion operation. Must be positive and non-zero.',
+                      ),
+                    display_unit: zod.coerce
+                      .string()
+                      .optional()
+                      .describe(
+                        'A human-readable label for the converted unit (e.g., "GB", "hours", "M tokens").',
+                      ),
+                    operation: zod
+                      .enum(['divide', 'multiply'])
+                      .describe(
+                        'The arithmetic operation used to convert raw metered units into billing units.',
+                      )
+                      .describe(
+                        'The arithmetic operation to apply to the raw metered quantity.',
+                      ),
+                    precision: zod.coerce
+                      .number()
+                      .default(
+                        createAddonBodyRateCardsItemTwoUnitConfigOnePrecisionDefault,
+                      )
+                      .describe(
+                        'The number of decimal places to retain after rounding.',
+                      ),
+                    rounding: zod
+                      .enum(['ceiling', 'floor', 'half_up', 'none'])
+                      .describe(
+                        'The rounding mode applied to the converted quantity for invoicing.',
+                      )
+                      .default(
+                        createAddonBodyRateCardsItemTwoUnitConfigOneRoundingDefault,
+                      )
+                      .describe(
+                        'The rounding mode applied to the converted quantity for invoicing.',
+                      ),
+                  })
+                  .describe(
+                    'Unit conversion configuration.\nTransforms raw metered quantities into billing-ready units before pricing.',
+                  )
+                  .optional()
+                  .describe(
+                    'Optional unit conversion configuration.\nTransforms raw metered quantities into billing-ready units before pricing.',
+                  ),
               })
               .describe(
                 'A usage-based rate card defines a price based on usage.',
@@ -1158,6 +1218,12 @@ export const updateAddonBodyRateCardsItemTwoPriceOneFiveMinimumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updateAddonBodyRateCardsItemTwoPriceOneFiveMaximumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
+export const updateAddonBodyRateCardsItemTwoUnitConfigOneConversionFactorOneRegExp =
+  /^-?[0-9]+(\.[0-9]+)?$/
+export const updateAddonBodyRateCardsItemTwoUnitConfigOneRoundingDefault =
+  'none' as const
+export const updateAddonBodyRateCardsItemTwoUnitConfigOnePrecisionDefault =
+  0 as const
 export const updateAddonBodyRateCardsItemTwoDiscountsOneUsageOneQuantityOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 
@@ -1955,6 +2021,60 @@ export const UpdateAddonBody = zod
                 type: zod
                   .enum(['usage_based'])
                   .describe('The type of the RateCard.'),
+                unitConfig: zod
+                  .object({
+                    conversion_factor: zod.coerce
+                      .string()
+                      .regex(
+                        updateAddonBodyRateCardsItemTwoUnitConfigOneConversionFactorOneRegExp,
+                      )
+                      .describe(
+                        'Numeric represents an arbitrary precision number.',
+                      )
+                      .describe(
+                        'The factor used in the conversion operation. Must be positive and non-zero.',
+                      ),
+                    display_unit: zod.coerce
+                      .string()
+                      .optional()
+                      .describe(
+                        'A human-readable label for the converted unit (e.g., "GB", "hours", "M tokens").',
+                      ),
+                    operation: zod
+                      .enum(['divide', 'multiply'])
+                      .describe(
+                        'The arithmetic operation used to convert raw metered units into billing units.',
+                      )
+                      .describe(
+                        'The arithmetic operation to apply to the raw metered quantity.',
+                      ),
+                    precision: zod.coerce
+                      .number()
+                      .default(
+                        updateAddonBodyRateCardsItemTwoUnitConfigOnePrecisionDefault,
+                      )
+                      .describe(
+                        'The number of decimal places to retain after rounding.',
+                      ),
+                    rounding: zod
+                      .enum(['ceiling', 'floor', 'half_up', 'none'])
+                      .describe(
+                        'The rounding mode applied to the converted quantity for invoicing.',
+                      )
+                      .default(
+                        updateAddonBodyRateCardsItemTwoUnitConfigOneRoundingDefault,
+                      )
+                      .describe(
+                        'The rounding mode applied to the converted quantity for invoicing.',
+                      ),
+                  })
+                  .describe(
+                    'Unit conversion configuration.\nTransforms raw metered quantities into billing-ready units before pricing.',
+                  )
+                  .optional()
+                  .describe(
+                    'Optional unit conversion configuration.\nTransforms raw metered quantities into billing-ready units before pricing.',
+                  ),
               })
               .describe(
                 'A usage-based rate card defines a price based on usage.',
@@ -8348,6 +8468,10 @@ export const createFeatureBodyUnitCostOneTwoPricingOneReasoningPerTokenOneRegExp
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createFeatureBodyUnitCostOneTwoPricingOneCacheWritePerTokenOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
+export const createFeatureBodyUnitConfigOneConversionFactorOneRegExp =
+  /^-?[0-9]+(\.[0-9]+)?$/
+export const createFeatureBodyUnitConfigOneRoundingDefault = 'none' as const
+export const createFeatureBodyUnitConfigOnePrecisionDefault = 0 as const
 
 export const CreateFeatureBody = zod
   .object({
@@ -8463,6 +8587,50 @@ export const CreateFeatureBody = zod
         'A key is a unique string that is used to identify a resource.',
       ),
     name: zod.coerce.string(),
+    unitConfig: zod
+      .object({
+        conversion_factor: zod.coerce
+          .string()
+          .regex(createFeatureBodyUnitConfigOneConversionFactorOneRegExp)
+          .describe('Numeric represents an arbitrary precision number.')
+          .describe(
+            'The factor used in the conversion operation. Must be positive and non-zero.',
+          ),
+        display_unit: zod.coerce
+          .string()
+          .optional()
+          .describe(
+            'A human-readable label for the converted unit (e.g., "GB", "hours", "M tokens").',
+          ),
+        operation: zod
+          .enum(['divide', 'multiply'])
+          .describe(
+            'The arithmetic operation used to convert raw metered units into billing units.',
+          )
+          .describe(
+            'The arithmetic operation to apply to the raw metered quantity.',
+          ),
+        precision: zod.coerce
+          .number()
+          .default(createFeatureBodyUnitConfigOnePrecisionDefault)
+          .describe('The number of decimal places to retain after rounding.'),
+        rounding: zod
+          .enum(['ceiling', 'floor', 'half_up', 'none'])
+          .describe(
+            'The rounding mode applied to the converted quantity for invoicing.',
+          )
+          .default(createFeatureBodyUnitConfigOneRoundingDefault)
+          .describe(
+            'The rounding mode applied to the converted quantity for invoicing.',
+          ),
+      })
+      .describe(
+        'Unit conversion configuration.\nTransforms raw metered quantities into billing-ready units before pricing.',
+      )
+      .optional()
+      .describe(
+        'Optional unit conversion configuration.\nTransforms raw metered quantities into billing-ready units before pricing.\nExample: divide by 1e9 to convert bytes to GB, or multiply by 1.2 for a 20% margin.',
+      ),
     unitCost: zod
       .union([
         zod
@@ -10494,6 +10662,12 @@ export const createPlanBodyPhasesItemRateCardsItemTwoPriceOneFiveMinimumAmountOn
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createPlanBodyPhasesItemRateCardsItemTwoPriceOneFiveMaximumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
+export const createPlanBodyPhasesItemRateCardsItemTwoUnitConfigOneConversionFactorOneRegExp =
+  /^-?[0-9]+(\.[0-9]+)?$/
+export const createPlanBodyPhasesItemRateCardsItemTwoUnitConfigOneRoundingDefault =
+  'none' as const
+export const createPlanBodyPhasesItemRateCardsItemTwoUnitConfigOnePrecisionDefault =
+  0 as const
 export const createPlanBodyPhasesItemRateCardsItemTwoDiscountsOneUsageOneQuantityOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 
@@ -11397,6 +11571,60 @@ export const CreatePlanBody = zod
                         type: zod
                           .enum(['usage_based'])
                           .describe('The type of the RateCard.'),
+                        unitConfig: zod
+                          .object({
+                            conversion_factor: zod.coerce
+                              .string()
+                              .regex(
+                                createPlanBodyPhasesItemRateCardsItemTwoUnitConfigOneConversionFactorOneRegExp,
+                              )
+                              .describe(
+                                'Numeric represents an arbitrary precision number.',
+                              )
+                              .describe(
+                                'The factor used in the conversion operation. Must be positive and non-zero.',
+                              ),
+                            display_unit: zod.coerce
+                              .string()
+                              .optional()
+                              .describe(
+                                'A human-readable label for the converted unit (e.g., "GB", "hours", "M tokens").',
+                              ),
+                            operation: zod
+                              .enum(['divide', 'multiply'])
+                              .describe(
+                                'The arithmetic operation used to convert raw metered units into billing units.',
+                              )
+                              .describe(
+                                'The arithmetic operation to apply to the raw metered quantity.',
+                              ),
+                            precision: zod.coerce
+                              .number()
+                              .default(
+                                createPlanBodyPhasesItemRateCardsItemTwoUnitConfigOnePrecisionDefault,
+                              )
+                              .describe(
+                                'The number of decimal places to retain after rounding.',
+                              ),
+                            rounding: zod
+                              .enum(['ceiling', 'floor', 'half_up', 'none'])
+                              .describe(
+                                'The rounding mode applied to the converted quantity for invoicing.',
+                              )
+                              .default(
+                                createPlanBodyPhasesItemRateCardsItemTwoUnitConfigOneRoundingDefault,
+                              )
+                              .describe(
+                                'The rounding mode applied to the converted quantity for invoicing.',
+                              ),
+                          })
+                          .describe(
+                            'Unit conversion configuration.\nTransforms raw metered quantities into billing-ready units before pricing.',
+                          )
+                          .optional()
+                          .describe(
+                            'Optional unit conversion configuration.\nTransforms raw metered quantities into billing-ready units before pricing.',
+                          ),
                       })
                       .describe(
                         'A usage-based rate card defines a price based on usage.',
@@ -11583,6 +11811,12 @@ export const updatePlanBodyPhasesItemRateCardsItemTwoPriceOneFiveMinimumAmountOn
   /^-?[0-9]+(\.[0-9]+)?$/
 export const updatePlanBodyPhasesItemRateCardsItemTwoPriceOneFiveMaximumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
+export const updatePlanBodyPhasesItemRateCardsItemTwoUnitConfigOneConversionFactorOneRegExp =
+  /^-?[0-9]+(\.[0-9]+)?$/
+export const updatePlanBodyPhasesItemRateCardsItemTwoUnitConfigOneRoundingDefault =
+  'none' as const
+export const updatePlanBodyPhasesItemRateCardsItemTwoUnitConfigOnePrecisionDefault =
+  0 as const
 export const updatePlanBodyPhasesItemRateCardsItemTwoDiscountsOneUsageOneQuantityOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 
@@ -12470,6 +12704,60 @@ export const UpdatePlanBody = zod
                         type: zod
                           .enum(['usage_based'])
                           .describe('The type of the RateCard.'),
+                        unitConfig: zod
+                          .object({
+                            conversion_factor: zod.coerce
+                              .string()
+                              .regex(
+                                updatePlanBodyPhasesItemRateCardsItemTwoUnitConfigOneConversionFactorOneRegExp,
+                              )
+                              .describe(
+                                'Numeric represents an arbitrary precision number.',
+                              )
+                              .describe(
+                                'The factor used in the conversion operation. Must be positive and non-zero.',
+                              ),
+                            display_unit: zod.coerce
+                              .string()
+                              .optional()
+                              .describe(
+                                'A human-readable label for the converted unit (e.g., "GB", "hours", "M tokens").',
+                              ),
+                            operation: zod
+                              .enum(['divide', 'multiply'])
+                              .describe(
+                                'The arithmetic operation used to convert raw metered units into billing units.',
+                              )
+                              .describe(
+                                'The arithmetic operation to apply to the raw metered quantity.',
+                              ),
+                            precision: zod.coerce
+                              .number()
+                              .default(
+                                updatePlanBodyPhasesItemRateCardsItemTwoUnitConfigOnePrecisionDefault,
+                              )
+                              .describe(
+                                'The number of decimal places to retain after rounding.',
+                              ),
+                            rounding: zod
+                              .enum(['ceiling', 'floor', 'half_up', 'none'])
+                              .describe(
+                                'The rounding mode applied to the converted quantity for invoicing.',
+                              )
+                              .default(
+                                updatePlanBodyPhasesItemRateCardsItemTwoUnitConfigOneRoundingDefault,
+                              )
+                              .describe(
+                                'The rounding mode applied to the converted quantity for invoicing.',
+                              ),
+                          })
+                          .describe(
+                            'Unit conversion configuration.\nTransforms raw metered quantities into billing-ready units before pricing.',
+                          )
+                          .optional()
+                          .describe(
+                            'Optional unit conversion configuration.\nTransforms raw metered quantities into billing-ready units before pricing.',
+                          ),
                       })
                       .describe(
                         'A usage-based rate card defines a price based on usage.',
@@ -14376,6 +14664,12 @@ export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwo
   /^-?[0-9]+(\.[0-9]+)?$/
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneFiveMaximumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoUnitConfigOneConversionFactorOneRegExp =
+  /^-?[0-9]+(\.[0-9]+)?$/
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoUnitConfigOneRoundingDefault =
+  'none' as const
+export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoUnitConfigOnePrecisionDefault =
+  0 as const
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoDiscountsOneUsageOneQuantityOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 
@@ -15465,6 +15759,65 @@ export const CreateSubscriptionBody = zod
                                 type: zod
                                   .enum(['usage_based'])
                                   .describe('The type of the RateCard.'),
+                                unitConfig: zod
+                                  .object({
+                                    conversion_factor: zod.coerce
+                                      .string()
+                                      .regex(
+                                        createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoUnitConfigOneConversionFactorOneRegExp,
+                                      )
+                                      .describe(
+                                        'Numeric represents an arbitrary precision number.',
+                                      )
+                                      .describe(
+                                        'The factor used in the conversion operation. Must be positive and non-zero.',
+                                      ),
+                                    display_unit: zod.coerce
+                                      .string()
+                                      .optional()
+                                      .describe(
+                                        'A human-readable label for the converted unit (e.g., "GB", "hours", "M tokens").',
+                                      ),
+                                    operation: zod
+                                      .enum(['divide', 'multiply'])
+                                      .describe(
+                                        'The arithmetic operation used to convert raw metered units into billing units.',
+                                      )
+                                      .describe(
+                                        'The arithmetic operation to apply to the raw metered quantity.',
+                                      ),
+                                    precision: zod.coerce
+                                      .number()
+                                      .default(
+                                        createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoUnitConfigOnePrecisionDefault,
+                                      )
+                                      .describe(
+                                        'The number of decimal places to retain after rounding.',
+                                      ),
+                                    rounding: zod
+                                      .enum([
+                                        'ceiling',
+                                        'floor',
+                                        'half_up',
+                                        'none',
+                                      ])
+                                      .describe(
+                                        'The rounding mode applied to the converted quantity for invoicing.',
+                                      )
+                                      .default(
+                                        createSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoUnitConfigOneRoundingDefault,
+                                      )
+                                      .describe(
+                                        'The rounding mode applied to the converted quantity for invoicing.',
+                                      ),
+                                  })
+                                  .describe(
+                                    'Unit conversion configuration.\nTransforms raw metered quantities into billing-ready units before pricing.',
+                                  )
+                                  .optional()
+                                  .describe(
+                                    'Optional unit conversion configuration.\nTransforms raw metered quantities into billing-ready units before pricing.',
+                                  ),
                               })
                               .describe(
                                 'A usage-based rate card defines a price based on usage.',
@@ -15682,6 +16035,12 @@ export const editSubscriptionBodyCustomizationsItemOneRateCardTwoPriceOneFiveMin
   /^-?[0-9]+(\.[0-9]+)?$/
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoPriceOneFiveMaximumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
+export const editSubscriptionBodyCustomizationsItemOneRateCardTwoUnitConfigOneConversionFactorOneRegExp =
+  /^-?[0-9]+(\.[0-9]+)?$/
+export const editSubscriptionBodyCustomizationsItemOneRateCardTwoUnitConfigOneRoundingDefault =
+  'none' as const
+export const editSubscriptionBodyCustomizationsItemOneRateCardTwoUnitConfigOnePrecisionDefault =
+  0 as const
 export const editSubscriptionBodyCustomizationsItemOneRateCardTwoDiscountsOneUsageOneQuantityOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 export const editSubscriptionBodyCustomizationsItemThreePhaseDiscountsOneUsageOneQuantityOneRegExp =
@@ -16518,6 +16877,60 @@ export const EditSubscriptionBody = zod
                         type: zod
                           .enum(['usage_based'])
                           .describe('The type of the RateCard.'),
+                        unitConfig: zod
+                          .object({
+                            conversion_factor: zod.coerce
+                              .string()
+                              .regex(
+                                editSubscriptionBodyCustomizationsItemOneRateCardTwoUnitConfigOneConversionFactorOneRegExp,
+                              )
+                              .describe(
+                                'Numeric represents an arbitrary precision number.',
+                              )
+                              .describe(
+                                'The factor used in the conversion operation. Must be positive and non-zero.',
+                              ),
+                            display_unit: zod.coerce
+                              .string()
+                              .optional()
+                              .describe(
+                                'A human-readable label for the converted unit (e.g., "GB", "hours", "M tokens").',
+                              ),
+                            operation: zod
+                              .enum(['divide', 'multiply'])
+                              .describe(
+                                'The arithmetic operation used to convert raw metered units into billing units.',
+                              )
+                              .describe(
+                                'The arithmetic operation to apply to the raw metered quantity.',
+                              ),
+                            precision: zod.coerce
+                              .number()
+                              .default(
+                                editSubscriptionBodyCustomizationsItemOneRateCardTwoUnitConfigOnePrecisionDefault,
+                              )
+                              .describe(
+                                'The number of decimal places to retain after rounding.',
+                              ),
+                            rounding: zod
+                              .enum(['ceiling', 'floor', 'half_up', 'none'])
+                              .describe(
+                                'The rounding mode applied to the converted quantity for invoicing.',
+                              )
+                              .default(
+                                editSubscriptionBodyCustomizationsItemOneRateCardTwoUnitConfigOneRoundingDefault,
+                              )
+                              .describe(
+                                'The rounding mode applied to the converted quantity for invoicing.',
+                              ),
+                          })
+                          .describe(
+                            'Unit conversion configuration.\nTransforms raw metered quantities into billing-ready units before pricing.',
+                          )
+                          .optional()
+                          .describe(
+                            'Optional unit conversion configuration.\nTransforms raw metered quantities into billing-ready units before pricing.',
+                          ),
                       })
                       .describe(
                         'A usage-based rate card defines a price based on usage.',
@@ -17056,6 +17469,12 @@ export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwo
   /^-?[0-9]+(\.[0-9]+)?$/
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoPriceOneFiveMaximumAmountOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoUnitConfigOneConversionFactorOneRegExp =
+  /^-?[0-9]+(\.[0-9]+)?$/
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoUnitConfigOneRoundingDefault =
+  'none' as const
+export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoUnitConfigOnePrecisionDefault =
+  0 as const
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoDiscountsOneUsageOneQuantityOneRegExp =
   /^-?[0-9]+(\.[0-9]+)?$/
 
@@ -18113,6 +18532,65 @@ export const ChangeSubscriptionBody = zod
                                 type: zod
                                   .enum(['usage_based'])
                                   .describe('The type of the RateCard.'),
+                                unitConfig: zod
+                                  .object({
+                                    conversion_factor: zod.coerce
+                                      .string()
+                                      .regex(
+                                        changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoUnitConfigOneConversionFactorOneRegExp,
+                                      )
+                                      .describe(
+                                        'Numeric represents an arbitrary precision number.',
+                                      )
+                                      .describe(
+                                        'The factor used in the conversion operation. Must be positive and non-zero.',
+                                      ),
+                                    display_unit: zod.coerce
+                                      .string()
+                                      .optional()
+                                      .describe(
+                                        'A human-readable label for the converted unit (e.g., "GB", "hours", "M tokens").',
+                                      ),
+                                    operation: zod
+                                      .enum(['divide', 'multiply'])
+                                      .describe(
+                                        'The arithmetic operation used to convert raw metered units into billing units.',
+                                      )
+                                      .describe(
+                                        'The arithmetic operation to apply to the raw metered quantity.',
+                                      ),
+                                    precision: zod.coerce
+                                      .number()
+                                      .default(
+                                        changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoUnitConfigOnePrecisionDefault,
+                                      )
+                                      .describe(
+                                        'The number of decimal places to retain after rounding.',
+                                      ),
+                                    rounding: zod
+                                      .enum([
+                                        'ceiling',
+                                        'floor',
+                                        'half_up',
+                                        'none',
+                                      ])
+                                      .describe(
+                                        'The rounding mode applied to the converted quantity for invoicing.',
+                                      )
+                                      .default(
+                                        changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemRateCardsItemTwoUnitConfigOneRoundingDefault,
+                                      )
+                                      .describe(
+                                        'The rounding mode applied to the converted quantity for invoicing.',
+                                      ),
+                                  })
+                                  .describe(
+                                    'Unit conversion configuration.\nTransforms raw metered quantities into billing-ready units before pricing.',
+                                  )
+                                  .optional()
+                                  .describe(
+                                    'Optional unit conversion configuration.\nTransforms raw metered quantities into billing-ready units before pricing.',
+                                  ),
                               })
                               .describe(
                                 'A usage-based rate card defines a price based on usage.',

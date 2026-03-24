@@ -359,6 +359,28 @@ class FeatureOrderBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """UPDATED_AT."""
 
 
+class FeatureUnitConfigOperation(str, Enum, metaclass=CaseInsensitiveEnumMeta):
+    """The arithmetic operation used to convert raw metered units into billing units."""
+
+    DIVIDE = "divide"
+    """DIVIDE."""
+    MULTIPLY = "multiply"
+    """MULTIPLY."""
+
+
+class FeatureUnitConfigRoundingMode(str, Enum, metaclass=CaseInsensitiveEnumMeta):
+    """The rounding mode applied to the converted quantity for invoicing."""
+
+    CEILING = "ceiling"
+    """CEILING."""
+    FLOOR = "floor"
+    """FLOOR."""
+    HALF_UP = "half_up"
+    """HALF_UP."""
+    NONE = "none"
+    """NONE."""
+
+
 class FeatureUnitCostType(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """The type of unit cost."""
 

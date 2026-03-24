@@ -6392,6 +6392,8 @@ class Feature(_Model):
      type.
     :vartype unit_cost: ~openmeter._generated.models.FeatureManualUnitCost or
      ~openmeter._generated.models.FeatureLLMUnitCost
+    :ivar unit_config: Unit config.
+    :vartype unit_config: ~openmeter._generated.models.FeatureUnitConfig
     :ivar id: Readonly unique ULID identifier. Required.
     :vartype id: str
     """
@@ -6424,6 +6426,10 @@ class Feature(_Model):
         name="unitCost", visibility=["read", "create", "update", "delete", "query"]
     )
     """Unit cost. Is either a FeatureManualUnitCost type or a FeatureLLMUnitCost type."""
+    unit_config: Optional["_models.FeatureUnitConfig"] = rest_field(
+        name="unitConfig", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Unit config."""
     id: str = rest_field(visibility=["read"])
     """Readonly unique ULID identifier. Required."""
 
@@ -6438,6 +6444,7 @@ class Feature(_Model):
         meter_group_by_filters: Optional[dict[str, str]] = None,
         advanced_meter_group_by_filters: Optional[dict[str, "_models.FilterString"]] = None,
         unit_cost: Optional["_types.FeatureUnitCost"] = None,
+        unit_config: Optional["_models.FeatureUnitConfig"] = None,
     ) -> None: ...
 
     @overload
@@ -6471,6 +6478,8 @@ class FeatureCreateInputs(_Model):
      type.
     :vartype unit_cost: ~openmeter._generated.models.FeatureManualUnitCost or
      ~openmeter._generated.models.FeatureLLMUnitCost
+    :ivar unit_config: Unit config.
+    :vartype unit_config: ~openmeter._generated.models.FeatureUnitConfig
     """
 
     key: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -6493,6 +6502,10 @@ class FeatureCreateInputs(_Model):
         name="unitCost", visibility=["read", "create", "update", "delete", "query"]
     )
     """Unit cost. Is either a FeatureManualUnitCost type or a FeatureLLMUnitCost type."""
+    unit_config: Optional["_models.FeatureUnitConfig"] = rest_field(
+        name="unitConfig", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Unit config."""
 
     @overload
     def __init__(
@@ -6505,6 +6518,7 @@ class FeatureCreateInputs(_Model):
         meter_group_by_filters: Optional[dict[str, str]] = None,
         advanced_meter_group_by_filters: Optional[dict[str, "_models.FilterString"]] = None,
         unit_cost: Optional["_types.FeatureUnitCost"] = None,
+        unit_config: Optional["_models.FeatureUnitConfig"] = None,
     ) -> None: ...
 
     @overload
@@ -6741,6 +6755,59 @@ class FeaturePaginatedResponse(_Model):
         page: int,
         page_size: int,
         items_property: list["_models.Feature"],
+    ) -> None: ...
+
+    @overload
+    def __init__(self, mapping: Mapping[str, Any]) -> None:
+        """
+        :param mapping: raw JSON to initialize the model.
+        :type mapping: Mapping[str, Any]
+        """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+
+class FeatureUnitConfig(_Model):
+    """Unit conversion configuration. Transforms raw metered quantities into billing-ready units
+    before pricing.
+
+    :ivar operation: Conversion operation. Required. Known values are: "divide" and "multiply".
+    :vartype operation: str or ~openmeter.models.FeatureUnitConfigOperation
+    :ivar conversion_factor: Conversion factor. Required.
+    :vartype conversion_factor: str
+    :ivar rounding: Rounding mode. Known values are: "ceiling", "floor", "half_up", and "none".
+    :vartype rounding: str or ~openmeter.models.FeatureUnitConfigRoundingMode
+    :ivar precision: Rounding precision.
+    :vartype precision: int
+    :ivar display_unit: Display unit label.
+    :vartype display_unit: str
+    """
+
+    operation: Union[str, "_models.FeatureUnitConfigOperation"] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Conversion operation. Required. Known values are: \"divide\" and \"multiply\"."""
+    conversion_factor: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """Conversion factor. Required."""
+    rounding: Optional[Union[str, "_models.FeatureUnitConfigRoundingMode"]] = rest_field(
+        visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Rounding mode. Known values are: \"ceiling\", \"floor\", \"half_up\", and \"none\"."""
+    precision: Optional[int] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """Rounding precision."""
+    display_unit: Optional[str] = rest_field(visibility=["read", "create", "update", "delete", "query"])
+    """Display unit label."""
+
+    @overload
+    def __init__(
+        self,
+        *,
+        operation: Union[str, "_models.FeatureUnitConfigOperation"],
+        conversion_factor: str,
+        rounding: Optional[Union[str, "_models.FeatureUnitConfigRoundingMode"]] = None,
+        precision: Optional[int] = None,
+        display_unit: Optional[str] = None,
     ) -> None: ...
 
     @overload
@@ -8013,6 +8080,10 @@ class InvoiceLine(_Model):
      It is non-zero in case of progressive billing, when this shows how much of the usage was
      already billed.
     :vartype metered_pre_line_period_quantity: str
+    :ivar usage_quantity_detail: Usage quantity details when UnitConfig is in effect. Provides the
+     audit trail from raw meter output to the invoiced amount. Only present when a UnitConfig was
+     applied to this line.
+    :vartype usage_quantity_detail: ~openmeter._generated.models.InvoiceUsageQuantityDetail
     """
 
     name: str = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -8103,6 +8174,11 @@ class InvoiceLine(_Model):
      
      It is non-zero in case of progressive billing, when this shows how much of the usage was
      already billed."""
+    usage_quantity_detail: Optional["_models.InvoiceUsageQuantityDetail"] = rest_field(
+        name="usageQuantityDetail", visibility=["read"]
+    )
+    """Usage quantity details when UnitConfig is in effect. Provides the audit trail from raw meter
+     output to the invoiced amount. Only present when a UnitConfig was applied to this line."""
 
     @overload
     def __init__(  # pylint: disable=too-many-locals
@@ -9121,6 +9197,30 @@ class InvoiceUsageBasedRateCard(_Model):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+
+
+class InvoiceUsageQuantityDetail(_Model):
+    """Usage quantity details when UnitConfig is in effect. Provides the full audit trail from raw
+    meter output to the invoiced amount.
+
+    :ivar raw_quantity: Raw metered quantity. Required.
+    :vartype raw_quantity: str
+    :ivar converted_quantity: Converted quantity (precise). Required.
+    :vartype converted_quantity: str
+    :ivar invoiced_quantity: Invoiced quantity (rounded). Required.
+    :vartype invoiced_quantity: str
+    :ivar applied_unit_config: Applied unit config. Required.
+    :vartype applied_unit_config: ~openmeter._generated.models.FeatureUnitConfig
+    """
+
+    raw_quantity: str = rest_field(name="rawQuantity", visibility=["read"])
+    """Raw metered quantity. Required."""
+    converted_quantity: str = rest_field(name="convertedQuantity", visibility=["read"])
+    """Converted quantity (precise). Required."""
+    invoiced_quantity: str = rest_field(name="invoicedQuantity", visibility=["read"])
+    """Invoiced quantity (rounded). Required."""
+    applied_unit_config: "_models.FeatureUnitConfig" = rest_field(name="appliedUnitConfig", visibility=["read"])
+    """Applied unit config. Required."""
 
 
 class InvoiceWorkflowInvoicingSettingsReplaceUpdate(_Model):  # pylint: disable=name-too-long
@@ -12696,6 +12796,8 @@ class RateCardUsageBased(_Model):
      ~openmeter._generated.models.TieredPriceWithCommitments or
      ~openmeter._generated.models.DynamicPriceWithCommitments or
      ~openmeter._generated.models.PackagePriceWithCommitments
+    :ivar unit_config: Unit config.
+    :vartype unit_config: ~openmeter._generated.models.FeatureUnitConfig
     :ivar discounts: Discounts.
     :vartype discounts: ~openmeter._generated.models.Discounts
     """
@@ -12726,6 +12828,10 @@ class RateCardUsageBased(_Model):
     """The price of the rate card. When null, the feature or service is free. Required. Is one of the
      following types: FlatPriceWithPaymentTerm, UnitPriceWithCommitments,
      TieredPriceWithCommitments, DynamicPriceWithCommitments, PackagePriceWithCommitments"""
+    unit_config: Optional["_models.FeatureUnitConfig"] = rest_field(
+        name="unitConfig", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Unit config."""
     discounts: Optional["_models.Discounts"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Discounts."""
 
@@ -12743,6 +12849,7 @@ class RateCardUsageBased(_Model):
         feature_key: Optional[str] = None,
         entitlement_template: Optional["_types.RateCardEntitlement"] = None,
         tax_config: Optional["_models.TaxConfig"] = None,
+        unit_config: Optional["_models.FeatureUnitConfig"] = None,
         discounts: Optional["_models.Discounts"] = None,
     ) -> None: ...
 

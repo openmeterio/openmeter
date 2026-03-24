@@ -151,6 +151,13 @@ model RateCardUsageBased {
   price: RateCardUsageBasedPrice | null;
 
   /**
+   * Optional unit conversion configuration.
+   * Transforms raw metered quantities into billing-ready units before pricing.
+   */
+  @summary("Unit config")
+  unitConfig?: FeatureUnitConfig;
+
+  /**
    * The discounts of the rate card.
    *
    * Flat fee rate cards only support percentage discounts.

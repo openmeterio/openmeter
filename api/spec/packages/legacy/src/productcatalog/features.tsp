@@ -79,6 +79,14 @@ model FeatureCreateInputs {
    */
   @summary("Unit cost")
   unitCost?: FeatureUnitCost;
+
+  /**
+   * Optional unit conversion configuration.
+   * Transforms raw metered quantities into billing-ready units before pricing.
+   * Example: divide by 1e9 to convert bytes to GB, or multiply by 1.2 for a 20% margin.
+   */
+  @summary("Unit config")
+  unitConfig?: FeatureUnitConfig;
 }
 
 /**
@@ -207,6 +215,56 @@ union FeatureUnitCost {
 
   @summary("LLM unit cost")
   llm: FeatureLLMUnitCost,
+}
+
+/**
+ * The arithmetic operation used to convert raw metered units into billing units.
+ */
+@friendlyName("FeatureUnitConfigOperation")
+enum FeatureUnitConfigOperation {
+  divide: "divide",
+  multiply: "multiply",
+}
+
+/**
+ * The rounding mode applied to the converted quantity for invoicing.
+ */
+@friendlyName("FeatureUnitConfigRoundingMode")
+enum FeatureUnitConfigRoundingMode {
+  ceiling: "ceiling",
+  floor: "floor",
+  #suppress "@openmeter/api-spec-legacy/casing" "Use existing values"
+  half_up: "half_up",
+  none: "none",
+}
+
+/**
+ * Unit conversion configuration.
+ * Transforms raw metered quantities into billing-ready units before pricing.
+ */
+@friendlyName("FeatureUnitConfig")
+model FeatureUnitConfig {
+  /** The arithmetic operation to apply to the raw metered quantity. */
+  @summary("Conversion operation")
+  operation: FeatureUnitConfigOperation;
+
+  /** The factor used in the conversion operation. Must be positive and non-zero. */
+  @summary("Conversion factor")
+  @encodedName("application/json", "conversion_factor")
+  conversionFactor: Numeric;
+
+  /** The rounding mode applied to the converted quantity for invoicing. */
+  @summary("Rounding mode")
+  rounding?: FeatureUnitConfigRoundingMode = FeatureUnitConfigRoundingMode.none;
+
+  /** The number of decimal places to retain after rounding. */
+  @summary("Rounding precision")
+  precision?: integer = 0;
+
+  /** A human-readable label for the converted unit (e.g., "GB", "hours", "M tokens"). */
+  @summary("Display unit label")
+  @encodedName("application/json", "display_unit")
+  displayUnit?: string;
 }
 
 /**
