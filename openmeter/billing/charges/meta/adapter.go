@@ -28,8 +28,8 @@ func (i RegisterChargesInput) Validate() error {
 		errs = append(errs, errors.New("namespace is required"))
 	}
 
-	if i.Type == "" {
-		errs = append(errs, errors.New("type is required"))
+	if err := i.Type.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("type: %w", err))
 	}
 
 	for idx, charge := range i.Charges {
