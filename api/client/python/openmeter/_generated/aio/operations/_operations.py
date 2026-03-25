@@ -4,7 +4,7 @@ from collections.abc import MutableMapping
 import datetime
 from io import IOBase
 import json
-from typing import Any, Callable, IO, Optional, TYPE_CHECKING, TypeVar, Union, overload
+from typing import Any, Callable, IO, Literal, Optional, TYPE_CHECKING, TypeVar, Union, overload
 
 from corehttp.exceptions import (
     ClientAuthenticationError,
@@ -119,6 +119,7 @@ from ...operations._operations import (
     build_meters_list_group_by_values_request,
     build_meters_list_request,
     build_meters_list_subjects_request,
+    build_meters_query_csv_post_request,
     build_meters_query_csv_request,
     build_meters_query_json_request,
     build_meters_query_request,
@@ -11582,7 +11583,7 @@ class MetersOperations:
         if cls:
             return cls(pipeline_response, None, {})  # type: ignore
 
-    async def query_json(
+    async def query_json(  # pylint: disable=too-many-locals
         self,
         meter_id_or_slug: str,
         *,
@@ -11665,9 +11666,10 @@ class MetersOperations:
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
 
-        _headers = kwargs.pop("headers", {}) or {}
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
+        accept: Literal["application/json"] = kwargs.pop("accept", _headers.pop("accept", "application/json"))
         cls: ClsType[_models.MeterQueryResult] = kwargs.pop("cls", None)
 
         _request = build_meters_query_json_request(
@@ -11682,6 +11684,7 @@ class MetersOperations:
             filter_group_by=filter_group_by,
             advanced_meter_group_by_filters=advanced_meter_group_by_filters,
             group_by=group_by,
+            accept=accept,
             headers=_headers,
             params=_params,
         )
@@ -11740,7 +11743,7 @@ class MetersOperations:
 
         return deserialized  # type: ignore
 
-    async def query_csv(
+    async def query_csv(  # pylint: disable=too-many-locals
         self,
         meter_id_or_slug: str,
         *,
@@ -11821,9 +11824,10 @@ class MetersOperations:
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
 
-        _headers = kwargs.pop("headers", {}) or {}
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
+        accept: Literal["text/csv"] = kwargs.pop("accept", _headers.pop("accept", "text/csv"))
         cls: ClsType[str] = kwargs.pop("cls", None)
 
         _request = build_meters_query_csv_request(
@@ -11838,6 +11842,7 @@ class MetersOperations:
             filter_group_by=filter_group_by,
             advanced_meter_group_by_filters=advanced_meter_group_by_filters,
             group_by=group_by,
+            accept=accept,
             headers=_headers,
             params=_params,
         )
@@ -11985,6 +11990,7 @@ class MetersOperations:
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
+        accept: Literal["application/json"] = kwargs.pop("accept", _headers.pop("accept", "application/json"))
         content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
         cls: ClsType[_models.MeterQueryResult] = kwargs.pop("cls", None)
 
@@ -11997,6 +12003,7 @@ class MetersOperations:
 
         _request = build_meters_query_request(
             meter_id_or_slug=meter_id_or_slug,
+            accept=accept,
             content_type=content_type,
             content=_content,
             headers=_headers,
@@ -12051,6 +12058,88 @@ class MetersOperations:
             deserialized = response.iter_bytes() if _decompress else response.iter_raw()
         else:
             deserialized = _deserialize(_models.MeterQueryResult, response.json())
+
+        if cls:
+            return cls(pipeline_response, deserialized, response_headers)  # type: ignore
+
+        return deserialized  # type: ignore
+
+    async def query_csv_post(self, meter_id_or_slug: str, **kwargs: Any) -> str:
+        """query_csv_post.
+
+        :param meter_id_or_slug: Required.
+        :type meter_id_or_slug: str
+        :return: str
+        :rtype: str
+        :raises ~corehttp.exceptions.HttpResponseError:
+        """
+        error_map: MutableMapping = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _params = kwargs.pop("params", {}) or {}
+
+        accept: Literal["text/csv"] = kwargs.pop("accept", _headers.pop("accept", "text/csv"))
+        cls: ClsType[str] = kwargs.pop("cls", None)
+
+        _request = build_meters_query_csv_post_request(
+            meter_id_or_slug=meter_id_or_slug,
+            accept=accept,
+            headers=_headers,
+            params=_params,
+        )
+        path_format_arguments = {
+            "endpoint": self._serialize.url("self._config.endpoint", self._config.endpoint, "str", skip_quote=True),
+        }
+        _request.url = self._client.format_url(_request.url, **path_format_arguments)
+
+        _decompress = kwargs.pop("decompress", True)
+        _stream = kwargs.pop("stream", False)
+        pipeline_response: PipelineResponse = await self._client.pipeline.run(_request, stream=_stream, **kwargs)
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                try:
+                    await response.read()  # Load the body in memory and close the socket
+                except (StreamConsumedError, StreamClosedError):
+                    pass
+            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            error = None
+            if response.status_code == 404:
+                error = _failsafe_deserialize(_models.NotFoundProblemResponse, response)
+                raise ResourceNotFoundError(response=response, model=error)
+            if response.status_code == 400:
+                error = _failsafe_deserialize(_models.BadRequestProblemResponse, response)
+            elif response.status_code == 401:
+                error = _failsafe_deserialize(_models.UnauthorizedProblemResponse, response)
+                raise ClientAuthenticationError(response=response, model=error)
+            if response.status_code == 403:
+                error = _failsafe_deserialize(_models.ForbiddenProblemResponse, response)
+            elif response.status_code == 500:
+                error = _failsafe_deserialize(_models.InternalServerErrorProblemResponse, response)
+            elif response.status_code == 503:
+                error = _failsafe_deserialize(_models.ServiceUnavailableProblemResponse, response)
+            elif response.status_code == 412:
+                error = _failsafe_deserialize(_models.PreconditionFailedProblemResponse, response)
+            else:
+                error = _failsafe_deserialize(
+                    _models.UnexpectedProblemResponse,
+                    response,
+                )
+            raise HttpResponseError(response=response, model=error)
+
+        response_headers = {}
+        response_headers["content-type"] = self._deserialize("str", response.headers.get("content-type"))
+
+        if _stream:
+            deserialized = response.iter_bytes() if _decompress else response.iter_raw()
+        else:
+            deserialized = _deserialize(str, response.text())
 
         if cls:
             return cls(pipeline_response, deserialized, response_headers)  # type: ignore

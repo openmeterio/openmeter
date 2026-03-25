@@ -20671,7 +20671,9 @@ export interface operations {
          */
         groupBy?: components['parameters']['MeterQuery.groupBy']
       }
-      header?: never
+      header: {
+        accept: 'application/json' | 'text/csv'
+      }
       path: {
         meterIdOrSlug: string
       }
@@ -20766,7 +20768,9 @@ export interface operations {
   queryMeterPost: {
     parameters: {
       query?: never
-      header?: never
+      header: {
+        accept: 'application/json' | 'text/csv'
+      }
       path: {
         meterIdOrSlug: string
       }
@@ -20785,6 +20789,7 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['MeterQueryResult']
+          'text/csv': string
         }
       }
       /** @description The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing). */
