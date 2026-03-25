@@ -55,6 +55,11 @@ generate: ## Generate code
 	$(call print-target)
 	go generate ./...
 
+.PHONY: generate-view-sql
+generate-view-sql: ## Generate SQL for ent.View schemas
+	$(call print-target)
+	go run ./tools/migrate/cmd/viewgen
+
 .PHONY: build-dir
 build-dir:
 	@mkdir -p build

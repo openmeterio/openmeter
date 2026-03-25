@@ -2,14 +2,13 @@ package adapter
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"time"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeflatfee "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -29,14 +28,6 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.Charge) error
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
 		intent := charge.Intent
 
-		_, err := tx.metaAdapter.UpdateStatus(ctx, meta.UpdateStatusInput{
-			ChargeID: charge.GetChargeID(),
-			Status:   charge.Status,
-		})
-		if err != nil {
-			return err
-		}
-
 		var discounts *productcatalog.Discounts
 		if intent.PercentageDiscounts != nil {
 			discounts = &productcatalog.Discounts{Percentage: intent.PercentageDiscounts}
@@ -47,7 +38,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.Charge) error
 			return err
 		}
 
-		create := tx.db.ChargeFlatFee.UpdateOneID(charge.ID).
+		update := tx.db.ChargeFlatFee.UpdateOneID(charge.ID).
 			Where(dbchargeflatfee.NamespaceEQ(charge.Namespace)).
 			SetPaymentTerm(intent.PaymentTerm).
 			SetInvoiceAt(intent.InvoiceAt.In(time.UTC)).
@@ -56,7 +47,16 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.Charge) error
 			SetAmountBeforeProration(intent.AmountBeforeProration).
 			SetAmountAfterProration(intent.AmountAfterProration)
 
-		_, err = create.Save(ctx)
+		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
+			ManagedResource: charge.ManagedResource,
+			Intent:          charge.Intent.Intent,
+			Status:          charge.Status,
+		})
+		if err != nil {
+			return err
+		}
+
+		_, err = update.Save(ctx)
 		if err != nil {
 			return err
 		}
@@ -71,32 +71,11 @@ func (a *adapter) CreateCharges(ctx context.Context, in flatfee.CreateChargesInp
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]flatfee.Charge, error) {
-		chargeMetas, err := tx.metaAdapter.Create(ctx, meta.CreateInput{
-			Namespace: in.Namespace,
-			Intents: slicesx.Map(in.Intents, func(intent flatfee.IntentWithInitialStatus) meta.IntentCreate {
-				return meta.IntentCreate{
-					Intent:        intent.Intent.Intent,
-					Type:          meta.ChargeTypeFlatFee,
-					InitialStatus: intent.InitialStatus,
-				}
-			}),
+		creates, err := slicesx.MapWithErr(in.Intents, func(intent flatfee.IntentWithInitialStatus) (*db.ChargeFlatFeeCreate, error) {
+			return tx.buildCreateFlatFeeCharge(in.Namespace, intent)
 		})
 		if err != nil {
 			return nil, err
-		}
-
-		if len(chargeMetas) != len(in.Intents) {
-			return nil, fmt.Errorf("expected %d charge metas, got %d", len(in.Intents), len(chargeMetas))
-		}
-
-		creates := make([]*db.ChargeFlatFeeCreate, 0, len(chargeMetas))
-		for idx, chargeMeta := range chargeMetas {
-			create, err := tx.buildCreateFlatFeeCharge(ctx, chargeMeta, in.Intents[idx].Intent)
-			if err != nil {
-				return nil, err
-			}
-
-			creates = append(creates, create)
 		}
 
 		entities, err := tx.db.ChargeFlatFee.CreateBulk(creates...).Save(ctx)
@@ -104,9 +83,24 @@ func (a *adapter) CreateCharges(ctx context.Context, in flatfee.CreateChargesInp
 			return nil, err
 		}
 
+		// Let's reserve the charge IDs
+		err = tx.metaAdapter.RegisterCharges(ctx, meta.RegisterChargesInput{
+			Namespace: in.Namespace,
+			Type:      meta.ChargeTypeFlatFee,
+			Charges: lo.Map(entities, func(entity *db.ChargeFlatFee, idx int) meta.IDWithUniqueReferenceID {
+				return meta.IDWithUniqueReferenceID{
+					ID:                entity.ID,
+					UniqueReferenceID: entity.UniqueReferenceID,
+				}
+			}),
+		})
+		if err != nil {
+			return nil, err
+		}
+
 		out := make([]flatfee.Charge, 0, len(entities))
-		for idx, entity := range entities {
-			charge, err := MapChargeFlatFeeFromDB(entity, chargeMetas[idx], meta.ExpandNone)
+		for _, entity := range entities {
+			charge, err := MapChargeFlatFeeFromDB(entity, meta.ExpandNone)
 			if err != nil {
 				return nil, err
 			}
@@ -116,7 +110,7 @@ func (a *adapter) CreateCharges(ctx context.Context, in flatfee.CreateChargesInp
 	})
 }
 
-func (a *adapter) GetByMetas(ctx context.Context, input flatfee.GetByMetasInput) ([]flatfee.Charge, error) {
+func (a *adapter) GetByIDs(ctx context.Context, input flatfee.GetByIDsInput) ([]flatfee.Charge, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -124,11 +118,7 @@ func (a *adapter) GetByMetas(ctx context.Context, input flatfee.GetByMetasInput)
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]flatfee.Charge, error) {
 		query := tx.db.ChargeFlatFee.Query().
 			Where(dbchargeflatfee.Namespace(input.Namespace)).
-			Where(dbchargeflatfee.IDIn(
-				lo.Map(input.Charges, func(charge meta.Charge, idx int) string {
-					return charge.ID
-				})...,
-			))
+			Where(dbchargeflatfee.IDIn(input.IDs...))
 
 		if input.Expands.Has(meta.ExpandRealizations) {
 			query = query.WithCreditAllocations().
@@ -141,40 +131,18 @@ func (a *adapter) GetByMetas(ctx context.Context, input flatfee.GetByMetasInput)
 			return nil, err
 		}
 
-		entitiesMapped := make([]flatfee.Charge, 0, len(entities))
-		for idx, entity := range entities {
-			charge, err := MapChargeFlatFeeFromDB(entity, input.Charges[idx], input.Expands)
-			if err != nil {
-				return nil, err
-			}
-			entitiesMapped = append(entitiesMapped, charge)
+		entitiesInOrder, err := entutils.InIDOrder(input.Namespace, input.IDs, entities)
+		if err != nil {
+			return nil, err
 		}
 
-		entitiesByID := lo.GroupBy(entitiesMapped, func(charge flatfee.Charge) string {
-			return charge.ID
+		return slicesx.MapWithErr(entitiesInOrder, func(entity *db.ChargeFlatFee) (flatfee.Charge, error) {
+			return MapChargeFlatFeeFromDB(entity, input.Expands)
 		})
-
-		var errs []error
-		out := make([]flatfee.Charge, 0, len(input.Charges))
-		for _, charge := range input.Charges {
-			charges, ok := entitiesByID[charge.ID]
-			if !ok {
-				errs = append(errs, fmt.Errorf("charge not found: %s", charge.ID))
-				continue
-			}
-
-			out = append(out, charges[0])
-		}
-
-		if len(errs) > 0 {
-			return nil, errors.Join(errs...)
-		}
-
-		return out, nil
 	})
 }
 
-func (a *adapter) buildCreateFlatFeeCharge(ctx context.Context, chargeMeta meta.Charge, intent flatfee.Intent) (*db.ChargeFlatFeeCreate, error) {
+func (a *adapter) buildCreateFlatFeeCharge(ns string, intent flatfee.IntentWithInitialStatus) (*db.ChargeFlatFeeCreate, error) {
 	var discounts *productcatalog.Discounts
 	if intent.PercentageDiscounts != nil {
 		discounts = &productcatalog.Discounts{Percentage: intent.PercentageDiscounts}
@@ -186,9 +154,7 @@ func (a *adapter) buildCreateFlatFeeCharge(ctx context.Context, chargeMeta meta.
 	}
 
 	create := a.db.ChargeFlatFee.Create().
-		SetID(chargeMeta.ID).
-		SetChargeID(chargeMeta.ID).
-		SetNamespace(chargeMeta.Namespace).
+		SetNamespace(ns).
 		SetPaymentTerm(intent.PaymentTerm).
 		SetInvoiceAt(intent.InvoiceAt.In(time.UTC)).
 		SetSettlementMode(intent.SettlementMode).
@@ -199,6 +165,15 @@ func (a *adapter) buildCreateFlatFeeCharge(ctx context.Context, chargeMeta meta.
 
 	if discounts != nil {
 		create = create.SetDiscounts(discounts)
+	}
+
+	create, err = chargemeta.Create[*db.ChargeFlatFeeCreate](create, chargemeta.CreateInput{
+		Namespace: ns,
+		Intent:    intent.Intent.Intent,
+		Status:    intent.InitialStatus,
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	return create, nil

@@ -15,7 +15,9 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
@@ -34,7 +36,9 @@ type SubscriptionItemQuery struct {
 	withEntitlement            *EntitlementQuery
 	withBillingLines           *BillingInvoiceLineQuery
 	withBillingSplitLineGroups *BillingInvoiceSplitLineGroupQuery
-	withChargeIntents          *ChargeQuery
+	withChargesUsageBased      *ChargeUsageBasedQuery
+	withChargesCreditPurchase  *ChargeCreditPurchaseQuery
+	withChargesFlatFee         *ChargeFlatFeeQuery
 	withTaxCode                *TaxCodeQuery
 	modifiers                  []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
@@ -161,9 +165,9 @@ func (_q *SubscriptionItemQuery) QueryBillingSplitLineGroups() *BillingInvoiceSp
 	return query
 }
 
-// QueryChargeIntents chains the current query on the "charge_intents" edge.
-func (_q *SubscriptionItemQuery) QueryChargeIntents() *ChargeQuery {
-	query := (&ChargeClient{config: _q.config}).Query()
+// QueryChargesUsageBased chains the current query on the "charges_usage_based" edge.
+func (_q *SubscriptionItemQuery) QueryChargesUsageBased() *ChargeUsageBasedQuery {
+	query := (&ChargeUsageBasedClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -174,8 +178,52 @@ func (_q *SubscriptionItemQuery) QueryChargeIntents() *ChargeQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, selector),
-			sqlgraph.To(charge.Table, charge.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionitem.ChargeIntentsTable, subscriptionitem.ChargeIntentsColumn),
+			sqlgraph.To(chargeusagebased.Table, chargeusagebased.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionitem.ChargesUsageBasedTable, subscriptionitem.ChargesUsageBasedColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryChargesCreditPurchase chains the current query on the "charges_credit_purchase" edge.
+func (_q *SubscriptionItemQuery) QueryChargesCreditPurchase() *ChargeCreditPurchaseQuery {
+	query := (&ChargeCreditPurchaseClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, selector),
+			sqlgraph.To(chargecreditpurchase.Table, chargecreditpurchase.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionitem.ChargesCreditPurchaseTable, subscriptionitem.ChargesCreditPurchaseColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryChargesFlatFee chains the current query on the "charges_flat_fee" edge.
+func (_q *SubscriptionItemQuery) QueryChargesFlatFee() *ChargeFlatFeeQuery {
+	query := (&ChargeFlatFeeClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, selector),
+			sqlgraph.To(chargeflatfee.Table, chargeflatfee.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionitem.ChargesFlatFeeTable, subscriptionitem.ChargesFlatFeeColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -401,7 +449,9 @@ func (_q *SubscriptionItemQuery) Clone() *SubscriptionItemQuery {
 		withEntitlement:            _q.withEntitlement.Clone(),
 		withBillingLines:           _q.withBillingLines.Clone(),
 		withBillingSplitLineGroups: _q.withBillingSplitLineGroups.Clone(),
-		withChargeIntents:          _q.withChargeIntents.Clone(),
+		withChargesUsageBased:      _q.withChargesUsageBased.Clone(),
+		withChargesCreditPurchase:  _q.withChargesCreditPurchase.Clone(),
+		withChargesFlatFee:         _q.withChargesFlatFee.Clone(),
 		withTaxCode:                _q.withTaxCode.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
@@ -453,14 +503,36 @@ func (_q *SubscriptionItemQuery) WithBillingSplitLineGroups(opts ...func(*Billin
 	return _q
 }
 
-// WithChargeIntents tells the query-builder to eager-load the nodes that are connected to
-// the "charge_intents" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *SubscriptionItemQuery) WithChargeIntents(opts ...func(*ChargeQuery)) *SubscriptionItemQuery {
-	query := (&ChargeClient{config: _q.config}).Query()
+// WithChargesUsageBased tells the query-builder to eager-load the nodes that are connected to
+// the "charges_usage_based" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *SubscriptionItemQuery) WithChargesUsageBased(opts ...func(*ChargeUsageBasedQuery)) *SubscriptionItemQuery {
+	query := (&ChargeUsageBasedClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withChargeIntents = query
+	_q.withChargesUsageBased = query
+	return _q
+}
+
+// WithChargesCreditPurchase tells the query-builder to eager-load the nodes that are connected to
+// the "charges_credit_purchase" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *SubscriptionItemQuery) WithChargesCreditPurchase(opts ...func(*ChargeCreditPurchaseQuery)) *SubscriptionItemQuery {
+	query := (&ChargeCreditPurchaseClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withChargesCreditPurchase = query
+	return _q
+}
+
+// WithChargesFlatFee tells the query-builder to eager-load the nodes that are connected to
+// the "charges_flat_fee" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *SubscriptionItemQuery) WithChargesFlatFee(opts ...func(*ChargeFlatFeeQuery)) *SubscriptionItemQuery {
+	query := (&ChargeFlatFeeClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withChargesFlatFee = query
 	return _q
 }
 
@@ -553,12 +625,14 @@ func (_q *SubscriptionItemQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	var (
 		nodes       = []*SubscriptionItem{}
 		_spec       = _q.querySpec()
-		loadedTypes = [6]bool{
+		loadedTypes = [8]bool{
 			_q.withPhase != nil,
 			_q.withEntitlement != nil,
 			_q.withBillingLines != nil,
 			_q.withBillingSplitLineGroups != nil,
-			_q.withChargeIntents != nil,
+			_q.withChargesUsageBased != nil,
+			_q.withChargesCreditPurchase != nil,
+			_q.withChargesFlatFee != nil,
 			_q.withTaxCode != nil,
 		}
 	)
@@ -613,10 +687,30 @@ func (_q *SubscriptionItemQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 			return nil, err
 		}
 	}
-	if query := _q.withChargeIntents; query != nil {
-		if err := _q.loadChargeIntents(ctx, query, nodes,
-			func(n *SubscriptionItem) { n.Edges.ChargeIntents = []*Charge{} },
-			func(n *SubscriptionItem, e *Charge) { n.Edges.ChargeIntents = append(n.Edges.ChargeIntents, e) }); err != nil {
+	if query := _q.withChargesUsageBased; query != nil {
+		if err := _q.loadChargesUsageBased(ctx, query, nodes,
+			func(n *SubscriptionItem) { n.Edges.ChargesUsageBased = []*ChargeUsageBased{} },
+			func(n *SubscriptionItem, e *ChargeUsageBased) {
+				n.Edges.ChargesUsageBased = append(n.Edges.ChargesUsageBased, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withChargesCreditPurchase; query != nil {
+		if err := _q.loadChargesCreditPurchase(ctx, query, nodes,
+			func(n *SubscriptionItem) { n.Edges.ChargesCreditPurchase = []*ChargeCreditPurchase{} },
+			func(n *SubscriptionItem, e *ChargeCreditPurchase) {
+				n.Edges.ChargesCreditPurchase = append(n.Edges.ChargesCreditPurchase, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withChargesFlatFee; query != nil {
+		if err := _q.loadChargesFlatFee(ctx, query, nodes,
+			func(n *SubscriptionItem) { n.Edges.ChargesFlatFee = []*ChargeFlatFee{} },
+			func(n *SubscriptionItem, e *ChargeFlatFee) {
+				n.Edges.ChargesFlatFee = append(n.Edges.ChargesFlatFee, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -757,7 +851,7 @@ func (_q *SubscriptionItemQuery) loadBillingSplitLineGroups(ctx context.Context,
 	}
 	return nil
 }
-func (_q *SubscriptionItemQuery) loadChargeIntents(ctx context.Context, query *ChargeQuery, nodes []*SubscriptionItem, init func(*SubscriptionItem), assign func(*SubscriptionItem, *Charge)) error {
+func (_q *SubscriptionItemQuery) loadChargesUsageBased(ctx context.Context, query *ChargeUsageBasedQuery, nodes []*SubscriptionItem, init func(*SubscriptionItem), assign func(*SubscriptionItem, *ChargeUsageBased)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*SubscriptionItem)
 	for i := range nodes {
@@ -768,10 +862,76 @@ func (_q *SubscriptionItemQuery) loadChargeIntents(ctx context.Context, query *C
 		}
 	}
 	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(charge.FieldSubscriptionItemID)
+		query.ctx.AppendFieldOnce(chargeusagebased.FieldSubscriptionItemID)
 	}
-	query.Where(predicate.Charge(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(subscriptionitem.ChargeIntentsColumn), fks...))
+	query.Where(predicate.ChargeUsageBased(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(subscriptionitem.ChargesUsageBasedColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.SubscriptionItemID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "subscription_item_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "subscription_item_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *SubscriptionItemQuery) loadChargesCreditPurchase(ctx context.Context, query *ChargeCreditPurchaseQuery, nodes []*SubscriptionItem, init func(*SubscriptionItem), assign func(*SubscriptionItem, *ChargeCreditPurchase)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*SubscriptionItem)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargecreditpurchase.FieldSubscriptionItemID)
+	}
+	query.Where(predicate.ChargeCreditPurchase(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(subscriptionitem.ChargesCreditPurchaseColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.SubscriptionItemID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "subscription_item_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "subscription_item_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *SubscriptionItemQuery) loadChargesFlatFee(ctx context.Context, query *ChargeFlatFeeQuery, nodes []*SubscriptionItem, init func(*SubscriptionItem), assign func(*SubscriptionItem, *ChargeFlatFee)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*SubscriptionItem)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargeflatfee.FieldSubscriptionItemID)
+	}
+	query.Where(predicate.ChargeFlatFee(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(subscriptionitem.ChargesFlatFeeColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

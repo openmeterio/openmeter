@@ -73,7 +73,9 @@ func (Subscription) Edges() []ent.Edge {
 		}),
 		edge.To("billing_lines", BillingInvoiceLine.Type),
 		edge.To("billing_split_line_groups", BillingInvoiceSplitLineGroup.Type),
-		edge.To("charge_intents", Charge.Type),
+		edge.To("charges_usage_based", ChargeUsageBased.Type),
+		edge.To("charges_credit_purchase", ChargeCreditPurchase.Type),
+		edge.To("charges_flat_fee", ChargeFlatFee.Type),
 		edge.To("addons", SubscriptionAddon.Type).
 			Annotations(entsql.Annotation{
 				OnDelete: entsql.Cascade,
@@ -126,7 +128,9 @@ func (SubscriptionPhase) Edges() []ent.Edge {
 		}),
 		edge.To("billing_lines", BillingInvoiceLine.Type),
 		edge.To("billing_split_line_groups", BillingInvoiceSplitLineGroup.Type),
-		edge.To("charge_intents", Charge.Type),
+		edge.To("charges_usage_based", ChargeUsageBased.Type),
+		edge.To("charges_credit_purchase", ChargeCreditPurchase.Type),
+		edge.To("charges_flat_fee", ChargeFlatFee.Type),
 	}
 }
 
@@ -224,7 +228,9 @@ func (SubscriptionItem) Edges() []ent.Edge {
 		}),
 		edge.To("billing_lines", BillingInvoiceLine.Type),
 		edge.To("billing_split_line_groups", BillingInvoiceSplitLineGroup.Type),
-		edge.To("charge_intents", Charge.Type),
+		edge.To("charges_usage_based", ChargeUsageBased.Type),
+		edge.To("charges_credit_purchase", ChargeCreditPurchase.Type),
+		edge.To("charges_flat_fee", ChargeFlatFee.Type),
 		edge.From("tax_code", TaxCode.Type).
 			Ref("subscription_items").
 			Field("tax_code_id").

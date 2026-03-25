@@ -15,7 +15,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
@@ -360,19 +362,49 @@ func (_c *CustomerCreate) AddEntitlements(v ...*Entitlement) *CustomerCreate {
 	return _c.AddEntitlementIDs(ids...)
 }
 
-// AddChargeIntentIDs adds the "charge_intents" edge to the Charge entity by IDs.
-func (_c *CustomerCreate) AddChargeIntentIDs(ids ...string) *CustomerCreate {
-	_c.mutation.AddChargeIntentIDs(ids...)
+// AddChargesCreditPurchaseIDs adds the "charges_credit_purchase" edge to the ChargeCreditPurchase entity by IDs.
+func (_c *CustomerCreate) AddChargesCreditPurchaseIDs(ids ...string) *CustomerCreate {
+	_c.mutation.AddChargesCreditPurchaseIDs(ids...)
 	return _c
 }
 
-// AddChargeIntents adds the "charge_intents" edges to the Charge entity.
-func (_c *CustomerCreate) AddChargeIntents(v ...*Charge) *CustomerCreate {
+// AddChargesCreditPurchase adds the "charges_credit_purchase" edges to the ChargeCreditPurchase entity.
+func (_c *CustomerCreate) AddChargesCreditPurchase(v ...*ChargeCreditPurchase) *CustomerCreate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _c.AddChargeIntentIDs(ids...)
+	return _c.AddChargesCreditPurchaseIDs(ids...)
+}
+
+// AddChargesFlatFeeIDs adds the "charges_flat_fee" edge to the ChargeFlatFee entity by IDs.
+func (_c *CustomerCreate) AddChargesFlatFeeIDs(ids ...string) *CustomerCreate {
+	_c.mutation.AddChargesFlatFeeIDs(ids...)
+	return _c
+}
+
+// AddChargesFlatFee adds the "charges_flat_fee" edges to the ChargeFlatFee entity.
+func (_c *CustomerCreate) AddChargesFlatFee(v ...*ChargeFlatFee) *CustomerCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChargesFlatFeeIDs(ids...)
+}
+
+// AddChargesUsageBasedIDs adds the "charges_usage_based" edge to the ChargeUsageBased entity by IDs.
+func (_c *CustomerCreate) AddChargesUsageBasedIDs(ids ...string) *CustomerCreate {
+	_c.mutation.AddChargesUsageBasedIDs(ids...)
+	return _c
+}
+
+// AddChargesUsageBased adds the "charges_usage_based" edges to the ChargeUsageBased entity.
+func (_c *CustomerCreate) AddChargesUsageBased(v ...*ChargeUsageBased) *CustomerCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChargesUsageBasedIDs(ids...)
 }
 
 // Mutation returns the CustomerMutation object of the builder.
@@ -657,15 +689,47 @@ func (_c *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.ChargeIntentsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.ChargesCreditPurchaseIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   customer.ChargeIntentsTable,
-			Columns: []string{customer.ChargeIntentsColumn},
+			Table:   customer.ChargesCreditPurchaseTable,
+			Columns: []string{customer.ChargesCreditPurchaseColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargesFlatFeeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargesFlatFeeTable,
+			Columns: []string{customer.ChargesFlatFeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargesUsageBasedIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargesUsageBasedTable,
+			Columns: []string{customer.ChargesUsageBasedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

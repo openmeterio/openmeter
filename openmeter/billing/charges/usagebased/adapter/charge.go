@@ -2,13 +2,11 @@ package adapter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeusagebased "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
@@ -24,29 +22,21 @@ func (a *adapter) UpdateStatus(ctx context.Context, input usagebased.UpdateStatu
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.ChargeBase, error) {
-		metaStatus, err := input.NewStatus.ToMetaChargeStatus()
-		if err != nil {
-			return usagebased.ChargeBase{}, err
-		}
-
-		updatedMeta, err := tx.metaAdapter.UpdateStatus(ctx, meta.UpdateStatusInput{
-			ChargeID:     input.Charge.GetChargeID(),
-			Status:       metaStatus,
-			AdvanceAfter: input.Charge.State.AdvanceAfter,
-		})
+		metaStatus, err := input.Status.ToMetaChargeStatus()
 		if err != nil {
 			return usagebased.ChargeBase{}, err
 		}
 
 		dbUpdatedChargeBase, err := tx.db.ChargeUsageBased.UpdateOneID(input.Charge.ID).
 			Where(dbchargeusagebased.NamespaceEQ(input.Charge.Namespace)).
-			SetStatus(input.NewStatus).
+			SetStatus(metaStatus).
+			SetStatusDetailed(input.Status).
 			Save(ctx)
 		if err != nil {
 			return usagebased.ChargeBase{}, err
 		}
 
-		return MapChargeBaseFromDB(dbUpdatedChargeBase, updatedMeta), nil
+		return MapChargeBaseFromDB(dbUpdatedChargeBase), nil
 	})
 }
 
@@ -61,27 +51,29 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 			return usagebased.ChargeBase{}, err
 		}
 
-		updatedMeta, err := tx.metaAdapter.UpdateStatus(ctx, meta.UpdateStatusInput{
-			ChargeID:     charge.GetChargeID(),
-			Status:       metaStatus,
-			AdvanceAfter: charge.State.AdvanceAfter,
+		update := tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
+			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
+			SetDiscounts(&charge.Intent.Discounts).
+			SetStatus(metaStatus).
+			SetStatusDetailed(charge.Status).
+			SetOrClearCurrentRealizationRunID(charge.State.CurrentRealizationRunID)
+
+		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
+			ManagedResource: charge.ManagedResource,
+			Intent:          charge.Intent.Intent,
+			Status:          metaStatus,
+			AdvanceAfter:    charge.State.AdvanceAfter,
 		})
 		if err != nil {
 			return usagebased.ChargeBase{}, err
 		}
-
-		update := tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
-			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
-			SetDiscounts(&charge.Intent.Discounts).
-			SetStatus(charge.Status).
-			SetOrClearCurrentRealizationRunID(charge.State.CurrentRealizationRunID)
 
 		dbUpdatedChargeBase, err := update.Save(ctx)
 		if err != nil {
 			return usagebased.ChargeBase{}, err
 		}
 
-		return MapChargeBaseFromDB(dbUpdatedChargeBase, updatedMeta), nil
+		return MapChargeBaseFromDB(dbUpdatedChargeBase), nil
 	})
 }
 
@@ -91,69 +83,37 @@ func (a *adapter) CreateCharges(ctx context.Context, in usagebased.CreateInput) 
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]usagebased.Charge, error) {
-		chargeMetas, err := tx.metaAdapter.Create(ctx, meta.CreateInput{
-			Namespace: in.Namespace,
-			Intents: slicesx.Map(in.Intents, func(intent usagebased.Intent) meta.IntentCreate {
-				return meta.IntentCreate{
-					Intent: intent.Intent,
-					Type:   meta.ChargeTypeUsageBased,
-				}
-			}),
+		creates, err := slicesx.MapWithErr(in.Intents, func(intent usagebased.Intent) (*db.ChargeUsageBasedCreate, error) {
+			return tx.buildCreateUsageBasedCharge(ctx, in.Namespace, intent)
 		})
 		if err != nil {
 			return nil, err
 		}
 
-		if len(chargeMetas) != len(in.Intents) {
-			return nil, fmt.Errorf("expected %d charge metas, got %d", len(in.Intents), len(chargeMetas))
-		}
-
-		creates := make([]*db.ChargeUsageBasedCreate, 0, len(chargeMetas))
-		for idx, chargeMeta := range chargeMetas {
-			create, err := tx.buildCreateUsageBasedCharge(ctx, chargeMeta, in.Intents[idx])
-			if err != nil {
-				return nil, err
-			}
-			creates = append(creates, create)
-		}
 		entities, err := tx.db.ChargeUsageBased.CreateBulk(creates...).Save(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		out := make([]usagebased.Charge, 0, len(entities))
-		for idx, entity := range entities {
-			chargeBase := MapChargeBaseFromDB(entity, chargeMetas[idx])
-			out = append(out, usagebased.Charge{
-				ChargeBase: chargeBase,
-			})
-		}
-		return out, nil
+		return slicesx.MapWithErr(entities, func(entity *db.ChargeUsageBased) (usagebased.Charge, error) {
+			return MapChargeFromDB(entity, meta.ExpandNone)
+		})
 	})
 }
 
-func (a *adapter) GetByMetas(ctx context.Context, input usagebased.GetByMetasInput) ([]usagebased.Charge, error) {
+func (a *adapter) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) ([]usagebased.Charge, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]usagebased.Charge, error) {
 		query := tx.db.ChargeUsageBased.Query().
+			// Note: we are skipping the namespace filter here to allow multi-namespace expansions as needed, but InIDOrder filters for namespaces.
 			Where(dbchargeusagebased.Namespace(input.Namespace)).
-			Where(dbchargeusagebased.IDIn(
-				lo.Map(input.Charges, func(charge meta.Charge, idx int) string {
-					return charge.ID
-				})...,
-			))
+			Where(dbchargeusagebased.IDIn(input.IDs...))
 
 		if input.Expands.Has(meta.ExpandRealizations) {
-			query = query.WithRuns(
-				func(runs *db.ChargeUsageBasedRunsQuery) {
-					runs.WithCreditAllocations().
-						WithInvoicedUsage().
-						WithPayment()
-				},
-			)
+			query = expandRealizations(query)
 		}
 
 		entities, err := query.All(ctx)
@@ -161,58 +121,14 @@ func (a *adapter) GetByMetas(ctx context.Context, input usagebased.GetByMetasInp
 			return nil, err
 		}
 
-		metaByID := lo.KeyBy(input.Charges, func(charge meta.Charge) string {
-			return charge.ID
+		entitiesInOrder, err := entutils.InIDOrder(input.Namespace, input.IDs, entities)
+		if err != nil {
+			return nil, err
+		}
+
+		return slicesx.MapWithErr(entitiesInOrder, func(entity *db.ChargeUsageBased) (usagebased.Charge, error) {
+			return MapChargeFromDB(entity, input.Expands)
 		})
-
-		entitiesMapped := make([]usagebased.Charge, 0, len(entities))
-		for _, entity := range entities {
-			chargeMeta, found := metaByID[entity.ID]
-			if !found {
-				return nil, fmt.Errorf("meta not found: %s", entity.ID)
-			}
-
-			chargeBase := MapChargeBaseFromDB(entity, chargeMeta)
-
-			var realizations usagebased.RealizationRuns
-			if input.Expands.Has(meta.ExpandRealizations) {
-				realizations, err = MapRealizationRunsFromDB(entity)
-				if err != nil {
-					return nil, err
-				}
-			}
-
-			entitiesMapped = append(entitiesMapped, usagebased.Charge{
-				ChargeBase:   chargeBase,
-				Realizations: realizations,
-			})
-		}
-
-		entitiesByID := lo.KeyBy(entitiesMapped, func(charge usagebased.Charge) string {
-			return charge.ID
-		})
-
-		var errs []error
-		out := make([]usagebased.Charge, 0, len(input.Charges))
-		for _, charge := range input.Charges {
-			mapped, ok := entitiesByID[charge.ID]
-			if !ok {
-				errs = append(errs, fmt.Errorf("charge not found: %s", charge.ID))
-				continue
-			}
-
-			out = append(out, mapped)
-		}
-
-		if len(out) != len(input.Charges) {
-			return nil, fmt.Errorf("expected to fetch %d charges, got %d", len(input.Charges), len(out))
-		}
-
-		if len(errs) > 0 {
-			return nil, errors.Join(errs...)
-		}
-
-		return out, nil
 	})
 }
 
@@ -222,42 +138,50 @@ func (a *adapter) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.Charge, error) {
-		metas, err := tx.metaAdapter.GetByIDs(ctx, meta.GetByIDsInput{
-			Namespace: input.ChargeID.Namespace,
-			ChargeIDs: []string{input.ChargeID.ID},
-		})
-		if err != nil {
-			return usagebased.Charge{}, err
-		}
-		if len(metas) != 1 {
-			return usagebased.Charge{}, fmt.Errorf("expected 1 meta, got %d", len(metas))
+		query := tx.db.ChargeUsageBased.Query().
+			Where(dbchargeusagebased.Namespace(input.ChargeID.Namespace)).
+			Where(dbchargeusagebased.ID(input.ChargeID.ID))
+
+		if input.Expands.Has(meta.ExpandRealizations) {
+			query = expandRealizations(query)
 		}
 
-		charges, err := a.GetByMetas(ctx, usagebased.GetByMetasInput{
-			Namespace: input.ChargeID.Namespace,
-			Charges:   meta.Charges{metas[0]},
-			Expands:   input.Expands,
-		})
+		entity, err := query.First(ctx)
 		if err != nil {
-			return usagebased.Charge{}, err
-		}
-		if len(charges) != 1 {
-			return usagebased.Charge{}, fmt.Errorf("expected 1 charge, got %d", len(charges))
+			return usagebased.Charge{}, fmt.Errorf("querying usage based charge [id=%s]: %w", input.ChargeID, err)
 		}
 
-		return charges[0], nil
+		return MapChargeFromDB(entity, input.Expands)
 	})
 }
 
-func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, chargeMeta meta.Charge, intent usagebased.Intent) (*db.ChargeUsageBasedCreate, error) {
-	return a.db.ChargeUsageBased.Create().
-		SetNamespace(chargeMeta.Namespace).
-		SetID(chargeMeta.ID).
-		SetChargeID(chargeMeta.ID).
+func expandRealizations(query *db.ChargeUsageBasedQuery) *db.ChargeUsageBasedQuery {
+	return query.WithRuns(
+		func(runs *db.ChargeUsageBasedRunsQuery) {
+			runs.WithCreditAllocations().
+				WithInvoicedUsage().
+				WithPayment()
+		},
+	)
+}
+
+func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, intent usagebased.Intent) (*db.ChargeUsageBasedCreate, error) {
+	create := a.db.ChargeUsageBased.Create().
 		SetDiscounts(&intent.Discounts).
 		SetPrice(&intent.Price).
-		SetStatus(usagebased.Status(chargeMeta.Status)).
+		SetStatusDetailed(usagebased.Status(meta.ChargeStatusCreated)).
 		SetFeatureKey(intent.FeatureKey).
 		SetInvoiceAt(intent.InvoiceAt.In(time.UTC)).
-		SetSettlementMode(intent.SettlementMode), nil
+		SetSettlementMode(intent.SettlementMode)
+
+	create, err := chargemeta.Create[*db.ChargeUsageBasedCreate](create, chargemeta.CreateInput{
+		Namespace: ns,
+		Intent:    intent.Intent,
+		Status:    meta.ChargeStatusCreated,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return create, nil
 }

@@ -171,6 +171,8 @@ type Client struct {
 	ChargeUsageBasedRunPayment *ChargeUsageBasedRunPaymentClient
 	// ChargeUsageBasedRuns is the client for interacting with the ChargeUsageBasedRuns builders.
 	ChargeUsageBasedRuns *ChargeUsageBasedRunsClient
+	// ChargesSearchV1 is the client for interacting with the ChargesSearchV1 builders.
+	ChargesSearchV1 *ChargesSearchV1Client
 	// CurrencyCostBasis is the client for interacting with the CurrencyCostBasis builders.
 	CurrencyCostBasis *CurrencyCostBasisClient
 	// CustomCurrency is the client for interacting with the CustomCurrency builders.
@@ -286,6 +288,7 @@ func (c *Client) init() {
 	c.ChargeUsageBasedRunInvoicedUsage = NewChargeUsageBasedRunInvoicedUsageClient(c.config)
 	c.ChargeUsageBasedRunPayment = NewChargeUsageBasedRunPaymentClient(c.config)
 	c.ChargeUsageBasedRuns = NewChargeUsageBasedRunsClient(c.config)
+	c.ChargesSearchV1 = NewChargesSearchV1Client(c.config)
 	c.CurrencyCostBasis = NewCurrencyCostBasisClient(c.config)
 	c.CustomCurrency = NewCustomCurrencyClient(c.config)
 	c.Customer = NewCustomerClient(c.config)
@@ -449,6 +452,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ChargeUsageBasedRunInvoicedUsage:                 NewChargeUsageBasedRunInvoicedUsageClient(cfg),
 		ChargeUsageBasedRunPayment:                       NewChargeUsageBasedRunPaymentClient(cfg),
 		ChargeUsageBasedRuns:                             NewChargeUsageBasedRunsClient(cfg),
+		ChargesSearchV1:                                  NewChargesSearchV1Client(cfg),
 		CurrencyCostBasis:                                NewCurrencyCostBasisClient(cfg),
 		CustomCurrency:                                   NewCustomCurrencyClient(cfg),
 		Customer:                                         NewCustomerClient(cfg),
@@ -539,6 +543,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ChargeUsageBasedRunInvoicedUsage:                 NewChargeUsageBasedRunInvoicedUsageClient(cfg),
 		ChargeUsageBasedRunPayment:                       NewChargeUsageBasedRunPaymentClient(cfg),
 		ChargeUsageBasedRuns:                             NewChargeUsageBasedRunsClient(cfg),
+		ChargesSearchV1:                                  NewChargesSearchV1Client(cfg),
 		CurrencyCostBasis:                                NewCurrencyCostBasisClient(cfg),
 		CustomCurrency:                                   NewCustomCurrencyClient(cfg),
 		Customer:                                         NewCustomerClient(cfg),
@@ -650,16 +655,16 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.ChargeFlatFeeCreditAllocations, c.ChargeFlatFeeInvoicedUsage,
 		c.ChargeFlatFeePayment, c.ChargeUsageBased,
 		c.ChargeUsageBasedRunCreditAllocations, c.ChargeUsageBasedRunInvoicedUsage,
-		c.ChargeUsageBasedRunPayment, c.ChargeUsageBasedRuns, c.CurrencyCostBasis,
-		c.CustomCurrency, c.Customer, c.CustomerSubjects, c.Entitlement, c.Feature,
-		c.Grant, c.LLMCostPrice, c.LedgerAccount, c.LedgerCustomerAccount,
-		c.LedgerEntry, c.LedgerSubAccount, c.LedgerSubAccountRoute,
-		c.LedgerTransaction, c.LedgerTransactionGroup, c.Meter, c.NotificationChannel,
-		c.NotificationEvent, c.NotificationEventDeliveryStatus, c.NotificationRule,
-		c.Plan, c.PlanAddon, c.PlanPhase, c.PlanRateCard, c.Subject, c.Subscription,
-		c.SubscriptionAddon, c.SubscriptionAddonQuantity,
-		c.SubscriptionBillingSyncState, c.SubscriptionItem, c.SubscriptionPhase,
-		c.TaxCode, c.UsageReset,
+		c.ChargeUsageBasedRunPayment, c.ChargeUsageBasedRuns, c.ChargesSearchV1,
+		c.CurrencyCostBasis, c.CustomCurrency, c.Customer, c.CustomerSubjects,
+		c.Entitlement, c.Feature, c.Grant, c.LLMCostPrice, c.LedgerAccount,
+		c.LedgerCustomerAccount, c.LedgerEntry, c.LedgerSubAccount,
+		c.LedgerSubAccountRoute, c.LedgerTransaction, c.LedgerTransactionGroup,
+		c.Meter, c.NotificationChannel, c.NotificationEvent,
+		c.NotificationEventDeliveryStatus, c.NotificationRule, c.Plan, c.PlanAddon,
+		c.PlanPhase, c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
+		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
+		c.SubscriptionItem, c.SubscriptionPhase, c.TaxCode, c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -5488,7 +5493,7 @@ func (c *ChargeClient) QueryFlatFee(_m *Charge) *ChargeFlatFeeQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(charge.Table, charge.FieldID, id),
 			sqlgraph.To(chargeflatfee.Table, chargeflatfee.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, charge.FlatFeeTable, charge.FlatFeeColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, charge.FlatFeeTable, charge.FlatFeeColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -5504,7 +5509,7 @@ func (c *ChargeClient) QueryCreditPurchase(_m *Charge) *ChargeCreditPurchaseQuer
 		step := sqlgraph.NewStep(
 			sqlgraph.From(charge.Table, charge.FieldID, id),
 			sqlgraph.To(chargecreditpurchase.Table, chargecreditpurchase.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, charge.CreditPurchaseTable, charge.CreditPurchaseColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, charge.CreditPurchaseTable, charge.CreditPurchaseColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -5520,7 +5525,7 @@ func (c *ChargeClient) QueryUsageBased(_m *Charge) *ChargeUsageBasedQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(charge.Table, charge.FieldID, id),
 			sqlgraph.To(chargeusagebased.Table, chargeusagebased.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, charge.UsageBasedTable, charge.UsageBasedColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, charge.UsageBasedTable, charge.UsageBasedColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -5553,70 +5558,6 @@ func (c *ChargeClient) QueryBillingSplitLineGroups(_m *Charge) *BillingInvoiceSp
 			sqlgraph.From(charge.Table, charge.FieldID, id),
 			sqlgraph.To(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, charge.BillingSplitLineGroupsTable, charge.BillingSplitLineGroupsColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryCustomer queries the customer edge of a Charge.
-func (c *ChargeClient) QueryCustomer(_m *Charge) *CustomerQuery {
-	query := (&CustomerClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(charge.Table, charge.FieldID, id),
-			sqlgraph.To(customer.Table, customer.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, charge.CustomerTable, charge.CustomerColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QuerySubscription queries the subscription edge of a Charge.
-func (c *ChargeClient) QuerySubscription(_m *Charge) *SubscriptionQuery {
-	query := (&SubscriptionClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(charge.Table, charge.FieldID, id),
-			sqlgraph.To(subscription.Table, subscription.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, charge.SubscriptionTable, charge.SubscriptionColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QuerySubscriptionPhase queries the subscription_phase edge of a Charge.
-func (c *ChargeClient) QuerySubscriptionPhase(_m *Charge) *SubscriptionPhaseQuery {
-	query := (&SubscriptionPhaseClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(charge.Table, charge.FieldID, id),
-			sqlgraph.To(subscriptionphase.Table, subscriptionphase.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, charge.SubscriptionPhaseTable, charge.SubscriptionPhaseColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QuerySubscriptionItem queries the subscription_item edge of a Charge.
-func (c *ChargeClient) QuerySubscriptionItem(_m *Charge) *SubscriptionItemQuery {
-	query := (&SubscriptionItemClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(charge.Table, charge.FieldID, id),
-			sqlgraph.To(subscriptionitem.Table, subscriptionitem.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, charge.SubscriptionItemTable, charge.SubscriptionItemColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -5757,22 +5698,6 @@ func (c *ChargeCreditPurchaseClient) GetX(ctx context.Context, id string) *Charg
 	return obj
 }
 
-// QueryCharge queries the charge edge of a ChargeCreditPurchase.
-func (c *ChargeCreditPurchaseClient) QueryCharge(_m *ChargeCreditPurchase) *ChargeQuery {
-	query := (&ChargeClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(chargecreditpurchase.Table, chargecreditpurchase.FieldID, id),
-			sqlgraph.To(charge.Table, charge.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, chargecreditpurchase.ChargeTable, chargecreditpurchase.ChargeColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryExternalPayment queries the external_payment edge of a ChargeCreditPurchase.
 func (c *ChargeCreditPurchaseClient) QueryExternalPayment(_m *ChargeCreditPurchase) *ChargeCreditPurchaseExternalPaymentQuery {
 	query := (&ChargeCreditPurchaseExternalPaymentClient{config: c.config}).Query()
@@ -5798,6 +5723,86 @@ func (c *ChargeCreditPurchaseClient) QueryInvoicedPayment(_m *ChargeCreditPurcha
 			sqlgraph.From(chargecreditpurchase.Table, chargecreditpurchase.FieldID, id),
 			sqlgraph.To(chargecreditpurchaseinvoicedpayment.Table, chargecreditpurchaseinvoicedpayment.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, chargecreditpurchase.InvoicedPaymentTable, chargecreditpurchase.InvoicedPaymentColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCharge queries the charge edge of a ChargeCreditPurchase.
+func (c *ChargeCreditPurchaseClient) QueryCharge(_m *ChargeCreditPurchase) *ChargeQuery {
+	query := (&ChargeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargecreditpurchase.Table, chargecreditpurchase.FieldID, id),
+			sqlgraph.To(charge.Table, charge.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, chargecreditpurchase.ChargeTable, chargecreditpurchase.ChargeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubscription queries the subscription edge of a ChargeCreditPurchase.
+func (c *ChargeCreditPurchaseClient) QuerySubscription(_m *ChargeCreditPurchase) *SubscriptionQuery {
+	query := (&SubscriptionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargecreditpurchase.Table, chargecreditpurchase.FieldID, id),
+			sqlgraph.To(subscription.Table, subscription.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargecreditpurchase.SubscriptionTable, chargecreditpurchase.SubscriptionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubscriptionPhase queries the subscription_phase edge of a ChargeCreditPurchase.
+func (c *ChargeCreditPurchaseClient) QuerySubscriptionPhase(_m *ChargeCreditPurchase) *SubscriptionPhaseQuery {
+	query := (&SubscriptionPhaseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargecreditpurchase.Table, chargecreditpurchase.FieldID, id),
+			sqlgraph.To(subscriptionphase.Table, subscriptionphase.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargecreditpurchase.SubscriptionPhaseTable, chargecreditpurchase.SubscriptionPhaseColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubscriptionItem queries the subscription_item edge of a ChargeCreditPurchase.
+func (c *ChargeCreditPurchaseClient) QuerySubscriptionItem(_m *ChargeCreditPurchase) *SubscriptionItemQuery {
+	query := (&SubscriptionItemClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargecreditpurchase.Table, chargecreditpurchase.FieldID, id),
+			sqlgraph.To(subscriptionitem.Table, subscriptionitem.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargecreditpurchase.SubscriptionItemTable, chargecreditpurchase.SubscriptionItemColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCustomer queries the customer edge of a ChargeCreditPurchase.
+func (c *ChargeCreditPurchaseClient) QueryCustomer(_m *ChargeCreditPurchase) *CustomerQuery {
+	query := (&CustomerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargecreditpurchase.Table, chargecreditpurchase.FieldID, id),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargecreditpurchase.CustomerTable, chargecreditpurchase.CustomerColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -6252,22 +6257,6 @@ func (c *ChargeFlatFeeClient) GetX(ctx context.Context, id string) *ChargeFlatFe
 	return obj
 }
 
-// QueryCharge queries the charge edge of a ChargeFlatFee.
-func (c *ChargeFlatFeeClient) QueryCharge(_m *ChargeFlatFee) *ChargeQuery {
-	query := (&ChargeClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, id),
-			sqlgraph.To(charge.Table, charge.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, chargeflatfee.ChargeTable, chargeflatfee.ChargeColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryCreditAllocations queries the credit_allocations edge of a ChargeFlatFee.
 func (c *ChargeFlatFeeClient) QueryCreditAllocations(_m *ChargeFlatFee) *ChargeFlatFeeCreditAllocationsQuery {
 	query := (&ChargeFlatFeeCreditAllocationsClient{config: c.config}).Query()
@@ -6309,6 +6298,86 @@ func (c *ChargeFlatFeeClient) QueryPayment(_m *ChargeFlatFee) *ChargeFlatFeePaym
 			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, id),
 			sqlgraph.To(chargeflatfeepayment.Table, chargeflatfeepayment.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, chargeflatfee.PaymentTable, chargeflatfee.PaymentColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCharge queries the charge edge of a ChargeFlatFee.
+func (c *ChargeFlatFeeClient) QueryCharge(_m *ChargeFlatFee) *ChargeQuery {
+	query := (&ChargeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, id),
+			sqlgraph.To(charge.Table, charge.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, chargeflatfee.ChargeTable, chargeflatfee.ChargeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubscription queries the subscription edge of a ChargeFlatFee.
+func (c *ChargeFlatFeeClient) QuerySubscription(_m *ChargeFlatFee) *SubscriptionQuery {
+	query := (&SubscriptionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, id),
+			sqlgraph.To(subscription.Table, subscription.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeflatfee.SubscriptionTable, chargeflatfee.SubscriptionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubscriptionPhase queries the subscription_phase edge of a ChargeFlatFee.
+func (c *ChargeFlatFeeClient) QuerySubscriptionPhase(_m *ChargeFlatFee) *SubscriptionPhaseQuery {
+	query := (&SubscriptionPhaseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, id),
+			sqlgraph.To(subscriptionphase.Table, subscriptionphase.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeflatfee.SubscriptionPhaseTable, chargeflatfee.SubscriptionPhaseColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubscriptionItem queries the subscription_item edge of a ChargeFlatFee.
+func (c *ChargeFlatFeeClient) QuerySubscriptionItem(_m *ChargeFlatFee) *SubscriptionItemQuery {
+	query := (&SubscriptionItemClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, id),
+			sqlgraph.To(subscriptionitem.Table, subscriptionitem.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeflatfee.SubscriptionItemTable, chargeflatfee.SubscriptionItemColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCustomer queries the customer edge of a ChargeFlatFee.
+func (c *ChargeFlatFeeClient) QueryCustomer(_m *ChargeFlatFee) *CustomerQuery {
+	query := (&CustomerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, id),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeflatfee.CustomerTable, chargeflatfee.CustomerColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -6944,22 +7013,6 @@ func (c *ChargeUsageBasedClient) GetX(ctx context.Context, id string) *ChargeUsa
 	return obj
 }
 
-// QueryCharge queries the charge edge of a ChargeUsageBased.
-func (c *ChargeUsageBasedClient) QueryCharge(_m *ChargeUsageBased) *ChargeQuery {
-	query := (&ChargeClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, id),
-			sqlgraph.To(charge.Table, charge.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, chargeusagebased.ChargeTable, chargeusagebased.ChargeColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryRuns queries the runs edge of a ChargeUsageBased.
 func (c *ChargeUsageBasedClient) QueryRuns(_m *ChargeUsageBased) *ChargeUsageBasedRunsQuery {
 	query := (&ChargeUsageBasedRunsClient{config: c.config}).Query()
@@ -6985,6 +7038,86 @@ func (c *ChargeUsageBasedClient) QueryCurrentRun(_m *ChargeUsageBased) *ChargeUs
 			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, id),
 			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, false, chargeusagebased.CurrentRunTable, chargeusagebased.CurrentRunColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCharge queries the charge edge of a ChargeUsageBased.
+func (c *ChargeUsageBasedClient) QueryCharge(_m *ChargeUsageBased) *ChargeQuery {
+	query := (&ChargeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, id),
+			sqlgraph.To(charge.Table, charge.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, chargeusagebased.ChargeTable, chargeusagebased.ChargeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubscription queries the subscription edge of a ChargeUsageBased.
+func (c *ChargeUsageBasedClient) QuerySubscription(_m *ChargeUsageBased) *SubscriptionQuery {
+	query := (&SubscriptionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, id),
+			sqlgraph.To(subscription.Table, subscription.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebased.SubscriptionTable, chargeusagebased.SubscriptionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubscriptionPhase queries the subscription_phase edge of a ChargeUsageBased.
+func (c *ChargeUsageBasedClient) QuerySubscriptionPhase(_m *ChargeUsageBased) *SubscriptionPhaseQuery {
+	query := (&SubscriptionPhaseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, id),
+			sqlgraph.To(subscriptionphase.Table, subscriptionphase.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebased.SubscriptionPhaseTable, chargeusagebased.SubscriptionPhaseColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySubscriptionItem queries the subscription_item edge of a ChargeUsageBased.
+func (c *ChargeUsageBasedClient) QuerySubscriptionItem(_m *ChargeUsageBased) *SubscriptionItemQuery {
+	query := (&SubscriptionItemClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, id),
+			sqlgraph.To(subscriptionitem.Table, subscriptionitem.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebased.SubscriptionItemTable, chargeusagebased.SubscriptionItemColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCustomer queries the customer edge of a ChargeUsageBased.
+func (c *ChargeUsageBasedClient) QueryCustomer(_m *ChargeUsageBased) *CustomerQuery {
+	query := (&CustomerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, id),
+			sqlgraph.To(customer.Table, customer.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebased.CustomerTable, chargeusagebased.CustomerColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -7661,6 +7794,36 @@ func (c *ChargeUsageBasedRunsClient) mutate(ctx context.Context, m *ChargeUsageB
 	}
 }
 
+// ChargesSearchV1Client is a client for the ChargesSearchV1 schema.
+type ChargesSearchV1Client struct {
+	config
+}
+
+// NewChargesSearchV1Client returns a client for the ChargesSearchV1 from the given config.
+func NewChargesSearchV1Client(c config) *ChargesSearchV1Client {
+	return &ChargesSearchV1Client{config: c}
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `chargessearchv1.Intercept(f(g(h())))`.
+func (c *ChargesSearchV1Client) Intercept(interceptors ...Interceptor) {
+	c.inters.ChargesSearchV1 = append(c.inters.ChargesSearchV1, interceptors...)
+}
+
+// Query returns a query builder for ChargesSearchV1.
+func (c *ChargesSearchV1Client) Query() *ChargesSearchV1Query {
+	return &ChargesSearchV1Query{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeChargesSearchV1},
+		inters: c.Interceptors(),
+	}
+}
+
+// Interceptors returns the client interceptors.
+func (c *ChargesSearchV1Client) Interceptors() []Interceptor {
+	return c.inters.ChargesSearchV1
+}
+
 // CurrencyCostBasisClient is a client for the CurrencyCostBasis schema.
 type CurrencyCostBasisClient struct {
 	config
@@ -8163,15 +8326,47 @@ func (c *CustomerClient) QueryEntitlements(_m *Customer) *EntitlementQuery {
 	return query
 }
 
-// QueryChargeIntents queries the charge_intents edge of a Customer.
-func (c *CustomerClient) QueryChargeIntents(_m *Customer) *ChargeQuery {
-	query := (&ChargeClient{config: c.config}).Query()
+// QueryChargesCreditPurchase queries the charges_credit_purchase edge of a Customer.
+func (c *CustomerClient) QueryChargesCreditPurchase(_m *Customer) *ChargeCreditPurchaseQuery {
+	query := (&ChargeCreditPurchaseClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(customer.Table, customer.FieldID, id),
-			sqlgraph.To(charge.Table, charge.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, customer.ChargeIntentsTable, customer.ChargeIntentsColumn),
+			sqlgraph.To(chargecreditpurchase.Table, chargecreditpurchase.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customer.ChargesCreditPurchaseTable, customer.ChargesCreditPurchaseColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChargesFlatFee queries the charges_flat_fee edge of a Customer.
+func (c *CustomerClient) QueryChargesFlatFee(_m *Customer) *ChargeFlatFeeQuery {
+	query := (&ChargeFlatFeeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customer.Table, customer.FieldID, id),
+			sqlgraph.To(chargeflatfee.Table, chargeflatfee.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customer.ChargesFlatFeeTable, customer.ChargesFlatFeeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChargesUsageBased queries the charges_usage_based edge of a Customer.
+func (c *CustomerClient) QueryChargesUsageBased(_m *Customer) *ChargeUsageBasedQuery {
+	query := (&ChargeUsageBasedClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customer.Table, customer.FieldID, id),
+			sqlgraph.To(chargeusagebased.Table, chargeusagebased.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customer.ChargesUsageBasedTable, customer.ChargesUsageBasedColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -11974,15 +12169,47 @@ func (c *SubscriptionClient) QueryBillingSplitLineGroups(_m *Subscription) *Bill
 	return query
 }
 
-// QueryChargeIntents queries the charge_intents edge of a Subscription.
-func (c *SubscriptionClient) QueryChargeIntents(_m *Subscription) *ChargeQuery {
-	query := (&ChargeClient{config: c.config}).Query()
+// QueryChargesUsageBased queries the charges_usage_based edge of a Subscription.
+func (c *SubscriptionClient) QueryChargesUsageBased(_m *Subscription) *ChargeUsageBasedQuery {
+	query := (&ChargeUsageBasedClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(subscription.Table, subscription.FieldID, id),
-			sqlgraph.To(charge.Table, charge.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, subscription.ChargeIntentsTable, subscription.ChargeIntentsColumn),
+			sqlgraph.To(chargeusagebased.Table, chargeusagebased.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscription.ChargesUsageBasedTable, subscription.ChargesUsageBasedColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChargesCreditPurchase queries the charges_credit_purchase edge of a Subscription.
+func (c *SubscriptionClient) QueryChargesCreditPurchase(_m *Subscription) *ChargeCreditPurchaseQuery {
+	query := (&ChargeCreditPurchaseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscription.Table, subscription.FieldID, id),
+			sqlgraph.To(chargecreditpurchase.Table, chargecreditpurchase.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscription.ChargesCreditPurchaseTable, subscription.ChargesCreditPurchaseColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChargesFlatFee queries the charges_flat_fee edge of a Subscription.
+func (c *SubscriptionClient) QueryChargesFlatFee(_m *Subscription) *ChargeFlatFeeQuery {
+	query := (&ChargeFlatFeeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscription.Table, subscription.FieldID, id),
+			sqlgraph.To(chargeflatfee.Table, chargeflatfee.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscription.ChargesFlatFeeTable, subscription.ChargesFlatFeeColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -12698,15 +12925,47 @@ func (c *SubscriptionItemClient) QueryBillingSplitLineGroups(_m *SubscriptionIte
 	return query
 }
 
-// QueryChargeIntents queries the charge_intents edge of a SubscriptionItem.
-func (c *SubscriptionItemClient) QueryChargeIntents(_m *SubscriptionItem) *ChargeQuery {
-	query := (&ChargeClient{config: c.config}).Query()
+// QueryChargesUsageBased queries the charges_usage_based edge of a SubscriptionItem.
+func (c *SubscriptionItemClient) QueryChargesUsageBased(_m *SubscriptionItem) *ChargeUsageBasedQuery {
+	query := (&ChargeUsageBasedClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, id),
-			sqlgraph.To(charge.Table, charge.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionitem.ChargeIntentsTable, subscriptionitem.ChargeIntentsColumn),
+			sqlgraph.To(chargeusagebased.Table, chargeusagebased.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionitem.ChargesUsageBasedTable, subscriptionitem.ChargesUsageBasedColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChargesCreditPurchase queries the charges_credit_purchase edge of a SubscriptionItem.
+func (c *SubscriptionItemClient) QueryChargesCreditPurchase(_m *SubscriptionItem) *ChargeCreditPurchaseQuery {
+	query := (&ChargeCreditPurchaseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, id),
+			sqlgraph.To(chargecreditpurchase.Table, chargecreditpurchase.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionitem.ChargesCreditPurchaseTable, subscriptionitem.ChargesCreditPurchaseColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChargesFlatFee queries the charges_flat_fee edge of a SubscriptionItem.
+func (c *SubscriptionItemClient) QueryChargesFlatFee(_m *SubscriptionItem) *ChargeFlatFeeQuery {
+	query := (&ChargeFlatFeeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, id),
+			sqlgraph.To(chargeflatfee.Table, chargeflatfee.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionitem.ChargesFlatFeeTable, subscriptionitem.ChargesFlatFeeColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -12927,15 +13186,47 @@ func (c *SubscriptionPhaseClient) QueryBillingSplitLineGroups(_m *SubscriptionPh
 	return query
 }
 
-// QueryChargeIntents queries the charge_intents edge of a SubscriptionPhase.
-func (c *SubscriptionPhaseClient) QueryChargeIntents(_m *SubscriptionPhase) *ChargeQuery {
-	query := (&ChargeClient{config: c.config}).Query()
+// QueryChargesUsageBased queries the charges_usage_based edge of a SubscriptionPhase.
+func (c *SubscriptionPhaseClient) QueryChargesUsageBased(_m *SubscriptionPhase) *ChargeUsageBasedQuery {
+	query := (&ChargeUsageBasedClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(subscriptionphase.Table, subscriptionphase.FieldID, id),
-			sqlgraph.To(charge.Table, charge.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionphase.ChargeIntentsTable, subscriptionphase.ChargeIntentsColumn),
+			sqlgraph.To(chargeusagebased.Table, chargeusagebased.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionphase.ChargesUsageBasedTable, subscriptionphase.ChargesUsageBasedColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChargesCreditPurchase queries the charges_credit_purchase edge of a SubscriptionPhase.
+func (c *SubscriptionPhaseClient) QueryChargesCreditPurchase(_m *SubscriptionPhase) *ChargeCreditPurchaseQuery {
+	query := (&ChargeCreditPurchaseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionphase.Table, subscriptionphase.FieldID, id),
+			sqlgraph.To(chargecreditpurchase.Table, chargecreditpurchase.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionphase.ChargesCreditPurchaseTable, subscriptionphase.ChargesCreditPurchaseColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChargesFlatFee queries the charges_flat_fee edge of a SubscriptionPhase.
+func (c *SubscriptionPhaseClient) QueryChargesFlatFee(_m *SubscriptionPhase) *ChargeFlatFeeQuery {
+	query := (&ChargeFlatFeeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscriptionphase.Table, subscriptionphase.FieldID, id),
+			sqlgraph.To(chargeflatfee.Table, chargeflatfee.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, subscriptionphase.ChargesFlatFeeTable, subscriptionphase.ChargesFlatFeeColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -13419,14 +13710,15 @@ type (
 		ChargeFlatFeeCreditAllocations, ChargeFlatFeeInvoicedUsage,
 		ChargeFlatFeePayment, ChargeUsageBased, ChargeUsageBasedRunCreditAllocations,
 		ChargeUsageBasedRunInvoicedUsage, ChargeUsageBasedRunPayment,
-		ChargeUsageBasedRuns, CurrencyCostBasis, CustomCurrency, Customer,
-		CustomerSubjects, Entitlement, Feature, Grant, LLMCostPrice, LedgerAccount,
-		LedgerCustomerAccount, LedgerEntry, LedgerSubAccount, LedgerSubAccountRoute,
-		LedgerTransaction, LedgerTransactionGroup, Meter, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule, Plan,
-		PlanAddon, PlanPhase, PlanRateCard, Subject, Subscription, SubscriptionAddon,
-		SubscriptionAddonQuantity, SubscriptionBillingSyncState, SubscriptionItem,
-		SubscriptionPhase, TaxCode, UsageReset []ent.Interceptor
+		ChargeUsageBasedRuns, ChargesSearchV1, CurrencyCostBasis, CustomCurrency,
+		Customer, CustomerSubjects, Entitlement, Feature, Grant, LLMCostPrice,
+		LedgerAccount, LedgerCustomerAccount, LedgerEntry, LedgerSubAccount,
+		LedgerSubAccountRoute, LedgerTransaction, LedgerTransactionGroup, Meter,
+		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
+		NotificationRule, Plan, PlanAddon, PlanPhase, PlanRateCard, Subject,
+		Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
+		SubscriptionBillingSyncState, SubscriptionItem, SubscriptionPhase, TaxCode,
+		UsageReset []ent.Interceptor
 	}
 )
 

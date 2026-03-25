@@ -88,13 +88,17 @@ type SubscriptionItemEdges struct {
 	BillingLines []*BillingInvoiceLine `json:"billing_lines,omitempty"`
 	// BillingSplitLineGroups holds the value of the billing_split_line_groups edge.
 	BillingSplitLineGroups []*BillingInvoiceSplitLineGroup `json:"billing_split_line_groups,omitempty"`
-	// ChargeIntents holds the value of the charge_intents edge.
-	ChargeIntents []*Charge `json:"charge_intents,omitempty"`
+	// ChargesUsageBased holds the value of the charges_usage_based edge.
+	ChargesUsageBased []*ChargeUsageBased `json:"charges_usage_based,omitempty"`
+	// ChargesCreditPurchase holds the value of the charges_credit_purchase edge.
+	ChargesCreditPurchase []*ChargeCreditPurchase `json:"charges_credit_purchase,omitempty"`
+	// ChargesFlatFee holds the value of the charges_flat_fee edge.
+	ChargesFlatFee []*ChargeFlatFee `json:"charges_flat_fee,omitempty"`
 	// TaxCode holds the value of the tax_code edge.
 	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [6]bool
+	loadedTypes [8]bool
 }
 
 // PhaseOrErr returns the Phase value or an error if the edge
@@ -137,13 +141,31 @@ func (e SubscriptionItemEdges) BillingSplitLineGroupsOrErr() ([]*BillingInvoiceS
 	return nil, &NotLoadedError{edge: "billing_split_line_groups"}
 }
 
-// ChargeIntentsOrErr returns the ChargeIntents value or an error if the edge
+// ChargesUsageBasedOrErr returns the ChargesUsageBased value or an error if the edge
 // was not loaded in eager-loading.
-func (e SubscriptionItemEdges) ChargeIntentsOrErr() ([]*Charge, error) {
+func (e SubscriptionItemEdges) ChargesUsageBasedOrErr() ([]*ChargeUsageBased, error) {
 	if e.loadedTypes[4] {
-		return e.ChargeIntents, nil
+		return e.ChargesUsageBased, nil
 	}
-	return nil, &NotLoadedError{edge: "charge_intents"}
+	return nil, &NotLoadedError{edge: "charges_usage_based"}
+}
+
+// ChargesCreditPurchaseOrErr returns the ChargesCreditPurchase value or an error if the edge
+// was not loaded in eager-loading.
+func (e SubscriptionItemEdges) ChargesCreditPurchaseOrErr() ([]*ChargeCreditPurchase, error) {
+	if e.loadedTypes[5] {
+		return e.ChargesCreditPurchase, nil
+	}
+	return nil, &NotLoadedError{edge: "charges_credit_purchase"}
+}
+
+// ChargesFlatFeeOrErr returns the ChargesFlatFee value or an error if the edge
+// was not loaded in eager-loading.
+func (e SubscriptionItemEdges) ChargesFlatFeeOrErr() ([]*ChargeFlatFee, error) {
+	if e.loadedTypes[6] {
+		return e.ChargesFlatFee, nil
+	}
+	return nil, &NotLoadedError{edge: "charges_flat_fee"}
 }
 
 // TaxCodeOrErr returns the TaxCode value or an error if the edge
@@ -151,7 +173,7 @@ func (e SubscriptionItemEdges) ChargeIntentsOrErr() ([]*Charge, error) {
 func (e SubscriptionItemEdges) TaxCodeOrErr() (*TaxCode, error) {
 	if e.TaxCode != nil {
 		return e.TaxCode, nil
-	} else if e.loadedTypes[5] {
+	} else if e.loadedTypes[7] {
 		return nil, &NotFoundError{label: dbtaxcode.Label}
 	}
 	return nil, &NotLoadedError{edge: "tax_code"}
@@ -391,9 +413,19 @@ func (_m *SubscriptionItem) QueryBillingSplitLineGroups() *BillingInvoiceSplitLi
 	return NewSubscriptionItemClient(_m.config).QueryBillingSplitLineGroups(_m)
 }
 
-// QueryChargeIntents queries the "charge_intents" edge of the SubscriptionItem entity.
-func (_m *SubscriptionItem) QueryChargeIntents() *ChargeQuery {
-	return NewSubscriptionItemClient(_m.config).QueryChargeIntents(_m)
+// QueryChargesUsageBased queries the "charges_usage_based" edge of the SubscriptionItem entity.
+func (_m *SubscriptionItem) QueryChargesUsageBased() *ChargeUsageBasedQuery {
+	return NewSubscriptionItemClient(_m.config).QueryChargesUsageBased(_m)
+}
+
+// QueryChargesCreditPurchase queries the "charges_credit_purchase" edge of the SubscriptionItem entity.
+func (_m *SubscriptionItem) QueryChargesCreditPurchase() *ChargeCreditPurchaseQuery {
+	return NewSubscriptionItemClient(_m.config).QueryChargesCreditPurchase(_m)
+}
+
+// QueryChargesFlatFee queries the "charges_flat_fee" edge of the SubscriptionItem entity.
+func (_m *SubscriptionItem) QueryChargesFlatFee() *ChargeFlatFeeQuery {
+	return NewSubscriptionItemClient(_m.config).QueryChargesFlatFee(_m)
 }
 
 // QueryTaxCode queries the "tax_code" edge of the SubscriptionItem entity.

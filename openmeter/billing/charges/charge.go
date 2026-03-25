@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
 type Charge struct {
@@ -128,6 +129,26 @@ func (c Charge) GetChargeID() (meta.ChargeID, error) {
 	}
 
 	return meta.ChargeID{}, fmt.Errorf("invalid charge type: %s", c.t)
+}
+
+var _ entutils.InIDOrderAccessor = (*Charge)(nil)
+
+func (c Charge) GetID() string {
+	id, err := c.GetChargeID()
+	if err != nil {
+		return ""
+	}
+
+	return id.ID
+}
+
+func (c Charge) GetNamespace() string {
+	id, err := c.GetChargeID()
+	if err != nil {
+		return ""
+	}
+
+	return id.Namespace
 }
 
 type Charges []Charge

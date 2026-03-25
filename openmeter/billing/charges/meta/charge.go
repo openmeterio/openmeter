@@ -6,6 +6,8 @@ import (
 	"slices"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/pkg/expand"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -14,6 +16,28 @@ type ChargeID models.NamespacedID
 
 func (i ChargeID) Validate() error {
 	return models.NamespacedID(i).Validate()
+}
+
+type ChargeIDs []ChargeID
+
+func (i ChargeIDs) Validate() error {
+	var errs []error
+	for idx, id := range i {
+		if err := id.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("charge ID [%d]: %w", idx, err))
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
+func (i ChargeIDs) ToNamespacedIDs() []models.NamespacedID {
+	return lo.Map(i, func(id ChargeID, _ int) models.NamespacedID {
+		return models.NamespacedID{
+			Namespace: id.Namespace,
+			ID:        id.ID,
+		}
+	})
 }
 
 type ChargeType string
@@ -97,7 +121,6 @@ type Charge struct {
 	ManagedResource
 
 	Intent       Intent
-	Type         ChargeType
 	Status       ChargeStatus
 	AdvanceAfter *time.Time
 }
@@ -111,10 +134,6 @@ func (c Charge) Validate() error {
 
 	if err := c.Status.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("status: %w", err))
-	}
-
-	if err := c.Type.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("type: %w", err))
 	}
 
 	if err := c.ManagedResource.Validate(); err != nil {

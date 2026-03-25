@@ -14,7 +14,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
@@ -415,19 +417,49 @@ func (_u *CustomerUpdate) AddEntitlements(v ...*Entitlement) *CustomerUpdate {
 	return _u.AddEntitlementIDs(ids...)
 }
 
-// AddChargeIntentIDs adds the "charge_intents" edge to the Charge entity by IDs.
-func (_u *CustomerUpdate) AddChargeIntentIDs(ids ...string) *CustomerUpdate {
-	_u.mutation.AddChargeIntentIDs(ids...)
+// AddChargesCreditPurchaseIDs adds the "charges_credit_purchase" edge to the ChargeCreditPurchase entity by IDs.
+func (_u *CustomerUpdate) AddChargesCreditPurchaseIDs(ids ...string) *CustomerUpdate {
+	_u.mutation.AddChargesCreditPurchaseIDs(ids...)
 	return _u
 }
 
-// AddChargeIntents adds the "charge_intents" edges to the Charge entity.
-func (_u *CustomerUpdate) AddChargeIntents(v ...*Charge) *CustomerUpdate {
+// AddChargesCreditPurchase adds the "charges_credit_purchase" edges to the ChargeCreditPurchase entity.
+func (_u *CustomerUpdate) AddChargesCreditPurchase(v ...*ChargeCreditPurchase) *CustomerUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddChargeIntentIDs(ids...)
+	return _u.AddChargesCreditPurchaseIDs(ids...)
+}
+
+// AddChargesFlatFeeIDs adds the "charges_flat_fee" edge to the ChargeFlatFee entity by IDs.
+func (_u *CustomerUpdate) AddChargesFlatFeeIDs(ids ...string) *CustomerUpdate {
+	_u.mutation.AddChargesFlatFeeIDs(ids...)
+	return _u
+}
+
+// AddChargesFlatFee adds the "charges_flat_fee" edges to the ChargeFlatFee entity.
+func (_u *CustomerUpdate) AddChargesFlatFee(v ...*ChargeFlatFee) *CustomerUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargesFlatFeeIDs(ids...)
+}
+
+// AddChargesUsageBasedIDs adds the "charges_usage_based" edge to the ChargeUsageBased entity by IDs.
+func (_u *CustomerUpdate) AddChargesUsageBasedIDs(ids ...string) *CustomerUpdate {
+	_u.mutation.AddChargesUsageBasedIDs(ids...)
+	return _u
+}
+
+// AddChargesUsageBased adds the "charges_usage_based" edges to the ChargeUsageBased entity.
+func (_u *CustomerUpdate) AddChargesUsageBased(v ...*ChargeUsageBased) *CustomerUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargesUsageBasedIDs(ids...)
 }
 
 // Mutation returns the CustomerMutation object of the builder.
@@ -546,25 +578,67 @@ func (_u *CustomerUpdate) RemoveEntitlements(v ...*Entitlement) *CustomerUpdate 
 	return _u.RemoveEntitlementIDs(ids...)
 }
 
-// ClearChargeIntents clears all "charge_intents" edges to the Charge entity.
-func (_u *CustomerUpdate) ClearChargeIntents() *CustomerUpdate {
-	_u.mutation.ClearChargeIntents()
+// ClearChargesCreditPurchase clears all "charges_credit_purchase" edges to the ChargeCreditPurchase entity.
+func (_u *CustomerUpdate) ClearChargesCreditPurchase() *CustomerUpdate {
+	_u.mutation.ClearChargesCreditPurchase()
 	return _u
 }
 
-// RemoveChargeIntentIDs removes the "charge_intents" edge to Charge entities by IDs.
-func (_u *CustomerUpdate) RemoveChargeIntentIDs(ids ...string) *CustomerUpdate {
-	_u.mutation.RemoveChargeIntentIDs(ids...)
+// RemoveChargesCreditPurchaseIDs removes the "charges_credit_purchase" edge to ChargeCreditPurchase entities by IDs.
+func (_u *CustomerUpdate) RemoveChargesCreditPurchaseIDs(ids ...string) *CustomerUpdate {
+	_u.mutation.RemoveChargesCreditPurchaseIDs(ids...)
 	return _u
 }
 
-// RemoveChargeIntents removes "charge_intents" edges to Charge entities.
-func (_u *CustomerUpdate) RemoveChargeIntents(v ...*Charge) *CustomerUpdate {
+// RemoveChargesCreditPurchase removes "charges_credit_purchase" edges to ChargeCreditPurchase entities.
+func (_u *CustomerUpdate) RemoveChargesCreditPurchase(v ...*ChargeCreditPurchase) *CustomerUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveChargeIntentIDs(ids...)
+	return _u.RemoveChargesCreditPurchaseIDs(ids...)
+}
+
+// ClearChargesFlatFee clears all "charges_flat_fee" edges to the ChargeFlatFee entity.
+func (_u *CustomerUpdate) ClearChargesFlatFee() *CustomerUpdate {
+	_u.mutation.ClearChargesFlatFee()
+	return _u
+}
+
+// RemoveChargesFlatFeeIDs removes the "charges_flat_fee" edge to ChargeFlatFee entities by IDs.
+func (_u *CustomerUpdate) RemoveChargesFlatFeeIDs(ids ...string) *CustomerUpdate {
+	_u.mutation.RemoveChargesFlatFeeIDs(ids...)
+	return _u
+}
+
+// RemoveChargesFlatFee removes "charges_flat_fee" edges to ChargeFlatFee entities.
+func (_u *CustomerUpdate) RemoveChargesFlatFee(v ...*ChargeFlatFee) *CustomerUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargesFlatFeeIDs(ids...)
+}
+
+// ClearChargesUsageBased clears all "charges_usage_based" edges to the ChargeUsageBased entity.
+func (_u *CustomerUpdate) ClearChargesUsageBased() *CustomerUpdate {
+	_u.mutation.ClearChargesUsageBased()
+	return _u
+}
+
+// RemoveChargesUsageBasedIDs removes the "charges_usage_based" edge to ChargeUsageBased entities by IDs.
+func (_u *CustomerUpdate) RemoveChargesUsageBasedIDs(ids ...string) *CustomerUpdate {
+	_u.mutation.RemoveChargesUsageBasedIDs(ids...)
+	return _u
+}
+
+// RemoveChargesUsageBased removes "charges_usage_based" edges to ChargeUsageBased entities.
+func (_u *CustomerUpdate) RemoveChargesUsageBased(v ...*ChargeUsageBased) *CustomerUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargesUsageBasedIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -974,28 +1048,28 @@ func (_u *CustomerUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.ChargeIntentsCleared() {
+	if _u.mutation.ChargesCreditPurchaseCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   customer.ChargeIntentsTable,
-			Columns: []string{customer.ChargeIntentsColumn},
+			Table:   customer.ChargesCreditPurchaseTable,
+			Columns: []string{customer.ChargesCreditPurchaseColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedChargeIntentsIDs(); len(nodes) > 0 && !_u.mutation.ChargeIntentsCleared() {
+	if nodes := _u.mutation.RemovedChargesCreditPurchaseIDs(); len(nodes) > 0 && !_u.mutation.ChargesCreditPurchaseCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   customer.ChargeIntentsTable,
-			Columns: []string{customer.ChargeIntentsColumn},
+			Table:   customer.ChargesCreditPurchaseTable,
+			Columns: []string{customer.ChargesCreditPurchaseColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1003,15 +1077,105 @@ func (_u *CustomerUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.ChargeIntentsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.ChargesCreditPurchaseIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   customer.ChargeIntentsTable,
-			Columns: []string{customer.ChargeIntentsColumn},
+			Table:   customer.ChargesCreditPurchaseTable,
+			Columns: []string{customer.ChargesCreditPurchaseColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargesFlatFeeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargesFlatFeeTable,
+			Columns: []string{customer.ChargesFlatFeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargesFlatFeeIDs(); len(nodes) > 0 && !_u.mutation.ChargesFlatFeeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargesFlatFeeTable,
+			Columns: []string{customer.ChargesFlatFeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargesFlatFeeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargesFlatFeeTable,
+			Columns: []string{customer.ChargesFlatFeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargesUsageBasedCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargesUsageBasedTable,
+			Columns: []string{customer.ChargesUsageBasedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargesUsageBasedIDs(); len(nodes) > 0 && !_u.mutation.ChargesUsageBasedCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargesUsageBasedTable,
+			Columns: []string{customer.ChargesUsageBasedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargesUsageBasedIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargesUsageBasedTable,
+			Columns: []string{customer.ChargesUsageBasedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1417,19 +1581,49 @@ func (_u *CustomerUpdateOne) AddEntitlements(v ...*Entitlement) *CustomerUpdateO
 	return _u.AddEntitlementIDs(ids...)
 }
 
-// AddChargeIntentIDs adds the "charge_intents" edge to the Charge entity by IDs.
-func (_u *CustomerUpdateOne) AddChargeIntentIDs(ids ...string) *CustomerUpdateOne {
-	_u.mutation.AddChargeIntentIDs(ids...)
+// AddChargesCreditPurchaseIDs adds the "charges_credit_purchase" edge to the ChargeCreditPurchase entity by IDs.
+func (_u *CustomerUpdateOne) AddChargesCreditPurchaseIDs(ids ...string) *CustomerUpdateOne {
+	_u.mutation.AddChargesCreditPurchaseIDs(ids...)
 	return _u
 }
 
-// AddChargeIntents adds the "charge_intents" edges to the Charge entity.
-func (_u *CustomerUpdateOne) AddChargeIntents(v ...*Charge) *CustomerUpdateOne {
+// AddChargesCreditPurchase adds the "charges_credit_purchase" edges to the ChargeCreditPurchase entity.
+func (_u *CustomerUpdateOne) AddChargesCreditPurchase(v ...*ChargeCreditPurchase) *CustomerUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddChargeIntentIDs(ids...)
+	return _u.AddChargesCreditPurchaseIDs(ids...)
+}
+
+// AddChargesFlatFeeIDs adds the "charges_flat_fee" edge to the ChargeFlatFee entity by IDs.
+func (_u *CustomerUpdateOne) AddChargesFlatFeeIDs(ids ...string) *CustomerUpdateOne {
+	_u.mutation.AddChargesFlatFeeIDs(ids...)
+	return _u
+}
+
+// AddChargesFlatFee adds the "charges_flat_fee" edges to the ChargeFlatFee entity.
+func (_u *CustomerUpdateOne) AddChargesFlatFee(v ...*ChargeFlatFee) *CustomerUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargesFlatFeeIDs(ids...)
+}
+
+// AddChargesUsageBasedIDs adds the "charges_usage_based" edge to the ChargeUsageBased entity by IDs.
+func (_u *CustomerUpdateOne) AddChargesUsageBasedIDs(ids ...string) *CustomerUpdateOne {
+	_u.mutation.AddChargesUsageBasedIDs(ids...)
+	return _u
+}
+
+// AddChargesUsageBased adds the "charges_usage_based" edges to the ChargeUsageBased entity.
+func (_u *CustomerUpdateOne) AddChargesUsageBased(v ...*ChargeUsageBased) *CustomerUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargesUsageBasedIDs(ids...)
 }
 
 // Mutation returns the CustomerMutation object of the builder.
@@ -1548,25 +1742,67 @@ func (_u *CustomerUpdateOne) RemoveEntitlements(v ...*Entitlement) *CustomerUpda
 	return _u.RemoveEntitlementIDs(ids...)
 }
 
-// ClearChargeIntents clears all "charge_intents" edges to the Charge entity.
-func (_u *CustomerUpdateOne) ClearChargeIntents() *CustomerUpdateOne {
-	_u.mutation.ClearChargeIntents()
+// ClearChargesCreditPurchase clears all "charges_credit_purchase" edges to the ChargeCreditPurchase entity.
+func (_u *CustomerUpdateOne) ClearChargesCreditPurchase() *CustomerUpdateOne {
+	_u.mutation.ClearChargesCreditPurchase()
 	return _u
 }
 
-// RemoveChargeIntentIDs removes the "charge_intents" edge to Charge entities by IDs.
-func (_u *CustomerUpdateOne) RemoveChargeIntentIDs(ids ...string) *CustomerUpdateOne {
-	_u.mutation.RemoveChargeIntentIDs(ids...)
+// RemoveChargesCreditPurchaseIDs removes the "charges_credit_purchase" edge to ChargeCreditPurchase entities by IDs.
+func (_u *CustomerUpdateOne) RemoveChargesCreditPurchaseIDs(ids ...string) *CustomerUpdateOne {
+	_u.mutation.RemoveChargesCreditPurchaseIDs(ids...)
 	return _u
 }
 
-// RemoveChargeIntents removes "charge_intents" edges to Charge entities.
-func (_u *CustomerUpdateOne) RemoveChargeIntents(v ...*Charge) *CustomerUpdateOne {
+// RemoveChargesCreditPurchase removes "charges_credit_purchase" edges to ChargeCreditPurchase entities.
+func (_u *CustomerUpdateOne) RemoveChargesCreditPurchase(v ...*ChargeCreditPurchase) *CustomerUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveChargeIntentIDs(ids...)
+	return _u.RemoveChargesCreditPurchaseIDs(ids...)
+}
+
+// ClearChargesFlatFee clears all "charges_flat_fee" edges to the ChargeFlatFee entity.
+func (_u *CustomerUpdateOne) ClearChargesFlatFee() *CustomerUpdateOne {
+	_u.mutation.ClearChargesFlatFee()
+	return _u
+}
+
+// RemoveChargesFlatFeeIDs removes the "charges_flat_fee" edge to ChargeFlatFee entities by IDs.
+func (_u *CustomerUpdateOne) RemoveChargesFlatFeeIDs(ids ...string) *CustomerUpdateOne {
+	_u.mutation.RemoveChargesFlatFeeIDs(ids...)
+	return _u
+}
+
+// RemoveChargesFlatFee removes "charges_flat_fee" edges to ChargeFlatFee entities.
+func (_u *CustomerUpdateOne) RemoveChargesFlatFee(v ...*ChargeFlatFee) *CustomerUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargesFlatFeeIDs(ids...)
+}
+
+// ClearChargesUsageBased clears all "charges_usage_based" edges to the ChargeUsageBased entity.
+func (_u *CustomerUpdateOne) ClearChargesUsageBased() *CustomerUpdateOne {
+	_u.mutation.ClearChargesUsageBased()
+	return _u
+}
+
+// RemoveChargesUsageBasedIDs removes the "charges_usage_based" edge to ChargeUsageBased entities by IDs.
+func (_u *CustomerUpdateOne) RemoveChargesUsageBasedIDs(ids ...string) *CustomerUpdateOne {
+	_u.mutation.RemoveChargesUsageBasedIDs(ids...)
+	return _u
+}
+
+// RemoveChargesUsageBased removes "charges_usage_based" edges to ChargeUsageBased entities.
+func (_u *CustomerUpdateOne) RemoveChargesUsageBased(v ...*ChargeUsageBased) *CustomerUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargesUsageBasedIDs(ids...)
 }
 
 // Where appends a list predicates to the CustomerUpdate builder.
@@ -2006,28 +2242,28 @@ func (_u *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err 
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.ChargeIntentsCleared() {
+	if _u.mutation.ChargesCreditPurchaseCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   customer.ChargeIntentsTable,
-			Columns: []string{customer.ChargeIntentsColumn},
+			Table:   customer.ChargesCreditPurchaseTable,
+			Columns: []string{customer.ChargesCreditPurchaseColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedChargeIntentsIDs(); len(nodes) > 0 && !_u.mutation.ChargeIntentsCleared() {
+	if nodes := _u.mutation.RemovedChargesCreditPurchaseIDs(); len(nodes) > 0 && !_u.mutation.ChargesCreditPurchaseCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   customer.ChargeIntentsTable,
-			Columns: []string{customer.ChargeIntentsColumn},
+			Table:   customer.ChargesCreditPurchaseTable,
+			Columns: []string{customer.ChargesCreditPurchaseColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -2035,15 +2271,105 @@ func (_u *CustomerUpdateOne) sqlSave(ctx context.Context) (_node *Customer, err 
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.ChargeIntentsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.ChargesCreditPurchaseIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   customer.ChargeIntentsTable,
-			Columns: []string{customer.ChargeIntentsColumn},
+			Table:   customer.ChargesCreditPurchaseTable,
+			Columns: []string{customer.ChargesCreditPurchaseColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargesFlatFeeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargesFlatFeeTable,
+			Columns: []string{customer.ChargesFlatFeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargesFlatFeeIDs(); len(nodes) > 0 && !_u.mutation.ChargesFlatFeeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargesFlatFeeTable,
+			Columns: []string{customer.ChargesFlatFeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargesFlatFeeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargesFlatFeeTable,
+			Columns: []string{customer.ChargesFlatFeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargesUsageBasedCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargesUsageBasedTable,
+			Columns: []string{customer.ChargesUsageBasedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargesUsageBasedIDs(); len(nodes) > 0 && !_u.mutation.ChargesUsageBasedCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargesUsageBasedTable,
+			Columns: []string{customer.ChargesUsageBasedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargesUsageBasedIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   customer.ChargesUsageBasedTable,
+			Columns: []string{customer.ChargesUsageBasedColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

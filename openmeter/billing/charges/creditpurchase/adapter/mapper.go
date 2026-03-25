@@ -8,20 +8,13 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 )
 
-func MapCreditPurchaseChargeFromDB(m meta.Charge, dbEntity *entdb.ChargeCreditPurchase, expands meta.Expands) (creditpurchase.Charge, error) {
-	if err := m.Validate(); err != nil {
-		return creditpurchase.Charge{}, err
-	}
-
-	if m.Type != meta.ChargeTypeCreditPurchase {
-		return creditpurchase.Charge{}, fmt.Errorf("charge is not a credit purchase charge")
-	}
-
+func MapCreditPurchaseChargeFromDB(dbEntity *entdb.ChargeCreditPurchase, expands meta.Expands) (creditpurchase.Charge, error) {
 	var grantLedgerTransactionReference *ledgertransaction.TimedGroupReference
 	if dbEntity.CreditGrantTransactionGroupID != nil && dbEntity.CreditGrantedAt != nil {
 		grantLedgerTransactionReference = &ledgertransaction.TimedGroupReference{
@@ -54,11 +47,13 @@ func MapCreditPurchaseChargeFromDB(m meta.Charge, dbEntity *entdb.ChargeCreditPu
 		}
 	}
 
+	mappedMeta := chargemeta.MapFromDB(dbEntity)
+
 	return creditpurchase.Charge{
-		ManagedResource: m.ManagedResource,
-		Status:          m.Status,
+		ManagedResource: mappedMeta.ManagedResource,
+		Status:          mappedMeta.Status,
 		Intent: creditpurchase.Intent{
-			Intent:       m.Intent,
+			Intent:       mappedMeta.Intent,
 			CreditAmount: dbEntity.CreditAmount,
 			Settlement:   dbEntity.Settlement,
 		},

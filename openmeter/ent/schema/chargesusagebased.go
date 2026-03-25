@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/schema/index"
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -25,8 +26,7 @@ type ChargeUsageBased struct {
 
 func (ChargeUsageBased) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.NamespaceMixin{},
-		entutils.IDMixin{},
+		chargemeta.Mixin{},
 	}
 }
 
@@ -67,30 +67,48 @@ func (ChargeUsageBased) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
-		field.Enum("status").
+		field.Enum("status_detailed").
 			GoType(usagebased.Status("")),
 	}
 }
 
 func (ChargeUsageBased) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("charge", Charge.Type).
-			Ref("usage_based").
-			Unique().
-			Required(),
 		edge.To("runs", ChargeUsageBasedRuns.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("current_run", ChargeUsageBasedRuns.Type).
 			Field("current_realization_run_id").
 			Unique(),
+		edge.To("charge", Charge.Type).
+			Unique().
+			Immutable().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.From("subscription", Subscription.Type).
+			Ref("charges_usage_based").
+			Field("subscription_id").
+			Unique().
+			Immutable(),
+		edge.From("subscription_phase", SubscriptionPhase.Type).
+			Ref("charges_usage_based").
+			Field("subscription_phase_id").
+			Unique().
+			Immutable(),
+		edge.From("subscription_item", SubscriptionItem.Type).
+			Ref("charges_usage_based").
+			Field("subscription_item_id").
+			Unique().
+			Immutable(),
+		edge.From("customer", Customer.Type).
+			Field("customer_id").
+			Ref("charges_usage_based").
+			Unique().
+			Required().
+			Immutable(),
 	}
 }
 
 func (ChargeUsageBased) Indexes() []ent.Index {
-	return []ent.Index{
-		index.Fields("namespace", "id").
-			Unique(),
-	}
+	return nil
 }
 
 func (ChargeUsageBased) Annotations() []schema.Annotation {

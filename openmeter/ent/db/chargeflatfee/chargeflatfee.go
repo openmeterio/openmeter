@@ -4,11 +4,14 @@ package chargeflatfee
 
 import (
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -17,8 +20,52 @@ const (
 	Label = "charge_flat_fee"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldCustomerID holds the string denoting the customer_id field in the database.
+	FieldCustomerID = "customer_id"
+	// FieldServicePeriodFrom holds the string denoting the service_period_from field in the database.
+	FieldServicePeriodFrom = "service_period_from"
+	// FieldServicePeriodTo holds the string denoting the service_period_to field in the database.
+	FieldServicePeriodTo = "service_period_to"
+	// FieldBillingPeriodFrom holds the string denoting the billing_period_from field in the database.
+	FieldBillingPeriodFrom = "billing_period_from"
+	// FieldBillingPeriodTo holds the string denoting the billing_period_to field in the database.
+	FieldBillingPeriodTo = "billing_period_to"
+	// FieldFullServicePeriodFrom holds the string denoting the full_service_period_from field in the database.
+	FieldFullServicePeriodFrom = "full_service_period_from"
+	// FieldFullServicePeriodTo holds the string denoting the full_service_period_to field in the database.
+	FieldFullServicePeriodTo = "full_service_period_to"
+	// FieldStatus holds the string denoting the status field in the database.
+	FieldStatus = "status"
+	// FieldUniqueReferenceID holds the string denoting the unique_reference_id field in the database.
+	FieldUniqueReferenceID = "unique_reference_id"
+	// FieldCurrency holds the string denoting the currency field in the database.
+	FieldCurrency = "currency"
+	// FieldManagedBy holds the string denoting the managed_by field in the database.
+	FieldManagedBy = "managed_by"
+	// FieldSubscriptionID holds the string denoting the subscription_id field in the database.
+	FieldSubscriptionID = "subscription_id"
+	// FieldSubscriptionPhaseID holds the string denoting the subscription_phase_id field in the database.
+	FieldSubscriptionPhaseID = "subscription_phase_id"
+	// FieldSubscriptionItemID holds the string denoting the subscription_item_id field in the database.
+	FieldSubscriptionItemID = "subscription_item_id"
+	// FieldAdvanceAfter holds the string denoting the advance_after field in the database.
+	FieldAdvanceAfter = "advance_after"
+	// FieldAnnotations holds the string denoting the annotations field in the database.
+	FieldAnnotations = "annotations"
 	// FieldNamespace holds the string denoting the namespace field in the database.
 	FieldNamespace = "namespace"
+	// FieldMetadata holds the string denoting the metadata field in the database.
+	FieldMetadata = "metadata"
+	// FieldCreatedAt holds the string denoting the created_at field in the database.
+	FieldCreatedAt = "created_at"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updated_at"
+	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
+	FieldDeletedAt = "deleted_at"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
+	// FieldDescription holds the string denoting the description field in the database.
+	FieldDescription = "description"
 	// FieldPaymentTerm holds the string denoting the payment_term field in the database.
 	FieldPaymentTerm = "payment_term"
 	// FieldInvoiceAt holds the string denoting the invoice_at field in the database.
@@ -35,23 +82,24 @@ const (
 	FieldAmountBeforeProration = "amount_before_proration"
 	// FieldAmountAfterProration holds the string denoting the amount_after_proration field in the database.
 	FieldAmountAfterProration = "amount_after_proration"
-	// EdgeCharge holds the string denoting the charge edge name in mutations.
-	EdgeCharge = "charge"
 	// EdgeCreditAllocations holds the string denoting the credit_allocations edge name in mutations.
 	EdgeCreditAllocations = "credit_allocations"
 	// EdgeInvoicedUsage holds the string denoting the invoiced_usage edge name in mutations.
 	EdgeInvoicedUsage = "invoiced_usage"
 	// EdgePayment holds the string denoting the payment edge name in mutations.
 	EdgePayment = "payment"
+	// EdgeCharge holds the string denoting the charge edge name in mutations.
+	EdgeCharge = "charge"
+	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
+	EdgeSubscription = "subscription"
+	// EdgeSubscriptionPhase holds the string denoting the subscription_phase edge name in mutations.
+	EdgeSubscriptionPhase = "subscription_phase"
+	// EdgeSubscriptionItem holds the string denoting the subscription_item edge name in mutations.
+	EdgeSubscriptionItem = "subscription_item"
+	// EdgeCustomer holds the string denoting the customer edge name in mutations.
+	EdgeCustomer = "customer"
 	// Table holds the table name of the chargeflatfee in the database.
 	Table = "charge_flat_fees"
-	// ChargeTable is the table that holds the charge relation/edge.
-	ChargeTable = "charge_flat_fees"
-	// ChargeInverseTable is the table name for the Charge entity.
-	// It exists in this package in order to avoid circular dependency with the "charge" package.
-	ChargeInverseTable = "charges"
-	// ChargeColumn is the table column denoting the charge relation/edge.
-	ChargeColumn = "id"
 	// CreditAllocationsTable is the table that holds the credit_allocations relation/edge.
 	CreditAllocationsTable = "charge_flat_fee_credit_allocations"
 	// CreditAllocationsInverseTable is the table name for the ChargeFlatFeeCreditAllocations entity.
@@ -73,12 +121,69 @@ const (
 	PaymentInverseTable = "charge_flat_fee_payments"
 	// PaymentColumn is the table column denoting the payment relation/edge.
 	PaymentColumn = "charge_id"
+	// ChargeTable is the table that holds the charge relation/edge.
+	ChargeTable = "charges"
+	// ChargeInverseTable is the table name for the Charge entity.
+	// It exists in this package in order to avoid circular dependency with the "charge" package.
+	ChargeInverseTable = "charges"
+	// ChargeColumn is the table column denoting the charge relation/edge.
+	ChargeColumn = "charge_flat_fee_id"
+	// SubscriptionTable is the table that holds the subscription relation/edge.
+	SubscriptionTable = "charge_flat_fees"
+	// SubscriptionInverseTable is the table name for the Subscription entity.
+	// It exists in this package in order to avoid circular dependency with the "subscription" package.
+	SubscriptionInverseTable = "subscriptions"
+	// SubscriptionColumn is the table column denoting the subscription relation/edge.
+	SubscriptionColumn = "subscription_id"
+	// SubscriptionPhaseTable is the table that holds the subscription_phase relation/edge.
+	SubscriptionPhaseTable = "charge_flat_fees"
+	// SubscriptionPhaseInverseTable is the table name for the SubscriptionPhase entity.
+	// It exists in this package in order to avoid circular dependency with the "subscriptionphase" package.
+	SubscriptionPhaseInverseTable = "subscription_phases"
+	// SubscriptionPhaseColumn is the table column denoting the subscription_phase relation/edge.
+	SubscriptionPhaseColumn = "subscription_phase_id"
+	// SubscriptionItemTable is the table that holds the subscription_item relation/edge.
+	SubscriptionItemTable = "charge_flat_fees"
+	// SubscriptionItemInverseTable is the table name for the SubscriptionItem entity.
+	// It exists in this package in order to avoid circular dependency with the "subscriptionitem" package.
+	SubscriptionItemInverseTable = "subscription_items"
+	// SubscriptionItemColumn is the table column denoting the subscription_item relation/edge.
+	SubscriptionItemColumn = "subscription_item_id"
+	// CustomerTable is the table that holds the customer relation/edge.
+	CustomerTable = "charge_flat_fees"
+	// CustomerInverseTable is the table name for the Customer entity.
+	// It exists in this package in order to avoid circular dependency with the "customer" package.
+	CustomerInverseTable = "customers"
+	// CustomerColumn is the table column denoting the customer relation/edge.
+	CustomerColumn = "customer_id"
 )
 
 // Columns holds all SQL columns for chargeflatfee fields.
 var Columns = []string{
 	FieldID,
+	FieldCustomerID,
+	FieldServicePeriodFrom,
+	FieldServicePeriodTo,
+	FieldBillingPeriodFrom,
+	FieldBillingPeriodTo,
+	FieldFullServicePeriodFrom,
+	FieldFullServicePeriodTo,
+	FieldStatus,
+	FieldUniqueReferenceID,
+	FieldCurrency,
+	FieldManagedBy,
+	FieldSubscriptionID,
+	FieldSubscriptionPhaseID,
+	FieldSubscriptionItemID,
+	FieldAdvanceAfter,
+	FieldAnnotations,
 	FieldNamespace,
+	FieldMetadata,
+	FieldCreatedAt,
+	FieldUpdatedAt,
+	FieldDeletedAt,
+	FieldName,
+	FieldDescription,
 	FieldPaymentTerm,
 	FieldInvoiceAt,
 	FieldSettlementMode,
@@ -100,8 +205,18 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
+	CustomerIDValidator func(string) error
+	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	CurrencyValidator func(string) error
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	NamespaceValidator func(string) error
+	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
+	DefaultCreatedAt func() time.Time
+	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
+	DefaultUpdatedAt func() time.Time
+	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
+	UpdateDefaultUpdatedAt func() time.Time
 	// PaymentTermValidator is a validator for the "payment_term" field. It is called by the builders before save.
 	PaymentTermValidator func(string) error
 	// FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
@@ -113,6 +228,26 @@ var (
 		Discounts field.TypeValueScanner[*productcatalog.Discounts]
 	}
 )
+
+// StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
+func StatusValidator(s meta.ChargeStatus) error {
+	switch s {
+	case "created", "active", "settled", "final":
+		return nil
+	default:
+		return fmt.Errorf("chargeflatfee: invalid enum value for status field: %q", s)
+	}
+}
+
+// ManagedByValidator is a validator for the "managed_by" field enum values. It is called by the builders before save.
+func ManagedByValidator(mb billing.InvoiceLineManagedBy) error {
+	switch mb {
+	case "subscription", "system", "manual":
+		return nil
+	default:
+		return fmt.Errorf("chargeflatfee: invalid enum value for managed_by field: %q", mb)
+	}
+}
 
 // SettlementModeValidator is a validator for the "settlement_mode" field enum values. It is called by the builders before save.
 func SettlementModeValidator(sm productcatalog.SettlementMode) error {
@@ -142,9 +277,109 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
 }
 
+// ByCustomerID orders the results by the customer_id field.
+func ByCustomerID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomerID, opts...).ToFunc()
+}
+
+// ByServicePeriodFrom orders the results by the service_period_from field.
+func ByServicePeriodFrom(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldServicePeriodFrom, opts...).ToFunc()
+}
+
+// ByServicePeriodTo orders the results by the service_period_to field.
+func ByServicePeriodTo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldServicePeriodTo, opts...).ToFunc()
+}
+
+// ByBillingPeriodFrom orders the results by the billing_period_from field.
+func ByBillingPeriodFrom(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBillingPeriodFrom, opts...).ToFunc()
+}
+
+// ByBillingPeriodTo orders the results by the billing_period_to field.
+func ByBillingPeriodTo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBillingPeriodTo, opts...).ToFunc()
+}
+
+// ByFullServicePeriodFrom orders the results by the full_service_period_from field.
+func ByFullServicePeriodFrom(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFullServicePeriodFrom, opts...).ToFunc()
+}
+
+// ByFullServicePeriodTo orders the results by the full_service_period_to field.
+func ByFullServicePeriodTo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFullServicePeriodTo, opts...).ToFunc()
+}
+
+// ByStatus orders the results by the status field.
+func ByStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByUniqueReferenceID orders the results by the unique_reference_id field.
+func ByUniqueReferenceID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUniqueReferenceID, opts...).ToFunc()
+}
+
+// ByCurrency orders the results by the currency field.
+func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByManagedBy orders the results by the managed_by field.
+func ByManagedBy(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldManagedBy, opts...).ToFunc()
+}
+
+// BySubscriptionID orders the results by the subscription_id field.
+func BySubscriptionID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubscriptionID, opts...).ToFunc()
+}
+
+// BySubscriptionPhaseID orders the results by the subscription_phase_id field.
+func BySubscriptionPhaseID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubscriptionPhaseID, opts...).ToFunc()
+}
+
+// BySubscriptionItemID orders the results by the subscription_item_id field.
+func BySubscriptionItemID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubscriptionItemID, opts...).ToFunc()
+}
+
+// ByAdvanceAfter orders the results by the advance_after field.
+func ByAdvanceAfter(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAdvanceAfter, opts...).ToFunc()
+}
+
 // ByNamespace orders the results by the namespace field.
 func ByNamespace(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNamespace, opts...).ToFunc()
+}
+
+// ByCreatedAt orders the results by the created_at field.
+func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
+// ByUpdatedAt orders the results by the updated_at field.
+func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
+}
+
+// ByDeletedAt orders the results by the deleted_at field.
+func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
+}
+
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByDescription orders the results by the description field.
+func ByDescription(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDescription, opts...).ToFunc()
 }
 
 // ByPaymentTerm orders the results by the payment_term field.
@@ -187,13 +422,6 @@ func ByAmountAfterProration(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmountAfterProration, opts...).ToFunc()
 }
 
-// ByChargeField orders the results by charge field.
-func ByChargeField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newChargeStep(), sql.OrderByField(field, opts...))
-	}
-}
-
 // ByCreditAllocationsCount orders the results by credit_allocations count.
 func ByCreditAllocationsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -221,12 +449,40 @@ func ByPaymentField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newPaymentStep(), sql.OrderByField(field, opts...))
 	}
 }
-func newChargeStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ChargeInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, true, ChargeTable, ChargeColumn),
-	)
+
+// ByChargeField orders the results by charge field.
+func ByChargeField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChargeStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// BySubscriptionField orders the results by subscription field.
+func BySubscriptionField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSubscriptionStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// BySubscriptionPhaseField orders the results by subscription_phase field.
+func BySubscriptionPhaseField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSubscriptionPhaseStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// BySubscriptionItemField orders the results by subscription_item field.
+func BySubscriptionItemField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSubscriptionItemStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByCustomerField orders the results by customer field.
+func ByCustomerField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCustomerStep(), sql.OrderByField(field, opts...))
+	}
 }
 func newCreditAllocationsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
@@ -247,5 +503,40 @@ func newPaymentStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(PaymentInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, PaymentTable, PaymentColumn),
+	)
+}
+func newChargeStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChargeInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, ChargeTable, ChargeColumn),
+	)
+}
+func newSubscriptionStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SubscriptionInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, SubscriptionTable, SubscriptionColumn),
+	)
+}
+func newSubscriptionPhaseStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SubscriptionPhaseInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, SubscriptionPhaseTable, SubscriptionPhaseColumn),
+	)
+}
+func newSubscriptionItemStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SubscriptionItemInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, SubscriptionItemTable, SubscriptionItemColumn),
+	)
+}
+func newCustomerStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CustomerInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, CustomerTable, CustomerColumn),
 	)
 }

@@ -13,13 +13,21 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeecreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeinvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeepayment"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // ChargeFlatFeeCreate is the builder for creating a ChargeFlatFee entity.
@@ -30,9 +38,213 @@ type ChargeFlatFeeCreate struct {
 	conflict []sql.ConflictOption
 }
 
+// SetCustomerID sets the "customer_id" field.
+func (_c *ChargeFlatFeeCreate) SetCustomerID(v string) *ChargeFlatFeeCreate {
+	_c.mutation.SetCustomerID(v)
+	return _c
+}
+
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (_c *ChargeFlatFeeCreate) SetServicePeriodFrom(v time.Time) *ChargeFlatFeeCreate {
+	_c.mutation.SetServicePeriodFrom(v)
+	return _c
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (_c *ChargeFlatFeeCreate) SetServicePeriodTo(v time.Time) *ChargeFlatFeeCreate {
+	_c.mutation.SetServicePeriodTo(v)
+	return _c
+}
+
+// SetBillingPeriodFrom sets the "billing_period_from" field.
+func (_c *ChargeFlatFeeCreate) SetBillingPeriodFrom(v time.Time) *ChargeFlatFeeCreate {
+	_c.mutation.SetBillingPeriodFrom(v)
+	return _c
+}
+
+// SetBillingPeriodTo sets the "billing_period_to" field.
+func (_c *ChargeFlatFeeCreate) SetBillingPeriodTo(v time.Time) *ChargeFlatFeeCreate {
+	_c.mutation.SetBillingPeriodTo(v)
+	return _c
+}
+
+// SetFullServicePeriodFrom sets the "full_service_period_from" field.
+func (_c *ChargeFlatFeeCreate) SetFullServicePeriodFrom(v time.Time) *ChargeFlatFeeCreate {
+	_c.mutation.SetFullServicePeriodFrom(v)
+	return _c
+}
+
+// SetFullServicePeriodTo sets the "full_service_period_to" field.
+func (_c *ChargeFlatFeeCreate) SetFullServicePeriodTo(v time.Time) *ChargeFlatFeeCreate {
+	_c.mutation.SetFullServicePeriodTo(v)
+	return _c
+}
+
+// SetStatus sets the "status" field.
+func (_c *ChargeFlatFeeCreate) SetStatus(v meta.ChargeStatus) *ChargeFlatFeeCreate {
+	_c.mutation.SetStatus(v)
+	return _c
+}
+
+// SetUniqueReferenceID sets the "unique_reference_id" field.
+func (_c *ChargeFlatFeeCreate) SetUniqueReferenceID(v string) *ChargeFlatFeeCreate {
+	_c.mutation.SetUniqueReferenceID(v)
+	return _c
+}
+
+// SetNillableUniqueReferenceID sets the "unique_reference_id" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableUniqueReferenceID(v *string) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetUniqueReferenceID(*v)
+	}
+	return _c
+}
+
+// SetCurrency sets the "currency" field.
+func (_c *ChargeFlatFeeCreate) SetCurrency(v currencyx.Code) *ChargeFlatFeeCreate {
+	_c.mutation.SetCurrency(v)
+	return _c
+}
+
+// SetManagedBy sets the "managed_by" field.
+func (_c *ChargeFlatFeeCreate) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeFlatFeeCreate {
+	_c.mutation.SetManagedBy(v)
+	return _c
+}
+
+// SetSubscriptionID sets the "subscription_id" field.
+func (_c *ChargeFlatFeeCreate) SetSubscriptionID(v string) *ChargeFlatFeeCreate {
+	_c.mutation.SetSubscriptionID(v)
+	return _c
+}
+
+// SetNillableSubscriptionID sets the "subscription_id" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableSubscriptionID(v *string) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetSubscriptionID(*v)
+	}
+	return _c
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (_c *ChargeFlatFeeCreate) SetSubscriptionPhaseID(v string) *ChargeFlatFeeCreate {
+	_c.mutation.SetSubscriptionPhaseID(v)
+	return _c
+}
+
+// SetNillableSubscriptionPhaseID sets the "subscription_phase_id" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableSubscriptionPhaseID(v *string) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetSubscriptionPhaseID(*v)
+	}
+	return _c
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (_c *ChargeFlatFeeCreate) SetSubscriptionItemID(v string) *ChargeFlatFeeCreate {
+	_c.mutation.SetSubscriptionItemID(v)
+	return _c
+}
+
+// SetNillableSubscriptionItemID sets the "subscription_item_id" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableSubscriptionItemID(v *string) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetSubscriptionItemID(*v)
+	}
+	return _c
+}
+
+// SetAdvanceAfter sets the "advance_after" field.
+func (_c *ChargeFlatFeeCreate) SetAdvanceAfter(v time.Time) *ChargeFlatFeeCreate {
+	_c.mutation.SetAdvanceAfter(v)
+	return _c
+}
+
+// SetNillableAdvanceAfter sets the "advance_after" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableAdvanceAfter(v *time.Time) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetAdvanceAfter(*v)
+	}
+	return _c
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_c *ChargeFlatFeeCreate) SetAnnotations(v models.Annotations) *ChargeFlatFeeCreate {
+	_c.mutation.SetAnnotations(v)
+	return _c
+}
+
 // SetNamespace sets the "namespace" field.
 func (_c *ChargeFlatFeeCreate) SetNamespace(v string) *ChargeFlatFeeCreate {
 	_c.mutation.SetNamespace(v)
+	return _c
+}
+
+// SetMetadata sets the "metadata" field.
+func (_c *ChargeFlatFeeCreate) SetMetadata(v map[string]string) *ChargeFlatFeeCreate {
+	_c.mutation.SetMetadata(v)
+	return _c
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (_c *ChargeFlatFeeCreate) SetCreatedAt(v time.Time) *ChargeFlatFeeCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableCreatedAt(v *time.Time) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
+	}
+	return _c
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_c *ChargeFlatFeeCreate) SetUpdatedAt(v time.Time) *ChargeFlatFeeCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableUpdatedAt(v *time.Time) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
+	}
+	return _c
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (_c *ChargeFlatFeeCreate) SetDeletedAt(v time.Time) *ChargeFlatFeeCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableDeletedAt(v *time.Time) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
+	}
+	return _c
+}
+
+// SetName sets the "name" field.
+func (_c *ChargeFlatFeeCreate) SetName(v string) *ChargeFlatFeeCreate {
+	_c.mutation.SetName(v)
+	return _c
+}
+
+// SetDescription sets the "description" field.
+func (_c *ChargeFlatFeeCreate) SetDescription(v string) *ChargeFlatFeeCreate {
+	_c.mutation.SetDescription(v)
+	return _c
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableDescription(v *string) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetDescription(*v)
+	}
 	return _c
 }
 
@@ -106,17 +318,6 @@ func (_c *ChargeFlatFeeCreate) SetNillableID(v *string) *ChargeFlatFeeCreate {
 	return _c
 }
 
-// SetChargeID sets the "charge" edge to the Charge entity by ID.
-func (_c *ChargeFlatFeeCreate) SetChargeID(id string) *ChargeFlatFeeCreate {
-	_c.mutation.SetChargeID(id)
-	return _c
-}
-
-// SetCharge sets the "charge" edge to the Charge entity.
-func (_c *ChargeFlatFeeCreate) SetCharge(v *Charge) *ChargeFlatFeeCreate {
-	return _c.SetChargeID(v.ID)
-}
-
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeFlatFeeCreditAllocations entity by IDs.
 func (_c *ChargeFlatFeeCreate) AddCreditAllocationIDs(ids ...string) *ChargeFlatFeeCreate {
 	_c.mutation.AddCreditAllocationIDs(ids...)
@@ -170,6 +371,45 @@ func (_c *ChargeFlatFeeCreate) SetPayment(v *ChargeFlatFeePayment) *ChargeFlatFe
 	return _c.SetPaymentID(v.ID)
 }
 
+// SetChargeID sets the "charge" edge to the Charge entity by ID.
+func (_c *ChargeFlatFeeCreate) SetChargeID(id string) *ChargeFlatFeeCreate {
+	_c.mutation.SetChargeID(id)
+	return _c
+}
+
+// SetNillableChargeID sets the "charge" edge to the Charge entity by ID if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableChargeID(id *string) *ChargeFlatFeeCreate {
+	if id != nil {
+		_c = _c.SetChargeID(*id)
+	}
+	return _c
+}
+
+// SetCharge sets the "charge" edge to the Charge entity.
+func (_c *ChargeFlatFeeCreate) SetCharge(v *Charge) *ChargeFlatFeeCreate {
+	return _c.SetChargeID(v.ID)
+}
+
+// SetSubscription sets the "subscription" edge to the Subscription entity.
+func (_c *ChargeFlatFeeCreate) SetSubscription(v *Subscription) *ChargeFlatFeeCreate {
+	return _c.SetSubscriptionID(v.ID)
+}
+
+// SetSubscriptionPhase sets the "subscription_phase" edge to the SubscriptionPhase entity.
+func (_c *ChargeFlatFeeCreate) SetSubscriptionPhase(v *SubscriptionPhase) *ChargeFlatFeeCreate {
+	return _c.SetSubscriptionPhaseID(v.ID)
+}
+
+// SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
+func (_c *ChargeFlatFeeCreate) SetSubscriptionItem(v *SubscriptionItem) *ChargeFlatFeeCreate {
+	return _c.SetSubscriptionItemID(v.ID)
+}
+
+// SetCustomer sets the "customer" edge to the Customer entity.
+func (_c *ChargeFlatFeeCreate) SetCustomer(v *Customer) *ChargeFlatFeeCreate {
+	return _c.SetCustomerID(v.ID)
+}
+
 // Mutation returns the ChargeFlatFeeMutation object of the builder.
 func (_c *ChargeFlatFeeCreate) Mutation() *ChargeFlatFeeMutation {
 	return _c.mutation
@@ -205,6 +445,14 @@ func (_c *ChargeFlatFeeCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *ChargeFlatFeeCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		v := chargeflatfee.DefaultCreatedAt()
+		_c.mutation.SetCreatedAt(v)
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		v := chargeflatfee.DefaultUpdatedAt()
+		_c.mutation.SetUpdatedAt(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := chargeflatfee.DefaultID()
 		_c.mutation.SetID(v)
@@ -213,6 +461,56 @@ func (_c *ChargeFlatFeeCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *ChargeFlatFeeCreate) check() error {
+	if _, ok := _c.mutation.CustomerID(); !ok {
+		return &ValidationError{Name: "customer_id", err: errors.New(`db: missing required field "ChargeFlatFee.customer_id"`)}
+	}
+	if v, ok := _c.mutation.CustomerID(); ok {
+		if err := chargeflatfee.CustomerIDValidator(v); err != nil {
+			return &ValidationError{Name: "customer_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.customer_id": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.ServicePeriodFrom(); !ok {
+		return &ValidationError{Name: "service_period_from", err: errors.New(`db: missing required field "ChargeFlatFee.service_period_from"`)}
+	}
+	if _, ok := _c.mutation.ServicePeriodTo(); !ok {
+		return &ValidationError{Name: "service_period_to", err: errors.New(`db: missing required field "ChargeFlatFee.service_period_to"`)}
+	}
+	if _, ok := _c.mutation.BillingPeriodFrom(); !ok {
+		return &ValidationError{Name: "billing_period_from", err: errors.New(`db: missing required field "ChargeFlatFee.billing_period_from"`)}
+	}
+	if _, ok := _c.mutation.BillingPeriodTo(); !ok {
+		return &ValidationError{Name: "billing_period_to", err: errors.New(`db: missing required field "ChargeFlatFee.billing_period_to"`)}
+	}
+	if _, ok := _c.mutation.FullServicePeriodFrom(); !ok {
+		return &ValidationError{Name: "full_service_period_from", err: errors.New(`db: missing required field "ChargeFlatFee.full_service_period_from"`)}
+	}
+	if _, ok := _c.mutation.FullServicePeriodTo(); !ok {
+		return &ValidationError{Name: "full_service_period_to", err: errors.New(`db: missing required field "ChargeFlatFee.full_service_period_to"`)}
+	}
+	if _, ok := _c.mutation.Status(); !ok {
+		return &ValidationError{Name: "status", err: errors.New(`db: missing required field "ChargeFlatFee.status"`)}
+	}
+	if v, ok := _c.mutation.Status(); ok {
+		if err := chargeflatfee.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.status": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.Currency(); !ok {
+		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "ChargeFlatFee.currency"`)}
+	}
+	if v, ok := _c.mutation.Currency(); ok {
+		if err := chargeflatfee.CurrencyValidator(string(v)); err != nil {
+			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.currency": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.ManagedBy(); !ok {
+		return &ValidationError{Name: "managed_by", err: errors.New(`db: missing required field "ChargeFlatFee.managed_by"`)}
+	}
+	if v, ok := _c.mutation.ManagedBy(); ok {
+		if err := chargeflatfee.ManagedByValidator(v); err != nil {
+			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.managed_by": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "ChargeFlatFee.namespace"`)}
 	}
@@ -220,6 +518,15 @@ func (_c *ChargeFlatFeeCreate) check() error {
 		if err := chargeflatfee.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.namespace": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "ChargeFlatFee.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "ChargeFlatFee.updated_at"`)}
+	}
+	if _, ok := _c.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "ChargeFlatFee.name"`)}
 	}
 	if _, ok := _c.mutation.PaymentTerm(); !ok {
 		return &ValidationError{Name: "payment_term", err: errors.New(`db: missing required field "ChargeFlatFee.payment_term"`)}
@@ -264,8 +571,8 @@ func (_c *ChargeFlatFeeCreate) check() error {
 	if _, ok := _c.mutation.AmountAfterProration(); !ok {
 		return &ValidationError{Name: "amount_after_proration", err: errors.New(`db: missing required field "ChargeFlatFee.amount_after_proration"`)}
 	}
-	if len(_c.mutation.ChargeIDs()) == 0 {
-		return &ValidationError{Name: "charge", err: errors.New(`db: missing required edge "ChargeFlatFee.charge"`)}
+	if len(_c.mutation.CustomerIDs()) == 0 {
+		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "ChargeFlatFee.customer"`)}
 	}
 	return nil
 }
@@ -306,9 +613,81 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 		_node.ID = id
 		_spec.ID.Value = id
 	}
+	if value, ok := _c.mutation.ServicePeriodFrom(); ok {
+		_spec.SetField(chargeflatfee.FieldServicePeriodFrom, field.TypeTime, value)
+		_node.ServicePeriodFrom = value
+	}
+	if value, ok := _c.mutation.ServicePeriodTo(); ok {
+		_spec.SetField(chargeflatfee.FieldServicePeriodTo, field.TypeTime, value)
+		_node.ServicePeriodTo = value
+	}
+	if value, ok := _c.mutation.BillingPeriodFrom(); ok {
+		_spec.SetField(chargeflatfee.FieldBillingPeriodFrom, field.TypeTime, value)
+		_node.BillingPeriodFrom = value
+	}
+	if value, ok := _c.mutation.BillingPeriodTo(); ok {
+		_spec.SetField(chargeflatfee.FieldBillingPeriodTo, field.TypeTime, value)
+		_node.BillingPeriodTo = value
+	}
+	if value, ok := _c.mutation.FullServicePeriodFrom(); ok {
+		_spec.SetField(chargeflatfee.FieldFullServicePeriodFrom, field.TypeTime, value)
+		_node.FullServicePeriodFrom = value
+	}
+	if value, ok := _c.mutation.FullServicePeriodTo(); ok {
+		_spec.SetField(chargeflatfee.FieldFullServicePeriodTo, field.TypeTime, value)
+		_node.FullServicePeriodTo = value
+	}
+	if value, ok := _c.mutation.Status(); ok {
+		_spec.SetField(chargeflatfee.FieldStatus, field.TypeEnum, value)
+		_node.Status = value
+	}
+	if value, ok := _c.mutation.UniqueReferenceID(); ok {
+		_spec.SetField(chargeflatfee.FieldUniqueReferenceID, field.TypeString, value)
+		_node.UniqueReferenceID = &value
+	}
+	if value, ok := _c.mutation.Currency(); ok {
+		_spec.SetField(chargeflatfee.FieldCurrency, field.TypeString, value)
+		_node.Currency = value
+	}
+	if value, ok := _c.mutation.ManagedBy(); ok {
+		_spec.SetField(chargeflatfee.FieldManagedBy, field.TypeEnum, value)
+		_node.ManagedBy = value
+	}
+	if value, ok := _c.mutation.AdvanceAfter(); ok {
+		_spec.SetField(chargeflatfee.FieldAdvanceAfter, field.TypeTime, value)
+		_node.AdvanceAfter = &value
+	}
+	if value, ok := _c.mutation.Annotations(); ok {
+		_spec.SetField(chargeflatfee.FieldAnnotations, field.TypeJSON, value)
+		_node.Annotations = value
+	}
 	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(chargeflatfee.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
+	}
+	if value, ok := _c.mutation.Metadata(); ok {
+		_spec.SetField(chargeflatfee.FieldMetadata, field.TypeJSON, value)
+		_node.Metadata = value
+	}
+	if value, ok := _c.mutation.CreatedAt(); ok {
+		_spec.SetField(chargeflatfee.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.UpdatedAt(); ok {
+		_spec.SetField(chargeflatfee.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
+	}
+	if value, ok := _c.mutation.DeletedAt(); ok {
+		_spec.SetField(chargeflatfee.FieldDeletedAt, field.TypeTime, value)
+		_node.DeletedAt = &value
+	}
+	if value, ok := _c.mutation.Name(); ok {
+		_spec.SetField(chargeflatfee.FieldName, field.TypeString, value)
+		_node.Name = value
+	}
+	if value, ok := _c.mutation.Description(); ok {
+		_spec.SetField(chargeflatfee.FieldDescription, field.TypeString, value)
+		_node.Description = &value
 	}
 	if value, ok := _c.mutation.PaymentTerm(); ok {
 		_spec.SetField(chargeflatfee.FieldPaymentTerm, field.TypeString, value)
@@ -345,23 +724,6 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.AmountAfterProration(); ok {
 		_spec.SetField(chargeflatfee.FieldAmountAfterProration, field.TypeOther, value)
 		_node.AmountAfterProration = value
-	}
-	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: true,
-			Table:   chargeflatfee.ChargeTable,
-			Columns: []string{chargeflatfee.ChargeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.ID = nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.CreditAllocationsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -411,6 +773,90 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeflatfee.ChargeTable,
+			Columns: []string{chargeflatfee.ChargeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SubscriptionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfee.SubscriptionTable,
+			Columns: []string{chargeflatfee.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SubscriptionID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SubscriptionPhaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfee.SubscriptionPhaseTable,
+			Columns: []string{chargeflatfee.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SubscriptionPhaseID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfee.SubscriptionItemTable,
+			Columns: []string{chargeflatfee.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SubscriptionItemID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CustomerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfee.CustomerTable,
+			Columns: []string{chargeflatfee.CustomerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CustomerID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec, nil
 }
 
@@ -418,7 +864,7 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 // of the `INSERT` statement. For example:
 //
 //	client.ChargeFlatFee.Create().
-//		SetNamespace(v).
+//		SetCustomerID(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -427,7 +873,7 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.ChargeFlatFeeUpsert) {
-//			SetNamespace(v+v).
+//			SetCustomerID(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *ChargeFlatFeeCreate) OnConflict(opts ...sql.ConflictOption) *ChargeFlatFeeUpsertOne {
@@ -462,6 +908,216 @@ type (
 		*sql.UpdateSet
 	}
 )
+
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (u *ChargeFlatFeeUpsert) SetServicePeriodFrom(v time.Time) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldServicePeriodFrom, v)
+	return u
+}
+
+// UpdateServicePeriodFrom sets the "service_period_from" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateServicePeriodFrom() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldServicePeriodFrom)
+	return u
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (u *ChargeFlatFeeUpsert) SetServicePeriodTo(v time.Time) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldServicePeriodTo, v)
+	return u
+}
+
+// UpdateServicePeriodTo sets the "service_period_to" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateServicePeriodTo() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldServicePeriodTo)
+	return u
+}
+
+// SetBillingPeriodFrom sets the "billing_period_from" field.
+func (u *ChargeFlatFeeUpsert) SetBillingPeriodFrom(v time.Time) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldBillingPeriodFrom, v)
+	return u
+}
+
+// UpdateBillingPeriodFrom sets the "billing_period_from" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateBillingPeriodFrom() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldBillingPeriodFrom)
+	return u
+}
+
+// SetBillingPeriodTo sets the "billing_period_to" field.
+func (u *ChargeFlatFeeUpsert) SetBillingPeriodTo(v time.Time) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldBillingPeriodTo, v)
+	return u
+}
+
+// UpdateBillingPeriodTo sets the "billing_period_to" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateBillingPeriodTo() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldBillingPeriodTo)
+	return u
+}
+
+// SetFullServicePeriodFrom sets the "full_service_period_from" field.
+func (u *ChargeFlatFeeUpsert) SetFullServicePeriodFrom(v time.Time) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldFullServicePeriodFrom, v)
+	return u
+}
+
+// UpdateFullServicePeriodFrom sets the "full_service_period_from" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateFullServicePeriodFrom() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldFullServicePeriodFrom)
+	return u
+}
+
+// SetFullServicePeriodTo sets the "full_service_period_to" field.
+func (u *ChargeFlatFeeUpsert) SetFullServicePeriodTo(v time.Time) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldFullServicePeriodTo, v)
+	return u
+}
+
+// UpdateFullServicePeriodTo sets the "full_service_period_to" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateFullServicePeriodTo() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldFullServicePeriodTo)
+	return u
+}
+
+// SetStatus sets the "status" field.
+func (u *ChargeFlatFeeUpsert) SetStatus(v meta.ChargeStatus) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldStatus, v)
+	return u
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateStatus() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldStatus)
+	return u
+}
+
+// SetManagedBy sets the "managed_by" field.
+func (u *ChargeFlatFeeUpsert) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldManagedBy, v)
+	return u
+}
+
+// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateManagedBy() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldManagedBy)
+	return u
+}
+
+// SetAdvanceAfter sets the "advance_after" field.
+func (u *ChargeFlatFeeUpsert) SetAdvanceAfter(v time.Time) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldAdvanceAfter, v)
+	return u
+}
+
+// UpdateAdvanceAfter sets the "advance_after" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateAdvanceAfter() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldAdvanceAfter)
+	return u
+}
+
+// ClearAdvanceAfter clears the value of the "advance_after" field.
+func (u *ChargeFlatFeeUpsert) ClearAdvanceAfter() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldAdvanceAfter)
+	return u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *ChargeFlatFeeUpsert) SetAnnotations(v models.Annotations) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldAnnotations, v)
+	return u
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateAnnotations() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldAnnotations)
+	return u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *ChargeFlatFeeUpsert) ClearAnnotations() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldAnnotations)
+	return u
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *ChargeFlatFeeUpsert) SetMetadata(v map[string]string) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldMetadata, v)
+	return u
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateMetadata() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldMetadata)
+	return u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *ChargeFlatFeeUpsert) ClearMetadata() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldMetadata)
+	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *ChargeFlatFeeUpsert) SetUpdatedAt(v time.Time) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldUpdatedAt, v)
+	return u
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateUpdatedAt() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldUpdatedAt)
+	return u
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (u *ChargeFlatFeeUpsert) SetDeletedAt(v time.Time) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldDeletedAt, v)
+	return u
+}
+
+// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateDeletedAt() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldDeletedAt)
+	return u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (u *ChargeFlatFeeUpsert) ClearDeletedAt() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldDeletedAt)
+	return u
+}
+
+// SetName sets the "name" field.
+func (u *ChargeFlatFeeUpsert) SetName(v string) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateName() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldName)
+	return u
+}
+
+// SetDescription sets the "description" field.
+func (u *ChargeFlatFeeUpsert) SetDescription(v string) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldDescription, v)
+	return u
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateDescription() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldDescription)
+	return u
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *ChargeFlatFeeUpsert) ClearDescription() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldDescription)
+	return u
+}
 
 // SetPaymentTerm sets the "payment_term" field.
 func (u *ChargeFlatFeeUpsert) SetPaymentTerm(v productcatalog.PaymentTermType) *ChargeFlatFeeUpsert {
@@ -576,8 +1232,29 @@ func (u *ChargeFlatFeeUpsertOne) UpdateNewValues() *ChargeFlatFeeUpsertOne {
 		if _, exists := u.create.mutation.ID(); exists {
 			s.SetIgnore(chargeflatfee.FieldID)
 		}
+		if _, exists := u.create.mutation.CustomerID(); exists {
+			s.SetIgnore(chargeflatfee.FieldCustomerID)
+		}
+		if _, exists := u.create.mutation.UniqueReferenceID(); exists {
+			s.SetIgnore(chargeflatfee.FieldUniqueReferenceID)
+		}
+		if _, exists := u.create.mutation.Currency(); exists {
+			s.SetIgnore(chargeflatfee.FieldCurrency)
+		}
+		if _, exists := u.create.mutation.SubscriptionID(); exists {
+			s.SetIgnore(chargeflatfee.FieldSubscriptionID)
+		}
+		if _, exists := u.create.mutation.SubscriptionPhaseID(); exists {
+			s.SetIgnore(chargeflatfee.FieldSubscriptionPhaseID)
+		}
+		if _, exists := u.create.mutation.SubscriptionItemID(); exists {
+			s.SetIgnore(chargeflatfee.FieldSubscriptionItemID)
+		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(chargeflatfee.FieldNamespace)
+		}
+		if _, exists := u.create.mutation.CreatedAt(); exists {
+			s.SetIgnore(chargeflatfee.FieldCreatedAt)
 		}
 		if _, exists := u.create.mutation.SettlementMode(); exists {
 			s.SetIgnore(chargeflatfee.FieldSettlementMode)
@@ -611,6 +1288,251 @@ func (u *ChargeFlatFeeUpsertOne) Update(set func(*ChargeFlatFeeUpsert)) *ChargeF
 		set(&ChargeFlatFeeUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (u *ChargeFlatFeeUpsertOne) SetServicePeriodFrom(v time.Time) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetServicePeriodFrom(v)
+	})
+}
+
+// UpdateServicePeriodFrom sets the "service_period_from" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateServicePeriodFrom() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateServicePeriodFrom()
+	})
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (u *ChargeFlatFeeUpsertOne) SetServicePeriodTo(v time.Time) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetServicePeriodTo(v)
+	})
+}
+
+// UpdateServicePeriodTo sets the "service_period_to" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateServicePeriodTo() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateServicePeriodTo()
+	})
+}
+
+// SetBillingPeriodFrom sets the "billing_period_from" field.
+func (u *ChargeFlatFeeUpsertOne) SetBillingPeriodFrom(v time.Time) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetBillingPeriodFrom(v)
+	})
+}
+
+// UpdateBillingPeriodFrom sets the "billing_period_from" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateBillingPeriodFrom() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateBillingPeriodFrom()
+	})
+}
+
+// SetBillingPeriodTo sets the "billing_period_to" field.
+func (u *ChargeFlatFeeUpsertOne) SetBillingPeriodTo(v time.Time) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetBillingPeriodTo(v)
+	})
+}
+
+// UpdateBillingPeriodTo sets the "billing_period_to" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateBillingPeriodTo() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateBillingPeriodTo()
+	})
+}
+
+// SetFullServicePeriodFrom sets the "full_service_period_from" field.
+func (u *ChargeFlatFeeUpsertOne) SetFullServicePeriodFrom(v time.Time) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetFullServicePeriodFrom(v)
+	})
+}
+
+// UpdateFullServicePeriodFrom sets the "full_service_period_from" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateFullServicePeriodFrom() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateFullServicePeriodFrom()
+	})
+}
+
+// SetFullServicePeriodTo sets the "full_service_period_to" field.
+func (u *ChargeFlatFeeUpsertOne) SetFullServicePeriodTo(v time.Time) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetFullServicePeriodTo(v)
+	})
+}
+
+// UpdateFullServicePeriodTo sets the "full_service_period_to" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateFullServicePeriodTo() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateFullServicePeriodTo()
+	})
+}
+
+// SetStatus sets the "status" field.
+func (u *ChargeFlatFeeUpsertOne) SetStatus(v meta.ChargeStatus) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetStatus(v)
+	})
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateStatus() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateStatus()
+	})
+}
+
+// SetManagedBy sets the "managed_by" field.
+func (u *ChargeFlatFeeUpsertOne) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetManagedBy(v)
+	})
+}
+
+// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateManagedBy() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateManagedBy()
+	})
+}
+
+// SetAdvanceAfter sets the "advance_after" field.
+func (u *ChargeFlatFeeUpsertOne) SetAdvanceAfter(v time.Time) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetAdvanceAfter(v)
+	})
+}
+
+// UpdateAdvanceAfter sets the "advance_after" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateAdvanceAfter() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateAdvanceAfter()
+	})
+}
+
+// ClearAdvanceAfter clears the value of the "advance_after" field.
+func (u *ChargeFlatFeeUpsertOne) ClearAdvanceAfter() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearAdvanceAfter()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *ChargeFlatFeeUpsertOne) SetAnnotations(v models.Annotations) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateAnnotations() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *ChargeFlatFeeUpsertOne) ClearAnnotations() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearAnnotations()
+	})
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *ChargeFlatFeeUpsertOne) SetMetadata(v map[string]string) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateMetadata() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *ChargeFlatFeeUpsertOne) ClearMetadata() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearMetadata()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *ChargeFlatFeeUpsertOne) SetUpdatedAt(v time.Time) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateUpdatedAt() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (u *ChargeFlatFeeUpsertOne) SetDeletedAt(v time.Time) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetDeletedAt(v)
+	})
+}
+
+// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateDeletedAt() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateDeletedAt()
+	})
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (u *ChargeFlatFeeUpsertOne) ClearDeletedAt() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearDeletedAt()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *ChargeFlatFeeUpsertOne) SetName(v string) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateName() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetDescription sets the "description" field.
+func (u *ChargeFlatFeeUpsertOne) SetDescription(v string) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetDescription(v)
+	})
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateDescription() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *ChargeFlatFeeUpsertOne) ClearDescription() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearDescription()
+	})
 }
 
 // SetPaymentTerm sets the "payment_term" field.
@@ -864,7 +1786,7 @@ func (_c *ChargeFlatFeeCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.ChargeFlatFeeUpsert) {
-//			SetNamespace(v+v).
+//			SetCustomerID(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *ChargeFlatFeeCreateBulk) OnConflict(opts ...sql.ConflictOption) *ChargeFlatFeeUpsertBulk {
@@ -911,8 +1833,29 @@ func (u *ChargeFlatFeeUpsertBulk) UpdateNewValues() *ChargeFlatFeeUpsertBulk {
 			if _, exists := b.mutation.ID(); exists {
 				s.SetIgnore(chargeflatfee.FieldID)
 			}
+			if _, exists := b.mutation.CustomerID(); exists {
+				s.SetIgnore(chargeflatfee.FieldCustomerID)
+			}
+			if _, exists := b.mutation.UniqueReferenceID(); exists {
+				s.SetIgnore(chargeflatfee.FieldUniqueReferenceID)
+			}
+			if _, exists := b.mutation.Currency(); exists {
+				s.SetIgnore(chargeflatfee.FieldCurrency)
+			}
+			if _, exists := b.mutation.SubscriptionID(); exists {
+				s.SetIgnore(chargeflatfee.FieldSubscriptionID)
+			}
+			if _, exists := b.mutation.SubscriptionPhaseID(); exists {
+				s.SetIgnore(chargeflatfee.FieldSubscriptionPhaseID)
+			}
+			if _, exists := b.mutation.SubscriptionItemID(); exists {
+				s.SetIgnore(chargeflatfee.FieldSubscriptionItemID)
+			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(chargeflatfee.FieldNamespace)
+			}
+			if _, exists := b.mutation.CreatedAt(); exists {
+				s.SetIgnore(chargeflatfee.FieldCreatedAt)
 			}
 			if _, exists := b.mutation.SettlementMode(); exists {
 				s.SetIgnore(chargeflatfee.FieldSettlementMode)
@@ -947,6 +1890,251 @@ func (u *ChargeFlatFeeUpsertBulk) Update(set func(*ChargeFlatFeeUpsert)) *Charge
 		set(&ChargeFlatFeeUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (u *ChargeFlatFeeUpsertBulk) SetServicePeriodFrom(v time.Time) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetServicePeriodFrom(v)
+	})
+}
+
+// UpdateServicePeriodFrom sets the "service_period_from" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateServicePeriodFrom() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateServicePeriodFrom()
+	})
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (u *ChargeFlatFeeUpsertBulk) SetServicePeriodTo(v time.Time) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetServicePeriodTo(v)
+	})
+}
+
+// UpdateServicePeriodTo sets the "service_period_to" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateServicePeriodTo() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateServicePeriodTo()
+	})
+}
+
+// SetBillingPeriodFrom sets the "billing_period_from" field.
+func (u *ChargeFlatFeeUpsertBulk) SetBillingPeriodFrom(v time.Time) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetBillingPeriodFrom(v)
+	})
+}
+
+// UpdateBillingPeriodFrom sets the "billing_period_from" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateBillingPeriodFrom() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateBillingPeriodFrom()
+	})
+}
+
+// SetBillingPeriodTo sets the "billing_period_to" field.
+func (u *ChargeFlatFeeUpsertBulk) SetBillingPeriodTo(v time.Time) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetBillingPeriodTo(v)
+	})
+}
+
+// UpdateBillingPeriodTo sets the "billing_period_to" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateBillingPeriodTo() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateBillingPeriodTo()
+	})
+}
+
+// SetFullServicePeriodFrom sets the "full_service_period_from" field.
+func (u *ChargeFlatFeeUpsertBulk) SetFullServicePeriodFrom(v time.Time) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetFullServicePeriodFrom(v)
+	})
+}
+
+// UpdateFullServicePeriodFrom sets the "full_service_period_from" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateFullServicePeriodFrom() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateFullServicePeriodFrom()
+	})
+}
+
+// SetFullServicePeriodTo sets the "full_service_period_to" field.
+func (u *ChargeFlatFeeUpsertBulk) SetFullServicePeriodTo(v time.Time) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetFullServicePeriodTo(v)
+	})
+}
+
+// UpdateFullServicePeriodTo sets the "full_service_period_to" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateFullServicePeriodTo() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateFullServicePeriodTo()
+	})
+}
+
+// SetStatus sets the "status" field.
+func (u *ChargeFlatFeeUpsertBulk) SetStatus(v meta.ChargeStatus) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetStatus(v)
+	})
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateStatus() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateStatus()
+	})
+}
+
+// SetManagedBy sets the "managed_by" field.
+func (u *ChargeFlatFeeUpsertBulk) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetManagedBy(v)
+	})
+}
+
+// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateManagedBy() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateManagedBy()
+	})
+}
+
+// SetAdvanceAfter sets the "advance_after" field.
+func (u *ChargeFlatFeeUpsertBulk) SetAdvanceAfter(v time.Time) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetAdvanceAfter(v)
+	})
+}
+
+// UpdateAdvanceAfter sets the "advance_after" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateAdvanceAfter() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateAdvanceAfter()
+	})
+}
+
+// ClearAdvanceAfter clears the value of the "advance_after" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearAdvanceAfter() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearAdvanceAfter()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *ChargeFlatFeeUpsertBulk) SetAnnotations(v models.Annotations) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateAnnotations() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearAnnotations() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearAnnotations()
+	})
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *ChargeFlatFeeUpsertBulk) SetMetadata(v map[string]string) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateMetadata() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearMetadata() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearMetadata()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *ChargeFlatFeeUpsertBulk) SetUpdatedAt(v time.Time) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateUpdatedAt() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (u *ChargeFlatFeeUpsertBulk) SetDeletedAt(v time.Time) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetDeletedAt(v)
+	})
+}
+
+// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateDeletedAt() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateDeletedAt()
+	})
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearDeletedAt() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearDeletedAt()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *ChargeFlatFeeUpsertBulk) SetName(v string) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateName() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetDescription sets the "description" field.
+func (u *ChargeFlatFeeUpsertBulk) SetDescription(v string) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetDescription(v)
+	})
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateDescription() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearDescription() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearDescription()
+	})
 }
 
 // SetPaymentTerm sets the "payment_term" field.

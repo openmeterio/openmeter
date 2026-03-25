@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -18,10 +19,31 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func MapChargeBaseFromDB(entity *entdb.ChargeUsageBased, chargeMeta meta.Charge) usagebased.ChargeBase {
+func MapChargeFromDB(entity *entdb.ChargeUsageBased, expands meta.Expands) (usagebased.Charge, error) {
+	chargeBase := MapChargeBaseFromDB(entity)
+
+	var realizations usagebased.RealizationRuns
+	if expands.Has(meta.ExpandRealizations) {
+		var err error
+
+		realizations, err = MapRealizationRunsFromDB(entity)
+		if err != nil {
+			return usagebased.Charge{}, fmt.Errorf("mapping usage based charge [id=%s]: %w", entity.ID, err)
+		}
+	}
+
+	return usagebased.Charge{
+		ChargeBase:   chargeBase,
+		Realizations: realizations,
+	}, nil
+}
+
+func MapChargeBaseFromDB(entity *entdb.ChargeUsageBased) usagebased.ChargeBase {
+	chargeMeta := chargemeta.MapFromDB(entity)
+
 	return usagebased.ChargeBase{
 		ManagedResource: chargeMeta.ManagedResource,
-		Status:          entity.Status,
+		Status:          entity.StatusDetailed,
 		Intent: usagebased.Intent{
 			Intent:         chargeMeta.Intent,
 			InvoiceAt:      entity.InvoiceAt.UTC(),
@@ -32,7 +54,7 @@ func MapChargeBaseFromDB(entity *entdb.ChargeUsageBased, chargeMeta meta.Charge)
 		},
 		State: usagebased.State{
 			CurrentRealizationRunID: entity.CurrentRealizationRunID,
-			AdvanceAfter:            chargeMeta.AdvanceAfter,
+			AdvanceAfter:            entity.AdvanceAfter,
 		},
 	}
 }

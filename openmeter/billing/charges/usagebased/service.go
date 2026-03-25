@@ -18,8 +18,7 @@ type Service interface {
 
 type UsageBasedService interface {
 	Create(ctx context.Context, input CreateInput) ([]ChargeWithGatheringLine, error)
-	GetByMetas(ctx context.Context, input GetByMetasInput) ([]Charge, error)
-	GetByID(ctx context.Context, input GetByIDInput) (Charge, error)
+	GetByIDs(ctx context.Context, input GetByIDsInput) ([]Charge, error)
 	AdvanceCharge(ctx context.Context, input AdvanceChargeInput) (*Charge, error)
 }
 
@@ -55,21 +54,17 @@ type ChargeWithGatheringLine struct {
 	GatheringLineToCreate *billing.GatheringLine
 }
 
-type GetByMetasInput struct {
+type GetByIDsInput struct {
 	Namespace string
+	IDs       []string
 	Expands   meta.Expands
-	Charges   meta.Charges
 }
 
-func (i GetByMetasInput) Validate() error {
+func (i GetByIDsInput) Validate() error {
 	var errs []error
 
 	if i.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))
-	}
-
-	if err := i.Charges.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("charges: %w", err))
 	}
 
 	if err := i.Expands.Validate(); err != nil {

@@ -14,7 +14,9 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicesplitlinegroup"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -198,19 +200,49 @@ func (_c *SubscriptionPhaseCreate) AddBillingSplitLineGroups(v ...*BillingInvoic
 	return _c.AddBillingSplitLineGroupIDs(ids...)
 }
 
-// AddChargeIntentIDs adds the "charge_intents" edge to the Charge entity by IDs.
-func (_c *SubscriptionPhaseCreate) AddChargeIntentIDs(ids ...string) *SubscriptionPhaseCreate {
-	_c.mutation.AddChargeIntentIDs(ids...)
+// AddChargesUsageBasedIDs adds the "charges_usage_based" edge to the ChargeUsageBased entity by IDs.
+func (_c *SubscriptionPhaseCreate) AddChargesUsageBasedIDs(ids ...string) *SubscriptionPhaseCreate {
+	_c.mutation.AddChargesUsageBasedIDs(ids...)
 	return _c
 }
 
-// AddChargeIntents adds the "charge_intents" edges to the Charge entity.
-func (_c *SubscriptionPhaseCreate) AddChargeIntents(v ...*Charge) *SubscriptionPhaseCreate {
+// AddChargesUsageBased adds the "charges_usage_based" edges to the ChargeUsageBased entity.
+func (_c *SubscriptionPhaseCreate) AddChargesUsageBased(v ...*ChargeUsageBased) *SubscriptionPhaseCreate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _c.AddChargeIntentIDs(ids...)
+	return _c.AddChargesUsageBasedIDs(ids...)
+}
+
+// AddChargesCreditPurchaseIDs adds the "charges_credit_purchase" edge to the ChargeCreditPurchase entity by IDs.
+func (_c *SubscriptionPhaseCreate) AddChargesCreditPurchaseIDs(ids ...string) *SubscriptionPhaseCreate {
+	_c.mutation.AddChargesCreditPurchaseIDs(ids...)
+	return _c
+}
+
+// AddChargesCreditPurchase adds the "charges_credit_purchase" edges to the ChargeCreditPurchase entity.
+func (_c *SubscriptionPhaseCreate) AddChargesCreditPurchase(v ...*ChargeCreditPurchase) *SubscriptionPhaseCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChargesCreditPurchaseIDs(ids...)
+}
+
+// AddChargesFlatFeeIDs adds the "charges_flat_fee" edge to the ChargeFlatFee entity by IDs.
+func (_c *SubscriptionPhaseCreate) AddChargesFlatFeeIDs(ids ...string) *SubscriptionPhaseCreate {
+	_c.mutation.AddChargesFlatFeeIDs(ids...)
+	return _c
+}
+
+// AddChargesFlatFee adds the "charges_flat_fee" edges to the ChargeFlatFee entity.
+func (_c *SubscriptionPhaseCreate) AddChargesFlatFee(v ...*ChargeFlatFee) *SubscriptionPhaseCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChargesFlatFeeIDs(ids...)
 }
 
 // Mutation returns the SubscriptionPhaseMutation object of the builder.
@@ -449,15 +481,47 @@ func (_c *SubscriptionPhaseCreate) createSpec() (*SubscriptionPhase, *sqlgraph.C
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.ChargeIntentsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.ChargesUsageBasedIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   subscriptionphase.ChargeIntentsTable,
-			Columns: []string{subscriptionphase.ChargeIntentsColumn},
+			Table:   subscriptionphase.ChargesUsageBasedTable,
+			Columns: []string{subscriptionphase.ChargesUsageBasedColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargesCreditPurchaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionphase.ChargesCreditPurchaseTable,
+			Columns: []string{subscriptionphase.ChargesCreditPurchaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargecreditpurchase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargesFlatFeeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   subscriptionphase.ChargesFlatFeeTable,
+			Columns: []string{subscriptionphase.ChargesFlatFeeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfee.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -20,17 +20,22 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (charges.Charges, error) {
-		chargeMetas, err := s.metaAdapter.ListByCustomer(ctx, meta.ListByCustomerInput{
-			Customer: input.Customer,
+		inScopeCharges, err := s.ListCharges(ctx, charges.ListChargesInput{
+			Namespace:   input.Customer.Namespace,
+			StatusNotIn: []meta.ChargeStatus{meta.ChargeStatusFinal},
+			CustomerIDs: []string{input.Customer.ID},
+			Expands:     meta.Expands{meta.ExpandRealizations},
 		})
 		if err != nil {
-			return nil, fmt.Errorf("list charges by customer: %w", err)
+			return nil, fmt.Errorf("list charges: %w", err)
 		}
 
-		usageBasedChargeMetas := lo.Filter(chargeMetas, func(chargeMeta meta.Charge, _ int) bool {
-			return chargeMeta.Type == meta.ChargeTypeUsageBased
-		})
-		if len(usageBasedChargeMetas) == 0 {
+		chargesByType, err := chargesByType(inScopeCharges.Items)
+		if err != nil {
+			return nil, fmt.Errorf("get charges by type: %w", err)
+		}
+
+		if len(chargesByType.usageBased) == 0 {
 			return charges.Charges{}, nil
 		}
 
@@ -44,14 +49,7 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 			return nil, fmt.Errorf("get customer override: %w", err)
 		}
 
-		usageBasedCharges, err := s.usageBasedService.GetByMetas(ctx, usagebased.GetByMetasInput{
-			Namespace: input.Customer.Namespace,
-			Charges:   usageBasedChargeMetas,
-			Expands:   meta.Expands{meta.ExpandRealizations},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("get usage based charges: %w", err)
-		}
+		usageBasedCharges := chargesByType.usageBased
 
 		featureMeters, err := s.resolveFeatureMeters(ctx, input.Customer.Namespace, usageBasedCharges)
 		if err != nil {

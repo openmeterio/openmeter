@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 )
 
 type Service interface {
@@ -20,7 +19,7 @@ type CreditPurchaseService interface {
 	// as based on current state of credits we are not going to create multiple credit purchases at once.
 	Create(ctx context.Context, input CreateInput) (ChargeWithGatheringLine, error)
 
-	GetByMetas(ctx context.Context, input GetByMetasInput) ([]Charge, error)
+	GetByIDs(ctx context.Context, input GetByIDsInput) ([]Charge, error)
 }
 
 type ChargeWithGatheringLine struct {
@@ -52,29 +51,6 @@ func (i CreateInput) Validate() error {
 
 	if err := i.Intent.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("intent: %w", err))
-	}
-
-	return errors.Join(errs...)
-}
-
-type GetByMetasInput struct {
-	Namespace string
-	Expands   meta.Expands
-	Charges   meta.Charges
-}
-
-func (i GetByMetasInput) Validate() error {
-	var errs []error
-	if i.Namespace == "" {
-		errs = append(errs, errors.New("namespace is required"))
-	}
-
-	if err := i.Charges.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("charges: %w", err))
-	}
-
-	if err := i.Expands.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("expands: %w", err))
 	}
 
 	return errors.Join(errs...)

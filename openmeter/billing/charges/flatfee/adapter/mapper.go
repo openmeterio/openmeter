@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -15,17 +16,19 @@ import (
 )
 
 // MapFlatFeeChargeFromDB converts a DB Charge entity (with loaded FlatFee edge) to a FlatFeeCharge.
-func MapChargeFlatFeeFromDB(entity *entdb.ChargeFlatFee, chargeMeta meta.Charge, expands meta.Expands) (flatfee.Charge, error) {
+func MapChargeFlatFeeFromDB(entity *entdb.ChargeFlatFee, expands meta.Expands) (flatfee.Charge, error) {
 	var percentageDiscounts *productcatalog.PercentageDiscount
 	if entity.Discounts != nil {
 		percentageDiscounts = entity.Discounts.Percentage
 	}
 
+	mappedMeta := chargemeta.MapFromDB(entity)
+
 	charge := flatfee.Charge{
-		ManagedResource: chargeMeta.ManagedResource,
-		Status:          chargeMeta.Status,
+		ManagedResource: mappedMeta.ManagedResource,
+		Status:          mappedMeta.Status,
 		Intent: flatfee.Intent{
-			Intent:                chargeMeta.Intent,
+			Intent:                mappedMeta.Intent,
 			InvoiceAt:             entity.InvoiceAt.UTC(),
 			SettlementMode:        entity.SettlementMode,
 			PaymentTerm:           entity.PaymentTerm,

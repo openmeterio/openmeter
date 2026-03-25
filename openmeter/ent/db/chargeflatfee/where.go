@@ -8,9 +8,12 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // ID filters vertices based on their ID field.
@@ -68,9 +71,100 @@ func IDContainsFold(id string) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldContainsFold(FieldID, id))
 }
 
+// CustomerID applies equality check predicate on the "customer_id" field. It's identical to CustomerIDEQ.
+func CustomerID(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldCustomerID, v))
+}
+
+// ServicePeriodFrom applies equality check predicate on the "service_period_from" field. It's identical to ServicePeriodFromEQ.
+func ServicePeriodFrom(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldServicePeriodFrom, v))
+}
+
+// ServicePeriodTo applies equality check predicate on the "service_period_to" field. It's identical to ServicePeriodToEQ.
+func ServicePeriodTo(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldServicePeriodTo, v))
+}
+
+// BillingPeriodFrom applies equality check predicate on the "billing_period_from" field. It's identical to BillingPeriodFromEQ.
+func BillingPeriodFrom(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldBillingPeriodFrom, v))
+}
+
+// BillingPeriodTo applies equality check predicate on the "billing_period_to" field. It's identical to BillingPeriodToEQ.
+func BillingPeriodTo(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldBillingPeriodTo, v))
+}
+
+// FullServicePeriodFrom applies equality check predicate on the "full_service_period_from" field. It's identical to FullServicePeriodFromEQ.
+func FullServicePeriodFrom(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldFullServicePeriodFrom, v))
+}
+
+// FullServicePeriodTo applies equality check predicate on the "full_service_period_to" field. It's identical to FullServicePeriodToEQ.
+func FullServicePeriodTo(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldFullServicePeriodTo, v))
+}
+
+// UniqueReferenceID applies equality check predicate on the "unique_reference_id" field. It's identical to UniqueReferenceIDEQ.
+func UniqueReferenceID(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldUniqueReferenceID, v))
+}
+
+// Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
+func Currency(v currencyx.Code) predicate.ChargeFlatFee {
+	vc := string(v)
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldCurrency, vc))
+}
+
+// SubscriptionID applies equality check predicate on the "subscription_id" field. It's identical to SubscriptionIDEQ.
+func SubscriptionID(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldSubscriptionID, v))
+}
+
+// SubscriptionPhaseID applies equality check predicate on the "subscription_phase_id" field. It's identical to SubscriptionPhaseIDEQ.
+func SubscriptionPhaseID(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionItemID applies equality check predicate on the "subscription_item_id" field. It's identical to SubscriptionItemIDEQ.
+func SubscriptionItemID(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldSubscriptionItemID, v))
+}
+
+// AdvanceAfter applies equality check predicate on the "advance_after" field. It's identical to AdvanceAfterEQ.
+func AdvanceAfter(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldAdvanceAfter, v))
+}
+
 // Namespace applies equality check predicate on the "namespace" field. It's identical to NamespaceEQ.
 func Namespace(v string) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldEQ(FieldNamespace, v))
+}
+
+// CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
+func CreatedAt(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
+func UpdatedAt(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// DeletedAt applies equality check predicate on the "deleted_at" field. It's identical to DeletedAtEQ.
+func DeletedAt(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldDeletedAt, v))
+}
+
+// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
+func Name(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldName, v))
+}
+
+// Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
+func Description(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldDescription, v))
 }
 
 // PaymentTerm applies equality check predicate on the "payment_term" field. It's identical to PaymentTermEQ.
@@ -97,6 +191,815 @@ func AmountBeforeProration(v alpacadecimal.Decimal) predicate.ChargeFlatFee {
 // AmountAfterProration applies equality check predicate on the "amount_after_proration" field. It's identical to AmountAfterProrationEQ.
 func AmountAfterProration(v alpacadecimal.Decimal) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldEQ(FieldAmountAfterProration, v))
+}
+
+// CustomerIDEQ applies the EQ predicate on the "customer_id" field.
+func CustomerIDEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldCustomerID, v))
+}
+
+// CustomerIDNEQ applies the NEQ predicate on the "customer_id" field.
+func CustomerIDNEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldCustomerID, v))
+}
+
+// CustomerIDIn applies the In predicate on the "customer_id" field.
+func CustomerIDIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldCustomerID, vs...))
+}
+
+// CustomerIDNotIn applies the NotIn predicate on the "customer_id" field.
+func CustomerIDNotIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldCustomerID, vs...))
+}
+
+// CustomerIDGT applies the GT predicate on the "customer_id" field.
+func CustomerIDGT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldCustomerID, v))
+}
+
+// CustomerIDGTE applies the GTE predicate on the "customer_id" field.
+func CustomerIDGTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldCustomerID, v))
+}
+
+// CustomerIDLT applies the LT predicate on the "customer_id" field.
+func CustomerIDLT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldCustomerID, v))
+}
+
+// CustomerIDLTE applies the LTE predicate on the "customer_id" field.
+func CustomerIDLTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldCustomerID, v))
+}
+
+// CustomerIDContains applies the Contains predicate on the "customer_id" field.
+func CustomerIDContains(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContains(FieldCustomerID, v))
+}
+
+// CustomerIDHasPrefix applies the HasPrefix predicate on the "customer_id" field.
+func CustomerIDHasPrefix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasPrefix(FieldCustomerID, v))
+}
+
+// CustomerIDHasSuffix applies the HasSuffix predicate on the "customer_id" field.
+func CustomerIDHasSuffix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasSuffix(FieldCustomerID, v))
+}
+
+// CustomerIDEqualFold applies the EqualFold predicate on the "customer_id" field.
+func CustomerIDEqualFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEqualFold(FieldCustomerID, v))
+}
+
+// CustomerIDContainsFold applies the ContainsFold predicate on the "customer_id" field.
+func CustomerIDContainsFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContainsFold(FieldCustomerID, v))
+}
+
+// ServicePeriodFromEQ applies the EQ predicate on the "service_period_from" field.
+func ServicePeriodFromEQ(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldServicePeriodFrom, v))
+}
+
+// ServicePeriodFromNEQ applies the NEQ predicate on the "service_period_from" field.
+func ServicePeriodFromNEQ(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldServicePeriodFrom, v))
+}
+
+// ServicePeriodFromIn applies the In predicate on the "service_period_from" field.
+func ServicePeriodFromIn(vs ...time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldServicePeriodFrom, vs...))
+}
+
+// ServicePeriodFromNotIn applies the NotIn predicate on the "service_period_from" field.
+func ServicePeriodFromNotIn(vs ...time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldServicePeriodFrom, vs...))
+}
+
+// ServicePeriodFromGT applies the GT predicate on the "service_period_from" field.
+func ServicePeriodFromGT(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldServicePeriodFrom, v))
+}
+
+// ServicePeriodFromGTE applies the GTE predicate on the "service_period_from" field.
+func ServicePeriodFromGTE(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldServicePeriodFrom, v))
+}
+
+// ServicePeriodFromLT applies the LT predicate on the "service_period_from" field.
+func ServicePeriodFromLT(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldServicePeriodFrom, v))
+}
+
+// ServicePeriodFromLTE applies the LTE predicate on the "service_period_from" field.
+func ServicePeriodFromLTE(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldServicePeriodFrom, v))
+}
+
+// ServicePeriodToEQ applies the EQ predicate on the "service_period_to" field.
+func ServicePeriodToEQ(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldServicePeriodTo, v))
+}
+
+// ServicePeriodToNEQ applies the NEQ predicate on the "service_period_to" field.
+func ServicePeriodToNEQ(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldServicePeriodTo, v))
+}
+
+// ServicePeriodToIn applies the In predicate on the "service_period_to" field.
+func ServicePeriodToIn(vs ...time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldServicePeriodTo, vs...))
+}
+
+// ServicePeriodToNotIn applies the NotIn predicate on the "service_period_to" field.
+func ServicePeriodToNotIn(vs ...time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldServicePeriodTo, vs...))
+}
+
+// ServicePeriodToGT applies the GT predicate on the "service_period_to" field.
+func ServicePeriodToGT(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldServicePeriodTo, v))
+}
+
+// ServicePeriodToGTE applies the GTE predicate on the "service_period_to" field.
+func ServicePeriodToGTE(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldServicePeriodTo, v))
+}
+
+// ServicePeriodToLT applies the LT predicate on the "service_period_to" field.
+func ServicePeriodToLT(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldServicePeriodTo, v))
+}
+
+// ServicePeriodToLTE applies the LTE predicate on the "service_period_to" field.
+func ServicePeriodToLTE(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldServicePeriodTo, v))
+}
+
+// BillingPeriodFromEQ applies the EQ predicate on the "billing_period_from" field.
+func BillingPeriodFromEQ(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldBillingPeriodFrom, v))
+}
+
+// BillingPeriodFromNEQ applies the NEQ predicate on the "billing_period_from" field.
+func BillingPeriodFromNEQ(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldBillingPeriodFrom, v))
+}
+
+// BillingPeriodFromIn applies the In predicate on the "billing_period_from" field.
+func BillingPeriodFromIn(vs ...time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldBillingPeriodFrom, vs...))
+}
+
+// BillingPeriodFromNotIn applies the NotIn predicate on the "billing_period_from" field.
+func BillingPeriodFromNotIn(vs ...time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldBillingPeriodFrom, vs...))
+}
+
+// BillingPeriodFromGT applies the GT predicate on the "billing_period_from" field.
+func BillingPeriodFromGT(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldBillingPeriodFrom, v))
+}
+
+// BillingPeriodFromGTE applies the GTE predicate on the "billing_period_from" field.
+func BillingPeriodFromGTE(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldBillingPeriodFrom, v))
+}
+
+// BillingPeriodFromLT applies the LT predicate on the "billing_period_from" field.
+func BillingPeriodFromLT(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldBillingPeriodFrom, v))
+}
+
+// BillingPeriodFromLTE applies the LTE predicate on the "billing_period_from" field.
+func BillingPeriodFromLTE(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldBillingPeriodFrom, v))
+}
+
+// BillingPeriodToEQ applies the EQ predicate on the "billing_period_to" field.
+func BillingPeriodToEQ(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldBillingPeriodTo, v))
+}
+
+// BillingPeriodToNEQ applies the NEQ predicate on the "billing_period_to" field.
+func BillingPeriodToNEQ(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldBillingPeriodTo, v))
+}
+
+// BillingPeriodToIn applies the In predicate on the "billing_period_to" field.
+func BillingPeriodToIn(vs ...time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldBillingPeriodTo, vs...))
+}
+
+// BillingPeriodToNotIn applies the NotIn predicate on the "billing_period_to" field.
+func BillingPeriodToNotIn(vs ...time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldBillingPeriodTo, vs...))
+}
+
+// BillingPeriodToGT applies the GT predicate on the "billing_period_to" field.
+func BillingPeriodToGT(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldBillingPeriodTo, v))
+}
+
+// BillingPeriodToGTE applies the GTE predicate on the "billing_period_to" field.
+func BillingPeriodToGTE(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldBillingPeriodTo, v))
+}
+
+// BillingPeriodToLT applies the LT predicate on the "billing_period_to" field.
+func BillingPeriodToLT(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldBillingPeriodTo, v))
+}
+
+// BillingPeriodToLTE applies the LTE predicate on the "billing_period_to" field.
+func BillingPeriodToLTE(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldBillingPeriodTo, v))
+}
+
+// FullServicePeriodFromEQ applies the EQ predicate on the "full_service_period_from" field.
+func FullServicePeriodFromEQ(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldFullServicePeriodFrom, v))
+}
+
+// FullServicePeriodFromNEQ applies the NEQ predicate on the "full_service_period_from" field.
+func FullServicePeriodFromNEQ(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldFullServicePeriodFrom, v))
+}
+
+// FullServicePeriodFromIn applies the In predicate on the "full_service_period_from" field.
+func FullServicePeriodFromIn(vs ...time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldFullServicePeriodFrom, vs...))
+}
+
+// FullServicePeriodFromNotIn applies the NotIn predicate on the "full_service_period_from" field.
+func FullServicePeriodFromNotIn(vs ...time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldFullServicePeriodFrom, vs...))
+}
+
+// FullServicePeriodFromGT applies the GT predicate on the "full_service_period_from" field.
+func FullServicePeriodFromGT(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldFullServicePeriodFrom, v))
+}
+
+// FullServicePeriodFromGTE applies the GTE predicate on the "full_service_period_from" field.
+func FullServicePeriodFromGTE(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldFullServicePeriodFrom, v))
+}
+
+// FullServicePeriodFromLT applies the LT predicate on the "full_service_period_from" field.
+func FullServicePeriodFromLT(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldFullServicePeriodFrom, v))
+}
+
+// FullServicePeriodFromLTE applies the LTE predicate on the "full_service_period_from" field.
+func FullServicePeriodFromLTE(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldFullServicePeriodFrom, v))
+}
+
+// FullServicePeriodToEQ applies the EQ predicate on the "full_service_period_to" field.
+func FullServicePeriodToEQ(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldFullServicePeriodTo, v))
+}
+
+// FullServicePeriodToNEQ applies the NEQ predicate on the "full_service_period_to" field.
+func FullServicePeriodToNEQ(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldFullServicePeriodTo, v))
+}
+
+// FullServicePeriodToIn applies the In predicate on the "full_service_period_to" field.
+func FullServicePeriodToIn(vs ...time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldFullServicePeriodTo, vs...))
+}
+
+// FullServicePeriodToNotIn applies the NotIn predicate on the "full_service_period_to" field.
+func FullServicePeriodToNotIn(vs ...time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldFullServicePeriodTo, vs...))
+}
+
+// FullServicePeriodToGT applies the GT predicate on the "full_service_period_to" field.
+func FullServicePeriodToGT(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldFullServicePeriodTo, v))
+}
+
+// FullServicePeriodToGTE applies the GTE predicate on the "full_service_period_to" field.
+func FullServicePeriodToGTE(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldFullServicePeriodTo, v))
+}
+
+// FullServicePeriodToLT applies the LT predicate on the "full_service_period_to" field.
+func FullServicePeriodToLT(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldFullServicePeriodTo, v))
+}
+
+// FullServicePeriodToLTE applies the LTE predicate on the "full_service_period_to" field.
+func FullServicePeriodToLTE(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldFullServicePeriodTo, v))
+}
+
+// StatusEQ applies the EQ predicate on the "status" field.
+func StatusEQ(v meta.ChargeStatus) predicate.ChargeFlatFee {
+	vc := v
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldStatus, vc))
+}
+
+// StatusNEQ applies the NEQ predicate on the "status" field.
+func StatusNEQ(v meta.ChargeStatus) predicate.ChargeFlatFee {
+	vc := v
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldStatus, vc))
+}
+
+// StatusIn applies the In predicate on the "status" field.
+func StatusIn(vs ...meta.ChargeStatus) predicate.ChargeFlatFee {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldStatus, v...))
+}
+
+// StatusNotIn applies the NotIn predicate on the "status" field.
+func StatusNotIn(vs ...meta.ChargeStatus) predicate.ChargeFlatFee {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldStatus, v...))
+}
+
+// UniqueReferenceIDEQ applies the EQ predicate on the "unique_reference_id" field.
+func UniqueReferenceIDEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldUniqueReferenceID, v))
+}
+
+// UniqueReferenceIDNEQ applies the NEQ predicate on the "unique_reference_id" field.
+func UniqueReferenceIDNEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldUniqueReferenceID, v))
+}
+
+// UniqueReferenceIDIn applies the In predicate on the "unique_reference_id" field.
+func UniqueReferenceIDIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldUniqueReferenceID, vs...))
+}
+
+// UniqueReferenceIDNotIn applies the NotIn predicate on the "unique_reference_id" field.
+func UniqueReferenceIDNotIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldUniqueReferenceID, vs...))
+}
+
+// UniqueReferenceIDGT applies the GT predicate on the "unique_reference_id" field.
+func UniqueReferenceIDGT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldUniqueReferenceID, v))
+}
+
+// UniqueReferenceIDGTE applies the GTE predicate on the "unique_reference_id" field.
+func UniqueReferenceIDGTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldUniqueReferenceID, v))
+}
+
+// UniqueReferenceIDLT applies the LT predicate on the "unique_reference_id" field.
+func UniqueReferenceIDLT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldUniqueReferenceID, v))
+}
+
+// UniqueReferenceIDLTE applies the LTE predicate on the "unique_reference_id" field.
+func UniqueReferenceIDLTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldUniqueReferenceID, v))
+}
+
+// UniqueReferenceIDContains applies the Contains predicate on the "unique_reference_id" field.
+func UniqueReferenceIDContains(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContains(FieldUniqueReferenceID, v))
+}
+
+// UniqueReferenceIDHasPrefix applies the HasPrefix predicate on the "unique_reference_id" field.
+func UniqueReferenceIDHasPrefix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasPrefix(FieldUniqueReferenceID, v))
+}
+
+// UniqueReferenceIDHasSuffix applies the HasSuffix predicate on the "unique_reference_id" field.
+func UniqueReferenceIDHasSuffix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasSuffix(FieldUniqueReferenceID, v))
+}
+
+// UniqueReferenceIDIsNil applies the IsNil predicate on the "unique_reference_id" field.
+func UniqueReferenceIDIsNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIsNull(FieldUniqueReferenceID))
+}
+
+// UniqueReferenceIDNotNil applies the NotNil predicate on the "unique_reference_id" field.
+func UniqueReferenceIDNotNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotNull(FieldUniqueReferenceID))
+}
+
+// UniqueReferenceIDEqualFold applies the EqualFold predicate on the "unique_reference_id" field.
+func UniqueReferenceIDEqualFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEqualFold(FieldUniqueReferenceID, v))
+}
+
+// UniqueReferenceIDContainsFold applies the ContainsFold predicate on the "unique_reference_id" field.
+func UniqueReferenceIDContainsFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContainsFold(FieldUniqueReferenceID, v))
+}
+
+// CurrencyEQ applies the EQ predicate on the "currency" field.
+func CurrencyEQ(v currencyx.Code) predicate.ChargeFlatFee {
+	vc := string(v)
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldCurrency, vc))
+}
+
+// CurrencyNEQ applies the NEQ predicate on the "currency" field.
+func CurrencyNEQ(v currencyx.Code) predicate.ChargeFlatFee {
+	vc := string(v)
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldCurrency, vc))
+}
+
+// CurrencyIn applies the In predicate on the "currency" field.
+func CurrencyIn(vs ...currencyx.Code) predicate.ChargeFlatFee {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldCurrency, v...))
+}
+
+// CurrencyNotIn applies the NotIn predicate on the "currency" field.
+func CurrencyNotIn(vs ...currencyx.Code) predicate.ChargeFlatFee {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldCurrency, v...))
+}
+
+// CurrencyGT applies the GT predicate on the "currency" field.
+func CurrencyGT(v currencyx.Code) predicate.ChargeFlatFee {
+	vc := string(v)
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldCurrency, vc))
+}
+
+// CurrencyGTE applies the GTE predicate on the "currency" field.
+func CurrencyGTE(v currencyx.Code) predicate.ChargeFlatFee {
+	vc := string(v)
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldCurrency, vc))
+}
+
+// CurrencyLT applies the LT predicate on the "currency" field.
+func CurrencyLT(v currencyx.Code) predicate.ChargeFlatFee {
+	vc := string(v)
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldCurrency, vc))
+}
+
+// CurrencyLTE applies the LTE predicate on the "currency" field.
+func CurrencyLTE(v currencyx.Code) predicate.ChargeFlatFee {
+	vc := string(v)
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldCurrency, vc))
+}
+
+// CurrencyContains applies the Contains predicate on the "currency" field.
+func CurrencyContains(v currencyx.Code) predicate.ChargeFlatFee {
+	vc := string(v)
+	return predicate.ChargeFlatFee(sql.FieldContains(FieldCurrency, vc))
+}
+
+// CurrencyHasPrefix applies the HasPrefix predicate on the "currency" field.
+func CurrencyHasPrefix(v currencyx.Code) predicate.ChargeFlatFee {
+	vc := string(v)
+	return predicate.ChargeFlatFee(sql.FieldHasPrefix(FieldCurrency, vc))
+}
+
+// CurrencyHasSuffix applies the HasSuffix predicate on the "currency" field.
+func CurrencyHasSuffix(v currencyx.Code) predicate.ChargeFlatFee {
+	vc := string(v)
+	return predicate.ChargeFlatFee(sql.FieldHasSuffix(FieldCurrency, vc))
+}
+
+// CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
+func CurrencyEqualFold(v currencyx.Code) predicate.ChargeFlatFee {
+	vc := string(v)
+	return predicate.ChargeFlatFee(sql.FieldEqualFold(FieldCurrency, vc))
+}
+
+// CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
+func CurrencyContainsFold(v currencyx.Code) predicate.ChargeFlatFee {
+	vc := string(v)
+	return predicate.ChargeFlatFee(sql.FieldContainsFold(FieldCurrency, vc))
+}
+
+// ManagedByEQ applies the EQ predicate on the "managed_by" field.
+func ManagedByEQ(v billing.InvoiceLineManagedBy) predicate.ChargeFlatFee {
+	vc := v
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldManagedBy, vc))
+}
+
+// ManagedByNEQ applies the NEQ predicate on the "managed_by" field.
+func ManagedByNEQ(v billing.InvoiceLineManagedBy) predicate.ChargeFlatFee {
+	vc := v
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldManagedBy, vc))
+}
+
+// ManagedByIn applies the In predicate on the "managed_by" field.
+func ManagedByIn(vs ...billing.InvoiceLineManagedBy) predicate.ChargeFlatFee {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldManagedBy, v...))
+}
+
+// ManagedByNotIn applies the NotIn predicate on the "managed_by" field.
+func ManagedByNotIn(vs ...billing.InvoiceLineManagedBy) predicate.ChargeFlatFee {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldManagedBy, v...))
+}
+
+// SubscriptionIDEQ applies the EQ predicate on the "subscription_id" field.
+func SubscriptionIDEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDNEQ applies the NEQ predicate on the "subscription_id" field.
+func SubscriptionIDNEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDIn applies the In predicate on the "subscription_id" field.
+func SubscriptionIDIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldSubscriptionID, vs...))
+}
+
+// SubscriptionIDNotIn applies the NotIn predicate on the "subscription_id" field.
+func SubscriptionIDNotIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldSubscriptionID, vs...))
+}
+
+// SubscriptionIDGT applies the GT predicate on the "subscription_id" field.
+func SubscriptionIDGT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDGTE applies the GTE predicate on the "subscription_id" field.
+func SubscriptionIDGTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDLT applies the LT predicate on the "subscription_id" field.
+func SubscriptionIDLT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDLTE applies the LTE predicate on the "subscription_id" field.
+func SubscriptionIDLTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDContains applies the Contains predicate on the "subscription_id" field.
+func SubscriptionIDContains(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContains(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDHasPrefix applies the HasPrefix predicate on the "subscription_id" field.
+func SubscriptionIDHasPrefix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasPrefix(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDHasSuffix applies the HasSuffix predicate on the "subscription_id" field.
+func SubscriptionIDHasSuffix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasSuffix(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDIsNil applies the IsNil predicate on the "subscription_id" field.
+func SubscriptionIDIsNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIsNull(FieldSubscriptionID))
+}
+
+// SubscriptionIDNotNil applies the NotNil predicate on the "subscription_id" field.
+func SubscriptionIDNotNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotNull(FieldSubscriptionID))
+}
+
+// SubscriptionIDEqualFold applies the EqualFold predicate on the "subscription_id" field.
+func SubscriptionIDEqualFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEqualFold(FieldSubscriptionID, v))
+}
+
+// SubscriptionIDContainsFold applies the ContainsFold predicate on the "subscription_id" field.
+func SubscriptionIDContainsFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContainsFold(FieldSubscriptionID, v))
+}
+
+// SubscriptionPhaseIDEQ applies the EQ predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDNEQ applies the NEQ predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDNEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDIn applies the In predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldSubscriptionPhaseID, vs...))
+}
+
+// SubscriptionPhaseIDNotIn applies the NotIn predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDNotIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldSubscriptionPhaseID, vs...))
+}
+
+// SubscriptionPhaseIDGT applies the GT predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDGT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDGTE applies the GTE predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDGTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDLT applies the LT predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDLT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDLTE applies the LTE predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDLTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDContains applies the Contains predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDContains(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContains(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDHasPrefix applies the HasPrefix predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDHasPrefix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasPrefix(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDHasSuffix applies the HasSuffix predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDHasSuffix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasSuffix(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDIsNil applies the IsNil predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDIsNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIsNull(FieldSubscriptionPhaseID))
+}
+
+// SubscriptionPhaseIDNotNil applies the NotNil predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDNotNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotNull(FieldSubscriptionPhaseID))
+}
+
+// SubscriptionPhaseIDEqualFold applies the EqualFold predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDEqualFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEqualFold(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionPhaseIDContainsFold applies the ContainsFold predicate on the "subscription_phase_id" field.
+func SubscriptionPhaseIDContainsFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContainsFold(FieldSubscriptionPhaseID, v))
+}
+
+// SubscriptionItemIDEQ applies the EQ predicate on the "subscription_item_id" field.
+func SubscriptionItemIDEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDNEQ applies the NEQ predicate on the "subscription_item_id" field.
+func SubscriptionItemIDNEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDIn applies the In predicate on the "subscription_item_id" field.
+func SubscriptionItemIDIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldSubscriptionItemID, vs...))
+}
+
+// SubscriptionItemIDNotIn applies the NotIn predicate on the "subscription_item_id" field.
+func SubscriptionItemIDNotIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldSubscriptionItemID, vs...))
+}
+
+// SubscriptionItemIDGT applies the GT predicate on the "subscription_item_id" field.
+func SubscriptionItemIDGT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDGTE applies the GTE predicate on the "subscription_item_id" field.
+func SubscriptionItemIDGTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDLT applies the LT predicate on the "subscription_item_id" field.
+func SubscriptionItemIDLT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDLTE applies the LTE predicate on the "subscription_item_id" field.
+func SubscriptionItemIDLTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDContains applies the Contains predicate on the "subscription_item_id" field.
+func SubscriptionItemIDContains(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContains(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDHasPrefix applies the HasPrefix predicate on the "subscription_item_id" field.
+func SubscriptionItemIDHasPrefix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasPrefix(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDHasSuffix applies the HasSuffix predicate on the "subscription_item_id" field.
+func SubscriptionItemIDHasSuffix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasSuffix(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDIsNil applies the IsNil predicate on the "subscription_item_id" field.
+func SubscriptionItemIDIsNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIsNull(FieldSubscriptionItemID))
+}
+
+// SubscriptionItemIDNotNil applies the NotNil predicate on the "subscription_item_id" field.
+func SubscriptionItemIDNotNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotNull(FieldSubscriptionItemID))
+}
+
+// SubscriptionItemIDEqualFold applies the EqualFold predicate on the "subscription_item_id" field.
+func SubscriptionItemIDEqualFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEqualFold(FieldSubscriptionItemID, v))
+}
+
+// SubscriptionItemIDContainsFold applies the ContainsFold predicate on the "subscription_item_id" field.
+func SubscriptionItemIDContainsFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContainsFold(FieldSubscriptionItemID, v))
+}
+
+// AdvanceAfterEQ applies the EQ predicate on the "advance_after" field.
+func AdvanceAfterEQ(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldAdvanceAfter, v))
+}
+
+// AdvanceAfterNEQ applies the NEQ predicate on the "advance_after" field.
+func AdvanceAfterNEQ(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldAdvanceAfter, v))
+}
+
+// AdvanceAfterIn applies the In predicate on the "advance_after" field.
+func AdvanceAfterIn(vs ...time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldAdvanceAfter, vs...))
+}
+
+// AdvanceAfterNotIn applies the NotIn predicate on the "advance_after" field.
+func AdvanceAfterNotIn(vs ...time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldAdvanceAfter, vs...))
+}
+
+// AdvanceAfterGT applies the GT predicate on the "advance_after" field.
+func AdvanceAfterGT(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldAdvanceAfter, v))
+}
+
+// AdvanceAfterGTE applies the GTE predicate on the "advance_after" field.
+func AdvanceAfterGTE(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldAdvanceAfter, v))
+}
+
+// AdvanceAfterLT applies the LT predicate on the "advance_after" field.
+func AdvanceAfterLT(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldAdvanceAfter, v))
+}
+
+// AdvanceAfterLTE applies the LTE predicate on the "advance_after" field.
+func AdvanceAfterLTE(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldAdvanceAfter, v))
+}
+
+// AdvanceAfterIsNil applies the IsNil predicate on the "advance_after" field.
+func AdvanceAfterIsNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIsNull(FieldAdvanceAfter))
+}
+
+// AdvanceAfterNotNil applies the NotNil predicate on the "advance_after" field.
+func AdvanceAfterNotNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotNull(FieldAdvanceAfter))
+}
+
+// AnnotationsIsNil applies the IsNil predicate on the "annotations" field.
+func AnnotationsIsNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIsNull(FieldAnnotations))
+}
+
+// AnnotationsNotNil applies the NotNil predicate on the "annotations" field.
+func AnnotationsNotNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotNull(FieldAnnotations))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -162,6 +1065,286 @@ func NamespaceEqualFold(v string) predicate.ChargeFlatFee {
 // NamespaceContainsFold applies the ContainsFold predicate on the "namespace" field.
 func NamespaceContainsFold(v string) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldContainsFold(FieldNamespace, v))
+}
+
+// MetadataIsNil applies the IsNil predicate on the "metadata" field.
+func MetadataIsNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIsNull(FieldMetadata))
+}
+
+// MetadataNotNil applies the NotNil predicate on the "metadata" field.
+func MetadataNotNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotNull(FieldMetadata))
+}
+
+// CreatedAtEQ applies the EQ predicate on the "created_at" field.
+func CreatedAtEQ(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtNEQ applies the NEQ predicate on the "created_at" field.
+func CreatedAtNEQ(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldCreatedAt, v))
+}
+
+// CreatedAtIn applies the In predicate on the "created_at" field.
+func CreatedAtIn(vs ...time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtNotIn applies the NotIn predicate on the "created_at" field.
+func CreatedAtNotIn(vs ...time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldCreatedAt, vs...))
+}
+
+// CreatedAtGT applies the GT predicate on the "created_at" field.
+func CreatedAtGT(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldCreatedAt, v))
+}
+
+// CreatedAtGTE applies the GTE predicate on the "created_at" field.
+func CreatedAtGTE(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldCreatedAt, v))
+}
+
+// CreatedAtLT applies the LT predicate on the "created_at" field.
+func CreatedAtLT(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldCreatedAt, v))
+}
+
+// CreatedAtLTE applies the LTE predicate on the "created_at" field.
+func CreatedAtLTE(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldCreatedAt, v))
+}
+
+// UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
+func UpdatedAtEQ(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtNEQ applies the NEQ predicate on the "updated_at" field.
+func UpdatedAtNEQ(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtIn applies the In predicate on the "updated_at" field.
+func UpdatedAtIn(vs ...time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtNotIn applies the NotIn predicate on the "updated_at" field.
+func UpdatedAtNotIn(vs ...time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtGT applies the GT predicate on the "updated_at" field.
+func UpdatedAtGT(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtGTE applies the GTE predicate on the "updated_at" field.
+func UpdatedAtGTE(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLT applies the LT predicate on the "updated_at" field.
+func UpdatedAtLT(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
+func UpdatedAtLTE(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldUpdatedAt, v))
+}
+
+// DeletedAtEQ applies the EQ predicate on the "deleted_at" field.
+func DeletedAtEQ(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldDeletedAt, v))
+}
+
+// DeletedAtNEQ applies the NEQ predicate on the "deleted_at" field.
+func DeletedAtNEQ(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldDeletedAt, v))
+}
+
+// DeletedAtIn applies the In predicate on the "deleted_at" field.
+func DeletedAtIn(vs ...time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldDeletedAt, vs...))
+}
+
+// DeletedAtNotIn applies the NotIn predicate on the "deleted_at" field.
+func DeletedAtNotIn(vs ...time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldDeletedAt, vs...))
+}
+
+// DeletedAtGT applies the GT predicate on the "deleted_at" field.
+func DeletedAtGT(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldDeletedAt, v))
+}
+
+// DeletedAtGTE applies the GTE predicate on the "deleted_at" field.
+func DeletedAtGTE(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldDeletedAt, v))
+}
+
+// DeletedAtLT applies the LT predicate on the "deleted_at" field.
+func DeletedAtLT(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldDeletedAt, v))
+}
+
+// DeletedAtLTE applies the LTE predicate on the "deleted_at" field.
+func DeletedAtLTE(v time.Time) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldDeletedAt, v))
+}
+
+// DeletedAtIsNil applies the IsNil predicate on the "deleted_at" field.
+func DeletedAtIsNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIsNull(FieldDeletedAt))
+}
+
+// DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
+func DeletedAtNotNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotNull(FieldDeletedAt))
+}
+
+// NameEQ applies the EQ predicate on the "name" field.
+func NameEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldName, v))
+}
+
+// NameNEQ applies the NEQ predicate on the "name" field.
+func NameNEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldName, v))
+}
+
+// NameIn applies the In predicate on the "name" field.
+func NameIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldName, vs...))
+}
+
+// NameNotIn applies the NotIn predicate on the "name" field.
+func NameNotIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldName, vs...))
+}
+
+// NameGT applies the GT predicate on the "name" field.
+func NameGT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldName, v))
+}
+
+// NameGTE applies the GTE predicate on the "name" field.
+func NameGTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldName, v))
+}
+
+// NameLT applies the LT predicate on the "name" field.
+func NameLT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldName, v))
+}
+
+// NameLTE applies the LTE predicate on the "name" field.
+func NameLTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldName, v))
+}
+
+// NameContains applies the Contains predicate on the "name" field.
+func NameContains(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContains(FieldName, v))
+}
+
+// NameHasPrefix applies the HasPrefix predicate on the "name" field.
+func NameHasPrefix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasPrefix(FieldName, v))
+}
+
+// NameHasSuffix applies the HasSuffix predicate on the "name" field.
+func NameHasSuffix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasSuffix(FieldName, v))
+}
+
+// NameEqualFold applies the EqualFold predicate on the "name" field.
+func NameEqualFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEqualFold(FieldName, v))
+}
+
+// NameContainsFold applies the ContainsFold predicate on the "name" field.
+func NameContainsFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContainsFold(FieldName, v))
+}
+
+// DescriptionEQ applies the EQ predicate on the "description" field.
+func DescriptionEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEQ(FieldDescription, v))
+}
+
+// DescriptionNEQ applies the NEQ predicate on the "description" field.
+func DescriptionNEQ(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNEQ(FieldDescription, v))
+}
+
+// DescriptionIn applies the In predicate on the "description" field.
+func DescriptionIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIn(FieldDescription, vs...))
+}
+
+// DescriptionNotIn applies the NotIn predicate on the "description" field.
+func DescriptionNotIn(vs ...string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotIn(FieldDescription, vs...))
+}
+
+// DescriptionGT applies the GT predicate on the "description" field.
+func DescriptionGT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGT(FieldDescription, v))
+}
+
+// DescriptionGTE applies the GTE predicate on the "description" field.
+func DescriptionGTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldGTE(FieldDescription, v))
+}
+
+// DescriptionLT applies the LT predicate on the "description" field.
+func DescriptionLT(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLT(FieldDescription, v))
+}
+
+// DescriptionLTE applies the LTE predicate on the "description" field.
+func DescriptionLTE(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldLTE(FieldDescription, v))
+}
+
+// DescriptionContains applies the Contains predicate on the "description" field.
+func DescriptionContains(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContains(FieldDescription, v))
+}
+
+// DescriptionHasPrefix applies the HasPrefix predicate on the "description" field.
+func DescriptionHasPrefix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasPrefix(FieldDescription, v))
+}
+
+// DescriptionHasSuffix applies the HasSuffix predicate on the "description" field.
+func DescriptionHasSuffix(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldHasSuffix(FieldDescription, v))
+}
+
+// DescriptionIsNil applies the IsNil predicate on the "description" field.
+func DescriptionIsNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldIsNull(FieldDescription))
+}
+
+// DescriptionNotNil applies the NotNil predicate on the "description" field.
+func DescriptionNotNil() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldNotNull(FieldDescription))
+}
+
+// DescriptionEqualFold applies the EqualFold predicate on the "description" field.
+func DescriptionEqualFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldEqualFold(FieldDescription, v))
+}
+
+// DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
+func DescriptionContainsFold(v string) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(sql.FieldContainsFold(FieldDescription, v))
 }
 
 // PaymentTermEQ applies the EQ predicate on the "payment_term" field.
@@ -513,29 +1696,6 @@ func AmountAfterProrationLTE(v alpacadecimal.Decimal) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(sql.FieldLTE(FieldAmountAfterProration, v))
 }
 
-// HasCharge applies the HasEdge predicate on the "charge" edge.
-func HasCharge() predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, ChargeTable, ChargeColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasChargeWith applies the HasEdge predicate on the "charge" edge with a given conditions (other predicates).
-func HasChargeWith(preds ...predicate.Charge) predicate.ChargeFlatFee {
-	return predicate.ChargeFlatFee(func(s *sql.Selector) {
-		step := newChargeStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
 // HasCreditAllocations applies the HasEdge predicate on the "credit_allocations" edge.
 func HasCreditAllocations() predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(func(s *sql.Selector) {
@@ -597,6 +1757,121 @@ func HasPayment() predicate.ChargeFlatFee {
 func HasPaymentWith(preds ...predicate.ChargeFlatFeePayment) predicate.ChargeFlatFee {
 	return predicate.ChargeFlatFee(func(s *sql.Selector) {
 		step := newPaymentStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCharge applies the HasEdge predicate on the "charge" edge.
+func HasCharge() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, ChargeTable, ChargeColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChargeWith applies the HasEdge predicate on the "charge" edge with a given conditions (other predicates).
+func HasChargeWith(preds ...predicate.Charge) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(func(s *sql.Selector) {
+		step := newChargeStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasSubscription applies the HasEdge predicate on the "subscription" edge.
+func HasSubscription() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, SubscriptionTable, SubscriptionColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSubscriptionWith applies the HasEdge predicate on the "subscription" edge with a given conditions (other predicates).
+func HasSubscriptionWith(preds ...predicate.Subscription) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(func(s *sql.Selector) {
+		step := newSubscriptionStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasSubscriptionPhase applies the HasEdge predicate on the "subscription_phase" edge.
+func HasSubscriptionPhase() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, SubscriptionPhaseTable, SubscriptionPhaseColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSubscriptionPhaseWith applies the HasEdge predicate on the "subscription_phase" edge with a given conditions (other predicates).
+func HasSubscriptionPhaseWith(preds ...predicate.SubscriptionPhase) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(func(s *sql.Selector) {
+		step := newSubscriptionPhaseStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasSubscriptionItem applies the HasEdge predicate on the "subscription_item" edge.
+func HasSubscriptionItem() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, SubscriptionItemTable, SubscriptionItemColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSubscriptionItemWith applies the HasEdge predicate on the "subscription_item" edge with a given conditions (other predicates).
+func HasSubscriptionItemWith(preds ...predicate.SubscriptionItem) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(func(s *sql.Selector) {
+		step := newSubscriptionItemStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCustomer applies the HasEdge predicate on the "customer" edge.
+func HasCustomer() predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, CustomerTable, CustomerColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCustomerWith applies the HasEdge predicate on the "customer" edge with a given conditions (other predicates).
+func HasCustomerWith(preds ...predicate.Customer) predicate.ChargeFlatFee {
+	return predicate.ChargeFlatFee(func(s *sql.Selector) {
+		step := newCustomerStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

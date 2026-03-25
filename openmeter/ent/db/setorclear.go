@@ -2285,34 +2285,6 @@ func (u *BillingWorkflowConfigUpdateOne) SetOrClearInvoiceDefaultTaxSettings(val
 	return u.SetInvoiceDefaultTaxSettings(*value)
 }
 
-func (u *ChargeUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeUpdate {
-	if value == nil {
-		return u.ClearAnnotations()
-	}
-	return u.SetAnnotations(*value)
-}
-
-func (u *ChargeUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeUpdateOne {
-	if value == nil {
-		return u.ClearAnnotations()
-	}
-	return u.SetAnnotations(*value)
-}
-
-func (u *ChargeUpdate) SetOrClearMetadata(value *map[string]string) *ChargeUpdate {
-	if value == nil {
-		return u.ClearMetadata()
-	}
-	return u.SetMetadata(*value)
-}
-
-func (u *ChargeUpdateOne) SetOrClearMetadata(value *map[string]string) *ChargeUpdateOne {
-	if value == nil {
-		return u.ClearMetadata()
-	}
-	return u.SetMetadata(*value)
-}
-
 func (u *ChargeUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
@@ -2327,46 +2299,74 @@ func (u *ChargeUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeUpdateOne
 	return u.SetDeletedAt(*value)
 }
 
-func (u *ChargeUpdate) SetOrClearDescription(value *string) *ChargeUpdate {
-	if value == nil {
-		return u.ClearDescription()
-	}
-	return u.SetDescription(*value)
-}
-
-func (u *ChargeUpdateOne) SetOrClearDescription(value *string) *ChargeUpdateOne {
-	if value == nil {
-		return u.ClearDescription()
-	}
-	return u.SetDescription(*value)
-}
-
-func (u *ChargeUpdate) SetOrClearUniqueReferenceID(value *string) *ChargeUpdate {
-	if value == nil {
-		return u.ClearUniqueReferenceID()
-	}
-	return u.SetUniqueReferenceID(*value)
-}
-
-func (u *ChargeUpdateOne) SetOrClearUniqueReferenceID(value *string) *ChargeUpdateOne {
-	if value == nil {
-		return u.ClearUniqueReferenceID()
-	}
-	return u.SetUniqueReferenceID(*value)
-}
-
-func (u *ChargeUpdate) SetOrClearAdvanceAfter(value *time.Time) *ChargeUpdate {
+func (u *ChargeCreditPurchaseUpdate) SetOrClearAdvanceAfter(value *time.Time) *ChargeCreditPurchaseUpdate {
 	if value == nil {
 		return u.ClearAdvanceAfter()
 	}
 	return u.SetAdvanceAfter(*value)
 }
 
-func (u *ChargeUpdateOne) SetOrClearAdvanceAfter(value *time.Time) *ChargeUpdateOne {
+func (u *ChargeCreditPurchaseUpdateOne) SetOrClearAdvanceAfter(value *time.Time) *ChargeCreditPurchaseUpdateOne {
 	if value == nil {
 		return u.ClearAdvanceAfter()
 	}
 	return u.SetAdvanceAfter(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeCreditPurchaseUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeCreditPurchaseUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdate) SetOrClearMetadata(value *map[string]string) *ChargeCreditPurchaseUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdateOne) SetOrClearMetadata(value *map[string]string) *ChargeCreditPurchaseUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeCreditPurchaseUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeCreditPurchaseUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdate) SetOrClearDescription(value *string) *ChargeCreditPurchaseUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdateOne) SetOrClearDescription(value *string) *ChargeCreditPurchaseUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
 }
 
 func (u *ChargeCreditPurchaseUpdate) SetOrClearCreditGrantTransactionGroupID(value *string) *ChargeCreditPurchaseUpdate {
@@ -2563,6 +2563,76 @@ func (u *ChargeCreditPurchaseInvoicedPaymentUpdateOne) SetOrClearAnnotations(val
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearAdvanceAfter(value *time.Time) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearAdvanceAfter()
+	}
+	return u.SetAdvanceAfter(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearAdvanceAfter(value *time.Time) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearAdvanceAfter()
+	}
+	return u.SetAdvanceAfter(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearMetadata(value *map[string]string) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearMetadata(value *map[string]string) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearDescription(value *string) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearDescription(value *string) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
 }
 
 func (u *ChargeFlatFeeUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *ChargeFlatFeeUpdate {
@@ -2773,6 +2843,76 @@ func (u *ChargeFlatFeePaymentUpdateOne) SetOrClearAnnotations(value *models.Anno
 		return u.ClearAnnotations()
 	}
 	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearAdvanceAfter(value *time.Time) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearAdvanceAfter()
+	}
+	return u.SetAdvanceAfter(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearAdvanceAfter(value *time.Time) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearAdvanceAfter()
+	}
+	return u.SetAdvanceAfter(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearMetadata(value *map[string]string) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearMetadata(value *map[string]string) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearDescription(value *string) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearDescription(value *string) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
 }
 
 func (u *ChargeUsageBasedUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *ChargeUsageBasedUpdate {

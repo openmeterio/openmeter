@@ -12,11 +12,19 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // ChargeUsageBasedCreate is the builder for creating a ChargeUsageBased entity.
@@ -27,9 +35,213 @@ type ChargeUsageBasedCreate struct {
 	conflict []sql.ConflictOption
 }
 
+// SetCustomerID sets the "customer_id" field.
+func (_c *ChargeUsageBasedCreate) SetCustomerID(v string) *ChargeUsageBasedCreate {
+	_c.mutation.SetCustomerID(v)
+	return _c
+}
+
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (_c *ChargeUsageBasedCreate) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedCreate {
+	_c.mutation.SetServicePeriodFrom(v)
+	return _c
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (_c *ChargeUsageBasedCreate) SetServicePeriodTo(v time.Time) *ChargeUsageBasedCreate {
+	_c.mutation.SetServicePeriodTo(v)
+	return _c
+}
+
+// SetBillingPeriodFrom sets the "billing_period_from" field.
+func (_c *ChargeUsageBasedCreate) SetBillingPeriodFrom(v time.Time) *ChargeUsageBasedCreate {
+	_c.mutation.SetBillingPeriodFrom(v)
+	return _c
+}
+
+// SetBillingPeriodTo sets the "billing_period_to" field.
+func (_c *ChargeUsageBasedCreate) SetBillingPeriodTo(v time.Time) *ChargeUsageBasedCreate {
+	_c.mutation.SetBillingPeriodTo(v)
+	return _c
+}
+
+// SetFullServicePeriodFrom sets the "full_service_period_from" field.
+func (_c *ChargeUsageBasedCreate) SetFullServicePeriodFrom(v time.Time) *ChargeUsageBasedCreate {
+	_c.mutation.SetFullServicePeriodFrom(v)
+	return _c
+}
+
+// SetFullServicePeriodTo sets the "full_service_period_to" field.
+func (_c *ChargeUsageBasedCreate) SetFullServicePeriodTo(v time.Time) *ChargeUsageBasedCreate {
+	_c.mutation.SetFullServicePeriodTo(v)
+	return _c
+}
+
+// SetStatus sets the "status" field.
+func (_c *ChargeUsageBasedCreate) SetStatus(v meta.ChargeStatus) *ChargeUsageBasedCreate {
+	_c.mutation.SetStatus(v)
+	return _c
+}
+
+// SetUniqueReferenceID sets the "unique_reference_id" field.
+func (_c *ChargeUsageBasedCreate) SetUniqueReferenceID(v string) *ChargeUsageBasedCreate {
+	_c.mutation.SetUniqueReferenceID(v)
+	return _c
+}
+
+// SetNillableUniqueReferenceID sets the "unique_reference_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableUniqueReferenceID(v *string) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetUniqueReferenceID(*v)
+	}
+	return _c
+}
+
+// SetCurrency sets the "currency" field.
+func (_c *ChargeUsageBasedCreate) SetCurrency(v currencyx.Code) *ChargeUsageBasedCreate {
+	_c.mutation.SetCurrency(v)
+	return _c
+}
+
+// SetManagedBy sets the "managed_by" field.
+func (_c *ChargeUsageBasedCreate) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeUsageBasedCreate {
+	_c.mutation.SetManagedBy(v)
+	return _c
+}
+
+// SetSubscriptionID sets the "subscription_id" field.
+func (_c *ChargeUsageBasedCreate) SetSubscriptionID(v string) *ChargeUsageBasedCreate {
+	_c.mutation.SetSubscriptionID(v)
+	return _c
+}
+
+// SetNillableSubscriptionID sets the "subscription_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableSubscriptionID(v *string) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetSubscriptionID(*v)
+	}
+	return _c
+}
+
+// SetSubscriptionPhaseID sets the "subscription_phase_id" field.
+func (_c *ChargeUsageBasedCreate) SetSubscriptionPhaseID(v string) *ChargeUsageBasedCreate {
+	_c.mutation.SetSubscriptionPhaseID(v)
+	return _c
+}
+
+// SetNillableSubscriptionPhaseID sets the "subscription_phase_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableSubscriptionPhaseID(v *string) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetSubscriptionPhaseID(*v)
+	}
+	return _c
+}
+
+// SetSubscriptionItemID sets the "subscription_item_id" field.
+func (_c *ChargeUsageBasedCreate) SetSubscriptionItemID(v string) *ChargeUsageBasedCreate {
+	_c.mutation.SetSubscriptionItemID(v)
+	return _c
+}
+
+// SetNillableSubscriptionItemID sets the "subscription_item_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableSubscriptionItemID(v *string) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetSubscriptionItemID(*v)
+	}
+	return _c
+}
+
+// SetAdvanceAfter sets the "advance_after" field.
+func (_c *ChargeUsageBasedCreate) SetAdvanceAfter(v time.Time) *ChargeUsageBasedCreate {
+	_c.mutation.SetAdvanceAfter(v)
+	return _c
+}
+
+// SetNillableAdvanceAfter sets the "advance_after" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableAdvanceAfter(v *time.Time) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetAdvanceAfter(*v)
+	}
+	return _c
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_c *ChargeUsageBasedCreate) SetAnnotations(v models.Annotations) *ChargeUsageBasedCreate {
+	_c.mutation.SetAnnotations(v)
+	return _c
+}
+
 // SetNamespace sets the "namespace" field.
 func (_c *ChargeUsageBasedCreate) SetNamespace(v string) *ChargeUsageBasedCreate {
 	_c.mutation.SetNamespace(v)
+	return _c
+}
+
+// SetMetadata sets the "metadata" field.
+func (_c *ChargeUsageBasedCreate) SetMetadata(v map[string]string) *ChargeUsageBasedCreate {
+	_c.mutation.SetMetadata(v)
+	return _c
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (_c *ChargeUsageBasedCreate) SetCreatedAt(v time.Time) *ChargeUsageBasedCreate {
+	_c.mutation.SetCreatedAt(v)
+	return _c
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableCreatedAt(v *time.Time) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetCreatedAt(*v)
+	}
+	return _c
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_c *ChargeUsageBasedCreate) SetUpdatedAt(v time.Time) *ChargeUsageBasedCreate {
+	_c.mutation.SetUpdatedAt(v)
+	return _c
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableUpdatedAt(v *time.Time) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetUpdatedAt(*v)
+	}
+	return _c
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (_c *ChargeUsageBasedCreate) SetDeletedAt(v time.Time) *ChargeUsageBasedCreate {
+	_c.mutation.SetDeletedAt(v)
+	return _c
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableDeletedAt(v *time.Time) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetDeletedAt(*v)
+	}
+	return _c
+}
+
+// SetName sets the "name" field.
+func (_c *ChargeUsageBasedCreate) SetName(v string) *ChargeUsageBasedCreate {
+	_c.mutation.SetName(v)
+	return _c
+}
+
+// SetDescription sets the "description" field.
+func (_c *ChargeUsageBasedCreate) SetDescription(v string) *ChargeUsageBasedCreate {
+	_c.mutation.SetDescription(v)
+	return _c
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableDescription(v *string) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetDescription(*v)
+	}
 	return _c
 }
 
@@ -77,9 +289,9 @@ func (_c *ChargeUsageBasedCreate) SetNillableCurrentRealizationRunID(v *string) 
 	return _c
 }
 
-// SetStatus sets the "status" field.
-func (_c *ChargeUsageBasedCreate) SetStatus(v usagebased.Status) *ChargeUsageBasedCreate {
-	_c.mutation.SetStatus(v)
+// SetStatusDetailed sets the "status_detailed" field.
+func (_c *ChargeUsageBasedCreate) SetStatusDetailed(v usagebased.Status) *ChargeUsageBasedCreate {
+	_c.mutation.SetStatusDetailed(v)
 	return _c
 }
 
@@ -95,17 +307,6 @@ func (_c *ChargeUsageBasedCreate) SetNillableID(v *string) *ChargeUsageBasedCrea
 		_c.SetID(*v)
 	}
 	return _c
-}
-
-// SetChargeID sets the "charge" edge to the Charge entity by ID.
-func (_c *ChargeUsageBasedCreate) SetChargeID(id string) *ChargeUsageBasedCreate {
-	_c.mutation.SetChargeID(id)
-	return _c
-}
-
-// SetCharge sets the "charge" edge to the Charge entity.
-func (_c *ChargeUsageBasedCreate) SetCharge(v *Charge) *ChargeUsageBasedCreate {
-	return _c.SetChargeID(v.ID)
 }
 
 // AddRunIDs adds the "runs" edge to the ChargeUsageBasedRuns entity by IDs.
@@ -140,6 +341,45 @@ func (_c *ChargeUsageBasedCreate) SetNillableCurrentRunID(id *string) *ChargeUsa
 // SetCurrentRun sets the "current_run" edge to the ChargeUsageBasedRuns entity.
 func (_c *ChargeUsageBasedCreate) SetCurrentRun(v *ChargeUsageBasedRuns) *ChargeUsageBasedCreate {
 	return _c.SetCurrentRunID(v.ID)
+}
+
+// SetChargeID sets the "charge" edge to the Charge entity by ID.
+func (_c *ChargeUsageBasedCreate) SetChargeID(id string) *ChargeUsageBasedCreate {
+	_c.mutation.SetChargeID(id)
+	return _c
+}
+
+// SetNillableChargeID sets the "charge" edge to the Charge entity by ID if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableChargeID(id *string) *ChargeUsageBasedCreate {
+	if id != nil {
+		_c = _c.SetChargeID(*id)
+	}
+	return _c
+}
+
+// SetCharge sets the "charge" edge to the Charge entity.
+func (_c *ChargeUsageBasedCreate) SetCharge(v *Charge) *ChargeUsageBasedCreate {
+	return _c.SetChargeID(v.ID)
+}
+
+// SetSubscription sets the "subscription" edge to the Subscription entity.
+func (_c *ChargeUsageBasedCreate) SetSubscription(v *Subscription) *ChargeUsageBasedCreate {
+	return _c.SetSubscriptionID(v.ID)
+}
+
+// SetSubscriptionPhase sets the "subscription_phase" edge to the SubscriptionPhase entity.
+func (_c *ChargeUsageBasedCreate) SetSubscriptionPhase(v *SubscriptionPhase) *ChargeUsageBasedCreate {
+	return _c.SetSubscriptionPhaseID(v.ID)
+}
+
+// SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
+func (_c *ChargeUsageBasedCreate) SetSubscriptionItem(v *SubscriptionItem) *ChargeUsageBasedCreate {
+	return _c.SetSubscriptionItemID(v.ID)
+}
+
+// SetCustomer sets the "customer" edge to the Customer entity.
+func (_c *ChargeUsageBasedCreate) SetCustomer(v *Customer) *ChargeUsageBasedCreate {
+	return _c.SetCustomerID(v.ID)
 }
 
 // Mutation returns the ChargeUsageBasedMutation object of the builder.
@@ -177,6 +417,14 @@ func (_c *ChargeUsageBasedCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *ChargeUsageBasedCreate) defaults() {
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		v := chargeusagebased.DefaultCreatedAt()
+		_c.mutation.SetCreatedAt(v)
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		v := chargeusagebased.DefaultUpdatedAt()
+		_c.mutation.SetUpdatedAt(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := chargeusagebased.DefaultID()
 		_c.mutation.SetID(v)
@@ -185,6 +433,56 @@ func (_c *ChargeUsageBasedCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *ChargeUsageBasedCreate) check() error {
+	if _, ok := _c.mutation.CustomerID(); !ok {
+		return &ValidationError{Name: "customer_id", err: errors.New(`db: missing required field "ChargeUsageBased.customer_id"`)}
+	}
+	if v, ok := _c.mutation.CustomerID(); ok {
+		if err := chargeusagebased.CustomerIDValidator(v); err != nil {
+			return &ValidationError{Name: "customer_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.customer_id": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.ServicePeriodFrom(); !ok {
+		return &ValidationError{Name: "service_period_from", err: errors.New(`db: missing required field "ChargeUsageBased.service_period_from"`)}
+	}
+	if _, ok := _c.mutation.ServicePeriodTo(); !ok {
+		return &ValidationError{Name: "service_period_to", err: errors.New(`db: missing required field "ChargeUsageBased.service_period_to"`)}
+	}
+	if _, ok := _c.mutation.BillingPeriodFrom(); !ok {
+		return &ValidationError{Name: "billing_period_from", err: errors.New(`db: missing required field "ChargeUsageBased.billing_period_from"`)}
+	}
+	if _, ok := _c.mutation.BillingPeriodTo(); !ok {
+		return &ValidationError{Name: "billing_period_to", err: errors.New(`db: missing required field "ChargeUsageBased.billing_period_to"`)}
+	}
+	if _, ok := _c.mutation.FullServicePeriodFrom(); !ok {
+		return &ValidationError{Name: "full_service_period_from", err: errors.New(`db: missing required field "ChargeUsageBased.full_service_period_from"`)}
+	}
+	if _, ok := _c.mutation.FullServicePeriodTo(); !ok {
+		return &ValidationError{Name: "full_service_period_to", err: errors.New(`db: missing required field "ChargeUsageBased.full_service_period_to"`)}
+	}
+	if _, ok := _c.mutation.Status(); !ok {
+		return &ValidationError{Name: "status", err: errors.New(`db: missing required field "ChargeUsageBased.status"`)}
+	}
+	if v, ok := _c.mutation.Status(); ok {
+		if err := chargeusagebased.StatusValidator(v); err != nil {
+			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.Currency(); !ok {
+		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "ChargeUsageBased.currency"`)}
+	}
+	if v, ok := _c.mutation.Currency(); ok {
+		if err := chargeusagebased.CurrencyValidator(string(v)); err != nil {
+			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.currency": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.ManagedBy(); !ok {
+		return &ValidationError{Name: "managed_by", err: errors.New(`db: missing required field "ChargeUsageBased.managed_by"`)}
+	}
+	if v, ok := _c.mutation.ManagedBy(); ok {
+		if err := chargeusagebased.ManagedByValidator(v); err != nil {
+			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.managed_by": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "ChargeUsageBased.namespace"`)}
 	}
@@ -192,6 +490,15 @@ func (_c *ChargeUsageBasedCreate) check() error {
 		if err := chargeusagebased.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.namespace": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "ChargeUsageBased.created_at"`)}
+	}
+	if _, ok := _c.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "ChargeUsageBased.updated_at"`)}
+	}
+	if _, ok := _c.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "ChargeUsageBased.name"`)}
 	}
 	if _, ok := _c.mutation.InvoiceAt(); !ok {
 		return &ValidationError{Name: "invoice_at", err: errors.New(`db: missing required field "ChargeUsageBased.invoice_at"`)}
@@ -225,16 +532,16 @@ func (_c *ChargeUsageBasedCreate) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.price": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.Status(); !ok {
-		return &ValidationError{Name: "status", err: errors.New(`db: missing required field "ChargeUsageBased.status"`)}
+	if _, ok := _c.mutation.StatusDetailed(); !ok {
+		return &ValidationError{Name: "status_detailed", err: errors.New(`db: missing required field "ChargeUsageBased.status_detailed"`)}
 	}
-	if v, ok := _c.mutation.Status(); ok {
-		if err := chargeusagebased.StatusValidator(v); err != nil {
-			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status": %w`, err)}
+	if v, ok := _c.mutation.StatusDetailed(); ok {
+		if err := chargeusagebased.StatusDetailedValidator(v); err != nil {
+			return &ValidationError{Name: "status_detailed", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status_detailed": %w`, err)}
 		}
 	}
-	if len(_c.mutation.ChargeIDs()) == 0 {
-		return &ValidationError{Name: "charge", err: errors.New(`db: missing required edge "ChargeUsageBased.charge"`)}
+	if len(_c.mutation.CustomerIDs()) == 0 {
+		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "ChargeUsageBased.customer"`)}
 	}
 	return nil
 }
@@ -275,9 +582,81 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 		_node.ID = id
 		_spec.ID.Value = id
 	}
+	if value, ok := _c.mutation.ServicePeriodFrom(); ok {
+		_spec.SetField(chargeusagebased.FieldServicePeriodFrom, field.TypeTime, value)
+		_node.ServicePeriodFrom = value
+	}
+	if value, ok := _c.mutation.ServicePeriodTo(); ok {
+		_spec.SetField(chargeusagebased.FieldServicePeriodTo, field.TypeTime, value)
+		_node.ServicePeriodTo = value
+	}
+	if value, ok := _c.mutation.BillingPeriodFrom(); ok {
+		_spec.SetField(chargeusagebased.FieldBillingPeriodFrom, field.TypeTime, value)
+		_node.BillingPeriodFrom = value
+	}
+	if value, ok := _c.mutation.BillingPeriodTo(); ok {
+		_spec.SetField(chargeusagebased.FieldBillingPeriodTo, field.TypeTime, value)
+		_node.BillingPeriodTo = value
+	}
+	if value, ok := _c.mutation.FullServicePeriodFrom(); ok {
+		_spec.SetField(chargeusagebased.FieldFullServicePeriodFrom, field.TypeTime, value)
+		_node.FullServicePeriodFrom = value
+	}
+	if value, ok := _c.mutation.FullServicePeriodTo(); ok {
+		_spec.SetField(chargeusagebased.FieldFullServicePeriodTo, field.TypeTime, value)
+		_node.FullServicePeriodTo = value
+	}
+	if value, ok := _c.mutation.Status(); ok {
+		_spec.SetField(chargeusagebased.FieldStatus, field.TypeEnum, value)
+		_node.Status = value
+	}
+	if value, ok := _c.mutation.UniqueReferenceID(); ok {
+		_spec.SetField(chargeusagebased.FieldUniqueReferenceID, field.TypeString, value)
+		_node.UniqueReferenceID = &value
+	}
+	if value, ok := _c.mutation.Currency(); ok {
+		_spec.SetField(chargeusagebased.FieldCurrency, field.TypeString, value)
+		_node.Currency = value
+	}
+	if value, ok := _c.mutation.ManagedBy(); ok {
+		_spec.SetField(chargeusagebased.FieldManagedBy, field.TypeEnum, value)
+		_node.ManagedBy = value
+	}
+	if value, ok := _c.mutation.AdvanceAfter(); ok {
+		_spec.SetField(chargeusagebased.FieldAdvanceAfter, field.TypeTime, value)
+		_node.AdvanceAfter = &value
+	}
+	if value, ok := _c.mutation.Annotations(); ok {
+		_spec.SetField(chargeusagebased.FieldAnnotations, field.TypeJSON, value)
+		_node.Annotations = value
+	}
 	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(chargeusagebased.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
+	}
+	if value, ok := _c.mutation.Metadata(); ok {
+		_spec.SetField(chargeusagebased.FieldMetadata, field.TypeJSON, value)
+		_node.Metadata = value
+	}
+	if value, ok := _c.mutation.CreatedAt(); ok {
+		_spec.SetField(chargeusagebased.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.UpdatedAt(); ok {
+		_spec.SetField(chargeusagebased.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
+	}
+	if value, ok := _c.mutation.DeletedAt(); ok {
+		_spec.SetField(chargeusagebased.FieldDeletedAt, field.TypeTime, value)
+		_node.DeletedAt = &value
+	}
+	if value, ok := _c.mutation.Name(); ok {
+		_spec.SetField(chargeusagebased.FieldName, field.TypeString, value)
+		_node.Name = value
+	}
+	if value, ok := _c.mutation.Description(); ok {
+		_spec.SetField(chargeusagebased.FieldDescription, field.TypeString, value)
+		_node.Description = &value
 	}
 	if value, ok := _c.mutation.InvoiceAt(); ok {
 		_spec.SetField(chargeusagebased.FieldInvoiceAt, field.TypeTime, value)
@@ -307,26 +686,9 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 		_spec.SetField(chargeusagebased.FieldPrice, field.TypeString, vv)
 		_node.Price = value
 	}
-	if value, ok := _c.mutation.Status(); ok {
-		_spec.SetField(chargeusagebased.FieldStatus, field.TypeEnum, value)
-		_node.Status = value
-	}
-	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
-			Inverse: true,
-			Table:   chargeusagebased.ChargeTable,
-			Columns: []string{chargeusagebased.ChargeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.ID = nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
+	if value, ok := _c.mutation.StatusDetailed(); ok {
+		_spec.SetField(chargeusagebased.FieldStatusDetailed, field.TypeEnum, value)
+		_node.StatusDetailed = value
 	}
 	if nodes := _c.mutation.RunsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -361,6 +723,90 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 		_node.CurrentRealizationRunID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.ChargeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeusagebased.ChargeTable,
+			Columns: []string{chargeusagebased.ChargeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SubscriptionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.SubscriptionTable,
+			Columns: []string{chargeusagebased.SubscriptionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SubscriptionID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SubscriptionPhaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.SubscriptionPhaseTable,
+			Columns: []string{chargeusagebased.SubscriptionPhaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionphase.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SubscriptionPhaseID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.SubscriptionItemTable,
+			Columns: []string{chargeusagebased.SubscriptionItemColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SubscriptionItemID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CustomerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebased.CustomerTable,
+			Columns: []string{chargeusagebased.CustomerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CustomerID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec, nil
 }
 
@@ -368,7 +814,7 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 // of the `INSERT` statement. For example:
 //
 //	client.ChargeUsageBased.Create().
-//		SetNamespace(v).
+//		SetCustomerID(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -377,7 +823,7 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.ChargeUsageBasedUpsert) {
-//			SetNamespace(v+v).
+//			SetCustomerID(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *ChargeUsageBasedCreate) OnConflict(opts ...sql.ConflictOption) *ChargeUsageBasedUpsertOne {
@@ -412,6 +858,216 @@ type (
 		*sql.UpdateSet
 	}
 )
+
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (u *ChargeUsageBasedUpsert) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldServicePeriodFrom, v)
+	return u
+}
+
+// UpdateServicePeriodFrom sets the "service_period_from" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateServicePeriodFrom() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldServicePeriodFrom)
+	return u
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (u *ChargeUsageBasedUpsert) SetServicePeriodTo(v time.Time) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldServicePeriodTo, v)
+	return u
+}
+
+// UpdateServicePeriodTo sets the "service_period_to" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateServicePeriodTo() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldServicePeriodTo)
+	return u
+}
+
+// SetBillingPeriodFrom sets the "billing_period_from" field.
+func (u *ChargeUsageBasedUpsert) SetBillingPeriodFrom(v time.Time) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldBillingPeriodFrom, v)
+	return u
+}
+
+// UpdateBillingPeriodFrom sets the "billing_period_from" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateBillingPeriodFrom() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldBillingPeriodFrom)
+	return u
+}
+
+// SetBillingPeriodTo sets the "billing_period_to" field.
+func (u *ChargeUsageBasedUpsert) SetBillingPeriodTo(v time.Time) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldBillingPeriodTo, v)
+	return u
+}
+
+// UpdateBillingPeriodTo sets the "billing_period_to" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateBillingPeriodTo() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldBillingPeriodTo)
+	return u
+}
+
+// SetFullServicePeriodFrom sets the "full_service_period_from" field.
+func (u *ChargeUsageBasedUpsert) SetFullServicePeriodFrom(v time.Time) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldFullServicePeriodFrom, v)
+	return u
+}
+
+// UpdateFullServicePeriodFrom sets the "full_service_period_from" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateFullServicePeriodFrom() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldFullServicePeriodFrom)
+	return u
+}
+
+// SetFullServicePeriodTo sets the "full_service_period_to" field.
+func (u *ChargeUsageBasedUpsert) SetFullServicePeriodTo(v time.Time) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldFullServicePeriodTo, v)
+	return u
+}
+
+// UpdateFullServicePeriodTo sets the "full_service_period_to" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateFullServicePeriodTo() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldFullServicePeriodTo)
+	return u
+}
+
+// SetStatus sets the "status" field.
+func (u *ChargeUsageBasedUpsert) SetStatus(v meta.ChargeStatus) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldStatus, v)
+	return u
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateStatus() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldStatus)
+	return u
+}
+
+// SetManagedBy sets the "managed_by" field.
+func (u *ChargeUsageBasedUpsert) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldManagedBy, v)
+	return u
+}
+
+// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateManagedBy() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldManagedBy)
+	return u
+}
+
+// SetAdvanceAfter sets the "advance_after" field.
+func (u *ChargeUsageBasedUpsert) SetAdvanceAfter(v time.Time) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldAdvanceAfter, v)
+	return u
+}
+
+// UpdateAdvanceAfter sets the "advance_after" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateAdvanceAfter() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldAdvanceAfter)
+	return u
+}
+
+// ClearAdvanceAfter clears the value of the "advance_after" field.
+func (u *ChargeUsageBasedUpsert) ClearAdvanceAfter() *ChargeUsageBasedUpsert {
+	u.SetNull(chargeusagebased.FieldAdvanceAfter)
+	return u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *ChargeUsageBasedUpsert) SetAnnotations(v models.Annotations) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldAnnotations, v)
+	return u
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateAnnotations() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldAnnotations)
+	return u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *ChargeUsageBasedUpsert) ClearAnnotations() *ChargeUsageBasedUpsert {
+	u.SetNull(chargeusagebased.FieldAnnotations)
+	return u
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *ChargeUsageBasedUpsert) SetMetadata(v map[string]string) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldMetadata, v)
+	return u
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateMetadata() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldMetadata)
+	return u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *ChargeUsageBasedUpsert) ClearMetadata() *ChargeUsageBasedUpsert {
+	u.SetNull(chargeusagebased.FieldMetadata)
+	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *ChargeUsageBasedUpsert) SetUpdatedAt(v time.Time) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldUpdatedAt, v)
+	return u
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateUpdatedAt() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldUpdatedAt)
+	return u
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (u *ChargeUsageBasedUpsert) SetDeletedAt(v time.Time) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldDeletedAt, v)
+	return u
+}
+
+// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateDeletedAt() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldDeletedAt)
+	return u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (u *ChargeUsageBasedUpsert) ClearDeletedAt() *ChargeUsageBasedUpsert {
+	u.SetNull(chargeusagebased.FieldDeletedAt)
+	return u
+}
+
+// SetName sets the "name" field.
+func (u *ChargeUsageBasedUpsert) SetName(v string) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateName() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldName)
+	return u
+}
+
+// SetDescription sets the "description" field.
+func (u *ChargeUsageBasedUpsert) SetDescription(v string) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldDescription, v)
+	return u
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateDescription() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldDescription)
+	return u
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *ChargeUsageBasedUpsert) ClearDescription() *ChargeUsageBasedUpsert {
+	u.SetNull(chargeusagebased.FieldDescription)
+	return u
+}
 
 // SetDiscounts sets the "discounts" field.
 func (u *ChargeUsageBasedUpsert) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpsert {
@@ -449,15 +1105,15 @@ func (u *ChargeUsageBasedUpsert) ClearCurrentRealizationRunID() *ChargeUsageBase
 	return u
 }
 
-// SetStatus sets the "status" field.
-func (u *ChargeUsageBasedUpsert) SetStatus(v usagebased.Status) *ChargeUsageBasedUpsert {
-	u.Set(chargeusagebased.FieldStatus, v)
+// SetStatusDetailed sets the "status_detailed" field.
+func (u *ChargeUsageBasedUpsert) SetStatusDetailed(v usagebased.Status) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldStatusDetailed, v)
 	return u
 }
 
-// UpdateStatus sets the "status" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsert) UpdateStatus() *ChargeUsageBasedUpsert {
-	u.SetExcluded(chargeusagebased.FieldStatus)
+// UpdateStatusDetailed sets the "status_detailed" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateStatusDetailed() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldStatusDetailed)
 	return u
 }
 
@@ -478,8 +1134,29 @@ func (u *ChargeUsageBasedUpsertOne) UpdateNewValues() *ChargeUsageBasedUpsertOne
 		if _, exists := u.create.mutation.ID(); exists {
 			s.SetIgnore(chargeusagebased.FieldID)
 		}
+		if _, exists := u.create.mutation.CustomerID(); exists {
+			s.SetIgnore(chargeusagebased.FieldCustomerID)
+		}
+		if _, exists := u.create.mutation.UniqueReferenceID(); exists {
+			s.SetIgnore(chargeusagebased.FieldUniqueReferenceID)
+		}
+		if _, exists := u.create.mutation.Currency(); exists {
+			s.SetIgnore(chargeusagebased.FieldCurrency)
+		}
+		if _, exists := u.create.mutation.SubscriptionID(); exists {
+			s.SetIgnore(chargeusagebased.FieldSubscriptionID)
+		}
+		if _, exists := u.create.mutation.SubscriptionPhaseID(); exists {
+			s.SetIgnore(chargeusagebased.FieldSubscriptionPhaseID)
+		}
+		if _, exists := u.create.mutation.SubscriptionItemID(); exists {
+			s.SetIgnore(chargeusagebased.FieldSubscriptionItemID)
+		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(chargeusagebased.FieldNamespace)
+		}
+		if _, exists := u.create.mutation.CreatedAt(); exists {
+			s.SetIgnore(chargeusagebased.FieldCreatedAt)
 		}
 		if _, exists := u.create.mutation.InvoiceAt(); exists {
 			s.SetIgnore(chargeusagebased.FieldInvoiceAt)
@@ -524,6 +1201,251 @@ func (u *ChargeUsageBasedUpsertOne) Update(set func(*ChargeUsageBasedUpsert)) *C
 	return u
 }
 
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (u *ChargeUsageBasedUpsertOne) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetServicePeriodFrom(v)
+	})
+}
+
+// UpdateServicePeriodFrom sets the "service_period_from" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateServicePeriodFrom() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateServicePeriodFrom()
+	})
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (u *ChargeUsageBasedUpsertOne) SetServicePeriodTo(v time.Time) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetServicePeriodTo(v)
+	})
+}
+
+// UpdateServicePeriodTo sets the "service_period_to" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateServicePeriodTo() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateServicePeriodTo()
+	})
+}
+
+// SetBillingPeriodFrom sets the "billing_period_from" field.
+func (u *ChargeUsageBasedUpsertOne) SetBillingPeriodFrom(v time.Time) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetBillingPeriodFrom(v)
+	})
+}
+
+// UpdateBillingPeriodFrom sets the "billing_period_from" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateBillingPeriodFrom() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateBillingPeriodFrom()
+	})
+}
+
+// SetBillingPeriodTo sets the "billing_period_to" field.
+func (u *ChargeUsageBasedUpsertOne) SetBillingPeriodTo(v time.Time) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetBillingPeriodTo(v)
+	})
+}
+
+// UpdateBillingPeriodTo sets the "billing_period_to" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateBillingPeriodTo() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateBillingPeriodTo()
+	})
+}
+
+// SetFullServicePeriodFrom sets the "full_service_period_from" field.
+func (u *ChargeUsageBasedUpsertOne) SetFullServicePeriodFrom(v time.Time) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetFullServicePeriodFrom(v)
+	})
+}
+
+// UpdateFullServicePeriodFrom sets the "full_service_period_from" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateFullServicePeriodFrom() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateFullServicePeriodFrom()
+	})
+}
+
+// SetFullServicePeriodTo sets the "full_service_period_to" field.
+func (u *ChargeUsageBasedUpsertOne) SetFullServicePeriodTo(v time.Time) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetFullServicePeriodTo(v)
+	})
+}
+
+// UpdateFullServicePeriodTo sets the "full_service_period_to" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateFullServicePeriodTo() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateFullServicePeriodTo()
+	})
+}
+
+// SetStatus sets the "status" field.
+func (u *ChargeUsageBasedUpsertOne) SetStatus(v meta.ChargeStatus) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetStatus(v)
+	})
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateStatus() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateStatus()
+	})
+}
+
+// SetManagedBy sets the "managed_by" field.
+func (u *ChargeUsageBasedUpsertOne) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetManagedBy(v)
+	})
+}
+
+// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateManagedBy() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateManagedBy()
+	})
+}
+
+// SetAdvanceAfter sets the "advance_after" field.
+func (u *ChargeUsageBasedUpsertOne) SetAdvanceAfter(v time.Time) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetAdvanceAfter(v)
+	})
+}
+
+// UpdateAdvanceAfter sets the "advance_after" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateAdvanceAfter() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateAdvanceAfter()
+	})
+}
+
+// ClearAdvanceAfter clears the value of the "advance_after" field.
+func (u *ChargeUsageBasedUpsertOne) ClearAdvanceAfter() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearAdvanceAfter()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *ChargeUsageBasedUpsertOne) SetAnnotations(v models.Annotations) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateAnnotations() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *ChargeUsageBasedUpsertOne) ClearAnnotations() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearAnnotations()
+	})
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *ChargeUsageBasedUpsertOne) SetMetadata(v map[string]string) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateMetadata() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *ChargeUsageBasedUpsertOne) ClearMetadata() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearMetadata()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *ChargeUsageBasedUpsertOne) SetUpdatedAt(v time.Time) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateUpdatedAt() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (u *ChargeUsageBasedUpsertOne) SetDeletedAt(v time.Time) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetDeletedAt(v)
+	})
+}
+
+// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateDeletedAt() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateDeletedAt()
+	})
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (u *ChargeUsageBasedUpsertOne) ClearDeletedAt() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearDeletedAt()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *ChargeUsageBasedUpsertOne) SetName(v string) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateName() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetDescription sets the "description" field.
+func (u *ChargeUsageBasedUpsertOne) SetDescription(v string) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetDescription(v)
+	})
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateDescription() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *ChargeUsageBasedUpsertOne) ClearDescription() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearDescription()
+	})
+}
+
 // SetDiscounts sets the "discounts" field.
 func (u *ChargeUsageBasedUpsertOne) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
@@ -566,17 +1488,17 @@ func (u *ChargeUsageBasedUpsertOne) ClearCurrentRealizationRunID() *ChargeUsageB
 	})
 }
 
-// SetStatus sets the "status" field.
-func (u *ChargeUsageBasedUpsertOne) SetStatus(v usagebased.Status) *ChargeUsageBasedUpsertOne {
+// SetStatusDetailed sets the "status_detailed" field.
+func (u *ChargeUsageBasedUpsertOne) SetStatusDetailed(v usagebased.Status) *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.SetStatus(v)
+		s.SetStatusDetailed(v)
 	})
 }
 
-// UpdateStatus sets the "status" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsertOne) UpdateStatus() *ChargeUsageBasedUpsertOne {
+// UpdateStatusDetailed sets the "status_detailed" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateStatusDetailed() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.UpdateStatus()
+		s.UpdateStatusDetailed()
 	})
 }
 
@@ -719,7 +1641,7 @@ func (_c *ChargeUsageBasedCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.ChargeUsageBasedUpsert) {
-//			SetNamespace(v+v).
+//			SetCustomerID(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *ChargeUsageBasedCreateBulk) OnConflict(opts ...sql.ConflictOption) *ChargeUsageBasedUpsertBulk {
@@ -766,8 +1688,29 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateNewValues() *ChargeUsageBasedUpsertBu
 			if _, exists := b.mutation.ID(); exists {
 				s.SetIgnore(chargeusagebased.FieldID)
 			}
+			if _, exists := b.mutation.CustomerID(); exists {
+				s.SetIgnore(chargeusagebased.FieldCustomerID)
+			}
+			if _, exists := b.mutation.UniqueReferenceID(); exists {
+				s.SetIgnore(chargeusagebased.FieldUniqueReferenceID)
+			}
+			if _, exists := b.mutation.Currency(); exists {
+				s.SetIgnore(chargeusagebased.FieldCurrency)
+			}
+			if _, exists := b.mutation.SubscriptionID(); exists {
+				s.SetIgnore(chargeusagebased.FieldSubscriptionID)
+			}
+			if _, exists := b.mutation.SubscriptionPhaseID(); exists {
+				s.SetIgnore(chargeusagebased.FieldSubscriptionPhaseID)
+			}
+			if _, exists := b.mutation.SubscriptionItemID(); exists {
+				s.SetIgnore(chargeusagebased.FieldSubscriptionItemID)
+			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(chargeusagebased.FieldNamespace)
+			}
+			if _, exists := b.mutation.CreatedAt(); exists {
+				s.SetIgnore(chargeusagebased.FieldCreatedAt)
 			}
 			if _, exists := b.mutation.InvoiceAt(); exists {
 				s.SetIgnore(chargeusagebased.FieldInvoiceAt)
@@ -813,6 +1756,251 @@ func (u *ChargeUsageBasedUpsertBulk) Update(set func(*ChargeUsageBasedUpsert)) *
 	return u
 }
 
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (u *ChargeUsageBasedUpsertBulk) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetServicePeriodFrom(v)
+	})
+}
+
+// UpdateServicePeriodFrom sets the "service_period_from" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateServicePeriodFrom() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateServicePeriodFrom()
+	})
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (u *ChargeUsageBasedUpsertBulk) SetServicePeriodTo(v time.Time) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetServicePeriodTo(v)
+	})
+}
+
+// UpdateServicePeriodTo sets the "service_period_to" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateServicePeriodTo() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateServicePeriodTo()
+	})
+}
+
+// SetBillingPeriodFrom sets the "billing_period_from" field.
+func (u *ChargeUsageBasedUpsertBulk) SetBillingPeriodFrom(v time.Time) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetBillingPeriodFrom(v)
+	})
+}
+
+// UpdateBillingPeriodFrom sets the "billing_period_from" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateBillingPeriodFrom() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateBillingPeriodFrom()
+	})
+}
+
+// SetBillingPeriodTo sets the "billing_period_to" field.
+func (u *ChargeUsageBasedUpsertBulk) SetBillingPeriodTo(v time.Time) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetBillingPeriodTo(v)
+	})
+}
+
+// UpdateBillingPeriodTo sets the "billing_period_to" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateBillingPeriodTo() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateBillingPeriodTo()
+	})
+}
+
+// SetFullServicePeriodFrom sets the "full_service_period_from" field.
+func (u *ChargeUsageBasedUpsertBulk) SetFullServicePeriodFrom(v time.Time) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetFullServicePeriodFrom(v)
+	})
+}
+
+// UpdateFullServicePeriodFrom sets the "full_service_period_from" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateFullServicePeriodFrom() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateFullServicePeriodFrom()
+	})
+}
+
+// SetFullServicePeriodTo sets the "full_service_period_to" field.
+func (u *ChargeUsageBasedUpsertBulk) SetFullServicePeriodTo(v time.Time) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetFullServicePeriodTo(v)
+	})
+}
+
+// UpdateFullServicePeriodTo sets the "full_service_period_to" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateFullServicePeriodTo() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateFullServicePeriodTo()
+	})
+}
+
+// SetStatus sets the "status" field.
+func (u *ChargeUsageBasedUpsertBulk) SetStatus(v meta.ChargeStatus) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetStatus(v)
+	})
+}
+
+// UpdateStatus sets the "status" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateStatus() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateStatus()
+	})
+}
+
+// SetManagedBy sets the "managed_by" field.
+func (u *ChargeUsageBasedUpsertBulk) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetManagedBy(v)
+	})
+}
+
+// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateManagedBy() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateManagedBy()
+	})
+}
+
+// SetAdvanceAfter sets the "advance_after" field.
+func (u *ChargeUsageBasedUpsertBulk) SetAdvanceAfter(v time.Time) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetAdvanceAfter(v)
+	})
+}
+
+// UpdateAdvanceAfter sets the "advance_after" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateAdvanceAfter() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateAdvanceAfter()
+	})
+}
+
+// ClearAdvanceAfter clears the value of the "advance_after" field.
+func (u *ChargeUsageBasedUpsertBulk) ClearAdvanceAfter() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearAdvanceAfter()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *ChargeUsageBasedUpsertBulk) SetAnnotations(v models.Annotations) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateAnnotations() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *ChargeUsageBasedUpsertBulk) ClearAnnotations() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearAnnotations()
+	})
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *ChargeUsageBasedUpsertBulk) SetMetadata(v map[string]string) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateMetadata() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *ChargeUsageBasedUpsertBulk) ClearMetadata() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearMetadata()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *ChargeUsageBasedUpsertBulk) SetUpdatedAt(v time.Time) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateUpdatedAt() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (u *ChargeUsageBasedUpsertBulk) SetDeletedAt(v time.Time) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetDeletedAt(v)
+	})
+}
+
+// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateDeletedAt() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateDeletedAt()
+	})
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (u *ChargeUsageBasedUpsertBulk) ClearDeletedAt() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearDeletedAt()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *ChargeUsageBasedUpsertBulk) SetName(v string) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateName() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetDescription sets the "description" field.
+func (u *ChargeUsageBasedUpsertBulk) SetDescription(v string) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetDescription(v)
+	})
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateDescription() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *ChargeUsageBasedUpsertBulk) ClearDescription() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearDescription()
+	})
+}
+
 // SetDiscounts sets the "discounts" field.
 func (u *ChargeUsageBasedUpsertBulk) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
@@ -855,17 +2043,17 @@ func (u *ChargeUsageBasedUpsertBulk) ClearCurrentRealizationRunID() *ChargeUsage
 	})
 }
 
-// SetStatus sets the "status" field.
-func (u *ChargeUsageBasedUpsertBulk) SetStatus(v usagebased.Status) *ChargeUsageBasedUpsertBulk {
+// SetStatusDetailed sets the "status_detailed" field.
+func (u *ChargeUsageBasedUpsertBulk) SetStatusDetailed(v usagebased.Status) *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.SetStatus(v)
+		s.SetStatusDetailed(v)
 	})
 }
 
-// UpdateStatus sets the "status" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsertBulk) UpdateStatus() *ChargeUsageBasedUpsertBulk {
+// UpdateStatusDetailed sets the "status_detailed" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateStatusDetailed() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.UpdateStatus()
+		s.UpdateStatusDetailed()
 	})
 }
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -849,44 +850,104 @@ func (e *Charge) GetID() string {
 	return e.ID
 }
 
-func (e *Charge) GetAnnotations() models.Annotations {
-	return e.Annotations
-}
-
 func (e *Charge) GetNamespace() string {
 	return e.Namespace
-}
-
-func (e *Charge) GetMetadata() map[string]string {
-	return e.Metadata
-}
-
-func (e *Charge) GetCreatedAt() time.Time {
-	return e.CreatedAt
-}
-
-func (e *Charge) GetUpdatedAt() time.Time {
-	return e.UpdatedAt
-}
-
-func (e *Charge) GetDeletedAt() *time.Time {
-	return e.DeletedAt
-}
-
-func (e *Charge) GetName() string {
-	return e.Name
-}
-
-func (e *Charge) GetDescription() *string {
-	return e.Description
 }
 
 func (e *ChargeCreditPurchase) GetID() string {
 	return e.ID
 }
 
+func (e *ChargeCreditPurchase) GetCustomerID() string {
+	return e.CustomerID
+}
+
+func (e *ChargeCreditPurchase) GetServicePeriodFrom() time.Time {
+	return e.ServicePeriodFrom
+}
+
+func (e *ChargeCreditPurchase) GetServicePeriodTo() time.Time {
+	return e.ServicePeriodTo
+}
+
+func (e *ChargeCreditPurchase) GetBillingPeriodFrom() time.Time {
+	return e.BillingPeriodFrom
+}
+
+func (e *ChargeCreditPurchase) GetBillingPeriodTo() time.Time {
+	return e.BillingPeriodTo
+}
+
+func (e *ChargeCreditPurchase) GetFullServicePeriodFrom() time.Time {
+	return e.FullServicePeriodFrom
+}
+
+func (e *ChargeCreditPurchase) GetFullServicePeriodTo() time.Time {
+	return e.FullServicePeriodTo
+}
+
+func (e *ChargeCreditPurchase) GetStatus() meta.ChargeStatus {
+	return e.Status
+}
+
+func (e *ChargeCreditPurchase) GetUniqueReferenceID() *string {
+	return e.UniqueReferenceID
+}
+
+func (e *ChargeCreditPurchase) GetCurrency() currencyx.Code {
+	return e.Currency
+}
+
+func (e *ChargeCreditPurchase) GetManagedBy() billing.InvoiceLineManagedBy {
+	return e.ManagedBy
+}
+
+func (e *ChargeCreditPurchase) GetSubscriptionID() *string {
+	return e.SubscriptionID
+}
+
+func (e *ChargeCreditPurchase) GetSubscriptionPhaseID() *string {
+	return e.SubscriptionPhaseID
+}
+
+func (e *ChargeCreditPurchase) GetSubscriptionItemID() *string {
+	return e.SubscriptionItemID
+}
+
+func (e *ChargeCreditPurchase) GetAdvanceAfter() *time.Time {
+	return e.AdvanceAfter
+}
+
+func (e *ChargeCreditPurchase) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
 func (e *ChargeCreditPurchase) GetNamespace() string {
 	return e.Namespace
+}
+
+func (e *ChargeCreditPurchase) GetMetadata() map[string]string {
+	return e.Metadata
+}
+
+func (e *ChargeCreditPurchase) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeCreditPurchase) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeCreditPurchase) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *ChargeCreditPurchase) GetName() string {
+	return e.Name
+}
+
+func (e *ChargeCreditPurchase) GetDescription() *string {
+	return e.Description
 }
 
 func (e *ChargeCreditPurchaseExternalPayment) GetID() string {
@@ -1013,8 +1074,96 @@ func (e *ChargeFlatFee) GetID() string {
 	return e.ID
 }
 
+func (e *ChargeFlatFee) GetCustomerID() string {
+	return e.CustomerID
+}
+
+func (e *ChargeFlatFee) GetServicePeriodFrom() time.Time {
+	return e.ServicePeriodFrom
+}
+
+func (e *ChargeFlatFee) GetServicePeriodTo() time.Time {
+	return e.ServicePeriodTo
+}
+
+func (e *ChargeFlatFee) GetBillingPeriodFrom() time.Time {
+	return e.BillingPeriodFrom
+}
+
+func (e *ChargeFlatFee) GetBillingPeriodTo() time.Time {
+	return e.BillingPeriodTo
+}
+
+func (e *ChargeFlatFee) GetFullServicePeriodFrom() time.Time {
+	return e.FullServicePeriodFrom
+}
+
+func (e *ChargeFlatFee) GetFullServicePeriodTo() time.Time {
+	return e.FullServicePeriodTo
+}
+
+func (e *ChargeFlatFee) GetStatus() meta.ChargeStatus {
+	return e.Status
+}
+
+func (e *ChargeFlatFee) GetUniqueReferenceID() *string {
+	return e.UniqueReferenceID
+}
+
+func (e *ChargeFlatFee) GetCurrency() currencyx.Code {
+	return e.Currency
+}
+
+func (e *ChargeFlatFee) GetManagedBy() billing.InvoiceLineManagedBy {
+	return e.ManagedBy
+}
+
+func (e *ChargeFlatFee) GetSubscriptionID() *string {
+	return e.SubscriptionID
+}
+
+func (e *ChargeFlatFee) GetSubscriptionPhaseID() *string {
+	return e.SubscriptionPhaseID
+}
+
+func (e *ChargeFlatFee) GetSubscriptionItemID() *string {
+	return e.SubscriptionItemID
+}
+
+func (e *ChargeFlatFee) GetAdvanceAfter() *time.Time {
+	return e.AdvanceAfter
+}
+
+func (e *ChargeFlatFee) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
 func (e *ChargeFlatFee) GetNamespace() string {
 	return e.Namespace
+}
+
+func (e *ChargeFlatFee) GetMetadata() map[string]string {
+	return e.Metadata
+}
+
+func (e *ChargeFlatFee) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeFlatFee) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeFlatFee) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *ChargeFlatFee) GetName() string {
+	return e.Name
+}
+
+func (e *ChargeFlatFee) GetDescription() *string {
+	return e.Description
 }
 
 func (e *ChargeFlatFeeCreditAllocations) GetID() string {
@@ -1209,8 +1358,96 @@ func (e *ChargeUsageBased) GetID() string {
 	return e.ID
 }
 
+func (e *ChargeUsageBased) GetCustomerID() string {
+	return e.CustomerID
+}
+
+func (e *ChargeUsageBased) GetServicePeriodFrom() time.Time {
+	return e.ServicePeriodFrom
+}
+
+func (e *ChargeUsageBased) GetServicePeriodTo() time.Time {
+	return e.ServicePeriodTo
+}
+
+func (e *ChargeUsageBased) GetBillingPeriodFrom() time.Time {
+	return e.BillingPeriodFrom
+}
+
+func (e *ChargeUsageBased) GetBillingPeriodTo() time.Time {
+	return e.BillingPeriodTo
+}
+
+func (e *ChargeUsageBased) GetFullServicePeriodFrom() time.Time {
+	return e.FullServicePeriodFrom
+}
+
+func (e *ChargeUsageBased) GetFullServicePeriodTo() time.Time {
+	return e.FullServicePeriodTo
+}
+
+func (e *ChargeUsageBased) GetStatus() meta.ChargeStatus {
+	return e.Status
+}
+
+func (e *ChargeUsageBased) GetUniqueReferenceID() *string {
+	return e.UniqueReferenceID
+}
+
+func (e *ChargeUsageBased) GetCurrency() currencyx.Code {
+	return e.Currency
+}
+
+func (e *ChargeUsageBased) GetManagedBy() billing.InvoiceLineManagedBy {
+	return e.ManagedBy
+}
+
+func (e *ChargeUsageBased) GetSubscriptionID() *string {
+	return e.SubscriptionID
+}
+
+func (e *ChargeUsageBased) GetSubscriptionPhaseID() *string {
+	return e.SubscriptionPhaseID
+}
+
+func (e *ChargeUsageBased) GetSubscriptionItemID() *string {
+	return e.SubscriptionItemID
+}
+
+func (e *ChargeUsageBased) GetAdvanceAfter() *time.Time {
+	return e.AdvanceAfter
+}
+
+func (e *ChargeUsageBased) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
 func (e *ChargeUsageBased) GetNamespace() string {
 	return e.Namespace
+}
+
+func (e *ChargeUsageBased) GetMetadata() map[string]string {
+	return e.Metadata
+}
+
+func (e *ChargeUsageBased) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeUsageBased) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeUsageBased) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *ChargeUsageBased) GetName() string {
+	return e.Name
+}
+
+func (e *ChargeUsageBased) GetDescription() *string {
+	return e.Description
 }
 
 func (e *ChargeUsageBasedRunCreditAllocations) GetID() string {

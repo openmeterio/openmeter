@@ -51,7 +51,17 @@ Where `<migration-name>` is a short descriptive snake_case name for the change (
 
 This creates timestamped `.up.sql` and `.down.sql` files in `tools/migrate/migrations/` and updates `atlas.sum`.
 
-### Step 4: Review the generated migration
+### Step 4: Copy view definitions into the migration (if views exist)
+
+If the schema includes ent views (schemas with `ent.View`), the generated view SQL must be manually copied into the `.up.sql` migration file. Atlas does not auto-generate view DDL.
+
+1. Run `make generate` to regenerate `tools/migrate/views.sql` from ent view schemas
+2. Copy the relevant `CREATE VIEW` statements from `tools/migrate/views.sql` into the end of the generated `.up.sql` migration file
+3. If the migration replaces a previous view definition, add a `DROP VIEW IF EXISTS "<view_name>"` statement before the `CREATE VIEW`
+
+The view parity test (`TestViewDefinitionsMatchGeneratedSchemaSQL` in `tools/migrate/view_parity_test.go`) validates that view definitions in migrations match the generated view SQL. It strips individual VIEW statements from migration files while preserving all other DDL statements in the same file, so mixing VIEW and non-VIEW statements in a single migration is safe.
+
+### Step 5: Review the generated migration
 
 Read the generated `.up.sql` file and verify:
 

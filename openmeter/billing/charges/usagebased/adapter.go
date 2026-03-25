@@ -19,7 +19,7 @@ type Adapter interface {
 type ChargeAdapter interface {
 	CreateCharges(ctx context.Context, charges CreateInput) ([]Charge, error)
 	UpdateCharge(ctx context.Context, charge ChargeBase) (ChargeBase, error)
-	GetByMetas(ctx context.Context, input GetByMetasInput) ([]Charge, error)
+	GetByIDs(ctx context.Context, input GetByIDsInput) ([]Charge, error)
 	GetByID(ctx context.Context, input GetByIDInput) (Charge, error)
 	UpdateStatus(ctx context.Context, input UpdateStatusInput) (ChargeBase, error)
 }
