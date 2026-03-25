@@ -44,9 +44,17 @@ func InIDOrder[T InIDOrderAccessor](targetOrderIDs []models.NamespacedID, result
 		}
 	})
 
+	// Check for duplicate results
+	for id, entities := range entitiesByID {
+		if len(entities) > 1 {
+			return nil, fmt.Errorf("duplicate result [id=%s, count=%d]", id, len(entities))
+		}
+	}
+
 	// We allow for more entities being present in the results set, as we are not filtering for namespace for the query to allow
 	// multi-namespace listing as needed.
 	var errs []error
+	out := make([]T, 0, len(targetOrderIDs))
 	for _, id := range targetOrderIDs {
 		entities, ok := entitiesByID[id]
 		if !ok {
@@ -54,12 +62,12 @@ func InIDOrder[T InIDOrderAccessor](targetOrderIDs []models.NamespacedID, result
 			continue
 		}
 
-		results = append(results, entities...)
+		out = append(out, entities...)
 	}
 
 	if len(errs) > 0 {
 		return nil, models.NewGenericNotFoundError(errors.Join(errs...))
 	}
 
-	return results, nil
+	return out, nil
 }
