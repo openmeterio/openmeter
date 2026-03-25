@@ -320,12 +320,43 @@ func (s *CreditsTestSuite) TestFlatFeePartialCreditRealizations() {
 
 		costBasis := alpacadecimal.NewFromFloat(0.5)
 		s.Equal(payment.StatusSettled, updatedCharge.State.ExternalPaymentSettlement.Status)
-		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, &costBasis).InexactFloat64())
+		s.Equal(float64(0), s.mustCustomerReceivableBalance(cust.GetID(), USD, &costBasis).InexactFloat64())
 	})
 
 	// TOTAL credits balance: 30 + 50 = 80 USD
 
 	var flatFeeChargeID meta.ChargeID
+	promoCostBasis := alpacadecimal.Zero
+	externalCostBasis := alpacadecimal.NewFromFloat(0.5)
+	type flatFeeLedgerSnapshot struct {
+		promoFBO             alpacadecimal.Decimal
+		externalFBO          alpacadecimal.Decimal
+		promoReceivable      alpacadecimal.Decimal
+		externalReceivable   alpacadecimal.Decimal
+		totalOpenReceivable  alpacadecimal.Decimal
+		accrued              alpacadecimal.Decimal
+		authorizedReceivable alpacadecimal.Decimal
+		totalWash            alpacadecimal.Decimal
+		externalWash         alpacadecimal.Decimal
+		earnings             alpacadecimal.Decimal
+	}
+	flatFeeStart := flatFeeLedgerSnapshot{
+		promoFBO:             s.mustCustomerFBOBalance(cust.GetID(), USD, &promoCostBasis),
+		externalFBO:          s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis),
+		promoReceivable:      s.mustCustomerReceivableBalance(cust.GetID(), USD, &promoCostBasis),
+		externalReceivable:   s.mustCustomerReceivableBalance(cust.GetID(), USD, &externalCostBasis),
+		totalOpenReceivable:  s.mustCustomerReceivableBalance(cust.GetID(), USD, nil),
+		accrued:              s.mustCustomerAccruedBalance(cust.GetID(), USD),
+		authorizedReceivable: s.mustCustomerAuthorizedReceivableBalance(cust.GetID(), USD, nil),
+		totalWash:            s.mustWashBalance(ns, USD, nil),
+		externalWash:         s.mustWashBalance(ns, USD, &externalCostBasis),
+		earnings:             s.mustEarningsBalance(ns, USD),
+	}
+	assertDelta := func(label string, start, delta, actual alpacadecimal.Decimal) {
+		s.T().Helper()
+		expected := start.Add(delta)
+		s.True(actual.Equal(expected), "%s: expected start %s + delta %s = %s, got %s", label, start.String(), delta.String(), expected.String(), actual.String())
+	}
 
 	s.Run("create new upcoming charge for flat fee", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
@@ -397,6 +428,17 @@ func (s *CreditsTestSuite) TestFlatFeePartialCreditRealizations() {
 		customerCreditRealization := updatedFlatFeeCharge.State.CreditRealizations[1]
 		s.Equal(float64(50), customerCreditRealization.Amount.InexactFloat64())
 
+		assertDelta("promo FBO after invoice assignment", flatFeeStart.promoFBO, alpacadecimal.NewFromInt(-30), s.mustCustomerFBOBalance(cust.GetID(), USD, &promoCostBasis))
+		assertDelta("external FBO after invoice assignment", flatFeeStart.externalFBO, alpacadecimal.NewFromInt(-50), s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis))
+		assertDelta("promo receivable after invoice assignment", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, &promoCostBasis))
+		assertDelta("external receivable after invoice assignment", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, &externalCostBasis))
+		assertDelta("total open receivable after invoice assignment", flatFeeStart.totalOpenReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, nil))
+		assertDelta("accrued after invoice assignment", flatFeeStart.accrued, alpacadecimal.NewFromInt(80), s.mustCustomerAccruedBalance(cust.GetID(), USD))
+		assertDelta("authorized receivable after invoice assignment", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.mustCustomerAuthorizedReceivableBalance(cust.GetID(), USD, nil))
+		assertDelta("total wash after invoice assignment", flatFeeStart.totalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, nil))
+		assertDelta("external wash after invoice assignment", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, &externalCostBasis))
+		assertDelta("earnings after invoice assignment", flatFeeStart.earnings, alpacadecimal.Zero, s.mustEarningsBalance(ns, USD))
+
 		stdInvoiceID = invoice.GetInvoiceID()
 		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
 	})
@@ -424,6 +466,17 @@ func (s *CreditsTestSuite) TestFlatFeePartialCreditRealizations() {
 		s.Equal(stdLineID.ID, *accruedUsage.LineID, "line ID should be the same as the standard line")
 		s.Equal(float64(20), accruedUsage.Totals.Total.InexactFloat64(), "totals should be the same as the input")
 		s.Equal(float64(80), accruedUsage.Totals.CreditsTotal.InexactFloat64(), "totals should be the same as the input")
+
+		assertDelta("promo FBO after payment authorization", flatFeeStart.promoFBO, alpacadecimal.NewFromInt(-30), s.mustCustomerFBOBalance(cust.GetID(), USD, &promoCostBasis))
+		assertDelta("external FBO after payment authorization", flatFeeStart.externalFBO, alpacadecimal.NewFromInt(-50), s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis))
+		assertDelta("promo receivable after payment authorization", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, &promoCostBasis))
+		assertDelta("external receivable after payment authorization", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, &externalCostBasis))
+		assertDelta("total open receivable after payment authorization", flatFeeStart.totalOpenReceivable, alpacadecimal.NewFromInt(-20), s.mustCustomerReceivableBalance(cust.GetID(), USD, nil))
+		assertDelta("authorized receivable after payment authorization", flatFeeStart.authorizedReceivable, alpacadecimal.NewFromInt(20), s.mustCustomerAuthorizedReceivableBalance(cust.GetID(), USD, nil))
+		assertDelta("accrued after payment authorization", flatFeeStart.accrued, alpacadecimal.Zero, s.mustCustomerAccruedBalance(cust.GetID(), USD))
+		assertDelta("total wash after payment authorization", flatFeeStart.totalWash, alpacadecimal.NewFromInt(-20), s.mustWashBalance(ns, USD, nil))
+		assertDelta("external wash after payment authorization", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, &externalCostBasis))
+		assertDelta("earnings after payment authorization", flatFeeStart.earnings, alpacadecimal.NewFromInt(100), s.mustEarningsBalance(ns, USD))
 	})
 
 	s.Run("payment is settled", func() {
@@ -441,6 +494,15 @@ func (s *CreditsTestSuite) TestFlatFeePartialCreditRealizations() {
 		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
 		s.Equal(meta.ChargeStatusFinal, updatedFlatFeeCharge.Status)
+
+		assertDelta("promo receivable after payment settlement", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, &promoCostBasis))
+		assertDelta("external receivable after payment settlement", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, &externalCostBasis))
+		assertDelta("total open receivable after payment settlement", flatFeeStart.totalOpenReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, nil))
+		assertDelta("authorized receivable after payment settlement", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.mustCustomerAuthorizedReceivableBalance(cust.GetID(), USD, nil))
+		assertDelta("accrued after payment settlement", flatFeeStart.accrued, alpacadecimal.Zero, s.mustCustomerAccruedBalance(cust.GetID(), USD))
+		assertDelta("total wash after payment settlement", flatFeeStart.totalWash, alpacadecimal.NewFromInt(-20), s.mustWashBalance(ns, USD, nil))
+		assertDelta("external wash after payment settlement", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, &externalCostBasis))
+		assertDelta("earnings after payment settlement", flatFeeStart.earnings, alpacadecimal.NewFromInt(100), s.mustEarningsBalance(ns, USD))
 	})
 }
 
@@ -575,6 +637,77 @@ func (s *CreditsTestSuite) mustCustomerReceivableBalance(customerID customer.Cus
 		Currency:                       code,
 		CostBasis:                      costBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
+	})
+	s.NoError(err)
+
+	balance, err := subAccount.GetBalance(s.T().Context())
+	s.NoError(err)
+
+	return balance.Settled()
+}
+
+func (s *CreditsTestSuite) mustCustomerAuthorizedReceivableBalance(customerID customer.CustomerID, code currencyx.Code, costBasis *alpacadecimal.Decimal) alpacadecimal.Decimal {
+	s.T().Helper()
+
+	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
+	s.NoError(err)
+
+	subAccount, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(s.T().Context(), ledger.CustomerReceivableRouteParams{
+		Currency:                       code,
+		CostBasis:                      costBasis,
+		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
+	})
+	s.NoError(err)
+
+	balance, err := subAccount.GetBalance(s.T().Context())
+	s.NoError(err)
+
+	return balance.Settled()
+}
+
+func (s *CreditsTestSuite) mustCustomerAccruedBalance(customerID customer.CustomerID, code currencyx.Code) alpacadecimal.Decimal {
+	s.T().Helper()
+
+	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
+	s.NoError(err)
+
+	subAccount, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(s.T().Context(), ledger.CustomerAccruedRouteParams{
+		Currency: code,
+	})
+	s.NoError(err)
+
+	balance, err := subAccount.GetBalance(s.T().Context())
+	s.NoError(err)
+
+	return balance.Settled()
+}
+
+func (s *CreditsTestSuite) mustWashBalance(namespace string, code currencyx.Code, costBasis *alpacadecimal.Decimal) alpacadecimal.Decimal {
+	s.T().Helper()
+
+	businessAccounts, err := s.LedgerResolver.GetBusinessAccounts(s.T().Context(), namespace)
+	s.NoError(err)
+
+	subAccount, err := businessAccounts.WashAccount.GetSubAccountForRoute(s.T().Context(), ledger.BusinessRouteParams{
+		Currency:  code,
+		CostBasis: costBasis,
+	})
+	s.NoError(err)
+
+	balance, err := subAccount.GetBalance(s.T().Context())
+	s.NoError(err)
+
+	return balance.Settled()
+}
+
+func (s *CreditsTestSuite) mustEarningsBalance(namespace string, code currencyx.Code) alpacadecimal.Decimal {
+	s.T().Helper()
+
+	businessAccounts, err := s.LedgerResolver.GetBusinessAccounts(s.T().Context(), namespace)
+	s.NoError(err)
+
+	subAccount, err := businessAccounts.EarningsAccount.GetSubAccountForRoute(s.T().Context(), ledger.BusinessRouteParams{
+		Currency: code,
 	})
 	s.NoError(err)
 

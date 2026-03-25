@@ -223,11 +223,6 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee
 			Amount:   receivableReplenishment,
 			Currency: charge.Intent.Currency,
 		})
-		templates = append(templates, transactions.SettleCustomerReceivablePaymentTemplate{
-			At:       charge.Intent.InvoiceAt,
-			Amount:   receivableReplenishment,
-			Currency: charge.Intent.Currency,
-		})
 	}
 	if recognitionAmount.IsPositive() {
 		templates = append(templates, transactions.RecognizeEarningsFromAccruedTemplate{
@@ -268,10 +263,53 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee
 	}, nil
 }
 
-// OnFlatFeePaymentSettled is intentionally unimplemented for now.
-// Later this may be the point where revenue recognition happens instead of authorization.
-func (h *flatFeeHandler) OnPaymentSettled(_ context.Context, _ flatfee.Charge) (ledgertransaction.GroupReference, error) {
-	return ledgertransaction.GroupReference{}, fmt.Errorf("flat fee payment settlement is not yet implemented")
+func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error) {
+	if err := charge.Validate(); err != nil {
+		return ledgertransaction.GroupReference{}, err
+	}
+
+	if charge.State.AccruedUsage == nil || !charge.State.AccruedUsage.Totals.Total.IsPositive() {
+		return ledgertransaction.GroupReference{}, nil
+	}
+
+	customerID := customer.CustomerID{
+		Namespace: charge.Namespace,
+		ID:        charge.Intent.CustomerID,
+	}
+	annotations := ledger.ChargeAnnotations(models.NamespacedID{
+		Namespace: charge.Namespace,
+		ID:        charge.ID,
+	})
+
+	inputs, err := transactions.ResolveTransactions(
+		ctx,
+		h.resolverDependencies(),
+		transactions.ResolutionScope{
+			CustomerID: customerID,
+			Namespace:  charge.Namespace,
+		},
+		transactions.SettleCustomerReceivablePaymentTemplate{
+			At:       charge.Intent.InvoiceAt,
+			Amount:   charge.State.AccruedUsage.Totals.Total,
+			Currency: charge.Intent.Currency,
+		},
+	)
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
+	}
+
+	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
+		charge.Namespace,
+		annotations,
+		inputs...,
+	))
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("commit ledger transaction group: %w", err)
+	}
+
+	return ledgertransaction.GroupReference{
+		TransactionGroupID: transactionGroup.ID().ID,
+	}, nil
 }
 
 // OnFlatFeePaymentUncollectible is not yet implemented.
