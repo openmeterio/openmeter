@@ -1,31 +1,23 @@
 package llmcost
 
 import (
-	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-const ErrCodePriceNotFound models.ErrorCode = "llm_cost_price_not_found"
-
-var ErrPriceNotFound = models.NewValidationIssue(
-	ErrCodePriceNotFound,
-	"llm cost price not found",
-	models.WithFieldString("id"),
-	models.WithCriticalSeverity(),
-	commonhttp.WithHTTPStatusCodeAttribute(http.StatusNotFound),
-)
-
-func NewPriceNotFoundError(id string) error {
-	return ErrPriceNotFound.WithAttr("id", id)
+func NewPriceNotFoundError(provider, modelID string) error {
+	return models.NewGenericNotFoundError(
+		fmt.Errorf("llm cost price not found for provider: %s, model_id: %s", provider, modelID),
+	)
 }
 
-// IsPriceNotFoundError returns true if the error is a ValidationIssue with ErrCodePriceNotFound.
-func IsPriceNotFoundError(err error) bool {
-	var vi models.ValidationIssue
-	return errors.As(err, &vi) && vi.Code() == ErrCodePriceNotFound
+func NewPriceOverrideNotFoundError(id string) error {
+	return models.NewGenericNotFoundError(
+		fmt.Errorf("llm cost price override not found by id: %s", id),
+	)
 }
 
 const ErrCodeProviderEmpty models.ErrorCode = "llm_cost_provider_empty"

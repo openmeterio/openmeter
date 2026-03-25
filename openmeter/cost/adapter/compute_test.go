@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func strPtr(s string) *string { return &s }
@@ -689,6 +691,112 @@ func TestBuildCacheKey(t *testing.T) {
 		assert.Contains(t, key, "provider")
 		assert.Contains(t, key, "openai")
 	})
+}
+
+func TestGetLLMPricesEmptyProvider(t *testing.T) {
+	feat := &feature.Feature{
+		Key:       "test-feature",
+		Namespace: "test-ns",
+		UnitCost: &feature.UnitCost{
+			Type: feature.UnitCostTypeLLM,
+			LLM: &feature.LLMUnitCost{
+				ProviderProperty:  "provider",
+				ModelProperty:     "model",
+				TokenTypeProperty: "type",
+			},
+		},
+	}
+
+	t.Run("empty provider caches not-found error", func(t *testing.T) {
+		rows := []meter.MeterQueryRow{
+			{
+				Value: 1000,
+				GroupBy: map[string]*string{
+					"provider": strPtr(""),
+					"model":    strPtr("gpt-5"),
+					"type":     strPtr("input"),
+				},
+			},
+		}
+
+		a := &adapter{}
+		cache := a.getLLMPrices(context.Background(), feat, rows)
+
+		// Cache should contain an entry for the empty-provider key.
+		key := llmPriceKey{provider: "", modelID: "gpt-5"}
+		result, ok := cache[key]
+		require.True(t, ok, "expected cache entry for empty provider")
+		require.Error(t, result.err)
+		assert.True(t, models.IsGenericNotFoundError(result.err))
+		assert.Contains(t, result.err.Error(), "gpt-5")
+	})
+
+	t.Run("nil provider caches not-found error", func(t *testing.T) {
+		rows := []meter.MeterQueryRow{
+			{
+				Value: 1000,
+				GroupBy: map[string]*string{
+					"provider": nil,
+					"model":    strPtr("gpt-5"),
+					"type":     strPtr("input"),
+				},
+			},
+		}
+
+		a := &adapter{}
+		cache := a.getLLMPrices(context.Background(), feat, rows)
+
+		key := llmPriceKey{provider: "", modelID: "gpt-5"}
+		result, ok := cache[key]
+		require.True(t, ok, "expected cache entry for nil provider")
+		require.Error(t, result.err)
+		assert.True(t, models.IsGenericNotFoundError(result.err))
+	})
+
+	t.Run("price lookup failure surfaces as detail not fatal error", func(t *testing.T) {
+		now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+		windowEnd := now.Add(time.Hour)
+
+		rows := []meter.MeterQueryRow{
+			{
+				Value:       1000,
+				WindowStart: now,
+				WindowEnd:   windowEnd,
+				GroupBy: map[string]*string{
+					"provider": strPtr("abcd"),
+					"model":    strPtr("gpt-5"),
+					"type":     strPtr("input"),
+				},
+			},
+		}
+
+		a := &adapter{llmcostService: &mockLLMCostService{}}
+		ctx := context.Background()
+		priceCache := a.getLLMPrices(ctx, feat, rows)
+
+		internalKeys := []string{"provider", "model", "type"}
+		costRows, _, err := computeCostRows(rows, internalKeys, a.makeCostResolver(ctx, feat, priceCache))
+
+		// Should not return a fatal error.
+		require.NoError(t, err)
+		require.Len(t, costRows, 1)
+
+		// Cost should be nil (unresolved).
+		assert.Nil(t, costRows[0].Cost)
+
+		// Detail should contain the not-found message without duplication.
+		assert.Equal(t, "not found error: llm cost price not found for provider: abcd, model_id: gpt-5", costRows[0].Detail)
+	})
+}
+
+// mockLLMCostService is a minimal mock for llmcost.Service used in tests
+// that exercise the adapter's error handling paths.
+type mockLLMCostService struct {
+	llmcost.Service
+}
+
+func (m *mockLLMCostService) ResolvePrice(_ context.Context, input llmcost.ResolvePriceInput) (llmcost.Price, error) {
+	return llmcost.Price{}, llmcost.NewPriceNotFoundError(string(input.Provider), input.ModelID)
 }
 
 func TestResolveDimension(t *testing.T) {
