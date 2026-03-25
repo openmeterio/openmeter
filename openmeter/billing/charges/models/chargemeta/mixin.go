@@ -190,7 +190,7 @@ func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
 		SetCurrency(in.Intent.Currency).
 		SetManagedBy(in.Intent.ManagedBy).
 		SetNillableUniqueReferenceID(in.Intent.UniqueReferenceID).
-		SetNillableAdvanceAfter(in.AdvanceAfter).
+		SetNillableAdvanceAfter(convert.SafeToUTC(in.AdvanceAfter)).
 		SetNillableSubscriptionID(subscriptionID).
 		SetNillableSubscriptionPhaseID(subscriptionPhaseID).
 		SetNillableSubscriptionItemID(subscriptionItemID), nil

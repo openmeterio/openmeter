@@ -72,7 +72,7 @@ func (a *adapter) CreateCharges(ctx context.Context, in flatfee.CreateChargesInp
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]flatfee.Charge, error) {
 		creates, err := slicesx.MapWithErr(in.Intents, func(intent flatfee.IntentWithInitialStatus) (*db.ChargeFlatFeeCreate, error) {
-			return tx.buildCreateFlatFeeCharge(ctx, in.Namespace, intent)
+			return tx.buildCreateFlatFeeCharge(in.Namespace, intent)
 		})
 		if err != nil {
 			return nil, err
@@ -145,7 +145,7 @@ func (a *adapter) GetByIDs(ctx context.Context, input flatfee.GetByIDsInput) ([]
 	})
 }
 
-func (a *adapter) buildCreateFlatFeeCharge(ctx context.Context, ns string, intent flatfee.IntentWithInitialStatus) (*db.ChargeFlatFeeCreate, error) {
+func (a *adapter) buildCreateFlatFeeCharge(ns string, intent flatfee.IntentWithInitialStatus) (*db.ChargeFlatFeeCreate, error) {
 	var discounts *productcatalog.Discounts
 	if intent.PercentageDiscounts != nil {
 		discounts = &productcatalog.Discounts{Percentage: intent.PercentageDiscounts}

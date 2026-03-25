@@ -148,5 +148,9 @@ func (i ListChargesInput) Validate() error {
 		}
 	}
 
+	if err := i.Expands.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("expands: %w", err))
+	}
+
 	return errors.Join(errs...)
 }
