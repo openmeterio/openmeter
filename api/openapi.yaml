@@ -5820,7 +5820,7 @@ paths:
       parameters:
         - name: accept
           in: header
-          required: true
+          required: false
           schema:
             type: string
             enum:
@@ -5911,7 +5911,7 @@ paths:
       parameters:
         - name: accept
           in: header
-          required: true
+          required: false
           schema:
             type: string
             enum:

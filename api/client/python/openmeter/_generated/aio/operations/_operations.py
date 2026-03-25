@@ -11587,6 +11587,7 @@ class MetersOperations:
         self,
         meter_id_or_slug: str,
         *,
+        accept: Literal["application/json"] = "application/json",
         client_id: Optional[str] = None,
         from_parameter: Optional[datetime.datetime] = None,
         to: Optional[datetime.datetime] = None,
@@ -11605,6 +11606,9 @@ class MetersOperations:
 
         :param meter_id_or_slug: Required.
         :type meter_id_or_slug: str
+        :keyword accept: Known values are "application/json" and None. Default value is
+         "application/json".
+        :paramtype accept: str
         :keyword client_id: Client ID
          Useful to track progress of a query. Default value is None.
         :paramtype client_id: str
@@ -11666,14 +11670,14 @@ class MetersOperations:
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
 
-        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        accept: Literal["application/json"] = kwargs.pop("accept", _headers.pop("accept", "application/json"))
         cls: ClsType[_models.MeterQueryResult] = kwargs.pop("cls", None)
 
         _request = build_meters_query_json_request(
             meter_id_or_slug=meter_id_or_slug,
+            accept=accept,
             client_id=client_id,
             from_parameter=from_parameter,
             to=to,
@@ -11684,7 +11688,6 @@ class MetersOperations:
             filter_group_by=filter_group_by,
             advanced_meter_group_by_filters=advanced_meter_group_by_filters,
             group_by=group_by,
-            accept=accept,
             headers=_headers,
             params=_params,
         )
@@ -11747,6 +11750,7 @@ class MetersOperations:
         self,
         meter_id_or_slug: str,
         *,
+        accept: Literal["text/csv"] = "text/csv",
         client_id: Optional[str] = None,
         from_parameter: Optional[datetime.datetime] = None,
         to: Optional[datetime.datetime] = None,
@@ -11763,6 +11767,8 @@ class MetersOperations:
 
         :param meter_id_or_slug: Required.
         :type meter_id_or_slug: str
+        :keyword accept: Known values are "text/csv" and None. Default value is "text/csv".
+        :paramtype accept: str
         :keyword client_id: Client ID
          Useful to track progress of a query. Default value is None.
         :paramtype client_id: str
@@ -11824,14 +11830,14 @@ class MetersOperations:
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
 
-        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        accept: Literal["text/csv"] = kwargs.pop("accept", _headers.pop("accept", "text/csv"))
         cls: ClsType[str] = kwargs.pop("cls", None)
 
         _request = build_meters_query_csv_request(
             meter_id_or_slug=meter_id_or_slug,
+            accept=accept,
             client_id=client_id,
             from_parameter=from_parameter,
             to=to,
@@ -11842,7 +11848,6 @@ class MetersOperations:
             filter_group_by=filter_group_by,
             advanced_meter_group_by_filters=advanced_meter_group_by_filters,
             group_by=group_by,
-            accept=accept,
             headers=_headers,
             params=_params,
         )
@@ -11907,6 +11912,7 @@ class MetersOperations:
         meter_id_or_slug: str,
         request: _models.MeterQueryRequest,
         *,
+        accept: Literal["application/json"] = "application/json",
         content_type: str = "application/json",
         **kwargs: Any
     ) -> _models.MeterQueryResult:
@@ -11918,6 +11924,9 @@ class MetersOperations:
         :type meter_id_or_slug: str
         :param request: Required.
         :type request: ~openmeter._generated.models.MeterQueryRequest
+        :keyword accept: Known values are "application/json" and None. Default value is
+         "application/json".
+        :paramtype accept: str
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -11928,7 +11937,13 @@ class MetersOperations:
 
     @overload
     async def query(
-        self, meter_id_or_slug: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
+        self,
+        meter_id_or_slug: str,
+        request: JSON,
+        *,
+        accept: Literal["application/json"] = "application/json",
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> _models.MeterQueryResult:
         """Query meter.
 
@@ -11938,6 +11953,9 @@ class MetersOperations:
         :type meter_id_or_slug: str
         :param request: Required.
         :type request: JSON
+        :keyword accept: Known values are "application/json" and None. Default value is
+         "application/json".
+        :paramtype accept: str
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -11948,7 +11966,13 @@ class MetersOperations:
 
     @overload
     async def query(
-        self, meter_id_or_slug: str, request: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
+        self,
+        meter_id_or_slug: str,
+        request: IO[bytes],
+        *,
+        accept: Literal["application/json"] = "application/json",
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> _models.MeterQueryResult:
         """Query meter.
 
@@ -11958,6 +11982,9 @@ class MetersOperations:
         :type meter_id_or_slug: str
         :param request: Required.
         :type request: IO[bytes]
+        :keyword accept: Known values are "application/json" and None. Default value is
+         "application/json".
+        :paramtype accept: str
         :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -11967,7 +11994,12 @@ class MetersOperations:
         """
 
     async def query(
-        self, meter_id_or_slug: str, request: Union[_models.MeterQueryRequest, JSON, IO[bytes]], **kwargs: Any
+        self,
+        meter_id_or_slug: str,
+        request: Union[_models.MeterQueryRequest, JSON, IO[bytes]],
+        *,
+        accept: Literal["application/json"] = "application/json",
+        **kwargs: Any
     ) -> _models.MeterQueryResult:
         """Query meter.
 
@@ -11977,6 +12009,9 @@ class MetersOperations:
         :type meter_id_or_slug: str
         :param request: Is one of the following types: MeterQueryRequest, JSON, IO[bytes] Required.
         :type request: ~openmeter._generated.models.MeterQueryRequest or JSON or IO[bytes]
+        :keyword accept: Known values are "application/json" and None. Default value is
+         "application/json".
+        :paramtype accept: str
         :return: MeterQueryResult. The MeterQueryResult is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.MeterQueryResult
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -11990,7 +12025,6 @@ class MetersOperations:
         _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
-        accept: Literal["application/json"] = kwargs.pop("accept", _headers.pop("accept", "application/json"))
         content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
         cls: ClsType[_models.MeterQueryResult] = kwargs.pop("cls", None)
 
@@ -12064,11 +12098,15 @@ class MetersOperations:
 
         return deserialized  # type: ignore
 
-    async def query_csv_post(self, meter_id_or_slug: str, **kwargs: Any) -> str:
+    async def query_csv_post(
+        self, meter_id_or_slug: str, *, accept: Literal["text/csv"] = "text/csv", **kwargs: Any
+    ) -> str:
         """query_csv_post.
 
         :param meter_id_or_slug: Required.
         :type meter_id_or_slug: str
+        :keyword accept: Known values are "text/csv" and None. Default value is "text/csv".
+        :paramtype accept: str
         :return: str
         :rtype: str
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -12079,10 +12117,9 @@ class MetersOperations:
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
 
-        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        accept: Literal["text/csv"] = kwargs.pop("accept", _headers.pop("accept", "text/csv"))
         cls: ClsType[str] = kwargs.pop("cls", None)
 
         _request = build_meters_query_csv_post_request(

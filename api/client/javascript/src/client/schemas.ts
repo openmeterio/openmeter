@@ -20671,8 +20671,8 @@ export interface operations {
          */
         groupBy?: components['parameters']['MeterQuery.groupBy']
       }
-      header: {
-        accept: 'application/json' | 'text/csv'
+      header?: {
+        accept?: 'application/json' | 'text/csv'
       }
       path: {
         meterIdOrSlug: string
@@ -20768,8 +20768,8 @@ export interface operations {
   queryMeterPost: {
     parameters: {
       query?: never
-      header: {
-        accept: 'application/json' | 'text/csv'
+      header?: {
+        accept?: 'application/json' | 'text/csv'
       }
       path: {
         meterIdOrSlug: string

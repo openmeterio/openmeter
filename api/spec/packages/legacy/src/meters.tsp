@@ -114,7 +114,7 @@ interface MetersEndpoints {
   @summary("Query meter")
   @sharedRoute
   queryJson(
-    @header accept: "application/json",
+    @header accept?: "application/json",
     @path meterIdOrSlug: MeterIdentifier,
     ...MeterQuery,
   ): {
@@ -128,7 +128,7 @@ interface MetersEndpoints {
   @operationId("queryMeter")
   @sharedRoute
   queryCsv(
-    @header accept: "text/csv",
+    @header accept?: "text/csv",
     @path meterIdOrSlug: MeterIdentifier,
     ...MeterQuery,
   ): {
@@ -150,7 +150,7 @@ interface MetersEndpoints {
   @summary("Query meter")
   @sharedRoute
   query(
-    @header accept: "application/json",
+    @header accept?: "application/json",
     @path meterIdOrSlug: MeterIdentifier,
     @body request: MeterQueryRequest,
   ): {
@@ -164,7 +164,7 @@ interface MetersEndpoints {
   @operationId("queryMeterPost")
   @sharedRoute
   queryCsvPost(
-    @header accept: "text/csv",
+    @header accept?: "text/csv",
     @path meterIdOrSlug: MeterIdentifier,
     // @body request: MeterQueryRequest,
   ): {
