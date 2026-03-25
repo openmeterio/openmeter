@@ -5818,6 +5818,14 @@ paths:
     get:
       operationId: queryMeter
       parameters:
+        - name: accept
+          in: header
+          required: false
+          schema:
+            type: string
+            enum:
+              - application/json
+              - text/csv
         - name: meterIdOrSlug
           in: path
           required: true
@@ -5900,8 +5908,15 @@ paths:
         - Meters
     post:
       operationId: queryMeterPost
-      summary: Query meter
       parameters:
+        - name: accept
+          in: header
+          required: false
+          schema:
+            type: string
+            enum:
+              - application/json
+              - text/csv
         - name: meterIdOrSlug
           in: path
           required: true
@@ -5910,6 +5925,7 @@ paths:
             minLength: 1
             maxLength: 64
             pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$|^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+      summary: Query meter
       responses:
         '200':
           description: The request has succeeded.
@@ -5917,6 +5933,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MeterQueryResult'
+            text/csv:
+              schema:
+                type: string
         '400':
           description: The server cannot or will not process the request due to something that is perceived to be a client error (e.g., malformed request syntax, invalid request message framing, or deceptive request routing).
           content:

@@ -58,7 +58,14 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 }
 
 // POST /api/v1/meters/{meterIdOrSlug}/query
-func (a *Router) QueryMeterPost(w http.ResponseWriter, r *http.Request, meterIDOrSlug string) {
+func (a *Router) QueryMeterPost(w http.ResponseWriter, r *http.Request, meterIDOrSlug string, params api.QueryMeterPostParams) {
+	// CSV
+	if params.Accept != nil && *params.Accept == api.QueryMeterPostParamsAcceptTextcsv {
+		a.meterHandler.QueryMeterPostCSV().With(meterIDOrSlug).ServeHTTP(w, r)
+		return
+	}
+
+	// JSON is the default
 	a.meterHandler.QueryMeterPost().With(meterIDOrSlug).ServeHTTP(w, r)
 }
 

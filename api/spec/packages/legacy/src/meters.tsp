@@ -113,7 +113,11 @@ interface MetersEndpoints {
   @operationId("queryMeter")
   @summary("Query meter")
   @sharedRoute
-  queryJson(@path meterIdOrSlug: MeterIdentifier, ...MeterQuery): {
+  queryJson(
+    @header accept?: "application/json",
+    @path meterIdOrSlug: MeterIdentifier,
+    ...MeterQuery,
+  ): {
     @header contentType: "application/json";
     @body _: MeterQueryResult;
   } | NotFoundError | CommonErrors;
@@ -123,7 +127,11 @@ interface MetersEndpoints {
   @route("/{meterIdOrSlug}/query")
   @operationId("queryMeter")
   @sharedRoute
-  queryCsv(@path meterIdOrSlug: MeterIdentifier, ...MeterQuery): {
+  queryCsv(
+    @header accept?: "text/csv",
+    @path meterIdOrSlug: MeterIdentifier,
+    ...MeterQuery,
+  ): {
     @header contentType: "text/csv";
 
     @body
@@ -142,11 +150,34 @@ interface MetersEndpoints {
   @summary("Query meter")
   @sharedRoute
   query(
+    @header accept?: "application/json",
     @path meterIdOrSlug: MeterIdentifier,
     @body request: MeterQueryRequest,
   ): {
     @header contentType: "application/json";
     @body _: MeterQueryResult;
+  } | NotFoundError | CommonErrors;
+
+  #suppress "@openmeter/api-spec-legacy/operation-summary" "Avoid duplicating the summary in OpenAPI yaml"
+  @post
+  @route("/{meterIdOrSlug}/query")
+  @operationId("queryMeterPost")
+  @sharedRoute
+  queryCsvPost(
+    @header accept?: "text/csv",
+    @path meterIdOrSlug: MeterIdentifier,
+    // @body request: MeterQueryRequest,
+  ): {
+    @header contentType: "text/csv";
+
+    @body
+    @example("""
+      window_start,window_end,subject,model,type,value
+      2023-01-01T00:00:00Z,2023-01-01T00:01:00Z,customer_1,gpt-4-turbo,input,12
+      2023-01-01T00:01:00Z,2023-01-02T00:02:00Z,customer_1,gpt-4-turbo,input,20
+      2023-01-01T00:02:00Z,2023-01-02T00:03:00Z,customer_2,gpt-4-turbo,output,4
+      """)
+    _: string;
   } | NotFoundError | CommonErrors;
 
   /**

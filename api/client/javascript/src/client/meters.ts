@@ -77,6 +77,9 @@ export class Meters {
         Accept: 'application/json',
       },
       params: {
+        header: {
+          accept: 'application/json',
+        },
         path: {
           meterIdOrSlug: idOrSlug,
         },
@@ -190,6 +193,9 @@ export class Meters {
           Accept: 'application/json',
         },
         params: {
+          header: {
+            accept: 'application/json',
+          },
           path: {
             meterIdOrSlug: idOrSlug,
           },
