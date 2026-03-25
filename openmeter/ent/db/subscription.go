@@ -57,6 +57,8 @@ type Subscription struct {
 	BillingCadence datetime.ISODurationString `json:"billing_cadence,omitempty"`
 	// Default pro-rating configuration for subscriptions.
 	ProRatingConfig productcatalog.ProRatingConfig `json:"pro_rating_config,omitempty"`
+	// SettlementMode holds the value of the "settlement_mode" field.
+	SettlementMode productcatalog.SettlementMode `json:"settlement_mode,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SubscriptionQuery when eager-loading is set.
 	Edges        SubscriptionEdges `json:"edges"`
@@ -193,7 +195,7 @@ func (*Subscription) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case subscription.FieldAnnotations, subscription.FieldMetadata:
 			values[i] = new([]byte)
-		case subscription.FieldID, subscription.FieldNamespace, subscription.FieldName, subscription.FieldDescription, subscription.FieldPlanID, subscription.FieldCustomerID, subscription.FieldCurrency, subscription.FieldBillingCadence:
+		case subscription.FieldID, subscription.FieldNamespace, subscription.FieldName, subscription.FieldDescription, subscription.FieldPlanID, subscription.FieldCustomerID, subscription.FieldCurrency, subscription.FieldBillingCadence, subscription.FieldSettlementMode:
 			values[i] = new(sql.NullString)
 		case subscription.FieldCreatedAt, subscription.FieldUpdatedAt, subscription.FieldDeletedAt, subscription.FieldActiveFrom, subscription.FieldActiveTo, subscription.FieldBillingAnchor:
 			values[i] = new(sql.NullTime)
@@ -323,6 +325,12 @@ func (_m *Subscription) assignValues(columns []string, values []any) error {
 				return err
 			} else {
 				_m.ProRatingConfig = value
+			}
+		case subscription.FieldSettlementMode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field settlement_mode", values[i])
+			} else if value.Valid {
+				_m.SettlementMode = productcatalog.SettlementMode(value.String)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -465,6 +473,9 @@ func (_m *Subscription) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("pro_rating_config=")
 	builder.WriteString(fmt.Sprintf("%v", _m.ProRatingConfig))
+	builder.WriteString(", ")
+	builder.WriteString("settlement_mode=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SettlementMode))
 	builder.WriteByte(')')
 	return builder.String()
 }

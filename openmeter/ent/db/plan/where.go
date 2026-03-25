@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
@@ -824,6 +825,36 @@ func EffectiveToIsNil() predicate.Plan {
 // EffectiveToNotNil applies the NotNil predicate on the "effective_to" field.
 func EffectiveToNotNil() predicate.Plan {
 	return predicate.Plan(sql.FieldNotNull(FieldEffectiveTo))
+}
+
+// SettlementModeEQ applies the EQ predicate on the "settlement_mode" field.
+func SettlementModeEQ(v productcatalog.SettlementMode) predicate.Plan {
+	vc := v
+	return predicate.Plan(sql.FieldEQ(FieldSettlementMode, vc))
+}
+
+// SettlementModeNEQ applies the NEQ predicate on the "settlement_mode" field.
+func SettlementModeNEQ(v productcatalog.SettlementMode) predicate.Plan {
+	vc := v
+	return predicate.Plan(sql.FieldNEQ(FieldSettlementMode, vc))
+}
+
+// SettlementModeIn applies the In predicate on the "settlement_mode" field.
+func SettlementModeIn(vs ...productcatalog.SettlementMode) predicate.Plan {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Plan(sql.FieldIn(FieldSettlementMode, v...))
+}
+
+// SettlementModeNotIn applies the NotIn predicate on the "settlement_mode" field.
+func SettlementModeNotIn(vs ...productcatalog.SettlementMode) predicate.Plan {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Plan(sql.FieldNotIn(FieldSettlementMode, v...))
 }
 
 // HasPhases applies the HasEdge predicate on the "phases" edge.

@@ -53,6 +53,9 @@ func (Plan) Fields() []ent.Field {
 		field.Time("effective_to").
 			Optional().
 			Nillable(),
+		field.Enum("settlement_mode").
+			GoType(productcatalog.SettlementMode("")).
+			Default(string(productcatalog.CreditThenInvoiceSettlementMode)),
 	}
 }
 

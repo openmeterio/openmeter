@@ -194,6 +194,20 @@ func (_u *PlanUpdate) ClearEffectiveTo() *PlanUpdate {
 	return _u
 }
 
+// SetSettlementMode sets the "settlement_mode" field.
+func (_u *PlanUpdate) SetSettlementMode(v productcatalog.SettlementMode) *PlanUpdate {
+	_u.mutation.SetSettlementMode(v)
+	return _u
+}
+
+// SetNillableSettlementMode sets the "settlement_mode" field if the given value is not nil.
+func (_u *PlanUpdate) SetNillableSettlementMode(v *productcatalog.SettlementMode) *PlanUpdate {
+	if v != nil {
+		_u.SetSettlementMode(*v)
+	}
+	return _u
+}
+
 // AddPhaseIDs adds the "phases" edge to the PlanPhase entity by IDs.
 func (_u *PlanUpdate) AddPhaseIDs(ids ...string) *PlanUpdate {
 	_u.mutation.AddPhaseIDs(ids...)
@@ -355,6 +369,11 @@ func (_u *PlanUpdate) check() error {
 			return &ValidationError{Name: "pro_rating_config", err: fmt.Errorf(`db: validator failed for field "Plan.pro_rating_config": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.SettlementMode(); ok {
+		if err := plan.SettlementModeValidator(v); err != nil {
+			return &ValidationError{Name: "settlement_mode", err: fmt.Errorf(`db: validator failed for field "Plan.settlement_mode": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -421,6 +440,9 @@ func (_u *PlanUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.EffectiveToCleared() {
 		_spec.ClearField(plan.FieldEffectiveTo, field.TypeTime)
+	}
+	if value, ok := _u.mutation.SettlementMode(); ok {
+		_spec.SetField(plan.FieldSettlementMode, field.TypeEnum, value)
 	}
 	if _u.mutation.PhasesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -738,6 +760,20 @@ func (_u *PlanUpdateOne) ClearEffectiveTo() *PlanUpdateOne {
 	return _u
 }
 
+// SetSettlementMode sets the "settlement_mode" field.
+func (_u *PlanUpdateOne) SetSettlementMode(v productcatalog.SettlementMode) *PlanUpdateOne {
+	_u.mutation.SetSettlementMode(v)
+	return _u
+}
+
+// SetNillableSettlementMode sets the "settlement_mode" field if the given value is not nil.
+func (_u *PlanUpdateOne) SetNillableSettlementMode(v *productcatalog.SettlementMode) *PlanUpdateOne {
+	if v != nil {
+		_u.SetSettlementMode(*v)
+	}
+	return _u
+}
+
 // AddPhaseIDs adds the "phases" edge to the PlanPhase entity by IDs.
 func (_u *PlanUpdateOne) AddPhaseIDs(ids ...string) *PlanUpdateOne {
 	_u.mutation.AddPhaseIDs(ids...)
@@ -912,6 +948,11 @@ func (_u *PlanUpdateOne) check() error {
 			return &ValidationError{Name: "pro_rating_config", err: fmt.Errorf(`db: validator failed for field "Plan.pro_rating_config": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.SettlementMode(); ok {
+		if err := plan.SettlementModeValidator(v); err != nil {
+			return &ValidationError{Name: "settlement_mode", err: fmt.Errorf(`db: validator failed for field "Plan.settlement_mode": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -995,6 +1036,9 @@ func (_u *PlanUpdateOne) sqlSave(ctx context.Context) (_node *Plan, err error) {
 	}
 	if _u.mutation.EffectiveToCleared() {
 		_spec.ClearField(plan.FieldEffectiveTo, field.TypeTime)
+	}
+	if value, ok := _u.mutation.SettlementMode(); ok {
+		_spec.SetField(plan.FieldSettlementMode, field.TypeEnum, value)
 	}
 	if _u.mutation.PhasesCleared() {
 		edge := &sqlgraph.EdgeSpec{
