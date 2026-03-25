@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -111,11 +109,8 @@ func (a *adapter) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]usagebased.Charge, error) {
 		query := tx.db.ChargeUsageBased.Query().
 			// Note: we are skipping the namespace filter here to allow multi-namespace expansions as needed, but InIDOrder filters for namespaces.
-			Where(dbchargeusagebased.IDIn(
-				lo.Map(input.IDs, func(id meta.ChargeID, idx int) string {
-					return id.ID
-				})...,
-			))
+			Where(dbchargeusagebased.Namespace(input.Namespace)).
+			Where(dbchargeusagebased.IDIn(input.IDs...))
 
 		if input.Expands.Has(meta.ExpandRealizations) {
 			query = expandRealizations(query)
@@ -126,7 +121,7 @@ func (a *adapter) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) 
 			return nil, err
 		}
 
-		entitiesInOrder, err := entutils.InIDOrder(input.IDs.ToNamespacedIDs(), entities)
+		entitiesInOrder, err := entutils.InIDOrder(input.Namespace, input.IDs, entities)
 		if err != nil {
 			return nil, err
 		}

@@ -14,11 +14,22 @@ type InIDOrderAccessor interface {
 	NamespaceMixinGetter
 }
 
-func InIDOrder[T InIDOrderAccessor](targetOrderIDs []models.NamespacedID, results []T) ([]T, error) {
+var (
+	ErrNamespaceRequired = errors.New("namespace is required")
+	ErrIDRequired        = errors.New("id is required")
+	ErrDuplicateID       = errors.New("duplicate id")
+	ErrNotFound          = errors.New("not found")
+)
+
+func InIDOrder[T InIDOrderAccessor](namespace string, targetOrderIDs []string, results []T) ([]T, error) {
 	// Input validation (let's make sure that namespace/id is set for all entities)
+	if namespace == "" {
+		return nil, ErrNamespaceRequired
+	}
+
 	for _, id := range targetOrderIDs {
-		if err := id.Validate(); err != nil {
-			return nil, err
+		if id == "" {
+			return nil, ErrIDRequired
 		}
 	}
 
@@ -47,7 +58,7 @@ func InIDOrder[T InIDOrderAccessor](targetOrderIDs []models.NamespacedID, result
 	// Check for duplicate results
 	for id, entities := range entitiesByID {
 		if len(entities) > 1 {
-			return nil, fmt.Errorf("duplicate result [id=%s, count=%d]", id, len(entities))
+			return nil, fmt.Errorf("%w [id=%s, count=%d]", ErrDuplicateID, id, len(entities))
 		}
 	}
 
@@ -56,9 +67,9 @@ func InIDOrder[T InIDOrderAccessor](targetOrderIDs []models.NamespacedID, result
 	var errs []error
 	out := make([]T, 0, len(targetOrderIDs))
 	for _, id := range targetOrderIDs {
-		entities, ok := entitiesByID[id]
+		entities, ok := entitiesByID[models.NamespacedID{Namespace: namespace, ID: id}]
 		if !ok {
-			errs = append(errs, fmt.Errorf("not found [id=%s]", id))
+			errs = append(errs, fmt.Errorf("%w [id=%s]", ErrNotFound, id))
 			continue
 		}
 

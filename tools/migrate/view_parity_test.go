@@ -77,39 +77,35 @@ func normalizeViewSQL(s string) string {
 	return strings.TrimSpace(s)
 }
 
-func migrationVersionFromName(name string) string {
-	version, _, _ := strings.Cut(name, "_")
-	return version
+// stripViewStatements removes CREATE/DROP VIEW statements from a SQL migration
+// while keeping all other statements intact. It splits the SQL by semicolons and
+// filters out any statement that contains a VIEW keyword.
+func stripViewStatements(sqlText string) string {
+	parts := strings.Split(sqlText, ";")
+
+	var kept []string
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed == "" {
+			continue
+		}
+		if viewMigrationStmtRE.MatchString(trimmed) {
+			continue
+		}
+		kept = append(kept, part)
+	}
+
+	if len(kept) == 0 {
+		return ""
+	}
+
+	return strings.Join(kept, ";") + ";\n"
 }
 
 func buildMigrationsWithoutViews(cfg migrate.MigrationsConfig) (migrate.MigrationsConfig, error) {
-	excludedVersions := map[string]struct{}{}
+	filtered := fstest.MapFS{}
 
 	err := fs.WalkDir(cfg.FS, cfg.FSPath, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() || !strings.HasSuffix(path, ".sql") {
-			return nil
-		}
-
-		b, err := fs.ReadFile(cfg.FS, path)
-		if err != nil {
-			return err
-		}
-
-		if viewMigrationStmtRE.MatchString(string(b)) {
-			excludedVersions[migrationVersionFromName(d.Name())] = struct{}{}
-		}
-
-		return nil
-	})
-	if err != nil {
-		return migrate.MigrationsConfig{}, err
-	}
-
-	filtered := fstest.MapFS{}
-	err = fs.WalkDir(cfg.FS, cfg.FSPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -117,17 +113,23 @@ func buildMigrationsWithoutViews(cfg migrate.MigrationsConfig) (migrate.Migratio
 			return nil
 		}
 
-		if _, excluded := excludedVersions[migrationVersionFromName(d.Name())]; excluded {
-			return nil
-		}
-
 		b, err := fs.ReadFile(cfg.FS, path)
 		if err != nil {
 			return err
 		}
 
+		data := b
+		if strings.HasSuffix(path, ".sql") && viewMigrationStmtRE.Match(b) {
+			stripped := stripViewStatements(string(b))
+			if strings.TrimSpace(stripped) == "" {
+				// Migration has only VIEW statements, exclude it entirely
+				return nil
+			}
+			data = []byte(stripped)
+		}
+
 		filtered[path] = &fstest.MapFile{
-			Data: append([]byte(nil), b...),
+			Data: append([]byte(nil), data...),
 			Mode: 0o644,
 		}
 

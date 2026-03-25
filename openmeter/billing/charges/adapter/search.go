@@ -15,23 +15,22 @@ import (
 
 var _ charges.ChargesSearchAdapter = (*adapter)(nil)
 
-func (a *adapter) GetTypesByIDs(ctx context.Context, ids meta.ChargeIDs) (charges.GetTypesByIDsResult, error) {
-	if err := ids.Validate(); err != nil {
+func (a *adapter) GetTypesByIDs(ctx context.Context, input charges.GetTypesByIDsInput) (charges.GetTypesByIDsResult, error) {
+	if err := input.Validate(); err != nil {
 		return nil, err
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (charges.GetTypesByIDsResult, error) {
 		dbCharges, err := tx.db.ChargesSearchV1.Query().
-			Where(dbchargessearchv1.IDIn(lo.Map(ids, func(id meta.ChargeID, _ int) string {
-				return id.ID
-			})...)).
+			Where(dbchargessearchv1.Namespace(input.Namespace)).
+			Where(dbchargessearchv1.IDIn(input.IDs...)).
 			All(ctx)
 		if err != nil {
 			return nil, err
 		}
 
 		// Apply namespace filtering/ID checks
-		resultsInOrder, err := entutils.InIDOrder(ids.ToNamespacedIDs(), withIDAccessor(dbCharges))
+		resultsInOrder, err := entutils.InIDOrder(input.Namespace, input.IDs, withIDAccessor(dbCharges))
 		if err != nil {
 			return nil, err
 		}
@@ -48,11 +47,8 @@ func (a *adapter) ListCharges(ctx context.Context, input charges.ListChargesInpu
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (pagination.Result[charges.ChargeWithType], error) {
-		query := tx.db.ChargesSearchV1.Query()
-
-		if len(input.Namespaces) > 0 {
-			query = query.Where(dbchargessearchv1.NamespaceIn(input.Namespaces...))
-		}
+		query := tx.db.ChargesSearchV1.Query().
+			Where(dbchargessearchv1.Namespace(input.Namespace))
 
 		if len(input.CustomerIDs) > 0 {
 			query = query.Where(dbchargessearchv1.CustomerIDIn(input.CustomerIDs...))
@@ -79,10 +75,7 @@ func (a *adapter) ListCharges(ctx context.Context, input charges.ListChargesInpu
 
 func mapChargeSearchToChargeWithType(item *db.ChargesSearchV1) charges.ChargeWithType {
 	return charges.ChargeWithType{
-		ChargeID: meta.ChargeID{
-			Namespace: item.Namespace,
-			ID:        item.ID,
-		},
+		ID:   item.ID,
 		Type: item.Type,
 	}
 }

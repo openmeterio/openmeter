@@ -117,11 +117,8 @@ func (a *adapter) GetByIDs(ctx context.Context, input flatfee.GetByIDsInput) ([]
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]flatfee.Charge, error) {
 		query := tx.db.ChargeFlatFee.Query().
-			Where(dbchargeflatfee.IDIn(
-				lo.Map(input.IDs, func(id meta.ChargeID, idx int) string {
-					return id.ID
-				})...,
-			))
+			Where(dbchargeflatfee.Namespace(input.Namespace)).
+			Where(dbchargeflatfee.IDIn(input.IDs...))
 
 		if input.Expands.Has(meta.ExpandRealizations) {
 			query = query.WithCreditAllocations().
@@ -134,7 +131,7 @@ func (a *adapter) GetByIDs(ctx context.Context, input flatfee.GetByIDsInput) ([]
 			return nil, err
 		}
 
-		entitiesInOrder, err := entutils.InIDOrder(input.IDs.ToNamespacedIDs(), entities)
+		entitiesInOrder, err := entutils.InIDOrder(input.Namespace, input.IDs, entities)
 		if err != nil {
 			return nil, err
 		}

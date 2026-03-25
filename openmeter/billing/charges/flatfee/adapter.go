@@ -48,7 +48,8 @@ func (i IntentWithInitialStatus) Validate() error {
 }
 
 type GetByIDsInput struct {
-	IDs meta.ChargeIDs
+	Namespace string
+	IDs       []string
 
 	Expands meta.Expands
 }
@@ -56,8 +57,14 @@ type GetByIDsInput struct {
 func (i GetByIDsInput) Validate() error {
 	var errs []error
 
-	if err := i.IDs.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("IDs: %w", err))
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	for _, id := range i.IDs {
+		if id == "" {
+			errs = append(errs, errors.New("id is required"))
+		}
 	}
 
 	if err := i.Expands.Validate(); err != nil {

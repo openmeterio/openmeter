@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func (s *service) GetByID(ctx context.Context, input charges.GetByIDInput) (charges.Charge, error) {
@@ -22,7 +21,8 @@ func (s *service) GetByID(ctx context.Context, input charges.GetByIDInput) (char
 	}
 
 	res, err := s.GetByIDs(ctx, charges.GetByIDsInput{
-		ChargeIDs: meta.ChargeIDs{input.ChargeID},
+		Namespace: input.ChargeID.Namespace,
+		IDs:       []string{input.ChargeID.ID},
 		Expands:   input.Expands,
 	})
 	if err != nil {
@@ -42,19 +42,22 @@ func (s *service) GetByIDs(ctx context.Context, input charges.GetByIDsInput) (ch
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (charges.Charges, error) {
-		chargesWithTypes, err := s.adapter.GetTypesByIDs(ctx, input.ChargeIDs)
+		chargesWithTypes, err := s.adapter.GetTypesByIDs(ctx, charges.GetTypesByIDsInput{
+			Namespace: input.Namespace,
+			IDs:       input.IDs,
+		})
 		if err != nil {
 			return nil, err
 		}
 
-		return s.expandChargesWithTypes(ctx, chargesWithTypes, input.Expands)
+		return s.expandChargesWithTypes(ctx, input.Namespace, chargesWithTypes, input.Expands)
 	})
 }
 
 // expandChargesWithTypes fetches the charges by type and expands them with the given expands.
-func (s *service) expandChargesWithTypes(ctx context.Context, chargesWithTypes []charges.ChargeWithType, expands meta.Expands) (charges.Charges, error) {
-	chargesByType := lo.GroupByMap(chargesWithTypes, func(chargeMeta charges.ChargeWithType) (meta.ChargeType, meta.ChargeID) {
-		return chargeMeta.Type, chargeMeta.ChargeID
+func (s *service) expandChargesWithTypes(ctx context.Context, namespace string, chargesWithTypes []charges.ChargeWithType, expands meta.Expands) (charges.Charges, error) {
+	chargesByType := lo.GroupByMap(chargesWithTypes, func(chargeMeta charges.ChargeWithType) (meta.ChargeType, string) {
+		return chargeMeta.Type, chargeMeta.ID
 	})
 
 	// Let's validate the type support
@@ -66,24 +69,27 @@ func (s *service) expandChargesWithTypes(ctx context.Context, chargesWithTypes [
 	}
 
 	usageBased, err := s.usageBasedService.GetByIDs(ctx, usagebased.GetByIDsInput{
-		IDs:     chargesByType[meta.ChargeTypeUsageBased],
-		Expands: expands,
+		Namespace: namespace,
+		IDs:       chargesByType[meta.ChargeTypeUsageBased],
+		Expands:   expands,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	flatFees, err := s.flatFeeService.GetByIDs(ctx, flatfee.GetByIDsInput{
-		IDs:     chargesByType[meta.ChargeTypeFlatFee],
-		Expands: expands,
+		Namespace: namespace,
+		IDs:       chargesByType[meta.ChargeTypeFlatFee],
+		Expands:   expands,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	creditPurchases, err := s.creditPurchaseService.GetByIDs(ctx, creditpurchase.GetByIDsInput{
-		IDs:     chargesByType[meta.ChargeTypeCreditPurchase],
-		Expands: expands,
+		Namespace: namespace,
+		IDs:       chargesByType[meta.ChargeTypeCreditPurchase],
+		Expands:   expands,
 	})
 	if err != nil {
 		return nil, err
@@ -102,13 +108,11 @@ func (s *service) expandChargesWithTypes(ctx context.Context, chargesWithTypes [
 	)
 
 	return entutils.InIDOrder(
+		namespace,
 		lo.Map(
 			chargesWithTypes,
-			func(charge charges.ChargeWithType, _ int) models.NamespacedID {
-				return models.NamespacedID{
-					Namespace: charge.ChargeID.Namespace,
-					ID:        charge.ChargeID.ID,
-				}
+			func(charge charges.ChargeWithType, _ int) string {
+				return charge.ID
 			},
 		), out)
 }

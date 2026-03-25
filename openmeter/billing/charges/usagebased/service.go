@@ -55,15 +55,16 @@ type ChargeWithGatheringLine struct {
 }
 
 type GetByIDsInput struct {
-	IDs     meta.ChargeIDs
-	Expands meta.Expands
+	Namespace string
+	IDs       []string
+	Expands   meta.Expands
 }
 
 func (i GetByIDsInput) Validate() error {
 	var errs []error
 
-	if err := i.IDs.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("IDs: %w", err))
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
 	}
 
 	if err := i.Expands.Validate(); err != nil {

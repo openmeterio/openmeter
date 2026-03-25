@@ -78,15 +78,22 @@ func (i GetByIDInput) Validate() error {
 }
 
 type GetByIDsInput struct {
-	ChargeIDs meta.ChargeIDs
+	Namespace string
+	IDs       []string
 	Expands   meta.Expands
 }
 
 func (i GetByIDsInput) Validate() error {
 	var errs []error
 
-	if err := i.ChargeIDs.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("charge IDs: %w", err))
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	for _, id := range i.IDs {
+		if id == "" {
+			errs = append(errs, errors.New("id is required"))
+		}
 	}
 
 	if err := i.Expands.Validate(); err != nil {
@@ -132,7 +139,7 @@ func (i AdvanceChargesInput) Validate() error {
 type ListChargesInput struct {
 	pagination.Page
 
-	Namespaces  []string
+	Namespace   string
 	CustomerIDs []string
 	StatusNotIn []meta.ChargeStatus
 
@@ -141,6 +148,10 @@ type ListChargesInput struct {
 
 func (i ListChargesInput) Validate() error {
 	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
 
 	for _, status := range i.StatusNotIn {
 		if err := status.Validate(); err != nil {

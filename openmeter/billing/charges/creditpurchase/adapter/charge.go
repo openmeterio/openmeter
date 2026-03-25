@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
@@ -110,9 +108,8 @@ func (a *adapter) GetByIDs(ctx context.Context, input creditpurchase.GetByIDsInp
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]creditpurchase.Charge, error) {
 		query := tx.db.ChargeCreditPurchase.Query().
-			Where(dbchargecreditpurchase.IDIn(lo.Map(input.IDs, func(id meta.ChargeID, idx int) string {
-				return id.ID
-			})...))
+			Where(dbchargecreditpurchase.Namespace(input.Namespace)).
+			Where(dbchargecreditpurchase.IDIn(input.IDs...))
 
 		if input.Expands.Has(meta.ExpandRealizations) {
 			query = query.WithExternalPayment().WithInvoicedPayment()
@@ -123,7 +120,7 @@ func (a *adapter) GetByIDs(ctx context.Context, input creditpurchase.GetByIDsInp
 			return nil, err
 		}
 
-		entitiesInOrder, err := entutils.InIDOrder(input.IDs.ToNamespacedIDs(), entities)
+		entitiesInOrder, err := entutils.InIDOrder(input.Namespace, input.IDs, entities)
 		if err != nil {
 			return nil, err
 		}

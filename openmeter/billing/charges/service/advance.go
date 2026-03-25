@@ -21,7 +21,7 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (charges.Charges, error) {
 		inScopeCharges, err := s.ListCharges(ctx, charges.ListChargesInput{
-			Namespaces:  []string{input.Customer.Namespace},
+			Namespace:   input.Customer.Namespace,
 			StatusNotIn: []meta.ChargeStatus{meta.ChargeStatusFinal},
 			CustomerIDs: []string{input.Customer.ID},
 			Expands:     meta.Expands{meta.ExpandRealizations},
