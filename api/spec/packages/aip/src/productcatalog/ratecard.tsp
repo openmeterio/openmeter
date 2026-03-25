@@ -77,7 +77,7 @@ model RateCardTaxConfig {
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   behavior?: Billing.TaxBehavior;
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
-  code: Shared.ResourceWithKeyReference<Tax.TaxCode>;
+  code: Shared.ResourceReference<Tax.TaxCode>;
 }
 
 /**
