@@ -223,6 +223,11 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee
 			Amount:   receivableReplenishment,
 			Currency: charge.Intent.Currency,
 		})
+		templates = append(templates, transactions.SettleCustomerReceivablePaymentTemplate{
+			At:       charge.Intent.InvoiceAt,
+			Amount:   receivableReplenishment,
+			Currency: charge.Intent.Currency,
+		})
 	}
 	if recognitionAmount.IsPositive() {
 		templates = append(templates, transactions.RecognizeEarningsFromAccruedTemplate{

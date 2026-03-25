@@ -78,8 +78,9 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 	}
 
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
-		Currency:  t.Currency,
-		CostBasis: t.CostBasis,
+		Currency:                       t.Currency,
+		CostBasis:                      t.CostBasis,
+		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get receivable sub-account: %w", err)
@@ -100,7 +101,7 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 	}, nil
 }
 
-// FundCustomerReceivableTemplate funds a customer receivable account from wash account
+// FundCustomerReceivableTemplate funds the authorized receivable sub-account from wash.
 type FundCustomerReceivableTemplate struct {
 	At        time.Time
 	Amount    alpacadecimal.Decimal
@@ -143,8 +144,9 @@ func (t FundCustomerReceivableTemplate) resolve(ctx context.Context, customerID 
 	}
 
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
-		Currency:  t.Currency,
-		CostBasis: t.CostBasis,
+		Currency:                       t.Currency,
+		CostBasis:                      t.CostBasis,
+		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get receivable sub-account: %w", err)
@@ -172,6 +174,81 @@ func (t FundCustomerReceivableTemplate) resolve(ctx context.Context, customerID 
 			},
 			{
 				address: rec.Address(),
+				amount:  t.Amount,
+			},
+		},
+	}, nil
+}
+
+// SettleCustomerReceivablePaymentTemplate moves authorized receivable staging into the open receivable route.
+type SettleCustomerReceivablePaymentTemplate struct {
+	At        time.Time
+	Amount    alpacadecimal.Decimal
+	Currency  currencyx.Code
+	CostBasis *alpacadecimal.Decimal
+}
+
+func (t SettleCustomerReceivablePaymentTemplate) Validate() error {
+	if t.At.IsZero() {
+		return fmt.Errorf("at is required")
+	}
+
+	if err := ledger.ValidateTransactionAmount(t.Amount); err != nil {
+		return fmt.Errorf("amount: %w", err)
+	}
+
+	if err := ledger.ValidateCurrency(t.Currency); err != nil {
+		return fmt.Errorf("currency: %w", err)
+	}
+
+	if t.CostBasis != nil {
+		if err := ledger.ValidateCostBasis(*t.CostBasis); err != nil {
+			return fmt.Errorf("cost basis: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (t SettleCustomerReceivablePaymentTemplate) typeGuard() guard {
+	return true
+}
+
+var _ CustomerTransactionTemplate = (SettleCustomerReceivablePaymentTemplate{})
+
+func (t SettleCustomerReceivablePaymentTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
+	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get customer accounts: %w", err)
+	}
+
+	authorizedReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
+		Currency:                       t.Currency,
+		CostBasis:                      t.CostBasis,
+		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get authorized receivable sub-account: %w", err)
+	}
+
+	openReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
+		Currency:                       t.Currency,
+		CostBasis:                      t.CostBasis,
+		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get receivable sub-account: %w", err)
+	}
+
+	return &TransactionInput{
+		bookedAt: t.At,
+		entryInputs: []*EntryInput{
+			{
+				address: authorizedReceivable.Address(),
+				amount:  t.Amount.Neg(),
+			},
+			{
+				address: openReceivable.Address(),
 				amount:  t.Amount,
 			},
 		},
@@ -240,8 +317,9 @@ func (t CoverCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 	}
 
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
-		Currency:  t.Currency,
-		CostBasis: t.CostBasis,
+		Currency:                       t.Currency,
+		CostBasis:                      t.CostBasis,
+		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get receivable sub-account: %w", err)

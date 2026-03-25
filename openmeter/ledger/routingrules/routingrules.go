@@ -98,11 +98,12 @@ func (r RequireFlowDirectionRule) Validate(tx TxView) error {
 type RouteField string
 
 const (
-	RouteFieldCurrency       RouteField = "currency"
-	RouteFieldTaxCode        RouteField = "tax_code"
-	RouteFieldFeatures       RouteField = "features"
-	RouteFieldCostBasis      RouteField = "cost_basis"
-	RouteFieldCreditPriority RouteField = "credit_priority"
+	RouteFieldCurrency                       RouteField = "currency"
+	RouteFieldTaxCode                        RouteField = "tax_code"
+	RouteFieldFeatures                       RouteField = "features"
+	RouteFieldCostBasis                      RouteField = "cost_basis"
+	RouteFieldCreditPriority                 RouteField = "credit_priority"
+	RouteFieldTransactionAuthorizationStatus RouteField = "transaction_authorization_status"
 )
 
 type RequireSameRouteRule struct {
@@ -142,6 +143,20 @@ func (r RequireSameRouteRule) Validate(tx TxView) error {
 	return nil
 }
 
+type RequireAccountAuthorizationStatusRule struct {
+	WhenHasAccountTypes []ledger.AccountType
+	AccountType         ledger.AccountType
+	Expected            ledger.TransactionAuthorizationStatus
+}
+
+func (r RequireAccountAuthorizationStatusRule) Validate(tx TxView) error {
+	if !tx.HasAccountTypes(r.WhenHasAccountTypes...) {
+		return nil
+	}
+
+	return requireAuthorizationStatus(tx.EntriesOf(r.AccountType), r.AccountType, r.Expected)
+}
+
 func sameRouteField(left ledger.Route, right ledger.Route, field RouteField) (bool, error) {
 	switch field {
 	case RouteFieldCurrency:
@@ -154,9 +169,103 @@ func sameRouteField(left ledger.Route, right ledger.Route, field RouteField) (bo
 		return optionalDecimalEqual(left.CostBasis, right.CostBasis), nil
 	case RouteFieldCreditPriority:
 		return optionalIntEqual(left.CreditPriority, right.CreditPriority), nil
+	case RouteFieldTransactionAuthorizationStatus:
+		return optionalTransactionAuthorizationStatusEqual(left.TransactionAuthorizationStatus, right.TransactionAuthorizationStatus), nil
 	default:
 		return false, fmt.Errorf("unknown route field: %s", field)
 	}
+}
+
+type RequireReceivableAuthorizationStageRule struct{}
+
+func (r RequireReceivableAuthorizationStageRule) Validate(tx TxView) error {
+	accountTypes := tx.AccountTypes()
+	if len(accountTypes) != 1 || accountTypes[0] != ledger.AccountTypeCustomerReceivable {
+		return nil
+	}
+
+	negativeEntries, positiveEntries := entriesBySign(tx.EntriesOf(ledger.AccountTypeCustomerReceivable))
+
+	if len(negativeEntries) == 0 || len(positiveEntries) == 0 {
+		return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
+			"reason":       "receivable_authorization_transition_requires_both_sides",
+			"account_type": ledger.AccountTypeCustomerReceivable,
+		})
+	}
+
+	if err := requireAuthorizationStatus(negativeEntries, ledger.AccountTypeCustomerReceivable, ledger.TransactionAuthorizationStatusAuthorized); err != nil {
+		return err
+	}
+	if err := requireAuthorizationStatus(positiveEntries, ledger.AccountTypeCustomerReceivable, ledger.TransactionAuthorizationStatusOpen); err != nil {
+		return err
+	}
+
+	return requireMatchingRouteFields(
+		negativeEntries,
+		positiveEntries,
+		ledger.AccountTypeCustomerReceivable,
+		ledger.AccountTypeCustomerReceivable,
+		[]RouteField{
+			RouteFieldCurrency,
+			RouteFieldTaxCode,
+			RouteFieldFeatures,
+			RouteFieldCostBasis,
+			RouteFieldCreditPriority,
+		},
+	)
+}
+
+func entriesBySign(entries []EntryView) ([]EntryView, []EntryView) {
+	negativeEntries := make([]EntryView, 0, len(entries))
+	positiveEntries := make([]EntryView, 0, len(entries))
+
+	for _, entry := range entries {
+		switch {
+		case entry.Amount().IsNegative():
+			negativeEntries = append(negativeEntries, entry)
+		case entry.Amount().IsPositive():
+			positiveEntries = append(positiveEntries, entry)
+		}
+	}
+
+	return negativeEntries, positiveEntries
+}
+
+func requireAuthorizationStatus(entries []EntryView, accountType ledger.AccountType, expected ledger.TransactionAuthorizationStatus) error {
+	for _, entry := range entries {
+		if entry.Route().TransactionAuthorizationStatus == nil || *entry.Route().TransactionAuthorizationStatus != expected {
+			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
+				"reason":                           "transaction_authorization_status_mismatch",
+				"account_type":                     accountType,
+				"expected_transaction_auth_status": expected,
+			})
+		}
+	}
+
+	return nil
+}
+
+func requireMatchingRouteFields(leftEntries, rightEntries []EntryView, leftType, rightType ledger.AccountType, fields []RouteField) error {
+	for _, left := range leftEntries {
+		for _, right := range rightEntries {
+			for _, field := range fields {
+				same, err := sameRouteField(left.Route(), right.Route(), field)
+				if err != nil {
+					return err
+				}
+				if !same {
+					return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
+						"reason":     "route_field_mismatch",
+						"left_type":  leftType,
+						"right_type": rightType,
+						"field":      field,
+					})
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 func sameAccountTypeSet(left []ledger.AccountType, right []ledger.AccountType) bool {

@@ -70,19 +70,26 @@ type CustomerReceivableAccount interface {
 }
 
 // CustomerReceivableRouteParams are routing parameters specific to customer receivable sub-accounts.
+// TransactionAuthorizationStatus is required; callers must explicitly select the open or authorized route.
 type CustomerReceivableRouteParams struct {
-	Currency  currencyx.Code
-	CostBasis *alpacadecimal.Decimal
+	Currency                       currencyx.Code
+	CostBasis                      *alpacadecimal.Decimal
+	TransactionAuthorizationStatus TransactionAuthorizationStatus
 }
 
 func (p CustomerReceivableRouteParams) Validate() error {
+	if err := p.TransactionAuthorizationStatus.Validate(); err != nil {
+		return err
+	}
+
 	return p.Route().Validate()
 }
 
 func (p CustomerReceivableRouteParams) Route() Route {
 	return Route{
-		Currency:  p.Currency,
-		CostBasis: p.CostBasis,
+		Currency:                       p.Currency,
+		CostBasis:                      p.CostBasis,
+		TransactionAuthorizationStatus: &p.TransactionAuthorizationStatus,
 	}
 }
 

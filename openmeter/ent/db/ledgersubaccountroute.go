@@ -45,6 +45,8 @@ type LedgerSubAccountRoute struct {
 	CostBasis *alpacadecimal.Decimal `json:"cost_basis,omitempty"`
 	// CreditPriority holds the value of the "credit_priority" field.
 	CreditPriority *int `json:"credit_priority,omitempty"`
+	// TransactionAuthorizationStatus holds the value of the "transaction_authorization_status" field.
+	TransactionAuthorizationStatus *ledger.TransactionAuthorizationStatus `json:"transaction_authorization_status,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the LedgerSubAccountRouteQuery when eager-loading is set.
 	Edges        LedgerSubAccountRouteEdges `json:"edges"`
@@ -93,7 +95,7 @@ func (*LedgerSubAccountRoute) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case ledgersubaccountroute.FieldCreditPriority:
 			values[i] = new(sql.NullInt64)
-		case ledgersubaccountroute.FieldID, ledgersubaccountroute.FieldNamespace, ledgersubaccountroute.FieldAccountID, ledgersubaccountroute.FieldRoutingKeyVersion, ledgersubaccountroute.FieldRoutingKey, ledgersubaccountroute.FieldCurrency, ledgersubaccountroute.FieldTaxCode:
+		case ledgersubaccountroute.FieldID, ledgersubaccountroute.FieldNamespace, ledgersubaccountroute.FieldAccountID, ledgersubaccountroute.FieldRoutingKeyVersion, ledgersubaccountroute.FieldRoutingKey, ledgersubaccountroute.FieldCurrency, ledgersubaccountroute.FieldTaxCode, ledgersubaccountroute.FieldTransactionAuthorizationStatus:
 			values[i] = new(sql.NullString)
 		case ledgersubaccountroute.FieldCreatedAt, ledgersubaccountroute.FieldUpdatedAt, ledgersubaccountroute.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -196,6 +198,13 @@ func (_m *LedgerSubAccountRoute) assignValues(columns []string, values []any) er
 				_m.CreditPriority = new(int)
 				*_m.CreditPriority = int(value.Int64)
 			}
+		case ledgersubaccountroute.FieldTransactionAuthorizationStatus:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field transaction_authorization_status", values[i])
+			} else if value.Valid {
+				_m.TransactionAuthorizationStatus = new(ledger.TransactionAuthorizationStatus)
+				*_m.TransactionAuthorizationStatus = ledger.TransactionAuthorizationStatus(value.String)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -283,6 +292,11 @@ func (_m *LedgerSubAccountRoute) String() string {
 	builder.WriteString(", ")
 	if v := _m.CreditPriority; v != nil {
 		builder.WriteString("credit_priority=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.TransactionAuthorizationStatus; v != nil {
+		builder.WriteString("transaction_authorization_status=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteByte(')')

@@ -193,8 +193,55 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 	}, nil
 }
 
-func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(_ context.Context, _ chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
-	return ledgertransaction.GroupReference{}, fmt.Errorf("credit purchase payment settlement is not yet implemented")
+func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
+	if err := charge.Validate(); err != nil {
+		return ledgertransaction.GroupReference{}, err
+	}
+
+	externalSettlement, err := charge.Intent.Settlement.AsExternalSettlement()
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("external settlement: %w", err)
+	}
+
+	customerID := customer.CustomerID{
+		Namespace: charge.Namespace,
+		ID:        charge.Intent.CustomerID,
+	}
+	annotations := ledger.ChargeAnnotations(models.NamespacedID{
+		Namespace: charge.Namespace,
+		ID:        charge.ID,
+	})
+
+	inputs, err := transactions.ResolveTransactions(
+		ctx,
+		h.resolverDependencies(),
+		transactions.ResolutionScope{
+			CustomerID: customerID,
+			Namespace:  charge.Namespace,
+		},
+		transactions.SettleCustomerReceivablePaymentTemplate{
+			At:        charge.CreatedAt,
+			Amount:    charge.Intent.CreditAmount,
+			Currency:  charge.Intent.Currency,
+			CostBasis: &externalSettlement.CostBasis,
+		},
+	)
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("resolve transactions: %w", err)
+	}
+
+	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
+		charge.Namespace,
+		annotations,
+		inputs...,
+	))
+	if err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("commit ledger transaction group: %w", err)
+	}
+
+	return ledgertransaction.GroupReference{
+		TransactionGroupID: transactionGroup.ID().ID,
+	}, nil
 }
 
 func (h *creditPurchaseHandler) resolverDependencies() transactions.ResolverDependencies {

@@ -128,6 +128,14 @@ func optionalIntEqual(left *int, right *int) bool {
 	return *left == *right
 }
 
+func optionalTransactionAuthorizationStatusEqual(left *ledger.TransactionAuthorizationStatus, right *ledger.TransactionAuthorizationStatus) bool {
+	if left == nil || right == nil {
+		return left == nil && right == nil
+	}
+
+	return *left == *right
+}
+
 func optionalDecimalEqual(left *alpacadecimal.Decimal, right *alpacadecimal.Decimal) bool {
 	if left == nil || right == nil {
 		return left == nil && right == nil

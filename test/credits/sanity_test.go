@@ -572,8 +572,9 @@ func (s *CreditsTestSuite) mustCustomerReceivableBalance(customerID customer.Cus
 	s.NoError(err)
 
 	subAccount, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(s.T().Context(), ledger.CustomerReceivableRouteParams{
-		Currency:  code,
-		CostBasis: costBasis,
+		Currency:                       code,
+		CostBasis:                      costBasis,
+		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	s.NoError(err)
 

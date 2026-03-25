@@ -299,6 +299,11 @@ func (e *flatFeeHandlerTestEnv) fundPriority(t *testing.T, priority int, amount 
 			Amount:   alpacadecimal.NewFromInt(amount),
 			Currency: e.Currency,
 		},
+		transactions.SettleCustomerReceivablePaymentTemplate{
+			At:       e.Now(),
+			Amount:   alpacadecimal.NewFromInt(amount),
+			Currency: e.Currency,
+		},
 	)
 	require.NoError(t, err)
 

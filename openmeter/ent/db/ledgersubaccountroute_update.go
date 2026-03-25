@@ -173,6 +173,9 @@ func (_u *LedgerSubAccountRouteUpdate) sqlSave(ctx context.Context) (_node int, 
 	if _u.mutation.CreditPriorityCleared() {
 		_spec.ClearField(ledgersubaccountroute.FieldCreditPriority, field.TypeInt)
 	}
+	if _u.mutation.TransactionAuthorizationStatusCleared() {
+		_spec.ClearField(ledgersubaccountroute.FieldTransactionAuthorizationStatus, field.TypeString)
+	}
 	if _u.mutation.SubAccountsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -411,6 +414,9 @@ func (_u *LedgerSubAccountRouteUpdateOne) sqlSave(ctx context.Context) (_node *L
 	}
 	if _u.mutation.CreditPriorityCleared() {
 		_spec.ClearField(ledgersubaccountroute.FieldCreditPriority, field.TypeInt)
+	}
+	if _u.mutation.TransactionAuthorizationStatusCleared() {
+		_spec.ClearField(ledgersubaccountroute.FieldTransactionAuthorizationStatus, field.TypeString)
 	}
 	if _u.mutation.SubAccountsCleared() {
 		edge := &sqlgraph.EdgeSpec{

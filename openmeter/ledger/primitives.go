@@ -54,6 +54,10 @@ type RouteFilter struct {
 
 	// CreditPriority is only meaningful for customer_fbo queries.
 	CreditPriority *int
+
+	// TransactionAuthorizationStatus is currently only meaningful for customer_receivable queries.
+	// Nil means "do not filter by authorization status", not "open".
+	TransactionAuthorizationStatus *TransactionAuthorizationStatus
 }
 
 // Account represents a ledger account tying together multiple sub-accounts.

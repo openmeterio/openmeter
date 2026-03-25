@@ -82,7 +82,8 @@ func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.Cre
 		SetNillableTaxCode(normalizedRoute.TaxCode).
 		SetFeatures(normalizedRoute.Features).
 		SetNillableCostBasis(normalizedRoute.CostBasis).
-		SetNillableCreditPriority(normalizedRoute.CreditPriority)
+		SetNillableCreditPriority(normalizedRoute.CreditPriority).
+		SetNillableTransactionAuthorizationStatus(normalizedRoute.TransactionAuthorizationStatus)
 
 	routeEntity, err := create.Save(ctx)
 	if err == nil {
@@ -141,7 +142,7 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 			return nil, fmt.Errorf("failed to normalize route filter: %w", err)
 		}
 
-		routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 5)
+		routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 6)
 		if normalizedRoute.Currency != "" {
 			routePredicates = append(routePredicates, dbledgersubaccountroute.Currency(string(normalizedRoute.Currency)))
 		}
@@ -162,6 +163,9 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 		}
 		if normalizedRoute.CostBasis != nil {
 			routePredicates = append(routePredicates, dbledgersubaccountroute.CostBasis(*normalizedRoute.CostBasis))
+		}
+		if normalizedRoute.TransactionAuthorizationStatus != nil {
+			routePredicates = append(routePredicates, dbledgersubaccountroute.TransactionAuthorizationStatus(*normalizedRoute.TransactionAuthorizationStatus))
 		}
 		if len(routePredicates) > 0 {
 			predicates = append(predicates, dbledgersubaccount.HasRouteWith(routePredicates...))
@@ -207,11 +211,12 @@ func MapSubAccountData(entity *db.LedgerSubAccount) (ledgeraccount.SubAccountDat
 		AccountID:   entity.AccountID,
 		AccountType: entity.Edges.Account.AccountType,
 		Route: ledger.Route{
-			Currency:       currencyx.Code(dbRoute.Currency),
-			TaxCode:        dbRoute.TaxCode,
-			Features:       dbRoute.Features,
-			CostBasis:      dbRoute.CostBasis,
-			CreditPriority: dbRoute.CreditPriority,
+			Currency:                       currencyx.Code(dbRoute.Currency),
+			TaxCode:                        dbRoute.TaxCode,
+			Features:                       dbRoute.Features,
+			CostBasis:                      dbRoute.CostBasis,
+			CreditPriority:                 dbRoute.CreditPriority,
+			TransactionAuthorizationStatus: dbRoute.TransactionAuthorizationStatus,
 		},
 		RouteMeta: ledgeraccount.SubAccountRouteData{
 			ID:                dbRoute.ID,
