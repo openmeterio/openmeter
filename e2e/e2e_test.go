@@ -900,6 +900,81 @@ func TestQuery(t *testing.T) {
 			assert.Equal(t, expectedV3, v3Resp)
 		}, time.Minute, time.Second)
 	})
+
+	t.Run("PostJSON", func(t *testing.T) {
+		t.Parallel()
+
+		expected := &api.MeterQueryResult{
+			Data: []api.MeterQueryRow{
+				{
+					Value:       customerCount * 4 * 100,
+					WindowStart: timestamp.Truncate(time.Minute),
+					WindowEnd:   timestamp.Add(24 * time.Hour).Truncate(time.Minute).Add(time.Minute),
+					GroupBy:     map[string]*string{},
+				},
+			},
+		}
+
+		t.Run("DefaultAccept", func(t *testing.T) {
+			t.Parallel()
+
+			// Wait for events to be processed
+			assert.EventuallyWithT(t, func(t *assert.CollectT) {
+				// nil params (no accept header) — should default to JSON
+				resp, err := client.QueryMeterPostWithResponse(context.Background(), "query", nil, api.QueryMeterPostJSONRequestBody{})
+				require.NoError(t, err)
+				require.Equal(t, http.StatusOK, resp.StatusCode())
+				require.NotNil(t, resp.JSON200)
+				assert.Equal(t, expected, resp.JSON200)
+			}, time.Minute, time.Second)
+		})
+
+		t.Run("ExplicitAccept", func(t *testing.T) {
+			t.Parallel()
+
+			// Wait for events to be processed
+			assert.EventuallyWithT(t, func(t *assert.CollectT) {
+				acceptJSON := api.QueryMeterPostParamsAcceptApplicationjson
+				resp, err := client.QueryMeterPostWithResponse(context.Background(), "query", &api.QueryMeterPostParams{
+					Accept: &acceptJSON,
+				}, api.QueryMeterPostJSONRequestBody{})
+				require.NoError(t, err)
+				require.Equal(t, http.StatusOK, resp.StatusCode())
+				require.NotNil(t, resp.JSON200)
+				assert.Equal(t, expected, resp.JSON200)
+			}, time.Minute, time.Second)
+		})
+	})
+
+	t.Run("PostCSV", func(t *testing.T) {
+		t.Parallel()
+
+		// Wait for events to be processed
+		assert.EventuallyWithT(t, func(t *assert.CollectT) {
+			acceptCSV := api.QueryMeterPostParamsAcceptTextcsv
+			resp, err := client.QueryMeterPostWithResponse(context.Background(), "query", &api.QueryMeterPostParams{
+				Accept: &acceptCSV,
+			}, api.QueryMeterPostJSONRequestBody{})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode())
+
+			// JSON200 should be nil for CSV responses
+			require.Nil(t, resp.JSON200)
+
+			// Verify Content-Type header
+			require.Equal(t, "text/csv", resp.HTTPResponse.Header.Get("Content-Type"))
+
+			// Verify exact CSV body as string
+			windowStart := timestamp.Truncate(time.Minute).Format(time.RFC3339)
+			windowEnd := timestamp.Add(24 * time.Hour).Truncate(time.Minute).Add(time.Minute).Format(time.RFC3339)
+			value := fmt.Sprintf("%f", float64(customerCount*4*100))
+
+			expectedCSV := "window_start,window_end,value\n" +
+				windowStart + "," + windowEnd + "," + value + "\n"
+
+			assert.Equal(t, expectedCSV, string(resp.Body))
+		}, time.Minute, time.Second)
+	})
 }
 
 func TestQueryDSTTransition(t *testing.T) {
