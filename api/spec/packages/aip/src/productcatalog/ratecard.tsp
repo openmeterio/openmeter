@@ -91,7 +91,7 @@ model Discounts {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @minValue(0)
   @maxValue(100)
-  percentage?: Shared.Percentage;
+  percentage?: float;
 
   /**
    * Number of usage units granted free before billing starts.

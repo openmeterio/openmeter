@@ -153,11 +153,3 @@ model RecurringPeriod {
   @example("P1M")
   interval: ISO8601Duration;
 }
-
-/**
- * Numeric representation of a percentage.
- * For example, 50% is represented as 50.
- */
-@example(50)
-@friendlyName("Percentage")
-scalar Percentage extends float;
