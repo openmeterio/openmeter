@@ -3,6 +3,7 @@
 package subscription
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -48,6 +49,8 @@ const (
 	FieldBillingCadence = "billing_cadence"
 	// FieldProRatingConfig holds the string denoting the pro_rating_config field in the database.
 	FieldProRatingConfig = "pro_rating_config"
+	// FieldSettlementMode holds the string denoting the settlement_mode field in the database.
+	FieldSettlementMode = "settlement_mode"
 	// EdgePlan holds the string denoting the plan edge name in mutations.
 	EdgePlan = "plan"
 	// EdgeCustomer holds the string denoting the customer edge name in mutations.
@@ -161,6 +164,7 @@ var Columns = []string{
 	FieldBillingAnchor,
 	FieldBillingCadence,
 	FieldProRatingConfig,
+	FieldSettlementMode,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -199,6 +203,18 @@ var (
 		ProRatingConfig field.TypeValueScanner[productcatalog.ProRatingConfig]
 	}
 )
+
+const DefaultSettlementMode productcatalog.SettlementMode = "credit_then_invoice"
+
+// SettlementModeValidator is a validator for the "settlement_mode" field enum values. It is called by the builders before save.
+func SettlementModeValidator(sm productcatalog.SettlementMode) error {
+	switch sm {
+	case "invoice_only", "credit_then_invoice", "credit_only":
+		return nil
+	default:
+		return fmt.Errorf("subscription: invalid enum value for settlement_mode field: %q", sm)
+	}
+}
 
 // OrderOption defines the ordering options for the Subscription queries.
 type OrderOption func(*sql.Selector)
@@ -276,6 +292,11 @@ func ByBillingCadence(opts ...sql.OrderTermOption) OrderOption {
 // ByProRatingConfig orders the results by the pro_rating_config field.
 func ByProRatingConfig(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldProRatingConfig, opts...).ToFunc()
+}
+
+// BySettlementMode orders the results by the settlement_mode field.
+func BySettlementMode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSettlementMode, opts...).ToFunc()
 }
 
 // ByPlanField orders the results by plan field.

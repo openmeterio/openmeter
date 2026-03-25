@@ -3,6 +3,7 @@
 package plan
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -44,6 +45,8 @@ const (
 	FieldEffectiveFrom = "effective_from"
 	// FieldEffectiveTo holds the string denoting the effective_to field in the database.
 	FieldEffectiveTo = "effective_to"
+	// FieldSettlementMode holds the string denoting the settlement_mode field in the database.
+	FieldSettlementMode = "settlement_mode"
 	// EdgePhases holds the string denoting the phases edge name in mutations.
 	EdgePhases = "phases"
 	// EdgeAddons holds the string denoting the addons edge name in mutations.
@@ -92,6 +95,7 @@ var Columns = []string{
 	FieldProRatingConfig,
 	FieldEffectiveFrom,
 	FieldEffectiveTo,
+	FieldSettlementMode,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -130,6 +134,18 @@ var (
 		ProRatingConfig field.TypeValueScanner[productcatalog.ProRatingConfig]
 	}
 )
+
+const DefaultSettlementMode productcatalog.SettlementMode = "credit_then_invoice"
+
+// SettlementModeValidator is a validator for the "settlement_mode" field enum values. It is called by the builders before save.
+func SettlementModeValidator(sm productcatalog.SettlementMode) error {
+	switch sm {
+	case "invoice_only", "credit_then_invoice", "credit_only":
+		return nil
+	default:
+		return fmt.Errorf("plan: invalid enum value for settlement_mode field: %q", sm)
+	}
+}
 
 // OrderOption defines the ordering options for the Plan queries.
 type OrderOption func(*sql.Selector)
@@ -202,6 +218,11 @@ func ByEffectiveFrom(opts ...sql.OrderTermOption) OrderOption {
 // ByEffectiveTo orders the results by the effective_to field.
 func ByEffectiveTo(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEffectiveTo, opts...).ToFunc()
+}
+
+// BySettlementMode orders the results by the settlement_mode field.
+func BySettlementMode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSettlementMode, opts...).ToFunc()
 }
 
 // ByPhasesCount orders the results by phases count.

@@ -78597,6 +78597,7 @@ type PlanMutation struct {
 	pro_rating_config    *productcatalog.ProRatingConfig
 	effective_from       *time.Time
 	effective_to         *time.Time
+	settlement_mode      *productcatalog.SettlementMode
 	clearedFields        map[string]struct{}
 	phases               map[string]struct{}
 	removedphases        map[string]struct{}
@@ -79305,6 +79306,42 @@ func (m *PlanMutation) ResetEffectiveTo() {
 	delete(m.clearedFields, plan.FieldEffectiveTo)
 }
 
+// SetSettlementMode sets the "settlement_mode" field.
+func (m *PlanMutation) SetSettlementMode(pm productcatalog.SettlementMode) {
+	m.settlement_mode = &pm
+}
+
+// SettlementMode returns the value of the "settlement_mode" field in the mutation.
+func (m *PlanMutation) SettlementMode() (r productcatalog.SettlementMode, exists bool) {
+	v := m.settlement_mode
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSettlementMode returns the old "settlement_mode" field's value of the Plan entity.
+// If the Plan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PlanMutation) OldSettlementMode(ctx context.Context) (v productcatalog.SettlementMode, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSettlementMode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSettlementMode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSettlementMode: %w", err)
+	}
+	return oldValue.SettlementMode, nil
+}
+
+// ResetSettlementMode resets all changes to the "settlement_mode" field.
+func (m *PlanMutation) ResetSettlementMode() {
+	m.settlement_mode = nil
+}
+
 // AddPhaseIDs adds the "phases" edge to the PlanPhase entity by ids.
 func (m *PlanMutation) AddPhaseIDs(ids ...string) {
 	if m.phases == nil {
@@ -79501,7 +79538,7 @@ func (m *PlanMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PlanMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 15)
 	if m.namespace != nil {
 		fields = append(fields, plan.FieldNamespace)
 	}
@@ -79544,6 +79581,9 @@ func (m *PlanMutation) Fields() []string {
 	if m.effective_to != nil {
 		fields = append(fields, plan.FieldEffectiveTo)
 	}
+	if m.settlement_mode != nil {
+		fields = append(fields, plan.FieldSettlementMode)
+	}
 	return fields
 }
 
@@ -79580,6 +79620,8 @@ func (m *PlanMutation) Field(name string) (ent.Value, bool) {
 		return m.EffectiveFrom()
 	case plan.FieldEffectiveTo:
 		return m.EffectiveTo()
+	case plan.FieldSettlementMode:
+		return m.SettlementMode()
 	}
 	return nil, false
 }
@@ -79617,6 +79659,8 @@ func (m *PlanMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldEffectiveFrom(ctx)
 	case plan.FieldEffectiveTo:
 		return m.OldEffectiveTo(ctx)
+	case plan.FieldSettlementMode:
+		return m.OldSettlementMode(ctx)
 	}
 	return nil, fmt.Errorf("unknown Plan field %s", name)
 }
@@ -79723,6 +79767,13 @@ func (m *PlanMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetEffectiveTo(v)
+		return nil
+	case plan.FieldSettlementMode:
+		v, ok := value.(productcatalog.SettlementMode)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSettlementMode(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Plan field %s", name)
@@ -79862,6 +79913,9 @@ func (m *PlanMutation) ResetField(name string) error {
 		return nil
 	case plan.FieldEffectiveTo:
 		m.ResetEffectiveTo()
+		return nil
+	case plan.FieldSettlementMode:
+		m.ResetSettlementMode()
 		return nil
 	}
 	return fmt.Errorf("unknown Plan field %s", name)
@@ -84666,6 +84720,7 @@ type SubscriptionMutation struct {
 	billing_anchor                   *time.Time
 	billing_cadence                  *datetime.ISODurationString
 	pro_rating_config                *productcatalog.ProRatingConfig
+	settlement_mode                  *productcatalog.SettlementMode
 	clearedFields                    map[string]struct{}
 	plan                             *string
 	clearedplan                      bool
@@ -85457,6 +85512,42 @@ func (m *SubscriptionMutation) ResetProRatingConfig() {
 	m.pro_rating_config = nil
 }
 
+// SetSettlementMode sets the "settlement_mode" field.
+func (m *SubscriptionMutation) SetSettlementMode(pm productcatalog.SettlementMode) {
+	m.settlement_mode = &pm
+}
+
+// SettlementMode returns the value of the "settlement_mode" field in the mutation.
+func (m *SubscriptionMutation) SettlementMode() (r productcatalog.SettlementMode, exists bool) {
+	v := m.settlement_mode
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSettlementMode returns the old "settlement_mode" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldSettlementMode(ctx context.Context) (v productcatalog.SettlementMode, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSettlementMode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSettlementMode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSettlementMode: %w", err)
+	}
+	return oldValue.SettlementMode, nil
+}
+
+// ResetSettlementMode resets all changes to the "settlement_mode" field.
+func (m *SubscriptionMutation) ResetSettlementMode() {
+	m.settlement_mode = nil
+}
+
 // ClearPlan clears the "plan" edge to the Plan entity.
 func (m *SubscriptionMutation) ClearPlan() {
 	m.clearedplan = true
@@ -85962,7 +86053,7 @@ func (m *SubscriptionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 17)
 	if m.namespace != nil {
 		fields = append(fields, subscription.FieldNamespace)
 	}
@@ -86011,6 +86102,9 @@ func (m *SubscriptionMutation) Fields() []string {
 	if m.pro_rating_config != nil {
 		fields = append(fields, subscription.FieldProRatingConfig)
 	}
+	if m.settlement_mode != nil {
+		fields = append(fields, subscription.FieldSettlementMode)
+	}
 	return fields
 }
 
@@ -86051,6 +86145,8 @@ func (m *SubscriptionMutation) Field(name string) (ent.Value, bool) {
 		return m.BillingCadence()
 	case subscription.FieldProRatingConfig:
 		return m.ProRatingConfig()
+	case subscription.FieldSettlementMode:
+		return m.SettlementMode()
 	}
 	return nil, false
 }
@@ -86092,6 +86188,8 @@ func (m *SubscriptionMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldBillingCadence(ctx)
 	case subscription.FieldProRatingConfig:
 		return m.OldProRatingConfig(ctx)
+	case subscription.FieldSettlementMode:
+		return m.OldSettlementMode(ctx)
 	}
 	return nil, fmt.Errorf("unknown Subscription field %s", name)
 }
@@ -86212,6 +86310,13 @@ func (m *SubscriptionMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetProRatingConfig(v)
+		return nil
+	case subscription.FieldSettlementMode:
+		v, ok := value.(productcatalog.SettlementMode)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSettlementMode(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Subscription field %s", name)
@@ -86348,6 +86453,9 @@ func (m *SubscriptionMutation) ResetField(name string) error {
 		return nil
 	case subscription.FieldProRatingConfig:
 		m.ResetProRatingConfig()
+		return nil
+	case subscription.FieldSettlementMode:
+		m.ResetSettlementMode()
 		return nil
 	}
 	return fmt.Errorf("unknown Subscription field %s", name)

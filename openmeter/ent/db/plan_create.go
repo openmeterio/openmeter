@@ -176,6 +176,20 @@ func (_c *PlanCreate) SetNillableEffectiveTo(v *time.Time) *PlanCreate {
 	return _c
 }
 
+// SetSettlementMode sets the "settlement_mode" field.
+func (_c *PlanCreate) SetSettlementMode(v productcatalog.SettlementMode) *PlanCreate {
+	_c.mutation.SetSettlementMode(v)
+	return _c
+}
+
+// SetNillableSettlementMode sets the "settlement_mode" field if the given value is not nil.
+func (_c *PlanCreate) SetNillableSettlementMode(v *productcatalog.SettlementMode) *PlanCreate {
+	if v != nil {
+		_c.SetSettlementMode(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *PlanCreate) SetID(v string) *PlanCreate {
 	_c.mutation.SetID(v)
@@ -286,6 +300,10 @@ func (_c *PlanCreate) defaults() {
 		v := plan.DefaultProRatingConfig()
 		_c.mutation.SetProRatingConfig(v)
 	}
+	if _, ok := _c.mutation.SettlementMode(); !ok {
+		v := plan.DefaultSettlementMode
+		_c.mutation.SetSettlementMode(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := plan.DefaultID()
 		_c.mutation.SetID(v)
@@ -344,6 +362,14 @@ func (_c *PlanCreate) check() error {
 	if v, ok := _c.mutation.ProRatingConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "pro_rating_config", err: fmt.Errorf(`db: validator failed for field "Plan.pro_rating_config": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.SettlementMode(); !ok {
+		return &ValidationError{Name: "settlement_mode", err: errors.New(`db: missing required field "Plan.settlement_mode"`)}
+	}
+	if v, ok := _c.mutation.SettlementMode(); ok {
+		if err := plan.SettlementModeValidator(v); err != nil {
+			return &ValidationError{Name: "settlement_mode", err: fmt.Errorf(`db: validator failed for field "Plan.settlement_mode": %w`, err)}
 		}
 	}
 	return nil
@@ -444,6 +470,10 @@ func (_c *PlanCreate) createSpec() (*Plan, *sqlgraph.CreateSpec, error) {
 	if value, ok := _c.mutation.EffectiveTo(); ok {
 		_spec.SetField(plan.FieldEffectiveTo, field.TypeTime, value)
 		_node.EffectiveTo = &value
+	}
+	if value, ok := _c.mutation.SettlementMode(); ok {
+		_spec.SetField(plan.FieldSettlementMode, field.TypeEnum, value)
+		_node.SettlementMode = value
 	}
 	if nodes := _c.mutation.PhasesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -701,6 +731,18 @@ func (u *PlanUpsert) ClearEffectiveTo() *PlanUpsert {
 	return u
 }
 
+// SetSettlementMode sets the "settlement_mode" field.
+func (u *PlanUpsert) SetSettlementMode(v productcatalog.SettlementMode) *PlanUpsert {
+	u.Set(plan.FieldSettlementMode, v)
+	return u
+}
+
+// UpdateSettlementMode sets the "settlement_mode" field to the value that was provided on create.
+func (u *PlanUpsert) UpdateSettlementMode() *PlanUpsert {
+	u.SetExcluded(plan.FieldSettlementMode)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -940,6 +982,20 @@ func (u *PlanUpsertOne) UpdateEffectiveTo() *PlanUpsertOne {
 func (u *PlanUpsertOne) ClearEffectiveTo() *PlanUpsertOne {
 	return u.Update(func(s *PlanUpsert) {
 		s.ClearEffectiveTo()
+	})
+}
+
+// SetSettlementMode sets the "settlement_mode" field.
+func (u *PlanUpsertOne) SetSettlementMode(v productcatalog.SettlementMode) *PlanUpsertOne {
+	return u.Update(func(s *PlanUpsert) {
+		s.SetSettlementMode(v)
+	})
+}
+
+// UpdateSettlementMode sets the "settlement_mode" field to the value that was provided on create.
+func (u *PlanUpsertOne) UpdateSettlementMode() *PlanUpsertOne {
+	return u.Update(func(s *PlanUpsert) {
+		s.UpdateSettlementMode()
 	})
 }
 
@@ -1352,6 +1408,20 @@ func (u *PlanUpsertBulk) UpdateEffectiveTo() *PlanUpsertBulk {
 func (u *PlanUpsertBulk) ClearEffectiveTo() *PlanUpsertBulk {
 	return u.Update(func(s *PlanUpsert) {
 		s.ClearEffectiveTo()
+	})
+}
+
+// SetSettlementMode sets the "settlement_mode" field.
+func (u *PlanUpsertBulk) SetSettlementMode(v productcatalog.SettlementMode) *PlanUpsertBulk {
+	return u.Update(func(s *PlanUpsert) {
+		s.SetSettlementMode(v)
+	})
+}
+
+// UpdateSettlementMode sets the "settlement_mode" field to the value that was provided on create.
+func (u *PlanUpsertBulk) UpdateSettlementMode() *PlanUpsertBulk {
+	return u.Update(func(s *PlanUpsert) {
+		s.UpdateSettlementMode()
 	})
 }
 

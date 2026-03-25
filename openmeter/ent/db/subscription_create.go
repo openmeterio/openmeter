@@ -197,6 +197,20 @@ func (_c *SubscriptionCreate) SetNillableProRatingConfig(v *productcatalog.ProRa
 	return _c
 }
 
+// SetSettlementMode sets the "settlement_mode" field.
+func (_c *SubscriptionCreate) SetSettlementMode(v productcatalog.SettlementMode) *SubscriptionCreate {
+	_c.mutation.SetSettlementMode(v)
+	return _c
+}
+
+// SetNillableSettlementMode sets the "settlement_mode" field if the given value is not nil.
+func (_c *SubscriptionCreate) SetNillableSettlementMode(v *productcatalog.SettlementMode) *SubscriptionCreate {
+	if v != nil {
+		_c.SetSettlementMode(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *SubscriptionCreate) SetID(v string) *SubscriptionCreate {
 	_c.mutation.SetID(v)
@@ -396,6 +410,10 @@ func (_c *SubscriptionCreate) defaults() {
 		v := subscription.DefaultProRatingConfig()
 		_c.mutation.SetProRatingConfig(v)
 	}
+	if _, ok := _c.mutation.SettlementMode(); !ok {
+		v := subscription.DefaultSettlementMode
+		_c.mutation.SetSettlementMode(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := subscription.DefaultID()
 		_c.mutation.SetID(v)
@@ -457,6 +475,14 @@ func (_c *SubscriptionCreate) check() error {
 	if v, ok := _c.mutation.ProRatingConfig(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "pro_rating_config", err: fmt.Errorf(`db: validator failed for field "Subscription.pro_rating_config": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.SettlementMode(); !ok {
+		return &ValidationError{Name: "settlement_mode", err: errors.New(`db: missing required field "Subscription.settlement_mode"`)}
+	}
+	if v, ok := _c.mutation.SettlementMode(); ok {
+		if err := subscription.SettlementModeValidator(v); err != nil {
+			return &ValidationError{Name: "settlement_mode", err: fmt.Errorf(`db: validator failed for field "Subscription.settlement_mode": %w`, err)}
 		}
 	}
 	if len(_c.mutation.CustomerIDs()) == 0 {
@@ -560,6 +586,10 @@ func (_c *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec,
 		}
 		_spec.SetField(subscription.FieldProRatingConfig, field.TypeString, vv)
 		_node.ProRatingConfig = value
+	}
+	if value, ok := _c.mutation.SettlementMode(); ok {
+		_spec.SetField(subscription.FieldSettlementMode, field.TypeEnum, value)
+		_node.SettlementMode = value
 	}
 	if nodes := _c.mutation.PlanIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -974,6 +1004,9 @@ func (u *SubscriptionUpsertOne) UpdateNewValues() *SubscriptionUpsertOne {
 		}
 		if _, exists := u.create.mutation.Currency(); exists {
 			s.SetIgnore(subscription.FieldCurrency)
+		}
+		if _, exists := u.create.mutation.SettlementMode(); exists {
+			s.SetIgnore(subscription.FieldSettlementMode)
 		}
 	}))
 	return u
@@ -1402,6 +1435,9 @@ func (u *SubscriptionUpsertBulk) UpdateNewValues() *SubscriptionUpsertBulk {
 			}
 			if _, exists := b.mutation.Currency(); exists {
 				s.SetIgnore(subscription.FieldCurrency)
+			}
+			if _, exists := b.mutation.SettlementMode(); exists {
+				s.SetIgnore(subscription.FieldSettlementMode)
 			}
 		}
 	}))

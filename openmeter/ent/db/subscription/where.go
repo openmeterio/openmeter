@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
@@ -925,6 +926,36 @@ func BillingCadenceEqualFold(v datetime.ISODurationString) predicate.Subscriptio
 func BillingCadenceContainsFold(v datetime.ISODurationString) predicate.Subscription {
 	vc := string(v)
 	return predicate.Subscription(sql.FieldContainsFold(FieldBillingCadence, vc))
+}
+
+// SettlementModeEQ applies the EQ predicate on the "settlement_mode" field.
+func SettlementModeEQ(v productcatalog.SettlementMode) predicate.Subscription {
+	vc := v
+	return predicate.Subscription(sql.FieldEQ(FieldSettlementMode, vc))
+}
+
+// SettlementModeNEQ applies the NEQ predicate on the "settlement_mode" field.
+func SettlementModeNEQ(v productcatalog.SettlementMode) predicate.Subscription {
+	vc := v
+	return predicate.Subscription(sql.FieldNEQ(FieldSettlementMode, vc))
+}
+
+// SettlementModeIn applies the In predicate on the "settlement_mode" field.
+func SettlementModeIn(vs ...productcatalog.SettlementMode) predicate.Subscription {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Subscription(sql.FieldIn(FieldSettlementMode, v...))
+}
+
+// SettlementModeNotIn applies the NotIn predicate on the "settlement_mode" field.
+func SettlementModeNotIn(vs ...productcatalog.SettlementMode) predicate.Subscription {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Subscription(sql.FieldNotIn(FieldSettlementMode, v...))
 }
 
 // HasPlan applies the HasEdge predicate on the "plan" edge.

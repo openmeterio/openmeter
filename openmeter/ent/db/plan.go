@@ -48,6 +48,8 @@ type Plan struct {
 	EffectiveFrom *time.Time `json:"effective_from,omitempty"`
 	// EffectiveTo holds the value of the "effective_to" field.
 	EffectiveTo *time.Time `json:"effective_to,omitempty"`
+	// SettlementMode holds the value of the "settlement_mode" field.
+	SettlementMode productcatalog.SettlementMode `json:"settlement_mode,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PlanQuery when eager-loading is set.
 	Edges        PlanEdges `json:"edges"`
@@ -103,7 +105,7 @@ func (*Plan) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case plan.FieldVersion:
 			values[i] = new(sql.NullInt64)
-		case plan.FieldID, plan.FieldNamespace, plan.FieldName, plan.FieldDescription, plan.FieldKey, plan.FieldCurrency, plan.FieldBillingCadence:
+		case plan.FieldID, plan.FieldNamespace, plan.FieldName, plan.FieldDescription, plan.FieldKey, plan.FieldCurrency, plan.FieldBillingCadence, plan.FieldSettlementMode:
 			values[i] = new(sql.NullString)
 		case plan.FieldCreatedAt, plan.FieldUpdatedAt, plan.FieldDeletedAt, plan.FieldEffectiveFrom, plan.FieldEffectiveTo:
 			values[i] = new(sql.NullTime)
@@ -220,6 +222,12 @@ func (_m *Plan) assignValues(columns []string, values []any) error {
 				_m.EffectiveTo = new(time.Time)
 				*_m.EffectiveTo = value.Time
 			}
+		case plan.FieldSettlementMode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field settlement_mode", values[i])
+			} else if value.Valid {
+				_m.SettlementMode = productcatalog.SettlementMode(value.String)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -320,6 +328,9 @@ func (_m *Plan) String() string {
 		builder.WriteString("effective_to=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("settlement_mode=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SettlementMode))
 	builder.WriteByte(')')
 	return builder.String()
 }

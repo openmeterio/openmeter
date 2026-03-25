@@ -54,6 +54,10 @@ func (Subscription) Fields() []ent.Field {
 				dialect.Postgres: "jsonb",
 			}).
 			Comment("Default pro-rating configuration for subscriptions."),
+		field.Enum("settlement_mode").
+			GoType(productcatalog.SettlementMode("")).
+			Default(string(productcatalog.CreditThenInvoiceSettlementMode)).
+			Immutable(),
 	}
 }
 
