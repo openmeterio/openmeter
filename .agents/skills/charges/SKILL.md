@@ -297,7 +297,7 @@ Billing-profile test gotcha:
 
 ## Running Tests
 
-For direct package runs, use the repo env and Postgres:
+For direct package runs, use the repo env and Postgres. Prefer direct command execution; do not wrap these in `sh -lc`, `bash -lc`, or similar helper shells when a direct invocation works.
 
 ```bash
 POSTGRES_HOST=127.0.0.1 direnv exec . go test -run TestInvoicableCharges/TestUsageBasedCreditOnlyLifecycle -v ./openmeter/billing/charges/service

@@ -93,6 +93,8 @@ Then stage `atlas.sum`. Do not hand-edit checksum entries unless there is no oth
 nix develop --impure .#ci -c <command>
 ```
 
+- Prefer direct command execution. Do not wrap commands in `sh -lc`, `bash -lc`, or similar helper shells when a direct invocation works. For environment variables, prefer `env KEY=value <command>` or `KEY=value <command>`.
+
 - Atlas migration diffing uses the local dev environment and may require the direnv shell:
 
 ```bash

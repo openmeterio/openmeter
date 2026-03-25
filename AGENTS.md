@@ -126,12 +126,14 @@ nix develop --impure .#ci -c <command>
 
 Codex's default shell may not auto-load `.envrc`, so `direnv`-managed tools like `go` can be missing even when the repo is configured correctly. In that case, run commands through `nix develop --impure .#ci -c ...` explicitly instead of assuming the ambient shell reflects the flake environment. `direnv exec . <command>` is also a valid one-off fallback when `direnv` is installed and the repo has already been allowed.
 
+When invoking commands through Codex tools, prefer direct command execution. Do not wrap commands in `sh -lc`, `bash -lc`, or other helper shells when the command can be run directly. For environment variables, prefer `env KEY=value <command>` or `KEY=value <command>` over shell-wrapped forms. This keeps failures attributable to the actual toolchain/runtime being tested.
+
 Examples:
 
 ```bash
 nix develop --impure .#ci -c gofmt -w openmeter/ledger/historical/entry.go
 nix develop --impure .#ci -c make lint-go
-nix develop --impure .#ci -c sh -lc 'POSTGRES_HOST=127.0.0.1 go test -tags=dynamic ./openmeter/ledger/historical/...'
+nix develop --impure .#ci -c env POSTGRES_HOST=127.0.0.1 go test -tags=dynamic ./openmeter/ledger/historical/...
 ```
 
 | Command | Description |

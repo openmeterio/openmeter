@@ -14,6 +14,7 @@ import (
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // flatFeeHandler maps charge lifecycle events to ledger transaction templates
@@ -87,17 +88,7 @@ func (h *flatFeeHandler) OnAssignedToInvoice(ctx context.Context, input flatfee.
 		return nil, fmt.Errorf("commit ledger transaction group: %w", err)
 	}
 
-	totalCollected := sumPositiveEntryAmounts(inputs...)
-
-	return []creditrealization.CreateInput{
-		{
-			ServicePeriod: input.ServicePeriod,
-			Amount:        totalCollected,
-			LedgerTransaction: ledgertransaction.GroupReference{
-				TransactionGroupID: transactionGroup.ID().ID,
-			},
-		},
-	}, nil
+	return creditRealizationsFromCollectedInputs(input.ServicePeriod, transactionGroup.ID().ID, inputs...), nil
 }
 
 // OnFlatFeeStandardInvoiceUsageAccrued handles the portion of usage not covered by FBO credits.
@@ -182,7 +173,7 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee
 		totalRecognition = totalRecognition.Add(cr.Amount)
 	}
 
-	// The receivable portion needs wash → receivable replenishment.
+	// The receivable portion needs wash -> receivable replenishment.
 	receivableReplenishment := alpacadecimal.NewFromInt(0)
 	if charge.State.AccruedUsage != nil {
 		receivableReplenishment = charge.State.AccruedUsage.Totals.Total
@@ -291,20 +282,26 @@ func (h *flatFeeHandler) resolverDependencies() transactions.ResolverDependencie
 	}
 }
 
-func sumPositiveEntryAmounts(inputs ...ledger.TransactionInput) alpacadecimal.Decimal {
-	total := alpacadecimal.Zero
+func creditRealizationsFromCollectedInputs(servicePeriod timeutil.ClosedPeriod, transactionGroupID string, inputs ...ledger.TransactionInput) []creditrealization.CreateInput {
+	out := make([]creditrealization.CreateInput, 0)
 	for _, input := range inputs {
 		if input == nil {
 			continue
 		}
 		for _, entry := range input.EntryInputs() {
-			if entry.Amount().IsPositive() {
-				total = total.Add(entry.Amount())
+			if entry.Amount().IsNegative() {
+				out = append(out, creditrealization.CreateInput{
+					ServicePeriod: servicePeriod,
+					Amount:        entry.Amount().Abs(),
+					LedgerTransaction: ledgertransaction.GroupReference{
+						TransactionGroupID: transactionGroupID,
+					},
+				})
 			}
 		}
 	}
 
-	return total
+	return out
 }
 
 func settledBalanceForSubAccount(ctx context.Context, subAccount ledger.SubAccount) (alpacadecimal.Decimal, error) {
