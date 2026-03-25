@@ -1,3 +1,7 @@
+
+DROP VIEW IF EXISTS "charges_search_v1s";
+
+
 -- reverse: create index "charges_charge_usage_based_id_key" to table: "charges"
 DROP INDEX "charges_charge_usage_based_id_key";
 -- reverse: create index "charges_charge_flat_fee_id_key" to table: "charges"
@@ -35,4 +39,7 @@ CREATE UNIQUE INDEX "chargeflatfeepayment_namespace_charge_id" ON "charge_flat_f
 -- reverse: drop index "chargecreditpurchaseexternalpayment_namespace_charge_id" from table: "charge_credit_purchase_external_payments"
 CREATE UNIQUE INDEX "chargecreditpurchaseexternalpayment_namespace_charge_id" ON "charge_credit_purchase_external_payments" ("namespace", "charge_id");
 
-DROP VIEW IF EXISTS "charges_search_v1s";
+-- regenerate additional constraints etc that are dropped by the table/key deletions in the up migration
+ALTER TABLE "charges" ADD CONSTRAINT "charges_customers_charge_intents" FOREIGN KEY ("customer_id") REFERENCES "customers" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION, ADD CONSTRAINT "charges_subscription_items_charge_intents" FOREIGN KEY ("subscription_item_id") REFERENCES "subscription_items" ("id") ON UPDATE NO ACTION ON DELETE SET NULL, ADD CONSTRAINT "charges_subscription_phases_charge_intents" FOREIGN KEY ("subscription_phase_id") REFERENCES "subscription_phases" ("id") ON UPDATE NO ACTION ON DELETE SET NULL, ADD CONSTRAINT "charges_subscriptions_charge_intents" FOREIGN KEY ("subscription_id") REFERENCES "subscriptions" ("id") ON UPDATE NO ACTION ON DELETE SET NULL;
+CREATE UNIQUE INDEX "charge_namespace_customer_id_unique_reference_id" ON "charges" ("namespace", "customer_id", "unique_reference_id") WHERE ((unique_reference_id IS NOT NULL) AND (deleted_at IS NULL));
+CREATE INDEX "charge_annotations" ON "charges" USING gin ("annotations");
