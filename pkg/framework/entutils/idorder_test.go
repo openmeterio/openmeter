@@ -17,7 +17,7 @@ type mockEntity struct {
 	Namespace string
 }
 
-func (m mockEntity) GetID() string       { return m.ID }
+func (m mockEntity) GetID() string        { return m.ID }
 func (m mockEntity) GetNamespace() string { return m.Namespace }
 
 func entity(ns, id string) mockEntity {
