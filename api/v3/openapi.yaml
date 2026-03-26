@@ -979,6 +979,44 @@ paths:
       x-internal: true
       x-unstable: true
       x-private: true
+    patch:
+      operationId: update-feature
+      summary: Update a feature by id.
+      description: |-
+        Update a feature by id.
+        Currently only the unit_cost field can be updated.
+      parameters:
+        - name: featureId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Feature updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feature'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Features
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFeatureRequest'
+      x-internal: true
+      x-unstable: true
+      x-private: true
     delete:
       operationId: delete-feature
       summary: Delete a feature by id.
@@ -5806,6 +5844,20 @@ components:
             - $ref: '#/components/schemas/BillingCreditPurchasePaymentSettlementStatus'
           description: The new payment settlement status.
       description: Request body for updating the external payment settlement status of a credit grant.
+    UpdateFeatureRequest:
+      type: object
+      properties:
+        unit_cost:
+          allOf:
+            - $ref: '#/components/schemas/BillingFeatureUnitCost'
+          description: |-
+            Optional per-unit cost configuration.
+            Use "manual" for a fixed per-unit cost, or "llm" to look up cost
+            from the LLM cost database based on meter group-by properties.
+          title: Unit cost
+      description: |-
+        Request body for updating a feature.
+        Currently only the unit_cost field can be updated.
     UpsertAppCustomerDataRequest:
       type: object
       properties:

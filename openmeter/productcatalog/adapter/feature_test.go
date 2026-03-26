@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -301,6 +302,288 @@ func TestCreateFeature(t *testing.T) {
 
 		assert.Equal(t, featureIn.Name, feature.Name)
 	})
+}
+
+func TestUpdateFeature(t *testing.T) {
+	namespace := "default"
+	meter := meter.Meter{
+		ManagedResource: models.ManagedResource{
+			ID: "meter-1",
+			NamespacedModel: models.NamespacedModel{
+				Namespace: namespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name: "Test meter",
+		},
+		Key:         "meter-1",
+		GroupBy:     map[string]string{"key": "$.path"},
+		Aggregation: meter.MeterAggregationCount,
+		EventType:   "test",
+	}
+
+	testFeature := feature.CreateFeatureInputs{
+		Namespace: namespace,
+		Name:      "feature-1",
+		Key:       "feature-1",
+		MeterID:   &meter.ID,
+		MeterGroupByFilters: feature.MeterGroupByFilters{
+			"key": filter.FilterString{
+				Eq: lo.ToPtr("value"),
+			},
+		},
+	}
+
+	tt := []struct {
+		name string
+		run  func(t *testing.T, connector feature.FeatureRepo)
+	}{
+		{
+			name: "Should set manual unit cost on feature without unit cost",
+			run: func(t *testing.T, connector feature.FeatureRepo) {
+				ctx := context.Background()
+
+				created, err := connector.CreateFeature(ctx, testFeature)
+				assert.NoError(t, err)
+				assert.Nil(t, created.UnitCost)
+
+				updated, err := connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
+					Namespace: namespace,
+					ID:        created.ID,
+					UnitCost: &feature.UnitCost{
+						Type: feature.UnitCostTypeManual,
+						Manual: &feature.ManualUnitCost{
+							Amount: alpacadecimal.NewFromFloat(0.05),
+						},
+					},
+				})
+				assert.NoError(t, err)
+				assert.NotNil(t, updated.UnitCost)
+				assert.Equal(t, feature.UnitCostTypeManual, updated.UnitCost.Type)
+				assert.Equal(t, "0.05", updated.UnitCost.Manual.Amount.String())
+
+				// Verify by re-fetching
+				fetched, err := connector.GetByIdOrKey(ctx, namespace, created.ID, false)
+				assert.NoError(t, err)
+				assert.NotNil(t, fetched.UnitCost)
+				assert.Equal(t, feature.UnitCostTypeManual, fetched.UnitCost.Type)
+				assert.Equal(t, "0.05", fetched.UnitCost.Manual.Amount.String())
+			},
+		},
+		{
+			name: "Should change manual unit cost amount",
+			run: func(t *testing.T, connector feature.FeatureRepo) {
+				ctx := context.Background()
+
+				featureIn := testFeature
+				featureIn.UnitCost = &feature.UnitCost{
+					Type: feature.UnitCostTypeManual,
+					Manual: &feature.ManualUnitCost{
+						Amount: alpacadecimal.NewFromFloat(0.01),
+					},
+				}
+
+				created, err := connector.CreateFeature(ctx, featureIn)
+				assert.NoError(t, err)
+				assert.Equal(t, "0.01", created.UnitCost.Manual.Amount.String())
+
+				updated, err := connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
+					Namespace: namespace,
+					ID:        created.ID,
+					UnitCost: &feature.UnitCost{
+						Type: feature.UnitCostTypeManual,
+						Manual: &feature.ManualUnitCost{
+							Amount: alpacadecimal.NewFromFloat(0.99),
+						},
+					},
+				})
+				assert.NoError(t, err)
+				assert.Equal(t, "0.99", updated.UnitCost.Manual.Amount.String())
+			},
+		},
+		{
+			name: "Should change unit cost type from manual to LLM",
+			run: func(t *testing.T, connector feature.FeatureRepo) {
+				ctx := context.Background()
+
+				featureIn := testFeature
+				featureIn.UnitCost = &feature.UnitCost{
+					Type: feature.UnitCostTypeManual,
+					Manual: &feature.ManualUnitCost{
+						Amount: alpacadecimal.NewFromFloat(0.01),
+					},
+				}
+
+				created, err := connector.CreateFeature(ctx, featureIn)
+				assert.NoError(t, err)
+				assert.Equal(t, feature.UnitCostTypeManual, created.UnitCost.Type)
+
+				updated, err := connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
+					Namespace: namespace,
+					ID:        created.ID,
+					UnitCost: &feature.UnitCost{
+						Type: feature.UnitCostTypeLLM,
+						LLM: &feature.LLMUnitCost{
+							Provider:  "openai",
+							Model:     "gpt-4",
+							TokenType: "input",
+						},
+					},
+				})
+				assert.NoError(t, err)
+				assert.Equal(t, feature.UnitCostTypeLLM, updated.UnitCost.Type)
+				assert.Equal(t, "openai", updated.UnitCost.LLM.Provider)
+				assert.Equal(t, "gpt-4", updated.UnitCost.LLM.Model)
+				assert.Equal(t, "input", updated.UnitCost.LLM.TokenType)
+				// Manual fields should be cleared
+				assert.Nil(t, updated.UnitCost.Manual)
+			},
+		},
+		{
+			name: "Should update feature by key",
+			run: func(t *testing.T, connector feature.FeatureRepo) {
+				ctx := context.Background()
+
+				created, err := connector.CreateFeature(ctx, testFeature)
+				assert.NoError(t, err)
+
+				updated, err := connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
+					Namespace: namespace,
+					ID:        created.Key,
+					UnitCost: &feature.UnitCost{
+						Type: feature.UnitCostTypeManual,
+						Manual: &feature.ManualUnitCost{
+							Amount: alpacadecimal.NewFromFloat(0.10),
+						},
+					},
+				})
+				assert.NoError(t, err)
+				assert.NotNil(t, updated.UnitCost)
+				assert.Equal(t, "0.1", updated.UnitCost.Manual.Amount.String())
+			},
+		},
+		{
+			name: "Should return not found for non-existent feature",
+			run: func(t *testing.T, connector feature.FeatureRepo) {
+				ctx := context.Background()
+
+				_, err := connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
+					Namespace: namespace,
+					ID:        ulid.Make().String(),
+					UnitCost: &feature.UnitCost{
+						Type: feature.UnitCostTypeManual,
+						Manual: &feature.ManualUnitCost{
+							Amount: alpacadecimal.NewFromFloat(0.01),
+						},
+					},
+				})
+				assert.Error(t, err)
+				assert.IsType(t, &feature.FeatureNotFoundError{}, err)
+			},
+		},
+		{
+			name: "Should not update archived feature",
+			run: func(t *testing.T, connector feature.FeatureRepo) {
+				ctx := context.Background()
+
+				created, err := connector.CreateFeature(ctx, testFeature)
+				assert.NoError(t, err)
+
+				err = connector.ArchiveFeature(ctx, feature.ArchiveFeatureInput{
+					Namespace: namespace,
+					ID:        created.ID,
+				})
+				assert.NoError(t, err)
+
+				_, err = connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
+					Namespace: namespace,
+					ID:        created.ID,
+					UnitCost: &feature.UnitCost{
+						Type: feature.UnitCostTypeManual,
+						Manual: &feature.ManualUnitCost{
+							Amount: alpacadecimal.NewFromFloat(0.01),
+						},
+					},
+				})
+				assert.Error(t, err)
+				assert.IsType(t, &feature.FeatureNotFoundError{}, err)
+			},
+		},
+		{
+			name: "Should preserve other fields when updating unit cost",
+			run: func(t *testing.T, connector feature.FeatureRepo) {
+				ctx := context.Background()
+
+				featureIn := testFeature
+				featureIn.Metadata = map[string]string{"env": "test"}
+
+				created, err := connector.CreateFeature(ctx, featureIn)
+				assert.NoError(t, err)
+
+				updated, err := connector.UpdateFeature(ctx, feature.UpdateFeatureInputs{
+					Namespace: namespace,
+					ID:        created.ID,
+					UnitCost: &feature.UnitCost{
+						Type: feature.UnitCostTypeManual,
+						Manual: &feature.ManualUnitCost{
+							Amount: alpacadecimal.NewFromFloat(0.05),
+						},
+					},
+				})
+				assert.NoError(t, err)
+
+				// Other fields should be unchanged
+				assert.Equal(t, created.Name, updated.Name)
+				assert.Equal(t, created.Key, updated.Key)
+				assert.Equal(t, created.MeterSlug, updated.MeterSlug)
+				assert.Equal(t, created.MeterGroupByFilters, updated.MeterGroupByFilters)
+				assert.Equal(t, created.Metadata, updated.Metadata)
+				assert.Nil(t, updated.ArchivedAt)
+
+				// UpdatedAt should advance
+				assert.True(t, updated.UpdatedAt.After(created.UpdatedAt) || updated.UpdatedAt.Equal(created.UpdatedAt))
+			},
+		},
+	}
+
+	var m sync.Mutex
+
+	for _, tc := range tt {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			m.Lock()
+			defer m.Unlock()
+
+			testdb := testutils.InitPostgresDB(t)
+			defer testdb.PGDriver.Close()
+			dbClient := testdb.EntDriver.Client()
+			defer dbClient.Close()
+
+			if err := dbClient.Schema.Create(context.Background()); err != nil {
+				t.Fatalf("failed to create schema: %v", err)
+			}
+
+			// Create the meter in the DB so FK constraint is satisfied.
+			_, err := dbClient.Meter.Create().
+				SetID(meter.ID).
+				SetNamespace(meter.Namespace).
+				SetName(meter.Name).
+				SetKey(meter.Key).
+				SetGroupBy(meter.GroupBy).
+				SetAggregation(meter.Aggregation).
+				SetEventType(meter.EventType).
+				Save(context.Background())
+			if err != nil {
+				t.Fatalf("failed to create meter: %v", err)
+			}
+
+			dbConnector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
+			tc.run(t, dbConnector)
+		})
+	}
 }
 
 func TestArchiveFeature(t *testing.T) {

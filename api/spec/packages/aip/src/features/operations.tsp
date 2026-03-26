@@ -58,6 +58,22 @@ interface FeatureOperations {
     | Common.NotFound;
 
   /**
+   * Update a feature by id.
+   * Currently only the unit_cost field can be updated.
+   */
+  @patch
+  @route("/{featureId}")
+  @operationId("update-feature")
+  @summary("Update a feature by id.")
+  @extension(Shared.PrivateExtension, true)
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  update(
+    @path featureId: Shared.ULID,
+    @body feature: FeatureUpdateRequest,
+  ): Shared.UpdateResponse<Feature> | Common.ErrorResponses | Common.NotFound;
+
+  /**
    * Delete a feature by id.
    */
   @delete

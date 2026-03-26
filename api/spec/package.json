@@ -22,7 +22,7 @@
     "@typespec/rest": "0.79.0",
     "@typespec/versioning": "0.79.0",
     "prettier": "3.8.1",
-    "yaml": "2.8.2"
+    "yaml": "2.8.3"
   },
   "exports": {
     "./openapi.yaml": "./packages/legacy/output/openapi.OpenMeterCloud.yaml",

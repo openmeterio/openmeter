@@ -13,6 +13,7 @@ type Handler interface {
 	ListFeatures() ListFeaturesHandler
 	GetFeature() GetFeatureHandler
 	CreateFeature() CreateFeatureHandler
+	UpdateFeature() UpdateFeatureHandler
 	DeleteFeature() DeleteFeatureHandler
 }
 

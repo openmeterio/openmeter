@@ -79,6 +79,23 @@ func convertCreateRequestToDomain(ns string, body api.CreateFeatureRequest, mete
 	return inputs, nil
 }
 
+func convertUpdateRequestToDomain(ns string, featureID string, body api.UpdateFeatureRequest) (feature.UpdateFeatureInputs, error) {
+	input := feature.UpdateFeatureInputs{
+		Namespace: ns,
+		ID:        featureID,
+	}
+
+	if body.UnitCost != nil {
+		unitCost, err := convertUnitCostFromAPI(body.UnitCost)
+		if err != nil {
+			return feature.UpdateFeatureInputs{}, fmt.Errorf("invalid unit cost: %w", err)
+		}
+		input.UnitCost = unitCost
+	}
+
+	return input, nil
+}
+
 func convertUnitCostToAPI(u *feature.UnitCost) (api.BillingFeatureUnitCost, error) {
 	var out api.BillingFeatureUnitCost
 

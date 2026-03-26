@@ -2315,8 +2315,7 @@ class FeaturesOperations:
         Features are either metered or static. A feature is metered if meterSlug is provided at
         creation. For metered features you can pass additional filters that will be applied when
         calculating feature usage, based on the meter's groupBy fields. Meters with SUM, COUNT,
-        UNIQUE_COUNT and LATEST aggregations are supported for features. Features cannot be updated
-        later, only archived.
+        UNIQUE_COUNT and LATEST aggregations are supported for features.
 
         :param feature: Required.
         :type feature: ~openmeter._generated.models.FeatureCreateInputs
@@ -2335,8 +2334,7 @@ class FeaturesOperations:
         Features are either metered or static. A feature is metered if meterSlug is provided at
         creation. For metered features you can pass additional filters that will be applied when
         calculating feature usage, based on the meter's groupBy fields. Meters with SUM, COUNT,
-        UNIQUE_COUNT and LATEST aggregations are supported for features. Features cannot be updated
-        later, only archived.
+        UNIQUE_COUNT and LATEST aggregations are supported for features.
 
         :param feature: Required.
         :type feature: JSON
@@ -2357,8 +2355,7 @@ class FeaturesOperations:
         Features are either metered or static. A feature is metered if meterSlug is provided at
         creation. For metered features you can pass additional filters that will be applied when
         calculating feature usage, based on the meter's groupBy fields. Meters with SUM, COUNT,
-        UNIQUE_COUNT and LATEST aggregations are supported for features. Features cannot be updated
-        later, only archived.
+        UNIQUE_COUNT and LATEST aggregations are supported for features.
 
         :param feature: Required.
         :type feature: IO[bytes]
@@ -2378,8 +2375,7 @@ class FeaturesOperations:
         Features are either metered or static. A feature is metered if meterSlug is provided at
         creation. For metered features you can pass additional filters that will be applied when
         calculating feature usage, based on the meter's groupBy fields. Meters with SUM, COUNT,
-        UNIQUE_COUNT and LATEST aggregations are supported for features. Features cannot be updated
-        later, only archived.
+        UNIQUE_COUNT and LATEST aggregations are supported for features.
 
         :param feature: Is one of the following types: FeatureCreateInputs, JSON, IO[bytes] Required.
         :type feature: ~openmeter._generated.models.FeatureCreateInputs or JSON or IO[bytes]

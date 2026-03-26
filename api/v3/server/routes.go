@@ -197,6 +197,10 @@ func (s *Server) GetFeature(w http.ResponseWriter, r *http.Request, featureId ap
 	s.featuresHandler.GetFeature().With(featureId).ServeHTTP(w, r)
 }
 
+func (s *Server) UpdateFeature(w http.ResponseWriter, r *http.Request, featureId api.ULID) {
+	s.featuresHandler.UpdateFeature().With(featureId).ServeHTTP(w, r)
+}
+
 func (s *Server) DeleteFeature(w http.ResponseWriter, r *http.Request, featureId api.ULID) {
 	s.featuresHandler.DeleteFeature().With(featureId).ServeHTTP(w, r)
 }

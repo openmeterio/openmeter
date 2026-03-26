@@ -8327,7 +8327,6 @@ export const ListFeaturesQueryParams = zod.object({
  * Features are either metered or static. A feature is metered if meterSlug is provided at creation.
 For metered features you can pass additional filters that will be applied when calculating feature usage, based on the meter's groupBy fields.
 Meters with SUM, COUNT, UNIQUE_COUNT and LATEST aggregations are supported for features.
-Features cannot be updated later, only archived.
  * @summary Create feature
  */
 export const createFeatureBodyKeyMax = 64 as const
