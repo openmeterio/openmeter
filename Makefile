@@ -206,6 +206,11 @@ lint-go-style: ## Lint Go formatting and import order
 	$(call print-target)
 	golangci-lint fmt -v -d $(GO_LINT_PATH)
 
+.PHONY: lint-go-head
+lint-go-head: ## Lint Go code since last commit
+	$(call print-target)
+	golangci-lint run --new-from-rev=HEAD~1
+
 .PHONY: ci
 ci: ## Run CI checks
 	$(call print-target)

@@ -923,6 +923,10 @@ func (n NoopFeatureConnector) CreateFeature(ctx context.Context, input feature.C
 	return feature.Feature{}, nil
 }
 
+func (n NoopFeatureConnector) UpdateFeature(ctx context.Context, input feature.UpdateFeatureInputs) (feature.Feature, error) {
+	return feature.Feature{}, nil
+}
+
 func (n NoopFeatureConnector) DeleteFeature(ctx context.Context, namespace string, key string) error {
 	return nil
 }

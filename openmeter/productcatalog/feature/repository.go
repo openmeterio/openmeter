@@ -36,6 +36,7 @@ func (i ArchiveFeatureInput) Validate() error {
 
 type FeatureRepo interface {
 	CreateFeature(ctx context.Context, feature CreateFeatureInputs) (Feature, error)
+	UpdateFeature(ctx context.Context, input UpdateFeatureInputs) (Feature, error)
 	ArchiveFeature(ctx context.Context, params ArchiveFeatureInput) error
 	ListFeatures(ctx context.Context, params ListFeaturesParams) (pagination.Result[Feature], error)
 	HasActiveFeatureForMeter(ctx context.Context, namespace string, meterID string) (bool, error)

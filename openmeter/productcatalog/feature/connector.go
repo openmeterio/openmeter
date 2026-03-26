@@ -2,6 +2,7 @@ package feature
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 
@@ -27,10 +28,35 @@ type CreateFeatureInputs struct {
 	Metadata            map[string]string   `json:"metadata"`
 }
 
+type UpdateFeatureInputs struct {
+	Namespace string    `json:"namespace"`
+	ID        string    `json:"id"`
+	UnitCost  *UnitCost `json:"unitCost"`
+}
+
+func (i UpdateFeatureInputs) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.ID == "" {
+		errs = append(errs, errors.New("id is required"))
+	}
+
+	if i.UnitCost == nil {
+		errs = append(errs, errors.New("unitCost is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 // TODO: refactor to service pattern
 type FeatureConnector interface {
 	// Feature Management
 	CreateFeature(ctx context.Context, feature CreateFeatureInputs) (Feature, error)
+	UpdateFeature(ctx context.Context, input UpdateFeatureInputs) (Feature, error)
 	// Should just use deletedAt, there's no real "archiving"
 	ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error
 	ListFeatures(ctx context.Context, params ListFeaturesParams) (pagination.Result[Feature], error)
@@ -197,6 +223,59 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 	}
 
 	return createdFeature, nil
+}
+
+// UpdateFeature updates a feature's unit cost
+func (c *featureConnector) UpdateFeature(ctx context.Context, input UpdateFeatureInputs) (Feature, error) {
+	if err := input.Validate(); err != nil {
+		return Feature{}, err
+	}
+
+	// Get the feature (rejects archived/not found)
+	feat, err := c.GetFeature(ctx, input.Namespace, input.ID, IncludeArchivedFeatureFalse)
+	if err != nil {
+		return Feature{}, err
+	}
+
+	// Validate unit cost if provided
+	if input.UnitCost != nil {
+		if err := input.UnitCost.Validate(); err != nil {
+			return Feature{}, models.NewGenericValidationError(err)
+		}
+
+		if input.UnitCost.Type == UnitCostTypeLLM {
+			if feat.MeterSlug == nil {
+				return Feature{}, models.NewGenericValidationError(
+					fmt.Errorf("LLM unit cost requires a meter to be associated with the feature"),
+				)
+			}
+
+			meter, err := c.meterService.GetMeterByIDOrSlug(ctx, meterpkg.GetMeterInput{
+				Namespace: input.Namespace,
+				IDOrSlug:  *feat.MeterSlug,
+			})
+			if err != nil {
+				return Feature{}, err
+			}
+
+			if err := input.UnitCost.ValidateWithMeter(meter); err != nil {
+				return Feature{}, models.NewGenericValidationError(err)
+			}
+		}
+	}
+
+	updatedFeature, err := c.featureRepo.UpdateFeature(ctx, input)
+	if err != nil {
+		return Feature{}, err
+	}
+
+	// Publish the feature updated event
+	featureUpdatedEvent := NewFeatureUpdateEvent(ctx, &updatedFeature)
+	if err := c.publisher.Publish(ctx, featureUpdatedEvent); err != nil {
+		return updatedFeature, fmt.Errorf("failed to publish feature updated event: %w", err)
+	}
+
+	return updatedFeature, nil
 }
 
 // ArchiveFeature archives a feature

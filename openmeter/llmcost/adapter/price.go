@@ -60,7 +60,7 @@ func (a *adapter) ListPrices(ctx context.Context, input llmcost.ListPricesInput)
 			query = query.Order(pricedb.ByModelID(order...), pricedb.ByID(order...))
 		default:
 			// No sort specified; default to model ID ascending.
-			query = query.Order(pricedb.ByModelID(), pricedb.ByID())
+			query = query.Order(pricedb.ByModelID(order...), pricedb.ByID(order...))
 		}
 
 		entities, err := query.Paginate(ctx, input.Page)

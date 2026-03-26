@@ -3,6 +3,8 @@ package llmcost
 import (
 	"context"
 	"errors"
+	"fmt"
+	"slices"
 	"time"
 
 	"github.com/openmeterio/openmeter/api/v3/filters"
@@ -70,6 +72,8 @@ type ListPricesInput struct {
 	Currency *filters.StringFilter `json:"currency,omitempty"`
 }
 
+var allowedOrderBy = []string{"id", "provider.id", "model.id", "effective_from", "effective_to"}
+
 func (i ListPricesInput) Validate() error {
 	var errs []error
 
@@ -77,6 +81,14 @@ func (i ListPricesInput) Validate() error {
 		if err := i.Page.Validate(); err != nil {
 			errs = append(errs, err)
 		}
+	}
+
+	if i.OrderBy != "" && !slices.Contains(allowedOrderBy, i.OrderBy) {
+		errs = append(errs, fmt.Errorf("invalid order_by: %q (allowed: id, provider.id, model.id, effective_from, effective_to)", i.OrderBy))
+	}
+
+	if i.Order != sortx.OrderNone && i.Order != sortx.OrderAsc && i.Order != sortx.OrderDesc {
+		errs = append(errs, fmt.Errorf("invalid order: %q (allowed: ASC, DESC)", i.Order))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

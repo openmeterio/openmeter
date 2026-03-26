@@ -65,6 +65,53 @@ func (e FeatureCreateEvent) Validate() error {
 	return errors.Join(errs...)
 }
 
+// NewFeatureUpdateEvent creates a new feature update event
+func NewFeatureUpdateEvent(ctx context.Context, feature *Feature) FeatureUpdateEvent {
+	return FeatureUpdateEvent{
+		Feature: feature,
+		UserID:  session.GetSessionUserID(ctx),
+	}
+}
+
+// FeatureUpdateEvent is an event that is emitted when a feature is updated
+type FeatureUpdateEvent struct {
+	Feature *Feature `json:"feature"`
+	UserID  *string  `json:"userId,omitempty"`
+}
+
+func (e FeatureUpdateEvent) EventName() string {
+	return metadata.GetEventName(metadata.EventType{
+		Subsystem: FeatureEventSubsystem,
+		Name:      FeatureUpdateEventName,
+		Version:   "v1",
+	})
+}
+
+func (e FeatureUpdateEvent) EventMetadata() metadata.EventMetadata {
+	resourcePath := metadata.ComposeResourcePath(e.Feature.Namespace, metadata.EntityFeature, e.Feature.ID)
+
+	return metadata.EventMetadata{
+		ID:      ulid.Make().String(),
+		Source:  resourcePath,
+		Subject: resourcePath,
+		Time:    e.Feature.UpdatedAt,
+	}
+}
+
+func (e FeatureUpdateEvent) Validate() error {
+	var errs []error
+
+	if e.Feature == nil {
+		return fmt.Errorf("feature is required")
+	}
+
+	if err := e.Feature.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("feature: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
 // NewFeatureArchiveEvent creates a new feature delete event
 func NewFeatureArchiveEvent(ctx context.Context, feature *Feature) FeatureArchiveEvent {
 	return FeatureArchiveEvent{
