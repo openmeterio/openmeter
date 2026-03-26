@@ -72,7 +72,7 @@ type ApplyInput struct {
 }
 
 type Plan struct {
-	SemanticPatches                    []SemanticPatch
+	Patches                            []Patch
 	SubscriptionMaxGenerationTimeLimit time.Time
 }
 
@@ -81,14 +81,14 @@ func (p *Plan) IsEmpty() bool {
 		return true
 	}
 
-	return len(p.SemanticPatches) == 0
+	return len(p.Patches) == 0
 }
 
 func (s *Service) diffItem(
 	target *targetstate.SubscriptionItemWithPeriods,
 	expectedLine *billing.GatheringLine, // TODO[later]: let's merge this with target as they are the same thing's different calculation stages
 	existing *billing.LineOrHierarchy,
-) (SemanticPatch, bool, error) {
+) (Patch, bool, error) {
 	switch {
 	case target == nil && existing == nil:
 		return nil, false, nil
@@ -116,6 +116,9 @@ func (s *Service) diffItem(
 	if decision, err := semanticProrateDecision(*existing, *expectedLine); err != nil {
 		return nil, false, err
 	} else if decision.ShouldProrate {
+		// Flat fee lines do not produce usage-based shrink/extend patches. Any period
+		// change for a flat fee line is reconciled through ProratePatch so that the
+		// service period and per-unit amount are updated together.
 		return ProratePatch{
 			UniqueID:       target.UniqueID,
 			Existing:       *existing,
@@ -129,13 +132,13 @@ func (s *Service) diffItem(
 
 	switch {
 	case targetPeriod.To.Before(existingPeriod.To):
-		return ShrinkPatch{
+		return ShrinkUsageBasedPatch{
 			UniqueID: target.UniqueID,
 			Existing: *existing,
 			Target:   *target,
 		}, true, nil
 	case targetPeriod.To.After(existingPeriod.To):
-		return ExtendPatch{
+		return ExtendUsageBasedPatch{
 			UniqueID: target.UniqueID,
 			Existing: *existing,
 			Target:   *target,
@@ -212,7 +215,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 	inScopeLineUniqueIDs := lo.Keys(inScopeLinesByUniqueID)
 	deletedLines, _ := lo.Difference(existingLineUniqueIDs, inScopeLineUniqueIDs)
 
-	semanticPatches := make([]SemanticPatch, 0, len(deletedLines)+len(inScopeLineUniqueIDs))
+	patches := make([]Patch, 0, len(deletedLines)+len(inScopeLineUniqueIDs))
 
 	for _, id := range deletedLines {
 		line, ok := persisted.ByUniqueID[id]
@@ -225,7 +228,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 			return nil, fmt.Errorf("diffing deleted line[%s]: %w", id, err)
 		}
 		if changed {
-			semanticPatches = append(semanticPatches, patch)
+			patches = append(patches, patch)
 		}
 	}
 
@@ -244,7 +247,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 				return nil, fmt.Errorf("diffing new line[%s]: %w", id, err)
 			}
 			if changed {
-				semanticPatches = append(semanticPatches, patch)
+				patches = append(patches, patch)
 			}
 			continue
 		}
@@ -254,12 +257,12 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 			return nil, fmt.Errorf("diffing existing line[%s]: %w", id, err)
 		}
 		if changed {
-			semanticPatches = append(semanticPatches, patch)
+			patches = append(patches, patch)
 		}
 	}
 
 	return &Plan{
-		SemanticPatches: lo.Filter(semanticPatches, func(p SemanticPatch, _ int) bool {
+		Patches: lo.Filter(patches, func(p Patch, _ int) bool {
 			return p != nil
 		}),
 		SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
@@ -267,16 +270,16 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 }
 
 func (s *Service) Apply(ctx context.Context, input ApplyInput) error {
-	patches := make([]invoiceupdater.Patch, 0, len(input.Plan.SemanticPatches))
+	patches := make([]invoiceupdater.Patch, 0, len(input.Plan.Patches))
 
-	for _, semanticPatch := range input.Plan.SemanticPatches {
-		expanded, err := semanticPatch.Expand(ctx, ExpandInput{
+	for _, patch := range input.Plan.Patches {
+		expanded, err := patch.Expand(ExpandInput{
 			Subscription: input.Subscription,
 			Currency:     input.Currency,
 			Invoices:     input.Invoices,
 		})
 		if err != nil {
-			return fmt.Errorf("expanding semantic patch[%s/%s]: %w", semanticPatch.Operation(), semanticPatch.UniqueReferenceID(), err)
+			return fmt.Errorf("expanding patch[%s/%s]: %w", patch.Operation(), patch.UniqueReferenceID(), err)
 		}
 
 		patches = append(patches, expanded...)

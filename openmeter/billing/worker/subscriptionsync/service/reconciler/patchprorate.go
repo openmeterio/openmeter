@@ -1,7 +1,8 @@
 package reconciler
 
 import (
-	"context"
+	"errors"
+	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
 
@@ -11,6 +12,9 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+// Flat fee lines do not produce usage-based shrink/extend patches. Any period
+// change for a flat fee line is reconciled through ProratePatch so that the
+// service period and per-unit amount are updated together.
 type ProratePatch struct {
 	UniqueID string
 	Existing billing.LineOrHierarchy
@@ -23,16 +27,91 @@ type ProratePatch struct {
 	TargetAmount   alpacadecimal.Decimal
 }
 
-func (ProratePatch) semanticPatch() {}
-
-func (p ProratePatch) Operation() SemanticPatchOperation {
-	return SemanticPatchOperationProrate
+func (p ProratePatch) Operation() PatchOperation {
+	return PatchOperationProrate
 }
 
 func (p ProratePatch) UniqueReferenceID() string {
 	return p.UniqueID
 }
 
-func (p ProratePatch) Expand(_ context.Context, input ExpandInput) ([]invoiceupdater.Patch, error) {
-	return expandExistingPatch(input, p.Existing, p.Target, SemanticPatchOperationProrate)
+func (p ProratePatch) Expand(input ExpandInput) ([]invoiceupdater.Patch, error) {
+	expectedLine, err := materializeExpectedLine(input, p.Target, p.Operation())
+	if err != nil {
+		return nil, err
+	}
+
+	if p.Existing.Type() != billing.LineOrHierarchyTypeLine {
+		return nil, fmt.Errorf("prorate patch cannot be applied to non-line line or hierarchy type: %s", p.Existing.Type())
+	}
+
+	existingLine, err := p.Existing.AsGenericLine()
+	if err != nil {
+		return nil, fmt.Errorf("getting line: %w", err)
+	}
+
+	if shouldSkipExistingLinePatch(existingLine, *expectedLine) {
+		return nil, nil
+	}
+
+	if !invoiceupdater.IsFlatFee(existingLine) {
+		return nil, fmt.Errorf("prorate patch cannot be applied to non-flat fee line[%s]", existingLine.GetLineID().ID)
+	}
+
+	if !invoiceupdater.IsFlatFee(*expectedLine) {
+		return nil, errors.New("cannot merge flat fee line with usage based line")
+	}
+
+	targetLine, err := existingLine.CloneWithoutChildren()
+	if err != nil {
+		return nil, fmt.Errorf("cloning line: %w", err)
+	}
+
+	wasChange := false
+	if !targetLine.GetServicePeriod().Equal(expectedLine.ServicePeriod) {
+		wasChange = true
+
+		targetLine.UpdateServicePeriod(func(period *timeutil.ClosedPeriod) {
+			*period = expectedLine.ServicePeriod
+		})
+
+		if input.Invoices.IsGatheringInvoice(targetLine.GetInvoiceID()) {
+			invoiceAtAccessor, ok := targetLine.(billing.InvoiceAtAccessor)
+			if !ok {
+				return nil, fmt.Errorf("target line is not an invoice at accessor: %T", targetLine)
+			}
+
+			invoiceAtAccessor.SetInvoiceAt(expectedLine.InvoiceAt)
+		}
+	}
+
+	if targetLine.GetDeletedAt() != nil {
+		targetLine.SetDeletedAt(nil)
+		wasChange = true
+	}
+
+	perUnitAmountExisting, err := invoiceupdater.GetFlatFeePerUnitAmount(existingLine)
+	if err != nil {
+		return nil, fmt.Errorf("getting flat fee per unit amount: %w", err)
+	}
+
+	perUnitAmountExpected, err := invoiceupdater.GetFlatFeePerUnitAmount(*expectedLine)
+	if err != nil {
+		return nil, fmt.Errorf("getting flat fee per unit amount: %w", err)
+	}
+
+	if !perUnitAmountExisting.Equal(perUnitAmountExpected) {
+		if err := invoiceupdater.SetFlatFeePerUnitAmount(targetLine, perUnitAmountExpected); err != nil {
+			return nil, fmt.Errorf("setting flat fee per unit amount: %w", err)
+		}
+		wasChange = true
+	}
+
+	if !wasChange {
+		return nil, nil
+	}
+
+	return []invoiceupdater.Patch{
+		invoiceupdater.NewUpdateLinePatch(targetLine),
+	}, nil
 }

@@ -1,22 +1,20 @@
 package reconciler
 
 import (
-	"context"
-
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
-type SemanticPatchOperation string
+type PatchOperation string
 
 const (
-	SemanticPatchOperationCreate  SemanticPatchOperation = "create"
-	SemanticPatchOperationDelete  SemanticPatchOperation = "delete"
-	SemanticPatchOperationShrink  SemanticPatchOperation = "shrink"
-	SemanticPatchOperationExtend  SemanticPatchOperation = "extend"
-	SemanticPatchOperationProrate SemanticPatchOperation = "prorate"
+	PatchOperationCreate  PatchOperation = "create"
+	PatchOperationDelete  PatchOperation = "delete"
+	PatchOperationShrink  PatchOperation = "shrink"
+	PatchOperationExtend  PatchOperation = "extend"
+	PatchOperationProrate PatchOperation = "prorate"
 )
 
 type ExpandInput struct {
@@ -25,9 +23,8 @@ type ExpandInput struct {
 	Invoices     persistedstate.Invoices
 }
 
-type SemanticPatch interface {
-	semanticPatch()
-	Operation() SemanticPatchOperation
+type Patch interface {
+	Operation() PatchOperation
 	UniqueReferenceID() string
-	Expand(ctx context.Context, input ExpandInput) ([]invoiceupdater.Patch, error)
+	Expand(input ExpandInput) ([]invoiceupdater.Patch, error)
 }

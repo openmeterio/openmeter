@@ -1,29 +1,25 @@
 package reconciler
 
 import (
-	"context"
-
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 )
 
-type ExtendPatch struct {
+type ExtendUsageBasedPatch struct {
 	UniqueID string
 	Existing billing.LineOrHierarchy
 	Target   targetstate.SubscriptionItemWithPeriods
 }
 
-func (ExtendPatch) semanticPatch() {}
-
-func (p ExtendPatch) Operation() SemanticPatchOperation {
-	return SemanticPatchOperationExtend
+func (p ExtendUsageBasedPatch) Operation() PatchOperation {
+	return PatchOperationExtend
 }
 
-func (p ExtendPatch) UniqueReferenceID() string {
+func (p ExtendUsageBasedPatch) UniqueReferenceID() string {
 	return p.UniqueID
 }
 
-func (p ExtendPatch) Expand(_ context.Context, input ExpandInput) ([]invoiceupdater.Patch, error) {
-	return expandExistingPatch(input, p.Existing, p.Target, SemanticPatchOperationExtend)
+func (p ExtendUsageBasedPatch) Expand(input ExpandInput) ([]invoiceupdater.Patch, error) {
+	return expandExtendPatch(input, p.Existing, p.Target)
 }
