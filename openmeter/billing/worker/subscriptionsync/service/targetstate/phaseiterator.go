@@ -1,4 +1,4 @@
-package service
+package targetstate
 
 import (
 	"context"
@@ -23,9 +23,9 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-// timeInfinity is a big enough time that we can use to represent infinity (biggest possible date for our system)
+// TimeInfinity is a big enough time that we can use to represent infinity (biggest possible date for our system).
 var (
-	timeInfinity = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
+	TimeInfinity = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
 	maxSafeIter  = 1000
 )
 
@@ -42,7 +42,7 @@ type PhaseIterator struct {
 	tracer trace.Tracer
 }
 
-type subscriptionItemWithPeriods struct {
+type SubscriptionItemWithPeriods struct {
 	subscription.SubscriptionItemView
 	// References
 	UniqueID string
@@ -66,7 +66,7 @@ type subscriptionItemWithPeriods struct {
 
 // PeriodPercentage returns the percentage of the period that is actually billed, compared to the non-truncated period
 // can be used to calculate prorated prices
-func (r subscriptionItemWithPeriods) PeriodPercentage() alpacadecimal.Decimal {
+func (r SubscriptionItemWithPeriods) PeriodPercentage() alpacadecimal.Decimal {
 	fullServicePeriodLength := int64(r.FullServicePeriod.Duration())
 
 	// If the period is empty, we can't calculate the percentage, so we return 1 (100%) to prevent
@@ -78,7 +78,7 @@ func (r subscriptionItemWithPeriods) PeriodPercentage() alpacadecimal.Decimal {
 	return alpacadecimal.NewFromInt(int64(r.ServicePeriod.Duration())).Div(alpacadecimal.NewFromInt(fullServicePeriodLength))
 }
 
-func (r subscriptionItemWithPeriods) GetInvoiceAt() time.Time {
+func (r SubscriptionItemWithPeriods) GetInvoiceAt() time.Time {
 	// Flat-fee in advance is the only case we bill in advance
 	if r.Spec.RateCard.AsMeta().Price.Type() == productcatalog.FlatPriceType {
 		flatFee, _ := r.Spec.RateCard.AsMeta().Price.AsFlat()
@@ -143,7 +143,7 @@ func (it *PhaseIterator) PhaseStart() time.Time {
 //
 // The response always truncated to capture that billing has 1s resolution.
 func (it *PhaseIterator) GetMinimumBillableTime() time.Time {
-	minTime := timeInfinity
+	minTime := TimeInfinity
 	for _, itemsByKey := range it.phase.ItemsByKey {
 		for _, item := range itemsByKey {
 			if item.Spec.RateCard.AsMeta().Price == nil {
@@ -158,7 +158,7 @@ func (it *PhaseIterator) GetMinimumBillableTime() time.Time {
 				// Let's make sure that truncation won't filter out the item
 				period := billing.Period{
 					Start: item.SubscriptionItem.ActiveFrom,
-					End:   timeInfinity,
+					End:   TimeInfinity,
 				}
 
 				if item.SubscriptionItem.ActiveTo != nil {
@@ -189,24 +189,24 @@ func (it *PhaseIterator) GetMinimumBillableTime() time.Time {
 // or after iterationEnd.
 //
 // This ensures that we always have the upcoming lines stored on the gathering invoice.
-func (it *PhaseIterator) Generate(ctx context.Context, iterationEnd time.Time) ([]subscriptionItemWithPeriods, error) {
-	span := tracex.Start[[]subscriptionItemWithPeriods](ctx, it.tracer, "billing.worker.subscription.phaseiterator.Generate", trace.WithAttributes(
+func (it *PhaseIterator) Generate(ctx context.Context, iterationEnd time.Time) ([]SubscriptionItemWithPeriods, error) {
+	span := tracex.Start[[]SubscriptionItemWithPeriods](ctx, it.tracer, "billing.worker.subscription.phaseiterator.Generate", trace.WithAttributes(
 		attribute.String("phase_key", it.phase.Spec.PhaseKey),
 	))
 
 	// Given we are truncating to 1s resolution, we need to make sure that iterationEnd contains the last second as a whole.
 	iterationEnd = iterationEnd.Truncate(streaming.MinimumWindowSizeDuration).Add(streaming.MinimumWindowSizeDuration - time.Nanosecond)
 
-	return span.Wrap(func(ctx context.Context) ([]subscriptionItemWithPeriods, error) {
+	return span.Wrap(func(ctx context.Context) ([]SubscriptionItemWithPeriods, error) {
 		return it.generateAligned(ctx, iterationEnd)
 	})
 }
 
-func (it *PhaseIterator) generateAligned(ctx context.Context, iterationEnd time.Time) ([]subscriptionItemWithPeriods, error) {
-	span := tracex.Start[[]subscriptionItemWithPeriods](ctx, it.tracer, "billing.worker.subscription.phaseiterator.generateAligned")
+func (it *PhaseIterator) generateAligned(ctx context.Context, iterationEnd time.Time) ([]SubscriptionItemWithPeriods, error) {
+	span := tracex.Start[[]SubscriptionItemWithPeriods](ctx, it.tracer, "billing.worker.subscription.phaseiterator.generateAligned")
 
-	return span.Wrap(func(ctx context.Context) ([]subscriptionItemWithPeriods, error) {
-		items := []subscriptionItemWithPeriods{}
+	return span.Wrap(func(ctx context.Context) ([]SubscriptionItemWithPeriods, error) {
+		items := []SubscriptionItemWithPeriods{}
 
 		for _, itemsByKey := range it.phase.ItemsByKey {
 			err := slicesx.ForEachUntilWithErr(
@@ -224,7 +224,7 @@ func (it *PhaseIterator) generateAligned(ctx context.Context, iterationEnd time.
 	})
 }
 
-func (it *PhaseIterator) generateForAlignedItemVersion(ctx context.Context, item subscription.SubscriptionItemView, version int, iterationEnd time.Time, items *[]subscriptionItemWithPeriods) (bool, error) {
+func (it *PhaseIterator) generateForAlignedItemVersion(ctx context.Context, item subscription.SubscriptionItemView, version int, iterationEnd time.Time, items *[]SubscriptionItemWithPeriods) (bool, error) {
 	span := tracex.Start[bool](ctx, it.tracer, "billing.worker.subscription.phaseiterator.generateForAlignedItemVersion", trace.WithAttributes(
 		attribute.String("itemKey", item.Spec.ItemKey),
 		attribute.Int("itemVersion", version),
@@ -327,17 +327,17 @@ type generatedVersionPeriodItem struct {
 	period    timeutil.ClosedPeriod
 	invoiceAt time.Time
 	index     int
-	item      subscriptionItemWithPeriods
+	item      SubscriptionItemWithPeriods
 }
 
-func (it *PhaseIterator) generateForAlignedItemVersionPeriod(ctx context.Context, logger *slog.Logger, item subscription.SubscriptionItemView, version int, periodIdx int, at time.Time) (subscriptionItemWithPeriods, error) {
-	span := tracex.Start[subscriptionItemWithPeriods](ctx, it.tracer, "billing.worker.subscription.phaseiterator.generateForAlignedItemVersionPeriod", trace.WithAttributes(
+func (it *PhaseIterator) generateForAlignedItemVersionPeriod(ctx context.Context, logger *slog.Logger, item subscription.SubscriptionItemView, version int, periodIdx int, at time.Time) (SubscriptionItemWithPeriods, error) {
+	span := tracex.Start[SubscriptionItemWithPeriods](ctx, it.tracer, "billing.worker.subscription.phaseiterator.generateForAlignedItemVersionPeriod", trace.WithAttributes(
 		attribute.Int("periodIdx", periodIdx),
 		attribute.String("periodAt", at.Format(time.RFC3339)),
 	))
 
-	return span.Wrap(func(ctx context.Context) (subscriptionItemWithPeriods, error) {
-		var empty subscriptionItemWithPeriods
+	return span.Wrap(func(ctx context.Context) (SubscriptionItemWithPeriods, error) {
+		var empty SubscriptionItemWithPeriods
 
 		billingPeriod, err := it.sub.Spec.GetAlignedBillingPeriodAt(at)
 		if err != nil {
@@ -378,7 +378,7 @@ func (it *PhaseIterator) generateForAlignedItemVersionPeriod(ctx context.Context
 		}
 
 		// Let's build the line
-		generatedItem := subscriptionItemWithPeriods{
+		generatedItem := SubscriptionItemWithPeriods{
 			SubscriptionItemView: item,
 
 			UniqueID: strings.Join([]string{
@@ -411,8 +411,8 @@ func (it *PhaseIterator) generateForAlignedItemVersionPeriod(ctx context.Context
 	})
 }
 
-func (it *PhaseIterator) truncateItemsIfNeeded(in []subscriptionItemWithPeriods) []subscriptionItemWithPeriods {
-	out := make([]subscriptionItemWithPeriods, 0, len(in))
+func (it *PhaseIterator) truncateItemsIfNeeded(in []SubscriptionItemWithPeriods) []SubscriptionItemWithPeriods {
+	out := make([]SubscriptionItemWithPeriods, 0, len(in))
 	// We need to sanitize the output to compensate for the 1second resolution of meters
 	for _, item := range in {
 		isFlatPrice := item.Spec.RateCard.AsMeta().Price != nil && item.Spec.RateCard.AsMeta().Price.Type() == productcatalog.FlatPriceType
@@ -437,7 +437,7 @@ func (it *PhaseIterator) truncateItemsIfNeeded(in []subscriptionItemWithPeriods)
 	return out
 }
 
-func (it *PhaseIterator) generateOneTimeAlignedItem(item subscription.SubscriptionItemView, versionID int) (*subscriptionItemWithPeriods, error) {
+func (it *PhaseIterator) generateOneTimeAlignedItem(item subscription.SubscriptionItemView, versionID int) (*SubscriptionItemWithPeriods, error) {
 	if item.Spec.RateCard.AsMeta().Price == nil {
 		return nil, nil
 	}
@@ -480,7 +480,7 @@ func (it *PhaseIterator) generateOneTimeAlignedItem(item subscription.Subscripti
 		return nil, fmt.Errorf("failed to get service period: %w", err)
 	}
 
-	return &subscriptionItemWithPeriods{
+	return &SubscriptionItemWithPeriods{
 		SubscriptionItemView: item,
 
 		UniqueID: strings.Join([]string{
