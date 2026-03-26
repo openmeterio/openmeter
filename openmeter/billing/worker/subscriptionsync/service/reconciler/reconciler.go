@@ -64,6 +64,7 @@ type PlanInput struct {
 }
 
 type ApplyInput struct {
+	DryRun       bool
 	Customer     customer.CustomerID
 	Subscription subscription.SubscriptionView
 	Currency     currencyx.Calculator
@@ -313,6 +314,12 @@ func (s *Service) Apply(ctx context.Context, input ApplyInput) error {
 	}
 
 	invoiceUpdater := invoiceupdater.New(s.billingService, s.logger)
+
+	if input.DryRun {
+		invoiceUpdater.LogPatches(invoicePatches)
+		return nil
+	}
+
 	if err := invoiceUpdater.ApplyPatches(ctx, input.Customer, invoicePatches); err != nil {
 		return fmt.Errorf("updating invoices: %w", err)
 	}

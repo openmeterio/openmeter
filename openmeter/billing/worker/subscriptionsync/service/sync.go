@@ -84,11 +84,16 @@ func (s *Service) SynchronizeSubscriptionAndInvoiceCustomer(ctx context.Context,
 	})
 }
 
-func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error {
+func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time, opts ...subscriptionsync.SynchronizeSubscriptionOption) error {
 	span := tracex.StartWithNoValue(ctx, s.tracer, "billing.worker.subscription.sync.SynchronizeSubscription", trace.WithAttributes(
 		attribute.String("subscription_id", subs.Subscription.ID),
 		attribute.String("as_of", asOf.Format(time.RFC3339)),
 	))
+
+	options := subscriptionsync.SynchronizeSubscriptionOptions{}
+	for _, opt := range opts {
+		opt(&options)
+	}
 
 	return span.Wrap(func(ctx context.Context) error {
 		if !subs.Spec.HasBillables() {
@@ -154,6 +159,7 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 			}
 
 			if err := s.reconciler.Apply(ctx, reconciler.ApplyInput{
+				DryRun:       options.DryRun,
 				Customer:     customerID,
 				Subscription: subs,
 				Currency:     currency,

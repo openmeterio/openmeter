@@ -88,6 +88,12 @@ func (u *Updater) ApplyPatches(ctx context.Context, customerID customer.Customer
 	return nil
 }
 
+func (u *Updater) LogPatches(patches []Patch) {
+	for _, patch := range patches {
+		patch.Log(u.logger)
+	}
+}
+
 type patchesParsed struct {
 	newLines []billing.GatheringLine
 

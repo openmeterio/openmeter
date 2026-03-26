@@ -2,6 +2,7 @@ package invoiceupdater
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -136,6 +137,23 @@ func NewCreateLinePatch(line billing.GatheringLine) Patch {
 		createLinePatch: PatchLineCreate{
 			Line: line,
 		},
+	}
+}
+
+func (p Patch) Log(logger *slog.Logger) {
+	switch p.op {
+	case PatchOpLineCreate:
+		logger.Info("create line patch", "line_id", p.createLinePatch.Line.GetLineID(), "invoice_id", p.createLinePatch.Line.GetInvoiceID(), "new_service_period_from", p.createLinePatch.Line.GetServicePeriod().From, "new_service_period_to", p.createLinePatch.Line.GetServicePeriod().To)
+	case PatchOpLineDelete:
+		logger.Info("delete line patch", "line_id", p.deleteLinePatch.Line, "invoice_id", p.deleteLinePatch.InvoiceID)
+	case PatchOpLineUpdate:
+		logger.Info("update line patch", "line_id", p.updateLinePatch.TargetState.GetLineID(), "invoice_id", p.updateLinePatch.TargetState.GetInvoiceID(), "new_service_period_from", p.updateLinePatch.TargetState.GetServicePeriod().From, "new_service_period_to", p.updateLinePatch.TargetState.GetServicePeriod().To)
+	case PatchOpSplitLineGroupDelete:
+		logger.Info("delete split line group patch", "group_id", p.deleteSplitLineGroupPatch.Group.ID)
+	case PatchOpSplitLineGroupUpdate:
+		logger.Info("update split line group patch", "group_id", p.updateSplitLineGroupPatch.TargetState.ID, "new_service_period_from", p.updateSplitLineGroupPatch.TargetState.ServicePeriod.Start, "new_service_period_to", p.updateSplitLineGroupPatch.TargetState.ServicePeriod.End)
+	default:
+		logger.Info("unknown patch operation", "operation", p.op)
 	}
 }
 
