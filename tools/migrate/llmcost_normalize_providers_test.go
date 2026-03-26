@@ -10,14 +10,19 @@ import (
 
 func TestLLMCostNormalizeProvidersMigration(t *testing.T) {
 	// Rows that should be renamed
-	nanogptRow := ulid.Make()    // nano-gpt → nanogpt
-	nanoGptRow2 := ulid.Make()   // nano_gpt → nanogpt
-	vertexRow := ulid.Make()     // vertex_ai-ext → vertex_ai
-	xaiRow := ulid.Make()        // x-ai → xai
-	azureRow := ulid.Make()      // azure_ai → azure
-	bedrockRow := ulid.Make()    // bedrock_converse → bedrock
-	geminiRow := ulid.Make()     // gemini → google
-	prefixedModel := ulid.Make() // model_name has provider prefix
+	nanogptRow := ulid.Make()      // nano-gpt → nanogpt
+	nanoGptRow2 := ulid.Make()     // nano_gpt → nanogpt
+	vertexRow := ulid.Make()       // vertex_ai-ext → vertex_ai
+	xaiRow := ulid.Make()          // x-ai → xai
+	azureRow := ulid.Make()        // azure_ai → azure
+	bedrockRow := ulid.Make()      // bedrock_converse → bedrock
+	geminiRow := ulid.Make()       // gemini → google
+	prefixedModel := ulid.Make()   // model_name has provider prefix
+	multiSlashModel := ulid.Make() // model_name with multiple slashes
+
+	// Alias-vs-alias scenario: two aliases for the same canonical, NO canonical row (exercises Step 2)
+	aliasOnlyNanoGpt1 := ulid.Make() // nano-gpt, model "model-b" (no canonical nanogpt for model-b)
+	aliasOnlyNanoGpt2 := ulid.Make() // nano_gpt, model "model-b" (collision — one should survive)
 
 	// Canonical row that should block an alias rename (dedup scenario)
 	canonicalNanogpt := ulid.Make() // nanogpt (already canonical)
@@ -71,7 +76,16 @@ func TestLLMCostNormalizeProvidersMigration(t *testing.T) {
 							 0.0005, 0.0015, 0, 0, 0, 'USD', 'test', '2026-01-01'),
 							-- openai row that should not be touched
 							($10, NOW(), NOW(), 'openai', 'gpt-4o', 'GPT-4o',
-							 0.005, 0.015, 0, 0, 0, 'USD', 'test', '2026-01-01')
+							 0.005, 0.015, 0, 0, 0, 'USD', 'test', '2026-01-01'),
+							-- alias-vs-alias: nano-gpt for model-b, no canonical nanogpt row exists
+							($11, NOW(), NOW(), 'nano-gpt', 'model-b', 'Model B',
+							 0.002, 0.004, 0, 0, 0, 'USD', 'test', '2026-01-01'),
+							-- alias-vs-alias: nano_gpt for model-b, collides with above after normalization
+							($12, NOW(), NOW(), 'nano_gpt', 'model-b', 'Model B',
+							 0.002, 0.004, 0, 0, 0, 'USD', 'test', '2026-01-01'),
+							-- model_name with multiple slashes: only first segment stripped
+							($13, NOW(), NOW(), 'openai', 'o1-preview', 'azure/openai/o1-preview',
+							 0.01, 0.03, 0, 0, 0, 'USD', 'test', '2026-01-01')
 					`,
 						nanogptRow.String(),
 						nanoGptRow2.String(),
@@ -83,6 +97,9 @@ func TestLLMCostNormalizeProvidersMigration(t *testing.T) {
 						geminiRow.String(),
 						prefixedModel.String(),
 						openaiRow.String(),
+						aliasOnlyNanoGpt1.String(),
+						aliasOnlyNanoGpt2.String(),
+						multiSlashModel.String(),
 					)
 					require.NoError(t, err)
 				},
@@ -154,11 +171,36 @@ func TestLLMCostNormalizeProvidersMigration(t *testing.T) {
 					require.Equal(t, "GPT-4o", modelName, "model_name without prefix should be untouched")
 					require.False(t, deletedAt.Valid)
 
+					// Alias-vs-alias: one of (nano-gpt, nano_gpt) for model-b should survive as nanogpt,
+					// the other should be soft-deleted. Step 2 keeps the row with the smallest id.
+					var alias1Deleted, alias2Deleted sql.NullTime
+					err = db.QueryRow(`SELECT deleted_at FROM llm_cost_prices WHERE id = $1`, aliasOnlyNanoGpt1.String()).Scan(&alias1Deleted)
+					require.NoError(t, err)
+					err = db.QueryRow(`SELECT deleted_at FROM llm_cost_prices WHERE id = $1`, aliasOnlyNanoGpt2.String()).Scan(&alias2Deleted)
+					require.NoError(t, err)
+					// Exactly one should be soft-deleted
+					require.NotEqual(t, alias1Deleted.Valid, alias2Deleted.Valid,
+						"alias-vs-alias: exactly one of the two aliases should be soft-deleted")
+					// The surviving one should be renamed to nanogpt
+					survivorID := aliasOnlyNanoGpt1.String()
+					if alias1Deleted.Valid {
+						survivorID = aliasOnlyNanoGpt2.String()
+					}
+					err = db.QueryRow(`SELECT provider FROM llm_cost_prices WHERE id = $1`, survivorID).Scan(&provider)
+					require.NoError(t, err)
+					require.Equal(t, "nanogpt", provider, "surviving alias should be renamed to canonical provider")
+
+					// model_name with multiple slashes: "azure/openai/o1-preview" → "openai/o1-preview"
+					err = db.QueryRow(`SELECT model_name FROM llm_cost_prices WHERE id = $1`, multiSlashModel.String()).Scan(&modelName)
+					require.NoError(t, err)
+					require.Equal(t, "openai/o1-preview", modelName, "only first slash-segment should be stripped")
+
 					// Verify total active row count
 					var activeCount int
 					err = db.QueryRow(`SELECT COUNT(*) FROM llm_cost_prices WHERE deleted_at IS NULL`).Scan(&activeCount)
 					require.NoError(t, err)
-					require.Equal(t, 8, activeCount, "should have 8 active rows (10 original minus 2 soft-deleted nanogpt aliases)")
+					// 13 original - 2 nanogpt aliases (canonical exists) - 1 alias-vs-alias dedup = 10 active
+					require.Equal(t, 10, activeCount, "should have 10 active rows (13 original minus 2 nanogpt aliases minus 1 alias-vs-alias dedup)")
 				},
 			},
 		},
