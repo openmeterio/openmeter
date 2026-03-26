@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -176,7 +177,7 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 
 			patches = append(patches, newLinePatches...)
 
-			invoiceUpdater := NewInvoiceUpdater(s.billingService, s.logger)
+			invoiceUpdater := reconciler.NewInvoiceUpdater(s.billingService, s.logger)
 			if err := invoiceUpdater.ApplyPatches(ctx, customerID, patches); err != nil {
 				return fmt.Errorf("updating invoices: %w", err)
 			}
@@ -262,12 +263,12 @@ func (s *Service) hierarchyHasAnnotation(hierarchy *billing.SplitLineHierarchy, 
 	return false, nil
 }
 
-func (s *Service) getPatchesFromPlan(p *subscriptionReconciliationPlan, subs subscription.SubscriptionView, currency currencyx.Calculator, invoices persistedstate.Invoices) ([]linePatch, error) {
-	patches := make([]linePatch, 0, len(p.LinesToDelete)+len(p.LinesToUpsert))
+func (s *Service) getPatchesFromPlan(p *subscriptionReconciliationPlan, subs subscription.SubscriptionView, currency currencyx.Calculator, invoices persistedstate.Invoices) ([]reconciler.Patch, error) {
+	patches := make([]reconciler.Patch, 0, len(p.LinesToDelete)+len(p.LinesToUpsert))
 
 	// Let's update the existing lines
 	for _, line := range p.LinesToDelete {
-		deletePatches, err := s.getDeletePatchesForLine(line)
+		deletePatches, err := reconciler.GetDeletePatchesForLine(line)
 		if err != nil {
 			return nil, fmt.Errorf("getting delete patches for line: %w", err)
 		}
@@ -284,7 +285,7 @@ func (s *Service) getPatchesFromPlan(p *subscriptionReconciliationPlan, subs sub
 		// The line have 0 amount, so we are not going to bill it. This can happen if we are quickly changing subscriptions
 		// immediately.
 		if expectedLine == nil {
-			deletePatches, err := s.getDeletePatchesForLine(line.Existing)
+			deletePatches, err := reconciler.GetDeletePatchesForLine(line.Existing)
 			if err != nil {
 				return nil, fmt.Errorf("getting delete patches for line: %w", err)
 			}
@@ -304,7 +305,7 @@ func (s *Service) getPatchesFromPlan(p *subscriptionReconciliationPlan, subs sub
 	return patches, nil
 }
 
-func (s *Service) getNewUpcomingLinePatches(ctx context.Context, subs subscription.SubscriptionView, currency currencyx.Calculator, subsItems []targetstate.SubscriptionItemWithPeriods) ([]linePatch, error) {
+func (s *Service) getNewUpcomingLinePatches(ctx context.Context, subs subscription.SubscriptionView, currency currencyx.Calculator, subsItems []targetstate.SubscriptionItemWithPeriods) ([]reconciler.Patch, error) {
 	newLines, err := slicesx.MapWithErr(subsItems, func(subsItem targetstate.SubscriptionItemWithPeriods) (*billing.GatheringLine, error) {
 		line, err := targetstate.LineFromSubscriptionRateCard(subs, subsItem, currency)
 		if err != nil {
@@ -321,12 +322,12 @@ func (s *Service) getNewUpcomingLinePatches(ctx context.Context, subs subscripti
 		return l != nil
 	})
 
-	return lo.Map(lines, func(l *billing.GatheringLine, _ int) linePatch {
-		return newCreateLinePatch(*l)
+	return lo.Map(lines, func(l *billing.GatheringLine, _ int) reconciler.Patch {
+		return reconciler.NewCreateLinePatch(*l)
 	}), nil
 }
 
-func (s *Service) getPatchesForExistingLineOrHierarchy(existingLine billing.LineOrHierarchy, expectedLine billing.GatheringLine, invoices persistedstate.Invoices) ([]linePatch, error) {
+func (s *Service) getPatchesForExistingLineOrHierarchy(existingLine billing.LineOrHierarchy, expectedLine billing.GatheringLine, invoices persistedstate.Invoices) ([]reconciler.Patch, error) {
 	// TODO/WARNING[later]: This logic should be fine with everything that can be billed progressively, however the following use-cases
 	// will behave strangely:
 	//
@@ -357,7 +358,7 @@ func (s *Service) getPatchesForExistingLineOrHierarchy(existingLine billing.Line
 	}
 }
 
-func (s *Service) getPatchesForExistingLine(existingLine billing.GenericInvoiceLine, expectedLine billing.GatheringLine, invoices persistedstate.Invoices) ([]linePatch, error) {
+func (s *Service) getPatchesForExistingLine(existingLine billing.GenericInvoiceLine, expectedLine billing.GatheringLine, invoices persistedstate.Invoices) ([]reconciler.Patch, error) {
 	// Lines can be manually marked as ignored in syncing, which is used for cases where we're doing backwards incompatible changes
 	if expectedLine.Annotations.GetBool(billing.AnnotationSubscriptionSyncIgnore) {
 		return nil, nil
@@ -399,11 +400,11 @@ func (s *Service) getPatchesForExistingLine(existingLine billing.GenericInvoiceL
 		}
 	}
 
-	if !isFlatFee(targetLine) {
+	if !reconciler.IsFlatFee(targetLine) {
 		// UBP Empty lines are not allowed, let's delete them instead
 		if targetLine.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
-			return []linePatch{
-				newDeleteLinePatch(existingLine.GetLineID(), existingLine.GetInvoiceID()),
+			return []reconciler.Patch{
+				reconciler.NewDeleteLinePatch(existingLine.GetLineID(), existingLine.GetInvoiceID()),
 			}, nil
 		}
 	}
@@ -414,23 +415,23 @@ func (s *Service) getPatchesForExistingLine(existingLine billing.GenericInvoiceL
 	}
 
 	// Let's handle the flat fee prorating (e.g. syncronizing the amount maybe in retrospect)
-	if isFlatFee(targetLine) {
-		if !isFlatFee(expectedLine) {
+	if reconciler.IsFlatFee(targetLine) {
+		if !reconciler.IsFlatFee(expectedLine) {
 			return nil, errors.New("cannot merge flat fee line with usage based line")
 		}
 
-		perUnitAmountExisting, err := getFlatFeePerUnitAmount(existingLine)
+		perUnitAmountExisting, err := reconciler.GetFlatFeePerUnitAmount(existingLine)
 		if err != nil {
 			return nil, fmt.Errorf("getting flat fee per unit amount: %w", err)
 		}
 
-		perUnitAmountExpected, err := getFlatFeePerUnitAmount(expectedLine)
+		perUnitAmountExpected, err := reconciler.GetFlatFeePerUnitAmount(expectedLine)
 		if err != nil {
 			return nil, fmt.Errorf("getting flat fee per unit amount: %w", err)
 		}
 
 		if !perUnitAmountExisting.Equal(perUnitAmountExpected) {
-			if err := setFlatFeePerUnitAmount(targetLine, perUnitAmountExpected); err != nil {
+			if err := reconciler.SetFlatFeePerUnitAmount(targetLine, perUnitAmountExpected); err != nil {
 				return nil, fmt.Errorf("setting flat fee per unit amount: %w", err)
 			}
 			wasChange = true
@@ -441,12 +442,12 @@ func (s *Service) getPatchesForExistingLine(existingLine billing.GenericInvoiceL
 		return nil, nil
 	}
 
-	return []linePatch{
-		newUpdateLinePatch(targetLine),
+	return []reconciler.Patch{
+		reconciler.NewUpdateLinePatch(targetLine),
 	}, nil
 }
 
-func (s *Service) getPatchesForExistingHierarchy(existingHierarchy *billing.SplitLineHierarchy, expectedLine billing.GatheringLine, invoices persistedstate.Invoices) ([]linePatch, error) {
+func (s *Service) getPatchesForExistingHierarchy(existingHierarchy *billing.SplitLineHierarchy, expectedLine billing.GatheringLine, invoices persistedstate.Invoices) ([]reconciler.Patch, error) {
 	// Parts of the line has been already invoiced using progressive invoicing, so we need to examine the children
 
 	// Nothing to do here, as split lines are UBP lines and thus we don't need the flat fee corrections
@@ -458,7 +459,7 @@ func (s *Service) getPatchesForExistingHierarchy(existingHierarchy *billing.Spli
 		return nil, nil
 	}
 
-	patches := []linePatch{}
+	patches := []reconciler.Patch{}
 
 	// Case #1: The line is being expanded (e.g. continue subscription)
 	if existingHierarchy.Group.ServicePeriod.End.Before(expectedLine.ServicePeriod.To) {
@@ -495,13 +496,13 @@ func (s *Service) getPatchesForExistingHierarchy(existingHierarchy *billing.Spli
 
 				invoiceAtAccessor.SetInvoiceAt(expectedLine.InvoiceAt)
 			}
-			patches = append(patches, newUpdateLinePatch(lastChild))
+			patches = append(patches, reconciler.NewUpdateLinePatch(lastChild))
 		}
 
 		// We have already updated the last child, so we need to update at least the periods regardless of managed_by to keep the consistency
 		updatedGroup := existingHierarchy.Group.ToUpdate()
 		updatedGroup.ServicePeriod.End = expectedLine.ServicePeriod.To
-		patches = append(patches, newUpdateSplitLineGroupPatch(updatedGroup))
+		patches = append(patches, reconciler.NewUpdateSplitLineGroupPatch(updatedGroup))
 
 		return patches, nil
 	}
@@ -516,7 +517,7 @@ func (s *Service) getPatchesForExistingHierarchy(existingHierarchy *billing.Spli
 
 		if child.Line.GetServicePeriod().From.After(expectedLine.ServicePeriod.To) {
 			// The child is after the period shrink, so we need to delete it as it became invalid
-			patches = append(patches, newDeleteLinePatch(child.Line.GetLineID(), child.Line.GetInvoiceID()))
+			patches = append(patches, reconciler.NewDeleteLinePatch(child.Line.GetLineID(), child.Line.GetInvoiceID()))
 			continue
 		}
 
@@ -543,15 +544,15 @@ func (s *Service) getPatchesForExistingHierarchy(existingHierarchy *billing.Spli
 				updatedLine.SetDeletedAt(nil)
 			}
 
-			if !isFlatFee(updatedLine) {
+			if !reconciler.IsFlatFee(updatedLine) {
 				// UBP Empty lines are not allowed, let's delete them instead
 				if updatedLine.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
-					patches = append(patches, newDeleteLinePatch(updatedLine.GetLineID(), updatedLine.GetInvoiceID()))
+					patches = append(patches, reconciler.NewDeleteLinePatch(updatedLine.GetLineID(), updatedLine.GetInvoiceID()))
 					continue
 				}
 			}
 
-			patches = append(patches, newUpdateLinePatch(updatedLine))
+			patches = append(patches, reconciler.NewUpdateLinePatch(updatedLine))
 		}
 	}
 
@@ -560,7 +561,7 @@ func (s *Service) getPatchesForExistingHierarchy(existingHierarchy *billing.Spli
 
 	updatedGroup := existingHierarchy.Group.ToUpdate()
 	updatedGroup.ServicePeriod.End = expectedLine.ServicePeriod.To
-	patches = append(patches, newUpdateSplitLineGroupPatch(updatedGroup))
+	patches = append(patches, reconciler.NewUpdateSplitLineGroupPatch(updatedGroup))
 
 	return patches, nil
 }
