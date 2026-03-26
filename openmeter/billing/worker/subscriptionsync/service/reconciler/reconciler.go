@@ -71,12 +71,7 @@ type ApplyInput struct {
 }
 
 type Plan struct {
-	// SemanticPatches is the target shape for reconciliation. The legacy line buckets remain
-	// in place temporarily while Apply still consumes the older plan format.
 	SemanticPatches                    []SemanticPatch
-	NewSubscriptionItems               []targetstate.SubscriptionItemWithPeriods
-	LinesToDelete                      []billing.LineOrHierarchy
-	LinesToUpsert                      []LineUpsert
 	SubscriptionMaxGenerationTimeLimit time.Time
 }
 
@@ -85,12 +80,7 @@ func (p *Plan) IsEmpty() bool {
 		return true
 	}
 
-	return len(p.SemanticPatches) == 0 && len(p.NewSubscriptionItems) == 0 && len(p.LinesToDelete) == 0 && len(p.LinesToUpsert) == 0
-}
-
-type LineUpsert struct {
-	Target   targetstate.SubscriptionItemWithPeriods
-	Existing billing.LineOrHierarchy
+	return len(p.SemanticPatches) == 0
 }
 
 func (s *Service) diffItem(
@@ -219,33 +209,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 
 	existingLineUniqueIDs := lo.Keys(persisted.ByUniqueID)
 	inScopeLineUniqueIDs := lo.Keys(inScopeLinesByUniqueID)
-	deletedLines, newLines := lo.Difference(existingLineUniqueIDs, inScopeLineUniqueIDs)
-	lineIDsToUpsert := lo.Intersect(existingLineUniqueIDs, inScopeLineUniqueIDs)
-
-	linesToDelete, err := slicesx.MapWithErr(deletedLines, func(id string) (billing.LineOrHierarchy, error) {
-		line, ok := persisted.ByUniqueID[id]
-		if !ok {
-			return billing.LineOrHierarchy{}, fmt.Errorf("existing line[%s] not found in the existing lines", id)
-		}
-		return line, nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("mapping deleted lines: %w", err)
-	}
-
-	linesToUpsert, err := slicesx.MapWithErr(lineIDsToUpsert, func(id string) (LineUpsert, error) {
-		existingLine, ok := persisted.ByUniqueID[id]
-		if !ok {
-			return LineUpsert{}, fmt.Errorf("existing line[%s] not found in the existing lines", id)
-		}
-		return LineUpsert{
-			Target:   inScopeLinesByUniqueID[id],
-			Existing: existingLine,
-		}, nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("mapping upsert lines: %w", err)
-	}
+	deletedLines, _ := lo.Difference(existingLineUniqueIDs, inScopeLineUniqueIDs)
 
 	semanticPatches := make([]SemanticPatch, 0, len(deletedLines)+len(inScopeLineUniqueIDs))
 
@@ -297,11 +261,6 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 		SemanticPatches: lo.Filter(semanticPatches, func(p SemanticPatch, _ int) bool {
 			return p != nil
 		}),
-		NewSubscriptionItems: lo.Map(newLines, func(id string, _ int) targetstate.SubscriptionItemWithPeriods {
-			return inScopeLinesByUniqueID[id]
-		}),
-		LinesToDelete:                      linesToDelete,
-		LinesToUpsert:                      linesToUpsert,
 		SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
 	}, nil
 }
