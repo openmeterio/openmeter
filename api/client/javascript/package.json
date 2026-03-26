@@ -74,7 +74,7 @@
     "openapi-typescript-helpers": "0.1.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.8",
+    "@biomejs/biome": "2.4.9",
     "@fetch-mock/vitest": "0.2.18",
     "@knighted/duel": "4.0.2",
     "@types/node": "25.5.0",
@@ -82,18 +82,18 @@
     "@types/react": "19.2.14",
     "fetch-mock": "12.6.0",
     "openapi-typescript": "7.13.0",
-    "orval": "8.5.3",
+    "orval": "8.6.2",
     "prettier": "3.8.1",
     "react": "19.2.4",
-    "rollup": "4.59.0",
+    "rollup": "4.60.0",
     "ts-morph": "27.0.2",
     "tslib": "2.8.1",
     "tsx": "4.21.0",
     "typescript": "5.9.3",
-    "vitest": "4.1.0",
+    "vitest": "4.1.2",
     "zod": "4.3.6"
   },
-  "packageManager": "pnpm@10.17.1+sha512.17c560fca4867ae9473a3899ad84a88334914f379be46d455cbf92e5cf4b39d34985d452d2583baf19967fa76cb5c17bc9e245529d0b98745721aa7200ecaf7a",
+  "packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319",
   "peerDependencies": {
     "react": ">=18.0.0"
   },
@@ -107,8 +107,9 @@
     },
     "overrides": {
       "@isaacs/brace-expansion@<=5.0.0": ">=5.0.1",
-      "minimatch@>=10.0.0 <10.2.1": ">=10.2.1",
-      "minimatch@>=10.0.0 <10.2.3": ">=10.2.3"
+      "minimatch@>=10.0.0 <10.2.3": ">=10.2.3",
+      "picomatch@>=4.0.0 <4.0.4": ">=4.0.4",
+      "brace-expansion@<5.0.5": ">=5.0.5"
     }
   }
 }
