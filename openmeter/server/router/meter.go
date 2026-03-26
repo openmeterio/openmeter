@@ -58,9 +58,15 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 }
 
 // POST /api/v1/meters/{meterIdOrSlug}/query
-func (a *Router) QueryMeterPost(w http.ResponseWriter, r *http.Request, meterIDOrSlug string, params api.QueryMeterPostParams) {
+func (a *Router) QueryMeterPost(w http.ResponseWriter, r *http.Request, meterIDOrSlug string) {
+	// Get media type
+	mediatype, err := commonhttp.GetMediaType(r)
+	if err != nil {
+		a.config.Logger.DebugContext(r.Context(), "invalid media type", "error", err)
+	}
+
 	// CSV
-	if params.Accept != nil && *params.Accept == api.QueryMeterPostParamsAcceptTextcsv {
+	if mediatype == "text/csv" {
 		a.meterHandler.QueryMeterPostCSV().With(meterIDOrSlug).ServeHTTP(w, r)
 		return
 	}

@@ -4,7 +4,7 @@ from collections.abc import MutableMapping
 import datetime
 from io import IOBase
 import json
-from typing import Any, Callable, IO, Literal, Optional, TYPE_CHECKING, TypeVar, Union, overload
+from typing import Any, Callable, IO, Optional, TYPE_CHECKING, TypeVar, Union, overload
 
 from corehttp.exceptions import (
     ClientAuthenticationError,
@@ -11579,11 +11579,10 @@ class MetersOperations:
         if cls:
             return cls(pipeline_response, None, {})  # type: ignore
 
-    async def query_json(  # pylint: disable=too-many-locals
+    async def query_json(
         self,
         meter_id_or_slug: str,
         *,
-        accept: Literal["application/json"] = "application/json",
         client_id: Optional[str] = None,
         from_parameter: Optional[datetime.datetime] = None,
         to: Optional[datetime.datetime] = None,
@@ -11602,9 +11601,6 @@ class MetersOperations:
 
         :param meter_id_or_slug: Required.
         :type meter_id_or_slug: str
-        :keyword accept: Known values are "application/json" and None. Default value is
-         "application/json".
-        :paramtype accept: str
         :keyword client_id: Client ID
          Useful to track progress of a query. Default value is None.
         :paramtype client_id: str
@@ -11673,7 +11669,6 @@ class MetersOperations:
 
         _request = build_meters_query_json_request(
             meter_id_or_slug=meter_id_or_slug,
-            accept=accept,
             client_id=client_id,
             from_parameter=from_parameter,
             to=to,
@@ -11742,11 +11737,10 @@ class MetersOperations:
 
         return deserialized  # type: ignore
 
-    async def query_csv(  # pylint: disable=too-many-locals
+    async def query_csv(
         self,
         meter_id_or_slug: str,
         *,
-        accept: Literal["text/csv"] = "text/csv",
         client_id: Optional[str] = None,
         from_parameter: Optional[datetime.datetime] = None,
         to: Optional[datetime.datetime] = None,
@@ -11763,8 +11757,6 @@ class MetersOperations:
 
         :param meter_id_or_slug: Required.
         :type meter_id_or_slug: str
-        :keyword accept: Known values are "text/csv" and None. Default value is "text/csv".
-        :paramtype accept: str
         :keyword client_id: Client ID
          Useful to track progress of a query. Default value is None.
         :paramtype client_id: str
@@ -11833,7 +11825,6 @@ class MetersOperations:
 
         _request = build_meters_query_csv_request(
             meter_id_or_slug=meter_id_or_slug,
-            accept=accept,
             client_id=client_id,
             from_parameter=from_parameter,
             to=to,
@@ -11908,7 +11899,6 @@ class MetersOperations:
         meter_id_or_slug: str,
         request: _models.MeterQueryRequest,
         *,
-        accept: Literal["application/json"] = "application/json",
         content_type: str = "application/json",
         **kwargs: Any
     ) -> _models.MeterQueryResult:
@@ -11920,9 +11910,6 @@ class MetersOperations:
         :type meter_id_or_slug: str
         :param request: Required.
         :type request: ~openmeter._generated.models.MeterQueryRequest
-        :keyword accept: Known values are "application/json" and None. Default value is
-         "application/json".
-        :paramtype accept: str
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -11933,13 +11920,7 @@ class MetersOperations:
 
     @overload
     async def query(
-        self,
-        meter_id_or_slug: str,
-        request: JSON,
-        *,
-        accept: Literal["application/json"] = "application/json",
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, meter_id_or_slug: str, request: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.MeterQueryResult:
         """Query meter.
 
@@ -11949,9 +11930,6 @@ class MetersOperations:
         :type meter_id_or_slug: str
         :param request: Required.
         :type request: JSON
-        :keyword accept: Known values are "application/json" and None. Default value is
-         "application/json".
-        :paramtype accept: str
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -11962,13 +11940,7 @@ class MetersOperations:
 
     @overload
     async def query(
-        self,
-        meter_id_or_slug: str,
-        request: IO[bytes],
-        *,
-        accept: Literal["application/json"] = "application/json",
-        content_type: str = "application/json",
-        **kwargs: Any
+        self, meter_id_or_slug: str, request: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> _models.MeterQueryResult:
         """Query meter.
 
@@ -11978,9 +11950,6 @@ class MetersOperations:
         :type meter_id_or_slug: str
         :param request: Required.
         :type request: IO[bytes]
-        :keyword accept: Known values are "application/json" and None. Default value is
-         "application/json".
-        :paramtype accept: str
         :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
          Default value is "application/json".
         :paramtype content_type: str
@@ -11990,12 +11959,7 @@ class MetersOperations:
         """
 
     async def query(
-        self,
-        meter_id_or_slug: str,
-        request: Union[_models.MeterQueryRequest, JSON, IO[bytes]],
-        *,
-        accept: Literal["application/json"] = "application/json",
-        **kwargs: Any
+        self, meter_id_or_slug: str, request: Union[_models.MeterQueryRequest, JSON, IO[bytes]], **kwargs: Any
     ) -> _models.MeterQueryResult:
         """Query meter.
 
@@ -12005,9 +11969,6 @@ class MetersOperations:
         :type meter_id_or_slug: str
         :param request: Is one of the following types: MeterQueryRequest, JSON, IO[bytes] Required.
         :type request: ~openmeter._generated.models.MeterQueryRequest or JSON or IO[bytes]
-        :keyword accept: Known values are "application/json" and None. Default value is
-         "application/json".
-        :paramtype accept: str
         :return: MeterQueryResult. The MeterQueryResult is compatible with MutableMapping
         :rtype: ~openmeter._generated.models.MeterQueryResult
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -12033,7 +11994,6 @@ class MetersOperations:
 
         _request = build_meters_query_request(
             meter_id_or_slug=meter_id_or_slug,
-            accept=accept,
             content_type=content_type,
             content=_content,
             headers=_headers,
@@ -12094,15 +12054,11 @@ class MetersOperations:
 
         return deserialized  # type: ignore
 
-    async def query_csv_post(
-        self, meter_id_or_slug: str, *, accept: Literal["text/csv"] = "text/csv", **kwargs: Any
-    ) -> str:
+    async def query_csv_post(self, meter_id_or_slug: str, **kwargs: Any) -> str:
         """query_csv_post.
 
         :param meter_id_or_slug: Required.
         :type meter_id_or_slug: str
-        :keyword accept: Known values are "text/csv" and None. Default value is "text/csv".
-        :paramtype accept: str
         :return: str
         :rtype: str
         :raises ~corehttp.exceptions.HttpResponseError:
@@ -12120,7 +12076,6 @@ class MetersOperations:
 
         _request = build_meters_query_csv_post_request(
             meter_id_or_slug=meter_id_or_slug,
-            accept=accept,
             headers=_headers,
             params=_params,
         )
