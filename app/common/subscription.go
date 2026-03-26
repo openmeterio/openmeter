@@ -25,6 +25,7 @@ import (
 	subscriptioncustomer "github.com/openmeterio/openmeter/openmeter/subscription/validators/customer"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	subscriptionworkflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/ffx"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
@@ -54,6 +55,7 @@ func NewSubscriptionServices(
 	eventPublisher eventbus.Publisher,
 	lockr *lockr.Locker,
 	featureFlags ffx.Service,
+	taxCodeService taxcode.Service,
 ) (SubscriptionServiceWithWorkflow, error) {
 	subscriptionRepo := subscriptionrepo.NewSubscriptionRepo(db)
 	subscriptionPhaseRepo := subscriptionrepo.NewSubscriptionPhaseRepo(db)
@@ -76,6 +78,7 @@ func NewSubscriptionServices(
 		Publisher:             eventPublisher,
 		FeatureFlags:          featureFlags,
 		Lockr:                 lockr,
+		TaxCode:               taxCodeService,
 	})
 	if err != nil {
 		return SubscriptionServiceWithWorkflow{}, err
