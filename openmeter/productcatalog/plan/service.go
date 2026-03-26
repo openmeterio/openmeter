@@ -123,6 +123,12 @@ func (i CreatePlanInput) Validate() error {
 		errs = append(errs, fmt.Errorf("invalid plan: %w", err))
 	}
 
+	if i.SettlementMode != "" {
+		if err := i.SettlementMode.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid settlement mode: %w", err))
+		}
+	}
+
 	issues, err := models.AsValidationIssues(errors.Join(errs...))
 	if err != nil {
 		return models.NewGenericValidationError(err)
@@ -248,6 +254,14 @@ func (i UpdatePlanInput) Validate() error {
 			if err := phase.Validate(); err != nil {
 				errs = append(errs, fmt.Errorf("invalid plan phase: %w", err))
 			}
+		}
+	}
+
+	if i.SettlementMode != nil {
+		if *i.SettlementMode == "" {
+			errs = append(errs, fmt.Errorf("settlement mode is required"))
+		} else if err := i.SettlementMode.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid settlement mode: %w", err))
 		}
 	}
 

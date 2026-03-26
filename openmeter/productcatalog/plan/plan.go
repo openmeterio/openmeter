@@ -40,6 +40,7 @@ func (p Plan) Validate() error {
 	return p.ValidateWith(
 		ValidatePlanMeta(),
 		ValidatePlanPhases(),
+		ValidateSettlementMode(),
 	)
 }
 
