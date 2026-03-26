@@ -303,26 +303,38 @@ func TestDeduplicateSourcePrices(t *testing.T) {
 		assert.Equal(t, "GPT-4", result[0].ModelName)
 	})
 
-	t.Run("keeps first entry when both have clean names", func(t *testing.T) {
+	t.Run("deterministic tie-breaker when both have clean names", func(t *testing.T) {
 		p1 := makePrice("source_a", "openai", "gpt-4", 0.01, 0.03)
-		p1.ModelName = "GPT-4"
+		p1.ModelName = "GPT-4 Turbo"
 
 		p2 := makePrice("source_a", "openai", "gpt-4", 0.0101, 0.0301)
-		p2.ModelName = "GPT-4 Turbo"
+		p2.ModelName = "GPT-4"
 
+		// Second entry has lexicographically smaller name — should win regardless of input order
 		result := deduplicateSourcePrices([]llmcost.SourcePrice{p1, p2})
+		require.Len(t, result, 1)
+		assert.Equal(t, "GPT-4", result[0].ModelName)
+
+		// Reverse input order — same winner
+		result = deduplicateSourcePrices([]llmcost.SourcePrice{p2, p1})
 		require.Len(t, result, 1)
 		assert.Equal(t, "GPT-4", result[0].ModelName)
 	})
 
-	t.Run("keeps first entry when both have prefixed names", func(t *testing.T) {
+	t.Run("deterministic tie-breaker when both have prefixed names", func(t *testing.T) {
 		p1 := makePrice("source_a", "openai", "gpt-4", 0.01, 0.03)
-		p1.ModelName = "azure/gpt-4"
+		p1.ModelName = "azure_ai/gpt-4"
 
 		p2 := makePrice("source_a", "openai", "gpt-4", 0.0101, 0.0301)
-		p2.ModelName = "azure_ai/gpt-4"
+		p2.ModelName = "azure/gpt-4"
 
+		// Second entry has lexicographically smaller name — should win regardless of input order
 		result := deduplicateSourcePrices([]llmcost.SourcePrice{p1, p2})
+		require.Len(t, result, 1)
+		assert.Equal(t, "azure/gpt-4", result[0].ModelName)
+
+		// Reverse input order — same winner
+		result = deduplicateSourcePrices([]llmcost.SourcePrice{p2, p1})
 		require.Len(t, result, 1)
 		assert.Equal(t, "azure/gpt-4", result[0].ModelName)
 	})

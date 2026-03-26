@@ -104,8 +104,14 @@ func deduplicateSourcePrices(prices []llmcost.SourcePrice) []llmcost.SourcePrice
 		key := sourceModelKey{Source: p.Source, Provider: string(p.Provider), ModelID: p.ModelID}
 
 		if idx, exists := seen[key]; exists {
-			// Replace if the new entry has a better model name (no provider prefix)
-			if strings.Contains(result[idx].ModelName, "/") && !strings.Contains(p.ModelName, "/") {
+			existing := result[idx]
+			existingHasPrefix := strings.Contains(existing.ModelName, "/")
+			newHasPrefix := strings.Contains(p.ModelName, "/")
+
+			// Prefer entries without a provider prefix (e.g., "GPT-4o" over "azure/gpt-4o").
+			// When both have the same prefix status, use lexicographic order as a deterministic tie-breaker.
+			if existingHasPrefix && !newHasPrefix ||
+				existingHasPrefix == newHasPrefix && p.ModelName < existing.ModelName {
 				result[idx] = p
 			}
 
