@@ -17,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type Reconciler interface {
@@ -92,106 +91,6 @@ func (p *Plan) IsEmpty() bool {
 type LineUpsert struct {
 	Target   targetstate.SubscriptionItemWithPeriods
 	Existing billing.LineOrHierarchy
-}
-
-type SemanticPatchOperation string
-
-const (
-	SemanticPatchOperationCreate  SemanticPatchOperation = "create"
-	SemanticPatchOperationDelete  SemanticPatchOperation = "delete"
-	SemanticPatchOperationShrink  SemanticPatchOperation = "shrink"
-	SemanticPatchOperationExtend  SemanticPatchOperation = "extend"
-	SemanticPatchOperationProrate SemanticPatchOperation = "prorate"
-)
-
-type SemanticPatch interface {
-	semanticPatch()
-	Operation() SemanticPatchOperation
-	UniqueReferenceID() string
-}
-
-type CreatePatch struct {
-	UniqueID string
-	Target   targetstate.SubscriptionItemWithPeriods
-}
-
-func (CreatePatch) semanticPatch() {}
-
-func (p CreatePatch) Operation() SemanticPatchOperation {
-	return SemanticPatchOperationCreate
-}
-
-func (p CreatePatch) UniqueReferenceID() string {
-	return p.UniqueID
-}
-
-type DeletePatch struct {
-	UniqueID string
-	Existing billing.LineOrHierarchy
-}
-
-func (DeletePatch) semanticPatch() {}
-
-func (p DeletePatch) Operation() SemanticPatchOperation {
-	return SemanticPatchOperationDelete
-}
-
-func (p DeletePatch) UniqueReferenceID() string {
-	return p.UniqueID
-}
-
-type ShrinkPatch struct {
-	UniqueID string
-	Existing billing.LineOrHierarchy
-	Target   targetstate.SubscriptionItemWithPeriods
-}
-
-func (ShrinkPatch) semanticPatch() {}
-
-func (p ShrinkPatch) Operation() SemanticPatchOperation {
-	return SemanticPatchOperationShrink
-}
-
-func (p ShrinkPatch) UniqueReferenceID() string {
-	return p.UniqueID
-}
-
-type ExtendPatch struct {
-	UniqueID string
-	Existing billing.LineOrHierarchy
-	Target   targetstate.SubscriptionItemWithPeriods
-}
-
-func (ExtendPatch) semanticPatch() {}
-
-func (p ExtendPatch) Operation() SemanticPatchOperation {
-	return SemanticPatchOperationExtend
-}
-
-func (p ExtendPatch) UniqueReferenceID() string {
-	return p.UniqueID
-}
-
-type ProratePatch struct {
-	UniqueID string
-	Existing billing.LineOrHierarchy
-	Target   targetstate.SubscriptionItemWithPeriods
-
-	OriginalPeriod timeutil.ClosedPeriod
-	TargetPeriod   timeutil.ClosedPeriod
-
-	OriginalAmount alpacadecimal.Decimal
-	TargetAmount   alpacadecimal.Decimal
-}
-
-func (ProratePatch) semanticPatch() {}
-
-func (p ProratePatch) Operation() SemanticPatchOperation {
-	return SemanticPatchOperationProrate
-}
-
-func (p ProratePatch) UniqueReferenceID() string {
-	return p.UniqueID
 }
 
 func (s *Service) diffItem(
