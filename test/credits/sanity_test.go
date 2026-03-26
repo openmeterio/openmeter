@@ -65,6 +65,11 @@ func (s *CreditsTestSuite) SetupSuite() {
 	})
 	s.NoError(err)
 
+	locker, err := lockr.NewLocker(&lockr.LockerConfig{
+		Logger: slog.Default(),
+	})
+	s.NoError(err)
+
 	flatFeeAdapter, err := flatfeeadapter.New(flatfeeadapter.Config{
 		Client:      s.DBClient,
 		Logger:      slog.Default(),
@@ -76,6 +81,7 @@ func (s *CreditsTestSuite) SetupSuite() {
 		Adapter:     flatFeeAdapter,
 		Handler:     s.Ledger,
 		MetaAdapter: metaAdapter,
+		Locker:      locker,
 	})
 	s.NoError(err)
 
@@ -83,11 +89,6 @@ func (s *CreditsTestSuite) SetupSuite() {
 		Client:      s.DBClient,
 		Logger:      slog.Default(),
 		MetaAdapter: metaAdapter,
-	})
-	s.NoError(err)
-
-	locker, err := lockr.NewLocker(&lockr.LockerConfig{
-		Logger: slog.Default(),
 	})
 	s.NoError(err)
 

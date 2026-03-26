@@ -18,6 +18,7 @@ type Service interface {
 type FlatFeeService interface {
 	Create(ctx context.Context, input CreateInput) ([]ChargeWithGatheringLine, error)
 	GetByIDs(ctx context.Context, input GetByIDsInput) ([]Charge, error)
+	AdvanceCharge(ctx context.Context, input AdvanceChargeInput) (*Charge, error)
 }
 
 type InvoiceLifecycleHooks interface {
@@ -74,4 +75,12 @@ func (i GetByMetasInput) Validate() error {
 	}
 
 	return errors.Join(errs...)
+}
+
+type AdvanceChargeInput struct {
+	ChargeID meta.ChargeID
+}
+
+func (i AdvanceChargeInput) Validate() error {
+	return i.ChargeID.Validate()
 }

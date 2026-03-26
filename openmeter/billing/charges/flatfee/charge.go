@@ -120,6 +120,7 @@ func (c Charge) ErrorAttributes() models.Attributes {
 }
 
 type State struct {
+	AdvanceAfter       *time.Time                     `json:"advanceAfter,omitempty"`
 	CreditRealizations creditrealization.Realizations `json:"creditRealizations"`
 	AccruedUsage       *invoicedusage.AccruedUsage    `json:"accruedUsage"`
 	Payment            *payment.Invoiced              `json:"payment"`
@@ -143,6 +144,12 @@ func (s State) Validate() error {
 	if s.AccruedUsage != nil {
 		if err := s.AccruedUsage.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("accrued usage[id=%s]: %w", s.AccruedUsage.ID, err))
+		}
+	}
+
+	if s.AdvanceAfter != nil {
+		if s.AdvanceAfter.IsZero() {
+			errs = append(errs, fmt.Errorf("advance after is required"))
 		}
 	}
 

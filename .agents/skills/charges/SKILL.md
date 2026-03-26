@@ -9,7 +9,7 @@ allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent
 
 Guidance for working with OpenMeter billing charges.
 
-This skill describes the charges package generically, but most lifecycle detail currently lives in the usage-based branch. Ignore inconsistencies or patterns from the flat-fee and credit-purchase branches unless the user explicitly asks to unify behavior across charge types.
+This skill describes the charges package generically. Lifecycle state machines exist for both usage-based and flat-fee credit-only branches. The credit-purchase branch follows a different pattern.
 
 ## Scope
 
@@ -22,6 +22,9 @@ Primary packages:
 - `openmeter/billing/charges/usagebased/`
 - `openmeter/billing/charges/usagebased/service/`
 - `openmeter/billing/charges/usagebased/adapter/`
+- `openmeter/billing/charges/flatfee/`
+- `openmeter/billing/charges/flatfee/service/`
+- `openmeter/billing/charges/flatfee/adapter/`
 - `openmeter/billing/charges/service/invoicable_test.go`
 - `openmeter/billing/charges/service/advance_test.go`
 
@@ -65,14 +68,11 @@ Important types:
 
 ## Supported Behavior
 
-Current support is intentionally narrow:
-
-- `charges.AdvanceCharges(...)` currently only advances usage-based charges
+- `charges.AdvanceCharges(...)` advances both usage-based and flat-fee credit-only charges
 - `usagebased.Service.AdvanceCharge(...)` only supports `CreditOnly`
+- `flatfee.Service.AdvanceCharge(...)` only supports `CreditOnly`
 - `CreditThenInvoice` usage-based advance is deliberately rejected with a not-implemented error
-- `AdvanceCharge(...)` returns `*usagebased.Charge`
-  - `nil` means no advancement happened
-  - non-`nil` means at least one state transition occurred
+- Both `AdvanceCharge(...)` methods return `*Charge` (nil means noop, non-nil means at least one transition)
 
 ## Create + Auto-Advance Flow
 
@@ -82,30 +82,29 @@ Current support is intentionally narrow:
 2. **Post-create auto-advance** — `autoAdvanceCreatedCharges(...)` runs outside the transaction so that creation is persisted even if advancing fails (a worker can retry later)
 
 `autoAdvanceCreatedCharges(...)` (`charges/service/create.go`):
-- Iterates over the created charges directly by type (no `chargesByType` helper)
-- Collects unique customer IDs that have credit-only usage-based charges
+- Iterates over the created charges using a type switch (`ChargeTypeUsageBased`, `ChargeTypeFlatFee`)
+- Collects unique customer IDs that have credit-only charges of either type
 - Calls `s.AdvanceCharges(...)` (the facade) once per unique customer
 - Merges advanced charges back into the result by charge ID
 
-This means a newly created credit-only usage-based charge that is eligible for immediate activation will be returned as `active` (or further along) from `Create(...)` itself.
+This means a newly created credit-only charge (usage-based or flat fee) that is eligible for immediate activation will be returned as `active` (or `final`) from `Create(...)` itself.
 
 ## Root Charges Advance Flow
 
-The current root-facade advance flow is:
+The root-facade advance flow is:
 
 1. `charges.AdvanceCharges(...)` lists non-final charge metas for the customer
-2. It filters to `meta.ChargeTypeUsageBased`
-3. It resolves the merged customer profile with expanded customer details
-4. It loads usage-based charges with realizations expanded
-5. It resolves feature meters once per batch
-6. It calls `usagebased.Service.AdvanceCharge(...)` per charge
+2. It partitions charges by type using `chargesByType(...)`
+3. Early return if no usage-based and no flat-fee charges
+4. For flat-fee credit-only charges: calls `flatfee.Service.AdvanceCharge(...)` per charge (no customer override or feature meters needed)
+5. For usage-based charges: resolves merged customer profile, feature meters, then calls `usagebased.Service.AdvanceCharge(...)` per charge
 
 Key package responsibilities:
 
 - `charges/service/advance.go`
   - customer-scoped orchestration
-  - preloads customer/profile + feature context
-  - skips unsupported charge types for now
+  - preloads customer/profile + feature context for usage-based only
+  - flat-fee credit-only charges are self-contained (fixed amount, no meters)
 - `charges/meta/adapter`
   - lists non-final charges for a customer
 - `charges/lock`
@@ -162,6 +161,42 @@ High-level transitions:
    - clears `AdvanceAfter`
 
 `AdvanceUntilStateStable(...)` loops until the machine can no longer fire `TriggerNext`.
+
+## Flat Fee Credits-Only State Machine
+
+The flat fee credits-only lifecycle is implemented in `flatfee/service/creditsonly.go` and `flatfee/service/triggers.go`. Types are in `flatfee/statemachine.go`.
+
+Statuses (much simpler than usage-based — no collection period):
+
+- `created`
+- `active`
+- `final`
+
+Transitions:
+
+1. `created -> active`
+   - guarded by `IsAfterInvoiceAt()` (`clock.Now() >= charge.Intent.InvoiceAt`)
+   - sets `AdvanceAfter` to `InvoiceAt` while waiting
+2. `active -> final`
+   - unconditional (fires immediately after `active`)
+   - `AllocateCredits(...)` calls `handler.OnCreditsOnlyUsageAccrued(...)` with `AmountAfterProration`
+   - validates credit allocations sum equals amount
+   - persists credit realizations via `adapter.CreateCreditAllocations(...)`
+   - clears `AdvanceAfter` on entering `final`
+
+Key differences from usage-based credits-only:
+
+- No collection period, no two-phase realization
+- Amount is pre-determined (`AmountAfterProration`), no meter snapshot or rating
+- No `FeatureMeter` or `CustomerOverride` needed
+- Uses `meta.ChargeStatus` directly (not sub-statuses like `active.final_realization.*`)
+- The flat fee adapter's `UpdateCharge(...)` takes a full `flatfee.Charge` (not `ChargeBase`)
+
+Service construction requires a `*lockr.Locker` (same as usage-based).
+
+Handler interface: `OnCreditsOnlyUsageAccrued(ctx, OnCreditsOnlyUsageAccruedInput)` returns `[]creditrealization.CreateInput`. The production implementation in `ledger/chargeadapter/flatfee.go` is stubbed as not-implemented; the test handler is in `charges/service/handlers_test.go`.
+
+Flat fee credit-only charges start with `InitialStatus: meta.ChargeStatusCreated` (not `Active`). The invoiced path still starts as `Active`.
 
 ## Collection Period Semantics
 
@@ -245,7 +280,9 @@ Use these conventions for lifecycle tests:
 - use `streaming/testutils.WithStoredAt(...)` to simulate late events
 - prefer `clock.FreezeTime(...)` for exact `AsOf` / `AllocateAt` assertions
 - rely on the default billing profile unless the test explicitly needs customer-specific override behavior
-- for credit-only usage-based charges, `Create(...)` itself may return an already-advanced charge — assert the returned charge's status, do not assume it will be `created`
+- for credit-only charges (usage-based or flat fee), `Create(...)` itself may return an already-advanced charge — assert the returned charge's status, do not assume it will be `created`
+- for flat fee credit-only tests, use `mustAdvanceFlatFeeCharges(...)` helper — it filters the advance result to flat fee charges only
+- flat fee credit-only handler callbacks (`onCreditsOnlyUsageAccrued`) must return credit allocations that sum to the input `AmountToAllocate`
 
 Test suite teardown:
 
@@ -276,7 +313,7 @@ When changing charges:
   - meta queries
   - charge locking
   - a type-specific package
-- preserve the current root rule that `AdvanceCharges(...)` only advances supported types
+- preserve the current root rule that `AdvanceCharges(...)` only advances supported types (usage-based and flat-fee credit-only)
 - keep meta status and type-specific status in sync
 
 When changing usage-based charges:
@@ -287,7 +324,15 @@ When changing usage-based charges:
 - keep `CollectionEnd` persisted on realization runs
 - keep the `stored_at < cutoff` behavior explicit in tests
 - update lifecycle tests if late-event visibility changes
-- ignore flat-fee and credit-purchase design differences unless the user explicitly asks to unify them
+When changing flat-fee charges:
+
+- the invoiced path (CreditThenInvoice/InvoiceOnly) starts as `Active` and is driven by invoice lifecycle hooks
+- the credit-only path starts as `Created` and is driven by the state machine — do not mix the two
+- `flatfee.State.AdvanceAfter` must be passed through `chargemeta.UpdateInput.AdvanceAfter` on every `UpdateCharge(...)` call
+- `flatfee.Adapter.UpdateCharge(...)` takes the full `flatfee.Charge`, not a `ChargeBase` — extract `State.AdvanceAfter` when building `chargemeta.UpdateInput`
+- the `flatfee.Handler` interface has both invoiced-path methods and credits-only methods — implementors must satisfy all of them
+- adding new `Handler` methods requires updating: `ledger/chargeadapter/flatfee.go`, `test/credits/mockledger.go`, `charges/service/handlers_test.go`
+- `flatfee/service/service.go` Config requires a `*lockr.Locker` — when constructing in tests, create the locker before the flat fee service
 
 ## Adapter Gotchas
 
