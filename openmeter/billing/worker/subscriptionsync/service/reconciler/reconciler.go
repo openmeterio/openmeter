@@ -316,7 +316,7 @@ func (s *Service) Apply(ctx context.Context, input ApplyInput) error {
 	invoiceUpdater := invoiceupdater.New(s.billingService, s.logger)
 
 	if input.DryRun {
-		invoiceUpdater.LogPatches(invoicePatches)
+		invoiceUpdater.LogPatches(invoicePatches, input.Invoices.ByID)
 		return nil
 	}
 

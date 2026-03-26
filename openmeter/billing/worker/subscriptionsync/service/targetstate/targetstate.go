@@ -179,6 +179,13 @@ func (b Builder) correctPeriodStartForUpcomingLines(ctx context.Context, subscri
 		}
 
 		previousServicePeriod := existingPreviousLine.ServicePeriod()
+		// The iterator output is already normalized to meter resolution, but this
+		// continuity correction reuses a boundary from persisted state. Historical
+		// rows can carry sub-second precision that the meter engine cannot query, so
+		// we must normalize the carried-over boundary before writing it back into the
+		// target state or sync will keep proposing no-op timestamp repairs.
+		// TODO: Add a migration to normalize existing billing timestamps to the precision
+		// supported by meter queries.
 		continuousStart := previousServicePeriod.To.Truncate(streaming.MinimumWindowSizeDuration)
 		if line.ServicePeriod.Start.Equal(continuousStart) {
 			continue

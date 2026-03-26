@@ -88,10 +88,62 @@ func (u *Updater) ApplyPatches(ctx context.Context, customerID customer.Customer
 	return nil
 }
 
-func (u *Updater) LogPatches(patches []Patch) {
+func (u *Updater) LogPatches(patches []Patch, invoicesByID map[string]billing.Invoice) {
+	suppressedImmutableInvoicePatches := 0
+
 	for _, patch := range patches {
+		if !isDryRunMutableInvoicePatch(patch, invoicesByID) {
+			suppressedImmutableInvoicePatches++
+			continue
+		}
+
 		patch.Log(u.logger)
 	}
+
+	if suppressedImmutableInvoicePatches > 0 {
+		u.logger.Info("suppressed immutable invoice patches in dry run", "count", suppressedImmutableInvoicePatches)
+	}
+}
+
+func isDryRunMutableInvoicePatch(patch Patch, invoicesByID map[string]billing.Invoice) bool {
+	switch patch.Op() {
+	case PatchOpLineCreate, PatchOpSplitLineGroupDelete, PatchOpSplitLineGroupUpdate:
+		return true
+	case PatchOpLineDelete:
+		deletePatch, err := patch.AsDeleteLinePatch()
+		if err != nil {
+			return true
+		}
+
+		return isMutableInvoice(deletePatch.InvoiceID, invoicesByID)
+	case PatchOpLineUpdate:
+		updatePatch, err := patch.AsUpdateLinePatch()
+		if err != nil {
+			return true
+		}
+
+		return isMutableInvoice(updatePatch.TargetState.GetInvoiceID(), invoicesByID)
+	default:
+		return true
+	}
+}
+
+func isMutableInvoice(invoiceID string, invoicesByID map[string]billing.Invoice) bool {
+	invoice, ok := invoicesByID[invoiceID]
+	if !ok {
+		return true
+	}
+
+	if invoice.Type() == billing.InvoiceTypeGathering {
+		return true
+	}
+
+	standardInvoice, err := invoice.AsStandardInvoice()
+	if err != nil {
+		return true
+	}
+
+	return !standardInvoice.StatusDetails.Immutable
 }
 
 type patchesParsed struct {
