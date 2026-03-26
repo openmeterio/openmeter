@@ -137,7 +137,7 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 			}
 
 			// Calculate per line patches
-			linesDiff, err := s.compareSubscriptionWithExistingLines(ctx, subs, asOf)
+			linesDiff, err := s.buildSyncPlan(ctx, subs, asOf)
 			if err != nil {
 				return err
 			}
@@ -238,102 +238,6 @@ func (s *Service) updateSyncState(ctx context.Context, in updateSyncStateInput) 
 	})
 }
 
-type subscriptionSyncPlan struct {
-	NewSubscriptionItems               []targetstate.SubscriptionItemWithPeriods
-	LinesToDelete                      []billing.LineOrHierarchy
-	LinesToUpsert                      []subscriptionSyncPlanLineUpsert
-	SubscriptionMaxGenerationTimeLimit time.Time
-}
-
-func (s *subscriptionSyncPlan) IsEmpty() bool {
-	if s == nil {
-		return true
-	}
-
-	return len(s.NewSubscriptionItems) == 0 && len(s.LinesToDelete) == 0 && len(s.LinesToUpsert) == 0
-}
-
-type subscriptionSyncPlanLineUpsert struct {
-	Target   targetstate.SubscriptionItemWithPeriods
-	Existing billing.LineOrHierarchy
-}
-
-// calculateSyncPlan calculates the sync plan for the subscription, it returns the lines to delete, the lines to upsert and the new subscription items.
-func (s *Service) compareSubscriptionWithExistingLines(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) (*subscriptionSyncPlan, error) {
-	span := tracex.Start[*subscriptionSyncPlan](ctx, s.tracer, "billing.worker.subscription.sync.compareSubscriptionWithExistingLines")
-
-	return span.Wrap(func(ctx context.Context) (*subscriptionSyncPlan, error) {
-		persistedLoader := persistedstate.NewLoader(s.billingService)
-		persisted, err := persistedLoader.LoadForSubscription(ctx, subs)
-		if err != nil {
-			return nil, err
-		}
-
-		targetBuilder := targetstate.NewBuilder(s.logger, s.tracer)
-		target, err := targetBuilder.Build(ctx, subs, asOf, persisted)
-		if err != nil {
-			return nil, err
-		}
-
-		inScopeLines := target.Items
-
-		if len(inScopeLines) == 0 && len(persisted.Lines) == 0 {
-			return &subscriptionSyncPlan{
-				SubscriptionMaxGenerationTimeLimit: target.MaxGenerationTimeLimit,
-			}, nil
-		}
-
-		inScopeLinesByUniqueID, unique := slicesx.UniqueGroupBy(inScopeLines, func(i targetstate.SubscriptionItemWithPeriods) string {
-			return i.UniqueID
-		})
-		if !unique {
-			return nil, fmt.Errorf("duplicate unique ids in the upcoming lines")
-		}
-
-		existingLineUniqueIDs := lo.Keys(persisted.ByUniqueID)
-		inScopeLineUniqueIDs := lo.Keys(inScopeLinesByUniqueID)
-		// Let's execute the synchronization
-		deletedLines, newLines := lo.Difference(existingLineUniqueIDs, inScopeLineUniqueIDs)
-		lineIDsToUpsert := lo.Intersect(existingLineUniqueIDs, inScopeLineUniqueIDs)
-
-		linesToDelete, err := slicesx.MapWithErr(deletedLines, func(id string) (billing.LineOrHierarchy, error) {
-			line, ok := persisted.ByUniqueID[id]
-			if !ok {
-				return billing.LineOrHierarchy{}, fmt.Errorf("existing line[%s] not found in the existing lines", id)
-			}
-
-			return line, nil
-		})
-		if err != nil {
-			return nil, fmt.Errorf("mapping deleted lines: %w", err)
-		}
-
-		linesToUpsert, err := slicesx.MapWithErr(lineIDsToUpsert, func(id string) (subscriptionSyncPlanLineUpsert, error) {
-			existingLine, ok := persisted.ByUniqueID[id]
-			if !ok {
-				return subscriptionSyncPlanLineUpsert{}, fmt.Errorf("existing line[%s] not found in the existing lines", id)
-			}
-
-			return subscriptionSyncPlanLineUpsert{
-				Target:   inScopeLinesByUniqueID[id],
-				Existing: existingLine,
-			}, nil
-		})
-		if err != nil {
-			return nil, fmt.Errorf("mapping upsert lines: %w", err)
-		}
-
-		return &subscriptionSyncPlan{
-			NewSubscriptionItems: lo.Map(newLines, func(id string, _ int) targetstate.SubscriptionItemWithPeriods {
-				return inScopeLinesByUniqueID[id]
-			}),
-			LinesToDelete:                      linesToDelete,
-			LinesToUpsert:                      linesToUpsert,
-			SubscriptionMaxGenerationTimeLimit: target.MaxGenerationTimeLimit,
-		}, nil
-	})
-}
-
 func (s *Service) lineHasAnnotation(managedBy billing.InvoiceLineManagedBy, annotations models.Annotations, annotation string) bool {
 	if managedBy != billing.SubscriptionManagedLine {
 		// We only correct the period start for subscription managed lines, for manual edits
@@ -358,7 +262,7 @@ func (s *Service) hierarchyHasAnnotation(hierarchy *billing.SplitLineHierarchy, 
 	return false, nil
 }
 
-func (s *Service) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.SubscriptionView, currency currencyx.Calculator, invoices persistedstate.Invoices) ([]linePatch, error) {
+func (s *Service) getPatchesFromPlan(p *subscriptionReconciliationPlan, subs subscription.SubscriptionView, currency currencyx.Calculator, invoices persistedstate.Invoices) ([]linePatch, error) {
 	patches := make([]linePatch, 0, len(p.LinesToDelete)+len(p.LinesToUpsert))
 
 	// Let's update the existing lines
