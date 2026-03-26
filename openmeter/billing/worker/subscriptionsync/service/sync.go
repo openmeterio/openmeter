@@ -13,6 +13,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -28,18 +29,6 @@ import (
 const (
 	SubscriptionSyncComponentName billing.ComponentName = "subscription-sync"
 )
-
-type InvoiceByID map[string]billing.Invoice
-
-func (i InvoiceByID) IsGatheringInvoice(invoiceID string) bool {
-	invoice, ok := i[invoiceID]
-	if !ok {
-		// If the invoice is not found, we assume that it is gathering, just to be safe
-		return true
-	}
-
-	return invoice.Type() == billing.InvoiceTypeGathering
-}
 
 func (s *Service) invoicePendingLines(ctx context.Context, customer customer.CustomerID) error {
 	span := tracex.StartWithNoValue(ctx, s.tracer, "billing.worker.subscription.sync.invoicePendingLines", trace.WithAttributes(
@@ -141,23 +130,10 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 			Namespace: subs.Subscription.Namespace,
 			ID:        subs.Subscription.CustomerId,
 		}, func(ctx context.Context) error {
-			// Let's fetch the invoices for the customer
-			invoices, err := s.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
-				Namespaces: []string{subs.Subscription.Namespace},
-				Customers:  []string{customerID.ID},
-			})
+			persistedLoader := persistedstate.NewLoader(s.billingService)
+			persistedInvoices, err := persistedLoader.LoadInvoicesForCustomer(ctx, customerID)
 			if err != nil {
-				return fmt.Errorf("listing invoices: %w", err)
-			}
-
-			invoiceByID := make(InvoiceByID, len(invoices.Items))
-			for _, invoice := range invoices.Items {
-				genericInvoice, err := invoice.AsGenericInvoice()
-				if err != nil {
-					return fmt.Errorf("converting invoice to generic invoice: %w", err)
-				}
-
-				invoiceByID[genericInvoice.GetID()] = invoice
+				return err
 			}
 
 			// Calculate per line patches
@@ -182,7 +158,7 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 				return nil
 			}
 
-			patches, err := s.getPatchesFromPlan(linesDiff, subs, currency, invoiceByID)
+			patches, err := s.getPatchesFromPlan(linesDiff, subs, currency, persistedInvoices)
 			if err != nil {
 				return err
 			}
@@ -287,36 +263,21 @@ func (s *Service) compareSubscriptionWithExistingLines(ctx context.Context, subs
 	span := tracex.Start[*subscriptionSyncPlan](ctx, s.tracer, "billing.worker.subscription.sync.compareSubscriptionWithExistingLines")
 
 	return span.Wrap(func(ctx context.Context) (*subscriptionSyncPlan, error) {
-		// Let's load the existing lines for the subscription
-		existingLines, err := s.billingService.GetLinesForSubscription(ctx, billing.GetLinesForSubscriptionInput{
-			Namespace:      subs.Subscription.Namespace,
-			SubscriptionID: subs.Subscription.ID,
-			CustomerID:     subs.Subscription.CustomerId,
-		})
+		persistedLoader := persistedstate.NewLoader(s.billingService)
+		persisted, err := persistedLoader.LoadForSubscription(ctx, subs)
 		if err != nil {
-			return nil, fmt.Errorf("getting existing lines: %w", err)
-		}
-
-		existingLinesByUniqueID, unique := slicesx.UniqueGroupBy(
-			lo.Filter(existingLines, func(l billing.LineOrHierarchy, _ int) bool {
-				return l.ChildUniqueReferenceID() != nil
-			}),
-			func(l billing.LineOrHierarchy) string {
-				return *l.ChildUniqueReferenceID()
-			})
-		if !unique {
-			return nil, fmt.Errorf("duplicate unique ids in the existing lines")
+			return nil, err
 		}
 
 		targetBuilder := targetstate.NewBuilder(s.logger, s.tracer)
-		target, err := targetBuilder.Build(ctx, subs, asOf, existingLinesByUniqueID)
+		target, err := targetBuilder.Build(ctx, subs, asOf, persisted)
 		if err != nil {
 			return nil, err
 		}
 
 		inScopeLines := target.Items
 
-		if len(inScopeLines) == 0 && len(existingLines) == 0 {
+		if len(inScopeLines) == 0 && len(persisted.Lines) == 0 {
 			return &subscriptionSyncPlan{
 				SubscriptionMaxGenerationTimeLimit: target.MaxGenerationTimeLimit,
 			}, nil
@@ -329,14 +290,14 @@ func (s *Service) compareSubscriptionWithExistingLines(ctx context.Context, subs
 			return nil, fmt.Errorf("duplicate unique ids in the upcoming lines")
 		}
 
-		existingLineUniqueIDs := lo.Keys(existingLinesByUniqueID)
+		existingLineUniqueIDs := lo.Keys(persisted.ByUniqueID)
 		inScopeLineUniqueIDs := lo.Keys(inScopeLinesByUniqueID)
 		// Let's execute the synchronization
 		deletedLines, newLines := lo.Difference(existingLineUniqueIDs, inScopeLineUniqueIDs)
 		lineIDsToUpsert := lo.Intersect(existingLineUniqueIDs, inScopeLineUniqueIDs)
 
 		linesToDelete, err := slicesx.MapWithErr(deletedLines, func(id string) (billing.LineOrHierarchy, error) {
-			line, ok := existingLinesByUniqueID[id]
+			line, ok := persisted.ByUniqueID[id]
 			if !ok {
 				return billing.LineOrHierarchy{}, fmt.Errorf("existing line[%s] not found in the existing lines", id)
 			}
@@ -348,7 +309,7 @@ func (s *Service) compareSubscriptionWithExistingLines(ctx context.Context, subs
 		}
 
 		linesToUpsert, err := slicesx.MapWithErr(lineIDsToUpsert, func(id string) (subscriptionSyncPlanLineUpsert, error) {
-			existingLine, ok := existingLinesByUniqueID[id]
+			existingLine, ok := persisted.ByUniqueID[id]
 			if !ok {
 				return subscriptionSyncPlanLineUpsert{}, fmt.Errorf("existing line[%s] not found in the existing lines", id)
 			}
@@ -397,7 +358,7 @@ func (s *Service) hierarchyHasAnnotation(hierarchy *billing.SplitLineHierarchy, 
 	return false, nil
 }
 
-func (s *Service) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.SubscriptionView, currency currencyx.Calculator, invoiceByID InvoiceByID) ([]linePatch, error) {
+func (s *Service) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.SubscriptionView, currency currencyx.Calculator, invoices persistedstate.Invoices) ([]linePatch, error) {
 	patches := make([]linePatch, 0, len(p.LinesToDelete)+len(p.LinesToUpsert))
 
 	// Let's update the existing lines
@@ -428,7 +389,7 @@ func (s *Service) getPatchesFromPlan(p *subscriptionSyncPlan, subs subscription.
 			continue
 		}
 
-		updatePatches, err := s.getPatchesForExistingLineOrHierarchy(line.Existing, *expectedLine, invoiceByID)
+		updatePatches, err := s.getPatchesForExistingLineOrHierarchy(line.Existing, *expectedLine, invoices)
 		if err != nil {
 			return nil, fmt.Errorf("updating line[%s]: %w", line.Target.UniqueID, err)
 		}
@@ -461,7 +422,7 @@ func (s *Service) getNewUpcomingLinePatches(ctx context.Context, subs subscripti
 	}), nil
 }
 
-func (s *Service) getPatchesForExistingLineOrHierarchy(existingLine billing.LineOrHierarchy, expectedLine billing.GatheringLine, invoiceByID InvoiceByID) ([]linePatch, error) {
+func (s *Service) getPatchesForExistingLineOrHierarchy(existingLine billing.LineOrHierarchy, expectedLine billing.GatheringLine, invoices persistedstate.Invoices) ([]linePatch, error) {
 	// TODO/WARNING[later]: This logic should be fine with everything that can be billed progressively, however the following use-cases
 	// will behave strangely:
 	//
@@ -479,20 +440,20 @@ func (s *Service) getPatchesForExistingLineOrHierarchy(existingLine billing.Line
 			return nil, fmt.Errorf("getting line: %w", err)
 		}
 
-		return s.getPatchesForExistingLine(line, expectedLine, invoiceByID)
+		return s.getPatchesForExistingLine(line, expectedLine, invoices)
 	case billing.LineOrHierarchyTypeHierarchy:
 		group, err := existingLine.AsHierarchy()
 		if err != nil {
 			return nil, fmt.Errorf("getting hierarchy: %w", err)
 		}
 
-		return s.getPatchesForExistingHierarchy(group, expectedLine, invoiceByID)
+		return s.getPatchesForExistingHierarchy(group, expectedLine, invoices)
 	default:
 		return nil, fmt.Errorf("unsupported line or hierarchy type: %s", existingLine.Type())
 	}
 }
 
-func (s *Service) getPatchesForExistingLine(existingLine billing.GenericInvoiceLine, expectedLine billing.GatheringLine, invoiceByID InvoiceByID) ([]linePatch, error) {
+func (s *Service) getPatchesForExistingLine(existingLine billing.GenericInvoiceLine, expectedLine billing.GatheringLine, invoices persistedstate.Invoices) ([]linePatch, error) {
 	// Lines can be manually marked as ignored in syncing, which is used for cases where we're doing backwards incompatible changes
 	if expectedLine.Annotations.GetBool(billing.AnnotationSubscriptionSyncIgnore) {
 		return nil, nil
@@ -522,7 +483,7 @@ func (s *Service) getPatchesForExistingLine(existingLine billing.GenericInvoiceL
 			*p = expectedLine.ServicePeriod
 		})
 
-		if invoiceByID.IsGatheringInvoice(targetLine.GetInvoiceID()) {
+		if invoices.IsGatheringInvoice(targetLine.GetInvoiceID()) {
 			invoiceAtAccessor, ok := targetLine.(billing.InvoiceAtAccessor)
 			if !ok {
 				// If the period has changed we need to adjust the invoice at to the expected line's invoice at for
@@ -581,7 +542,7 @@ func (s *Service) getPatchesForExistingLine(existingLine billing.GenericInvoiceL
 	}, nil
 }
 
-func (s *Service) getPatchesForExistingHierarchy(existingHierarchy *billing.SplitLineHierarchy, expectedLine billing.GatheringLine, invoiceByID InvoiceByID) ([]linePatch, error) {
+func (s *Service) getPatchesForExistingHierarchy(existingHierarchy *billing.SplitLineHierarchy, expectedLine billing.GatheringLine, invoices persistedstate.Invoices) ([]linePatch, error) {
 	// Parts of the line has been already invoiced using progressive invoicing, so we need to examine the children
 
 	// Nothing to do here, as split lines are UBP lines and thus we don't need the flat fee corrections
@@ -622,7 +583,7 @@ func (s *Service) getPatchesForExistingHierarchy(existingHierarchy *billing.Spli
 				p.To = expectedLine.ServicePeriod.To
 			})
 
-			if invoiceByID.IsGatheringInvoice(lastChild.GetInvoiceID()) {
+			if invoices.IsGatheringInvoice(lastChild.GetInvoiceID()) {
 				invoiceAtAccessor, ok := lastChild.(billing.InvoiceAtAccessor)
 				if !ok {
 					return nil, fmt.Errorf("last child is not an invoice at accessor: %T", lastChild)
@@ -666,7 +627,7 @@ func (s *Service) getPatchesForExistingHierarchy(existingHierarchy *billing.Spli
 				p.To = expectedLine.ServicePeriod.To
 			})
 
-			if invoiceByID.IsGatheringInvoice(updatedLine.GetInvoiceID()) {
+			if invoices.IsGatheringInvoice(updatedLine.GetInvoiceID()) {
 				invoiceAtAccessor, ok := updatedLine.(billing.InvoiceAtAccessor)
 				if !ok {
 					return nil, fmt.Errorf("last child is not an invoice at accessor: %T", updatedLine)

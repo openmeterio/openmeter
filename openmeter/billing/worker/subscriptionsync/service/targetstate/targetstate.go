@@ -12,6 +12,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -34,7 +35,7 @@ func NewBuilder(logger *slog.Logger, tracer trace.Tracer) Builder {
 	return Builder{logger: logger, tracer: tracer}
 }
 
-func (b Builder) Build(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time, existingLinesByUniqueID map[string]billing.LineOrHierarchy) (State, error) {
+func (b Builder) Build(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time, persisted persistedstate.State) (State, error) {
 	span := tracex.Start[State](ctx, b.tracer, "billing.worker.subscription.sync.targetstate.Build")
 
 	return span.Wrap(func(ctx context.Context) (State, error) {
@@ -47,7 +48,7 @@ func (b Builder) Build(ctx context.Context, subs subscription.SubscriptionView, 
 			return State{}, fmt.Errorf("collecting upcoming lines: %w", err)
 		}
 
-		inScopeLines, err := b.correctPeriodStartForUpcomingLines(ctx, subs.Subscription.ID, upcomingLinesResult.Lines, existingLinesByUniqueID)
+		inScopeLines, err := b.correctPeriodStartForUpcomingLines(ctx, subs.Subscription.ID, upcomingLinesResult.Lines, persisted)
 		if err != nil {
 			return State{}, fmt.Errorf("correcting period start for upcoming lines: %w", err)
 		}
@@ -128,13 +129,13 @@ func (b Builder) collectUpcomingLines(ctx context.Context, subs subscription.Sub
 	})
 }
 
-func (b Builder) correctPeriodStartForUpcomingLines(ctx context.Context, subscriptionID string, inScopeLines []SubscriptionItemWithPeriods, existingLinesByUniqueID map[string]billing.LineOrHierarchy) ([]SubscriptionItemWithPeriods, error) {
+func (b Builder) correctPeriodStartForUpcomingLines(ctx context.Context, subscriptionID string, inScopeLines []SubscriptionItemWithPeriods, persisted persistedstate.State) ([]SubscriptionItemWithPeriods, error) {
 	for idx, line := range inScopeLines {
 		if line.PeriodIndex == 0 {
 			continue
 		}
 
-		if existingCurrentLine, ok := existingLinesByUniqueID[line.UniqueID]; ok {
+		if existingCurrentLine, ok := persisted.ByUniqueID[line.UniqueID]; ok {
 			syncIgnore, err := b.lineOrHierarchyHasAnnotation(existingCurrentLine, billing.AnnotationSubscriptionSyncIgnore)
 			if err != nil {
 				return nil, fmt.Errorf("checking if line has subscription sync ignore annotation: %w", err)
@@ -153,7 +154,7 @@ func (b Builder) correctPeriodStartForUpcomingLines(ctx context.Context, subscri
 			fmt.Sprintf("period[%d]", line.PeriodIndex-1),
 		}, "/")
 
-		existingPreviousLine, ok := existingLinesByUniqueID[previousPeriodUniqueID]
+		existingPreviousLine, ok := persisted.ByUniqueID[previousPeriodUniqueID]
 		if !ok {
 			continue
 		}
