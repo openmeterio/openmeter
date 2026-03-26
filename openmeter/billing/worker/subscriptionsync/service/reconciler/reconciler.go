@@ -234,7 +234,6 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 
 	for _, id := range inScopeLineUniqueIDs {
 		targetLine := inScopeLinesByUniqueID[id]
-		// TODO: make this a member of the targetstate.SubscriptionItemWithPeriods
 		expectedLine, err := targetLine.GetExpectedLine(input.Subscription, input.Currency)
 		if err != nil {
 			return nil, fmt.Errorf("generating expected line[%s]: %w", id, err)
