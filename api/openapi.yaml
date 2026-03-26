@@ -5817,14 +5817,6 @@ paths:
     get:
       operationId: queryMeter
       parameters:
-        - name: accept
-          in: header
-          required: false
-          schema:
-            type: string
-            enum:
-              - application/json
-              - text/csv
         - name: meterIdOrSlug
           in: path
           required: true
@@ -5908,14 +5900,6 @@ paths:
     post:
       operationId: queryMeterPost
       parameters:
-        - name: accept
-          in: header
-          required: false
-          schema:
-            type: string
-            enum:
-              - application/json
-              - text/csv
         - name: meterIdOrSlug
           in: path
           required: true
