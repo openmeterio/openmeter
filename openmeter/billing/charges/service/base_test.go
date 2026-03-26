@@ -55,6 +55,11 @@ func (s *BaseSuite) SetupSuite() {
 	})
 	s.NoError(err)
 
+	locker, err := lockr.NewLocker(&lockr.LockerConfig{
+		Logger: slog.Default(),
+	})
+	s.NoError(err)
+
 	flatFeeAdapter, err := flatfeeadapter.New(flatfeeadapter.Config{
 		Client:      s.DBClient,
 		Logger:      slog.Default(),
@@ -66,6 +71,7 @@ func (s *BaseSuite) SetupSuite() {
 		Adapter:     flatFeeAdapter,
 		Handler:     s.FlatFeeTestHandler,
 		MetaAdapter: metaAdapter,
+		Locker:      locker,
 	})
 	s.NoError(err)
 
@@ -73,11 +79,6 @@ func (s *BaseSuite) SetupSuite() {
 		Client:      s.DBClient,
 		Logger:      slog.Default(),
 		MetaAdapter: metaAdapter,
-	})
-	s.NoError(err)
-
-	locker, err := lockr.NewLocker(&lockr.LockerConfig{
-		Logger: slog.Default(),
 	})
 	s.NoError(err)
 

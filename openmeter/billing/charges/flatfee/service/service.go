@@ -5,12 +5,14 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
 type Config struct {
 	Adapter     flatfee.Adapter
 	Handler     flatfee.Handler
 	MetaAdapter meta.Adapter
+	Locker      *lockr.Locker
 }
 
 func (c Config) Validate() error {
@@ -28,6 +30,10 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("meta adapter cannot be null"))
 	}
 
+	if c.Locker == nil {
+		errs = append(errs, errors.New("locker cannot be null"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -40,6 +46,7 @@ func New(config Config) (flatfee.Service, error) {
 		adapter:     config.Adapter,
 		handler:     config.Handler,
 		metaAdapter: config.MetaAdapter,
+		locker:      config.Locker,
 	}, nil
 }
 
@@ -47,4 +54,5 @@ type service struct {
 	adapter     flatfee.Adapter
 	handler     flatfee.Handler
 	metaAdapter meta.Adapter
+	locker      *lockr.Locker
 }

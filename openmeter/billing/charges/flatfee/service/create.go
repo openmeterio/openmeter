@@ -30,9 +30,14 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 		charges, err := s.adapter.CreateCharges(ctx, flatfee.CreateChargesInput{
 			Namespace: input.Namespace,
 			Intents: lo.Map(input.Intents, func(intent flatfee.Intent, idx int) flatfee.IntentWithInitialStatus {
+				initialStatus := meta.ChargeStatusActive
+				if intent.SettlementMode == productcatalog.CreditOnlySettlementMode {
+					initialStatus = meta.ChargeStatusCreated
+				}
+
 				return flatfee.IntentWithInitialStatus{
 					Intent:        intent,
-					InitialStatus: meta.ChargeStatusActive,
+					InitialStatus: initialStatus,
 				}
 			}),
 		})

@@ -17,11 +17,12 @@ import (
 var _ flatfee.Handler = (*flatFeeTestHandler)(nil)
 
 type flatFeeTestHandler struct {
-	onAssignedToInvoice    func(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) ([]creditrealization.CreateInput, error)
-	onInvoiceUsageAccrued  func(ctx context.Context, input flatfee.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
-	onPaymentAuthorized    func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
-	onPaymentSettled       func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
-	onPaymentUncollectible func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
+	onAssignedToInvoice       func(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) ([]creditrealization.CreateInput, error)
+	onInvoiceUsageAccrued     func(ctx context.Context, input flatfee.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
+	onCreditsOnlyUsageAccrued func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) ([]creditrealization.CreateInput, error)
+	onPaymentAuthorized       func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
+	onPaymentSettled          func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
+	onPaymentUncollectible    func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
 }
 
 func newFlatFeeTestHandler() *flatFeeTestHandler {
@@ -42,6 +43,14 @@ func (h *flatFeeTestHandler) OnInvoiceUsageAccrued(ctx context.Context, input fl
 	}
 
 	return h.onInvoiceUsageAccrued(ctx, input)
+}
+
+func (h *flatFeeTestHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) ([]creditrealization.CreateInput, error) {
+	if h.onCreditsOnlyUsageAccrued == nil {
+		return nil, errors.New("onCreditsOnlyUsageAccrued is not set")
+	}
+
+	return h.onCreditsOnlyUsageAccrued(ctx, input)
 }
 
 func (h *flatFeeTestHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error) {

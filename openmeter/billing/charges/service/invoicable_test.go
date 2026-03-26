@@ -766,6 +766,264 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyFinal() {
 	s.Len(dbCharge.Realizations, 1)
 }
 
+func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-only-lifecycle")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithProgressiveBilling(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	const flatFeeName = "flat-fee-credit-only"
+
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	// InAdvance payment term means InvoiceAt = ServicePeriod.From
+	invoiceAt := servicePeriod.From
+
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	flatFeeChargeID := meta.ChargeID{}
+
+	s.Run("#1 create before invoice_at", func() {
+		// Given current wall clock is 2025-12-01T00:00:00Z (before InvoiceAt).
+		clock.FreezeTime(createAt)
+
+		// When creating a credit-only flat fee charge.
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: []charges.ChargeIntent{
+				s.createMockChargeIntent(createMockChargeIntentInput{
+					customer:       cust.GetID(),
+					currency:       USD,
+					servicePeriod:  servicePeriod,
+					settlementMode: productcatalog.CreditOnlySettlementMode,
+					price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromFloat(100),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					name:              flatFeeName,
+					managedBy:         billing.SubscriptionManagedLine,
+					uniqueReferenceID: flatFeeName,
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+		s.Equal(meta.ChargeTypeFlatFee, res[0].Type())
+
+		flatFeeCharge, err := res[0].AsFlatFeeCharge()
+		s.NoError(err)
+
+		// Then no gathering invoice is created (credit-only skips invoicing).
+		gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+			Namespaces: []string{ns},
+			Customers:  []string{cust.ID},
+			Currencies: []currencyx.Code{currencyx.Code(currency.USD)},
+			Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
+		})
+		s.NoError(err)
+		s.Len(gatheringInvoices.Items, 0)
+
+		// The charge starts in Created status (not Active).
+		fetchedCharge := s.mustGetChargeByID(flatFeeCharge.GetChargeID())
+		fetchedFF, err := fetchedCharge.AsFlatFeeCharge()
+		s.NoError(err)
+
+		flatFeeChargeID = flatFeeCharge.GetChargeID()
+
+		s.Equal(meta.ChargeStatusCreated, fetchedFF.Status)
+		s.Empty(fetchedFF.State.CreditRealizations)
+		s.Nil(fetchedFF.State.AdvanceAfter)
+
+		// Advancing is a noop (clock is before InvoiceAt).
+		advancedCharges := s.mustAdvanceFlatFeeCharges(ctx, cust.GetID())
+		s.Empty(advancedCharges)
+
+		// Status unchanged after advance attempt.
+		fetchedCharge = s.mustGetChargeByID(flatFeeChargeID)
+		fetchedFF, err = fetchedCharge.AsFlatFeeCharge()
+		s.NoError(err)
+		s.Equal(meta.ChargeStatusCreated, fetchedFF.Status)
+	})
+
+	s.NotEmpty(flatFeeChargeID)
+
+	s.Run("#2 advance at invoice_at goes to final", func() {
+		defer s.FlatFeeTestHandler.Reset()
+
+		type callbackInvocation struct {
+			Input flatfee.OnCreditsOnlyUsageAccruedInput
+		}
+
+		var callbacks []callbackInvocation
+
+		s.FlatFeeTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) ([]creditrealization.CreateInput, error) {
+			callbacks = append(callbacks, callbackInvocation{Input: input})
+
+			return []creditrealization.CreateInput{
+				{
+					ServicePeriod: input.Charge.Intent.ServicePeriod,
+					Amount:        input.AmountToAllocate,
+					LedgerTransaction: ledgertransaction.GroupReference{
+						TransactionGroupID: ulid.Make().String(),
+					},
+				},
+			}, nil
+		}
+
+		// Given the wall clock advances to InvoiceAt (2026-01-01T00:00:00Z).
+		clock.FreezeTime(invoiceAt)
+
+		// When advancing the flat fee charge.
+		advancedCharges := s.mustAdvanceFlatFeeCharges(ctx, cust.GetID())
+
+		// Then the charge transitions Created → Active → Final in one advance call.
+		s.Len(advancedCharges, 1)
+		advancedFF, err := advancedCharges[0].AsFlatFeeCharge()
+		s.NoError(err)
+		s.Equal(meta.ChargeStatusFinal, advancedFF.Status)
+
+		// Verify DB state matches.
+		fetchedCharge := s.mustGetChargeByID(flatFeeChargeID)
+		fetchedFF, err := fetchedCharge.AsFlatFeeCharge()
+		s.NoError(err)
+		s.Equal(meta.ChargeStatusFinal, fetchedFF.Status)
+		s.Nil(fetchedFF.State.AdvanceAfter)
+
+		// The handler was called exactly once with the correct amount.
+		s.Len(callbacks, 1)
+		s.Equal(float64(100), callbacks[0].Input.AmountToAllocate.InexactFloat64())
+
+		// Credit realizations were persisted.
+		s.Len(fetchedFF.State.CreditRealizations, 1)
+		s.Equal(float64(100), fetchedFF.State.CreditRealizations[0].Amount.InexactFloat64())
+	})
+
+	s.Run("#3 final charge advance is noop", func() {
+		// Given the charge is already final.
+		// When advancing the flat fee charge.
+		advancedCharges := s.mustAdvanceFlatFeeCharges(ctx, cust.GetID())
+
+		// Then no further allocation occurs.
+		s.Empty(advancedCharges)
+
+		fetchedCharge := s.mustGetChargeByID(flatFeeChargeID)
+		fetchedFF, err := fetchedCharge.AsFlatFeeCharge()
+		s.NoError(err)
+		s.Equal(meta.ChargeStatusFinal, fetchedFF.Status)
+	})
+}
+
+func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyCreateImmediatelyFinal() {
+	defer s.FlatFeeTestHandler.Reset()
+
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-only-create-immediately-final")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithProgressiveBilling(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	s.FlatFeeTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) ([]creditrealization.CreateInput, error) {
+		return []creditrealization.CreateInput{
+			{
+				ServicePeriod: input.Charge.Intent.ServicePeriod,
+				Amount:        input.AmountToAllocate,
+				LedgerTransaction: ledgertransaction.GroupReference{
+					TransactionGroupID: ulid.Make().String(),
+				},
+			},
+		}, nil
+	}
+
+	// Given clock is frozen at the service period start (== InvoiceAt for InAdvance).
+	clock.FreezeTime(servicePeriod.From)
+	defer clock.UnFreeze()
+
+	// When creating a credit-only flat fee charge at InvoiceAt.
+	res, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: []charges.ChargeIntent{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditOnlySettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(50),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				name:              "flat-fee-immediate",
+				managedBy:         billing.SubscriptionManagedLine,
+				uniqueReferenceID: "flat-fee-immediate",
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(res, 1)
+
+	// Then the returned charge is already final (auto-advanced on create).
+	s.Equal(meta.ChargeTypeFlatFee, res[0].Type())
+	returnedCharge, err := res[0].AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(meta.ChargeStatusFinal, returnedCharge.Status)
+	s.Nil(returnedCharge.State.AdvanceAfter)
+	s.Len(returnedCharge.State.CreditRealizations, 1)
+	s.Equal(float64(50), returnedCharge.State.CreditRealizations[0].Amount.InexactFloat64())
+
+	// And the DB state matches.
+	dbCharge := s.mustGetChargeByID(returnedCharge.GetChargeID())
+	dbFF, err := dbCharge.AsFlatFeeCharge()
+	s.NoError(err)
+	s.Equal(meta.ChargeStatusFinal, dbFF.Status)
+	s.Nil(dbFF.State.AdvanceAfter)
+	s.Len(dbFF.State.CreditRealizations, 1)
+	s.Equal(float64(50), dbFF.State.CreditRealizations[0].Amount.InexactFloat64())
+}
+
+func (s *InvoicableChargesTestSuite) mustAdvanceFlatFeeCharges(ctx context.Context, customerID customer.CustomerID) charges.Charges {
+	s.T().Helper()
+
+	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+		Customer: customerID,
+	})
+	s.NoError(err)
+
+	// Filter to only flat fee charges
+	var flatFeeCharges charges.Charges
+	for _, c := range advancedCharges {
+		if c.Type() == meta.ChargeTypeFlatFee {
+			flatFeeCharges = append(flatFeeCharges, c)
+		}
+	}
+
+	return flatFeeCharges
+}
+
 func (s *InvoicableChargesTestSuite) mustAdvanceSingleUsageBasedCharge(ctx context.Context, customerID customer.CustomerID) *usagebased.Charge {
 	s.T().Helper()
 
