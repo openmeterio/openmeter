@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
@@ -178,7 +179,8 @@ func (b Builder) correctPeriodStartForUpcomingLines(ctx context.Context, subscri
 		}
 
 		previousServicePeriod := existingPreviousLine.ServicePeriod()
-		if line.ServicePeriod.Start.Equal(previousServicePeriod.To) {
+		continuousStart := previousServicePeriod.To.Truncate(streaming.MinimumWindowSizeDuration)
+		if line.ServicePeriod.Start.Equal(continuousStart) {
 			continue
 		}
 
@@ -186,11 +188,11 @@ func (b Builder) correctPeriodStartForUpcomingLines(ctx context.Context, subscri
 			return nil, fmt.Errorf("line[%s] service period and full service period start does not match", line.UniqueID)
 		}
 
-		inScopeLines[idx].ServicePeriod.Start = previousServicePeriod.To
-		inScopeLines[idx].FullServicePeriod.Start = previousServicePeriod.To
+		inScopeLines[idx].ServicePeriod.Start = continuousStart
+		inScopeLines[idx].FullServicePeriod.Start = continuousStart
 
 		if line.FullServicePeriod.Start.Equal(line.BillingPeriod.Start) {
-			inScopeLines[idx].BillingPeriod.Start = previousServicePeriod.To
+			inScopeLines[idx].BillingPeriod.Start = continuousStart
 		}
 	}
 
