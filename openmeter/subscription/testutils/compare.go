@@ -86,6 +86,7 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 				specMeta := specItem.RateCard.AsMeta()
 				foundMeta := foundItem.SubscriptionItem.RateCard.AsMeta()
 				if specMeta.TaxConfig != nil && specMeta.TaxConfig.Stripe != nil && specMeta.TaxConfig.Stripe.Code != "" {
+					require.NotNil(t, foundMeta.TaxConfig, "TaxConfig must be set for item %s (phase %s) with Stripe tax code %s", specItem.ItemKey, specPhase.PhaseKey, specMeta.TaxConfig.Stripe.Code)
 					require.NotNil(t, foundMeta.TaxConfig.TaxCodeID, "TaxCodeID must be set for item %s (phase %s) with Stripe tax code %s", specItem.ItemKey, specPhase.PhaseKey, specMeta.TaxConfig.Stripe.Code)
 					assert.Equal(t, specMeta.TaxConfig.TaxCodeID, foundMeta.TaxConfig.TaxCodeID, "TaxCodeID mismatch for item %s in phase %s", specItem.ItemKey, specPhase.PhaseKey)
 				} else if foundMeta.TaxConfig != nil {
