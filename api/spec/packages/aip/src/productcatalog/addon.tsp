@@ -33,7 +33,16 @@ enum AddonInstanceType {
  */
 @friendlyName("Addon")
 model Addon {
-  ...Shared.ResourceWithKey;
+  ...Shared.Resource;
+
+  /**
+   * A key is a semi-unique string that is used to identify the add-on.
+   * It is used to reference the latest `active` version of the add-on and is unique with the version number.
+   */
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @summary("Key")
+  key: Shared.ResourceKey;
 
   /**
    * Version of the add-on. Incremented when the add-on is updated.
@@ -55,7 +64,7 @@ model Addon {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Currency")
-  currency: Shared.CurrencyCode;
+  currency: Currencies.CurrencyCode;
 
   /**
    * The date and time when the add-on becomes effective. When not specified, the add-on is a draft.
