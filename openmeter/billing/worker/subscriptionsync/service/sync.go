@@ -132,7 +132,7 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 			}
 
 			// Calculate per line patches
-			linesDiff, err := s.buildSyncPlan(ctx, subs, asOf)
+			linesDiff, err := s.buildSyncPlan(ctx, subs, asOf, currency)
 			if err != nil {
 				return err
 			}
