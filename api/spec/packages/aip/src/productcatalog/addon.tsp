@@ -1,5 +1,6 @@
 import "../shared/index.tsp";
 import "./ratecard.tsp";
+import "./plan.tsp";
 
 namespace ProductCatalog;
 
@@ -100,39 +101,5 @@ model Addon {
    */
   @visibility(Lifecycle.Read)
   @summary("Validation errors")
-  validation_errors?: ValidationError[];
-}
-
-// TODO(roland.spekker): figure out if we need the validation error type or not
-/**
- * Validation errors providing detailed description of the issue.
- */
-@friendlyName("ValidationError")
-model ValidationError {
-  /**
-   * The path to the field.
-   */
-  @visibility(Lifecycle.Read)
-  @example("addons/pro/ratecards/token/featureKey")
-  field: string;
-
-  /**
-   * The machine readable description of the error.
-   */
-  @visibility(Lifecycle.Read)
-  @example("invalid_feature_key")
-  code: string;
-
-  /**
-   * The human readable description of the error.
-   */
-  @visibility(Lifecycle.Read)
-  @example("not found feature by key")
-  message: string;
-
-  /**
-   * Additional attributes.
-   */
-  @visibility(Lifecycle.Read)
-  attributes?: Record<unknown>;
+  validation_errors?: ProductCatalogValidationError[];
 }

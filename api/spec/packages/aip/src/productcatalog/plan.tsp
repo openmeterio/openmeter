@@ -108,16 +108,16 @@ model Plan {
    */
   @visibility(Lifecycle.Read)
   @summary("Validation errors")
-  validation_errors?: PlanValidationError[];
+  validation_errors?: ProductCatalogValidationError[];
 }
 
 /**
  * Validation errors providing detailed description of the issue.
  */
-@friendlyName("BillingPlanValidationError")
-model PlanValidationError {
+@friendlyName("ProductCatalogValidationError")
+model ProductCatalogValidationError {
   /**
-   * The path to the field in the plan definition.
+   * The path to the field.
    */
   @visibility(Lifecycle.Read)
   @summary("Field")

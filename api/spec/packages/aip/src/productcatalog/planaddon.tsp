@@ -39,7 +39,7 @@ model PlanAddon {
    */
   @summary("Validation errors")
   @visibility(Lifecycle.Read)
-  validation_errors?: PlanValidationError[];
+  validation_errors?: ProductCatalogValidationError[];
 
   /**
    * Set of key-value pairs managed by the system. Cannot be modified by user.
