@@ -235,7 +235,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 	for _, id := range inScopeLineUniqueIDs {
 		targetLine := inScopeLinesByUniqueID[id]
 		// TODO: make this a member of the targetstate.SubscriptionItemWithPeriods
-		expectedLine, err := targetstate.LineFromSubscriptionRateCard(input.Subscription, targetLine, input.Currency)
+		expectedLine, err := targetLine.GetExpectedLine(input.Subscription, input.Currency)
 		if err != nil {
 			return nil, fmt.Errorf("generating expected line[%s]: %w", id, err)
 		}
@@ -270,23 +270,23 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 }
 
 func (s *Service) Apply(ctx context.Context, input ApplyInput) error {
-	patches := make([]invoiceupdater.Patch, 0, len(input.Plan.Patches))
+	invoicePatches := make([]invoiceupdater.Patch, 0, len(input.Plan.Patches))
 
 	for _, patch := range input.Plan.Patches {
-		expanded, err := patch.Expand(ExpandInput{
+		newInvoicePatches, err := patch.GetInvoicePatches(GetInvoicePatchesInput{
 			Subscription: input.Subscription,
 			Currency:     input.Currency,
 			Invoices:     input.Invoices,
 		})
 		if err != nil {
-			return fmt.Errorf("expanding patch[%s/%s]: %w", patch.Operation(), patch.UniqueReferenceID(), err)
+			return fmt.Errorf("getting invoice patches for patch[%s/%s]: %w", patch.Operation(), patch.UniqueReferenceID(), err)
 		}
 
-		patches = append(patches, expanded...)
+		invoicePatches = append(invoicePatches, newInvoicePatches...)
 	}
 
 	invoiceUpdater := invoiceupdater.New(s.billingService, s.logger)
-	if err := invoiceUpdater.ApplyPatches(ctx, input.Customer, patches); err != nil {
+	if err := invoiceUpdater.ApplyPatches(ctx, input.Customer, invoicePatches); err != nil {
 		return fmt.Errorf("updating invoices: %w", err)
 	}
 

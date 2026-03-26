@@ -237,7 +237,8 @@ func (b Builder) hierarchyHasAnnotation(hierarchy *billing.SplitLineHierarchy, a
 	return false, nil
 }
 
-func LineFromSubscriptionRateCard(subs subscription.SubscriptionView, item SubscriptionItemWithPeriods, currency currencyx.Calculator) (*billing.GatheringLine, error) {
+// TODO: make a member of the SubscriptionItemWithPeriods type (for now it's kept here for easier review)
+func lineFromSubscriptionRateCard(subs subscription.SubscriptionView, item SubscriptionItemWithPeriods, currency currencyx.Calculator) (*billing.GatheringLine, error) {
 	line := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{

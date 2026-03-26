@@ -18,6 +18,6 @@ func (p DeletePatch) UniqueReferenceID() string {
 	return p.UniqueID
 }
 
-func (p DeletePatch) Expand(_ ExpandInput) ([]invoiceupdater.Patch, error) {
+func (p DeletePatch) GetInvoicePatches(input GetInvoicePatchesInput) ([]invoiceupdater.Patch, error) {
 	return invoiceupdater.GetDeletePatchesForLine(p.Existing)
 }

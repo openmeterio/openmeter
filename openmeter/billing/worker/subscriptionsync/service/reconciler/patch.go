@@ -17,7 +17,7 @@ const (
 	PatchOperationProrate PatchOperation = "prorate"
 )
 
-type ExpandInput struct {
+type GetInvoicePatchesInput struct {
 	Subscription subscription.SubscriptionView
 	Currency     currencyx.Calculator
 	Invoices     persistedstate.Invoices
@@ -26,5 +26,5 @@ type ExpandInput struct {
 type Patch interface {
 	Operation() PatchOperation
 	UniqueReferenceID() string
-	Expand(input ExpandInput) ([]invoiceupdater.Patch, error)
+	GetInvoicePatches(input GetInvoicePatchesInput) ([]invoiceupdater.Patch, error)
 }

@@ -35,8 +35,8 @@ func (p ProratePatch) UniqueReferenceID() string {
 	return p.UniqueID
 }
 
-func (p ProratePatch) Expand(input ExpandInput) ([]invoiceupdater.Patch, error) {
-	expectedLine, err := materializeExpectedLine(input, p.Target, p.Operation())
+func (p ProratePatch) GetInvoicePatches(input GetInvoicePatchesInput) ([]invoiceupdater.Patch, error) {
+	expectedLine, err := p.Target.GetExpectedLineOrErr(input.Subscription, input.Currency)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (p ProratePatch) Expand(input ExpandInput) ([]invoiceupdater.Patch, error) 
 		return nil, fmt.Errorf("getting line: %w", err)
 	}
 
-	if shouldSkipExistingLinePatch(existingLine, *expectedLine) {
+	if shouldSkipLinePatch(existingLine, expectedLine) {
 		return nil, nil
 	}
 
@@ -58,7 +58,7 @@ func (p ProratePatch) Expand(input ExpandInput) ([]invoiceupdater.Patch, error) 
 		return nil, fmt.Errorf("prorate patch cannot be applied to non-flat fee line[%s]", existingLine.GetLineID().ID)
 	}
 
-	if !invoiceupdater.IsFlatFee(*expectedLine) {
+	if !invoiceupdater.IsFlatFee(expectedLine) {
 		return nil, errors.New("cannot merge flat fee line with usage based line")
 	}
 
@@ -95,7 +95,7 @@ func (p ProratePatch) Expand(input ExpandInput) ([]invoiceupdater.Patch, error) 
 		return nil, fmt.Errorf("getting flat fee per unit amount: %w", err)
 	}
 
-	perUnitAmountExpected, err := invoiceupdater.GetFlatFeePerUnitAmount(*expectedLine)
+	perUnitAmountExpected, err := invoiceupdater.GetFlatFeePerUnitAmount(expectedLine)
 	if err != nil {
 		return nil, fmt.Errorf("getting flat fee per unit amount: %w", err)
 	}
