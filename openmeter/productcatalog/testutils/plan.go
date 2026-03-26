@@ -34,5 +34,6 @@ func NewTestPlan(t *testing.T, namespace string, phases ...productcatalog.Phase)
 			},
 			Phases: phases,
 		},
+		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	}
 }

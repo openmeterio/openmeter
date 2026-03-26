@@ -37,6 +37,9 @@ type CreateSubscriptionPlanInput struct {
 
 	// ProRatingConfig is the default pro-rating configuration for subscriptions.
 	ProRatingConfig productcatalog.ProRatingConfig `json:"pro_rating_config"`
+
+	// SettlementMode is the settlement mode for the subscription.
+	SettlementMode productcatalog.SettlementMode `json:"settlement_mode"`
 }
 
 type CreateSubscriptionCustomerInput struct {
@@ -69,6 +72,7 @@ func (s *SubscriptionSpec) ToCreateSubscriptionEntityInput(ns string) CreateSubs
 		Currency:        s.Currency,
 		BillingCadence:  s.BillingCadence,
 		ProRatingConfig: s.ProRatingConfig,
+		SettlementMode:  s.SettlementMode,
 		BillingAnchor:   s.BillingAnchor,
 		MetadataModel:   s.MetadataModel,
 		Annotations:     s.Annotations,

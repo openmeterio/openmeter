@@ -69,13 +69,15 @@ func PlanFromPlanInput(input plan.CreatePlanInput) (subscription.Plan, error) {
 	p.Version = 0
 
 	return &plansubscription.Plan{
-		Plan: p,
+		Plan:           p,
+		SettlementMode: input.SettlementMode,
 	}, nil
 }
 
 func PlanFromPlan(p plan.Plan) subscription.Plan {
 	return &plansubscription.Plan{
-		Plan: p.AsProductCatalogPlan(),
-		Ref:  &p.NamespacedID,
+		Plan:           p.AsProductCatalogPlan(),
+		Ref:            &p.NamespacedID,
+		SettlementMode: p.SettlementMode,
 	}
 }

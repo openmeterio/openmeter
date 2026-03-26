@@ -109,6 +109,7 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorSinglePhase() {
 				},
 			},
 		},
+		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	})
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), plan)
@@ -306,6 +307,7 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorMultiPhase() {
 				},
 			},
 		},
+		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	})
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), plan)

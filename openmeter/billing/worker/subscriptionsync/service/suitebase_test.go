@@ -511,6 +511,7 @@ func (s *SuiteBase) createSubscriptionFromPlanPhases(phases []productcatalog.Pha
 			},
 			Phases: phases,
 		},
+		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	}
 
 	return s.createSubscriptionFromPlan(planInput)

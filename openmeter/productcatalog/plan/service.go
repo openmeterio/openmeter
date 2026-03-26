@@ -106,6 +106,9 @@ type CreatePlanInput struct {
 	models.NamespacedModel
 	productcatalog.Plan
 
+	// SettlementMode is the settlement mode for the plan.
+	SettlementMode productcatalog.SettlementMode `json:"settlementMode,omitempty"`
+
 	inputOptions
 }
 
@@ -158,6 +161,9 @@ type UpdatePlanInput struct {
 	// ProRatingConfig is the default pro-rating configuration for subscriptions using this plan
 	ProRatingConfig *productcatalog.ProRatingConfig `json:"proRatingConfig,omitempty"`
 
+	// SettlementMode is the settlement mode for the plan
+	SettlementMode *productcatalog.SettlementMode `json:"settlementMode,omitempty"`
+
 	// Phases
 	Phases *[]productcatalog.Phase `json:"phases"`
 
@@ -194,6 +200,10 @@ func (i UpdatePlanInput) Equal(p Plan) bool {
 	}
 
 	if i.ProRatingConfig != nil && !i.ProRatingConfig.Equal(p.ProRatingConfig) {
+		return false
+	}
+
+	if i.SettlementMode != nil && *i.SettlementMode != p.SettlementMode {
 		return false
 	}
 

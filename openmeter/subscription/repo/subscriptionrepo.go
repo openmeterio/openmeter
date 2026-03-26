@@ -12,6 +12,7 @@ import (
 	dbplan "github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	dbsubscription "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -88,12 +89,18 @@ func (r *subscriptionRepo) GetByID(ctx context.Context, subscriptionID models.Na
 
 func (r *subscriptionRepo) Create(ctx context.Context, sub subscription.CreateSubscriptionEntityInput) (subscription.Subscription, error) {
 	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (subscription.Subscription, error) {
+		var sm *productcatalog.SettlementMode
+		if sub.SettlementMode != "" {
+			sm = &sub.SettlementMode
+		}
+
 		command := repo.db.Subscription.Create().
 			SetNamespace(sub.Namespace).
 			SetCustomerID(sub.CustomerId).
 			SetCurrency(sub.Currency).
 			SetBillingCadence(sub.BillingCadence.ISOString()).
 			SetProRatingConfig(sub.ProRatingConfig).
+			SetNillableSettlementMode(sm).
 			SetActiveFrom(sub.ActiveFrom).
 			SetName(sub.Name).
 			SetNillableDescription(sub.Description).

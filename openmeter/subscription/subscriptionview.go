@@ -240,6 +240,7 @@ func NewSubscriptionView(
 			Plan:            sub.PlanRef,
 			BillingCadence:  sub.BillingCadence,
 			ProRatingConfig: sub.ProRatingConfig,
+			SettlementMode:  sub.SettlementMode,
 		},
 		CreateSubscriptionCustomerInput: CreateSubscriptionCustomerInput{
 			CustomerId:    sub.CustomerId,

@@ -49,7 +49,8 @@ type PlanRefInput struct {
 
 type Plan struct {
 	productcatalog.Plan
-	Ref *models.NamespacedID
+	Ref            *models.NamespacedID
+	SettlementMode productcatalog.SettlementMode
 }
 
 var _ subscription.Plan = &Plan{}
@@ -74,6 +75,7 @@ func (p *Plan) ToCreateSubscriptionPlanInput() subscription.CreateSubscriptionPl
 		Plan:            ref,
 		BillingCadence:  p.BillingCadence,
 		ProRatingConfig: p.ProRatingConfig,
+		SettlementMode:  p.SettlementMode,
 	}
 }
 

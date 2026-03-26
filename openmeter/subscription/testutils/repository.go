@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	repository "github.com/openmeterio/openmeter/openmeter/subscription/repo"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -35,9 +36,10 @@ func (r *testSubscriptionRepo) CreateExampleSubscription(t *testing.T, customerI
 
 func getExampleCreateSubscriptionInput(customerId string, planRef subscription.PlanRef) subscription.CreateSubscriptionEntityInput {
 	return subscription.CreateSubscriptionEntityInput{
-		Plan:       &planRef,
-		CustomerId: customerId,
-		Currency:   "USD",
+		Plan:           &planRef,
+		CustomerId:     customerId,
+		Currency:       "USD",
+		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 		CadencedModel: models.CadencedModel{
 			ActiveFrom: clock.Now(),
 		},

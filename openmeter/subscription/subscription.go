@@ -28,6 +28,7 @@ type Subscription struct {
 	BillingCadence  datetime.ISODuration           `json:"billing_cadence"`
 	BillingAnchor   time.Time                      `json:"billingAnchor"`
 	ProRatingConfig productcatalog.ProRatingConfig `json:"pro_rating_config"`
+	SettlementMode  productcatalog.SettlementMode  `json:"settlement_mode"`
 
 	Annotations models.Annotations `json:"annotations"`
 }
@@ -48,6 +49,7 @@ func (s Subscription) AsEntityInput() CreateSubscriptionEntityInput {
 		BillingCadence:  s.BillingCadence,
 		BillingAnchor:   s.BillingAnchor,
 		ProRatingConfig: s.ProRatingConfig,
+		SettlementMode:  s.SettlementMode,
 	}
 }
 

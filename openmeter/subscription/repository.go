@@ -33,6 +33,9 @@ type CreateSubscriptionEntityInput struct {
 	// ProRatingConfig is the default pro-rating configuration for subscriptions.
 	ProRatingConfig productcatalog.ProRatingConfig `json:"pro_rating_config"`
 
+	// SettlementMode is the settlement mode for the subscription.
+	SettlementMode productcatalog.SettlementMode `json:"settlement_mode"`
+
 	// BillingAnchor is the time the subscription will be billed.
 	BillingAnchor time.Time `json:"billingAnchor"`
 }

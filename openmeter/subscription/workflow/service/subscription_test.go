@@ -911,6 +911,7 @@ func TestChangeToPlan(t *testing.T) {
 				},
 			},
 		},
+		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	}
 
 	// Let's define what deps a test case needs

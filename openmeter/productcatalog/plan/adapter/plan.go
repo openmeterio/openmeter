@@ -173,6 +173,11 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 			params.Version = 1
 		}
 
+		var sm *productcatalog.SettlementMode
+		if params.SettlementMode != "" {
+			sm = &params.SettlementMode
+		}
+
 		planRow, err := a.db.Plan.Create().
 			SetKey(params.Key).
 			SetNamespace(params.Namespace).
@@ -181,6 +186,7 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 			SetCurrency(params.Currency.String()).
 			SetBillingCadence(params.BillingCadence.ISOString()).
 			SetProRatingConfig(params.ProRatingConfig).
+			SetNillableSettlementMode(sm).
 			SetMetadata(params.Metadata).
 			SetVersion(params.Version).
 			Save(ctx)
@@ -425,7 +431,8 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 				SetNillableEffectiveFrom(params.EffectiveFrom).
 				SetNillableEffectiveTo(params.EffectiveTo).
 				SetNillableBillingCadence(params.BillingCadence.ISOStringPtrOrNil()).
-				SetNillableProRatingConfig(params.ProRatingConfig)
+				SetNillableProRatingConfig(params.ProRatingConfig).
+				SetNillableSettlementMode(params.SettlementMode)
 
 			if params.Metadata != nil {
 				query = query.SetMetadata(*params.Metadata)

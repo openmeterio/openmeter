@@ -134,6 +134,7 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 				},
 			},
 		},
+		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	})
 	require.NoError(t, err)
 
@@ -356,6 +357,7 @@ func TestAnchoredAlignment_MidMonthStart_EarlyCancel_IssueNextAnchor(t *testing.
 				},
 			}},
 		},
+		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	})
 	require.NoError(t, err)
 	p, err = tDeps.PlanService.PublishPlan(ctx, plan.PublishPlanInput{NamespacedID: p.NamespacedID, EffectivePeriod: productcatalog.EffectivePeriod{EffectiveFrom: lo.ToPtr(currentTime)}})

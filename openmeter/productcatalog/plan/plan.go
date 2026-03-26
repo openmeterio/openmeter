@@ -27,6 +27,9 @@ type Plan struct {
 	// Addons contains the list of Addons assigned to this plan. It is only provided if the Plan was fetched
 	// with Addons being expanded.
 	Addons *[]Addon `json:"addons,omitempty"`
+
+	// Settlement mode
+	SettlementMode productcatalog.SettlementMode `json:"settlement_mode,omitempty"`
 }
 
 func (p Plan) ValidateWith(validators ...models.ValidatorFunc[Plan]) error {
@@ -61,6 +64,22 @@ func ValidatePlanPhases() models.ValidatorFunc[Plan] {
 			if err := phase.Validate(); err != nil {
 				errs = append(errs, fmt.Errorf("invalid plan phase %q: %s", phase.Key, err))
 			}
+		}
+
+		return models.NewNillableGenericValidationError(errors.Join(errs...))
+	}
+}
+
+func ValidateSettlementMode() models.ValidatorFunc[Plan] {
+	return func(p Plan) error {
+		var errs []error
+
+		if p.SettlementMode == "" {
+			errs = append(errs, fmt.Errorf("settlement mode is required"))
+		}
+
+		if err := p.SettlementMode.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid settlement mode: %w", err))
 		}
 
 		return models.NewNillableGenericValidationError(errors.Join(errs...))

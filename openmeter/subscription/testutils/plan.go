@@ -59,7 +59,8 @@ func (h *planHelper) CreatePlan(t *testing.T, input plan.CreatePlanInput) subscr
 	require.Nilf(t, p.DeletedAt, "plan %s should not be deleted", p.NamespacedID.ID)
 
 	return &plansubscription.Plan{
-		Plan: p.AsProductCatalogPlan(),
-		Ref:  &p.NamespacedID,
+		Plan:           p.AsProductCatalogPlan(),
+		Ref:            &p.NamespacedID,
+		SettlementMode: p.SettlementMode,
 	}
 }

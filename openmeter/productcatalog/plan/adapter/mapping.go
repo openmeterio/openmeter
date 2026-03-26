@@ -44,6 +44,7 @@ func FromPlanRow(p entdb.Plan) (*plan.Plan, error) {
 				EffectiveTo:   p.EffectiveTo,
 			},
 		},
+		SettlementMode: p.SettlementMode,
 	}
 
 	if len(p.Edges.Phases) > 0 {
