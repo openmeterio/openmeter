@@ -54,6 +54,10 @@ using TypeSpec.OpenAPI;
 @tagMetadata(Shared.TaxTag, #{ description: Shared.TaxDescription })
 @tagMetadata(Shared.FeaturesTag, #{ description: Shared.FeaturesDescription })
 @tagMetadata(Shared.LLMCostTag, #{ description: Shared.LLMCostDescription })
+@tagMetadata(
+  Shared.ProductCatalogTag,
+  #{ description: Shared.ProductCatalogDescription }
+)
 namespace OpenMeter;
 
 @route("/openmeter/events")
@@ -150,3 +154,15 @@ interface LLMCostPricesEndpoints extends LLMCost.LLMCostPricesOperations {}
 @tag(Shared.LLMCostTag)
 interface LLMCostOverridesEndpoints
   extends LLMCost.LLMCostOverridesOperations {}
+
+@route("/openmeter/plans")
+@tag(Shared.ProductCatalogTag)
+interface PlansEndpoints extends ProductCatalog.PlanOperations {}
+
+@route("/openmeter/addons")
+@tag(Shared.ProductCatalogTag)
+interface AddonsEndpoints extends ProductCatalog.AddonOperations {}
+
+@route("/openmeter/plans/{planId}/addons")
+@tag(Shared.ProductCatalogTag)
+interface PlanAddonEndpoints extends ProductCatalog.PlanAddonOperations {}
