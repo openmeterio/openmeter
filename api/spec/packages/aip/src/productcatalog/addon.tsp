@@ -36,13 +36,6 @@ model Addon {
   ...Shared.ResourceWithKey;
 
   /**
-   * Set of key-value pairs managed by the system. Cannot be modified by user.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Annotations")
-  annotations?: Record<unknown>;
-
-  /**
    * Version of the add-on. Incremented when the add-on is updated.
    */
   @summary("Version")
@@ -51,10 +44,10 @@ model Addon {
   version: integer = 1;
 
   /**
-   * The instanceType of the add-ons. Can be "single" or "multiple".
+   * The InstanceType of the add-ons. Can be "single" or "multiple".
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("InstanceType")
+  @summary("The InstanceType of the add-ons. Can be \"single\" or \"multiple\".")
   instance_type: AddonInstanceType;
 
   /**
@@ -62,21 +55,21 @@ model Addon {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Currency")
-  currency: Shared.CurrencyCode = "USD";
+  currency: Shared.CurrencyCode;
 
   /**
    * The date and time when the add-on becomes effective. When not specified, the add-on is a draft.
    */
   @visibility(Lifecycle.Read)
   @summary("Effective start date")
-  from?: Shared.DateTime;
+  effective_from?: Shared.DateTime;
 
   /**
    * The date and time when the add-on is no longer effective. When not specified, the add-on is effective indefinitely.
    */
   @visibility(Lifecycle.Read)
   @summary("Effective end date")
-  to?: Shared.DateTime;
+  effective_to?: Shared.DateTime;
 
   /**
    * The status of the add-on.

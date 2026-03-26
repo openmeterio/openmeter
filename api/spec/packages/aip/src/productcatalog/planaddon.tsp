@@ -23,7 +23,7 @@ model PlanAddon {
    */
   @summary("From plan phase")
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  from_plan_phase: string;
+  from_plan_phase: Shared.ResourceKey;
 
   /**
    * The maximum number of times the add-on can be purchased for the plan.
@@ -40,11 +40,4 @@ model PlanAddon {
   @summary("Validation errors")
   @visibility(Lifecycle.Read)
   validation_errors?: ProductCatalogValidationError[];
-
-  /**
-   * Set of key-value pairs managed by the system. Cannot be modified by user.
-   */
-  @summary("Annotations")
-  @visibility(Lifecycle.Read)
-  annotations?: Record<unknown>;
 }
