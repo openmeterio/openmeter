@@ -22,6 +22,7 @@ func TestNormalizeModelIDProviderNames(t *testing.T) {
 		{"aws", "amazon"},
 		{"bedrock", "bedrock"},
 		{"bedrock_converse", "bedrock"},
+		{"amazon-bedrock", "bedrock"},
 		{"meta", "meta"},
 		{"facebook", "meta"},
 		{"deepseek", "deepseek"},
@@ -103,6 +104,94 @@ func TestNormalizeModelIDVersionSuffix(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, modelID := NormalizeModelID("openai", tt.input)
+			assert.Equal(t, tt.expected, modelID)
+		})
+	}
+}
+
+func TestNormalizeModelIDBedrockVersionSuffix(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"strips -v1:0", "anthropic.claude-3-5-sonnet-v1:0", "anthropic.claude-3-5-sonnet"},
+		{"strips -v2:0", "anthropic.claude-3-5-sonnet-v2:0", "anthropic.claude-3-5-sonnet"},
+		{"strips date then version", "anthropic.claude-3-5-sonnet-20240620-v1:0", "anthropic.claude-3-5-sonnet"},
+		{"strips from nova model", "amazon.nova-pro-v1:0", "amazon.nova-pro"},
+		{"strips from llama model", "meta.llama3-1-70b-instruct-v1:0", "meta.llama3-1-70b-instruct"},
+		{"no version suffix unchanged", "anthropic.claude-sonnet-4-6", "anthropic.claude-sonnet-4-6"},
+		{"non-bedrock model unchanged", "gpt-4o", "gpt-4o"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, modelID := NormalizeModelID("bedrock", tt.input)
+			assert.Equal(t, tt.expected, modelID)
+		})
+	}
+}
+
+func TestNormalizeModelIDBedrockRegionPrefix(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"strips eu prefix", "eu.anthropic.claude-sonnet-4-6", "anthropic.claude-sonnet-4-6"},
+		{"strips us prefix", "us.anthropic.claude-opus-4", "anthropic.claude-opus-4"},
+		{"strips ap prefix", "ap.meta.llama3-1-70b-instruct", "meta.llama3-1-70b-instruct"},
+		{"no prefix unchanged", "anthropic.claude-sonnet-4-6", "anthropic.claude-sonnet-4-6"},
+		{"strips prefix and version", "us.anthropic.claude-3-5-sonnet-20241022-v1:0", "anthropic.claude-3-5-sonnet"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, modelID := NormalizeModelID("bedrock", tt.input)
+			assert.Equal(t, tt.expected, modelID)
+		})
+	}
+}
+
+func TestNormalizeModelIDDotVersion(t *testing.T) {
+	tests := []struct {
+		name     string
+		provider string
+		input    string
+		expected string
+	}{
+		{"claude 3.5 dot to hyphen", "anthropic", "claude-3.5-sonnet", "claude-3-5-sonnet"},
+		{"claude 3.5 haiku", "anthropic", "claude-3.5-haiku", "claude-3-5-haiku"},
+		{"gemini 2.0", "google", "gemini-2.0-flash", "gemini-2-0-flash"},
+		{"already hyphens unchanged", "anthropic", "claude-3-5-sonnet", "claude-3-5-sonnet"},
+		{"namespace dot preserved", "bedrock", "anthropic.claude-3-5-sonnet", "anthropic.claude-3-5-sonnet"},
+		{"no version dots unchanged", "openai", "gpt-4o", "gpt-4o"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, modelID := NormalizeModelID(tt.provider, tt.input)
+			assert.Equal(t, tt.expected, modelID)
+		})
+	}
+}
+
+func TestNormalizeModelIDAliases(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"deepseek-chat to deepseek-v3", "deepseek-chat", "deepseek-v3"},
+		{"deepseek-reasoner to deepseek-r1", "deepseek-reasoner", "deepseek-r1"},
+		{"deepseek-v3 unchanged", "deepseek-v3", "deepseek-v3"},
+		{"deepseek-r1 unchanged", "deepseek-r1", "deepseek-r1"},
+		{"non-alias unchanged", "gpt-4o", "gpt-4o"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, modelID := NormalizeModelID("deepseek", tt.input)
 			assert.Equal(t, tt.expected, modelID)
 		})
 	}
