@@ -4,9 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -106,6 +111,15 @@ func (s *service) createItem(
 			newEnt = &ent.Entitlement.Entitlement
 		}
 
+		// Resolve tax code on the spec's RateCard before deriving the entity input so
+		// that the enrichment is applied to the source of truth (opts.itemSpec) rather
+		// than relying on the implicit pointer sharing between opts.itemSpec.RateCard
+		// and itemEntityInput.RateCard. If ToCreateSubscriptionItemEntityInput ever
+		// clones the rate card, the current order would silently stop updating the spec.
+		if err := s.resolveTaxCode(ctx, opts.sub.Namespace, opts.itemSpec.RateCard); err != nil {
+			return res, fmt.Errorf("failed to resolve tax code: %w", err)
+		}
+
 		// Second, let's create the item itself
 		itemEntityInput, err := opts.itemSpec.ToCreateSubscriptionItemEntityInput(
 			opts.phase.NamespacedID,
@@ -166,4 +180,32 @@ func (s *service) deleteItem(ctx context.Context, item subscription.Subscription
 		return nil, nil
 	})
 	return err
+}
+
+// resolveTaxCode ensures that a RateCard with a Stripe tax code in its TaxConfig
+// has a corresponding TaxCode entity in the namespace. If no matching TaxCode exists,
+// one is created. The RateCard's TaxConfig.TaxCodeID is then populated.
+func (s *service) resolveTaxCode(ctx context.Context, namespace string, rc productcatalog.RateCard) error {
+	if s.TaxCode == nil {
+		return nil
+	}
+
+	meta := rc.AsMeta()
+	if meta.TaxConfig == nil || meta.TaxConfig.Stripe == nil || meta.TaxConfig.Stripe.Code == "" {
+		return nil
+	}
+
+	tc, err := s.TaxCode.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
+		Namespace: namespace,
+		AppType:   app.AppTypeStripe,
+		TaxCode:   meta.TaxConfig.Stripe.Code,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to resolve tax code for stripe code %s: %w", meta.TaxConfig.Stripe.Code, err)
+	}
+
+	return rc.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+		m.TaxConfig.TaxCodeID = lo.ToPtr(tc.ID)
+		return m, nil
+	})
 }

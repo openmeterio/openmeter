@@ -6,6 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -148,4 +149,37 @@ func (s *StripeTaxConfig) Validate() error {
 
 func (s StripeTaxConfig) Clone() StripeTaxConfig {
 	return s
+}
+
+// BackfillTaxConfig fills in missing legacy TaxConfig fields from the new tax_behavior column
+// and the TaxCode entity's app mappings.
+func BackfillTaxConfig(cfg *TaxConfig, taxBehavior *TaxBehavior, tc *taxcode.TaxCode) *TaxConfig {
+	var stripeCode string
+	if tc != nil {
+		if m, ok := tc.GetAppMapping(app.AppTypeStripe); ok {
+			stripeCode = m.TaxCode
+		}
+	}
+
+	if taxBehavior == nil && stripeCode == "" {
+		return cfg
+	}
+
+	if cfg == nil {
+		cfg = &TaxConfig{}
+	}
+
+	if cfg.Behavior == nil && taxBehavior != nil {
+		cfg.Behavior = taxBehavior
+	}
+
+	if cfg.Stripe == nil && stripeCode != "" {
+		cfg.Stripe = &StripeTaxConfig{Code: stripeCode}
+	}
+
+	if cfg.TaxCodeID == nil && tc != nil && tc.ID != "" {
+		cfg.TaxCodeID = &tc.ID
+	}
+
+	return cfg
 }

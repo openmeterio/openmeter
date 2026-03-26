@@ -9,10 +9,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -947,5 +949,152 @@ func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
 		// Delete subscription - scheduled subscriptions can be deleted
 		err = service.Delete(ctx, sub1.Subscription.NamespacedID)
 		require.Nil(t, err)
+	})
+}
+
+func TestTaxCodeResolution(t *testing.T) {
+	t.Run("Should resolve and persist TaxCodeID for subscription items with a Stripe tax code", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		currentTime := testutils.GetRFC3339Time(t, "2021-01-01T00:00:11Z")
+		clock.SetTime(currentTime)
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := deps.SubscriptionService
+
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+
+		spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+			CustomerId:    cust.ID,
+			Currency:      "USD",
+			ActiveFrom:    currentTime,
+			BillingAnchor: currentTime,
+			Name:          "Test Subscription",
+			Annotations:   models.Annotations{},
+		})
+		require.NoError(t, err)
+
+		sub, err := service.Create(ctx, subscriptiontestutils.ExampleNamespace, spec)
+		require.NoError(t, err)
+
+		view, err := service.GetView(ctx, models.NamespacedID{ID: sub.ID, Namespace: sub.Namespace})
+		require.NoError(t, err)
+
+		// Look up the TaxCode entity that should have been created during subscription creation.
+		// ExampleRateCard1 and ExampleRateCard3ForAddons both use Stripe code "txcd_10000000".
+		const stripeCode = "txcd_10000000"
+		tc, err := deps.TaxCodeService.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
+			Namespace: subscriptiontestutils.ExampleNamespace,
+			AppType:   app.AppTypeStripe,
+			TaxCode:   stripeCode,
+		})
+		require.NoError(t, err, "TaxCode entity should exist after subscription creation")
+
+		itemsChecked := 0
+		for _, phaseView := range view.Phases {
+			for _, items := range phaseView.ItemsByKey {
+				for _, item := range items {
+					meta := item.SubscriptionItem.RateCard.AsMeta()
+					if meta.TaxConfig != nil && meta.TaxConfig.Stripe != nil && meta.TaxConfig.Stripe.Code != "" {
+						// Items with a Stripe tax code must have TaxCodeID resolved and written.
+						require.NotNil(t, meta.TaxConfig.TaxCodeID,
+							"TaxCodeID must be set for item %s with Stripe code %s",
+							item.SubscriptionItem.Key, meta.TaxConfig.Stripe.Code)
+						assert.Equal(t, tc.ID, *meta.TaxConfig.TaxCodeID,
+							"TaxCodeID must reference the resolved TaxCode entity for item %s", item.SubscriptionItem.Key)
+						itemsChecked++
+					} else if meta.TaxConfig != nil {
+						// Items with TaxConfig but no Stripe code should not have TaxCodeID set.
+						assert.Nil(t, meta.TaxConfig.TaxCodeID,
+							"TaxCodeID must be nil for item %s without a Stripe tax code", item.SubscriptionItem.Key)
+					}
+				}
+			}
+		}
+
+		require.Greater(t, itemsChecked, 0, "expected at least one item with a Stripe tax code in the test plan")
+	})
+
+	t.Run("Should populate TaxConfig fields on read via item repo (BackfillTaxConfig + WithTaxCode)", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		currentTime := testutils.GetRFC3339Time(t, "2021-01-01T00:00:11Z")
+		clock.SetTime(currentTime)
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := deps.SubscriptionService
+
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+		_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+
+		spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+			CustomerId:    cust.ID,
+			Currency:      "USD",
+			ActiveFrom:    currentTime,
+			BillingAnchor: currentTime,
+			Name:          "Test Subscription",
+			Annotations:   models.Annotations{},
+		})
+		require.NoError(t, err)
+
+		sub, err := service.Create(ctx, subscriptiontestutils.ExampleNamespace, spec)
+		require.NoError(t, err)
+
+		// Get the view once to collect item IDs.
+		view, err := service.GetView(ctx, models.NamespacedID{ID: sub.ID, Namespace: sub.Namespace})
+		require.NoError(t, err)
+
+		const stripeCode = "txcd_10000000"
+		tc, err := deps.TaxCodeService.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
+			Namespace: subscriptiontestutils.ExampleNamespace,
+			AppType:   app.AppTypeStripe,
+			TaxCode:   stripeCode,
+		})
+		require.NoError(t, err)
+
+		// For every item that had a Stripe tax code, read it back directly via the
+		// item repo (bypassing the service/view layer) and assert the full TaxConfig
+		// round-trip: TaxCodeID from the FK column and Stripe.Code from the TaxCode
+		// entity's app mapping are both present after BackfillTaxConfig runs.
+		itemsChecked := 0
+		for _, phaseView := range view.Phases {
+			for _, items := range phaseView.ItemsByKey {
+				for _, item := range items {
+					viewMeta := item.SubscriptionItem.RateCard.AsMeta()
+					if viewMeta.TaxConfig == nil || viewMeta.TaxConfig.Stripe == nil || viewMeta.TaxConfig.Stripe.Code == "" {
+						continue
+					}
+
+					repoItem, err := deps.ItemRepo.GetByID(ctx, item.SubscriptionItem.NamespacedID)
+					require.NoError(t, err, "GetByID must succeed for item %s", item.SubscriptionItem.Key)
+
+					repoMeta := repoItem.RateCard.AsMeta()
+					require.NotNil(t, repoMeta.TaxConfig,
+						"TaxConfig must not be nil on repo read for item %s", repoItem.Key)
+					require.NotNil(t, repoMeta.TaxConfig.TaxCodeID,
+						"TaxCodeID must be populated via WithTaxCode+BackfillTaxConfig for item %s", repoItem.Key)
+					assert.Equal(t, tc.ID, *repoMeta.TaxConfig.TaxCodeID,
+						"TaxCodeID must reference the correct TaxCode entity for item %s", repoItem.Key)
+					require.NotNil(t, repoMeta.TaxConfig.Stripe,
+						"Stripe TaxConfig must be preserved on read for item %s", repoItem.Key)
+					assert.Equal(t, stripeCode, repoMeta.TaxConfig.Stripe.Code,
+						"Stripe.Code must survive the DB round-trip for item %s", repoItem.Key)
+					itemsChecked++
+				}
+			}
+		}
+
+		require.Greater(t, itemsChecked, 0, "expected at least one item with a Stripe tax code to verify the read path")
 	})
 }
