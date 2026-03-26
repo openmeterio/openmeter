@@ -3,6 +3,7 @@ package reconciler
 import (
 	"context"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 )
 
@@ -21,6 +22,6 @@ func (p CreatePatch) UniqueReferenceID() string {
 	return p.UniqueID
 }
 
-func (p CreatePatch) Expand(_ context.Context, input ExpandInput) ([]Patch, error) {
+func (p CreatePatch) Expand(_ context.Context, input ExpandInput) ([]invoiceupdater.Patch, error) {
 	return expandCreatePatch(input, p.Target)
 }

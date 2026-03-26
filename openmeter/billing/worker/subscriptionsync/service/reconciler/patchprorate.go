@@ -6,6 +6,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -32,6 +33,6 @@ func (p ProratePatch) UniqueReferenceID() string {
 	return p.UniqueID
 }
 
-func (p ProratePatch) Expand(_ context.Context, input ExpandInput) ([]Patch, error) {
+func (p ProratePatch) Expand(_ context.Context, input ExpandInput) ([]invoiceupdater.Patch, error) {
 	return expandExistingPatch(input, p.Existing, p.Target, SemanticPatchOperationProrate)
 }

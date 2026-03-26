@@ -12,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -151,13 +152,13 @@ type ProrateDecision struct {
 }
 
 func semanticProrateDecision(existing billing.LineOrHierarchy, expectedLine billing.GatheringLine) (ProrateDecision, error) {
-	if !IsFlatFee(expectedLine) {
+	if !invoiceupdater.IsFlatFee(expectedLine) {
 		return ProrateDecision{}, nil
 	}
 
 	// expectedLine is materialized through targetstate.LineFromSubscriptionRateCard, which
 	// applies the existing subscription-sync proration rules when deriving the flat-fee amount.
-	targetAmount, err := GetFlatFeePerUnitAmount(expectedLine)
+	targetAmount, err := invoiceupdater.GetFlatFeePerUnitAmount(expectedLine)
 	if err != nil {
 		return ProrateDecision{}, fmt.Errorf("getting expected flat fee amount: %w", err)
 	}
@@ -169,11 +170,11 @@ func semanticProrateDecision(existing billing.LineOrHierarchy, expectedLine bill
 			return ProrateDecision{}, fmt.Errorf("getting existing line: %w", err)
 		}
 
-		if !IsFlatFee(existingLine) {
+		if !invoiceupdater.IsFlatFee(existingLine) {
 			return ProrateDecision{}, nil
 		}
 
-		existingAmount, err := GetFlatFeePerUnitAmount(existingLine)
+		existingAmount, err := invoiceupdater.GetFlatFeePerUnitAmount(existingLine)
 		if err != nil {
 			return ProrateDecision{}, fmt.Errorf("getting existing flat fee amount: %w", err)
 		}
@@ -263,4 +264,28 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 		}),
 		SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
 	}, nil
+}
+
+func (s *Service) Apply(ctx context.Context, input ApplyInput) error {
+	patches := make([]invoiceupdater.Patch, 0, len(input.Plan.SemanticPatches))
+
+	for _, semanticPatch := range input.Plan.SemanticPatches {
+		expanded, err := semanticPatch.Expand(ctx, ExpandInput{
+			Subscription: input.Subscription,
+			Currency:     input.Currency,
+			Invoices:     input.Invoices,
+		})
+		if err != nil {
+			return fmt.Errorf("expanding semantic patch[%s/%s]: %w", semanticPatch.Operation(), semanticPatch.UniqueReferenceID(), err)
+		}
+
+		patches = append(patches, expanded...)
+	}
+
+	invoiceUpdater := invoiceupdater.New(s.billingService, s.logger)
+	if err := invoiceUpdater.ApplyPatches(ctx, input.Customer, patches); err != nil {
+		return fmt.Errorf("updating invoices: %w", err)
+	}
+
+	return nil
 }

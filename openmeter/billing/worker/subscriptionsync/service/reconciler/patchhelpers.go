@@ -7,12 +7,13 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func expandCreatePatch(input ExpandInput, target targetstate.SubscriptionItemWithPeriods) ([]Patch, error) {
+func expandCreatePatch(input ExpandInput, target targetstate.SubscriptionItemWithPeriods) ([]invoiceupdater.Patch, error) {
 	line, err := targetstate.LineFromSubscriptionRateCard(input.Subscription, target, input.Currency)
 	if err != nil {
 		return nil, fmt.Errorf("generating line from subscription item [%s]: %w", target.SubscriptionItem.ID, err)
@@ -22,10 +23,10 @@ func expandCreatePatch(input ExpandInput, target targetstate.SubscriptionItemWit
 		return nil, nil
 	}
 
-	return []Patch{NewCreateLinePatch(*line)}, nil
+	return []invoiceupdater.Patch{invoiceupdater.NewCreateLinePatch(*line)}, nil
 }
 
-func expandExistingPatch(input ExpandInput, existing billing.LineOrHierarchy, target targetstate.SubscriptionItemWithPeriods, operation SemanticPatchOperation) ([]Patch, error) {
+func expandExistingPatch(input ExpandInput, existing billing.LineOrHierarchy, target targetstate.SubscriptionItemWithPeriods, operation SemanticPatchOperation) ([]invoiceupdater.Patch, error) {
 	expectedLine, err := targetstate.LineFromSubscriptionRateCard(input.Subscription, target, input.Currency)
 	if err != nil {
 		return nil, fmt.Errorf("generating expected line[%s]: %w", target.UniqueID, err)
@@ -38,7 +39,7 @@ func expandExistingPatch(input ExpandInput, existing billing.LineOrHierarchy, ta
 	return expandExistingLineOrHierarchy(existing, *expectedLine, input.Invoices, operation)
 }
 
-func expandExistingLineOrHierarchy(existingLine billing.LineOrHierarchy, expectedLine billing.GatheringLine, invoices persistedstate.Invoices, operation SemanticPatchOperation) ([]Patch, error) {
+func expandExistingLineOrHierarchy(existingLine billing.LineOrHierarchy, expectedLine billing.GatheringLine, invoices persistedstate.Invoices, operation SemanticPatchOperation) ([]invoiceupdater.Patch, error) {
 	switch existingLine.Type() {
 	case billing.LineOrHierarchyTypeLine:
 		line, err := existingLine.AsGenericLine()
@@ -59,7 +60,7 @@ func expandExistingLineOrHierarchy(existingLine billing.LineOrHierarchy, expecte
 	}
 }
 
-func expandExistingLine(existingLine billing.GenericInvoiceLine, expectedLine billing.GatheringLine, invoices persistedstate.Invoices, operation SemanticPatchOperation) ([]Patch, error) {
+func expandExistingLine(existingLine billing.GenericInvoiceLine, expectedLine billing.GatheringLine, invoices persistedstate.Invoices, operation SemanticPatchOperation) ([]invoiceupdater.Patch, error) {
 	if expectedLine.Annotations.GetBool(billing.AnnotationSubscriptionSyncIgnore) {
 		return nil, nil
 	}
@@ -99,10 +100,10 @@ func expandExistingLine(existingLine billing.GenericInvoiceLine, expectedLine bi
 		}
 	}
 
-	if !IsFlatFee(targetLine) {
+	if !invoiceupdater.IsFlatFee(targetLine) {
 		if targetLine.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
-			return []Patch{
-				NewDeleteLinePatch(existingLine.GetLineID(), existingLine.GetInvoiceID()),
+			return []invoiceupdater.Patch{
+				invoiceupdater.NewDeleteLinePatch(existingLine.GetLineID(), existingLine.GetInvoiceID()),
 			}, nil
 		}
 	}
@@ -112,27 +113,27 @@ func expandExistingLine(existingLine billing.GenericInvoiceLine, expectedLine bi
 		wasChange = true
 	}
 
-	if IsFlatFee(targetLine) {
+	if invoiceupdater.IsFlatFee(targetLine) {
 		if operation != SemanticPatchOperationProrate {
 			return nil, fmt.Errorf("%s patch cannot be applied to flat fee line[%s]", operation, existingLine.GetLineID().ID)
 		}
 
-		if !IsFlatFee(expectedLine) {
+		if !invoiceupdater.IsFlatFee(expectedLine) {
 			return nil, errors.New("cannot merge flat fee line with usage based line")
 		}
 
-		perUnitAmountExisting, err := GetFlatFeePerUnitAmount(existingLine)
+		perUnitAmountExisting, err := invoiceupdater.GetFlatFeePerUnitAmount(existingLine)
 		if err != nil {
 			return nil, fmt.Errorf("getting flat fee per unit amount: %w", err)
 		}
 
-		perUnitAmountExpected, err := GetFlatFeePerUnitAmount(expectedLine)
+		perUnitAmountExpected, err := invoiceupdater.GetFlatFeePerUnitAmount(expectedLine)
 		if err != nil {
 			return nil, fmt.Errorf("getting flat fee per unit amount: %w", err)
 		}
 
 		if !perUnitAmountExisting.Equal(perUnitAmountExpected) {
-			if err := SetFlatFeePerUnitAmount(targetLine, perUnitAmountExpected); err != nil {
+			if err := invoiceupdater.SetFlatFeePerUnitAmount(targetLine, perUnitAmountExpected); err != nil {
 				return nil, fmt.Errorf("setting flat fee per unit amount: %w", err)
 			}
 			wasChange = true
@@ -145,12 +146,12 @@ func expandExistingLine(existingLine billing.GenericInvoiceLine, expectedLine bi
 		return nil, nil
 	}
 
-	return []Patch{
-		NewUpdateLinePatch(targetLine),
+	return []invoiceupdater.Patch{
+		invoiceupdater.NewUpdateLinePatch(targetLine),
 	}, nil
 }
 
-func expandExistingHierarchy(existingHierarchy *billing.SplitLineHierarchy, expectedLine billing.GatheringLine, invoices persistedstate.Invoices, operation SemanticPatchOperation) ([]Patch, error) {
+func expandExistingHierarchy(existingHierarchy *billing.SplitLineHierarchy, expectedLine billing.GatheringLine, invoices persistedstate.Invoices, operation SemanticPatchOperation) ([]invoiceupdater.Patch, error) {
 	if operation == SemanticPatchOperationProrate {
 		return nil, errors.New("prorate patch cannot be applied to split line hierarchy")
 	}
@@ -163,7 +164,7 @@ func expandExistingHierarchy(existingHierarchy *billing.SplitLineHierarchy, expe
 		return nil, nil
 	}
 
-	patches := []Patch{}
+	patches := []invoiceupdater.Patch{}
 
 	if existingHierarchy.Group.ServicePeriod.End.Before(expectedLine.ServicePeriod.To) {
 		if len(existingHierarchy.Lines) > 0 {
@@ -194,12 +195,12 @@ func expandExistingHierarchy(existingHierarchy *billing.SplitLineHierarchy, expe
 				invoiceAtAccessor.SetInvoiceAt(expectedLine.InvoiceAt)
 			}
 
-			patches = append(patches, NewUpdateLinePatch(lastChild))
+			patches = append(patches, invoiceupdater.NewUpdateLinePatch(lastChild))
 		}
 
 		updatedGroup := existingHierarchy.Group.ToUpdate()
 		updatedGroup.ServicePeriod.End = expectedLine.ServicePeriod.To
-		patches = append(patches, NewUpdateSplitLineGroupPatch(updatedGroup))
+		patches = append(patches, invoiceupdater.NewUpdateSplitLineGroupPatch(updatedGroup))
 
 		return patches, nil
 	}
@@ -210,7 +211,7 @@ func expandExistingHierarchy(existingHierarchy *billing.SplitLineHierarchy, expe
 		}
 
 		if child.Line.GetServicePeriod().From.After(expectedLine.ServicePeriod.To) {
-			patches = append(patches, NewDeleteLinePatch(child.Line.GetLineID(), child.Line.GetInvoiceID()))
+			patches = append(patches, invoiceupdater.NewDeleteLinePatch(child.Line.GetLineID(), child.Line.GetInvoiceID()))
 			continue
 		}
 
@@ -236,20 +237,20 @@ func expandExistingHierarchy(existingHierarchy *billing.SplitLineHierarchy, expe
 				updatedLine.SetDeletedAt(nil)
 			}
 
-			if !IsFlatFee(updatedLine) {
+			if !invoiceupdater.IsFlatFee(updatedLine) {
 				if updatedLine.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
-					patches = append(patches, NewDeleteLinePatch(updatedLine.GetLineID(), updatedLine.GetInvoiceID()))
+					patches = append(patches, invoiceupdater.NewDeleteLinePatch(updatedLine.GetLineID(), updatedLine.GetInvoiceID()))
 					continue
 				}
 			}
 
-			patches = append(patches, NewUpdateLinePatch(updatedLine))
+			patches = append(patches, invoiceupdater.NewUpdateLinePatch(updatedLine))
 		}
 	}
 
 	updatedGroup := existingHierarchy.Group.ToUpdate()
 	updatedGroup.ServicePeriod.End = expectedLine.ServicePeriod.To
-	patches = append(patches, NewUpdateSplitLineGroupPatch(updatedGroup))
+	patches = append(patches, invoiceupdater.NewUpdateSplitLineGroupPatch(updatedGroup))
 
 	return patches, nil
 }

@@ -1,4 +1,4 @@
-package reconciler
+package invoiceupdater
 
 import (
 	"context"
@@ -18,19 +18,19 @@ import (
 
 const subscriptionSyncComponentName billing.ComponentName = "subscription-sync"
 
-type InvoiceUpdater struct {
+type Updater struct {
 	billingService billing.Service
 	logger         *slog.Logger
 }
 
-func NewInvoiceUpdater(billingService billing.Service, logger *slog.Logger) *InvoiceUpdater {
-	return &InvoiceUpdater{
+func New(billingService billing.Service, logger *slog.Logger) *Updater {
+	return &Updater{
 		billingService: billingService,
 		logger:         logger,
 	}
 }
 
-func (u *InvoiceUpdater) ApplyPatches(ctx context.Context, customerID customer.CustomerID, patches []Patch) error {
+func (u *Updater) ApplyPatches(ctx context.Context, customerID customer.CustomerID, patches []Patch) error {
 	patchesParsed, err := u.parsePatches(patches)
 	if err != nil {
 		return fmt.Errorf("parsing patches: %w", err)
@@ -106,7 +106,7 @@ type splitLineGroupPatches struct {
 	updated []billing.SplitLineGroupUpdate
 }
 
-func (u *InvoiceUpdater) parsePatches(patches []Patch) (patchesParsed, error) {
+func (u *Updater) parsePatches(patches []Patch) (patchesParsed, error) {
 	parsed := patchesParsed{
 		updatedLinesByInvoiceID: make(map[string]invoicePatches),
 	}
@@ -160,7 +160,7 @@ func (u *InvoiceUpdater) parsePatches(patches []Patch) (patchesParsed, error) {
 	return parsed, nil
 }
 
-func (u *InvoiceUpdater) provisionUpcomingLines(ctx context.Context, customerID customer.CustomerID, lines []billing.GatheringLine) error {
+func (u *Updater) provisionUpcomingLines(ctx context.Context, customerID customer.CustomerID, lines []billing.GatheringLine) error {
 	if len(lines) == 0 {
 		return nil
 	}
@@ -183,7 +183,7 @@ func (u *InvoiceUpdater) provisionUpcomingLines(ctx context.Context, customerID 
 	return nil
 }
 
-func (u *InvoiceUpdater) updateMutableStandardInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
+func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
 	updatedInvoice, err := u.billingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 		Invoice:             invoice.GetInvoiceID(),
 		IncludeDeletedLines: true,
@@ -255,7 +255,7 @@ func (u *InvoiceUpdater) updateMutableStandardInvoice(ctx context.Context, invoi
 	return err
 }
 
-func (u *InvoiceUpdater) updateGatheringInvoice(ctx context.Context, invoiceID billing.InvoiceID, linePatches invoicePatches) error {
+func (u *Updater) updateGatheringInvoice(ctx context.Context, invoiceID billing.InvoiceID, linePatches invoicePatches) error {
 	return u.billingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
 		Invoice:             invoiceID,
 		IncludeDeletedLines: true,
@@ -289,7 +289,7 @@ func (u *InvoiceUpdater) updateGatheringInvoice(ctx context.Context, invoiceID b
 	})
 }
 
-func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
+func (u *Updater) updateImmutableInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
 	invoice, err := u.billingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 		Invoice: invoice.GetInvoiceID(),
 		Expand:  billing.StandardInvoiceExpandAll,
@@ -391,7 +391,7 @@ func newValidationIssueOnLine(line *billing.StandardLine, message string, a ...a
 	}
 }
 
-func (u *InvoiceUpdater) mergeValidationIssues(invoice billing.StandardInvoice, issues []billing.ValidationIssue) (billing.ValidationIssues, bool) {
+func (u *Updater) mergeValidationIssues(invoice billing.StandardInvoice, issues []billing.ValidationIssue) (billing.ValidationIssues, bool) {
 	changed := false
 
 	for _, issue := range issues {
@@ -411,7 +411,7 @@ func (u *InvoiceUpdater) mergeValidationIssues(invoice billing.StandardInvoice, 
 	return invoice.ValidationIssues, changed
 }
 
-func (u *InvoiceUpdater) upsertSplitLineGroups(ctx context.Context, customerID customer.CustomerID, changes splitLineGroupPatches) error {
+func (u *Updater) upsertSplitLineGroups(ctx context.Context, customerID customer.CustomerID, changes splitLineGroupPatches) error {
 	if len(changes.deleted) == 0 && len(changes.updated) == 0 {
 		return nil
 	}
