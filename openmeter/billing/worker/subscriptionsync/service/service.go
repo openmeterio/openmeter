@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
@@ -55,6 +56,7 @@ var _ subscriptionsync.Service = (*Service)(nil)
 
 type Service struct {
 	billingService          billing.Service
+	reconciler              reconciler.Reconciler
 	subscriptionService     subscription.Service
 	subscriptionSyncAdapter subscriptionsync.Adapter
 	featureFlags            FeatureFlags
@@ -66,8 +68,16 @@ func New(config Config) (*Service, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
 	}
+	reconcilerSvc, err := reconciler.New(reconciler.Config{
+		BillingService: config.BillingService,
+		Logger:         config.Logger,
+	})
+	if err != nil {
+		return nil, err
+	}
 	return &Service{
 		billingService:          config.BillingService,
+		reconciler:              reconcilerSvc,
 		subscriptionSyncAdapter: config.SubscriptionSyncAdapter,
 		featureFlags:            config.FeatureFlags,
 		subscriptionService:     config.SubscriptionService,
