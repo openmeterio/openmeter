@@ -84,67 +84,95 @@ func (p *Plan) IsEmpty() bool {
 	return len(p.Patches) == 0
 }
 
+type diffItemResult struct {
+	Patch   Patch
+	Changed bool
+}
+
 func (s *Service) diffItem(
 	target *targetstate.SubscriptionItemWithPeriods,
 	expectedLine *billing.GatheringLine, // TODO[later]: let's merge this with target as they are the same thing's different calculation stages
 	existing *billing.LineOrHierarchy,
-) (Patch, bool, error) {
+) (diffItemResult, error) {
 	switch {
 	case target == nil && existing == nil:
-		return nil, false, nil
+		return diffItemResult{}, nil
 	case target == nil && existing != nil:
 		uniqueID := lo.FromPtr(existing.ChildUniqueReferenceID())
-		return DeletePatch{
-			UniqueID: uniqueID,
-			Existing: *existing,
-		}, true, nil
-	case target != nil && existing == nil:
-		return CreatePatch{
-			UniqueID: target.UniqueID,
-			Target:   *target,
-		}, true, nil
+
+		return diffItemResult{
+			Patch: DeletePatch{
+				UniqueID: uniqueID,
+				Existing: *existing,
+			},
+			Changed: true,
+		}, nil
+	case target != nil && existing == nil && expectedLine != nil:
+		return diffItemResult{
+			Patch: CreatePatch{
+				UniqueID: target.UniqueID,
+				Target:   *target,
+			},
+			Changed: true,
+		}, nil
+	case target != nil && existing == nil && expectedLine == nil:
+		// If the target is not nil, but the expected line is nil, we should not create a patch (most probably
+		// because the line is ignored or empty service period)
+		return diffItemResult{}, nil
 	case target != nil && existing != nil && expectedLine == nil:
-		return DeletePatch{
-			UniqueID: target.UniqueID,
-			Existing: *existing,
-		}, true, nil
+		return diffItemResult{
+			Patch: DeletePatch{
+				UniqueID: target.UniqueID,
+				Existing: *existing,
+			},
+			Changed: true,
+		}, nil
 	}
 
 	existingPeriod := existing.ServicePeriod()
 	targetPeriod := expectedLine.ServicePeriod
 
 	if decision, err := semanticProrateDecision(*existing, *expectedLine); err != nil {
-		return nil, false, err
+		return diffItemResult{}, err
 	} else if decision.ShouldProrate {
 		// Flat fee lines do not produce usage-based shrink/extend patches. Any period
 		// change for a flat fee line is reconciled through ProratePatch so that the
 		// service period and per-unit amount are updated together.
-		return ProratePatch{
-			UniqueID:       target.UniqueID,
-			Existing:       *existing,
-			Target:         *target,
-			OriginalPeriod: existingPeriod,
-			TargetPeriod:   targetPeriod,
-			OriginalAmount: decision.OriginalAmount,
-			TargetAmount:   decision.TargetAmount,
-		}, true, nil
+		return diffItemResult{
+			Patch: ProratePatch{
+				UniqueID:       target.UniqueID,
+				Existing:       *existing,
+				Target:         *target,
+				OriginalPeriod: existingPeriod,
+				TargetPeriod:   targetPeriod,
+				OriginalAmount: decision.OriginalAmount,
+				TargetAmount:   decision.TargetAmount,
+			},
+			Changed: true,
+		}, nil
 	}
 
 	switch {
 	case targetPeriod.To.Before(existingPeriod.To):
-		return ShrinkUsageBasedPatch{
-			UniqueID: target.UniqueID,
-			Existing: *existing,
-			Target:   *target,
-		}, true, nil
+		return diffItemResult{
+			Patch: ShrinkUsageBasedPatch{
+				UniqueID: target.UniqueID,
+				Existing: *existing,
+				Target:   *target,
+			},
+			Changed: true,
+		}, nil
 	case targetPeriod.To.After(existingPeriod.To):
-		return ExtendUsageBasedPatch{
-			UniqueID: target.UniqueID,
-			Existing: *existing,
-			Target:   *target,
-		}, true, nil
+		return diffItemResult{
+			Patch: ExtendUsageBasedPatch{
+				UniqueID: target.UniqueID,
+				Existing: *existing,
+				Target:   *target,
+			},
+			Changed: true,
+		}, nil
 	default:
-		return nil, false, nil
+		return diffItemResult{}, nil
 	}
 }
 
@@ -223,12 +251,12 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 			return nil, fmt.Errorf("existing line[%s] not found in the existing lines", id)
 		}
 
-		patch, changed, err := s.diffItem(nil, nil, &line)
+		diff, err := s.diffItem(nil, nil, &line)
 		if err != nil {
 			return nil, fmt.Errorf("diffing deleted line[%s]: %w", id, err)
 		}
-		if changed {
-			patches = append(patches, patch)
+		if diff.Changed {
+			patches = append(patches, diff.Patch)
 		}
 	}
 
@@ -241,22 +269,22 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 
 		existingLine, ok := persisted.ByUniqueID[id]
 		if !ok {
-			patch, changed, err := s.diffItem(&targetLine, expectedLine, nil)
+			diff, err := s.diffItem(&targetLine, expectedLine, nil)
 			if err != nil {
 				return nil, fmt.Errorf("diffing new line[%s]: %w", id, err)
 			}
-			if changed {
-				patches = append(patches, patch)
+			if diff.Changed {
+				patches = append(patches, diff.Patch)
 			}
 			continue
 		}
 
-		patch, changed, err := s.diffItem(&targetLine, expectedLine, &existingLine)
+		diff, err := s.diffItem(&targetLine, expectedLine, &existingLine)
 		if err != nil {
 			return nil, fmt.Errorf("diffing existing line[%s]: %w", id, err)
 		}
-		if changed {
-			patches = append(patches, patch)
+		if diff.Changed {
+			patches = append(patches, diff.Patch)
 		}
 	}
 

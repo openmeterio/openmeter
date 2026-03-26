@@ -151,6 +151,10 @@ func GetDeletePatchesForLine(lineOrHierarchy billing.LineOrHierarchy) ([]Patch, 
 			return nil, nil
 		}
 
+		if line.GetDeletedAt() != nil {
+			return nil, nil
+		}
+
 		return []Patch{
 			NewDeleteLinePatch(line.GetLineID(), line.GetInvoiceID()),
 		}, nil
@@ -161,6 +165,13 @@ func GetDeletePatchesForLine(lineOrHierarchy billing.LineOrHierarchy) ([]Patch, 
 		}
 
 		out := make([]Patch, 0, 1+len(group.Lines))
+
+		// Skip the group if any of the lines are ignored
+		for _, line := range group.Lines {
+			if line.Line.GetAnnotations().GetBool(billing.AnnotationSubscriptionSyncIgnore) {
+				return nil, nil
+			}
+		}
 
 		if group.Group.DeletedAt == nil {
 			out = append(out, NewDeleteSplitLineGroupPatch(models.NamespacedID{

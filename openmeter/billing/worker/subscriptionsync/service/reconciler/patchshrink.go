@@ -68,6 +68,10 @@ func (p ShrinkUsageBasedPatch) getInvoicePatchesForLine(existingLine billing.Gen
 }
 
 func (p ShrinkUsageBasedPatch) getInvoicePatchesForHierarchy(existingHierarchy *billing.SplitLineHierarchy, expectedLine billing.GatheringLine, invoices persistedstate.Invoices) ([]invoiceupdater.Patch, error) {
+	if shouldSkipHierarchyPatch(existingHierarchy, expectedLine) {
+		return nil, nil
+	}
+
 	if !expectedLine.ServicePeriod.To.Before(existingHierarchy.Group.ServicePeriod.End) {
 		return nil, fmt.Errorf("shrink patch requires target end before existing hierarchy end: existing=%s..%s target=%s..%s", existingHierarchy.Group.ServicePeriod.Start, existingHierarchy.Group.ServicePeriod.End, expectedLine.ServicePeriod.From, expectedLine.ServicePeriod.To)
 	}
