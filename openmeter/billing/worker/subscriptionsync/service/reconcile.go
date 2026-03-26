@@ -1,0 +1,36 @@
+package service
+
+import (
+	"context"
+	"time"
+
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/framework/tracex"
+)
+
+func (s *Service) buildSyncPlan(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) (*reconciler.Plan, error) {
+	span := tracex.Start[*reconciler.Plan](ctx, s.tracer, "billing.worker.subscription.sync.buildSyncPlan")
+
+	return span.Wrap(func(ctx context.Context) (*reconciler.Plan, error) {
+		persistedLoader := persistedstate.NewLoader(s.billingService)
+		persisted, err := persistedLoader.LoadForSubscription(ctx, subs)
+		if err != nil {
+			return nil, err
+		}
+
+		targetBuilder := targetstate.NewBuilder(s.logger, s.tracer)
+		target, err := targetBuilder.Build(ctx, subs, asOf, persisted)
+		if err != nil {
+			return nil, err
+		}
+
+		return s.reconciler.Plan(ctx, reconciler.PlanInput{
+			Subscription: subs,
+			Target:       target,
+			Persisted:    persisted,
+		})
+	})
+}

@@ -1,4 +1,4 @@
-package service
+package reconciler
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
-func isFlatFee(line billing.GenericInvoiceLineReader) bool {
+func IsFlatFee(line billing.GenericInvoiceLineReader) bool {
 	if line == nil {
 		return false
 	}
@@ -20,20 +20,15 @@ func isFlatFee(line billing.GenericInvoiceLineReader) bool {
 		return false
 	}
 
-	if price.Type() == productcatalog.FlatPriceType {
-		return true
-	}
-
-	return false
+	return price.Type() == productcatalog.FlatPriceType
 }
 
-func getFlatFeePerUnitAmount(line billing.GenericInvoiceLineReader) (alpacadecimal.Decimal, error) {
+func GetFlatFeePerUnitAmount(line billing.GenericInvoiceLineReader) (alpacadecimal.Decimal, error) {
 	if line == nil {
 		return alpacadecimal.Zero, fmt.Errorf("line is nil")
 	}
 
 	price := line.GetPrice()
-
 	if price == nil {
 		return alpacadecimal.Zero, fmt.Errorf("line misses usage based metadata")
 	}
@@ -46,7 +41,7 @@ func getFlatFeePerUnitAmount(line billing.GenericInvoiceLineReader) (alpacadecim
 	return flatPrice.Amount, nil
 }
 
-func setFlatFeePerUnitAmount(line billing.GenericInvoiceLine, perUnitAmount alpacadecimal.Decimal) error {
+func SetFlatFeePerUnitAmount(line billing.GenericInvoiceLine, perUnitAmount alpacadecimal.Decimal) error {
 	if line == nil {
 		return fmt.Errorf("line is nil")
 	}
@@ -64,15 +59,4 @@ func setFlatFeePerUnitAmount(line billing.GenericInvoiceLine, perUnitAmount alpa
 	flatPrice.Amount = perUnitAmount
 	line.SetPrice(lo.FromPtr(productcatalog.NewPriceFrom(flatPrice)))
 	return nil
-}
-
-type typeWithEqual[T any] interface {
-	Equal(T) bool
-}
-
-func setIfDoesNotEqual[T typeWithEqual[T]](existing *T, expected T, wasChange *bool) {
-	if !(*existing).Equal(expected) {
-		*existing = expected
-		*wasChange = true
-	}
 }

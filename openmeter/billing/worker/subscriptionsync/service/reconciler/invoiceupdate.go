@@ -1,4 +1,4 @@
-package service
+package reconciler
 
 import (
 	"context"
@@ -16,6 +16,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+const subscriptionSyncComponentName billing.ComponentName = "subscription-sync"
+
 type InvoiceUpdater struct {
 	billingService billing.Service
 	logger         *slog.Logger
@@ -28,19 +30,17 @@ func NewInvoiceUpdater(billingService billing.Service, logger *slog.Logger) *Inv
 	}
 }
 
-func (u *InvoiceUpdater) ApplyPatches(ctx context.Context, customerID customer.CustomerID, patches []linePatch) error {
+func (u *InvoiceUpdater) ApplyPatches(ctx context.Context, customerID customer.CustomerID, patches []Patch) error {
 	patchesParsed, err := u.parsePatches(patches)
 	if err != nil {
 		return fmt.Errorf("parsing patches: %w", err)
 	}
 
-	// Let's provision pending lines
 	err = u.provisionUpcomingLines(ctx, customerID, patchesParsed.newLines)
 	if err != nil {
 		return fmt.Errorf("provisioning upcoming lines: %w", err)
 	}
 
-	// Let's split line patches by invoiceID
 	for invoiceID, linePatches := range patchesParsed.updatedLinesByInvoiceID {
 		namespacedInvoiceID := billing.InvoiceID{
 			Namespace: customerID.Namespace,
@@ -80,7 +80,6 @@ func (u *InvoiceUpdater) ApplyPatches(ctx context.Context, customerID customer.C
 		}
 	}
 
-	// Let's update split line groups
 	err = u.upsertSplitLineGroups(ctx, customerID, patchesParsed.splitLineGroups)
 	if err != nil {
 		return fmt.Errorf("upserting split line groups: %w", err)
@@ -107,30 +106,30 @@ type splitLineGroupPatches struct {
 	updated []billing.SplitLineGroupUpdate
 }
 
-func (u *InvoiceUpdater) parsePatches(patches []linePatch) (patchesParsed, error) {
+func (u *InvoiceUpdater) parsePatches(patches []Patch) (patchesParsed, error) {
 	parsed := patchesParsed{
 		updatedLinesByInvoiceID: make(map[string]invoicePatches),
 	}
 
 	for _, patch := range patches {
 		switch patch.Op() {
-		case patchOpLineCreate:
+		case PatchOpLineCreate:
 			create, err := patch.AsCreateLinePatch()
 			if err != nil {
 				return patchesParsed{}, fmt.Errorf("getting line: %w", err)
 			}
 
 			parsed.newLines = append(parsed.newLines, create.Line)
-		case patchOpLineDelete:
-			delete, err := patch.AsDeleteLinePatch()
+		case PatchOpLineDelete:
+			deletePatch, err := patch.AsDeleteLinePatch()
 			if err != nil {
 				return patchesParsed{}, fmt.Errorf("getting line: %w", err)
 			}
 
-			lineUpdates := parsed.updatedLinesByInvoiceID[delete.InvoiceID]
-			lineUpdates.deletedLines = append(lineUpdates.deletedLines, delete.Line)
-			parsed.updatedLinesByInvoiceID[delete.InvoiceID] = lineUpdates
-		case patchOpLineUpdate:
+			lineUpdates := parsed.updatedLinesByInvoiceID[deletePatch.InvoiceID]
+			lineUpdates.deletedLines = append(lineUpdates.deletedLines, deletePatch.Line)
+			parsed.updatedLinesByInvoiceID[deletePatch.InvoiceID] = lineUpdates
+		case PatchOpLineUpdate:
 			update, err := patch.AsUpdateLinePatch()
 			if err != nil {
 				return patchesParsed{}, fmt.Errorf("getting line: %w", err)
@@ -139,14 +138,14 @@ func (u *InvoiceUpdater) parsePatches(patches []linePatch) (patchesParsed, error
 			lineUpdates := parsed.updatedLinesByInvoiceID[update.TargetState.GetInvoiceID()]
 			lineUpdates.updatedLines = append(lineUpdates.updatedLines, update.TargetState)
 			parsed.updatedLinesByInvoiceID[update.TargetState.GetInvoiceID()] = lineUpdates
-		case patchOpSplitLineGroupDelete:
-			delete, err := patch.AsDeleteSplitLineGroupPatch()
+		case PatchOpSplitLineGroupDelete:
+			deletePatch, err := patch.AsDeleteSplitLineGroupPatch()
 			if err != nil {
 				return patchesParsed{}, fmt.Errorf("getting split line group: %w", err)
 			}
 
-			parsed.splitLineGroups.deleted = append(parsed.splitLineGroups.deleted, delete.Group)
-		case patchOpSplitLineGroupUpdate:
+			parsed.splitLineGroups.deleted = append(parsed.splitLineGroups.deleted, deletePatch.Group)
+		case PatchOpSplitLineGroupUpdate:
 			update, err := patch.AsUpdateSplitLineGroupPatch()
 			if err != nil {
 				return patchesParsed{}, fmt.Errorf("getting split line group: %w", err)
@@ -189,7 +188,6 @@ func (u *InvoiceUpdater) updateMutableStandardInvoice(ctx context.Context, invoi
 		Invoice:             invoice.GetInvoiceID(),
 		IncludeDeletedLines: true,
 		EditFn: func(invoice *billing.StandardInvoice) error {
-			// Let's delete lines if needed
 			for _, lineID := range linePatches.deletedLines {
 				line := invoice.Lines.GetByID(lineID.ID)
 				if line == nil {
@@ -199,7 +197,6 @@ func (u *InvoiceUpdater) updateMutableStandardInvoice(ctx context.Context, invoi
 				line.DeletedAt = lo.ToPtr(clock.Now())
 			}
 
-			// let's update lines if needed
 			for _, targetState := range linePatches.updatedLines {
 				targetStandardLine, err := targetState.AsInvoiceLine().AsStandardLine()
 				if err != nil {
@@ -210,9 +207,6 @@ func (u *InvoiceUpdater) updateMutableStandardInvoice(ctx context.Context, invoi
 				if line == nil {
 					return fmt.Errorf("line[%s] not found in the invoice, cannot update", targetStandardLine.ID)
 				}
-
-				// We need to update the quantities of the usage based lines, to compensate for any changes in the period
-				// of the line
 
 				updatedQtyLine, err := u.billingService.SnapshotLineQuantity(ctx, billing.SnapshotLineQuantityInput{
 					Invoice: invoice,
@@ -238,11 +232,9 @@ func (u *InvoiceUpdater) updateMutableStandardInvoice(ctx context.Context, invoi
 
 	if updatedInvoice.Lines.NonDeletedLineCount() == 0 {
 		if updatedInvoice.Status == billing.StandardInvoiceStatusGathering {
-			// Gathering invoice deletion is handled by the service layer if they are empty
 			return nil
 		}
 
-		// The invoice has no lines, so let's just delete it
 		invoice, err := u.billingService.DeleteInvoice(ctx, updatedInvoice.GetInvoiceID())
 		if err != nil {
 			return fmt.Errorf("deleting empty invoice: %w", err)
@@ -268,7 +260,6 @@ func (u *InvoiceUpdater) updateGatheringInvoice(ctx context.Context, invoiceID b
 		Invoice:             invoiceID,
 		IncludeDeletedLines: true,
 		EditFn: func(invoice *billing.GatheringInvoice) error {
-			// Let's delete lines if needed
 			for _, lineID := range linePatches.deletedLines {
 				line, ok := invoice.Lines.GetByID(lineID.ID)
 				if !ok {
@@ -282,7 +273,6 @@ func (u *InvoiceUpdater) updateGatheringInvoice(ctx context.Context, invoiceID b
 				}
 			}
 
-			// let's update lines if needed
 			for _, targetStateGeneric := range linePatches.updatedLines {
 				targetGatheringLine, err := targetStateGeneric.AsInvoiceLine().AsGatheringLine()
 				if err != nil {
@@ -308,7 +298,6 @@ func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice bil
 		return fmt.Errorf("getting invoice: %w", err)
 	}
 
-	// Given we don't have credit notes support we can only signal that the invoice would have needed a credit note
 	validationIssues := []billing.ValidationIssue{}
 
 	for _, line := range linePatches.deletedLines {
@@ -323,13 +312,13 @@ func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice bil
 			return fmt.Errorf("line[%s] not found in the invoice, cannot update", targetState.GetID())
 		}
 
-		if isFlatFee(targetState) {
-			existingPerUnitAmount, err := getFlatFeePerUnitAmount(existingLine)
+		if IsFlatFee(targetState) {
+			existingPerUnitAmount, err := GetFlatFeePerUnitAmount(existingLine)
 			if err != nil {
 				return fmt.Errorf("getting flat fee per unit amount: %w", err)
 			}
 
-			targetPerUnitAmount, err := getFlatFeePerUnitAmount(targetState)
+			targetPerUnitAmount, err := GetFlatFeePerUnitAmount(targetState)
 			if err != nil {
 				return fmt.Errorf("getting flat fee per unit amount: %w", err)
 			}
@@ -350,7 +339,6 @@ func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice bil
 				return fmt.Errorf("line[%s] is not a standard line, cannot update: %w", targetState.GetID(), err)
 			}
 
-			// The period of the line has changed => we need to refetch the quantity
 			targetStateWithUpdatedQty, err := u.billingService.SnapshotLineQuantity(ctx, billing.SnapshotLineQuantityInput{
 				Invoice: &invoice,
 				Line:    &targetStandardLine,
@@ -369,10 +357,6 @@ func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice bil
 	}
 
 	if len(validationIssues) > 0 {
-		// These calculations are not idempontent, as we are only executing it against the in-scope part of the
-		// subscription, so we cannot rely on the component based replace features of the validation issues member
-		// of the invoice, so let's manually merge the issues.
-
 		mergedValidationIssues, wasChange := u.mergeValidationIssues(invoice, validationIssues)
 		if !wasChange {
 			return nil
@@ -393,18 +377,16 @@ func newValidationIssueOnLine(line *billing.StandardLine, message string, a ...a
 			Severity:  billing.ValidationIssueSeverityCritical,
 			Message:   "line not found in the invoice, cannot update",
 			Code:      billing.ImmutableInvoiceHandlingNotSupportedErrorCode,
-			Component: SubscriptionSyncComponentName,
+			Component: subscriptionSyncComponentName,
 			Path:      "lines/nil",
 		}
 	}
 
 	return billing.ValidationIssue{
-		// We use warning here, to prevent the state machine from being locked up due to present
-		// validation errors
 		Severity:  billing.ValidationIssueSeverityWarning,
 		Message:   fmt.Sprintf(message, a...),
 		Code:      billing.ImmutableInvoiceHandlingNotSupportedErrorCode,
-		Component: SubscriptionSyncComponentName,
+		Component: subscriptionSyncComponentName,
 		Path:      fmt.Sprintf("lines/%s", line.ID),
 	}
 }
@@ -412,12 +394,9 @@ func newValidationIssueOnLine(line *billing.StandardLine, message string, a ...a
 func (u *InvoiceUpdater) mergeValidationIssues(invoice billing.StandardInvoice, issues []billing.ValidationIssue) (billing.ValidationIssues, bool) {
 	changed := false
 
-	// We don't expect much issues, and this is temporary until we have credits so let's just
-	// use this simple approach.
-
 	for _, issue := range issues {
 		_, found := lo.Find(invoice.ValidationIssues, func(i billing.ValidationIssue) bool {
-			return i.Path == issue.Path && i.Component == SubscriptionSyncComponentName && i.Code == billing.ImmutableInvoiceHandlingNotSupportedErrorCode &&
+			return i.Path == issue.Path && i.Component == subscriptionSyncComponentName && i.Code == billing.ImmutableInvoiceHandlingNotSupportedErrorCode &&
 				i.Message == issue.Message
 		})
 
@@ -426,7 +405,6 @@ func (u *InvoiceUpdater) mergeValidationIssues(invoice billing.StandardInvoice, 
 		}
 
 		changed = true
-
 		invoice.ValidationIssues = append(invoice.ValidationIssues, issue)
 	}
 
@@ -438,14 +416,12 @@ func (u *InvoiceUpdater) upsertSplitLineGroups(ctx context.Context, customerID c
 		return nil
 	}
 
-	// Let's delete split line groups if needed
 	for _, groupID := range changes.deleted {
 		if err := u.billingService.DeleteSplitLineGroup(ctx, groupID); err != nil {
 			return fmt.Errorf("deleting split line group: %w", err)
 		}
 	}
 
-	// Let's upsert split line groups if needed
 	for _, group := range changes.updated {
 		if _, err := u.billingService.UpdateSplitLineGroup(ctx, group); err != nil {
 			return fmt.Errorf("upserting split line group: %w", err)
