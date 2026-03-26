@@ -143,11 +143,11 @@ func NewCreateLinePatch(line billing.GatheringLine) Patch {
 func (p Patch) Log(logger *slog.Logger) {
 	switch p.op {
 	case PatchOpLineCreate:
-		logger.Info("create line patch", "line_id", p.createLinePatch.Line.GetLineID(), "invoice_id", p.createLinePatch.Line.GetInvoiceID(), "new_service_period_from", p.createLinePatch.Line.GetServicePeriod().From, "new_service_period_to", p.createLinePatch.Line.GetServicePeriod().To)
+		logger.Info("create line patch", "line_id", p.createLinePatch.Line.GetLineID().ID, "new_service_period_from", p.createLinePatch.Line.GetServicePeriod().From, "new_service_period_to", p.createLinePatch.Line.GetServicePeriod().To, "unique_reference_id", p.createLinePatch.Line.GetChildUniqueReferenceID())
 	case PatchOpLineDelete:
 		logger.Info("delete line patch", "line_id", p.deleteLinePatch.Line, "invoice_id", p.deleteLinePatch.InvoiceID)
 	case PatchOpLineUpdate:
-		logger.Info("update line patch", "line_id", p.updateLinePatch.TargetState.GetLineID(), "invoice_id", p.updateLinePatch.TargetState.GetInvoiceID(), "new_service_period_from", p.updateLinePatch.TargetState.GetServicePeriod().From, "new_service_period_to", p.updateLinePatch.TargetState.GetServicePeriod().To)
+		logger.Info("update line patch", "line_id", p.updateLinePatch.TargetState.GetLineID().ID, "invoice_id", p.updateLinePatch.TargetState.GetInvoiceID(), "new_service_period_from", p.updateLinePatch.TargetState.GetServicePeriod().From, "new_service_period_to", p.updateLinePatch.TargetState.GetServicePeriod().To, "unique_reference_id", p.updateLinePatch.TargetState.GetChildUniqueReferenceID())
 	case PatchOpSplitLineGroupDelete:
 		logger.Info("delete split line group patch", "group_id", p.deleteSplitLineGroupPatch.Group.ID)
 	case PatchOpSplitLineGroupUpdate:
