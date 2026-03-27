@@ -14,17 +14,15 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type State struct {
-	Items                  []SubscriptionItemWithPeriods
+	Items                  []StateItem
 	MaxGenerationTimeLimit time.Time
 }
 
@@ -103,8 +101,19 @@ func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {
 			return State{}, fmt.Errorf("correcting period start for upcoming lines: %w", err)
 		}
 
+		currencyCalculator, err := subs.Subscription.Currency.Calculator()
+		if err != nil {
+			return State{}, fmt.Errorf("getting currency calculator: %w", err)
+		}
+
 		return State{
-			Items:                  inScopeLines,
+			Items: lo.Map(inScopeLines, func(item SubscriptionItemWithPeriods, _ int) StateItem {
+				return StateItem{
+					SubscriptionItemWithPeriods: item,
+					CurrencyCalculator:          currencyCalculator,
+					Subscription:                subs.Subscription,
+				}
+			}),
 			MaxGenerationTimeLimit: upcomingLinesResult.SubscriptionMaxGenerationTimeLimit,
 		}, nil
 	})
@@ -299,106 +308,4 @@ func (b Builder) hierarchyHasAnnotation(hierarchy *billing.SplitLineHierarchy, a
 	}
 
 	return false, nil
-}
-
-// TODO: make a member of the SubscriptionItemWithPeriods type (for now it's kept here for easier review)
-func lineFromSubscriptionRateCard(subs subscription.Subscription, item SubscriptionItemWithPeriods, currency currencyx.Calculator) (*billing.GatheringLine, error) {
-	line := billing.GatheringLine{
-		GatheringLineBase: billing.GatheringLineBase{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Namespace:   subs.Namespace,
-				Name:        item.Spec.RateCard.AsMeta().Name,
-				Description: item.Spec.RateCard.AsMeta().Description,
-			}),
-			ManagedBy:              billing.SubscriptionManagedLine,
-			Currency:               subs.Currency,
-			ChildUniqueReferenceID: &item.UniqueID,
-			TaxConfig:              item.Spec.RateCard.AsMeta().TaxConfig,
-			ServicePeriod:          item.ServicePeriod.ToClosedPeriod(),
-			InvoiceAt:              item.GetInvoiceAt(),
-			RateCardDiscounts:      discountsToBillingDiscounts(item.Spec.RateCard.AsMeta().Discounts),
-			Subscription: &billing.SubscriptionReference{
-				SubscriptionID: subs.ID,
-				PhaseID:        item.PhaseID,
-				ItemID:         item.SubscriptionItem.ID,
-				BillingPeriod: timeutil.ClosedPeriod{
-					From: item.BillingPeriod.Start,
-					To:   item.BillingPeriod.End,
-				},
-			},
-		},
-	}
-
-	if price := item.SubscriptionItem.RateCard.AsMeta().Price; price != nil && price.GetPaymentTerm() == productcatalog.InArrearsPaymentTerm {
-		if item.FullServicePeriod.Duration() == time.Duration(0) {
-			return nil, nil
-		}
-	}
-
-	switch item.SubscriptionItem.RateCard.AsMeta().Price.Type() {
-	case productcatalog.FlatPriceType:
-		price, err := item.SubscriptionItem.RateCard.AsMeta().Price.AsFlat()
-		if err != nil {
-			return nil, fmt.Errorf("converting price to flat: %w", err)
-		}
-
-		perUnitAmount := currency.RoundToPrecision(price.Amount)
-		if !item.ServicePeriod.IsEmpty() && shouldProrate(item, subs) {
-			perUnitAmount = currency.RoundToPrecision(price.Amount.Mul(item.PeriodPercentage()))
-		}
-
-		if perUnitAmount.IsZero() {
-			return nil, nil
-		}
-
-		line.Price = lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-			Amount:      perUnitAmount,
-			PaymentTerm: price.PaymentTerm,
-		}))
-		line.FeatureKey = lo.FromPtr(item.SubscriptionItem.RateCard.AsMeta().FeatureKey)
-	default:
-		if item.SubscriptionItem.RateCard.AsMeta().Price == nil {
-			return nil, fmt.Errorf("price must be defined for usage based price")
-		}
-
-		line.Price = lo.FromPtr(item.SubscriptionItem.RateCard.AsMeta().Price)
-		line.FeatureKey = lo.FromPtr(item.SubscriptionItem.RateCard.AsMeta().FeatureKey)
-	}
-
-	return &line, nil
-}
-
-func discountsToBillingDiscounts(discounts productcatalog.Discounts) billing.Discounts {
-	out := billing.Discounts{}
-
-	if discounts.Usage != nil {
-		out.Usage = &billing.UsageDiscount{UsageDiscount: *discounts.Usage}
-	}
-
-	if discounts.Percentage != nil {
-		out.Percentage = &billing.PercentageDiscount{PercentageDiscount: *discounts.Percentage}
-	}
-
-	return out
-}
-
-func shouldProrate(item SubscriptionItemWithPeriods, subs subscription.Subscription) bool {
-	if !subs.ProRatingConfig.Enabled {
-		return false
-	}
-
-	if item.Spec.RateCard.AsMeta().Price.Type() != productcatalog.FlatPriceType {
-		return false
-	}
-
-	if subs.ActiveTo != nil && !subs.ActiveTo.After(item.ServicePeriod.End) {
-		return false
-	}
-
-	switch subs.ProRatingConfig.Mode {
-	case productcatalog.ProRatingModeProratePrices:
-		return true
-	default:
-		return false
-	}
 }

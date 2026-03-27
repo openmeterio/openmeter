@@ -16,9 +16,8 @@ import (
 // change for a flat fee line is reconciled through ProratePatch so that the
 // service period and per-unit amount are updated together.
 type ProratePatch struct {
-	UniqueID string
 	Existing billing.LineOrHierarchy
-	Target   targetstate.SubscriptionItemWithPeriods
+	Target   targetstate.StateItem
 
 	OriginalPeriod timeutil.ClosedPeriod
 	TargetPeriod   timeutil.ClosedPeriod
@@ -32,11 +31,11 @@ func (p ProratePatch) Operation() PatchOperation {
 }
 
 func (p ProratePatch) UniqueReferenceID() string {
-	return p.UniqueID
+	return p.Target.UniqueID
 }
 
 func (p ProratePatch) GetInvoicePatches(input GetInvoicePatchesInput) ([]invoiceupdater.Patch, error) {
-	expectedLine, err := p.Target.GetExpectedLineOrErr(input.Subscription, input.Currency)
+	expectedLine, err := p.Target.GetExpectedLineOrErr()
 	if err != nil {
 		return nil, err
 	}

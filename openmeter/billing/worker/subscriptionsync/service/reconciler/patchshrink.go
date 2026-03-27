@@ -14,7 +14,7 @@ import (
 type ShrinkUsageBasedPatch struct {
 	UniqueID string
 	Existing billing.LineOrHierarchy
-	Target   targetstate.SubscriptionItemWithPeriods
+	Target   targetstate.StateItem
 }
 
 func (p ShrinkUsageBasedPatch) Operation() PatchOperation {
@@ -26,7 +26,7 @@ func (p ShrinkUsageBasedPatch) UniqueReferenceID() string {
 }
 
 func (p ShrinkUsageBasedPatch) GetInvoicePatches(input GetInvoicePatchesInput) ([]invoiceupdater.Patch, error) {
-	expectedLine, err := p.Target.GetExpectedLineOrErr(input.Subscription, input.Currency)
+	expectedLine, err := p.Target.GetExpectedLineOrErr()
 	if err != nil {
 		return nil, err
 	}

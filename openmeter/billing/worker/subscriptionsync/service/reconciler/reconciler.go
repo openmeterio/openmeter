@@ -111,7 +111,7 @@ type diffItemResult struct {
 }
 
 func (s *Service) diffItem(
-	target *targetstate.SubscriptionItemWithPeriods,
+	target *targetstate.StateItem,
 	expectedLine *billing.GatheringLine, // TODO[later]: let's merge this with target as they are the same thing's different calculation stages
 	existing *billing.LineOrHierarchy,
 ) (diffItemResult, error) {
@@ -131,8 +131,7 @@ func (s *Service) diffItem(
 	case target != nil && existing == nil && expectedLine != nil:
 		return diffItemResult{
 			Patch: CreatePatch{
-				UniqueID: target.UniqueID,
-				Target:   *target,
+				Target: *target,
 			},
 			Changed: true,
 		}, nil
@@ -161,7 +160,6 @@ func (s *Service) diffItem(
 		// service period and per-unit amount are updated together.
 		return diffItemResult{
 			Patch: ProratePatch{
-				UniqueID:       target.UniqueID,
 				Existing:       *existing,
 				Target:         *target,
 				OriginalPeriod: existingPeriod,
@@ -186,7 +184,6 @@ func (s *Service) diffItem(
 	case targetPeriod.To.After(existingPeriod.To):
 		return diffItemResult{
 			Patch: ExtendUsageBasedPatch{
-				UniqueID: target.UniqueID,
 				Existing: *existing,
 				Target:   *target,
 			},
@@ -253,7 +250,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 		}, nil
 	}
 
-	inScopeLinesByUniqueID, unique := slicesx.UniqueGroupBy(inScopeLines, func(i targetstate.SubscriptionItemWithPeriods) string {
+	inScopeLinesByUniqueID, unique := slicesx.UniqueGroupBy(inScopeLines, func(i targetstate.StateItem) string {
 		return i.UniqueID
 	})
 	if !unique {
@@ -287,7 +284,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 
 	for _, id := range inScopeLineUniqueIDs {
 		targetLine := inScopeLinesByUniqueID[id]
-		expectedLine, err := targetLine.GetExpectedLine(input.Subscription, input.Currency)
+		expectedLine, err := targetLine.GetExpectedLine()
 		if err != nil {
 			return nil, fmt.Errorf("generating expected line[%s]: %w", id, err)
 		}

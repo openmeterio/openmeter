@@ -8,8 +8,7 @@ import (
 )
 
 type CreatePatch struct {
-	UniqueID string
-	Target   targetstate.SubscriptionItemWithPeriods
+	Target targetstate.StateItem
 }
 
 func (p CreatePatch) Operation() PatchOperation {
@@ -17,11 +16,11 @@ func (p CreatePatch) Operation() PatchOperation {
 }
 
 func (p CreatePatch) UniqueReferenceID() string {
-	return p.UniqueID
+	return p.Target.UniqueID
 }
 
 func (p CreatePatch) GetInvoicePatches(input GetInvoicePatchesInput) ([]invoiceupdater.Patch, error) {
-	line, err := p.Target.GetExpectedLine(input.Subscription, input.Currency)
+	line, err := p.Target.GetExpectedLine()
 	if err != nil {
 		return nil, fmt.Errorf("generating line from subscription item [%s]: %w", p.Target.SubscriptionItem.ID, err)
 	}
