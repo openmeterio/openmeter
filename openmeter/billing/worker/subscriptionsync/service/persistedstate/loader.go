@@ -29,11 +29,11 @@ func NewLoader(billingService billingService) Loader {
 	}
 }
 
-func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.SubscriptionView) (State, error) {
+func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.Subscription) (State, error) {
 	lines, err := l.billingService.GetLinesForSubscription(ctx, billing.GetLinesForSubscriptionInput{
-		Namespace:      subs.Subscription.Namespace,
-		SubscriptionID: subs.Subscription.ID,
-		CustomerID:     subs.Subscription.CustomerId,
+		Namespace:      subs.Namespace,
+		SubscriptionID: subs.ID,
+		CustomerID:     subs.CustomerId,
 	})
 	if err != nil {
 		return State{}, fmt.Errorf("getting existing lines: %w", err)

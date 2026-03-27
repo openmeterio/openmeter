@@ -97,13 +97,13 @@ func (r SubscriptionItemWithPeriods) GetInvoiceAt() time.Time {
 	return lo.Latest(r.ServicePeriod.End, r.BillingPeriod.End)
 }
 
-func (r SubscriptionItemWithPeriods) GetExpectedLine(view subscription.SubscriptionView, currency currencyx.Calculator) (*billing.GatheringLine, error) {
+func (r SubscriptionItemWithPeriods) GetExpectedLine(view subscription.Subscription, currency currencyx.Calculator) (*billing.GatheringLine, error) {
 	return lineFromSubscriptionRateCard(view, r, currency)
 }
 
 var ErrExpectedLineIsEmpty = errors.New("expected line is empty")
 
-func (r SubscriptionItemWithPeriods) GetExpectedLineOrErr(view subscription.SubscriptionView, currency currencyx.Calculator) (billing.GatheringLine, error) {
+func (r SubscriptionItemWithPeriods) GetExpectedLineOrErr(view subscription.Subscription, currency currencyx.Calculator) (billing.GatheringLine, error) {
 	line, err := r.GetExpectedLine(view, currency)
 	if err != nil {
 		return billing.GatheringLine{}, err

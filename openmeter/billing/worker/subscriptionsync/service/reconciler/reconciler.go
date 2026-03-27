@@ -57,7 +57,7 @@ func New(config Config) (*Service, error) {
 }
 
 type PlanInput struct {
-	Subscription subscription.SubscriptionView
+	Subscription subscription.Subscription
 	Currency     currencyx.Calculator
 	Target       targetstate.State
 	Persisted    persistedstate.State
@@ -66,7 +66,7 @@ type PlanInput struct {
 type ApplyInput struct {
 	DryRun       bool
 	Customer     customer.CustomerID
-	Subscription subscription.SubscriptionView
+	Subscription subscription.Subscription
 	Currency     currencyx.Calculator
 	Invoices     persistedstate.Invoices
 	Plan         *Plan
