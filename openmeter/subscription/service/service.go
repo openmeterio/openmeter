@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionvalidators "github.com/openmeterio/openmeter/openmeter/subscription/validators/subscription"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/ffx"
@@ -36,6 +37,7 @@ type ServiceConfig struct {
 	Publisher          eventbus.Publisher
 	Lockr              *lockr.Locker
 	FeatureFlags       ffx.Service
+	TaxCode            taxcode.Service
 
 	// Hooks
 	Hooks []subscription.SubscriptionCommandHook

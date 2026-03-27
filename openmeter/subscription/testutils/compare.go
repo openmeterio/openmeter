@@ -82,6 +82,20 @@ func ValidateSpecAndView(t *testing.T, expected subscription.SubscriptionSpec, f
 
 				assert.True(t, specItem.RateCard.Equal(foundItem.SubscriptionItem.RateCard), "rate card mismatch for item %s in phase %s: \nspec: %s \n\nview: %s", specItem.ItemKey, specPhase.PhaseKey, rc1JSON, rc2JSON)
 
+				// Let's validate the TaxCodeID
+				specMeta := specItem.RateCard.AsMeta()
+				foundMeta := foundItem.SubscriptionItem.RateCard.AsMeta()
+				if specMeta.TaxConfig != nil && specMeta.TaxConfig.TaxCodeID != nil && *specMeta.TaxConfig.TaxCodeID != "" {
+					require.NotNil(t, foundMeta.TaxConfig, "TaxConfig must be set for item %s (phase %s) with TaxCodeID %s", specItem.ItemKey, specPhase.PhaseKey, *specMeta.TaxConfig.TaxCodeID)
+					assert.Equal(t, specMeta.TaxConfig.TaxCodeID, foundMeta.TaxConfig.TaxCodeID, "TaxCodeID mismatch for item %s in phase %s", specItem.ItemKey, specPhase.PhaseKey)
+				} else if specMeta.TaxConfig != nil && specMeta.TaxConfig.Stripe != nil && specMeta.TaxConfig.Stripe.Code != "" {
+					require.NotNil(t, foundMeta.TaxConfig, "TaxConfig must be set for item %s (phase %s) with Stripe tax code %s", specItem.ItemKey, specPhase.PhaseKey, specMeta.TaxConfig.Stripe.Code)
+					require.NotNil(t, foundMeta.TaxConfig.TaxCodeID, "TaxCodeID must be backfilled for item %s (phase %s) with Stripe tax code %s", specItem.ItemKey, specPhase.PhaseKey, specMeta.TaxConfig.Stripe.Code)
+					assert.Equal(t, specMeta.TaxConfig.TaxCodeID, foundMeta.TaxConfig.TaxCodeID, "TaxCodeID mismatch for item %s in phase %s", specItem.ItemKey, specPhase.PhaseKey)
+				} else if foundMeta.TaxConfig != nil {
+					assert.Nil(t, foundMeta.TaxConfig.TaxCodeID, "TaxCodeID must be nil for item %s (phase %s) without a tax code", specItem.ItemKey, specPhase.PhaseKey)
+				}
+
 				// Let's validate the Feature linking
 				pFeatureKey := specItem.RateCard.AsMeta().FeatureKey
 				if foundItem.SubscriptionItem.RateCard.AsMeta().FeatureKey != nil {

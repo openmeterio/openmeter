@@ -9,7 +9,6 @@ import (
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -111,7 +110,7 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
 	}
 
 	// Backfill legacy TaxConfig fields from new columns and TaxCode entity.
-	meta.TaxConfig = productcatalogadapter.BackfillTaxConfig(meta.TaxConfig, r.TaxBehavior, meta.TaxCode)
+	meta.TaxConfig = productcatalog.BackfillTaxConfig(meta.TaxConfig, r.TaxBehavior, meta.TaxCode)
 
 	// Get billing cadence
 
@@ -311,7 +310,7 @@ func FromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 	}
 
 	// Backfill legacy TaxConfig fields from new columns and TaxCode entity.
-	meta.TaxConfig = productcatalogadapter.BackfillTaxConfig(meta.TaxConfig, r.TaxBehavior, meta.TaxCode)
+	meta.TaxConfig = productcatalog.BackfillTaxConfig(meta.TaxConfig, r.TaxBehavior, meta.TaxCode)
 
 	// Get billing cadence
 

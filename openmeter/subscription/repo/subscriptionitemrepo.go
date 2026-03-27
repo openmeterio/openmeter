@@ -43,6 +43,7 @@ func (r *subscriptionItemRepo) GetForSubscriptionAt(ctx context.Context, input s
 		items, err := repo.db.SubscriptionItem.Query().
 			Where(getItemForSubscriptionAtFilter(input)).
 			WithPhase().
+			WithTaxCode().
 			All(ctx)
 		if err != nil {
 			return nil, err
@@ -73,6 +74,7 @@ func (r *subscriptionItemRepo) GetForSubscriptionsAt(ctx context.Context, input 
 				slicesx.Map(input, getItemForSubscriptionAtFilter)...,
 			)).
 			WithPhase().
+			WithTaxCode().
 			All(ctx)
 		if err != nil {
 			return nil, err
@@ -102,6 +104,7 @@ func (r *subscriptionItemRepo) GetByID(ctx context.Context, id models.Namespaced
 				dbsubscriptionitem.DeletedAtGT(clock.Now()),
 			)).
 			WithPhase().
+			WithTaxCode().
 			Only(ctx)
 
 		if db.IsNotFound(err) {
@@ -148,6 +151,8 @@ func (r *subscriptionItemRepo) Create(ctx context.Context, input subscription.Cr
 
 		if input.RateCard.AsMeta().TaxConfig != nil {
 			cmd.SetTaxConfig(input.RateCard.AsMeta().TaxConfig)
+			cmd.SetNillableTaxCodeID(input.RateCard.AsMeta().TaxConfig.TaxCodeID)
+			cmd.SetNillableTaxBehavior(input.RateCard.AsMeta().TaxConfig.Behavior)
 		}
 
 		if input.RateCard.AsMeta().Price != nil {

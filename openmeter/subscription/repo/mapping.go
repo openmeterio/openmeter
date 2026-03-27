@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -137,6 +138,19 @@ func MapDBSubscriptionItem(item *db.SubscriptionItem) (subscription.Subscription
 		Key:                 item.Key,
 		FeatureID:           nil, // FIXME: is this an issue?
 	}
+
+	// Map TaxCode if eagerly loaded.
+	if taxCodeRow, err := item.Edges.TaxCodeOrErr(); err == nil {
+		tc, err := taxcodeadapter.MapTaxCodeFromEntity(taxCodeRow)
+		if err != nil {
+			return subscription.SubscriptionItem{}, fmt.Errorf("invalid tax code for subscription item %s: %w", item.ID, err)
+		}
+
+		rcMeta.TaxCode = &tc
+	}
+
+	// Backfill legacy TaxConfig fields from new normalized columns.
+	rcMeta.TaxConfig = productcatalog.BackfillTaxConfig(rcMeta.TaxConfig, item.TaxBehavior, rcMeta.TaxCode)
 
 	switch {
 	case item.Price == nil:
