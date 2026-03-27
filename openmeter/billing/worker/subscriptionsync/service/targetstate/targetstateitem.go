@@ -71,15 +71,20 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 		},
 	}
 
-	if price := r.Spec.RateCard.AsMeta().Price; price != nil && price.GetPaymentTerm() == productcatalog.InArrearsPaymentTerm {
+	price := r.Spec.RateCard.AsMeta().Price
+	if price != nil && price.GetPaymentTerm() == productcatalog.InArrearsPaymentTerm {
 		if r.FullServicePeriod.Duration() == time.Duration(0) {
 			return nil, nil
 		}
 	}
 
-	switch r.SubscriptionItem.RateCard.AsMeta().Price.Type() {
+	if price == nil {
+		return nil, fmt.Errorf("price must be defined for usage based price")
+	}
+
+	switch price.Type() {
 	case productcatalog.FlatPriceType:
-		price, err := r.SubscriptionItem.RateCard.AsMeta().Price.AsFlat()
+		price, err := price.AsFlat()
 		if err != nil {
 			return nil, fmt.Errorf("converting price to flat: %w", err)
 		}
