@@ -72,6 +72,25 @@ type ApplyInput struct {
 	Plan         *Plan
 }
 
+func (i ApplyInput) Validate() error {
+	var errs []error
+	if i.Plan == nil {
+		errs = append(errs, fmt.Errorf("plan is required"))
+	}
+	if err := i.Customer.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer: %w", err))
+	}
+
+	if err := i.Subscription.NamespacedID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("subscription namespaced id: %w", err))
+	}
+
+	if err := i.Currency.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("currency: %w", err))
+	}
+	return errors.Join(errs...)
+}
+
 type Plan struct {
 	Patches                            []Patch
 	SubscriptionMaxGenerationTimeLimit time.Time
@@ -298,6 +317,14 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 }
 
 func (s *Service) Apply(ctx context.Context, input ApplyInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating input: %w", err)
+	}
+
+	if input.Plan == nil || input.Plan.IsEmpty() {
+		return nil
+	}
+
 	invoicePatches := make([]invoiceupdater.Patch, 0, len(input.Plan.Patches))
 
 	for _, patch := range input.Plan.Patches {

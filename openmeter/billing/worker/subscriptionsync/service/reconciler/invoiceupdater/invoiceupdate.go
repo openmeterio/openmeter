@@ -409,6 +409,14 @@ func (u *Updater) updateImmutableInvoice(ctx context.Context, invoice billing.St
 					newValidationIssueOnLine(existingLine, "flat fee line's per unit amount cannot be changed on immutable invoice (new per unit amount: %s)",
 						targetPerUnitAmount.String()),
 				)
+
+				continue
+			}
+
+			if !targetState.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration).Equal(existingLine.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration)) {
+				validationIssues = append(validationIssues,
+					newValidationIssueOnLine(existingLine, "flat fee line's service period cannot be changed on immutable invoice"),
+				)
 			}
 
 			continue
