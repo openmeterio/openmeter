@@ -40,6 +40,10 @@ func AssertPlanUpdateInputEqual(t *testing.T, i UpdatePlanInput, p Plan) {
 		assert.Equalf(t, *i.Metadata, p.Metadata, "metadata mismatch")
 	}
 
+	if i.SettlementMode != nil {
+		assert.Equalf(t, *i.SettlementMode, p.SettlementMode, "update input: settlement mode mismatch")
+	}
+
 	if i.Phases != nil {
 		AssertPlanPhasesEqual(t, *i.Phases, p.Phases)
 	}
@@ -52,6 +56,7 @@ func AssertPlanEqual(t *testing.T, expected, actual Plan) {
 	assert.Equal(t, expected.Name, actual.Name)
 	assert.Equal(t, expected.Description, actual.Description)
 	assert.Equal(t, expected.Currency, actual.Currency)
+	assert.Equal(t, expected.SettlementMode, actual.SettlementMode)
 
 	AssertPlanPhasesEqual(t, expected.Phases, actual.Phases)
 }

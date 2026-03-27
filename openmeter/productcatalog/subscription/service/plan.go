@@ -6,6 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -53,6 +54,11 @@ func PlanFromPlanInput(input plan.CreatePlanInput) (subscription.Plan, error) {
 	if !lo.IsEmpty(p.Key) || !lo.IsEmpty(p.Version) {
 		// Let's safeguard ourselves
 		return nil, fmt.Errorf("plan key and version must be empty")
+	}
+
+	// Default settlement mode if not provided
+	if p.SettlementMode == "" {
+		p.SettlementMode = productcatalog.CreditThenInvoiceSettlementMode
 	}
 
 	// Let's set the fields for the validation to pass

@@ -74,6 +74,7 @@ func (p *Plan) ToCreateSubscriptionPlanInput() subscription.CreateSubscriptionPl
 		Plan:            ref,
 		BillingCadence:  p.BillingCadence,
 		ProRatingConfig: p.ProRatingConfig,
+		SettlementMode:  p.SettlementMode,
 	}
 }
 

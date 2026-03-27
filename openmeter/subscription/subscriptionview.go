@@ -72,6 +72,11 @@ func (s *SubscriptionView) Validate(includePhases bool) error {
 			}
 		}
 	}
+
+	if spec.SettlementMode != s.Subscription.SettlementMode {
+		return fmt.Errorf("subscription settlement mode %s does not match spec settlement mode %s", s.Subscription.SettlementMode, spec.SettlementMode)
+	}
+
 	return nil
 }
 
@@ -240,6 +245,7 @@ func NewSubscriptionView(
 			Plan:            sub.PlanRef,
 			BillingCadence:  sub.BillingCadence,
 			ProRatingConfig: sub.ProRatingConfig,
+			SettlementMode:  sub.SettlementMode,
 		},
 		CreateSubscriptionCustomerInput: CreateSubscriptionCustomerInput{
 			CustomerId:    sub.CustomerId,

@@ -158,6 +158,9 @@ type UpdatePlanInput struct {
 	// ProRatingConfig is the default pro-rating configuration for subscriptions using this plan
 	ProRatingConfig *productcatalog.ProRatingConfig `json:"proRatingConfig,omitempty"`
 
+	// SettlementMode is the settlement mode for the plan
+	SettlementMode *productcatalog.SettlementMode `json:"settlementMode,omitempty"`
+
 	// Phases
 	Phases *[]productcatalog.Phase `json:"phases"`
 
@@ -194,6 +197,10 @@ func (i UpdatePlanInput) Equal(p Plan) bool {
 	}
 
 	if i.ProRatingConfig != nil && !i.ProRatingConfig.Equal(p.ProRatingConfig) {
+		return false
+	}
+
+	if i.SettlementMode != nil && *i.SettlementMode != p.SettlementMode {
 		return false
 	}
 
@@ -238,6 +245,14 @@ func (i UpdatePlanInput) Validate() error {
 			if err := phase.Validate(); err != nil {
 				errs = append(errs, fmt.Errorf("invalid plan phase: %w", err))
 			}
+		}
+	}
+
+	if i.SettlementMode != nil {
+		if *i.SettlementMode == "" {
+			errs = append(errs, fmt.Errorf("settlement mode is required"))
+		} else if err := i.SettlementMode.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid settlement mode: %w", err))
 		}
 	}
 

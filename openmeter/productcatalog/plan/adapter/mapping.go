@@ -39,6 +39,7 @@ func FromPlanRow(p entdb.Plan) (*plan.Plan, error) {
 			Currency:        currency.Code(p.Currency),
 			BillingCadence:  billingCadence,
 			ProRatingConfig: p.ProRatingConfig,
+			SettlementMode:  p.SettlementMode,
 			EffectivePeriod: productcatalog.EffectivePeriod{
 				EffectiveFrom: p.EffectiveFrom,
 				EffectiveTo:   p.EffectiveTo,

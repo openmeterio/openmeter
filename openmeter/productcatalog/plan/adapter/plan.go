@@ -425,7 +425,8 @@ func (a *adapter) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (
 				SetNillableEffectiveFrom(params.EffectiveFrom).
 				SetNillableEffectiveTo(params.EffectiveTo).
 				SetNillableBillingCadence(params.BillingCadence.ISOStringPtrOrNil()).
-				SetNillableProRatingConfig(params.ProRatingConfig)
+				SetNillableProRatingConfig(params.ProRatingConfig).
+				SetNillableSettlementMode(params.SettlementMode)
 
 			if params.Metadata != nil {
 				query = query.SetMetadata(*params.Metadata)
