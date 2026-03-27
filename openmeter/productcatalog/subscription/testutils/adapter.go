@@ -67,9 +67,8 @@ func (a *adapter) GetVersion(ctx context.Context, namespace string, ref plansubs
 	}
 
 	return &plansubscription.Plan{
-		Plan:           p.AsProductCatalogPlan(),
-		Ref:            &p.NamespacedID,
-		SettlementMode: p.SettlementMode,
+		Plan: p.AsProductCatalogPlan(),
+		Ref:  &p.NamespacedID,
 	}, nil
 }
 

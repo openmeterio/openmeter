@@ -219,6 +219,9 @@ type PlanMeta struct {
 	// ProRatingConfig is the default pro-rating configuration for subscriptions using this plan.
 	ProRatingConfig ProRatingConfig `json:"pro_rating_config"`
 
+	// SettlementMode is the settlement mode for subscriptions using this plan.
+	SettlementMode SettlementMode `json:"settlement_mode"`
+
 	// Metadata
 	Metadata models.Metadata `json:"metadata,omitempty"`
 }

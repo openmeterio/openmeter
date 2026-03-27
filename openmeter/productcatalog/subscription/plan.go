@@ -49,8 +49,7 @@ type PlanRefInput struct {
 
 type Plan struct {
 	productcatalog.Plan
-	Ref            *models.NamespacedID
-	SettlementMode productcatalog.SettlementMode
+	Ref *models.NamespacedID
 }
 
 var _ subscription.Plan = &Plan{}

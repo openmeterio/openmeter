@@ -402,7 +402,6 @@ func (s *CustomerHandlerTestSuite) TestUpdateWithSubscriptionPresent(ctx context
 				},
 			},
 		},
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	}
 
 	// Let's create a subscription for the customer
@@ -866,7 +865,6 @@ func (s *CustomerHandlerTestSuite) TestDelete(ctx context.Context, t *testing.T)
 				},
 			},
 		},
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	}
 
 	p, err := plansubscriptionservice.PlanFromPlanInput(emptyExamplePlan)

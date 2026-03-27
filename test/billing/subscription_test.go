@@ -143,7 +143,6 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 				},
 			},
 		},
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	})
 	s.NoError(err)
 	s.NotNil(paidPlan)
@@ -191,7 +190,6 @@ func (s *SubscriptionTestSuite) TestDefaultProfileChange() {
 				},
 			},
 		},
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	})
 	s.NoError(err)
 	s.NotNil(freePlan)

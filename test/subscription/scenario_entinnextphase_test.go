@@ -116,7 +116,6 @@ func TestSubWithMeteredEntitlement(t *testing.T) {
 				},
 			},
 		},
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	})
 	require.NoError(t, err)
 

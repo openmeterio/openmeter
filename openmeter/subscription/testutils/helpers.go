@@ -57,9 +57,8 @@ func CreatePlanWithAddon(
 	require.Nil(t, err, "received error: %s", err)
 
 	return &plansubscription.Plan{
-		Plan:           p.AsProductCatalogPlan(),
-		Ref:            &p.NamespacedID,
-		SettlementMode: p.SettlementMode,
+		Plan: p.AsProductCatalogPlan(),
+		Ref:  &p.NamespacedID,
 	}, add
 }
 

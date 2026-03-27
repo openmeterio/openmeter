@@ -869,7 +869,6 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 					return phases
 				}(),
 			},
-			SettlementMode: sourcePlan.SettlementMode,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to create new version of a Plan: %w", err)

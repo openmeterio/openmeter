@@ -319,7 +319,6 @@ func (s *CustomerHandlerTestSuite) TestMultiSubjectIntegrationFlow(ctx context.C
 				},
 			},
 		},
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	}
 
 	createdPlan, err := planService.CreatePlan(ctx, planInput)

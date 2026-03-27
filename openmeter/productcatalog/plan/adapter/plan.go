@@ -173,11 +173,6 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 			params.Version = 1
 		}
 
-		var sm *productcatalog.SettlementMode
-		if params.SettlementMode != "" {
-			sm = &params.SettlementMode
-		}
-
 		planRow, err := a.db.Plan.Create().
 			SetKey(params.Key).
 			SetNamespace(params.Namespace).
@@ -186,7 +181,6 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 			SetCurrency(params.Currency.String()).
 			SetBillingCadence(params.BillingCadence.ISOString()).
 			SetProRatingConfig(params.ProRatingConfig).
-			SetNillableSettlementMode(sm).
 			SetMetadata(params.Metadata).
 			SetVersion(params.Version).
 			Save(ctx)

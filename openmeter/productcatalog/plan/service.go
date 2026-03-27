@@ -106,9 +106,6 @@ type CreatePlanInput struct {
 	models.NamespacedModel
 	productcatalog.Plan
 
-	// SettlementMode is the settlement mode for the plan.
-	SettlementMode productcatalog.SettlementMode `json:"settlementMode,omitempty"`
-
 	inputOptions
 }
 
@@ -121,12 +118,6 @@ func (i CreatePlanInput) Validate() error {
 
 	if err := i.Plan.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("invalid plan: %w", err))
-	}
-
-	if i.SettlementMode != "" {
-		if err := i.SettlementMode.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid settlement mode: %w", err))
-		}
 	}
 
 	issues, err := models.AsValidationIssues(errors.Join(errs...))

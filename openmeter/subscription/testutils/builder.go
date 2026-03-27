@@ -67,7 +67,6 @@ func BuildTestPlanInput(t *testing.T) *testPlanbuilder {
 				},
 				Phases: []productcatalog.Phase{},
 			},
-			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 		},
 	}
 

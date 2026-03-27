@@ -150,7 +150,6 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 				},
 			},
 		},
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	})
 
 	s.NoError(err)
@@ -542,7 +541,6 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsProrating() {
 				},
 			},
 		},
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	})
 
 	s.NoError(err)
@@ -793,7 +791,6 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 				},
 			},
 		},
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	}
 
 	subsView := s.createSubscriptionFromPlan(planInput)
@@ -928,7 +925,6 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsGatheringSyncNonBillableAmou
 				},
 			},
 		},
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	}
 
 	subsView := s.createSubscriptionFromPlan(planInput)
@@ -1535,7 +1531,6 @@ func (s *SubscriptionHandlerTestSuite) TestDefactoZeroPrices() {
 				},
 			},
 		},
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	})
 
 	// Now let's synchronize the subscription
@@ -1620,7 +1615,6 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionInvoicing() {
 				},
 			},
 		},
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	})
 
 	// Let's advance a day and make some edits
@@ -1912,7 +1906,6 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionCancellation() {
 				},
 			},
 		},
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	})
 
 	// Let's advane the clock a minute
@@ -2057,7 +2050,6 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProgressiveBilling
 				},
 			},
 		},
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	})
 
 	// Let's synchronize the subscription
@@ -2277,7 +2269,6 @@ func (s *SubscriptionHandlerTestSuite) TestInArrearsOneTimeFeeSyncing() {
 				},
 			},
 		},
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	}
 
 	plan, err := s.PlanService.CreatePlan(ctx, planInput)
@@ -4242,7 +4233,6 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProratingBehavior(
 				secondPhase,
 			},
 		},
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	})
 
 	// Let's cancel the subscription asof 2025-03-01
@@ -4710,7 +4700,6 @@ func (s *SubscriptionHandlerTestSuite) TestFirstDayOfMonthBillingForSubPeriodLen
 				},
 			},
 		},
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	}
 
 	plan, err := s.PlanService.CreatePlan(ctx, planInput)
@@ -4821,7 +4810,6 @@ func (s *SubscriptionHandlerTestSuite) TestSyncStateUpdateNoBillables() {
 				},
 			},
 		},
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	}
 
 	plan, err := s.PlanService.CreatePlan(ctx, planInput)
@@ -4932,7 +4920,6 @@ func (s *SubscriptionHandlerTestSuite) TestSyncStateUpdateWithFreePhaseActiveInT
 				},
 			},
 		},
-		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	}
 
 	plan, err := s.PlanService.CreatePlan(ctx, planInput)
