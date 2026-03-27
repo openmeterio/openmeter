@@ -89,25 +89,36 @@ func (u *Updater) ApplyPatches(ctx context.Context, customerID customer.Customer
 }
 
 func (u *Updater) LogPatches(patches []Patch, invoicesByID map[string]billing.Invoice) {
-	suppressedImmutableInvoicePatches := 0
+	suppressedDryRunPatches := 0
 
 	for _, patch := range patches {
-		if !isDryRunMutableInvoicePatch(patch, invoicesByID) {
-			suppressedImmutableInvoicePatches++
+		if !isDryRunLoggablePatch(patch, invoicesByID) {
+			suppressedDryRunPatches++
 			continue
 		}
 
 		patch.Log(u.logger)
 	}
 
-	if suppressedImmutableInvoicePatches > 0 {
-		u.logger.Info("suppressed immutable invoice patches in dry run", "count", suppressedImmutableInvoicePatches)
+	if suppressedDryRunPatches > 0 {
+		u.logger.Info("suppressed dry run patches", "count", suppressedDryRunPatches)
 	}
 }
 
-func isDryRunMutableInvoicePatch(patch Patch, invoicesByID map[string]billing.Invoice) bool {
+func isDryRunLoggablePatch(patch Patch, invoicesByID map[string]billing.Invoice) bool {
 	switch patch.Op() {
-	case PatchOpLineCreate, PatchOpSplitLineGroupDelete, PatchOpSplitLineGroupUpdate:
+	case PatchOpLineCreate:
+		createPatch, err := patch.AsCreateLinePatch()
+		if err != nil {
+			return true
+		}
+
+		// Missing current-period pending lines are expected catch-up work for subscription
+		// sync. Dry-run output should focus on actionable drift on already materialized
+		// resources, so we suppress create-line logs only when they belong to the current
+		// billing period.
+		return !isCurrentBillingPeriod(createPatch.Line)
+	case PatchOpSplitLineGroupDelete, PatchOpSplitLineGroupUpdate:
 		return true
 	case PatchOpLineDelete:
 		deletePatch, err := patch.AsDeleteLinePatch()
@@ -126,6 +137,18 @@ func isDryRunMutableInvoicePatch(patch Patch, invoicesByID map[string]billing.In
 	default:
 		return true
 	}
+}
+
+func isCurrentBillingPeriod(line billing.GatheringLine) bool {
+	subscriptionRef := line.GetSubscriptionReference()
+	if subscriptionRef == nil {
+		return false
+	}
+
+	now := clock.Now().UTC()
+	billingPeriod := subscriptionRef.BillingPeriod
+
+	return !now.Before(billingPeriod.From) && now.Before(billingPeriod.To)
 }
 
 func isMutableInvoice(invoiceID string, invoicesByID map[string]billing.Invoice) bool {
