@@ -11,6 +11,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/app/common"
@@ -556,14 +557,11 @@ func (s *CreditsTestSuite) mustCustomerReceivableBalance(customerID customer.Cus
 	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
 	s.NoError(err)
 
-	subAccount, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(s.T().Context(), ledger.CustomerReceivableRouteParams{
+	balance, err := customerAccounts.ReceivableAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
 		Currency:                       code,
-		CostBasis:                      costBasis,
-		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
+		CostBasis:                      routeFilterCostBasis(costBasis),
+		TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
 	})
-	s.NoError(err)
-
-	balance, err := subAccount.GetBalance(s.T().Context())
 	s.NoError(err)
 
 	return balance.Settled()
@@ -575,14 +573,11 @@ func (s *CreditsTestSuite) mustCustomerAuthorizedReceivableBalance(customerID cu
 	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
 	s.NoError(err)
 
-	subAccount, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(s.T().Context(), ledger.CustomerReceivableRouteParams{
+	balance, err := customerAccounts.ReceivableAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
 		Currency:                       code,
-		CostBasis:                      costBasis,
-		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
+		CostBasis:                      routeFilterCostBasis(costBasis),
+		TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusAuthorized),
 	})
-	s.NoError(err)
-
-	balance, err := subAccount.GetBalance(s.T().Context())
 	s.NoError(err)
 
 	return balance.Settled()
@@ -594,12 +589,9 @@ func (s *CreditsTestSuite) mustCustomerAccruedBalance(customerID customer.Custom
 	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
 	s.NoError(err)
 
-	subAccount, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(s.T().Context(), ledger.CustomerAccruedRouteParams{
+	balance, err := customerAccounts.AccruedAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
 		Currency: code,
 	})
-	s.NoError(err)
-
-	balance, err := subAccount.GetBalance(s.T().Context())
 	s.NoError(err)
 
 	return balance.Settled()
@@ -611,13 +603,10 @@ func (s *CreditsTestSuite) mustWashBalance(namespace string, code currencyx.Code
 	businessAccounts, err := s.LedgerResolver.GetBusinessAccounts(s.T().Context(), namespace)
 	s.NoError(err)
 
-	subAccount, err := businessAccounts.WashAccount.GetSubAccountForRoute(s.T().Context(), ledger.BusinessRouteParams{
+	balance, err := businessAccounts.WashAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
 		Currency:  code,
-		CostBasis: costBasis,
+		CostBasis: routeFilterCostBasis(costBasis),
 	})
-	s.NoError(err)
-
-	balance, err := subAccount.GetBalance(s.T().Context())
 	s.NoError(err)
 
 	return balance.Settled()
@@ -629,12 +618,9 @@ func (s *CreditsTestSuite) mustEarningsBalance(namespace string, code currencyx.
 	businessAccounts, err := s.LedgerResolver.GetBusinessAccounts(s.T().Context(), namespace)
 	s.NoError(err)
 
-	subAccount, err := businessAccounts.EarningsAccount.GetSubAccountForRoute(s.T().Context(), ledger.BusinessRouteParams{
+	balance, err := businessAccounts.EarningsAccount.GetBalance(s.T().Context(), ledger.RouteFilter{
 		Currency: code,
 	})
-	s.NoError(err)
-
-	balance, err := subAccount.GetBalance(s.T().Context())
 	s.NoError(err)
 
 	return balance.Settled()
@@ -648,6 +634,14 @@ func (s *CreditsTestSuite) mustGetChargeByID(chargeID meta.ChargeID) charges.Cha
 	})
 	s.NoError(err)
 	return charge
+}
+
+func routeFilterCostBasis(costBasis *alpacadecimal.Decimal) mo.Option[*alpacadecimal.Decimal] {
+	if costBasis == nil {
+		return mo.None[*alpacadecimal.Decimal]()
+	}
+
+	return mo.Some(costBasis)
 }
 
 type createCreditPurchaseIntentInput struct {

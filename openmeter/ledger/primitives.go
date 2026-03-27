@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -50,7 +51,7 @@ type RouteFilter struct {
 	// Non-currency fields are retained for near-future expansion.
 	TaxCode   *string
 	Features  []string
-	CostBasis *alpacadecimal.Decimal
+	CostBasis mo.Option[*alpacadecimal.Decimal]
 
 	// CreditPriority is only meaningful for customer_fbo queries.
 	CreditPriority *int

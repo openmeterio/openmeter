@@ -112,8 +112,13 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 			s.Where(sqljson.ValueEQ(ledgersubaccountroutedb.FieldFeatures, normalizedRoute.Features))
 		})
 	}
-	if normalizedRoute.CostBasis != nil {
-		routePredicates = append(routePredicates, ledgersubaccountroutedb.CostBasis(*normalizedRoute.CostBasis))
+	if normalizedRoute.CostBasis.IsPresent() {
+		costBasis, _ := normalizedRoute.CostBasis.Get()
+		if costBasis != nil {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.CostBasis(*costBasis))
+		} else {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.CostBasisIsNil())
+		}
 	}
 	if normalizedRoute.TransactionAuthorizationStatus != nil {
 		routePredicates = append(routePredicates, ledgersubaccountroutedb.TransactionAuthorizationStatus(*normalizedRoute.TransactionAuthorizationStatus))
