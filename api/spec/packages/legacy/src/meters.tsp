@@ -113,11 +113,7 @@ interface MetersEndpoints {
   @operationId("queryMeter")
   @summary("Query meter")
   @sharedRoute
-  queryJson(
-    @header accept?: "application/json",
-    @path meterIdOrSlug: MeterIdentifier,
-    ...MeterQuery,
-  ): {
+  queryJson(@path meterIdOrSlug: MeterIdentifier, ...MeterQuery): {
     @header contentType: "application/json";
     @body _: MeterQueryResult;
   } | NotFoundError | CommonErrors;
@@ -127,11 +123,7 @@ interface MetersEndpoints {
   @route("/{meterIdOrSlug}/query")
   @operationId("queryMeter")
   @sharedRoute
-  queryCsv(
-    @header accept?: "text/csv",
-    @path meterIdOrSlug: MeterIdentifier,
-    ...MeterQuery,
-  ): {
+  queryCsv(@path meterIdOrSlug: MeterIdentifier, ...MeterQuery): {
     @header contentType: "text/csv";
 
     @body
@@ -150,7 +142,6 @@ interface MetersEndpoints {
   @summary("Query meter")
   @sharedRoute
   query(
-    @header accept?: "application/json",
     @path meterIdOrSlug: MeterIdentifier,
     @body request: MeterQueryRequest,
   ): {
@@ -164,7 +155,6 @@ interface MetersEndpoints {
   @operationId("queryMeterPost")
   @sharedRoute
   queryCsvPost(
-    @header accept?: "text/csv",
     @path meterIdOrSlug: MeterIdentifier,
     // @body request: MeterQueryRequest,
   ): {

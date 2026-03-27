@@ -153,6 +153,20 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 	}, nil
 }
 
+// OnCreditsOnlyUsageAccrued is called when a credit-only flat fee becomes active.
+// It consumes value from prioritized customer FBO subaccounts and moves it into customer_accrued.
+func (h *flatFeeHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) ([]creditrealization.CreateInput, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	if input.AmountToAllocate.IsZero() {
+		return nil, nil
+	}
+
+	return nil, fmt.Errorf("on credits only usage accrued is not implemented")
+}
+
 // OnFlatFeePaymentAuthorized is the current revenue recognition point.
 // It replenishes receivable from wash for the directly-invoiced portion, and
 // recognizes revenue by moving from customer_accrued to earnings.

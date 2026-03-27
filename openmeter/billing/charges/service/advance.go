@@ -8,8 +8,10 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
@@ -35,41 +37,23 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 			return nil, fmt.Errorf("get charges by type: %w", err)
 		}
 
-		if len(chargesByType.usageBased) == 0 {
+		if len(chargesByType.usageBased) == 0 && len(chargesByType.flatFees) == 0 {
 			return charges.Charges{}, nil
 		}
 
-		customerOverride, err := s.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
-			Customer: input.Customer,
-			Expand: billing.CustomerOverrideExpand{
-				Customer: true,
-			},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("get customer override: %w", err)
-		}
+		advancedCharges := make(charges.Charges, 0, len(chargesByType.usageBased)+len(chargesByType.flatFees))
 
-		usageBasedCharges := chargesByType.usageBased
-
-		featureMeters, err := s.resolveFeatureMeters(ctx, input.Customer.Namespace, usageBasedCharges)
-		if err != nil {
-			return nil, err
-		}
-
-		advancedCharges := make(charges.Charges, 0, len(usageBasedCharges))
-		for _, charge := range usageBasedCharges {
-			featureMeter, err := featureMeters.Get(charge.Intent.FeatureKey, true)
-			if err != nil {
-				return nil, fmt.Errorf("get feature meter for charge %s: %w", charge.ID, err)
+		// Advance credit-only flat fee charges
+		for _, charge := range chargesByType.flatFees {
+			if charge.Intent.SettlementMode != productcatalog.CreditOnlySettlementMode {
+				continue
 			}
 
-			advancedCharge, err := s.usageBasedService.AdvanceCharge(ctx, usagebased.AdvanceChargeInput{
-				ChargeID:         charge.GetChargeID(),
-				CustomerOverride: customerOverride,
-				FeatureMeter:     featureMeter,
+			advancedCharge, err := s.flatFeeService.AdvanceCharge(ctx, flatfee.AdvanceChargeInput{
+				ChargeID: charge.GetChargeID(),
 			})
 			if err != nil {
-				return nil, fmt.Errorf("advance usage based charge %s: %w", charge.ID, err)
+				return nil, fmt.Errorf("advance flat fee charge %s: %w", charge.ID, err)
 			}
 
 			if advancedCharge == nil {
@@ -77,6 +61,46 @@ func (s *service) AdvanceCharges(ctx context.Context, input charges.AdvanceCharg
 			}
 
 			advancedCharges = append(advancedCharges, charges.NewCharge(*advancedCharge))
+		}
+
+		// Advance usage-based charges
+		if len(chargesByType.usageBased) > 0 {
+			customerOverride, err := s.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+				Customer: input.Customer,
+				Expand: billing.CustomerOverrideExpand{
+					Customer: true,
+				},
+			})
+			if err != nil {
+				return nil, fmt.Errorf("get customer override: %w", err)
+			}
+
+			featureMeters, err := s.resolveFeatureMeters(ctx, input.Customer.Namespace, chargesByType.usageBased)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, charge := range chargesByType.usageBased {
+				featureMeter, err := featureMeters.Get(charge.Intent.FeatureKey, true)
+				if err != nil {
+					return nil, fmt.Errorf("get feature meter for charge %s: %w", charge.ID, err)
+				}
+
+				advancedCharge, err := s.usageBasedService.AdvanceCharge(ctx, usagebased.AdvanceChargeInput{
+					ChargeID:         charge.GetChargeID(),
+					CustomerOverride: customerOverride,
+					FeatureMeter:     featureMeter,
+				})
+				if err != nil {
+					return nil, fmt.Errorf("advance usage based charge %s: %w", charge.ID, err)
+				}
+
+				if advancedCharge == nil {
+					continue
+				}
+
+				advancedCharges = append(advancedCharges, charges.NewCharge(*advancedCharge))
+			}
 		}
 
 		return advancedCharges, nil

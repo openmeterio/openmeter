@@ -27,6 +27,9 @@ func MapChargeFlatFeeFromDB(entity *entdb.ChargeFlatFee, expands meta.Expands) (
 	charge := flatfee.Charge{
 		ManagedResource: mappedMeta.ManagedResource,
 		Status:          mappedMeta.Status,
+		State: flatfee.State{
+			AdvanceAfter: mappedMeta.AdvanceAfter,
+		},
 		Intent: flatfee.Intent{
 			Intent:                mappedMeta.Intent,
 			InvoiceAt:             entity.InvoiceAt.UTC(),

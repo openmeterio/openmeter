@@ -175,27 +175,38 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 }
 
 // autoAdvanceCreatedCharges post-processes newly created charges
-// right now it only handles credit-only usage-based charges
+// it handles credit-only usage-based and flat fee charges
 // a separate transaction is used to make sure that we persist the creation state even if the advancing fails (as
 // a worker will try to advance the charges again).
 func (s *service) autoAdvanceCreatedCharges(ctx context.Context, created charges.Charges) (charges.Charges, error) {
-	// Collect unique customer IDs that have newly created credit-only usage-based charges.
+	// Collect unique customer IDs that have newly created credit-only charges.
 	customerIDs := make(map[customer.CustomerID]struct{})
 	for _, c := range created {
-		if c.Type() != meta.ChargeTypeUsageBased {
-			continue
-		}
+		switch c.Type() {
+		case meta.ChargeTypeUsageBased:
+			ub, err := c.AsUsageBasedCharge()
+			if err != nil {
+				return nil, err
+			}
 
-		ub, err := c.AsUsageBasedCharge()
-		if err != nil {
-			return nil, err
-		}
+			if ub.Intent.SettlementMode != productcatalog.CreditOnlySettlementMode {
+				continue
+			}
 
-		if ub.Intent.SettlementMode != productcatalog.CreditOnlySettlementMode {
-			continue
-		}
+			customerIDs[customer.CustomerID{Namespace: ub.Namespace, ID: ub.Intent.CustomerID}] = struct{}{}
 
-		customerIDs[customer.CustomerID{Namespace: ub.Namespace, ID: ub.Intent.CustomerID}] = struct{}{}
+		case meta.ChargeTypeFlatFee:
+			ff, err := c.AsFlatFeeCharge()
+			if err != nil {
+				return nil, err
+			}
+
+			if ff.Intent.SettlementMode != productcatalog.CreditOnlySettlementMode {
+				continue
+			}
+
+			customerIDs[customer.CustomerID{Namespace: ff.Namespace, ID: ff.Intent.CustomerID}] = struct{}{}
+		}
 	}
 
 	if len(customerIDs) == 0 {

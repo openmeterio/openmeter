@@ -920,8 +920,8 @@ func TestQuery(t *testing.T) {
 
 			// Wait for events to be processed
 			assert.EventuallyWithT(t, func(t *assert.CollectT) {
-				// nil params (no accept header) — should default to JSON
-				resp, err := client.QueryMeterPostWithResponse(context.Background(), "query", nil, api.QueryMeterPostJSONRequestBody{})
+				// No accept header — should default to JSON
+				resp, err := client.QueryMeterPostWithResponse(context.Background(), "query", api.QueryMeterPostJSONRequestBody{})
 				require.NoError(t, err)
 				require.Equal(t, http.StatusOK, resp.StatusCode())
 				require.NotNil(t, resp.JSON200)
@@ -934,10 +934,10 @@ func TestQuery(t *testing.T) {
 
 			// Wait for events to be processed
 			assert.EventuallyWithT(t, func(t *assert.CollectT) {
-				acceptJSON := api.QueryMeterPostParamsAcceptApplicationjson
-				resp, err := client.QueryMeterPostWithResponse(context.Background(), "query", &api.QueryMeterPostParams{
-					Accept: &acceptJSON,
-				}, api.QueryMeterPostJSONRequestBody{})
+				resp, err := client.QueryMeterPostWithResponse(context.Background(), "query", api.QueryMeterPostJSONRequestBody{}, func(_ context.Context, req *http.Request) error {
+					req.Header.Set("Accept", "application/json")
+					return nil
+				})
 				require.NoError(t, err)
 				require.Equal(t, http.StatusOK, resp.StatusCode())
 				require.NotNil(t, resp.JSON200)
@@ -951,10 +951,10 @@ func TestQuery(t *testing.T) {
 
 		// Wait for events to be processed
 		assert.EventuallyWithT(t, func(t *assert.CollectT) {
-			acceptCSV := api.QueryMeterPostParamsAcceptTextcsv
-			resp, err := client.QueryMeterPostWithResponse(context.Background(), "query", &api.QueryMeterPostParams{
-				Accept: &acceptCSV,
-			}, api.QueryMeterPostJSONRequestBody{})
+			resp, err := client.QueryMeterPostWithResponse(context.Background(), "query", api.QueryMeterPostJSONRequestBody{}, func(_ context.Context, req *http.Request) error {
+				req.Header.Set("Accept", "text/csv")
+				return nil
+			})
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, resp.StatusCode())
 

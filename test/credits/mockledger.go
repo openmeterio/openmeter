@@ -82,6 +82,25 @@ func (l *MockLedger) OnInvoiceUsageAccrued(ctx context.Context, input flatfee.On
 	}, nil
 }
 
+func (l *MockLedger) OnCreditsOnlyUsageAccrued(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) ([]creditrealization.CreateInput, error) {
+	if input.AmountToAllocate.IsZero() {
+		return nil, nil
+	}
+
+	creditsToAllocate := math.Min(input.AmountToAllocate.InexactFloat64(), l.customerCredits)
+	l.customerCredits -= creditsToAllocate
+
+	return []creditrealization.CreateInput{
+		{
+			ServicePeriod: input.Charge.Intent.ServicePeriod,
+			Amount:        alpacadecimal.NewFromFloat(creditsToAllocate),
+			LedgerTransaction: ledgertransaction.GroupReference{
+				TransactionGroupID: ulid.Make().String(),
+			},
+		},
+	}, nil
+}
+
 func (l *MockLedger) OnPaymentAuthorized(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error) {
 	return ledgertransaction.GroupReference{
 		TransactionGroupID: ulid.Make().String(),
