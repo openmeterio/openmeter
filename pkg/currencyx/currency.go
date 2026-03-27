@@ -43,3 +43,14 @@ func (c Calculator) RoundToPrecision(amount alpacadecimal.Decimal) alpacadecimal
 	// in circulation, but should not be an issue for online payments.
 	return amount.Round(int32(c.Def.Subunits))
 }
+
+func (c Calculator) Validate() error {
+	var errs []error
+	if err := c.Currency.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+	if c.Def == nil {
+		errs = append(errs, errors.New("currency definition is required"))
+	}
+	return errors.Join(errs...)
+}

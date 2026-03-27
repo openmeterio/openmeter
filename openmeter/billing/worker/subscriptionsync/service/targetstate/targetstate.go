@@ -2,6 +2,7 @@ package targetstate
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -14,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
@@ -26,6 +28,31 @@ type State struct {
 	MaxGenerationTimeLimit time.Time
 }
 
+type BuildInput struct {
+	AsOf              time.Time
+	CustomerDeletedAt *time.Time
+	SubscriptionView  subscription.SubscriptionView
+	Persisted         persistedstate.State
+}
+
+func (i BuildInput) Validate() error {
+	var errs []error
+
+	if i.AsOf.IsZero() {
+		errs = append(errs, errors.New("asOf is required"))
+	}
+
+	if err := i.SubscriptionView.Validate(true); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := i.Persisted.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	return errors.Join(errs...)
+}
+
 type Builder struct {
 	logger *slog.Logger
 	tracer trace.Tracer
@@ -35,20 +62,43 @@ func NewBuilder(logger *slog.Logger, tracer trace.Tracer) Builder {
 	return Builder{logger: logger, tracer: tracer}
 }
 
-func (b Builder) Build(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time, persisted persistedstate.State) (State, error) {
+func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {
 	span := tracex.Start[State](ctx, b.tracer, "billing.worker.subscription.sync.targetstate.Build")
 
 	return span.Wrap(func(ctx context.Context) (State, error) {
+		if err := input.Validate(); err != nil {
+			return State{}, fmt.Errorf("validating input: %w", err)
+		}
+
+		subs := input.SubscriptionView
+		// If the customer is deleted, we need to cap the subscription view at the customer deleted at
+		// or invoicing will not allow creating the lines.
+		// Note: this only happens if there is a db inconsistency between the subscription and the customer lifecycle.
+		if input.CustomerDeletedAt != nil && (input.SubscriptionView.Subscription.ActiveTo == nil || input.SubscriptionView.Subscription.ActiveTo.After(*input.CustomerDeletedAt)) {
+			subsActiveTo := "(nil)"
+			if subs.Subscription.ActiveTo != nil {
+				subsActiveTo = subs.Subscription.ActiveTo.Format(time.RFC3339)
+			}
+
+			b.logger.WarnContext(ctx, "customer deleted at is before subscription active to, capping subscription view at customer deleted at",
+				"subscription_id", subs.Subscription.ID,
+				"customer_deleted_at", *input.CustomerDeletedAt,
+				"subscription_active_to", subsActiveTo,
+			)
+
+			subs = withActiveTo(subs, *input.CustomerDeletedAt)
+		}
+
 		slices.SortFunc(subs.Phases, func(i, j subscription.SubscriptionPhaseView) int {
 			return timeutil.Compare(i.SubscriptionPhase.ActiveFrom, j.SubscriptionPhase.ActiveFrom)
 		})
 
-		upcomingLinesResult, err := b.collectUpcomingLines(ctx, subs, asOf)
+		upcomingLinesResult, err := b.collectUpcomingLines(ctx, subs, input.AsOf)
 		if err != nil {
 			return State{}, fmt.Errorf("collecting upcoming lines: %w", err)
 		}
 
-		inScopeLines, err := b.correctPeriodStartForUpcomingLines(ctx, subs.Subscription.ID, upcomingLinesResult.Lines, persisted)
+		inScopeLines, err := b.correctPeriodStartForUpcomingLines(ctx, subs.Subscription.ID, upcomingLinesResult.Lines, input.Persisted)
 		if err != nil {
 			return State{}, fmt.Errorf("correcting period start for upcoming lines: %w", err)
 		}
@@ -129,6 +179,12 @@ func (b Builder) collectUpcomingLines(ctx context.Context, subs subscription.Sub
 	})
 }
 
+func withActiveTo(subs subscription.SubscriptionView, endAt time.Time) subscription.SubscriptionView {
+	subs.Subscription.ActiveTo = &endAt
+	subs.Spec.ActiveTo = &endAt
+	return subs
+}
+
 func (b Builder) correctPeriodStartForUpcomingLines(ctx context.Context, subscriptionID string, inScopeLines []SubscriptionItemWithPeriods, persisted persistedstate.State) ([]SubscriptionItemWithPeriods, error) {
 	for idx, line := range inScopeLines {
 		if line.PeriodIndex == 0 {
@@ -178,7 +234,15 @@ func (b Builder) correctPeriodStartForUpcomingLines(ctx context.Context, subscri
 		}
 
 		previousServicePeriod := existingPreviousLine.ServicePeriod()
-		if line.ServicePeriod.Start.Equal(previousServicePeriod.To) {
+		// The iterator output is already normalized to meter resolution, but this
+		// continuity correction reuses a boundary from persisted state. Historical
+		// rows can carry sub-second precision that the meter engine cannot query, so
+		// we must normalize the carried-over boundary before writing it back into the
+		// target state or sync will keep proposing no-op timestamp repairs.
+		// TODO: Add a migration to normalize existing billing timestamps to the precision
+		// supported by meter queries.
+		continuousStart := previousServicePeriod.To.Truncate(streaming.MinimumWindowSizeDuration)
+		if line.ServicePeriod.Start.Equal(continuousStart) {
 			continue
 		}
 
@@ -186,11 +250,11 @@ func (b Builder) correctPeriodStartForUpcomingLines(ctx context.Context, subscri
 			return nil, fmt.Errorf("line[%s] service period and full service period start does not match", line.UniqueID)
 		}
 
-		inScopeLines[idx].ServicePeriod.Start = previousServicePeriod.To
-		inScopeLines[idx].FullServicePeriod.Start = previousServicePeriod.To
+		inScopeLines[idx].ServicePeriod.Start = continuousStart
+		inScopeLines[idx].FullServicePeriod.Start = continuousStart
 
 		if line.FullServicePeriod.Start.Equal(line.BillingPeriod.Start) {
-			inScopeLines[idx].BillingPeriod.Start = previousServicePeriod.To
+			inScopeLines[idx].BillingPeriod.Start = continuousStart
 		}
 	}
 
@@ -237,23 +301,24 @@ func (b Builder) hierarchyHasAnnotation(hierarchy *billing.SplitLineHierarchy, a
 	return false, nil
 }
 
-func LineFromSubscriptionRateCard(subs subscription.SubscriptionView, item SubscriptionItemWithPeriods, currency currencyx.Calculator) (*billing.GatheringLine, error) {
+// TODO: make a member of the SubscriptionItemWithPeriods type (for now it's kept here for easier review)
+func lineFromSubscriptionRateCard(subs subscription.Subscription, item SubscriptionItemWithPeriods, currency currencyx.Calculator) (*billing.GatheringLine, error) {
 	line := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Namespace:   subs.Subscription.Namespace,
+				Namespace:   subs.Namespace,
 				Name:        item.Spec.RateCard.AsMeta().Name,
 				Description: item.Spec.RateCard.AsMeta().Description,
 			}),
 			ManagedBy:              billing.SubscriptionManagedLine,
-			Currency:               subs.Spec.Currency,
+			Currency:               subs.Currency,
 			ChildUniqueReferenceID: &item.UniqueID,
 			TaxConfig:              item.Spec.RateCard.AsMeta().TaxConfig,
 			ServicePeriod:          item.ServicePeriod.ToClosedPeriod(),
 			InvoiceAt:              item.GetInvoiceAt(),
 			RateCardDiscounts:      discountsToBillingDiscounts(item.Spec.RateCard.AsMeta().Discounts),
 			Subscription: &billing.SubscriptionReference{
-				SubscriptionID: subs.Subscription.ID,
+				SubscriptionID: subs.ID,
 				PhaseID:        item.PhaseID,
 				ItemID:         item.SubscriptionItem.ID,
 				BillingPeriod: timeutil.ClosedPeriod{
@@ -317,8 +382,8 @@ func discountsToBillingDiscounts(discounts productcatalog.Discounts) billing.Dis
 	return out
 }
 
-func shouldProrate(item SubscriptionItemWithPeriods, subView subscription.SubscriptionView) bool {
-	if !subView.Subscription.ProRatingConfig.Enabled {
+func shouldProrate(item SubscriptionItemWithPeriods, subs subscription.Subscription) bool {
+	if !subs.ProRatingConfig.Enabled {
 		return false
 	}
 
@@ -326,11 +391,11 @@ func shouldProrate(item SubscriptionItemWithPeriods, subView subscription.Subscr
 		return false
 	}
 
-	if subView.Subscription.ActiveTo != nil && !subView.Subscription.ActiveTo.After(item.ServicePeriod.End) {
+	if subs.ActiveTo != nil && !subs.ActiveTo.After(item.ServicePeriod.End) {
 		return false
 	}
 
-	switch subView.Subscription.ProRatingConfig.Mode {
+	switch subs.ProRatingConfig.Mode {
 	case productcatalog.ProRatingModeProratePrices:
 		return true
 	default:

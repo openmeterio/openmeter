@@ -172,6 +172,7 @@ func (i SplitLineGroup) ToUpdate() SplitLineGroupUpdate {
 func (i SplitLineGroup) Clone() SplitLineGroup {
 	return SplitLineGroup{
 		ManagedModel:                i.ManagedModel,
+		NamespacedID:                i.NamespacedID,
 		SplitLineGroupMutableFields: i.SplitLineGroupMutableFields.Clone(),
 		Price:                       i.Price,
 		FeatureKey:                  i.FeatureKey,

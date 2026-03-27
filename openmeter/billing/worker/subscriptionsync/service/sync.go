@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -84,14 +85,23 @@ func (s *Service) SynchronizeSubscriptionAndInvoiceCustomer(ctx context.Context,
 	})
 }
 
-func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error {
+func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time, opts ...subscriptionsync.SynchronizeSubscriptionOption) error {
 	span := tracex.StartWithNoValue(ctx, s.tracer, "billing.worker.subscription.sync.SynchronizeSubscription", trace.WithAttributes(
 		attribute.String("subscription_id", subs.Subscription.ID),
 		attribute.String("as_of", asOf.Format(time.RFC3339)),
 	))
 
+	options := subscriptionsync.SynchronizeSubscriptionOptions{}
+	for _, opt := range opts {
+		opt(&options)
+	}
+
 	return span.Wrap(func(ctx context.Context) error {
 		if !subs.Spec.HasBillables() {
+			if options.DryRun {
+				return nil
+			}
+
 			if err := s.updateSyncState(ctx, updateSyncStateInput{
 				SubscriptionView: subs,
 			}); err != nil {
@@ -109,11 +119,36 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 
 		// TODO[later]: Right now we are getting the billing profile as a validation step, but later if we allow more collection
 		// alignment settings, we should use the collection settings from here to determine the generation end (overriding asof).
-		_, err := s.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+		customerOverride, err := s.billingService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 			Customer: customerID,
+			Expand: billing.CustomerOverrideExpand{
+				Customer: true,
+			},
 		})
 		if err != nil {
 			return fmt.Errorf("getting billing profile: %w", err)
+		}
+
+		var customerDeletedAt *time.Time
+		if customerOverride.Customer != nil {
+			customerDeletedAt = convert.SafeToUTC(customerOverride.Customer.GetDeletedAt())
+		}
+
+		if customerOverride.Customer != nil && customerOverride.Customer.DeletedAt != nil && !customerOverride.Customer.DeletedAt.After(subs.Spec.ActiveFrom) {
+			if options.DryRun {
+				return nil
+			}
+
+			if err := s.updateSyncState(ctx, updateSyncStateInput{
+				SubscriptionView: subs,
+				// Prevent deleted customers from continuing to be scheduled for sync.
+				PreventFurtherSyncs: true,
+			}); err != nil {
+				return fmt.Errorf("updating sync state: %w", err)
+			}
+
+			s.logger.WarnContext(ctx, "customer deleted before subscription start, skipping sync", "subscription_id", subs.Subscription.ID, "customer_id", customerID.ID)
+			return nil
 		}
 
 		currency, err := subs.Spec.Currency.Calculator()
@@ -132,12 +167,16 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 			}
 
 			// Calculate per line patches
-			linesDiff, err := s.buildSyncPlan(ctx, subs, asOf)
+			linesDiff, err := s.buildSyncPlan(ctx, subs, asOf, customerDeletedAt, currency)
 			if err != nil {
 				return err
 			}
 
 			if linesDiff == nil || linesDiff.IsEmpty() {
+				if options.DryRun {
+					return nil
+				}
+
 				generationLimit := time.Time{}
 				if linesDiff != nil {
 					generationLimit = linesDiff.SubscriptionMaxGenerationTimeLimit
@@ -154,13 +193,18 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 			}
 
 			if err := s.reconciler.Apply(ctx, reconciler.ApplyInput{
+				DryRun:       options.DryRun,
 				Customer:     customerID,
-				Subscription: subs,
+				Subscription: subs.Subscription,
 				Currency:     currency,
 				Invoices:     persistedInvoices,
 				Plan:         linesDiff,
 			}); err != nil {
 				return err
+			}
+
+			if options.DryRun {
+				return nil
 			}
 
 			if err := s.updateSyncState(ctx, updateSyncStateInput{
@@ -178,6 +222,7 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 type updateSyncStateInput struct {
 	SubscriptionView       subscription.SubscriptionView
 	MaxGenerationTimeLimit time.Time
+	PreventFurtherSyncs    bool
 }
 
 func (s *Service) updateSyncState(ctx context.Context, in updateSyncStateInput) error {
@@ -187,7 +232,14 @@ func (s *Service) updateSyncState(ctx context.Context, in updateSyncStateInput) 
 	))
 
 	return span.Wrap(func(ctx context.Context) error {
-		if !in.SubscriptionView.Spec.HasBillables() {
+		hasBillables := in.SubscriptionView.Spec.HasBillables()
+		if in.PreventFurtherSyncs {
+			// We are using the hasBillables flag to prevent further syncs, this is used when the customer is
+			// deleted etc.
+			hasBillables = false
+		}
+
+		if !hasBillables {
 			return s.subscriptionSyncAdapter.UpsertSyncState(ctx, subscriptionsync.UpsertSyncStateInput{
 				SubscriptionID: models.NamespacedID{
 					ID:        in.SubscriptionView.Subscription.ID,

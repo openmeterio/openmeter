@@ -2,6 +2,7 @@ package targetstate
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"runtime/debug"
@@ -17,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -93,6 +95,25 @@ func (r SubscriptionItemWithPeriods) GetInvoiceAt() time.Time {
 	// - not before its billing period is over
 	// - not before its service period is over
 	return lo.Latest(r.ServicePeriod.End, r.BillingPeriod.End)
+}
+
+func (r SubscriptionItemWithPeriods) GetExpectedLine(view subscription.Subscription, currency currencyx.Calculator) (*billing.GatheringLine, error) {
+	return lineFromSubscriptionRateCard(view, r, currency)
+}
+
+var ErrExpectedLineIsEmpty = errors.New("expected line is empty")
+
+func (r SubscriptionItemWithPeriods) GetExpectedLineOrErr(view subscription.Subscription, currency currencyx.Calculator) (billing.GatheringLine, error) {
+	line, err := r.GetExpectedLine(view, currency)
+	if err != nil {
+		return billing.GatheringLine{}, err
+	}
+
+	if line == nil {
+		return billing.GatheringLine{}, fmt.Errorf("%w [child_unique_id: %s]", ErrExpectedLineIsEmpty, r.UniqueID)
+	}
+
+	return *line, nil
 }
 
 func NewPhaseIterator(logger *slog.Logger, tracer trace.Tracer, subs subscription.SubscriptionView, phaseKey string) (*PhaseIterator, error) {

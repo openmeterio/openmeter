@@ -16,7 +16,7 @@ type Service interface {
 
 type SyncService interface {
 	SynchronizeSubscriptionAndInvoiceCustomer(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error
-	SynchronizeSubscription(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time) error
+	SynchronizeSubscription(ctx context.Context, subs subscription.SubscriptionView, asOf time.Time, opts ...SynchronizeSubscriptionOption) error
 }
 
 type EventHandler interface {
@@ -27,4 +27,16 @@ type EventHandler interface {
 
 type SyncStateService interface {
 	GetSyncStates(ctx context.Context, input GetSyncStatesInput) ([]SyncState, error)
+}
+
+type SynchronizeSubscriptionOptions struct {
+	DryRun bool
+}
+
+type SynchronizeSubscriptionOption func(*SynchronizeSubscriptionOptions)
+
+func EnableDryRun() SynchronizeSubscriptionOption {
+	return func(o *SynchronizeSubscriptionOptions) {
+		o.DryRun = true
+	}
 }

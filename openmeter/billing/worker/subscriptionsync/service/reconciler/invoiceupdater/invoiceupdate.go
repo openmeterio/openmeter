@@ -1,4 +1,4 @@
-package reconciler
+package invoiceupdater
 
 import (
 	"context"
@@ -18,19 +18,19 @@ import (
 
 const subscriptionSyncComponentName billing.ComponentName = "subscription-sync"
 
-type InvoiceUpdater struct {
+type Updater struct {
 	billingService billing.Service
 	logger         *slog.Logger
 }
 
-func NewInvoiceUpdater(billingService billing.Service, logger *slog.Logger) *InvoiceUpdater {
-	return &InvoiceUpdater{
+func New(billingService billing.Service, logger *slog.Logger) *Updater {
+	return &Updater{
 		billingService: billingService,
 		logger:         logger,
 	}
 }
 
-func (u *InvoiceUpdater) ApplyPatches(ctx context.Context, customerID customer.CustomerID, patches []Patch) error {
+func (u *Updater) ApplyPatches(ctx context.Context, customerID customer.CustomerID, patches []Patch) error {
 	patchesParsed, err := u.parsePatches(patches)
 	if err != nil {
 		return fmt.Errorf("parsing patches: %w", err)
@@ -88,6 +88,87 @@ func (u *InvoiceUpdater) ApplyPatches(ctx context.Context, customerID customer.C
 	return nil
 }
 
+func (u *Updater) LogPatches(patches []Patch, invoicesByID map[string]billing.Invoice) {
+	suppressedDryRunPatches := 0
+
+	for _, patch := range patches {
+		if !isDryRunLoggablePatch(patch, invoicesByID) {
+			suppressedDryRunPatches++
+			continue
+		}
+
+		patch.Log(u.logger)
+	}
+
+	if suppressedDryRunPatches > 0 {
+		u.logger.Info("suppressed dry run patches", "count", suppressedDryRunPatches)
+	}
+}
+
+func isDryRunLoggablePatch(patch Patch, invoicesByID map[string]billing.Invoice) bool {
+	switch patch.Op() {
+	case PatchOpLineCreate:
+		createPatch, err := patch.AsCreateLinePatch()
+		if err != nil {
+			return true
+		}
+
+		// Missing current-period pending lines are expected catch-up work for subscription
+		// sync. Dry-run output should focus on actionable drift on already materialized
+		// resources, so we suppress create-line logs only when they belong to the current
+		// billing period.
+		return !isCurrentBillingPeriod(createPatch.Line)
+	case PatchOpSplitLineGroupDelete, PatchOpSplitLineGroupUpdate:
+		return true
+	case PatchOpLineDelete:
+		deletePatch, err := patch.AsDeleteLinePatch()
+		if err != nil {
+			return true
+		}
+
+		return isMutableInvoice(deletePatch.InvoiceID, invoicesByID)
+	case PatchOpLineUpdate:
+		updatePatch, err := patch.AsUpdateLinePatch()
+		if err != nil {
+			return true
+		}
+
+		return isMutableInvoice(updatePatch.TargetState.GetInvoiceID(), invoicesByID)
+	default:
+		return true
+	}
+}
+
+func isCurrentBillingPeriod(line billing.GatheringLine) bool {
+	subscriptionRef := line.GetSubscriptionReference()
+	if subscriptionRef == nil {
+		return false
+	}
+
+	now := clock.Now().UTC()
+	billingPeriod := subscriptionRef.BillingPeriod
+
+	return !now.Before(billingPeriod.From) && now.Before(billingPeriod.To)
+}
+
+func isMutableInvoice(invoiceID string, invoicesByID map[string]billing.Invoice) bool {
+	invoice, ok := invoicesByID[invoiceID]
+	if !ok {
+		return true
+	}
+
+	if invoice.Type() == billing.InvoiceTypeGathering {
+		return true
+	}
+
+	standardInvoice, err := invoice.AsStandardInvoice()
+	if err != nil {
+		return true
+	}
+
+	return !standardInvoice.StatusDetails.Immutable
+}
+
 type patchesParsed struct {
 	newLines []billing.GatheringLine
 
@@ -106,7 +187,7 @@ type splitLineGroupPatches struct {
 	updated []billing.SplitLineGroupUpdate
 }
 
-func (u *InvoiceUpdater) parsePatches(patches []Patch) (patchesParsed, error) {
+func (u *Updater) parsePatches(patches []Patch) (patchesParsed, error) {
 	parsed := patchesParsed{
 		updatedLinesByInvoiceID: make(map[string]invoicePatches),
 	}
@@ -160,7 +241,7 @@ func (u *InvoiceUpdater) parsePatches(patches []Patch) (patchesParsed, error) {
 	return parsed, nil
 }
 
-func (u *InvoiceUpdater) provisionUpcomingLines(ctx context.Context, customerID customer.CustomerID, lines []billing.GatheringLine) error {
+func (u *Updater) provisionUpcomingLines(ctx context.Context, customerID customer.CustomerID, lines []billing.GatheringLine) error {
 	if len(lines) == 0 {
 		return nil
 	}
@@ -183,7 +264,7 @@ func (u *InvoiceUpdater) provisionUpcomingLines(ctx context.Context, customerID 
 	return nil
 }
 
-func (u *InvoiceUpdater) updateMutableStandardInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
+func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
 	updatedInvoice, err := u.billingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 		Invoice:             invoice.GetInvoiceID(),
 		IncludeDeletedLines: true,
@@ -255,7 +336,7 @@ func (u *InvoiceUpdater) updateMutableStandardInvoice(ctx context.Context, invoi
 	return err
 }
 
-func (u *InvoiceUpdater) updateGatheringInvoice(ctx context.Context, invoiceID billing.InvoiceID, linePatches invoicePatches) error {
+func (u *Updater) updateGatheringInvoice(ctx context.Context, invoiceID billing.InvoiceID, linePatches invoicePatches) error {
 	return u.billingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
 		Invoice:             invoiceID,
 		IncludeDeletedLines: true,
@@ -289,7 +370,7 @@ func (u *InvoiceUpdater) updateGatheringInvoice(ctx context.Context, invoiceID b
 	})
 }
 
-func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
+func (u *Updater) updateImmutableInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
 	invoice, err := u.billingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 		Invoice: invoice.GetInvoiceID(),
 		Expand:  billing.StandardInvoiceExpandAll,
@@ -327,6 +408,14 @@ func (u *InvoiceUpdater) updateImmutableInvoice(ctx context.Context, invoice bil
 				validationIssues = append(validationIssues,
 					newValidationIssueOnLine(existingLine, "flat fee line's per unit amount cannot be changed on immutable invoice (new per unit amount: %s)",
 						targetPerUnitAmount.String()),
+				)
+
+				continue
+			}
+
+			if !targetState.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration).Equal(existingLine.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration)) {
+				validationIssues = append(validationIssues,
+					newValidationIssueOnLine(existingLine, "flat fee line's service period cannot be changed on immutable invoice"),
 				)
 			}
 
@@ -391,7 +480,7 @@ func newValidationIssueOnLine(line *billing.StandardLine, message string, a ...a
 	}
 }
 
-func (u *InvoiceUpdater) mergeValidationIssues(invoice billing.StandardInvoice, issues []billing.ValidationIssue) (billing.ValidationIssues, bool) {
+func (u *Updater) mergeValidationIssues(invoice billing.StandardInvoice, issues []billing.ValidationIssue) (billing.ValidationIssues, bool) {
 	changed := false
 
 	for _, issue := range issues {
@@ -411,7 +500,7 @@ func (u *InvoiceUpdater) mergeValidationIssues(invoice billing.StandardInvoice, 
 	return invoice.ValidationIssues, changed
 }
 
-func (u *InvoiceUpdater) upsertSplitLineGroups(ctx context.Context, customerID customer.CustomerID, changes splitLineGroupPatches) error {
+func (u *Updater) upsertSplitLineGroups(ctx context.Context, customerID customer.CustomerID, changes splitLineGroupPatches) error {
 	if len(changes.deleted) == 0 && len(changes.updated) == 0 {
 		return nil
 	}
