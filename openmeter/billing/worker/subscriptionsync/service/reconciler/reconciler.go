@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -262,6 +263,10 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 	existingLineUniqueIDs := lo.Keys(persisted.ByUniqueID)
 	inScopeLineUniqueIDs := lo.Keys(inScopeLinesByUniqueID)
 	deletedLines, _ := lo.Difference(existingLineUniqueIDs, inScopeLineUniqueIDs)
+	// Keep patch planning order stable between runs for logging, debugging and
+	// testability. Downstream application does not depend on this ordering.
+	slices.Sort(deletedLines)
+	slices.Sort(inScopeLineUniqueIDs)
 
 	patches := make([]Patch, 0, len(deletedLines)+len(inScopeLineUniqueIDs))
 
