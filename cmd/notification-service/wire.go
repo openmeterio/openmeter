@@ -36,10 +36,11 @@ type Application struct {
 	Meter              metric.Meter
 	Tracer             trace.Tracer
 	Metadata           common.Metadata
-	MeterService       meter.Service
-	Notification       notification.Service
-	StreamingConnector streaming.Connector
-	TelemetryServer    common.TelemetryServer
+	MeterService            meter.Service
+	Notification            notification.Service
+	RuntimeMetricsCollector common.RuntimeMetricsCollector
+	StreamingConnector      streaming.Connector
+	TelemetryServer         common.TelemetryServer
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {

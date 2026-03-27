@@ -348,18 +348,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	health := common.NewHealthChecker(logger)
-	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, telemetryConfig, logger)
-	if err != nil {
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
+	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, logger)
 	v4, cleanup8 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	group := common.BillingWorkerGroup(ctx, worker, v4)
 	runner := common.Runner{
@@ -428,15 +417,28 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	appRegistry := common.NewAppRegistry(service, appSandboxProvisioner, appstripeService, appcustominvoicingService)
+	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, logger)
+	if err != nil {
+		cleanup8()
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	application := Application{
-		GlobalInitializer: globalInitializer,
-		Migrator:          migrator,
-		Runner:            runner,
-		AppRegistry:       appRegistry,
-		Logger:            logger,
-		Meter:             meterService,
-		NamespaceManager:  manager,
-		Streaming:         connector,
+		GlobalInitializer:       globalInitializer,
+		Migrator:                migrator,
+		Runner:                  runner,
+		AppRegistry:             appRegistry,
+		Logger:                  logger,
+		Meter:                   meterService,
+		RuntimeMetricsCollector: runtimeMetricsCollector,
+		NamespaceManager:        manager,
+		Streaming:               connector,
 	}
 	return application, func() {
 		cleanup8()
@@ -457,11 +459,12 @@ type Application struct {
 	common.Migrator
 	common.Runner
 
-	AppRegistry      common.AppRegistry
-	Logger           *slog.Logger
-	Meter            meter.Service
-	NamespaceManager *namespace.Manager
-	Streaming        streaming.Connector
+	AppRegistry             common.AppRegistry
+	Logger                  *slog.Logger
+	Meter                   meter.Service
+	RuntimeMetricsCollector common.RuntimeMetricsCollector
+	NamespaceManager        *namespace.Manager
+	Streaming               streaming.Connector
 }
 
 func metadata(conf config.Configuration) common.Metadata {

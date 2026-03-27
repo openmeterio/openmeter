@@ -21,9 +21,10 @@ type Application struct {
 	common.Migrator
 	common.Runner
 
-	AppRegistry      common.AppRegistry
-	Logger           *slog.Logger
-	Meter            meter.Service
+	AppRegistry             common.AppRegistry
+	Logger                  *slog.Logger
+	Meter                   meter.Service
+	RuntimeMetricsCollector common.RuntimeMetricsCollector
 	NamespaceManager *namespace.Manager
 	Streaming        streaming.Connector
 }

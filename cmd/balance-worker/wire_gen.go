@@ -317,8 +317,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	health := common.NewHealthChecker(logger)
-	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, telemetryConfig, logger)
+	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, logger)
+	v5, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	group := common.BalanceWorkerGroup(ctx, worker, v5)
+	runner := common.Runner{
+		Group:  group,
+		Logger: logger,
+	}
+	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, logger)
 	if err != nil {
+		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
@@ -329,18 +337,12 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, runtimeMetricsCollector, logger)
-	v5, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
-	group := common.BalanceWorkerGroup(ctx, worker, v5)
-	runner := common.Runner{
-		Group:  group,
-		Logger: logger,
-	}
 	application := Application{
-		GlobalInitializer: globalInitializer,
-		Migrator:          migrator,
-		Runner:            runner,
-		Logger:            logger,
+		GlobalInitializer:       globalInitializer,
+		Migrator:                migrator,
+		Runner:                  runner,
+		Logger:                  logger,
+		RuntimeMetricsCollector: runtimeMetricsCollector,
 	}
 	return application, func() {
 		cleanup9()
@@ -362,7 +364,8 @@ type Application struct {
 	common.Migrator
 	common.Runner
 
-	Logger *slog.Logger
+	Logger                  *slog.Logger
+	RuntimeMetricsCollector common.RuntimeMetricsCollector
 }
 
 func metadata(conf config.Configuration) common.Metadata {

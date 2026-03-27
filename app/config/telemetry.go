@@ -267,6 +267,11 @@ func (c ExportersMetricsTelemetryConfig) Validate() error {
 
 type PrometheusExportersMetricsTelemetryConfig struct {
 	Enabled bool
+
+	// DisableDefaultCollectors unregisters the default Prometheus Go and Process
+	// collectors so that OTel runtime metrics are the sole source of those signals.
+	// Defaults to false to preserve backward compatibility.
+	DisableDefaultCollectors bool
 }
 
 // Validate validates the configuration.
@@ -658,6 +663,7 @@ func ConfigureTelemetry(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("telemetry.trace.exporters.otlp.address", "")
 
 	v.SetDefault("telemetry.metrics.exporters.prometheus.enabled", false)
+	v.SetDefault("telemetry.metrics.exporters.prometheus.disabledefaultcollectors", false)
 	v.SetDefault("telemetry.metrics.exporters.otlp.enabled", false)
 	v.SetDefault("telemetry.metrics.exporters.otlp.address", "")
 
