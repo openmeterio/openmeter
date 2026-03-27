@@ -111,7 +111,6 @@ type diffItemResult struct {
 
 func (s *Service) diffItem(
 	target *targetstate.SubscriptionItemWithPeriods,
-	expectedLine *billing.GatheringLine, // TODO[later]: let's merge this with target as they are the same thing's different calculation stages
 	existing persistedstate.Entity,
 ) (Patch, error) {
 	switch {
@@ -119,7 +118,7 @@ func (s *Service) diffItem(
 		return nil, nil
 	case target == nil && existing != nil:
 		return s.NewDeletePatch(existing)
-	case target != nil && existing == nil && expectedLine != nil:
+	case target != nil && existing == nil && target.IsBillable():
 		return s.NewCreatePatch(NewCreatePatchInput{
 			UniqueID: target.UniqueID,
 			Target:   *target,
@@ -135,9 +134,9 @@ func (s *Service) diffItem(
 	existingPeriod := existing.GetServicePeriod()
 	targetPeriod := expectedLine.ServicePeriod
 
-	if decision, err := semanticProrateDecision(existing, *expectedLine); err != nil {
+	if shouldProrateDecision, err := semanticProrateDecision(existing, *expectedLine); err != nil {
 		return nil, err
-	} else if decision.ShouldProrate {
+	} else if shouldProrateDecision {
 		// Flat fee lines do not produce usage-based shrink/extend patches. Any period
 		// change for a flat fee line is reconciled through ProratePatch so that the
 		// service period and per-unit amount are updated together.
