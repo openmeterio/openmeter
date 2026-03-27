@@ -1774,6 +1774,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
       x-internal: true
@@ -1802,6 +1804,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Product Catalog
       requestBody:

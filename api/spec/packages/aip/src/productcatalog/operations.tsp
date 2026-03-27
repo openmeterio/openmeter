@@ -238,7 +238,7 @@ interface PlanAddonOperations {
   listPlanAddons(
     @path planId: Shared.ULID,
     ...Common.PagePaginationQuery,
-  ): Shared.PagePaginatedResponse<PlanAddon> | Common.ErrorResponses;
+  ): Shared.PagePaginatedResponse<PlanAddon> | Common.ErrorResponses | Common.NotFound;
 
   /**
    * Add an add-on to a plan.
@@ -252,7 +252,7 @@ interface PlanAddonOperations {
   createPlanAddon(
     @path planId: Shared.ULID,
     @body plan_addon: Shared.CreateRequest<PlanAddon>,
-  ): Shared.CreateResponse<PlanAddon> | Common.ErrorResponses;
+  ): Shared.CreateResponse<PlanAddon> | Common.ErrorResponses | Common.NotFound;
 
   /**
    * Get an add-on association for a plan.
