@@ -7,6 +7,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -21,15 +22,26 @@ type billingService interface {
 
 type Loader struct {
 	billingService billingService
+	chargesService charges.Service
 }
 
-func NewLoader(billingService billingService) Loader {
+func NewLoader(billingService billingService, chargesService charges.Service) Loader {
 	return Loader{
 		billingService: billingService,
+		chargesService: chargesService,
 	}
 }
 
 func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.Subscription) (State, error) {
+	lines, err := l.loadLinesForSubscription(ctx, subs)
+	if err != nil {
+		return State{}, fmt.Errorf("loading lines for subscription: %w", err)
+	}
+
+	return lines, nil
+}
+
+func (l Loader) loadLinesForSubscription(ctx context.Context, subs subscription.Subscription) (State, error) {
 	lines, err := l.billingService.GetLinesForSubscription(ctx, billing.GetLinesForSubscriptionInput{
 		Namespace:      subs.Namespace,
 		SubscriptionID: subs.ID,

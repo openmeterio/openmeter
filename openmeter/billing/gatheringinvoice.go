@@ -650,6 +650,10 @@ func (g GatheringLine) AsInvoiceLine() InvoiceLine {
 	}
 }
 
+func (g GatheringLine) AsLineOrHierarchy() (LineOrHierarchy, error) {
+	return NewLineOrHierarchy(g), nil
+}
+
 func (g GatheringLine) Equal(other GatheringLine) bool {
 	return g.GatheringLineBase.Equal(other.GatheringLineBase)
 }

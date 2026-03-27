@@ -8,7 +8,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -113,133 +112,59 @@ type diffItemResult struct {
 func (s *Service) diffItem(
 	target *targetstate.SubscriptionItemWithPeriods,
 	expectedLine *billing.GatheringLine, // TODO[later]: let's merge this with target as they are the same thing's different calculation stages
-	existing *billing.LineOrHierarchy,
-) (diffItemResult, error) {
+	existing persistedstate.Entity,
+) (Patch, error) {
 	switch {
 	case target == nil && existing == nil:
-		return diffItemResult{}, nil
+		return nil, nil
 	case target == nil && existing != nil:
-		uniqueID := lo.FromPtr(existing.ChildUniqueReferenceID())
-
-		return diffItemResult{
-			Patch: DeletePatch{
-				UniqueID: uniqueID,
-				Existing: *existing,
-			},
-			Changed: true,
-		}, nil
+		return s.NewDeletePatch(existing)
 	case target != nil && existing == nil && expectedLine != nil:
-		return diffItemResult{
-			Patch: CreatePatch{
-				UniqueID: target.UniqueID,
-				Target:   *target,
-			},
-			Changed: true,
-		}, nil
+		return s.NewCreatePatch(NewCreatePatchInput{
+			UniqueID: target.UniqueID,
+			Target:   *target,
+		})
 	case target != nil && existing == nil && expectedLine == nil:
 		// If the target is not nil, but the expected line is nil, we should not create a patch (most probably
 		// because the line is ignored or empty service period)
-		return diffItemResult{}, nil
+		return nil, nil
 	case target != nil && existing != nil && expectedLine == nil:
-		return diffItemResult{
-			Patch: DeletePatch{
-				UniqueID: target.UniqueID,
-				Existing: *existing,
-			},
-			Changed: true,
-		}, nil
+		return s.NewDeletePatch(existing)
 	}
 
-	existingPeriod := existing.ServicePeriod()
+	existingPeriod := existing.GetServicePeriod()
 	targetPeriod := expectedLine.ServicePeriod
 
-	if decision, err := semanticProrateDecision(*existing, *expectedLine); err != nil {
-		return diffItemResult{}, err
+	if decision, err := semanticProrateDecision(existing, *expectedLine); err != nil {
+		return nil, err
 	} else if decision.ShouldProrate {
 		// Flat fee lines do not produce usage-based shrink/extend patches. Any period
 		// change for a flat fee line is reconciled through ProratePatch so that the
 		// service period and per-unit amount are updated together.
-		return diffItemResult{
-			Patch: ProratePatch{
-				UniqueID:       target.UniqueID,
-				Existing:       *existing,
-				Target:         *target,
-				OriginalPeriod: existingPeriod,
-				TargetPeriod:   targetPeriod,
-				OriginalAmount: decision.OriginalAmount,
-				TargetAmount:   decision.TargetAmount,
-			},
-			Changed: true,
+		return ProratePatch{
+			UniqueID:       target.UniqueID,
+			Existing:       existing,
+			Target:         *target,
+			OriginalPeriod: existingPeriod,
+			TargetPeriod:   targetPeriod,
+			OriginalAmount: decision.OriginalAmount,
+			TargetAmount:   decision.TargetAmount,
 		}, nil
 	}
 
 	switch {
 	case targetPeriod.To.Before(existingPeriod.To):
-		return diffItemResult{
-			Patch: ShrinkUsageBasedPatch{
-				UniqueID: target.UniqueID,
-				Existing: *existing,
-				Target:   *target,
-			},
-			Changed: true,
-		}, nil
+		return s.NewLineShrinkUsageBasedPatch(NewLineShrinkUsageBasedPatchInput{
+			Existing: existing,
+			Target:   *target,
+		})
 	case targetPeriod.To.After(existingPeriod.To):
-		return diffItemResult{
-			Patch: ExtendUsageBasedPatch{
-				UniqueID: target.UniqueID,
-				Existing: *existing,
-				Target:   *target,
-			},
-			Changed: true,
-		}, nil
+		return s.NewLineExtendUsageBasedPatch(NewLineExtendUsageBasedPatchInput{
+			Existing: existing,
+			Target:   *target,
+		})
 	default:
-		return diffItemResult{}, nil
-	}
-}
-
-type ProrateDecision struct {
-	ShouldProrate  bool
-	OriginalAmount alpacadecimal.Decimal
-	TargetAmount   alpacadecimal.Decimal
-}
-
-func semanticProrateDecision(existing billing.LineOrHierarchy, expectedLine billing.GatheringLine) (ProrateDecision, error) {
-	if !invoiceupdater.IsFlatFee(expectedLine) {
-		return ProrateDecision{}, nil
-	}
-
-	// expectedLine is materialized through targetstate.LineFromSubscriptionRateCard, which
-	// applies the existing subscription-sync proration rules when deriving the flat-fee amount.
-	targetAmount, err := invoiceupdater.GetFlatFeePerUnitAmount(expectedLine)
-	if err != nil {
-		return ProrateDecision{}, fmt.Errorf("getting expected flat fee amount: %w", err)
-	}
-
-	switch existing.Type() {
-	case billing.LineOrHierarchyTypeLine:
-		existingLine, err := existing.AsGenericLine()
-		if err != nil {
-			return ProrateDecision{}, fmt.Errorf("getting existing line: %w", err)
-		}
-
-		if !invoiceupdater.IsFlatFee(existingLine) {
-			return ProrateDecision{}, nil
-		}
-
-		existingAmount, err := invoiceupdater.GetFlatFeePerUnitAmount(existingLine)
-		if err != nil {
-			return ProrateDecision{}, fmt.Errorf("getting existing flat fee amount: %w", err)
-		}
-
-		return ProrateDecision{
-			ShouldProrate:  !existingAmount.Equal(targetAmount) || !existingLine.GetServicePeriod().Equal(expectedLine.ServicePeriod),
-			OriginalAmount: existingAmount,
-			TargetAmount:   targetAmount,
-		}, nil
-	case billing.LineOrHierarchyTypeHierarchy:
-		return ProrateDecision{}, errors.New("flat fee lines cannot be reconciled against a split line hierarchy")
-	default:
-		return ProrateDecision{}, fmt.Errorf("unsupported line or hierarchy type: %s", existing.Type())
+		return nil, nil
 	}
 }
 
@@ -276,12 +201,12 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 			return nil, fmt.Errorf("existing line[%s] not found in the existing lines", id)
 		}
 
-		diff, err := s.diffItem(nil, nil, &line)
+		patch, err := s.diffItem(nil, nil, line)
 		if err != nil {
 			return nil, fmt.Errorf("diffing deleted line[%s]: %w", id, err)
 		}
-		if diff.Changed {
-			patches = append(patches, diff.Patch)
+		if patch != nil {
+			patches = append(patches, patch)
 		}
 	}
 
@@ -294,31 +219,56 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 
 		existingLine, ok := persisted.ByUniqueID[id]
 		if !ok {
-			diff, err := s.diffItem(&targetLine, expectedLine, nil)
+			patch, err := s.diffItem(&targetLine, expectedLine, nil)
 			if err != nil {
 				return nil, fmt.Errorf("diffing new line[%s]: %w", id, err)
 			}
-			if diff.Changed {
-				patches = append(patches, diff.Patch)
+			if patch != nil {
+				patches = append(patches, patch)
 			}
 			continue
 		}
 
-		diff, err := s.diffItem(&targetLine, expectedLine, &existingLine)
+		patch, err := s.diffItem(&targetLine, expectedLine, existingLine)
 		if err != nil {
 			return nil, fmt.Errorf("diffing existing line[%s]: %w", id, err)
 		}
-		if diff.Changed {
-			patches = append(patches, diff.Patch)
+		if patch != nil {
+			patches = append(patches, patch)
 		}
 	}
 
+	filteredPatches := lo.Filter(patches, func(p Patch, _ int) bool {
+		return p != nil
+	})
+
+	if err := s.validatePatches(filteredPatches); err != nil {
+		return nil, fmt.Errorf("validating patches: %w", err)
+	}
+
 	return &Plan{
-		Patches: lo.Filter(patches, func(p Patch, _ int) bool {
-			return p != nil
-		}),
+		Patches:                            filteredPatches,
 		SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
 	}, nil
+}
+
+func (s *Service) validatePatches(patches []Patch) error {
+	for _, patch := range patches {
+		if patch == nil {
+			return fmt.Errorf("patch is nil")
+		}
+
+		// Let's mandate that all patches are implementing either InvoicePatch or ChargePatch.
+		_, isInvoicePatch := patch.(InvoicePatch)
+		_, isChargePatch := patch.(ChargePatch)
+
+		// TODO: let's decide later if we want to support mixed invoice and charge patches.
+
+		if !isInvoicePatch && !isChargePatch {
+			return fmt.Errorf("patch is not an invoice or charge patch: %T", patch)
+		}
+	}
+	return nil
 }
 
 func (s *Service) Apply(ctx context.Context, input ApplyInput) error {
@@ -330,10 +280,17 @@ func (s *Service) Apply(ctx context.Context, input ApplyInput) error {
 		return nil
 	}
 
+	// TODO: Let's validate that patches are either invoice or charge patches.
+
 	invoicePatches := make([]invoiceupdater.Patch, 0, len(input.Plan.Patches))
 
 	for _, patch := range input.Plan.Patches {
-		newInvoicePatches, err := patch.GetInvoicePatches(GetInvoicePatchesInput{
+		invoicePatch, ok := patch.(InvoicePatch)
+		if !ok {
+			continue
+		}
+
+		newInvoicePatches, err := invoicePatch.GetInvoicePatches(GetInvoicePatchesInput{
 			Subscription: input.Subscription,
 			Currency:     input.Currency,
 			Invoices:     input.Invoices,

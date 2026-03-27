@@ -26,5 +26,14 @@ type GetInvoicePatchesInput struct {
 type Patch interface {
 	Operation() PatchOperation
 	UniqueReferenceID() string
+}
+
+type InvoicePatch interface {
+	Patch
 	GetInvoicePatches(input GetInvoicePatchesInput) ([]invoiceupdater.Patch, error)
+}
+
+type ChargePatch interface {
+	Patch
+	TodoPatchMechanism()
 }

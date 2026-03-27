@@ -8,7 +8,9 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
+	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -23,9 +25,13 @@ type Config struct {
 	BillingService          billing.Service
 	SubscriptionService     subscription.Service
 	SubscriptionSyncAdapter subscriptionsync.Adapter
-	FeatureFlags            FeatureFlags
-	Logger                  *slog.Logger
-	Tracer                  trace.Tracer
+	// ChargesService is optional for now, signaling that charges are not enabled.
+	// going forward, we will have more settings to configure the scope that should be deferred to
+	// the charges service.
+	ChargesService charges.Service
+	FeatureFlags   FeatureFlags
+	Logger         *slog.Logger
+	Tracer         trace.Tracer
 }
 
 func (c Config) Validate() error {
@@ -62,6 +68,8 @@ type Service struct {
 	featureFlags            FeatureFlags
 	logger                  *slog.Logger
 	tracer                  trace.Tracer
+	chargesService          charges.Service
+	persistedStateLoader    persistedstate.Loader
 }
 
 func New(config Config) (*Service, error) {
@@ -75,9 +83,11 @@ func New(config Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &Service{
 		billingService:          config.BillingService,
 		reconciler:              reconcilerSvc,
+		persistedStateLoader:    persistedstate.NewLoader(config.BillingService, config.ChargesService),
 		subscriptionSyncAdapter: config.SubscriptionSyncAdapter,
 		featureFlags:            config.FeatureFlags,
 		subscriptionService:     config.SubscriptionService,

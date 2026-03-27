@@ -12,7 +12,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
-	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -160,8 +159,7 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 			Namespace: subs.Subscription.Namespace,
 			ID:        subs.Subscription.CustomerId,
 		}, func(ctx context.Context) error {
-			persistedLoader := persistedstate.NewLoader(s.billingService)
-			persistedInvoices, err := persistedLoader.LoadInvoicesForCustomer(ctx, customerID)
+			persistedInvoices, err := s.persistedStateLoader.LoadInvoicesForCustomer(ctx, customerID)
 			if err != nil {
 				return err
 			}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -92,4 +93,33 @@ func getPatchesForUpdateUsageBasedLine(existingLine billing.GenericInvoiceLine, 
 	return []invoiceupdater.Patch{
 		invoiceupdater.NewUpdateLinePatch(targetLine),
 	}, nil
+}
+
+type newFromEntityInput struct {
+	Entity          persistedstate.Entity
+	NewInvoicePatch func(billing.LineOrHierarchy) (Patch, error)
+	NewChargePatch  func(charges.Charge) (Patch, error)
+}
+
+func newFromEntity(input newFromEntityInput) (Patch, error) {
+	switch input.Entity.GetType() {
+	case persistedstate.EntityTypeLineOrHierarchy:
+		lineOrHierarchy, err := input.Entity.AsLineOrHierarchy()
+		if err != nil {
+			return nil, fmt.Errorf("getting line or hierarchy: %w", err)
+		}
+		if input.NewInvoicePatch == nil {
+			return nil, fmt.Errorf("invoice patching is not supported")
+		}
+
+		return input.NewInvoicePatch(lineOrHierarchy)
+	case persistedstate.EntityTypeCharge:
+		if input.NewChargePatch == nil {
+			return nil, fmt.Errorf("charge patching is not supported")
+		}
+
+		return nil, fmt.Errorf("charge patching is not supported")
+	default:
+		return nil, fmt.Errorf("unsupported entity type: %s", input.Entity.GetType())
+	}
 }

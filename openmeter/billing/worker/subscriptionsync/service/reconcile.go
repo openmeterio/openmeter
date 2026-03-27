@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -16,8 +15,7 @@ func (s *Service) buildSyncPlan(ctx context.Context, subsView subscription.Subsc
 	span := tracex.Start[*reconciler.Plan](ctx, s.tracer, "billing.worker.subscription.sync.buildSyncPlan")
 
 	return span.Wrap(func(ctx context.Context) (*reconciler.Plan, error) {
-		persistedLoader := persistedstate.NewLoader(s.billingService)
-		persisted, err := persistedLoader.LoadForSubscription(ctx, subsView.Subscription)
+		persisted, err := s.persistedStateLoader.LoadForSubscription(ctx, subsView.Subscription)
 		if err != nil {
 			return nil, err
 		}

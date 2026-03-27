@@ -141,6 +141,7 @@ type GenericInvoiceLineReader interface {
 
 	Validate() error
 	AsInvoiceLine() InvoiceLine
+	AsLineOrHierarchy() (LineOrHierarchy, error)
 	GetRateCardDiscounts() Discounts
 	GetSubscriptionReference() *SubscriptionReference
 	GetSplitLineGroupID() *string

@@ -191,7 +191,7 @@ func (b Builder) correctPeriodStartForUpcomingLines(ctx context.Context, subscri
 			continue
 		}
 
-		if existingCurrentLine, ok := persisted.ByUniqueID[line.UniqueID]; ok {
+		if existingCurrentLine, ok := persisted.ByUniqueID.GetAsLineOrHierarchy(line.UniqueID); ok {
 			syncIgnore, err := b.lineOrHierarchyHasAnnotation(existingCurrentLine, billing.AnnotationSubscriptionSyncIgnore)
 			if err != nil {
 				return nil, fmt.Errorf("checking if line has subscription sync ignore annotation: %w", err)
@@ -233,7 +233,7 @@ func (b Builder) correctPeriodStartForUpcomingLines(ctx context.Context, subscri
 			continue
 		}
 
-		previousServicePeriod := existingPreviousLine.ServicePeriod()
+		previousServicePeriod := existingPreviousLine.GetServicePeriod()
 		// The iterator output is already normalized to meter resolution, but this
 		// continuity correction reuses a boundary from persisted state. Historical
 		// rows can carry sub-second precision that the meter engine cannot query, so

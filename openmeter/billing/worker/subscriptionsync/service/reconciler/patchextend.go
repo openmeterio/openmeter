@@ -1,6 +1,7 @@
 package reconciler
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 
@@ -9,23 +10,60 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
+	"github.com/samber/lo"
 )
 
-type ExtendUsageBasedPatch struct {
-	UniqueID string
+type NewLineExtendUsageBasedPatchInput struct {
+	Existing persistedstate.Entity
+	Target   targetstate.SubscriptionItemWithPeriods
+}
+
+func (i NewLineExtendUsageBasedPatchInput) Validate() error {
+	var errs []error
+
+	if i.Existing == nil {
+		errs = append(errs, errors.New("existing is required"))
+	}
+
+	if err := i.Target.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("target: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+func (s *Service) NewLineExtendUsageBasedPatch(input NewLineExtendUsageBasedPatchInput) (Patch, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("new line extend usage based patch: %w", err)
+	}
+
+	return newFromEntity(newFromEntityInput{
+		Entity: input.Existing,
+		NewInvoicePatch: func(lineOrHierarchy billing.LineOrHierarchy) (Patch, error) {
+			return LineExtendUsageBasedPatch{
+				Existing: lineOrHierarchy,
+				Target:   input.Target,
+			}, nil
+		},
+	})
+}
+
+var _ InvoicePatch = (*LineExtendUsageBasedPatch)(nil)
+
+type LineExtendUsageBasedPatch struct {
 	Existing billing.LineOrHierarchy
 	Target   targetstate.SubscriptionItemWithPeriods
 }
 
-func (p ExtendUsageBasedPatch) Operation() PatchOperation {
+func (p LineExtendUsageBasedPatch) Operation() PatchOperation {
 	return PatchOperationExtend
 }
 
-func (p ExtendUsageBasedPatch) UniqueReferenceID() string {
-	return p.UniqueID
+func (p LineExtendUsageBasedPatch) UniqueReferenceID() string {
+	return lo.FromPtr(p.Existing.ChildUniqueReferenceID())
 }
 
-func (p ExtendUsageBasedPatch) GetInvoicePatches(input GetInvoicePatchesInput) ([]invoiceupdater.Patch, error) {
+func (p LineExtendUsageBasedPatch) GetInvoicePatches(input GetInvoicePatchesInput) ([]invoiceupdater.Patch, error) {
 	expectedLine, err := p.Target.GetExpectedLineOrErr(input.Subscription, input.Currency)
 	if err != nil {
 		return nil, err
@@ -51,7 +89,7 @@ func (p ExtendUsageBasedPatch) GetInvoicePatches(input GetInvoicePatchesInput) (
 	}
 }
 
-func (p ExtendUsageBasedPatch) getInvoicePatchesForLine(existingLine billing.GenericInvoiceLine, expectedLine billing.GatheringLine, invoices persistedstate.Invoices) ([]invoiceupdater.Patch, error) {
+func (p LineExtendUsageBasedPatch) getInvoicePatchesForLine(existingLine billing.GenericInvoiceLine, expectedLine billing.GatheringLine, invoices persistedstate.Invoices) ([]invoiceupdater.Patch, error) {
 	if shouldSkipLinePatch(existingLine, expectedLine) {
 		return nil, nil
 	}
@@ -67,7 +105,7 @@ func (p ExtendUsageBasedPatch) getInvoicePatchesForLine(existingLine billing.Gen
 	return getPatchesForUpdateUsageBasedLine(existingLine, expectedLine, invoices)
 }
 
-func (p ExtendUsageBasedPatch) getInvoicePatchesForHierarchy(existingHierarchy *billing.SplitLineHierarchy, expectedLine billing.GatheringLine, invoices persistedstate.Invoices) ([]invoiceupdater.Patch, error) {
+func (p LineExtendUsageBasedPatch) getInvoicePatchesForHierarchy(existingHierarchy *billing.SplitLineHierarchy, expectedLine billing.GatheringLine, invoices persistedstate.Invoices) ([]invoiceupdater.Patch, error) {
 	if shouldSkipHierarchyPatch(existingHierarchy, expectedLine) {
 		return nil, nil
 	}

@@ -14,6 +14,7 @@ type BillingConfiguration struct {
 	MaxParallelQuantitySnapshots int
 	Worker                       BillingWorkerConfiguration
 	FeatureSwitches              BillingFeatureSwitchesConfiguration
+	Charges                      BillingChargesConfiguration
 }
 
 func (c BillingConfiguration) Validate() error {
@@ -33,6 +34,14 @@ func (c BillingConfiguration) Validate() error {
 	return errors.Join(errs...)
 }
 
+type BillingChargesConfiguration struct {
+	Enabled bool
+}
+
+func (c BillingChargesConfiguration) Validate() error {
+	return nil
+}
+
 type BillingFeatureSwitchesConfiguration struct {
 	NamespaceLockdown []string
 }
@@ -50,4 +59,5 @@ func ConfigureBilling(v *viper.Viper, flags *pflag.FlagSet) {
 	_ = v.BindPFlag("billing.advancementStrategy", flags.Lookup("billing-advancement-strategy"))
 	v.SetDefault("billing.advancementStrategy", billing.ForegroundAdvancementStrategy)
 	v.SetDefault("billing.maxParallelQuantitySnapshots", 4)
+	v.SetDefault("billing.charges.enabled", false)
 }

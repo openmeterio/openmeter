@@ -296,6 +296,15 @@ func (i StandardLine) AsInvoiceLine() InvoiceLine {
 	}
 }
 
+func (i StandardLine) AsLineOrHierarchy() (LineOrHierarchy, error) {
+	cloned, err := i.Clone()
+	if err != nil {
+		return LineOrHierarchy{}, err
+	}
+
+	return NewLineOrHierarchy(cloned), nil
+}
+
 func (i StandardLine) GetQuantity() *alpacadecimal.Decimal {
 	if i.UsageBased == nil {
 		return nil
