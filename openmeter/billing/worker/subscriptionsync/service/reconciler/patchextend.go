@@ -12,9 +12,8 @@ import (
 )
 
 type ExtendUsageBasedPatch struct {
-	UniqueID string
 	Existing billing.LineOrHierarchy
-	Target   targetstate.SubscriptionItemWithPeriods
+	Target   targetstate.StateItem
 }
 
 func (p ExtendUsageBasedPatch) Operation() PatchOperation {
@@ -22,11 +21,11 @@ func (p ExtendUsageBasedPatch) Operation() PatchOperation {
 }
 
 func (p ExtendUsageBasedPatch) UniqueReferenceID() string {
-	return p.UniqueID
+	return p.Target.UniqueID
 }
 
 func (p ExtendUsageBasedPatch) GetInvoicePatches(input GetInvoicePatchesInput) ([]invoiceupdater.Patch, error) {
-	expectedLine, err := p.Target.GetExpectedLineOrErr(input.Subscription, input.Currency)
+	expectedLine, err := p.Target.GetExpectedLineOrErr()
 	if err != nil {
 		return nil, err
 	}
