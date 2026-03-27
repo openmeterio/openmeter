@@ -235,6 +235,88 @@ func (s *Server) DeleteLlmCostOverride(w http.ResponseWriter, r *http.Request, p
 	s.llmcostHandler.DeleteOverride().With(priceId).ServeHTTP(w, r)
 }
 
+// Plans
+
+func (s *Server) ListPlans(w http.ResponseWriter, r *http.Request, params api.ListPlansParams) {
+	unimplemented.ListPlans(w, r, params)
+}
+
+func (s *Server) CreatePlan(w http.ResponseWriter, r *http.Request) {
+	unimplemented.CreatePlan(w, r)
+}
+
+func (s *Server) GetPlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
+	unimplemented.GetPlan(w, r, planId)
+}
+
+func (s *Server) UpdatePlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
+	unimplemented.UpdatePlan(w, r, planId)
+}
+
+func (s *Server) DeletePlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
+	unimplemented.DeletePlan(w, r, planId)
+}
+
+func (s *Server) ArchivePlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
+	unimplemented.ArchivePlan(w, r, planId)
+}
+
+func (s *Server) PublishPlan(w http.ResponseWriter, r *http.Request, planId api.ULID) {
+	unimplemented.PublishPlan(w, r, planId)
+}
+
+// Addons
+
+func (s *Server) ListAddons(w http.ResponseWriter, r *http.Request, params api.ListAddonsParams) {
+	unimplemented.ListAddons(w, r, params)
+}
+
+func (s *Server) CreateAddon(w http.ResponseWriter, r *http.Request) {
+	unimplemented.CreateAddon(w, r)
+}
+
+func (s *Server) GetAddon(w http.ResponseWriter, r *http.Request, addonId api.ULID) {
+	unimplemented.GetAddon(w, r, addonId)
+}
+
+func (s *Server) UpdateAddon(w http.ResponseWriter, r *http.Request, addonId api.ULID) {
+	unimplemented.UpdateAddon(w, r, addonId)
+}
+
+func (s *Server) DeleteAddon(w http.ResponseWriter, r *http.Request, addonId api.ULID) {
+	unimplemented.DeleteAddon(w, r, addonId)
+}
+
+func (s *Server) ArchiveAddon(w http.ResponseWriter, r *http.Request, addonId api.ULID) {
+	unimplemented.ArchiveAddon(w, r, addonId)
+}
+
+func (s *Server) PublishAddon(w http.ResponseWriter, r *http.Request, addonId api.ULID) {
+	unimplemented.PublishAddon(w, r, addonId)
+}
+
+// Plan Addons
+
+func (s *Server) ListPlanAddons(w http.ResponseWriter, r *http.Request, planId api.ULID, params api.ListPlanAddonsParams) {
+	unimplemented.ListPlanAddons(w, r, planId, params)
+}
+
+func (s *Server) CreatePlanAddon(w http.ResponseWriter, r *http.Request, planId api.ULID) {
+	unimplemented.CreatePlanAddon(w, r, planId)
+}
+
+func (s *Server) GetPlanAddon(w http.ResponseWriter, r *http.Request, planId api.ULID, planAddonId api.ULID) {
+	unimplemented.GetPlanAddon(w, r, planId, planAddonId)
+}
+
+func (s *Server) UpdatePlanAddon(w http.ResponseWriter, r *http.Request, planId api.ULID, planAddonId api.ULID) {
+	unimplemented.UpdatePlanAddon(w, r, planId, planAddonId)
+}
+
+func (s *Server) DeletePlanAddon(w http.ResponseWriter, r *http.Request, planId api.ULID, planAddonId api.ULID) {
+	unimplemented.DeletePlanAddon(w, r, planId, planAddonId)
+}
+
 // Credits
 
 var unimplemented = api.Unimplemented{}
