@@ -1,0 +1,3 @@
+-- Down migration is a no-op: provider normalization and model name cleanup
+-- cannot be reliably reversed as the original values are not preserved.
+-- The next sync job will re-populate prices from external sources.
