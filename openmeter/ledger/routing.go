@@ -17,6 +17,26 @@ type RoutingKeyVersion string
 
 const RoutingKeyVersionV1 RoutingKeyVersion = "v1"
 
+type TransactionAuthorizationStatus string
+
+const (
+	TransactionAuthorizationStatusOpen       TransactionAuthorizationStatus = "open"
+	TransactionAuthorizationStatusAuthorized TransactionAuthorizationStatus = "authorized"
+)
+
+func (s TransactionAuthorizationStatus) Validate() error {
+	switch s {
+	case TransactionAuthorizationStatusOpen:
+		return nil
+	case TransactionAuthorizationStatusAuthorized:
+		return nil
+	default:
+		return ErrTransactionAuthorizationStatusInvalid.WithAttrs(models.Attributes{
+			"transaction_authorization_status": s,
+		})
+	}
+}
+
 func (v RoutingKeyVersion) Validate() error {
 	switch v {
 	case RoutingKeyVersionV1:
@@ -128,11 +148,12 @@ func (r SubAccountRoute) Route() Route {
 // Route holds the literal values that identify a sub-account's routing path.
 // It is used for creation, persistence, and routing key generation.
 type Route struct {
-	Currency       currencyx.Code
-	TaxCode        *string
-	Features       []string
-	CostBasis      *alpacadecimal.Decimal
-	CreditPriority *int
+	Currency                       currencyx.Code
+	TaxCode                        *string
+	Features                       []string
+	CostBasis                      *alpacadecimal.Decimal
+	CreditPriority                 *int
+	TransactionAuthorizationStatus *TransactionAuthorizationStatus
 }
 
 func (r Route) Validate() error {
@@ -148,6 +169,12 @@ func (r Route) Validate() error {
 
 	if r.CostBasis != nil {
 		if err := ValidateCostBasis(*r.CostBasis); err != nil {
+			return err
+		}
+	}
+
+	if r.TransactionAuthorizationStatus != nil {
+		if err := r.TransactionAuthorizationStatus.Validate(); err != nil {
 			return err
 		}
 	}
@@ -175,7 +202,7 @@ func (r Route) Normalize() (Route, error) {
 
 // Normalize canonicalizes route filter values before querying.
 func (f RouteFilter) Normalize() (RouteFilter, error) {
-	if f.Currency == "" && f.TaxCode == nil && len(f.Features) == 0 && f.CostBasis == nil && f.CreditPriority == nil {
+	if f.Currency == "" && f.TaxCode == nil && len(f.Features) == 0 && f.CostBasis == nil && f.CreditPriority == nil && f.TransactionAuthorizationStatus == nil {
 		return f, nil
 	}
 
@@ -218,6 +245,7 @@ func BuildRoutingKeyV1(route Route) (RoutingKey, error) {
 		"features:" + canonicalFeatures(normalizedRoute.Features),
 		"cost_basis:" + optionalDecimalValue(normalizedRoute.CostBasis),
 		"credit_priority:" + optionalIntValue(normalizedRoute.CreditPriority),
+		"transaction_authorization_status:" + optionalTransactionAuthorizationStatusValue(normalizedRoute.TransactionAuthorizationStatus),
 	}, "|")
 
 	return NewRoutingKey(RoutingKeyVersionV1, value)
@@ -310,6 +338,13 @@ func optionalIntValue(v *int) string {
 		return "null"
 	}
 	return strconv.Itoa(*v)
+}
+
+func optionalTransactionAuthorizationStatusValue(v *TransactionAuthorizationStatus) string {
+	if v == nil {
+		return "null"
+	}
+	return string(*v)
 }
 
 func optionalDecimalValue(v *alpacadecimal.Decimal) string {

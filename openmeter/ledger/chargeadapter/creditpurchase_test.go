@@ -62,7 +62,8 @@ func TestOnCreditPurchasePaymentAuthorized(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, ref.TransactionGroupID)
 
-	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, costBasis)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(-100)))
+	require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(100)))
 	require.True(t, env.sumBalance(t, env.washSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(-100)))
 	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(100)))
 }
@@ -72,9 +73,20 @@ func TestOnCreditPurchasePaymentSettled(t *testing.T) {
 
 	costBasis := mustDecimal(t, "0.5")
 	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
-	_, err := env.handler.OnCreditPurchasePaymentSettled(t.Context(), charge)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "not yet implemented")
+	_, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
+	require.NoError(t, err)
+
+	_, err = env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), charge)
+	require.NoError(t, err)
+
+	ref, err := env.handler.OnCreditPurchasePaymentSettled(t.Context(), charge)
+	require.NoError(t, err)
+	require.NotEmpty(t, ref.TransactionGroupID)
+
+	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, costBasis)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t, costBasis)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.washSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(-100)))
+	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(100)))
 }
 
 type creditPurchaseHandlerTestEnv struct {
@@ -188,8 +200,22 @@ func (e *creditPurchaseHandlerTestEnv) receivableSubAccount(t *testing.T, costBa
 	t.Helper()
 
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
-		Currency:  e.Currency,
-		CostBasis: &costBasis,
+		Currency:                       e.Currency,
+		CostBasis:                      &costBasis,
+		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
+	})
+	require.NoError(t, err)
+
+	return subAccount
+}
+
+func (e *creditPurchaseHandlerTestEnv) authorizedReceivableSubAccount(t *testing.T, costBasis alpacadecimal.Decimal) ledger.SubAccount {
+	t.Helper()
+
+	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
+		Currency:                       e.Currency,
+		CostBasis:                      &costBasis,
+		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
 	})
 	require.NoError(t, err)
 

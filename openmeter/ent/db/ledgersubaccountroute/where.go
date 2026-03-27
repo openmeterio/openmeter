@@ -123,6 +123,12 @@ func CreditPriority(v int) predicate.LedgerSubAccountRoute {
 	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldCreditPriority, v))
 }
 
+// TransactionAuthorizationStatus applies equality check predicate on the "transaction_authorization_status" field. It's identical to TransactionAuthorizationStatusEQ.
+func TransactionAuthorizationStatus(v ledger.TransactionAuthorizationStatus) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldTransactionAuthorizationStatus, vc))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.LedgerSubAccountRoute {
 	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldNamespace, v))
@@ -780,6 +786,100 @@ func CreditPriorityIsNil() predicate.LedgerSubAccountRoute {
 // CreditPriorityNotNil applies the NotNil predicate on the "credit_priority" field.
 func CreditPriorityNotNil() predicate.LedgerSubAccountRoute {
 	return predicate.LedgerSubAccountRoute(sql.FieldNotNull(FieldCreditPriority))
+}
+
+// TransactionAuthorizationStatusEQ applies the EQ predicate on the "transaction_authorization_status" field.
+func TransactionAuthorizationStatusEQ(v ledger.TransactionAuthorizationStatus) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldTransactionAuthorizationStatus, vc))
+}
+
+// TransactionAuthorizationStatusNEQ applies the NEQ predicate on the "transaction_authorization_status" field.
+func TransactionAuthorizationStatusNEQ(v ledger.TransactionAuthorizationStatus) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldNEQ(FieldTransactionAuthorizationStatus, vc))
+}
+
+// TransactionAuthorizationStatusIn applies the In predicate on the "transaction_authorization_status" field.
+func TransactionAuthorizationStatusIn(vs ...ledger.TransactionAuthorizationStatus) predicate.LedgerSubAccountRoute {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.LedgerSubAccountRoute(sql.FieldIn(FieldTransactionAuthorizationStatus, v...))
+}
+
+// TransactionAuthorizationStatusNotIn applies the NotIn predicate on the "transaction_authorization_status" field.
+func TransactionAuthorizationStatusNotIn(vs ...ledger.TransactionAuthorizationStatus) predicate.LedgerSubAccountRoute {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.LedgerSubAccountRoute(sql.FieldNotIn(FieldTransactionAuthorizationStatus, v...))
+}
+
+// TransactionAuthorizationStatusGT applies the GT predicate on the "transaction_authorization_status" field.
+func TransactionAuthorizationStatusGT(v ledger.TransactionAuthorizationStatus) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldGT(FieldTransactionAuthorizationStatus, vc))
+}
+
+// TransactionAuthorizationStatusGTE applies the GTE predicate on the "transaction_authorization_status" field.
+func TransactionAuthorizationStatusGTE(v ledger.TransactionAuthorizationStatus) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldGTE(FieldTransactionAuthorizationStatus, vc))
+}
+
+// TransactionAuthorizationStatusLT applies the LT predicate on the "transaction_authorization_status" field.
+func TransactionAuthorizationStatusLT(v ledger.TransactionAuthorizationStatus) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldLT(FieldTransactionAuthorizationStatus, vc))
+}
+
+// TransactionAuthorizationStatusLTE applies the LTE predicate on the "transaction_authorization_status" field.
+func TransactionAuthorizationStatusLTE(v ledger.TransactionAuthorizationStatus) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldLTE(FieldTransactionAuthorizationStatus, vc))
+}
+
+// TransactionAuthorizationStatusContains applies the Contains predicate on the "transaction_authorization_status" field.
+func TransactionAuthorizationStatusContains(v ledger.TransactionAuthorizationStatus) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldContains(FieldTransactionAuthorizationStatus, vc))
+}
+
+// TransactionAuthorizationStatusHasPrefix applies the HasPrefix predicate on the "transaction_authorization_status" field.
+func TransactionAuthorizationStatusHasPrefix(v ledger.TransactionAuthorizationStatus) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldHasPrefix(FieldTransactionAuthorizationStatus, vc))
+}
+
+// TransactionAuthorizationStatusHasSuffix applies the HasSuffix predicate on the "transaction_authorization_status" field.
+func TransactionAuthorizationStatusHasSuffix(v ledger.TransactionAuthorizationStatus) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldHasSuffix(FieldTransactionAuthorizationStatus, vc))
+}
+
+// TransactionAuthorizationStatusIsNil applies the IsNil predicate on the "transaction_authorization_status" field.
+func TransactionAuthorizationStatusIsNil() predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldIsNull(FieldTransactionAuthorizationStatus))
+}
+
+// TransactionAuthorizationStatusNotNil applies the NotNil predicate on the "transaction_authorization_status" field.
+func TransactionAuthorizationStatusNotNil() predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldNotNull(FieldTransactionAuthorizationStatus))
+}
+
+// TransactionAuthorizationStatusEqualFold applies the EqualFold predicate on the "transaction_authorization_status" field.
+func TransactionAuthorizationStatusEqualFold(v ledger.TransactionAuthorizationStatus) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldEqualFold(FieldTransactionAuthorizationStatus, vc))
+}
+
+// TransactionAuthorizationStatusContainsFold applies the ContainsFold predicate on the "transaction_authorization_status" field.
+func TransactionAuthorizationStatusContainsFold(v ledger.TransactionAuthorizationStatus) predicate.LedgerSubAccountRoute {
+	vc := string(v)
+	return predicate.LedgerSubAccountRoute(sql.FieldContainsFold(FieldTransactionAuthorizationStatus, vc))
 }
 
 // HasAccount applies the HasEdge predicate on the "account" edge.

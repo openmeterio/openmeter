@@ -85,6 +85,8 @@ Guidance for working with the OpenMeter ledger package (`openmeter/ledger/`).
 
 ## Running Ledger Tests
 
+Prefer direct command execution for ledger verification. Do not wrap commands in `sh -lc`, `bash -lc`, or similar helper shells when a direct invocation works. If a Nix shell is required, use `nix develop --impure .#ci -c env POSTGRES_HOST=127.0.0.1 go test ...` rather than an extra shell wrapper.
+
 ```bash
 # Run all ledger tests
 POSTGRES_HOST=127.0.0.1 go test -tags=dynamic -v ./openmeter/ledger/...

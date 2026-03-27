@@ -130,6 +130,17 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	authorizedStatus := ledger.TransactionAuthorizationStatusAuthorized
+	subA5AuthorizedReceivable, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
+		Namespace: namespace,
+		AccountID: accountA.ID.ID,
+		Route: ledger.Route{
+			Currency:                       currencyx.Code("USD"),
+			TransactionAuthorizationStatus: &authorizedStatus,
+		},
+	})
+	require.NoError(t, err)
+
 	_, err = env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 		Namespace: namespace,
 		AccountID: accountB.ID.ID,
@@ -143,7 +154,7 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 			AccountID: accountA.ID.ID,
 		})
 		require.NoError(t, err)
-		require.Len(t, items, 4)
+		require.Len(t, items, 5)
 	})
 
 	t.Run("filters by route", func(t *testing.T) {
@@ -174,6 +185,22 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 		require.Equal(t, subA4CostBasis.ID, items[0].ID)
 		require.NotNil(t, items[0].Route.CostBasis)
 		require.True(t, items[0].Route.CostBasis.Equal(mustDecimal(t, "0.7")))
+	})
+
+	t.Run("filters by transaction authorization status", func(t *testing.T) {
+		items, err := env.repo.ListSubAccounts(ctx, ledgeraccount.ListSubAccountsInput{
+			Namespace: namespace,
+			AccountID: accountA.ID.ID,
+			Route: ledger.RouteFilter{
+				Currency:                       currencyx.Code("USD"),
+				TransactionAuthorizationStatus: &authorizedStatus,
+			},
+		})
+		require.NoError(t, err)
+		require.Len(t, items, 1)
+		require.Equal(t, subA5AuthorizedReceivable.ID, items[0].ID)
+		require.NotNil(t, items[0].Route.TransactionAuthorizationStatus)
+		require.Equal(t, authorizedStatus, *items[0].Route.TransactionAuthorizationStatus)
 	})
 
 	t.Run("create uses route uniqueness", func(t *testing.T) {

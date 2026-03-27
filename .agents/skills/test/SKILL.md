@@ -30,6 +30,8 @@ Before running: `docker compose up -d postgres`
 
 Build tag: all Go test commands use `-tags=dynamic`.
 
+Prefer direct command execution. Do not wrap test commands in `sh -lc`, `bash -lc`, or similar helper shells when a direct invocation works. For environment variables, prefer `env POSTGRES_HOST=127.0.0.1 go test ...` or `POSTGRES_HOST=127.0.0.1 go test ...`.
+
 For running a specific test directly:
 
 ```bash

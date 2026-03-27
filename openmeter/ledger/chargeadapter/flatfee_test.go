@@ -58,8 +58,11 @@ func TestOnFlatFeeAssignedToInvoice(t *testing.T) {
 
 		realizations, err := env.handler.OnAssignedToInvoice(t.Context(), env.newAssignmentInput(alpacadecimal.NewFromInt(60)))
 		require.NoError(t, err)
-		require.Len(t, realizations, 1)
-		require.True(t, realizations[0].Amount.Equal(alpacadecimal.NewFromInt(60)))
+		require.Len(t, realizations, 2)
+		require.True(t, realizations[0].Amount.Equal(alpacadecimal.NewFromInt(30)))
+		require.True(t, realizations[1].Amount.Equal(alpacadecimal.NewFromInt(30)))
+		require.NotEmpty(t, realizations[0].LedgerTransaction.TransactionGroupID)
+		require.Equal(t, realizations[0].LedgerTransaction.TransactionGroupID, realizations[1].LedgerTransaction.TransactionGroupID)
 
 		require.True(t, env.sumBalance(t, priorityOne).Equal(alpacadecimal.NewFromInt(0)))
 		require.True(t, env.sumBalance(t, priorityTwo).Equal(alpacadecimal.NewFromInt(20)))
@@ -74,8 +77,11 @@ func TestOnFlatFeeAssignedToInvoice(t *testing.T) {
 
 		realizations, err := env.handler.OnAssignedToInvoice(t.Context(), env.newAssignmentInput(alpacadecimal.NewFromInt(30)))
 		require.NoError(t, err)
-		require.Len(t, realizations, 1)
-		require.True(t, realizations[0].Amount.Equal(alpacadecimal.NewFromInt(15)))
+		require.Len(t, realizations, 2)
+		require.True(t, realizations[0].Amount.Equal(alpacadecimal.NewFromInt(10)))
+		require.True(t, realizations[1].Amount.Equal(alpacadecimal.NewFromInt(5)))
+		require.NotEmpty(t, realizations[0].LedgerTransaction.TransactionGroupID)
+		require.Equal(t, realizations[0].LedgerTransaction.TransactionGroupID, realizations[1].LedgerTransaction.TransactionGroupID)
 
 		require.True(t, env.sumBalance(t, priorityOne).Equal(alpacadecimal.NewFromInt(0)))
 		require.True(t, env.sumBalance(t, priorityTwo).Equal(alpacadecimal.NewFromInt(0)))
@@ -131,8 +137,9 @@ func TestOnFlatFeePaymentAuthorized(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, ref.TransactionGroupID)
 
-		// Receivable replenished: wash → receivable (net receivable = -75 + 75 = 0)
-		require.True(t, env.sumBalance(t, env.receivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(0)))
+		// Receivable is only funded into the authorized staging bucket at authorization time.
+		require.True(t, env.sumBalance(t, env.receivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-75)))
+		require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(75)))
 		require.True(t, env.sumBalance(t, env.washSubAccount(t)).Equal(alpacadecimal.NewFromInt(-75)))
 		// Accrued drained, earnings recognized
 		require.True(t, env.sumBalance(t, env.accruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(0)))
@@ -165,8 +172,9 @@ func TestOnFlatFeePaymentAuthorized(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, ref.TransactionGroupID)
 
-		// Receivable replenished for the invoiced portion (20)
-		require.True(t, env.sumBalance(t, env.receivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(0)))
+		// Receivable funding stays staged until settlement.
+		require.True(t, env.sumBalance(t, env.receivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-20)))
+		require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(20)))
 		// Accrued fully drained, all 60 recognized as earnings
 		require.True(t, env.sumBalance(t, env.accruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(0)))
 		require.True(t, env.sumBalance(t, env.earningsSubAccount(t)).Equal(alpacadecimal.NewFromInt(60)))
@@ -183,7 +191,8 @@ func TestOnFlatFeePaymentAuthorized(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, ref.TransactionGroupID)
 
-		require.True(t, env.sumBalance(t, env.receivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(45)))
+		require.True(t, env.sumBalance(t, env.receivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-30)))
+		require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(75)))
 		require.True(t, env.sumBalance(t, env.washSubAccount(t)).Equal(alpacadecimal.NewFromInt(-75)))
 		require.True(t, env.sumBalance(t, env.accruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(0)))
 		require.True(t, env.sumBalance(t, env.earningsSubAccount(t)).Equal(alpacadecimal.NewFromInt(30)))
@@ -191,13 +200,32 @@ func TestOnFlatFeePaymentAuthorized(t *testing.T) {
 }
 
 func TestOnFlatFeePaymentSettled(t *testing.T) {
-	t.Run("returns descriptive error", func(t *testing.T) {
+	t.Run("settles authorized receivable into open receivable", func(t *testing.T) {
 		env := newFlatFeeHandlerTestEnv(t)
 
-		charge := env.newChargeWithAccruedUsage(alpacadecimal.NewFromInt(40))
-		_, err := env.handler.OnPaymentSettled(t.Context(), charge)
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "not yet implemented")
+		total := alpacadecimal.NewFromInt(40)
+		_, err := env.handler.OnInvoiceUsageAccrued(t.Context(), env.newAccrualInput(total))
+		require.NoError(t, err)
+
+		charge := env.newChargeWithAccruedUsage(total)
+		_, err = env.handler.OnPaymentAuthorized(t.Context(), charge)
+		require.NoError(t, err)
+
+		ref, err := env.handler.OnPaymentSettled(t.Context(), charge)
+		require.NoError(t, err)
+		require.NotEmpty(t, ref.TransactionGroupID)
+
+		require.True(t, env.sumBalance(t, env.receivableSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.washSubAccount(t)).Equal(alpacadecimal.NewFromInt(-40)))
+	})
+
+	t.Run("no receivable portion is a no-op", func(t *testing.T) {
+		env := newFlatFeeHandlerTestEnv(t)
+
+		ref, err := env.handler.OnPaymentSettled(t.Context(), env.newChargeWithCreditRealizationsAndAccruedUsage(nil, alpacadecimal.Zero))
+		require.NoError(t, err)
+		require.Empty(t, ref.TransactionGroupID)
 	})
 }
 
@@ -295,6 +323,11 @@ func (e *flatFeeHandlerTestEnv) fundPriority(t *testing.T, priority int, amount 
 			CreditPriority: &priority,
 		},
 		transactions.FundCustomerReceivableTemplate{
+			At:       e.Now(),
+			Amount:   alpacadecimal.NewFromInt(amount),
+			Currency: e.Currency,
+		},
+		transactions.SettleCustomerReceivablePaymentTemplate{
 			At:       e.Now(),
 			Amount:   alpacadecimal.NewFromInt(amount),
 			Currency: e.Currency,
@@ -452,6 +485,10 @@ func (e *flatFeeHandlerTestEnv) washSubAccount(t *testing.T) ledger.SubAccount {
 
 func (e *flatFeeHandlerTestEnv) receivableSubAccount(t *testing.T) ledger.SubAccount {
 	return e.ReceivableSubAccount(t)
+}
+
+func (e *flatFeeHandlerTestEnv) authorizedReceivableSubAccount(t *testing.T) ledger.SubAccount {
+	return e.ReceivableSubAccountWithStatus(t, ledger.TransactionAuthorizationStatusAuthorized)
 }
 
 func (e *flatFeeHandlerTestEnv) brokerageSubAccount(t *testing.T) ledger.SubAccount {

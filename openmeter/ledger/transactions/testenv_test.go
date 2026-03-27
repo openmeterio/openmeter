@@ -77,6 +77,11 @@ func (e *transactionsTestEnv) fundPriority(t *testing.T, priority int, amount in
 			Amount:   alpacadecimal.NewFromInt(amount),
 			Currency: e.Currency,
 		},
+		SettleCustomerReceivablePaymentTemplate{
+			At:       e.Now(),
+			Amount:   alpacadecimal.NewFromInt(amount),
+			Currency: e.Currency,
+		},
 	)
 
 	return subAccount

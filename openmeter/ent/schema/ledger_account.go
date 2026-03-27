@@ -121,6 +121,9 @@ func (LedgerSubAccountRoute) Fields() []ent.Field {
 			Optional().Nillable().Immutable().
 			SchemaType(map[string]string{dialect.Postgres: "numeric"}),
 		field.Int("credit_priority").Optional().Nillable().Immutable(),
+		field.String("transaction_authorization_status").
+			GoType(ledger.TransactionAuthorizationStatus("")).
+			Optional().Nillable().Immutable(),
 	}
 }
 

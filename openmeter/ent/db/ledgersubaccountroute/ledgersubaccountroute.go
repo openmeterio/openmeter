@@ -38,6 +38,8 @@ const (
 	FieldCostBasis = "cost_basis"
 	// FieldCreditPriority holds the string denoting the credit_priority field in the database.
 	FieldCreditPriority = "credit_priority"
+	// FieldTransactionAuthorizationStatus holds the string denoting the transaction_authorization_status field in the database.
+	FieldTransactionAuthorizationStatus = "transaction_authorization_status"
 	// EdgeAccount holds the string denoting the account edge name in mutations.
 	EdgeAccount = "account"
 	// EdgeSubAccounts holds the string denoting the sub_accounts edge name in mutations.
@@ -75,6 +77,7 @@ var Columns = []string{
 	FieldFeatures,
 	FieldCostBasis,
 	FieldCreditPriority,
+	FieldTransactionAuthorizationStatus,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -161,6 +164,11 @@ func ByCostBasis(opts ...sql.OrderTermOption) OrderOption {
 // ByCreditPriority orders the results by the credit_priority field.
 func ByCreditPriority(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreditPriority, opts...).ToFunc()
+}
+
+// ByTransactionAuthorizationStatus orders the results by the transaction_authorization_status field.
+func ByTransactionAuthorizationStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTransactionAuthorizationStatus, opts...).ToFunc()
 }
 
 // ByAccountField orders the results by account field.

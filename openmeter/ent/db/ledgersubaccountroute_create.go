@@ -147,6 +147,20 @@ func (_c *LedgerSubAccountRouteCreate) SetNillableCreditPriority(v *int) *Ledger
 	return _c
 }
 
+// SetTransactionAuthorizationStatus sets the "transaction_authorization_status" field.
+func (_c *LedgerSubAccountRouteCreate) SetTransactionAuthorizationStatus(v ledger.TransactionAuthorizationStatus) *LedgerSubAccountRouteCreate {
+	_c.mutation.SetTransactionAuthorizationStatus(v)
+	return _c
+}
+
+// SetNillableTransactionAuthorizationStatus sets the "transaction_authorization_status" field if the given value is not nil.
+func (_c *LedgerSubAccountRouteCreate) SetNillableTransactionAuthorizationStatus(v *ledger.TransactionAuthorizationStatus) *LedgerSubAccountRouteCreate {
+	if v != nil {
+		_c.SetTransactionAuthorizationStatus(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *LedgerSubAccountRouteCreate) SetID(v string) *LedgerSubAccountRouteCreate {
 	_c.mutation.SetID(v)
@@ -263,6 +277,11 @@ func (_c *LedgerSubAccountRouteCreate) check() error {
 	if _, ok := _c.mutation.Currency(); !ok {
 		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "LedgerSubAccountRoute.currency"`)}
 	}
+	if v, ok := _c.mutation.TransactionAuthorizationStatus(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "transaction_authorization_status", err: fmt.Errorf(`db: validator failed for field "LedgerSubAccountRoute.transaction_authorization_status": %w`, err)}
+		}
+	}
 	if len(_c.mutation.AccountIDs()) == 0 {
 		return &ValidationError{Name: "account", err: errors.New(`db: missing required edge "LedgerSubAccountRoute.account"`)}
 	}
@@ -345,6 +364,10 @@ func (_c *LedgerSubAccountRouteCreate) createSpec() (*LedgerSubAccountRoute, *sq
 	if value, ok := _c.mutation.CreditPriority(); ok {
 		_spec.SetField(ledgersubaccountroute.FieldCreditPriority, field.TypeInt, value)
 		_node.CreditPriority = &value
+	}
+	if value, ok := _c.mutation.TransactionAuthorizationStatus(); ok {
+		_spec.SetField(ledgersubaccountroute.FieldTransactionAuthorizationStatus, field.TypeString, value)
+		_node.TransactionAuthorizationStatus = &value
 	}
 	if nodes := _c.mutation.AccountIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -507,6 +530,9 @@ func (u *LedgerSubAccountRouteUpsertOne) UpdateNewValues() *LedgerSubAccountRout
 		}
 		if _, exists := u.create.mutation.CreditPriority(); exists {
 			s.SetIgnore(ledgersubaccountroute.FieldCreditPriority)
+		}
+		if _, exists := u.create.mutation.TransactionAuthorizationStatus(); exists {
+			s.SetIgnore(ledgersubaccountroute.FieldTransactionAuthorizationStatus)
 		}
 	}))
 	return u
@@ -786,6 +812,9 @@ func (u *LedgerSubAccountRouteUpsertBulk) UpdateNewValues() *LedgerSubAccountRou
 			}
 			if _, exists := b.mutation.CreditPriority(); exists {
 				s.SetIgnore(ledgersubaccountroute.FieldCreditPriority)
+			}
+			if _, exists := b.mutation.TransactionAuthorizationStatus(); exists {
+				s.SetIgnore(ledgersubaccountroute.FieldTransactionAuthorizationStatus)
 			}
 		}
 	}))

@@ -70735,31 +70735,32 @@ func (m *LedgerSubAccountMutation) ResetEdge(name string) error {
 // LedgerSubAccountRouteMutation represents an operation that mutates the LedgerSubAccountRoute nodes in the graph.
 type LedgerSubAccountRouteMutation struct {
 	config
-	op                  Op
-	typ                 string
-	id                  *string
-	namespace           *string
-	created_at          *time.Time
-	updated_at          *time.Time
-	deleted_at          *time.Time
-	routing_key_version *ledger.RoutingKeyVersion
-	routing_key         *string
-	currency            *string
-	tax_code            *string
-	features            *[]string
-	appendfeatures      []string
-	cost_basis          *alpacadecimal.Decimal
-	credit_priority     *int
-	addcredit_priority  *int
-	clearedFields       map[string]struct{}
-	account             *string
-	clearedaccount      bool
-	sub_accounts        map[string]struct{}
-	removedsub_accounts map[string]struct{}
-	clearedsub_accounts bool
-	done                bool
-	oldValue            func(context.Context) (*LedgerSubAccountRoute, error)
-	predicates          []predicate.LedgerSubAccountRoute
+	op                               Op
+	typ                              string
+	id                               *string
+	namespace                        *string
+	created_at                       *time.Time
+	updated_at                       *time.Time
+	deleted_at                       *time.Time
+	routing_key_version              *ledger.RoutingKeyVersion
+	routing_key                      *string
+	currency                         *string
+	tax_code                         *string
+	features                         *[]string
+	appendfeatures                   []string
+	cost_basis                       *alpacadecimal.Decimal
+	credit_priority                  *int
+	addcredit_priority               *int
+	transaction_authorization_status *ledger.TransactionAuthorizationStatus
+	clearedFields                    map[string]struct{}
+	account                          *string
+	clearedaccount                   bool
+	sub_accounts                     map[string]struct{}
+	removedsub_accounts              map[string]struct{}
+	clearedsub_accounts              bool
+	done                             bool
+	oldValue                         func(context.Context) (*LedgerSubAccountRoute, error)
+	predicates                       []predicate.LedgerSubAccountRoute
 }
 
 var _ ent.Mutation = (*LedgerSubAccountRouteMutation)(nil)
@@ -71400,6 +71401,55 @@ func (m *LedgerSubAccountRouteMutation) ResetCreditPriority() {
 	delete(m.clearedFields, ledgersubaccountroute.FieldCreditPriority)
 }
 
+// SetTransactionAuthorizationStatus sets the "transaction_authorization_status" field.
+func (m *LedgerSubAccountRouteMutation) SetTransactionAuthorizationStatus(las ledger.TransactionAuthorizationStatus) {
+	m.transaction_authorization_status = &las
+}
+
+// TransactionAuthorizationStatus returns the value of the "transaction_authorization_status" field in the mutation.
+func (m *LedgerSubAccountRouteMutation) TransactionAuthorizationStatus() (r ledger.TransactionAuthorizationStatus, exists bool) {
+	v := m.transaction_authorization_status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTransactionAuthorizationStatus returns the old "transaction_authorization_status" field's value of the LedgerSubAccountRoute entity.
+// If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LedgerSubAccountRouteMutation) OldTransactionAuthorizationStatus(ctx context.Context) (v *ledger.TransactionAuthorizationStatus, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTransactionAuthorizationStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTransactionAuthorizationStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTransactionAuthorizationStatus: %w", err)
+	}
+	return oldValue.TransactionAuthorizationStatus, nil
+}
+
+// ClearTransactionAuthorizationStatus clears the value of the "transaction_authorization_status" field.
+func (m *LedgerSubAccountRouteMutation) ClearTransactionAuthorizationStatus() {
+	m.transaction_authorization_status = nil
+	m.clearedFields[ledgersubaccountroute.FieldTransactionAuthorizationStatus] = struct{}{}
+}
+
+// TransactionAuthorizationStatusCleared returns if the "transaction_authorization_status" field was cleared in this mutation.
+func (m *LedgerSubAccountRouteMutation) TransactionAuthorizationStatusCleared() bool {
+	_, ok := m.clearedFields[ledgersubaccountroute.FieldTransactionAuthorizationStatus]
+	return ok
+}
+
+// ResetTransactionAuthorizationStatus resets all changes to the "transaction_authorization_status" field.
+func (m *LedgerSubAccountRouteMutation) ResetTransactionAuthorizationStatus() {
+	m.transaction_authorization_status = nil
+	delete(m.clearedFields, ledgersubaccountroute.FieldTransactionAuthorizationStatus)
+}
+
 // ClearAccount clears the "account" edge to the LedgerAccount entity.
 func (m *LedgerSubAccountRouteMutation) ClearAccount() {
 	m.clearedaccount = true
@@ -71515,7 +71565,7 @@ func (m *LedgerSubAccountRouteMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LedgerSubAccountRouteMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 13)
 	if m.namespace != nil {
 		fields = append(fields, ledgersubaccountroute.FieldNamespace)
 	}
@@ -71552,6 +71602,9 @@ func (m *LedgerSubAccountRouteMutation) Fields() []string {
 	if m.credit_priority != nil {
 		fields = append(fields, ledgersubaccountroute.FieldCreditPriority)
 	}
+	if m.transaction_authorization_status != nil {
+		fields = append(fields, ledgersubaccountroute.FieldTransactionAuthorizationStatus)
+	}
 	return fields
 }
 
@@ -71584,6 +71637,8 @@ func (m *LedgerSubAccountRouteMutation) Field(name string) (ent.Value, bool) {
 		return m.CostBasis()
 	case ledgersubaccountroute.FieldCreditPriority:
 		return m.CreditPriority()
+	case ledgersubaccountroute.FieldTransactionAuthorizationStatus:
+		return m.TransactionAuthorizationStatus()
 	}
 	return nil, false
 }
@@ -71617,6 +71672,8 @@ func (m *LedgerSubAccountRouteMutation) OldField(ctx context.Context, name strin
 		return m.OldCostBasis(ctx)
 	case ledgersubaccountroute.FieldCreditPriority:
 		return m.OldCreditPriority(ctx)
+	case ledgersubaccountroute.FieldTransactionAuthorizationStatus:
+		return m.OldTransactionAuthorizationStatus(ctx)
 	}
 	return nil, fmt.Errorf("unknown LedgerSubAccountRoute field %s", name)
 }
@@ -71710,6 +71767,13 @@ func (m *LedgerSubAccountRouteMutation) SetField(name string, value ent.Value) e
 		}
 		m.SetCreditPriority(v)
 		return nil
+	case ledgersubaccountroute.FieldTransactionAuthorizationStatus:
+		v, ok := value.(ledger.TransactionAuthorizationStatus)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTransactionAuthorizationStatus(v)
+		return nil
 	}
 	return fmt.Errorf("unknown LedgerSubAccountRoute field %s", name)
 }
@@ -71770,6 +71834,9 @@ func (m *LedgerSubAccountRouteMutation) ClearedFields() []string {
 	if m.FieldCleared(ledgersubaccountroute.FieldCreditPriority) {
 		fields = append(fields, ledgersubaccountroute.FieldCreditPriority)
 	}
+	if m.FieldCleared(ledgersubaccountroute.FieldTransactionAuthorizationStatus) {
+		fields = append(fields, ledgersubaccountroute.FieldTransactionAuthorizationStatus)
+	}
 	return fields
 }
 
@@ -71798,6 +71865,9 @@ func (m *LedgerSubAccountRouteMutation) ClearField(name string) error {
 		return nil
 	case ledgersubaccountroute.FieldCreditPriority:
 		m.ClearCreditPriority()
+		return nil
+	case ledgersubaccountroute.FieldTransactionAuthorizationStatus:
+		m.ClearTransactionAuthorizationStatus()
 		return nil
 	}
 	return fmt.Errorf("unknown LedgerSubAccountRoute nullable field %s", name)
@@ -71842,6 +71912,9 @@ func (m *LedgerSubAccountRouteMutation) ResetField(name string) error {
 		return nil
 	case ledgersubaccountroute.FieldCreditPriority:
 		m.ResetCreditPriority()
+		return nil
+	case ledgersubaccountroute.FieldTransactionAuthorizationStatus:
+		m.ResetTransactionAuthorizationStatus()
 		return nil
 	}
 	return fmt.Errorf("unknown LedgerSubAccountRoute field %s", name)

@@ -79,6 +79,104 @@ func TestDefaultValidator_RejectsMismatchedReceivableAndFBORoute(t *testing.T) {
 	require.ErrorContains(t, err, "ledger routing rule violated")
 }
 
+func TestDefaultValidator_AllowsReceivableAuthorizationStageTransition(t *testing.T) {
+	validator := routingrules.DefaultValidator
+	openStatus := ledger.TransactionAuthorizationStatusOpen
+	status := ledger.TransactionAuthorizationStatusAuthorized
+
+	err := validator.ValidateEntries([]ledger.EntryInput{
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-authorized", ledger.Route{
+				Currency:                       currencyx.Code("USD"),
+				TransactionAuthorizationStatus: &status,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(-50),
+		},
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-open", ledger.Route{
+				Currency:                       currencyx.Code("USD"),
+				TransactionAuthorizationStatus: &openStatus,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(50),
+		},
+	})
+
+	require.NoError(t, err)
+}
+
+func TestDefaultValidator_RejectsReceivableAuthorizationStageWithWrongDirection(t *testing.T) {
+	validator := routingrules.DefaultValidator
+	openStatus := ledger.TransactionAuthorizationStatusOpen
+	status := ledger.TransactionAuthorizationStatusAuthorized
+
+	err := validator.ValidateEntries([]ledger.EntryInput{
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-open", ledger.Route{
+				Currency:                       currencyx.Code("USD"),
+				TransactionAuthorizationStatus: &openStatus,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(-50),
+		},
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-authorized", ledger.Route{
+				Currency:                       currencyx.Code("USD"),
+				TransactionAuthorizationStatus: &status,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(50),
+		},
+	})
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, "ledger routing rule violated")
+}
+
+func TestDefaultValidator_AllowsWashToAuthorizedReceivable(t *testing.T) {
+	validator := routingrules.DefaultValidator
+	status := ledger.TransactionAuthorizationStatusAuthorized
+
+	err := validator.ValidateEntries([]ledger.EntryInput{
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeWash, "sub-wash", ledger.Route{
+				Currency: currencyx.Code("USD"),
+			}),
+			AmountValue: alpacadecimal.NewFromInt(-50),
+		},
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-authorized", ledger.Route{
+				Currency:                       currencyx.Code("USD"),
+				TransactionAuthorizationStatus: &status,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(50),
+		},
+	})
+
+	require.NoError(t, err)
+}
+
+func TestDefaultValidator_RejectsWashToOpenReceivable(t *testing.T) {
+	validator := routingrules.DefaultValidator
+	status := ledger.TransactionAuthorizationStatusOpen
+
+	err := validator.ValidateEntries([]ledger.EntryInput{
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeWash, "sub-wash", ledger.Route{
+				Currency: currencyx.Code("USD"),
+			}),
+			AmountValue: alpacadecimal.NewFromInt(-50),
+		},
+		&transactionstestutils.AnyEntryInput{
+			Address: addressForRoute(t, ledger.AccountTypeCustomerReceivable, "sub-rec-open", ledger.Route{
+				Currency:                       currencyx.Code("USD"),
+				TransactionAuthorizationStatus: &status,
+			}),
+			AmountValue: alpacadecimal.NewFromInt(50),
+		},
+	})
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, "ledger routing rule violated")
+}
+
 func addressForRoute(t *testing.T, accountType ledger.AccountType, subAccountID string, route ledger.Route) ledger.PostingAddress {
 	t.Helper()
 

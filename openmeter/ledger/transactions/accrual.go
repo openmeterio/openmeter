@@ -121,7 +121,8 @@ func (t TransferCustomerReceivableToAccruedTemplate) resolve(ctx context.Context
 	}
 
 	receivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
-		Currency: t.Currency,
+		Currency:                       t.Currency,
+		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get receivable sub-account: %w", err)

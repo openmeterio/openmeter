@@ -139,8 +139,15 @@ func (e *IntegrationEnv) FBOSubAccount(t *testing.T, priority int) ledger.SubAcc
 func (e *IntegrationEnv) ReceivableSubAccount(t *testing.T) ledger.SubAccount {
 	t.Helper()
 
+	return e.ReceivableSubAccountWithStatus(t, ledger.TransactionAuthorizationStatusOpen)
+}
+
+func (e *IntegrationEnv) ReceivableSubAccountWithStatus(t *testing.T, status ledger.TransactionAuthorizationStatus) ledger.SubAccount {
+	t.Helper()
+
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
-		Currency: e.Currency,
+		Currency:                       e.Currency,
+		TransactionAuthorizationStatus: status,
 	})
 	require.NoError(t, err)
 

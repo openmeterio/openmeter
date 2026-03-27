@@ -7,6 +7,7 @@ var DefaultValidator = Validator{
 		AllowedAccountSetsRule{
 			Sets: [][]ledger.AccountType{
 				{ledger.AccountTypeCustomerFBO, ledger.AccountTypeCustomerReceivable},
+				{ledger.AccountTypeCustomerReceivable},
 				{ledger.AccountTypeCustomerFBO, ledger.AccountTypeCustomerAccrued},
 				{ledger.AccountTypeCustomerReceivable, ledger.AccountTypeCustomerAccrued},
 				{ledger.AccountTypeCustomerReceivable, ledger.AccountTypeWash},
@@ -30,6 +31,15 @@ var DefaultValidator = Validator{
 			From: ledger.AccountTypeWash,
 			To:   ledger.AccountTypeCustomerReceivable,
 		},
+		RequireAccountAuthorizationStatusRule{
+			WhenHasAccountTypes: []ledger.AccountType{
+				ledger.AccountTypeWash,
+				ledger.AccountTypeCustomerReceivable,
+			},
+			AccountType: ledger.AccountTypeCustomerReceivable,
+			Expected:    ledger.TransactionAuthorizationStatusAuthorized,
+		},
+		RequireReceivableAuthorizationStageRule{},
 		RequireSameRouteRule{
 			Left:  ledger.AccountTypeCustomerFBO,
 			Right: ledger.AccountTypeCustomerReceivable,
