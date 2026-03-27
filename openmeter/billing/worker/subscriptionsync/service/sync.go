@@ -98,6 +98,10 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 
 	return span.Wrap(func(ctx context.Context) error {
 		if !subs.Spec.HasBillables() {
+			if options.DryRun {
+				return nil
+			}
+
 			if err := s.updateSyncState(ctx, updateSyncStateInput{
 				SubscriptionView: subs,
 			}); err != nil {
@@ -131,6 +135,10 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 		}
 
 		if customerOverride.Customer != nil && customerOverride.Customer.DeletedAt != nil && !customerOverride.Customer.DeletedAt.After(subs.Spec.ActiveFrom) {
+			if options.DryRun {
+				return nil
+			}
+
 			if err := s.updateSyncState(ctx, updateSyncStateInput{
 				SubscriptionView: subs,
 				// Prevent deleted customers from continuing to be scheduled for sync.
@@ -165,6 +173,10 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 			}
 
 			if linesDiff == nil || linesDiff.IsEmpty() {
+				if options.DryRun {
+					return nil
+				}
+
 				generationLimit := time.Time{}
 				if linesDiff != nil {
 					generationLimit = linesDiff.SubscriptionMaxGenerationTimeLimit
@@ -189,6 +201,10 @@ func (s *Service) SynchronizeSubscription(ctx context.Context, subs subscription
 				Plan:         linesDiff,
 			}); err != nil {
 				return err
+			}
+
+			if options.DryRun {
+				return nil
 			}
 
 			if err := s.updateSyncState(ctx, updateSyncStateInput{
