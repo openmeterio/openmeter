@@ -44,6 +44,10 @@ func (r StateItem) IsBillable() bool {
 	return true
 }
 
+func (r StateItem) GetServicePeriod() timeutil.ClosedPeriod {
+	return r.ServicePeriod.ToClosedPeriod()
+}
+
 func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 	line := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
@@ -56,7 +60,7 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 			Currency:               r.CurrencyCalculator.Currency,
 			ChildUniqueReferenceID: &r.UniqueID,
 			TaxConfig:              r.Spec.RateCard.AsMeta().TaxConfig,
-			ServicePeriod:          r.ServicePeriod.ToClosedPeriod(),
+			ServicePeriod:          r.GetServicePeriod(),
 			InvoiceAt:              r.GetInvoiceAt(),
 			RateCardDiscounts:      discountsToBillingDiscounts(r.Spec.RateCard.AsMeta().Discounts),
 			Subscription: &billing.SubscriptionReference{
