@@ -93,7 +93,7 @@ func (i ApplyInput) Validate() error {
 }
 
 type Plan struct {
-	Patches                            []Patch
+	PatchCollection                    InvoicePatchCollection
 	SubscriptionMaxGenerationTimeLimit time.Time
 }
 
@@ -102,95 +102,55 @@ func (p *Plan) IsEmpty() bool {
 		return true
 	}
 
-	return len(p.Patches) == 0
-}
+	if p.PatchCollection == nil {
+		return true
+	}
 
-type diffItemResult struct {
-	Patch   Patch
-	Changed bool
+	return p.PatchCollection.IsEmpty()
 }
 
 func (s *Service) diffItem(
 	target *targetstate.StateItem,
 	expectedLine *billing.GatheringLine, // TODO[later]: let's merge this with target as they are the same thing's different calculation stages
-	existing *billing.LineOrHierarchy,
-) (diffItemResult, error) {
+	existing persistedstate.Item,
+	patches PatchCollection,
+) error {
 	switch {
 	case target == nil && existing == nil:
-		return diffItemResult{}, nil
+		return nil
 	case target == nil && existing != nil:
 		uniqueID := lo.FromPtr(existing.ChildUniqueReferenceID())
-
-		return diffItemResult{
-			Patch: DeletePatch{
-				UniqueID: uniqueID,
-				Existing: *existing,
-			},
-			Changed: true,
-		}, nil
+		return patches.AddDelete(uniqueID, existing)
 	case target != nil && existing == nil && expectedLine != nil:
-		return diffItemResult{
-			Patch: CreatePatch{
-				Target: *target,
-			},
-			Changed: true,
-		}, nil
+		patches.AddCreate(*target)
+		return nil
 	case target != nil && existing == nil && expectedLine == nil:
 		// If the target is not nil, but the expected line is nil, we should not create a patch (most probably
 		// because the line is ignored or empty service period)
-		return diffItemResult{}, nil
+		return nil
 	case target != nil && existing != nil && expectedLine == nil:
-		return diffItemResult{
-			Patch: DeletePatch{
-				UniqueID: target.UniqueID,
-				Existing: *existing,
-			},
-			Changed: true,
-		}, nil
+		return patches.AddDelete(target.UniqueID, existing)
 	}
 
 	existingPeriod := existing.ServicePeriod()
 	targetPeriod := expectedLine.ServicePeriod
 
-	if decision, err := semanticProrateDecision(*existing, *expectedLine); err != nil {
-		return diffItemResult{}, err
+	if decision, err := semanticProrateDecision(existing, *expectedLine); err != nil {
+		return err
 	} else if decision.ShouldProrate {
 		// Flat fee lines do not produce usage-based shrink/extend patches. Any period
 		// change for a flat fee line is reconciled through ProratePatch so that the
 		// service period and per-unit amount are updated together.
-		return diffItemResult{
-			Patch: ProratePatch{
-				Existing:       *existing,
-				Target:         *target,
-				OriginalPeriod: existingPeriod,
-				TargetPeriod:   targetPeriod,
-				OriginalAmount: decision.OriginalAmount,
-				TargetAmount:   decision.TargetAmount,
-			},
-			Changed: true,
-		}, nil
+		return patches.AddProrate(existing, *target, existingPeriod, targetPeriod, decision.OriginalAmount, decision.TargetAmount)
 	}
 
 	switch {
 	case targetPeriod.To.Before(existingPeriod.To):
-		return diffItemResult{
-			Patch: ShrinkUsageBasedPatch{
-				UniqueID: target.UniqueID,
-				Existing: *existing,
-				Target:   *target,
-			},
-			Changed: true,
-		}, nil
+		return patches.AddShrink(target.UniqueID, existing, *target)
 	case targetPeriod.To.After(existingPeriod.To):
-		return diffItemResult{
-			Patch: ExtendUsageBasedPatch{
-				Existing: *existing,
-				Target:   *target,
-			},
-			Changed: true,
-		}, nil
+		return patches.AddExtend(existing, *target)
 	default:
-		return diffItemResult{}, nil
+		return nil
 	}
 }
 
@@ -200,7 +160,7 @@ type ProrateDecision struct {
 	TargetAmount   alpacadecimal.Decimal
 }
 
-func semanticProrateDecision(existing billing.LineOrHierarchy, expectedLine billing.GatheringLine) (ProrateDecision, error) {
+func semanticProrateDecision(existing persistedstate.Item, expectedLine billing.GatheringLine) (ProrateDecision, error) {
 	if !invoiceupdater.IsFlatFee(expectedLine) {
 		return ProrateDecision{}, nil
 	}
@@ -214,10 +174,12 @@ func semanticProrateDecision(existing billing.LineOrHierarchy, expectedLine bill
 
 	switch existing.Type() {
 	case billing.LineOrHierarchyTypeLine:
-		existingLine, err := existing.AsGenericLine()
-		if err != nil {
-			return ProrateDecision{}, fmt.Errorf("getting existing line: %w", err)
+		lineGetter, ok := existing.(persistedstate.LineGetter)
+		if !ok {
+			return ProrateDecision{}, fmt.Errorf("persisted item does not implement line getter: %T", existing)
 		}
+
+		existingLine := lineGetter.GetLine()
 
 		if !invoiceupdater.IsFlatFee(existingLine) {
 			return ProrateDecision{}, nil
@@ -237,6 +199,46 @@ func semanticProrateDecision(existing billing.LineOrHierarchy, expectedLine bill
 		return ProrateDecision{}, errors.New("flat fee lines cannot be reconciled against a split line hierarchy")
 	default:
 		return ProrateDecision{}, fmt.Errorf("unsupported line or hierarchy type: %s", existing.Type())
+	}
+}
+
+func persistedItemAsLineOrHierarchy(item persistedstate.Item) (billing.LineOrHierarchy, error) {
+	switch item.Type() {
+	case billing.LineOrHierarchyTypeLine:
+		lineGetter, ok := item.(persistedstate.LineGetter)
+		if !ok {
+			return billing.LineOrHierarchy{}, fmt.Errorf("persisted item does not implement line getter: %T", item)
+		}
+
+		line := lineGetter.GetLine()
+		invoiceLine := line.AsInvoiceLine()
+		switch invoiceLine.Type() {
+		case billing.InvoiceLineTypeStandard:
+			standardLine, err := invoiceLine.AsStandardLine()
+			if err != nil {
+				return billing.LineOrHierarchy{}, fmt.Errorf("getting standard line: %w", err)
+			}
+
+			return billing.NewLineOrHierarchy(&standardLine), nil
+		case billing.InvoiceLineTypeGathering:
+			gatheringLine, err := invoiceLine.AsGatheringLine()
+			if err != nil {
+				return billing.LineOrHierarchy{}, fmt.Errorf("getting gathering line: %w", err)
+			}
+
+			return billing.NewLineOrHierarchy(gatheringLine), nil
+		default:
+			return billing.LineOrHierarchy{}, fmt.Errorf("unsupported invoice line type: %s", invoiceLine.Type())
+		}
+	case billing.LineOrHierarchyTypeHierarchy:
+		hierarchyGetter, ok := item.(persistedstate.SplitLineHierarchyGetter)
+		if !ok {
+			return billing.LineOrHierarchy{}, fmt.Errorf("persisted item does not implement split line hierarchy getter: %T", item)
+		}
+
+		return billing.NewLineOrHierarchy(hierarchyGetter.GetSplitLineHierarchy()), nil
+	default:
+		return billing.LineOrHierarchy{}, fmt.Errorf("unsupported item type: %s", item.Type())
 	}
 }
 
@@ -265,7 +267,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 	slices.Sort(deletedLines)
 	slices.Sort(inScopeLineUniqueIDs)
 
-	patches := make([]Patch, 0, len(deletedLines)+len(inScopeLineUniqueIDs))
+	patches := newInvoicePatchCollection(len(deletedLines) + len(inScopeLineUniqueIDs))
 
 	for _, id := range deletedLines {
 		line, ok := persisted.ByUniqueID[id]
@@ -273,12 +275,8 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 			return nil, fmt.Errorf("existing line[%s] not found in the existing lines", id)
 		}
 
-		diff, err := s.diffItem(nil, nil, &line)
-		if err != nil {
+		if err := s.diffItem(nil, nil, line, patches); err != nil {
 			return nil, fmt.Errorf("diffing deleted line[%s]: %w", id, err)
-		}
-		if diff.Changed {
-			patches = append(patches, diff.Patch)
 		}
 	}
 
@@ -291,29 +289,19 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 
 		existingLine, ok := persisted.ByUniqueID[id]
 		if !ok {
-			diff, err := s.diffItem(&targetLine, expectedLine, nil)
-			if err != nil {
+			if err := s.diffItem(&targetLine, expectedLine, nil, patches); err != nil {
 				return nil, fmt.Errorf("diffing new line[%s]: %w", id, err)
-			}
-			if diff.Changed {
-				patches = append(patches, diff.Patch)
 			}
 			continue
 		}
 
-		diff, err := s.diffItem(&targetLine, expectedLine, &existingLine)
-		if err != nil {
+		if err := s.diffItem(&targetLine, expectedLine, existingLine, patches); err != nil {
 			return nil, fmt.Errorf("diffing existing line[%s]: %w", id, err)
-		}
-		if diff.Changed {
-			patches = append(patches, diff.Patch)
 		}
 	}
 
 	return &Plan{
-		Patches: lo.Filter(patches, func(p Patch, _ int) bool {
-			return p != nil
-		}),
+		PatchCollection:                    filterInvoicePatchCollection(patches),
 		SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
 	}, nil
 }
@@ -327,9 +315,10 @@ func (s *Service) Apply(ctx context.Context, input ApplyInput) error {
 		return nil
 	}
 
-	invoicePatches := make([]invoiceupdater.Patch, 0, len(input.Plan.Patches))
+	patches := input.Plan.PatchCollection.Patches()
+	invoicePatches := make([]invoiceupdater.Patch, 0, len(patches))
 
-	for _, patch := range input.Plan.Patches {
+	for _, patch := range patches {
 		newInvoicePatches, err := patch.GetInvoicePatches(GetInvoicePatchesInput{
 			Subscription: input.Subscription,
 			Currency:     input.Currency,
@@ -354,4 +343,21 @@ func (s *Service) Apply(ctx context.Context, input ApplyInput) error {
 	}
 
 	return nil
+}
+
+func filterInvoicePatchCollection(collection *invoicePatchCollection) InvoicePatchCollection {
+	if collection == nil {
+		return nil
+	}
+
+	filtered := make([]InvoicePatch, 0, len(collection.patches))
+	for _, patch := range collection.patches {
+		if patch != nil {
+			filtered = append(filtered, patch)
+		}
+	}
+
+	return &invoicePatchCollection{
+		patches: filtered,
+	}
 }
