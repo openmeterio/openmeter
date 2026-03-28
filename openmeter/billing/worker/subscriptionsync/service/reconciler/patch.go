@@ -68,14 +68,14 @@ func newPatchCollectionRouter(capacity int, invoices persistedstate.Invoices) (*
 	}, nil
 }
 
-func (c patchCollectionRouter) GetCollectionFor(item persistedstate.Item) PatchCollection {
+func (c patchCollectionRouter) GetCollectionFor(item persistedstate.Item) (PatchCollection, error) {
 	switch item.Type() {
 	case billing.LineOrHierarchyTypeLine:
-		return c.lineCollection
+		return c.lineCollection, nil
 	case billing.LineOrHierarchyTypeHierarchy:
-		return c.hierarchyCollection
+		return c.hierarchyCollection, nil
 	default:
-		return nil
+		return nil, fmt.Errorf("unsupported persisted item type: %s [id=%s]", item.Type(), item.ID())
 	}
 }
 

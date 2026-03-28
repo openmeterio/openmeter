@@ -216,7 +216,12 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 			return nil, fmt.Errorf("existing line[%s] not found in the existing lines", id)
 		}
 
-		if err := s.diffItem(nil, line, patchCollections.GetCollectionFor(line)); err != nil {
+		patchCollection, err := patchCollections.GetCollectionFor(line)
+		if err != nil {
+			return nil, fmt.Errorf("getting patch collection for deleted line[%s]: %w", id, err)
+		}
+
+		if err := s.diffItem(nil, line, patchCollection); err != nil {
 			return nil, fmt.Errorf("diffing deleted line[%s]: %w", id, err)
 		}
 	}
@@ -235,7 +240,12 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 			continue
 		}
 
-		if err := s.diffItem(&targetLine, existingLine, patchCollections.GetCollectionFor(existingLine)); err != nil {
+		patchCollection, err := patchCollections.GetCollectionFor(existingLine)
+		if err != nil {
+			return nil, fmt.Errorf("getting patch collection for existing line[%s]: %w", id, err)
+		}
+
+		if err := s.diffItem(&targetLine, existingLine, patchCollection); err != nil {
 			return nil, fmt.Errorf("diffing existing line[%s]: %w", id, err)
 		}
 	}

@@ -58,6 +58,10 @@ func (c *lineHierarchyPatchCollection) AddDelete(uniqueID string, existing persi
 		patches = append(patches, invoiceupdater.NewDeleteLinePatch(line.Line.GetLineID(), line.Invoice.GetID()))
 	}
 
+	if len(patches) == 0 {
+		return nil
+	}
+
 	return c.addPatches(uniqueID, PatchOperationDelete, patches...)
 }
 
