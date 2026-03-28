@@ -119,6 +119,7 @@ func (l Loader) loadInvoices(ctx context.Context, namespace string, invoiceIDs [
 	invoices, err := l.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
 		Namespaces: []string{namespace},
 		IDs:        invoiceIDs,
+		IncludeDeleted: true,
 	})
 	if err != nil {
 		return Invoices{}, fmt.Errorf("listing invoices: %w", err)
