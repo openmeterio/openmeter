@@ -208,7 +208,6 @@ type ListOverridesInput struct {
 	ModelID   *filters.StringFilter `json:"model_id,omitempty"`
 	ModelName *filters.StringFilter `json:"model_name,omitempty"`
 	Currency  *filters.StringFilter `json:"currency,omitempty"`
-	Source    *filters.StringFilter `json:"source,omitempty"`
 }
 
 func (i ListOverridesInput) Validate() error {
