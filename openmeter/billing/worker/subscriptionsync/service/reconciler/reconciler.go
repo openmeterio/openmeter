@@ -69,7 +69,6 @@ type ApplyInput struct {
 	Customer     customer.CustomerID
 	Subscription subscription.Subscription
 	Currency     currencyx.Calculator
-	Invoices     persistedstate.Invoices
 	Plan         *Plan
 }
 
@@ -93,7 +92,8 @@ func (i ApplyInput) Validate() error {
 }
 
 type Plan struct {
-	PatchCollection                    InvoicePatchCollection
+	InvoicePatches                     []InvoicePatch
+	Invoices                           persistedstate.Invoices
 	SubscriptionMaxGenerationTimeLimit time.Time
 }
 
@@ -102,11 +102,7 @@ func (p *Plan) IsEmpty() bool {
 		return true
 	}
 
-	if p.PatchCollection == nil {
-		return true
-	}
-
-	return p.PatchCollection.IsEmpty()
+	return len(p.InvoicePatches) == 0
 }
 
 func (s *Service) diffItem(
@@ -122,8 +118,7 @@ func (s *Service) diffItem(
 		uniqueID := lo.FromPtr(existing.ChildUniqueReferenceID())
 		return patches.AddDelete(uniqueID, existing)
 	case target != nil && existing == nil && expectedLine != nil:
-		patches.AddCreate(*target)
-		return nil
+		return patches.AddCreate(*target)
 	case target != nil && existing == nil && expectedLine == nil:
 		// If the target is not nil, but the expected line is nil, we should not create a patch (most probably
 		// because the line is ignored or empty service period)
@@ -174,12 +169,10 @@ func semanticProrateDecision(existing persistedstate.Item, expectedLine billing.
 
 	switch existing.Type() {
 	case billing.LineOrHierarchyTypeLine:
-		lineGetter, ok := existing.(persistedstate.LineGetter)
-		if !ok {
-			return ProrateDecision{}, fmt.Errorf("persisted item does not implement line getter: %T", existing)
+		existingLine, err := persistedstate.ItemAsLine(existing)
+		if err != nil {
+			return ProrateDecision{}, err
 		}
-
-		existingLine := lineGetter.GetLine()
 
 		if !invoiceupdater.IsFlatFee(existingLine) {
 			return ProrateDecision{}, nil
@@ -202,51 +195,11 @@ func semanticProrateDecision(existing persistedstate.Item, expectedLine billing.
 	}
 }
 
-func persistedItemAsLineOrHierarchy(item persistedstate.Item) (billing.LineOrHierarchy, error) {
-	switch item.Type() {
-	case billing.LineOrHierarchyTypeLine:
-		lineGetter, ok := item.(persistedstate.LineGetter)
-		if !ok {
-			return billing.LineOrHierarchy{}, fmt.Errorf("persisted item does not implement line getter: %T", item)
-		}
-
-		line := lineGetter.GetLine()
-		invoiceLine := line.AsInvoiceLine()
-		switch invoiceLine.Type() {
-		case billing.InvoiceLineTypeStandard:
-			standardLine, err := invoiceLine.AsStandardLine()
-			if err != nil {
-				return billing.LineOrHierarchy{}, fmt.Errorf("getting standard line: %w", err)
-			}
-
-			return billing.NewLineOrHierarchy(&standardLine), nil
-		case billing.InvoiceLineTypeGathering:
-			gatheringLine, err := invoiceLine.AsGatheringLine()
-			if err != nil {
-				return billing.LineOrHierarchy{}, fmt.Errorf("getting gathering line: %w", err)
-			}
-
-			return billing.NewLineOrHierarchy(gatheringLine), nil
-		default:
-			return billing.LineOrHierarchy{}, fmt.Errorf("unsupported invoice line type: %s", invoiceLine.Type())
-		}
-	case billing.LineOrHierarchyTypeHierarchy:
-		hierarchyGetter, ok := item.(persistedstate.SplitLineHierarchyGetter)
-		if !ok {
-			return billing.LineOrHierarchy{}, fmt.Errorf("persisted item does not implement split line hierarchy getter: %T", item)
-		}
-
-		return billing.NewLineOrHierarchy(hierarchyGetter.GetSplitLineHierarchy()), nil
-	default:
-		return billing.LineOrHierarchy{}, fmt.Errorf("unsupported item type: %s", item.Type())
-	}
-}
-
 func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 	inScopeLines := input.Target.Items
 	persisted := input.Persisted
 
-	if len(inScopeLines) == 0 && len(persisted.Lines) == 0 {
+	if len(inScopeLines) == 0 && len(persisted.ByUniqueID) == 0 {
 		return &Plan{
 			SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
 		}, nil
@@ -267,7 +220,14 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 	slices.Sort(deletedLines)
 	slices.Sort(inScopeLineUniqueIDs)
 
-	patches := newInvoicePatchCollection(len(deletedLines) + len(inScopeLineUniqueIDs))
+	patchCollections, err := newPatchCollectionRouter(len(deletedLines)+len(inScopeLineUniqueIDs), input.Persisted.Invoices)
+	if err != nil {
+		return nil, fmt.Errorf("creating collection by type: %w", err)
+	}
+
+	// TODO: Once we have charges wired in we need a helper function to determine the default routing for new lines depending on the
+	// settlement type set on the subscription and feature flags in the config of subscription sync.
+	defaultCollection := patchCollections.ResolveDefaultCollection()
 
 	for _, id := range deletedLines {
 		line, ok := persisted.ByUniqueID[id]
@@ -275,7 +235,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 			return nil, fmt.Errorf("existing line[%s] not found in the existing lines", id)
 		}
 
-		if err := s.diffItem(nil, nil, line, patches); err != nil {
+		if err := s.diffItem(nil, nil, line, patchCollections.GetCollectionFor(line)); err != nil {
 			return nil, fmt.Errorf("diffing deleted line[%s]: %w", id, err)
 		}
 	}
@@ -289,19 +249,24 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 
 		existingLine, ok := persisted.ByUniqueID[id]
 		if !ok {
-			if err := s.diffItem(&targetLine, expectedLine, nil, patches); err != nil {
+			// The line is not in the persisted state, so we need to fall back to the default collection esentially
+			// forcing it to be created using the specified collection. This allows us to transition from invocing based
+			// upcoming lines to charges based provisioning in a graceful manner.
+
+			if err := s.diffItem(&targetLine, expectedLine, nil, defaultCollection); err != nil {
 				return nil, fmt.Errorf("diffing new line[%s]: %w", id, err)
 			}
 			continue
 		}
 
-		if err := s.diffItem(&targetLine, expectedLine, existingLine, patches); err != nil {
+		if err := s.diffItem(&targetLine, expectedLine, existingLine, patchCollections.GetCollectionFor(existingLine)); err != nil {
 			return nil, fmt.Errorf("diffing existing line[%s]: %w", id, err)
 		}
 	}
 
 	return &Plan{
-		PatchCollection:                    filterInvoicePatchCollection(patches),
+		InvoicePatches:                     patchCollections.CollectInvoicePatches(),
+		Invoices:                           input.Persisted.Invoices,
 		SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
 	}, nil
 }
@@ -315,15 +280,11 @@ func (s *Service) Apply(ctx context.Context, input ApplyInput) error {
 		return nil
 	}
 
-	patches := input.Plan.PatchCollection.Patches()
+	patches := input.Plan.InvoicePatches
 	invoicePatches := make([]invoiceupdater.Patch, 0, len(patches))
 
 	for _, patch := range patches {
-		newInvoicePatches, err := patch.GetInvoicePatches(GetInvoicePatchesInput{
-			Subscription: input.Subscription,
-			Currency:     input.Currency,
-			Invoices:     input.Invoices,
-		})
+		newInvoicePatches, err := patch.GetInvoicePatches()
 		if err != nil {
 			return fmt.Errorf("getting invoice patches for patch[%s/%s]: %w", patch.Operation(), patch.UniqueReferenceID(), err)
 		}
@@ -334,7 +295,7 @@ func (s *Service) Apply(ctx context.Context, input ApplyInput) error {
 	invoiceUpdater := invoiceupdater.New(s.billingService, s.logger)
 
 	if input.DryRun {
-		invoiceUpdater.LogPatches(invoicePatches, input.Invoices.ByID)
+		invoiceUpdater.LogPatches(invoicePatches, input.Plan.Invoices)
 		return nil
 	}
 
@@ -343,21 +304,4 @@ func (s *Service) Apply(ctx context.Context, input ApplyInput) error {
 	}
 
 	return nil
-}
-
-func filterInvoicePatchCollection(collection *invoicePatchCollection) InvoicePatchCollection {
-	if collection == nil {
-		return nil
-	}
-
-	filtered := make([]InvoicePatch, 0, len(collection.patches))
-	for _, patch := range collection.patches {
-		if patch != nil {
-			filtered = append(filtered, patch)
-		}
-	}
-
-	return &invoicePatchCollection{
-		patches: filtered,
-	}
 }

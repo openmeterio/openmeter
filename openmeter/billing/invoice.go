@@ -301,6 +301,7 @@ type ListInvoicesInput struct {
 	pagination.Page
 
 	Namespaces []string
+	IDs        []string
 	Customers  []string
 	// Statuses searches by short InvoiceStatus (e.g. draft, issued)
 	Statuses []string

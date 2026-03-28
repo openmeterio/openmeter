@@ -2,14 +2,15 @@ package reconciler
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
-	"github.com/openmeterio/openmeter/openmeter/subscription"
-	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
+	"github.com/samber/lo"
 )
 
 type PatchOperation string
@@ -22,12 +23,6 @@ const (
 	PatchOperationProrate PatchOperation = "prorate"
 )
 
-type GetInvoicePatchesInput struct {
-	Subscription subscription.Subscription
-	Currency     currencyx.Calculator
-	Invoices     persistedstate.Invoices
-}
-
 type Patch interface {
 	Operation() PatchOperation
 	UniqueReferenceID() string
@@ -35,7 +30,7 @@ type Patch interface {
 
 type InvoicePatch interface {
 	Patch
-	GetInvoicePatches(input GetInvoicePatchesInput) ([]invoiceupdater.Patch, error)
+	GetInvoicePatches() ([]invoiceupdater.Patch, error)
 }
 
 type InvoicePatchCollection interface {
@@ -44,94 +39,57 @@ type InvoicePatchCollection interface {
 }
 
 type PatchCollection interface {
-	AddCreate(target targetstate.StateItem)
+	AddCreate(target targetstate.StateItem) error
 	AddDelete(uniqueID string, existing persistedstate.Item) error
 	AddShrink(uniqueID string, existing persistedstate.Item, target targetstate.StateItem) error
 	AddExtend(existing persistedstate.Item, target targetstate.StateItem) error
 	AddProrate(existing persistedstate.Item, target targetstate.StateItem, originalPeriod, targetPeriod timeutil.ClosedPeriod, originalAmount, targetAmount alpacadecimal.Decimal) error
 }
 
-type invoicePatchCollection struct {
-	patches []InvoicePatch
+type patchCollectionRouter struct {
+	lineCollection      *lineInvoicePatchCollection
+	hierarchyCollection *lineHierarchyPatchCollection
 }
 
-func newInvoicePatchCollection(capacity int) *invoicePatchCollection {
-	return &invoicePatchCollection{
-		patches: make([]InvoicePatch, 0, capacity),
+func newPatchCollectionRouter(capacity int, invoices persistedstate.Invoices) (*patchCollectionRouter, error) {
+	if invoices == nil {
+		return nil, fmt.Errorf("invoices is required")
 	}
-}
 
-func (c *invoicePatchCollection) AddCreate(target targetstate.StateItem) {
-	c.patches = append(c.patches, CreatePatch{
-		Target: target,
-	})
-}
-
-func (c *invoicePatchCollection) AddDelete(uniqueID string, existing persistedstate.Item) error {
-	existingLineOrHierarchy, err := persistedItemAsLineOrHierarchy(existing)
+	lineCollection, err := newLineInvoicePatchCollection(invoices, capacity)
 	if err != nil {
-		return fmt.Errorf("converting existing item to line or hierarchy: %w", err)
+		return nil, fmt.Errorf("creating line collection: %w", err)
 	}
 
-	c.patches = append(c.patches, DeletePatch{
-		UniqueID: uniqueID,
-		Existing: existingLineOrHierarchy,
-	})
-
-	return nil
+	return &patchCollectionRouter{
+		lineCollection:      lineCollection,
+		hierarchyCollection: newLineHierarchyPatchCollection(capacity),
+	}, nil
 }
 
-func (c *invoicePatchCollection) AddShrink(uniqueID string, existing persistedstate.Item, target targetstate.StateItem) error {
-	existingLineOrHierarchy, err := persistedItemAsLineOrHierarchy(existing)
-	if err != nil {
-		return fmt.Errorf("converting existing item to line or hierarchy: %w", err)
+func (c patchCollectionRouter) GetCollectionFor(item persistedstate.Item) PatchCollection {
+	switch item.Type() {
+	case billing.LineOrHierarchyTypeLine:
+		return c.lineCollection
+	case billing.LineOrHierarchyTypeHierarchy:
+		return c.hierarchyCollection
+	default:
+		return nil
 	}
+}
 
-	c.patches = append(c.patches, ShrinkUsageBasedPatch{
-		UniqueID: uniqueID,
-		Existing: existingLineOrHierarchy,
-		Target:   target,
+func (c patchCollectionRouter) ResolveDefaultCollection() PatchCollection {
+	// TODO: Once we have charges wired in we need a helper function to determine the default routing for new lines depending on the
+	// settlement type set on the subscription and feature flags in the config of subscription sync.
+	return c.lineCollection
+}
+
+func (c patchCollectionRouter) CollectInvoicePatches() []InvoicePatch {
+	allPatches := slices.Concat(c.lineCollection.Patches(), c.hierarchyCollection.Patches())
+
+	filtered := lo.Filter(allPatches, func(patch InvoicePatch, _ int) bool {
+		return patch != nil
 	})
 
-	return nil
-}
-
-func (c *invoicePatchCollection) AddExtend(existing persistedstate.Item, target targetstate.StateItem) error {
-	existingLineOrHierarchy, err := persistedItemAsLineOrHierarchy(existing)
-	if err != nil {
-		return fmt.Errorf("converting existing item to line or hierarchy: %w", err)
-	}
-
-	c.patches = append(c.patches, ExtendUsageBasedPatch{
-		Existing: existingLineOrHierarchy,
-		Target:   target,
-	})
-
-	return nil
-}
-
-func (c *invoicePatchCollection) AddProrate(existing persistedstate.Item, target targetstate.StateItem, originalPeriod, targetPeriod timeutil.ClosedPeriod, originalAmount, targetAmount alpacadecimal.Decimal) error {
-	existingLineOrHierarchy, err := persistedItemAsLineOrHierarchy(existing)
-	if err != nil {
-		return fmt.Errorf("converting existing item to line or hierarchy: %w", err)
-	}
-
-	c.patches = append(c.patches, ProratePatch{
-		Existing:       existingLineOrHierarchy,
-		Target:         target,
-		OriginalPeriod: originalPeriod,
-		TargetPeriod:   targetPeriod,
-		OriginalAmount: originalAmount,
-		TargetAmount:   targetAmount,
-	})
-
-	return nil
-}
-
-func (c *invoicePatchCollection) Patches() []InvoicePatch {
-	return c.patches
-}
-
-func (c *invoicePatchCollection) IsEmpty() bool {
-	return len(c.patches) == 0
+	return filtered
 }

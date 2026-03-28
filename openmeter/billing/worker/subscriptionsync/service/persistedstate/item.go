@@ -4,10 +4,12 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type Item interface {
+	ID() models.NamespacedID
 	Type() billing.LineOrHierarchyType
 	ChildUniqueReferenceID() *string
 	ServicePeriod() timeutil.ClosedPeriod
@@ -59,12 +61,31 @@ func (i persistedLine) GetLine() billing.GenericInvoiceLine {
 	return i.line
 }
 
+func (i persistedLine) ID() models.NamespacedID {
+	lineId := i.line.GetLineID()
+
+	return models.NamespacedID{
+		Namespace: lineId.Namespace,
+		ID:        lineId.ID,
+	}
+}
+
 func (i persistedLine) IsSubscriptionManaged() bool {
 	return i.line.GetManagedBy() == billing.SubscriptionManagedLine
 }
 
 func (i persistedLine) HasLastLineAnnotation(annotation string) bool {
 	return i.line.GetAnnotations().GetBool(annotation)
+}
+
+// ItemAsLine returns the wrapped line when the persisted item is line-backed.
+func ItemAsLine(in Item) (billing.GenericInvoiceLine, error) {
+	lineGetter, ok := in.(LineGetter)
+	if !ok {
+		return nil, fmt.Errorf("persisted item does not implement line getter: %s", getErrorDetails(in))
+	}
+
+	return lineGetter.GetLine(), nil
 }
 
 type persistedSplitLineHierarchy struct {
@@ -103,6 +124,13 @@ func (i persistedSplitLineHierarchy) GetSplitLineHierarchy() *billing.SplitLineH
 	return i.hierarchy
 }
 
+func (i persistedSplitLineHierarchy) ID() models.NamespacedID {
+	return models.NamespacedID{
+		Namespace: i.hierarchy.Group.Namespace,
+		ID:        i.hierarchy.Group.ID,
+	}
+}
+
 func (i persistedSplitLineHierarchy) IsSubscriptionManaged() bool {
 	child := i.getLastLineForAnnotations()
 	if child == nil {
@@ -132,6 +160,16 @@ func (i persistedSplitLineHierarchy) getLastLineForAnnotations() billing.Generic
 	return nil
 }
 
+// ItemAsSplitLineHierarchy returns the wrapped hierarchy when the persisted item is hierarchy-backed.
+func ItemAsSplitLineHierarchy(in Item) (*billing.SplitLineHierarchy, error) {
+	hierarchyGetter, ok := in.(SplitLineHierarchyGetter)
+	if !ok {
+		return nil, fmt.Errorf("persisted item does not implement split line hierarchy getter: %s", getErrorDetails(in))
+	}
+
+	return hierarchyGetter.GetSplitLineHierarchy(), nil
+}
+
 func NewItemFromLineOrHierarchy(lineOrHierarchy billing.LineOrHierarchy) (Item, error) {
 	switch lineOrHierarchy.Type() {
 	case billing.LineOrHierarchyTypeLine:
@@ -159,4 +197,13 @@ func NewItemFromLineOrHierarchy(lineOrHierarchy billing.LineOrHierarchy) (Item, 
 	default:
 		return nil, fmt.Errorf("unsupported line or hierarchy type: %s", lineOrHierarchy.Type())
 	}
+}
+
+type errorDetailsAccessor interface {
+	ID() models.NamespacedID
+	Type() billing.LineOrHierarchyType
+}
+
+func getErrorDetails(in errorDetailsAccessor) string {
+	return fmt.Sprintf("[id=%s, type=%s]", in.ID(), in.Type())
 }
