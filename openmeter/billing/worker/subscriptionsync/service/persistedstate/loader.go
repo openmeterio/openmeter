@@ -117,8 +117,8 @@ func (l Loader) loadInvoicesForSubscriptionLines(ctx context.Context, subs subsc
 
 func (l Loader) loadInvoices(ctx context.Context, namespace string, invoiceIDs []string) (Invoices, error) {
 	invoices, err := l.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
-		Namespaces: []string{namespace},
-		IDs:        invoiceIDs,
+		Namespaces:     []string{namespace},
+		IDs:            invoiceIDs,
 		IncludeDeleted: true,
 	})
 	if err != nil {
