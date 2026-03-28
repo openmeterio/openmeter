@@ -3,6 +3,8 @@ package reconciler
 import (
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
@@ -40,7 +42,7 @@ func shouldSkipHierarchyPatch(existingHierarchy *billing.SplitLineHierarchy, exp
 	return false
 }
 
-func getPatchesForUpdateUsageBasedLine(existingLine billing.GenericInvoiceLine, expectedLine billing.GatheringLine, invoices persistedstate.Invoices) ([]invoiceupdater.Patch, error) {
+func getPatchesForUpdateUsageBasedLine(existingLine billing.GenericInvoiceLine, expectedLine billing.GatheringLine, invoices persistedstate.Invoices) (*invoiceupdater.Patch, error) {
 	if shouldSkipLinePatch(existingLine, expectedLine) {
 		return nil, nil
 	}
@@ -62,7 +64,12 @@ func getPatchesForUpdateUsageBasedLine(existingLine billing.GenericInvoiceLine, 
 			*p = expectedLine.ServicePeriod
 		})
 
-		if invoices.IsGatheringInvoice(targetLine.GetInvoiceID()) {
+		isGatheringInvoice, err := invoices.IsGatheringInvoice(targetLine.GetInvoiceID())
+		if err != nil {
+			return nil, fmt.Errorf("getting invoice type for line[%s]: %w", targetLine.GetLineID().ID, err)
+		}
+
+		if isGatheringInvoice {
 			invoiceAtAccessor, ok := targetLine.(billing.InvoiceAtAccessor)
 			if !ok {
 				return nil, fmt.Errorf("target line is not an invoice at accessor: %T", targetLine)
@@ -74,9 +81,7 @@ func getPatchesForUpdateUsageBasedLine(existingLine billing.GenericInvoiceLine, 
 
 	if !invoiceupdater.IsFlatFee(targetLine) {
 		if targetLine.GetServicePeriod().Truncate(streaming.MinimumWindowSizeDuration).IsEmpty() {
-			return []invoiceupdater.Patch{
-				invoiceupdater.NewDeleteLinePatch(existingLine.GetLineID(), existingLine.GetInvoiceID()),
-			}, nil
+			return lo.ToPtr(invoiceupdater.NewDeleteLinePatch(existingLine.GetLineID(), existingLine.GetInvoiceID())), nil
 		}
 	}
 
@@ -89,7 +94,5 @@ func getPatchesForUpdateUsageBasedLine(existingLine billing.GenericInvoiceLine, 
 		return nil, nil
 	}
 
-	return []invoiceupdater.Patch{
-		invoiceupdater.NewUpdateLinePatch(targetLine),
-	}, nil
+	return lo.ToPtr(invoiceupdater.NewUpdateLinePatch(targetLine)), nil
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -44,28 +43,83 @@ func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.Subsc
 		return State{}, fmt.Errorf("normalizing existing lines: %w", err)
 	}
 
-	byUniqueID, unique := slicesx.UniqueGroupBy(
-		lo.Filter(lines, func(line billing.LineOrHierarchy, _ int) bool {
-			return line.ChildUniqueReferenceID() != nil
-		}),
-		func(line billing.LineOrHierarchy) string {
-			return *line.ChildUniqueReferenceID()
-		},
-	)
-	if !unique {
-		return State{}, fmt.Errorf("duplicate unique ids in the existing lines")
+	byUniqueID := make(map[string]Item, len(lines))
+	for _, line := range lines {
+		uniqueID := line.ChildUniqueReferenceID()
+		if uniqueID == nil {
+			continue
+		}
+
+		item, err := NewItemFromLineOrHierarchy(line)
+		if err != nil {
+			return State{}, fmt.Errorf("creating persisted item[%s]: %w", *uniqueID, err)
+		}
+
+		if _, ok := byUniqueID[*uniqueID]; ok {
+			return State{}, fmt.Errorf("duplicate unique ids in the existing lines")
+		}
+
+		byUniqueID[*uniqueID] = item
+	}
+
+	invoices, err := l.loadInvoicesForSubscriptionLines(ctx, subs, lines)
+	if err != nil {
+		return State{}, err
 	}
 
 	return State{
-		Lines:      lines,
 		ByUniqueID: byUniqueID,
+		Invoices:   invoices,
 	}, nil
 }
 
-func (l Loader) LoadInvoicesForCustomer(ctx context.Context, customerID customer.CustomerID) (Invoices, error) {
+func (l Loader) loadInvoicesForSubscriptionLines(ctx context.Context, subs subscription.Subscription, lines []billing.LineOrHierarchy) (Invoices, error) {
+	invoiceIDs := make(map[string]struct{})
+
+	for _, line := range lines {
+		switch line.Type() {
+		case billing.LineOrHierarchyTypeLine:
+			genericLine, err := line.AsGenericLine()
+			if err != nil {
+				return Invoices{}, fmt.Errorf("getting line invoice id: %w", err)
+			}
+
+			invoiceIDs[genericLine.GetInvoiceID()] = struct{}{}
+		case billing.LineOrHierarchyTypeHierarchy:
+			hierarchy, err := line.AsHierarchy()
+			if err != nil {
+				return Invoices{}, fmt.Errorf("getting hierarchy invoice ids: %w", err)
+			}
+
+			for _, child := range hierarchy.Lines {
+				invoiceIDs[child.Invoice.GetID()] = struct{}{}
+			}
+		}
+	}
+
+	if len(invoiceIDs) == 0 {
+		return Invoices{}, nil
+	}
+
+	invoices, err := l.loadInvoices(ctx, subs.Namespace, lo.Keys(invoiceIDs))
+	if err != nil {
+		return Invoices{}, err
+	}
+
+	for invoiceID := range invoiceIDs {
+		if _, ok := invoices[invoiceID]; !ok {
+			return Invoices{}, fmt.Errorf("invoice not found for persisted subscription state: %s", invoiceID)
+		}
+	}
+
+	return invoices, nil
+}
+
+func (l Loader) loadInvoices(ctx context.Context, namespace string, invoiceIDs []string) (Invoices, error) {
 	invoices, err := l.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
-		Namespaces: []string{customerID.Namespace},
-		Customers:  []string{customerID.ID},
+		Namespaces:     []string{namespace},
+		IDs:            invoiceIDs,
+		IncludeDeleted: true,
 	})
 	if err != nil {
 		return Invoices{}, fmt.Errorf("listing invoices: %w", err)
@@ -81,9 +135,7 @@ func (l Loader) LoadInvoicesForCustomer(ctx context.Context, customerID customer
 		byID[genericInvoice.GetID()] = invoice
 	}
 
-	return Invoices{
-		ByID: byID,
-	}, nil
+	return Invoices(byID), nil
 }
 
 func normalizePersistedLineOrHierarchy(lineOrHierarchy billing.LineOrHierarchy) (billing.LineOrHierarchy, error) {

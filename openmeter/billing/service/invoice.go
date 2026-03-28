@@ -30,6 +30,7 @@ func (s *Service) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 	adapterInput := billing.ListInvoicesAdapterInput{
 		Page:              input.Page,
 		Namespaces:        input.Namespaces,
+		IDs:               input.IDs,
 		Customers:         input.Customers,
 		Statuses:          input.Statuses,
 		ExtendedStatuses:  input.ExtendedStatuses,

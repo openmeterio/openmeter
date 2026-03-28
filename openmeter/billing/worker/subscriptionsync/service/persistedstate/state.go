@@ -2,13 +2,14 @@ package persistedstate
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
 type State struct {
-	Lines      []billing.LineOrHierarchy
-	ByUniqueID map[string]billing.LineOrHierarchy
+	ByUniqueID map[string]Item
+	Invoices   Invoices
 }
 
 func (s State) Validate() error {
@@ -16,19 +17,20 @@ func (s State) Validate() error {
 		return errors.New("by unique id is required")
 	}
 
+	if s.Invoices == nil {
+		return errors.New("invoices are required")
+	}
+
 	return nil
 }
 
-type Invoices struct {
-	ByID map[string]billing.Invoice
-}
+type Invoices map[string]billing.Invoice
 
-func (i Invoices) IsGatheringInvoice(invoiceID string) bool {
-	invoice, ok := i.ByID[invoiceID]
+func (i Invoices) IsGatheringInvoice(invoiceID string) (bool, error) {
+	invoice, ok := i[invoiceID]
 	if !ok {
-		// If the invoice is not found, we assume that it is gathering, just to be safe.
-		return true
+		return false, fmt.Errorf("invoice not found in state: %s", invoiceID)
 	}
 
-	return invoice.Type() == billing.InvoiceTypeGathering
+	return invoice.Type() == billing.InvoiceTypeGathering, nil
 }

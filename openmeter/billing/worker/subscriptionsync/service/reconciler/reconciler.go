@@ -8,7 +8,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -69,7 +68,6 @@ type ApplyInput struct {
 	Customer     customer.CustomerID
 	Subscription subscription.Subscription
 	Currency     currencyx.Calculator
-	Invoices     persistedstate.Invoices
 	Plan         *Plan
 }
 
@@ -93,7 +91,8 @@ func (i ApplyInput) Validate() error {
 }
 
 type Plan struct {
-	Patches                            []Patch
+	InvoicePatches                     []InvoicePatch
+	Invoices                           persistedstate.Invoices
 	SubscriptionMaxGenerationTimeLimit time.Time
 }
 
@@ -102,149 +101,86 @@ func (p *Plan) IsEmpty() bool {
 		return true
 	}
 
-	return len(p.Patches) == 0
-}
-
-type diffItemResult struct {
-	Patch   Patch
-	Changed bool
+	return len(p.InvoicePatches) == 0
 }
 
 func (s *Service) diffItem(
 	target *targetstate.StateItem,
-	expectedLine *billing.GatheringLine, // TODO[later]: let's merge this with target as they are the same thing's different calculation stages
-	existing *billing.LineOrHierarchy,
-) (diffItemResult, error) {
+	existing persistedstate.Item,
+	patches PatchCollection,
+) error {
 	switch {
 	case target == nil && existing == nil:
-		return diffItemResult{}, nil
+		return nil
 	case target == nil && existing != nil:
 		uniqueID := lo.FromPtr(existing.ChildUniqueReferenceID())
-
-		return diffItemResult{
-			Patch: DeletePatch{
-				UniqueID: uniqueID,
-				Existing: *existing,
-			},
-			Changed: true,
-		}, nil
-	case target != nil && existing == nil && expectedLine != nil:
-		return diffItemResult{
-			Patch: CreatePatch{
-				Target: *target,
-			},
-			Changed: true,
-		}, nil
-	case target != nil && existing == nil && expectedLine == nil:
-		// If the target is not nil, but the expected line is nil, we should not create a patch (most probably
-		// because the line is ignored or empty service period)
-		return diffItemResult{}, nil
-	case target != nil && existing != nil && expectedLine == nil:
-		return diffItemResult{
-			Patch: DeletePatch{
-				UniqueID: target.UniqueID,
-				Existing: *existing,
-			},
-			Changed: true,
-		}, nil
+		return patches.AddDelete(uniqueID, existing)
+	case target != nil && existing == nil:
+		return patches.AddCreate(*target)
 	}
 
 	existingPeriod := existing.ServicePeriod()
-	targetPeriod := expectedLine.ServicePeriod
+	targetPeriod := target.GetServicePeriod()
 
-	if decision, err := semanticProrateDecision(*existing, *expectedLine); err != nil {
-		return diffItemResult{}, err
+	if decision, err := semanticProrateDecision(existing, *target); err != nil {
+		return err
 	} else if decision.ShouldProrate {
 		// Flat fee lines do not produce usage-based shrink/extend patches. Any period
 		// change for a flat fee line is reconciled through ProratePatch so that the
 		// service period and per-unit amount are updated together.
-		return diffItemResult{
-			Patch: ProratePatch{
-				Existing:       *existing,
-				Target:         *target,
-				OriginalPeriod: existingPeriod,
-				TargetPeriod:   targetPeriod,
-				OriginalAmount: decision.OriginalAmount,
-				TargetAmount:   decision.TargetAmount,
-			},
-			Changed: true,
-		}, nil
+		return patches.AddProrate(existing, *target, existingPeriod, targetPeriod, decision.OriginalAmount, decision.TargetAmount)
 	}
 
 	switch {
 	case targetPeriod.To.Before(existingPeriod.To):
-		return diffItemResult{
-			Patch: ShrinkUsageBasedPatch{
-				UniqueID: target.UniqueID,
-				Existing: *existing,
-				Target:   *target,
-			},
-			Changed: true,
-		}, nil
+		return patches.AddShrink(target.UniqueID, existing, *target)
 	case targetPeriod.To.After(existingPeriod.To):
-		return diffItemResult{
-			Patch: ExtendUsageBasedPatch{
-				Existing: *existing,
-				Target:   *target,
-			},
-			Changed: true,
-		}, nil
+		return patches.AddExtend(existing, *target)
 	default:
-		return diffItemResult{}, nil
+		return nil
 	}
 }
 
-type ProrateDecision struct {
-	ShouldProrate  bool
-	OriginalAmount alpacadecimal.Decimal
-	TargetAmount   alpacadecimal.Decimal
-}
+// filterInScopeLinesForInvoiceSync removes target items that should not
+// participate in direct billing reconciliation. We intentionally do this before
+// diff planning so non-billable targets behave as absent targets and naturally
+// reconcile to delete/no-op outcomes.
+//
+// We also render GetExpectedLine() here and drop items that do not realize to
+// an invoice line. That rendering step is only expected for direct billing
+// syncs. Other provisioning backends, such as charges, can keep different
+// target realization and proration behavior without going through this filter.
+func filterInScopeLinesForInvoiceSync(inScopeLines []targetstate.StateItem) ([]targetstate.StateItem, error) {
+	out := make([]targetstate.StateItem, 0, len(inScopeLines))
 
-func semanticProrateDecision(existing billing.LineOrHierarchy, expectedLine billing.GatheringLine) (ProrateDecision, error) {
-	if !invoiceupdater.IsFlatFee(expectedLine) {
-		return ProrateDecision{}, nil
-	}
+	for _, line := range inScopeLines {
+		if !line.IsBillable() {
+			continue
+		}
 
-	// expectedLine is materialized through targetstate.LineFromSubscriptionRateCard, which
-	// applies the existing subscription-sync proration rules when deriving the flat-fee amount.
-	targetAmount, err := invoiceupdater.GetFlatFeePerUnitAmount(expectedLine)
-	if err != nil {
-		return ProrateDecision{}, fmt.Errorf("getting expected flat fee amount: %w", err)
-	}
-
-	switch existing.Type() {
-	case billing.LineOrHierarchyTypeLine:
-		existingLine, err := existing.AsGenericLine()
+		expectedLine, err := line.GetExpectedLine()
 		if err != nil {
-			return ProrateDecision{}, fmt.Errorf("getting existing line: %w", err)
+			return nil, fmt.Errorf("generating expected line[%s]: %w", line.UniqueID, err)
 		}
 
-		if !invoiceupdater.IsFlatFee(existingLine) {
-			return ProrateDecision{}, nil
+		if expectedLine == nil {
+			continue
 		}
 
-		existingAmount, err := invoiceupdater.GetFlatFeePerUnitAmount(existingLine)
-		if err != nil {
-			return ProrateDecision{}, fmt.Errorf("getting existing flat fee amount: %w", err)
-		}
-
-		return ProrateDecision{
-			ShouldProrate:  !existingAmount.Equal(targetAmount) || !existingLine.GetServicePeriod().Equal(expectedLine.ServicePeriod),
-			OriginalAmount: existingAmount,
-			TargetAmount:   targetAmount,
-		}, nil
-	case billing.LineOrHierarchyTypeHierarchy:
-		return ProrateDecision{}, errors.New("flat fee lines cannot be reconciled against a split line hierarchy")
-	default:
-		return ProrateDecision{}, fmt.Errorf("unsupported line or hierarchy type: %s", existing.Type())
+		out = append(out, line)
 	}
+
+	return out, nil
 }
 
 func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
-	inScopeLines := input.Target.Items
+	inScopeLines, err := filterInScopeLinesForInvoiceSync(input.Target.Items)
+	if err != nil {
+		return nil, fmt.Errorf("filtering in-scope lines for invoice sync: %w", err)
+	}
 	persisted := input.Persisted
 
-	if len(inScopeLines) == 0 && len(persisted.Lines) == 0 {
+	if len(inScopeLines) == 0 && len(persisted.ByUniqueID) == 0 {
 		return &Plan{
 			SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
 		}, nil
@@ -265,7 +201,14 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 	slices.Sort(deletedLines)
 	slices.Sort(inScopeLineUniqueIDs)
 
-	patches := make([]Patch, 0, len(deletedLines)+len(inScopeLineUniqueIDs))
+	patchCollections, err := newPatchCollectionRouter(len(deletedLines)+len(inScopeLineUniqueIDs), input.Persisted.Invoices)
+	if err != nil {
+		return nil, fmt.Errorf("creating collection by type: %w", err)
+	}
+
+	// TODO: Once we have charges wired in we need a helper function to determine the default routing for new lines depending on the
+	// settlement type set on the subscription and feature flags in the config of subscription sync.
+	defaultCollection := patchCollections.ResolveDefaultCollection()
 
 	for _, id := range deletedLines {
 		line, ok := persisted.ByUniqueID[id]
@@ -273,47 +216,43 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 			return nil, fmt.Errorf("existing line[%s] not found in the existing lines", id)
 		}
 
-		diff, err := s.diffItem(nil, nil, &line)
+		patchCollection, err := patchCollections.GetCollectionFor(line)
 		if err != nil {
-			return nil, fmt.Errorf("diffing deleted line[%s]: %w", id, err)
+			return nil, fmt.Errorf("getting patch collection for deleted line[%s]: %w", id, err)
 		}
-		if diff.Changed {
-			patches = append(patches, diff.Patch)
+
+		if err := s.diffItem(nil, line, patchCollection); err != nil {
+			return nil, fmt.Errorf("diffing deleted line[%s]: %w", id, err)
 		}
 	}
 
 	for _, id := range inScopeLineUniqueIDs {
 		targetLine := inScopeLinesByUniqueID[id]
-		expectedLine, err := targetLine.GetExpectedLine()
-		if err != nil {
-			return nil, fmt.Errorf("generating expected line[%s]: %w", id, err)
-		}
-
 		existingLine, ok := persisted.ByUniqueID[id]
 		if !ok {
-			diff, err := s.diffItem(&targetLine, expectedLine, nil)
-			if err != nil {
+			// The line is not in the persisted state, so we need to fall back to the default collection esentially
+			// forcing it to be created using the specified collection. This allows us to transition from invocing based
+			// upcoming lines to charges based provisioning in a graceful manner.
+
+			if err := s.diffItem(&targetLine, nil, defaultCollection); err != nil {
 				return nil, fmt.Errorf("diffing new line[%s]: %w", id, err)
-			}
-			if diff.Changed {
-				patches = append(patches, diff.Patch)
 			}
 			continue
 		}
 
-		diff, err := s.diffItem(&targetLine, expectedLine, &existingLine)
+		patchCollection, err := patchCollections.GetCollectionFor(existingLine)
 		if err != nil {
-			return nil, fmt.Errorf("diffing existing line[%s]: %w", id, err)
+			return nil, fmt.Errorf("getting patch collection for existing line[%s]: %w", id, err)
 		}
-		if diff.Changed {
-			patches = append(patches, diff.Patch)
+
+		if err := s.diffItem(&targetLine, existingLine, patchCollection); err != nil {
+			return nil, fmt.Errorf("diffing existing line[%s]: %w", id, err)
 		}
 	}
 
 	return &Plan{
-		Patches: lo.Filter(patches, func(p Patch, _ int) bool {
-			return p != nil
-		}),
+		InvoicePatches:                     patchCollections.CollectInvoicePatches(),
+		Invoices:                           input.Persisted.Invoices,
 		SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
 	}, nil
 }
@@ -327,14 +266,11 @@ func (s *Service) Apply(ctx context.Context, input ApplyInput) error {
 		return nil
 	}
 
-	invoicePatches := make([]invoiceupdater.Patch, 0, len(input.Plan.Patches))
+	patches := input.Plan.InvoicePatches
+	invoicePatches := make([]invoiceupdater.Patch, 0, len(patches))
 
-	for _, patch := range input.Plan.Patches {
-		newInvoicePatches, err := patch.GetInvoicePatches(GetInvoicePatchesInput{
-			Subscription: input.Subscription,
-			Currency:     input.Currency,
-			Invoices:     input.Invoices,
-		})
+	for _, patch := range patches {
+		newInvoicePatches, err := patch.GetInvoicePatches()
 		if err != nil {
 			return fmt.Errorf("getting invoice patches for patch[%s/%s]: %w", patch.Operation(), patch.UniqueReferenceID(), err)
 		}
@@ -345,7 +281,7 @@ func (s *Service) Apply(ctx context.Context, input ApplyInput) error {
 	invoiceUpdater := invoiceupdater.New(s.billingService, s.logger)
 
 	if input.DryRun {
-		invoiceUpdater.LogPatches(invoicePatches, input.Invoices.ByID)
+		invoiceUpdater.LogPatches(invoicePatches, input.Plan.Invoices)
 		return nil
 	}
 
