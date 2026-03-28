@@ -8,7 +8,7 @@ import (
 
 type State struct {
 	Lines      []billing.LineOrHierarchy
-	ByUniqueID map[string]billing.LineOrHierarchy
+	ByUniqueID map[string]Item
 }
 
 func (s State) Validate() error {

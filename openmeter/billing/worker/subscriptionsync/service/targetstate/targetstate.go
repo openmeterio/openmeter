@@ -17,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -201,12 +200,10 @@ func (b Builder) correctPeriodStartForUpcomingLines(ctx context.Context, subscri
 		}
 
 		if existingCurrentLine, ok := persisted.ByUniqueID[line.UniqueID]; ok {
-			syncIgnore, err := b.lineOrHierarchyHasAnnotation(existingCurrentLine, billing.AnnotationSubscriptionSyncIgnore)
-			if err != nil {
-				return nil, fmt.Errorf("checking if line has subscription sync ignore annotation: %w", err)
-			}
+			isSubscriptionManaged := existingCurrentLine.IsSubscriptionManaged()
+			syncIgnore := existingCurrentLine.HasLastLineAnnotation(billing.AnnotationSubscriptionSyncIgnore)
 
-			if syncIgnore {
+			if isSubscriptionManaged && syncIgnore {
 				continue
 			}
 		}
@@ -224,19 +221,14 @@ func (b Builder) correctPeriodStartForUpcomingLines(ctx context.Context, subscri
 			continue
 		}
 
-		existingPreviousLineSyncIgnoreAnnotation, err := b.lineOrHierarchyHasAnnotation(existingPreviousLine, billing.AnnotationSubscriptionSyncIgnore)
-		if err != nil {
-			return nil, fmt.Errorf("checking if previous line has subscription sync ignore annotation: %w", err)
-		}
+		existingPreviousLineIsSubscriptionManaged := existingPreviousLine.IsSubscriptionManaged()
+		existingPreviousLineSyncIgnoreAnnotation := existingPreviousLine.HasLastLineAnnotation(billing.AnnotationSubscriptionSyncIgnore)
 
-		if !existingPreviousLineSyncIgnoreAnnotation {
+		if !existingPreviousLineIsSubscriptionManaged || !existingPreviousLineSyncIgnoreAnnotation {
 			continue
 		}
 
-		existingPreviousLineSyncForceContinuousLinesAnnotation, err := b.lineOrHierarchyHasAnnotation(existingPreviousLine, billing.AnnotationSubscriptionSyncForceContinuousLines)
-		if err != nil {
-			return nil, fmt.Errorf("checking if previous line has subscription sync force continuous lines annotation: %w", err)
-		}
+		existingPreviousLineSyncForceContinuousLinesAnnotation := existingPreviousLine.HasLastLineAnnotation(billing.AnnotationSubscriptionSyncForceContinuousLines)
 
 		if !existingPreviousLineSyncForceContinuousLinesAnnotation {
 			continue
@@ -268,44 +260,4 @@ func (b Builder) correctPeriodStartForUpcomingLines(ctx context.Context, subscri
 	}
 
 	return inScopeLines, nil
-}
-
-func (b Builder) lineOrHierarchyHasAnnotation(lineOrHierarchy billing.LineOrHierarchy, annotation string) (bool, error) {
-	switch lineOrHierarchy.Type() {
-	case billing.LineOrHierarchyTypeLine:
-		previousLine, err := lineOrHierarchy.AsGenericLine()
-		if err != nil {
-			return false, fmt.Errorf("getting previous line: %w", err)
-		}
-
-		return b.lineHasAnnotation(previousLine.GetManagedBy(), previousLine.GetAnnotations(), annotation), nil
-	case billing.LineOrHierarchyTypeHierarchy:
-		hierarchy, err := lineOrHierarchy.AsHierarchy()
-		if err != nil {
-			return false, fmt.Errorf("getting previous hierarchy: %w", err)
-		}
-
-		return b.hierarchyHasAnnotation(hierarchy, annotation)
-	default:
-		return false, nil
-	}
-}
-
-func (b Builder) lineHasAnnotation(managedBy billing.InvoiceLineManagedBy, annotations models.Annotations, annotation string) bool {
-	if managedBy != billing.SubscriptionManagedLine {
-		return false
-	}
-
-	return annotations.GetBool(annotation)
-}
-
-func (b Builder) hierarchyHasAnnotation(hierarchy *billing.SplitLineHierarchy, annotation string) (bool, error) {
-	servicePeriod := hierarchy.Group.ServicePeriod
-	for _, child := range hierarchy.Lines {
-		if child.Line.GetServicePeriod().To.Equal(servicePeriod.End) && child.Line.GetDeletedAt() == nil {
-			return b.lineHasAnnotation(child.Line.GetManagedBy(), child.Line.GetAnnotations(), annotation), nil
-		}
-	}
-
-	return false, nil
 }

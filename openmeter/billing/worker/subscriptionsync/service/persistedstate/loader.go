@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -44,16 +42,23 @@ func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.Subsc
 		return State{}, fmt.Errorf("normalizing existing lines: %w", err)
 	}
 
-	byUniqueID, unique := slicesx.UniqueGroupBy(
-		lo.Filter(lines, func(line billing.LineOrHierarchy, _ int) bool {
-			return line.ChildUniqueReferenceID() != nil
-		}),
-		func(line billing.LineOrHierarchy) string {
-			return *line.ChildUniqueReferenceID()
-		},
-	)
-	if !unique {
-		return State{}, fmt.Errorf("duplicate unique ids in the existing lines")
+	byUniqueID := make(map[string]Item, len(lines))
+	for _, line := range lines {
+		uniqueID := line.ChildUniqueReferenceID()
+		if uniqueID == nil {
+			continue
+		}
+
+		item, err := NewItemFromLineOrHierarchy(line)
+		if err != nil {
+			return State{}, fmt.Errorf("creating persisted item[%s]: %w", *uniqueID, err)
+		}
+
+		if _, ok := byUniqueID[*uniqueID]; ok {
+			return State{}, fmt.Errorf("duplicate unique ids in the existing lines")
+		}
+
+		byUniqueID[*uniqueID] = item
 	}
 
 	return State{
