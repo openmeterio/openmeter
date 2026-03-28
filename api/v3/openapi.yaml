@@ -5321,6 +5321,10 @@ components:
           allOf:
             - $ref: '#/components/schemas/FilterSingleString'
           description: Filter by currency code. e.g. ?filter[currency][eq]=USD
+        source:
+          allOf:
+            - $ref: '#/components/schemas/FilterSingleString'
+          description: Filter by source. e.g. ?filter[source][eq]=system
       description: Filter options for listing LLM cost prices.
     Meter:
       type: object

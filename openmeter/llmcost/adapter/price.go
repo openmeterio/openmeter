@@ -40,6 +40,9 @@ func (a *adapter) ListPrices(ctx context.Context, input llmcost.ListPricesInput)
 		applyStringFilter(input.Currency, &query,
 			pricedb.CurrencyEqualFold, pricedb.CurrencyNEQ, pricedb.CurrencyContainsFold,
 		)
+		applyStringFilter(input.Source, &query,
+			pricedb.SourceEqualFold, pricedb.SourceNEQ, pricedb.SourceContainsFold,
+		)
 
 		// Order
 		order := entutils.GetOrdering(sortx.OrderDefault)
@@ -245,6 +248,9 @@ func (a *adapter) ListOverrides(ctx context.Context, input llmcost.ListOverrides
 		applyStringFilter(input.Currency, &query,
 			pricedb.CurrencyEqualFold, pricedb.CurrencyNEQ, pricedb.CurrencyContainsFold,
 		)
+		// Source filter is not applied here because ListOverrides already
+		// constrains to source = "manual" (line above). Adding a user-supplied
+		// source filter would create contradictory WHERE clauses.
 
 		query = query.Order(pricedb.ByProvider(), pricedb.ByModelID())
 
