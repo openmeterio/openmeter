@@ -76,6 +76,12 @@ func (h *handler) ListOverrides() ListOverridesHandler {
 					return req, err
 				}
 				req.Currency = currency
+
+				source, err := filterSingleStringToDomain(params.Filter.Source)
+				if err != nil {
+					return req, err
+				}
+				req.Source = source
 			}
 
 			return req, nil

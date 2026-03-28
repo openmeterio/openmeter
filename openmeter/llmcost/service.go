@@ -70,6 +70,9 @@ type ListPricesInput struct {
 
 	// Currency filters by currency code.
 	Currency *filters.StringFilter `json:"currency,omitempty"`
+
+	// Source filters by price source (e.g., "manual", "system").
+	Source *filters.StringFilter `json:"source,omitempty"`
 }
 
 var allowedOrderBy = []string{"id", "provider.id", "model.id", "effective_from", "effective_to"}
@@ -205,6 +208,7 @@ type ListOverridesInput struct {
 	ModelID   *filters.StringFilter `json:"model_id,omitempty"`
 	ModelName *filters.StringFilter `json:"model_name,omitempty"`
 	Currency  *filters.StringFilter `json:"currency,omitempty"`
+	Source    *filters.StringFilter `json:"source,omitempty"`
 }
 
 func (i ListOverridesInput) Validate() error {

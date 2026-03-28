@@ -54,6 +54,9 @@ model ListPricesParamsFilter {
 
   /** Filter by currency code. e.g. ?filter[currency][eq]=USD */
   currency?: FilterSingleString;
+
+  /** Filter by source. e.g. ?filter[source][eq]=system */
+  source?: FilterSingleString;
 }
 
 /**
