@@ -8,6 +8,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -20,7 +21,9 @@ type FeatureFlags struct {
 }
 
 type Config struct {
-	BillingService          billing.Service
+	BillingService billing.Service
+	// ChargesService is optional and can be nil if charges are not used for this subscription sync.
+	ChargesService          charges.Service
 	SubscriptionService     subscription.Service
 	SubscriptionSyncAdapter subscriptionsync.Adapter
 	FeatureFlags            FeatureFlags
@@ -56,6 +59,7 @@ var _ subscriptionsync.Service = (*Service)(nil)
 
 type Service struct {
 	billingService          billing.Service
+	chargesService          charges.Service
 	reconciler              reconciler.Reconciler
 	subscriptionService     subscription.Service
 	subscriptionSyncAdapter subscriptionsync.Adapter
@@ -77,6 +81,7 @@ func New(config Config) (*Service, error) {
 	}
 	return &Service{
 		billingService:          config.BillingService,
+		chargesService:          config.ChargesService,
 		reconciler:              reconcilerSvc,
 		subscriptionSyncAdapter: config.SubscriptionSyncAdapter,
 		featureFlags:            config.FeatureFlags,

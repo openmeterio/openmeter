@@ -4,16 +4,29 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+type ItemType string
+
+const (
+	ItemTypeInvoiceLine           ItemType = "invoice.line"
+	ItemTypeInvoiceSplitLineGroup ItemType = "invoice.splitLineGroup"
+	ItemTypeChargeFlatFee         ItemType = "charge.flatFee"
+	ItemTypeChargeUsageBased      ItemType = "charge.usageBased"
+)
+
 type Item interface {
 	ID() models.NamespacedID
-	Type() billing.LineOrHierarchyType
+	Type() ItemType
 	ChildUniqueReferenceID() *string
 	ServicePeriod() timeutil.ClosedPeriod
 	IsSubscriptionManaged() bool
+	HasAnnotation(annotation string) bool
 	HasLastLineAnnotation(annotation string) bool
 }
 
@@ -23,6 +36,14 @@ type LineGetter interface {
 
 type SplitLineHierarchyGetter interface {
 	GetSplitLineHierarchy() *billing.SplitLineHierarchy
+}
+
+type UsageBasedChargeGetter interface {
+	GetUsageBasedCharge() usagebased.Charge
+}
+
+type FlatFeeChargeGetter interface {
+	GetFlatFeeCharge() flatfee.Charge
 }
 
 type persistedLine struct {
@@ -45,8 +66,8 @@ func newPersistedLine(line billing.GenericInvoiceLine) (persistedLine, error) {
 	return persistedLine{line: line}, nil
 }
 
-func (i persistedLine) Type() billing.LineOrHierarchyType {
-	return billing.LineOrHierarchyTypeLine
+func (i persistedLine) Type() ItemType {
+	return ItemTypeInvoiceLine
 }
 
 func (i persistedLine) ChildUniqueReferenceID() *string {
@@ -74,8 +95,12 @@ func (i persistedLine) IsSubscriptionManaged() bool {
 	return i.line.GetManagedBy() == billing.SubscriptionManagedLine
 }
 
-func (i persistedLine) HasLastLineAnnotation(annotation string) bool {
+func (i persistedLine) HasAnnotation(annotation string) bool {
 	return i.line.GetAnnotations().GetBool(annotation)
+}
+
+func (i persistedLine) HasLastLineAnnotation(annotation string) bool {
+	return i.HasAnnotation(annotation)
 }
 
 // ItemAsLine returns the wrapped line when the persisted item is line-backed.
@@ -108,8 +133,8 @@ func newPersistedSplitLineHierarchy(hierarchy *billing.SplitLineHierarchy) (pers
 	return persistedSplitLineHierarchy{hierarchy: hierarchy}, nil
 }
 
-func (i persistedSplitLineHierarchy) Type() billing.LineOrHierarchyType {
-	return billing.LineOrHierarchyTypeHierarchy
+func (i persistedSplitLineHierarchy) Type() ItemType {
+	return ItemTypeInvoiceSplitLineGroup
 }
 
 func (i persistedSplitLineHierarchy) ChildUniqueReferenceID() *string {
@@ -140,13 +165,17 @@ func (i persistedSplitLineHierarchy) IsSubscriptionManaged() bool {
 	return child.GetManagedBy() == billing.SubscriptionManagedLine
 }
 
-func (i persistedSplitLineHierarchy) HasLastLineAnnotation(annotation string) bool {
+func (i persistedSplitLineHierarchy) HasAnnotation(annotation string) bool {
 	child := i.getLastLineForAnnotations()
 	if child == nil {
 		return false
 	}
 
 	return child.GetAnnotations().GetBool(annotation)
+}
+
+func (i persistedSplitLineHierarchy) HasLastLineAnnotation(annotation string) bool {
+	return i.HasAnnotation(annotation)
 }
 
 func (i persistedSplitLineHierarchy) getLastLineForAnnotations() billing.GenericInvoiceLine {
@@ -199,11 +228,163 @@ func NewItemFromLineOrHierarchy(lineOrHierarchy billing.LineOrHierarchy) (Item, 
 	}
 }
 
-type errorDetailsAccessor interface {
-	ID() models.NamespacedID
-	Type() billing.LineOrHierarchyType
+type persistedUsageBasedCharge struct {
+	charge usagebased.Charge
 }
 
-func getErrorDetails(in errorDetailsAccessor) string {
+var (
+	_ Item                   = persistedUsageBasedCharge{}
+	_ UsageBasedChargeGetter = persistedUsageBasedCharge{}
+)
+
+// newPersistedUsageBasedCharge constructs a persisted usage-based charge item.
+// Kept private so persistedstate controls construction-time validation and Item
+// implementations can expose non-erroring accessors.
+func newPersistedUsageBasedCharge(charge usagebased.Charge) (persistedUsageBasedCharge, error) {
+	if err := charge.Validate(); err != nil {
+		return persistedUsageBasedCharge{}, fmt.Errorf("usage based charge is invalid: %w", err)
+	}
+
+	return persistedUsageBasedCharge{charge: charge}, nil
+}
+
+func (i persistedUsageBasedCharge) ID() models.NamespacedID {
+	chargeID := i.charge.GetChargeID()
+
+	return models.NamespacedID{
+		Namespace: chargeID.Namespace,
+		ID:        chargeID.ID,
+	}
+}
+
+func (i persistedUsageBasedCharge) Type() ItemType {
+	return ItemTypeChargeUsageBased
+}
+
+func (i persistedUsageBasedCharge) ChildUniqueReferenceID() *string {
+	return i.charge.Intent.UniqueReferenceID
+}
+
+func (i persistedUsageBasedCharge) ServicePeriod() timeutil.ClosedPeriod {
+	return i.charge.Intent.ServicePeriod
+}
+
+func (i persistedUsageBasedCharge) IsSubscriptionManaged() bool {
+	return i.charge.Intent.ManagedBy == billing.SubscriptionManagedLine
+}
+
+func (i persistedUsageBasedCharge) HasAnnotation(annotation string) bool {
+	return i.charge.Intent.Annotations.GetBool(annotation)
+}
+
+// Charges carry subscription-sync annotations directly on the charge intent, so
+// the effective "last line" annotation is always the charge annotation itself.
+func (i persistedUsageBasedCharge) HasLastLineAnnotation(annotation string) bool {
+	return i.HasAnnotation(annotation)
+}
+
+func (i persistedUsageBasedCharge) GetUsageBasedCharge() usagebased.Charge {
+	return i.charge
+}
+
+// ItemAsUsageBasedCharge returns the wrapped usage-based charge when the persisted item is usage-based.
+func ItemAsUsageBasedCharge(in Item) (usagebased.Charge, error) {
+	chargeGetter, ok := in.(UsageBasedChargeGetter)
+	if !ok {
+		return usagebased.Charge{}, fmt.Errorf("persisted item does not implement usage based charge getter: %s", getErrorDetails(in))
+	}
+
+	return chargeGetter.GetUsageBasedCharge(), nil
+}
+
+type persistedFlatFeeCharge struct {
+	charge flatfee.Charge
+}
+
+var (
+	_ Item                = persistedFlatFeeCharge{}
+	_ FlatFeeChargeGetter = persistedFlatFeeCharge{}
+)
+
+// newPersistedFlatFeeCharge constructs a persisted flat-fee charge item.
+// Kept private so persistedstate controls construction-time validation and Item
+// implementations can expose non-erroring accessors.
+func newPersistedFlatFeeCharge(charge flatfee.Charge) (persistedFlatFeeCharge, error) {
+	if err := charge.Validate(); err != nil {
+		return persistedFlatFeeCharge{}, fmt.Errorf("flat fee charge is invalid: %w", err)
+	}
+
+	return persistedFlatFeeCharge{charge: charge}, nil
+}
+
+func (i persistedFlatFeeCharge) ID() models.NamespacedID {
+	chargeID := i.charge.GetChargeID()
+
+	return models.NamespacedID{
+		Namespace: chargeID.Namespace,
+		ID:        chargeID.ID,
+	}
+}
+
+func (i persistedFlatFeeCharge) Type() ItemType {
+	return ItemTypeChargeFlatFee
+}
+
+func (i persistedFlatFeeCharge) ChildUniqueReferenceID() *string {
+	return i.charge.Intent.UniqueReferenceID
+}
+
+func (i persistedFlatFeeCharge) ServicePeriod() timeutil.ClosedPeriod {
+	return i.charge.Intent.ServicePeriod
+}
+
+func (i persistedFlatFeeCharge) IsSubscriptionManaged() bool {
+	return i.charge.Intent.ManagedBy == billing.SubscriptionManagedLine
+}
+
+func (i persistedFlatFeeCharge) HasAnnotation(annotation string) bool {
+	return i.charge.Intent.Annotations.GetBool(annotation)
+}
+
+// Charges carry subscription-sync annotations directly on the charge intent, so
+// the effective "last line" annotation is always the charge annotation itself.
+func (i persistedFlatFeeCharge) HasLastLineAnnotation(annotation string) bool {
+	return i.HasAnnotation(annotation)
+}
+
+func (i persistedFlatFeeCharge) GetFlatFeeCharge() flatfee.Charge {
+	return i.charge
+}
+
+// ItemAsFlatFeeCharge returns the wrapped flat-fee charge when the persisted item is flat-fee-backed.
+func ItemAsFlatFeeCharge(in Item) (flatfee.Charge, error) {
+	chargeGetter, ok := in.(FlatFeeChargeGetter)
+	if !ok {
+		return flatfee.Charge{}, fmt.Errorf("persisted item does not implement flat fee charge getter: %s", getErrorDetails(in))
+	}
+
+	return chargeGetter.GetFlatFeeCharge(), nil
+}
+
+func NewChargeItemFromChargeType(chargeType meta.ChargeType, usageBasedCharge *usagebased.Charge, flatFeeCharge *flatfee.Charge) (Item, error) {
+	switch chargeType {
+	case meta.ChargeTypeUsageBased:
+		if usageBasedCharge == nil {
+			return nil, fmt.Errorf("usage based charge is nil")
+		}
+
+		return newPersistedUsageBasedCharge(*usageBasedCharge)
+	case meta.ChargeTypeFlatFee:
+		if flatFeeCharge == nil {
+			return nil, fmt.Errorf("flat fee charge is nil")
+		}
+
+		return newPersistedFlatFeeCharge(*flatFeeCharge)
+	default:
+		return nil, fmt.Errorf("unsupported charge type: %s", chargeType)
+	}
+}
+
+func getErrorDetails(in Item) string {
 	return fmt.Sprintf("[id=%s, type=%s]", in.ID(), in.Type())
 }

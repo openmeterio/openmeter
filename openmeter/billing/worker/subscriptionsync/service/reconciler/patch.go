@@ -7,7 +7,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
@@ -70,9 +69,9 @@ func newPatchCollectionRouter(capacity int, invoices persistedstate.Invoices) (*
 
 func (c patchCollectionRouter) GetCollectionFor(item persistedstate.Item) (PatchCollection, error) {
 	switch item.Type() {
-	case billing.LineOrHierarchyTypeLine:
+	case persistedstate.ItemTypeInvoiceLine:
 		return c.lineCollection, nil
-	case billing.LineOrHierarchyTypeHierarchy:
+	case persistedstate.ItemTypeInvoiceSplitLineGroup:
 		return c.hierarchyCollection, nil
 	default:
 		return nil, fmt.Errorf("unsupported persisted item type: %s [id=%s]", item.Type(), item.ID())

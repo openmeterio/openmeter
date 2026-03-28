@@ -54,6 +54,10 @@ func (a *adapter) ListCharges(ctx context.Context, input charges.ListChargesInpu
 			query = query.Where(dbchargessearchv1.CustomerIDIn(input.CustomerIDs...))
 		}
 
+		if len(input.SubscriptionIDs) > 0 {
+			query = query.Where(dbchargessearchv1.SubscriptionIDIn(input.SubscriptionIDs...))
+		}
+
 		if len(input.StatusNotIn) > 0 {
 			query = query.Where(dbchargessearchv1.StatusNotIn(input.StatusNotIn...))
 		}

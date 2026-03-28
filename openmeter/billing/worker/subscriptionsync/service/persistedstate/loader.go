@@ -7,8 +7,11 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -18,13 +21,19 @@ type billingService interface {
 	ListInvoices(ctx context.Context, input billing.ListInvoicesInput) (billing.ListInvoicesResponse, error)
 }
 
-type Loader struct {
-	billingService billingService
+type chargeService interface {
+	ListCharges(ctx context.Context, input charges.ListChargesInput) (pagination.Result[charges.Charge], error)
 }
 
-func NewLoader(billingService billingService) Loader {
+type Loader struct {
+	billingService billingService
+	chargeService  chargeService
+}
+
+func NewLoader(billingService billingService, chargeService chargeService) Loader {
 	return Loader{
 		billingService: billingService,
+		chargeService:  chargeService,
 	}
 }
 
@@ -67,10 +76,95 @@ func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.Subsc
 		return State{}, err
 	}
 
+	chargesByUniqueID, err := l.loadChargesForSubscription(ctx, subs)
+	if err != nil {
+		return State{}, err
+	}
+
+	for uniqueID := range chargesByUniqueID {
+		if _, ok := byUniqueID[uniqueID]; ok {
+			return State{}, fmt.Errorf("duplicate unique id across persisted lines and charges: %s", uniqueID)
+		}
+	}
+
 	return State{
-		ByUniqueID: byUniqueID,
-		Invoices:   invoices,
+		ByUniqueID:        byUniqueID,
+		ChargesByUniqueID: chargesByUniqueID,
+		Invoices:          invoices,
 	}, nil
+}
+
+func (l Loader) loadChargesForSubscription(ctx context.Context, subs subscription.Subscription) (map[string]Item, error) {
+	if l.chargeService == nil {
+		return map[string]Item{}, nil
+	}
+
+	listedCharges, err := l.chargeService.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:       subs.Namespace,
+		SubscriptionIDs: []string{subs.ID},
+		Expands:         meta.ExpandNone,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("listing charges for subscription: %w", err)
+	}
+
+	byUniqueID := make(map[string]Item, len(listedCharges.Items))
+
+	for _, charge := range listedCharges.Items {
+		switch charge.Type() {
+		case meta.ChargeTypeUsageBased:
+			usageBasedCharge, err := charge.AsUsageBasedCharge()
+			if err != nil {
+				return nil, fmt.Errorf("getting usage based charge: %w", err)
+			}
+
+			if usageBasedCharge.Intent.UniqueReferenceID == nil {
+				continue
+			}
+
+			item, err := NewChargeItemFromChargeType(meta.ChargeTypeUsageBased, &usageBasedCharge, nil)
+			if err != nil {
+				return nil, fmt.Errorf("creating persisted usage based charge item[%s]: %w", *usageBasedCharge.Intent.UniqueReferenceID, err)
+			}
+
+			if _, ok := byUniqueID[*usageBasedCharge.Intent.UniqueReferenceID]; ok {
+				return nil, fmt.Errorf("duplicate unique ids in the existing charges")
+			}
+
+			byUniqueID[*usageBasedCharge.Intent.UniqueReferenceID] = item
+		case meta.ChargeTypeFlatFee:
+			flatFeeCharge, err := charge.AsFlatFeeCharge()
+			if err != nil {
+				return nil, fmt.Errorf("getting flat fee charge: %w", err)
+			}
+
+			if flatFeeCharge.Intent.UniqueReferenceID == nil {
+				continue
+			}
+
+			item, err := NewChargeItemFromChargeType(meta.ChargeTypeFlatFee, nil, &flatFeeCharge)
+			if err != nil {
+				return nil, fmt.Errorf("creating persisted flat fee charge item[%s]: %w", *flatFeeCharge.Intent.UniqueReferenceID, err)
+			}
+
+			if _, ok := byUniqueID[*flatFeeCharge.Intent.UniqueReferenceID]; ok {
+				return nil, fmt.Errorf("duplicate unique ids in the existing charges")
+			}
+
+			byUniqueID[*flatFeeCharge.Intent.UniqueReferenceID] = item
+		case meta.ChargeTypeCreditPurchase:
+			creditPurchaseCharge, err := charge.AsCreditPurchaseCharge()
+			if err != nil {
+				return nil, fmt.Errorf("getting credit purchase charge: %w", err)
+			}
+
+			return nil, fmt.Errorf("credit purchase charges tied to subscriptions are unsupported [charge_id=%s, subscription_id=%s]", creditPurchaseCharge.ID, subs.ID)
+		default:
+			return nil, fmt.Errorf("unsupported charge type in persisted subscription state: %s", charge.Type())
+		}
+	}
+
+	return byUniqueID, nil
 }
 
 func (l Loader) loadInvoicesForSubscriptionLines(ctx context.Context, subs subscription.Subscription, lines []billing.LineOrHierarchy) (Invoices, error) {

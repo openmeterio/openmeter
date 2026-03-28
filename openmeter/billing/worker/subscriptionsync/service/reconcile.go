@@ -16,7 +16,7 @@ func (s *Service) buildSyncPlan(ctx context.Context, subsView subscription.Subsc
 	span := tracex.Start[*reconciler.Plan](ctx, s.tracer, "billing.worker.subscription.sync.buildSyncPlan")
 
 	return span.Wrap(func(ctx context.Context) (*reconciler.Plan, error) {
-		persistedLoader := persistedstate.NewLoader(s.billingService)
+		persistedLoader := persistedstate.NewLoader(s.billingService, s.chargesService)
 		persisted, err := persistedLoader.LoadForSubscription(ctx, subsView.Subscription)
 		if err != nil {
 			return nil, err
