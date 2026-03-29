@@ -11,20 +11,25 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestCalculateAmountAfterProration(t *testing.T) {
-	now := time.Now().UTC().Truncate(time.Second)
+	// 2026-01-01 to 2026-02-01 (full month)
+	fullMonthStart := datetime.MustParseTimeInLocation(t, "2026-01-01T00:00:00Z", time.UTC).AsTime()
+	fullMonthEnd := datetime.MustParseTimeInLocation(t, "2026-02-01T00:00:00Z", time.UTC).AsTime()
+	// 2026-01-01 to 2026-01-16 (half month, 15 out of 31 days)
+	halfMonthEnd := datetime.MustParseTimeInLocation(t, "2026-01-16T00:00:00Z", time.UTC).AsTime()
 
 	fullMonth := timeutil.ClosedPeriod{
-		From: now,
-		To:   now.Add(30 * 24 * time.Hour),
+		From: fullMonthStart,
+		To:   fullMonthEnd,
 	}
 
 	halfMonth := timeutil.ClosedPeriod{
-		From: now,
-		To:   now.Add(15 * 24 * time.Hour),
+		From: fullMonthStart,
+		To:   halfMonthEnd,
 	}
 
 	amount100 := alpacadecimal.NewFromInt(100)
@@ -40,7 +45,7 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 				FullServicePeriod: fullMonth,
 				BillingPeriod:     fullMonth,
 			},
-			InvoiceAt:             now,
+			InvoiceAt:             fullMonthStart,
 			SettlementMode:        productcatalog.InvoiceOnlySettlementMode,
 			PaymentTerm:           productcatalog.InAdvancePaymentTerm,
 			AmountBeforeProration: amount100,
@@ -73,21 +78,22 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 		assert.True(t, result.Equal(amount100), "expected %s, got %s", amount100, result)
 	})
 
-	t.Run("half period returns half amount", func(t *testing.T) {
+	t.Run("half period returns prorated amount", func(t *testing.T) {
 		intent := baseIntent()
 
 		result, err := intent.CalculateAmountAfterProration()
 		require.NoError(t, err)
 
-		expected := alpacadecimal.NewFromInt(50)
+		// 15 days out of 31 days = 100 * 15/31 = 48.387... rounded to 48.39 for USD
+		expected := alpacadecimal.NewFromFloat(48.39)
 		assert.True(t, result.Equal(expected), "expected %s, got %s", expected, result)
 	})
 
 	t.Run("zero length service period returns full amount", func(t *testing.T) {
 		intent := baseIntent()
 		intent.ServicePeriod = timeutil.ClosedPeriod{
-			From: now,
-			To:   now,
+			From: fullMonthStart,
+			To:   fullMonthStart,
 		}
 
 		result, err := intent.CalculateAmountAfterProration()
@@ -98,8 +104,8 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 	t.Run("zero length full service period returns full amount", func(t *testing.T) {
 		intent := baseIntent()
 		intent.FullServicePeriod = timeutil.ClosedPeriod{
-			From: now,
-			To:   now,
+			From: fullMonthStart,
+			To:   fullMonthStart,
 		}
 
 		result, err := intent.CalculateAmountAfterProration()
@@ -109,21 +115,17 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 
 	t.Run("rounds to currency precision", func(t *testing.T) {
 		intent := baseIntent()
-		// Use a period ratio that produces a non-terminating decimal
-		// 10 days out of 30 = 1/3, so 100 * 1/3 = 33.333... rounded to 33.33 for USD
+		// 10 days out of 31 = 100 * 10/31 = 32.258... rounded to 32.26 for USD
+		tenDaysEnd := datetime.MustParseTimeInLocation(t, "2026-01-11T00:00:00Z", time.UTC).AsTime()
 		intent.ServicePeriod = timeutil.ClosedPeriod{
-			From: now,
-			To:   now.Add(10 * 24 * time.Hour),
-		}
-		intent.FullServicePeriod = timeutil.ClosedPeriod{
-			From: now,
-			To:   now.Add(30 * 24 * time.Hour),
+			From: fullMonthStart,
+			To:   tenDaysEnd,
 		}
 
 		result, err := intent.CalculateAmountAfterProration()
 		require.NoError(t, err)
 
-		expected := alpacadecimal.NewFromFloat(33.33)
+		expected := alpacadecimal.NewFromFloat(32.26)
 		assert.True(t, result.Equal(expected), "expected %s, got %s", expected, result)
 	})
 
@@ -131,20 +133,17 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 		intent := baseIntent()
 		intent.Currency = currencyx.Code("JPY")
 		intent.AmountBeforeProration = alpacadecimal.NewFromInt(1000)
-		// 10 days out of 30 = 1/3, so 1000 * 1/3 = 333.333... rounded to 333 for JPY
+		// 10 days out of 31 = 1000 * 10/31 = 322.580... rounded to 323 for JPY
+		tenDaysEnd := datetime.MustParseTimeInLocation(t, "2026-01-11T00:00:00Z", time.UTC).AsTime()
 		intent.ServicePeriod = timeutil.ClosedPeriod{
-			From: now,
-			To:   now.Add(10 * 24 * time.Hour),
-		}
-		intent.FullServicePeriod = timeutil.ClosedPeriod{
-			From: now,
-			To:   now.Add(30 * 24 * time.Hour),
+			From: fullMonthStart,
+			To:   tenDaysEnd,
 		}
 
 		result, err := intent.CalculateAmountAfterProration()
 		require.NoError(t, err)
 
-		expected := alpacadecimal.NewFromInt(333)
+		expected := alpacadecimal.NewFromInt(323)
 		assert.True(t, result.Equal(expected), "expected %s, got %s", expected, result)
 	})
 
