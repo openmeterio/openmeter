@@ -54,6 +54,9 @@ Important types:
 - `charges.AdvanceChargesInput` identifies the customer whose charges should advance
 - `meta.Charge` and `meta.ChargeID` define the shared charge identity and type
 - `charges.Charge` wraps concrete charge variants
+- `flatfee.Intent` carries `AmountBeforeProration`, `ProRating`, `SettlementMode`, `PaymentTerm`, `InvoiceAt` — immutable inputs provided by the caller
+- `flatfee.State` carries `AmountAfterProration`, `AdvanceAfter`, `CreditRealizations`, `AccruedUsage`, `Payment` — computed/mutable state persisted in DB
+- `flatfee.Intent.CalculateAmountAfterProration()` computes the prorated amount from `AmountBeforeProration`, `ServicePeriod/FullServicePeriod` ratio, and `ProRating` config, with currency-precision rounding
 - `usagebased.Intent` carries `FeatureKey`, `Price`, `SettlementMode`, `InvoiceAt`, and `ServicePeriod`
 - `usagebased.ChargeBase` stores the current `Status` and `State`
 - `usagebased.State` currently tracks:
@@ -179,7 +182,7 @@ Transitions:
    - sets `AdvanceAfter` to `InvoiceAt` while waiting
 2. `active -> final`
    - unconditional (fires immediately after `active`)
-   - `AllocateCredits(...)` calls `handler.OnCreditsOnlyUsageAccrued(...)` with `AmountAfterProration`
+   - `AllocateCredits(...)` calls `handler.OnCreditsOnlyUsageAccrued(...)` with `State.AmountAfterProration`
    - validates credit allocations sum equals amount
    - persists credit realizations via `adapter.CreateCreditAllocations(...)`
    - clears `AdvanceAfter` on entering `final`
@@ -187,7 +190,7 @@ Transitions:
 Key differences from usage-based credits-only:
 
 - No collection period, no two-phase realization
-- Amount is pre-determined (`AmountAfterProration`), no meter snapshot or rating
+- Amount is computed at creation from `Intent.AmountBeforeProration` and stored in `State.AmountAfterProration`, no meter snapshot or rating
 - No `FeatureMeter` or `CustomerOverride` needed
 - Uses `meta.ChargeStatus` directly (not sub-statuses like `active.final_realization.*`)
 - The flat fee adapter's `UpdateCharge(...)` takes a full `flatfee.Charge` (not `ChargeBase`)
@@ -328,6 +331,8 @@ When changing flat-fee charges:
 
 - the invoiced path (CreditThenInvoice/InvoiceOnly) starts as `Active` and is driven by invoice lifecycle hooks
 - the credit-only path starts as `Created` and is driven by the state machine — do not mix the two
+- `AmountAfterProration` lives on `flatfee.State`, not `flatfee.Intent` — it is computed at creation via `Intent.CalculateAmountAfterProration()` and persisted. Callers must not provide it; they set `AmountBeforeProration`, `ServicePeriod`, `FullServicePeriod`, and `ProRating` on the Intent
+- `IntentWithInitialStatus` carries `AmountAfterProration` alongside `InitialStatus` to pass the computed value from the service to the adapter at creation time
 - `flatfee.State.AdvanceAfter` must be passed through `chargemeta.UpdateInput.AdvanceAfter` on every `UpdateCharge(...)` call
 - `flatfee.Adapter.UpdateCharge(...)` takes the full `flatfee.Charge`, not a `ChargeBase` — extract `State.AdvanceAfter` when building `chargemeta.UpdateInput`
 - the `flatfee.Handler` interface has both invoiced-path methods and credits-only methods — implementors must satisfy all of them
