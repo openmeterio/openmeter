@@ -36,16 +36,6 @@ func (c *flatFeeChargeCollection) AddCreate(target targetstate.StateItem) error 
 		return fmt.Errorf("converting price to flat: %w", err)
 	}
 
-	expectedLine, err := target.GetExpectedLineOrErr()
-	if err != nil {
-		return fmt.Errorf("getting expected line: %w", err)
-	}
-
-	expectedFlatPrice, err := expectedLine.Price.AsFlat()
-	if err != nil {
-		return fmt.Errorf("converting expected line price to flat: %w", err)
-	}
-
 	baseIntent, err := newChargeIntentBaseFromTargetState(target)
 	if err != nil {
 		return err
@@ -60,7 +50,6 @@ func (c *flatFeeChargeCollection) AddCreate(target targetstate.StateItem) error 
 		PercentageDiscounts:   rateCardMeta.Discounts.Percentage,
 		ProRating:             target.Subscription.ProRatingConfig,
 		AmountBeforeProration: flatPrice.Amount,
-		AmountAfterProration:  expectedFlatPrice.Amount, // TODO: This should be a calculated value
 	})
 
 	return c.addPatch(target.UniqueID, PatchOperationCreate, chargeupdater.NewCreatePatch(intent))
