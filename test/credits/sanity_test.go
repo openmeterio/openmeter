@@ -17,21 +17,12 @@ import (
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	creditpurchaseadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/adapter"
-	creditpurchaseservice "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
-	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
-	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
-	chargesservice "github.com/openmeterio/openmeter/openmeter/billing/charges/service"
+	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
-	usagebasedadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/adapter"
-	usagebasedservice "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service"
-	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
@@ -42,7 +33,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
-	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
@@ -99,84 +89,18 @@ func (s *CreditsTestSuite) SetupSuite() {
 	s.LedgerAccountService = accountService
 	s.LedgerResolver = accountResolver
 
-	metaAdapter, err := metaadapter.New(metaadapter.Config{
-		Client: s.DBClient,
-		Logger: slog.Default(),
-	})
-	s.NoError(err)
-
-	locker, err := lockr.NewLocker(&lockr.LockerConfig{
-		Logger: slog.Default(),
-	})
-	s.NoError(err)
-
-	flatFeeAdapter, err := flatfeeadapter.New(flatfeeadapter.Config{
-		Client:      s.DBClient,
-		Logger:      slog.Default(),
-		MetaAdapter: metaAdapter,
-	})
-	s.NoError(err)
-
-	flatFeeService, err := flatfeeservice.New(flatfeeservice.Config{
-		Adapter:     flatFeeAdapter,
-		Handler:     ledgerchargeadapter.NewFlatFeeHandler(historicalLedger, accountResolver, accountService),
-		MetaAdapter: metaAdapter,
-		Locker:      locker,
-	})
-	s.NoError(err)
-
-	usageBasedAdapter, err := usagebasedadapter.New(usagebasedadapter.Config{
-		Client:      s.DBClient,
-		Logger:      slog.Default(),
-		MetaAdapter: metaAdapter,
-	})
-	s.NoError(err)
-
-	usageBasedService, err := usagebasedservice.New(usagebasedservice.Config{
-		Adapter:                 usageBasedAdapter,
-		Handler:                 usagebased.UnimplementedHandler{},
-		Locker:                  locker,
-		MetaAdapter:             metaAdapter,
-		CustomerOverrideService: s.BillingService,
-		FeatureService:          s.FeatureService,
-		RatingService:           billingratingservice.New(),
-		StreamingConnector:      s.MockStreamingConnector,
-	})
-	s.NoError(err)
-
-	creditPurchaseAdapter, err := creditpurchaseadapter.New(creditpurchaseadapter.Config{
-		Client:      s.DBClient,
-		Logger:      slog.Default(),
-		MetaAdapter: metaAdapter,
-	})
-	s.NoError(err)
-
-	creditPurchaseService, err := creditpurchaseservice.New(creditpurchaseservice.Config{
-		Adapter:     creditPurchaseAdapter,
-		Handler:     ledgerchargeadapter.NewCreditPurchaseHandler(historicalLedger, accountResolver, accountService),
-		MetaAdapter: metaAdapter,
-	})
-	s.NoError(err)
-
-	chargesAdapter, err := adapter.New(adapter.Config{
-		Client: s.DBClient,
-		Logger: slog.Default(),
-	})
-	s.NoError(err)
-
-	chargesService, err := chargesservice.New(chargesservice.Config{
-		Adapter:     chargesAdapter,
-		MetaAdapter: metaAdapter,
-
+	stack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{
+		Client:                s.DBClient,
+		Logger:                slog.Default(),
+		BillingService:        s.BillingService,
 		FeatureService:        s.FeatureService,
-		FlatFeeService:        flatFeeService,
-		CreditPurchaseService: creditPurchaseService,
-		UsageBasedService:     usageBasedService,
-
-		BillingService: s.BillingService,
+		StreamingConnector:    s.MockStreamingConnector,
+		FlatFeeHandler:        ledgerchargeadapter.NewFlatFeeHandler(historicalLedger, accountResolver, accountService),
+		CreditPurchaseHandler: ledgerchargeadapter.NewCreditPurchaseHandler(historicalLedger, accountResolver, accountService),
+		UsageBasedHandler:     usagebased.UnimplementedHandler{},
 	})
 	s.NoError(err)
-	s.Charges = chargesService
+	s.Charges = stack.ChargesService
 }
 
 func (s *CreditsTestSuite) TestFlatFeePartialCreditRealizations() {
