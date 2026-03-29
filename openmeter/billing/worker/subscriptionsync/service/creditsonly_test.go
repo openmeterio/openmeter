@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -91,7 +92,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeProvisio
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
 	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
-	syncUntil := s.mustParseTime("2024-04-01T00:00:00Z")
+	syncUntil := s.mustParseTime("2024-02-15T00:00:00Z")
 
 	clock.SetTime(setupAt)
 	defer clock.ResetTime()
@@ -133,7 +134,6 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeProvisio
 			},
 		},
 	}, startAt)
-
 	timeline := timeutil.NewSimpleTimeline([]time.Time{
 		s.mustParseTime("2024-02-01T00:00:00Z"),
 		s.mustParseTime("2024-03-01T00:00:00Z"),
@@ -212,7 +212,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeCancella
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
 	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
-	syncUntil := s.mustParseTime("2024-04-01T00:00:00Z")
+	syncUntil := s.mustParseTime("2024-02-15T00:00:00Z")
 
 	clock.SetTime(setupAt)
 	defer clock.ResetTime()
@@ -254,7 +254,6 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeCancella
 			},
 		},
 	}, startAt)
-
 	timeline := timeutil.NewSimpleTimeline([]time.Time{
 		s.mustParseTime("2024-02-01T00:00:00Z"),
 		s.mustParseTime("2024-03-01T00:00:00Z"),
@@ -286,6 +285,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeCancella
 
 	s.Run("cancelling at the first period boundary fails reconciliation", func() {
 		cancelAt := s.mustParseTime("2024-03-01T00:00:00Z")
+		clock.SetTime(cancelAt)
 
 		subscriptionModel, err := s.SubscriptionService.Cancel(ctx, subscriptionView.Subscription.NamespacedID, subscription.Timing{
 			Custom: lo.ToPtr(cancelAt),
@@ -301,8 +301,6 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeCancella
 }
 
 func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedProvisioningAndReconciliation() {
-	s.T().Skip("TODO: enable when credit-only charge provisioning is wired end-to-end in subscription sync")
-
 	// Given:
 	// - a subscription is created with credits_only settlement
 	// - the subscription is single phase with a usage based charge priced at $1 per usage
@@ -325,7 +323,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedProvi
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
 	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
-	syncUntil := s.mustParseTime("2024-04-01T00:00:00Z")
+	syncUntil := s.mustParseTime("2024-02-15T00:00:00Z")
 
 	clock.SetTime(setupAt)
 	defer clock.ResetTime()
@@ -370,7 +368,6 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedProvi
 			},
 		},
 	}, startAt)
-
 	timeline := timeutil.NewSimpleTimeline([]time.Time{
 		s.mustParseTime("2024-02-01T00:00:00Z"),
 		s.mustParseTime("2024-03-01T00:00:00Z"),
@@ -424,8 +421,6 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedProvi
 }
 
 func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyMixedProvisioning() {
-	s.T().Skip("TODO: enable when credit-only charge provisioning is wired end-to-end in subscription sync")
-
 	// Given:
 	// - a subscription is created with credits_only settlement
 	// - the subscription is single phase with a usage based charge priced at $1 per usage
@@ -439,7 +434,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyMixedProvisioni
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
 	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
-	syncUntil := s.mustParseTime("2024-04-01T00:00:00Z")
+	syncUntil := s.mustParseTime("2024-02-15T00:00:00Z")
 
 	clock.SetTime(setupAt)
 	defer clock.ResetTime()
@@ -495,7 +490,6 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyMixedProvisioni
 			},
 		},
 	}, startAt)
-
 	timeline := timeutil.NewSimpleTimeline([]time.Time{
 		s.mustParseTime("2024-02-01T00:00:00Z"),
 		s.mustParseTime("2024-03-01T00:00:00Z"),
@@ -589,8 +583,8 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) expectCreditsOnlyMixedCharges(
 
 	s.Equal(expectedChargeCount, len(flatFeeCharges)+len(usageBasedCharges))
 
-	s.assertExpectedFlatFeeCharges(subscriptionID, flatFeeCharges, expectedFlatFee)
-	s.assertExpectedUsageBasedCharges(subscriptionID, usageBasedCharges, expectedUsageBased)
+	s.assertExpectedFlatFeeCharges(ctx, subscriptionID, flatFeeCharges, expectedFlatFee)
+	s.assertExpectedUsageBasedCharges(ctx, subscriptionID, usageBasedCharges, expectedUsageBased)
 }
 
 func (s *CreditsOnlySubscriptionHandlerTestSuite) expectCreditsOnlyFlatFeeCharges(ctx context.Context, subscriptionID string, expected []expectedFlatFeeCharge) []flatfee.Charge {
@@ -614,12 +608,12 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) expectCreditsOnlyFlatFeeCharge
 		return left.Intent.ServicePeriod.From.Compare(right.Intent.ServicePeriod.From)
 	})
 
-	s.assertExpectedFlatFeeCharges(subscriptionID, out, expected)
+	s.assertExpectedFlatFeeCharges(ctx, subscriptionID, out, expected)
 
 	return out
 }
 
-func (s *CreditsOnlySubscriptionHandlerTestSuite) assertExpectedFlatFeeCharges(subscriptionID string, out []flatfee.Charge, expected []expectedFlatFeeCharge) {
+func (s *CreditsOnlySubscriptionHandlerTestSuite) assertExpectedFlatFeeCharges(ctx context.Context, subscriptionID string, out []flatfee.Charge, expected []expectedFlatFeeCharge) {
 	s.T().Helper()
 
 	expectedChargeCount := lo.SumBy(expected, func(charge expectedFlatFeeCharge) int {
@@ -633,6 +627,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) assertExpectedFlatFeeCharges(s
 				return charge.Intent.UniqueReferenceID != nil && *charge.Intent.UniqueReferenceID == childID
 			})
 			s.Truef(found, "charge not found with child unique reference id %s", childID)
+			expectedPhaseID := s.getExpectedPhaseIDForChildReference(ctx, subscriptionID, childID)
 
 			s.NotNilf(charge.Intent.UniqueReferenceID, "expected[%d] charge[%d] should have child unique reference id", expectedIdx, periodIdx)
 			s.Equalf(childID, lo.FromPtr(charge.Intent.UniqueReferenceID), "expected[%d] charge[%d] child unique reference id", expectedIdx, periodIdx)
@@ -642,11 +637,11 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) assertExpectedFlatFeeCharges(s
 			s.Equalf(expectedCharge.InvoiceAt[periodIdx], charge.Intent.InvoiceAt, "expected[%d] charge[%d] invoice at", expectedIdx, periodIdx)
 			s.Equalf(productcatalog.CreditOnlySettlementMode, charge.Intent.SettlementMode, "expected[%d] charge[%d] settlement mode", expectedIdx, periodIdx)
 			s.Equalf(productcatalog.InAdvancePaymentTerm, charge.Intent.PaymentTerm, "expected[%d] charge[%d] payment term", expectedIdx, periodIdx)
-			s.Equalf(currency.USD, charge.Intent.Currency, "expected[%d] charge[%d] currency", expectedIdx, periodIdx)
+			s.Equalf(string(currency.USD), string(charge.Intent.Currency), "expected[%d] charge[%d] currency", expectedIdx, periodIdx)
 			s.Equalf(alpacadecimal.NewFromFloat(100), charge.Intent.AmountBeforeProration, "expected[%d] charge[%d] amount before proration", expectedIdx, periodIdx)
 			s.Equalf(alpacadecimal.NewFromFloat(100), charge.State.AmountAfterProration, "expected[%d] charge[%d] amount after proration", expectedIdx, periodIdx)
 			s.Equalf(subscriptionID, charge.Intent.Subscription.SubscriptionID, "expected[%d] charge[%d] subscription id", expectedIdx, periodIdx)
-			s.Equalf("first-phase", charge.Intent.Subscription.PhaseID, "expected[%d] charge[%d] subscription phase id", expectedIdx, periodIdx)
+			s.Equalf(expectedPhaseID, charge.Intent.Subscription.PhaseID, "expected[%d] charge[%d] subscription phase id", expectedIdx, periodIdx)
 			s.Equalf("flat-fee", charge.Intent.Name, "expected[%d] charge[%d] charge name", expectedIdx, periodIdx)
 		}
 	}
@@ -673,12 +668,12 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) expectCreditsOnlyUsageBasedCha
 		return left.Intent.ServicePeriod.From.Compare(right.Intent.ServicePeriod.From)
 	})
 
-	s.assertExpectedUsageBasedCharges(subscriptionID, out, expected)
+	s.assertExpectedUsageBasedCharges(ctx, subscriptionID, out, expected)
 
 	return out
 }
 
-func (s *CreditsOnlySubscriptionHandlerTestSuite) assertExpectedUsageBasedCharges(subscriptionID string, out []usagebased.Charge, expected []expectedUsageBasedCharge) {
+func (s *CreditsOnlySubscriptionHandlerTestSuite) assertExpectedUsageBasedCharges(ctx context.Context, subscriptionID string, out []usagebased.Charge, expected []expectedUsageBasedCharge) {
 	s.T().Helper()
 
 	expectedChargeCount := lo.SumBy(expected, func(charge expectedUsageBasedCharge) int {
@@ -692,6 +687,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) assertExpectedUsageBasedCharge
 				return charge.Intent.UniqueReferenceID != nil && *charge.Intent.UniqueReferenceID == childID
 			})
 			s.Truef(found, "charge not found with child unique reference id %s", childID)
+			expectedPhaseID := s.getExpectedPhaseIDForChildReference(ctx, subscriptionID, childID)
 
 			s.NotNilf(charge.Intent.UniqueReferenceID, "expected[%d] charge[%d] should have child unique reference id", expectedIdx, periodIdx)
 			s.Equalf(childID, lo.FromPtr(charge.Intent.UniqueReferenceID), "expected[%d] charge[%d] child unique reference id", expectedIdx, periodIdx)
@@ -700,12 +696,28 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) assertExpectedUsageBasedCharge
 			s.Equalf(expectedCharge.BillingPeriods[periodIdx], charge.Intent.BillingPeriod, "expected[%d] charge[%d] billing period", expectedIdx, periodIdx)
 			s.Equalf(expectedCharge.InvoiceAt[periodIdx], charge.Intent.InvoiceAt, "expected[%d] charge[%d] invoice at", expectedIdx, periodIdx)
 			s.Equalf(productcatalog.CreditOnlySettlementMode, charge.Intent.SettlementMode, "expected[%d] charge[%d] settlement mode", expectedIdx, periodIdx)
-			s.Equalf(currency.USD, charge.Intent.Currency, "expected[%d] charge[%d] currency", expectedIdx, periodIdx)
+			s.Equalf(string(currency.USD), string(charge.Intent.Currency), "expected[%d] charge[%d] currency", expectedIdx, periodIdx)
 			s.Equalf(expectedCharge.FeatureKey, charge.Intent.FeatureKey, "expected[%d] charge[%d] feature key", expectedIdx, periodIdx)
 			s.Equalf(expectedCharge.Price, charge.Intent.Price, "expected[%d] charge[%d] price", expectedIdx, periodIdx)
 			s.Equalf(subscriptionID, charge.Intent.Subscription.SubscriptionID, "expected[%d] charge[%d] subscription id", expectedIdx, periodIdx)
-			s.Equalf("first-phase", charge.Intent.Subscription.PhaseID, "expected[%d] charge[%d] subscription phase id", expectedIdx, periodIdx)
+			s.Equalf(expectedPhaseID, charge.Intent.Subscription.PhaseID, "expected[%d] charge[%d] subscription phase id", expectedIdx, periodIdx)
 			s.Equalf(s.APIRequestsTotalFeature.Key, charge.Intent.Name, "expected[%d] charge[%d] charge name", expectedIdx, periodIdx)
 		}
 	}
+}
+
+func (s *CreditsOnlySubscriptionHandlerTestSuite) getExpectedPhaseIDForChildReference(ctx context.Context, subscriptionID string, childID string) string {
+	s.T().Helper()
+
+	parts := strings.Split(childID, "/")
+	s.Len(parts, 5, "invalid child unique reference id format")
+	s.Equal(subscriptionID, parts[0], "child unique reference id subscription id")
+
+	subscriptionView, err := s.SubscriptionService.GetView(ctx, models.NamespacedID{
+		Namespace: s.Namespace,
+		ID:        subscriptionID,
+	})
+	s.NoError(err)
+
+	return s.getPhaseByKey(s.T(), subscriptionView, parts[1]).SubscriptionPhase.ID
 }

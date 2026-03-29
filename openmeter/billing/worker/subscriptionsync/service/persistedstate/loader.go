@@ -85,12 +85,13 @@ func (l Loader) LoadForSubscription(ctx context.Context, subs subscription.Subsc
 		if _, ok := byUniqueID[uniqueID]; ok {
 			return State{}, fmt.Errorf("duplicate unique id across persisted lines and charges: %s", uniqueID)
 		}
+
+		byUniqueID[uniqueID] = chargesByUniqueID[uniqueID]
 	}
 
 	return State{
-		ByUniqueID:        byUniqueID,
-		ChargesByUniqueID: chargesByUniqueID,
-		Invoices:          invoices,
+		ByUniqueID: byUniqueID,
+		Invoices:   invoices,
 	}, nil
 }
 

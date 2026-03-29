@@ -136,13 +136,18 @@ func (s *Service) diffItem(
 	existingPeriod := existing.ServicePeriod()
 	targetPeriod := target.GetServicePeriod()
 
-	if decision, err := semanticProrateDecision(existing, *target); err != nil {
-		return err
-	} else if decision.ShouldProrate {
-		// Flat fee lines do not produce usage-based shrink/extend patches. Any period
-		// change for a flat fee line is reconciled through ProratePatch so that the
-		// service period and per-unit amount are updated together.
-		return patches.AddProrate(existing, *target, existingPeriod, targetPeriod, decision.OriginalAmount, decision.TargetAmount)
+	// Charge-backed targets do not use invoice-style semantic proration. The charge
+	// stack materializes and prorates the charge state itself, so reconciliation only
+	// needs to detect create/delete/period-shape changes here.
+	if patches.GetBackendType() == BackendTypeInvoicing {
+		if decision, err := semanticProrateDecision(existing, *target); err != nil {
+			return err
+		} else if decision.ShouldProrate {
+			// Flat fee lines do not produce usage-based shrink/extend patches. Any period
+			// change for a flat fee line is reconciled through ProratePatch so that the
+			// service period and per-unit amount are updated together.
+			return patches.AddProrate(existing, *target, existingPeriod, targetPeriod, decision.OriginalAmount, decision.TargetAmount)
+		}
 	}
 
 	switch {

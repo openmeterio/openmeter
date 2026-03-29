@@ -8,18 +8,13 @@ import (
 )
 
 type State struct {
-	ByUniqueID        map[string]Item
-	ChargesByUniqueID map[string]Item
-	Invoices          Invoices
+	ByUniqueID map[string]Item
+	Invoices   Invoices
 }
 
 func (s State) Validate() error {
 	if s.ByUniqueID == nil {
 		return errors.New("by unique id is required")
-	}
-
-	if s.ChargesByUniqueID == nil {
-		return errors.New("charges by unique id is required")
 	}
 
 	if s.Invoices == nil {
