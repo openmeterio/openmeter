@@ -23,7 +23,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -70,8 +69,6 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) SetupSuite() {
 }
 
 func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeProvisioningAndReconciliation() {
-	s.T().Skip("TODO: enable when credit-only charge provisioning is wired end-to-end in subscription sync")
-
 	// Given:
 	// - a subscription is created with credits_only settlement
 	// - the subscription is single phase with a flat fee charge of $100
@@ -546,63 +543,42 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyMixedProvisioni
 	s.expectCreditsOnlyMixedCharges(ctx, subscriptionView.Subscription.ID, expectedFlatFeeCharges, expectedUsageBasedCharges)
 }
 
-func (s *CreditsOnlySubscriptionHandlerTestSuite) listSubscriptionCharges(ctx context.Context, subscriptionID string) charges.Charges {
-	s.T().Helper()
-
-	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace: s.Namespace,
-		Page: pagination.Page{
-			PageSize:   100,
-			PageNumber: 1,
-		},
-	})
-	s.NoError(err)
-
-	return lo.Filter(res.Items, func(charge charges.Charge, _ int) bool {
-		switch charge.Type() {
-		case chargesmeta.ChargeTypeFlatFee:
-			flatFeeCharge, err := charge.AsFlatFeeCharge()
-			s.NoError(err)
-			return flatFeeCharge.Intent.Subscription != nil && flatFeeCharge.Intent.Subscription.SubscriptionID == subscriptionID
-		case chargesmeta.ChargeTypeUsageBased:
-			usageBasedCharge, err := charge.AsUsageBasedCharge()
-			s.NoError(err)
-			return usageBasedCharge.Intent.Subscription != nil && usageBasedCharge.Intent.Subscription.SubscriptionID == subscriptionID
-		default:
-			return false
-		}
-	})
-}
-
 func (s *CreditsOnlySubscriptionHandlerTestSuite) expectCreditsOnlyMixedCharges(ctx context.Context, subscriptionID string, expectedFlatFee []expectedFlatFeeCharge, expectedUsageBased []expectedUsageBasedCharge) {
 	s.T().Helper()
 
-	allCharges := s.listSubscriptionCharges(ctx, subscriptionID)
+	flatFeeResult, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:       s.Namespace,
+		SubscriptionIDs: []string{subscriptionID},
+		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+	})
+	s.NoError(err)
+
+	usageBasedResult, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:       s.Namespace,
+		SubscriptionIDs: []string{subscriptionID},
+		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
+	})
+	s.NoError(err)
+
+	flatFeeCharges := make([]flatfee.Charge, 0, len(flatFeeResult.Items))
+	for _, charge := range flatFeeResult.Items {
+		flatFeeCharge, err := charge.AsFlatFeeCharge()
+		s.NoError(err)
+		flatFeeCharges = append(flatFeeCharges, flatFeeCharge)
+	}
+
+	usageBasedCharges := make([]usagebased.Charge, 0, len(usageBasedResult.Items))
+	for _, charge := range usageBasedResult.Items {
+		usageBasedCharge, err := charge.AsUsageBasedCharge()
+		s.NoError(err)
+		usageBasedCharges = append(usageBasedCharges, usageBasedCharge)
+	}
 
 	expectedChargeCount := lo.SumBy(expectedFlatFee, func(charge expectedFlatFeeCharge) int {
 		return len(charge.ChildUniqueReferenceIDs)
 	}) + lo.SumBy(expectedUsageBased, func(charge expectedUsageBasedCharge) int {
 		return len(charge.ChildUniqueReferenceIDs)
 	})
-	s.Len(allCharges, expectedChargeCount)
-
-	flatFeeCharges := make([]flatfee.Charge, 0, len(allCharges))
-	usageBasedCharges := make([]usagebased.Charge, 0, len(allCharges))
-
-	for _, charge := range allCharges {
-		switch charge.Type() {
-		case chargesmeta.ChargeTypeFlatFee:
-			flatFeeCharge, err := charge.AsFlatFeeCharge()
-			s.NoError(err)
-			flatFeeCharges = append(flatFeeCharges, flatFeeCharge)
-		case chargesmeta.ChargeTypeUsageBased:
-			usageBasedCharge, err := charge.AsUsageBasedCharge()
-			s.NoError(err)
-			usageBasedCharges = append(usageBasedCharges, usageBasedCharge)
-		default:
-			s.Failf("unexpected charge type", "unexpected charge type %s", charge.Type())
-		}
-	}
 
 	slices.SortFunc(flatFeeCharges, func(left, right flatfee.Charge) int {
 		return left.Intent.ServicePeriod.From.Compare(right.Intent.ServicePeriod.From)
@@ -611,6 +587,8 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) expectCreditsOnlyMixedCharges(
 		return left.Intent.ServicePeriod.From.Compare(right.Intent.ServicePeriod.From)
 	})
 
+	s.Equal(expectedChargeCount, len(flatFeeCharges)+len(usageBasedCharges))
+
 	s.assertExpectedFlatFeeCharges(subscriptionID, flatFeeCharges, expectedFlatFee)
 	s.assertExpectedUsageBasedCharges(subscriptionID, usageBasedCharges, expectedUsageBased)
 }
@@ -618,12 +596,15 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) expectCreditsOnlyMixedCharges(
 func (s *CreditsOnlySubscriptionHandlerTestSuite) expectCreditsOnlyFlatFeeCharges(ctx context.Context, subscriptionID string, expected []expectedFlatFeeCharge) []flatfee.Charge {
 	s.T().Helper()
 
-	allCharges := s.listSubscriptionCharges(ctx, subscriptionID)
+	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:       s.Namespace,
+		SubscriptionIDs: []string{subscriptionID},
+		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+	})
+	s.NoError(err)
 
-	out := make([]flatfee.Charge, 0, len(allCharges))
-	for _, charge := range allCharges {
-		s.Equal(chargesmeta.ChargeTypeFlatFee, charge.Type())
-
+	out := make([]flatfee.Charge, 0, len(res.Items))
+	for _, charge := range res.Items {
 		flatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
 		out = append(out, flatFeeCharge)
@@ -674,12 +655,15 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) assertExpectedFlatFeeCharges(s
 func (s *CreditsOnlySubscriptionHandlerTestSuite) expectCreditsOnlyUsageBasedCharges(ctx context.Context, subscriptionID string, expected []expectedUsageBasedCharge) []usagebased.Charge {
 	s.T().Helper()
 
-	allCharges := s.listSubscriptionCharges(ctx, subscriptionID)
+	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:       s.Namespace,
+		SubscriptionIDs: []string{subscriptionID},
+		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
+	})
+	s.NoError(err)
 
-	out := make([]usagebased.Charge, 0, len(allCharges))
-	for _, charge := range allCharges {
-		s.Equal(chargesmeta.ChargeTypeUsageBased, charge.Type())
-
+	out := make([]usagebased.Charge, 0, len(res.Items))
+	for _, charge := range res.Items {
 		usageBasedCharge, err := charge.AsUsageBasedCharge()
 		s.NoError(err)
 		out = append(out, usageBasedCharge)

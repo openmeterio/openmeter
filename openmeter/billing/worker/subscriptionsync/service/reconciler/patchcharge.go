@@ -16,6 +16,10 @@ type chargePatchCollection struct {
 	patches  []ChargePatch
 }
 
+func (c chargePatchCollection) GetBackendType() BackendType {
+	return BackendTypeCharges
+}
+
 func newChargePatchCollection(itemType persistedstate.ItemType, preallocatedCapacity int) chargePatchCollection {
 	if preallocatedCapacity <= 0 {
 		preallocatedCapacity = 16

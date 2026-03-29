@@ -16,6 +16,7 @@ import (
 )
 
 type PatchOperation string
+type BackendType string
 
 const (
 	PatchOperationCreate  PatchOperation = "create"
@@ -23,6 +24,9 @@ const (
 	PatchOperationShrink  PatchOperation = "shrink"
 	PatchOperationExtend  PatchOperation = "extend"
 	PatchOperationProrate PatchOperation = "prorate"
+
+	BackendTypeInvoicing BackendType = "invoicing"
+	BackendTypeCharges   BackendType = "charges"
 )
 
 type Patch interface {
@@ -51,6 +55,7 @@ type ChargePatchCollection interface {
 }
 
 type PatchCollection interface {
+	GetBackendType() BackendType
 	AddCreate(target targetstate.StateItem) error
 	AddDelete(uniqueID string, existing persistedstate.Item) error
 	AddShrink(uniqueID string, existing persistedstate.Item, target targetstate.StateItem) error

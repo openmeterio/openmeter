@@ -155,20 +155,30 @@ func (s *Service) diffItem(
 	}
 }
 
-// filterInScopeLinesForInvoiceSync removes target items that should not
-// participate in direct billing reconciliation. We intentionally do this before
-// diff planning so non-billable targets behave as absent targets and naturally
-// reconcile to delete/no-op outcomes.
+// filterInScopeLines removes target items that should not participate in
+// reconciliation. We intentionally do this before diff planning so
+// non-billable targets behave as absent targets and naturally reconcile to
+// delete/no-op outcomes.
 //
-// We also render GetExpectedLine() here and drop items that do not realize to
-// an invoice line. That rendering step is only expected for direct billing
-// syncs. Other provisioning backends, such as charges, can keep different
-// target realization and proration behavior without going through this filter.
-func filterInScopeLinesForInvoiceSync(inScopeLines []targetstate.StateItem) ([]targetstate.StateItem, error) {
+// The router decides which backend a target would use if it had to be created.
+// Only invoicing-backed targets are gated on GetExpectedLine(): if a target
+// does not realize to an invoice line, it should not be diffed as an invoice
+// artifact. Charge-backed targets are filtered by billability only.
+func filterInScopeLines(inScopeLines []targetstate.StateItem, patchCollections *patchCollectionRouter) ([]targetstate.StateItem, error) {
 	out := make([]targetstate.StateItem, 0, len(inScopeLines))
 
 	for _, line := range inScopeLines {
 		if !line.IsBillable() {
+			continue
+		}
+
+		defaultCollection, err := patchCollections.ResolveDefaultCollection(line)
+		if err != nil {
+			return nil, fmt.Errorf("resolving default patch collection for line[%s]: %w", line.UniqueID, err)
+		}
+
+		if defaultCollection.GetBackendType() == BackendTypeCharges {
+			out = append(out, line)
 			continue
 		}
 
@@ -188,9 +198,18 @@ func filterInScopeLinesForInvoiceSync(inScopeLines []targetstate.StateItem) ([]t
 }
 
 func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
-	inScopeLines, err := filterInScopeLinesForInvoiceSync(input.Target.Items)
+	patchCollections, err := newPatchCollectionRouter(len(input.Target.Items)+len(input.Persisted.ByUniqueID), input.Persisted.Invoices)
 	if err != nil {
-		return nil, fmt.Errorf("filtering in-scope lines for invoice sync: %w", err)
+		return nil, fmt.Errorf("creating collection by type: %w", err)
+	}
+
+	if patchCollections == nil {
+		return nil, fmt.Errorf("patch patchCollectionRouter is nil")
+	}
+
+	inScopeLines, err := filterInScopeLines(input.Target.Items, patchCollections)
+	if err != nil {
+		return nil, fmt.Errorf("filtering in-scope lines: %w", err)
 	}
 	persisted := input.Persisted
 
@@ -214,11 +233,6 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 	// testability. Downstream application does not depend on this ordering.
 	slices.Sort(deletedLines)
 	slices.Sort(inScopeLineUniqueIDs)
-
-	patchCollections, err := newPatchCollectionRouter(len(deletedLines)+len(inScopeLineUniqueIDs), input.Persisted.Invoices)
-	if err != nil {
-		return nil, fmt.Errorf("creating collection by type: %w", err)
-	}
 
 	for _, id := range deletedLines {
 		line, ok := persisted.ByUniqueID[id]
