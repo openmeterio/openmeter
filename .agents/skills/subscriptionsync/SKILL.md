@@ -123,6 +123,7 @@ Current shape:
 - invoice patches and charge patches are separate
 - routing is based on persisted item type for existing entities
 - default routing for new target items uses subscription settlement mode and rate-card type
+- apply order is intentionally invoice-first, charge-second during the backend transition; this is not atomic across backends, and partial apply is acceptable because the invoice backend is being deprecated in favor of charges
 
 Important routing rules:
 - `GetCollectionFor(persistedItem)` routes by persisted item type (invoice line, split-line group, flat fee charge, usage-based charge)

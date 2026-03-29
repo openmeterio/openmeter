@@ -92,7 +92,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeProvisio
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
 	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
-	syncUntil := s.mustParseTime("2024-02-15T00:00:00Z")
+	syncUntil := s.mustParseTime("2024-03-15T00:00:00Z")
 
 	clock.SetTime(setupAt)
 	defer clock.ResetTime()
@@ -430,7 +430,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyMixedProvisioni
 	// - the charge is provisioned for the next two billing cycles
 	//
 	// Then:
-	// - the four charges are created with matching properties and child unique reference IDs
+	// - three charges are created with matching properties and child unique reference IDs
+	// - the flat fee produces two in-advance charges, while the usage-based item produces one
+	//   in-arrears charge at this sync horizon
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
 	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
@@ -522,14 +524,22 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyMixedProvisioni
 				ItemKey:   s.APIRequestsTotalFeature.Key,
 				Version:   0,
 				PeriodMin: 0,
-				PeriodMax: 1,
+				PeriodMax: 0,
 			}.ChildIDs(subscriptionView.Subscription.ID),
-			ServicePeriods:     periods,
-			FullServicePeriods: periods,
-			BillingPeriods:     periods,
-			InvoiceAt:          usageBasedInvoiceAt,
-			FeatureKey:         s.APIRequestsTotalFeature.Key,
-			Price:              *unitPrice,
+			ServicePeriods: []timeutil.ClosedPeriod{
+				periods[0],
+			},
+			FullServicePeriods: []timeutil.ClosedPeriod{
+				periods[0],
+			},
+			BillingPeriods: []timeutil.ClosedPeriod{
+				periods[0],
+			},
+			InvoiceAt: []time.Time{
+				usageBasedInvoiceAt[0],
+			},
+			FeatureKey: s.APIRequestsTotalFeature.Key,
+			Price:      *unitPrice,
 		},
 	}
 
