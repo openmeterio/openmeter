@@ -15,7 +15,7 @@ import (
 
 // TODO: Once we have proper UBP handling this should happen on the already converted StandardLine but for now we should be fine with this approach.
 func (s *service) PostLineAssignedToInvoice(ctx context.Context, charge flatfee.Charge, line billing.GatheringLine) (creditrealization.Realizations, error) {
-	if charge.Intent.AmountAfterProration.IsZero() {
+	if charge.State.AmountAfterProration.IsZero() {
 		return nil, nil
 	}
 
@@ -23,7 +23,7 @@ func (s *service) PostLineAssignedToInvoice(ctx context.Context, charge flatfee.
 		input := flatfee.OnAssignedToInvoiceInput{
 			Charge:            charge,
 			ServicePeriod:     line.ServicePeriod,
-			PreTaxTotalAmount: charge.Intent.AmountAfterProration,
+			PreTaxTotalAmount: charge.State.AmountAfterProration,
 		}
 		if err := input.Validate(); err != nil {
 			return nil, fmt.Errorf("validating on assigned to invoice input: %w", err)

@@ -27,19 +27,30 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) ([]flatfee.ChargeWithGatheringLine, error) {
 		// Let's create all the flat fee charges in bulk
+		intentsWithStatus, err := slicesx.MapWithErr(input.Intents, func(intent flatfee.Intent) (flatfee.IntentWithInitialStatus, error) {
+			initialStatus := meta.ChargeStatusActive
+			if intent.SettlementMode == productcatalog.CreditOnlySettlementMode {
+				initialStatus = meta.ChargeStatusCreated
+			}
+
+			amountAfterProration, err := intent.CalculateAmountAfterProration()
+			if err != nil {
+				return flatfee.IntentWithInitialStatus{}, fmt.Errorf("calculating amount after proration: %w", err)
+			}
+
+			return flatfee.IntentWithInitialStatus{
+				Intent:               intent,
+				InitialStatus:        initialStatus,
+				AmountAfterProration: amountAfterProration,
+			}, nil
+		})
+		if err != nil {
+			return nil, err
+		}
+
 		charges, err := s.adapter.CreateCharges(ctx, flatfee.CreateChargesInput{
 			Namespace: input.Namespace,
-			Intents: lo.Map(input.Intents, func(intent flatfee.Intent, idx int) flatfee.IntentWithInitialStatus {
-				initialStatus := meta.ChargeStatusActive
-				if intent.SettlementMode == productcatalog.CreditOnlySettlementMode {
-					initialStatus = meta.ChargeStatusCreated
-				}
-
-				return flatfee.IntentWithInitialStatus{
-					Intent:        intent,
-					InitialStatus: initialStatus,
-				}
-			}),
+			Intents:   intentsWithStatus,
 		})
 		if err != nil {
 			return nil, err
@@ -94,7 +105,7 @@ func gatheringLineFromFlatFeeCharge(flatFee flatfee.Charge) (flatfee.ChargeWithG
 			Price: lo.FromPtr(
 				productcatalog.NewPriceFrom(
 					productcatalog.FlatPrice{
-						Amount:      intent.AmountAfterProration,
+						Amount:      flatFee.State.AmountAfterProration,
 						PaymentTerm: intent.PaymentTerm,
 					},
 				),

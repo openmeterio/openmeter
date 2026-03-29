@@ -68,7 +68,6 @@ type Intent struct {
 
 	ProRating             productcatalog.ProRatingConfig `json:"proRating"`
 	AmountBeforeProration alpacadecimal.Decimal          `json:"amountBeforeProration"`
-	AmountAfterProration  alpacadecimal.Decimal          `json:"amountAfterProration"`
 }
 
 func (i Intent) Validate() error {
@@ -104,11 +103,37 @@ func (i Intent) Validate() error {
 		errs = append(errs, fmt.Errorf("pro rating: %w", err))
 	}
 
-	if i.AmountAfterProration.IsNegative() {
-		errs = append(errs, fmt.Errorf("amount after proration cannot be negative"))
+	return errors.Join(errs...)
+}
+
+// CalculateAmountAfterProration computes the prorated amount from AmountBeforeProration,
+// ServicePeriod, and FullServicePeriod. Returns AmountBeforeProration when proration is
+// not applicable (disabled, unsupported mode, or zero-length periods).
+func (i Intent) CalculateAmountAfterProration() (alpacadecimal.Decimal, error) {
+	if !i.ProRating.Enabled {
+		return i.AmountBeforeProration, nil
 	}
 
-	return errors.Join(errs...)
+	if i.ProRating.Mode != productcatalog.ProRatingModeProratePrices {
+		return i.AmountBeforeProration, nil
+	}
+
+	servicePeriodDuration := int64(i.ServicePeriod.Duration())
+	fullServicePeriodDuration := int64(i.FullServicePeriod.Duration())
+
+	if servicePeriodDuration == 0 || fullServicePeriodDuration == 0 {
+		return i.AmountBeforeProration, nil
+	}
+
+	percentage := alpacadecimal.NewFromInt(servicePeriodDuration).Div(alpacadecimal.NewFromInt(fullServicePeriodDuration))
+	amount := i.AmountBeforeProration.Mul(percentage)
+
+	calc, err := i.Currency.Calculator()
+	if err != nil {
+		return alpacadecimal.Decimal{}, fmt.Errorf("creating currency calculator: %w", err)
+	}
+
+	return calc.RoundToPrecision(amount), nil
 }
 
 func (c Charge) ErrorAttributes() models.Attributes {
@@ -120,10 +145,11 @@ func (c Charge) ErrorAttributes() models.Attributes {
 }
 
 type State struct {
-	AdvanceAfter       *time.Time                     `json:"advanceAfter,omitempty"`
-	CreditRealizations creditrealization.Realizations `json:"creditRealizations"`
-	AccruedUsage       *invoicedusage.AccruedUsage    `json:"accruedUsage"`
-	Payment            *payment.Invoiced              `json:"payment"`
+	AdvanceAfter         *time.Time                     `json:"advanceAfter,omitempty"`
+	AmountAfterProration alpacadecimal.Decimal          `json:"amountAfterProration"`
+	CreditRealizations   creditrealization.Realizations `json:"creditRealizations"`
+	AccruedUsage         *invoicedusage.AccruedUsage    `json:"accruedUsage"`
+	Payment              *payment.Invoiced              `json:"payment"`
 }
 
 func (s State) Validate() error {

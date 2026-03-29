@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
@@ -29,7 +31,8 @@ type Adapter interface {
 
 type IntentWithInitialStatus struct {
 	Intent
-	InitialStatus meta.ChargeStatus
+	InitialStatus        meta.ChargeStatus
+	AmountAfterProration alpacadecimal.Decimal
 }
 
 func (i IntentWithInitialStatus) Validate() error {

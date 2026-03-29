@@ -215,7 +215,6 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 			SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.InvoiceOnlySettlementMode),
 
 			AmountBeforeProration: price.Amount,
-			AmountAfterProration:  price.Amount,
 		}
 		return charges.NewChargeIntent(flatFeeIntent)
 	}

@@ -117,7 +117,7 @@ func (s *CreditsOnlyStateMachine) ClearAdvanceAfter(ctx context.Context) error {
 }
 
 func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
-	amount := s.Charge.Intent.AmountAfterProration
+	amount := s.Charge.State.AmountAfterProration
 
 	if amount.IsNegative() {
 		return fmt.Errorf("charge total is negative [charge_id=%s, amount=%s]", s.Charge.ID, amount.String())

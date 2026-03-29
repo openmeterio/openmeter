@@ -45,7 +45,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.Charge) error
 			SetDiscounts(discounts).
 			SetProRating(proRating).
 			SetAmountBeforeProration(intent.AmountBeforeProration).
-			SetAmountAfterProration(intent.AmountAfterProration)
+			SetAmountAfterProration(charge.State.AmountAfterProration)
 
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
 			ManagedResource: charge.ManagedResource,

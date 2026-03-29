@@ -292,7 +292,9 @@ func (e *flatFeeHandlerTestEnv) newAssignmentInput(amount alpacadecimal.Decimal)
 				PaymentTerm:           productcatalog.InAdvancePaymentTerm,
 				ProRating:             productcatalog.ProRatingConfig{},
 				AmountBeforeProration: amount,
-				AmountAfterProration:  amount,
+			},
+			State: chargeflatfee.State{
+				AmountAfterProration: amount,
 			},
 			Status: meta.ChargeStatusActive,
 		},
@@ -389,7 +391,9 @@ func (e *flatFeeHandlerTestEnv) newBaseCharge(servicePeriod timeutil.ClosedPerio
 			PaymentTerm:           productcatalog.InAdvancePaymentTerm,
 			ProRating:             productcatalog.ProRatingConfig{},
 			AmountBeforeProration: amount,
-			AmountAfterProration:  amount,
+		},
+		State: chargeflatfee.State{
+			AmountAfterProration: amount,
 		},
 		Status: meta.ChargeStatusActive,
 	}
