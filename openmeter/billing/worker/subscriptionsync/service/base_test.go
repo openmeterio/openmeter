@@ -218,7 +218,33 @@ func (s *SuiteBase) timingImmediate() subscription.Timing {
 	}
 }
 
-func (s *SuiteBase) getPhaseByKey(t *testing.T, subsView subscription.SubscriptionView, key string) subscription.SubscriptionPhaseView {
+type SyncSuiteBase struct {
+	SuiteBase
+}
+
+func (s *SyncSuiteBase) SetupSuite() {
+	s.SuiteBase.SetupSuite()
+}
+
+func (s *SyncSuiteBase) BeforeTest(suiteName, testName string) {
+	s.SuiteBase.BeforeTest(s.T().Context(), suiteName, testName)
+}
+
+func (s *SyncSuiteBase) AfterTest(suiteName, testName string) {
+	s.SuiteBase.AfterTest(s.T().Context(), suiteName, testName)
+}
+
+func (s *SyncSuiteBase) mustParseTime(t string) time.Time {
+	s.T().Helper()
+	return lo.Must(time.Parse(time.RFC3339, t))
+}
+
+func (s *SyncSuiteBase) testContext() context.Context {
+	s.T().Helper()
+	return s.T().Context()
+}
+
+func (s *SyncSuiteBase) getPhaseByKey(t *testing.T, subsView subscription.SubscriptionView, key string) subscription.SubscriptionPhaseView {
 	for _, phase := range subsView.Phases {
 		if phase.SubscriptionPhase.Key == key {
 			return phase
@@ -238,7 +264,7 @@ type expectedLine struct {
 	AdditionalChecks func(line billing.GenericInvoiceLine)
 }
 
-func (s *SuiteBase) expectLines(invoice billing.GenericInvoiceReader, subscriptionID string, expectedLines []expectedLine) {
+func (s *SyncSuiteBase) expectLines(invoice billing.GenericInvoiceReader, subscriptionID string, expectedLines []expectedLine) {
 	s.T().Helper()
 
 	lines := invoice.GetGenericLines()
@@ -250,11 +276,11 @@ func (s *SuiteBase) expectLines(invoice billing.GenericInvoiceReader, subscripti
 		return lo.FromPtrOr(line.GetChildUniqueReferenceID(), line.GetID())
 	})
 
-	expectedLineIds := lo.Flatten(lo.Map(expectedLines, func(expectedLine expectedLine, _ int) []string {
+	expectedLineIDs := lo.Flatten(lo.Map(expectedLines, func(expectedLine expectedLine, _ int) []string {
 		return expectedLine.Matcher.ChildIDs(subscriptionID)
 	}))
 
-	s.ElementsMatch(expectedLineIds, existingLineChildIDs)
+	s.ElementsMatch(expectedLineIDs, existingLineChildIDs)
 
 	for _, expectedLine := range expectedLines {
 		childIDs := expectedLine.Matcher.ChildIDs(subscriptionID)
@@ -334,10 +360,7 @@ func (m oneTimeLineMatcher) ChildIDs(subsID string) []string {
 	return []string{fmt.Sprintf("%s/%s/%s/v[%d]", subsID, m.PhaseKey, m.ItemKey, m.Version)}
 }
 
-// helpers
-
-//nolint:unparam
-func (s *SuiteBase) phaseMeta(key string, duration string) productcatalog.PhaseMeta {
+func (s *SyncSuiteBase) phaseMeta(key string, duration string) productcatalog.PhaseMeta {
 	out := productcatalog.PhaseMeta{
 		Key:  key,
 		Name: key,
@@ -350,13 +373,13 @@ func (s *SuiteBase) phaseMeta(key string, duration string) productcatalog.PhaseM
 	return out
 }
 
-func (s *SuiteBase) enableProgressiveBilling() {
+func (s *SyncSuiteBase) enableProgressiveBilling() {
 	s.updateProfile(func(profile *billing.Profile) {
 		profile.WorkflowConfig.Invoicing.ProgressiveBilling = true
 	})
 }
 
-func (s *SuiteBase) updateProfile(modify func(profile *billing.Profile)) {
+func (s *SyncSuiteBase) updateProfile(modify func(profile *billing.Profile)) {
 	defaultProfile, err := s.BillingService.GetDefaultProfile(s.T().Context(), billing.GetDefaultProfileInput{
 		Namespace: s.Namespace,
 	})
@@ -423,7 +446,7 @@ func (i subscriptionAddItem) AsPatch() subscription.Patch {
 	}
 }
 
-func (s *SuiteBase) generatePeriods(startStr, endStr string, cadenceStr string, n int) []billing.Period { //nolint: unparam
+func (s *SyncSuiteBase) generatePeriods(startStr, endStr string, cadenceStr string, n int) []billing.Period { //nolint: unparam
 	start := testutils.GetRFC3339Time(s.T(), startStr)
 	end := testutils.GetRFC3339Time(s.T(), endStr)
 	cadence := datetime.MustParseDuration(s.T(), cadenceStr)
@@ -447,7 +470,7 @@ func (s *SuiteBase) generatePeriods(startStr, endStr string, cadenceStr string, 
 // populateChildIDsFromParents copies over the child ID from the parent line, if it's not already set
 // as line splitting doesn't set the child ID on child lines to prevent conflicts if multiple split lines
 // end up on a single invoice.
-func (s *SuiteBase) populateChildIDsFromParents(invoice billing.GenericInvoice) {
+func (s *SyncSuiteBase) populateChildIDsFromParents(invoice billing.GenericInvoice) {
 	genericLinesOption := invoice.GetGenericLines()
 	if genericLinesOption.IsAbsent() {
 		s.Failf("lines not found", "lines not found for invoice %s", invoice.GetID())
@@ -490,9 +513,7 @@ func (s *SuiteBase) populateChildIDsFromParents(invoice billing.GenericInvoice) 
 	s.NoError(err)
 }
 
-// helpers
-
-func (s *SuiteBase) createSubscriptionFromPlanPhases(phases []productcatalog.Phase) subscription.SubscriptionView {
+func (s *SyncSuiteBase) createSubscriptionFromPlanPhases(phases []productcatalog.Phase) subscription.SubscriptionView {
 	planInput := plan.CreatePlanInput{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: s.Namespace,
@@ -516,7 +537,7 @@ func (s *SuiteBase) createSubscriptionFromPlanPhases(phases []productcatalog.Pha
 	return s.createSubscriptionFromPlan(planInput)
 }
 
-func (s *SuiteBase) createSubscriptionFromPlan(planInput plan.CreatePlanInput) subscription.SubscriptionView {
+func (s *SyncSuiteBase) createSubscriptionFromPlan(planInput plan.CreatePlanInput) subscription.SubscriptionView {
 	ctx := s.T().Context()
 
 	plan, err := s.PlanService.CreatePlan(ctx, planInput)

@@ -27,23 +27,11 @@ import (
 )
 
 type BillingAnchorTestSuite struct {
-	SuiteBase
+	SyncSuiteBase
 }
 
 func TestBillingAnchor(t *testing.T) {
 	suite.Run(t, new(BillingAnchorTestSuite))
-}
-
-func (s *BillingAnchorTestSuite) SetupSuite() {
-	s.SuiteBase.SetupSuite()
-}
-
-func (s *BillingAnchorTestSuite) BeforeTest(suiteName, testName string) {
-	s.SuiteBase.BeforeTest(s.T().Context(), suiteName, testName)
-}
-
-func (s *BillingAnchorTestSuite) AfterTest(suiteName, testName string) {
-	s.SuiteBase.AfterTest(s.T().Context(), suiteName, testName)
 }
 
 func (s *BillingAnchorTestSuite) TestBillingAnchorSinglePhase() {

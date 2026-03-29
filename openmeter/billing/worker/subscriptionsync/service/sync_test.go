@@ -32,32 +32,15 @@ import (
 )
 
 type SubscriptionHandlerTestSuite struct {
-	SuiteBase
-}
-
-func (s *SubscriptionHandlerTestSuite) SetupSuite() {
-	s.SuiteBase.SetupSuite()
-}
-
-func (s *SubscriptionHandlerTestSuite) BeforeTest(suiteName, testName string) {
-	s.SuiteBase.BeforeTest(s.T().Context(), suiteName, testName)
-}
-
-func (s *SubscriptionHandlerTestSuite) AfterTest(suiteName, testName string) {
-	s.SuiteBase.AfterTest(s.T().Context(), suiteName, testName)
+	SyncSuiteBase
 }
 
 func TestSubscriptionHandlerScenarios(t *testing.T) {
 	suite.Run(t, new(SubscriptionHandlerTestSuite))
 }
 
-func (s *SubscriptionHandlerTestSuite) mustParseTime(t string) time.Time {
-	s.T().Helper()
-	return lo.Must(time.Parse(time.RFC3339, t))
-}
-
 func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
-	ctx := s.T().Context()
+	ctx := s.testContext()
 	namespace := s.Namespace
 	start := s.mustParseTime("2024-01-01T00:00:00.123456Z")
 	clock.SetTime(start)
