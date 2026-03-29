@@ -15,6 +15,8 @@ import (
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -39,6 +41,7 @@ type SuiteBase struct {
 	billingtest.SubscriptionMixin
 	Service *Service
 	Adapter subscriptionsync.Adapter
+	Charges charges.Service
 
 	Namespace               string
 	Customer                *customer.Customer
@@ -60,6 +63,27 @@ func (s *SuiteBase) SetupSuite() {
 		Logger:                  slog.Default(),
 		Tracer:                  noop.NewTracerProvider().Tracer("test"),
 		SubscriptionSyncAdapter: adapter,
+		SubscriptionService:     s.SubscriptionService,
+	})
+	s.NoError(err)
+
+	s.Service = service
+}
+
+func (s *SuiteBase) setupChargesService(config chargestestutils.Config) {
+	s.T().Helper()
+
+	stack, err := chargestestutils.NewServices(s.T(), config)
+	s.NoError(err)
+
+	s.Charges = stack.ChargesService
+
+	service, err := New(Config{
+		BillingService:          s.BillingService,
+		ChargesService:          s.Charges,
+		Logger:                  slog.Default(),
+		Tracer:                  noop.NewTracerProvider().Tracer("test"),
+		SubscriptionSyncAdapter: s.Adapter,
 		SubscriptionService:     s.SubscriptionService,
 	})
 	s.NoError(err)
@@ -538,6 +562,10 @@ func (s *SyncSuiteBase) createSubscriptionFromPlanPhases(phases []productcatalog
 }
 
 func (s *SyncSuiteBase) createSubscriptionFromPlan(planInput plan.CreatePlanInput) subscription.SubscriptionView {
+	return s.createSubscriptionFromPlanAt(planInput, clock.Now())
+}
+
+func (s *SyncSuiteBase) createSubscriptionFromPlanAt(planInput plan.CreatePlanInput, startAt time.Time) subscription.SubscriptionView {
 	ctx := s.T().Context()
 
 	plan, err := s.PlanService.CreatePlan(ctx, planInput)
@@ -552,7 +580,7 @@ func (s *SyncSuiteBase) createSubscriptionFromPlan(planInput plan.CreatePlanInpu
 	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
 		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 			Timing: subscription.Timing{
-				Custom: lo.ToPtr(clock.Now()),
+				Custom: lo.ToPtr(startAt),
 			},
 			Name: "subs-1",
 		},
