@@ -582,7 +582,6 @@ func (s *CreditsTestSuite) createMockChargeIntent(input createMockChargeIntentIn
 			SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.InvoiceOnlySettlementMode),
 
 			AmountBeforeProration: price.Amount,
-			AmountAfterProration:  price.Amount,
 		}
 		return charges.NewChargeIntent(flatFeeIntent)
 	}

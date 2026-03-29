@@ -28,7 +28,8 @@ func MapChargeFlatFeeFromDB(entity *entdb.ChargeFlatFee, expands meta.Expands) (
 		ManagedResource: mappedMeta.ManagedResource,
 		Status:          mappedMeta.Status,
 		State: flatfee.State{
-			AdvanceAfter: mappedMeta.AdvanceAfter,
+			AdvanceAfter:         mappedMeta.AdvanceAfter,
+			AmountAfterProration: entity.AmountAfterProration,
 		},
 		Intent: flatfee.Intent{
 			Intent:                mappedMeta.Intent,
@@ -39,7 +40,6 @@ func MapChargeFlatFeeFromDB(entity *entdb.ChargeFlatFee, expands meta.Expands) (
 			PercentageDiscounts:   percentageDiscounts,
 			ProRating:             proRatingConfigFromDB(entity.ProRating),
 			AmountBeforeProration: entity.AmountBeforeProration,
-			AmountAfterProration:  entity.AmountAfterProration,
 		},
 	}
 
