@@ -15,8 +15,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-type PatchOperation string
-type BackendType string
+type (
+	PatchOperation string
+	BackendType    string
+)
 
 const (
 	PatchOperationCreate  PatchOperation = "create"

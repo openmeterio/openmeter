@@ -83,10 +83,10 @@ Important rules:
 - `State` contains:
   - `ByUniqueID map[string]Item`
   - `Invoices`
-  - `ChargesByUniqueID`
 
 Charge loading notes:
 - charges are optional and loaded only when `ChargesService` is configured
+- persisted charges are merged into `State.ByUniqueID`; downstream sync code should not depend on a separate charge-only map
 - persisted charge unique IDs must not overlap persisted invoice unique IDs
 - credit-purchase charges tied to subscriptions are currently unsupported and should error
 
@@ -128,10 +128,10 @@ Important routing rules:
 - `GetCollectionFor(persistedItem)` routes by persisted item type (invoice line, split-line group, flat fee charge, usage-based charge)
 - `ResolveDefaultCollection(targetItem)` routes new items (no persisted counterpart) by subscription settlement mode + price type:
   - `credit_only` + flat price -> `flatFeeChargeCollection`
-  - `credit_only` + any other price -> `usageBasedChargeCollection`
+  - `credit_only` + unit price -> `usageBasedChargeCollection`
   - everything else -> `lineCollection` (invoice lines)
 
-The `filterInScopeLinesForInvoiceSync` function gates which target items enter reconciliation. It filters out non-billable items and items that don't render to an expected line. This runs before any diffing so absent targets naturally produce delete/no-op outcomes.
+The `filterInScopeLines` function gates which target items enter reconciliation. It filters out non-billable items for every backend, and only invoicing-backed targets are additionally gated on `GetExpectedLine()`. This runs before any diffing so absent targets naturally produce delete/no-op outcomes.
 
 Current charge limitations:
 - charge collections only support create
@@ -152,6 +152,7 @@ Keep these separate:
   - provisions charge intents directly
   - does not go through invoice-line rendering
   - currently only create is supported
+  - invoice-style semantic proration is skipped in `diffItem(...)`; charges own their own proration logic
 
 Do not force charge behavior through invoice abstractions.
 
@@ -182,6 +183,8 @@ Use `setupChargesService(config)` on `SuiteBase` to rebuild the sync service wit
 For charge-backed sync tests:
 - prefer `openmeter/billing/charges/testutils.NewMockHandlers()`
 - these mocks are intentionally minimal but valid enough for charge creation/advancement
+- do not query charge tables directly from sync tests; use `Charges.ListCharges(...)` with `SubscriptionIDs` and `ChargeTypes` filters to assert the end state through the public charges stack
+- when asserting charge subscription phase IDs, derive the expected phase from the child unique reference ID and the loaded subscription view instead of hardcoding phase IDs in scenario data
 
 Pattern for credit-only tests:
 1. construct plan with `SettlementMode: productcatalog.CreditOnlySettlementMode`

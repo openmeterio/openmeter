@@ -205,7 +205,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeCancella
 	// - the previous two flat fees exist
 	//
 	// When:
-	// - the subscription is cancelled at the end of the first period exactly
+	// - the subscription is canceled at the end of the first period exactly
 	//
 	// Then:
 	// - reconciliation throws an error that delete is not supported
@@ -283,7 +283,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeCancella
 		s.expectCreditsOnlyFlatFeeCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
 	})
 
-	s.Run("cancelling at the first period boundary fails reconciliation", func() {
+	s.Run("canceling at the first period boundary fails reconciliation", func() {
 		cancelAt := s.mustParseTime("2024-03-01T00:00:00Z")
 		clock.SetTime(cancelAt)
 
