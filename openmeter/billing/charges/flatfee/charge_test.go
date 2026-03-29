@@ -147,6 +147,19 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 		assert.True(t, result.Equal(expected), "expected %s, got %s", expected, result)
 	})
 
+	t.Run("service period exceeding full period returns full amount", func(t *testing.T) {
+		intent := baseIntent()
+		// ServicePeriod is longer than FullServicePeriod — proration must not increase the amount
+		intent.ServicePeriod = timeutil.ClosedPeriod{
+			From: fullMonthStart,
+			To:   datetime.MustParseTimeInLocation(t, "2026-03-01T00:00:00Z", time.UTC).AsTime(),
+		}
+
+		result, err := intent.CalculateAmountAfterProration()
+		require.NoError(t, err)
+		assert.True(t, result.Equal(amount100), "expected %s, got %s", amount100, result)
+	})
+
 	t.Run("invalid currency returns error", func(t *testing.T) {
 		intent := baseIntent()
 		intent.Currency = currencyx.Code("INVALID")

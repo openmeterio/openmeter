@@ -121,7 +121,9 @@ func (i Intent) CalculateAmountAfterProration() (alpacadecimal.Decimal, error) {
 	servicePeriodDuration := int64(i.ServicePeriod.Duration())
 	fullServicePeriodDuration := int64(i.FullServicePeriod.Duration())
 
-	if servicePeriodDuration == 0 || fullServicePeriodDuration == 0 {
+	// Proration must never increase the amount beyond AmountBeforeProration.
+	// Zero-length periods or ServicePeriod >= FullServicePeriod means no proration applies.
+	if servicePeriodDuration == 0 || fullServicePeriodDuration == 0 || servicePeriodDuration >= fullServicePeriodDuration {
 		return i.AmountBeforeProration, nil
 	}
 
