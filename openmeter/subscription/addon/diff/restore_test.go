@@ -352,6 +352,7 @@ func TestRestore(t *testing.T) {
 						Enabled: true,
 						Mode:    productcatalog.ProRatingModeProratePrices,
 					},
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				}).
 				AddPhase(nil, &subscriptiontestutils.ExampleRateCard1).
 				Build(),

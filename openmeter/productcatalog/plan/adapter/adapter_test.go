@@ -142,6 +142,31 @@ func TestPostgresAdapter(t *testing.T) {
 			plan.AssertPlanCreateInputEqual(t, planV1Input, *planV1)
 		})
 
+		t.Run("CreateWithCreditOnlySettlement", func(t *testing.T) {
+			input := pctestutils.NewTestPlan(t, namespace, planPhases...)
+			input.Key = "test-credit-only"
+			input.SettlementMode = productcatalog.CreditOnlySettlementMode
+
+			p, err := env.PlanRepository.CreatePlan(ctx, input)
+			require.NoErrorf(t, err, "creating plan with credit_only settlement must not fail")
+			require.NotNilf(t, p, "plan must not be nil")
+
+			assert.Equalf(t, productcatalog.CreditOnlySettlementMode, p.SettlementMode,
+				"settlement mode mismatch: expected=%s, actual=%s", productcatalog.CreditOnlySettlementMode, p.SettlementMode)
+
+			// Verify persistence via GetPlan
+			fetched, err := env.PlanRepository.GetPlan(ctx, plan.GetPlanInput{
+				NamespacedID: models.NamespacedID{
+					Namespace: namespace,
+					ID:        p.ID,
+				},
+			})
+			require.NoErrorf(t, err, "getting plan by id must not fail")
+
+			assert.Equalf(t, productcatalog.CreditOnlySettlementMode, fetched.SettlementMode,
+				"persisted settlement mode mismatch: expected=%s, actual=%s", productcatalog.CreditOnlySettlementMode, fetched.SettlementMode)
+		})
+
 		t.Run("Get", func(t *testing.T) {
 			t.Run("ById", func(t *testing.T) {
 				getPlanV1, err := env.Plan.GetPlan(ctx, plan.GetPlanInput{
@@ -270,6 +295,35 @@ func TestPostgresAdapter(t *testing.T) {
 			require.NotNilf(t, planV1, "plan must not be nil")
 
 			plan.AssertPlanUpdateInputEqual(t, planV1Update, *planV1)
+		})
+
+		t.Run("UpdateSettlementMode", func(t *testing.T) {
+			newMode := productcatalog.CreditOnlySettlementMode
+
+			planV1, err = env.PlanRepository.UpdatePlan(ctx, plan.UpdatePlanInput{
+				NamespacedID: models.NamespacedID{
+					Namespace: namespace,
+					ID:        planV1.ID,
+				},
+				SettlementMode: &newMode,
+			})
+			require.NoErrorf(t, err, "updating settlement mode must not fail")
+			require.NotNilf(t, planV1, "plan must not be nil")
+
+			assert.Equalf(t, productcatalog.CreditOnlySettlementMode, planV1.SettlementMode,
+				"settlement mode mismatch: expected=%s, actual=%s", productcatalog.CreditOnlySettlementMode, planV1.SettlementMode)
+
+			// Verify persistence
+			fetched, err := env.PlanRepository.GetPlan(ctx, plan.GetPlanInput{
+				NamespacedID: models.NamespacedID{
+					Namespace: namespace,
+					ID:        planV1.ID,
+				},
+			})
+			require.NoErrorf(t, err, "getting plan by id must not fail")
+
+			assert.Equalf(t, productcatalog.CreditOnlySettlementMode, fetched.SettlementMode,
+				"persisted settlement mode mismatch: expected=%s, actual=%s", productcatalog.CreditOnlySettlementMode, fetched.SettlementMode)
 		})
 
 		t.Run("Delete", func(t *testing.T) {

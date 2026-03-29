@@ -39,6 +39,9 @@ func (s *service) sync(ctx context.Context, view subscription.SubscriptionView, 
 		if !view.Subscription.ActiveFrom.Equal(newSpec.ActiveFrom) {
 			return def, fmt.Errorf("cannot change subscription start")
 		}
+		if view.Subscription.SettlementMode != newSpec.SettlementMode {
+			return def, fmt.Errorf("cannot change settlement mode")
+		}
 
 		dirty := make(touched)
 

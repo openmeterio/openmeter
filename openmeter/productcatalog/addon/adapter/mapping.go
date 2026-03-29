@@ -218,6 +218,7 @@ func FromPlanRow(p entdb.Plan) (*productcatalog.Plan, error) {
 			},
 			BillingCadence:  billingCadence,
 			ProRatingConfig: p.ProRatingConfig,
+			SettlementMode:  p.SettlementMode,
 		},
 	}
 
