@@ -74,6 +74,7 @@ func New(config Config) (*Service, error) {
 	}
 	reconcilerSvc, err := reconciler.New(reconciler.Config{
 		BillingService: config.BillingService,
+		ChargesService: config.ChargesService,
 		Logger:         config.Logger,
 	})
 	if err != nil {
