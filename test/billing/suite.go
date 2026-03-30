@@ -47,6 +47,9 @@ import (
 	subjectadapter "github.com/openmeterio/openmeter/openmeter/subject/adapter"
 	subjectservice "github.com/openmeterio/openmeter/openmeter/subject/service"
 	subjecthooks "github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
+	taxcodeservice "github.com/openmeterio/openmeter/openmeter/taxcode/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -80,6 +83,8 @@ type BaseSuite struct {
 
 	AppService app.Service
 	SandboxApp *appsandbox.MockableFactory
+
+	TaxCodeService taxcode.Service
 }
 
 // GetUniqueNamespace returns a unique namespace with the given prefix
@@ -205,6 +210,15 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 	require.NoError(t, err)
 	s.AppService = appService
 
+	// TaxCode
+	taxCodeAdapter, err := taxcodeadapter.New(taxcodeadapter.Config{
+		Client: dbClient,
+		Logger: slog.Default(),
+	})
+	require.NoError(t, err)
+	taxCodeService := taxcodeservice.New(taxCodeAdapter, slog.Default())
+	s.TaxCodeService = taxCodeService
+
 	// Billing
 	billingAdapter, err := billingadapter.New(billingadapter.Config{
 		Client: dbClient,
@@ -225,6 +239,7 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 		Publisher:                    publisher,
 		AdvancementStrategy:          billing.ForegroundAdvancementStrategy,
 		MaxParallelQuantitySnapshots: 2,
+		TaxCodeService:               taxCodeService,
 	})
 	require.NoError(t, err)
 
