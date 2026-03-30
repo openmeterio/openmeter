@@ -3850,7 +3850,6 @@ components:
         - currency
         - amount
         - available_balance
-        - actor
       properties:
         id:
           allOf:
@@ -3912,58 +3911,22 @@ components:
             - after
           description: The available balance before and after the transaction.
           readOnly: true
-        actor:
-          allOf:
-            - $ref: '#/components/schemas/BillingCreditTransactionActor'
-          description: The actor that caused this credit transaction.
-          readOnly: true
       description: |-
         A credit transaction represents a single credit movement on the customer's balance.
 
         Credit transactions are immutable.
       title: Credit transaction
-    BillingCreditTransactionActor:
-      type: object
-      required:
-        - type
-      properties:
-        type:
-          allOf:
-            - $ref: '#/components/schemas/BillingCreditTransactionActorType'
-          description: The type of actor.
-          readOnly: true
-      description: The actor that caused the credit transaction.
-      title: Credit transaction actor
-    BillingCreditTransactionActorType:
-      type: string
-      enum:
-        - system
-        - customer
-        - admin
-        - payment_provider
-      description: |-
-        The type of actor that caused the credit transaction.
-
-        - `system`: Automated system operations (consumption, expiry).
-        - `customer`: Initiated by the customer.
-        - `admin`: Initiated by the admin.
-        - `payment_provider`: Initiated by the payment provider.
-      title: Credit transaction actor type
     BillingCreditTransactionType:
       type: string
       enum:
         - funded
         - consumed
-        - expired
-        - voided
         - adjusted
       description: |-
         The type of the credit transaction.
 
         - `funded`: Credit granted and available for consumption.
         - `consumed`: Credit consumed.
-        - `expired`: Credit expired.
-        - `voided`: Credit voided.
         - `adjusted`: Manual or system adjustment.
     BillingCurrency:
       type: object
