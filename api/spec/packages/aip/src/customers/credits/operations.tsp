@@ -45,7 +45,7 @@ interface CustomerCreditGrantsOperations {
   @summary("Create a new credit grant")
   create(
     @path customerId: Shared.ULID,
-    @body credit_grant: Shared.CreateRequest<CreditGrant>,
+    @body credit_grant: Shared.CreateRequestNested<CreditGrant>,
   ): Shared.CreateResponse<CreditGrant> | Common.NotFound | Common.ErrorResponses;
 
   /**

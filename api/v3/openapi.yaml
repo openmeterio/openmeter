@@ -5714,13 +5714,6 @@ components:
 
                 Defaults to 1.0.
               default: '1.0'
-            amount:
-              allOf:
-                - $ref: '#/components/schemas/Numeric'
-              description: |-
-                The purchase amount.
-                Calculated from `per_unit_cost_basis` and credit `amount`.
-              readOnly: true
             availability_policy:
               allOf:
                 - $ref: '#/components/schemas/BillingCreditAvailabilityPolicy'
@@ -5729,14 +5722,8 @@ components:
 
                 Defaults to `on_creation`.
               default: on_creation
-            settlement_status:
-              allOf:
-                - $ref: '#/components/schemas/BillingCreditPurchasePaymentSettlementStatus'
-              description: Current payment settlement status.
-              readOnly: true
           required:
             - currency
-            - amount
           description: |-
             Purchase and payment terms of the grant.
             Present when a funding workflow applies (funding_method is not `none`).
