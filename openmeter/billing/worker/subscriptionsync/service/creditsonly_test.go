@@ -28,7 +28,7 @@ import (
 )
 
 type CreditsOnlySubscriptionHandlerTestSuite struct {
-	SyncSuiteBase
+	SuiteBase
 }
 
 type expectedFlatFeeCharge struct {
@@ -54,7 +54,7 @@ func TestCreditsOnlySubscriptionHandlerScenarios(t *testing.T) {
 }
 
 func (s *CreditsOnlySubscriptionHandlerTestSuite) SetupSuite() {
-	s.SyncSuiteBase.SetupSuite()
+	s.SuiteBase.SetupSuite()
 	handlers := chargestestutils.NewMockHandlers()
 
 	s.setupChargesService(chargestestutils.Config{

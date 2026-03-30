@@ -32,7 +32,7 @@ import (
 )
 
 type SubscriptionHandlerTestSuite struct {
-	SyncSuiteBase
+	SuiteBase
 }
 
 func TestSubscriptionHandlerScenarios(t *testing.T) {

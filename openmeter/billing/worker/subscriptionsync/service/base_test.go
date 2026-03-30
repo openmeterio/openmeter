@@ -91,7 +91,11 @@ func (s *SuiteBase) setupChargesService(config chargestestutils.Config) {
 	s.Service = service
 }
 
-func (s *SuiteBase) BeforeTest(ctx context.Context, suiteName, testName string) {
+func (s *SuiteBase) BeforeTest(suiteName, testName string) {
+	s.beforeTest(s.T().Context(), suiteName, testName)
+}
+
+func (s *SuiteBase) beforeTest(ctx context.Context, suiteName, testName string) {
 	s.Namespace = fmt.Sprintf("t-%s-%s-%s", suiteName, testName, ulid.Make().String())
 
 	appSandbox := s.InstallSandboxApp(s.T(), s.Namespace)
@@ -139,7 +143,11 @@ func (s *SuiteBase) BeforeTest(ctx context.Context, suiteName, testName string) 
 	s.Customer = customerEntity
 }
 
-func (s *SuiteBase) AfterTest(ctx context.Context, suiteName, testName string) {
+func (s *SuiteBase) AfterTest(suiteName, testName string) {
+	s.afterTest(s.T().Context(), suiteName, testName)
+}
+
+func (s *SuiteBase) afterTest(ctx context.Context, suiteName, testName string) {
 	clock.UnFreeze()
 	clock.ResetTime()
 
@@ -242,33 +250,17 @@ func (s *SuiteBase) timingImmediate() subscription.Timing {
 	}
 }
 
-type SyncSuiteBase struct {
-	SuiteBase
-}
-
-func (s *SyncSuiteBase) SetupSuite() {
-	s.SuiteBase.SetupSuite()
-}
-
-func (s *SyncSuiteBase) BeforeTest(suiteName, testName string) {
-	s.SuiteBase.BeforeTest(s.T().Context(), suiteName, testName)
-}
-
-func (s *SyncSuiteBase) AfterTest(suiteName, testName string) {
-	s.SuiteBase.AfterTest(s.T().Context(), suiteName, testName)
-}
-
-func (s *SyncSuiteBase) mustParseTime(t string) time.Time {
+func (s *SuiteBase) mustParseTime(t string) time.Time {
 	s.T().Helper()
 	return lo.Must(time.Parse(time.RFC3339, t))
 }
 
-func (s *SyncSuiteBase) testContext() context.Context {
+func (s *SuiteBase) testContext() context.Context {
 	s.T().Helper()
 	return s.T().Context()
 }
 
-func (s *SyncSuiteBase) getPhaseByKey(t *testing.T, subsView subscription.SubscriptionView, key string) subscription.SubscriptionPhaseView {
+func (s *SuiteBase) getPhaseByKey(t *testing.T, subsView subscription.SubscriptionView, key string) subscription.SubscriptionPhaseView {
 	for _, phase := range subsView.Phases {
 		if phase.SubscriptionPhase.Key == key {
 			return phase
@@ -288,7 +280,7 @@ type expectedLine struct {
 	AdditionalChecks func(line billing.GenericInvoiceLine)
 }
 
-func (s *SyncSuiteBase) expectLines(invoice billing.GenericInvoiceReader, subscriptionID string, expectedLines []expectedLine) {
+func (s *SuiteBase) expectLines(invoice billing.GenericInvoiceReader, subscriptionID string, expectedLines []expectedLine) {
 	s.T().Helper()
 
 	lines := invoice.GetGenericLines()
@@ -384,7 +376,7 @@ func (m oneTimeLineMatcher) ChildIDs(subsID string) []string {
 	return []string{fmt.Sprintf("%s/%s/%s/v[%d]", subsID, m.PhaseKey, m.ItemKey, m.Version)}
 }
 
-func (s *SyncSuiteBase) phaseMeta(key string, duration string) productcatalog.PhaseMeta {
+func (s *SuiteBase) phaseMeta(key string, duration string) productcatalog.PhaseMeta {
 	out := productcatalog.PhaseMeta{
 		Key:  key,
 		Name: key,
@@ -397,13 +389,13 @@ func (s *SyncSuiteBase) phaseMeta(key string, duration string) productcatalog.Ph
 	return out
 }
 
-func (s *SyncSuiteBase) enableProgressiveBilling() {
+func (s *SuiteBase) enableProgressiveBilling() {
 	s.updateProfile(func(profile *billing.Profile) {
 		profile.WorkflowConfig.Invoicing.ProgressiveBilling = true
 	})
 }
 
-func (s *SyncSuiteBase) updateProfile(modify func(profile *billing.Profile)) {
+func (s *SuiteBase) updateProfile(modify func(profile *billing.Profile)) {
 	defaultProfile, err := s.BillingService.GetDefaultProfile(s.T().Context(), billing.GetDefaultProfileInput{
 		Namespace: s.Namespace,
 	})
@@ -470,7 +462,7 @@ func (i subscriptionAddItem) AsPatch() subscription.Patch {
 	}
 }
 
-func (s *SyncSuiteBase) generatePeriods(startStr, endStr string, cadenceStr string, n int) []billing.Period { //nolint: unparam
+func (s *SuiteBase) generatePeriods(startStr, endStr string, cadenceStr string, n int) []billing.Period { //nolint: unparam
 	start := testutils.GetRFC3339Time(s.T(), startStr)
 	end := testutils.GetRFC3339Time(s.T(), endStr)
 	cadence := datetime.MustParseDuration(s.T(), cadenceStr)
@@ -494,7 +486,7 @@ func (s *SyncSuiteBase) generatePeriods(startStr, endStr string, cadenceStr stri
 // populateChildIDsFromParents copies over the child ID from the parent line, if it's not already set
 // as line splitting doesn't set the child ID on child lines to prevent conflicts if multiple split lines
 // end up on a single invoice.
-func (s *SyncSuiteBase) populateChildIDsFromParents(invoice billing.GenericInvoice) {
+func (s *SuiteBase) populateChildIDsFromParents(invoice billing.GenericInvoice) {
 	genericLinesOption := invoice.GetGenericLines()
 	if genericLinesOption.IsAbsent() {
 		s.Failf("lines not found", "lines not found for invoice %s", invoice.GetID())
@@ -537,7 +529,7 @@ func (s *SyncSuiteBase) populateChildIDsFromParents(invoice billing.GenericInvoi
 	s.NoError(err)
 }
 
-func (s *SyncSuiteBase) createSubscriptionFromPlanPhases(phases []productcatalog.Phase) subscription.SubscriptionView {
+func (s *SuiteBase) createSubscriptionFromPlanPhases(phases []productcatalog.Phase) subscription.SubscriptionView {
 	planInput := plan.CreatePlanInput{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: s.Namespace,
@@ -561,11 +553,11 @@ func (s *SyncSuiteBase) createSubscriptionFromPlanPhases(phases []productcatalog
 	return s.createSubscriptionFromPlan(planInput)
 }
 
-func (s *SyncSuiteBase) createSubscriptionFromPlan(planInput plan.CreatePlanInput) subscription.SubscriptionView {
+func (s *SuiteBase) createSubscriptionFromPlan(planInput plan.CreatePlanInput) subscription.SubscriptionView {
 	return s.createSubscriptionFromPlanAt(planInput, clock.Now())
 }
 
-func (s *SyncSuiteBase) createSubscriptionFromPlanAt(planInput plan.CreatePlanInput, startAt time.Time) subscription.SubscriptionView {
+func (s *SuiteBase) createSubscriptionFromPlanAt(planInput plan.CreatePlanInput, startAt time.Time) subscription.SubscriptionView {
 	ctx := s.T().Context()
 
 	plan, err := s.PlanService.CreatePlan(ctx, planInput)

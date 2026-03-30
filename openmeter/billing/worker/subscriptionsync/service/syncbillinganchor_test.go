@@ -27,7 +27,7 @@ import (
 )
 
 type BillingAnchorTestSuite struct {
-	SyncSuiteBase
+	SuiteBase
 }
 
 func TestBillingAnchor(t *testing.T) {
