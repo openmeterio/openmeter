@@ -10389,6 +10389,8 @@ export const createPlanBodyProRatingConfigDefault = {
   enabled: true,
   mode: 'prorate_prices',
 } as const
+export const createPlanBodySettlementModeDefault =
+  'credit_then_invoice' as const
 export const createPlanBodyPhasesItemKeyMax = 64 as const
 
 export const createPlanBodyPhasesItemKeyRegExp = /^[a-z0-9]+(?:_[a-z0-9]+)*$/
@@ -11434,6 +11436,12 @@ export const CreatePlanBody = zod
       .describe(
         'Default pro-rating configuration for subscriptions using this plan.',
       ),
+    settlementMode: zod
+      .enum(['credit_then_invoice', 'credit_only'])
+      .default(createPlanBodySettlementModeDefault)
+      .describe(
+        'The settlement mode of the plan.\nIt determines how the billing system generates invoices and credits for the subscriptions using this plan.\n- creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.\nThis is the default and most common settlement mode.',
+      ),
   })
   .describe('Resource create operation model.')
 
@@ -11478,6 +11486,8 @@ export const updatePlanBodyProRatingConfigDefault = {
   enabled: true,
   mode: 'prorate_prices',
 } as const
+export const updatePlanBodySettlementModeDefault =
+  'credit_then_invoice' as const
 export const updatePlanBodyPhasesItemKeyMax = 64 as const
 
 export const updatePlanBodyPhasesItemKeyRegExp = /^[a-z0-9]+(?:_[a-z0-9]+)*$/
@@ -12506,6 +12516,12 @@ export const UpdatePlanBody = zod
       .default(updatePlanBodyProRatingConfigDefault)
       .describe(
         'Default pro-rating configuration for subscriptions using this plan.',
+      ),
+    settlementMode: zod
+      .enum(['credit_then_invoice', 'credit_only'])
+      .default(updatePlanBodySettlementModeDefault)
+      .describe(
+        'The settlement mode of the plan.\nIt determines how the billing system generates invoices and credits for the subscriptions using this plan.\n- creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.\nThis is the default and most common settlement mode.',
       ),
   })
   .describe('Resource update operation model.')
@@ -14261,6 +14277,8 @@ export const createSubscriptionBodyTwoCustomPlanOneOneProRatingConfigDefault = {
   enabled: true,
   mode: 'prorate_prices',
 } as const
+export const createSubscriptionBodyTwoCustomPlanOneOneSettlementModeDefault =
+  'credit_then_invoice' as const
 export const createSubscriptionBodyTwoCustomPlanOneOnePhasesItemKeyMax =
   64 as const
 
@@ -15509,6 +15527,14 @@ export const CreateSubscriptionBody = zod
               )
               .describe(
                 'Default pro-rating configuration for subscriptions using this plan.',
+              ),
+            settlementMode: zod
+              .enum(['credit_then_invoice', 'credit_only'])
+              .default(
+                createSubscriptionBodyTwoCustomPlanOneOneSettlementModeDefault,
+              )
+              .describe(
+                'The settlement mode of the plan.\nIt determines how the billing system generates invoices and credits for the subscriptions using this plan.\n- creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.\nThis is the default and most common settlement mode.',
               ),
           })
           .describe('The template for omitting properties.')
@@ -16941,6 +16967,8 @@ export const changeSubscriptionBodyTwoCustomPlanOneOneProRatingConfigDefault = {
   enabled: true,
   mode: 'prorate_prices',
 } as const
+export const changeSubscriptionBodyTwoCustomPlanOneOneSettlementModeDefault =
+  'credit_then_invoice' as const
 export const changeSubscriptionBodyTwoCustomPlanOneOnePhasesItemKeyMax =
   64 as const
 
@@ -18157,6 +18185,14 @@ export const ChangeSubscriptionBody = zod
               )
               .describe(
                 'Default pro-rating configuration for subscriptions using this plan.',
+              ),
+            settlementMode: zod
+              .enum(['credit_then_invoice', 'credit_only'])
+              .default(
+                changeSubscriptionBodyTwoCustomPlanOneOneSettlementModeDefault,
+              )
+              .describe(
+                'The settlement mode of the plan.\nIt determines how the billing system generates invoices and credits for the subscriptions using this plan.\n- creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.\nThis is the default and most common settlement mode.',
               ),
           })
           .describe('The template for omitting properties.')

@@ -86,6 +86,15 @@ class BillingCollectionAlignment(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Align the collection to the anchor time and cadence."""
 
 
+class BillingPlanSettlementMode(str, Enum, metaclass=CaseInsensitiveEnumMeta):
+    """Type of BillingPlanSettlementMode."""
+
+    CREDIT_THEN_INVOICE_SETTLEMENT_MODE = "credit_then_invoice"
+    """CREDIT_THEN_INVOICE_SETTLEMENT_MODE."""
+    CREDIT_ONLY_SETTLEMENT_MODE = "credit_only"
+    """CREDIT_ONLY_SETTLEMENT_MODE."""
+
+
 class BillingProfileCustomerOverrideExpand(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """CustomerOverrideExpand specifies the parts of the profile to expand."""
 

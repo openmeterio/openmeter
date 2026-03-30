@@ -3000,6 +3000,8 @@ export interface components {
       /** @description Normalized tax code shown on the original identity document. */
       code?: components['schemas']['BillingTaxIdentificationCode']
     }
+    /** @enum {string} */
+    BillingPlanSettlementMode: 'credit_then_invoice' | 'credit_only'
     /** @description BillingProfile represents a billing profile */
     BillingProfile: {
       /**
@@ -4073,6 +4075,15 @@ export interface components {
        *     }
        */
       proRatingConfig?: components['schemas']['ProRatingConfig']
+      /**
+       * Settlement mode
+       * @description The settlement mode of the plan.
+       *     It determines how the billing system generates invoices and credits for the subscriptions using this plan.
+       *     - creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+       *     This is the default and most common settlement mode.
+       * @default credit_then_invoice
+       */
+      settlementMode?: components['schemas']['BillingPlanSettlementMode']
       /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
@@ -9469,6 +9480,15 @@ export interface components {
        */
       readonly status: components['schemas']['PlanStatus']
       /**
+       * Settlement mode
+       * @description The settlement mode of the plan.
+       *     It determines how the billing system generates invoices and credits for the subscriptions using this plan.
+       *     - creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+       *     This is the default and most common settlement mode.
+       * @default credit_then_invoice
+       */
+      settlementMode?: components['schemas']['BillingPlanSettlementMode']
+      /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
        *     A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
@@ -9657,6 +9677,15 @@ export interface components {
        */
       proRatingConfig?: components['schemas']['ProRatingConfig']
       /**
+       * Settlement mode
+       * @description The settlement mode of the plan.
+       *     It determines how the billing system generates invoices and credits for the subscriptions using this plan.
+       *     - creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+       *     This is the default and most common settlement mode.
+       * @default credit_then_invoice
+       */
+      settlementMode?: components['schemas']['BillingPlanSettlementMode']
+      /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
        *     A phase switch occurs only at the end of a billing period, ensuring that a single subscription invoice will not include charges from different phase prices.
@@ -9779,6 +9808,15 @@ export interface components {
        *     }
        */
       proRatingConfig?: components['schemas']['ProRatingConfig']
+      /**
+       * Settlement mode
+       * @description The settlement mode of the plan.
+       *     It determines how the billing system generates invoices and credits for the subscriptions using this plan.
+       *     - creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+       *     This is the default and most common settlement mode.
+       * @default credit_then_invoice
+       */
+      settlementMode?: components['schemas']['BillingPlanSettlementMode']
       /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
@@ -10957,6 +10995,14 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       readonly billingAnchor: Date
+      /**
+       * Settlement mode
+       * @description The settlement mode of the subscription, which determines how the invoice is generated and payments are applied.
+       *     - creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+       *     This is the default and most common settlement mode.
+       * @default credit_then_invoice
+       */
+      settlementMode?: components['schemas']['BillingPlanSettlementMode']
     }
     /** @description A subscription add-on, represents concrete instances of an add-on for a given subscription. */
     SubscriptionAddon: {
@@ -11418,6 +11464,14 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       readonly billingAnchor: Date
+      /**
+       * Settlement mode
+       * @description The settlement mode of the subscription, which determines how the invoice is generated and payments are applied.
+       *     - creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+       *     This is the default and most common settlement mode.
+       * @default credit_then_invoice
+       */
+      settlementMode?: components['schemas']['BillingPlanSettlementMode']
       /** @description Alignment details enriched with the current billing period. */
       alignment?: components['schemas']['SubscriptionAlignment']
       /** @description The phases of the subscription. */
@@ -12335,6 +12389,8 @@ export type BillingPartyReplaceUpdate =
   components['schemas']['BillingPartyReplaceUpdate']
 export type BillingPartyTaxIdentity =
   components['schemas']['BillingPartyTaxIdentity']
+export type BillingPlanSettlementMode =
+  components['schemas']['BillingPlanSettlementMode']
 export type BillingProfile = components['schemas']['BillingProfile']
 export type BillingProfileAppReferences =
   components['schemas']['BillingProfileAppReferences']

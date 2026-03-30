@@ -3789,6 +3789,9 @@ class OmitPropertiesResourceCreateModel(_Model):
     :vartype billing_cadence: ~datetime.timedelta
     :ivar pro_rating_config: Pro-rating configuration.
     :vartype pro_rating_config: ~openmeter._generated.models.ProRatingConfig
+    :ivar settlement_mode: Settlement mode. Known values are: "credit_then_invoice" and
+     "credit_only".
+    :vartype settlement_mode: str or ~openmeter.models.BillingPlanSettlementMode
     :ivar phases: Plan phases. Required.
     :vartype phases: list[~openmeter._generated.models.PlanPhase]
     """
@@ -3809,6 +3812,10 @@ class OmitPropertiesResourceCreateModel(_Model):
         name="proRatingConfig", visibility=["read", "create", "update"]
     )
     """Pro-rating configuration."""
+    settlement_mode: Optional[Union[str, "_models.BillingPlanSettlementMode"]] = rest_field(
+        name="settlementMode", visibility=["read", "create", "update"]
+    )
+    """Settlement mode. Known values are: \"credit_then_invoice\" and \"credit_only\"."""
     phases: list["_models.PlanPhase"] = rest_field(visibility=["read", "create", "update"])
     """Plan phases. Required."""
 
@@ -3824,6 +3831,7 @@ class OmitPropertiesResourceCreateModel(_Model):
         metadata: Optional["_models.Metadata"] = None,
         alignment: Optional["_models.Alignment"] = None,
         pro_rating_config: Optional["_models.ProRatingConfig"] = None,
+        settlement_mode: Optional[Union[str, "_models.BillingPlanSettlementMode"]] = None,
     ) -> None: ...
 
     @overload
@@ -3854,6 +3862,9 @@ class CustomPlanInput(OmitPropertiesResourceCreateModel):
     :vartype billing_cadence: ~datetime.timedelta
     :ivar pro_rating_config: Pro-rating configuration.
     :vartype pro_rating_config: ~openmeter._generated.models.ProRatingConfig
+    :ivar settlement_mode: Settlement mode. Known values are: "credit_then_invoice" and
+     "credit_only".
+    :vartype settlement_mode: str or ~openmeter.models.BillingPlanSettlementMode
     :ivar phases: Plan phases. Required.
     :vartype phases: list[~openmeter._generated.models.PlanPhase]
     """
@@ -3870,6 +3881,7 @@ class CustomPlanInput(OmitPropertiesResourceCreateModel):
         metadata: Optional["_models.Metadata"] = None,
         alignment: Optional["_models.Alignment"] = None,
         pro_rating_config: Optional["_models.ProRatingConfig"] = None,
+        settlement_mode: Optional[Union[str, "_models.BillingPlanSettlementMode"]] = None,
     ) -> None: ...
 
     @overload
@@ -11528,6 +11540,9 @@ class Plan(_Model):
     :ivar status: Status. Required. Known values are: "draft", "active", "archived", and
      "scheduled".
     :vartype status: str or ~openmeter.models.PlanStatus
+    :ivar settlement_mode: Settlement mode. Known values are: "credit_then_invoice" and
+     "credit_only".
+    :vartype settlement_mode: str or ~openmeter.models.BillingPlanSettlementMode
     :ivar phases: Plan phases. Required.
     :vartype phases: list[~openmeter._generated.models.PlanPhase]
     :ivar validation_errors: Validation errors. Required.
@@ -11570,6 +11585,10 @@ class Plan(_Model):
     """Effective end date."""
     status: Union[str, "_models.PlanStatus"] = rest_field(visibility=["read"])
     """Status. Required. Known values are: \"draft\", \"active\", \"archived\", and \"scheduled\"."""
+    settlement_mode: Optional[Union[str, "_models.BillingPlanSettlementMode"]] = rest_field(
+        name="settlementMode", visibility=["read", "create", "update"]
+    )
+    """Settlement mode. Known values are: \"credit_then_invoice\" and \"credit_only\"."""
     phases: list["_models.PlanPhase"] = rest_field(visibility=["read", "create", "update"])
     """Plan phases. Required."""
     validation_errors: list["_models.ValidationError"] = rest_field(name="validationErrors", visibility=["read"])
@@ -11588,6 +11607,7 @@ class Plan(_Model):
         metadata: Optional["_models.Metadata"] = None,
         alignment: Optional["_models.Alignment"] = None,
         pro_rating_config: Optional["_models.ProRatingConfig"] = None,
+        settlement_mode: Optional[Union[str, "_models.BillingPlanSettlementMode"]] = None,
     ) -> None: ...
 
     @overload
@@ -11810,6 +11830,9 @@ class PlanCreate(_Model):
     :vartype billing_cadence: ~datetime.timedelta
     :ivar pro_rating_config: Pro-rating configuration.
     :vartype pro_rating_config: ~openmeter._generated.models.ProRatingConfig
+    :ivar settlement_mode: Settlement mode. Known values are: "credit_then_invoice" and
+     "credit_only".
+    :vartype settlement_mode: str or ~openmeter.models.BillingPlanSettlementMode
     :ivar phases: Plan phases. Required.
     :vartype phases: list[~openmeter._generated.models.PlanPhase]
     """
@@ -11834,6 +11857,10 @@ class PlanCreate(_Model):
         name="proRatingConfig", visibility=["read", "create", "update", "delete", "query"]
     )
     """Pro-rating configuration."""
+    settlement_mode: Optional[Union[str, "_models.BillingPlanSettlementMode"]] = rest_field(
+        name="settlementMode", visibility=["read", "create", "update", "delete", "query"]
+    )
+    """Settlement mode. Known values are: \"credit_then_invoice\" and \"credit_only\"."""
     phases: list["_models.PlanPhase"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
     """Plan phases. Required."""
 
@@ -11850,6 +11877,7 @@ class PlanCreate(_Model):
         metadata: Optional["_models.Metadata"] = None,
         alignment: Optional["_models.Alignment"] = None,
         pro_rating_config: Optional["_models.ProRatingConfig"] = None,
+        settlement_mode: Optional[Union[str, "_models.BillingPlanSettlementMode"]] = None,
     ) -> None: ...
 
     @overload
@@ -12004,6 +12032,9 @@ class PlanReplaceUpdate(_Model):
     :vartype billing_cadence: ~datetime.timedelta
     :ivar pro_rating_config: Pro-rating configuration.
     :vartype pro_rating_config: ~openmeter._generated.models.ProRatingConfig
+    :ivar settlement_mode: Settlement mode. Known values are: "credit_then_invoice" and
+     "credit_only".
+    :vartype settlement_mode: str or ~openmeter.models.BillingPlanSettlementMode
     :ivar phases: Plan phases. Required.
     :vartype phases: list[~openmeter._generated.models.PlanPhase]
     """
@@ -12022,6 +12053,10 @@ class PlanReplaceUpdate(_Model):
         name="proRatingConfig", visibility=["read", "create", "update"]
     )
     """Pro-rating configuration."""
+    settlement_mode: Optional[Union[str, "_models.BillingPlanSettlementMode"]] = rest_field(
+        name="settlementMode", visibility=["read", "create", "update"]
+    )
+    """Settlement mode. Known values are: \"credit_then_invoice\" and \"credit_only\"."""
     phases: list["_models.PlanPhase"] = rest_field(visibility=["read", "create", "update"])
     """Plan phases. Required."""
 
@@ -12036,6 +12071,7 @@ class PlanReplaceUpdate(_Model):
         metadata: Optional["_models.Metadata"] = None,
         alignment: Optional["_models.Alignment"] = None,
         pro_rating_config: Optional["_models.ProRatingConfig"] = None,
+        settlement_mode: Optional[Union[str, "_models.BillingPlanSettlementMode"]] = None,
     ) -> None: ...
 
     @overload
@@ -13851,6 +13887,9 @@ class Subscription(_Model):
     :vartype pro_rating_config: ~openmeter._generated.models.ProRatingConfig
     :ivar billing_anchor: Billing anchor. Required.
     :vartype billing_anchor: ~datetime.datetime
+    :ivar settlement_mode: Settlement mode. Known values are: "credit_then_invoice" and
+     "credit_only".
+    :vartype settlement_mode: str or ~openmeter.models.BillingPlanSettlementMode
     """
 
     id: str = rest_field(visibility=["read"])
@@ -13894,6 +13933,10 @@ class Subscription(_Model):
     """Pro-rating configuration."""
     billing_anchor: datetime.datetime = rest_field(name="billingAnchor", visibility=["read"], format="rfc3339")
     """Billing anchor. Required."""
+    settlement_mode: Optional[Union[str, "_models.BillingPlanSettlementMode"]] = rest_field(
+        name="settlementMode", visibility=["read", "create", "update"]
+    )
+    """Settlement mode. Known values are: \"credit_then_invoice\" and \"credit_only\"."""
 
     @overload
     def __init__(
@@ -13908,6 +13951,7 @@ class Subscription(_Model):
         active_to: Optional[datetime.datetime] = None,
         alignment: Optional["_models.Alignment"] = None,
         plan: Optional["_models.PlanReference"] = None,
+        settlement_mode: Optional[Union[str, "_models.BillingPlanSettlementMode"]] = None,
     ) -> None: ...
 
     @overload
@@ -14550,6 +14594,9 @@ class SubscriptionExpanded(_Model):
     :vartype pro_rating_config: ~openmeter._generated.models.ProRatingConfig
     :ivar billing_anchor: Billing anchor. Required.
     :vartype billing_anchor: ~datetime.datetime
+    :ivar settlement_mode: Settlement mode. Known values are: "credit_then_invoice" and
+     "credit_only".
+    :vartype settlement_mode: str or ~openmeter.models.BillingPlanSettlementMode
     :ivar alignment: Alignment details enriched with the current billing period.
     :vartype alignment: ~openmeter._generated.models.SubscriptionAlignment
     :ivar phases: The phases of the subscription. Required.
@@ -14595,6 +14642,10 @@ class SubscriptionExpanded(_Model):
     """Pro-rating configuration."""
     billing_anchor: datetime.datetime = rest_field(name="billingAnchor", visibility=["read"], format="rfc3339")
     """Billing anchor. Required."""
+    settlement_mode: Optional[Union[str, "_models.BillingPlanSettlementMode"]] = rest_field(
+        name="settlementMode", visibility=["read", "create", "update"]
+    )
+    """Settlement mode. Known values are: \"credit_then_invoice\" and \"credit_only\"."""
     alignment: Optional["_models.SubscriptionAlignment"] = rest_field(
         visibility=["read", "create", "update", "delete", "query"]
     )
@@ -14617,6 +14668,7 @@ class SubscriptionExpanded(_Model):
         metadata: Optional["_models.Metadata"] = None,
         active_to: Optional[datetime.datetime] = None,
         plan: Optional["_models.PlanReference"] = None,
+        settlement_mode: Optional[Union[str, "_models.BillingPlanSettlementMode"]] = None,
         alignment: Optional["_models.SubscriptionAlignment"] = None,
     ) -> None: ...
 

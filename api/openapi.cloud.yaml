@@ -13621,6 +13621,11 @@ components:
             - $ref: '#/components/schemas/BillingTaxIdentificationCode'
           description: Normalized tax code shown on the original identity document.
       description: Identity stores the details required to identify an entity for tax purposes in a specific country.
+    BillingPlanSettlementMode:
+      type: string
+      enum:
+        - credit_then_invoice
+        - credit_only
     BillingProfile:
       type: object
       required:
@@ -15029,6 +15034,16 @@ components:
               default:
                 enabled: true
                 mode: prorate_prices
+            settlementMode:
+              allOf:
+                - $ref: '#/components/schemas/BillingPlanSettlementMode'
+              description: |-
+                The settlement mode of the plan.
+                It determines how the billing system generates invoices and credits for the subscriptions using this plan.
+                - creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+                This is the default and most common settlement mode.
+              title: Settlement mode
+              default: credit_then_invoice
             phases:
               type: array
               items:
@@ -22032,6 +22047,16 @@ components:
             - scheduled = now < effectiveFrom < effectiveTo
           title: Status
           readOnly: true
+        settlementMode:
+          allOf:
+            - $ref: '#/components/schemas/BillingPlanSettlementMode'
+          description: |-
+            The settlement mode of the plan.
+            It determines how the billing system generates invoices and credits for the subscriptions using this plan.
+            - creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+            This is the default and most common settlement mode.
+          title: Settlement mode
+          default: credit_then_invoice
         phases:
           type: array
           items:
@@ -22261,6 +22286,16 @@ components:
           default:
             enabled: true
             mode: prorate_prices
+        settlementMode:
+          allOf:
+            - $ref: '#/components/schemas/BillingPlanSettlementMode'
+          description: |-
+            The settlement mode of the plan.
+            It determines how the billing system generates invoices and credits for the subscriptions using this plan.
+            - creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+            This is the default and most common settlement mode.
+          title: Settlement mode
+          default: credit_then_invoice
         phases:
           type: array
           items:
@@ -22436,6 +22471,16 @@ components:
           default:
             enabled: true
             mode: prorate_prices
+        settlementMode:
+          allOf:
+            - $ref: '#/components/schemas/BillingPlanSettlementMode'
+          description: |-
+            The settlement mode of the plan.
+            It determines how the billing system generates invoices and credits for the subscriptions using this plan.
+            - creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+            This is the default and most common settlement mode.
+          title: Settlement mode
+          default: credit_then_invoice
         phases:
           type: array
           items:
@@ -23885,6 +23930,15 @@ components:
           example: '2023-01-01T01:01:01.001Z'
           title: Billing anchor
           readOnly: true
+        settlementMode:
+          allOf:
+            - $ref: '#/components/schemas/BillingPlanSettlementMode'
+          description: |-
+            The settlement mode of the subscription, which determines how the invoice is generated and payments are applied.
+            - creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+            This is the default and most common settlement mode.
+          title: Settlement mode
+          default: credit_then_invoice
       description: Subscription is an exact subscription instance.
     SubscriptionAddon:
       type: object
@@ -24462,6 +24516,15 @@ components:
           example: '2023-01-01T01:01:01.001Z'
           title: Billing anchor
           readOnly: true
+        settlementMode:
+          allOf:
+            - $ref: '#/components/schemas/BillingPlanSettlementMode'
+          description: |-
+            The settlement mode of the subscription, which determines how the invoice is generated and payments are applied.
+            - creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+            This is the default and most common settlement mode.
+          title: Settlement mode
+          default: credit_then_invoice
         alignment:
           allOf:
             - $ref: '#/components/schemas/SubscriptionAlignment'

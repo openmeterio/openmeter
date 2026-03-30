@@ -126,6 +126,15 @@ model Subscription {
   @visibility(Lifecycle.Read)
   @summary("Billing anchor")
   billingAnchor: DateTime;
+
+  /**
+   * The settlement mode of the subscription, which determines how the invoice is generated and payments are applied.
+   * - creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+   * This is the default and most common settlement mode.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Settlement mode")
+  settlementMode?: PlanSettlementMode = PlanSettlementMode.creditThenInvoiceSettlementMode;
 }
 
 /**
