@@ -8,10 +8,10 @@ namespace Customers;
  *
  * - `funded`: Credit granted and available for consumption.
  * - `consumed`: Credit consumed.
- * - `expired`: Credit expired.
- * - `voided`: Credit voided.
  * - `adjusted`: Manual or system adjustment.
  */
+// * - `expired`: Credit expired.
+//  * - `voided`: Credit voided.
 @friendlyName("BillingCreditTransactionType")
 enum CreditTransactionType {
   // Credit granted and available for consumption.
@@ -20,11 +20,11 @@ enum CreditTransactionType {
   // Credit consumed.
   Consumed: "consumed",
 
-  // Credit expired.
-  Expired: "expired",
+  // // Credit expired.
+  // Expired: "expired",
 
-  // Credit voided.
-  Voided: "voided",
+  // // Credit voided.
+  // Voided: "voided",
 
   // Manual or system adjustment (e.g., correction grants, balance reconciliation).
   Adjusted: "adjusted",
@@ -32,46 +32,46 @@ enum CreditTransactionType {
   // TODO: add other types and do they have additional metadata?
 }
 
-/**
- * The type of actor that caused the credit transaction.
- *
- * - `system`: Automated system operations (consumption, expiry).
- * - `customer`: Initiated by the customer.
- * - `admin`: Initiated by the admin.
- * - `payment_provider`: Initiated by the payment provider.
- */
-@friendlyName("BillingCreditTransactionActorType")
-@summary("Credit transaction actor type")
-enum CreditTransactionActorType {
-  // Automated system operations (consumption, expiry).
-  System: "system",
+// /**
+//  * The type of actor that caused the credit transaction.
+//  *
+//  * - `system`: Automated system operations (consumption, expiry).
+//  * - `customer`: Initiated by the customer.
+//  * - `admin`: Initiated by the admin.
+//  * - `payment_provider`: Initiated by the payment provider.
+//  */
+// @friendlyName("BillingCreditTransactionActorType")
+// @summary("Credit transaction actor type")
+// enum CreditTransactionActorType {
+//   // Automated system operations (consumption, expiry).
+//   System: "system",
 
-  // Initiated by the customer.
-  Customer: "customer",
+//   // Initiated by the customer.
+//   Customer: "customer",
 
-  // Initiated by the admin.
-  Admin: "admin",
+//   // Initiated by the admin.
+//   Admin: "admin",
 
-  // Initiated by the payment provider.
-  PaymentProvider: "payment_provider",
+//   // Initiated by the payment provider.
+//   PaymentProvider: "payment_provider",
 
-  // TODO: figure out if this is called actor or source
-}
+//   // TODO: figure out if this is called actor or source
+// }
 
-/**
- * The actor that caused the credit transaction.
- */
-@friendlyName("BillingCreditTransactionActor")
-@summary("Credit transaction actor")
-model CreditTransactionActor {
-  /**
-   * The type of actor.
-   */
-  @visibility(Lifecycle.Read)
-  type: CreditTransactionActorType;
+// /**
+//  * The actor that caused the credit transaction.
+//  */
+// @friendlyName("BillingCreditTransactionActor")
+// @summary("Credit transaction actor")
+// model CreditTransactionActor {
+//   /**
+//    * The type of actor.
+//    */
+//   @visibility(Lifecycle.Read)
+//   type: CreditTransactionActorType;
 
-  // TODO: add additional metadata for the actor
-}
+//   // TODO: add additional metadata for the actor
+// }
 
 /**
  * A credit transaction represents a single credit movement on the customer's balance.
@@ -81,6 +81,14 @@ model CreditTransactionActor {
 @friendlyName("BillingCreditTransaction")
 @summary("Credit transaction")
 model CreditTransaction {
+  // Add references in labels:
+  // https://kong-aip.netlify.app/aip/129/
+  // - charge_id
+  // - subscription_id
+  // - subscription_phase_id
+  // - subscription_item_id
+  // - feature_id
+  // and later add references: {} to the type
   ...Shared.ResourceImmutable;
 
   /**
@@ -119,9 +127,9 @@ model CreditTransaction {
     after: Shared.Numeric;
   };
 
-  /**
-   * The actor that caused this credit transaction.
-   */
-  @visibility(Lifecycle.Read)
-  actor: CreditTransactionActor;
+  // /**
+  //  * The actor that caused this credit transaction.
+  //  */
+  // @visibility(Lifecycle.Read)
+  // actor: CreditTransactionActor;
 }

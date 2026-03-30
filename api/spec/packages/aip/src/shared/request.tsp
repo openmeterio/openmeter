@@ -7,6 +7,13 @@ namespace Shared;
 @withVisibility(Lifecycle.Create)
 model CreateRequest<T extends {}> is DefaultKeyVisibility<T, Lifecycle.Read>;
 
+// Supports visibility filtering for models with nested fields.
+@doc("{name} create request.", T)
+@friendlyName("Create{name}Request", T)
+@withVisibilityFilter(#{ all: #[Lifecycle.Create] }, "Create{name}")
+model CreateRequestNested<T extends {}>
+  is DefaultKeyVisibility<T, Lifecycle.Read>;
+
 @doc("{name} upsert request.", T)
 @friendlyName("Upsert{name}Request", T)
 @withVisibility(Lifecycle.Create, Lifecycle.Update)
