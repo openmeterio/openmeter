@@ -499,7 +499,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotPreservesExistingTaxCodeID() {
 	ns := s.GetUniqueNamespace("ns-taxcode-dw")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 
-	// Create a profile with the Stripe code to materialise the TaxCode entity.
+	// Create a profile with the Stripe code to materialize the TaxCode entity.
 	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID(), WithBillingProfileEditFn(func(p *billing.CreateProfileInput) {
 		p.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
 			Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
