@@ -8,7 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
-const MAX_SAFE_ITERATIONS = 10000
+const MAX_SAFE_ITERATIONS = 1_000_000
 
 type Recurrence struct {
 	Interval RecurrenceInterval `json:"interval"`
