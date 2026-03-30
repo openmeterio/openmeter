@@ -92,7 +92,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeProvisio
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
 	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
-	syncUntil := s.mustParseTime("2024-03-15T00:00:00Z")
+	syncUntil := s.mustParseTime("2024-02-15T00:00:00Z")
 
 	clock.SetTime(setupAt)
 	defer clock.ResetTime()
@@ -323,7 +323,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedProvi
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
 	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
-	syncUntil := s.mustParseTime("2024-02-15T00:00:00Z")
+	syncUntil := s.mustParseTime("2024-04-01T00:00:00Z")
 
 	clock.SetTime(setupAt)
 	defer clock.ResetTime()
