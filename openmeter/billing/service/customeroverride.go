@@ -25,11 +25,11 @@ func (s *Service) UpsertCustomerOverride(ctx context.Context, input billing.Upse
 		}
 	}
 
-	if err := s.resolveDefaultTaxCode(ctx, input.Namespace, input.Invoicing.DefaultTaxConfig); err != nil {
-		return def, err
-	}
-
 	adapterOverride, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.CustomerOverrideWithDetails, error) {
+		if err := s.resolveDefaultTaxCode(ctx, input.Namespace, input.Invoicing.DefaultTaxConfig); err != nil {
+			return def, err
+		}
+
 		existingOverride, err := s.adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
 			Customer: customer.CustomerID{
 				Namespace: input.Namespace,

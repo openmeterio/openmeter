@@ -393,16 +393,7 @@ func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string
 		SetTaxEnforced(input.Tax.Enforced)
 
 	if cfg := input.Invoicing.DefaultTaxConfig; cfg != nil {
-		if cfg.TaxCodeID != nil {
-			cmd = cmd.SetNillableTaxCodeID(cfg.TaxCodeID)
-		} else {
-			cmd = cmd.ClearTaxCodeID()
-		}
-		if cfg.Behavior != nil {
-			cmd = cmd.SetNillableTaxBehavior(cfg.Behavior)
-		} else {
-			cmd = cmd.ClearTaxBehavior()
-		}
+		cmd = cmd.SetOrClearTaxCodeID(cfg.TaxCodeID).SetOrClearTaxBehavior(cfg.Behavior)
 	} else {
 		cmd = cmd.ClearTaxCodeID().ClearTaxBehavior()
 	}

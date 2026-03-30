@@ -98,16 +98,7 @@ func (a *adapter) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 			ClearDeletedAt()
 
 		if cfg := input.Invoicing.DefaultTaxConfig; cfg != nil {
-			if cfg.TaxCodeID != nil {
-				update = update.SetNillableTaxCodeID(cfg.TaxCodeID)
-			} else {
-				update = update.ClearTaxCodeID()
-			}
-			if cfg.Behavior != nil {
-				update = update.SetNillableTaxBehavior(cfg.Behavior)
-			} else {
-				update = update.ClearTaxBehavior()
-			}
+			update = update.SetOrClearTaxCodeID(cfg.TaxCodeID).SetOrClearTaxBehavior(cfg.Behavior)
 		} else {
 			update = update.ClearTaxCodeID().ClearTaxBehavior()
 		}

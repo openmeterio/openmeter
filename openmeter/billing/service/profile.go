@@ -635,7 +635,7 @@ func (s *Service) ResolveStripeAppIDFromBillingProfile(ctx context.Context, name
 // stamps TaxCodeID back onto the pointed-to config before it is persisted. Idempotent: no-op
 // when taxConfig is nil, TaxCodeID is already set, or there is no Stripe code.
 func (s *Service) resolveDefaultTaxCode(ctx context.Context, namespace string, taxConfig *productcatalog.TaxConfig) error {
-	if taxConfig == nil || taxConfig.Stripe == nil || taxConfig.TaxCodeID != nil {
+	if taxConfig == nil || taxConfig.Stripe == nil || taxConfig.Stripe.Code == "" || taxConfig.TaxCodeID != nil {
 		return nil
 	}
 
