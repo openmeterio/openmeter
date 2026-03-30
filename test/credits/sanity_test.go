@@ -104,7 +104,7 @@ func (s *CreditsTestSuite) SetupSuite() {
 	s.Charges = stack.ChargesService
 }
 
-func (s *CreditsTestSuite) TestFlatFeePartialCreditRealizations() {
+func (s *CreditsTestSuite) TestFlatFeeCreditThenInvoiceSanity() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-sanity-test")
 
@@ -428,6 +428,263 @@ func (s *CreditsTestSuite) TestFlatFeePartialCreditRealizations() {
 		assertDelta("total wash after payment settlement", flatFeeStart.totalWash, alpacadecimal.NewFromInt(-20), s.mustWashBalance(ns, USD, nil))
 		assertDelta("external wash after payment settlement", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, &externalCostBasis))
 		assertDelta("earnings after payment settlement", flatFeeStart.earnings, alpacadecimal.NewFromInt(100), s.mustEarningsBalance(ns, USD))
+	})
+}
+
+func (s *CreditsTestSuite) TestFlatFeeCreditOnlySanity() {
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("charges-sanity-test-credit-only")
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+
+	cust := s.createLedgerBackedCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithProgressiveBilling(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	const (
+		flatFeeName = "flat-fee-credit-only"
+	)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	setupAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-31T00:00:00Z", time.UTC).AsTime()
+
+	clock.SetTime(setupAt)
+
+	s.Run("the customer receives a promotional credit grant", func() {
+		intent := s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
+			customer: cust.GetID(),
+			currency: USD,
+			amount:   alpacadecimal.NewFromFloat(30),
+			servicePeriod: timeutil.ClosedPeriod{
+				From: setupAt,
+				To:   setupAt,
+			},
+			settlement: creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+		})
+
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				intent,
+			},
+		})
+		s.NoError(err)
+
+		s.Len(res, 1)
+		s.Equal(meta.ChargeTypeCreditPurchase, res[0].Type())
+		cpCharge, err := res[0].AsCreditPurchaseCharge()
+		s.NoError(err)
+		s.NotEmpty(cpCharge.State.CreditGrantRealization.TransactionGroupID)
+
+		zeroCostBasis := alpacadecimal.Zero
+		purchasedCostBasis := alpacadecimal.NewFromFloat(0.5)
+		s.Equal(float64(30), s.mustCustomerFBOBalance(cust.GetID(), USD, &zeroCostBasis).InexactFloat64())
+		s.Equal(float64(0), s.mustCustomerFBOBalance(cust.GetID(), USD, &purchasedCostBasis).InexactFloat64())
+	})
+
+	var externalCreditPurchaseChargeID meta.ChargeID
+	s.Run("and customer purchases 50 USD credits as 0.5 costbasis", func() {
+		intent := s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
+			customer: cust.GetID(),
+			currency: USD,
+			amount:   alpacadecimal.NewFromFloat(50),
+			servicePeriod: timeutil.ClosedPeriod{
+				From: setupAt,
+				To:   setupAt,
+			},
+			settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+				GenericSettlement: creditpurchase.GenericSettlement{
+					Currency:  USD,
+					CostBasis: alpacadecimal.NewFromFloat(0.5),
+				},
+				InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
+			}),
+		})
+
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				intent,
+			},
+		})
+		s.NoError(err)
+
+		s.Len(res, 1)
+		s.Equal(meta.ChargeTypeCreditPurchase, res[0].Type())
+		cpCharge, err := res[0].AsCreditPurchaseCharge()
+		s.NoError(err)
+		s.NotEmpty(cpCharge.State.CreditGrantRealization.TransactionGroupID)
+
+		costBasis := alpacadecimal.NewFromFloat(0.5)
+		s.Equal(float64(50), s.mustCustomerFBOBalance(cust.GetID(), USD, &costBasis).InexactFloat64())
+		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, &costBasis).InexactFloat64())
+
+		externalCreditPurchaseChargeID = cpCharge.GetChargeID()
+	})
+
+	s.Run("the customer pays for the credit purchase - authorized", func() {
+		updatedCharge, err := s.Charges.HandleCreditPurchaseExternalPaymentStateTransition(ctx, charges.HandleCreditPurchaseExternalPaymentStateTransitionInput{
+			ChargeID:           externalCreditPurchaseChargeID,
+			TargetPaymentState: payment.StatusAuthorized,
+		})
+		s.NoError(err)
+
+		costBasis := alpacadecimal.NewFromFloat(0.5)
+		s.Equal(payment.StatusAuthorized, updatedCharge.State.ExternalPaymentSettlement.Status)
+		s.Equal(float64(-50), s.mustCustomerReceivableBalance(cust.GetID(), USD, &costBasis).InexactFloat64())
+	})
+
+	s.Run("the customer settles the credit purchase payment", func() {
+		updatedCharge, err := s.Charges.HandleCreditPurchaseExternalPaymentStateTransition(ctx, charges.HandleCreditPurchaseExternalPaymentStateTransitionInput{
+			ChargeID:           externalCreditPurchaseChargeID,
+			TargetPaymentState: payment.StatusSettled,
+		})
+		s.NoError(err)
+
+		costBasis := alpacadecimal.NewFromFloat(0.5)
+		s.Equal(payment.StatusSettled, updatedCharge.State.ExternalPaymentSettlement.Status)
+		s.Equal(float64(0), s.mustCustomerReceivableBalance(cust.GetID(), USD, &costBasis).InexactFloat64())
+	})
+
+	var flatFeeChargeID meta.ChargeID
+	promoCostBasis := alpacadecimal.Zero
+	externalCostBasis := alpacadecimal.NewFromFloat(0.5)
+	type flatFeeLedgerSnapshot struct {
+		promoFBO             alpacadecimal.Decimal
+		externalFBO          alpacadecimal.Decimal
+		unknownFBO           alpacadecimal.Decimal
+		promoReceivable      alpacadecimal.Decimal
+		externalReceivable   alpacadecimal.Decimal
+		totalOpenReceivable  alpacadecimal.Decimal
+		accrued              alpacadecimal.Decimal
+		authorizedReceivable alpacadecimal.Decimal
+		totalWash            alpacadecimal.Decimal
+		externalWash         alpacadecimal.Decimal
+		earnings             alpacadecimal.Decimal
+	}
+	flatFeeStart := flatFeeLedgerSnapshot{
+		promoFBO:             s.mustCustomerFBOBalance(cust.GetID(), USD, &promoCostBasis),
+		externalFBO:          s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis),
+		unknownFBO:           s.mustCustomerFBOBalance(cust.GetID(), USD, nil),
+		promoReceivable:      s.mustCustomerReceivableBalance(cust.GetID(), USD, &promoCostBasis),
+		externalReceivable:   s.mustCustomerReceivableBalance(cust.GetID(), USD, &externalCostBasis),
+		totalOpenReceivable:  s.mustCustomerReceivableBalance(cust.GetID(), USD, nil),
+		accrued:              s.mustCustomerAccruedBalance(cust.GetID(), USD),
+		authorizedReceivable: s.mustCustomerAuthorizedReceivableBalance(cust.GetID(), USD, nil),
+		totalWash:            s.mustWashBalance(ns, USD, nil),
+		externalWash:         s.mustWashBalance(ns, USD, &externalCostBasis),
+		earnings:             s.mustEarningsBalance(ns, USD),
+	}
+	assertDelta := func(label string, start, delta, actual alpacadecimal.Decimal) {
+		s.T().Helper()
+		expected := start.Add(delta)
+		s.True(actual.Equal(expected), "%s: expected start %s + delta %s = %s, got %s", label, start.String(), delta.String(), expected.String(), actual.String())
+	}
+
+	s.Run("create new upcoming charge for flat fee", func() {
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.createMockChargeIntent(createMockChargeIntentInput{
+					customer:       cust.GetID(),
+					currency:       USD,
+					servicePeriod:  servicePeriod,
+					settlementMode: productcatalog.CreditOnlySettlementMode,
+					price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromFloat(100),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					name:              flatFeeName,
+					managedBy:         billing.SubscriptionManagedLine,
+					uniqueReferenceID: flatFeeName,
+				}),
+			},
+		})
+		s.NoError(err)
+
+		s.Len(res, 1)
+		s.Equal(res[0].Type(), meta.ChargeTypeFlatFee)
+		flatFeeCharge, err := res[0].AsFlatFeeCharge()
+		s.NoError(err)
+
+		flatFeeChargeID = flatFeeCharge.GetChargeID()
+		s.Equal(meta.ChargeStatusCreated, flatFeeCharge.Status)
+
+		gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+			Namespaces: []string{ns},
+			Customers:  []string{cust.ID},
+			Currencies: []currencyx.Code{USD},
+			Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
+		})
+		s.NoError(err)
+		s.Len(gatheringInvoices.Items, 0)
+
+		// Credit-only flat fees bypass invoice creation and are only allocated once the charge advances at InvoiceAt,
+		// so creating the charge early should leave every ledger bucket untouched.
+		assertDelta("promo FBO after credit-only create", flatFeeStart.promoFBO, alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, &promoCostBasis))
+		assertDelta("external FBO after credit-only create", flatFeeStart.externalFBO, alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis))
+		assertDelta("unknown FBO after credit-only create", flatFeeStart.unknownFBO, alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, nil))
+		assertDelta("authorized receivable after credit-only create", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.mustCustomerAuthorizedReceivableBalance(cust.GetID(), USD, nil))
+		assertDelta("total open receivable after credit-only create", flatFeeStart.totalOpenReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, nil))
+		assertDelta("accrued after credit-only create", flatFeeStart.accrued, alpacadecimal.Zero, s.mustCustomerAccruedBalance(cust.GetID(), USD))
+		assertDelta("earnings after credit-only create", flatFeeStart.earnings, alpacadecimal.Zero, s.mustEarningsBalance(ns, USD))
+	})
+
+	clock.SetTime(servicePeriod.From)
+	s.Run("advance the charge at invoice_at", func() {
+		advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+			Customer: cust.GetID(),
+		})
+		s.NoError(err)
+		s.Len(advancedCharges, 1)
+
+		advancedFlatFee, err := advancedCharges[0].AsFlatFeeCharge()
+		s.NoError(err)
+		s.Equal(flatFeeChargeID.ID, advancedFlatFee.ID)
+		s.Equal(meta.ChargeStatusFinal, advancedFlatFee.Status)
+		// We expect three realizations here: promotional credit, purchased credit, and the synthetic shortfall coverage.
+		s.Len(advancedFlatFee.State.CreditRealizations, 3)
+
+		fetchedCharge := s.mustGetChargeByID(flatFeeChargeID)
+		updatedFlatFeeCharge, err := fetchedCharge.AsFlatFeeCharge()
+		s.NoError(err)
+		s.Equal(meta.ChargeStatusFinal, updatedFlatFeeCharge.Status)
+		s.Len(updatedFlatFeeCharge.State.CreditRealizations, 3)
+
+		gatheringInvoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+			Namespaces: []string{ns},
+			Customers:  []string{cust.ID},
+			Currencies: []currencyx.Code{USD},
+			Expand:     []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},
+		})
+		s.NoError(err)
+		s.Len(gatheringInvoices.Items, 0)
+
+		// Credit-only advancement only performs the allocation step:
+		// - existing credit buckets are consumed into accrued
+		// - the uncovered remainder becomes open receivable immediately
+		// - authorized receivable stays empty because no payment authorization happens
+		// - wash and earnings stay unchanged because this flow never enters the invoice payment lifecycle
+		assertDelta("promo FBO after credit-only advance", flatFeeStart.promoFBO, alpacadecimal.NewFromInt(-30), s.mustCustomerFBOBalance(cust.GetID(), USD, &promoCostBasis))
+		assertDelta("external FBO after credit-only advance", flatFeeStart.externalFBO, alpacadecimal.NewFromInt(-50), s.mustCustomerFBOBalance(cust.GetID(), USD, &externalCostBasis))
+		assertDelta("unknown FBO after credit-only advance", flatFeeStart.unknownFBO, alpacadecimal.Zero, s.mustCustomerFBOBalance(cust.GetID(), USD, nil))
+		assertDelta("promo receivable after credit-only advance", flatFeeStart.promoReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, &promoCostBasis))
+		assertDelta("external receivable after credit-only advance", flatFeeStart.externalReceivable, alpacadecimal.Zero, s.mustCustomerReceivableBalance(cust.GetID(), USD, &externalCostBasis))
+		assertDelta("total open receivable after credit-only advance", flatFeeStart.totalOpenReceivable, alpacadecimal.NewFromInt(-20), s.mustCustomerReceivableBalance(cust.GetID(), USD, nil))
+		assertDelta("authorized receivable after credit-only advance", flatFeeStart.authorizedReceivable, alpacadecimal.Zero, s.mustCustomerAuthorizedReceivableBalance(cust.GetID(), USD, nil))
+		assertDelta("accrued after credit-only advance", flatFeeStart.accrued, alpacadecimal.NewFromInt(100), s.mustCustomerAccruedBalance(cust.GetID(), USD))
+		assertDelta("total wash after credit-only advance", flatFeeStart.totalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, nil))
+		assertDelta("external wash after credit-only advance", flatFeeStart.externalWash, alpacadecimal.Zero, s.mustWashBalance(ns, USD, &externalCostBasis))
+		assertDelta("earnings after credit-only advance", flatFeeStart.earnings, alpacadecimal.Zero, s.mustEarningsBalance(ns, USD))
 	})
 }
 

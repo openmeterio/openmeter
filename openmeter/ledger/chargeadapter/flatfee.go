@@ -51,78 +51,27 @@ func (h *flatFeeHandler) OnAssignedToInvoice(ctx context.Context, input flatfee.
 		return nil, nil
 	}
 
+	if err := validateSettlementMode(
+		input.Charge.Intent.SettlementMode,
+		productcatalog.InvoiceOnlySettlementMode,
+		productcatalog.CreditThenInvoiceSettlementMode,
+	); err != nil {
+		return nil, fmt.Errorf("assigned to invoice: %w", err)
+	}
+
 	if input.Charge.Intent.SettlementMode == productcatalog.InvoiceOnlySettlementMode {
 		return nil, nil
 	}
 
-	customerID := customer.CustomerID{
-		Namespace: input.Charge.Namespace,
-		ID:        input.Charge.Intent.CustomerID,
-	}
-	annotations := ledger.ChargeAnnotations(models.NamespacedID{
-		Namespace: input.Charge.Namespace,
-		ID:        input.Charge.ID,
-	})
-
-	inputs, err := transactions.ResolveTransactions(
-		ctx,
-		h.resolverDependencies(),
-		transactions.ResolutionScope{
-			CustomerID: customerID,
-			Namespace:  input.Charge.Namespace,
-		},
-		transactions.TransferCustomerFBOToAccruedTemplate{
-			At:       input.Charge.Intent.InvoiceAt,
-			Amount:   input.PreTaxTotalAmount,
-			Currency: input.Charge.Intent.Currency,
-		},
-	)
+	groupID, inputs, err := h.allocateCreditsToAccrued(ctx, input.Charge, input.PreTaxTotalAmount)
 	if err != nil {
-		return nil, fmt.Errorf("resolve transactions: %w", err)
+		return nil, err
 	}
-
-	collectedAmount := sumCollectedFBOAmount(inputs...)
-	shortfall := input.PreTaxTotalAmount.Sub(collectedAmount)
-	if input.Charge.Intent.SettlementMode == productcatalog.CreditOnlySettlementMode && shortfall.IsPositive() {
-		advanceInputs, err := transactions.ResolveTransactions(
-			ctx,
-			h.resolverDependencies(),
-			transactions.ResolutionScope{
-				CustomerID: customerID,
-				Namespace:  input.Charge.Namespace,
-			},
-			transactions.IssueCustomerReceivableTemplate{
-				At:       input.Charge.Intent.InvoiceAt,
-				Amount:   shortfall,
-				Currency: input.Charge.Intent.Currency,
-			},
-			transactions.TransferCustomerFBOBucketToAccruedTemplate{
-				At:       input.Charge.Intent.InvoiceAt,
-				Amount:   shortfall,
-				Currency: input.Charge.Intent.Currency,
-			},
-		)
-		if err != nil {
-			return nil, fmt.Errorf("resolve advance transactions: %w", err)
-		}
-
-		inputs = append(inputs, advanceInputs...)
-	}
-
-	if len(inputs) == 0 {
+	if groupID == "" {
 		return nil, nil
 	}
 
-	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
-		input.Charge.Namespace,
-		annotations,
-		inputs...,
-	))
-	if err != nil {
-		return nil, fmt.Errorf("commit ledger transaction group: %w", err)
-	}
-
-	return creditRealizationsFromCollectedInputs(input.ServicePeriod, transactionGroup.ID().ID, inputs...), nil
+	return creditRealizationsFromCollectedInputs(input.ServicePeriod, groupID, inputs...), nil
 }
 
 // OnFlatFeeStandardInvoiceUsageAccrued handles the portion of usage not covered by FBO credits.
@@ -138,8 +87,12 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 		return ledgertransaction.GroupReference{}, nil
 	}
 
-	if input.Charge.Intent.SettlementMode == productcatalog.CreditOnlySettlementMode {
-		return ledgertransaction.GroupReference{}, nil
+	if err := validateSettlementMode(
+		input.Charge.Intent.SettlementMode,
+		productcatalog.InvoiceOnlySettlementMode,
+		productcatalog.CreditThenInvoiceSettlementMode,
+	); err != nil {
+		return ledgertransaction.GroupReference{}, fmt.Errorf("invoice usage accrued: %w", err)
 	}
 
 	customerID := customer.CustomerID{
@@ -194,7 +147,19 @@ func (h *flatFeeHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input fl
 		return nil, nil
 	}
 
-	return nil, fmt.Errorf("on credits only usage accrued is not implemented")
+	if err := validateSettlementMode(input.Charge.Intent.SettlementMode, productcatalog.CreditOnlySettlementMode); err != nil {
+		return nil, fmt.Errorf("credits only usage accrued: %w", err)
+	}
+
+	groupID, inputs, err := h.allocateCreditsToAccrued(ctx, input.Charge, input.AmountToAllocate)
+	if err != nil {
+		return nil, err
+	}
+	if groupID == "" {
+		return nil, nil
+	}
+
+	return creditRealizationsFromCollectedInputs(input.Charge.Intent.ServicePeriod, groupID, inputs...), nil
 }
 
 // OnFlatFeePaymentAuthorized is the current revenue recognition point.
@@ -341,6 +306,87 @@ func (h *flatFeeHandler) resolverDependencies() transactions.ResolverDependencie
 		AccountService:    h.accountResolver,
 		SubAccountService: h.accountService,
 	}
+}
+
+func validateSettlementMode(actual productcatalog.SettlementMode, allowed ...productcatalog.SettlementMode) error {
+	for _, candidate := range allowed {
+		if actual == candidate {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("unsupported settlement mode %q", actual)
+}
+
+func (h *flatFeeHandler) allocateCreditsToAccrued(ctx context.Context, charge flatfee.Charge, amount alpacadecimal.Decimal) (string, []ledger.TransactionInput, error) {
+	customerID := customer.CustomerID{
+		Namespace: charge.Namespace,
+		ID:        charge.Intent.CustomerID,
+	}
+	annotations := ledger.ChargeAnnotations(models.NamespacedID{
+		Namespace: charge.Namespace,
+		ID:        charge.ID,
+	})
+
+	inputs, err := transactions.ResolveTransactions(
+		ctx,
+		h.resolverDependencies(),
+		transactions.ResolutionScope{
+			CustomerID: customerID,
+			Namespace:  charge.Namespace,
+		},
+		transactions.TransferCustomerFBOToAccruedTemplate{
+			At:       charge.Intent.InvoiceAt,
+			Amount:   amount,
+			Currency: charge.Intent.Currency,
+		},
+	)
+	if err != nil {
+		return "", nil, fmt.Errorf("resolve transactions: %w", err)
+	}
+
+	collectedAmount := sumCollectedFBOAmount(inputs...)
+	shortfall := amount.Sub(collectedAmount)
+	if charge.Intent.SettlementMode == productcatalog.CreditOnlySettlementMode && shortfall.IsPositive() {
+		advanceInputs, err := transactions.ResolveTransactions(
+			ctx,
+			h.resolverDependencies(),
+			transactions.ResolutionScope{
+				CustomerID: customerID,
+				Namespace:  charge.Namespace,
+			},
+			transactions.IssueCustomerReceivableTemplate{
+				At:       charge.Intent.InvoiceAt,
+				Amount:   shortfall,
+				Currency: charge.Intent.Currency,
+			},
+			transactions.TransferCustomerFBOBucketToAccruedTemplate{
+				At:       charge.Intent.InvoiceAt,
+				Amount:   shortfall,
+				Currency: charge.Intent.Currency,
+			},
+		)
+		if err != nil {
+			return "", nil, fmt.Errorf("resolve advance transactions: %w", err)
+		}
+
+		inputs = append(inputs, advanceInputs...)
+	}
+
+	if len(inputs) == 0 {
+		return "", nil, nil
+	}
+
+	transactionGroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(
+		charge.Namespace,
+		annotations,
+		inputs...,
+	))
+	if err != nil {
+		return "", nil, fmt.Errorf("commit ledger transaction group: %w", err)
+	}
+
+	return transactionGroup.ID().ID, inputs, nil
 }
 
 func creditRealizationsFromCollectedInputs(servicePeriod timeutil.ClosedPeriod, transactionGroupID string, inputs ...ledger.TransactionInput) []creditrealization.CreateInput {
