@@ -31,6 +31,7 @@ func NewTestPlan(t *testing.T, namespace string, phases ...productcatalog.Phase)
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
 				},
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 			},
 			Phases: phases,
 		},

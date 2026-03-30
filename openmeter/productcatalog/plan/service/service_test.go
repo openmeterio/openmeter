@@ -211,6 +211,32 @@ func TestPlanService(t *testing.T) {
 			assert.Equalf(t, productcatalog.PlanStatusDraft, draftPlanV1.Status(),
 				"Plan Status mismatch: expected=%s, actual=%s", productcatalog.PlanStatusDraft, draftPlanV1.Status())
 
+			t.Run("WithCreditOnlySettlement", func(t *testing.T) {
+				creditOnlyInput := pctestutils.NewTestPlan(t, namespace, planInput.Phases...)
+				creditOnlyInput.Key = "test-credit-only"
+				creditOnlyInput.SettlementMode = productcatalog.CreditOnlySettlementMode
+
+				p, err := env.Plan.CreatePlan(ctx, creditOnlyInput)
+				require.NoErrorf(t, err, "creating plan with credit_only settlement must not fail")
+				require.NotNil(t, p, "plan must not be empty")
+
+				assert.Equalf(t, productcatalog.CreditOnlySettlementMode, p.SettlementMode,
+					"settlement mode mismatch: expected=%s, actual=%s", productcatalog.CreditOnlySettlementMode, p.SettlementMode)
+			})
+
+			t.Run("DefaultsSettlementModeWhenEmpty", func(t *testing.T) {
+				defaultInput := pctestutils.NewTestPlan(t, namespace, planInput.Phases...)
+				defaultInput.Key = "test-default-settlement"
+				defaultInput.SettlementMode = "" // explicitly empty, simulating API caller that doesn't set it
+
+				p, err := env.Plan.CreatePlan(ctx, defaultInput)
+				require.NoErrorf(t, err, "creating plan without settlement mode must not fail")
+				require.NotNil(t, p, "plan must not be empty")
+
+				assert.Equalf(t, productcatalog.CreditThenInvoiceSettlementMode, p.SettlementMode,
+					"empty settlement mode should default to credit_then_invoice")
+			})
+
 			// Extract the resolved TaxCodeID so we can include it in expected values for new phases.
 			taxCodeID := draftPlanV1.Phases[0].RateCards[0].AsMeta().TaxConfig.TaxCodeID
 

@@ -873,6 +873,7 @@ func TestChangeToPlan(t *testing.T) {
 					Enabled: true,
 					Mode:    productcatalog.ProRatingModeProratePrices,
 				},
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 			},
 			Phases: []productcatalog.Phase{
 				{
@@ -1969,4 +1970,161 @@ func TestSubscriptionChangeTrackingAnnotations(t *testing.T) {
 
 var immediate = subscription.Timing{
 	Enum: lo.ToPtr(subscription.TimingImmediate),
+}
+
+func TestSettlementMode(t *testing.T) {
+	t.Run("CreateFromPlan uses default settlement mode", func(t *testing.T) {
+		now := testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z")
+		clock.SetTime(now)
+		defer clock.ResetTime()
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		require.NotNil(t, dbDeps)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+		p := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+
+		subView, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Timing: subscription.Timing{Custom: &now},
+				Name:   "Default Settlement",
+			},
+			CustomerID: cust.ID,
+			Namespace:  subscriptiontestutils.ExampleNamespace,
+		}, p)
+		require.NoError(t, err)
+
+		assert.Equal(t, productcatalog.CreditThenInvoiceSettlementMode, subView.Subscription.SettlementMode,
+			"subscription should have credit_then_invoice settlement mode by default")
+		assert.Equal(t, productcatalog.CreditThenInvoiceSettlementMode, subView.Spec.SettlementMode,
+			"spec should have credit_then_invoice settlement mode by default")
+	})
+
+	t.Run("CreateFromPlan with CreditOnly plan propagates settlement mode", func(t *testing.T) {
+		now := testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z")
+		clock.SetTime(now)
+		defer clock.ResetTime()
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		require.NotNil(t, dbDeps)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+
+		planInput := subscriptiontestutils.GetExamplePlanInput(t)
+		planInput.SettlementMode = productcatalog.CreditOnlySettlementMode
+		p := deps.PlanHelper.CreatePlan(t, planInput)
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+
+		subView, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Timing: subscription.Timing{Custom: &now},
+				Name:   "CreditOnly Settlement",
+			},
+			CustomerID: cust.ID,
+			Namespace:  subscriptiontestutils.ExampleNamespace,
+		}, p)
+		require.NoError(t, err)
+
+		assert.Equal(t, productcatalog.CreditOnlySettlementMode, subView.Subscription.SettlementMode,
+			"subscription should have credit_only settlement mode from plan")
+		assert.Equal(t, productcatalog.CreditOnlySettlementMode, subView.Spec.SettlementMode,
+			"spec should have credit_only settlement mode from plan")
+	})
+
+	t.Run("Custom subscription with CreditOnly settlement mode", func(t *testing.T) {
+		now := testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z")
+		clock.SetTime(now)
+		defer clock.ResetTime()
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		require.NotNil(t, dbDeps)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+
+		spec, err := subscriptiontestutils.BuildTestSubscriptionSpec(t).
+			AddPhase(nil, subscriptiontestutils.ExampleRateCard1.Clone()).
+			Build()
+		require.NoError(t, err)
+
+		spec.SettlementMode = productcatalog.CreditOnlySettlementMode
+		spec.Plan = nil // custom subscription without plan reference
+		spec.CustomerId = cust.ID
+		spec.ActiveFrom = now
+		spec.BillingAnchor = now
+
+		sub, err := deps.SubscriptionService.Create(context.Background(), subscriptiontestutils.ExampleNamespace, spec)
+		require.NoError(t, err)
+
+		assert.Equal(t, productcatalog.CreditOnlySettlementMode, sub.SettlementMode,
+			"custom subscription should have credit_only settlement mode")
+
+		// Verify via GetView
+		view, err := deps.SubscriptionService.GetView(context.Background(), sub.NamespacedID)
+		require.NoError(t, err)
+
+		assert.Equal(t, productcatalog.CreditOnlySettlementMode, view.Subscription.SettlementMode,
+			"persisted subscription should have credit_only settlement mode")
+		assert.Equal(t, productcatalog.CreditOnlySettlementMode, view.Spec.SettlementMode,
+			"spec should have credit_only settlement mode")
+	})
+
+	t.Run("EditRunning cannot change settlement mode", func(t *testing.T) {
+		now := testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z")
+		clock.SetTime(now)
+		defer clock.ResetTime()
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		require.NotNil(t, dbDeps)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+		p := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+
+		subView, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Timing: subscription.Timing{Custom: &now},
+				Name:   "Immutable Settlement",
+			},
+			CustomerID: cust.ID,
+			Namespace:  subscriptiontestutils.ExampleNamespace,
+		}, p)
+		require.NoError(t, err)
+
+		assert.Equal(t, productcatalog.CreditThenInvoiceSettlementMode, subView.Subscription.SettlementMode)
+
+		// Attempt to change settlement mode via a patch that modifies the spec
+		tamperPatch := subscriptiontestutils.TestPatch{
+			ApplyToFn: func(spec *subscription.SubscriptionSpec, c subscription.ApplyContext) error {
+				spec.SettlementMode = productcatalog.CreditOnlySettlementMode
+				return nil
+			},
+		}
+
+		_, err = deps.WorkflowService.EditRunning(
+			context.Background(),
+			subView.Subscription.NamespacedID,
+			[]subscription.Patch{&tamperPatch},
+			immediate,
+		)
+		require.Error(t, err, "editing settlement mode on a running subscription should fail")
+		assert.Contains(t, err.Error(), "settlement mode",
+			"error should mention settlement mode")
+
+		viewAfter, getErr := deps.SubscriptionService.GetView(context.Background(), subView.Subscription.NamespacedID)
+		require.NoError(t, getErr)
+		assert.Equal(t, productcatalog.CreditThenInvoiceSettlementMode, viewAfter.Subscription.SettlementMode,
+			"settlement mode should remain unchanged after rejected edit")
+		assert.Equal(t, productcatalog.CreditThenInvoiceSettlementMode, viewAfter.Spec.SettlementMode,
+			"spec settlement mode should remain unchanged after rejected edit")
+	})
 }

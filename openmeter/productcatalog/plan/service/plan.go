@@ -281,6 +281,11 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 			}
 		}
 
+		// Default settlement mode if not provided
+		if params.SettlementMode == "" {
+			params.SettlementMode = productcatalog.CreditThenInvoiceSettlementMode
+		}
+
 		logger.Debug("creating Plan")
 
 		if len(params.Phases) > 0 {
@@ -855,6 +860,7 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 					Currency:        sourcePlan.Currency,
 					BillingCadence:  sourcePlan.BillingCadence,
 					ProRatingConfig: sourcePlan.ProRatingConfig,
+					SettlementMode:  sourcePlan.SettlementMode,
 				},
 				Phases: func() []productcatalog.Phase {
 					var phases []productcatalog.Phase

@@ -64,6 +64,7 @@ func BuildTestPlanInput(t *testing.T) *testPlanbuilder {
 						Enabled: true,
 						Mode:    productcatalog.ProRatingModeProratePrices,
 					},
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				},
 				Phases: []productcatalog.Phase{},
 			},
@@ -155,6 +156,7 @@ func BuildTestSubscriptionSpec(t *testing.T) *testSubscriptionSpecBuilder {
 					Version: 1,
 				},
 				BillingCadence: datetime.MustParseDuration(t, "P1M"),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 			},
 			CreateSubscriptionCustomerInput: subscription.CreateSubscriptionCustomerInput{
 				CustomerId:    "01K6JCPG631MH1EKEQB2YMDBJW",

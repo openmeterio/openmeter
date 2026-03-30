@@ -181,6 +181,7 @@ func (a *adapter) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (
 			SetCurrency(params.Currency.String()).
 			SetBillingCadence(params.BillingCadence.ISOString()).
 			SetProRatingConfig(params.ProRatingConfig).
+			SetSettlementMode(params.SettlementMode).
 			SetMetadata(params.Metadata).
 			SetVersion(params.Version).
 			Save(ctx)
