@@ -3000,8 +3000,6 @@ export interface components {
       /** @description Normalized tax code shown on the original identity document. */
       code?: components['schemas']['BillingTaxIdentificationCode']
     }
-    /** @enum {string} */
-    BillingPlanSettlementMode: 'credit_then_invoice' | 'credit_only'
     /** @description BillingProfile represents a billing profile */
     BillingProfile: {
       /**
@@ -3282,6 +3280,14 @@ export interface components {
       /** @description The billing workflow settings for this profile. */
       workflow: components['schemas']['BillingWorkflow']
     }
+    /**
+     * @description The settlement mode of a plan.
+     *     It determines how the billing system generates invoices and credits for the subscriptions using this plan.
+     *     - credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced. This is the default and most common settlement mode.
+     *     - credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.
+     * @enum {string}
+     */
+    BillingSettlementMode: 'credit_then_invoice' | 'credit_only'
     /** @description TaxIdentificationCode is a normalized tax code shown on the original identity document. */
     BillingTaxIdentificationCode: string
     /** @description BillingWorkflow represents the settings for a billing workflow. */
@@ -4079,11 +4085,12 @@ export interface components {
        * Settlement mode
        * @description The settlement mode of the plan.
        *     It determines how the billing system generates invoices and credits for the subscriptions using this plan.
-       *     - creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+       *     - credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+       *     - credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.
        *     This is the default and most common settlement mode.
        * @default credit_then_invoice
        */
-      settlementMode?: components['schemas']['BillingPlanSettlementMode']
+      settlementMode?: components['schemas']['BillingSettlementMode']
       /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
@@ -9483,11 +9490,12 @@ export interface components {
        * Settlement mode
        * @description The settlement mode of the plan.
        *     It determines how the billing system generates invoices and credits for the subscriptions using this plan.
-       *     - creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+       *     - credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+       *     - credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.
        *     This is the default and most common settlement mode.
        * @default credit_then_invoice
        */
-      settlementMode?: components['schemas']['BillingPlanSettlementMode']
+      settlementMode?: components['schemas']['BillingSettlementMode']
       /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
@@ -9680,11 +9688,12 @@ export interface components {
        * Settlement mode
        * @description The settlement mode of the plan.
        *     It determines how the billing system generates invoices and credits for the subscriptions using this plan.
-       *     - creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+       *     - credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+       *     - credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.
        *     This is the default and most common settlement mode.
        * @default credit_then_invoice
        */
-      settlementMode?: components['schemas']['BillingPlanSettlementMode']
+      settlementMode?: components['schemas']['BillingSettlementMode']
       /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
@@ -9812,11 +9821,12 @@ export interface components {
        * Settlement mode
        * @description The settlement mode of the plan.
        *     It determines how the billing system generates invoices and credits for the subscriptions using this plan.
-       *     - creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+       *     - credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+       *     - credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.
        *     This is the default and most common settlement mode.
        * @default credit_then_invoice
        */
-      settlementMode?: components['schemas']['BillingPlanSettlementMode']
+      settlementMode?: components['schemas']['BillingSettlementMode']
       /**
        * Plan phases
        * @description The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
@@ -9897,6 +9907,8 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       billingAnchor?: Date
+      /** @description The settlement mode of the subscription. */
+      settlementMode?: components['schemas']['BillingSettlementMode']
     }
     /**
      * @description A consumer portal token.
@@ -10997,12 +11009,13 @@ export interface components {
       readonly billingAnchor: Date
       /**
        * Settlement mode
-       * @description The settlement mode of the subscription, which determines how the invoice is generated and payments are applied.
-       *     - creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+       * @description The settlement mode of the subscription.
+       *     - credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+       *     - credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.
        *     This is the default and most common settlement mode.
        * @default credit_then_invoice
        */
-      settlementMode?: components['schemas']['BillingPlanSettlementMode']
+      readonly settlementMode: components['schemas']['BillingSettlementMode']
     }
     /** @description A subscription add-on, represents concrete instances of an add-on for a given subscription. */
     SubscriptionAddon: {
@@ -11466,12 +11479,13 @@ export interface components {
       readonly billingAnchor: Date
       /**
        * Settlement mode
-       * @description The settlement mode of the subscription, which determines how the invoice is generated and payments are applied.
-       *     - creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+       * @description The settlement mode of the subscription.
+       *     - credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced.
+       *     - credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.
        *     This is the default and most common settlement mode.
        * @default credit_then_invoice
        */
-      settlementMode?: components['schemas']['BillingPlanSettlementMode']
+      readonly settlementMode: components['schemas']['BillingSettlementMode']
       /** @description Alignment details enriched with the current billing period. */
       alignment?: components['schemas']['SubscriptionAlignment']
       /** @description The phases of the subscription. */
@@ -12389,8 +12403,6 @@ export type BillingPartyReplaceUpdate =
   components['schemas']['BillingPartyReplaceUpdate']
 export type BillingPartyTaxIdentity =
   components['schemas']['BillingPartyTaxIdentity']
-export type BillingPlanSettlementMode =
-  components['schemas']['BillingPlanSettlementMode']
 export type BillingProfile = components['schemas']['BillingProfile']
 export type BillingProfileAppReferences =
   components['schemas']['BillingProfileAppReferences']
@@ -12419,6 +12431,8 @@ export type BillingProfilePaginatedResponse =
   components['schemas']['BillingProfilePaginatedResponse']
 export type BillingProfileReplaceUpdateWithWorkflow =
   components['schemas']['BillingProfileReplaceUpdateWithWorkflow']
+export type BillingSettlementMode =
+  components['schemas']['BillingSettlementMode']
 export type BillingTaxIdentificationCode =
   components['schemas']['BillingTaxIdentificationCode']
 export type BillingWorkflow = components['schemas']['BillingWorkflow']

@@ -11438,9 +11438,12 @@ export const CreatePlanBody = zod
       ),
     settlementMode: zod
       .enum(['credit_then_invoice', 'credit_only'])
+      .describe(
+        'The settlement mode of a plan.\nIt determines how the billing system generates invoices and credits for the subscriptions using this plan.\n- credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced. This is the default and most common settlement mode.\n- credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.',
+      )
       .default(createPlanBodySettlementModeDefault)
       .describe(
-        'The settlement mode of the plan.\nIt determines how the billing system generates invoices and credits for the subscriptions using this plan.\n- creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.\nThis is the default and most common settlement mode.',
+        'The settlement mode of the plan.\nIt determines how the billing system generates invoices and credits for the subscriptions using this plan.\n- credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced.\n- credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.\nThis is the default and most common settlement mode.',
       ),
   })
   .describe('Resource create operation model.')
@@ -12519,9 +12522,12 @@ export const UpdatePlanBody = zod
       ),
     settlementMode: zod
       .enum(['credit_then_invoice', 'credit_only'])
+      .describe(
+        'The settlement mode of a plan.\nIt determines how the billing system generates invoices and credits for the subscriptions using this plan.\n- credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced. This is the default and most common settlement mode.\n- credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.',
+      )
       .default(updatePlanBodySettlementModeDefault)
       .describe(
-        'The settlement mode of the plan.\nIt determines how the billing system generates invoices and credits for the subscriptions using this plan.\n- creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.\nThis is the default and most common settlement mode.',
+        'The settlement mode of the plan.\nIt determines how the billing system generates invoices and credits for the subscriptions using this plan.\n- credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced.\n- credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.\nThis is the default and most common settlement mode.',
       ),
   })
   .describe('Resource update operation model.')
@@ -14470,6 +14476,13 @@ export const CreateSubscriptionBody = zod
             'References an exact plan defaulting to the current active version.',
           )
           .describe('The plan reference to change to.'),
+        settlementMode: zod
+          .enum(['credit_then_invoice', 'credit_only'])
+          .describe(
+            'The settlement mode of a plan.\nIt determines how the billing system generates invoices and credits for the subscriptions using this plan.\n- credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced. This is the default and most common settlement mode.\n- credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.',
+          )
+          .optional()
+          .describe('The settlement mode of the subscription.'),
         startingPhase: zod.coerce
           .string()
           .min(1)
@@ -15530,11 +15543,14 @@ export const CreateSubscriptionBody = zod
               ),
             settlementMode: zod
               .enum(['credit_then_invoice', 'credit_only'])
+              .describe(
+                'The settlement mode of a plan.\nIt determines how the billing system generates invoices and credits for the subscriptions using this plan.\n- credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced. This is the default and most common settlement mode.\n- credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.',
+              )
               .default(
                 createSubscriptionBodyTwoCustomPlanOneOneSettlementModeDefault,
               )
               .describe(
-                'The settlement mode of the plan.\nIt determines how the billing system generates invoices and credits for the subscriptions using this plan.\n- creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.\nThis is the default and most common settlement mode.',
+                'The settlement mode of the plan.\nIt determines how the billing system generates invoices and credits for the subscriptions using this plan.\n- credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced.\n- credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.\nThis is the default and most common settlement mode.',
               ),
           })
           .describe('The template for omitting properties.')
@@ -18188,11 +18204,14 @@ export const ChangeSubscriptionBody = zod
               ),
             settlementMode: zod
               .enum(['credit_then_invoice', 'credit_only'])
+              .describe(
+                'The settlement mode of a plan.\nIt determines how the billing system generates invoices and credits for the subscriptions using this plan.\n- credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced. This is the default and most common settlement mode.\n- credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.',
+              )
               .default(
                 changeSubscriptionBodyTwoCustomPlanOneOneSettlementModeDefault,
               )
               .describe(
-                'The settlement mode of the plan.\nIt determines how the billing system generates invoices and credits for the subscriptions using this plan.\n- creditThenInvoiceSettlementMode: credits from the previous billing period are applied first, then the remaining balance is invoiced.\nThis is the default and most common settlement mode.',
+                'The settlement mode of the plan.\nIt determines how the billing system generates invoices and credits for the subscriptions using this plan.\n- credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced.\n- credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.\nThis is the default and most common settlement mode.',
               ),
           })
           .describe('The template for omitting properties.')

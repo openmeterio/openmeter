@@ -86,15 +86,6 @@ class BillingCollectionAlignment(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """Align the collection to the anchor time and cadence."""
 
 
-class BillingPlanSettlementMode(str, Enum, metaclass=CaseInsensitiveEnumMeta):
-    """Type of BillingPlanSettlementMode."""
-
-    CREDIT_THEN_INVOICE_SETTLEMENT_MODE = "credit_then_invoice"
-    """CREDIT_THEN_INVOICE_SETTLEMENT_MODE."""
-    CREDIT_ONLY_SETTLEMENT_MODE = "credit_only"
-    """CREDIT_ONLY_SETTLEMENT_MODE."""
-
-
 class BillingProfileCustomerOverrideExpand(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """CustomerOverrideExpand specifies the parts of the profile to expand."""
 
@@ -137,6 +128,23 @@ class BillingProfileOrderBy(str, Enum, metaclass=CaseInsensitiveEnumMeta):
     """DEFAULT."""
     NAME = "name"
     """NAME."""
+
+
+class BillingSettlementMode(str, Enum, metaclass=CaseInsensitiveEnumMeta):
+    """The settlement mode of a plan.
+    It determines how the billing system generates invoices and credits for the subscriptions using
+    this plan.
+
+    * credit_then_invoice: credits from the previous billing period are applied first, then the
+    remaining balance is invoiced. This is the default and most common settlement mode.
+    * credit_only: only credits from the previous billing period are generated and applied. No
+    invoices are generated for the subscription.
+    """
+
+    CREDIT_THEN_INVOICE = "credit_then_invoice"
+    """CREDIT_THEN_INVOICE."""
+    CREDIT_ONLY = "credit_only"
+    """CREDIT_ONLY."""
 
 
 class CheckoutSessionUIMode(str, Enum, metaclass=CaseInsensitiveEnumMeta):
