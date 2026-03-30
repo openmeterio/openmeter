@@ -16,3 +16,13 @@ func (s *service) GetByIDs(ctx context.Context, input flatfee.GetByIDsInput) ([]
 		return s.adapter.GetByIDs(ctx, input)
 	})
 }
+
+func (s *service) GetByID(ctx context.Context, input flatfee.GetByIDInput) (flatfee.Charge, error) {
+	if err := input.Validate(); err != nil {
+		return flatfee.Charge{}, err
+	}
+
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (flatfee.Charge, error) {
+		return s.adapter.GetByID(ctx, input)
+	})
+}

@@ -127,7 +127,7 @@ var (
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s meta.ChargeStatus) error {
 	switch s {
-	case "created", "active", "settled", "final":
+	case "created", "active", "settled", "final", "deleted":
 		return nil
 	default:
 		return fmt.Errorf("chargessearchv1: invalid enum value for status field: %q", s)

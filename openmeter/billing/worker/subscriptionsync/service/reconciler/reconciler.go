@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
-	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/chargeupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -46,11 +45,10 @@ func (c Config) Validate() error {
 
 type Service struct {
 	billingService billing.Service
+	chargesService charges.Service
 	logger         *slog.Logger
 
-	invoiceUpdater   *invoiceupdater.Updater
-	chargeUpdater    chargeupdater.Updater
-	chargesAvailable bool
+	invoiceUpdater *invoiceupdater.Updater
 }
 
 func New(config Config) (*Service, error) {
@@ -58,17 +56,11 @@ func New(config Config) (*Service, error) {
 		return nil, err
 	}
 
-	chargeUpdater := chargeupdater.NewDisabled(config.Logger)
-	if config.ChargesService != nil {
-		chargeUpdater = chargeupdater.New(config.ChargesService, config.Logger)
-	}
-
 	return &Service{
-		billingService:   config.BillingService,
-		logger:           config.Logger,
-		invoiceUpdater:   invoiceupdater.New(config.BillingService, config.Logger),
-		chargeUpdater:    chargeUpdater,
-		chargesAvailable: config.ChargesService != nil,
+		billingService: config.BillingService,
+		logger:         config.Logger,
+		invoiceUpdater: invoiceupdater.New(config.BillingService, config.Logger),
+		chargesService: config.ChargesService,
 	}, nil
 }
 
@@ -108,7 +100,7 @@ func (i ApplyInput) Validate() error {
 
 type Plan struct {
 	InvoicePatches                     []InvoicePatch
-	ChargePatches                      []ChargePatch
+	ChargePatches                      charges.ApplyPatchesInput
 	Invoices                           persistedstate.Invoices
 	SubscriptionMaxGenerationTimeLimit time.Time
 }
@@ -118,7 +110,7 @@ func (p *Plan) IsEmpty() bool {
 		return true
 	}
 
-	return len(p.InvoicePatches) == 0 && len(p.ChargePatches) == 0
+	return len(p.InvoicePatches) == 0 && p.ChargePatches.IsEmpty()
 }
 
 func (s *Service) diffItem(
@@ -209,7 +201,7 @@ func filterInScopeLines(inScopeLines []targetstate.StateItem, patchCollections *
 }
 
 func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
-	if input.Subscription.SettlementMode == productcatalog.CreditOnlySettlementMode && !s.chargesAvailable {
+	if input.Subscription.SettlementMode == productcatalog.CreditOnlySettlementMode && s.chargesService == nil {
 		return nil, fmt.Errorf("credit only settlement mode is not supported without charges service enabled")
 	}
 
@@ -293,9 +285,14 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 		}
 	}
 
+	chargePatches, err := patchCollections.CollectChargePatches()
+	if err != nil {
+		return nil, fmt.Errorf("collecting charge patches: %w", err)
+	}
+
 	return &Plan{
 		InvoicePatches:                     patchCollections.CollectInvoicePatches(),
-		ChargePatches:                      patchCollections.CollectChargePatches(),
+		ChargePatches:                      chargePatches,
 		Invoices:                           input.Persisted.Invoices,
 		SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
 	}, nil
@@ -322,14 +319,9 @@ func (s *Service) Apply(ctx context.Context, input ApplyInput) error {
 		invoicePatches = append(invoicePatches, newInvoicePatches...)
 	}
 
-	chargePatches := make([]chargeupdater.Patch, 0, len(input.Plan.ChargePatches))
-	for _, patch := range input.Plan.ChargePatches {
-		chargePatches = append(chargePatches, patch.GetChargePatch())
-	}
-
 	if input.DryRun {
 		s.invoiceUpdater.LogPatches(invoicePatches, input.Plan.Invoices)
-		s.chargeUpdater.LogPatches(chargePatches)
+		logChargesPatches(ctx, s.logger, input.Plan.ChargePatches)
 		return nil
 	}
 
@@ -337,8 +329,18 @@ func (s *Service) Apply(ctx context.Context, input ApplyInput) error {
 		return fmt.Errorf("updating invoices: %w", err)
 	}
 
-	if err := s.chargeUpdater.ApplyPatches(ctx, input.Subscription.Namespace, chargePatches); err != nil {
-		return fmt.Errorf("updating charges: %w", err)
+	if !input.Plan.ChargePatches.IsEmpty() {
+		if s.chargesService != nil {
+			// Let's finalize the input's global fields
+			chargePatches := input.Plan.ChargePatches
+			chargePatches.CustomerID = input.Customer
+
+			if err := s.chargesService.ApplyPatches(ctx, chargePatches); err != nil {
+				return fmt.Errorf("updating charges: %w", err)
+			}
+		} else {
+			return fmt.Errorf("charges service is required when there are charge patches")
+		}
 	}
 
 	return nil

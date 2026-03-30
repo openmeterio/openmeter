@@ -17,7 +17,9 @@ import (
 type Adapter interface {
 	CreateCharges(ctx context.Context, charges CreateChargesInput) ([]Charge, error)
 	UpdateCharge(ctx context.Context, charge Charge) error
+	DeleteCharge(ctx context.Context, charge Charge) error
 	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
+	GetByID(ctx context.Context, id GetByIDInput) (Charge, error)
 
 	CreateInvoicedUsage(ctx context.Context, chargeID meta.ChargeID, invoicedUsage invoicedusage.AccruedUsage) (invoicedusage.AccruedUsage, error)
 
@@ -72,6 +74,24 @@ func (i GetByIDsInput) Validate() error {
 		if id == "" {
 			errs = append(errs, errors.New("id is required"))
 		}
+	}
+
+	if err := i.Expands.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("expands: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+type GetByIDInput struct {
+	ChargeID meta.ChargeID
+	Expands  meta.Expands
+}
+
+func (i GetByIDInput) Validate() error {
+	var errs []error
+	if err := i.ChargeID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge ID: %w", err))
 	}
 
 	if err := i.Expands.Validate(); err != nil {

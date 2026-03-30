@@ -17,12 +17,13 @@ import (
 var _ flatfee.Handler = (*flatFeeTestHandler)(nil)
 
 type flatFeeTestHandler struct {
-	onAssignedToInvoice       func(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error)
-	onInvoiceUsageAccrued     func(ctx context.Context, input flatfee.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
-	onCreditsOnlyUsageAccrued func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error)
-	onPaymentAuthorized       func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
-	onPaymentSettled          func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
-	onPaymentUncollectible    func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
+	onAssignedToInvoice                 func(ctx context.Context, input flatfee.OnAssignedToInvoiceInput) (creditrealization.CreateAllocationInputs, error)
+	onInvoiceUsageAccrued               func(ctx context.Context, input flatfee.OnInvoiceUsageAccruedInput) (ledgertransaction.GroupReference, error)
+	onCreditsOnlyUsageAccrued           func(ctx context.Context, input flatfee.OnCreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error)
+	onCreditsOnlyUsageAccruedCorrection func(ctx context.Context, input flatfee.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error)
+	onPaymentAuthorized                 func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
+	onPaymentSettled                    func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
+	onPaymentUncollectible              func(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error)
 }
 
 func newFlatFeeTestHandler() *flatFeeTestHandler {
@@ -51,6 +52,14 @@ func (h *flatFeeTestHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, inpu
 	}
 
 	return h.onCreditsOnlyUsageAccrued(ctx, input)
+}
+
+func (h *flatFeeTestHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Context, input flatfee.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error) {
+	if h.onCreditsOnlyUsageAccruedCorrection == nil {
+		return nil, errors.New("onCreditsOnlyUsageAccruedCorrection is not set")
+	}
+
+	return h.onCreditsOnlyUsageAccruedCorrection(ctx, input)
 }
 
 func (h *flatFeeTestHandler) OnPaymentAuthorized(ctx context.Context, charge flatfee.Charge) (ledgertransaction.GroupReference, error) {

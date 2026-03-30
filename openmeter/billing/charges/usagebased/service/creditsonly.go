@@ -6,6 +6,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -44,7 +45,7 @@ func NewCreditsOnlyStateMachine(config StateMachineConfig) (*CreditsOnlyStateMac
 func (s *CreditsOnlyStateMachine) configureStates() {
 	s.Configure(usagebased.StatusCreated).
 		Permit(
-			usagebased.TriggerNext,
+			meta.TriggerNext,
 			usagebased.StatusActive,
 			statelessx.BoolFn(s.IsInsideServicePeriod),
 		).
@@ -54,7 +55,7 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 
 	s.Configure(usagebased.StatusActive).
 		Permit(
-			usagebased.TriggerNext,
+			meta.TriggerNext,
 			usagebased.StatusActiveFinalRealizationStarted,
 			statelessx.BoolFn(s.IsAfterServicePeriod),
 		).
@@ -64,7 +65,7 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 
 	s.Configure(usagebased.StatusActiveFinalRealizationStarted).
 		Permit(
-			usagebased.TriggerNext,
+			meta.TriggerNext,
 			usagebased.StatusActiveFinalRealizationWaitingForCollection,
 		).
 		OnActive(
@@ -73,7 +74,7 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 
 	s.Configure(usagebased.StatusActiveFinalRealizationWaitingForCollection).
 		Permit(
-			usagebased.TriggerNext,
+			meta.TriggerNext,
 			usagebased.StatusActiveFinalRealizationProcessing,
 			s.IsAfterCollectionPeriod,
 		).
@@ -82,7 +83,7 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 
 	s.Configure(usagebased.StatusActiveFinalRealizationProcessing).
 		Permit(
-			usagebased.TriggerNext,
+			meta.TriggerNext,
 			usagebased.StatusActiveFinalRealizationCompleted,
 		).
 		OnActive(
@@ -91,7 +92,7 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 
 	s.Configure(usagebased.StatusActiveFinalRealizationCompleted).
 		Permit(
-			usagebased.TriggerNext,
+			meta.TriggerNext,
 			usagebased.StatusFinal,
 		)
 

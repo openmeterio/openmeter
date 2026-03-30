@@ -3,6 +3,7 @@ package charges
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -16,16 +17,43 @@ type Adapter interface {
 }
 
 type ChargesSearchAdapter interface {
-	GetTypesByIDs(ctx context.Context, input GetTypesByIDsInput) (GetTypesByIDsResult, error)
-	ListCharges(ctx context.Context, input ListChargesInput) (pagination.Result[ChargeWithType], error)
+	GetByIDs(ctx context.Context, input GetByIDsInput) (ChargeSearchItems, error)
+	ListCharges(ctx context.Context, input ListChargesInput) (pagination.Result[ChargeSearchItem], error)
 }
 
-type ChargeWithType struct {
-	ID   string
-	Type meta.ChargeType
+type ChargeSearchItem struct {
+	ID         meta.ChargeID
+	Type       meta.ChargeType
+	CustomerID string
 }
 
-type GetTypesByIDsResult []ChargeWithType
+func (c *ChargeSearchItem) Validate() error {
+	var errs []error
+	if err := c.ID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("id: %w", err))
+	}
+
+	if err := c.Type.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("type: %w", err))
+	}
+
+	if c.CustomerID == "" {
+		errs = append(errs, errors.New("customer ID is required"))
+	}
+	return errors.Join(errs...)
+}
+
+type ChargeSearchItems []ChargeSearchItem
+
+func (c ChargeSearchItems) Validate() error {
+	var errs []error
+	for idx, item := range c {
+		if err := item.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("item[%d]: %w", idx, err))
+		}
+	}
+	return errors.Join(errs...)
+}
 
 type GetTypesByIDsInput struct {
 	Namespace string

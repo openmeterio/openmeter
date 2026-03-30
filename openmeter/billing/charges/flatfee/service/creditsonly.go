@@ -80,26 +80,25 @@ func NewCreditsOnlyStateMachine(config CreditsOnlyStateMachineConfig) (*CreditsO
 
 func (s *CreditsOnlyStateMachine) configureStates() {
 	s.Configure(meta.ChargeStatusCreated).
-		Permit(
-			flatfee.TriggerNext,
-			meta.ChargeStatusActive,
-			statelessx.BoolFn(s.IsAfterInvoiceAt),
-		).
+		Permit(meta.TriggerNext, meta.ChargeStatusActive, statelessx.BoolFn(s.IsAfterInvoiceAt)).
+		Permit(meta.TriggerDelete, meta.ChargeStatusDeleted).
 		OnActive(
 			s.SetAdvanceAfterInvoiceAt,
 		)
 
 	s.Configure(meta.ChargeStatusActive).
-		Permit(
-			flatfee.TriggerNext,
-			meta.ChargeStatusFinal,
-		).
+		Permit(meta.TriggerNext, meta.ChargeStatusFinal).
+		Permit(meta.TriggerDelete, meta.ChargeStatusDeleted).
 		OnActive(
 			s.AllocateCredits,
 		)
 
 	s.Configure(meta.ChargeStatusFinal).
+		Permit(meta.TriggerDelete, meta.ChargeStatusDeleted).
 		OnActive(s.ClearAdvanceAfter)
+
+	s.Configure(meta.ChargeStatusDeleted).
+		OnEntry(statelessx.WithParameters(s.DeleteCharge))
 }
 
 func (s *CreditsOnlyStateMachine) IsAfterInvoiceAt() bool {
@@ -160,8 +159,21 @@ func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 	return nil
 }
 
-func (s *CreditsOnlyStateMachine) FireAndActivate(ctx context.Context, trigger flatfee.Trigger) error {
-	if err := s.StateMachine.FireCtx(ctx, trigger); err != nil {
+// TODO: Move these into some helper base package
+
+var ErrUnsupportedOperation = models.NewGenericPreConditionFailedError(fmt.Errorf("unsupported operation"))
+
+func (s *CreditsOnlyStateMachine) FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...any) error {
+	canFire, err := s.StateMachine.CanFireCtx(ctx, trigger)
+	if err != nil {
+		return err
+	}
+
+	if !canFire {
+		return fmt.Errorf("%w: %s [status=%s,id=%s]", ErrUnsupportedOperation, trigger, s.Charge.Status, s.Charge.ID)
+	}
+
+	if err := s.StateMachine.FireCtx(ctx, trigger, args...); err != nil {
 		return err
 	}
 
@@ -172,7 +184,7 @@ func (s *CreditsOnlyStateMachine) AdvanceUntilStateStable(ctx context.Context) (
 	var advanced bool
 
 	for {
-		canFire, err := s.StateMachine.CanFireCtx(ctx, flatfee.TriggerNext)
+		canFire, err := s.StateMachine.CanFireCtx(ctx, meta.TriggerNext)
 		if err != nil {
 			return nil, err
 		}
@@ -186,7 +198,7 @@ func (s *CreditsOnlyStateMachine) AdvanceUntilStateStable(ctx context.Context) (
 			return &charge, nil
 		}
 
-		if err := s.FireAndActivate(ctx, flatfee.TriggerNext); err != nil {
+		if err := s.FireAndActivate(ctx, meta.TriggerNext); err != nil {
 			return nil, fmt.Errorf("cannot transition to the next status [current_status=%s]: %w", s.Charge.Status, err)
 		}
 
@@ -196,4 +208,49 @@ func (s *CreditsOnlyStateMachine) AdvanceUntilStateStable(ctx context.Context) (
 
 		advanced = true
 	}
+}
+
+func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.PatchDeletePolicy) error {
+	if policy.CreditRefundPolicy == meta.CreditRefundPolicyCorrect {
+		currencyCalculator, err := s.Charge.Intent.Currency.Calculator()
+		if err != nil {
+			return fmt.Errorf("get currency calculator: %w", err)
+		}
+
+		// Let's reverse the credit allocations
+		corrections, err := s.Charge.State.CreditRealizations.CorrectAll(currencyCalculator, func(req creditrealization.CorrectionRequest) (creditrealization.CreateCorrectionInputs, error) {
+			return s.Service.handler.OnCreditsOnlyUsageAccruedCorrection(ctx, flatfee.CreditsOnlyUsageAccruedCorrectionInput{
+				Charge:      s.Charge,
+				AllocateAt:  clock.Now(),
+				Corrections: req,
+			})
+		})
+		if err != nil {
+			return fmt.Errorf("correct credits: %w", err)
+		}
+
+		if len(corrections) > 0 {
+			if _, err := s.Adapter.CreateCreditAllocations(ctx, s.Charge.GetChargeID(), corrections); err != nil {
+				return fmt.Errorf("create credit corrections: %w", err)
+			}
+		}
+	}
+
+	if err := s.Adapter.DeleteCharge(ctx, s.Charge); err != nil {
+		return fmt.Errorf("delete charge: %w", err)
+	}
+
+	return s.refetchCharge(ctx)
+}
+
+func (s *CreditsOnlyStateMachine) refetchCharge(ctx context.Context) error {
+	charge, err := s.Service.GetByID(ctx, flatfee.GetByIDInput{
+		ChargeID: s.Charge.GetChargeID(),
+	})
+	if err != nil {
+		return fmt.Errorf("get charge: %w", err)
+	}
+
+	s.Charge = charge
+	return nil
 }

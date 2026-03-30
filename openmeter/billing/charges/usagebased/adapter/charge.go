@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeusagebased "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -148,6 +149,10 @@ func (a *adapter) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 
 		entity, err := query.First(ctx)
 		if err != nil {
+			if db.IsNotFound(err) {
+				return usagebased.Charge{}, models.NewGenericNotFoundError(fmt.Errorf("usage based charge [id=%s] not found", input.ChargeID))
+			}
+
 			return usagebased.Charge{}, fmt.Errorf("querying usage based charge [id=%s]: %w", input.ChargeID, err)
 		}
 

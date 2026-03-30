@@ -49,6 +49,16 @@ func (mockFlatFeeHandler) OnCreditsOnlyUsageAccrued(_ context.Context, input fla
 	}, nil
 }
 
+func (mockFlatFeeHandler) OnCreditsOnlyUsageAccruedCorrection(_ context.Context, input flatfee.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error) {
+	return lo.Map(input.Corrections, func(correction creditrealization.CorrectionRequestItem, _ int) creditrealization.CreateCorrectionInput {
+		return creditrealization.CreateCorrectionInput{
+			LedgerTransaction:     newMockLedgerTransactionGroupReference(),
+			Amount:                correction.Amount,
+			CorrectsRealizationID: correction.Allocation.ID,
+		}
+	}), nil
+}
+
 func (mockFlatFeeHandler) OnPaymentAuthorized(context.Context, flatfee.Charge) (ledgertransaction.GroupReference, error) {
 	return newMockLedgerTransactionGroupReference(), nil
 }

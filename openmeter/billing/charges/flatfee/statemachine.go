@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/qmuntal/stateless"
-
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 )
 
@@ -39,7 +37,3 @@ func (s Status) ToMetaChargeStatus() (meta.ChargeStatus, error) {
 
 	return meta.ChargeStatus(s), nil
 }
-
-type Trigger = stateless.Trigger
-
-var TriggerNext Trigger = "trigger_next"
