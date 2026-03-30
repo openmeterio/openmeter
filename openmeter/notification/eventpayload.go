@@ -34,10 +34,6 @@ func (m EventPayloadMeta) Validate() error {
 }
 
 const (
-	// EventPayloadVersionLegacy is the implicit version for events stored before versioning was
-	// introduced. Never explicitly written; absence of the field unmarshals to 0.
-	EventPayloadVersionLegacy int = 0
-
 	// EventPayloadVersionCurrent is the version written for all new events.
 	EventPayloadVersionCurrent int = 1
 )
