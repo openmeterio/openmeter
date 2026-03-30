@@ -3604,7 +3604,6 @@ components:
         - funding_method
         - currency
         - amount
-        - priority
         - status
       properties:
         id:
@@ -5663,7 +5662,6 @@ components:
         - funding_method
         - currency
         - amount
-        - priority
       properties:
         name:
           type: string
