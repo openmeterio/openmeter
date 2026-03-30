@@ -232,7 +232,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azqueue v1.0.1 // indirect
 	github.com/Azure/go-amqp v1.4.0 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.4.2 // indirect
-	github.com/ClickHouse/ch-go v0.70.0
+	github.com/ClickHouse/ch-go v0.71.0
 	github.com/DataDog/zstd v1.5.7 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.29.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.54.0 // indirect
