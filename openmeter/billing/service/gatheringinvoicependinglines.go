@@ -688,6 +688,10 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("generating invoice number: %w", err)
 	}
 
+	if err := s.resolveDefaultTaxCode(ctx, in.Customer.Namespace, profile.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
+		return nil, fmt.Errorf("resolving default tax code: %w", err)
+	}
+
 	// let's create the invoice
 	invoice, err := s.adapter.CreateInvoice(ctx, billing.CreateInvoiceAdapterInput{
 		Namespace: in.Customer.Namespace,

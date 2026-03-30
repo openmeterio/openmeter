@@ -130,7 +130,7 @@ func (a *adapter) GetSplitLineGroup(ctx context.Context, input billing.GetSplitL
 			WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
 				a.expandLineItems(q)
 				q.WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
-					q.WithBillingWorkflowConfig()
+					q.WithBillingWorkflowConfig(workflowConfigWithTaxCode)
 				})
 			}).
 			First(ctx)
@@ -339,7 +339,7 @@ func (a *adapter) fetchAllSplitLineGroups(ctx context.Context, namespace string,
 		WithBillingInvoiceLines(func(q *db.BillingInvoiceLineQuery) {
 			a.expandLineItems(q)
 			q.WithBillingInvoice(func(q *db.BillingInvoiceQuery) {
-				q.WithBillingWorkflowConfig()
+				q.WithBillingWorkflowConfig(workflowConfigWithTaxCode)
 			}) // TODO[later]: we can consider loading this in a separate query, might be more efficient
 		})
 

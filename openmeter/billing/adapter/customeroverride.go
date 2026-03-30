@@ -15,6 +15,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	dbcustomer "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -32,7 +34,7 @@ var _ billing.CustomerOverrideAdapter = (*adapter)(nil)
 
 func (a *adapter) CreateCustomerOverride(ctx context.Context, input billing.CreateCustomerOverrideAdapterInput) (*billing.CustomerOverride, error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billing.CustomerOverride, error) {
-		_, err := tx.db.BillingCustomerOverride.Create().
+		createCmd := tx.db.BillingCustomerOverride.Create().
 			SetNamespace(input.Namespace).
 			SetCustomerID(input.CustomerID).
 			SetNillableBillingProfileID(lo.EmptyableToPtr(input.ProfileID)).
@@ -44,8 +46,13 @@ func (a *adapter) CreateCustomerOverride(ctx context.Context, input billing.Crea
 			SetNillableInvoiceDueAfter(input.Invoicing.DueAfter.ISOStringPtrOrNil()).
 			SetNillableInvoiceCollectionMethod(input.Payment.CollectionMethod).
 			SetNillableInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling).
-			SetNillableInvoiceDefaultTaxConfig(input.Invoicing.DefaultTaxConfig).
-			Save(ctx)
+			SetNillableInvoiceDefaultTaxConfig(input.Invoicing.DefaultTaxConfig)
+
+		if cfg := input.Invoicing.DefaultTaxConfig; cfg != nil {
+			createCmd = createCmd.SetNillableTaxCodeID(cfg.TaxCodeID).SetNillableTaxBehavior(cfg.Behavior)
+		}
+
+		_, err := createCmd.Save(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -90,6 +97,21 @@ func (a *adapter) UpdateCustomerOverride(ctx context.Context, input billing.Upda
 			SetOrClearInvoiceDefaultTaxConfig(input.Invoicing.DefaultTaxConfig).
 			ClearDeletedAt()
 
+		if cfg := input.Invoicing.DefaultTaxConfig; cfg != nil {
+			if cfg.TaxCodeID != nil {
+				update = update.SetNillableTaxCodeID(cfg.TaxCodeID)
+			} else {
+				update = update.ClearTaxCodeID()
+			}
+			if cfg.Behavior != nil {
+				update = update.SetNillableTaxBehavior(cfg.Behavior)
+			} else {
+				update = update.ClearTaxBehavior()
+			}
+		} else {
+			update = update.ClearTaxCodeID().ClearTaxBehavior()
+		}
+
 		linesAffected, err := update.Save(ctx)
 		if err != nil {
 			return nil, err
@@ -117,8 +139,9 @@ func (a *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCust
 		query := tx.db.BillingCustomerOverride.Query().
 			Where(billingcustomeroverride.Namespace(input.Customer.Namespace)).
 			Where(billingcustomeroverride.CustomerID(input.Customer.ID)).
+			WithTaxCode().
 			WithBillingProfile(func(bpq *db.BillingProfileQuery) {
-				bpq.WithWorkflowConfig()
+				bpq.WithWorkflowConfig(workflowConfigWithTaxCode)
 			})
 
 		if !input.IncludeDeleted {
@@ -140,7 +163,7 @@ func (a *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCust
 				Where(billingprofile.Namespace(input.Customer.Namespace)).
 				Where(billingprofile.Default(true)).
 				Where(billingprofile.DeletedAtIsNil()).
-				WithWorkflowConfig().
+				WithWorkflowConfig(workflowConfigWithTaxCode).
 				Only(ctx)
 			if err != nil {
 				if !db.IsNotFound(err) {
@@ -251,10 +274,11 @@ func (a *adapter) ListCustomerOverrides(ctx context.Context, input billing.ListC
 
 		query = query.WithBillingCustomerOverride(func(overrideQuery *db.BillingCustomerOverrideQuery) {
 			overrideQuery = overrideQuery.Where(billingcustomeroverride.NamespaceEQ(input.Namespace)).
-				Where(billingcustomeroverride.DeletedAtIsNil())
+				Where(billingcustomeroverride.DeletedAtIsNil()).
+				WithTaxCode()
 
 			overrideQuery.WithBillingProfile(func(profileQuery *db.BillingProfileQuery) {
-				profileQuery.WithWorkflowConfig()
+				profileQuery.WithWorkflowConfig(workflowConfigWithTaxCode)
 			})
 		})
 
@@ -400,6 +424,23 @@ func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billing
 		}
 	}
 
+	invoicingOverride := billing.InvoicingOverrideConfig{
+		AutoAdvance:        dbOverride.InvoiceAutoAdvance,
+		DraftPeriod:        draftPeriod,
+		DueAfter:           dueAfter,
+		ProgressiveBilling: dbOverride.InvoiceProgressiveBilling,
+		DefaultTaxConfig:   lo.EmptyableToPtr(dbOverride.InvoiceDefaultTaxConfig),
+	}
+
+	if taxCodeRow, err := dbOverride.Edges.TaxCodeOrErr(); err == nil {
+		tc, err := taxcodeadapter.MapTaxCodeFromEntity(taxCodeRow)
+		if err != nil {
+			return nil, fmt.Errorf("mapping tax code for customer override: %w", err)
+		}
+
+		invoicingOverride.DefaultTaxConfig = productcatalog.BackfillTaxConfig(invoicingOverride.DefaultTaxConfig, dbOverride.TaxBehavior, &tc)
+	}
+
 	return &billing.CustomerOverride{
 		ID:        dbOverride.ID,
 		Namespace: dbOverride.Namespace,
@@ -414,13 +455,7 @@ func mapCustomerOverrideFromDB(dbOverride *db.BillingCustomerOverride) (*billing
 			Interval:                collectionInterval,
 		},
 
-		Invoicing: billing.InvoicingOverrideConfig{
-			AutoAdvance:        dbOverride.InvoiceAutoAdvance,
-			DraftPeriod:        draftPeriod,
-			DueAfter:           dueAfter,
-			ProgressiveBilling: dbOverride.InvoiceProgressiveBilling,
-			DefaultTaxConfig:   lo.EmptyableToPtr(dbOverride.InvoiceDefaultTaxConfig),
-		},
+		Invoicing: invoicingOverride,
 
 		Payment: billing.PaymentOverrideConfig{
 			CollectionMethod: dbOverride.InvoiceCollectionMethod,

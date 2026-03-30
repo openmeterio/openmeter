@@ -6,6 +6,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 )
 
 type invoiceCalculatorsByType struct {
@@ -23,7 +24,7 @@ var InvoiceCalculations = invoiceCalculatorsByType{
 		WithNoDependencies(UpsertDiscountCorrelationIDs),
 		RecalculateDetailedLinesAndTotals,
 		WithNoDependencies(CalculateStandardInvoiceServicePeriod),
-		WithNoDependencies(SnapshotTaxConfigIntoLines),
+		SnapshotTaxConfigIntoLines,
 	},
 	LegacyGatheringInvoice: []Calculation{
 		WithNoDependencies(UpsertDiscountCorrelationIDs),
@@ -41,7 +42,7 @@ var InvoiceCalculations = invoiceCalculatorsByType{
 		WithNoDependencies(LegacyGatheringInvoiceCollectionAt),
 		RecalculateDetailedLinesAndTotals,
 		WithNoDependencies(CalculateStandardInvoiceServicePeriod),
-		WithNoDependencies(SnapshotTaxConfigIntoLines),
+		SnapshotTaxConfigIntoLines,
 		WithNoDependencies(FillGatheringDetailedLineMeta),
 	},
 }
@@ -58,9 +59,27 @@ type Calculator interface {
 	CalculateGatheringInvoiceWithLiveData(*billing.StandardInvoice, CalculatorDependencies) error
 }
 
+// TaxCodes is a pre-resolved map of Stripe tax codes keyed by their Stripe code string.
+// Built before the calculator runs so that SnapshotTaxConfigIntoLines can stamp both
+// TaxCodeID and the entity into each line in a single pass without hitting the DB.
+type TaxCodes map[string]taxcode.TaxCode
+
+// Get looks up a TaxCode by Stripe code. Returns nil, false if not present.
+func (t TaxCodes) Get(stripeCode string) (*taxcode.TaxCode, bool) {
+	if t == nil {
+		return nil, false
+	}
+	tc, ok := t[stripeCode]
+	if !ok {
+		return nil, false
+	}
+	return &tc, true
+}
+
 type CalculatorDependencies struct {
 	FeatureMeters feature.FeatureMeters
 	RatingService rating.Service
+	TaxCodes      TaxCodes
 }
 
 type calculator struct{}

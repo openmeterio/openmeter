@@ -26,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
@@ -61,12 +62,14 @@ func BillingService(
 	db *entdb.Client,
 	fsConfig config.BillingFeatureSwitchesConfiguration,
 	tracer trace.Tracer,
+	taxCodeService taxcode.Service,
 ) (billing.Service, error) {
 	service, err := billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
 		RatingService:                billingRatingService,
 		AppService:                   appService,
 		CustomerService:              customerService,
+		TaxCodeService:               taxCodeService,
 		FeatureService:               featureConnector,
 		Logger:                       logger,
 		MeterService:                 meterService,

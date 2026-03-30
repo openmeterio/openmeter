@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -25,6 +26,7 @@ type Service struct {
 	adapter            billing.Adapter
 	customerService    customer.Service
 	appService         app.Service
+	taxCodeService     taxcode.Service
 	logger             *slog.Logger
 	invoiceCalculator  invoicecalc.Calculator
 	ratingService      rating.Service
@@ -45,6 +47,7 @@ type Config struct {
 	Adapter                      billing.Adapter
 	CustomerService              customer.Service
 	AppService                   app.Service
+	TaxCodeService               taxcode.Service
 	RatingService                rating.Service
 	Logger                       *slog.Logger
 	FeatureService               feature.FeatureConnector
@@ -67,6 +70,10 @@ func (c Config) Validate() error {
 
 	if c.AppService == nil {
 		return errors.New("app service cannot be null")
+	}
+
+	if c.TaxCodeService == nil {
+		return errors.New("tax code service cannot be null")
 	}
 
 	if c.RatingService == nil {
@@ -113,6 +120,7 @@ func New(config Config) (*Service, error) {
 		adapter:                      config.Adapter,
 		customerService:              config.CustomerService,
 		appService:                   config.AppService,
+		taxCodeService:               config.TaxCodeService,
 		logger:                       config.Logger,
 		ratingService:                config.RatingService,
 		featureService:               config.FeatureService,
