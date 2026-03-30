@@ -19,6 +19,8 @@ servers:
     description: Cloud
     variables: {}
 tags:
+  - name: OpenMeter Product Catalog
+    description: Product catalog manages plans, add-ons, and their associations for subscription-based billing.
   - name: OpenMeter LLM Cost
     description: LLM cost database providing normalized pricing data for language models across providers. Prices are synced from multiple external sources and auto-confirmed when they agree.
   - name: OpenMeter Features
@@ -40,6 +42,218 @@ tags:
   - name: Meters
     description: Meters specify how to aggregate events for billing and analytics purposes. Meters can be configured with multiple aggregation methods and groupings. Multiple meters can be created for the same event type, enabling flexible metering scenarios.
 paths:
+  /openmeter/addons:
+    get:
+      operationId: list-addons
+      summary: List all add-ons.
+      description: List all add-ons.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddonPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Product Catalog
+      x-internal: true
+      x-unstable: true
+      x-private: true
+    post:
+      operationId: create-addon
+      summary: Create a new add-on.
+      description: Create a new add-on.
+      responses:
+        '201':
+          description: Addon created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Addon'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Product Catalog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAddonRequest'
+      x-internal: true
+      x-unstable: true
+      x-private: true
+  /openmeter/addons/{addonId}:
+    put:
+      operationId: update-addon
+      summary: Update an add-on by id.
+      description: Update an add-on by id.
+      parameters:
+        - name: addonId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Addon upsert response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Addon'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '410':
+          $ref: '#/components/responses/Gone'
+      tags:
+        - OpenMeter Product Catalog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertAddonRequest'
+      x-internal: true
+      x-unstable: true
+      x-private: true
+    get:
+      operationId: get-addon
+      summary: Get add-on by id.
+      description: Get add-on by id.
+      parameters:
+        - name: addonId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Addon response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Addon'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '410':
+          $ref: '#/components/responses/Gone'
+      tags:
+        - OpenMeter Product Catalog
+      x-internal: true
+      x-unstable: true
+      x-private: true
+    delete:
+      operationId: delete-addon
+      summary: Soft delete add-on by id.
+      description: Soft delete add-on by id.
+      parameters:
+        - name: addonId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: Deleted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Product Catalog
+      x-internal: true
+      x-unstable: true
+      x-private: true
+  /openmeter/addons/{addonId}/archive:
+    post:
+      operationId: archive-addon
+      summary: Archive an add-on version.
+      description: Archive an add-on version.
+      parameters:
+        - name: addonId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Addon updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Addon'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Product Catalog
+      x-internal: true
+      x-unstable: true
+      x-private: true
+  /openmeter/addons/{addonId}/publish:
+    post:
+      operationId: publish-addon
+      summary: Publish an add-on version.
+      description: Publish an add-on version.
+      parameters:
+        - name: addonId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Addon updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Addon'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Product Catalog
+      x-internal: true
+      x-unstable: true
+      x-private: true
   /openmeter/apps:
     get:
       operationId: list-apps
@@ -1385,6 +1599,394 @@ paths:
       x-internal: true
       x-unstable: true
       x-private: true
+  /openmeter/plans:
+    get:
+      operationId: list-plans
+      summary: List plans
+      description: List all plans.
+      parameters:
+        - $ref: '#/components/parameters/PagePaginationQuery'
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Product Catalog
+      x-internal: true
+      x-unstable: true
+      x-private: true
+    post:
+      operationId: create-plan
+      summary: Create a new plan.
+      description: Create a new plan.
+      responses:
+        '201':
+          description: Plan created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingPlan'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Product Catalog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePlanRequest'
+      x-internal: true
+      x-unstable: true
+      x-private: true
+  /openmeter/plans/{planId}:
+    put:
+      operationId: update-plan
+      summary: Update a plan by id.
+      description: Update a plan by id.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Plan upsert response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingPlan'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '410':
+          $ref: '#/components/responses/Gone'
+      tags:
+        - OpenMeter Product Catalog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertPlanRequest'
+      x-internal: true
+      x-unstable: true
+      x-private: true
+    get:
+      operationId: get-plan
+      summary: Get a plan by id.
+      description: Get a plan by id.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Plan response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingPlan'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '410':
+          $ref: '#/components/responses/Gone'
+      tags:
+        - OpenMeter Product Catalog
+      x-internal: true
+      x-unstable: true
+      x-private: true
+    delete:
+      operationId: delete-plan
+      summary: Delete a plan by id.
+      description: Delete a plan by id.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: Deleted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Product Catalog
+      x-internal: true
+      x-unstable: true
+      x-private: true
+  /openmeter/plans/{planId}/addons:
+    get:
+      operationId: list-plan-addons
+      summary: List add-ons for a plan.
+      description: List add-ons associated with a plan.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - $ref: '#/components/parameters/PagePaginationQuery'
+      responses:
+        '200':
+          description: Page paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanAddonPagePaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Product Catalog
+      x-internal: true
+      x-unstable: true
+      x-private: true
+    post:
+      operationId: create-plan-addon
+      summary: Add an add-on to a plan.
+      description: Add an add-on to a plan.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '201':
+          description: PlanAddon created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanAddon'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Product Catalog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePlanAddonRequest'
+      x-internal: true
+      x-unstable: true
+      x-private: true
+  /openmeter/plans/{planId}/addons/{planAddonId}:
+    get:
+      operationId: get-plan-addon
+      summary: Get an add-on association for a plan.
+      description: Get an add-on association for a plan.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: planAddonId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: PlanAddon response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanAddon'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Product Catalog
+      x-internal: true
+      x-unstable: true
+      x-private: true
+    put:
+      operationId: update-plan-addon
+      summary: Update an add-on association for a plan.
+      description: Update an add-on association for a plan.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: planAddonId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: PlanAddon upsert response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanAddon'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Product Catalog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertPlanAddonRequest'
+      x-internal: true
+      x-unstable: true
+      x-private: true
+    delete:
+      operationId: delete-plan-addon
+      summary: Remove an add-on from a plan.
+      description: Remove an add-on from a plan.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: planAddonId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '204':
+          description: Deleted response.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Product Catalog
+      x-internal: true
+      x-unstable: true
+      x-private: true
+  /openmeter/plans/{planId}/archive:
+    post:
+      operationId: archive-plan
+      summary: Archive a plan version.
+      description: Archive a plan version.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Plan updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingPlan'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Product Catalog
+      x-internal: true
+      x-unstable: true
+      x-private: true
+  /openmeter/plans/{planId}/publish:
+    post:
+      operationId: publish-plan
+      summary: Publish a plan version.
+      description: Publish a plan version.
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Plan updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingPlan'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Product Catalog
+      x-internal: true
+      x-unstable: true
+      x-private: true
   /openmeter/profiles:
     get:
       operationId: list-billing-profiles
@@ -1890,6 +2492,164 @@ components:
             type: integer
       style: deepObject
   schemas:
+    Addon:
+      type: object
+      required:
+        - id
+        - name
+        - key
+        - version
+        - instance_type
+        - currency
+        - status
+        - rate_cards
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: |-
+            A key is a semi-unique string that is used to identify the add-on.
+            It is used to reference the latest `active` version of the add-on and is unique with the version number.
+          title: Key
+        version:
+          type: integer
+          minimum: 1
+          description: Version of the add-on. Incremented when the add-on is updated.
+          title: Version
+          default: 1
+          readOnly: true
+        instance_type:
+          allOf:
+            - $ref: '#/components/schemas/AddonInstanceType'
+          description: The InstanceType of the add-ons. Can be "single" or "multiple".
+          title: The InstanceType of the add-ons. Can be "single" or "multiple".
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingCurrencyCode'
+          description: The currency code of the add-on.
+          title: Currency
+        effective_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The date and time when the add-on becomes effective. When not specified, the add-on is a draft.
+          title: Effective start date
+          readOnly: true
+        effective_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The date and time when the add-on is no longer effective. When not specified, the add-on is effective indefinitely.
+          title: Effective end date
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/AddonStatus'
+          description: |-
+            The status of the add-on.
+            Computed based on the effective start and end dates:
+            - draft = no effectiveFrom
+            - active = effectiveFrom <= now < effectiveTo
+            - archived  = effectiveTo <= now
+          title: Status
+          readOnly: true
+        rate_cards:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingRateCard'
+          description: The rate cards of the add-on.
+          title: Rate cards
+        validation_errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductCatalogValidationError'
+          description: List of validation errors.
+          title: Validation errors
+          readOnly: true
+      description: Add-on allows extending subscriptions with compatible plans with additional ratecards.
+    AddonInstanceType:
+      type: string
+      enum:
+        - single
+        - multiple
+      description: |-
+        The instanceType of the add-on.
+        - `single`: Can be added to a subscription only once.
+        - `multiple`: Can be added to a subscription more than once.
+    AddonPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Addon'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      description: Page paginated response.
+    AddonReference:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: '#/components/schemas/ULID'
+      description: Addon reference.
+    AddonReferenceItem:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: '#/components/schemas/ULID'
+      description: Addon reference.
+    AddonStatus:
+      type: string
+      enum:
+        - draft
+        - active
+        - archived
+      description: |-
+        The status of the add-on defined by the effectiveFrom and effectiveTo properties.
+        - `draft`: The add-on has not yet been published and can be edited.
+        - `active`: The add-on is published and available for use.
+        - `archived`: The add-on is no longer available for use.
     Address:
       type: object
       properties:
@@ -3674,6 +4434,349 @@ components:
             - $ref: '#/components/schemas/BillingTaxIdentificationCode'
           description: Normalized tax identification code shown on the original identity document.
       description: Identity stores the details required to identify an entity for tax purposes in a specific country.
+    BillingPlan:
+      type: object
+      required:
+        - id
+        - name
+        - key
+        - version
+        - currency
+        - billing_cadence
+        - status
+        - phases
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: |-
+            A key is a semi-unique string that is used to identify the plan.
+            It is used to reference the latest `active` version of the plan and is unique with the version number.
+          title: Key
+        version:
+          type: integer
+          minimum: 1
+          description: Plans are versioned to allow you to make changes without affecting running subscriptions.
+          title: Version
+          default: 1
+          readOnly: true
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency code of the plan.
+          title: Currency
+        billing_cadence:
+          allOf:
+            - $ref: '#/components/schemas/ISO8601Duration'
+          description: The billing cadence for subscriptions using this plan.
+          title: Billing cadence
+        pro_rating_enabled:
+          type: boolean
+          description: |-
+            Whether pro-rating is enabled for this plan.
+
+            TODO: WIP — pro-rating mode and exact semantics will be defined in a later iteration.
+          title: Pro-rating enabled
+          default: true
+        effective_from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The date and time when the plan becomes `active`.
+            When not specified, the plan is in `draft` status.
+          title: Effective start date
+          readOnly: true
+        effective_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            A scheduled date and time when the plan becomes `archived`.
+            When not specified, the plan is in `active` status indefinitely.
+          title: Effective end date
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingPlanStatus'
+          description: |-
+            The status of the plan.
+            Computed based on the effective start and end dates:
+            - draft = no effectiveFrom
+            - active = effectiveFrom <= now < effectiveTo
+            - archived / inactive = effectiveTo <= now
+            - scheduled = now < effectiveFrom < effectiveTo
+          title: Status
+          readOnly: true
+        phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingPlanPhase'
+          minItems: 1
+          description: |-
+            The plan phases define the pricing ramp for a subscription.
+            A phase switch occurs only at the end of a billing period.
+            At least one phase is required.
+          title: Plan phases
+        validation_errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductCatalogValidationError'
+          description: List of validation errors in `draft` state that prevent the plan from being published.
+          title: Validation errors
+          readOnly: true
+      description: Plans provide a template for subscriptions.
+    BillingPlanPhase:
+      type: object
+      required:
+        - name
+        - key
+        - rate_cards
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        key:
+          $ref: '#/components/schemas/ResourceKey'
+        duration:
+          allOf:
+            - $ref: '#/components/schemas/ISO8601Duration'
+          description: |-
+            The duration of the phase.
+            When not specified, the phase runs indefinitely. Only the last phase may omit the duration.
+          title: Duration
+        rate_cards:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingRateCard'
+          description: The rate cards of the plan.
+          title: Rate cards
+      description: The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses.
+    BillingPlanStatus:
+      type: string
+      enum:
+        - draft
+        - active
+        - archived
+        - scheduled
+      description: |-
+        The status of a plan.
+        - `draft`: The plan has not yet been published and can be edited.
+        - `active`: The plan is published and can be used in subscriptions.
+        - `archived`: The plan is no longer available for use.
+        - `scheduled`: The plan is scheduled to be published at a future date.
+    BillingPrice:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingPriceFree'
+        - $ref: '#/components/schemas/BillingPriceFlat'
+        - $ref: '#/components/schemas/BillingPriceUnit'
+        - $ref: '#/components/schemas/BillingPriceGraduated'
+        - $ref: '#/components/schemas/BillingPriceVolume'
+      discriminator:
+        propertyName: type
+        mapping:
+          free: '#/components/schemas/BillingPriceFree'
+          flat: '#/components/schemas/BillingPriceFlat'
+          unit: '#/components/schemas/BillingPriceUnit'
+          graduated: '#/components/schemas/BillingPriceGraduated'
+          volume: '#/components/schemas/BillingPriceVolume'
+      description: Price.
+    BillingPriceFlat:
+      type: object
+      required:
+        - type
+        - amount
+      properties:
+        type:
+          type: string
+          enum:
+            - flat
+          description: The type of the price.
+          title: Type
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount of the flat price.
+          title: Amount
+      description: Flat price.
+    BillingPriceFree:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - free
+          description: The type of the price.
+          title: Type
+      description: Free price.
+    BillingPriceGraduated:
+      type: object
+      required:
+        - type
+        - tiers
+      properties:
+        type:
+          type: string
+          enum:
+            - graduated
+          description: The type of the price.
+          title: Type
+        tiers:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingPriceTier'
+          minItems: 1
+          description: |-
+            The tiers of the graduated price.
+            At least one tier is required.
+          title: Tiers
+      description: |-
+        Graduated tiered price.
+
+        Each tier's rate applies only to the usage within that tier.
+        Pricing can change as cumulative usage crosses tier boundaries.
+
+        When UnitConfig is present on the rate card, tier boundaries (up_to_amount)
+        are expressed in converted billing units.
+    BillingPricePaymentTerm:
+      type: string
+      enum:
+        - in_advance
+        - in_arrears
+      description: The payment term of a flat price.
+    BillingPriceTier:
+      type: object
+      properties:
+        up_to_amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            Up to and including this quantity will be contained in the tier.
+            If undefined, the tier is open-ended (the last tier).
+          title: Up to quantity
+        flat_price:
+          allOf:
+            - $ref: '#/components/schemas/BillingPriceFlat'
+          description: |-
+            The flat price component of the tier.
+            Charged once when the tier is entered.
+          title: Flat price component
+        unit_price:
+          allOf:
+            - $ref: '#/components/schemas/BillingPriceUnit'
+          description: |-
+            The unit price component of the tier.
+            Charged per billing unit within the tier.
+          title: Unit price component
+      description: |-
+        A price tier used in graduated and volume pricing.
+
+        At least one price component (flat_price or unit_price) must be set.
+        When UnitConfig is present on the rate card, up_to_amount is expressed
+        in converted billing units.
+    BillingPriceUnit:
+      type: object
+      required:
+        - type
+        - amount
+      properties:
+        type:
+          type: string
+          enum:
+            - unit
+          description: The type of the price.
+          title: Type
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount of the unit price.
+          title: Amount
+      description: |-
+        Unit price.
+
+        Charges a fixed rate per billing unit.
+        When UnitConfig is present on the rate card, billing units are the
+        converted quantities (e.g. GB instead of bytes).
+    BillingPriceVolume:
+      type: object
+      required:
+        - type
+        - tiers
+      properties:
+        type:
+          type: string
+          enum:
+            - volume
+          description: The type of the price.
+          title: Type
+        tiers:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingPriceTier'
+          minItems: 1
+          description: |-
+            The tiers of the volume price.
+            At least one tier is required.
+          title: Tiers
+      description: |-
+        Volume tiered price.
+
+        The maximum quantity within a period determines the per-unit price for
+        all units in that period.
+
+        When UnitConfig is present on the rate card, tier boundaries (up_to_amount)
+        are expressed in converted billing units.
     BillingProfile:
       type: object
       required:
@@ -3779,6 +4882,117 @@ components:
             - $ref: '#/components/schemas/ULID'
           description: The ID of the billing profile.
       description: Billing profile reference.
+    BillingRateCard:
+      type: object
+      required:
+        - name
+        - key
+        - price
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        key:
+          $ref: '#/components/schemas/ResourceKey'
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/FeatureReferenceItem'
+          description: The feature associated with the rate card.
+          title: Feature reference
+        billing_cadence:
+          allOf:
+            - $ref: '#/components/schemas/ISO8601Duration'
+          description: |-
+            The billing cadence of the rate card.
+            When null, the charge is one-time (non-recurring). Only valid for flat prices.
+          title: Billing cadence
+        price:
+          allOf:
+            - $ref: '#/components/schemas/BillingPrice'
+          description: The price of the rate card.
+          title: Price
+        payment_term:
+          allOf:
+            - $ref: '#/components/schemas/BillingPricePaymentTerm'
+          description: |-
+            The payment term of the rate card.
+            In advance payment term can only be used for flat prices.
+          title: Payment term
+          default: in_arrears
+        commitments:
+          allOf:
+            - $ref: '#/components/schemas/BillingSpendCommitments'
+          description: |-
+            Spend commitments for this rate card.
+            Only applicable to usage-based prices (unit, graduated, volume).
+          title: Commitments
+        discounts:
+          allOf:
+            - $ref: '#/components/schemas/BillingRateCardDiscounts'
+          description: The discounts of the rate card.
+          title: Discounts
+        tax_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingRateCardTaxConfig'
+          description: The tax config of the rate card.
+          title: Tax config
+      description: A rate card defines the pricing and entitlement of a feature or service.
+    BillingRateCardDiscounts:
+      type: object
+      properties:
+        percentage:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Percentage discount applied to the price (0–100).
+        usage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            Number of usage units granted free before billing starts.
+            Only applies to usage-based lines (not flat fees). Usage is treated as zero
+            until this amount is exhausted.
+      description: Discount configuration for a rate card.
+    BillingRateCardTaxConfig:
+      type: object
+      required:
+        - code
+      properties:
+        behavior:
+          $ref: '#/components/schemas/BillingTaxBehavior'
+        code:
+          $ref: '#/components/schemas/TaxCodeReferenceItem'
+      description: The tax config of the rate card.
+    BillingSpendCommitments:
+      type: object
+      properties:
+        minimum_amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is committed to spend at least the amount.
+          title: Minimum amount
+        maximum_amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The customer is limited to spend at most the amount.
+          title: Maximum amount
+      description: |-
+        Spend commitments for a rate card.
+        The customer is committed to spend at least the minimum amount and at most the maximum amount.
     BillingSubscription:
       type: object
       required:
@@ -4366,6 +5580,56 @@ components:
         [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
         Custom two-letter country codes are also supported for convenience.
       example: US
+    CreateAddonRequest:
+      type: object
+      required:
+        - name
+        - key
+        - instance_type
+        - currency
+        - rate_cards
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: |-
+            A key is a semi-unique string that is used to identify the add-on.
+            It is used to reference the latest `active` version of the add-on and is unique with the version number.
+          title: Key
+        instance_type:
+          allOf:
+            - $ref: '#/components/schemas/AddonInstanceType'
+          description: The InstanceType of the add-ons. Can be "single" or "multiple".
+          title: The InstanceType of the add-ons. Can be "single" or "multiple".
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingCurrencyCode'
+          description: The currency code of the add-on.
+          title: Currency
+        rate_cards:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingRateCard'
+          description: The rate cards of the add-on.
+          title: Rate cards
+      description: Addon create request.
     CreateBillingProfileRequest:
       type: object
       required:
@@ -4750,6 +6014,110 @@ components:
           example:
             type: $.type
       description: Meter create request.
+    CreatePlanAddonRequest:
+      type: object
+      required:
+        - name
+        - addon
+        - from_plan_phase
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        addon:
+          allOf:
+            - $ref: '#/components/schemas/AddonReference'
+          description: The add-on associated with the plan.
+          title: Add-on
+        from_plan_phase:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: The key of the plan phase from which the add-on becomes available for purchase.
+          title: From plan phase
+        max_quantity:
+          type: integer
+          minimum: 1
+          description: |-
+            The maximum number of times the add-on can be purchased for the plan.
+            Not applicable for single instance add-ons.
+          title: Max quantity
+      description: PlanAddon create request.
+    CreatePlanRequest:
+      type: object
+      required:
+        - name
+        - key
+        - currency
+        - billing_cadence
+        - phases
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: |-
+            A key is a semi-unique string that is used to identify the plan.
+            It is used to reference the latest `active` version of the plan and is unique with the version number.
+          title: Key
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency code of the plan.
+          title: Currency
+        billing_cadence:
+          allOf:
+            - $ref: '#/components/schemas/ISO8601Duration'
+          description: The billing cadence for subscriptions using this plan.
+          title: Billing cadence
+        pro_rating_enabled:
+          type: boolean
+          description: |-
+            Whether pro-rating is enabled for this plan.
+
+            TODO: WIP — pro-rating mode and exact semantics will be defined in a later iteration.
+          title: Pro-rating enabled
+          default: true
+        phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingPlanPhase'
+          minItems: 1
+          description: |-
+            The plan phases define the pricing ramp for a subscription.
+            A phase switch occurs only at the end of a billing period.
+            At least one phase is required.
+          title: Plan phases
+      description: Plan create request.
     CreateTaxCodeRequest:
       type: object
       required:
@@ -5037,6 +6405,14 @@ components:
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
       description: Page paginated response.
+    FeatureReferenceItem:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: '#/components/schemas/ULID'
+      description: Feature reference.
     FilterSingleString:
       type: object
       properties:
@@ -5661,6 +7037,103 @@ components:
       type: string
       pattern: ^\-?[0-9]+(\.[0-9]+)?$
       description: Numeric represents an arbitrary precision number.
+    PlanAddon:
+      type: object
+      required:
+        - id
+        - name
+        - addon
+        - from_plan_phase
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        addon:
+          allOf:
+            - $ref: '#/components/schemas/AddonReferenceItem'
+          description: The add-on associated with the plan.
+          title: Add-on
+        from_plan_phase:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: The key of the plan phase from which the add-on becomes available for purchase.
+          title: From plan phase
+        max_quantity:
+          type: integer
+          minimum: 1
+          description: |-
+            The maximum number of times the add-on can be purchased for the plan.
+            Not applicable for single instance add-ons.
+          title: Max quantity
+        validation_errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductCatalogValidationError'
+          description: List of validation errors.
+          title: Validation errors
+          readOnly: true
+      description: |-
+        PlanAddon represents an association between a plan and an add-on,
+        controlling which add-ons are available for purchase within a plan.
+    PlanAddonPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanAddon'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      description: Page paginated response.
+    PlanPagePaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingPlan'
+        meta:
+          $ref: '#/components/schemas/PaginatedMeta'
+      description: Page paginated response.
     PricePagePaginatedResponse:
       type: object
       required:
@@ -5674,6 +7147,38 @@ components:
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
       description: Page paginated response.
+    ProductCatalogValidationError:
+      type: object
+      required:
+        - field
+        - code
+        - message
+      properties:
+        field:
+          type: string
+          description: The path to the field.
+          title: Field
+          example: addons/pro/ratecards/token/featureKey
+          readOnly: true
+        code:
+          type: string
+          description: The machine readable code of the error.
+          title: Code
+          example: invalid_feature_key
+          readOnly: true
+        message:
+          type: string
+          description: The human readable description of the error.
+          title: Message
+          example: not found feature by key
+          readOnly: true
+        attributes:
+          type: object
+          additionalProperties: {}
+          description: Additional attributes.
+          title: Attributes
+          readOnly: true
+      description: Validation errors providing detailed description of the issue.
     QueryFilterString:
       type: object
       properties:
@@ -5832,6 +7337,14 @@ components:
         meta:
           $ref: '#/components/schemas/PaginatedMeta'
       description: Page paginated response.
+    TaxCodeReferenceItem:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: '#/components/schemas/ULID'
+      description: TaxCode reference.
     ULID:
       type: string
       pattern: ^[0-7][0-9A-HJKMNP-TV-Z]{25}$
@@ -5862,6 +7375,42 @@ components:
       description: |-
         Request body for updating a feature.
         Currently only the unit_cost field can be updated.
+    UpsertAddonRequest:
+      type: object
+      required:
+        - name
+        - instance_type
+        - rate_cards
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        instance_type:
+          allOf:
+            - $ref: '#/components/schemas/AddonInstanceType'
+          description: The InstanceType of the add-ons. Can be "single" or "multiple".
+          title: The InstanceType of the add-ons. Can be "single" or "multiple".
+        rate_cards:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingRateCard'
+          description: The rate cards of the add-on.
+          title: Rate cards
+      description: Addon upsert request.
     UpsertAppCustomerDataRequest:
       type: object
       properties:
@@ -5976,6 +7525,84 @@ components:
             Used for tax and invoicing.
           title: Billing Address
       description: Customer upsert request.
+    UpsertPlanAddonRequest:
+      type: object
+      required:
+        - name
+        - from_plan_phase
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        from_plan_phase:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: The key of the plan phase from which the add-on becomes available for purchase.
+          title: From plan phase
+        max_quantity:
+          type: integer
+          minimum: 1
+          description: |-
+            The maximum number of times the add-on can be purchased for the plan.
+            Not applicable for single instance add-ons.
+          title: Max quantity
+      description: PlanAddon upsert request.
+    UpsertPlanRequest:
+      type: object
+      required:
+        - name
+        - phases
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        pro_rating_enabled:
+          type: boolean
+          description: |-
+            Whether pro-rating is enabled for this plan.
+
+            TODO: WIP — pro-rating mode and exact semantics will be defined in a later iteration.
+          title: Pro-rating enabled
+          default: true
+        phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingPlanPhase'
+          minItems: 1
+          description: |-
+            The plan phases define the pricing ramp for a subscription.
+            A phase switch occurs only at the end of a billing period.
+            At least one phase is required.
+          title: Plan phases
+      description: Plan upsert request.
     UpsertTaxCodeRequest:
       type: object
       required:
@@ -6347,15 +7974,6 @@ components:
               example: kong:trace:1234567890
             detail:
               example: Not found
-    SortQuery:
-      title: SortQuery
-      type: string
-      example: created_at desc
-      description: |
-        The `asc` suffix is optional as the default sort order is ascending.
-        The `desc` suffix is used to specify a descending order.
-        Multiple sort attributes may be provided via a comma separated list.
-        JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
     GoneError:
       allOf:
         - $ref: '#/components/schemas/BaseError'
@@ -6371,6 +7989,15 @@ components:
               example: kong:trace:1234567890
             detail:
               example: Gone
+    SortQuery:
+      title: SortQuery
+      type: string
+      example: created_at desc
+      description: |
+        The `asc` suffix is optional as the default sort order is ascending.
+        The `desc` suffix is used to specify a descending order.
+        Multiple sort attributes may be provided via a comma separated list.
+        JSONPath notation may be used to specify a sub-attribute (eg: 'foo.bar desc').
     ConflictError:
       allOf:
         - $ref: '#/components/schemas/BaseError'
