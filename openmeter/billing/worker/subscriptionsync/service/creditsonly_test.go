@@ -636,7 +636,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) assertExpectedFlatFeeCharges(c
 			charge, found := lo.Find(out, func(charge flatfee.Charge) bool {
 				return charge.Intent.UniqueReferenceID != nil && *charge.Intent.UniqueReferenceID == childID
 			})
-			s.Truef(found, "charge not found with child unique reference id %s", childID)
+			if !found {
+				s.T().Fatalf("expected[%d] charge[%d] not found with child unique reference id %s", expectedIdx, periodIdx, childID)
+			}
 			expectedPhaseID := s.getExpectedPhaseIDForChildReference(ctx, subscriptionID, childID)
 
 			s.NotNilf(charge.Intent.UniqueReferenceID, "expected[%d] charge[%d] should have child unique reference id", expectedIdx, periodIdx)
@@ -696,7 +698,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) assertExpectedUsageBasedCharge
 			charge, found := lo.Find(out, func(charge usagebased.Charge) bool {
 				return charge.Intent.UniqueReferenceID != nil && *charge.Intent.UniqueReferenceID == childID
 			})
-			s.Truef(found, "charge not found with child unique reference id %s", childID)
+			if !found {
+				s.T().Fatalf("expected[%d] charge[%d] not found with child unique reference id %s", expectedIdx, periodIdx, childID)
+			}
 			expectedPhaseID := s.getExpectedPhaseIDForChildReference(ctx, subscriptionID, childID)
 
 			s.NotNilf(charge.Intent.UniqueReferenceID, "expected[%d] charge[%d] should have child unique reference id", expectedIdx, periodIdx)
