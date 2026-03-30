@@ -41,11 +41,11 @@ func (i AllocateCreditsInput) Validate() error {
 }
 
 type Handler interface {
-	// OnCollectionStarted is called when a collection is started for an usage-based charge.
-	OnCollectionStarted(ctx context.Context, input AllocateCreditsInput) (creditrealization.CreateInputs, error)
+	// OnCreditsOnlyCollectionStarted is called when a collection is started for an usage-based charge.
+	OnCreditsOnlyCollectionStarted(ctx context.Context, input AllocateCreditsInput) (creditrealization.CreateInputs, error)
 
-	// OnCollectionFinalized is called when a collection is finalized for an usage-based charge.
-	OnCollectionFinalized(ctx context.Context, input AllocateCreditsInput) (creditrealization.CreateInputs, error)
+	// OnCreditsOnlyCollectionFinalized is called when a collection is finalized for an usage-based charge.
+	OnCreditsOnlyCollectionFinalized(ctx context.Context, input AllocateCreditsInput) (creditrealization.CreateInputs, error)
 
 	// OnCollectionFinalizedRollback is called when a collection is finalized for an usage-based charge and the credit allocations need to be rolled back.
 	// TODO: implement this after we have decided on who should be responsible for deciding what to roll back.
