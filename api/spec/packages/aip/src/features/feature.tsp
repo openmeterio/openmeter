@@ -56,7 +56,6 @@ model FeatureUpdateRequest {
    * Use "manual" for a fixed per-unit cost, or "llm" to look up cost
    * from the LLM cost database based on meter group-by properties.
    */
-  #suppress "@openmeter/api-spec-aip/no-nullable" "PATCH operation"
   @summary("Unit cost")
   unit_cost?: FeatureUnitCost | null;
 }
