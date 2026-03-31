@@ -457,6 +457,11 @@ func MapSubscriptionViewToAPI(view subscription.SubscriptionView) (api.Subscript
 func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (plandriver.CreatePlanRequest, error) {
 	var err error
 
+	settlementMode := productcatalog.SettlementMode(lo.FromPtr(a.SettlementMode))
+	if settlementMode == "" {
+		settlementMode = productcatalog.CreditThenInvoiceSettlementMode
+	}
+
 	req := plandriver.CreatePlanRequest{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: namespace,
@@ -467,7 +472,7 @@ func CustomPlanToCreatePlanRequest(a api.CustomPlanInput, namespace string) (pla
 				Description:     a.Description,
 				Metadata:        lo.FromPtr(a.Metadata),
 				ProRatingConfig: asProRatingConfig(a.ProRatingConfig),
-				SettlementMode:  productcatalog.SettlementMode(lo.FromPtr(a.SettlementMode)),
+				SettlementMode:  settlementMode,
 			},
 			Phases: nil,
 		},
