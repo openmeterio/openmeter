@@ -73,10 +73,6 @@ func (i CreateInput) Validate() error {
 
 	switch i.Type {
 	case TypeAllocation:
-		if i.LineID == nil {
-			errs = append(errs, fmt.Errorf("line ID is required"))
-		}
-
 		if !i.Amount.IsPositive() {
 			errs = append(errs, fmt.Errorf("amount must be positive"))
 		}

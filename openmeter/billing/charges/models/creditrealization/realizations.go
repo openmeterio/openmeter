@@ -103,7 +103,7 @@ func (r Realizations) Correct(amount alpacadecimal.Decimal, currency currencyx.C
 		return nil, err
 	}
 
-	if req.ValidateWith(currency) != nil {
+	if err := req.ValidateWith(currency); err != nil {
 		return nil, err
 	}
 

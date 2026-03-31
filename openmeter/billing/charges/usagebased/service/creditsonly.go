@@ -284,7 +284,6 @@ func (s *CreditsOnlyStateMachine) FinalizeRealizationRun(ctx context.Context) er
 				return fmt.Errorf("create credit corrections: %w", err)
 			}
 		}
-		return fmt.Errorf("unsupported: additional amount is negative [charge_id=%s, additional_amount=%s]", s.Charge.ID, additionalAmount.String())
 	case additionalAmount.IsZero():
 	}
 

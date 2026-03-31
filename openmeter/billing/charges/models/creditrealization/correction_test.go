@@ -1,6 +1,7 @@
 package creditrealization
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -908,5 +909,216 @@ func TestCorrectionEndToEnd(t *testing.T) {
 
 		assert.Equal(t, 3.0, cr1[0].AmountToCorrect.InexactFloat64())
 		assert.Equal(t, 4.0, cr2[0].AmountToCorrect.InexactFloat64())
+	})
+}
+
+// correctionCallback returns a callback for Correct() that maps the correction request items
+// into CreateCorrectionInputs using a shared ledger transaction group ID.
+func correctionCallback(txGroupID string) func(req CorrectionRequest) (CreateCorrectionInputs, error) {
+	return func(req CorrectionRequest) (CreateCorrectionInputs, error) {
+		out := make(CreateCorrectionInputs, len(req))
+		for i, item := range req {
+			out[i] = CreateCorrectionInput{
+				Amount:                item.AmountToCorrect,
+				CorrectsRealizationID: item.Allocation.ID,
+				LedgerTransaction: ledgertransaction.GroupReference{
+					TransactionGroupID: txGroupID,
+				},
+			}
+		}
+		return out, nil
+	}
+}
+
+func TestCorrect(t *testing.T) {
+	t.Run("partial revert", func(t *testing.T) {
+		b := newAllocationBuilder()
+		a1 := b.build(5)
+		a2 := b.build(3)
+		currency := testCurrency(t)
+		realizations := Realizations{a1, a2}
+
+		result, err := realizations.Correct(
+			alpacadecimal.NewFromFloat(4),
+			currency,
+			correctionCallback(uuid.New().String()),
+		)
+
+		require.NoError(t, err)
+		require.NotEmpty(t, result)
+
+		for _, input := range result {
+			assert.Equal(t, TypeCorrection, input.Type)
+			assert.NotNil(t, input.CorrectsRealizationID)
+			assert.True(t, input.Amount.IsNegative(), "correction CreateInput amount should be negative")
+		}
+	})
+
+	t.Run("full revert", func(t *testing.T) {
+		b := newAllocationBuilder()
+		a1 := b.build(5)
+		a2 := b.build(3)
+		currency := testCurrency(t)
+		realizations := Realizations{a1, a2}
+
+		result, err := realizations.Correct(
+			alpacadecimal.NewFromFloat(8),
+			currency,
+			correctionCallback(uuid.New().String()),
+		)
+
+		require.NoError(t, err)
+		require.Len(t, result, 2)
+
+		sum := CreateInputs(result).Sum()
+		assert.Equal(t, -8.0, sum.InexactFloat64())
+	})
+
+	t.Run("with existing corrections", func(t *testing.T) {
+		b := newAllocationBuilder()
+		a1 := b.build(10)
+		c1 := correctionFor(a1, 4)
+		currency := testCurrency(t)
+		realizations := Realizations{a1, c1}
+
+		result, err := realizations.Correct(
+			alpacadecimal.NewFromFloat(6),
+			currency,
+			correctionCallback(uuid.New().String()),
+		)
+
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, -6.0, result[0].Amount.InexactFloat64())
+	})
+
+	t.Run("error: insufficient funds propagated", func(t *testing.T) {
+		b := newAllocationBuilder()
+		alloc := b.build(5)
+		currency := testCurrency(t)
+		realizations := Realizations{alloc}
+
+		_, err := realizations.Correct(
+			alpacadecimal.NewFromFloat(10),
+			currency,
+			correctionCallback(uuid.New().String()),
+		)
+
+		require.ErrorIs(t, err, ErrInsufficientFunds)
+	})
+
+	t.Run("error: zero amount propagated", func(t *testing.T) {
+		b := newAllocationBuilder()
+		alloc := b.build(10)
+		currency := testCurrency(t)
+		realizations := Realizations{alloc}
+
+		_, err := realizations.Correct(
+			alpacadecimal.Zero,
+			currency,
+			correctionCallback(uuid.New().String()),
+		)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "amount must be positive")
+	})
+
+	t.Run("error: callback error propagated", func(t *testing.T) {
+		b := newAllocationBuilder()
+		alloc := b.build(10)
+		currency := testCurrency(t)
+		realizations := Realizations{alloc}
+
+		cbErr := errors.New("ledger unavailable")
+		_, err := realizations.Correct(
+			alpacadecimal.NewFromFloat(5),
+			currency,
+			func(req CorrectionRequest) (CreateCorrectionInputs, error) {
+				return nil, cbErr
+			},
+		)
+
+		require.ErrorIs(t, err, cbErr)
+	})
+
+	t.Run("error: callback returns mismatched corrections", func(t *testing.T) {
+		b := newAllocationBuilder()
+		alloc := b.build(10)
+		currency := testCurrency(t)
+		realizations := Realizations{alloc}
+
+		_, err := realizations.Correct(
+			alpacadecimal.NewFromFloat(5),
+			currency,
+			func(req CorrectionRequest) (CreateCorrectionInputs, error) {
+				// Return a correction for more than the allocation has
+				return CreateCorrectionInputs{
+					{
+						Amount:                alpacadecimal.NewFromFloat(15),
+						CorrectsRealizationID: alloc.ID,
+						LedgerTransaction: ledgertransaction.GroupReference{
+							TransactionGroupID: uuid.New().String(),
+						},
+					},
+				}, nil
+			},
+		)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "greater than the remaining amount")
+	})
+
+	t.Run("error: callback returns correction for unknown allocation", func(t *testing.T) {
+		b := newAllocationBuilder()
+		alloc := b.build(10)
+		currency := testCurrency(t)
+		realizations := Realizations{alloc}
+
+		_, err := realizations.Correct(
+			alpacadecimal.NewFromFloat(5),
+			currency,
+			func(req CorrectionRequest) (CreateCorrectionInputs, error) {
+				return CreateCorrectionInputs{
+					{
+						Amount:                alpacadecimal.NewFromFloat(5),
+						CorrectsRealizationID: uuid.New().String(), // unknown
+						LedgerTransaction: ledgertransaction.GroupReference{
+							TransactionGroupID: uuid.New().String(),
+						},
+					},
+				}, nil
+			},
+		)
+
+		require.Error(t, err)
+	})
+
+	t.Run("callback receives correct correction request items", func(t *testing.T) {
+		b := newAllocationBuilder()
+		a1 := b.build(5)
+		a2 := b.build(3)
+		a3 := b.build(2)
+		currency := testCurrency(t)
+		realizations := Realizations{a1, a2, a3}
+
+		var capturedReq CorrectionRequest
+		_, err := realizations.Correct(
+			alpacadecimal.NewFromFloat(7),
+			currency,
+			func(req CorrectionRequest) (CreateCorrectionInputs, error) {
+				capturedReq = req
+				return correctionCallback(uuid.New().String())(req)
+			},
+		)
+
+		require.NoError(t, err)
+		// Should be in reverse order: a3, a2, a1 partial
+		require.Len(t, capturedReq, 3)
+		assert.Equal(t, a3.ID, capturedReq[0].Allocation.ID)
+		assert.Equal(t, 2.0, capturedReq[0].AmountToCorrect.InexactFloat64())
+		assert.Equal(t, a2.ID, capturedReq[1].Allocation.ID)
+		assert.Equal(t, 3.0, capturedReq[1].AmountToCorrect.InexactFloat64())
+		assert.Equal(t, a1.ID, capturedReq[2].Allocation.ID)
+		assert.Equal(t, 2.0, capturedReq[2].AmountToCorrect.InexactFloat64())
 	})
 }
