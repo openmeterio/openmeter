@@ -10,6 +10,10 @@ type invoicePatchCollectionBase struct {
 	patches []InvoicePatch
 }
 
+func (c invoicePatchCollectionBase) GetBackendType() BackendType {
+	return BackendTypeInvoicing
+}
+
 func newInvoicePatchCollectionBase(preallocatedCapacity int) invoicePatchCollectionBase {
 	if preallocatedCapacity <= 0 {
 		preallocatedCapacity = 16

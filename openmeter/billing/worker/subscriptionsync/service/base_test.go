@@ -15,6 +15,8 @@ import (
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -39,6 +41,7 @@ type SuiteBase struct {
 	billingtest.SubscriptionMixin
 	Service *Service
 	Adapter subscriptionsync.Adapter
+	Charges charges.Service
 
 	Namespace               string
 	Customer                *customer.Customer
@@ -67,7 +70,32 @@ func (s *SuiteBase) SetupSuite() {
 	s.Service = service
 }
 
-func (s *SuiteBase) BeforeTest(ctx context.Context, suiteName, testName string) {
+func (s *SuiteBase) setupChargesService(config chargestestutils.Config) {
+	s.T().Helper()
+
+	stack, err := chargestestutils.NewServices(s.T(), config)
+	s.NoError(err)
+
+	s.Charges = stack.ChargesService
+
+	service, err := New(Config{
+		BillingService:          s.BillingService,
+		ChargesService:          s.Charges,
+		Logger:                  slog.Default(),
+		Tracer:                  noop.NewTracerProvider().Tracer("test"),
+		SubscriptionSyncAdapter: s.Adapter,
+		SubscriptionService:     s.SubscriptionService,
+	})
+	s.NoError(err)
+
+	s.Service = service
+}
+
+func (s *SuiteBase) BeforeTest(suiteName, testName string) {
+	s.beforeTest(s.T().Context(), suiteName, testName)
+}
+
+func (s *SuiteBase) beforeTest(ctx context.Context, suiteName, testName string) {
 	s.Namespace = fmt.Sprintf("t-%s-%s-%s", suiteName, testName, ulid.Make().String())
 
 	appSandbox := s.InstallSandboxApp(s.T(), s.Namespace)
@@ -115,7 +143,11 @@ func (s *SuiteBase) BeforeTest(ctx context.Context, suiteName, testName string) 
 	s.Customer = customerEntity
 }
 
-func (s *SuiteBase) AfterTest(ctx context.Context, suiteName, testName string) {
+func (s *SuiteBase) AfterTest(suiteName, testName string) {
+	s.afterTest(s.T().Context(), suiteName, testName)
+}
+
+func (s *SuiteBase) afterTest(ctx context.Context, suiteName, testName string) {
 	clock.UnFreeze()
 	clock.ResetTime()
 
@@ -218,6 +250,16 @@ func (s *SuiteBase) timingImmediate() subscription.Timing {
 	}
 }
 
+func (s *SuiteBase) mustParseTime(t string) time.Time {
+	s.T().Helper()
+	return lo.Must(time.Parse(time.RFC3339, t))
+}
+
+func (s *SuiteBase) testContext() context.Context {
+	s.T().Helper()
+	return s.T().Context()
+}
+
 func (s *SuiteBase) getPhaseByKey(t *testing.T, subsView subscription.SubscriptionView, key string) subscription.SubscriptionPhaseView {
 	for _, phase := range subsView.Phases {
 		if phase.SubscriptionPhase.Key == key {
@@ -250,11 +292,11 @@ func (s *SuiteBase) expectLines(invoice billing.GenericInvoiceReader, subscripti
 		return lo.FromPtrOr(line.GetChildUniqueReferenceID(), line.GetID())
 	})
 
-	expectedLineIds := lo.Flatten(lo.Map(expectedLines, func(expectedLine expectedLine, _ int) []string {
+	expectedLineIDs := lo.Flatten(lo.Map(expectedLines, func(expectedLine expectedLine, _ int) []string {
 		return expectedLine.Matcher.ChildIDs(subscriptionID)
 	}))
 
-	s.ElementsMatch(expectedLineIds, existingLineChildIDs)
+	s.ElementsMatch(expectedLineIDs, existingLineChildIDs)
 
 	for _, expectedLine := range expectedLines {
 		childIDs := expectedLine.Matcher.ChildIDs(subscriptionID)
@@ -334,9 +376,6 @@ func (m oneTimeLineMatcher) ChildIDs(subsID string) []string {
 	return []string{fmt.Sprintf("%s/%s/%s/v[%d]", subsID, m.PhaseKey, m.ItemKey, m.Version)}
 }
 
-// helpers
-
-//nolint:unparam
 func (s *SuiteBase) phaseMeta(key string, duration string) productcatalog.PhaseMeta {
 	out := productcatalog.PhaseMeta{
 		Key:  key,
@@ -490,8 +529,6 @@ func (s *SuiteBase) populateChildIDsFromParents(invoice billing.GenericInvoice) 
 	s.NoError(err)
 }
 
-// helpers
-
 func (s *SuiteBase) createSubscriptionFromPlanPhases(phases []productcatalog.Phase) subscription.SubscriptionView {
 	planInput := plan.CreatePlanInput{
 		NamespacedModel: models.NamespacedModel{
@@ -517,6 +554,10 @@ func (s *SuiteBase) createSubscriptionFromPlanPhases(phases []productcatalog.Pha
 }
 
 func (s *SuiteBase) createSubscriptionFromPlan(planInput plan.CreatePlanInput) subscription.SubscriptionView {
+	return s.createSubscriptionFromPlanAt(planInput, clock.Now())
+}
+
+func (s *SuiteBase) createSubscriptionFromPlanAt(planInput plan.CreatePlanInput, startAt time.Time) subscription.SubscriptionView {
 	ctx := s.T().Context()
 
 	plan, err := s.PlanService.CreatePlan(ctx, planInput)
@@ -531,7 +572,7 @@ func (s *SuiteBase) createSubscriptionFromPlan(planInput plan.CreatePlanInput) s
 	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
 		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 			Timing: subscription.Timing{
-				Custom: lo.ToPtr(clock.Now()),
+				Custom: lo.ToPtr(startAt),
 			},
 			Name: "subs-1",
 		},

@@ -57,6 +57,7 @@ Important types:
 - `flatfee.Intent` carries `AmountBeforeProration`, `ProRating`, `SettlementMode`, `PaymentTerm`, `InvoiceAt` — immutable inputs provided by the caller
 - `flatfee.State` carries `AmountAfterProration`, `AdvanceAfter`, `CreditRealizations`, `AccruedUsage`, `Payment` — computed/mutable state persisted in DB
 - `flatfee.Intent.CalculateAmountAfterProration()` computes the prorated amount from `AmountBeforeProration`, `ServicePeriod/FullServicePeriod` ratio, and `ProRating` config, with currency-precision rounding
+- Charge-backed targets do not use invoice-style semantic proration or empty-period filtering; the charge stack materializes and prorates state itself, and the flat fee charge is responsible for omitting empty lines
 - `usagebased.Intent` carries `FeatureKey`, `Price`, `SettlementMode`, `InvoiceAt`, and `ServicePeriod`
 - `usagebased.ChargeBase` stores the current `Status` and `State`
 - `usagebased.State` currently tracks:
