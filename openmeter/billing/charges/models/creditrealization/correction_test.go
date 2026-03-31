@@ -102,7 +102,7 @@ func correctionFor(allocation Realization, amount float64) Realization {
 func correctionInputsSum(inputs CreateCorrectionInputs) alpacadecimal.Decimal {
 	sum := alpacadecimal.Zero
 	for _, input := range inputs {
-		sum = sum.Add(input.Amount)
+		sum = sum.Add(input.AmountCorrected)
 	}
 	return sum
 }
@@ -397,7 +397,7 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				Amount:                alpacadecimal.NewFromFloat(3),
+				AmountCorrected:       alpacadecimal.NewFromFloat(3),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -416,14 +416,14 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				Amount:                alpacadecimal.NewFromFloat(3),
+				AmountCorrected:       alpacadecimal.NewFromFloat(3),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
 				},
 			},
 			{
-				Amount:                alpacadecimal.NewFromFloat(4),
+				AmountCorrected:       alpacadecimal.NewFromFloat(4),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -442,14 +442,14 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				Amount:                alpacadecimal.NewFromFloat(5),
+				AmountCorrected:       alpacadecimal.NewFromFloat(5),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
 				},
 			},
 			{
-				Amount:                alpacadecimal.NewFromFloat(5),
+				AmountCorrected:       alpacadecimal.NewFromFloat(5),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -469,14 +469,14 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				Amount:                alpacadecimal.NewFromFloat(3),
+				AmountCorrected:       alpacadecimal.NewFromFloat(3),
 				CorrectsRealizationID: a1.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
 				},
 			},
 			{
-				Amount:                alpacadecimal.NewFromFloat(4),
+				AmountCorrected:       alpacadecimal.NewFromFloat(4),
 				CorrectsRealizationID: a2.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -496,7 +496,7 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				Amount:                alpacadecimal.NewFromFloat(5),
+				AmountCorrected:       alpacadecimal.NewFromFloat(5),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -516,7 +516,7 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				Amount:                alpacadecimal.NewFromFloat(5),
+				AmountCorrected:       alpacadecimal.NewFromFloat(5),
 				CorrectsRealizationID: uuid.New().String(), // doesn't exist
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -534,7 +534,7 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				Amount:                alpacadecimal.NewFromFloat(5),
+				AmountCorrected:       alpacadecimal.NewFromFloat(5),
 				CorrectsRealizationID: "",
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -554,7 +554,7 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				Amount:                alpacadecimal.NewFromFloat(1.001),
+				AmountCorrected:       alpacadecimal.NewFromFloat(1.001),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -574,14 +574,14 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				Amount:                alpacadecimal.NewFromFloat(6),
+				AmountCorrected:       alpacadecimal.NewFromFloat(6),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
 				},
 			},
 			{
-				Amount:                alpacadecimal.NewFromFloat(6),
+				AmountCorrected:       alpacadecimal.NewFromFloat(6),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -602,7 +602,7 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				Amount:                alpacadecimal.NewFromFloat(2),
+				AmountCorrected:       alpacadecimal.NewFromFloat(2),
 				CorrectsRealizationID: correction.ID, // points to a correction, not allocation
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -622,7 +622,7 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				Amount:                alpacadecimal.NewFromFloat(3),
+				AmountCorrected:       alpacadecimal.NewFromFloat(3),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -642,7 +642,7 @@ func TestCreateCorrectionInputsValidateWith(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				Amount:                alpacadecimal.NewFromFloat(3),
+				AmountCorrected:       alpacadecimal.NewFromFloat(3),
 				CorrectsRealizationID: alloc.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
@@ -667,7 +667,7 @@ func TestCreateCorrectionInputsAsCreateInputs(t *testing.T) {
 			{
 				ID:          uuid.New().String(),
 				Annotations: annotations,
-				Amount:      alpacadecimal.NewFromFloat(3),
+				AmountCorrected: alpacadecimal.NewFromFloat(3),
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: txGroupID,
 				},
@@ -696,7 +696,7 @@ func TestCreateCorrectionInputsAsCreateInputs(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				Amount: alpacadecimal.NewFromFloat(3),
+				AmountCorrected: alpacadecimal.NewFromFloat(3),
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
 				},
@@ -716,14 +716,14 @@ func TestCreateCorrectionInputsAsCreateInputs(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				Amount: alpacadecimal.NewFromFloat(2),
+				AmountCorrected: alpacadecimal.NewFromFloat(2),
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
 				},
 				CorrectsRealizationID: a1.ID,
 			},
 			{
-				Amount: alpacadecimal.NewFromFloat(4),
+				AmountCorrected: alpacadecimal.NewFromFloat(4),
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
 				},
@@ -745,7 +745,7 @@ func TestCreateCorrectionInputsAsCreateInputs(t *testing.T) {
 
 		inputs := CreateCorrectionInputs{
 			{
-				Amount: alpacadecimal.NewFromFloat(3),
+				AmountCorrected: alpacadecimal.NewFromFloat(3),
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: uuid.New().String(),
 				},
@@ -780,7 +780,7 @@ func TestCorrectionEndToEnd(t *testing.T) {
 		txGroupID := uuid.New().String()
 		for i, item := range cr {
 			correctionInputs[i] = CreateCorrectionInput{
-				Amount:                item.AmountToCorrect,
+				AmountCorrected:       item.AmountToCorrect,
 				CorrectsRealizationID: item.Allocation.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: txGroupID,
@@ -823,7 +823,7 @@ func TestCorrectionEndToEnd(t *testing.T) {
 		txGroupID := uuid.New().String()
 		for i, item := range cr {
 			correctionInputs[i] = CreateCorrectionInput{
-				Amount:                item.AmountToCorrect,
+				AmountCorrected:       item.AmountToCorrect,
 				CorrectsRealizationID: item.Allocation.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: txGroupID,
@@ -864,7 +864,7 @@ func TestCorrectionEndToEnd(t *testing.T) {
 		txGroupID := uuid.New().String()
 		for i, item := range cr {
 			correctionInputs[i] = CreateCorrectionInput{
-				Amount:                item.AmountToCorrect,
+				AmountCorrected:       item.AmountToCorrect,
 				CorrectsRealizationID: item.Allocation.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: txGroupID,
@@ -919,7 +919,7 @@ func correctionCallback(txGroupID string) func(req CorrectionRequest) (CreateCor
 		out := make(CreateCorrectionInputs, len(req))
 		for i, item := range req {
 			out[i] = CreateCorrectionInput{
-				Amount:                item.AmountToCorrect,
+				AmountCorrected:       item.AmountToCorrect,
 				CorrectsRealizationID: item.Allocation.ID,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: txGroupID,
@@ -1054,7 +1054,7 @@ func TestCorrect(t *testing.T) {
 				// Return a correction for more than the allocation has
 				return CreateCorrectionInputs{
 					{
-						Amount:                alpacadecimal.NewFromFloat(15),
+						AmountCorrected:       alpacadecimal.NewFromFloat(15),
 						CorrectsRealizationID: alloc.ID,
 						LedgerTransaction: ledgertransaction.GroupReference{
 							TransactionGroupID: uuid.New().String(),
@@ -1080,7 +1080,7 @@ func TestCorrect(t *testing.T) {
 			func(req CorrectionRequest) (CreateCorrectionInputs, error) {
 				return CreateCorrectionInputs{
 					{
-						Amount:                alpacadecimal.NewFromFloat(5),
+						AmountCorrected:       alpacadecimal.NewFromFloat(5),
 						CorrectsRealizationID: uuid.New().String(), // unknown
 						LedgerTransaction: ledgertransaction.GroupReference{
 							TransactionGroupID: uuid.New().String(),

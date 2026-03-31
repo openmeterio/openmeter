@@ -60,11 +60,11 @@ type CreateCorrectionInput struct {
 
 	LedgerTransaction ledgertransaction.GroupReference `json:"ledgerTransaction"`
 
-	// Amount is the amount of the correction.
+	// AmountCorrected is the amount of the correction.
 	// Expectations:
 	// - It must be positive
 	// - It must be rounded to the smallest denomination
-	Amount alpacadecimal.Decimal `json:"amount"`
+	AmountCorrected alpacadecimal.Decimal `json:"amountCorrected"`
 
 	// CorrectsRealizationID is the ID of the realization that this correction is correcting.
 	CorrectsRealizationID string `json:"correctsRealizationID"`
@@ -79,11 +79,11 @@ func (i CreateCorrectionInput) ValidateWith(currency currencyx.Calculator) error
 		}
 	}
 
-	if !i.Amount.IsPositive() {
+	if !i.AmountCorrected.IsPositive() {
 		errs = append(errs, fmt.Errorf("amount must be positive"))
 	}
 
-	if !currency.IsRoundedToPrecision(i.Amount) {
+	if !currency.IsRoundedToPrecision(i.AmountCorrected) {
 		errs = append(errs, fmt.Errorf("amount must be rounded to currency precision"))
 	}
 
@@ -135,12 +135,12 @@ func (i CreateCorrectionInputs) ValidateWith(existingRealizations Realizations, 
 			break // let's stop validating we are depending on a corrupt state already
 		}
 
-		if input.Amount.GreaterThan(correctsRealization.RemainingAmount) {
+		if input.AmountCorrected.GreaterThan(correctsRealization.RemainingAmount) {
 			errs = append(errs, fmt.Errorf("correction input[%d]: amount to correct is greater than the remaining amount for allocation %s", idx, input.CorrectsRealizationID))
 			break // let's stop validating we are depending on a corrupt state already
 		}
 
-		correctsRealization.RemainingAmount = correctsRealization.RemainingAmount.Sub(input.Amount)
+		correctsRealization.RemainingAmount = correctsRealization.RemainingAmount.Sub(input.AmountCorrected)
 		realizationsWithRemainingAmountByID[input.CorrectsRealizationID] = correctsRealization
 	}
 
@@ -161,7 +161,7 @@ func (i CreateCorrectionInputs) AsCreateInputs(existingRealizations Realizations
 			Annotations:           input.Annotations,
 			ServicePeriod:         allocation.ServicePeriod,
 			LedgerTransaction:     input.LedgerTransaction,
-			Amount:                input.Amount.Neg(),
+			Amount:                input.AmountCorrected.Neg(),
 			Type:                  TypeCorrection,
 			CorrectsRealizationID: lo.ToPtr(input.CorrectsRealizationID),
 		}, nil

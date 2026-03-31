@@ -163,6 +163,8 @@ func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) 
 		return fmt.Errorf("create new realization run: %w", err)
 	}
 
+	s.Charge = updatedCharge
+
 	currentRun, err := updatedCharge.GetCurrentRealizationRun()
 	if err != nil {
 		return err
@@ -172,7 +174,7 @@ func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) 
 	if !totals.Total.IsZero() {
 		creditAllocations, err := s.allocateCredits(ctx,
 			usagebased.CreditsOnlyUsageAccruedInput{
-				Charge:           s.Charge,
+				Charge:           updatedCharge,
 				Run:              currentRun,
 				AllocateAt:       storedAtOffset,
 				AmountToAllocate: totals.Total,
